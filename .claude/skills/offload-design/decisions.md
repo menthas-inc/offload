@@ -11,6 +11,27 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-30 · A digest's title counts, overdue rows are named, and its Activity row opens Today
+**Surface:** iOS, Android, web
+**Was:** the morning digest's title was always "Due today" and the evening's "Tomorrow". Overdue rows were a counted sentence, so a morning with nothing due and five overdue read "Due today" over "Five are from last week." In Activity a digest row drew its title alone and opened nothing, so it read "Due today" and went nowhere; no row on either client drew its words, though 024's sketch always had them.
+**Is:** the title says the day in counts and never a person's words, 024's rule for a digest title: "Three today", "Five still open", "One today, three from yesterday", "Two tomorrow". The body names today's rows, then a repeating row's clause, then "Still open:" and the overdue rows in the same three arms, or the overdue rows alone when nothing is due today. Every Activity row draws its words under its title in `--text-body-sm-role`, `--text-secondary` (the Material on-variant on Android), and a digest row opens Today: `/today` on both, gone back down to on the phones rather than pushed over Activity.
+**Why:** the owner's call on 2026-09-30, from four directions sketched in the session, for a notification that says what is in the day rather than a label and a count.
+**Design system impact:** readme, the notifications section: the digest's copy examples become the four titles above, and "Overdue is a second sentence" becomes "what is still open is named after today's list". Any Activity mock draws a digest row with its words under the title and as a door to Today. The switches keep their names, Due today and Tomorrow, and "Due today was off" still names the switch.
+
+### 2026-09-30 · Every composer placeholder fits on one line
+**Surface:** iOS, Android
+**Was:** the kit's twenty placeholders, five of them longer than 25 characters. On the Pixel "Even if it's three things at once" wrapped, and the empty composer grew to two lines to hold it.
+**Is:** 25 characters at most, pinned by a test. "Something you'll want later" is "Something for later", "Don't file it, just drop it" is "Don't file it, drop it", "Even if it's three things at once" is "Several at once is fine", "Type it badly, that's fine" is "Type it badly, it's fine", and "Where does this go? Not your problem" is "Where it goes is on me".
+**Why:** an empty composer should hold its size. The field is about 234dp beside its controls on the Pixel and a little less on a 375pt phone.
+**Design system impact:** `PLACEHOLDERS` in `Composer.jsx` and `M3Composer.jsx` take the five new lines. The readme's composer section can state the 25 character limit.
+
+### 2026-09-30 · The plate's corners and shadow reach both phones
+**Surface:** iOS, Android
+**Was:** the plate was rounded but the band inside it, which clips the prism field, was not, so the field painted square corners over the round ones and both phones drew a straight top edge. The shadow was the old shadow props, which Android reads as `elevation` lit from above, so the plate cast nothing upward there.
+**Is:** the band takes the plate's corners, `--radius-a-xl` on Android and `--radius-lg` on iOS as before. The shadow is `--shadow-sheet` drawn as a box-shadow on both phones, in each theme's value.
+**Why:** seen on the Pixel against the kits, which draw the plate with rounded top corners and an upward shadow.
+**Design system impact:** `M3App.jsx` draws the plate's shadow as a literal, `0 -6px 12px -6px rgba(0,0,0,0.22)`; it should be `var(--shadow-sheet)`, as `App.jsx` already is. The iOS kit rounds the plate at `--radius-xl` while the iOS app has used `--radius-lg` since 009, on the conversation sheet too; one of the two wants settling.
+
 ### 2026-09-30 · Launch holds when nothing answers, and only a 401 is signed out
 **Surface:** iOS, Android, web
 **Was:** launch on the phones sent any failure to `/api/me` to the gate: a 401, a 404, a timeout, no network. The web sent any response that was not ok to the gate, and a fetch that threw held the shell blank for good.
