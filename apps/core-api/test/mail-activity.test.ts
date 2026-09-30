@@ -244,3 +244,27 @@ describe("the conversation shows the person's note, not the forwarded header", (
   });
 });
 
+
+describe("a question a mail turn asks (SEC-1)", () => {
+  it("is marked as derived from somebody else's words", async () => {
+    const trip = await thread(jo, "Health");
+    const { jobId, messageId, turnId } = await forwarded("Parents' evening");
+    const contentId = await file(messageId, trip, "Parents' evening");
+    const res = await app.inject({
+      method: "POST",
+      url: "/internal/v1/turn-result",
+      headers: { authorization: `Bearer ${env.INTERNAL_SERVICE_TOKEN}` },
+      payload: {
+        outcome: "answered",
+        jobId,
+        usage: [],
+        questions: [
+          { field: "date", title: "Parents' evening", contentId, options: [{ label: "Thursday", value: "2026-10-08" }] },
+        ],
+      },
+    });
+    expect(res.json()).toEqual({ status: "written" });
+    const q = await db.selectFrom("questions").select("derived_from_untrusted").where("turn_id", "=", turnId).executeTakeFirstOrThrow();
+    expect(q.derived_from_untrusted).toBe(true);
+  });
+});

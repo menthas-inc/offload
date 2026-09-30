@@ -17,6 +17,14 @@ import styles from "../app/(shell)/shell.module.css";
 import run from "../app/(app)/auth.module.css";
 
 export const MAIL_ADDRESS = "over@to.offload.club";
+/** A static card on our own site; the browser hands it to the system's contacts. */
+export const MAIL_CARD_PATH = "/offload.vcf";
+
+/** First run offers Mail once: in a first run, to an address mail can come
+ *  from. Never on the name-only path somebody who finished first run takes. */
+export function mailOffered(me: { mailAvailable: boolean; needsFirstRun: boolean }): boolean {
+  return me.mailAvailable && me.needsFirstRun;
+}
 
 export function MailBlock({
   email,
@@ -58,16 +66,24 @@ export function MailBlock({
             <span className={styles.settingsTitle}>{MAIL_ADDRESS}</span>
           </span>
           <span className={styles.settingsValue}>
-            <button type="button" className={styles.sectionAction} onClick={() => void copy()}>
+            <button
+              type="button"
+              className={`${styles.sectionAction} ${styles.mailCopy}`}
+              aria-label="Copy the address"
+              onClick={() => void copy()}
+            >
               Copy
             </button>
           </span>
         </div>
         {/* A static card on our own site, downloaded: the browser hands it to
             the system's contacts, and nothing asks for a permission. */}
-        <a href="/offload.vcf" download="offload.vcf" className={`${styles.settingsRow} ${styles.settingsRowLast}`}>
+        <a href={MAIL_CARD_PATH} download="offload.vcf" className={`${styles.settingsRow} ${styles.settingsRowLast}`}>
           <span className={styles.settingsText}>
             <span className={styles.settingsTitle}>Add to contacts</span>
+          </span>
+          <span className={styles.settingsChevron} aria-hidden="true">
+            <Icon name="chevron-right" size={15} />
           </span>
         </a>
       </Group>
@@ -84,17 +100,16 @@ export function MailBlock({
 
 export const MAIL_OFFER_TITLE = "Forward what matters";
 
-/** First run's Mail step: the calendar step's two facts and its button, the
- *  page drawing the mark and the title around them. Adding the contact moves
- *  on, as Not now does; nothing here can fail in a way worth a line. */
-export function MailOffer({ email, onDone }: { email: string; onDone: () => void }) {
+/** First run's Mail step: the calendar step's two facts, the page drawing the
+ *  mark and the title around them and the button in its own footer, where
+ *  the calendar step's Connect sits. */
+export function MailOffer({ email }: { email: string }) {
   const facts = [
     ["mail", "Send it an email.", `Forward anything to ${MAIL_ADDRESS} and it's filed.`],
     ["lock", "Only from your address.", `Mail from ${email} is the only mail it accepts.`],
   ] as const;
   return (
-    <>
-      <div className={run.consent}>
+    <div className={run.consent}>
         {facts.map(([icon, head, rest]) => (
           <p key={head} className={run.runFact}>
             <Icon name={icon} size={16} />
@@ -103,12 +118,16 @@ export function MailOffer({ email, onDone }: { email: string; onDone: () => void
             </span>
           </p>
         ))}
-      </div>
-      <div className={run.runFoot}>
-        <a className={run.runButton} href="/offload.vcf" download="offload.vcf" onClick={onDone}>
-          Add to contacts
-        </a>
-      </div>
-    </>
+    </div>
+  );
+}
+
+/** Adding the contact moves on, as Not now does; nothing here can fail in a
+ *  way worth a line. */
+export function MailOfferButton({ onDone }: { onDone: () => void }) {
+  return (
+    <a className={run.runButton} href={MAIL_CARD_PATH} download="offload.vcf" onClick={onDone}>
+      Add to contacts
+    </a>
   );
 }

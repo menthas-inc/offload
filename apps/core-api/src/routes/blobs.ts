@@ -792,7 +792,13 @@ export async function blobRoutes(app: App): Promise<void> {
         const claimable = keep.filter((id) => live.some((b) => b.id === id && (b.message_id === null || b.message_id === messageId)));
         if (claimable.length > 0) {
           await trx.updateTable("blobs").set({ message_id: messageId }).where("id", "in", claimable).execute();
-          await trx.updateTable("messages").set({ type: "image" }).where("id", "=", messageId).where("text", "is", null).execute();
+          await trx
+            .updateTable("messages")
+            .set({ type: "image" })
+            .where("id", "=", messageId)
+            .where("account_id", "=", accountId)
+            .where("text", "is", null)
+            .execute();
         }
         const drop = live.filter((b) => b.message_id === null && !claimable.includes(b.id)).map((b) => b.id);
         if (drop.length > 0) {

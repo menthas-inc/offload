@@ -23,7 +23,7 @@ const pub = (k: typeof pair.publicKey) => k.export({ type: "spki", format: "der"
 /** Answers the key for `t1._domainkey.<domain>` for this domain and
  *  `other.test`; anything else does not exist. `down` answers as a resolver
  *  that timed out. */
-export function resolver(opts: { down?: boolean } = {}) {
+export function resolver(opts: { down?: boolean | undefined } = {}) {
   return async (name: string, rrtype: string): Promise<string[][]> => {
     if (opts.down) throw Object.assign(new Error("timeout"), { code: "ETIMEOUT" });
     if (rrtype === "TXT" && name === `${SELECTOR}._domainkey.${DOMAIN}`) return [[`v=DKIM1; k=rsa; p=${pub(pair.publicKey)}`]];

@@ -45,7 +45,10 @@ async function received(accountId: string | null, outcome: ReceiveOutcome, count
   });
 }
 
-export async function receiveMail(raw: Buffer, opts: { resolver?: Resolver; now?: Date } = {}): Promise<ReceiveOutcome> {
+export async function receiveMail(
+  raw: Buffer,
+  opts: { resolver?: Resolver | undefined; now?: Date | undefined } = {},
+): Promise<ReceiveOutcome> {
   const checked = await checkSender(raw, opts);
   if (checked.outcome !== "accepted" || !checked.accountId || !checked.signature) {
     if (checked.accountId && TOLD.has(checked.outcome)) await recordRefused(checked.accountId);

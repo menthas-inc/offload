@@ -64,11 +64,26 @@ def _small(original: bytes) -> str:
     return base64.b64encode(out.getvalue()).decode("ascii")
 
 
+def _readable(originals: list[bytes]) -> list[tuple[int, str]]:
+    """The small copy of each image that opens, beside its index. One that
+    cannot be opened is left out rather than failing the look for the rest."""
+    out: list[tuple[int, str]] = []
+    for index, original in enumerate(originals):
+        try:
+            out.append((index, _small(original)))
+        except Exception as exc:  # noqa: BLE001
+            log.warning("look image unreadable", index=index, error_type=type(exc).__name__)
+    return out
+
+
 async def look(client, model: str, originals: list[bytes]) -> list[int]:
     """The indices of the images to keep, in the order given."""
-    smalls = await asyncio.to_thread(lambda: [_small(o) for o in originals])
+    smalls = await asyncio.to_thread(_readable, originals)
+    if not smalls:
+        return []
+    shown = {index for index, _ in smalls}
     content: list[dict] = []
-    for index, data in enumerate(smalls):
+    for index, data in smalls:
         content.append({"type": "text", "text": f"Image {index}"})
         content.append(
             {
@@ -126,5 +141,5 @@ async def look(client, model: str, originals: list[bytes]) -> list[int]:
                 },
             ]
             continue
-        return sorted({v.index for v in answer.verdicts if v.keep and v.index < len(originals)})
+        return sorted({v.index for v in answer.verdicts if v.keep and v.index in shown})
     raise LookFailed()

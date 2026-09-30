@@ -701,7 +701,7 @@ export async function internalRoutes(app: App): Promise<void> {
         // is the cheapest proof this ran.
         const person = await trx
           .selectFrom("messages")
-          .select(["id", "state"])
+          .select(["id", "state", "source"])
           .where("id", "=", payload.messageId!)
           .where("account_id", "=", accountId)
           .executeTakeFirst();
@@ -901,7 +901,9 @@ export async function internalRoutes(app: App): Promise<void> {
                 turnId: payload.turnId!,
                 // A turn that read a calendar or the web: the flag is a
                 // record, since nothing the model wrote reaches a question.
+                // 026: and a forwarded email, which somebody else wrote.
                 derivedFromUntrusted:
+                  person.source === "mail" ||
                   (payload as { sawApps?: boolean }).sawApps === true ||
                   (result.lookups ?? []).some((l) => l.outcome !== "refused_bound"),
               });

@@ -1163,7 +1163,8 @@
   color: var(--text-tertiary);
 }
 
-/* The email's text, kept to four lines: the rows it filed hold the rest. */
+/* The note they typed above the email, kept to four lines. The email itself
+   is on the rows it filed. */
 .mailBody {
   display: -webkit-box;
   -webkit-box-orient: vertical;

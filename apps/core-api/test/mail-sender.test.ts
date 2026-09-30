@@ -136,7 +136,20 @@ describe("the sender check (AC-3)", () => {
   it("does not spend the signature on a refusal", async () => {
     const stale = await signed(raw(), { signTime: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000) });
     await check(stale);
-    const [{ count }] = (await sql<{ count: string }>`select count(*) from mail_signatures`.execute(db)).rows;
-    expect(Number(count)).toBe(0);
+    const [row] = (await sql<{ count: string }>`select count(*) from mail_signatures`.execute(db)).rows;
+    expect(Number(row?.count)).toBe(0);
+  });
+
+  it("refuses an email carrying more than five signatures, before any key is fetched", async () => {
+    let fetched = 0;
+    const counting = async (name: string, rrtype: string) => {
+      fetched++;
+      return resolver()(name, rrtype);
+    };
+    let message = await signed(raw());
+    for (let i = 0; i < 5; i++) message = await signed(message.toString());
+    expect(await checkSender(message, { resolver: counting })).toEqual({ outcome: "from_shape", accountId: null });
+    expect(fetched).toBe(0);
   });
 });
+

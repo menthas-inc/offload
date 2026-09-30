@@ -22,6 +22,7 @@ import { db } from "../db.js";
 
 export const ADDRESS = "over@to.offload.club";
 const STALE_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_SIGNATURES = 5;
 
 export type SenderOutcome =
   | "accepted"
@@ -99,13 +100,19 @@ async function accountFor(address: string): Promise<string | null> {
   return row?.id ?? null;
 }
 
-export async function checkSender(raw: Buffer, opts: { resolver?: Resolver; now?: Date } = {}): Promise<SenderResult> {
+export async function checkSender(
+  raw: Buffer,
+  opts: { resolver?: Resolver | undefined; now?: Date | undefined } = {},
+): Promise<SenderResult> {
   const headers = headersOf(raw);
   const count = (key: string) => headers.filter((h) => h.key === key).length;
 
   // One From, one To at most, one Cc at most: a duplicate of a signed header
   // is how an unsigned copy rides beside a signed one.
   if (count("from") !== 1 || count("to") > 1 || count("cc") > 1) return { outcome: "from_shape", accountId: null };
+  // Each signature is a key lookup on a domain the sender chose, before any
+  // account is known. A real email carries one or two.
+  if (count("dkim-signature") > MAX_SIGNATURES) return { outcome: "from_shape", accountId: null };
   const fromValue = libmime.decodeWords(headers.find((h) => h.key === "from")!.value);
   const fromAddresses = addresses(fromValue);
   if (fromAddresses.length !== 1) return { outcome: "from_shape", accountId: null };

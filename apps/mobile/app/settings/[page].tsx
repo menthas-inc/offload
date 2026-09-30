@@ -611,7 +611,7 @@ function Apps() {
             title="Mail"
             // 026. The address as its note and no value: nothing here is
             // switched on or off. Unavailable for an Apple hidden email.
-            note={me.mailAvailable ? MAIL_ADDRESS : "Forward an email to offload."}
+            note={me.mailAvailable ? MAIL_ADDRESS : MAIL_RELAY_NOTE}
             value={me.mailAvailable ? undefined : "Unavailable"}
             onPress={() => router.push("/settings/mail")}
             last
@@ -665,7 +665,13 @@ function MailPage({ toast }: { toast: ToastState }) {
         <Row
           title={MAIL_ADDRESS}
           value="Copy"
-          onPress={() => void Clipboard.setStringAsync(MAIL_ADDRESS).then(() => toast.show("Copied"))}
+          chevron={false}
+          onPress={() =>
+            void Clipboard.setStringAsync(MAIL_ADDRESS)
+              .then(() => toast.show("Copied"))
+              // The address stays on screen to select; nothing else to offer.
+              .catch(() => undefined)
+          }
         />
         <Row
           title="Add to contacts"

@@ -76,12 +76,16 @@ describe("first run's Mail step (AC-20)", () => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     const done = vi.fn();
     const host = document.body.appendChild(document.createElement("div"));
-    await act(async () => createRoot(host).render(<MailOffer email="jo@hey.com" onDone={done} />));
+    await act(async () => createRoot(host).render(<MailOffer email="jo@hey.com" />));
     const text = host.textContent ?? "";
     expect(MAIL_OFFER_TITLE).toBe("Forward what matters");
     expect(text).toContain("Send it an email. Forward anything to over@to.offload.club and it's filed.");
     expect(text).toContain("Only from your address. Mail from jo@hey.com is the only mail it accepts.");
-    const add = host.querySelector("a")!;
+    expect(host.querySelector("a")).toBeNull();
+    const { MailOfferButton } = await import("../src/components/MailBlock");
+    const foot = document.body.appendChild(document.createElement("div"));
+    await act(async () => createRoot(foot).render(<MailOfferButton onDone={done} />));
+    const add = foot.querySelector("a")!;
     expect(add.textContent).toBe("Add to contacts");
     expect(add.getAttribute("href")).toBe("/offload.vcf");
     await act(async () => add.dispatchEvent(new MouseEvent("click", { bubbles: true })));
@@ -130,5 +134,33 @@ describe("an email's row in Activity (AC-15, AC-17)", () => {
     const { doorOf } = await import("../src/lib/notifications");
     expect(doorOf({ ...base, mailOutcome: "refused", messageId: null })).toBe("/settings/apps");
     expect(doorOf({ ...base, mailOutcome: "over_limit", messageId: null })).toBeNull();
+  });
+});
+
+describe("when first run offers Mail (AC-20)", () => {
+  it("offers it in a first run to an address mail can come from, and never on the name-only path", async () => {
+    const { mailOffered } = await import("../src/components/MailBlock");
+    expect(mailOffered({ mailAvailable: true, needsFirstRun: true })).toBe(true);
+    expect(mailOffered({ mailAvailable: true, needsFirstRun: false })).toBe(false);
+    expect(mailOffered({ mailAvailable: false, needsFirstRun: true })).toBe(false);
+  });
+});
+
+describe("the Copy control (AC-18)", () => {
+  it("names what it copies", async () => {
+    const { host } = await render("jo@hey.com", true);
+    const copy = [...host.querySelectorAll("button")].find((b) => b.textContent === "Copy")!;
+    expect(copy.getAttribute("aria-label")).toBe("Copy the address");
+  });
+});
+
+describe("one address everywhere", () => {
+  it("is the same in the server, both clients and the card", async () => {
+    const { readFileSync } = await import("node:fs");
+    const root = `${process.cwd()}/..`;
+    const { MAIL_ADDRESS } = await import("../src/components/MailBlock");
+    expect(readFileSync(`${root}/core-api/src/mail-in/sender.ts`, "utf8")).toContain(`export const ADDRESS = "${MAIL_ADDRESS}";`);
+    expect(readFileSync(`${root}/mobile/lib/gate.ts`, "utf8")).toContain(`export const MAIL_ADDRESS = "${MAIL_ADDRESS}";`);
+    expect(readFileSync(`${process.cwd()}/public/offload.vcf`, "utf8")).toContain(`EMAIL;TYPE=INTERNET:${MAIL_ADDRESS}`);
   });
 });

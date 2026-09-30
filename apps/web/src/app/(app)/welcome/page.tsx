@@ -33,7 +33,7 @@ import {
   ProviderMark,
 } from "../../../components/ConnectBlock";
 import { NAME_MAX } from "../../../lib/name";
-import { MailOffer, MAIL_OFFER_TITLE } from "../../../components/MailBlock";
+import { MailOffer, MailOfferButton, MAIL_OFFER_TITLE, mailOffered } from "../../../components/MailBlock";
 import { Icon } from "../../../components/Icon";
 import styles from "../auth.module.css";
 
@@ -140,7 +140,7 @@ export default function WelcomePage() {
   /** The next offer after `current`, or Today when there is none left. */
   function offerAfter(current: "mail" | "calendar" | null) {
     const me = state.status === "ready" ? state.me : null;
-    if (current === null && me?.mailAvailable) return setOffering("mail");
+    if (current === null && me && mailOffered(me)) return setOffering("mail");
     if (current !== "calendar" && calendars.available && calendars.connections.length === 0) {
       return setOffering("calendar");
     }
@@ -160,7 +160,7 @@ export default function WelcomePage() {
   // nothing else, rather than three screens of introduction they have already
   // seen and a consent they have already given.
   const nameOnly = !state.me.needsFirstRun;
-  const offerAhead = state.me.mailAvailable || (calendars.available && calendars.connections.length === 0);
+  const offerAhead = mailOffered(state.me) || (calendars.available && calendars.connections.length === 0);
 
   const screen = nameOnly ? undefined : SCREENS[step];
   const naming = nameOnly || step === SCREENS.length;
@@ -230,7 +230,7 @@ export default function WelcomePage() {
         </div>
 
         {offering === "mail" && state.status === "ready" ? (
-          <MailOffer email={state.me.email} onDone={() => offerAfter("mail")} />
+          <MailOffer email={state.me.email} />
         ) : offering ? (
           /* Two facts, not a feature list: what offload reads, and what it does
              back, both as sentences rather than switches, per the 5 September
@@ -306,7 +306,9 @@ export default function WelcomePage() {
               That did not go through. Check your connection and try again.
             </p>
           ) : null}
-          {offering === "mail" ? null : offering ? (
+          {offering === "mail" ? (
+            <MailOfferButton onDone={() => offerAfter("mail")} />
+          ) : offering ? (
             <>
               <a className={styles.runButton} href={connectUrl("first-run")}>
                 {CONNECT_BUTTON}
