@@ -857,7 +857,9 @@ export async function takeDump(
     if (!recent) await closeOpenQuestions(trx, { accountId, exceptConversationId: conversationId });
     // And the one open in this conversation, if any, rides on the job so the
     // worker reads the message as a possible answer before anything else.
-    const openQuestionId = await openQuestionIn(trx, conversationId);
+    // 026. Never for an email: somebody else's words are not the person's
+    // answer, and the question stays open for them.
+    const openQuestionId = mail ? null : await openQuestionIn(trx, conversationId);
 
     // onConflict, not just the check above.
     //
@@ -1024,6 +1026,9 @@ export async function takeDump(
         conversationId,
         turnId,
         ...(openQuestionId ? { openQuestionId } : {}),
+        // 026. The worker files an email as a dump and never reads it as a
+        // question to answer.
+        ...(mail ? { mail: true } : {}),
         ...(mail && mail.candidates.length > 0 ? { mailLook: mail.candidates } : {}),
       },
       priority: PRIORITY.interactive,

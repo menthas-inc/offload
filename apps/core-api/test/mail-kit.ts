@@ -5,7 +5,8 @@
 // code reads; these prove the rules, one altered respect at a time, without a
 // network and without a signature that ages out of the seven-day window.
 
-import { generateKeyPairSync } from "node:crypto";
+import { generateKeyPairSync, randomBytes } from "node:crypto";
+import { PNG } from "pngjs";
 import { dkimSign } from "mailauth/lib/dkim/sign.js";
 import { promote } from "../src/admin/promote.js";
 import { db } from "../src/db.js";
@@ -87,4 +88,23 @@ export async function person(email = `${uuidv7()}@${DOMAIN}`): Promise<string> {
   if (outcome.status !== "invited") throw new Error(outcome.status);
   await db.updateTable("accounts").set({ state: "active" }).where("id", "=", outcome.accountId).execute();
   return outcome.accountId;
+}
+
+/** An email carrying `count` noise PNGs of 320 by 400, each past the rules. */
+export function withImages(count: number, body = "Boarding passes attached"): string {
+  const parts = ["--b1", "Content-Type: text/plain; charset=utf-8", "", body];
+  for (let i = 0; i < count; i++) {
+    const image = new PNG({ width: 320, height: 400 });
+    image.data = randomBytes(320 * 400 * 4);
+    parts.push(
+      "--b1",
+      "Content-Type: image/png",
+      "Content-Transfer-Encoding: base64",
+      `Content-Disposition: attachment; filename="pass${i}.png"`,
+      "",
+      PNG.sync.write(image).toString("base64").replace(/.{76}/g, "$&\r\n"),
+    );
+  }
+  parts.push("--b1--", "");
+  return raw({ body: parts.join("\r\n") }).replace("Content-Type: text/plain; charset=utf-8", 'Content-Type: multipart/mixed; boundary="b1"');
 }

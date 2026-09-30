@@ -147,3 +147,25 @@ describe("the caps (AC-8)", () => {
     expect(rows).toEqual([{ mail_outcome: "over_limit" }]);
   });
 });
+
+describe("the job (AC-5)", () => {
+  it("says it is an email, and never offers the email as the answer to an open question", async () => {
+    const first = await receive(await signed(raw({ body: "first" })));
+    expect(first).toBe("accepted");
+    const [message] = await messages();
+    await db
+      .insertInto("questions")
+      .values({
+        account_id: jo, conversation_id: message!.conversation_id, message_id: message!.id, turn_id: message!.turn_id,
+        ordinal: 1, options: JSON.stringify([]), field: "date", text: "When?", state: "open",
+      } as never)
+      .execute();
+    await receive(await signed(raw({ body: "second" })));
+    const payloads = (await jobs()).map((j) => j.payload as Record<string, unknown>);
+    expect(payloads.every((p) => p.mail === true)).toBe(true);
+    expect(payloads.some((p) => "openQuestionId" in p)).toBe(false);
+    const question = await db.selectFrom("questions").select("state").where("message_id", "=", message!.id).executeTakeFirstOrThrow();
+    expect(question.state).toBe("open");
+  });
+});
+

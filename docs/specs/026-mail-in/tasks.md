@@ -24,8 +24,8 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ## 2. The turn (agent and API)
 
-- [ ] **T2.1** `/internal/v1/mail/:messageId/look`: refuses an id not in the job's `mailLook`; claims kept ids in email order, at most ten; sets `type = 'image'`; deletes the rest; a second call changes nothing. *(AC-9, SEC-2)*
-- [ ] **T2.2** `harness/look.py`: a stubbed model that answers with the real schema, and one that answers malformed twice, which raises and is caught as keep-nothing with `look_failed` logged. The stub runs the real validation (CLAUDE.md, *a stub that always succeeds*). *(AC-9, OFF-5)*
+- [x] **T2.1** `/internal/v1/mail/:messageId/look`: refuses an id not in the job's `mailLook`; claims kept ids in email order, at most ten; sets `type = 'image'`; deletes the rest; a second call changes nothing. *(AC-9, SEC-2)*
+- [x] **T2.2** `harness/look.py`: a stubbed model that answers with the real schema, and one that answers malformed twice, which raises and is caught as keep-nothing with `look_failed` logged. The stub runs the real validation (CLAUDE.md, *a stub that always succeeds*). *(AC-9, OFF-5)*
 - [ ] **T2.3** `context.py` and `build_blocks`: for a mail message, the label block, the note block and the forwarded block are separate; the forwarded block is clamped at 12,000 characters with reply history trimmed; a message with `noteLength = 0` has no note block; a direct email has no forwarded block; the subject and name are clamped and stripped. *(AC-11, OFF-8)*
 - [ ] **T2.4** `plan_v2.md`: the *What you are reading* paragraph names the third kind. The prompt-text test that pins the paragraph is updated red first. *(AC-11, SEC-1)*
 - [ ] **T2.5** `sawMail`: a note written in a mail turn is stored with `derived_from_untrusted`, derived from the stored message and not the payload (a payload claiming `sawMail: false` changes nothing); it appears in the prompt's `fromApps` list afterwards; the email message itself is still returned by search. *(AC-12)*
