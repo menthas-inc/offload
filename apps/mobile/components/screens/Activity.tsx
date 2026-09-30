@@ -126,6 +126,17 @@ export default function Activity() {
                       {whenOf(row.occurredAt, here, zone)}
                     </Text>
                   </View>
+                  {/* 024's words under the title: what was sent, or for 026
+                      the email's subject and what it left out. */}
+                  {row.body ? (
+                    <Text
+                      className={`mt-space-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+                      style={{ fontSize: 13.5, lineHeight: 19 }}
+                      numberOfLines={2}
+                    >
+                      {row.body}
+                    </Text>
+                  ) : null}
                   {tag ? (
                     <View
                       className={`mt-space-2 justify-center self-start rounded-sm px-space-2 ${

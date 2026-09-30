@@ -94,13 +94,20 @@ describe("an email in the conversation (AC-5)", () => {
     const { SentMail } = await import("../src/components/shell/SentMail");
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     const host = document.body.appendChild(document.createElement("div"));
-    await act(async () => createRoot(host).render(<SentMail subject="Booking LX3K9" text={"Put this with the trip\n\nFlights on 3 and 10 October."} />));
+    await act(async () => createRoot(host).render(<SentMail subject="Booking LX3K9" note="Put this with the trip" />));
     const glyph = [...host.querySelectorAll("span")].find((span) => (span as HTMLElement).style.maskImage?.includes("mail"));
     expect(glyph).toBeTruthy();
     const text = host.textContent ?? "";
     expect(text.startsWith("Booking LX3K9")).toBe(true);
     expect(text).toContain("Forwarded");
     expect(text).toContain("Put this with the trip");
+  });
+
+  it("draws the subject alone when they forwarded without a note", async () => {
+    const { SentMail } = await import("../src/components/shell/SentMail");
+    const host = document.body.appendChild(document.createElement("div"));
+    await act(async () => createRoot(host).render(<SentMail subject="Your appointment is confirmed" note="" />));
+    expect(host.textContent).toBe("Your appointment is confirmedForwarded");
   });
 });
 

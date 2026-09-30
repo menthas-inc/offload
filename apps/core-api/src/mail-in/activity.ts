@@ -204,6 +204,8 @@ export async function undoMailRow(accountId: string, activityId: string): Promis
   if (row.undone_at !== null || !mailUndoOpen(row.occurred_at)) return "not_undoable";
   const { undoTurn } = await import("../routes/dumps.js");
   await undoTurn(accountId, row.turn_id, { keepMessageId: row.message_id, since: row.occurred_at });
-  await db.updateTable("activity").set({ undone_at: sql`now()` }).where("id", "=", row.id).execute();
+  // The row it opened goes with the purge, and `content_id` cascades on
+  // delete; the record stays, pointing at nothing, as Undone.
+  await db.updateTable("activity").set({ undone_at: sql`now()`, content_id: null }).where("id", "=", row.id).execute();
   return "undone";
 }

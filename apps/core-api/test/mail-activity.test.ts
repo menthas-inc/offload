@@ -166,6 +166,21 @@ describe("Undo from Activity (AC-16)", () => {
     expect(after.undone_at).not.toBeNull();
   });
 
+  it("keeps the record after the purge takes the undone rows", async () => {
+    const trip = await thread(jo, "Health");
+    const { jobId, messageId } = await forwarded("Your appointment is confirmed");
+    const dentist = await file(messageId, trip, "Dentist");
+    await result(jobId);
+    const [row] = await rows();
+    expect(row!.content_id).toBe(dentist);
+    await undo(row!.id);
+    // The purge's hard delete, eight seconds on.
+    await db.deleteFrom("content").where("id", "=", dentist).execute();
+    const kept = await db.selectFrom("activity").select(["id", "undone_at", "content_id"]).where("id", "=", row!.id).executeTakeFirst();
+    expect(kept).toMatchObject({ id: row!.id, content_id: null });
+    expect(kept!.undone_at).not.toBeNull();
+  });
+
   it("leaves a row somebody changed since", async () => {
     const { row, out, back } = await filedRow();
     await db.updateTable("content").set({ title: "Flight out, seat 12A", updated_at: sql`now() + interval '1 minute'` }).where("id", "=", out).execute();
@@ -211,7 +226,7 @@ describe("the conversation draws an email as one (AC-5)", () => {
     await forwarded("Your appointment is confirmed");
     const tail = (await as(app, await signIn(jo)).get("/v1/conversations/current")).json();
     const [message] = tail.messages;
-    expect(message.mail).toEqual({ subject: "Your appointment is confirmed" });
+    expect(message.mail).toEqual({ subject: "Your appointment is confirmed", note: "Flights on 3 and 10 October. A PDF is attached." });
     const { dump } = await import("./labels-kit.js");
     const other = await person();
     await dump(other, "milk");
@@ -219,3 +234,13 @@ describe("the conversation draws an email as one (AC-5)", () => {
     expect(theirs.messages[0].mail).toBeNull();
   });
 });
+
+describe("the conversation shows the person's note, not the forwarded header", () => {
+  it("carries the note above the forwarded part", async () => {
+    const body = "for the trip\r\n\r\n---------- Forwarded message ---------\r\nFrom: a@b.test\r\n\r\nFlights.";
+    await forwarded("Booking LX3K9", body);
+    const tail = (await as(app, await signIn(jo)).get("/v1/conversations/current")).json();
+    expect(tail.messages[0].mail).toEqual({ subject: "Booking LX3K9", note: "for the trip" });
+  });
+});
+

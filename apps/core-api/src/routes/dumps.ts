@@ -258,6 +258,13 @@ const cancelResponse = z.object({
   stopped: z.boolean(),
 });
 
+/** 026. A forwarded email as the conversation draws it: its subject, and the
+ *  note the person typed above the forwarded part. */
+function mailOnWire(text: string | null, attrs: unknown): { subject: string; note: string } {
+  const mail = (attrs as { mail?: { subject?: string; noteLength?: number } } | null)?.mail ?? {};
+  return { subject: mail.subject ?? "", note: (text ?? "").slice(0, mail.noteLength ?? 0).trim() };
+}
+
 /** 020. A photo on a person's message, as the client draws it. */
 const photoOnWire = z.object({
   blobId: z.string(),
@@ -326,7 +333,7 @@ const currentConversation = z.object({
       voice: voiceOnWire.nullable(),
       /** 026. A forwarded email's subject, which the conversation draws as its
        *  first line; null on everything else. */
-      mail: z.object({ subject: z.string() }).nullable(),
+      mail: z.object({ subject: z.string(), note: z.string() }).nullable(),
       state: messageState,
       /** What an Undo would reverse. The whole turn, not this row. */
       turnId: z.string(),
@@ -1350,10 +1357,9 @@ export async function dumpRoutes(app: App): Promise<void> {
           text: row.text,
           photos: photos.get(row.id) ?? [],
           voice: voices.get(row.id) ?? null,
-          mail:
-            row.source === "mail"
-              ? { subject: (row.attrs as { mail?: { subject?: string } } | null)?.mail?.subject ?? "" }
-              : null,
+          // The note they typed above the forwarded part, never the forwarded
+          // header: the rows it filed hold the email.
+          mail: row.source === "mail" ? mailOnWire(row.text, row.attrs) : null,
           state: row.state,
           turnId: row.turn_id,
           createdAt: new Date(row.created_at).toISOString(),

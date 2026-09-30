@@ -433,8 +433,7 @@ function Yours({
         }}
       >
         {/* 026. A forwarded email: the glyph, the subject on one line and
-            Forwarded after it, then the email's text kept to four lines. The
-            rows it filed hold the rest. */}
+            Forwarded after it. */}
         {turn.mail ? (
           <View className="flex-row items-center gap-space-2">
             <Glyph name="mail" size={14} color={COLOR.iconOnWell} />
@@ -450,13 +449,15 @@ function Yours({
             </Text>
           </View>
         ) : null}
-        {turn.text ? (
+        {/* 026. An email shows the note they typed above it, never the
+            forwarded header; the rows it filed hold the email. */}
+        {(turn.mail ? turn.mail.note : turn.text) ? (
           <Text
             className={`font-core text-ink-950 ${turn.mail ? "mt-space-2" : ""}`}
             style={{ fontSize: 15, lineHeight: 22 }}
             numberOfLines={turn.mail ? 4 : undefined}
           >
-            {turn.text}
+            {turn.mail ? turn.mail.note : turn.text}
           </Text>
         ) : null}
         {/* 021. The voice note it carried, between the words and the photos. */}

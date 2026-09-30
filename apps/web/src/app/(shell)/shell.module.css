@@ -2719,6 +2719,19 @@ a.actRow:hover {
   font: var(--weight-medium) calc(15px * var(--type-scale)) / 1.35 var(--font-core);
 }
 
+/* 024's words under the title, one line quieter than it, two at most. */
+.actBody {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  margin-top: var(--space-1);
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
 .actWhen {
   font: var(--text-numeric-role);
   font-size: calc(11.5px * var(--type-scale));

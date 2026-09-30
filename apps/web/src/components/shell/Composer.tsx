@@ -116,7 +116,7 @@ interface Turn {
   /** 021. The voice note it carried, with its transcript once written. */
   voice?: VoiceOnWire | null;
   /** 026. A forwarded email: its subject heads the bubble. */
-  mail?: { subject: string } | null;
+  mail?: { subject: string; note: string } | null;
   /** The send itself did not land, so nothing on the server knows this turn.
    *  Drawn as the failed state, with different words: the dump is not saved,
    *  and Try again puts the words back in the field. Local only, never on the
@@ -1029,7 +1029,7 @@ export function Composer({
                   turn.state === "failed" || turn.state === "partial" ? true : undefined
                 }
               >
-                {turn.mail ? <SentMail subject={turn.mail.subject} text={turn.text} /> : turn.text}
+                {turn.mail ? <SentMail subject={turn.mail.subject} note={turn.mail.note} /> : turn.text}
                 {turn.voice ? <VoiceNotePlayer voice={turn.voice} inert={recording} /> : null}
                 {turn.photos?.length ? (
                   <span className={styles.sentPhotos}>
@@ -1447,7 +1447,12 @@ function conversationTitle(turns: Turn[]): string {
   // One line in the header, whatever the dump's own breaks. 021: a voice
   // note reads as its words once written down, and as "Voice note, 0:14"
   // until then.
-  const said = first.voice?.transcribed ? `${first.text} ${first.voice.transcript ?? ""}` : first.text;
+  // 026. An email reads as the note they typed, or its subject.
+  const said = first.mail
+    ? first.mail.note || first.mail.subject
+    : first.voice?.transcribed
+      ? `${first.text} ${first.voice.transcript ?? ""}`
+      : first.text;
   const text = said.replace(/\s+/g, " ").trim() || (first.voice ? `Voice note, ${mmss(first.voice.durationMs)}` : "");
   return text.length > 70 ? `${text.slice(0, 70)}…` : text;
 }

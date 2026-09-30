@@ -139,7 +139,7 @@ export interface Turn {
   /** 021. The voice note it carried, with its transcript once written. */
   voice?: VoiceOnWire | null;
   /** 026. A forwarded email: its subject heads the bubble. */
-  mail?: { subject: string } | null;
+  mail?: { subject: string; note: string } | null;
   /** The send itself did not land, so nothing on the server knows this turn.
    *  Drawn as the failed state with different words: the dump is not saved,
    *  and Try again puts the words back in the field. Local only, never on the
