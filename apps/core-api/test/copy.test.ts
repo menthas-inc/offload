@@ -26,7 +26,7 @@ const RETIRED = /\b(thing|things|item|items)\b/i;
 describe("the three arms", () => {
   it("names one, lists two to four, and counts past four", () => {
     expect(digestCopy("morning", [row({ title: "Pay the rent" })], [], ZONE, TODAY)).toEqual({
-      title: "Due today",
+      title: "One today",
       body: "Pay the rent.",
     });
     expect(digestCopy("morning", [row({ title: "Pay the rent" }), row({ title: "Call the clinic" })], [], ZONE, TODAY).body).toBe(
@@ -52,9 +52,26 @@ describe("the three arms", () => {
     ).toBe("Pay the rent, Call the clinic, and three more.");
   });
 
-  it("the titles are exactly Due today and Tomorrow", () => {
-    expect(digestCopy("evening", [row({ title: "Dentist", day: "2026-09-23" })], [], ZONE, TODAY).title).toBe("Tomorrow");
-    expect(digestCopy("morning", [row({ title: "Dentist" })], [], ZONE, TODAY).title).toBe("Due today");
+  // 2026-09-30, the owner's call: the title is the day's shape in counts.
+  // It is never a person's words, 024's rule for a digest title. It was "Due today" on every morning, including one with
+  // nothing due today and five overdue.
+  it("the title counts what is due and what is still open, and names nothing", () => {
+    const three = ["Pay the rent", "Yoga", "Call Ana"].map((title) => row({ title }));
+    expect(digestCopy("morning", three, [], ZONE, TODAY).title).toBe("Three today");
+    expect(digestCopy("morning", [row({ title: "Dentist" })], [], ZONE, TODAY).title).toBe("One today");
+    const five = ["a", "b", "c", "d", "e"].map((title) => row({ title, day: "2026-09-15" }));
+    expect(digestCopy("morning", [], five, ZONE, TODAY).title).toBe("Five still open");
+    const late = ["a", "b", "c"].map((title) => row({ title, day: "2026-09-21" }));
+    expect(digestCopy("morning", [row({ title: "Yoga" })], late, ZONE, TODAY).title).toBe("One today, three from yesterday");
+    expect(digestCopy("morning", [row({ title: "Yoga" })], [row({ title: "a", day: "2026-09-19" })], ZONE, TODAY).title).toBe(
+      "One today, one from Saturday",
+    );
+    expect(digestCopy("morning", [row({ title: "Yoga" })], [row({ title: "a", day: "2026-09-15" })], ZONE, TODAY).title).toBe(
+      "One today, one from last week",
+    );
+    expect(digestCopy("evening", [row({ title: "Dentist", day: "2026-09-23" })], [], ZONE, TODAY).title).toBe("One tomorrow");
+    const twelve = Array.from({ length: 12 }, (_, i) => row({ title: `Row ${i}`, day: "2026-09-23" }));
+    expect(digestCopy("evening", twelve, [], ZONE, TODAY).title).toBe("12 tomorrow");
   });
 });
 
@@ -94,26 +111,45 @@ describe("what a row says about itself", () => {
   });
 });
 
-describe("the overdue sentence", () => {
-  it("is a second sentence, one for the count, from the day or from last week", () => {
-    const today = [row({ title: "Pay the rent" })];
+describe("what is still open", () => {
+  // 2026-09-30: overdue rows are named, not only counted. The morning that
+  // said "Five are from last week." now says which five.
+  it("is named after today's list, with the same three arms", () => {
+    const today = [row({ title: "Yoga", type: "event", at: "2026-09-22T06:00:00.000Z", allDay: false })];
+    const late = ["Call the plumber", "Pay the rent", "Book the ferry"].map((title) => row({ title, day: "2026-09-21" }));
+    expect(digestCopy("morning", today, late, ZONE, TODAY).body).toBe(
+      "Yoga at 7:00. Still open: Call the plumber, Pay the rent, and Book the ferry.",
+    );
     expect(digestCopy("morning", today, [row({ title: "Call the clinic", day: "2026-09-15" })], ZONE, TODAY).body).toBe(
-      "Pay the rent. One is from last week.",
+      "Yoga at 7:00. Still open: Call the clinic.",
     );
-    expect(digestCopy("morning", today, [row({ title: "Call the clinic", day: "2026-09-21" })], ZONE, TODAY).body).toBe(
-      "Pay the rent. One is from Monday.",
+  });
+
+  it("is the whole body when nothing is due today, and counts past four", () => {
+    const five = ["Call the plumber", "Renew the gym membership", "c", "d", "e"].map((title) => row({ title, day: "2026-09-15" }));
+    expect(digestCopy("morning", [], five, ZONE, TODAY).body).toBe("Call the plumber, Renew the gym membership, and three more.");
+  });
+
+  it("names another member's row with its author, at most two of theirs, and never an hour", () => {
+    const late = [
+      row({ title: "ferry times", author: "Ana", day: "2026-09-21" }),
+      row({ title: "Drinks", type: "event", at: "2026-09-21T18:30:00.000Z", allDay: false, day: "2026-09-21" }),
+    ];
+    expect(digestCopy("morning", [], late, ZONE, TODAY).body).toBe("Ana's ferry times, and Drinks.");
+  });
+
+  it("shares the two-per-member cap with today's list, so a member is named at most twice in a send", () => {
+    const today = ["ferry times", "a place in Alfama"].map((title) => row({ title, author: "Ana" }));
+    const late = ["the museum", "dinner"].map((title) => row({ title, author: "Ana", day: "2026-09-21" }));
+    expect(digestCopy("morning", today, late, ZONE, TODAY).body).toBe(
+      "Ana's ferry times, and Ana's a place in Alfama. Still open: Two more.",
     );
-    expect(
-      digestCopy(
-        "morning",
-        today,
-        [row({ title: "Call the clinic", day: "2026-09-15" }), row({ title: "Stamps", day: "2026-09-16" })],
-        ZONE,
-        TODAY,
-      ).body,
-    ).toBe("Pay the rent. Two are from last week.");
-    expect(digestCopy("morning", [], [row({ title: "Call the clinic", day: "2026-09-19" })], ZONE, TODAY).body).toBe(
-      "One is from Saturday.",
+  });
+
+  it("comes after a repeating row's clause, which is about today", () => {
+    const bins = row({ title: "Bins", repeating: true });
+    expect(digestCopy("morning", [bins], [row({ title: "Pay the rent", day: "2026-09-21" })], ZONE, TODAY).body).toBe(
+      "Bins is back on Tuesday. Still open: Pay the rent.",
     );
   });
 });

@@ -2719,6 +2719,12 @@ a.actRow:hover {
   font: var(--weight-medium) calc(15px * var(--type-scale)) / 1.35 var(--font-core);
 }
 
+/* 2026-09-30. The words as sent, under the title: a digest's names. */
+.actBody {
+  font: var(--text-body-sm-role);
+  color: var(--text-secondary);
+}
+
 .actWhen {
   font: var(--text-numeric-role);
   font-size: calc(11.5px * var(--type-scale));

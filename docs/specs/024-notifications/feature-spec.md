@@ -14,7 +14,7 @@ Two decisions shape everything below. **A date is not announced; a reminder is.*
 
 ### Vocabulary
 
-A **digest** is one of the two daily sends, **Due today** in the morning and **Tomorrow** in the evening. A digest holding exactly one task is not a digest and carries two verbs, **Done** and **Tomorrow**. The two **people** sends are **Connection requests** and **Added to a shared thread**, and every send has a **switch** of the same name, word for word. A **reminder** is a row whose `is_reminder` the model set; a person can switch one off in 023's sheet and cannot ask for one. **Activity** is the record the bell opens, and each row in it was **sent** or **not sent**. **Today** gains an agenda. In schema and code the nouns are `push_tokens`, `activity`, the `notify_*` account columns, the `account.digest` and `digest.schedule` job kinds, and the Android channel ids `due_today`, `coming_tomorrow`, `people_requests` and `shared_activity`, ids being permanent and invisible. Nothing a person reads says alert, snooze, inbox, unread, badge, notification centre, item or thing; a count stands on its own, and nothing is set in uppercase.
+A **digest** is one of the two daily sends, **Due today** in the morning and **Tomorrow** in the evening, which name the sends and their switches; the notification's own title counts, as below. A digest holding exactly one task is not a digest and carries two verbs, **Done** and **Tomorrow**. The two **people** sends are **Connection requests** and **Added to a shared thread**, and every send has a **switch** of the same name, word for word. A **reminder** is a row whose `is_reminder` the model set; a person can switch one off in 023's sheet and cannot ask for one. **Activity** is the record the bell opens, and each row in it was **sent** or **not sent**. **Today** gains an agenda. In schema and code the nouns are `push_tokens`, `activity`, the `notify_*` account columns, the `account.digest` and `digest.schedule` job kinds, and the Android channel ids `due_today`, `coming_tomorrow`, `people_requests` and `shared_activity`, ids being permanent and invisible. Nothing a person reads says alert, snooze, inbox, unread, badge, notification centre, item or thing; a count stands on its own, and nothing is set in uppercase.
 
 ### What is announced
 
@@ -22,7 +22,7 @@ Reminders with a date, from every thread the person is an accepted member of at 
 
 | Send | When | Carries | Skipped when |
 | --- | --- | --- | --- |
-| Due today | The morning hour in the account's zone, 8:00 by default | Reminders due today, an event reminder happening today, and reminders overdue by one to seven days, as a second sentence | Nothing due today and nothing overdue |
+| Due today | The morning hour in the account's zone, 8:00 by default | Reminders due today, an event reminder happening today, and reminders overdue by one to seven days, named after today's | Nothing due today and nothing overdue |
 | Tomorrow | The evening hour, 19:00 by default | Reminders due tomorrow, an event reminder happening tomorrow, and a repeating reminder whose rule lands tomorrow | Nothing due tomorrow, or the same rows this morning named |
 | A person | When it happens | One person, one thread | Never batched into a digest |
 
@@ -35,15 +35,21 @@ Reminders with a date, from every thread the person is an accepted member of at 
 One template with three arms, so the sentence is testable rather than judged per send. One is named. Two to four are listed. Five or more name the first two and count the rest.
 
 ```
-Due today
-Pay the rent, Ana's ferry times, and three more. One is from last week.
+Three today
+Pay the rent, Ana's ferry times, and Yoga at 7:00.
 
-Tomorrow
+One today, three from yesterday
+Yoga at 7:00. Still open: Call the plumber, Pay the rent, and Book the ferry.
+
+Five still open
+Call the plumber, Renew the gym membership, and three more.
+
+Two tomorrow
 Dentist at 9:00, and the rent. Yoga is back on Tuesday.
 ```
 
-- The title is verb-free and subject-free. **Due today** and **Tomorrow**, never "You have 3 tasks due".
-- Overdue is a second sentence, never a second notification: "One is from last week", "Two are from last week", "One is from Tuesday".
+- The title is verb-free and subject-free and **says the day in counts**: "Three today", "Five still open" when nothing is due today, "One today, three from yesterday" when both, the overdue part from yesterday, a weekday or last week by the oldest row, and "Two tomorrow" in the evening. Never "You have 3 tasks due", and **never a person's words**, as a digest title never was. *Amended 2026-09-30: the titles were fixed, Due today and Tomorrow, and a morning with nothing due today and five overdue said "Due today" over "Five are from last week."*
+- **What is still open is named, never a second notification**: after today's list as "Still open:" and the same three arms, or as the whole body when nothing is due today. An overdue event is named without its hour. *Amended 2026-09-30: it was counted and never named, "One is from last week".*
 - An event says its hour. A task says nothing about time even when it has one.
 - **Another member's row is named with its author**, as *Ana's ferry times*. Yours are never possessive, so the possessive itself carries the meaning. A member with no name is Someone's. At most two rows by any one other member are named in a send; the rest are counted.
 - A repeating reminder coming round says so in one clause, "Yoga is back on Tuesday", and a daily one is simply named.
@@ -96,8 +102,8 @@ The bell on Today, a bare glyph today, becomes a control with a 44px hit area an
 
 ```
 Today
-(*) Due today                                    8:00
-    Pay the rent, Tom's birthday, and three more. One is from last week.
+(*) Two today, one from last week                8:00
+    Pay the rent, and Tom's birthday. Still open: Call the clinic.
 (*) Ana added two to Lisbon trip                 7:12
     Ferry times, and a place in Alfama.
 Yesterday
@@ -121,7 +127,7 @@ Four kinds, and whose record each lands in:
 - **A quiet morning writes nothing.** An empty digest is the normal one and is not an event.
 - **A sent row and an unsent row are the same row with a different lead**: a filled 28px disc for something that reached the phone, hollow on `--border-lift` for something that did not, so it holds in dark, plus the kind's glyph, `sunrise` and `moon` for the two digests, `users` for people, `calendar` for a date, `bell` for a setting.
 - **Not sent is a fact, not an apology**, and a sentence-case tag. `--text-noticed` where a setting or the permission caused it, and tapping opens that setting. `--text-tertiary` where the product chose silence by design, and those rows are not doors.
-- A digest row holds what was said, not what is true now, and is not a door: the notification opens Today, the row is the record. A people row opens what the notification would have. A moved-date row opens the row's thread. A verb acted on from a notification writes its own row, "Pay the rent ticked from the notification", quiet.
+- A digest row holds what was said, not what is true now, and opens Today, where the notification opens and what is true now is drawn. *Amended 2026-09-30: it was not a door, and the phones and the web drew its title alone, so the row read "Due today" and went nowhere. Every row draws its words under its title, as the sketch above always did.* A people row opens what the notification would have. A moved-date row opens the row's thread. A verb acted on from a notification writes its own row, "Pay the rent ticked from the notification", quiet.
 - **A dot on the bell, never a count**, when a row is newer than the last time Activity was opened. Every kind dots it except a connection request, which keeps 022's gear dot and dots nothing else; 022's rule is amended to say so. The web sidebar's Activity item carries the same dot.
 - **Thirty days, then it purges**, the invite expiry's figure, by the daily purge job. A row that names another member's words goes sooner when it should: when the viewer's membership of that thread ends, when the row it names is destroyed, and when the member who wrote them deletes their account. A row is readable by its own account only. The empty state is true of a quiet account as well as a new one: "Nothing yet", "What offload sends you is kept here, and so is what it decided not to send." No button, and no composer, as Settings has none.
 - Every silent outcome is written at the moment the silence happens, by the code that decides it, with the words it would have used, never reconstructed later from rows that may have changed.
@@ -155,10 +161,10 @@ The four channels, private on the lock screen, the Material sheet for the Activi
 The sends
 
 - **AC-1** An hourly job enqueues each account's two sends for the coming hour, keyed on the account, the local day and the send; a second instance or a restart collapses into the row that exists; a changed hour or zone deletes today's queued job and the next pass re-enqueues it; a job more than two hours late is dropped.
-- **AC-2** The morning send names reminders due today and event reminders happening today, adds one sentence for reminders overdue by one to seven days, excludes repeating rows from overdue, and writes nothing when there is nothing.
+- **AC-2** The morning send names reminders due today and event reminders happening today, names reminders overdue by one to seven days after them, excludes repeating rows from overdue, and writes nothing when there is nothing.
 - **AC-3** The evening send names reminders due tomorrow, event reminders tomorrow and repeating reminders whose rule lands tomorrow, and is skipped when empty or when its set of row ids equals the morning's, which a daily repeating reminder produces.
 - **AC-4** Only `content` rows with `is_reminder` and a date are announced, resolved through the membership predicate for the recipient at the moment of the send, with deleted and archived rows excluded; a row from a shared thread is named with its author's name, at most two per other member, and yours are never possessive.
-- **AC-5** The copy follows the three arms at the stated thresholds, the titles are exactly Due today and Tomorrow, an event carries its hour and a task never does, every interpolated string is single-lined, stripped of control characters and clamped at 120, no line carries the retired noun, and a test pins every arm, the clamp and the overdue sentence.
+- **AC-5** The copy follows the three arms at the stated thresholds, the title is counts and never a person's words (amended 2026-09-30, it was exactly Due today and Tomorrow), an event carries its hour and a task never does, every interpolated string is single-lined, stripped of control characters and clamped at 120, no line carries the retired noun, and a test pins every arm, the clamp, the titles and what is still open.
 - **AC-6** A digest of several carries no verbs and opens Today; a digest of one task carries Done and Tomorrow; of one event, one repeating reminder or one calendar-backed row, none. Both verbs require the device unlocked, act without opening the app, dismiss the notification, send the session and the row id only, are resolved on the server against the session's account and the row's membership, write an Activity row, and leave the notification standing when the write fails or there is no session.
 - **AC-7** A connection request sends "Ana wants to connect" with Open landing on My people; a share sends "Ana shared Lisbon trip" with "Waiting in My threads." landing on the invitation; additions to a shared thread coalesce per thread and person over ten minutes into one send composed at send time from rows the recipient may still read, whose body is clamped and never a title; nobody is told about their own actions; a blocked requester's request is not sent.
 - **AC-8** No send goes to an account whose switch for that kind is off, and every such skip of a digest with content is recorded as not sent by setting.
@@ -180,7 +186,7 @@ Settings
 Activity
 
 - **AC-17** Every send writes an Activity row with the words sent; every suppressed digest with content writes one with the reason; an expired invitation and an expired request write one in the sender's record; a model-moved date writes one in the turn's account's record; each at the moment it happens, with the words above; a quiet morning writes nothing.
-- **AC-18** Activity draws newest first under Today, Yesterday and Earlier, the sent lead filled and the unsent hollow on `--border-lift`, Not sent in `--text-noticed` with the setting as its door or in `--text-tertiary` and inert, digest rows inert, people and moved-date rows opening their target, in both themes. *Amended 2026-09-27 by 025: a `labelled` row opens its thread and carries one action, Undo, beside the row and outside its press; after Undo it reads Undone, drawn from a column, its words unchanged.*
+- **AC-18** Activity draws newest first under Today, Yesterday and Earlier, the sent lead filled and the unsent hollow on `--border-lift`, Not sent in `--text-noticed` with the setting as its door or in `--text-tertiary` and inert, digest rows opening Today (amended 2026-09-30, they were inert), people and moved-date rows opening their target, every row's words under its title, in both themes. *Amended 2026-09-27 by 025: a `labelled` row opens its thread and carries one action, Undo, beside the row and outside its press; after Undo it reads Undone, drawn from a column, its words unchanged.*
 - **AC-19** The bell is a control with a 44px hit area named Activity; it and the web's Activity item carry a dot when a row of any kind but a connection request is newer than the last opening; opening clears it; never a count; 022's dot paragraph is amended in the same change.
 - **AC-20** Rows older than thirty days are purged by the daily purge job, with a test that a row past the window is gone after a run; a row naming another member's words is purged when the viewer's membership of that thread ends, when the row is destroyed, and when that member deletes their account; a row is readable by its own account only; the empty state reads as written and has no control.
 - **AC-21** Activity rows carry a title and the sent words as a body, never a URL, a photo, a token or anything the notification did not carry.

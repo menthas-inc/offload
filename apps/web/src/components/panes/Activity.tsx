@@ -107,6 +107,7 @@ export function ActivityPane() {
                       <span className={pane.actTitle}>{row.title}</span>
                       <span className={pane.actWhen}>{when}</span>
                     </span>
+                    {row.body ? <span className={pane.actBody}>{row.body}</span> : null}
                     {tag ? <span className={`${pane.actTag} ${tag.tone === "quiet" ? pane.actTagQuiet : ""}`}>{tag.label}</span> : null}
                     {line === row.id ? <span className={pane.actFailed}>Couldn&apos;t undo that</span> : null}
                   </span>

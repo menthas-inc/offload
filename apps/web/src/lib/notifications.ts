@@ -83,6 +83,9 @@ export const tagOf = activityTag;
 export function doorOf(row: ActivityEntry): string | null {
   if (!row.sent && row.reason !== "design") return "/settings/notifications";
   switch (row.kind) {
+    // 2026-09-30: a digest opens Today, as its notification does.
+    case "digest":
+      return "/today";
     case "request":
       return "/settings/people";
     case "share":

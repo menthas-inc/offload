@@ -48,16 +48,21 @@ export const glyphOf = activityGlyph;
 export const tagOf = activityTag;
 
 export type Door =
+  | { pathname: "/today" }
   | { pathname: "/settings/notifications" }
   | { pathname: "/settings/people" }
   | { pathname: "/invitations/[memberId]"; params: { memberId: string } }
   | { pathname: "/threads/[id]"; params: { id: string } };
 
-/** Where a row goes, or null for a row that is the record and nothing more:
- *  a digest holds what was said, not what is true now. */
+/** Where a row goes, or null for a row that is the record and nothing more.
+ *  A digest's words are what was said, not what is true now; its door is
+ *  Today, which is. */
 export function doorOf(row: ActivityEntry): Door | null {
   if (!row.sent && row.reason !== "design") return { pathname: "/settings/notifications" };
   switch (row.kind) {
+    // 2026-09-30: a digest opens Today, as its notification does.
+    case "digest":
+      return { pathname: "/today" };
     case "request":
       return { pathname: "/settings/people" };
     case "share":

@@ -16,7 +16,7 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 ## C. API: the sends
 
-- [x] **C1** `notifications/copy.ts`: the three arms, the overdue sentence, the event hour, the possessive and the two-per-member cap, the repeating clause, the clamp. Test `copy.test.ts` pinning every line, red first. (AC-5, SEC-1)
+- [x] **C1** `notifications/copy.ts`: the three arms, the overdue sentence (2026-09-30: counted titles, and what is still open named), the event hour, the possessive and the two-per-member cap, the repeating clause, the clamp. Test `copy.test.ts` pinning every line, red first. (AC-5, SEC-1)
 - [x] **C2** `notifications/push.ts` over `expo-server-sdk` with `EXPO_ACCESS_TOKEN`: chunking, tickets, `PushFailed(status, code)`, receipts, `DeviceNotRegistered` dropping the token; the memory transport outside production. Test `push.test.ts`. (AC-10, OFF-1)
 - [x] **C3** `activity.ts`: `record`, the reasons, `GET /v1/activity`, `POST /v1/activity/seen`, the seen aggregate that ignores requests, readable by the account only. Test `activity.test.ts`. (AC-17 to AC-21, OFF-3)
 - [x] **C4** `digest.schedule` hourly and `account.digest`: the keys, the hour in the zone across DST, the two-hour drop, the window and the predicate, overdue one to seven days, repeating never overdue, the evening's rules, the identical-set skip, the switch skip recorded only with content, no token recorded as permission, the one-task category and payload. Test `digest.test.ts`, red first. (AC-1 to AC-4, AC-6, AC-8, OFF-3, OFF-4)
@@ -65,3 +65,4 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 - [x] **J1** Accepted as is by the owner on 2026-09-26. The hour rows' label follows the locale while the Android picker follows the device's 24-hour setting, so a phone set to 24 hours reads "8:00 AM" and opens a 24-hour dial. Matching them needs `expo-localization`, a native module, so it waits for a build that carries it.
 - [x] **J2** Closed with the feature on 2026-09-26: the platform default stands. A send that arrives while the app is in front is delivered and recorded but not shown, the platform default on both phones since the app sets no notification handler. Decide whether a digest should show a banner over an open app.
+- [x] **T-2026-09-30** Tweak: the digest title in counts, overdue rows named as "Still open:", and an Activity digest row drawing its words and opening Today on both clients. Tests `copy.test.ts`, `digest.test.ts`, mobile and web `labels.test.ts`, red first. (AC-2, AC-5, AC-18)

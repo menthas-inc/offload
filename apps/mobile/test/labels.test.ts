@@ -210,3 +210,20 @@ describe("a write that makes labels first (2026-09-29)", () => {
     expect(f.dropped).toEqual(["id:B"]);
   });
 });
+
+describe("a sent digest in Activity", () => {
+  // 2026-09-30, the owner's call: the row opens Today, where the notification
+  // itself opens, rather than being a record that goes nowhere.
+  it("opens Today, and a suppressed one still opens the setting", async () => {
+    const activity = await import("../lib/activity");
+    const row = {
+      id: "a2", kind: "digest" as const, sent: true, reason: null, title: "Five still open", body: "Call the plumber, and four more.",
+      send: "morning" as const, threadId: null, contentId: null, memberId: null, requestId: null, occurredAt: "2026-09-30T07:00:00Z",
+      undoable: false, undone: false,
+    };
+    // "/today", not "/": the index is launch, which asks the server who you
+    // are before it forwards, and offline holds on its failure line.
+    expect(activity.doorOf(row)).toEqual({ pathname: "/today" });
+    expect(activity.doorOf({ ...row, sent: false, reason: "setting" as const })).toEqual({ pathname: "/settings/notifications" });
+  });
+});
