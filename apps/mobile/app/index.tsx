@@ -21,7 +21,7 @@
 // cold start would blink.
 
 import { useEffect, useState } from "react";
-import { Image, Platform, View } from "react-native";
+import { Image, Platform, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useColorScheme } from "nativewind";
@@ -35,6 +35,8 @@ const MARK = Platform.OS === "android" ? 192 : 216;
 /** The spinner's centre, below the mark's box. */
 const SPINNER_GAP = 64;
 const SPINNER = 18;
+/** The failure line's height, centred where the spinner was. */
+const LINE = 20;
 const HOLD_MS = 1000;
 
 const light = require("../assets/splash-mark.png");
@@ -45,6 +47,11 @@ export default function Index() {
   const COLOR = useColors();
   const { colorScheme } = useColorScheme();
   const [holding, setHolding] = useState(false);
+  // No answer came, so the screen holds with a way to ask again. Only a 401
+  // sends anyone to the gate: on 2026-09-30 an edge outage showed the Pixel
+  // the gate for nine minutes while its session was still good.
+  const [unanswered, setUnanswered] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   // The screen's own height, so the spinner is placed from its centre and not
   // from a window that may or may not count the status bar.
   const [screen, setScreen] = useState(0);
@@ -52,26 +59,22 @@ export default function Index() {
   useEffect(() => {
     let live = true;
 
-    getMe()
-      .then((me) => {
-        if (!live) return;
-        if (!me) router.replace("/sign-in");
-        // Not `needsFirstRun` alone. An account that finished first run before
-        // there was a name to give still has one thing to answer, and it is
-        // asked on the same screen rather than left for Settings to be found.
-        else router.replace(stillAsking(me) ? "/welcome" : "/today");
-      })
-      .catch(() => {
-        // Could not tell. Show the gate rather than nothing.
-        //
-        // This used to hold here on the theory that a network failure is not a
-        // signed-out state, which is true and was still the wrong behaviour: a
-        // screen that never changes is indistinguishable from a broken app,
-        // and the gate is both honest about what we know and somewhere a
-        // person can act. It cost an afternoon on a device, showing a blank
-        // screen while behaving exactly as written.
-        if (live) router.replace("/sign-in");
-      });
+    void getMe().then((me) => {
+      if (!live) return;
+      if (me === "signed-out") router.replace("/sign-in");
+      else if (me === "unreachable") {
+        // Held, not blank: a screen that never changes is indistinguishable
+        // from a broken app, which cost an afternoon on a device once. The
+        // gate is not the answer to that either, since it says signed out.
+        setHolding(true);
+        setUnanswered(true);
+        void SplashScreen.hideAsync();
+      }
+      // Not `needsFirstRun` alone. An account that finished first run before
+      // there was a name to give still has one thing to answer, and it is
+      // asked on the same screen rather than left for Settings to be found.
+      else router.replace(stillAsking(me) ? "/welcome" : "/today");
+    });
 
     // The handover, if the answer has not come by then.
     const timer = setTimeout(() => {
@@ -84,7 +87,9 @@ export default function Index() {
       live = false;
       clearTimeout(timer);
     };
-  }, [router]);
+  }, [router, attempt]);
+
+  const below = screen / 2 + MARK / 2 + SPINNER_GAP;
 
   return (
     <View
@@ -98,12 +103,34 @@ export default function Index() {
         accessibilityIgnoresInvertColors
         accessible={false}
       />
-      {holding && screen > 0 ? (
+      {unanswered && screen > 0 ? (
+        <Animated.View
+          entering={FadeIn.duration(280)}
+          style={{ position: "absolute", top: below - LINE / 2, alignSelf: "center" }}
+          className="flex-row items-center gap-space-3"
+        >
+          <Text className="font-core text-text-danger" style={{ fontSize: 13, lineHeight: LINE }} accessibilityRole="alert">
+            That didn't go through.
+          </Text>
+          <Pressable
+            onPress={() => {
+              setUnanswered(false);
+              setAttempt((n) => n + 1);
+            }}
+            hitSlop={12}
+            accessibilityRole="button"
+          >
+            <Text className="font-core font-medium text-text-accent" style={{ fontSize: 13, lineHeight: LINE }}>
+              Try again
+            </Text>
+          </Pressable>
+        </Animated.View>
+      ) : holding && screen > 0 ? (
         <Animated.View
           entering={FadeIn.duration(280)}
           style={{
             position: "absolute",
-            top: screen / 2 + MARK / 2 + SPINNER_GAP - SPINNER / 2,
+            top: below - SPINNER / 2,
             alignSelf: "center",
           }}
           accessibilityElementsHidden

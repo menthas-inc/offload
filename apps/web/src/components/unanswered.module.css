@@ -1,0 +1,29 @@
+/* The held page: the shell's ground, the line in its middle. */
+.held {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-6);
+  background: var(--surface-page);
+}
+
+/* In clay, the same line a sign out that did not go through draws. */
+.line {
+  margin: 0;
+  font-size: calc(13.5px * var(--type-scale));
+  line-height: 1.45;
+  font-family: var(--font-core);
+  color: var(--text-danger);
+}
+
+.retry {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: var(--weight-medium);
+  color: var(--text-link);
+  text-decoration: underline;
+  cursor: pointer;
+}

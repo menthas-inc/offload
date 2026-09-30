@@ -28,6 +28,7 @@ import { ThreadsProvider, type Filed } from "../../components/shell/threads-cont
 import { Composer } from "../../components/shell/Composer";
 import { ToastProvider } from "../../components/shell/Toast";
 import { useMe } from "../../lib/use-me";
+import { Unanswered } from "../../components/Unanswered";
 import { fetchThreadsAndInvitations, type ThreadGroup } from "../../lib/threads";
 import type { Invitation } from "../../lib/people";
 import styles from "./shell.module.css";
@@ -62,6 +63,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   }, [pathname, loadThreads]);
 
   if (state.status === "loading") return <div className={styles.shell} />;
+  if (state.status === "unreachable") return <Unanswered retry={state.retry} />;
 
   const threads = groups.flatMap((group) => group.threads);
 
