@@ -216,7 +216,22 @@ export async function upload<T>(path: string, form: FormData): Promise<Sent<T>> 
 
 export { API_URL };
 
-export const getMe = (): Promise<Me | null> => request<Me>("/api/me");
+/** Launch's question, and the one read where a failure is not an empty
+ *  answer.
+ *
+ *  Only a 401 means signed out. On 2026-09-30 Railway's edge answered a 404
+ *  for nine minutes with every service healthy, and when this was `request`,
+ *  that null sent a phone with a good session to the gate. Anything but a 401
+ *  or the account is the app not hearing an answer, and launch holds. */
+export async function getMe(): Promise<Me | "signed-out" | "unreachable"> {
+  try {
+    const { status, data } = await send<Me>("/api/me");
+    if (status === 401) return "signed-out";
+    return data ?? "unreachable";
+  } catch {
+    return "unreachable";
+  }
+}
 
 /** Finishing first run, with both ticks from the consent screen. The server
  *  refuses anything else, so a build that predates the consent screen gets a
