@@ -143,8 +143,15 @@ class Lookups:
         may_read_links: bool,
         country: str | None = None,
         today: str | None = None,
+        links: str | None = None,
     ) -> None:
         self.dump = dump
+        #: 026. What a URL has to appear in to be fetched: the dump, or for a
+        #: forwarded email the person's note alone, since a link in somebody
+        #: else's email can confirm, cancel or unsubscribe by being opened.
+        #: A search question still draws on the whole email: it reads and
+        #: does not act.
+        self.links = dump if links is None else links
         #: Where they said they are, so the bound lets the query name it.
         self.country = country
         #: What day it is, for the reader. Asked when the clocks change, it
@@ -458,7 +465,7 @@ async def _look_up(
             budget.record(label="link_metadata", kind="read", outcome="refused_bound")
             log.info("lookup refused", why="links off")
             return _declined("reading links is switched off")
-        if not _in_the_dump(url, budget.dump):
+        if not _in_the_dump(url, budget.links):
             budget.record(label="link_metadata", kind="read", outcome="refused_bound")
             return _declined("that url is not in what they dumped")
         if budget.reads >= budget.READS:
@@ -633,7 +640,7 @@ def _tool_caller(
             and args.get("url")
             and not args.get("image_url")
             and lookups is not None
-            and _in_the_dump(str(args["url"]), lookups[2].dump)
+            and _in_the_dump(str(args["url"]), lookups[2].links)
         ):
             found = await picture(http, str(args["url"]))
             if found:
@@ -1219,6 +1226,7 @@ async def handle(
         fitted = ctx_mod.fit(loaded, cfg.max_prompt_tokens)
         budget = Lookups(
             fitted.dump,
+            links=fitted.mail.links if fitted.mail else None,
             may_search=fitted.may_search,
             may_read_links=fitted.may_read_links,
             country=fitted.country,

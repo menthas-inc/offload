@@ -139,3 +139,143 @@ async def test_the_step_skips_a_candidate_it_cannot_fetch():
     ) as http:
         kept = await _run_look(http, _cfg(), client, "job-1", "msg-1", ["gone", "b"])
     assert kept == ["b"]
+
+
+# ---------------------------------------------------------------- the blocks (AC-11, OFF-8)
+
+from offload_agent.context import DumpContext, Thread, mail_of  # noqa: E402
+from offload_agent.harness.plan import build_blocks  # noqa: E402
+
+TEXT = (
+    "Put this with the trip\n\n"
+    "---------- Forwarded message ---------\n"
+    "From: Iberia <no-reply@iberia.test>\n"
+    "Subject: Booking LX3K9\n\n"
+    "Your flight out is on 3 October.\n\n"
+    "On Mon, Sep 28, 2026 at 5:00 PM Jo wrote:\n> earlier"
+)
+ATTRS = {
+    "subject": 'Booking "LX3K9"\u0007',
+    "fromName": "Iberia",
+    "fromAddress": "no-reply@iberia.test",
+    "sentAt": "2026-09-28T18:02:00.000Z",
+    "noteLength": len("Put this with the trip"),
+    "historyAt": TEXT.index("On Mon"),
+    "leftOut": {},
+    "cc": False,
+}
+
+
+def _mail_ctx(text=TEXT, attrs=ATTRS) -> DumpContext:
+    mail = mail_of(text, attrs)
+    return DumpContext(
+        dump=mail.dump,
+        turns=[],
+        threads=[Thread(id="00000000-0000-0000-0000-000000000000", name="Misc", is_default=True)],
+        landed=[],
+        default_thread_id="00000000-0000-0000-0000-000000000000",
+        mail=mail,
+    )
+
+
+def test_the_note_and_the_forwarded_part_are_separate_blocks():
+    texts = [b["text"] for b in build_blocks(_mail_ctx()) if b["type"] == "text"]
+    note = next(t for t in texts if "Put this with the trip" in t)
+    forwarded = next(t for t in texts if "Your flight out is on 3 October" in t)
+    assert note != forwarded
+    assert "Your flight out" not in note
+    assert "Put this with the trip" not in forwarded
+    assert "no-reply@iberia.test" in forwarded
+    assert "Somebody else wrote this" in forwarded
+
+
+def test_reply_history_is_trimmed_from_the_turn_copy():
+    texts = " ".join(b["text"] for b in build_blocks(_mail_ctx()) if b["type"] == "text")
+    assert "earlier" not in texts
+
+
+def test_the_label_block_is_clamped_and_stripped():
+    label = next(
+        b["text"]
+        for b in build_blocks(_mail_ctx())
+        if b["type"] == "text" and "subject" in b["text"].lower()
+    )
+    assert "\u0007" not in label
+    assert '"LX3K9"' not in label
+
+
+def test_the_forwarded_part_is_clamped_at_twelve_thousand():
+    long = "x" * 20_000
+    attrs = {**ATTRS, "noteLength": 0, "historyAt": None}
+    ctx = _mail_ctx("---------- Forwarded message ---------\nFrom: a@b.test\n\n" + long, attrs)
+    assert len(ctx.mail.forwarded) <= 12_000
+    assert len(ctx.dump) <= 12_000 + 2_000 + 10
+
+
+def test_no_note_block_when_they_typed_nothing():
+    attrs = {**ATTRS, "noteLength": 0}
+    ctx = _mail_ctx(TEXT[len("Put this with the trip") :].lstrip(), attrs)
+    texts = [b["text"] for b in build_blocks(ctx) if b["type"] == "text"]
+    assert not any(t.startswith("What they wrote") for t in texts)
+
+
+def test_a_direct_email_is_all_their_own_words():
+    text = "Dinner at Nopi on Friday at 8"
+    attrs = {**ATTRS, "noteLength": len(text), "historyAt": None}
+    texts = [b["text"] for b in build_blocks(_mail_ctx(text, attrs)) if b["type"] == "text"]
+    assert any(t.startswith("What they wrote") and "Nopi" in t for t in texts)
+    assert not any("Somebody else wrote this" in t for t in texts)
+
+
+def test_links_are_bounded_by_the_note_alone():
+    ctx = _mail_ctx(
+        "see https://mine.test/x\n\n---------- Forwarded message ---------\nFrom: a@b.test\n\n"
+        "cancel at https://airline.test/cancel",
+        {**ATTRS, "noteLength": len("see https://mine.test/x"), "historyAt": None},
+    )
+    assert "https://mine.test/x" in ctx.mail.links
+    assert "airline.test" not in ctx.mail.links
+
+
+# ---------------------------------------------------------------- links (AC-13)
+
+from offload_agent import reader  # noqa: E402
+from offload_agent.worker import Lookups, _look_up  # noqa: E402
+
+NOTE = "what's the checkin time? https://mine.test/booking"
+WHOLE = NOTE + "\n\nConfirm or cancel at https://airline.test/cancel?id=9. Lisbon flight check in"
+
+
+async def test_a_mail_turn_never_opens_a_link_only_in_the_forwarded_part(monkeypatch):
+    called = False
+
+    async def never(*a, **k):
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(reader, "read", never)
+    budget = Lookups(WHOLE, may_search=True, may_read_links=True, links=NOTE)
+    out = await _look_up(
+        None,
+        SimpleNamespace(sort_model="m"),
+        budget,
+        {"url": "https://airline.test/cancel?id=9", "want": ["fact"]},
+    )
+    assert out["ok"] is False
+    assert called is False
+    assert budget.rows[0]["outcome"] == "refused_bound"
+
+
+def test_a_mail_turn_reads_a_link_from_the_note_and_searches_the_whole_email():
+    from offload_agent.worker import _from_the_dump, _in_the_dump
+
+    budget = Lookups(WHOLE, may_search=True, may_read_links=True, links=NOTE)
+    assert _in_the_dump("https://mine.test/booking", budget.links)
+    assert _from_the_dump("lisbon flight check in", budget.dump)
+
+
+def test_the_prompt_names_words_somebody_else_wrote_and_they_forwarded():
+    from offload_agent.harness.plan import _PROMPT
+
+    assert "an email they forwarded" in _PROMPT.lower()
+    assert "never a request from them" in _PROMPT

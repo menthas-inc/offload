@@ -169,3 +169,11 @@ describe("the job (AC-5)", () => {
   });
 });
 
+
+describe("the person's own words (026, 025's bounds)", () => {
+  it("are the whole text, or a forwarded email's note alone", async () => {
+    const { ownWords } = await import("../src/mail-in/attrs.js");
+    expect(ownWords({ text: "all mine #trip", source: "person", attrs: {} })).toBe("all mine #trip");
+    expect(ownWords({ text: "mine #trip\n\nfrom them #Urgent", source: "mail", attrs: { mail: { noteLength: 10 } } })).toBe("mine #trip");
+  });
+});

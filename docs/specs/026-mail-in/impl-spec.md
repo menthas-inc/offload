@@ -273,3 +273,8 @@ Where the build differs from the plan above, recorded as it happened (DEV-2).
 - **`attrs.mail` gains `historyAt`**, where reply history below the forwarded message starts, found once at intake so the turn's copy can stop there.
 - **`wrangler` is not a dependency.** `pnpm --filter @offload/mail-worker deploy` runs it through `npx`, so the workspace does not carry its runtime binary for a deploy the owner runs by hand.
 - **Analytics.** `mail_received` has its schema in `schemas/events/`, and `dump_sent` gains `via_mail`.
+- **A mail turn is never answered and never answers an open question.** The job carries `mail: true`; the worker skips the question classifier for it, and `takeDump` attaches no open question, so a booking email's "can you confirm by Friday?" is filed rather than answered, and an email arriving while a question is open leaves it open for the person.
+- **025's provenance bounds read the note alone.** A label the turn creates, and a `#word` in the text, must come from the person's note in a forwarded email (`ownWords` in `mail-in/attrs.ts`), as a fetched link must.
+- **`sawMail` marks notes only.** `sawApps` also makes a calendar write confirm; the owner chose the account's own setting for mail turns, so the two flags stay separate.
+- **The look's model call is not on the turn's usage ledger**, as the question classifier's is not.
+- **The evals' runner builds a mail case through `mail_of`**, and its look-up stub reads the note as the link bound, as the worker does.

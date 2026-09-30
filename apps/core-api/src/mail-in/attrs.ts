@@ -20,3 +20,14 @@ export const mailAttrs = z.object({
 });
 
 export type MailAttrs = z.infer<typeof mailAttrs>;
+
+/** The words the person wrote in a message: all of them, or for a forwarded
+ *  email the note above the forwarded part alone. What a label may be made
+ *  from, and what a `#word` may pick: somebody else's email is not the person
+ *  naming anything. */
+export function ownWords(message: { text: string | null; source?: string | null; attrs?: unknown }): string {
+  const text = message.text ?? "";
+  if (message.source !== "mail") return text;
+  const noteLength = (message.attrs as { mail?: { noteLength?: number } } | null)?.mail?.noteLength ?? 0;
+  return text.slice(0, noteLength);
+}

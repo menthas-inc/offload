@@ -66,11 +66,13 @@ from offload_agent.context import (
     AnswerContext,
     DumpContext,
     LabelRef,
+    Mail,
     Photo,
     Piece,
     QuickAddContext,
     Thread,
     Turn,
+    mail_of,
 )
 from offload_agent.countries import name_of
 from offload_agent.harness.plan import (
@@ -229,6 +231,9 @@ _FIXTURE_KEYS = {
     "tool_errors",
     # 020. File names under fixtures/photos, attached to the dump in order.
     "photos",
+    # 026. A forwarded email: {subject, from_name, from_address, sent_at, note,
+    # forwarded}. The dump is built from it through the worker's own `mail_of`.
+    "mail",
 }
 
 
@@ -385,10 +390,13 @@ class Recorder:
     picks: a case measures the behaviour, not the route to it.
     """
 
-    def __init__(self, case: Case, dump: str) -> None:
+    def __init__(self, case: Case, dump: str, links: str | None = None) -> None:
         self.case = case
         self.fx = case.fixture
         self.dump = dump
+        #: 026. What a URL must appear in: the dump, or an email's note alone,
+        #: the worker's own bound.
+        self.links = dump if links is None else links
         self.calls: list[tuple[str, dict]] = []
         #: What each call came back with, in the same order as `calls`. The
         #: judge reads the ones that change what a sentence may claim: a
@@ -616,7 +624,7 @@ class Recorder:
                     "no dates you worked out, no extra clauses. try a shorter query."
                 ),
             }
-        if url and not _in_the_dump(url, self.dump):
+        if url and not _in_the_dump(url, self.links):
             self.refused_bound.append(url)
             return {"ok": False, "declined": True, "error": "that url is not in what they dumped"}
         override = self.fx.get("lookup_result")
@@ -1118,6 +1126,30 @@ _spent: list[float] = []
 PHOTO_FIXTURES = Path(__file__).parent / "fixtures" / "photos"
 
 
+def _mail(fx: dict) -> Mail | None:
+    """026. The case's forwarded email, through the worker's own `mail_of`, so
+    the note and the forwarded part are split and clamped exactly as a real
+    one is."""
+    spec = fx.get("mail")
+    if not spec:
+        return None
+    note = spec.get("note") or ""
+    forwarded = spec.get("forwarded") or ""
+    text = f"{note}\n\n{forwarded}" if note and forwarded else note or forwarded
+    return mail_of(
+        text,
+        {
+            "subject": spec.get("subject") or "",
+            "fromName": spec.get("from_name"),
+            "fromAddress": spec.get("from_address") or "",
+            "sentAt": spec.get("sent_at"),
+            "noteLength": len(note),
+            "historyAt": None,
+            "leftOut": spec.get("left_out") or {},
+        },
+    )
+
+
 def _photos(fx: dict) -> list[Photo]:
     """The case's photos, by file name under `fixtures/photos/`, through the
     same rendition code the worker runs, so the model sees what it would."""
@@ -1131,12 +1163,14 @@ def _photos(fx: dict) -> list[Photo]:
 
 async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
     fx = case.fixture
-    dump = str(case.input)
-    rec = Recorder(case, dump)
+    mail = _mail(fx)
+    dump = mail.dump if mail else str(case.input)
+    rec = Recorder(case, dump, links=mail.links if mail else None)
     threads = _threads(fx)
     default = next((t for t in threads if t.is_default), threads[-1] if threads else None)
     ctx = DumpContext(
         dump=dump,
+        mail=mail,
         turns=[Turn(role=t["role"], text=t["text"]) for t in fx.get("history") or []],
         threads=threads,
         landed=[],
