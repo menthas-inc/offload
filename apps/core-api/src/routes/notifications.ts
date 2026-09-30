@@ -15,6 +15,7 @@ import { sql } from "kysely";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
+import { undoMailRow } from "../mail-in/activity.js";
 import { zoneOf } from "../accounts/zone.js";
 import { actedCopy } from "../notifications/copy.js";
 import { ACTIVITY_DAYS, listActivity, markSeen, record } from "../notifications/activity.js";
@@ -78,10 +79,14 @@ const activityEntry = z.object({
   contentId: z.string().nullable(),
   memberId: z.string().nullable(),
   requestId: z.string().nullable(),
-  /** 025. A labelled row's Undo is offered while this is true. */
+  /** 025. A labelled row's Undo is offered while this is true. 026: and a
+   *  filed email's, for a day. */
   undoable: z.boolean(),
   undone: z.boolean(),
   occurredAt: z.string(),
+  /** 026. Which of the five an email row is, and the email it opens. */
+  mailOutcome: z.enum(["filed", "asked", "nothing", "refused", "over_limit"]).nullable(),
+  messageId: z.string().nullable(),
 });
 
 export async function notificationRoutes(app: App): Promise<void> {
@@ -154,7 +159,7 @@ export async function notificationRoutes(app: App): Promise<void> {
           .where("account_id", "=", accountId)
           .where("kind", "=", "labelled")
           .executeTakeFirst();
-        if (!row) return "not_found" as const;
+        if (!row) return "mail" as const;
         const run = row.label_run_id
           ? await trx.selectFrom("label_runs").select(["id", "thread_id"]).where("id", "=", row.label_run_id).executeTakeFirst()
           : undefined;
@@ -167,6 +172,12 @@ export async function notificationRoutes(app: App): Promise<void> {
         await undoRun(trx, run.id);
         return "undone" as const;
       });
+      if (outcome === "mail") {
+        const mailOutcome = await undoMailRow(accountId, request.params.id);
+        if (mailOutcome === "not_found") return reply.status(404).send({ error: "not_found" as const });
+        if (mailOutcome === "not_undoable") return reply.status(409).send({ error: "not_undoable" as const });
+        return { undone: true as const };
+      }
       if (outcome === "not_found") return reply.status(404).send({ error: "not_found" as const });
       if (outcome === "not_undoable") return reply.status(409).send({ error: "not_undoable" as const });
       return { undone: true as const };

@@ -119,6 +119,10 @@ const meResponse = z.object({
   notifyPeopleRequests: z.boolean(),
   notifySharedActivity: z.boolean(),
   activityNew: z.boolean(),
+  /** 026. Whether mail forwarded from the sign-in address can reach this
+   *  account: false for an Apple private relay address, which is never the
+   *  address mail comes from. */
+  mailAvailable: z.boolean(),
 });
 
 /** 024. An hour as the page sends it, HH:MM, twenty-four hour. */
@@ -284,6 +288,7 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
     notifyPeopleRequests: account.notify_people_requests,
     notifySharedActivity: account.notify_shared_activity,
     activityNew: await activityNew(accountId),
+    mailAvailable: !/@privaterelay\.appleid\.com$/i.test(account.email),
   };
 }
 

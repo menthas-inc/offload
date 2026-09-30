@@ -22,6 +22,7 @@ import { applyNightlyPlan, applyTurnLabels } from "../threads/labels.js";
 import { labelledNightlyCopy } from "../notifications/copy.js";
 import { hashtagsIn } from "@offload/widgets";
 import { ownWords } from "../mail-in/attrs.js";
+import { recordMailTurn } from "../mail-in/activity.js";
 import { emit } from "../analytics.js";
 import { env } from "../env.js";
 import { NOTE_TEXT_CHARS, applyCompaction } from "../threads/notes.js";
@@ -968,6 +969,10 @@ export async function internalRoutes(app: App): Promise<void> {
             )
             .execute();
         }
+
+        // 026. A forwarded email is processed with nobody watching, so its
+        // record is Activity's, written with the result it describes.
+        await recordMailTurn(trx, accountId, payload.messageId!, payload.turnId!);
 
         // The job is closed here, in the same transaction as the write it
         // describes, rather than by the worker afterwards. Two reasons: the

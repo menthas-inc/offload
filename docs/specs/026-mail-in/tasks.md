@@ -34,10 +34,10 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ## 3. Activity and Undo (API)
 
-- [ ] **T3.1** `src/mail-in/activity.ts`: after a mail turn, one never-sent row per outcome with the words and doors in the impl-spec; one row filed, several in one thread, several across threads; a left-out PDF and two spreadsheets add their sentences; every string clamped. *(AC-15, AC-17)*
-- [ ] **T3.2** Undo: `POST /v1/activity/:id/undo` on a `mail` row under a day reverses the turn's content rows, labels and notes, keeps the message and its images, skips a row edited after the turn, sets `undone_at`; at 24 hours and one minute it is `not_undoable`; another account's row is `not_found`; a calendar row is deleted at Google first (the connector's existing fake). *(AC-16, OFF-6)*
-- [ ] **T3.3** The Activity read: `undoable` true for a filed mail row under a day; the door ids per outcome; the question door resolves to the message once the question is closed. *(AC-16, AC-17)*
-- [ ] **T3.4** `/api/me` gains `mailAvailable`, false for an Apple relay address. *(AC-18)*
+- [x] **T3.1** `src/mail-in/activity.ts`: after a mail turn, one never-sent row per outcome with the words and doors in the impl-spec; one row filed, several in one thread, several across threads; a left-out PDF and two spreadsheets add their sentences; every string clamped. *(AC-15, AC-17)*
+- [x] **T3.2** Undo: `POST /v1/activity/:id/undo` on a `mail` row under a day reverses the turn's content rows, labels and notes, keeps the message and its images, skips a row edited after the turn, sets `undone_at`; at 24 hours and one minute it is `not_undoable`; another account's row is `not_found`; a calendar row is deleted at Google first (the connector's existing fake). *(AC-16, OFF-6)*
+- [x] **T3.3** The Activity read: `undoable` true for a filed mail row under a day; the door ids per outcome; the question door resolves to the message once the question is closed. *(AC-16, AC-17)*
+- [x] **T3.4** `/api/me` gains `mailAvailable`, false for an Apple relay address. *(AC-18)*
 
 ## 4. Mobile
 

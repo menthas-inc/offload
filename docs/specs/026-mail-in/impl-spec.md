@@ -278,3 +278,6 @@ Where the build differs from the plan above, recorded as it happened (DEV-2).
 - **`sawMail` marks notes only.** `sawApps` also makes a calendar write confirm; the owner chose the account's own setting for mail turns, so the two flags stay separate.
 - **The look's model call is not on the turn's usage ledger**, as the question classifier's is not.
 - **The evals' runner builds a mail case through `mail_of`**, and its look-up stub reads the note as the link bound, as the worker does.
+- **The question row opens the email, whatever the question's state.** 018's question chips live on the email's message in the conversation, so opening the email shows the question while it is open and the email once a later turn has closed it, with nothing to resolve on the server. The feature spec's two doors are the same door.
+- **The Activity read gains `mailOutcome` and `messageId`**, which the clients map to a door.
+- **Notes count as landed** in the row's count and title, beside content rows.

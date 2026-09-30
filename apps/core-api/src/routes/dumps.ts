@@ -1893,6 +1893,9 @@ export async function cancelTurn(
 export async function undoTurn(
   accountId: string,
   turnId: string,
+  /** 026. Undo from a forwarded email's Activity row: the email is the dump
+   *  and stays, and a row somebody changed after `since` is left as it is. */
+  opts: { keepMessageId?: string; since?: Date } = {},
 ): Promise<{ undone: boolean } | null> {
   // **Calendar rows are undone before the transaction, not inside it.**
   //
@@ -1908,7 +1911,7 @@ export async function undoTurn(
   // outcome: the update below deliberately excludes rows still carrying a
   // `source_ref`, so nothing here can leave a row deleted while the event is
   // still on somebody's calendar.
-  await undoCalendarWrites(accountId, turnId);
+  await undoCalendarWrites(accountId, turnId, opts.since);
 
   return db.transaction().execute(async (trx) => {
     const owned = await trx
@@ -1959,6 +1962,7 @@ export async function undoTurn(
       .where("account_id", "=", accountId)
       .where("deleted_at", "is", null)
       .where("source_ref", "is", null)
+      .$if(opts.since !== undefined, (qb) => qb.where("updated_at", "<=", opts.since!))
       .execute();
 
     // 025. What the turn labelled, the person's # and the model's alike.
@@ -1981,6 +1985,7 @@ export async function undoTurn(
       )
       .where("account_id", "=", accountId)
       .where("deleted_at", "is", null)
+      .$if(opts.since !== undefined, (qb) => qb.where("updated_at", "<=", opts.since!))
       .execute();
 
     // 018. The asking turn's questions close with what they were about; an
@@ -1995,18 +2000,23 @@ export async function undoTurn(
       .where("turn_id", "=", turnId)
       .where("account_id", "=", accountId)
       .where("deleted_at", "is", null)
+      .$if(opts.keepMessageId !== undefined, (qb) => qb.where("id", "!=", opts.keepMessageId!))
       .execute();
 
     // 020. The photos go with the dump they arrived on, on the same clock.
     // The rows that carried them were soft-deleted above, so nothing in a
     // thread still links them; the purge destroys the objects after the
     // window, and until then the eight seconds can put everything back.
-    await trx
-      .updateTable("blobs")
-      .set({ deleted_at: stamp, purge_after: purge })
-      .where("message_id", "in", live.map((row) => row.id))
-      .where("deleted_at", "is", null)
-      .execute();
+    // 026. A forwarded email's own pictures stay with it when its filing is undone.
+    const dropped = live.map((row) => row.id).filter((id) => id !== opts.keepMessageId);
+    if (dropped.length > 0) {
+      await trx
+        .updateTable("blobs")
+        .set({ deleted_at: stamp, purge_after: purge })
+        .where("message_id", "in", dropped)
+        .where("deleted_at", "is", null)
+        .execute();
+    }
 
     // The conversation stays. A conversation with every message undone is an
     // empty conversation, not a deleted one.
@@ -2034,7 +2044,7 @@ export async function undoTurn(
  *  Best effort, and deliberately so: a failure here leaves both the event and
  *  its row exactly where they are, and the rest of the turn still undoes. The
  *  alternative is refusing to undo a dump because Google is down. */
-async function undoCalendarWrites(accountId: string, turnId: string): Promise<void> {
+async function undoCalendarWrites(accountId: string, turnId: string, since?: Date): Promise<void> {
   // Rows this turn filed and then put on a calendar, and rows a tapped answer
   // in this turn put on one: both remember their event in `source_ref`.
   const filed = await db
@@ -2045,6 +2055,7 @@ async function undoCalendarWrites(accountId: string, turnId: string): Promise<vo
     .where("content.account_id", "=", accountId)
     .where("content.deleted_at", "is", null)
     .where("content.source_ref", "is not", null)
+    .$if(since !== undefined, (qb) => qb.where("content.updated_at", "<=", since!))
     .execute();
   const answered = await db
     .selectFrom("questions")
