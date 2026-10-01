@@ -127,9 +127,14 @@ COUNTRY = "PT"
 #: a run so the number is measured rather than guessed at.
 PRICES = {
     "claude-opus-5": (5.0, 25.0),
+    "claude-opus-5-5": (4.0, 20.0),
     "claude-sonnet-5": (2.0, 10.0),
     "claude-haiku-4-5": (1.0, 5.0),
 }
+
+
+#: A cache read as a share of input: a tenth, except Opus 5.5's twentieth.
+CACHE_READ_SHARE = {"claude-opus-5-5": 0.05}
 
 
 def _cost(
@@ -139,7 +144,8 @@ def _cost(
     subtracted from it; until 2026-10-02 a cache read was, and every run with a
     warm prefix was priced low."""
     price_in, price_out = PRICES.get(model, (5.0, 25.0))
-    cached = cache_read * price_in / 10 + cache_write * price_in * 1.25
+    read_share = CACHE_READ_SHARE.get(model, 0.1)
+    cached = cache_read * price_in * read_share + cache_write * price_in * 1.25
     return (input_tokens * price_in + cached + output_tokens * price_out) / 1e6
 
 

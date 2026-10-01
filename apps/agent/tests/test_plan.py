@@ -1153,3 +1153,40 @@ async def test_a_say_about_a_failure_is_dropped_when_nothing_landed():
 
     assert outcome.failed == ["add_content"]
     assert outcome.reply is None
+
+
+async def test_each_call_caches_the_conversation_so_far_and_nothing_older():
+    """A turn is several calls, and each re-sent the whole conversation at full
+    price; only the system prompt was cached. Each call marks its last block,
+    so the next call reads everything before it at a tenth of the price.
+    One mark in the messages per call, never more: four is the API's limit,
+    and the system prompt holds one of them."""
+    model = StubModel(
+        [
+            Response(
+                content=[
+                    ToolUse(
+                        id="a",
+                        name="add_content",
+                        input={"thread_id": "t1", "title": "Dentist", "type": "task"},
+                    )
+                ],
+                stop_reason="tool_use",
+            ),
+            Response(content=[TextBlock("Added.")], stop_reason="end_turn"),
+        ]
+    )
+    await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 2
+    for request in model.requests:
+        marked = [
+            (i, j)
+            for i, message in enumerate(request["messages"])
+            if isinstance(message["content"], list)
+            for j, block in enumerate(message["content"])
+            if isinstance(block, dict) and block.get("cache_control")
+        ]
+        last = len(request["messages"]) - 1
+        assert marked == [(last, len(request["messages"][last]["content"]) - 1)]
+        assert request["messages"][last]["content"][-1]["cache_control"] == {"type": "ephemeral"}

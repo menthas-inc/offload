@@ -759,6 +759,23 @@ async def plan_quick_add(
     )
 
 
+def _cache_so_far(messages: list[dict]) -> list[dict]:
+    """The conversation as sent, its last block marked for the cache.
+
+    A turn is several calls and each re-sends everything before it: the dump,
+    the context, the photos, the tool results so far. Only the system prompt
+    was cached, so that was full price on every call, most of a filing turn's
+    bill. Marked here, the next call reads it at a tenth. A copy, so the mark
+    moves forward with the turn rather than accumulating on the history: the
+    API allows four and the system prompt holds one. Measured on the cost
+    sheet as about a quarter off a filing turn, 2026-10-02.
+    """
+    *earlier, last = messages
+    blocks = list(last["content"])
+    blocks[-1] = {**blocks[-1], "cache_control": {"type": "ephemeral"}}
+    return [*earlier, {**last, "content": blocks}]
+
+
 async def _run(
     client: AsyncAnthropic,
     model: str,
@@ -786,7 +803,7 @@ async def _run(
             # that repeats across every dump from every account.
             system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
             tools=tools,
-            messages=messages,
+            messages=_cache_so_far(messages),
         )
 
         # **A turn that ran out of room is asked again with more, once.** The
