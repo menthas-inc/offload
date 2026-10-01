@@ -1,0 +1,196 @@
+{
+  "_read_me": "Vendor prices the cost report uses. Every figure carries its source and the day it was checked; the build warns on anything checked more than 45 days ago. Update a figure by checking the source again, never from memory.",
+  "anthropic": {
+    "checked": "2026-10-02",
+    "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "models": {
+      "claude-haiku-4-5": {
+        "in": 1.0,
+        "out": 5.0,
+        "cacheWrite5m": 1.25,
+        "cacheRead": 0.1,
+        "toolSystemTokens": 496,
+        "minCacheTokens": 4096
+      },
+      "claude-sonnet-5": {
+        "in": 2.0,
+        "out": 10.0,
+        "cacheWrite5m": 2.5,
+        "cacheRead": 0.2,
+        "toolSystemTokens": 354,
+        "minCacheTokens": 1024
+      },
+      "claude-sonnet-5-5": {
+        "in": 2.0,
+        "out": 10.0,
+        "cacheWrite5m": 2.5,
+        "cacheRead": 0.2,
+        "toolSystemTokens": 286,
+        "minCacheTokens": 512
+      },
+      "claude-opus-5": {
+        "in": 5.0,
+        "out": 25.0,
+        "cacheWrite5m": 6.25,
+        "cacheRead": 0.5,
+        "toolSystemTokens": 286,
+        "minCacheTokens": 512
+      },
+      "claude-opus-5-5": {
+        "in": 4.0,
+        "out": 20.0,
+        "cacheWrite5m": 5.0,
+        "cacheRead": 0.2,
+        "toolSystemTokens": 286,
+        "minCacheTokens": 512
+      }
+    },
+    "unit": "USD per million tokens",
+    "webSearchPer1k": 10.0,
+    "webFetch": 0,
+    "notes": "Claude 4.7 and later count about 30% more tokens for the same text. Web fetch costs tokens only. minCacheTokens is the shortest prefix that caches; a shorter one silently does not."
+  },
+  "voyage": {
+    "checked": "2026-10-02",
+    "source": "https://docs.voyageai.com/docs/pricing",
+    "voyage-4": 0.06,
+    "unit": "USD per million tokens",
+    "freeTokens": 200000000,
+    "notes": "The free 200M tokens are per account, once."
+  },
+  "assemblyai": {
+    "checked": "2026-10-02",
+    "source": "https://www.assemblyai.com/pricing",
+    "universal35ProPerHour": 0.21,
+    "universal2PerHour": 0.15,
+    "used": "universal35ProPerHour",
+    "notes": "transcribe.py sends no speech model, so AssemblyAI's default applies, which is now Universal-3.5 Pro. The EU region is the same price. The ledger prices voice at $0.15 an hour (config.py), the old rate."
+  },
+  "r2": {
+    "checked": "2026-10-02",
+    "source": "https://developers.cloudflare.com/r2/pricing/",
+    "storagePerGbMonth": 0.015,
+    "classAPerMillion": 4.5,
+    "classBPerMillion": 0.36,
+    "egressPerGb": 0,
+    "free": {
+      "gbMonth": 10,
+      "classA": 1000000,
+      "classB": 10000000
+    }
+  },
+  "railway": {
+    "checked": "2026-10-02",
+    "source": "https://railway.com/pricing",
+    "proMonthly": 20,
+    "vcpuMonth": 20,
+    "gbRamMonth": 10,
+    "egressPerGb": 0.05,
+    "volumeGbMonth": 0.15,
+    "notes": "The Pro fee counts toward usage, so it is a $20 floor, not an extra $20."
+  },
+  "resend": {
+    "checked": "2026-10-02",
+    "source": "https://resend.com/pricing",
+    "tiers": [
+      {
+        "name": "Free",
+        "monthly": 0,
+        "emails": 3000,
+        "dailyCap": 100
+      },
+      {
+        "name": "Pro 50k",
+        "monthly": 20,
+        "emails": 50000
+      },
+      {
+        "name": "Pro 100k",
+        "monthly": 35,
+        "emails": 100000
+      },
+      {
+        "name": "Scale",
+        "monthly": 90,
+        "emails": 100000,
+        "overPer1k": 0.9
+      }
+    ],
+    "notes": "A received email counts against the quota exactly as a sent one does."
+  },
+  "expo": {
+    "checked": "2026-10-02",
+    "source": "https://expo.dev/pricing",
+    "plans": [
+      {
+        "name": "Free",
+        "monthly": 0,
+        "updateMau": 1000
+      },
+      {
+        "name": "Starter",
+        "monthly": 19,
+        "updateMau": 3000,
+        "overPerMau": 0.005
+      },
+      {
+        "name": "Production",
+        "monthly": 199,
+        "updateMau": 50000,
+        "overPerMau": 0.005
+      }
+    ],
+    "pushPerMessage": 0,
+    "notes": "EAS Update is billed per monthly active app install. Push costs nothing."
+  },
+  "whatsapp": {
+    "checked": "2026-10-02",
+    "source": "https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing (USD rate card effective 2026-07-01)",
+    "perReceiptByMarket": {
+      "United Kingdom": 0.022,
+      "Germany": 0.055,
+      "France": 0.03,
+      "Spain": 0.02,
+      "Netherlands": 0.05,
+      "Rest of Western Europe": 0.0171,
+      "North America": 0.0034,
+      "Other": 0.0077
+    },
+    "notes": "A receipt is a reply inside the 24-hour window. Meta's non-template page says those are charged from 2026-10-01 at the utility rate; its main pricing page still says they are free. The report assumes charged, and the first invoice settles it. Volume discounts start at 80k to 100k a month per market."
+  },
+  "fixed": {
+    "checked": "2026-10-02",
+    "items": [
+      {
+        "name": "Apple Developer Program",
+        "monthly": 8.25,
+        "source": "https://developer.apple.com/programs/whats-included/",
+        "note": "$99 a year"
+      },
+      {
+        "name": "Google Workspace, one seat",
+        "monthly": 7.0,
+        "source": "https://workspace.google.com/pricing",
+        "note": "Business Starter, annual plan"
+      },
+      {
+        "name": "Domain",
+        "monthly": 0.9,
+        "source": "https://www.cloudflare.com/products/registrar/",
+        "note": "about $10.50 a year, at cost"
+      },
+      {
+        "name": "Langfuse",
+        "monthly": 0,
+        "source": "https://langfuse.com/pricing",
+        "note": "named in stack.md, not wired in code"
+      },
+      {
+        "name": "Google Play",
+        "monthly": 0,
+        "source": "https://support.google.com/googleplay/android-developer/answer/6112435",
+        "note": "$25 once, already paid"
+      }
+    ]
+  }
+}
