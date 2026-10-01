@@ -49,9 +49,11 @@ export interface AppOptions {
   internalHost?: string | undefined;
   /** A test's sink for the log lines, in place of stdout. */
   logStream?: Writable;
-  /** 026. The secrets the mail Worker may sign with; the environment's by
-   *  default. */
-  mailSecrets?: string[];
+  /** 026. Resend's webhook secret and API key, the environment's by default,
+   *  and the fetch that reaches Resend; a test's stand-in otherwise. */
+  resendWebhookSecret?: string;
+  resendApiKey?: string;
+  mailFetch?: typeof fetch;
   /** 026. DNS for the sender check; the system's by default. */
   mailResolver?: Resolver;
 }
@@ -142,8 +144,10 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
   await app.register(notificationRoutes);
   await app.register(sharingRoutes);
   await app.register(mailInRoutes, {
-    secrets: options.mailSecrets ?? [env.MAIL_INBOUND_SECRET, env.MAIL_INBOUND_SECRET_NEXT].filter((s): s is string => !!s),
-    ...(options.mailResolver ? { resolver: options.mailResolver } : {}),
+    secret: options.resendWebhookSecret ?? env.RESEND_WEBHOOK_SECRET,
+    apiKey: options.resendApiKey ?? env.RESEND_API_KEY,
+    fetch: options.mailFetch,
+    resolver: options.mailResolver,
   });
 
   return app;

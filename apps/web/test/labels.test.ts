@@ -202,12 +202,12 @@ describe("the privacy page says labels (AC-34)", () => {
     expect(said).toMatch(/a label belongs to the thread, so any member can rename or delete one/);
     expect(said).toMatch(/Undo brings it back in the moment you delete it/);
     expect(said).toMatch(/is gone for good, inside the 30 days above/);
-    const updated = /const UPDATED = "(\d+) September 2026"/.exec(page)?.[1];
-    const version = /CONSENT_VERSION = "2026-09-(\d+)"/.exec(session)?.[1];
-    // The two move together; 025 moved them to the 28th and 2026-09-29's
-    // details change to the 29th.
+    // The two move together, whatever the month: 025 moved them to the 28th,
+    // 2026-09-29's details to the 29th, and 026 to 1 October.
+    const updated = /const UPDATED = "(\d+ \w+ 2026)"/.exec(page)?.[1];
+    const version = /CONSENT_VERSION = "(2026-\d\d-\d\d)"/.exec(session)?.[1];
     expect(updated).toBeDefined();
-    expect(updated).toBe(version);
+    expect(new Date(`${updated} UTC`).toISOString().slice(0, 10)).toBe(version);
   });
 
   it("says what is kept of a photo's words and a note's longer text without being shown (2026-09-29)", async () => {

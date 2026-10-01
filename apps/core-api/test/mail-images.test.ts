@@ -36,14 +36,14 @@ describe("the image rules (AC-9)", () => {
     const logo = image(240, 90);
     const icon = image(48, 48);
     const spacer = image(1, 1);
-    const banner = image(1400, 300);
-    const drawnSmall = image(800, 800, { width: 120, height: 120 });
-    const pass = image(700, 1100);
-    const photo = image(1200, 900);
+    const banner = image(1300, 300);
+    const drawnSmall = image(400, 400, { width: 120, height: 120 });
+    const pass = image(320, 500);
+    const photo = image(480, 360);
     const kept = candidatesOf([logo, icon, spacer, banner, drawnSmall, pass, photo]);
     expect(kept.map((c) => [c.width, c.height])).toEqual([
-      [700, 1100],
-      [1200, 900],
+      [320, 500],
+      [480, 360],
     ]);
   });
 
@@ -72,10 +72,10 @@ describe("the image rules (AC-9)", () => {
 describe("sealing the candidates", () => {
   it("stores each as an unclaimed, encrypted image blob", async () => {
     const me = await person();
-    const candidates = candidatesOf([image(700, 1100)]);
+    const candidates = candidatesOf([image(320, 500)]);
     const ids = await sealCandidates(me, "m1", candidates);
     const [row] = await db.selectFrom("blobs").selectAll().where("id", "in", ids).execute();
-    expect(row).toMatchObject({ account_id: me, message_id: null, kind: "image", content_type: "image/png", width: 700, height: 1100 });
+    expect(row).toMatchObject({ account_id: me, message_id: null, kind: "image", content_type: "image/png", width: 320, height: 500 });
     const stored = await objectStore()!.get(objectKey(ids[0]!, "original"));
     expect(stored).not.toBeNull();
     expect(Buffer.compare(stored!, Buffer.from(candidates[0]!.bytes))).not.toBe(0);
@@ -83,7 +83,7 @@ describe("sealing the candidates", () => {
 
   it("counts toward 020's daily photo limit", async () => {
     const me = await person();
-    const candidates = candidatesOf([image(700, 1100)]);
+    const candidates = candidatesOf([image(320, 500)]);
     await db
       .insertInto("blobs")
       .values(
@@ -98,7 +98,7 @@ describe("sealing the candidates", () => {
 
   it("seals the same email's images once", async () => {
     const me = await person();
-    const candidates = candidatesOf([image(700, 1100)]);
+    const candidates = candidatesOf([image(320, 500)]);
     const first = await sealCandidates(me, "m3", candidates);
     const second = await sealCandidates(me, "m3", candidates);
     expect(second).toEqual(first);

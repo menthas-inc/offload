@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
 };
 
-const UPDATED = "29 September 2026";
+const UPDATED = "1 October 2026";
 
 function Todo({ children }: { children: ReactNode }) {
   return <span className={styles.todo}>{children}</span>;
@@ -73,7 +73,7 @@ export default function Privacy() {
               10 explains why.
             </li>
             <li>
-              <strong>Your photos, screenshots and voice notes are encrypted</strong> before we
+              <strong>Your photos, screenshots, voice notes and the pictures from email you forward are encrypted</strong> before we
               store them, with a key our storage provider never receives. The text in offload is
               not. We plan to encrypt that too.
             </li>
@@ -143,6 +143,11 @@ export default function Privacy() {
               <strong>Everything you upload.</strong> Notes, links, screenshots, photos, voice
               notes, and what you say to offload in the composer. This is the product, so we keep
               it.
+            </li>
+            <li>
+              <strong>Email you forward to offload.</strong> Its text, and the pictures in it worth
+              keeping. We never keep the raw email, its headers or its other attachments. Resend,
+              which receives it for us, keeps the email for 30 days and then deletes it.
             </li>
           </ul>
 
@@ -344,6 +349,10 @@ export default function Privacy() {
               them, and section 17 says what happens when something material moves.
             </li>
             <li>
+              <strong>An email you forward</strong> goes to Anthropic like anything else you upload,
+              and so do small copies of its pictures, so offload can tell a ticket from a logo.
+            </li>
+            <li>
               <strong>Only what the task needs goes out.</strong> Not your account, not your
               history, not your other threads.
             </li>
@@ -458,7 +467,7 @@ export default function Privacy() {
                 <tr>
                   <td>Cloudflare R2</td>
                   <td>Stores files and our nightly backup</td>
-                  <td>Your photos, screenshots and voice notes, encrypted, and never a key</td>
+                  <td>Your photos, screenshots, voice notes and the pictures from email you forward, encrypted, and never a key</td>
                 </tr>
                 <tr>
                   <td>Anthropic</td>
@@ -498,8 +507,11 @@ export default function Privacy() {
                 </tr>
                 <tr>
                   <td>Resend</td>
-                  <td>Sends the handful of emails we send</td>
-                  <td>Your email address and the email itself</td>
+                  <td>Sends the handful of emails we send, and receives email you forward to offload</td>
+                  <td>
+                    Your email address and the email itself; an email you forward is kept by them for
+                    30 days, in the United States, encrypted, and then deleted
+                  </td>
                 </tr>
                 <tr>
                   <td>Expo</td>
@@ -755,6 +767,12 @@ export default function Privacy() {
               decide whether to accept, nobody is told when you do not, and you can block them.
             </li>
             <li>
+              <strong>An email you forward into a shared thread</strong> shows the others what it
+              says, including who sent it. If you copy offload in on an email to somebody who is
+              also on offload and they reply to all, their reply, quoting you, lands in their
+              account, where you cannot delete it.
+            </li>
+            <li>
               <strong>A photo you put in a shared thread is theirs to see too</strong>, with what
               offload wrote about it and the day it was taken. The file&rsquo;s own name stays with
               you.
@@ -786,9 +804,10 @@ export default function Privacy() {
 
           <h3 className={styles.h3}>What is encrypted by us</h3>
           <p>
-            Your photos, your screenshots and the audio of your voice notes are encrypted by offload
-            before they are stored, each under its own key, and our storage provider never receives
-            a key. They hold ciphertext and nothing else.
+            Your photos, your screenshots, the audio of your voice notes and the pictures from email
+            you forward are encrypted by offload before they are stored, each under its own key, and
+            our storage provider never receives a key. They hold ciphertext and nothing else. An
+            email you forward travels to us the way email does, which is not encrypted end to end.
           </p>
 
           <h3 className={styles.h3}>What is not, and what that means</h3>
