@@ -205,6 +205,9 @@ export const noteSchema = z.object({
   /** When it was last written. What decides which notes reach a prompt when a
    *  thread holds more than the budget, and what the row shows. */
   writtenAt: z.coerce.date(),
+  /** 028. When it was put down, which an edit does not move: the loose list's
+   *  order and its meta line. */
+  createdAt: z.coerce.date(),
   /** The date carries no time, so nothing may draw one. */
   allDay: z.boolean(),
   /** That it comes round again, as a rule rather than as occurrences. The

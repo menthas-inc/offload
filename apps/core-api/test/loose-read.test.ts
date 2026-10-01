@@ -113,6 +113,9 @@ describe("the summary (T1.7, AC-6, AC-7)", () => {
     const { loose: summary } = await threads(me);
     expect(summary!.rows.map(titleOf)).toEqual(["Newest", "Third, a note", "Second"]);
     expect(summary!.rows[1]!.kind).toBe("note");
+    // When it was put down, for the meta line, on both shapes.
+    const asNote = summary!.rows[1] as { note: { createdAt?: string } };
+    expect(typeof asNote.note.createdAt).toBe("string");
   });
 
   it("is null when nothing is loose, and for an account with no default thread", async () => {

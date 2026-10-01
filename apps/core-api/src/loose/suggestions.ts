@@ -37,7 +37,6 @@ export class LooseRefused extends Error {
  *  database holds a proposal to the same; a thread's name is checked here. */
 export function threadName(raw: string): string {
   const name = raw.trim();
-  // eslint-disable-next-line no-control-regex
   if (name.length === 0 || name.length > NAME_CHARS || /[\u0000-\u001f\u007f]/.test(name)) throw new LooseRefused("bad_name");
   return name;
 }

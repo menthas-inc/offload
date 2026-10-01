@@ -507,6 +507,8 @@ describe("AC-17 and AC-4 what an open stream does each tick", () => {
       replyId: expect.any(String),
       threads: [],
       changed: [],
+      // 028. Filed nothing.
+      filed: false,
       // 016. Empty on a turn that read nothing, which is nearly every turn.
       sources: [],
       labels: [],

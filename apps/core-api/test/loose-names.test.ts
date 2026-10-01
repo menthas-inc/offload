@@ -9,7 +9,7 @@ import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { foundFor } from "../src/search/found.js";
 import { mailLandedLine } from "../src/mail-in/activity.js";
-import { threadsFor } from "../src/routes/dumps.js";
+import { threadsFor, threadsForAll } from "../src/routes/dumps.js";
 import { account, offloadEvent, question, signIn, task, thread, ZONE } from "./today-kit.js";
 import { dump } from "./labels-kit.js";
 
@@ -99,10 +99,28 @@ describe("a turn's footer (AC-27)", () => {
     const onlyLoose = await threadsFor(messageId, me);
     expect(onlyLoose.landed).toEqual([]);
     expect(onlyLoose.changed).toEqual([loose]);
+    // Done still shows: the turn filed something, it just has no pill.
+    expect(onlyLoose.filed).toBe(true);
+    expect((await threadsForAll([messageId], me)).get(messageId)).toEqual([]);
 
     await task(me, lisbon, "Book the flat", null, { derived_from_message_id: messageId });
     const both = await threadsFor(messageId, me);
     expect(both.landed).toEqual([{ id: lisbon, name: "Lisbon trip" }]);
+    expect((await threadsForAll([messageId], me)).get(messageId)).toEqual([{ id: lisbon, name: "Lisbon trip" }]);
+  });
+});
+
+describe("the conversation's tail (AC-27)", () => {
+  it("says a loose-only turn filed something, with no pill", async () => {
+    const { me, loose } = await withDefault();
+    const { messageId } = await dump(me);
+    await db.updateTable("messages").set({ state: "answered" }).where("id", "=", messageId).execute();
+    await task(me, loose, "Renew passport", null, { derived_from_message_id: messageId });
+    const response = await app.inject({ method: "GET", url: "/v1/conversations/current", headers: { cookie: await signIn(me) } });
+    const tail = response.json() as { messages: { id: string; threads: unknown[]; filed: boolean }[] };
+    const message = tail.messages.find((m) => m.id === messageId)!;
+    expect(message.threads).toEqual([]);
+    expect(message.filed).toBe(true);
   });
 });
 
