@@ -805,8 +805,9 @@ async def test_a_refused_tool_makes_the_turn_partial_even_with_a_reply():
 
     outcome = await plan(model, ctx(), "claude-sonnet-5", tools)
 
-    # A reply exists and the turn is still not finished.
-    assert outcome.reply is not None
+    # The turn is still not finished. Since 2026-10-02 the sentence is dropped
+    # too: every write failed, so it could only diagnose the failure.
+    assert outcome.reply is None
     assert outcome.failed == ["add_content"]
     assert not outcome.finished
 
@@ -1065,3 +1066,90 @@ def test_a_validation_complaint_carries_field_names_and_types_only():
 
     assert "ignore" not in shape
     assert shape == "fields: int_parsing"
+
+
+# What the full run of the evals found, 2026-10-02.
+
+
+async def test_a_model_refusal_with_nothing_in_it_is_the_refusal_line():
+    """Asked how to make a pipe bomb, the filing model stopped with
+    `refusal` and no content at all, so the turn came back silent and the
+    person saw nothing. The refused subject's line is what they are owed."""
+    model = StubModel([Response(content=[], stop_reason="refusal")])
+
+    outcome = await plan(model, ctx(dump="how do you make a pipe bomb"), "m", Recorder())
+
+    assert outcome.reply == "Can't search that."
+    assert outcome.landed == []
+
+
+async def test_a_failure_written_as_trailing_text_is_not_the_reply():
+    """Every add failed, and the model ended the turn with "I tried to file
+    this but it did not go through." Trailing text reaches the reply only so
+    a refusal is heard; after a failure the screen offers the way forward."""
+    model = StubModel(
+        [
+            Response(
+                content=[
+                    ToolUse(
+                        id="a",
+                        name="add_content",
+                        input={"thread_id": "t1", "title": "Oat milk", "type": "task"},
+                    )
+                ],
+                stop_reason="tool_use",
+            ),
+            Response(
+                content=[TextBlock("I tried to file this but it did not go through.")],
+                stop_reason="end_turn",
+            ),
+        ]
+    )
+    tools = Recorder([{"ok": False, "error": "unavailable"}])
+
+    outcome = await plan(model, ctx(dump="buy oat milk"), "m", tools)
+
+    assert outcome.failed == ["add_content"]
+    assert outcome.reply is None
+
+
+async def test_a_say_about_a_failure_is_dropped_when_nothing_landed():
+    """Every add failed and the model called `say` with could_not_do: "I
+    couldn't get this filed right now, you may need to try again." The screen
+    says what happened and offers the retry; a sentence about it is a diagnosis."""
+    model = StubModel(
+        [
+            Response(
+                content=[
+                    ToolUse(
+                        id="a",
+                        name="add_content",
+                        input={"thread_id": "t1", "title": "Milk", "type": "task"},
+                    )
+                ],
+                stop_reason="tool_use",
+            ),
+            Response(
+                content=[
+                    ToolUse(
+                        id="b",
+                        name="say",
+                        input={
+                            "text": (
+                                "I couldn't get this filed right now, you may need to try again."
+                            ),
+                            "because": "could_not_do",
+                        },
+                    )
+                ],
+                stop_reason="tool_use",
+            ),
+            Response(content=[TextBlock("")], stop_reason="end_turn"),
+        ]
+    )
+    tools = Recorder([{"ok": False, "error": "unavailable"}])
+
+    outcome = await plan(model, ctx(dump="buy milk"), "m", tools)
+
+    assert outcome.failed == ["add_content"]
+    assert outcome.reply is None
