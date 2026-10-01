@@ -131,13 +131,13 @@ Roles: display 34, title-1 26, title-2 21, title-3 17, body 16, body-sm 14, labe
 
 ## Iconography
 
-**Lucide, and only Lucide.** Outline, 2px stroke, 24px grid, no fills, no duotone, no colour. 85 glyphs are vendored in `assets/icons/` as SVG so this system works offline; `Icon` reads from the jsDelivr copy of `lucide-static` by default and accepts `basePath="./assets/icons/"` to use the local set.
+**Lucide, and only Lucide.** Outline, 2px stroke, 24px grid, no fills, no duotone, no colour. 87 glyphs are vendored in `assets/icons/` as SVG so this system works offline; `Icon` reads from the jsDelivr copy of `lucide-static` by default and accepts `basePath="./assets/icons/"` to use the local set.
 
 Icons are rendered as a **`currentColor` mask**, so a glyph always inherits the colour of the text it sits beside, that is why there is no coloured-icon rule to remember. Sizes: 14 (inside chips), 16 (metadata, small buttons), 18 (list rows, fields), 20 (bars, buttons), 22 (tab bar), 28 (empty states, in `--ink-300`).
 
 Tab glyphs: `sun` / `moon` (Today and Tonight, on real sunset), `lasso` (My threads, a loop drawn round related things), `cloudy` (Notes). Then `sparkles` (anything offload did for you), `map-pin` `link` `image` `mic` `camera` `paperclip` `scan-text` (kinds of dumped thing), `square-check-big` / `check` / `check-check` (tasks and done states), `users` (shared threads and people), `arrow-up` (send), `plus` (new), `ellipsis` (more), `chevron-*` and `maximize-2` (navigation), `bell` `settings` `search` `clock` `calendar` `bookmark` `archive` `trash-2` `pencil` `share-2` `funnel` `lock` `house` `message-circle` `circle` `list`.
 
-All 85 vendored glyphs: `album` `archive` `arrow-up` `arrow-up-right` `bell` `blend` `bookmark` `brain` `calendar` `camera` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `coffee` `compass` `ellipsis` `eye` `folder` `funnel` `gallery-vertical-end` `git-branch` `grip-vertical` `group` `house` `image` `inbox` `lasso` `layers` `library-big` `link` `list` `lock` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `moon` `moon-star` `newspaper` `orbit` `paperclip` `pause` `pencil` `play` `plus` `radio` `rewind` `rss` `scan-text` `search` `settings` `share-2` `snowflake` `sparkles` `spline` `square-check-big` `sun` `sunrise` `tag` `text-quote` `thermometer-sun` `trash-2` `umbrella` `users` `waypoints` `wind` `x`.
+All 87 vendored glyphs: `album` `archive` `arrow-up` `arrow-up-right` `bell` `blend` `bookmark` `brain` `calendar` `camera` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `coffee` `compass` `ellipsis` `eye` `folder` `funnel` `gallery-vertical-end` `git-branch` `grip-vertical` `group` `house` `image` `inbox` `lasso` `layers` `library-big` `link` `list` `lock` `mail` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `moon` `moon-star` `newspaper` `orbit` `paperclip` `pause` `pencil` `play` `plus` `radio` `rewind` `rss` `scan-text` `search` `settings` `share-2` `sliders-horizontal` `snowflake` `sparkles` `spline` `square-check-big` `sun` `sunrise` `tag` `text-quote` `thermometer-sun` `trash-2` `umbrella` `users` `waypoints` `wind` `x` .
 
 No icon font. No PNG icons. No emoji. No hand-drawn or bespoke SVG illustration, if a screen needs a picture, it uses a real image the user provided, or nothing.
 
@@ -157,7 +157,7 @@ Root manifest:
 | `thumbnail.html` | Homepage tile for this system. |
 | `tokens/` | `fonts` · `colors` · `typography` · `spacing` · `radius` · `elevation` · `motion` · `base`. |
 | `guidelines/` | 18 specimen cards: colours, type, numerals, spacing, radii, elevation, motion, mark, icon set. |
-| `assets/` | `mark.svg`, `mark-inverse.svg`, `app-icon.svg`, and `icons/`, 85 Lucide SVGs, and `fonts/`, the five static faces. |
+| `assets/` | `mark.svg`, `mark-inverse.svg`, `app-icon.svg`, and `icons/`, 87 Lucide SVGs, and `fonts/`, the five static faces. |
 | `explorations/` | 43 exploration logs, plus `frames.css`, the shared shell the newer ones link: the mark, the accents, the type, section headers, the calendar, the conversation overlay, dark theme, notifications and the notification templates, settings layouts, swipe-to-delete, the iOS/Android comparison, the web shell, one motion page per platform, and the four that settled the edges: sign in with first run and the landing page, the no-invite screen with the email options and refusals, sharing and invitations, and the day-one empty states. Kept as the record of what was considered and rejected, and of what was picked. |
 | `components/` | 29 primitives in eight groups (below). |
 | `ui_kits/mobile_app/` | Interactive click-through of the iOS app; see its `README.md`. |
@@ -649,6 +649,15 @@ re-centres everything above it, moving the mark by half the spinner's height plu
 terms, a home screen is not a page and a launch screen is the app's own ground, and nothing proposes
 changing either.
 
+**When nothing answers** (1 October, off `explorations/finishing.html`). Only a 401 goes to the gate.
+Anything else holds on the launch screen, the mark where the splash put it, no plate, and the
+failure takes the spinner's place 64px under the mark. **Two cases, two messages:** with no network,
+*You're offline* over *offload picks up when you're back.*, retrying when the connection returns;
+with a network but no answer, *offload isn't answering* over *It's on our side. Trying again.*,
+retrying on its own at 2, 4, 8 and then every 15 seconds. Title 17px semibold, line 14px
+`--text-secondary`, and a 36px outline **Try again** pill under both. Never `--text-danger`: it is
+not the person's mistake. The web draws the same two lines alone in the middle of the page.
+
 ## The photo viewer
 
 A photo opened from a tile, a thumbnail or a row's tile, shown over whatever was on screen.
@@ -873,8 +882,8 @@ dot, never a count**, and no Due sheet: forward-looking "what is due" is the Tim
 **Notifications is its own page** in Reaching you, replacing Communication: Due today, its hour,
 Tomorrow, its hour, Connection requests, Added to a shared thread, and System settings. When the
 system was never asked, the page offers the one permission ask; after a refusal it opens System
-settings instead. **Today** is three groups over the thread page's own row, with the thread's name
-as a meta line and the row's own controls acting in place. **A sheet's action row wraps** at an
+settings instead. **Today** is described in its own section below (1 October), which supersedes the
+three groups. **A sheet's action row wraps** at an
 accessibility text size rather than clipping.
 
 **The model may overwrite a date a person set**, where the dump states a new one. Nothing is
@@ -973,6 +982,45 @@ for now**. Activity records what offload labelled, with Undo for thirty days. **
 final.** Deleting a label takes it off every row and deletes nothing else. The copy has no noun:
 *Seven labelled.*, *Packing list is under Istanbul*.
 
+## Today
+
+Decided 1 October 2026 off `explorations/today.html`, replacing the placeholder on `main`. Today
+says **what to expect and what to do**, across every thread. It is not a calendar: events are
+context, and a tap opens one in the calendar app.
+
+**Needs you**, on top, holds interruptions only: an account issue, a person waiting, a question
+offload asked (a question about a forwarded email included), and at most one tip. One card shows
+with the rest stacked under it: the kind and how long it has waited, a title, one line, the actions
+that settle it, and a clock that puts it off until tomorrow. **Late to-dos are not in it**, and
+nothing is drawn when it is empty, which is most days. There is no heading and no date row.
+
+**The day**, under it, one day at a time:
+
+- **A stepper**: Today, Tomorrow, weekday names to Sunday, Next Monday to Next Sunday, then the
+  date. The back arrow stops at Today; a swipe across the day does the same. Other days write their
+  date small under the name. The page opens on Today every time.
+- **The next event in one line**, in 20px semibold, its countdown in `--blue-600`:
+  *Call with Ana in 1h 30m*. On another day, the first event and its hour.
+- **Where you will be**: the day's events as a strip of 128px cards scrolled sideways, past ones
+  faded, the next one raised.
+- **To do**: late first with its late chip (past three, *3 more late*), then to-dos with a time
+  carrying a clock chip, then the rest due that day. The thread page's own rows.
+- **If you have time**, on Today only: up to three to-dos with no date, offload's pick, each with
+  *+ Today* to take it on.
+- Empty sections are not drawn. No line for tomorrow.
+
+**Threads are thread pills**, the conversation's moss chip with `lasso`, at 24px to sit on a row's
+marks line beside the date chip; a label follows it. A calendar name stays plain text.
+
+**Customize Today** opens from `sliders-horizontal` in the app bar, which only Today draws:
+Needs you, Your day and What moved, each dragged to order and switched. What Needs you and If you
+have time hold is the server's rule, not a setting. The layout is one small document per account,
+read by the server; no model call is involved.
+
+**The forwarding tip** (026): *Forward emails to offload*, the address `over@to.offload.club` and
+the sign-in address in its line, with *Copy address* and *Got it*. Never shown to an Apple hidden
+email. A filed or failed email stays in Activity.
+
 ## The admin panel
 
 Staff-only, so it optimises for reading columns rather than for calm. Same tokens, same
@@ -1010,8 +1058,8 @@ cheaper model, or stop and tell the person offload is resting. Dumps are always 
 - **Theme and text size are named rows at the foot of the nav, and a Settings page as well.** Both read the same stored value. An accessibility control behind an unlabelled glyph is not a control anybody can find.
 - **Notes are rows, not chips.** A note is a sentence up to 200 characters, so `MemoryRow` sets it as one and the row grows to hold its own editor. A section holding none draws nothing at all, which means the first note on a thread comes from dumping something. **The row carries more since 014**: a date when the note has one, a mark that it has a longer body behind it, and a tertiary treatment for a note past the prompt budget, which is on the thread and not reaching offload.
 - **Hiding by stacking order is not hiding.** Anything concealed only by an opaque sibling in front of it becomes visible during any group fade: a screen transition, a modal, a list animating in. Anything that must not appear carries its own opacity or is not mounted. `SwipeRow`'s reveal is the worked example, its opacity driven from the same value as its offset.
-- **The bottom plate is a fixed shape** (30 September). A raised conversation covers it rather than changing it: the plate keeps its composer, its tabs slide down under the sheet with their opacity, and its prism band keeps its height. There is no folded row on it; a conversation is raised or closed.
-- **A raised conversation follows the finger** (30 September). It rises to 54px from the top with no header, only a grabber, and one shared position drives the sheet, the scrim, the tab bar and, on iOS, the page behind (scale 0.93 from its top edge, down 10px, a 14px corner, under a 45% scrim). **On Android the page does not recede**: it dims under a 55% scrim and stays put, and predictive back drives the sheet. A release past a quarter of its travel or a flick down closes it, springing from the finger's speed; anything less springs back. **Every row sheet drags the same way**, and a drag is Cancel. Only the conversation dims or recedes the page for immersion. A thread keeps its tabs.
+- **The bottom plate is a fixed shape** (30 September). A raised conversation covers it rather than changing it: the plate keeps its composer, its tabs slide down under the sheet with their opacity, and its prism band keeps its height. There is no folded row on it; a conversation is raised or closed. **The keyboard never changes its shape**: it covers the tabs first, and the plate rides it only once it reaches the composer. **The tabs fade as it rises**, to nothing over the keyboard's first 60pt, so no label is cut by its edge.
+- **A raised conversation follows the finger** (30 September). It rises to 54px from the top with no header, only a grabber, and one shared position drives the sheet, the scrim, the tab bar and, on iOS, the page behind (scale 0.93 from its top edge, down 10px, a 14px corner, under a 45% scrim). **On Android the page does not recede**: it dims under a 55% scrim and stays put, and predictive back drives the sheet. A release past a quarter of its travel or a flick down closes it, springing from the finger's speed; anything less springs back. **Every sheet drags the same way**, and a drag is Cancel. A full predictive back swipe pulls a sheet down by 30% of its travel before the commit closes it. **A conversation put away for thirty minutes ends** on the next tap into the composer or the next dump, on every surface; the web keeps its close. Only the conversation dims or recedes the page for immersion. A thread keeps its tabs.
 - **`SwipeRow` is delete-only**, despite the generic name. The trash glyph and the clay ground are inside the component and only the label is exposed, so a swipe labelled Archive would show a trash can. Anything other than deleting belongs in a long-press action sheet, which is also the answer where the available actions depend on who authored the row: on web, edit and archive for any member, delete and move for the author alone. A fixed gesture map cannot express that.
 
 ## Brand decisions, closed 25 August 2026

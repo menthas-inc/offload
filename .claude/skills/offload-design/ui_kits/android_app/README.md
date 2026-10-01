@@ -77,3 +77,13 @@ do the three motion keyframes: `a-in-x`, `a-in-x-back`, `a-through-in`.
 Screens are keyed on a route and a depth in `M3App.jsx`: deeper is forward, shallower is
 back, same depth is a peer and fades through. Nothing else in the kit animates, and there is
 deliberately no ripple.
+
+## Redrawn to the app as built, 1 October 2026 (decision 5A)
+
+- **Today** is the design in the readme's *Today* section: Needs you, the stepper, the next event, the events strip, To do, If you have time, thread pills, and Customize Today from the sliders in the app bar. Shared by both kits in `mobile_app/TodayParts.jsx`.
+- **Rows open the one row sheet** (title, When, Repeats, Labels opening in place, Delete, Cancel, Save), with a grabber. Drawn from Today's rows.
+- **Activity** is a pushed screen with no plate, replacing the notification sheet; filled and hollow leads, *Not sent*, Undo.
+- **Notifications** replaces Communication in Settings. **Mail** is its own group in Connected apps and opens the Mail page (026).
+- **The conversation** rises to 54pt with only a grabber: no title row, no fold. The grabber closes it.
+- **First run** gains the Mail step after connect. The `first run` control gains *mail*, *offline* and *no answer*, the last two drawing launch holding on a failure.
+- Not drawn in a kit: the drag physics, the page receding and the plate under the keyboard. The readme's behaviour notes and the handoffs are the reference for motion.
