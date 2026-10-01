@@ -11,6 +11,29 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-02 · Not in a thread as built (028)
+**Surface:** iOS, Android, web
+**Raised by:** the 028 build of `handoff/APPLY-2026-10-01-loose.md`, with the product owner's answers during planning and the project-lead, client and security reviews. Spec and divergences: `docs/specs/028-loose/feature-spec.md`, `at-merge.md`.
+
+**Was:** the handoff's Not in a thread, drawn in `LooseParts.jsx` and `explorations/loose-items.html`.
+
+**Is:**
+- **A turn that filed only loose shows Done and nothing else.** No *Saved.* reply: a filing turn says nothing on every other path, and *Saved.* is only a stopped turn's partial reply for what landed loose.
+- **A Move to into a shared thread draws the faces of its other members** after the name: up to two 20px initials marks on `--surface-fill` with a 1.5px ring in the button's ground, overlapping by 6px, then *+N*. The owner's decision, so the tap is informed. The kit draws no faces.
+- **Eight chip types**, To-dos, Links, Photos (photos and screenshots), Notes, Events, Places, Voice notes, Files, against the kit's five. Files uses `paperclip`: the set has no `file`.
+- **The chips are 025's `Chip`**: a 30px pill (32 on Android) on `min-height` in a 44px target, ink when selected on all three. The kit draws 34px pills and Android's selected chip in moss, and moss means offload did this.
+- **The suggestion button's target is 44px** while it draws 32, and the cross is a 44px target beside it so the two do not overlap.
+- **Copy:** *These three look like they belong together.* (not *one project*, which is on the vocabulary's never list); *A name is 60 characters at most.* under the field; toasts are plain strings, *Moved to Flat admin* and *Created Kitchen shelves*, not a pill on the toast; an answer's loose result cut short says *The rest of the answer is in the list.*; a note opened from the list asks *What is worth remembering?*.
+- **A row leaves as a deleted row does**, not with the kit's tinted fade.
+- **The full list keeps the composer and the tabs**, as every screen does. Its empty state is the title *Nothing in here yet* alone, with no mark: the lasso is a thread's mark. Neither client has the design system's `EmptyState` component yet.
+- **The archived foot row** opens an *Archived* section with *Back to the list*, as the thread page's does.
+- **Loose notes draw as loose rows** with the `text-quote` tile, not the thread page's note row, which has a drag grip and no swipe. The meta line is *Note · Monday*: today, yesterday, the weekday within the week, then the date, one wording on every surface.
+- **Web:** the create sheet is a modal, not the kit's side pane; Move is in the row's edit modal, so the hover tools stay two; a note's Move is a ghost pill in its editor's foot (on the phones, a row above the foot); loose rows use the thread page's 32px tile.
+
+**Considered and not taken:** the kit's 34px moss chips; *Saved.* as a reply; a confirm sheet before a shared Move to (the security review's recommendation, declined by the owner); a *New thread* row in the move sheet.
+
+**Design system impact:** `LooseParts.jsx`: faces on a shared Move to, the eight chip types with `paperclip` for Files, 025's `Chip` for the chips, a 44px accept target, plain-string toasts, a leaving row with no tint, and the create sheet's line *look like they belong together*. The web kit's create sheet becomes a modal and its rows gain the hover tools. The readme's **Not in a thread** drops *offload's reply ... is Saved.* for *the turn shows Done*, gains the faces, and states the full list's empty state. `explorations/loose-items.html`'s *one project* line changes. An `EmptyState` component on both clients is still owed.
+
 ### 2026-10-01 · Whose an event is: Today shows yours, a thread marks the rest
 **Surface:** iOS, Android, web
 **Raised by:** the product owner on production: a calendar shared with his wife put her daily classes on his Today, as his next line and under Where you will be.
