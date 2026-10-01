@@ -143,28 +143,30 @@ function LiveConversation({variant,live,turns,writing,onFold,onFull,onClose,onOp
       <style>{"@keyframes offload-pulse{0%,100%{opacity:.35}50%{opacity:1}}@keyframes offload-rise{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}"}</style>
       {/* bottom:0 already lands on the plate's top edge: this sheet's containing
           block is the content column above the plate, not the whole screen. */}
-      <div style={{position:"absolute",left:0,right:0,bottom:0,zIndex:9,height:isSheet?"65%":"58%",
+      {isSheet?<div onClick={onClose} style={{position:"absolute",inset:0,zIndex:8,background:"rgba(11,11,11,0.55)"}}/>:null}
+      <div style={{position:"absolute",left:0,right:0,bottom:0,zIndex:9,top:isSheet?54:undefined,height:isSheet?undefined:"58%",
         display:"flex",flexDirection:"column",background:"var(--surface-plate)",
         borderRadius:"var(--radius-xl) var(--radius-xl) 0 0",
         boxShadow:"0 -6px 12px -6px rgba(0,0,0,0.22)",
         animation:"offload-rise var(--duration-slow) var(--ease-out)"}}>
         {isSheet?(
-          <button type="button" aria-label="Fold down" onClick={onFold}
+          /* 30 September, as built: no header and no fold. The grabber is the Close button
+             to a screen reader; a drag past a quarter of the travel or a flick closes. */
+          <button type="button" aria-label="Close" onClick={onClose}
             style={{height:22,flex:"0 0 auto",display:"flex",alignItems:"center",justifyContent:"center",
-              border:"none",background:"none",cursor:"grab",padding:0}}>
-            <span style={{width:34,height:4,borderRadius:2,background:"var(--a-c-high)"}}/>
+              border:"none",background:"none",cursor:"grab",padding:0,marginBottom:"var(--space-3)"}}>
+            <span style={{width:32,height:4,borderRadius:2,background:"var(--border-strong)"}}/>
           </button>
-        ):null}
+        ):(
         <div style={{display:"flex",alignItems:"center",gap:"var(--space-3)",flex:"0 0 auto",
           padding:"0 var(--gutter-screen) var(--space-5)"}}>
           <span style={{flex:1,minWidth:0,font:"var(--weight-medium) 16px/1.3 var(--font-core)",
-            letterSpacing:"-0.008em",color:"var(--a-on)",
             overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{live.title}</span>
           <button type="button" aria-label="Close" onClick={onClose}
             style={{width:24,height:24,flex:"0 0 auto",display:"flex",alignItems:"center",justifyContent:"center",
               border:"none",borderRadius:"var(--radius-pill)",cursor:"pointer",
-              background:"var(--a-c-high)",color:"var(--a-on-var)"}}><Icon name="x" size={12}/></button>
-        </div>
+              background:"var(--surface-fill)",color:"var(--text-secondary)"}}><Icon name="x" size={12}/></button>
+        </div>)}
         <Turns turns={turns} writing={writing} onOpenThread={onOpenThread} onTick={onTick} onPick={onPick}/>
         {children}
       </div>

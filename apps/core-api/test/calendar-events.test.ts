@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from "vitest";
 import { isUntrusted, mapEvent, minimiseAttendees, sourceRefFor } from "../src/connectors/events.js";
-import type { GoogleEvent } from "../src/connectors/google.js";
+import { eventLink, listEvents, type GoogleEvent } from "../src/connectors/google.js";
 
 function event(over: Partial<GoogleEvent> = {}): GoogleEvent {
   return {
@@ -24,6 +24,7 @@ function event(over: Partial<GoogleEvent> = {}): GoogleEvent {
     timezone: "Europe/Lisbon",
     organizedByMe: true,
     attendees: [{ name: "Ana", email: "ana@example.com", response: "accepted" }],
+    link: null,
     ...over,
   };
 }
@@ -85,5 +86,40 @@ describe("AC-6 the mapping", () => {
   it("names no thread", () => {
     // 019. The copy is the calendar's; where it is read is the thread's picks.
     expect(mapEvent(event(), "cal-1")).not.toHaveProperty("threadId");
+  });
+});
+
+// 027 T1.2: the event's own link, kept so Today can hand it to the platform.
+describe("027 AC-19 the event's link", () => {
+  it("is carried from Google's event into the copy", () => {
+    const link = "https://www.google.com/calendar/event?eid=ZXZ0MSBjYWwtMQ";
+    expect(mapEvent(event({ link }), "cal-1").link).toBe(link);
+    expect(mapEvent(event({ link: null }), "cal-1").link).toBeNull();
+  });
+
+  it("is kept only when it is https on a Google host", () => {
+    expect(eventLink("https://www.google.com/calendar/event?eid=a")).toBe("https://www.google.com/calendar/event?eid=a");
+    expect(eventLink("https://calendar.google.com/calendar/event?eid=a")).toBe("https://calendar.google.com/calendar/event?eid=a");
+    for (const bad of ["http://www.google.com/calendar/event?eid=a", "javascript:alert(1)", "https://www.google.com.evil.example/calendar/", "intent://x", 42, undefined, "x".repeat(3000)]) {
+      expect(eventLink(bad)).toBeNull();
+    }
+  });
+
+  it("is read from the field Google's events.list documents", async () => {
+    const original = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          items: [{ id: "evt1", status: "confirmed", summary: "Dinner", htmlLink: "https://www.google.com/calendar/event?eid=abc", start: { dateTime: "2026-10-02T19:00:00Z" }, end: { dateTime: "2026-10-02T20:00:00Z" } }],
+          nextSyncToken: "t",
+        }),
+        { status: 200 },
+      )) as typeof fetch;
+    try {
+      const page = await listEvents("token", "cal-1", {});
+      expect(page !== "resync" && page.events[0]?.link).toBe("https://www.google.com/calendar/event?eid=abc");
+    } finally {
+      globalThis.fetch = original;
+    }
   });
 });

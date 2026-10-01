@@ -72,7 +72,7 @@ export default function NoInvite() {
                 disabled={!email}
                 className="min-h-a-row-height w-full items-center justify-center rounded-pill bg-blue-600 active:opacity-90"
               >
-                <Text className="font-core text-body font-medium text-text-inverse">
+                <Text className="font-core text-body font-medium text-text-on-solid">
                   {GATE.notInvited.join}
                 </Text>
               </Pressable>

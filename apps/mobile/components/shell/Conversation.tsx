@@ -38,6 +38,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
+import { ThreadPill } from "./ThreadPill";
 import { LabelMark } from "../labels/LabelMark";
 import { AnswerResults } from "./AnswerResult";
 import { Reply } from "./Reply";
@@ -649,21 +650,9 @@ function TurnFooter({ turn }: { turn: Turn }) {
         // Tappable, and it puts the conversation away on the way out. A reply
         // naming where it filed something and not taking you there is a
         // sentence about a place rather than a way to it. The conversation is
-        // kept: the composer brings it back.
-        <Pressable
-          key={thread.id}
-          onPress={() => {
-            lower();
-            router.push({ pathname: "/threads/[id]", params: { id: thread.id } });
-          }}
-          className="flex-row items-center gap-space-2 rounded-pill bg-surface-accent-soft px-space-5"
-          style={{ height: CHIP_H }}
-        >
-          <Glyph name="lasso" size={12} color={COLOR.accent} />
-          <Text className="font-core text-text-accent" style={{ fontSize: 12.5 }}>
-            {thread.name}
-          </Text>
-        </Pressable>
+        // kept: the composer brings it back. 027: Today's pill, at the
+        // footer's height.
+        <ThreadPill key={thread.id} id={thread.id} name={thread.name} size={CHIP_H} onOpen={lower} />
       ))}
 
       {marks.map((label) => (
@@ -1035,7 +1024,7 @@ function Waiting({ turn }: { turn: Turn }) {
           accessibilityRole="button"
         >
           <Text
-            className="font-core font-medium text-text-inverse"
+            className={`font-core font-medium ${isAndroid ? "text-text-on-solid" : "text-text-inverse"}`}
             style={{ fontSize: 15 }}
           >
             {share ? "Share" : "Add it"}

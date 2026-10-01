@@ -22,10 +22,10 @@
 // the one that also says work is happening. What happened, where it
 // landed, where it came from.
 
-import Link from "next/link";
 import { Icon } from "../Icon";
 import { webHref } from "../../lib/links";
 import { LabelMark } from "../labels/LabelMark";
+import { ThreadPill } from "./ThreadPill";
 import styles from "../../app/(shell)/composer.module.css";
 
 export interface TurnRef {
@@ -73,11 +73,9 @@ export function TurnFooter({
         </span>
       ) : null}
 
+      {/* 027. The shared thread pill, at the footer's own 30. */}
       {refs.map((ref) => (
-        <Link key={ref.id} href={`/threads/${ref.id}`} className={styles.threadLink}>
-          <Icon name="lasso" size={13} />
-          {ref.name}
-        </Link>
+        <ThreadPill key={ref.id} id={ref.id} name={ref.name} size={30} />
       ))}
 
       {marks.map((label) => (

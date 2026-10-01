@@ -17,6 +17,7 @@ import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
 import { undoMailRow } from "../mail-in/activity.js";
 import { zoneOf } from "../accounts/zone.js";
+import { agendaQuery, agendaRow, everDumped, labelsOf, shapeRows, type AgendaRaw } from "../today/rows.js";
 import { actedCopy } from "../notifications/copy.js";
 import { ACTIVITY_DAYS, listActivity, markSeen, record } from "../notifications/activity.js";
 import { isPushToken } from "../notifications/push.js";
@@ -52,7 +53,6 @@ const pushToken = z
 export const TODAY_BACK_DAYS = 30;
 export const OVERDUE_CAP = 100;
 
-const agendaRow = contentRow.extend({ threadId: z.string(), threadName: z.string() });
 const todayResponse = z.object({
   overdue: z.array(agendaRow),
   today: z.array(agendaRow),
@@ -273,6 +273,9 @@ export async function notificationRoutes(app: App): Promise<void> {
    *  dated content row lands here, reminder or not; notes do not. A repeating
    *  row appears once, in the first group its rule lands in, never in
    *  Overdue. Overdue reaches back thirty days and is capped, newest first. */
+  // 024's three groups, kept for phones built before 027, which read
+  // `/v1/today/day` and `/v1/today/needs` instead. Remove once no session has
+  // come from a build older than 027's first phone build for thirty days.
   app.get("/v1/today", { schema: { response: { 200: todayResponse, 401: unauthenticated } } }, async (request, reply) => {
     const accountId = await currentAccountId(request);
     if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
@@ -282,51 +285,7 @@ export async function notificationRoutes(app: App): Promise<void> {
     const from = new Date(`${addUtcDays(today, -(TODAY_BACK_DAYS + 1))}T00:00:00Z`);
     const to = new Date(`${addUtcDays(tomorrow, 2)}T00:00:00Z`);
 
-    const raw = await db
-      .selectFrom("readable_content as content")
-      .innerJoin("threads", "threads.id", "content.thread_id")
-      .leftJoin("accounts", "accounts.id", "content.account_id")
-      .select([
-        "content.id as id",
-        "content.type as type",
-        "content.title as title",
-        "content.body as body",
-        "content.url as url",
-        "content.image_url as image_url",
-        "content.created_at as created_at",
-        "content.archived_at as archived_at",
-        "content.account_id as account_id",
-        "content.done_at as done_at",
-        "content.filing_at as filing_at",
-        "content.due_at as due_at",
-        "content.occurs_at as occurs_at",
-        "content.occurs_end_at as occurs_end_at",
-        "content.rrule as rrule",
-        "content.source_ref as source_ref",
-        "content.is_reminder as is_reminder",
-        "content.priority as priority",
-        "content.priority_pinned as priority_pinned",
-        "content.place_id as place_id",
-        "content.attrs as attrs",
-        "accounts.display_name as authorName",
-        "content.thread_id as threadId",
-        "threads.name as threadName",
-        sql<boolean>`exists (
-          select 1 from thread_members am
-          where am.thread_id = content.thread_id
-            and am.account_id = content.account_id
-            and am.state = 'accepted'
-        )`.as("authorIsMember"),
-        sql<string | null>`null`.as("placeName"),
-        sql<string | null>`null`.as("placeAddress"),
-        sql<number | null>`null`.as("placeLat"),
-        sql<number | null>`null`.as("placeLng"),
-      ])
-      .where("content.viewer_account_id", "=", accountId)
-      .where("content.deleted_at", "is", null)
-      .where("content.archived_at", "is", null)
-      .where("content.done_at", "is", null)
-      .where("threads.deleted_at", "is", null)
+    const raw = await agendaQuery(accountId)
       .where((eb) =>
         eb.or([
           eb.and([eb("content.type", "=", "event"), eb("content.occurs_at", ">=", from), eb("content.occurs_at", "<", to)]),
@@ -340,7 +299,7 @@ export async function notificationRoutes(app: App): Promise<void> {
       .limit(800)
       .execute();
 
-    type Agenda = RawRow & { threadId: string; threadName: string };
+    type Agenda = AgendaRaw;
     const overdue: { day: string; row: Agenda }[] = [];
     const todays: Agenda[] = [];
     const tomorrows: Agenda[] = [];
@@ -369,35 +328,17 @@ export async function notificationRoutes(app: App): Promise<void> {
       else if (day < today && day >= addUtcDays(today, -TODAY_BACK_DAYS)) overdue.push({ day, row });
     }
     overdue.sort((a, b) => (a.day === b.day ? (a.row.id < b.row.id ? 1 : -1) : a.day < b.day ? 1 : -1));
-    const shape = async (rows: Agenda[]) =>
-      (await withPhotos(rows.map((row) => ({ ...toRow(row, accountId), threadId: row.threadId, threadName: row.threadName })))) as unknown as z.infer<typeof agendaRow>[];
-    const ever = await db
-      .selectFrom("readable_content as content")
-      .select("content.id")
-      .where("content.viewer_account_id", "=", accountId)
-      .where("content.deleted_at", "is", null)
-      .limit(1)
-      .executeTakeFirst();
     const shaped = {
-      overdue: await shape(overdue.slice(0, OVERDUE_CAP).map((one) => one.row)),
-      today: await shape(todays),
-      tomorrow: await shape(tomorrows),
+      overdue: await shapeRows(overdue.slice(0, OVERDUE_CAP).map((one) => one.row), accountId),
+      today: await shapeRows(todays, accountId),
+      tomorrow: await shapeRows(tomorrows, accountId),
     };
-    const named = [...new Set([...shaped.overdue, ...shaped.today, ...shaped.tomorrow].flatMap((row) => row.labels))];
-    const threadLabels =
-      named.length === 0
-        ? []
-        : await db
-            .selectFrom("labels")
-            .select(["id", "name", "colour"])
-            .where("id", "in", named)
-            .where("deleted_at", "is", null)
-            .orderBy("created_at")
-            .execute();
+    const threadLabels = await labelsOf([...shaped.overdue, ...shaped.today, ...shaped.tomorrow]);
+    const ever = await everDumped(accountId);
     return {
       ...shaped,
       overdueMore: Math.max(0, overdue.length - OVERDUE_CAP),
-      everDumped: ever !== undefined,
+      everDumped: ever,
       threadLabels,
     };
   });

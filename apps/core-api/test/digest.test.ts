@@ -7,6 +7,7 @@ import { migrate } from "../src/migrate.js";
 import { composeDigest, placements, queuedDigests, readReceipts, runDigest, RULE_ROWS_CAP, scheduleDigests } from "../src/notifications/digest.js";
 import { MemoryPush, PushFailed, push } from "../src/notifications/push.js";
 import { uuidv7 } from "../src/uuid.js";
+import { addUtcDays } from "@offload/widgets";
 
 await migrate(() => {});
 
@@ -355,5 +356,18 @@ describe("024 review of 2026-09-22: what fails a send, and what a cap drops", ()
     const rent = await reminder(me, flat, "Pay the rent", TODAY);
     const composed = await composeDigest(me, "morning", TODAY);
     expect(composed.rows.map((row) => row.id)).toEqual([rent]);
+  });
+});
+
+// 027 T1.13: the evening digest says which day it named, so Today opens on it.
+describe("027 AC-15 the evening digest carries its day", () => {
+  it("names tomorrow's date in its data and nothing else new", async () => {
+    const me = await account();
+    const th = await thread([me]);
+    await reminder(me, th, "Ferry", addUtcDays(TODAY, 1));
+    await reminder(me, th, "Bins", addUtcDays(TODAY, 1));
+    await token(me);
+    expect(await runDigest(me, "evening", TODAY, at(`${TODAY}T18:00:00Z`), at(`${TODAY}T18:00:10Z`))).toBe("sent");
+    expect(memory.sent[0]?.data).toEqual({ kind: "digest", send: "evening", day: addUtcDays(TODAY, 1) });
   });
 });

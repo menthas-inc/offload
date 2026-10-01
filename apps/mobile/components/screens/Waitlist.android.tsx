@@ -126,7 +126,7 @@ export default function Waitlist() {
                   onPress={join}
                   className="min-h-a-row-height w-full items-center justify-center rounded-pill bg-blue-600 active:opacity-90"
                 >
-                  <Text className="font-core text-body font-medium text-text-inverse">
+                  <Text className="font-core text-body font-medium text-text-on-solid">
                     {copy.join}
                   </Text>
                 </Pressable>

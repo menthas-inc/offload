@@ -91,7 +91,7 @@ export function ActivityPane() {
               const here = sectionOf(dayIn(new Date(row.occurredAt), zone), today, yesterday);
               const heading = here !== section;
               section = here;
-              const door = doorOf(row);
+              const door = doorOf(row, zone, today);
               const tag = tagOf(row);
               const when =
                 here === "Earlier"

@@ -295,7 +295,14 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
     return "skipped_permission";
   }
 
-  const data = { kind: "digest", send, ...(composed.single ? { contentId: composed.single.contentId } : {}) };
+  // 027. The evening send names tomorrow, and says which day that is, so a
+  // tap opens Today on it. A date, never a title.
+  const data = {
+    kind: "digest",
+    send,
+    ...(send === "evening" ? { day: addUtcDays(day, 1) } : {}),
+    ...(composed.single ? { contentId: composed.single.contentId } : {}),
+  };
   const messages: PushMessage[] = tokens.map((one) => ({
     to: one.token,
     title: copy.title,

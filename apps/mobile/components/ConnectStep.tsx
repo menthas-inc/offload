@@ -239,7 +239,8 @@ export function ConnectStepBody({
 /** The connect button, the one first run draws: the same control from the
  *  first-run door and the Settings door, so the two screens are one screen
  *  with one sentence added. `min-h-composer-height` on iOS and the Material
- *  row height on Android, `text-body`, inverse text on ink. */
+ *  row height on Android, `text-body`, inverse text on ink and on-solid text
+ *  on blue, which does not flip. */
 export function ConnectButton({ tone, onPress }: { tone: ConnectTone; onPress: () => void }) {
   const isAndroid = tone === "android";
   return (
@@ -250,7 +251,9 @@ export function ConnectButton({ tone, onPress }: { tone: ConnectTone; onPress: (
         isAndroid ? "min-h-a-row-height bg-blue-600" : "min-h-composer-height bg-ink-950"
       } w-full items-center justify-center rounded-pill active:opacity-90`}
     >
-      <Text className="font-core text-body font-medium text-text-inverse">{CONNECT_STEP.connect}</Text>
+      <Text className={`font-core text-body font-medium ${isAndroid ? "text-text-on-solid" : "text-text-inverse"}`}>
+        {CONNECT_STEP.connect}
+      </Text>
     </Pressable>
   );
 }

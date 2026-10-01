@@ -200,7 +200,7 @@ export function DragSheet({
   sheetStyle,
   surface,
   keyboard,
-  scrim = 0.35,
+  scrim,
   accessibilityLabel,
   onOpen,
 }: {
@@ -315,7 +315,7 @@ export function DragSheet({
       <Animated.View
         exiting={scrimExit}
         className="absolute inset-0"
-        style={[{ backgroundColor: atOpacity(COLOR.scrim, scrim) }, dim]}
+        style={[{ backgroundColor: atOpacity(COLOR.scrim, scrim ?? COLOR.scrimOpacity) }, dim]}
         pointerEvents={closing ? "none" : "auto"}
       >
         <Pressable className="flex-1" onPress={dismiss} accessibilityLabel="Close" />

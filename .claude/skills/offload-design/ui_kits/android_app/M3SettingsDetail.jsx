@@ -126,32 +126,41 @@ const PAGES={
       <Row title="Download everything offload has" onClick={()=>{}} last/>
     </Group>
   </>)},
-  comms:{title:"Communication",render:()=>(<>
-    <Group label="What reaches you">
-      <Toggle title="Something needs an answer" note="Ana asked about dates, a bill is due." on/>
-      <Toggle title="Someone added to a shared thread" on/>
-      <Toggle title="What offload noticed" note="The quiet nudges on Today." on/>
-      <Toggle title="Nothing is happening" note="A weekly note if a thing has gone still." last/>
+  comms:{title:"Notifications",render:()=>(<>
+    <Group label="Things due">
+      <Toggle title="Due today" note="One note in the morning, with what is due." on first/>
+      <Row title="At" value="8:00" onClick={()=>{}}/>
+      <Toggle title="Tomorrow" note="One note the evening before." on/>
+      <Row title="At" value="20:00" onClick={()=>{}} last/>
     </Group>
-    <Group label="When">
-      <Toggle title="Quiet hours" note="Nothing reaches you between 22:00 and 07:00." on/>
-      <Row title="From" value="22:00" onClick={()=>{}}/>
-      <Row title="Until" value="07:00" onClick={()=>{}} last/>
+    <Group label="People">
+      <Toggle title="Connection requests" on first/>
+      <Toggle title="Added to a shared thread" on last/>
     </Group>
-    <Group label="Where">
-      <Toggle title="Push" on/>
-      <Toggle title="Email" note="jo@hey.com" last/>
+    <Group label="This phone">
+      <Row title="System settings" note="Notifications are allowed for offload." onClick={()=>{}} first last/>
     </Group>
-    <ChoiceGroup label="Weekly summary" options={["Off","Sunday evening","Monday morning"]} value="Off"/>
+  </>)},
+  mail:{title:"Mail",render:()=>(<>
+    <Group label="Mail">
+      <Row title="over@to.offload.club" value="Copy" onClick={()=>{}} first/>
+      <Row title="Add to contacts" onClick={()=>{}} last/>
+    </Group>
+    <Group label="How it works">
+      <Row title="Forward an email from jo@hey.com and it's filed like anything else you dump. Mail from any other address isn't accepted." first/>
+      <Row title="Forward by hand. Automatic forwarding rules don't work yet." last/>
+    </Group>
   </>)},
   apps:{title:"Connected apps",render:()=>(<>
     <Group label="Connected">
       <Row title="Calendar" note="Google, jo@hey.com" value="On" onClick={()=>{}}/>
       <Row title="Photos" note="Screenshots become things you can search" value="On" onClick={()=>{}} last/>
     </Group>
+    <Group label="Mail">
+      <Row title="Mail" note="over@to.offload.club" onClick={()=>window.__openSettingsPage&&window.__openSettingsPage("mail")} first last/>
+    </Group>
     <Group label="Not connected">
-      <Row title="Mail" note="So a confirmation files itself" value="Connect" onClick={()=>{}}/>
-      <Row title="Browser" note="Save a page straight into a thing" value="Connect" onClick={()=>{}} last/>
+            <Row title="Browser" note="Save a page straight into a thing" value="Connect" onClick={()=>{}} last/>
     </Group>
     <Group label="How offload uses them">
       <Row title="Read only" note="offload never sends mail, moves events, or deletes photos." last/>

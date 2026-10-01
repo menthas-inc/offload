@@ -101,8 +101,19 @@ export async function requestConnection(accountId: string): Promise<RequestOutco
 }
 
 export async function answerRequest(requestId: string, answer: "accept" | "dismiss"): Promise<boolean> {
-  const response = await fetch(`${API}/v1/people/requests/${requestId}/${answer}`, { ...send, method: "POST" });
-  return response.ok;
+  return (await answerRequestOutcome(requestId, answer)) === "ok";
+}
+
+/** 027. The same answer, saying "gone" for a request withdrawn or answered
+ *  elsewhere, which Today lets go rather than offering again. */
+export async function answerRequestOutcome(requestId: string, answer: "accept" | "dismiss"): Promise<"ok" | "gone" | "failed"> {
+  try {
+    const response = await fetch(`${API}/v1/people/requests/${requestId}/${answer}`, { ...send, method: "POST" });
+    if (response.ok) return "ok";
+    return response.status === 404 ? "gone" : "failed";
+  } catch {
+    return "failed";
+  }
 }
 
 export async function withdrawRequest(requestId: string): Promise<boolean> {

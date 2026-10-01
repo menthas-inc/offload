@@ -289,11 +289,11 @@
   padding: 0 12px;
   border-radius: var(--radius-pill);
   background: var(--moss-700);
-  color: var(--paper);
+  color: var(--text-on-solid);
   font: var(--weight-medium) 13px/1 var(--font-core);
   text-decoration: none;
 }
-.adminLink:hover { background: var(--moss-600); color: var(--paper); }
+.adminLink:hover { background: var(--moss-600); color: var(--text-on-solid); }
 
 /* ------------------------------------------------------- first run consent */
 

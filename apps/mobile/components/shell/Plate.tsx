@@ -11,9 +11,12 @@
 // screen keeps its tabs**, a thread included; they leave only under the
 // conversation or the plate's own keyboard.
 
+import { useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import { tabOpacity } from "../../lib/tabs";
 import { progress } from "../../lib/sheet";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
@@ -59,14 +62,28 @@ export function Plate({
 
   // Down by their own height and the inset below them as the sheet rises,
   // fading as they go, so they leave under the sheet rather than being cut.
+  //
+  // 027. **And they fade under a rising keyboard**, over its first 60pt,
+  // driven by the keyboard's own height, so the keyboard never visibly slides
+  // over them. One opacity for both, whichever fade is further along. Once
+  // gone they take no touch and leave the screen reader's order: hiding by
+  // stacking order is not hiding.
   const tabsHeight = useSharedValue(0);
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const away = useAnimatedStyle(() => {
     const p = progress(sheetY.value, sheetTravel.value);
     return {
       transform: [{ translateY: p * (tabsHeight.value + insets.bottom) }],
-      opacity: 1 - p,
+      opacity: tabOpacity(p, keyboardHeight.value),
     };
   });
+  const [gone, setGone] = useState(false);
+  useAnimatedReaction(
+    () => tabOpacity(progress(sheetY.value, sheetTravel.value), keyboardHeight.value) === 0,
+    (now, was) => {
+      if (now !== was) runOnJS(setGone)(now);
+    },
+  );
 
   return (
     <View
@@ -126,6 +143,9 @@ export function Plate({
           <Animated.View
             className="flex-row"
             style={away}
+            pointerEvents={gone ? "none" : "auto"}
+            accessibilityElementsHidden={gone}
+            importantForAccessibility={gone ? "no-hide-descendants" : "auto"}
             onLayout={(event) => {
               tabsHeight.value = event.nativeEvent.layout.height;
               plateFoot.value = event.nativeEvent.layout.height + insets.bottom;

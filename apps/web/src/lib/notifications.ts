@@ -1,12 +1,11 @@
 "use client";
 
-// Activity and the agenda, from the browser. 024. The web sends nothing
-// itself: browser push is a separate permission, transport and refusal
-// state, and none of the four sends is worth opening it for. It reads the
-// record and the agenda, and holds the same switches.
+// Activity, from the browser. 024. The web sends nothing itself: browser push
+// is a separate permission, transport and refusal state, and none of the four
+// sends is worth opening it for. It reads the record and holds the same
+// switches. 024's agenda read went with 027: Today reads `lib/today.ts`.
 
-import { activityGlyph, activityTag, type ActivityKind } from "@offload/widgets";
-import type { ContentRow } from "./threads";
+import { activityGlyph, activityTag, addUtcDays, dayIn, type ActivityKind } from "@offload/widgets";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
@@ -52,39 +51,14 @@ export async function markActivitySeen(): Promise<void> {
   }
 }
 
-export interface AgendaRow extends ContentRow {
-  /** The thread the row lives in, where its modal and Undo are. */
-  threadId: string;
-  threadName: string;
-}
-
-export interface Agenda {
-  overdue: AgendaRow[];
-  today: AgendaRow[];
-  tomorrow: AgendaRow[];
-  overdueMore: number;
-  everDumped: boolean;
-  /** 025. The labels the rows above carry, and only those. */
-  threadLabels: { id: string; name: string; colour: number }[];
-}
-
-export async function fetchToday(): Promise<Agenda | null> {
-  try {
-    const response = await fetch(`${API}/v1/today`, { credentials: "include" });
-    if (!response.ok) return null;
-    return (await response.json()) as Agenda;
-  } catch {
-    return null;
-  }
-}
-
 /** The glyph and the tag are the shared package's rule, the same one the
  *  phones draw from, so the two clients cannot drift on what a row looks like. */
 export const glyphOf = activityGlyph;
 export const tagOf = activityTag;
 
-/** Where a row goes, or null for a row that is the record and nothing more. */
-export function doorOf(row: ActivityEntry): string | null {
+/** Where a row goes, or null for a row that is the record and nothing more.
+ *  `zone` and `today` are the account's clock, for the evening digest's day. */
+export function doorOf(row: ActivityEntry, zone: string | null = null, today: string = dayIn(new Date(), zone)): string | null {
   // 026. An email's row opens what landed: the row, the thread when several
   // landed there, or the email itself, which the web draws under the composer
   // on every page. A refused email opens the Mail block, which names the one
@@ -98,9 +72,14 @@ export function doorOf(row: ActivityEntry): string | null {
   }
   if (!row.sent && row.reason !== "design") return "/settings/notifications";
   switch (row.kind) {
-    // 2026-09-30: a digest opens Today, as its notification does.
-    case "digest":
-      return "/today";
+    // 2026-09-30: a digest opens Today, as its notification does. 027: the
+    // evening one named tomorrow, so it opens that day, the row's own day in
+    // the account's zone plus one, and Today once that day has come.
+    case "digest": {
+      if (row.send !== "evening") return "/today";
+      const named = addUtcDays(dayIn(new Date(row.occurredAt), zone), 1);
+      return named > today ? `/today?day=${named}` : "/today";
+    }
     case "request":
       return "/settings/people";
     case "share":

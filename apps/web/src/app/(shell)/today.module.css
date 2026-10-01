@@ -1,13 +1,505 @@
-/* Today's pane.
+/* Today's pane, and Customize Today beside it. 027.
  *
- * Moved out of `(app)/auth.module.css` with the rest of the screen when 005
- * gave the app a shell. `todayScreen`'s full-height rule went with the
- * composer: Today no longer owns the window, it fills the pane it is given.
+ * From `ui_kits/mobile_app/TodayParts.jsx` and the web layout in
+ * `explorations/today.html`, with the feature spec's corrections: kind colours
+ * by alias, a past event dims its title only, every pill and card takes a
+ * min-height and grows with the type size.
  */
 
 .today {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  padding: var(--space-7) 0 0;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+/* The crumb bar's right: today's date, whatever day is shown. */
+.crumbDate {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ Needs you
+   One card, the rest stacked under it as slivers: one at two waiting, two at
+   three or more. */
+
+.needs {
+  position: relative;
+}
+
+.needs[data-slivers="1"],
+.needs[data-slivers="2"] {
+  padding-bottom: 10px;
+}
+
+.sliver,
+.card {
+  border-radius: 18px;
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-hairline), var(--shadow-2);
+}
+
+.sliver {
+  position: absolute;
+  height: 60px;
+}
+
+.sliverFront {
+  left: 10px;
+  right: 10px;
+  bottom: 5px;
+  z-index: 1;
+}
+
+.sliverBack {
+  left: 20px;
+  right: 20px;
+  bottom: 0;
+  opacity: 0.7;
+}
+
+.card {
+  position: relative;
+  z-index: 2;
+  padding: 14px 16px;
+  animation: cardIn 200ms var(--ease-out) both;
+  /* QuickReplies draws at the conversation's chip height. */
+  --chip-h: 30px;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { animation: none; }
+}
+
+.kind {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font: var(--weight-medium) calc(12px * var(--type-scale)) / 1.2 var(--font-core);
+}
+
+.kind[data-tone="danger"] { color: var(--text-danger); }
+.kind[data-tone="attention"] { color: var(--text-attention); }
+.kind[data-tone="accent"] { color: var(--text-accent); }
+
+.kindName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kindCount {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cardTitle {
+  margin: var(--space-4) 0 var(--space-1);
+  font: var(--weight-semibold) calc(17px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: pretty;
+}
+
+.cardTitle[data-alone] {
+  -webkit-line-clamp: 3;
+}
+
+.cardWhy {
+  margin: 0;
+  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardFailed {
+  margin: var(--space-3) 0 0;
+  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-danger);
+}
+
+.cardActions,
+.cardReplies {
+  margin-top: var(--space-5);
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* An action: the 44px target painting nothing, the 34px pill inside it, the
+   target's overhang taken back so the row sits at the pill's height. */
+.act {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  margin: calc((34px - var(--tap-min)) / 2) 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.actPill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  font: var(--weight-medium) calc(13px * var(--type-scale)) / 1 var(--font-core);
+  white-space: nowrap;
+  transition: background var(--transition-ui), transform var(--transition-ui);
+}
+
+.act:hover .actPill {
+  background: var(--state-hover);
+}
+
+.act[data-filled] .actPill {
+  box-shadow: none;
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+.act:active .actPill {
+  transform: scale(var(--press-scale));
+}
+
+/* The clock: puts the card off until tomorrow. At the line's right. */
+.later {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  margin: calc((34px - var(--tap-min)) / 2) calc((34px - var(--tap-min)) / 2) calc((34px - var(--tap-min)) / 2) auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--icon-on-well);
+  cursor: pointer;
+}
+
+.laterDisc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-height: 34px;
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+}
+
+.later:hover .laterDisc {
+  background: var(--state-hover);
+}
+
+/* ------------------------------------------------------------ the stepper */
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.stepDisc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+}
+
+.step:hover:not(:disabled) .stepDisc {
+  background: var(--surface-fill-strong);
+}
+
+.step:disabled {
+  cursor: default;
+}
+
+.step:disabled .stepDisc {
+  color: var(--state-disabled-text);
+}
+
+.stepName {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.stepDay {
+  margin: 0;
+  /* Grows with the type size, to 1.35 times and no further. */
+  font: var(--weight-semibold) calc(20px * min(var(--type-scale), 1.35)) / 1.2 var(--font-core);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.stepSub {
+  margin: var(--space-1) 0 0;
+  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ the day */
+
+.nextLine {
+  margin: 0;
+  font: var(--weight-semibold) calc(20px * var(--type-scale)) / 1.25 var(--font-core);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.nextTail {
+  color: var(--text-attention);
+}
+
+.daySection {
+  display: flex;
+  flex-direction: column;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  margin: 0;
+  padding-bottom: var(--space-3);
+  font: var(--weight-semibold) calc(15px * var(--type-scale)) / 1.2 var(--font-core);
+  color: var(--text-primary);
+}
+
+.headCount {
+  font-style: normal;
+  font-weight: var(--weight-regular);
+  font-size: calc(13px * var(--type-scale));
+  color: var(--text-tertiary);
+}
+
+.headHint {
+  margin-left: auto;
+  font: var(--weight-regular) calc(12.5px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+/* Where you will be: past the pane's gutter, no scrollbar, a trackpad or the
+   keyboard moves it. */
+.strip {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  margin: 0 calc(-1 * var(--space-8));
+  padding: var(--space-1) var(--space-8) var(--space-2);
+  scrollbar-width: none;
+}
+
+.strip::-webkit-scrollbar {
+  display: none;
+}
+
+.strip:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+.event {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 128px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-fill);
+  color: var(--text-primary);
+  text-decoration: none;
+  border-bottom: 0;
+}
+
+a.event:hover {
+  background: var(--surface-fill-strong);
+}
+
+.event[data-next="true"] {
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-hairline), var(--shadow-2);
+}
+
+.eventWhen {
+  font: var(--weight-semibold) calc(12px * var(--type-scale)) / 1.2 var(--font-core);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.eventTitle {
+  font: var(--weight-medium) calc(14px * var(--type-scale)) / 1.3 var(--font-core);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* A past event dims its title and nothing else, so the calendar's name under
+   it stays legible. */
+.event[data-past="true"] .eventTitle {
+  color: var(--text-secondary);
+}
+
+.eventCalendar,
+.eventWhose {
+  font: var(--weight-regular) calc(12px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.eventPill {
+  display: flex;
+  margin-top: var(--space-1);
+}
+
+/* To do and If you have time: the thread page's rows in one card. */
+.rows {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-fill);
+}
+
+.rows .hourChip {
+  background: var(--surface-raised);
+}
+
+/* Tighter than the thread page at the checkbox, so a title has the width:
+   the kit's 8px gap, and the box in its own width rather than a tile's slot. */
+.rows [data-row] {
+  gap: var(--space-4);
+}
+
+.rows [data-row] input[type="checkbox"] {
+  margin-inline: 0;
+}
+
+.fold {
+  min-height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+  text-align: left;
+  font: var(--weight-medium) calc(13.5px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.foldNote {
+  margin: 0;
+  padding: var(--space-4) 0;
+  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-secondary);
+}
+
+/* + Today: drawn 28, a 44 target. */
+.take {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  flex: 0 0 auto;
+  min-height: var(--tap-min);
+  margin: calc((28px - var(--tap-min)) / 2) 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.takePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  background: var(--surface-raised);
+  font: var(--weight-medium) calc(12.5px * var(--type-scale)) / 1 var(--font-core);
+}
+
+.take:hover .takePill {
+  background: var(--state-hover);
+}
+
+.nothing {
+  margin: 0;
+  font: var(--weight-regular) calc(15px * var(--type-scale)) / 1.45 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.dayFailed {
+  margin: 0;
+  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1.45 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.dayRetry,
+.customRetry {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: var(--weight-medium);
+  color: var(--text-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------ day one
+   024's invitation and its three examples, in place of the day. */
+
+.dayOne {
   max-width: 52ch;
-  padding: var(--space-8) 0 0;
 }
 
 .emptyTitle {
@@ -26,8 +518,7 @@
 }
 
 /* Dashed, because an example is a suggestion rather than a thing that exists.
-   Tapping fills the composer rather than submitting: the first thing that lands
-   in an account should be something the person meant. */
+   Tapping fills the composer rather than submitting. */
 .example {
   display: flex;
   align-items: center;
@@ -48,16 +539,149 @@
 .example:hover {
   border-style: solid;
   color: var(--text-primary);
+  background: var(--state-hover);
 }
 
 .exampleMark {
   color: var(--text-accent);
 }
 
-.example:hover { background: var(--state-hover); }
+/* ------------------------------------------------------------ Customize Today */
 
+.custom {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-5);
+}
 
-/* The quiet empty state. */
+.customSection {
+  border-radius: var(--radius-sm);
+}
+
+.customSection[data-dragging] {
+  opacity: 0.5;
+}
+
+.customSection[data-over] {
+  box-shadow: inset 0 2px 0 var(--border-focus);
+}
+
+.customRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-height: 56px;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+  font: var(--text-body-role);
+  color: var(--text-primary);
+}
+
+/* A kind sits under Needs you, past where the grip is. */
+.customKind {
+  padding-left: calc(var(--tap-min) + var(--space-5));
+  cursor: pointer;
+}
+
+.customLabel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  align-self: stretch;
+  cursor: pointer;
+}
+
+.customName {
+  flex: 1;
+  min-width: 0;
+}
+
+.customLine {
+  display: block;
+  font-style: normal;
+  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--icon-on-well);
+  cursor: grab;
+}
+
+.grip:hover,
+.grip:focus-visible {
+  background: var(--state-hover);
+}
+
+.grip:active {
+  cursor: grabbing;
+}
+
+.customFailed {
+  margin: var(--space-5) 0 0;
+  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1.45 var(--font-core);
+  color: var(--text-danger);
+}
+
+.customFoot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+/* Reset and Done: drawn 30, a 44 target by a hit area with no paint. */
+.footPill::after {
+  content: "";
+  position: absolute;
+  inset: calc((30px - var(--tap-min)) / 2) 0;
+}
+
+.footPill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-hairline);
+  background: transparent;
+  font: var(--weight-medium) calc(13px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.footPill:hover {
+  background: var(--state-hover);
+}
+
+.footDone {
+  border-color: transparent;
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+.footDone:hover {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+/* ------------------------------------------------------------ the quiet empty
+   My threads' quiet empty state (`QuietEmpty`), which has always kept its
+   classes here. */
+
 .quiet {
   flex: 1;
   min-height: 0;
@@ -80,117 +704,4 @@
   font-size: calc(19px * var(--type-scale));
   line-height: 1.5;
   color: var(--text-primary);
-}
-
-/* ------------------------------------------------------------ 023. The strip
-   The one place the browser's own zone appears. `InvitationStrip`'s shape:
-   the soft accent ground, a compass in a 28px disc, one sentence, and both
-   answers inside the card. The disc is the accent colour, which the tokens
-   name only as text; there is no solid accent surface alias to consume. */
-
-.zoneStrip {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  max-width: 52ch;
-  margin: 0 0 var(--space-7);
-  padding: var(--space-5);
-  border-radius: var(--radius-lg);
-  background: var(--surface-accent-soft);
-}
-
-.zoneLine {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.zoneDisc {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  min-height: 28px;
-  border-radius: var(--radius-pill);
-  background: var(--text-accent);
-  color: var(--text-on-solid);
-}
-
-.zoneText {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1.4 var(--font-core);
-  color: var(--text-primary);
-}
-
-.zoneText b {
-  font-weight: var(--weight-medium);
-}
-
-.zoneFailed {
-  margin: 0 0 0 calc(28px + var(--space-4));
-  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.4 var(--font-core);
-  color: var(--text-danger);
-}
-
-/* Under the sentence, not under the disc; the first button's own padding is
-   taken back so its text starts where the sentence does. */
-.zoneAnswers {
-  display: flex;
-  gap: var(--space-2);
-  margin: 0 0 0 calc(28px + var(--space-4) - var(--space-3));
-}
-
-.zoneAnswer {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  font: var(--weight-medium) calc(13.5px * var(--type-scale)) / 1 var(--font-core);
-  color: var(--text-accent);
-  cursor: pointer;
-}
-
-.zoneAnswer:hover {
-  background: var(--state-hover);
-}
-
-.zoneKeep {
-  color: var(--text-secondary);
-}
-
-/* ------------------------------------------------------------ 024. The agenda
-   Three groups over the thread page's own rows, in its classes. */
-
-.agenda {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-7);
-}
-
-.agendaGroup {
-  display: flex;
-  flex-direction: column;
-}
-
-.agendaTitle {
-  margin: 0 0 var(--space-2);
-  font: var(--weight-semibold) calc(17px * var(--type-scale)) / 1.3 var(--font-core);
-  color: var(--text-primary);
-}
-
-.agendaRows {
-  display: flex;
-  flex-direction: column;
-}
-
-.agendaMore {
-  margin: var(--space-2) 0 0;
-  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.4 var(--font-core);
-  color: var(--text-secondary);
 }

@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"SentVoice","sourcePath":"components/conversation/SentVoice.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Avatar","sourcePath":"components/core/Avatar.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"LabelMark","sourcePath":"components/core/LabelMark.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/SentVoice.jsx":"08bb27934031","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Avatar.jsx":"1c8eef696ff5","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"fcac9a7cce5d","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/core/LabelMark.jsx":"f7c78223c974","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"7f6290747633","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"d58108f37e4d","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"6168aceeb5d8","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"095d97ec62df","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"50bc09c7916d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"ff74cfc9f291","ui_kits/android_app/M3SettingsScreen.jsx":"10bd3bef4213","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"74bb28c09731","ui_kits/android_app/M3TodayScreen.jsx":"5cc65d5723ad","ui_kits/mobile_app/App.jsx":"8b33bbed0476","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"89aeba46db74","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"53511fd714cd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"3538ca7c057e","ui_kits/mobile_app/SettingsScreen.jsx":"6e07d5456b43","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"65f843b08dfa","ui_kits/mobile_app/TodayScreen.jsx":"fca5165004fc","ui_kits/mobile_app/data.js":"01d6d5ac0b68","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"fdac02706b2e","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"SentVoice","sourcePath":"components/conversation/SentVoice.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Avatar","sourcePath":"components/core/Avatar.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"LabelMark","sourcePath":"components/core/LabelMark.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/SentVoice.jsx":"08bb27934031","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Avatar.jsx":"1c8eef696ff5","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"fcac9a7cce5d","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/core/LabelMark.jsx":"f7c78223c974","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"7f6290747633","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"d58108f37e4d","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"c5d8ae19a52c","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"fafa6cd83dc4","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"815b631d6e6d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"fd0b5edce6dd","ui_kits/android_app/M3SettingsScreen.jsx":"dade732e7925","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"74bb28c09731","ui_kits/android_app/M3TodayScreen.jsx":"0bc87b953e81","ui_kits/mobile_app/App.jsx":"98207e3ef49a","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"828eecc1f7ca","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"4ef26e230ccd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"269d6f059c17","ui_kits/mobile_app/SettingsScreen.jsx":"8bbffe11f5d4","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"65f843b08dfa","ui_kits/mobile_app/TodayParts.jsx":"66adfacb1077","ui_kits/mobile_app/TodayScreen.jsx":"ba3c48281d49","ui_kits/mobile_app/data.js":"01d6d5ac0b68","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"fdac02706b2e","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -7263,6 +7263,7 @@ function App() {
       }
     });
   } else if (settings) {
+    window.__openSettingsPage = setSettingsPage;
     screen = settingsPage ? /*#__PURE__*/React.createElement(SettingsDetail, {
       page: settingsPage,
       onBack: () => setSettingsPage(null),
@@ -7494,7 +7495,7 @@ function App() {
       fontSize: 11,
       color: "var(--text-tertiary)"
     }
-  }, "first run"), [["sign in", "signin"], ["refusal", "refusal"], ["not invited", "notinvited"], ["tutorial", "tutorial"], ["connect", "connect"], ["day one", "empty"], ["app", "app"]].map(([l, p]) => {
+  }, "first run"), [["sign in", "signin"], ["refusal", "refusal"], ["not invited", "notinvited"], ["tutorial", "tutorial"], ["connect", "connect"], ["mail", "mail"], ["offline", "offline"], ["no answer", "noanswer"], ["day one", "empty"], ["app", "app"]].map(([l, p]) => {
     const on = p === "refusal" ? phase === "signin" && refused : phase === p && !(p === "signin" && refused);
     return /*#__PURE__*/React.createElement("button", {
       key: l,
@@ -7543,9 +7544,16 @@ function App() {
     }
   }, "sunset ", window.OffloadSun && window.OffloadSun.sunsetTime(now) ? window.OffloadSun.sunsetTime(now).toTimeString().slice(0, 5) : ", ")), /*#__PURE__*/React.createElement(Phone, {
     theme: themeAttr
-  }, phase === "signin" || phase === "notinvited" || phase === "tutorial" || phase === "connect" ? /*#__PURE__*/React.createElement(AGateShell, null, phase === "connect" ? /*#__PURE__*/React.createElement(M3ConnectScreen, {
-    onConnect: () => setPhase("empty"),
-    onSkip: () => setPhase("empty")
+  }, phase === "offline" || phase === "noanswer" ? /*#__PURE__*/React.createElement(LaunchHold, {
+    and: true,
+    kind: phase,
+    onRetry: () => setPhase("app")
+  }) : null, phase === "signin" || phase === "notinvited" || phase === "tutorial" || phase === "connect" || phase === "mail" ? /*#__PURE__*/React.createElement(AGateShell, null, phase === "mail" ? /*#__PURE__*/React.createElement(MailStep, {
+    and: true,
+    onDone: () => setPhase("empty")
+  }) : phase === "connect" ? /*#__PURE__*/React.createElement(M3ConnectScreen, {
+    onConnect: () => setPhase("mail"),
+    onSkip: () => setPhase("mail")
   }) : phase === "notinvited" ? /*#__PURE__*/React.createElement(M3NotInvitedScreen, {
     joined: joined,
     onJoin: () => setJoined(true),
@@ -9457,14 +9465,23 @@ function LiveConversation({
   children
 }) {
   const isSheet = variant === "sheet";
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, "@keyframes offload-pulse{0%,100%{opacity:.35}50%{opacity:1}}@keyframes offload-rise{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}"), /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, "@keyframes offload-pulse{0%,100%{opacity:.35}50%{opacity:1}}@keyframes offload-rise{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}"), isSheet ? /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "absolute",
+      inset: 0,
+      zIndex: 8,
+      background: "rgba(11,11,11,0.55)"
+    }
+  }) : null, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       left: 0,
       right: 0,
       bottom: 0,
       zIndex: 9,
-      height: isSheet ? "65%" : "58%",
+      top: isSheet ? 54 : undefined,
+      height: isSheet ? undefined : "58%",
       display: "flex",
       flexDirection: "column",
       background: "var(--surface-plate)",
@@ -9472,10 +9489,14 @@ function LiveConversation({
       boxShadow: "0 -6px 12px -6px rgba(0,0,0,0.22)",
       animation: "offload-rise var(--duration-slow) var(--ease-out)"
     }
-  }, isSheet ? /*#__PURE__*/React.createElement("button", {
+  }, isSheet ?
+  /*#__PURE__*/
+  /* 30 September, as built: no header and no fold. The grabber is the Close button
+     to a screen reader; a drag past a quarter of the travel or a flick closes. */
+  React.createElement("button", {
     type: "button",
-    "aria-label": "Fold down",
-    onClick: onFold,
+    "aria-label": "Close",
+    onClick: onClose,
     style: {
       height: 22,
       flex: "0 0 auto",
@@ -9485,16 +9506,17 @@ function LiveConversation({
       border: "none",
       background: "none",
       cursor: "grab",
-      padding: 0
+      padding: 0,
+      marginBottom: "var(--space-3)"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 34,
+      width: 32,
       height: 4,
       borderRadius: 2,
-      background: "var(--a-c-high)"
+      background: "var(--border-strong)"
     }
-  })) : null, /*#__PURE__*/React.createElement("div", {
+  })) : /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -9507,8 +9529,6 @@ function LiveConversation({
       flex: 1,
       minWidth: 0,
       font: "var(--weight-medium) 16px/1.3 var(--font-core)",
-      letterSpacing: "-0.008em",
-      color: "var(--a-on)",
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
@@ -9527,8 +9547,8 @@ function LiveConversation({
       border: "none",
       borderRadius: "var(--radius-pill)",
       cursor: "pointer",
-      background: "var(--a-c-high)",
-      color: "var(--a-on-var)"
+      background: "var(--surface-fill)",
+      color: "var(--text-secondary)"
     }
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "x",
@@ -10080,221 +10100,22 @@ Object.assign(window, {
 
 // ui_kits/android_app/M3NotificationSheet.jsx
 try { (() => {
-const OFFLOAD_DS = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
-const {
-  Icon
-} = OFFLOAD_DS;
-
-/* Who caused it decides the mark: a person keeps their initials, everything else
-   gets its glyph on a rounded square. */
-function NotifMark({
-  n
-}) {
-  if (n.kind === "person") return /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 34,
-      height: 34,
-      flex: "0 0 auto",
-      borderRadius: "var(--radius-pill)",
-      background: "var(--a-c-high)",
-      color: "var(--a-on-var)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      font: "var(--weight-medium) 12px/1 var(--font-core)"
-    }
-  }, n.initials);
-  return /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 34,
-      height: 34,
-      flex: "0 0 auto",
-      borderRadius: "var(--radius-sm)",
-      background: "var(--a-c-high)",
-      color: "var(--a-on-var)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: n.icon,
-    size: 16
-  }));
-}
-
-/* Read rows stay where they are and go quiet: the whole row drops to the secondary
-   ramp rather than disappearing, so the list does not reshuffle under you. */
-function NotifRow({
-  n,
-  last,
-  onOpen
-}) {
-  const [h, setH] = React.useState(false);
-  return /*#__PURE__*/React.createElement("div", {
-    role: "button",
-    tabIndex: 0,
-    onClick: () => onOpen(n),
-    onMouseEnter: () => setH(true),
-    onMouseLeave: () => setH(false),
-    style: {
-      display: "flex",
-      gap: "var(--space-4)",
-      alignItems: "flex-start",
-      cursor: "pointer",
-      padding: "var(--space-4) var(--gutter-screen)",
-      background: h ? "var(--state-hover)" : "transparent",
-      boxShadow: last ? "none" : "inset 0 -1px 0 var(--a-outline)",
-      opacity: n.unread ? 1 : 0.55,
-      transition: "background var(--transition-ui)"
-    }
-  }, /*#__PURE__*/React.createElement(NotifMark, {
-    n: n
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      font: "var(--weight-medium) 15px/1.35 var(--font-core)",
-      color: "var(--a-on)"
-    }
-  }, n.title), n.body ? /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      font: "var(--text-quiet-role)",
-      fontSize: 14,
-      lineHeight: 1.4,
-      color: "var(--a-on-var)",
-      marginTop: 2
-    }
-  }, n.body) : null, n.thread ? /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: "var(--size-caption)",
-      color: "var(--a-on-var)",
-      marginTop: 4
-    }
-  }, n.thread) : null), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 auto",
-      display: "flex",
-      alignItems: "center",
-      gap: "var(--space-3)",
-      paddingTop: 2,
-      fontSize: "var(--size-caption)",
-      color: "var(--a-on-var)",
-      fontVariantNumeric: "tabular-nums"
-    }
-  }, n.when, n.unread ? /*#__PURE__*/React.createElement("span", {
-    "aria-label": "Unread",
-    style: {
-      width: 7,
-      height: 7,
-      borderRadius: "var(--radius-pill)",
-      background: "var(--blue-500)"
-    }
-  }) : /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 7
-    }
-  })));
-}
-
-/* Notifications arrive from above, so the list does too: the sheet brings the app
-   bar down with it and folds back up into the bell. */
-const ROLL_MS = 260;
+/* Activity replaced the notification sheet (24 September): a pushed screen with no plate.
+   The name is kept so App wiring is unchanged. See TodayParts.jsx. */
 function NotificationSheet({
-  items,
-  unread,
-  closing,
   onClose,
   onOpen
 }) {
-  const dismiss = then => onClose(then);
-  const [top, setTop] = React.useState(82);
-  const ref = React.useRef(null);
-  React.useLayoutEffect(() => {
-    const host = ref.current && ref.current.parentElement;
-    const bar = host && host.querySelector("header");
-    if (bar) setTop(bar.getBoundingClientRect().bottom - host.getBoundingClientRect().top);
-  }, []);
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, "@keyframes offload-unroll{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}@keyframes offload-rollup{from{clip-path:inset(0 0 0 0)}to{clip-path:inset(0 0 100% 0)}}@keyframes offload-fade{from{opacity:0}to{opacity:1}}@keyframes offload-unfade{from{opacity:1}to{opacity:0}}"), /*#__PURE__*/React.createElement("span", {
-    ref: ref,
-    "aria-hidden": "true"
-  }), /*#__PURE__*/React.createElement("div", {
-    onClick: () => dismiss(),
-    style: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      top,
-      bottom: 0,
-      zIndex: 20,
-      background: "var(--surface-scrim-soft)",
-      animation: closing ? "offload-unfade " + ROLL_MS + "ms var(--ease-in-out) forwards" : "offload-fade var(--duration-base) var(--ease-out)"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      top,
-      zIndex: 21,
-      maxHeight: "72%",
-      display: "flex",
-      flexDirection: "column",
-      background: "var(--surface-raised)",
-      borderRadius: "0 0 var(--radius-xl) var(--radius-xl)",
-      boxShadow: "0 8px 12px -6px rgba(0,0,0,0.22)",
-      animation: closing ? "offload-rollup " + ROLL_MS + "ms var(--ease-in-out) forwards" : "offload-unroll var(--duration-slow) var(--ease-out)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minHeight: 0,
-      overflowY: "auto"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: "var(--space-3)"
-    }
-  }), items.map((n, i) => /*#__PURE__*/React.createElement(NotifRow, {
-    key: n.id,
-    n: n,
-    last: i === items.length - 1,
-    onOpen: x => dismiss(() => onOpen(x))
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: "var(--space-4)"
-    }
-  })), /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    "aria-label": "Close notifications",
-    onClick: () => dismiss(),
-    style: {
-      flex: "0 0 auto",
-      display: "flex",
-      justifyContent: "center",
-      padding: "var(--space-2) 0 var(--space-4)",
-      border: "none",
-      background: "none",
-      cursor: "grab"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 34,
-      height: 4,
-      borderRadius: 2,
-      background: "var(--a-c-high)"
-    }
-  }))));
+  return /*#__PURE__*/React.createElement(ActivityScreen, {
+    and: true,
+    onBack: () => onClose(),
+    onOpen: () => onOpen && onOpen({
+      thread: "Lisbon trip"
+    })
+  });
 }
 Object.assign(window, {
-  NotificationSheet,
-  NotifRow,
-  NotifMark
+  NotificationSheet
 });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/android_app/M3NotificationSheet.jsx", error: String((e && e.message) || e) }); }
 
@@ -10890,53 +10711,69 @@ const PAGES = {
     })))
   },
   comms: {
-    title: "Communication",
+    title: "Notifications",
     render: () => /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Group, {
-      label: "What reaches you"
+      label: "Things due"
     }, /*#__PURE__*/React.createElement(Toggle, {
-      title: "Something needs an answer",
-      note: "Ana asked about dates, a bill is due.",
-      on: true
-    }), /*#__PURE__*/React.createElement(Toggle, {
-      title: "Someone added to a shared thread",
-      on: true
-    }), /*#__PURE__*/React.createElement(Toggle, {
-      title: "What offload noticed",
-      note: "The quiet nudges on Today.",
-      on: true
-    }), /*#__PURE__*/React.createElement(Toggle, {
-      title: "Nothing is happening",
-      note: "A weekly note if a thing has gone still.",
-      last: true
-    })), /*#__PURE__*/React.createElement(Group, {
-      label: "When"
-    }, /*#__PURE__*/React.createElement(Toggle, {
-      title: "Quiet hours",
-      note: "Nothing reaches you between 22:00 and 07:00.",
-      on: true
+      title: "Due today",
+      note: "One note in the morning, with what is due.",
+      on: true,
+      first: true
     }), /*#__PURE__*/React.createElement(Row, {
-      title: "From",
-      value: "22:00",
+      title: "At",
+      value: "8:00",
       onClick: () => {}
+    }), /*#__PURE__*/React.createElement(Toggle, {
+      title: "Tomorrow",
+      note: "One note the evening before.",
+      on: true
     }), /*#__PURE__*/React.createElement(Row, {
-      title: "Until",
-      value: "07:00",
+      title: "At",
+      value: "20:00",
       onClick: () => {},
       last: true
     })), /*#__PURE__*/React.createElement(Group, {
-      label: "Where"
+      label: "People"
     }, /*#__PURE__*/React.createElement(Toggle, {
-      title: "Push",
-      on: true
+      title: "Connection requests",
+      on: true,
+      first: true
     }), /*#__PURE__*/React.createElement(Toggle, {
-      title: "Email",
-      note: "jo@hey.com",
+      title: "Added to a shared thread",
+      on: true,
       last: true
-    })), /*#__PURE__*/React.createElement(ChoiceGroup, {
-      label: "Weekly summary",
-      options: ["Off", "Sunday evening", "Monday morning"],
-      value: "Off"
-    }))
+    })), /*#__PURE__*/React.createElement(Group, {
+      label: "This phone"
+    }, /*#__PURE__*/React.createElement(Row, {
+      title: "System settings",
+      note: "Notifications are allowed for offload.",
+      onClick: () => {},
+      first: true,
+      last: true
+    })))
+  },
+  mail: {
+    title: "Mail",
+    render: () => /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Group, {
+      label: "Mail"
+    }, /*#__PURE__*/React.createElement(Row, {
+      title: "over@to.offload.club",
+      value: "Copy",
+      onClick: () => {},
+      first: true
+    }), /*#__PURE__*/React.createElement(Row, {
+      title: "Add to contacts",
+      onClick: () => {},
+      last: true
+    })), /*#__PURE__*/React.createElement(Group, {
+      label: "How it works"
+    }, /*#__PURE__*/React.createElement(Row, {
+      title: "Forward an email from jo@hey.com and it's filed like anything else you dump. Mail from any other address isn't accepted.",
+      first: true
+    }), /*#__PURE__*/React.createElement(Row, {
+      title: "Forward by hand. Automatic forwarding rules don't work yet.",
+      last: true
+    })))
   },
   apps: {
     title: "Connected apps",
@@ -10954,13 +10791,16 @@ const PAGES = {
       onClick: () => {},
       last: true
     })), /*#__PURE__*/React.createElement(Group, {
-      label: "Not connected"
+      label: "Mail"
     }, /*#__PURE__*/React.createElement(Row, {
       title: "Mail",
-      note: "So a confirmation files itself",
-      value: "Connect",
-      onClick: () => {}
-    }), /*#__PURE__*/React.createElement(Row, {
+      note: "over@to.offload.club",
+      onClick: () => window.__openSettingsPage && window.__openSettingsPage("mail"),
+      first: true,
+      last: true
+    })), /*#__PURE__*/React.createElement(Group, {
+      label: "Not connected"
+    }, /*#__PURE__*/React.createElement(Row, {
       title: "Browser",
       note: "Save a page straight into a thing",
       value: "Connect",
@@ -11191,8 +11031,8 @@ const SETTINGS = [{
   rows: [{
     id: "comms",
     icon: "bell",
-    title: "Communication",
-    value: "Quiet 22:00"
+    title: "Notifications",
+    value: "8:00"
   }, {
     id: "apps",
     icon: "link",
@@ -12595,15 +12435,8 @@ try { (() => {
 const OFFLOAD_DS = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
 const {
   Icon,
-  IconButton,
-  Badge,
-  Button
+  Logo
 } = OFFLOAD_DS;
-const Swipe = OFFLOAD_DS.SwipeRow || (({
-  children
-}) => children);
-
-/* Two states only: Today until sunset, Tonight after. Real sunset, see sun.js. */
 function timeOfDay(date) {
   const sun = typeof window !== "undefined" && window.OffloadSun || null;
   const night = sun ? sun.isNight(date || new Date()) : false;
@@ -12615,189 +12448,79 @@ function timeOfDay(date) {
     icon: "sun"
   };
 }
-function ThreadDigest({
-  thread,
-  onOpen
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      paddingBottom: "var(--space-4)"
-    }
-  }, /*#__PURE__*/React.createElement(ACard, {
-    white: true,
-    padded: false,
-    style: {
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    onClick: onOpen,
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: "var(--space-4)",
-      padding: "var(--space-4) var(--space-5)",
-      background: "var(--a-c)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--a-on-var)",
-      display: "flex"
-    }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "lasso",
-    size: 18
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0,
-      font: "var(--weight-medium) 16px/24px var(--font-core)",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    }
-  }, thread.name), /*#__PURE__*/React.createElement(ABadge, {
-    tone: "accent"
-  }, "+", thread.added)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "var(--space-4) var(--space-5)",
-      display: "flex",
-      flexDirection: "column",
-      gap: "var(--space-4)"
-    }
-  }, thread.lines.map((l, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      display: "flex",
-      gap: "var(--space-4)",
-      alignItems: "flex-start"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--a-on-var)",
-      display: "flex",
-      paddingTop: 2,
-      flex: "0 0 auto"
-    }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: l.icon,
-    size: 15
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0,
-      font: "var(--weight-regular) 14px/20px var(--font-core)"
-    }
-  }, l.text), /*#__PURE__*/React.createElement("span", {
-    style: {
-      font: "var(--weight-regular) 12px/16px var(--font-core)",
-      color: "var(--a-on-var)",
-      flex: "0 0 auto"
-    }
-  }, l.time))))));
-}
+
+/* Today as decided 1 October 2026; the body is the iOS kit's TodayParts.jsx with and. */
 function TodayScreen({
-  data,
-  now,
-  onOpenThread,
-  onOpenItem,
-  onOpenPerson,
   unread,
   onOpenNotifications,
   onOpenSettings,
-  barSolid,
-  hidden,
-  onDelete
+  onOpenThread,
+  quiet
 }) {
-  const [allPriority, setAllPriority] = React.useState(false);
-  const d = now || new Date();
-  const nowHour = d.getHours() + d.getMinutes() / 60;
-  const gone = id => (hidden || []).indexOf(id) >= 0;
-  const priority = data.priority.filter(p => !gone(p.id));
-  const other = data.other.filter(l => !gone(l.id));
-  const shown = allPriority ? priority : priority.slice(0, 5);
-  const more = priority.length - shown.length;
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(ABar, {
-    wordmark: true,
-    right: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(IconButton, {
-      icon: "bell",
-      label: "Activity",
-      badge: unread,
-      onClick: onOpenNotifications
-    }), /*#__PURE__*/React.createElement(IconButton, {
-      icon: "settings",
-      label: "Settings",
-      onClick: onOpenSettings
-    }))
-  }), /*#__PURE__*/React.createElement("div", {
+  const [custom, setCustom] = React.useState(false);
+  const open = name => onOpenThread && onOpenThread({
+    "Europe, October": "lisbon",
+    "Flat": "home",
+    "Work": "shelf"
+  }[name] || "lisbon");
+  const ib = (icon, label, on, badge) => /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "aria-label": label,
+    onClick: on,
+    style: {
+      position: "relative",
+      width: 48,
+      height: 48,
+      border: "none",
+      background: "transparent",
+      borderRadius: 99,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "var(--a-on-var)",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: icon,
+    size: 22
+  }), badge ? /*#__PURE__*/React.createElement("i", {
+    style: {
+      position: "absolute",
+      top: 12,
+      right: 12,
+      width: 8,
+      height: 8,
+      borderRadius: 9,
+      background: "var(--clay-600)"
+    }
+  }) : null);
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 64,
+      flex: "0 0 auto",
+      display: "flex",
+      alignItems: "center",
+      padding: "0 4px 0 var(--gutter-screen)"
+    }
+  }, Logo ? /*#__PURE__*/React.createElement(Logo, {
+    size: 21
+  }) : null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), ib("sliders-horizontal", "Customize Today", () => setCustom(true)), ib("bell", "Activity", onOpenNotifications, unread), ib("settings", "Settings", onOpenSettings)), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
-      overflowY: "auto",
-      position: "relative",
-      padding: "var(--space-5) 0 0"
+      overflowY: "auto"
     }
-  }, /*#__PURE__*/React.createElement(React.Fragment, null, shown.map((p, i) => /*#__PURE__*/React.createElement(Swipe, {
-    key: p.id,
-    background: "var(--a-surface)",
-    onDelete: () => onDelete && onDelete(p.id, "Deleted")
-  }, /*#__PURE__*/React.createElement(ARow, {
-    leading: p.icon,
-    leadingTone: p.tone,
-    title: p.title,
-    meta: p.thread + " \u00b7 " + p.meta,
-    border: i < shown.length - 1 || more > 0,
-    onClick: p.person && onOpenPerson ? () => onOpenPerson(p.person) : onOpenItem,
-    trailing: p.due ? /*#__PURE__*/React.createElement(ABadge, {
-      tone: p.tone === "attention" ? "attention" : "neutral",
-      variant: p.tone === "attention" ? "solid" : "soft"
-    }, p.due) : null
-  }))), more > 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "var(--space-4) var(--gutter-screen)"
-    }
-  }, /*#__PURE__*/React.createElement(Button, {
-    variant: "ghost",
-    size: "sm",
-    iconAfter: "chevron-down",
-    onClick: () => setAllPriority(true)
-  }, more, " more")) : null), /*#__PURE__*/React.createElement(ASection, {
-    tone: "accent",
-    count: data.threads.length
-  }, "What moved"), data.threads.map(th => /*#__PURE__*/React.createElement(ThreadDigest, {
-    key: th.id,
-    thread: th,
-    onOpen: () => onOpenThread(th.id)
-  })), /*#__PURE__*/React.createElement(ASection, {
-    action: "Open calendar"
-  }, "On the clock"), /*#__PURE__*/React.createElement(DayAgenda, {
-    days: data.days,
-    nowHour: nowHour
-  }), /*#__PURE__*/React.createElement(ASection, {
-    count: other.length
-  }, "Other things"), /*#__PURE__*/React.createElement(React.Fragment, null, other.map((l, i) => /*#__PURE__*/React.createElement(Swipe, {
-    key: l.id,
-    background: "var(--a-surface)",
-    onDelete: () => onDelete && onDelete(l.id, "Deleted")
-  }, /*#__PURE__*/React.createElement(ARow, {
-    leading: l.icon,
-    title: l.title,
-    meta: l.meta,
-    border: i < other.length - 1,
-    onClick: onOpenItem,
-    trailing: /*#__PURE__*/React.createElement("span", {
-      style: {
-        font: "var(--weight-regular) 14px/20px var(--font-core)",
-        color: "var(--a-on-var)"
-      }
-    }, l.time)
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "var(--space-6) var(--gutter-screen) var(--space-9)"
-    }
-  }, /*#__PURE__*/React.createElement(Button, {
-    variant: "secondary",
-    size: "sm",
-    iconAfter: "chevron-right"
-  }, "Sort these for me"))));
+  }, /*#__PURE__*/React.createElement(TodayBody, {
+    and: true,
+    onThread: open,
+    quiet: quiet
+  })), custom ? /*#__PURE__*/React.createElement(CustomizeSheet, {
+    and: true,
+    onClose: () => setCustom(false)
+  }) : null);
 }
 Object.assign(window, {
   TodayScreen,
@@ -13198,6 +12921,7 @@ function App() {
       }
     });
   } else if (settings) {
+    window.__openSettingsPage = setSettingsPage;
     screen = settingsPage ? /*#__PURE__*/React.createElement(SettingsDetail, {
       page: settingsPage,
       onBack: () => setSettingsPage(null),
@@ -13463,7 +13187,7 @@ function App() {
       fontSize: 11,
       color: "var(--text-tertiary)"
     }
-  }, "first run"), [["sign in", "signin"], ["refusal", "refusal"], ["not invited", "notinvited"], ["tutorial", "tutorial"], ["connect", "connect"], ["day one", "empty"], ["app", "app"]].map(([l, p]) => {
+  }, "first run"), [["sign in", "signin"], ["refusal", "refusal"], ["not invited", "notinvited"], ["tutorial", "tutorial"], ["connect", "connect"], ["mail", "mail"], ["offline", "offline"], ["no answer", "noanswer"], ["day one", "empty"], ["app", "app"]].map(([l, p]) => {
     const on = p === "refusal" ? phase === "signin" && refused : phase === p && !(p === "signin" && refused);
     return /*#__PURE__*/React.createElement("button", {
       key: l,
@@ -13512,9 +13236,14 @@ function App() {
     }
   }, "sunset ", window.OffloadSun && window.OffloadSun.sunsetTime(now) ? window.OffloadSun.sunsetTime(now).toTimeString().slice(0, 5) : ", ")), /*#__PURE__*/React.createElement(Phone, {
     theme: themeAttr
-  }, phase === "signin" || phase === "notinvited" || phase === "tutorial" || phase === "connect" ? /*#__PURE__*/React.createElement(GateShell, null, phase === "connect" ? /*#__PURE__*/React.createElement(ConnectScreen, {
-    onConnect: () => setPhase("empty"),
-    onSkip: () => setPhase("empty")
+  }, phase === "offline" || phase === "noanswer" ? /*#__PURE__*/React.createElement(LaunchHold, {
+    kind: phase,
+    onRetry: () => setPhase("app")
+  }) : null, phase === "signin" || phase === "notinvited" || phase === "tutorial" || phase === "connect" || phase === "mail" ? /*#__PURE__*/React.createElement(GateShell, null, phase === "mail" ? /*#__PURE__*/React.createElement(MailStep, {
+    onDone: () => setPhase("empty")
+  }) : phase === "connect" ? /*#__PURE__*/React.createElement(ConnectScreen, {
+    onConnect: () => setPhase("mail"),
+    onSkip: () => setPhase("mail")
   }) : phase === "notinvited" ? /*#__PURE__*/React.createElement(NotInvitedScreen, {
     joined: joined,
     onJoin: () => setJoined(true),
@@ -15520,14 +15249,23 @@ function LiveConversation({
   children
 }) {
   const isSheet = variant === "sheet";
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, "@keyframes offload-pulse{0%,100%{opacity:.35}50%{opacity:1}}@keyframes offload-rise{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}"), /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, "@keyframes offload-pulse{0%,100%{opacity:.35}50%{opacity:1}}@keyframes offload-rise{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}"), isSheet ? /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "absolute",
+      inset: 0,
+      zIndex: 8,
+      background: "rgba(11,11,11,0.45)"
+    }
+  }) : null, /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       left: 0,
       right: 0,
       bottom: 0,
       zIndex: 9,
-      height: isSheet ? "65%" : "58%",
+      top: isSheet ? 54 : undefined,
+      height: isSheet ? undefined : "58%",
       display: "flex",
       flexDirection: "column",
       background: "var(--surface-plate)",
@@ -15535,10 +15273,14 @@ function LiveConversation({
       boxShadow: "var(--shadow-sheet)",
       animation: "offload-rise var(--duration-slow) var(--ease-out)"
     }
-  }, isSheet ? /*#__PURE__*/React.createElement("button", {
+  }, isSheet ?
+  /*#__PURE__*/
+  /* 30 September, as built: no header and no fold. The grabber is the Close button
+     to a screen reader; a drag past a quarter of the travel or a flick closes. */
+  React.createElement("button", {
     type: "button",
-    "aria-label": "Fold down",
-    onClick: onFold,
+    "aria-label": "Close",
+    onClick: onClose,
     style: {
       height: 22,
       flex: "0 0 auto",
@@ -15548,16 +15290,17 @@ function LiveConversation({
       border: "none",
       background: "none",
       cursor: "grab",
-      padding: 0
+      padding: 0,
+      marginBottom: "var(--space-3)"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 34,
+      width: 36,
       height: 4,
       borderRadius: 2,
-      background: "var(--ink-200)"
+      background: "var(--border-strong)"
     }
-  })) : null, /*#__PURE__*/React.createElement("div", {
+  })) : /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -15570,8 +15313,6 @@ function LiveConversation({
       flex: 1,
       minWidth: 0,
       font: "var(--weight-medium) 16px/1.3 var(--font-core)",
-      letterSpacing: "-0.008em",
-      color: "var(--text-primary)",
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
@@ -16193,221 +15934,21 @@ Object.assign(window, {
 
 // ui_kits/mobile_app/NotificationSheet.jsx
 try { (() => {
-const OFFLOAD_DS = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
-const {
-  Icon
-} = OFFLOAD_DS;
-
-/* Who caused it decides the mark: a person keeps their initials, everything else
-   gets its glyph on a rounded square. */
-function NotifMark({
-  n
-}) {
-  if (n.kind === "person") return /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 34,
-      height: 34,
-      flex: "0 0 auto",
-      borderRadius: "var(--radius-pill)",
-      background: "var(--surface-fill)",
-      color: "var(--text-secondary)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      font: "var(--weight-medium) 12px/1 var(--font-core)"
-    }
-  }, n.initials);
-  return /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 34,
-      height: 34,
-      flex: "0 0 auto",
-      borderRadius: "var(--radius-sm)",
-      background: "var(--surface-fill)",
-      color: "var(--text-secondary)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: n.icon,
-    size: 16
-  }));
-}
-
-/* Read rows stay where they are and go quiet: the whole row drops to the secondary
-   ramp rather than disappearing, so the list does not reshuffle under you. */
-function NotifRow({
-  n,
-  last,
-  onOpen
-}) {
-  const [h, setH] = React.useState(false);
-  return /*#__PURE__*/React.createElement("div", {
-    role: "button",
-    tabIndex: 0,
-    onClick: () => onOpen(n),
-    onMouseEnter: () => setH(true),
-    onMouseLeave: () => setH(false),
-    style: {
-      display: "flex",
-      gap: "var(--space-4)",
-      alignItems: "flex-start",
-      cursor: "pointer",
-      padding: "var(--space-4) var(--gutter-screen)",
-      background: h ? "var(--state-hover)" : "transparent",
-      boxShadow: last ? "none" : "inset 0 -1px 0 var(--border-hairline)",
-      opacity: n.unread ? 1 : 0.55,
-      transition: "background var(--transition-ui)"
-    }
-  }, /*#__PURE__*/React.createElement(NotifMark, {
-    n: n
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      font: "var(--weight-medium) 15px/1.35 var(--font-core)",
-      color: "var(--text-primary)"
-    }
-  }, n.title), n.body ? /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      font: "var(--text-quiet-role)",
-      fontSize: 14,
-      lineHeight: 1.4,
-      color: "var(--text-secondary)",
-      marginTop: 2
-    }
-  }, n.body) : null, n.thread ? /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: "var(--size-caption)",
-      color: "var(--text-tertiary)",
-      marginTop: 4
-    }
-  }, n.thread) : null), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 auto",
-      display: "flex",
-      alignItems: "center",
-      gap: "var(--space-3)",
-      paddingTop: 2,
-      fontSize: "var(--size-caption)",
-      color: "var(--text-tertiary)",
-      fontVariantNumeric: "tabular-nums"
-    }
-  }, n.when, n.unread ? /*#__PURE__*/React.createElement("span", {
-    "aria-label": "Unread",
-    style: {
-      width: 7,
-      height: 7,
-      borderRadius: "var(--radius-pill)",
-      background: "var(--blue-500)"
-    }
-  }) : /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 7
-    }
-  })));
-}
-
-/* Notifications arrive from above, so the list does too: the sheet brings the app
-   bar down with it and folds back up into the bell. */
-const ROLL_MS = 260;
+/* Activity replaced the notification sheet (24 September): a pushed screen with no plate.
+   The name is kept so App wiring is unchanged. See TodayParts.jsx. */
 function NotificationSheet({
-  items,
-  unread,
-  closing,
   onClose,
   onOpen
 }) {
-  const dismiss = then => onClose(then);
-  const [top, setTop] = React.useState(82);
-  const ref = React.useRef(null);
-  React.useLayoutEffect(() => {
-    const host = ref.current && ref.current.parentElement;
-    const bar = host && host.querySelector("header");
-    if (bar) setTop(bar.getBoundingClientRect().bottom - host.getBoundingClientRect().top);
-  }, []);
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("style", null, "@keyframes offload-unroll{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}@keyframes offload-rollup{from{clip-path:inset(0 0 0 0)}to{clip-path:inset(0 0 100% 0)}}@keyframes offload-fade{from{opacity:0}to{opacity:1}}@keyframes offload-unfade{from{opacity:1}to{opacity:0}}"), /*#__PURE__*/React.createElement("span", {
-    ref: ref,
-    "aria-hidden": "true"
-  }), /*#__PURE__*/React.createElement("div", {
-    onClick: () => dismiss(),
-    style: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      top,
-      bottom: 0,
-      zIndex: 20,
-      background: "var(--surface-scrim-soft)",
-      animation: closing ? "offload-unfade " + ROLL_MS + "ms var(--ease-in-out) forwards" : "offload-fade var(--duration-base) var(--ease-out)"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      top,
-      zIndex: 21,
-      maxHeight: "72%",
-      display: "flex",
-      flexDirection: "column",
-      background: "var(--paper)",
-      borderRadius: "0 0 var(--radius-xl) var(--radius-xl)",
-      boxShadow: "0 18px 40px -12px rgba(11,11,11,0.20)",
-      animation: closing ? "offload-rollup " + ROLL_MS + "ms var(--ease-in-out) forwards" : "offload-unroll var(--duration-slow) var(--ease-out)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minHeight: 0,
-      overflowY: "auto"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: "var(--space-3)"
-    }
-  }), items.map((n, i) => /*#__PURE__*/React.createElement(NotifRow, {
-    key: n.id,
-    n: n,
-    last: i === items.length - 1,
-    onOpen: x => dismiss(() => onOpen(x))
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: "var(--space-4)"
-    }
-  })), /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    "aria-label": "Close notifications",
-    onClick: () => dismiss(),
-    style: {
-      flex: "0 0 auto",
-      display: "flex",
-      justifyContent: "center",
-      padding: "var(--space-2) 0 var(--space-4)",
-      border: "none",
-      background: "none",
-      cursor: "grab"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 34,
-      height: 4,
-      borderRadius: 2,
-      background: "var(--ink-200)"
-    }
-  }))));
+  return /*#__PURE__*/React.createElement(ActivityScreen, {
+    onBack: () => onClose(),
+    onOpen: () => onOpen && onOpen({
+      thread: "Lisbon trip"
+    })
+  });
 }
 Object.assign(window, {
-  NotificationSheet,
-  NotifRow,
-  NotifMark
+  NotificationSheet
 });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/mobile_app/NotificationSheet.jsx", error: String((e && e.message) || e) }); }
 
@@ -17134,53 +16675,69 @@ const PAGES = {
     })))
   },
   comms: {
-    title: "Communication",
+    title: "Notifications",
     render: () => /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Group, {
-      label: "What reaches you"
+      label: "Things due"
     }, /*#__PURE__*/React.createElement(Toggle, {
-      title: "Something needs an answer",
-      note: "Ana asked about dates, a bill is due.",
-      on: true
-    }), /*#__PURE__*/React.createElement(Toggle, {
-      title: "Someone added to a shared thread",
-      on: true
-    }), /*#__PURE__*/React.createElement(Toggle, {
-      title: "What offload noticed",
-      note: "The quiet nudges on Today.",
-      on: true
-    }), /*#__PURE__*/React.createElement(Toggle, {
-      title: "Nothing is happening",
-      note: "A weekly note if a thing has gone still.",
-      last: true
-    })), /*#__PURE__*/React.createElement(Group, {
-      label: "When"
-    }, /*#__PURE__*/React.createElement(Toggle, {
-      title: "Quiet hours",
-      note: "Nothing reaches you between 22:00 and 07:00.",
-      on: true
+      title: "Due today",
+      note: "One note in the morning, with what is due.",
+      on: true,
+      first: true
     }), /*#__PURE__*/React.createElement(Row, {
-      title: "From",
-      value: "22:00",
+      title: "At",
+      value: "8:00",
       onClick: () => {}
+    }), /*#__PURE__*/React.createElement(Toggle, {
+      title: "Tomorrow",
+      note: "One note the evening before.",
+      on: true
     }), /*#__PURE__*/React.createElement(Row, {
-      title: "Until",
-      value: "07:00",
+      title: "At",
+      value: "20:00",
       onClick: () => {},
       last: true
     })), /*#__PURE__*/React.createElement(Group, {
-      label: "Where"
+      label: "People"
     }, /*#__PURE__*/React.createElement(Toggle, {
-      title: "Push",
-      on: true
+      title: "Connection requests",
+      on: true,
+      first: true
     }), /*#__PURE__*/React.createElement(Toggle, {
-      title: "Email",
-      note: "jo@hey.com",
+      title: "Added to a shared thread",
+      on: true,
       last: true
-    })), /*#__PURE__*/React.createElement(ChoiceGroup, {
-      label: "Weekly summary",
-      options: ["Off", "Sunday evening", "Monday morning"],
-      value: "Off"
-    }))
+    })), /*#__PURE__*/React.createElement(Group, {
+      label: "This phone"
+    }, /*#__PURE__*/React.createElement(Row, {
+      title: "System settings",
+      note: "Notifications are allowed for offload.",
+      onClick: () => {},
+      first: true,
+      last: true
+    })))
+  },
+  mail: {
+    title: "Mail",
+    render: () => /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Group, {
+      label: "Mail"
+    }, /*#__PURE__*/React.createElement(Row, {
+      title: "over@to.offload.club",
+      value: "Copy",
+      onClick: () => {},
+      first: true
+    }), /*#__PURE__*/React.createElement(Row, {
+      title: "Add to contacts",
+      onClick: () => {},
+      last: true
+    })), /*#__PURE__*/React.createElement(Group, {
+      label: "How it works"
+    }, /*#__PURE__*/React.createElement(Row, {
+      title: "Forward an email from jo@hey.com and it's filed like anything else you dump. Mail from any other address isn't accepted.",
+      first: true
+    }), /*#__PURE__*/React.createElement(Row, {
+      title: "Forward by hand. Automatic forwarding rules don't work yet.",
+      last: true
+    })))
   },
   apps: {
     title: "Connected apps",
@@ -17198,13 +16755,16 @@ const PAGES = {
       onClick: () => {},
       last: true
     })), /*#__PURE__*/React.createElement(Group, {
-      label: "Not connected"
+      label: "Mail"
     }, /*#__PURE__*/React.createElement(Row, {
       title: "Mail",
-      note: "So a confirmation files itself",
-      value: "Connect",
-      onClick: () => {}
-    }), /*#__PURE__*/React.createElement(Row, {
+      note: "over@to.offload.club",
+      onClick: () => window.__openSettingsPage && window.__openSettingsPage("mail"),
+      first: true,
+      last: true
+    })), /*#__PURE__*/React.createElement(Group, {
+      label: "Not connected"
+    }, /*#__PURE__*/React.createElement(Row, {
       title: "Browser",
       note: "Save a page straight into a thing",
       value: "Connect",
@@ -17433,8 +16993,8 @@ const SETTINGS = [{
   rows: [{
     id: "comms",
     icon: "bell",
-    title: "Communication",
-    value: "Quiet 22:00"
+    title: "Notifications",
+    value: "8:00"
   }, {
     id: "apps",
     icon: "link",
@@ -18865,23 +18425,1304 @@ Object.assign(window, {
 });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/mobile_app/ThreadsScreen.jsx", error: String((e && e.message) || e) }); }
 
+// ui_kits/mobile_app/TodayParts.jsx
+try { (() => {
+const OFFLOAD_TP = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
+const {
+  Icon: TPIcon,
+  LabelMark: TPLabel
+} = OFFLOAD_TP;
+
+/* Today, launch, Activity and the Mail step, as built and decided 1 October 2026
+   (readme: Today; The launch screen; Dates and notifications; 026). Shared by both kits:
+   `and` switches the few Android differences, as the kits' README tabulates. */
+const TP_DATA = {
+  needs: [{
+    k: "danger",
+    icon: "cloud-off",
+    kind: "Calendar",
+    title: "Google Calendar stopped syncing",
+    why: "Events after Sunday are missing from your day.",
+    acts: ["Reconnect", "Not now"]
+  }, {
+    k: "at",
+    icon: "users",
+    kind: "Waiting 2 days",
+    title: "Ana Duarte wants to connect",
+    why: ["Shares ", {
+      thread: "Europe, October"
+    }, " with you"],
+    acts: ["Accept", "Not now"]
+  }, {
+    k: "at",
+    icon: "message-circle",
+    kind: "offload asked",
+    title: "Sintra train: Saturday or Sunday?",
+    why: [{
+      thread: "Europe, October"
+    }],
+    acts: ["Saturday", "Sunday"]
+  }, {
+    k: "tip",
+    icon: "mail",
+    kind: "Tip",
+    title: "Forward emails to offload",
+    why: "Send them to over@to.offload.club from jo@hey.com.",
+    acts: ["Copy address", "Got it"]
+  }],
+  days: [{
+    name: "Today",
+    next: ["Call with Ana", " in 1h 30m"],
+    ev: [{
+      t: "9:00",
+      e: "9:30",
+      title: "Standup",
+      s: "Google, Work",
+      past: true
+    }, {
+      t: "12:00",
+      e: "12:30",
+      title: "Call with Ana",
+      s: "Google, Personal",
+      next: true
+    }, {
+      t: "14:00",
+      e: "15:00",
+      title: "Viewing, Rua da Rosa flat",
+      thread: "Flat"
+    }, {
+      t: "19:30",
+      e: "22:00",
+      title: "Dinner, Sam",
+      s: "Google, Personal"
+    }],
+    todo: [{
+      title: "Renew the bike insurance",
+      thread: "Flat",
+      late: "Due 5 days ago"
+    }, {
+      title: "Split the flight cost, €214 each",
+      thread: "Europe, October",
+      late: "Due 2 days ago"
+    }, {
+      title: "Call the letting agent",
+      thread: "Flat",
+      at: "11:00"
+    }, {
+      title: "Send the slides to Priya",
+      thread: "Work",
+      at: "16:00"
+    }, {
+      title: "Buy Viva Viagem cards",
+      thread: "Europe, October",
+      label: [1, "Lisbon"]
+    }, {
+      title: "Pay the council tax",
+      thread: "Flat"
+    }],
+    spare: [{
+      title: "Return the drill to Tom",
+      thread: "Flat"
+    }, {
+      title: "Fix the bathroom tap",
+      thread: "Flat"
+    }, {
+      title: "Draft the offsite agenda",
+      thread: "Work"
+    }]
+  }, {
+    name: "Tomorrow",
+    sub: "Wednesday 1 October",
+    next: ["Dentist", " at 10:00"],
+    ev: [{
+      t: "10:00",
+      e: "10:45",
+      title: "Dentist",
+      s: "Google, Personal",
+      next: true
+    }, {
+      t: "13:00",
+      e: "14:00",
+      title: "Lunch with Maya",
+      s: "Google, Personal"
+    }],
+    todo: [{
+      title: "Musée d'Orsay tickets",
+      thread: "Europe, October",
+      label: [2, "Paris"]
+    }, {
+      title: "Return the drill to Tom",
+      thread: "Flat"
+    }]
+  }, {
+    name: "Thursday",
+    sub: "2 October",
+    next: ["Viewing, Rua da Rosa flat", " at 14:00"],
+    ev: [{
+      t: "14:00",
+      e: "15:00",
+      title: "Viewing, Rua da Rosa flat",
+      thread: "Flat",
+      next: true
+    }],
+    todo: [{
+      title: "Check in online, TP 1353",
+      thread: "Europe, October",
+      at: "18:00"
+    }]
+  }],
+  activity: {
+    Today: [{
+      sent: true,
+      icon: "users",
+      title: "Ana added two to Lisbon trip",
+      time: "9:12"
+    }, {
+      sent: false,
+      icon: "mail",
+      title: "Dentist, Tuesday 15:00, in Health",
+      body: "From an email, “Your appointment is confirmed”.",
+      time: "8:02",
+      undo: true
+    }, {
+      sent: false,
+      icon: "tag",
+      title: "Sorted Europe, October into Lisbon, Paris and Istanbul",
+      body: "Seven things labelled.",
+      time: "3:10",
+      undo: true
+    }],
+    Yesterday: [{
+      sent: true,
+      icon: "calendar",
+      title: "Due today: Call the clinic back",
+      time: "8:00"
+    }, {
+      sent: false,
+      icon: "bell",
+      title: "A reminder wasn't sent",
+      body: "Notifications are off for offload.",
+      time: "18:00",
+      mark: "Not sent"
+    }]
+  }
+};
+const TP_TONE = {
+  danger: "var(--text-danger)",
+  at: "var(--blue-700)",
+  tip: "var(--moss-700)"
+};
+function ThreadPill({
+  name,
+  onOpen
+}) {
+  return /*#__PURE__*/React.createElement("span", {
+    role: "button",
+    tabIndex: 0,
+    onClick: e => {
+      e.stopPropagation();
+      onOpen && onOpen(name);
+    },
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      height: 24,
+      padding: "0 9px 0 7px",
+      borderRadius: "var(--radius-pill)",
+      background: "var(--surface-accent-soft)",
+      color: "var(--text-accent)",
+      font: "var(--weight-medium) 12.5px/1 var(--font-core)",
+      whiteSpace: "nowrap",
+      cursor: "pointer",
+      verticalAlign: "middle"
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: "lasso",
+    size: 13
+  }), name);
+}
+const tpBits = (v, onThread) => Array.isArray(v) ? v.map((b, i) => typeof b === "string" ? /*#__PURE__*/React.createElement("span", {
+  key: i
+}, b) : /*#__PURE__*/React.createElement(ThreadPill, {
+  key: i,
+  name: b.thread,
+  onOpen: onThread
+})) : v;
+function NeedsYou({
+  items,
+  and,
+  onThread
+}) {
+  const [i, setI] = React.useState(0);
+  if (i >= items.length) return null;
+  const c = items[i];
+  const r = and ? 16 : 18;
+  const card = {
+    borderRadius: r,
+    background: "var(--surface-raised)",
+    boxShadow: "inset 0 0 0 1px var(--border-hairline),var(--shadow-2)"
+  };
+  const pill = {
+    height: 34,
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "0 14px",
+    borderRadius: "var(--radius-pill)",
+    border: "1px solid var(--border-hairline)",
+    font: "var(--weight-medium) 13px/1 var(--font-core)",
+    boxSizing: "border-box",
+    cursor: "pointer",
+    background: "transparent",
+    color: "var(--text-primary)"
+  };
+  const left = items.length - i;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      paddingBottom: left > 1 ? 10 : 0
+    }
+  }, left > 2 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card,
+      position: "absolute",
+      left: 20,
+      right: 20,
+      bottom: 0,
+      height: 60,
+      opacity: .7
+    }
+  }) : null, left > 1 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card,
+      position: "absolute",
+      left: 10,
+      right: 10,
+      bottom: 5,
+      height: 60
+    }
+  }) : null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card,
+      position: "relative",
+      padding: "14px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      font: "var(--weight-medium) 12px/1 var(--font-core)",
+      color: TP_TONE[c.k]
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: c.icon,
+    size: 14
+  }), c.kind, /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      color: "var(--text-tertiary)",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, i + 1, " of ", items.length)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-semibold) 17px/22px var(--font-core)",
+      margin: "8px 0 2px"
+    }
+  }, c.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-regular) 13.5px/19px var(--font-core)",
+      color: "var(--text-secondary)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, tpBits(c.why, onThread)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginTop: 12,
+      alignItems: "center"
+    }
+  }, c.acts.map((a, j) => /*#__PURE__*/React.createElement("button", {
+    key: a,
+    type: "button",
+    onClick: () => setI(i + 1),
+    style: j === 0 ? {
+      ...pill,
+      border: "none",
+      background: and ? "var(--a-on, var(--surface-inverse))" : "var(--surface-inverse)",
+      color: "var(--text-inverse)"
+    } : pill
+  }, a)), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "aria-label": "Tomorrow",
+    onClick: () => setI(i + 1),
+    style: {
+      ...pill,
+      marginLeft: "auto",
+      width: 34,
+      padding: 0,
+      justifyContent: "center",
+      color: "var(--icon-on-well)"
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: "clock",
+    size: 14
+  })))));
+}
+function DayStepper({
+  day,
+  onPrev,
+  onNext,
+  first
+}) {
+  const b = {
+    width: 40,
+    height: 40,
+    borderRadius: "var(--radius-pill)",
+    border: "none",
+    background: "var(--surface-fill)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    color: "var(--text-primary)"
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 4
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "aria-label": "Previous day",
+    onClick: onPrev,
+    disabled: first,
+    style: {
+      ...b,
+      opacity: first ? .35 : 1
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: "chevron-left",
+    size: 18
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-semibold) 20px/1.2 var(--font-core)",
+      letterSpacing: "-.01em"
+    }
+  }, day.name), day.sub ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-regular) 13px/1.3 var(--font-core)",
+      color: "var(--text-secondary)",
+      marginTop: 2
+    }
+  }, day.sub) : null), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "aria-label": "Next day",
+    onClick: onNext,
+    style: b
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: "chevron-right",
+    size: 18
+  })));
+}
+function TPHead({
+  children,
+  n,
+  hint
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 8,
+      paddingBottom: 6,
+      font: "var(--weight-semibold) 15px/1.2 var(--font-core)"
+    }
+  }, children, n != null ? /*#__PURE__*/React.createElement("em", {
+    style: {
+      fontStyle: "normal",
+      fontWeight: 400,
+      fontSize: 13,
+      color: "var(--text-tertiary)"
+    }
+  }, n) : null, hint ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      font: "var(--weight-regular) 12.5px/1 var(--font-core)",
+      color: "var(--text-tertiary)"
+    }
+  }, hint) : null);
+}
+function TodoRow({
+  it,
+  last,
+  onThread,
+  add,
+  onAdd,
+  onOpen
+}) {
+  const chip = (bg, fg, icon, t) => /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      height: 24,
+      padding: "0 8px",
+      borderRadius: "var(--radius-xs)",
+      background: bg,
+      color: fg,
+      font: "var(--weight-medium) 12px/1 var(--font-core)"
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: icon,
+    size: 12
+  }), t);
+  return /*#__PURE__*/React.createElement("div", {
+    role: "button",
+    tabIndex: 0,
+    onClick: onOpen,
+    style: {
+      cursor: "pointer",
+      display: "grid",
+      gridTemplateColumns: add ? "22px minmax(0,1fr) auto" : "22px minmax(0,1fr)",
+      columnGap: 8,
+      padding: "10px 14px",
+      boxShadow: last ? "none" : "inset 0 -1px 0 var(--border-hairline)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      height: 20,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    style: {
+      width: 15,
+      height: 15,
+      borderRadius: 4,
+      border: "1.5px solid var(--icon-on-well)",
+      boxSizing: "border-box"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", {
+    style: {
+      display: "block",
+      font: "var(--weight-medium) 15px/20px var(--font-core)"
+    }
+  }, it.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      alignItems: "center",
+      flexWrap: "wrap",
+      marginTop: 3,
+      font: "var(--weight-regular) 13px/18px var(--font-core)",
+      color: "var(--text-secondary)"
+    }
+  }, it.late ? chip("var(--clay-100)", "var(--text-danger)", "calendar", it.late) : null, it.at ? chip("var(--surface-raised)", "var(--text-secondary)", "clock", it.at) : null, it.thread ? /*#__PURE__*/React.createElement(ThreadPill, {
+    name: it.thread,
+    onOpen: onThread
+  }) : null, it.label && TPLabel ? /*#__PURE__*/React.createElement(TPLabel, {
+    color: it.label[0]
+  }, it.label[1]) : null)), add ? /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: e => {
+      e.stopPropagation();
+      onAdd();
+    },
+    style: {
+      alignSelf: "center",
+      height: 28,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 3,
+      padding: "0 10px",
+      borderRadius: "var(--radius-pill)",
+      border: "none",
+      boxShadow: "inset 0 0 0 1px var(--border-strong)",
+      background: "var(--surface-raised)",
+      font: "var(--weight-medium) 12.5px/1 var(--font-core)",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: "plus",
+    size: 13
+  }), "Today") : null);
+}
+function TodayBody({
+  and,
+  onThread,
+  quiet
+}) {
+  const [d, setD] = React.useState(0);
+  const [taken, setTaken] = React.useState([]);
+  const [editing, setEditing] = React.useState(null);
+  const day = TP_DATA.days[d];
+  const cardBg = and ? "var(--a-c-low, var(--surface-fill))" : "var(--surface-fill)";
+  const r = and ? 16 : "var(--radius-lg)";
+  const todo = day.todo.concat(d === 0 ? TP_DATA.days[0].spare.filter(s => taken.includes(s.title)) : []);
+  const spare = d === 0 ? day.spare.filter(s => !taken.includes(s.title)) : [];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 16,
+      padding: "var(--space-3) var(--gutter-screen) var(--space-9)"
+    }
+  }, quiet ? null : /*#__PURE__*/React.createElement(NeedsYou, {
+    items: TP_DATA.needs,
+    and: and,
+    onThread: onThread
+  }), /*#__PURE__*/React.createElement(DayStepper, {
+    day: day,
+    first: d === 0,
+    onPrev: () => setD(Math.max(0, d - 1)),
+    onNext: () => setD(Math.min(TP_DATA.days.length - 1, d + 1))
+  }), day.ev.length ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-semibold) 20px/1.25 var(--font-core)",
+      letterSpacing: "-.01em"
+    }
+  }, day.next[0], /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--blue-600)"
+    }
+  }, day.next[1])), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(TPHead, {
+    n: day.ev.length
+  }, "Where you will be"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      overflowX: "auto",
+      margin: "0 calc(var(--gutter-screen) * -1)",
+      padding: "0 var(--gutter-screen) 4px",
+      scrollbarWidth: "none"
+    }
+  }, day.ev.map(e => /*#__PURE__*/React.createElement("div", {
+    key: e.title,
+    style: {
+      flex: "0 0 auto",
+      width: 128,
+      padding: "10px 12px",
+      borderRadius: and ? 16 : 14,
+      boxSizing: "border-box",
+      display: "flex",
+      flexDirection: "column",
+      gap: 3,
+      opacity: e.past ? .5 : 1,
+      background: e.next ? "var(--surface-raised)" : cardBg,
+      boxShadow: e.next ? "inset 0 0 0 1px var(--border-hairline),var(--shadow-2)" : "none"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    style: {
+      fontStyle: "normal",
+      font: "var(--weight-semibold) 12px/1 var(--font-core)",
+      color: "var(--text-secondary)",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, e.t, " to ", e.e), /*#__PURE__*/React.createElement("b", {
+    style: {
+      font: "var(--weight-medium) 14px/1.3 var(--font-core)"
+    }
+  }, e.title), e.thread ? /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement(ThreadPill, {
+    name: e.thread,
+    onOpen: onThread
+  })) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      font: "var(--weight-regular) 12px/1.3 var(--font-core)",
+      color: "var(--text-tertiary)"
+    }
+  }, e.s)))))) : null, todo.length ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(TPHead, {
+    n: todo.length
+  }, "To do"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderRadius: r,
+      background: cardBg,
+      overflow: "hidden"
+    }
+  }, todo.map((it, i) => /*#__PURE__*/React.createElement(TodoRow, {
+    key: it.title,
+    it: it,
+    last: i === todo.length - 1,
+    onThread: onThread,
+    onOpen: () => setEditing(it)
+  })))) : null, spare.length ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(TPHead, {
+    hint: "picked by offload"
+  }, "If you have time"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderRadius: r,
+      background: cardBg,
+      overflow: "hidden"
+    }
+  }, spare.map((it, i) => /*#__PURE__*/React.createElement(TodoRow, {
+    key: it.title,
+    it: it,
+    add: true,
+    last: i === spare.length - 1,
+    onThread: onThread,
+    onAdd: () => setTaken(t => t.concat(it.title))
+  })))) : null, editing ? /*#__PURE__*/React.createElement(RowEditSheet, {
+    it: editing,
+    and: and,
+    onClose: () => setEditing(null)
+  }) : null);
+}
+function CustomizeSheet({
+  and,
+  onClose
+}) {
+  const [rows, setRows] = React.useState([["Needs you", "Requests, questions, account issues, tips", true], ["Your day", "Events and to-dos, a day at a time", true], ["What moved", "Shared threads, since you last looked", false]]);
+  const sw = (on, i) => /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    role: "switch",
+    "aria-checked": on,
+    onClick: () => setRows(rs => rs.map((r, j) => j === i ? [r[0], r[1], !r[2]] : r)),
+    style: {
+      width: and ? 52 : 44,
+      height: and ? 32 : 26,
+      borderRadius: 99,
+      border: "none",
+      position: "relative",
+      flex: "0 0 auto",
+      cursor: "pointer",
+      background: on ? "var(--moss-600)" : and ? "transparent" : "var(--ink-200)",
+      boxShadow: !on && and ? "inset 0 0 0 2px var(--a-on-var, var(--text-secondary))" : "none"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    style: {
+      position: "absolute",
+      top: and ? on ? 4 : 8 : 3,
+      [on ? "right" : "left"]: and ? on ? 4 : 8 : 3,
+      width: and ? on ? 24 : 16 : 20,
+      height: and ? on ? 24 : 16 : 20,
+      borderRadius: 99,
+      background: on || !and ? "#fff" : "var(--a-on-var, var(--text-secondary))"
+    }
+  }));
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "absolute",
+      inset: 0,
+      background: "var(--surface-scrim)",
+      zIndex: 40
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 41,
+      background: and ? "var(--a-c-low, var(--surface-raised))" : "var(--surface-raised)",
+      borderRadius: and ? "28px 28px 0 0" : "20px 20px 0 0",
+      padding: "8px var(--gutter-screen) 36px",
+      boxShadow: "var(--shadow-sheet)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: and ? 32 : 36,
+      height: 4,
+      borderRadius: 99,
+      background: "var(--border-strong)",
+      margin: "0 auto 14px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--text-title-2)"
+    }
+  }, "Customize Today"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--text-body-sm-role)",
+      color: "var(--text-secondary)",
+      margin: "4px 0 12px"
+    }
+  }, "Drag to reorder. Switch off to hide."), rows.map(([n, e, on], i) => /*#__PURE__*/React.createElement("div", {
+    key: n,
+    style: {
+      minHeight: 56,
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      boxShadow: "inset 0 -1px 0 var(--border-hairline)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--icon-on-well)",
+      display: "flex"
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: "grip-vertical",
+    size: 17
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      font: "var(--text-body-role)"
+    }
+  }, n), /*#__PURE__*/React.createElement("em", {
+    style: {
+      display: "block",
+      fontStyle: "normal",
+      font: "var(--weight-regular) 13px/1.3 var(--font-core)",
+      color: "var(--text-tertiary)"
+    }
+  }, e)), sw(on, i))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onClose,
+    style: {
+      height: 30,
+      padding: "0 12px",
+      borderRadius: 99,
+      border: "1px solid var(--border-hairline)",
+      background: "transparent",
+      font: "var(--weight-medium) 13px/1 var(--font-core)",
+      color: "var(--text-secondary)",
+      cursor: "pointer"
+    }
+  }, "Reset"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onClose,
+    style: {
+      height: 30,
+      padding: "0 14px",
+      borderRadius: 99,
+      border: "none",
+      background: "var(--surface-inverse)",
+      color: "var(--text-inverse)",
+      font: "var(--weight-medium) 13px/1 var(--font-core)",
+      cursor: "pointer"
+    }
+  }, "Done"))));
+}
+
+/* Launch holding on a failure: the mark where the splash left it, measured from the
+   screen's centre, and the failure in the spinner's place. Never danger red. */
+function LaunchHold({
+  kind,
+  and,
+  onRetry
+}) {
+  const off = kind === "offline";
+  const size = and ? 192 : 216;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      zIndex: 80,
+      background: "var(--surface-page)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: "50%",
+      top: "50%",
+      transform: "translate(-50%,-50%)",
+      color: "var(--text-primary)"
+    }
+  }, OFFLOAD_TP.Logo ? /*#__PURE__*/React.createElement(OFFLOAD_TP.Logo, {
+    variant: "mark",
+    size: size
+  }) : null), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: 24,
+      right: 24,
+      top: "calc(50% + " + (size / 2 + 52) + "px)",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 12,
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-semibold) 17px/1.3 var(--font-core)"
+    }
+  }, off ? "You're offline" : "offload isn't answering"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-regular) 14px/1.45 var(--font-core)",
+      color: "var(--text-secondary)",
+      marginTop: 4
+    }
+  }, off ? "offload picks up when you're back." : "It's on our side. Trying again.")), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onRetry,
+    style: {
+      height: 36,
+      padding: "0 16px",
+      borderRadius: 99,
+      border: "none",
+      boxShadow: "inset 0 0 0 1px var(--border-strong)",
+      background: "transparent",
+      font: "var(--weight-medium) 14px/1 var(--font-core)",
+      color: "var(--text-primary)",
+      cursor: "pointer"
+    }
+  }, "Try again")));
+}
+
+/* Activity: a pushed screen with no plate, newest first. A filled disc is what reached the
+   phone; a hollow one on --border-lift is what did not. */
+function ActivityScreen({
+  and,
+  onBack,
+  onOpen
+}) {
+  const [undone, setUndone] = React.useState([]);
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      zIndex: 60,
+      background: "var(--surface-page)",
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: and ? 64 : 52,
+      flex: "0 0 auto",
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "0 var(--space-3)",
+      marginTop: and ? 28 : 47
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "aria-label": "Back",
+    onClick: onBack,
+    style: {
+      width: 44,
+      height: 44,
+      border: "none",
+      background: "transparent",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: "pointer",
+      color: "var(--text-primary)"
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: "chevron-left",
+    size: 22
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      font: and ? "var(--weight-regular) 22px/28px var(--font-core)" : "var(--weight-semibold) 17px/1 var(--font-core)",
+      flex: and ? "none" : 1,
+      textAlign: and ? "left" : "center",
+      marginRight: and ? 0 : 44
+    }
+  }, "Activity")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: "auto",
+      padding: "0 0 var(--space-9)"
+    }
+  }, Object.entries(TP_DATA.activity).map(([g, rows]) => /*#__PURE__*/React.createElement("div", {
+    key: g
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "18px var(--gutter-screen) 6px",
+      font: "var(--weight-semibold) 13px/1 var(--font-core)",
+      color: "var(--text-secondary)"
+    }
+  }, g), rows.map((n, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    role: "button",
+    tabIndex: 0,
+    onClick: () => onOpen && onOpen(n),
+    style: {
+      display: "flex",
+      gap: 12,
+      padding: "10px var(--gutter-screen)",
+      alignItems: "flex-start",
+      cursor: "pointer",
+      boxShadow: "inset 0 -1px 0 var(--border-hairline)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 28,
+      height: 28,
+      flex: "0 0 auto",
+      borderRadius: 99,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: n.sent ? "var(--surface-fill)" : "transparent",
+      boxShadow: n.sent ? "none" : "inset 0 0 0 1.5px var(--border-lift, var(--border-strong))",
+      color: "var(--text-secondary)"
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: n.icon,
+    size: 14
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-medium) 15px/20px var(--font-core)"
+    }
+  }, n.title), n.body ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-regular) 13px/18px var(--font-core)",
+      color: "var(--text-secondary)",
+      marginTop: 2
+    }
+  }, n.body) : null, n.mark ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      height: 20,
+      padding: "0 7px",
+      marginTop: 5,
+      borderRadius: "var(--radius-xs)",
+      background: "var(--surface-fill)",
+      font: "var(--weight-medium) 12px/1 var(--font-core)",
+      color: "var(--text-secondary)"
+    }
+  }, n.mark) : null), /*#__PURE__*/React.createElement("span", {
+    style: {
+      font: "var(--weight-regular) 12.5px/20px var(--font-core)",
+      color: "var(--text-tertiary)",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, n.time), n.undo ? /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: e => {
+      e.stopPropagation();
+      setUndone(u => u.concat(g + i));
+    },
+    style: {
+      minWidth: 44,
+      height: 44,
+      marginTop: -12,
+      border: "none",
+      background: "transparent",
+      font: "var(--weight-medium) 13px/1 var(--font-core)",
+      color: undone.includes(g + i) ? "var(--text-tertiary)" : "var(--text-accent)",
+      cursor: "pointer"
+    }
+  }, undone.includes(g + i) ? "Undone" : "Undo") : null))))));
+}
+
+/* First run's Mail step (026), in the calendar step's layout, after it. */
+function MailStep({
+  and,
+  onDone
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      height: "100%",
+      padding: "0 var(--gutter-screen)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      paddingTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onDone,
+    style: {
+      border: "none",
+      background: "transparent",
+      font: "var(--weight-medium) 15px/1 var(--font-core)",
+      color: "var(--text-secondary)",
+      cursor: "pointer",
+      height: 44
+    }
+  }, "Not now")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      gap: 18
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 56,
+      height: 56,
+      borderRadius: 16,
+      background: "var(--surface-fill)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "var(--text-primary)"
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: "mail",
+    size: 26
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--text-title-1)",
+      letterSpacing: "var(--tracking-title)"
+    }
+  }, "Forward what matters"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", {
+    style: {
+      display: "block",
+      font: "var(--weight-medium) 16px/1.4 var(--font-core)"
+    }
+  }, "Send it an email."), /*#__PURE__*/React.createElement("span", {
+    style: {
+      font: "var(--text-body-role)",
+      color: "var(--text-secondary)"
+    }
+  }, "Forward anything to over@to.offload.club and it's filed.")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", {
+    style: {
+      display: "block",
+      font: "var(--weight-medium) 16px/1.4 var(--font-core)"
+    }
+  }, "Only from your address."), /*#__PURE__*/React.createElement("span", {
+    style: {
+      font: "var(--text-body-role)",
+      color: "var(--text-secondary)"
+    }
+  }, "Mail from jo@hey.com is the only mail it accepts."))), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onDone,
+    style: {
+      height: 50,
+      borderRadius: 99,
+      border: "none",
+      background: "var(--surface-inverse)",
+      color: "var(--text-inverse)",
+      font: "var(--weight-semibold) 16px/1 var(--font-core)",
+      margin: "0 0 40px",
+      cursor: "pointer"
+    }
+  }, "Add to contacts"));
+}
+
+/* The one row sheet, as built 26 to 29 September: title, When, Repeats and Labels, the
+   Labels panel opening in place, and the three-pill foot. A grabber on top; a drag is Cancel. */
+function RowEditSheet({
+  it,
+  and,
+  onClose
+}) {
+  const [panel, setPanel] = React.useState(false);
+  const [on, setOn] = React.useState(it && it.label ? [it.label[0]] : []);
+  const L = [[1, "Lisbon", 4], [2, "Paris", 3], [3, "Istanbul", 2]];
+  const er = (icon, n, v, act) => /*#__PURE__*/React.createElement("div", {
+    role: "button",
+    tabIndex: 0,
+    onClick: act,
+    style: {
+      minHeight: 48,
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      boxShadow: "inset 0 -1px 0 var(--border-hairline)",
+      cursor: act ? "pointer" : "default",
+      color: "var(--text-primary)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--icon-on-well)",
+      display: "flex"
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: icon,
+    size: 18
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      font: "var(--text-body-role)"
+    }
+  }, n), /*#__PURE__*/React.createElement("span", {
+    style: {
+      font: "var(--text-body-sm-role)",
+      color: "var(--text-secondary)"
+    }
+  }, v), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--text-tertiary)",
+      display: "flex"
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: "chevron-right",
+    size: 16
+  })));
+  const pb = (t, k, f) => /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: f,
+    style: {
+      height: 30,
+      padding: "0 12px",
+      borderRadius: 99,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      font: "var(--weight-medium) 13px/1 var(--font-core)",
+      cursor: "pointer",
+      border: k === "pri" ? "none" : "1px solid var(--border-hairline)",
+      background: k === "pri" ? "var(--surface-inverse)" : "transparent",
+      color: k === "pri" ? "var(--text-inverse)" : k === "dan" ? "var(--text-danger)" : "var(--text-secondary)",
+      marginRight: k === "dan" ? "auto" : 0
+    }
+  }, k === "dan" ? /*#__PURE__*/React.createElement(TPIcon, {
+    name: "trash-2",
+    size: 13
+  }) : null, t);
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "absolute",
+      inset: 0,
+      zIndex: 70,
+      background: "var(--surface-scrim)"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 71,
+      background: and ? "var(--a-c-low, var(--surface-raised))" : "var(--surface-raised)",
+      borderRadius: and ? "28px 28px 0 0" : "20px 20px 0 0",
+      padding: "8px var(--gutter-screen) 36px",
+      boxShadow: "var(--shadow-sheet)"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "aria-label": "Close",
+    onClick: onClose,
+    style: {
+      display: "block",
+      width: and ? 32 : 36,
+      height: 4,
+      borderRadius: 99,
+      border: "none",
+      padding: 0,
+      background: "var(--border-strong)",
+      margin: "0 auto 16px",
+      cursor: "grab"
+    }
+  }), !panel ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-medium) 17px/1.35 var(--font-core)",
+      padding: "10px 12px",
+      borderRadius: 12,
+      background: "var(--surface-input)",
+      marginBottom: 8
+    }
+  }, it.title), er("calendar", "When", it.late || it.at || "Today", () => {}), er("clock", "Repeats", "", () => {}), er("tag", "Labels", on.length ? L.filter(l => on.includes(l[0])).map(l => l[1]).join(", ") : "None", () => setPanel(true)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 14,
+      flexWrap: "wrap"
+    }
+  }, pb("Delete", "dan", onClose), pb("Cancel", "", onClose), pb("Save", "pri", onClose))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--text-title-2)"
+    }
+  }, "Labels"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--text-body-sm-role)",
+      color: "var(--text-secondary)",
+      margin: "4px 0 10px"
+    }
+  }, it.title), L.map(([n, name, c]) => /*#__PURE__*/React.createElement("div", {
+    key: n,
+    role: "button",
+    tabIndex: 0,
+    onClick: () => setOn(o => o.includes(n) ? o.filter(x => x !== n) : o.concat(n)),
+    style: {
+      minHeight: 48,
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      boxShadow: "inset 0 -1px 0 var(--border-hairline)",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    style: {
+      width: 10,
+      height: 10,
+      borderRadius: 99,
+      background: "var(--label-" + n + ")"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      font: "var(--text-body-role)"
+    }
+  }, name), /*#__PURE__*/React.createElement("em", {
+    style: {
+      fontStyle: "normal",
+      color: "var(--text-tertiary)",
+      font: "var(--text-body-sm-role)"
+    }
+  }, c), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 22,
+      height: 22,
+      borderRadius: 6,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: on.includes(n) ? "var(--surface-inverse)" : "transparent",
+      boxShadow: on.includes(n) ? "none" : "inset 0 0 0 1.5px var(--border-strong)",
+      color: "var(--text-inverse)"
+    }
+  }, on.includes(n) ? /*#__PURE__*/React.createElement(TPIcon, {
+    name: "check",
+    size: 14
+  }) : null))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 14,
+      justifyContent: "flex-end"
+    }
+  }, pb("Cancel", "", () => setPanel(false)), pb("Done", "pri", () => setPanel(false))))));
+}
+Object.assign(window, {
+  RowEditSheet,
+  TodayBody,
+  CustomizeSheet,
+  LaunchHold,
+  ActivityScreen,
+  MailStep,
+  ThreadPill,
+  TP_DATA
+});
+})(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/mobile_app/TodayParts.jsx", error: String((e && e.message) || e) }); }
+
 // ui_kits/mobile_app/TodayScreen.jsx
 try { (() => {
 const OFFLOAD_DS = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
 const {
   AppBar,
-  SectionHeader,
-  ListRow,
-  Icon,
   IconButton,
-  Badge,
-  Card,
-  Logo,
-  Button
+  Logo
 } = OFFLOAD_DS;
-const Swipe = OFFLOAD_DS.SwipeRow || (({
-  children
-}) => children);
 
 /* Two states only: Today until sunset, Tonight after. Real sunset, see sun.js. */
 function timeOfDay(date) {
@@ -18895,175 +19736,23 @@ function timeOfDay(date) {
     icon: "sun"
   };
 }
-function PriorityRow({
-  item,
-  onOpen,
-  onOpenPerson,
-  last
-}) {
-  /* A row about a person opens that person, not the thread: people are places. */
-  const go = item.person && onOpenPerson ? () => onOpenPerson(item.person) : onOpen;
-  return /*#__PURE__*/React.createElement("div", {
-    onClick: go,
-    style: {
-      display: "flex",
-      alignItems: "flex-start",
-      gap: "var(--space-5)",
-      padding: "var(--space-5) var(--gutter-screen)",
-      cursor: "pointer",
-      boxShadow: last ? "none" : "inset 0 -1px 0 var(--border-hairline)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 22,
-      height: 22,
-      marginTop: 1,
-      flex: "0 0 auto",
-      borderRadius: "var(--radius-pill)",
-      background: item.tone === "attention" ? "var(--surface-attention)" : "var(--surface-fill)",
-      color: item.tone === "attention" ? "var(--text-on-solid)" : "var(--text-secondary)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: item.icon,
-    size: 13
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0,
-      display: "flex",
-      flexDirection: "column",
-      gap: 2
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      font: "var(--weight-medium) var(--size-body)/1.35 var(--font-core)",
-      fontVariantNumeric: "tabular-nums",
-      letterSpacing: "var(--tracking-body)"
-    }
-  }, item.title), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: "var(--size-body-sm)",
-      lineHeight: 1.4,
-      color: "var(--text-secondary)"
-    }
-  }, item.thread, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--text-tertiary)"
-    }
-  }, " \xB7 ", item.meta))), item.due ? /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: "0 0 auto",
-      paddingTop: 2
-    }
-  }, /*#__PURE__*/React.createElement(Badge, {
-    tone: item.tone === "attention" ? "attention" : "neutral",
-    variant: item.tone === "attention" ? "solid" : "soft"
-  }, item.due)) : null);
-}
-function ThreadDigest({
-  thread,
-  onOpen
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "0 var(--gutter-screen) var(--space-5)"
-    }
-  }, /*#__PURE__*/React.createElement(Card, {
-    padding: "0",
-    onClick: onOpen
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: "var(--space-4)",
-      padding: "var(--space-5) var(--space-6)",
-      boxShadow: "inset 0 -1px 0 var(--border-hairline)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--text-secondary)",
-      display: "flex"
-    }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "lasso",
-    size: 18
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0,
-      font: "var(--text-title-3)",
-      fontVariantNumeric: "tabular-nums",
-      letterSpacing: "var(--tracking-title)",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    }
-  }, thread.name), /*#__PURE__*/React.createElement(Badge, {
-    tone: "accent"
-  }, "+", thread.added)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "var(--space-5) var(--space-6)",
-      display: "flex",
-      flexDirection: "column",
-      gap: "var(--space-4)"
-    }
-  }, thread.lines.map((l, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      display: "flex",
-      gap: "var(--space-4)",
-      alignItems: "flex-start"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--text-tertiary)",
-      display: "flex",
-      paddingTop: 2,
-      flex: "0 0 auto"
-    }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: l.icon,
-    size: 15
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0,
-      fontSize: "var(--size-body-sm)",
-      lineHeight: 1.4,
-      color: "var(--text-primary)"
-    }
-  }, l.text), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: "var(--size-caption)",
-      color: "var(--text-tertiary)",
-      flex: "0 0 auto"
-    }
-  }, l.time))))));
-}
+
+/* Today as decided 1 October 2026 (readme: Today). The body is shared with the Android
+   kit in TodayParts.jsx; only the bar differs. */
 function TodayScreen({
-  data,
-  now,
-  onOpenThread,
-  onOpenItem,
-  onOpenPerson,
   unread,
   onOpenNotifications,
   onOpenSettings,
   barSolid,
-  hidden,
-  onDelete
+  onOpenThread,
+  quiet
 }) {
-  const [allPriority, setAllPriority] = React.useState(false);
-  const d = now || new Date();
-  const nowHour = d.getHours() + d.getMinutes() / 60;
-  const gone = id => (hidden || []).indexOf(id) >= 0;
-  const priority = data.priority.filter(p => !gone(p.id));
-  const other = data.other.filter(l => !gone(l.id));
-  const shown = allPriority ? priority : priority.slice(0, 5);
-  const more = priority.length - shown.length;
+  const [custom, setCustom] = React.useState(false);
+  const open = name => onOpenThread && onOpenThread({
+    "Europe, October": "lisbon",
+    "Flat": "home",
+    "Work": "shelf"
+  }[name] || "lisbon");
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(AppBar, {
     border: false,
     style: barSolid ? {
@@ -19077,6 +19766,10 @@ function TodayScreen({
       size: 21
     }),
     right: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(IconButton, {
+      icon: "sliders-horizontal",
+      label: "Customize Today",
+      onClick: () => setCustom(true)
+    }), /*#__PURE__*/React.createElement(IconButton, {
       icon: "bell",
       label: "Activity",
       badge: unread,
@@ -19089,74 +19782,14 @@ function TodayScreen({
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
-      overflowY: "auto",
-      position: "relative",
-      paddingTop: "var(--space-5)"
+      overflowY: "auto"
     }
-  }, shown.map((p, i) => /*#__PURE__*/React.createElement(Swipe, {
-    key: p.id,
-    onDelete: () => onDelete && onDelete(p.id, "Deleted")
-  }, /*#__PURE__*/React.createElement(PriorityRow, {
-    item: p,
-    onOpen: onOpenItem,
-    onOpenPerson: onOpenPerson,
-    last: i === shown.length - 1 && !more
-  }))), more > 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "var(--space-5) var(--gutter-screen) var(--space-9)"
-    }
-  }, /*#__PURE__*/React.createElement(Button, {
-    variant: "ghost",
-    size: "sm",
-    iconAfter: "chevron-down",
-    onClick: () => setAllPriority(true)
-  }, more, " more")) : null, /*#__PURE__*/React.createElement(SectionHeader, {
-    tone: "accent",
-    count: data.threads.length
-  }, "What moved"), data.threads.map(th => /*#__PURE__*/React.createElement(ThreadDigest, {
-    key: th.id,
-    thread: th,
-    onOpen: () => onOpenThread(th.id)
-  })), /*#__PURE__*/React.createElement(SectionHeader, {
-    action: "Open calendar"
-  }, "On the clock"), /*#__PURE__*/React.createElement(DayAgenda, {
-    days: data.days,
-    nowHour: nowHour
-  }), /*#__PURE__*/React.createElement(SectionHeader, {
-    count: other.length
-  }, "Other things"), other.map((l, i) => /*#__PURE__*/React.createElement(Swipe, {
-    key: l.id,
-    onDelete: () => onDelete && onDelete(l.id, "Deleted")
-  }, /*#__PURE__*/React.createElement(ListRow, {
-    border: i < other.length - 1,
-    onClick: onOpenItem,
-    leading: /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 36,
-        height: 36,
-        borderRadius: "var(--radius-sm)",
-        background: "var(--surface-fill)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "var(--text-secondary)"
-      }
-    }, /*#__PURE__*/React.createElement(Icon, {
-      name: l.icon,
-      size: 18
-    })),
-    title: l.title,
-    meta: l.meta,
-    trailing: /*#__PURE__*/React.createElement("span", null, l.time)
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "var(--space-6) var(--gutter-screen) var(--space-9)"
-    }
-  }, /*#__PURE__*/React.createElement(Button, {
-    variant: "secondary",
-    size: "sm",
-    iconAfter: "chevron-right"
-  }, "Sort these for me"))));
+  }, /*#__PURE__*/React.createElement(TodayBody, {
+    onThread: open,
+    quiet: quiet
+  })), custom ? /*#__PURE__*/React.createElement(CustomizeSheet, {
+    onClose: () => setCustom(false)
+  }) : null);
 }
 Object.assign(window, {
   TodayScreen,

@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { TodayLayout } from "./today";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
@@ -56,6 +57,9 @@ export interface Me {
   /** 022. Connection requests waiting for their answer: the dot on the
    *  sidebar's Settings and on the My people row. */
   requestsWaiting: number;
+  /** 027. Customize Today's layout, resolved by the server against the
+   *  defaults, so a kind added later is already in it. */
+  todayLayout?: TodayLayout;
 }
 
 /** 022. Ask again and tell every mounted `useMe`, for after a request is
@@ -85,7 +89,26 @@ export type MeState =
   | { status: "loading" }
   | { status: "ready"; me: Me }
   /** No answer came: not signed out, and the screen offers to ask again. */
-  | { status: "unreachable"; retry: () => void };
+  | {
+      status: "unreachable";
+      retry: () => void;
+      /** 027. How many times it has asked again, so the next wait grows. */
+      attempt: number;
+      /** 027. Seconds from the server's Retry-After, when it sent one the
+       *  browser lets the page read. */
+      retryAfter: number | null;
+    };
+
+/** A Retry-After in seconds. The date form is read too, since either is
+ *  allowed, and anything else is no answer. */
+function retryAfterOf(response: Response): number | null {
+  const raw = response.headers.get("retry-after");
+  if (!raw) return null;
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds;
+  const at = Date.parse(raw);
+  return Number.isNaN(at) ? null : Math.max(0, Math.ceil((at - Date.now()) / 1000));
+}
 
 /** Every mounted `useMe` hears a change to the identity.
  *
@@ -146,7 +169,7 @@ export function useMe(expect: "first-run" | "shell"): MeState {
           return;
         }
         if (!response.ok) {
-          setState({ status: "unreachable", retry });
+          setState({ status: "unreachable", retry, attempt, retryAfter: retryAfterOf(response) });
           return;
         }
         const me = (await response.json()) as Me;
@@ -159,7 +182,7 @@ export function useMe(expect: "first-run" | "shell"): MeState {
       .catch(() => {
         // No network, a cross-origin answer without CORS headers, or a body
         // that is not the account. None of them is signed out.
-        if (live) setState({ status: "unreachable", retry });
+        if (live) setState({ status: "unreachable", retry, attempt, retryAfter: null });
       });
 
     // A saved name lands here without a refetch: the PATCH already returned
@@ -273,6 +296,26 @@ export async function updateClock(patch: {
       credentials: "include",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(patch),
+    });
+    if (!response.ok) return null;
+    const me = (await response.json()) as Me;
+    cached = me;
+    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
+    return me;
+  } catch {
+    return null;
+  }
+}
+
+/** 027. Customize Today's layout, the whole document, one write a gesture.
+ *  Null on a refusal or a failure, and the pane puts itself back. */
+export async function updateTodayLayout(todayLayout: TodayLayout): Promise<Me | null> {
+  try {
+    const response = await fetch(`${API}/api/me`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ todayLayout }),
     });
     if (!response.ok) return null;
     const me = (await response.json()) as Me;

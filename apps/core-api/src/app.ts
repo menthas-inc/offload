@@ -27,6 +27,7 @@ import { wellKnownRoutes } from "./routes/well-known.js";
 import { blobRoutes } from "./routes/blobs.js";
 import { peopleRoutes } from "./routes/people.js";
 import { notificationRoutes } from "./routes/notifications.js";
+import { todayRoutes } from "./routes/today.js";
 import { sharingRoutes } from "./routes/sharing.js";
 import { MAX_PHOTO_BYTES } from "./blobs/photos.js";
 import { mailInRoutes } from "./routes/mail-in.js";
@@ -111,6 +112,9 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
     origin: webOrigins,
     credentials: true,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    // 027. Launch waits as long as a Retry-After asks, and a browser on the
+    // web app's origin can only read a header it is told it may.
+    exposedHeaders: ["retry-after"],
     // **The preflight is cached, because it was half the wait.** A JSON POST
     // from the web app is not a simple request, so the browser asks OPTIONS
     // first, and without a max-age it asks again five seconds later. Traced
@@ -142,6 +146,7 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
   await app.register(blobRoutes);
   await app.register(peopleRoutes);
   await app.register(notificationRoutes);
+  await app.register(todayRoutes);
   await app.register(sharingRoutes);
   await app.register(mailInRoutes, {
     secret: options.resendWebhookSecret ?? env.RESEND_WEBHOOK_SECRET,
