@@ -26,6 +26,7 @@ import { sql, type Transaction } from "kysely";
 import type { Database } from "../schema.js";
 import type { App } from "../app.js";
 import { db } from "../db.js";
+import { ownWords } from "../mail-in/attrs.js";
 import { LabelRefused, applyLabels, createLabel, nameInDump, normaliseLabelName, recordSortActivity, runForTurn } from "../threads/labels.js";
 import { labelledLiveCopy } from "../notifications/copy.js";
 import { WIDGET_KIND_CHARS } from "../threads/widgets.js";
@@ -731,6 +732,12 @@ interface JobContext {
    *  is the safe direction: the cost is a true sentence the model reads rather
    *  than acts on. */
   sawApps: boolean;
+  /** 026. The message is a forwarded email: what the turn writes down to
+   *  remember is marked, as after a calendar read, since it may be somebody
+   *  else's words. Read from the stored message, never from the payload. It
+   *  does not make a calendar write confirm: that stays the account's own
+   *  setting, the owner's call for mail. */
+  sawMail: boolean;
 }
 
 /** The job is the authority on whose conversation this is.
@@ -758,11 +765,18 @@ async function jobContext(jobId: string): Promise<JobContext | null> {
 
   if (job.kind === "thread.quick_add") {
     if (!payload.threadId) return null;
-    return { accountId: job.account_id, messageId: null, threadId: payload.threadId, sawApps };
+    return { accountId: job.account_id, messageId: null, threadId: payload.threadId, sawApps, sawMail: false };
   }
 
   if (!payload.messageId) return null;
-  return { accountId: job.account_id, messageId: payload.messageId, threadId: null, sawApps };
+  const message = await db
+    .selectFrom("messages")
+    .select("source")
+    .where("id", "=", payload.messageId)
+    .where("account_id", "=", job.account_id)
+    .executeTakeFirst();
+  const sawMail = message?.source === "mail";
+  return { accountId: job.account_id, messageId: payload.messageId, threadId: null, sawApps, sawMail };
 }
 
 /** Remember that this turn has read a connected app.
@@ -960,6 +974,8 @@ async function existing(
   /** Whether this turn has read a connected app before now. Everything it
    *  writes afterwards is marked untrusted: see `jobContext`. */
   sawApps: boolean,
+  /** 026. The message is a forwarded email; see `jobContext`. */
+  sawMail: boolean,
   /** 019. The thread whose picks scope the calendar reads: the one on screen
    *  when the dump was made, or the pinned one for a quick add. Null from
    *  Today, where every approved calendar is in scope. */
@@ -1116,7 +1132,7 @@ async function existing(
           // about the thread. Without this the flag has no writer and the
           // second list is a shape nothing ever lands in, which is what the
           // security review found: the two-hop path 001 named, open.
-          derivedFromUntrusted: sawApps,
+          derivedFromUntrusted: sawApps || sawMail,
           toolCallId: call.toolCallId,
           occursAt: when.occursAt,
           occursEndAt: when.occursEndAt,
@@ -1444,7 +1460,7 @@ async function labelContent(
   if (!messageId) return { ok: false, error: "unknown_content" };
   const message = await trx
     .selectFrom("messages")
-    .select(["text", "turn_id"])
+    .select(["text", "turn_id", "source", "attrs"])
     .where("id", "=", messageId)
     .executeTakeFirstOrThrow();
   const threads = await trx
@@ -1476,7 +1492,7 @@ async function labelContent(
         ids.push(found.id);
         continue;
       }
-      if (!nameInDump(name, message.text ?? "")) return { ok: false, error: "not_in_the_dump" };
+      if (!nameInDump(name, ownWords(message))) return { ok: false, error: "not_in_the_dump" };
       const made = await createLabel(trx, actor, threadId, { name });
       live.push({ id: made.id, name: made.name });
       ids.push(made.id);
@@ -1511,7 +1527,7 @@ export async function toolRoutes(app: App): Promise<void> {
       const context = await jobContext(call.jobId);
       if (!context) return reply.code(404).send({ error: "unknown_job" as const });
 
-      const { accountId, messageId, threadId: pinned, sawApps } = context;
+      const { accountId, messageId, threadId: pinned, sawApps, sawMail } = context;
 
       // A quick-add job reads one thread and may only write to it.
       //
@@ -1654,7 +1670,7 @@ export async function toolRoutes(app: App): Promise<void> {
         // the functions the thread page already uses, so the rule the screen
         // enforces and the rule the model gets are the same rule.
         if (call.tool !== "add_content") {
-          return existing(call, accountId, trx, messageId, sawApps, pinned ?? (await lookingAt(messageId, trx)));
+          return existing(call, accountId, trx, messageId, sawApps, sawMail, pinned ?? (await lookingAt(messageId, trx)));
         }
 
         // add_content.

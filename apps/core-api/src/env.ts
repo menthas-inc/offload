@@ -82,6 +82,9 @@ const schema = z.object({
   // and nothing else turns it on.
   RESEND_API_KEY: z.string().min(1).optional(),
   MAIL_LIVE: z.enum(["1"]).optional(),
+  // 026. Resend signs its received-email webhook to /v1/mail/resend with this
+  // (Svix, `whsec_...`). Unset, the route refuses everything.
+  RESEND_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
 
   // 024. Expo's push service, with enhanced push security on, so a send needs
   // the project's access token. Required in production; locally a send is an

@@ -1136,3 +1136,41 @@
   font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
   color: var(--text-danger);
 }
+
+/* 026. A forwarded email's heading in its bubble: the glyph, the subject on
+   one line, and "Forwarded" after it in the meta's colour. */
+.mailHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--text-secondary);
+}
+
+.mailSubject {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.mailMeta {
+  flex: 0 0 auto;
+  font-size: calc(12px * var(--type-scale));
+  color: var(--text-tertiary);
+}
+
+/* The note they typed above the email, kept to four lines. The email itself
+   is on the rows it filed. */
+.mailBody {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+  margin-top: var(--space-2);
+  white-space: pre-line;
+}

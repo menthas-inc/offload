@@ -60,7 +60,7 @@ describe("024 activity", () => {
   it("holds a kind from the eight, a reason from the three, and bounded words", async () => {
     const columns = await columnsOf("activity");
     expect([...columns.keys()].sort()).toEqual([
-      "about_account_id", "account_id", "body", "content_id", "id", "kind", "label_run_id", "member_id", "occurred_at", "reason", "request_id", "send", "sent", "thread_id", "title", "undone_at",
+      "about_account_id", "account_id", "body", "content_id", "id", "kind", "label_run_id", "mail_outcome", "member_id", "message_id", "occurred_at", "reason", "request_id", "send", "sent", "thread_id", "title", "turn_id", "undone_at",
     ]);
     const account = await db
       .insertInto("accounts")

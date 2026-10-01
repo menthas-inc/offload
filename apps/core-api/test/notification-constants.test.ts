@@ -42,4 +42,11 @@ describe("the row's glyph and tag, decided once for every surface", () => {
     expect(activityTag(labelled)).toBeNull();
     expect(activityTag({ ...labelled, undone: true })).toEqual({ label: "Undone", tone: "quiet" });
   });
+
+  it("draws an email's row with the mail glyph, as a record, and Undone once undone (026)", () => {
+    const mail = { kind: "mail" as const, sent: false, reason: "design" as const, send: null };
+    expect(activityGlyph(mail)).toBe("mail");
+    expect(activityTag(mail)).toBeNull();
+    expect(activityTag({ ...mail, undone: true })).toEqual({ label: "Undone", tone: "quiet" });
+  });
 });

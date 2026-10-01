@@ -54,6 +54,9 @@ export interface Me {
   notifySharedActivity: boolean;
   /** The dot on the bell: Activity holds a row newer than its last opening. */
   activityNew: boolean;
+  /** 026. Whether mail forwarded from the sign-in address can reach them:
+   *  false for an Apple private relay address. */
+  mailAvailable: boolean;
 }
 
 /** Ask again, and tell every mounted `useMe`. For after a request is

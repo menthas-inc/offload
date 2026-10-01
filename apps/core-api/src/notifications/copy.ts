@@ -54,7 +54,7 @@ const TITLES: Record<Send, string> = { morning: "Due today", evening: "Tomorrow"
 const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
 
 /** A count in words up to nine, and a number past that: a count stands on its own. */
-function count(n: number): string {
+export function count(n: number): string {
   return WORDS[n] ?? String(n);
 }
 
@@ -73,7 +73,12 @@ export function clamp(text: string): string {
   return oneLine(text).slice(0, CLAMP).trim();
 }
 
-function capital(sentence: string): string {
+/** The same, to another length. 026 keeps an email's subject to 300. */
+export function clampTo(text: string, max: number): string {
+  return oneLine(text).slice(0, max).trim();
+}
+
+export function capital(sentence: string): string {
   return sentence.length > 0 ? sentence.charAt(0).toUpperCase() + sentence.slice(1) : sentence;
 }
 

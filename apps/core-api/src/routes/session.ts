@@ -119,6 +119,10 @@ const meResponse = z.object({
   notifyPeopleRequests: z.boolean(),
   notifySharedActivity: z.boolean(),
   activityNew: z.boolean(),
+  /** 026. Whether mail forwarded from the sign-in address can reach this
+   *  account: false for an Apple private relay address, which is never the
+   *  address mail comes from. */
+  mailAvailable: z.boolean(),
 });
 
 /** 024. An hour as the page sends it, HH:MM, twenty-four hour. */
@@ -131,7 +135,7 @@ const HOUR = /^([01]\d|2[0-3]):[0-5]\d$/;
  *  When the policy changes materially this changes with it, and the gap between
  *  a stored version and this one is the query that finds who has to be asked
  *  again. Must match UPDATED in apps/web/src/app/(marketing)/privacy/page.tsx. */
-export const CONSENT_VERSION = "2026-09-29";
+export const CONSENT_VERSION = "2026-10-01";
 
 /** invited -> active, plus the consent record and the event, in one transaction.
  *
@@ -284,6 +288,7 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
     notifyPeopleRequests: account.notify_people_requests,
     notifySharedActivity: account.notify_shared_activity,
     activityNew: await activityNew(accountId),
+    mailAvailable: !/@privaterelay\.appleid\.com$/i.test(account.email),
   };
 }
 

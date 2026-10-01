@@ -4,7 +4,7 @@
 // vocabulary rather than ten screens. Three exist here; the rest arrive with
 // their features and cost a `PAGES` entry each.
 
-import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -24,7 +24,8 @@ import { ConnectButton, ConnectStepBody, ProviderMark } from "../../components/C
 import { RowActionSheet } from "../../components/shell/RowActionSheet";
 import { BlockedPage, PeoplePage } from "../../components/people/PeoplePage";
 import { googleCalendarMark } from "../../lib/brands";
-import { CONNECT_STEP } from "../../lib/gate";
+import { CONNECT_STEP, MAIL_ADDRESS, MAIL_CARD_URL, MAIL_RELAY_NOTE, mailLines } from "../../lib/gate";
+import * as Clipboard from "expo-clipboard";
 import { API_URL } from "../../lib/auth";
 import {
   setTheme,
@@ -48,6 +49,7 @@ const WEB = process.env["EXPO_PUBLIC_WEB_URL"] ?? "https://offload.club";
 const TITLES: Record<string, string> = {
   apps: "Connected apps",
   calendar: "Calendar",
+  mail: "Mail",
   account: "My account",
   appearance: "Appearance",
   datetime: "Date and time",
@@ -91,6 +93,7 @@ export default function SettingsPage() {
       <ScrollView contentContainerClassName="px-gutter-screen pb-space-9 pt-space-2" keyboardShouldPersistTaps="handled">
         {page === "apps" ? <Apps /> : null}
         {page === "calendar" ? <CalendarPage /> : null}
+        {page === "mail" ? <MailPage toast={toast} /> : null}
         {page === "account" ? <Account /> : null}
         {page === "appearance" ? <Appearance /> : null}
         {page === "datetime" ? <DateTime /> : null}
@@ -568,6 +571,7 @@ function Help() {
  *  pick from inside. */
 function Apps() {
   const router = useRouter();
+  const me = useMe();
   const { loading, available, connections, reload } = useCalendars();
   // On focus, not only on mount: the calendar page one level down connects
   // and disconnects, and coming back to a row that still says On after a
@@ -601,8 +605,21 @@ function Apps() {
         </Group>
       )}
 
+      {me ? (
+        <Group label="Mail">
+          <Row
+            title="Mail"
+            // 026. The address as its note and no value: nothing here is
+            // switched on or off. Unavailable for an Apple hidden email.
+            note={me.mailAvailable ? MAIL_ADDRESS : MAIL_RELAY_NOTE}
+            value={me.mailAvailable ? undefined : "Unavailable"}
+            onPress={() => router.push("/settings/mail")}
+            last
+          />
+        </Group>
+      ) : null}
+
       <Group label="Not built yet">
-        <Row title="Mail" note="So a confirmation files itself." />
         <Row title="Browser" note="Save a page straight into a thread." />
         <Row
           title="Photos"
@@ -617,6 +634,57 @@ function Apps() {
           note="It never sends mail or deletes photos. When a change would reach somebody else, it asks first."
           last
         />
+      </Group>
+    </>
+  );
+}
+
+/** 026. Mail, one level under Connected apps: the address, Copy, the card
+ *  that adds it to contacts, and the two lines on how it works. An Apple
+ *  hidden email gets the note alone, since mail from it can't be matched. */
+function MailPage({ toast }: { toast: ToastState }) {
+  const me = useMe();
+  const COLOR = useColors();
+  if (!me) {
+    return (
+      <View className="items-center pt-space-9">
+        <ActivityIndicator color={COLOR.iconOnWell} />
+      </View>
+    );
+  }
+  if (!me.mailAvailable) {
+    return (
+      <Group label="Mail">
+        <Row title="Mail" note={MAIL_RELAY_NOTE} value="Unavailable" last />
+      </Group>
+    );
+  }
+  return (
+    <>
+      <Group label="Mail">
+        <Row
+          title={MAIL_ADDRESS}
+          value="Copy"
+          chevron={false}
+          onPress={() =>
+            void Clipboard.setStringAsync(MAIL_ADDRESS)
+              .then(() => toast.show("Copied"))
+              // The address stays on screen to select; nothing else to offer.
+              .catch(() => undefined)
+          }
+        />
+        <Row
+          title="Add to contacts"
+          // The system browser opens the card and offers to add it: no native
+          // contacts module and no permission.
+          onPress={() => void WebBrowser.openBrowserAsync(MAIL_CARD_URL)}
+          last
+        />
+      </Group>
+      <Group label="How it works">
+        {mailLines(me.email).map(([title, note], index, all) => (
+          <Row key={title} title={title} note={note} last={index === all.length - 1} />
+        ))}
       </Group>
     </>
   );

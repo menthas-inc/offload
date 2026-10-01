@@ -432,12 +432,32 @@ function Yours({
           borderBottomRightRadius: 4,
         }}
       >
-        {turn.text ? (
+        {/* 026. A forwarded email: the glyph, the subject on one line and
+            Forwarded after it. */}
+        {turn.mail ? (
+          <View className="flex-row items-center gap-space-2">
+            <Glyph name="mail" size={14} color={COLOR.iconOnWell} />
+            <Text
+              className="flex-1 font-core font-medium text-ink-950"
+              style={{ fontSize: 15, lineHeight: 22 }}
+              numberOfLines={1}
+            >
+              {turn.mail.subject || "An email"}
+            </Text>
+            <Text className="font-core text-text-tertiary" style={{ fontSize: 12 }}>
+              Forwarded
+            </Text>
+          </View>
+        ) : null}
+        {/* 026. An email shows the note they typed above it, never the
+            forwarded header; the rows it filed hold the email. */}
+        {(turn.mail ? turn.mail.note : turn.text) ? (
           <Text
-            className="font-core text-ink-950"
+            className={`font-core text-ink-950 ${turn.mail ? "mt-space-2" : ""}`}
             style={{ fontSize: 15, lineHeight: 22 }}
+            numberOfLines={turn.mail ? 4 : undefined}
           >
-            {turn.text}
+            {turn.mail ? turn.mail.note : turn.text}
           </Text>
         ) : null}
         {/* 021. The voice note it carried, between the words and the photos. */}

@@ -440,6 +440,8 @@ export interface TailMessage {
   photos?: PhotoOnWire[];
   /** 021. Null on every reply and on any message without one. */
   voice?: VoiceOnWire | null;
+  /** 026. A forwarded email's subject; null on everything else. */
+  mail?: { subject: string; note: string } | null;
   state: MessageState;
   /** What an Undo would reverse. The whole turn, not this row. */
   turnId: string;

@@ -23,10 +23,14 @@ export interface ActivityEntry {
   contentId: string | null;
   memberId: string | null;
   requestId: string | null;
-  /** 025. A labelled row's Undo is offered while this is true. */
+  /** 025. A labelled row's Undo is offered while this is true. 026: and a
+   *  filed email's, for a day. */
   undoable: boolean;
   undone: boolean;
   occurredAt: string;
+  /** 026. Which of the five an email row is, and the email it came from. */
+  mailOutcome?: "filed" | "asked" | "nothing" | "refused" | "over_limit" | null;
+  messageId?: string | null;
 }
 
 export interface ActivityPage {
@@ -52,12 +56,23 @@ export type Door =
   | { pathname: "/settings/notifications" }
   | { pathname: "/settings/people" }
   | { pathname: "/invitations/[memberId]"; params: { memberId: string } }
-  | { pathname: "/threads/[id]"; params: { id: string } };
+  | { pathname: "/threads/[id]"; params: { id: string } }
+  | { pathname: "/today" }
+  | { pathname: "/settings/[page]"; params: { page: "mail" } };
 
 /** Where a row goes, or null for a row that is the record and nothing more.
  *  A digest's words are what was said, not what is true now; its door is
  *  Today, which is. */
 export function doorOf(row: ActivityEntry): Door | null {
+  // 026. An email's row opens the thread it filed into, or Today, where the
+  // conversation holding the email is; a refused email opens the Mail page,
+  // which names the one address that works.
+  if (row.kind === "mail") {
+    if (row.mailOutcome === "refused") return { pathname: "/settings/[page]", params: { page: "mail" } };
+    if (row.mailOutcome === "over_limit") return null;
+    if (row.mailOutcome === "filed" && row.threadId) return { pathname: "/threads/[id]", params: { id: row.threadId } };
+    return { pathname: "/today" };
+  }
   if (!row.sent && row.reason !== "design") return { pathname: "/settings/notifications" };
   switch (row.kind) {
     // 2026-09-30: a digest opens Today, as its notification does.

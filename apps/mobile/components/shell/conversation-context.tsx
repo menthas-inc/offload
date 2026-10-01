@@ -138,6 +138,8 @@ export interface Turn {
   photos?: PhotoOnWire[];
   /** 021. The voice note it carried, with its transcript once written. */
   voice?: VoiceOnWire | null;
+  /** 026. A forwarded email: its subject heads the bubble. */
+  mail?: { subject: string; note: string } | null;
   /** The send itself did not land, so nothing on the server knows this turn.
    *  Drawn as the failed state with different words: the dump is not saved,
    *  and Try again puts the words back in the field. Local only, never on the
@@ -706,6 +708,7 @@ export function ConversationProvider({
             text: message.text ?? "",
             photos: message.photos ?? [],
             voice: message.voice ?? null,
+            mail: message.mail ?? null,
             state: message.state,
             turnId: message.turnId,
             // Survives a reload, which is the point: somebody who backgrounds

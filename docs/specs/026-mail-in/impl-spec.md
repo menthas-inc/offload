@@ -12,13 +12,13 @@ sender's mail server
        non-2xx or network error -> throw, so Cloudflare answers the sender with a temporary failure
   -> core-api /v1/mail/inbound
        1. request check: signature, 5-minute window, 26MB body cap, no body capture
-       2. sender check (mail/sender.ts): DKIM via mailauth, then the rules below
+       2. sender check (src/mail-in/sender.ts): DKIM via mailauth, then the rules below
           -> refused: outcome enum; refused-row writer if From is an account; 200
           -> key fetch failed: 503 (temporary), nothing written
        3. rate caps: accepted in the last hour and day for the account
-       4. parse (mail/parse.ts), in a worker thread with limits: text, subject, original sender and date,
+       4. parse (src/mail-in/parse.ts), in a worker thread with limits: text, subject, original sender and date,
           note boundary, candidate images, left-out attachment kinds
-       5. rule-filter images (mail/images.ts), seal the candidates as unclaimed blobs (020's storeSealed)
+       5. rule-filter images (src/mail-in/images.ts), seal the candidates as unclaimed blobs (020's storeSealed)
        6. takeDump(source 'mail', text, attrs.mail, clientKey = sha256(account, Message-ID or signature b=))
           enqueue dump.answer with payload.mailLook = candidate blob ids
        7. 200
@@ -28,7 +28,7 @@ sender's mail server
           the kept (at most ten, email order) to the message and deletes the rest
        b. the turn as for any dump, with the mail blocks (below) and the look's kept images
   -> core-api /internal/v1/turns/... (existing turn result path)
-       on a turn whose message has source 'mail': write the Activity row (mail/activity.ts)
+       on a turn whose message has source 'mail': write the Activity row (src/mail-in/activity.ts)
 ```
 
 **Why the Worker holds nothing and decides nothing.** It is outside Railway and is the first code offload runs on Cloudflare. Its whole job is to move bytes to one route with a signature, so a compromise of it yields the ability to submit an email for the same checks anybody's mail server faces, and nothing else. It has no KV, R2, D1 or queue binding, and `wrangler.toml` is asserted in a test to declare none.
@@ -135,7 +135,7 @@ export default {
 - The route is excluded from any request-body capture: Fastify's logger serialises the request without a body (verified by a test that logs a request and asserts the body is absent), and the error handler for this route replaces any error with its enum before logging.
 - Returns 200 `{}` for accepted and for refused alike, so the Worker never learns which and never logs it; 503 for a temporary refusal.
 
-### The sender check, `src/mail/sender.ts`
+### The sender check, `src/mail-in/sender.ts`
 
 `mailauth`'s `authenticate(raw, { trustReceived: false, resolver })` for the DKIM results, with a resolver wrapper that times out at 5 seconds and caches keys for an hour. Then, in code we own and test:
 
@@ -148,7 +148,7 @@ export default {
 
 Outcome enum: `accepted`, `unsigned`, `unaligned`, `length_tag`, `unsigned_from`, `unsigned_recipient`, `from_shape`, `no_account`, `stale`, `replayed`, `key_unavailable`, `over_limit`, `unparseable`.
 
-### Parsing, `src/mail/parse.ts`
+### Parsing, `src/mail-in/parse.ts`
 
 `mailparser`'s `simpleParser` in a `worker_threads` Worker with `resourceLimits: { maxOldGenerationSizeMb: 256 }` and a 10-second timeout, after a pre-pass over the raw MIME structure that refuses more than 100 parts or nesting deeper than 10. Per part: decoded size under 25MB; HTML under 2MB before conversion. The text is `parsed.text`, or `parsed.html` through `html-to-text` with images and links as text, when there is no plain part. Remote references are never resolved: nothing in the parse fetches, and a test runs it with the global `fetch` and `http.request` replaced by functions that fail the test.
 
@@ -156,7 +156,7 @@ The note boundary: the first line matching Gmail's `---------- Forwarded message
 
 Attachments by content type after sniffing: images to the rule filter; everything else counted into `leftOut` by kind.
 
-### The image rules, `src/mail/images.ts`
+### The image rules, `src/mail-in/images.ts`
 
 020's `sniff` for type, `dimensions` (`blobs/photos.ts:49`) for size, and: at least 20KB, shorter side at least 300px, aspect at most 4:1, and for an inline image referenced by `cid:` from the HTML, an `<img>` whose `width` or `height` attribute is under 300 is left out. 020's per-photo limits (20MB, 60MP) and daily limits (200 photos, 500MB) apply, counted with the account's other photos. The first twenty survivors, in the order the email held them, are sealed with `storeSealed` as unclaimed image blobs.
 
@@ -192,7 +192,7 @@ Each is its own content block and none is concatenated with another. `plan_v2.md
 
 `worker.py`'s look-up bound reads `budget.dump`. For a mail turn `budget.dump` is the person's note alone, so `_in_the_dump(url, ...)` refuses a link that appears only in the forwarded part, with the existing `not_in_the_dump` outcome. Search questions keep the whole email as their provenance, since a search reads and does not act.
 
-### Activity, `src/mail/activity.ts`
+### Activity, `src/mail-in/activity.ts`
 
 - **After a mail turn**, in the existing turn-result handler: `filed` with the landed rows (one: `<row title>, in <thread>`; several in one thread: `<Count> into <thread>, from an email`; across threads: `<Count> from an email`), `asked` when the turn opened a question, `nothing` otherwise. Body: `From an email, “<subject>”.` for one row, `“<subject>”.` otherwise, then a sentence per `leftOut` kind (*A PDF was left out.*, *Two spreadsheets were left out.*). Every interpolated string through 024's clamp (one line, controls stripped, 120). Written with `turn_id`, `message_id`, and `content_id` or `thread_id` for the door.
 - **Refused**: inside the inbound route, only for outcomes that name an account (`from_shape` never does, `no_account` never does), only when neither cap is met: `count(*) where kind = 'mail' and mail_outcome = 'refused' and occurred_at > now() - 1 hour` is zero and the day's is under three. Fixed words, no ids.
@@ -259,3 +259,33 @@ The seven edits in the feature spec, in `apps/web/src/app/(marketing)/privacy/pa
 - **OFF-6.** Compliant. Filing is on offload's surfaces; the Undo that covers it is Activity's, twenty-four hours, with nothing destroyed while it is offered; a calendar write reaching nobody else is the allowlist's conditional entry, and one reaching anybody still asks. The allowlist names a mail turn at merge.
 - **OFF-7.** Compliant: the glyph and four divergences logged.
 - **OFF-8.** Compliant: the bound above.
+
+## As built
+
+Where the build differs from the plan above, recorded as it happened (DEV-2).
+
+- **`src/mail-in/`, not `src/mail/`.** `src/mail/` is the outbound mailer.
+- **The signature is spent after the email is handled, not by the check.** `checkSender` reads `mail_signatures` and returns the hash; `receiveMail` spends it once the email is filed, dropped at a cap or found empty. Spending it inside the check meant a failure between the check and the dump made the redelivery a "replay" of an email nothing kept. The dump's client key is `mail:` plus the signature's hash, so two concurrent deliveries collapse into one message through the dump's own lock.
+- **`unsigned_from` is reachable only as `unsigned`.** RFC 6376 makes a signature that leaves From out a permanent failure, and mailauth refuses both to sign and to verify one. The check keeps its own rule as a second line; the test tampers with `h=` and expects `unsigned`.
+- **The model budget is a cap like the others.** An account over its daily budget drops the email with the `over_limit` row, checked before the parse so no candidate is sealed for a turn that cannot run.
+- **An email the parser refuses writes the `nothing` row**, as one that held nothing does.
+- **The parser is a standalone `.ts` file** (`parse-worker.ts`) run in a worker thread under Node's native type stripping in development and in the tests, and compiled in production. It uses `html-to-text` directly: mailparser produced no text for an HTML-only email.
+- **`attrs.mail` gains `historyAt`**, where reply history below the forwarded message starts, found once at intake so the turn's copy can stop there.
+- **`wrangler` is not a dependency.** `pnpm --filter @offload/mail-worker deploy` runs it through `npx`, so the workspace does not carry its runtime binary for a deploy the owner runs by hand.
+- **Analytics.** `mail_received` has its schema in `schemas/events/`, and `dump_sent` gains `via_mail`.
+- **A mail turn is never answered and never answers an open question.** The job carries `mail: true`; the worker skips the question classifier for it, and `takeDump` attaches no open question, so a booking email's "can you confirm by Friday?" is filed rather than answered, and an email arriving while a question is open leaves it open for the person.
+- **025's provenance bounds read the note alone.** A label the turn creates, and a `#word` in the text, must come from the person's note in a forwarded email (`ownWords` in `mail-in/attrs.ts`), as a fetched link must.
+- **`sawMail` marks notes only.** `sawApps` also makes a calendar write confirm; the owner chose the account's own setting for mail turns, so the two flags stay separate.
+- **The look's model call is not on the turn's usage ledger**, as the question classifier's is not.
+- **The evals' runner builds a mail case through `mail_of`**, and its look-up stub reads the note as the link bound, as the worker does.
+- **The question row opens the email, whatever the question's state.** 018's question chips live on the email's message in the conversation, so opening the email shows the question while it is open and the email once a later turn has closed it, with nothing to resolve on the server. The feature spec's two doors are the same door.
+- **The Activity read gains `mailOutcome` and `messageId`**, which the clients map to a door.
+- **Notes count as landed** in the row's count and title, beside content rows.
+- **First run offers Mail before the calendar, on all three surfaces.** Connecting a calendar ends first run on the calendar page (phones) or at Google's consent screen (web), so a step after it would never be seen by anybody who connects. `offersFor` and `dotsFor` in `apps/mobile/lib/gate.ts` give the per-account list and the dots.
+- **The web draws Mail inline in Connected apps**, as 019 draws the calendar there, rather than a third pane.
+- **The phones' Activity doors**: a filed email opens its thread, anything else opens Today, where the conversation holding the email is; the phones have no route to a single row. The web opens the row, the thread, or Today.
+- **The conversation tail carries `mail: { subject }`**, which both clients draw as the bubble's heading, with the text kept to four lines.
+- **`expo-clipboard` is added** for Copy, so the phones need a native rebuild.
+- **After the code reviews (2026-10-01).** More than five DKIM signatures on one email is refused as `from_shape` before any key is fetched, since each is a lookup on a domain the sender chose. A question a mail turn asks is stored as derived from somebody else's words. The look leaves out an image that cannot be opened rather than failing for the rest. The look route's message update is scoped by account. Undo clears the Activity row's `content_id`, so the purge's hard delete no longer cascades the record away. The web offers Mail only in a real first run (`mailOffered`), Copy is a 44px target named "Copy the address", and the phones' Copy row carries no chevron.
+- **Reviewed and left.** A label join a person has changed since is already left by 025's `undoRun`, which matches on the run and who set it, so mail's Undo needed nothing more there. An image-only email whose look keeps nothing stays an `image` message with no photos; the turn then finds no dump, fails, and the Activity row says nothing was filed. The hourly and daily caps are counted, not locked, so two emails a moment apart can both pass: an accepted overshoot of one. A signature with no `t=` is accepted once, by the spec, and refused as a replay after.
+- **Resend receives the mail, not Cloudflare (2026-10-01).** Cloudflare Email Routing on a subdomain requires onboarding the root domain, which adds Cloudflare's MX records to `offload.club` and collides with Google Workspace's (Cloudflare's own docs say the two cannot share a domain). Resend receives on one MX record on `to.offload.club`. `POST /v1/mail/resend` verifies the Svix signature on the raw body with `RESEND_WEBHOOK_SECRET` (the `svix` library, not a hand-rolled HMAC), ignores any event that is not `email.received` for `over@to.offload.club`, fetches `GET https://api.resend.com/emails/receiving/{id}` with `RESEND_API_KEY`, downloads `raw.download_url`, refuses past 26MB, and hands the bytes to `receiveMail`. The sender check still verifies DKIM itself rather than reading Resend's `dkim` field. A 503 makes Resend retry the webhook, so the bounce-on-outage path of the Worker design is gone. `apps/mail-worker`, `MAIL_INBOUND_SECRET` and `/v1/mail/inbound` are removed. Resend keeps a received email for 30 days in the United States ("Email and log data is retained for 30 days on Free, Pro, and Scale plans", resend.com/security), and the privacy page says so, re-approved by the owner.

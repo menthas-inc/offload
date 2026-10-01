@@ -15,6 +15,7 @@ import { sql, type Kysely, type Transaction } from "kysely";
 import { db } from "../db.js";
 import type { ActivityTable, Database } from "../schema.js";
 import { oneLine } from "./copy.js";
+import { mailUndoOpen } from "../mail-in/activity.js";
 
 type Executor = Kysely<Database> | Transaction<Database>;
 
@@ -87,10 +88,13 @@ export interface ActivityEntry {
   contentId: string | null;
   memberId: string | null;
   requestId: string | null;
-  /** 025. Offered on a labelled row whose sort can still be taken back. */
+  /** 025. Offered on a labelled row whose sort can still be taken back.
+   *  026: and on a filed email's row for a day. */
   undoable: boolean;
   undone: boolean;
   occurredAt: string;
+  mailOutcome: ActivityTable["mail_outcome"];
+  messageId: string | null;
 }
 
 /** A page, newest first by when it happened, the cursor the last row's id.
@@ -126,9 +130,14 @@ export async function listActivity(accountId: string, cursor: string | null): Pr
       contentId: row.content_id,
       memberId: row.member_id,
       requestId: row.request_id,
-      undoable: row.kind === "labelled" && row.label_run_id !== null && row.undone_at === null,
+      undoable:
+        row.undone_at === null &&
+        ((row.kind === "labelled" && row.label_run_id !== null) ||
+          (row.kind === "mail" && row.mail_outcome === "filed" && mailUndoOpen(row.occurred_at))),
       undone: row.undone_at !== null,
       occurredAt: row.occurred_at.toISOString(),
+      mailOutcome: row.mail_outcome,
+      messageId: row.message_id,
     })),
     next: rows.length > ACTIVITY_PAGE && last ? last.id : null,
   };

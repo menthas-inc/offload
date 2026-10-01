@@ -97,10 +97,14 @@ export function ProviderMark({
 export function ConnectStepBar({
   tone,
   steps,
+  active = steps - 1,
   onNotNow,
 }: {
   tone: ConnectTone;
   steps: number;
+  /** 026. Which dot is the bar: the offer being shown, since an account may
+   *  be shown Mail, the calendar, both or neither. The last by default. */
+  active?: number;
   onNotNow: () => void;
 }) {
   const isAndroid = tone === "android";
@@ -108,7 +112,7 @@ export function ConnectStepBar({
     <View className="flex-row items-center justify-between px-gutter-screen">
       <View className="flex-row items-center gap-space-3">
         {Array.from({ length: steps }).map((_, index) => {
-          const on = index === steps - 1;
+          const on = index === active;
           return (
             <View
               key={index}
@@ -147,9 +151,16 @@ export function ConnectStepBar({
 export function ConnectStepBody({
   tone,
   mark,
+  copy = CONNECT_STEP,
+  glyph,
 }: {
   tone: ConnectTone;
   mark?: number | null;
+  /** 026. Another step in this one's shape: Mail's title and two facts. */
+  copy?: { title: string; sub?: string; facts: readonly (readonly [string, string, string])[] };
+  /** 026. Our own glyph on the stand-in's tile, where there is no provider
+   *  whose mark it could be. */
+  glyph?: string;
 }) {
   const COLOR = useColors();
   const isAndroid = tone === "android";
@@ -157,7 +168,16 @@ export function ConnectStepBody({
   return (
     <>
       <View className="flex-1 items-center justify-center px-gutter-screen">
-        <ProviderMark tone={tone} source={mark ?? null} />
+        {glyph ? (
+          <View
+            className={`items-center justify-center ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
+            style={{ width: 88, height: 88, borderRadius: isAndroid ? 20 : 18 }}
+          >
+            <Glyph name={glyph} size={40} color={COLOR.iconOnWell} />
+          </View>
+        ) : (
+          <ProviderMark tone={tone} source={mark ?? null} />
+        )}
       </View>
 
       <View className="px-gutter-screen pb-space-7">
@@ -169,24 +189,26 @@ export function ConnectStepBody({
               : { fontSize: 28, lineHeight: 33, letterSpacing: -0.4 }
           }
         >
-          {CONNECT_STEP.title}
+          {copy.title}
         </Text>
-        <Text
-          className={`mt-space-4 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
-          style={{
-            fontSize: 16,
-            lineHeight: 24,
-            letterSpacing: isAndroid ? 0.16 : 0,
-          }}
-        >
-          {CONNECT_STEP.sub}
-        </Text>
+        {copy.sub ? (
+          <Text
+            className={`mt-space-4 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+            style={{
+              fontSize: 16,
+              lineHeight: 24,
+              letterSpacing: isAndroid ? 0.16 : 0,
+            }}
+          >
+            {copy.sub}
+          </Text>
+        ) : null}
 
         {/* Two facts, not a feature list: what it reads, and what it does back. */}
         <View
           className={`${isAndroid ? "mt-space-6" : "mt-space-7"} gap-space-5`}
         >
-          {CONNECT_STEP.facts.map(([icon, head, rest]) => (
+          {copy.facts.map(([icon, head, rest]) => (
             <View key={head} className="flex-row items-start gap-space-5">
               <View style={{ marginTop: isAndroid ? 4 : 3 }}>
                 <Glyph name={icon} size={16} color={COLOR.iconOnWell} />

@@ -20,7 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { GateBackdrop } from "../GateBackdrop";
 import * as Notifications from "expo-notifications";
 import { TutorialArt, M3_TONE } from "../TutorialArt";
-import { CONNECT_STEP, CONSENT, NAME_STEP, TUTORIAL } from "../../lib/gate";
+import { CONNECT_STEP, CONSENT, MAIL_CARD_URL, NAME_STEP, TUTORIAL, dotsFor, mailStep, offersFor, type Offer } from "../../lib/gate";
 import { ConsentTicks } from "../ConsentTicks";
 import { NameField } from "../NameField";
 import { ConnectStepBar, ConnectStepBody } from "../ConnectStep";
@@ -46,7 +46,9 @@ export default function Welcome() {
   // comes back, and a round trip through another origin mid onboarding is
   // somebody who can be stranded by a back button. By the time this shows, the
   // account is already active and consented.
-  const [offering, setOffering] = useState(false);
+  // 026. Mail comes first: connecting a calendar ends first run on the
+  // calendar page, so nothing after it would be seen by anybody who connects.
+  const [offering, setOffering] = useState<Offer | null>(null);
   const calendars = useCalendars();
 
   // Seeded once, from whatever the sign-in backfill found, and empty when it
@@ -109,13 +111,15 @@ export default function Welcome() {
     // this screen the way there is for the name. Declining is therefore
     // remembered by construction, because first run happens once, and Settings
     // is the only way back.
-    if (calendars.available && calendars.connections.length === 0) {
-      setLeaving(false);
-      setOffering(true);
-      return;
-    }
+    setLeaving(false);
+    offerAfter(null);
+  }
 
-    router.replace("/today");
+  /** The next offer after `current`, or Today when there is none left. */
+  function offerAfter(current: Offer | null) {
+    const next = offers[current === null ? 0 : offers.indexOf(current) + 1];
+    if (next) setOffering(next);
+    else router.replace("/today");
   }
 
   // 0..2 are the tutorial, 3 asks for a name and 4 is the consent, which is a
@@ -130,7 +134,11 @@ export default function Welcome() {
   const nameOnly = me !== null && !me.needsFirstRun;
   // Whether a calendar screen still comes after the consent. It decides one
   // word: the tutorial's flow does not end at consent when it does.
-  const offerAhead = calendars.available && calendars.connections.length === 0;
+  const offers = offersFor({
+    mailAvailable: me?.mailAvailable ?? false,
+    calendarOffer: calendars.available && calendars.connections.length === 0,
+  });
+  const offerAhead = offers.length > 0;
 
   const screen = nameOnly ? undefined : TUTORIAL[step];
   const naming = nameOnly || step === TUTORIAL.length;
@@ -171,8 +179,8 @@ export default function Welcome() {
             <View className="pt-space-6">
               <ConnectStepBar
                 tone="android"
-                steps={TUTORIAL.length + 1}
-                onNotNow={() => router.replace("/today")}
+                {...dotsFor(offers, offering)}
+                onNotNow={() => offerAfter(offering)}
               />
             </View>
           ) : (
@@ -217,7 +225,9 @@ export default function Welcome() {
             </View>
           )}
 
-          {offering ? (
+          {offering === "mail" && me ? (
+            <ConnectStepBody tone="android" copy={mailStep(me.email)} glyph="mail" />
+          ) : offering ? (
             <ConnectStepBody tone="android" mark={googleCalendarMark} />
           ) : naming ? (
             <>
@@ -314,7 +324,9 @@ export default function Welcome() {
             ) : null}
             <Pressable
               onPress={() =>
-                offering
+                offering === "mail"
+                  ? void WebBrowser.openBrowserAsync(MAIL_CARD_URL).finally(() => offerAfter("mail"))
+                  : offering
                   ? void WebBrowser.openAuthSessionAsync(
                       `${API_URL}/api/connectors/google/start?landing=first-run`,
                       "offload://today",
@@ -333,7 +345,9 @@ export default function Welcome() {
               <Text
                 className={`font-core text-body font-medium ${blocked ? "text-ink-400" : "text-text-inverse"}`}
               >
-                {offering
+                {offering === "mail" && me
+                  ? mailStep(me.email).button
+                  : offering
                   ? CONNECT_STEP.connect
                   : nameOnly
                     ? "Get started"

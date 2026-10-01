@@ -35,6 +35,7 @@ from offload_agent.countries import name_of
 from offload_agent.embed import EmbeddingUnavailable, embed, to_pgvector
 from offload_agent.embed_jobs import KINDS as EMBED_KINDS
 from offload_agent.embed_jobs import handle_embed
+from offload_agent.harness.look import LookFailed, look
 from offload_agent.harness.plan import (
     Judgement,
     Outcome,
@@ -142,8 +143,15 @@ class Lookups:
         may_read_links: bool,
         country: str | None = None,
         today: str | None = None,
+        links: str | None = None,
     ) -> None:
         self.dump = dump
+        #: 026. What a URL has to appear in to be fetched: the dump, or for a
+        #: forwarded email the person's note alone, since a link in somebody
+        #: else's email can confirm, cancel or unsubscribe by being opened.
+        #: A search question still draws on the whole email: it reads and
+        #: does not act.
+        self.links = dump if links is None else links
         #: Where they said they are, so the bound lets the query name it.
         self.country = country
         #: What day it is, for the reader. Asked when the clocks change, it
@@ -457,7 +465,7 @@ async def _look_up(
             budget.record(label="link_metadata", kind="read", outcome="refused_bound")
             log.info("lookup refused", why="links off")
             return _declined("reading links is switched off")
-        if not _in_the_dump(url, budget.dump):
+        if not _in_the_dump(url, budget.links):
             budget.record(label="link_metadata", kind="read", outcome="refused_bound")
             return _declined("that url is not in what they dumped")
         if budget.reads >= budget.READS:
@@ -632,7 +640,7 @@ def _tool_caller(
             and args.get("url")
             and not args.get("image_url")
             and lookups is not None
-            and _in_the_dump(str(args["url"]), lookups[2].dump)
+            and _in_the_dump(str(args["url"]), lookups[2].links)
         ):
             found = await picture(http, str(args["url"]))
             if found:
@@ -799,7 +807,6 @@ def _today_date(today: str | None) -> date | None:
         return datetime.strptime(today, "%A %d %B %Y").date()
     except ValueError:
         return None
-
 
 
 def parse_answer(
@@ -1021,6 +1028,16 @@ async def handle(
                 log.info("dump answered", job_id=job.id, calls=0, filed=0, heard_nothing=True)
                 return
 
+        # 026. A forwarded email is filed, never answered: its words are mostly
+        # somebody else's, and "can you confirm by Friday?" in a booking email
+        # is not a question to offload. Its images are looked at first, so the
+        # ones it keeps are on the message before anything below reads it.
+        mail_turn = bool(payload.get("mail"))
+        look_ids = [str(i) for i in (payload.get("mailLook") or [])]
+        if look_ids:
+            await _step_writer(http, cfg, job.id)("Looking at the pictures")
+            await _run_look(http, cfg, anthropic, job.id, str(message_id), look_ids)
+
         # Question or note, decided on the message alone and before anything is
         # read. Its own call, because the toolset has to be chosen before the
         # model is invoked: a mode the model picks mid-turn is a mode it can be
@@ -1163,7 +1180,7 @@ async def handle(
                             "label": describe_value(open_q.field, value),
                         }
 
-        if asked and answered is None and not with_photos:
+        if asked and answered is None and not with_photos and not mail_turn:
             verdict = await classify(anthropic, asked, cfg.sort_model)
             if verdict.asking and verdict.confident:
                 await _handle_answer(
@@ -1209,6 +1226,7 @@ async def handle(
         fitted = ctx_mod.fit(loaded, cfg.max_prompt_tokens)
         budget = Lookups(
             fitted.dump,
+            links=fitted.mail.links if fitted.mail else None,
             may_search=fitted.may_search,
             may_read_links=fitted.may_read_links,
             country=fitted.country,
@@ -1357,6 +1375,54 @@ _RENDITIONS_STATE = text(
     where id = any(:ids)
     """
 )
+
+
+async def _run_look(
+    http: httpx.AsyncClient,
+    cfg: Config,
+    anthropic: AsyncAnthropic,
+    job_id: str,
+    message_id: str,
+    candidates: list[str],
+) -> list[str]:
+    """026. Which of an email's image candidates to keep, posted to the Core
+    API, which claims those and deletes the rest. A candidate that cannot be
+    fetched is left out; a look that fails keeps nothing (OFF-5), because
+    keeping a logo is worse than keeping no picture and the text still files.
+    """
+    headers = {"authorization": f"Bearer {cfg.internal_token}"}
+    fetched: list[tuple[str, bytes]] = []
+    for blob_id in candidates:
+        try:
+            response = await http.get(
+                f"{cfg.api_url}/internal/v1/blobs/{blob_id}/original",
+                params={"jobId": job_id},
+                headers=headers,
+                timeout=60.0,
+            )
+        except httpx.HTTPError as exc:
+            log.warning("look fetch failed", error_type=type(exc).__name__)
+            continue
+        if response.status_code == 200:
+            fetched.append((blob_id, response.content))
+    keep: list[str] = []
+    if fetched:
+        try:
+            indices = await look(anthropic, cfg.sort_model, [b for _, b in fetched])
+            keep = [fetched[i][0] for i in indices]
+        except LookFailed:
+            log.error("look failed", candidates=len(fetched))
+        except Exception as exc:  # noqa: BLE001
+            log.error("look failed", candidates=len(fetched), error_type=type(exc).__name__)
+    response = await http.post(
+        f"{cfg.api_url}/internal/v1/messages/{message_id}/look",
+        json={"jobId": job_id, "keep": keep},
+        headers=headers,
+        timeout=30.0,
+    )
+    response.raise_for_status()
+    log.info("look applied", candidates=len(candidates), kept=len(keep))
+    return [str(i) for i in response.json().get("kept", [])]
 
 
 async def _prepare_photos(

@@ -27,12 +27,14 @@ import {
   DAILY_BYTES,
   DAILY_PHOTOS,
   MAX_PHOTO_BYTES,
+  MAX_PHOTOS,
   MAX_PIXELS,
   dimensions,
   sha256,
   sniff,
 } from "../blobs/photos.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
+import { MAX_CANDIDATES } from "../mail-in/images.js";
 import { reverseGeocodingOn } from "../places/reverse.js";
 import {
   audioFilename,
@@ -501,18 +503,26 @@ export async function blobRoutes(app: App): Promise<void> {
   async function blobForJob(jobId: string, blobId: string): Promise<{ id: string; content_type: string } | null> {
     const job = await db
       .selectFrom("jobs")
-      .select(["payload"])
+      .select(["payload", "account_id"])
       .where("id", "=", jobId)
       .where("kind", "=", "dump.answer")
       .executeTakeFirst();
-    const messageId = (job?.payload as { messageId?: string } | undefined)?.messageId;
-    if (!messageId) return null;
+    const payload = job?.payload as { messageId?: string; mailLook?: string[] } | undefined;
+    const messageId = payload?.messageId;
+    if (!messageId || !job?.account_id) return null;
+    // 026. Or one of the email's image candidates the job names, still
+    // unclaimed and the job's account's, for the look to see.
+    const candidate = (payload.mailLook ?? []).includes(blobId);
     const blob = await db
       .selectFrom("blobs")
       .select(["id", "content_type"])
       .where("id", "=", blobId)
-      .where("message_id", "=", messageId)
       .where("deleted_at", "is", null)
+      .where((eb) =>
+        candidate
+          ? eb.or([eb("message_id", "=", messageId), eb.and([eb("message_id", "is", null), eb("account_id", "=", job.account_id!)])])
+          : eb("message_id", "=", messageId),
+      )
       .executeTakeFirst();
     return blob ?? null;
   }
@@ -739,6 +749,65 @@ export async function blobRoutes(app: App): Promise<void> {
       // A length and a flag. Never the words.
       request.log.info({ messageId, durationMs, empty: text.trim().length === 0 }, "transcript written");
       return reply.code(200).send({ ok: true });
+    },
+  );
+
+  /** 026. The look's verdict on a forwarded email's image candidates. Every
+   *  id must be one the job named, so the worker can keep only what core-api
+   *  sealed for this email; the kept are claimed in the email's order, at
+   *  most ten, and the rest go. A second call changes nothing. */
+  app.post(
+    "/internal/v1/messages/:id/look",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.object({ jobId: z.string().uuid(), keep: z.array(z.string().uuid()).max(MAX_CANDIDATES) }),
+      },
+    },
+    async (request, reply) => {
+      if (!tokenMatches(bearer(request))) return reply.code(401).send({ error: "unauthorised" });
+      const job = await db
+        .selectFrom("jobs")
+        .select(["payload", "account_id"])
+        .where("id", "=", request.body.jobId)
+        .where("kind", "=", "dump.answer")
+        .executeTakeFirst();
+      const payload = job?.payload as { messageId?: string; mailLook?: string[] } | undefined;
+      if (!job?.account_id || payload?.messageId !== request.params.id) return reply.code(404).send({ error: "unknown_message" });
+      const named = payload.mailLook ?? [];
+      if (request.body.keep.some((id) => !named.includes(id))) return reply.code(400).send({ error: "not_a_candidate" });
+      const accountId = job.account_id;
+      const messageId = request.params.id;
+
+      const kept = await db.transaction().execute(async (trx) => {
+        const keep = named.filter((id) => request.body.keep.includes(id)).slice(0, MAX_PHOTOS);
+        const live = await trx
+          .selectFrom("blobs")
+          .select(["id", "message_id"])
+          .where("id", "in", named)
+          .where("account_id", "=", accountId)
+          .where("deleted_at", "is", null)
+          .forUpdate()
+          .execute();
+        const claimable = keep.filter((id) => live.some((b) => b.id === id && (b.message_id === null || b.message_id === messageId)));
+        if (claimable.length > 0) {
+          await trx.updateTable("blobs").set({ message_id: messageId }).where("id", "in", claimable).execute();
+          await trx
+            .updateTable("messages")
+            .set({ type: "image" })
+            .where("id", "=", messageId)
+            .where("account_id", "=", accountId)
+            .where("text", "is", null)
+            .execute();
+        }
+        const drop = live.filter((b) => b.message_id === null && !claimable.includes(b.id)).map((b) => b.id);
+        if (drop.length > 0) {
+          await trx.updateTable("blobs").set({ deleted_at: sql`now()`, purge_after: sql`now()` }).where("id", "in", drop).execute();
+        }
+        return claimable;
+      });
+      request.log.info({ messageId, kept: kept.length, candidates: named.length }, "mail look applied");
+      return reply.code(200).send({ kept });
     },
   );
 

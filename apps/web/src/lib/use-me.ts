@@ -47,6 +47,9 @@ export interface Me {
   notifyPeopleRequests: boolean;
   notifySharedActivity: boolean;
   activityNew: boolean;
+  /** 026. Whether mail forwarded from the sign-in address can reach them:
+   *  false for an Apple private relay address. */
+  mailAvailable: boolean;
   /** What Apple or Google called them, to fill the field in. Only ever sent to
    *  the account it belongs to, and null when the provider sent nothing. */
   suggestedName: string | null;

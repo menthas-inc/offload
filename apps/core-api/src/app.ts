@@ -29,6 +29,9 @@ import { peopleRoutes } from "./routes/people.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { sharingRoutes } from "./routes/sharing.js";
 import { MAX_PHOTO_BYTES } from "./blobs/photos.js";
+import { mailInRoutes } from "./routes/mail-in.js";
+import type { Writable } from "node:stream";
+import type { Resolver } from "./mail-in/sender.js";
 
 /** The app carries the Zod type provider, so routes get their schemas inferred
  *  rather than restated. Naming it keeps that off every call site. */
@@ -44,12 +47,28 @@ export interface AppOptions {
   /** See `env.INTERNAL_HOST`. An option rather than only the variable so a
    *  test can build an app with it set. */
   internalHost?: string | undefined;
+  /** A test's sink for the log lines, in place of stdout. */
+  logStream?: Writable;
+  /** 026. Resend's webhook secret and API key, the environment's by default,
+   *  and the fetch that reaches Resend; a test's stand-in otherwise. */
+  resendWebhookSecret?: string;
+  resendApiKey?: string;
+  mailFetch?: typeof fetch;
+  /** 026. DNS for the sender check; the system's by default. */
+  mailResolver?: Resolver;
+}
+
+/** The logger's options without its pretty-printing transport, which cannot
+ *  be combined with a stream of the caller's. */
+function withoutTransport(options: typeof loggerOptions): Record<string, unknown> {
+  const { transport: _transport, ...rest } = options as Record<string, unknown>;
+  return rest;
 }
 
 export async function buildApp(options: AppOptions = {}): Promise<App> {
   const internalHost = options.internalHost ?? env.INTERNAL_HOST;
   const app = Fastify({
-    logger: loggerOptions,
+    logger: options.logStream ? { ...withoutTransport(loggerOptions), stream: options.logStream } : loggerOptions,
     // Trust the proxy so rate limiting sees the real client address rather
     // than Railway's edge. The waitlist endpoint is public and rate limited
     // per IP, so getting this wrong makes that limit meaningless.
@@ -124,6 +143,12 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
   await app.register(peopleRoutes);
   await app.register(notificationRoutes);
   await app.register(sharingRoutes);
+  await app.register(mailInRoutes, {
+    secret: options.resendWebhookSecret ?? env.RESEND_WEBHOOK_SECRET,
+    apiKey: options.resendApiKey ?? env.RESEND_API_KEY,
+    fetch: options.mailFetch,
+    resolver: options.mailResolver,
+  });
 
   return app;
 }

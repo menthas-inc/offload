@@ -13,6 +13,7 @@ concatenated, because the whole value of the boundary is that the model can tell
 which is which.
 """
 
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -82,6 +83,68 @@ class Photo:
 
 
 @dataclass(frozen=True)
+class Mail:
+    """026. A forwarded email, as the turn reads it.
+
+    The stored text is whole (OFF-1); this is the bounded copy (OFF-8). The
+    note is the person's own words; the forwarded part is somebody else's,
+    with the reply history below it trimmed and clamped. `links` is what a
+    fetched URL has to appear in: the note alone, because a link in somebody
+    else's email can confirm, cancel or unsubscribe by being opened.
+    """
+
+    subject: str
+    from_name: str | None
+    from_address: str
+    sent_at: str | None
+    note: str
+    forwarded: str
+    left_out: dict[str, int]
+
+    @property
+    def links(self) -> str:
+        return self.note
+
+    @property
+    def dump(self) -> str:
+        """What the rest of the turn treats as the dump: both parts, bounded."""
+        return "\n\n".join(part for part in (self.note, self.forwarded) if part)
+
+
+#: The forwarded part the turn reads, and the note, in characters.
+MAIL_BODY_CHARS = 12_000
+MAIL_NOTE_CHARS = 2_000
+
+_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]+")
+
+
+def _line(value: str | None, limit: int) -> str:
+    """One line, no control characters and no quotes, clamped: these go into
+    a label we write, and none of them was written by offload."""
+    cleaned = (
+        _CONTROL.sub(" ", value or "").replace('"', "").replace("\u201c", "").replace("\u201d", "")
+    )
+    return " ".join(cleaned.split())[:limit]
+
+
+def mail_of(text: str, attrs: dict) -> Mail:
+    note_length = max(0, int(attrs.get("noteLength") or 0))
+    history_at = attrs.get("historyAt")
+    end = (
+        int(history_at) if isinstance(history_at, int) and history_at >= note_length else len(text)
+    )
+    return Mail(
+        subject=_line(attrs.get("subject"), 300),
+        from_name=_line(attrs.get("fromName"), 120) or None,
+        from_address=_line(attrs.get("fromAddress"), 320),
+        sent_at=attrs.get("sentAt"),
+        note=text[:note_length].strip()[:MAIL_NOTE_CHARS],
+        forwarded=text[note_length:end].strip()[:MAIL_BODY_CHARS],
+        left_out={k: int(v) for k, v in (attrs.get("leftOut") or {}).items()},
+    )
+
+
+@dataclass(frozen=True)
 class DumpContext:
     dump: str
     turns: list[Turn]
@@ -94,6 +157,8 @@ class DumpContext:
     #: 021. The dump holds a transcript: its words were spoken and written
     #: down, and the label says so.
     spoken: bool = False
+    #: 026. A forwarded email, bounded. None for everything else.
+    mail: Mail | None = None
     # The thread that was on screen when this was dumped, if any.
     #
     # A default, not a destination. Somebody typing into the composer from
@@ -328,6 +393,7 @@ _DUMP = text(
            m.time_zone,
            a.time_zone as account_time_zone,
            m.attrs->'mentions' as mentions,
+           case when m.source = 'mail' then m.attrs->'mail' end as mail,
            lt.id as looking_at_id,
            lt.name as looking_at_name
     from messages m
@@ -483,8 +549,10 @@ async def load(
     )
     switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
 
+    mail = mail_of(dump_row.text or "", dump_row.mail) if dump_row.mail else None
     return DumpContext(
-        dump=dump_row.text or "",
+        dump=mail.dump if mail else (dump_row.text or ""),
+        mail=mail,
         turns=[
             Turn(role=r.role, text=turn_text(r.text, int(r.photos or 0), r.photo_titles))
             for r in reversed(turn_rows)
@@ -606,6 +674,8 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         # bound, and a photo dropped from the prompt is a photo filed blind.
         photos=ctx.photos,
         spoken=ctx.spoken,
+        # 026. Bounded by its own clamps, never trimmed here.
+        mail=ctx.mail,
     )
 
 

@@ -172,7 +172,7 @@ def test_fitting_a_context_keeps_every_field_it_was_given():
     """
     import dataclasses
 
-    from offload_agent.context import DumpContext, Mention, Photo, Thread, fit
+    from offload_agent.context import DumpContext, Mention, Photo, Thread, fit, mail_of
 
     threads = [Thread(id="00000001-0000-0000-0000-000000000000", name="Misc", is_default=True)]
     ctx = DumpContext(
@@ -183,6 +183,7 @@ def test_fitting_a_context_keeps_every_field_it_was_given():
         default_thread_id=threads[0].id,
         photos=[Photo(blob_id="00000002-0000-0000-0000-000000000000", index=1)],
         spoken=True,
+        mail=mail_of("tip", {"subject": "Tip", "fromAddress": "a@b.test", "noteLength": 3}),
         looking_at=threads[0],
         today="Monday 14 September 2026",
         time_zone="Europe/Amsterdam",

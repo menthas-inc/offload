@@ -33,6 +33,8 @@ import {
   ProviderMark,
 } from "../../../components/ConnectBlock";
 import { NAME_MAX } from "../../../lib/name";
+import { MailOffer, MailOfferButton, MAIL_OFFER_TITLE, mailOffered } from "../../../components/MailBlock";
+import { Icon } from "../../../components/Icon";
 import styles from "../auth.module.css";
 
 // The connect screen's copy and mark live in `components/ConnectBlock.tsx`,
@@ -84,8 +86,10 @@ export default function WelcomePage() {
   const [readPolicy, setReadPolicy] = useState(false);
   const [agreeToProcessing, setAgreeToProcessing] = useState(false);
   const [name, setName] = useState("");
-  // The one optional step, and it comes last. See `offering` below.
-  const [offering, setOffering] = useState(false);
+  // The optional steps, and they come last. See `offering` below. 026: Mail
+  // comes before the calendar here, because connecting a calendar leaves for
+  // Google's consent screen and nobody returns to a step after it.
+  const [offering, setOffering] = useState<"mail" | "calendar" | null>(null);
   const calendars = useCalendars();
 
   // Seeded once, from whatever the sign-in backfill found. Once rather than on
@@ -129,12 +133,17 @@ export default function WelcomePage() {
     // can be stranded halfway by a back button. By here the account is already
     // active and consented, so wandering off costs nothing: the next launch
     // lands on Today either way.
-    if (calendars.available && calendars.connections.length === 0) {
-      setLeaving(false);
-      setOffering(true);
-      return;
-    }
+    setLeaving(false);
+    offerAfter(null);
+  }
 
+  /** The next offer after `current`, or Today when there is none left. */
+  function offerAfter(current: "mail" | "calendar" | null) {
+    const me = state.status === "ready" ? state.me : null;
+    if (current === null && me && mailOffered(me)) return setOffering("mail");
+    if (current !== "calendar" && calendars.available && calendars.connections.length === 0) {
+      return setOffering("calendar");
+    }
     router.replace("/today");
   }
 
@@ -151,7 +160,7 @@ export default function WelcomePage() {
   // nothing else, rather than three screens of introduction they have already
   // seen and a consent they have already given.
   const nameOnly = !state.me.needsFirstRun;
-  const offerAhead = calendars.available && calendars.connections.length === 0;
+  const offerAhead = mailOffered(state.me) || (calendars.available && calendars.connections.length === 0);
 
   const screen = nameOnly ? undefined : SCREENS[step];
   const naming = nameOnly || step === SCREENS.length;
@@ -171,7 +180,7 @@ export default function WelcomePage() {
             the tutorial; turning down a connection is a different answer to a
             different question, so the word changes and the position does not. */}
         {offering ? (
-          <button type="button" className={styles.skip} onClick={() => router.replace("/today")}>
+          <button type="button" className={styles.skip} onClick={() => offerAfter(offering)}>
             Not now
           </button>
         ) : naming || consenting ? null : (
@@ -188,18 +197,26 @@ export default function WelcomePage() {
             right is what people spot instantly on a logo they see every day.
             A dashed stand-in until the official file is dropped in, so a
             missing asset is visible rather than silent. */}
-        {offering ? <ProviderMark /> : null}
+        {offering === "calendar" ? <ProviderMark /> : null}
+        {offering === "mail" ? (
+          <span className={styles.mailMark} aria-hidden="true">
+            <Icon name="mail" size={40} />
+          </span>
+        ) : null}
 
         <div className={styles.runCopy}>
           <h1 className={styles.runTitle}>
-            {offering
-              ? CONNECT_TITLE
-              : screen
+            {offering === "mail"
+              ? MAIL_OFFER_TITLE
+              : offering
+                ? CONNECT_TITLE
+                : screen
                 ? screen.title
                 : naming
                   ? "What should we call you?"
                   : "Before you start"}
           </h1>
+          {offering === "mail" ? null : (
           <p className={styles.runSub}>
             {offering
               ? CONNECT_SUB
@@ -209,9 +226,12 @@ export default function WelcomePage() {
                   ? "This is the name people you share a thread with will see."
                   : "offload holds what you put in it, so it is worth knowing what that means before you put anything in."}
           </p>
+          )}
         </div>
 
-        {offering ? (
+        {offering === "mail" && state.status === "ready" ? (
+          <MailOffer email={state.me.email} />
+        ) : offering ? (
           /* Two facts, not a feature list: what offload reads, and what it does
              back, both as sentences rather than switches, per the 5 September
              privacy refusal. A switch implies somebody could have set it the
@@ -286,7 +306,9 @@ export default function WelcomePage() {
               That did not go through. Check your connection and try again.
             </p>
           ) : null}
-          {offering ? (
+          {offering === "mail" ? (
+            <MailOfferButton onDone={() => offerAfter("mail")} />
+          ) : offering ? (
             <>
               <a className={styles.runButton} href={connectUrl("first-run")}>
                 {CONNECT_BUTTON}

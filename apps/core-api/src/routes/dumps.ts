@@ -61,6 +61,7 @@ import { foundFor } from "../search/found.js";
 import { memberOf } from "../threads/access.js";
 import { MAX_PHOTOS } from "../blobs/photos.js";
 import { OverBudget, requireBudget } from "../budget.js";
+import type { MailAttrs } from "../mail-in/attrs.js";
 
 /** 020. A blob id that is not this account's, is already claimed, or is
  *  gone. One reason for all three, and the whole dump is refused. */
@@ -257,6 +258,13 @@ const cancelResponse = z.object({
   stopped: z.boolean(),
 });
 
+/** 026. A forwarded email as the conversation draws it: its subject, and the
+ *  note the person typed above the forwarded part. */
+function mailOnWire(text: string | null, attrs: unknown): { subject: string; note: string } {
+  const mail = (attrs as { mail?: { subject?: string; noteLength?: number } } | null)?.mail ?? {};
+  return { subject: mail.subject ?? "", note: (text ?? "").slice(0, mail.noteLength ?? 0).trim() };
+}
+
 /** 020. A photo on a person's message, as the client draws it. */
 const photoOnWire = z.object({
   blobId: z.string(),
@@ -323,6 +331,9 @@ const currentConversation = z.object({
       photos: z.array(photoOnWire),
       /** 021. Null on every reply and on any message without one. */
       voice: voiceOnWire.nullable(),
+      /** 026. A forwarded email's subject, which the conversation draws as its
+       *  first line; null on everything else. */
+      mail: z.object({ subject: z.string(), note: z.string() }).nullable(),
       state: messageState,
       /** What an Undo would reverse. The whole turn, not this row. */
       turnId: z.string(),
@@ -767,6 +778,10 @@ export async function takeDump(
   mentions: { accountId: string; name: string }[] = [],
   /** 025. A thread dump's # picks, kept for the turn to resolve. */
   labels: LabelPickOnWire[] = [],
+  /** 026. A forwarded email: what the turn needs to know it is one, and the
+   *  image candidates the look decides between. They stay unclaimed here;
+   *  the look claims what it keeps. */
+  mail?: { attrs: MailAttrs; candidates: string[] },
 ): Promise<{
   messageId: string;
   conversationId: string;
@@ -852,7 +867,9 @@ export async function takeDump(
     if (!recent) await closeOpenQuestions(trx, { accountId, exceptConversationId: conversationId });
     // And the one open in this conversation, if any, rides on the job so the
     // worker reads the message as a possible answer before anything else.
-    const openQuestionId = await openQuestionIn(trx, conversationId);
+    // 026. Never for an email: somebody else's words are not the person's
+    // answer, and the question stays open for them.
+    const openQuestionId = mail ? null : await openQuestionIn(trx, conversationId);
 
     // onConflict, not just the check above.
     //
@@ -917,7 +934,11 @@ export async function takeDump(
         // carries. Otherwise a photo with no words is an image message and
         // words with or without photos are text; the blobs ride on the row
         // either way.
-        type: voice ? "voice" : blobIds.length > 0 && text.trim().length === 0 ? "image" : "text",
+        type: voice
+          ? "voice"
+          : (blobIds.length > 0 || (mail?.candidates.length ?? 0) > 0) && text.trim().length === 0
+            ? "image"
+            : "text",
         turn_id: turnId,
         text: text.trim().length === 0 ? null : text,
         // seen, not queued: offload has it. queued is internal and never
@@ -925,11 +946,12 @@ export async function takeDump(
         state: "seen",
         client_key: clientKey ?? null,
         looking_at_thread_id: lookingAt,
-        source: photos?.viaShare ? "share" : "person",
+        source: mail ? "mail" : photos?.viaShare ? "share" : "person",
         time_zone: timeZone,
-        ...(vouched.length > 0 || (lookingAt && labels.length > 0)
+        ...(vouched.length > 0 || (lookingAt && labels.length > 0) || mail
           ? {
               attrs: JSON.stringify({
+                ...(mail ? { mail: mail.attrs } : {}),
                 ...(vouched.length > 0 ? { mentions: vouched } : {}),
                 // Only for a dump made on a thread: from Today nothing was
                 // known to pick from, and the #words in the text stand in.
@@ -1014,6 +1036,10 @@ export async function takeDump(
         conversationId,
         turnId,
         ...(openQuestionId ? { openQuestionId } : {}),
+        // 026. The worker files an email as a dump and never reads it as a
+        // question to answer.
+        ...(mail ? { mail: true } : {}),
+        ...(mail && mail.candidates.length > 0 ? { mailLook: mail.candidates } : {}),
       },
       priority: PRIORITY.interactive,
       // One retry, then the person is told (AC-5). The column's default is
@@ -1043,6 +1069,7 @@ export async function takeDump(
         photos: photoCount,
         photo_bytes: photoBytes,
         via_share: Boolean(photos?.viaShare),
+        ...(mail ? { via_mail: true } : {}),
         ...(voice
           ? { voice: true, voice_seconds: Math.round((voice.duration_ms ?? 0) / 1000), voice_bytes: voice.byte_size }
           : {}),
@@ -1270,7 +1297,7 @@ export async function dumpRoutes(app: App): Promise<void> {
 
       const rows = await db
         .selectFrom("messages")
-        .select(["id", "role", "text", "state", "turn_id", "created_at"])
+        .select(["id", "role", "text", "state", "turn_id", "created_at", "source", "attrs"])
         .where("conversation_id", "=", conversation.id)
         .where("account_id", "=", accountId)
         .where("deleted_at", "is", null)
@@ -1330,6 +1357,9 @@ export async function dumpRoutes(app: App): Promise<void> {
           text: row.text,
           photos: photos.get(row.id) ?? [],
           voice: voices.get(row.id) ?? null,
+          // The note they typed above the forwarded part, never the forwarded
+          // header: the rows it filed hold the email.
+          mail: row.source === "mail" ? mailOnWire(row.text, row.attrs) : null,
           state: row.state,
           turnId: row.turn_id,
           createdAt: new Date(row.created_at).toISOString(),
@@ -1876,6 +1906,9 @@ export async function cancelTurn(
 export async function undoTurn(
   accountId: string,
   turnId: string,
+  /** 026. Undo from a forwarded email's Activity row: the email is the dump
+   *  and stays, and a row somebody changed after `since` is left as it is. */
+  opts: { keepMessageId?: string; since?: Date } = {},
 ): Promise<{ undone: boolean } | null> {
   // **Calendar rows are undone before the transaction, not inside it.**
   //
@@ -1891,7 +1924,7 @@ export async function undoTurn(
   // outcome: the update below deliberately excludes rows still carrying a
   // `source_ref`, so nothing here can leave a row deleted while the event is
   // still on somebody's calendar.
-  await undoCalendarWrites(accountId, turnId);
+  await undoCalendarWrites(accountId, turnId, opts.since);
 
   return db.transaction().execute(async (trx) => {
     const owned = await trx
@@ -1942,6 +1975,7 @@ export async function undoTurn(
       .where("account_id", "=", accountId)
       .where("deleted_at", "is", null)
       .where("source_ref", "is", null)
+      .$if(opts.since !== undefined, (qb) => qb.where("updated_at", "<=", opts.since!))
       .execute();
 
     // 025. What the turn labelled, the person's # and the model's alike.
@@ -1964,6 +1998,7 @@ export async function undoTurn(
       )
       .where("account_id", "=", accountId)
       .where("deleted_at", "is", null)
+      .$if(opts.since !== undefined, (qb) => qb.where("updated_at", "<=", opts.since!))
       .execute();
 
     // 018. The asking turn's questions close with what they were about; an
@@ -1978,18 +2013,23 @@ export async function undoTurn(
       .where("turn_id", "=", turnId)
       .where("account_id", "=", accountId)
       .where("deleted_at", "is", null)
+      .$if(opts.keepMessageId !== undefined, (qb) => qb.where("id", "!=", opts.keepMessageId!))
       .execute();
 
     // 020. The photos go with the dump they arrived on, on the same clock.
     // The rows that carried them were soft-deleted above, so nothing in a
     // thread still links them; the purge destroys the objects after the
     // window, and until then the eight seconds can put everything back.
-    await trx
-      .updateTable("blobs")
-      .set({ deleted_at: stamp, purge_after: purge })
-      .where("message_id", "in", live.map((row) => row.id))
-      .where("deleted_at", "is", null)
-      .execute();
+    // 026. A forwarded email's own pictures stay with it when its filing is undone.
+    const dropped = live.map((row) => row.id).filter((id) => id !== opts.keepMessageId);
+    if (dropped.length > 0) {
+      await trx
+        .updateTable("blobs")
+        .set({ deleted_at: stamp, purge_after: purge })
+        .where("message_id", "in", dropped)
+        .where("deleted_at", "is", null)
+        .execute();
+    }
 
     // The conversation stays. A conversation with every message undone is an
     // empty conversation, not a deleted one.
@@ -2017,7 +2057,7 @@ export async function undoTurn(
  *  Best effort, and deliberately so: a failure here leaves both the event and
  *  its row exactly where they are, and the rest of the turn still undoes. The
  *  alternative is refusing to undo a dump because Google is down. */
-async function undoCalendarWrites(accountId: string, turnId: string): Promise<void> {
+async function undoCalendarWrites(accountId: string, turnId: string, since?: Date): Promise<void> {
   // Rows this turn filed and then put on a calendar, and rows a tapped answer
   // in this turn put on one: both remember their event in `source_ref`.
   const filed = await db
@@ -2028,6 +2068,7 @@ async function undoCalendarWrites(accountId: string, turnId: string): Promise<vo
     .where("content.account_id", "=", accountId)
     .where("content.deleted_at", "is", null)
     .where("content.source_ref", "is not", null)
+    .$if(since !== undefined, (qb) => qb.where("content.updated_at", "<=", since!))
     .execute();
   const answered = await db
     .selectFrom("questions")

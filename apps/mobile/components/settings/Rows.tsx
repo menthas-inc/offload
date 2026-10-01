@@ -82,9 +82,12 @@ interface RowProps {
   /** 022. The 8px clay dot in its paper ring on the lead, for a request
    *  waiting on the viewer. The one row in Settings that carries one. */
   badge?: boolean;
+  /** 026. False for a row that acts in place rather than going somewhere,
+   *  such as Copy: a chevron promises a page. */
+  chevron?: boolean;
 }
 
-export function Row({ title, note, value, icon, onPress, last, badge }: RowProps) {
+export function Row({ title, note, value, icon, onPress, last, badge, chevron = true }: RowProps) {
   const COLOR = useColors();
 
   const body = (
@@ -147,7 +150,7 @@ export function Row({ title, note, value, icon, onPress, last, badge }: RowProps
         ) : null}
       </View>
 
-      {onPress ? <Glyph name="chevron-right" size={15} color={COLOR.iconOnWell} /> : null}
+      {onPress && chevron ? <Glyph name="chevron-right" size={15} color={COLOR.iconOnWell} /> : null}
     </>
   );
 
