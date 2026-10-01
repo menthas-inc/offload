@@ -222,9 +222,10 @@ export async function readableNotes(
 export async function notesNewestFirst(
   accountId: string,
   threadId: string,
-  opts: { before?: string | undefined; limit: number },
+  opts: { before?: string | undefined; limit: number; ids?: string[] | undefined },
   trx: Executor = db,
 ): Promise<Note[]> {
+  if (opts.ids && opts.ids.length === 0) return [];
   let query = trx
     .selectFrom("readable_notes as notes")
     .select((eb) => [...COLUMNS, authorIsMember(eb)])
@@ -236,6 +237,7 @@ export async function notesNewestFirst(
     .orderBy("notes.id", "desc")
     .limit(opts.limit);
   if (opts.before) query = query.where("notes.id", "<", opts.before);
+  if (opts.ids) query = query.where("notes.id", "in", opts.ids);
   return (await query.execute()).map(toNote);
 }
 

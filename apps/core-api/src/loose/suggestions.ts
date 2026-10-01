@@ -86,10 +86,7 @@ export async function holdFloor(trx: Executor, target: { contentId?: string | nu
       target.contentId ? eb("suggestions.content_id", "=", target.contentId) : eb("suggestions.note_id", "=", target.noteId!)
     )
     .executeTakeFirst();
-  if (!suggestion || suggestion.spentAt !== null) return;
-  const looseThreadId = await defaultThreadOf(suggestion.accountId, trx);
-  const count = looseThreadId ? ((await proposalCounts(looseThreadId, [suggestion.proposalId], trx)).get(suggestion.proposalId) ?? 0) : 0;
-  if (count < 2) await trx.deleteFrom("thread_proposals").where("id", "=", suggestion.proposalId).execute();
+  if (suggestion) await holdFloorOf(trx, suggestion.proposalId, suggestion.accountId);
 }
 
 /** 028. offload's Move to, written at filing time.
@@ -200,6 +197,7 @@ export async function dismissSuggestion(accountId: string, suggestionId: string)
   });
 }
 
+/** The floor itself, for a proposal already in hand. */
 async function holdFloorOf(trx: Executor, proposalId: string, accountId: string): Promise<void> {
   const proposal = await trx.selectFrom("thread_proposals").select("spent_at").where("id", "=", proposalId).executeTakeFirst();
   if (!proposal || proposal.spent_at !== null) return;
@@ -225,19 +223,16 @@ export async function readProposal(accountId: string, proposalId: string): Promi
     .where("proposal_id", "=", proposalId)
     .where("accepted_at", "is", null)
     .execute();
-  const wanted = new Set(targets.map((t) => (t.content_id ?? t.note_id)!));
-  // Ten at most, all newest first in the default thread: one page of the
-  // list, filtered, is the same read the group draws them with.
-  const items: LooseItem[] = [];
-  let cursor: string | undefined;
-  do {
-    const page = await loosePage(accountId, { cursor });
-    for (const item of page.rows) {
-      const id = item.kind === "content" ? item.row.id : item.note.id;
-      if (wanted.has(id)) items.push({ ...item, suggestion: null });
-    }
-    cursor = page.nextCursor ?? undefined;
-  } while (cursor && items.length < wanted.size);
+  // Ten at most, read by id through the list's own read, so only what is
+  // still loose comes back, however far down the list it has sunk.
+  const { rows } = await loosePage(accountId, {
+    limit: targets.length,
+    only: {
+      contentIds: targets.flatMap((t) => (t.content_id ? [t.content_id] : [])),
+      noteIds: targets.flatMap((t) => (t.note_id ? [t.note_id] : [])),
+    },
+  });
+  const items = rows.map((item) => ({ ...item, suggestion: null }));
   if (items.length < 1) throw new NotYours();
   return { ...proposal, items };
 }
@@ -265,11 +260,14 @@ export async function createFromProposal(
     const looseThreadId = await defaultThreadOf(accountId, trx);
     if (!looseThreadId) throw new NotYours();
 
+    // Locked, as a dismiss locks the one it takes: a thing dismissed while
+    // this runs is either gone from here or waits until this is done.
     const suggestions = await trx
       .selectFrom("suggestions")
       .select(["id", "content_id", "note_id"])
       .where("proposal_id", "=", proposalId)
       .where("accepted_at", "is", null)
+      .forUpdate()
       .execute();
     const byContent = new Map(suggestions.flatMap((s) => (s.content_id ? [[s.content_id, s.id] as const] : [])));
     const byNote = new Map(suggestions.flatMap((s) => (s.note_id ? [[s.note_id, s.id] as const] : [])));

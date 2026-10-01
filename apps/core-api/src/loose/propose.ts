@@ -137,6 +137,9 @@ export async function applyProposals(
           proposal_id: proposal.id,
         }))
       )
+      // A filing can give one of these things a Move to while this runs; that
+      // one keeps it, and one suggestion per thing holds.
+      .onConflict((oc) => oc.doNothing())
       .execute();
     for (const id of ids) used.add(id);
     written += 1;

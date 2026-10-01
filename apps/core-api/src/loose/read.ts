@@ -115,8 +115,9 @@ export async function looseCounts(threadId: string, executor: Executor = db): Pr
 async function contentNewestFirst(
   accountId: string,
   threadId: string,
-  opts: { before?: string | undefined; limit: number; types?: ContentType[] | undefined; archived?: boolean },
+  opts: { before?: string | undefined; limit: number; types?: ContentType[] | undefined; archived?: boolean; ids?: string[] | undefined },
 ): Promise<ContentItem[]> {
+  if (opts.ids && opts.ids.length === 0) return [];
   let query = (opts.archived
     ? db.selectFrom("content").where("content.thread_id", "=", threadId).where("content.deleted_at", "is", null).where("content.archived_at", "is not", null)
     : liveContent(db, threadId))
@@ -160,6 +161,7 @@ async function contentNewestFirst(
     .limit(opts.limit);
   if (opts.before) query = query.where("content.id", "<", opts.before);
   if (opts.types) query = query.where("content.type", "in", opts.types);
+  if (opts.ids) query = query.where("content.id", "in", opts.ids);
   const rows = (await query.execute()) as RawRow[];
   return withPhotos(rows.map((row) => toRow(row, accountId)));
 }
@@ -302,7 +304,13 @@ async function facesOf(viewerId: string, threadIds: string[]) {
 /** One page of loose things, rows and notes merged by id, newest first. */
 export async function loosePage(
   accountId: string,
-  opts: { type?: ChipKey | undefined; cursor?: string | undefined; limit?: number },
+  opts: {
+    type?: ChipKey | undefined;
+    cursor?: string | undefined;
+    limit?: number;
+    /** Only these things, as the create sheet reads a proposal's. */
+    only?: { contentIds: string[]; noteIds: string[] } | undefined;
+  },
 ): Promise<{ rows: LooseItem[]; nextCursor: string | null }> {
   const threadId = await defaultThreadOf(accountId);
   if (!threadId) return { rows: [], nextCursor: null };
@@ -315,10 +323,13 @@ export async function loosePage(
           before: opts.cursor,
           limit: limit + 1,
           types: opts.type && opts.type !== "note" ? TYPES_OF[opts.type] : undefined,
+          ids: opts.only?.contentIds,
         })
       : Promise.resolve([]),
     wantNotes
-      ? notesNewestFirst(accountId, threadId, { before: opts.cursor, limit: limit + 1 }).then((page) => withNoteLabels(page))
+      ? notesNewestFirst(accountId, threadId, { before: opts.cursor, limit: limit + 1, ids: opts.only?.noteIds }).then((page) =>
+          withNoteLabels(page)
+        )
       : Promise.resolve([] as NoteItem[]),
   ]);
 
