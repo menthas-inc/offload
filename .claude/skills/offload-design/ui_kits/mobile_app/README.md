@@ -57,3 +57,13 @@ so both phone kits get the same animation from the same component.
 ## Deliberately absent
 
 The memory map is stubbed out at your request. Sharing, the invitation and the day-one empty states are in `Sharing.jsx` and `FirstRun.jsx`, both reachable from the preview bar. Auth, first run and the refusal line are in `FirstRun.jsx`, reachable from the `first run` control in the preview bar. The web kit is at `ui_kits/web_app/`, the landing page and email at `ui_kits/marketing_site/`.
+
+## Redrawn to the app as built, 1 October 2026 (decision 5A)
+
+- **Today** is the design in the readme's *Today* section: Needs you, the stepper, the next event, the events strip, To do, If you have time, thread pills, and Customize Today from the sliders in the app bar. Shared by both kits in `mobile_app/TodayParts.jsx`.
+- **Rows open the one row sheet** (title, When, Repeats, Labels opening in place, Delete, Cancel, Save), with a grabber. Drawn from Today's rows.
+- **Activity** is a pushed screen with no plate, replacing the notification sheet; filled and hollow leads, *Not sent*, Undo.
+- **Notifications** replaces Communication in Settings. **Mail** is its own group in Connected apps and opens the Mail page (026).
+- **The conversation** rises to 54pt with only a grabber: no title row, no fold. The grabber closes it.
+- **First run** gains the Mail step after connect. The `first run` control gains *mail*, *offline* and *no answer*, the last two drawing launch holding on a failure.
+- Not drawn in a kit: the drag physics, the page receding and the plate under the keyboard. The readme's behaviour notes and the handoffs are the reference for motion.

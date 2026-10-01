@@ -11,6 +11,43 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-01 · The mobile kits redrawn to the app as built (5A)
+**Surface:** iOS, Android kits
+**Is:** Today, the row sheet, Activity, Notifications, the Mail page and first-run step, the conversation at 54pt with no fold, and launch's two failure states, in both kits; Today's body, Activity, launch, the Mail step and the row sheet are one shared file, `ui_kits/mobile_app/TodayParts.jsx`. `NotificationSheet` now renders Activity.
+**Design system impact:** none; the kits follow the readme.
+
+### 2026-10-01 · Launch when nothing answers, and the tabs under the keyboard
+**Surface:** iOS, Android, web
+**Raised by:** the two design impacts left by the 30 September build, decided off `explorations/finishing.html`.
+
+**Was:** launch drew *That didn't go through.* in `--text-danger` with Try again beside it, and waited for a tap. Under the keyboard the tabs were covered as it rose.
+
+**Is:** **two messages**: *You're offline* / *offload picks up when you're back.* with no network, retrying on reconnect; *offload isn't answering* / *It's on our side. Trying again.* otherwise, retrying at 2, 4, 8 then every 15 seconds; a Try again pill under both, never in danger red. **The tabs fade** over the keyboard's first 60pt as it rises; the plate's geometry is as built.
+
+**Considered and not taken:** the built single line; a quiet retry with one message.
+
+**Design system impact:** `readme.md` launch and plate notes; the kits' launch gains both states.
+
+### 2026-10-01 · Today: what to expect and what to do
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, over five rounds on 30 September and 1 October, off `explorations/today.html`. Handoff: `handoff/APPLY-2026-10-01-today.md`.
+
+**Was:** `main`'s Today was a placeholder: the day-one invitation, the zone strip, and three groups of rows (Overdue, Today, Tomorrow).
+
+**Is:** **Needs you** on top holds interruptions only (account issues, people, questions, one tip) as one stacked card, drawn only when it holds something; late to-dos are not in it. **The day** under it: a stepper (Today, Tomorrow, weekdays, Next Monday...), the next event in one line with a blue countdown, the day's events as a sideways strip, **To do** (late, timed, the rest), and **If you have time** (up to three undated to-dos, offload's pick, each with *+ Today*). Threads are thread pills. **Customize Today** from `sliders-horizontal` in the app bar: three sections, dragged and switched, stored as a small per-account document with no model call. Today is not a calendar; an event opens in the calendar app.
+
+**Considered and not taken:** a prompt that compiles to a layout (the drag and switches were enough), a brief in offload's voice, a written layout as the page, a rail, hours to scale, cards split by free time, free time as cards, a now line, day chips, a week strip, a calendar-first list, a planning tray, cards per thread, a tomorrow line, and late to-dos in Needs you.
+
+**Design system impact:** `readme.md` gains **Today**; `sliders-horizontal` and `mail` vendored, 87 glyphs.
+
+### 2026-10-01 · The 30 September build's asks, folded in
+**Surface:** iOS, Android
+**Raised by:** *2026-09-30 · The immersive conversation as built* and its FROM-CODE note.
+
+**Is:** **Scrim 35%**, and `--surface-scrim` moves to 0.35 in light. **A sheet over a sheet draws no scrim of its own.** `--spring-sheet-stiffness` 380 and `--spring-sheet-damping` 36 in `tokens/motion.css`. `Sheet.prompt.md` gains every sheet dragging, the grabber, focus as it rises and the keyboard put away on close. The readme's two conversation notes gain the thirty minute end, the 30% back pull, every sheet, and the keyboard covering the tabs.
+
+**Design system impact:** the launch failure state and the plate under a keyboard remain for the kit redraw.
+
 ### 2026-09-30 · Mail becomes a door, and the set gains a mail glyph
 **Surface:** iOS, Android, web
 **Was:** the icon set had no mail glyph. The mobile kit draws *Mail* under *Not connected* with *Connect*, *So a confirmation files itself*; the web kit draws it as a card with a switch, *Watching for things you dump*, beside a *What came from where* block. First run's step count is a constant, and its one offer is the calendar.

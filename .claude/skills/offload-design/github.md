@@ -4,15 +4,20 @@ path:
 
 ## Last sync
 
-date: 2026-09-30T09:00:00Z
+date: 2026-09-30T21:05:00Z
 
-`main` unchanged at `70a5fa4` since the last sync. Folded the immersive conversation decisions.
+Pulled `main`: 26 commits past `70a5fa4`. The immersive conversation is built (PR #31), 026 Mail in
+is specced, and launch holds on a failure. The two new code log entries are adopted; their asks were
+decided with the owner and folded in, see the table in `handoff/APPLY-2026-10-01-today.md`.
 
 ### Updated in this project
 
-- `handoff/APPLY-2026-09-29-conversation-sheet.md`: ready to build, nothing open; every sheet on one drag; Android dims only
-- `explorations/immersive-conversation.html` with an iOS and Android switch, and its standalone copy
-- `readme.md` behaviour notes and the decisions log entry of 30 September
+- Launch L3 and tabs fading under the keyboard (K2), folded into the readme and the Today handoff
+- Both mobile kits redrawn to the app as built (5A), `ui_kits/mobile_app/TodayParts.jsx` shared
+
+- **Today**: `explorations/today.html`, the readme section, `handoff/APPLY-2026-10-01-today.md` and its standalone copy
+- `sliders-horizontal` and `mail` glyphs (87); `--spring-sheet-*`; `--surface-scrim` 0.35
+- `Sheet.prompt.md` and the readme's conversation notes brought to the build
 
 ## Screen map
 
@@ -27,6 +32,7 @@ date: 2026-09-30T09:00:00Z
 | Reaching the web | `components/conversation/`, the kits' conversation files, `explorations/reaching-the-web-options.html` | `docs/specs/016-reaching-the-web/`, `docs/specs/017-saying-what-it-is-doing/`, `apps/mobile/components/shell/Conversation.tsx` |
 | Answering | `components/answering/`, the kits' conversation files, `explorations/answering-options.html` | `apps/core-api/src/search/`, `apps/agent/src/offload_agent/`, `docs/specs/013-answering/` |
 | Immersive conversation | `explorations/immersive-conversation.html`, `explorations/immersive-conversation-decisions.html`, `handoff/APPLY-2026-09-29-conversation-sheet.md` | `apps/mobile/components/shell/Conversation.tsx`, `Plate.tsx`, `Shell.tsx`, `RowEditSheet.tsx`, `labels/LabelSheet.tsx`, `lib/motion.ts` |
+| Today | `explorations/today.html`, `handoff/APPLY-2026-10-01-today.md` | `apps/mobile/components/screens/Today.tsx`, `apps/web/src/components/panes/Today.tsx`, `TodayAgenda.tsx` |
 | Labels | `explorations/labels.html`, `handoff/APPLY-2026-09-26-labels.md`, `components/core/LabelMark*`, `Chip` | `apps/mobile/components/shell/ContentRow.tsx`, `apps/web/src/components/panes/ContentRowView.tsx`, `apps/mobile/components/screens/Thread.tsx`, `apps/web/src/components/panes/Thread.tsx`, `TodayAgenda.tsx`, `Activity.tsx`, `Composer.tsx` |
 | Dates and notifications | `explorations/due-dates-and-notifications.html`, `handoff/APPLY-2026-09-22-dates.md` | `DateChip.tsx`, `WhenSheet.tsx`, `CustomRepeatSheet.tsx`, `ZoneStrip.tsx`, `Activity.tsx`, `NotificationsPage.tsx`, `packages/widgets/src/rrule.ts` |
 | Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/` |
@@ -38,6 +44,16 @@ date: 2026-09-30T09:00:00Z
 | Atmosphere tokens | not carried, the marketing site's | `packages/tokens/atmosphere.css` (keep from the repository) |
 
 ## Sync history
+
+### 2026-09-30T09:00:00Z
+
+`main` unchanged at `70a5fa4` since the last sync. Folded the immersive conversation decisions.
+
+### Updated in this project
+
+- `handoff/APPLY-2026-09-29-conversation-sheet.md`: ready to build, nothing open; every sheet on one drag; Android dims only
+- `explorations/immersive-conversation.html` with an iOS and Android switch, and its standalone copy
+- `readme.md` behaviour notes and the decisions log entry of 30 September
 
 ### 2026-09-29T20:55:00Z
 

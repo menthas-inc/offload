@@ -188,6 +188,7 @@ function App(){
       onOpenMemory={setMemory} onOpenThread={(id)=>{setMemory(null);setSpace(id)}}
       onOpenPerson={(who)=>{setMemory(null);setPerson(who)}}/>;
   } else if(settings){
+    window.__openSettingsPage=setSettingsPage;
     screen=settingsPage
       ?<SettingsDetail page={settingsPage} onBack={()=>setSettingsPage(null)} theme={theme} setTheme={setTheme}/>
       :<SettingsScreen onBack={()=>setSettings(false)} onOpen={(r)=>setSettingsPage(r.id)}/>;
@@ -277,7 +278,7 @@ function App(){
       ))}
       <span style={{width:1,height:18,background:"var(--border-hairline)"}}/>
       <span style={{font:"var(--text-numeric-role)",fontVariantNumeric:"tabular-nums",fontSize:11,color:"var(--text-tertiary)"}}>first run</span>
-      {[["sign in","signin"],["refusal","refusal"],["not invited","notinvited"],["tutorial","tutorial"],["connect","connect"],["day one","empty"],["app","app"]].map(([l,p])=>{
+      {[["sign in","signin"],["refusal","refusal"],["not invited","notinvited"],["tutorial","tutorial"],["connect","connect"],["mail","mail"],["offline","offline"],["no answer","noanswer"],["day one","empty"],["app","app"]].map(([l,p])=>{
         const on=p==="refusal"?(phase==="signin"&&refused):(phase===p&&!(p==="signin"&&refused));
         return <button key={l} type="button" onClick={()=>{
           if(p==="refusal"){setPhase("signin");setRefused(true);return}
@@ -295,10 +296,13 @@ function App(){
       </span>
     </div>
     <Phone theme={themeAttr}>
-      {(phase==="signin"||phase==="notinvited"||phase==="tutorial"||phase==="connect")?(
+      {(phase==="offline"||phase==="noanswer")?<LaunchHold and kind={phase} onRetry={()=>setPhase("app")}/>:null}
+      {(phase==="signin"||phase==="notinvited"||phase==="tutorial"||phase==="connect"||phase==="mail")?(
         <AGateShell>{
-        phase==="connect"
-          ?<M3ConnectScreen onConnect={()=>setPhase("empty")} onSkip={()=>setPhase("empty")}/>
+        phase==="mail"
+          ?<MailStep and onDone={()=>setPhase("empty")}/>
+          :phase==="connect"
+          ?<M3ConnectScreen onConnect={()=>setPhase("mail")} onSkip={()=>setPhase("mail")}/>
           :phase==="notinvited"
           ?<M3NotInvitedScreen joined={joined} onJoin={()=>setJoined(true)}
             onSwitch={()=>{setJoined(false);setPhase("signin")}}/>

@@ -10,7 +10,7 @@ const SETTINGS=[
     {id:"privacy",icon:"lock",title:"Privacy"}
   ]},
   {label:"Reaching you",rows:[
-    {id:"comms",icon:"bell",title:"Communication",value:"Quiet 22:00"},
+    {id:"comms",icon:"bell",title:"Notifications",value:"8:00"},
     {id:"apps",icon:"link",title:"Connected apps",value:"2 of 4"}
   ]},
   {label:"What offload keeps",rows:[
