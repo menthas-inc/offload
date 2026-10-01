@@ -180,6 +180,16 @@ async function eventsOn(accountId: string, date: string, start: Date, end: Date,
       .where("c.selected", "=", true)
       .where("n.deleted_at", "is", null)
       .where("e.deleted_at", "is", null)
+      // Only the account's own part of a calendar: what it created or was
+      // invited to. A calendar shared with somebody else carries their day too,
+      // and Where you will be is not where they will be. Null is not read yet.
+      .where((eb) =>
+        eb.or([
+          eb("e.created_by_me", "=", true),
+          eb("e.invited_me", "=", true),
+          eb.and([eb("e.created_by_me", "is", null), eb("e.invited_me", "is", null)]),
+        ]),
+      )
       .where("e.occurs_at", "<", wideTo)
       .where(sql<boolean>`coalesce(e.occurs_end_at, e.occurs_at) >= ${wideFrom}`)
       .execute(),
@@ -240,7 +250,8 @@ async function eventsOn(accountId: string, date: string, start: Date, end: Date,
       endsAt: row.occurs_end_at?.toISOString() ?? null,
       allDay: row.all_day,
       mine: true,
-      calendarName: `Google, ${calendarName(row, owner?.display_name ?? null)}`,
+      // Which calendar, by its own name: "Google" said nothing a person could use.
+      calendarName: `Calendar: ${calendarName(row, owner?.display_name ?? null)}`,
       link: row.link,
       threadId: null,
       threadName: null,

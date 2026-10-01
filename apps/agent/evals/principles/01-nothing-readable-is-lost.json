@@ -162,7 +162,7 @@
       "expect": {
         "filed": "none",
         "asks": "none",
-        "rubric": "Files nothing. Either says nothing, or one short friendly line. Not the refusal line and not a question."
+        "rubric": "Files nothing and says one short friendly line in words. Not the refusal line, not an emoji and not a question."
       }
     },
     {

@@ -133,7 +133,13 @@ async function calendar(
   return row.id;
 }
 
-async function event(accountId: string, calendarId: string, title: string, at: string, over: { sourceRef?: string; untrusted?: boolean } = {}) {
+async function event(
+  accountId: string,
+  calendarId: string,
+  title: string,
+  at: string,
+  over: { sourceRef?: string; untrusted?: boolean; createdByMe?: boolean | null; invitedMe?: boolean | null } = {},
+) {
   const external = (await db.selectFrom("connector_calendars").select("external_id").where("id", "=", calendarId).executeTakeFirstOrThrow()).external_id;
   await db
     .insertInto("connector_events")
@@ -146,7 +152,9 @@ async function event(accountId: string, calendarId: string, title: string, at: s
       occurs_end_at: new Date(new Date(at).getTime() + 3600_000),
       untrusted: over.untrusted ?? false,
       attendees: JSON.stringify([{ name: "Ana", email: "ana@example.com", response: "accepted" }]),
-    })
+      created_by_me: over.createdByMe === undefined ? true : over.createdByMe,
+      invited_me: over.invitedMe === undefined ? false : over.invitedMe,
+    } as never)
     .execute();
 }
 
@@ -419,6 +427,58 @@ describe("AC-10, AC-12 what a thread reads", () => {
   });
 });
 
+describe("027 tweak: whether the viewer is in an event", () => {
+  it("keeps every event on the thread and says which ones the viewer is not part of", async () => {
+    const me = await account();
+    const other = await account("Tom Reilly");
+    const t = await thread(me);
+    await join(other, t);
+    const shared = await calendar(await connection(me), { summary: "Family" });
+    const theirs = await calendar(await connection(other), { summary: "Work" });
+    await pick(t, shared, me);
+    await pick(t, theirs, other);
+    await event(me, shared, "My run", "2026-09-22T07:00:00Z", { createdByMe: true });
+    await event(me, shared, "Our dinner", "2026-09-22T19:00:00Z", { createdByMe: false, invitedMe: true });
+    await event(me, shared, "Her class", "2026-09-23T08:00:00Z", { createdByMe: false, invitedMe: false });
+    await event(me, shared, "Not read yet", "2026-09-23T12:00:00Z", { createdByMe: null, invitedMe: null });
+    await event(other, theirs, "Tom's standup", "2026-09-24T09:00:00Z", { createdByMe: true });
+
+    const body = (await get(`/v1/threads/${t}/events?from=2026-09-21&to=2026-09-27`, await signIn(me))).json() as {
+      events: Array<{ title: string; involved: boolean }>;
+    };
+    expect(body.events.map((e) => [e.title, e.involved])).toEqual([
+      ["My run", true],
+      ["Our dinner", true],
+      ["Her class", false],
+      ["Not read yet", true],
+      ["Tom's standup", false],
+    ]);
+  });
+});
+
+describe("027 tweak: the viewer's own copy of a calendar two members connect", () => {
+  it("reads the viewer's own copy, so their own event is never not theirs", async () => {
+    const me = await account();
+    const other = await account("Tom Reilly");
+    const t = await thread(me);
+    await join(other, t);
+    const external = `cal-${uuidv7()}`;
+    const mine = await calendar(await connection(me), { summary: "Family", externalId: external });
+    const theirs = await calendar(await connection(other), { summary: "Family", externalId: external });
+    await pick(t, mine, me);
+    await pick(t, theirs, other);
+    const ref = `${external}:evt-1`;
+    await event(other, theirs, "My run", "2026-09-22T07:00:00Z", { sourceRef: ref, createdByMe: false });
+    await event(me, mine, "My run", "2026-09-22T07:00:00Z", { sourceRef: ref, createdByMe: true });
+    for (let i = 0; i < 3; i += 1) {
+      const body = (await get(`/v1/threads/${t}/events?from=2026-09-21&to=2026-09-27`, await signIn(me))).json() as {
+        events: Array<{ title: string; involved: boolean; untrusted: boolean }>;
+      };
+      expect(body.events.map((e) => [e.title, e.involved, e.untrusted])).toEqual([["My run", true, false]]);
+    }
+  });
+});
+
 describe("AC-10 the agent's scope", () => {
   it("in a thread, reads through its picks; from Today, every approved calendar", async () => {
     const me = await account();
@@ -464,6 +524,36 @@ describe("AC-10 the agent's scope", () => {
     expect(found.events.map((e) => [e.title, e.untrusted])).toEqual([
       ["Dentist", false],
       ["Standup", true],
+    ]);
+  });
+});
+
+describe("027 tweak: what the model reads says whose each event is", () => {
+  it("find_events returns everything on the calendars, each marked yours or not", async () => {
+    const me = await account();
+    const other = await account("Tom Reilly");
+    const t = await thread(me);
+    await join(other, t);
+    const shared = await calendar(await connection(me), { summary: "Family" });
+    const theirs = await calendar(await connection(other));
+    await pick(t, shared, me);
+    await pick(t, theirs, other);
+    await event(me, shared, "My run", "2026-09-22T07:00:00Z", { createdByMe: true });
+    await event(me, shared, "Our dinner", "2026-09-22T19:00:00Z", { createdByMe: false, invitedMe: true });
+    await event(me, shared, "Her class", "2026-09-23T08:00:00Z", { createdByMe: false, invitedMe: false });
+    await event(me, shared, "Not read yet", "2026-09-23T12:00:00Z", { createdByMe: null, invitedMe: null });
+    await event(other, theirs, "Standup", "2026-09-24T09:00:00Z", { createdByMe: true });
+
+    const { jobId } = await dump(me, t);
+    const found = (
+      await tool({ tool: "find_events", jobId, toolCallId: "f2", fromIso: "2026-09-21T00:00:00Z", toIso: "2026-09-28T00:00:00Z" })
+    ).json() as { events: Array<{ title: string; yours: boolean }> };
+    expect(found.events.map((e) => [e.title, e.yours])).toEqual([
+      ["My run", true],
+      ["Our dinner", true],
+      ["Her class", false],
+      ["Not read yet", true],
+      ["Standup", false],
     ]);
   });
 });

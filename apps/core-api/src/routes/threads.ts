@@ -1619,6 +1619,7 @@ export async function threadRoutes(app: App): Promise<void> {
                 occursEndAt: z.string().nullable(),
                 allDay: z.boolean(),
                 untrusted: z.boolean(),
+                involved: z.boolean(),
               })
             ),
           }),

@@ -204,7 +204,8 @@ export default function Privacy() {
             ask offload to add, change or delete an event, and it writes to your calendar to do it.
             It never writes anywhere else: not your mail, not your files. When a change would reach
             somebody else, because the event has guests or because more than one person can see the
-            calendar, offload asks you first and tells you who will find out. To know who can see a
+            calendar, offload asks you first and tells you how many people will find out, naming
+            them when it is one. To know who can see a
             calendar you own, offload reads its sharing list from Google and keeps only a count of
             the people on it, never their names or addresses; when it cannot tell, it asks first
             rather than guessing. When a change reaches nobody but you, it just does it and you have
@@ -220,12 +221,14 @@ export default function Privacy() {
             calendar in Settings takes it out of every thread at once.
           </p>
           <p>
-            <strong>An event brings other people with it.</strong> If somebody is invited to an
-            event on your calendar, offload keeps their name and whether they accepted, so it can
-            tell you who you are seeing. It keeps their email address only for an event offload
-            itself created with guests, because changing that event later means telling those guests
-            again. Everyone else&rsquo;s address is dropped before anything is stored. Our copy of a
-            calendar holds a rolling window, sixty days back and twelve months ahead, and an event
+            <strong>An event brings other people with it.</strong> offload keeps nothing about
+            the guests on an event: not their names, not their answers, not their addresses. When
+            it changes an event that has guests, it asks Google who they are at that moment and
+            tells you before anyone hears about it. When you ask it to invite somebody, their
+            address waits with that request until you say yes or no, an hour at most, and is
+            deleted within a day after. offload does note whether you made an event or were
+            invited to it, so it can show you your own day apart from what other people put on a
+            calendar you share. Our copy of a calendar holds a rolling window, sixty days back and twelve months ahead, and an event
             that falls behind it leaves the copy; the whole copy goes when you un-tick the calendar
             or disconnect the account. We keep what a calendar describes and none of the
             event&rsquo;s own description text.

@@ -49,6 +49,10 @@ export interface FoundEvent {
   /** Somebody else's text: another member's calendar, or an event the person
    *  did not write. Read, never obeyed. */
   untrusted: boolean;
+  /** 027. The person's own: on their calendar, and made by them, inviting
+   *  them, or not read yet. False for somebody else's day on a shared
+   *  calendar and for another member's calendar. */
+  yours: boolean;
 }
 
 /** What is on the calendars in scope between two moments, from the copy.
@@ -59,7 +63,15 @@ export async function findEvents(scope: ScopedCalendar[], from: Date, to: Date):
   if (scope.length === 0) return [];
   const rows = await db
     .selectFrom("connector_events as e")
-    .select(["e.source_ref as sourceRef", "e.title as title", "e.occurs_at as occursAt", "e.calendar_id as calendarId", "e.untrusted as untrusted"])
+    .select([
+      "e.source_ref as sourceRef",
+      "e.title as title",
+      "e.occurs_at as occursAt",
+      "e.calendar_id as calendarId",
+      "e.untrusted as untrusted",
+      "e.created_by_me as createdByMe",
+      "e.invited_me as invitedMe",
+    ])
     .where(
       "e.calendar_id",
       "in",
@@ -79,6 +91,9 @@ export async function findEvents(scope: ScopedCalendar[], from: Date, to: Date):
     startsAt: row.occursAt ? row.occursAt.toISOString() : null,
     calendarId: row.calendarId,
     untrusted: row.untrusted || !yours.has(row.calendarId),
+    yours:
+      yours.has(row.calendarId) &&
+      (row.createdByMe === true || row.invitedMe === true || (row.createdByMe === null && row.invitedMe === null)),
   }));
 }
 
@@ -310,6 +325,22 @@ export async function declinePending(accountId: string, pendingId: string): Prom
     .where("declined_at", "is", null)
     .executeTakeFirst();
   return Number(result.numUpdatedRows ?? 0) > 0;
+}
+
+/** 027. A proposal nobody can answer any more, gone.
+ *
+ *  The payload holds the guests' addresses, the title and the place, and once
+ *  a proposal is confirmed, declined or past its hour nothing reads it: every
+ *  reader asks for open ones. So the daily purge deletes it rather than letting
+ *  the addresses of people offload invited sit here for good. */
+export async function forgetPendingWrites(): Promise<number> {
+  const result = await db
+    .deleteFrom("connector_pending_writes")
+    .where((eb) =>
+      eb.or([eb("confirmed_at", "is not", null), eb("declined_at", "is not", null), eb("expires_at", "<", new Date())])
+    )
+    .executeTakeFirst();
+  return Number(result.numDeletedRows ?? 0);
 }
 
 /** The proposal a turn is waiting on, if it has one.

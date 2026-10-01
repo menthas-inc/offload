@@ -25,6 +25,7 @@ import {
   type RailRow,
   dayIn,
   utcDay,
+  eventMeta,
 } from "@offload/widgets";
 import { useClock } from "../../lib/clock";
 import { Glyph } from "../Glyph";
@@ -487,7 +488,7 @@ export function Timeline({
                   className="flex-row items-start gap-space-5 py-space-4"
                   style={{ position: "relative" }}
                   accessible
-                  accessibilityLabel={`${event.title}, ${event.calendarName}, ${when}`}
+                  accessibilityLabel={`${event.title}, ${eventMeta(event.calendarName, event.involved)}, ${when}`}
                 >
                   {/* Centred on the first line: the pad, half a 22px line, less half the dot. */}
                   <View
@@ -511,14 +512,17 @@ export function Timeline({
                     {when}
                   </Text>
                   <View className="flex-1">
+                    {/* 027. An event the viewer is not in stays, quieter, and says so. */}
                     <Text
-                      className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+                      className={`font-core font-medium ${
+                        event.involved === false ? (isAndroid ? "text-a-on-var" : "text-text-secondary") : isAndroid ? "text-a-on" : "text-text-primary"
+                      }`}
                       style={{ fontSize: 17, lineHeight: 22, paddingTop: 1 }}
                     >
                       {event.title}
                     </Text>
                     <Text className="mt-space-1 font-core text-text-tertiary" style={{ fontSize: 12, lineHeight: 17 }}>
-                      {event.calendarName}
+                      {eventMeta(event.calendarName, event.involved)}
                     </Text>
                   </View>
                 </View>

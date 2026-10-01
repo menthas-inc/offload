@@ -329,6 +329,9 @@ _FILLER = frozenset(
 )
 
 
+_APOSTROPHE = re.compile(r"['\u2019]")
+
+
 def _from_the_dump(text: str, dump: str, country: str | None = None) -> bool:
     """Every word of it is either in the dump or is a word that carries nothing.
 
@@ -343,6 +346,10 @@ def _from_the_dump(text: str, dump: str, country: str | None = None) -> bool:
     Still coarse on purpose. The failure mode is a refused lookup that was fine,
     which costs a lookup; the other direction costs somebody their address.
     """
+    # An apostrophe joins rather than splits: "mother's" and "mothers" are
+    # one word, where the split left a bare "s" the dump never held.
+    dump = _APOSTROPHE.sub("", dump)
+    text = _APOSTROPHE.sub("", text)
     haystack = set(re.findall(r"[a-z0-9]+", dump.lower()))
     # "the 22nd" in the dump admits "22" in the query. The token is theirs and
     # only its shape changes, the allowance `_same_word` makes for letters. A

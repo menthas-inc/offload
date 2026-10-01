@@ -744,8 +744,8 @@ export interface ConnectorCalendarsTable {
 /** 019. One copy of each event per calendar, on the connection, outside every
  *  thread, held for the window and no longer. Threads read it through their
  *  picks; Today reads all of it. Same minimisation 012 wrote: no description,
- *  no conferencing, no attachments, and an address only on an event offload
- *  created with guests. */
+ *  no conferencing, no attachments, and no guest's address at all (027: a
+ *  change to an event with guests asks Google who they are at the time). */
 export interface ConnectorEventsTable {
   id: Generated<string>;
   /** Denormalised from the connection, for Today's read. Written once. */
@@ -763,9 +763,16 @@ export interface ConnectorEventsTable {
   organizer_is_me: Generated<boolean>;
   /** Text somebody else wrote. Defaults true so a path that forgets errs safe. */
   untrusted: Generated<boolean>;
-  attendees: ColumnType<unknown, string | undefined, string>;
+  /** Always empty (027). Nothing is kept about an event's guests: nothing read
+   *  it, and a change to an event with guests asks Google who they are at that
+   *  moment. Unwritable here so nothing starts keeping them again by accident. */
+  attendees: ColumnType<unknown, never, never>;
   /** 027. Google's own link to the event, https on a Google host or null. */
   link: string | null;
+  /** 027. This account created it, or is on its guest list and has not
+   *  declined. Null until a sync has read it. */
+  created_by_me: boolean | null;
+  invited_me: boolean | null;
   created_at: Timestamp;
   updated_at: Timestamp;
   deleted_at: Timestamp | null;

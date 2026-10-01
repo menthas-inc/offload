@@ -187,6 +187,8 @@ export interface ThreadEvent {
   occursEndAt: string | null;
   allDay: boolean;
   untrusted: boolean;
+  /** 027. False when the viewer neither made it nor was invited to it. */
+  involved?: boolean;
 }
 
 export interface Place {

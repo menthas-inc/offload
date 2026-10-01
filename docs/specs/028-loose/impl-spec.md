@@ -35,7 +35,7 @@ Reads with `feature-spec.md`. Grounded in the code at `e30feee` and in `docs/tec
 
 ## Data model
 
-Migration `0065_loose.sql` (renumbered before merge if `main` takes it).
+Migration `0066_loose.sql` (renumbered before merge if `main` takes it).
 
 ```sql
 -- A dismissed suggestion, as a fact about the thing: no words, gone with it.

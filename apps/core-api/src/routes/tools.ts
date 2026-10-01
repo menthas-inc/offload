@@ -559,6 +559,7 @@ const result = z.union([
         title: z.string(),
         startsAt: z.string().nullable(),
         untrusted: z.boolean(),
+        yours: z.boolean(),
       })
     ),
   }),
@@ -685,7 +686,7 @@ type Outcome =
   /** 012. What the model is told about a calendar write: that it happened, or
    *  that a person has to agree first and why. Never a choice it makes. */
   | { ok: true; calendars: { calendarId: string; name: string; writable: boolean; yours: boolean }[] }
-  | { ok: true; events: { sourceRef: string; title: string; startsAt: string | null; untrusted: boolean }[] }
+  | { ok: true; events: { sourceRef: string; title: string; startsAt: string | null; untrusted: boolean; yours: boolean }[] }
   | { ok: true; written: true; sourceRef: string | null }
   | { ok: true; waitingForThem: true; because: string }
   | { ok: true; asked: true }
@@ -1209,7 +1210,7 @@ async function existing(
     const found = await findEvents(await turnScope(accountId, scopeThreadId), new Date(call.fromIso), new Date(call.toIso));
     return {
       ok: true,
-      events: found.map((e) => ({ sourceRef: e.sourceRef, title: e.title, startsAt: e.startsAt, untrusted: e.untrusted })),
+      events: found.map((e) => ({ sourceRef: e.sourceRef, title: e.title, startsAt: e.startsAt, untrusted: e.untrusted, yours: e.yours })),
     };
   }
 

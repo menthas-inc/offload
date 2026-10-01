@@ -12,7 +12,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ### Foundation
 
-- [ ] **T1.1** Migration `0065_loose.sql` and `schema.ts`, as the impl-spec writes them. Tests: a suggestion with both or neither target is refused; a `move` without a thread or a `create` without a proposal is refused; a second suggestion on the same content row or note is refused; a proposal name of 0 or 61 characters or with a newline is refused; deleting the content row, the note, the thread, the proposal or the account takes the suggestion with it. *(AC-17, AC-23, OFF-3, DATA-1)*
+- [ ] **T1.1** Migration `0066_loose.sql` and `schema.ts`, as the impl-spec writes them. Tests: a suggestion with both or neither target is refused; a `move` without a thread or a `create` without a proposal is refused; a second suggestion on the same content row or note is refused; a proposal name of 0 or 61 characters or with a newline is refused; deleting the content row, the note, the thread, the proposal or the account takes the suggestion with it. *(AC-17, AC-23, OFF-3, DATA-1)*
 - [ ] **T1.2** `threads/default.ts`: `defaultThreadOf(accountId)` and `shownThreadName`. Tests: the account's own default id; null for an unpromoted account; `shownThreadName` returns null only for the default thread. *(AC-3)*
 
 ### Always on and the default thread

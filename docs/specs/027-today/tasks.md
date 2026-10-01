@@ -83,3 +83,12 @@ Every task starts with its failing test, run and seen red for the reason the tas
 - [~] **T5.2** `decisions.md` in the design system: the **Today as built** entry the feature spec lists, with its Design system impact, on `main` after merge. *(OFF-7)*
 - [x] **T5.3** `at-merge.md`: what was built differently and the dated amendment lines for 023's strip, 024's AC-22 and 019's AC-10. *(DEV-2)*
 - [x] **T5.4** Remove the old Today's dead code on both clients (`TodayAgenda.tsx`'s three groups, `lib/agenda.ts`'s `groupsOf`, the web's group builder), with `dead-classes` and `dead-css` green. *(DEV-1)*
+
+## 6. Amended 2026-10-01: whose an event is
+
+- [x] **T6.1** `whoseOf` and the two columns: tests for the creator's address, the primary calendar's `creator.self`, a guest who accepted, has not answered and declined, and an unread event. *(AC-34)*
+- [x] **T6.2** The day read keeps the account's own events and names the calendar. *(AC-34, AC-35)*
+- [x] **T6.3** The thread's events carry `involved`, false for another member's calendar. *(AC-36)*
+- [x] **T6.4** `eventMeta` and both timelines draw it. *(AC-36)*
+- [x] **T6.5** `find_events` carries `yours`; the description says to keep them apart; eval cases added. Running them is a separate ask. *(AC-37)*
+- [x] **T6.6** Nothing about guests kept, the stored lists emptied, settled proposals deleted by the daily purge, the privacy page says so. *(AC-38)*
