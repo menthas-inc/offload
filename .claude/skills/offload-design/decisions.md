@@ -11,6 +11,13 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-01 · Text on a fixed fill is on-solid, and the row tools sit on the title line
+**Surface:** iOS, Android, web
+**Was:** the web's Done chip, Send, the admin link and the admin nav drew `--paper` or `--text-inverse` on moss or blue, and Android's filled blue buttons and its consent and calendar ticks did the same. Those flip to near black in dark mode while the ramps do not, so the words read dark on green or blue. The web row tools were drawn against the row's top edge: a `margin-block` written after the tools' `margin-top` replaced it.
+**Is:** any text or glyph on a moss, blue or clay fill is `--text-on-solid` (`COLOR.onBrand` on the phones), white in both themes. iOS keeps `--text-inverse` on `--surface-inverse`, which flips with it. The row tools take the tile's own offset, so they sit on the title line exactly as the tile does, and a negative bottom margin alone keeps them out of the row's height. Both are pinned by a scan in each app's suite.
+**Why:** seen by the owner on the web in dark mode, the Done chip and a row's tools on hover.
+**Design system impact:** readme, colour: state that text on a ramp fill is `--text-on-solid`, never `--text-inverse` or `--paper`, which are for `--surface-inverse` only. `WRow`: the tools align with the tile, not with the row's top. `M3*` kits: any filled primary in blue draws its label in `--text-on-solid`.
+
 ### 2026-09-30 · Mail becomes a door, and the set gains a mail glyph
 **Surface:** iOS, Android, web
 **Was:** the icon set had no mail glyph. The mobile kit draws *Mail* under *Not connected* with *Connect*, *So a confirmation files itself*; the web kit draws it as a card with a switch, *Watching for things you dump*, beside a *What came from where* block. First run's step count is a constant, and its one offer is the calendar.

@@ -14,7 +14,7 @@
    the two must never be confused at a glance. Nothing else changes colour. */
 .nav {
   background: var(--moss-700);
-  color: var(--paper);
+  color: var(--text-on-solid);
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
@@ -26,7 +26,7 @@
   align-items: center;
   gap: 8px;
   padding: 0 8px;
-  color: var(--paper);
+  color: var(--text-on-solid);
 }
 
 /* A filled chip, not an outline. The kit fills it at 16% white, which reads as
@@ -36,13 +36,13 @@
   padding: 4px 6px;
   border-radius: var(--radius-xs);
   background: rgb(255 255 255 / 0.16);
-  color: var(--paper);
+  color: var(--text-on-solid);
 }
 
 .brandWord {
   font: var(--weight-semibold) 16px/1 var(--font-core);
   letter-spacing: -0.03em;
-  color: var(--paper);
+  color: var(--text-on-solid);
 }
 
 .navList { display: flex; flex-direction: column; gap: 2px; margin-top: var(--space-5); }
@@ -67,8 +67,8 @@
   opacity: 0.9;
 }
 
-.navItem:hover { background: rgb(255 255 255 / 0.1); color: var(--paper); }
-.navItemOn { background: rgb(255 255 255 / 0.16); color: var(--paper); }
+.navItem:hover { background: rgb(255 255 255 / 0.1); color: var(--text-on-solid); }
+.navItemOn { background: rgb(255 255 255 / 0.16); color: var(--text-on-solid); }
 
 .navFoot {
   margin-top: auto;
@@ -88,7 +88,7 @@
   font: var(--weight-medium) 13.5px/1 var(--font-core);
   color: rgb(255 255 255 / 0.78);
 }
-.back:hover { background: rgb(255 255 255 / 0.1); color: var(--paper); }
+.back:hover { background: rgb(255 255 255 / 0.1); color: var(--text-on-solid); }
 
 .who {
   padding: 0 12px;

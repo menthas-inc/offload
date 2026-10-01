@@ -343,7 +343,7 @@ export default function Welcome() {
               }`}
             >
               <Text
-                className={`font-core text-body font-medium ${blocked ? "text-ink-400" : "text-text-inverse"}`}
+                className={`font-core text-body font-medium ${blocked ? "text-ink-400" : "text-text-on-solid"}`}
               >
                 {offering === "mail" && me
                   ? mailStep(me.email).button
