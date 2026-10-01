@@ -1,0 +1,223 @@
+{
+  "_read_me": "Everything in the cost report that is a judgement rather than a price or a constant read from code. Each number says what it is. The page lets you change any of them live; change them here to change the default.",
+  "frequency": {
+    "light": {
+      "label": "Light",
+      "activeDays": 6,
+      "note": "a few times a month, under ten"
+    },
+    "moderate": {
+      "label": "Moderate",
+      "activeDays": 15,
+      "note": "most weeks, under twenty days"
+    },
+    "heavy": {
+      "label": "Heavy",
+      "activeDays": 30,
+      "note": "every day of the month"
+    }
+  },
+  "behaviour": {
+    "normal": {
+      "label": "Normal",
+      "note": "files a bunch, reads a bunch, forwards an email now and then, WhatsApp sometimes",
+      "perActiveDay": {
+        "textDumps": 4,
+        "photoDumps": 0.6,
+        "photosPerPhotoDump": 1.5,
+        "voiceNotes": 0.3,
+        "voiceSeconds": 40,
+        "questions": 1,
+        "quickAdds": 1,
+        "searches": 0.3,
+        "reads": 0.3,
+        "mailForwards": 0.1,
+        "whatsappSends": 0.5,
+        "threadsTouched": 2,
+        "photoViews": 6
+      }
+    },
+    "llmHeavy": {
+      "label": "LLM heavy",
+      "note": "lives in WhatsApp and the composer, asks a lot, looks things up",
+      "perActiveDay": {
+        "textDumps": 12,
+        "photoDumps": 3,
+        "photosPerPhotoDump": 2,
+        "voiceNotes": 3,
+        "voiceSeconds": 75,
+        "questions": 10,
+        "quickAdds": 5,
+        "searches": 4,
+        "reads": 3,
+        "mailForwards": 1,
+        "whatsappSends": 12,
+        "threadsTouched": 6,
+        "photoViews": 25
+      }
+    },
+    "badActor": {
+      "label": "Bad actor",
+      "note": "scripted, sits on every cap the code has, and sends dumps where the code has none",
+      "perActiveDay": {
+        "textDumps": 500,
+        "photoDumps": 20,
+        "photosPerPhotoDump": 10,
+        "voiceNotes": 100,
+        "voiceSeconds": 36,
+        "questions": 200,
+        "quickAdds": 200,
+        "searches": 150,
+        "reads": 150,
+        "mailForwards": 100,
+        "whatsappSends": 200,
+        "threadsTouched": 12,
+        "photoViews": 0
+      },
+      "_why": "Caps from code: 200 photos a day, 100 voice notes and 3,600 seconds a day, 100 emails a day, 3 searches and 3 reads a turn. WhatsApp's 200 a day is 029's planned cap. Dumps, questions and quick adds have no cap at all, so 500, 200 and 200 a day stand in for a script running slowly; the code allows far more (two jobs at a time, all day)."
+    }
+  },
+  "turn": {
+    "_read_me": "What one model turn looks like. Calibrated against the principle evals (small contexts) and the 2026-09-17 decision's per-dump range (production contexts).",
+    "tokenizerFactor": 1.3,
+    "charsPerToken": 4,
+    "file": {
+      "calls": 2.5,
+      "contextTokens": 4500,
+      "growthPerCall": 600,
+      "outputPerCall": 450,
+      "toolTokens": 1800
+    },
+    "answer": {
+      "calls": 2,
+      "contextTokens": 4000,
+      "growthPerCall": 1500,
+      "outputPerCall": 300,
+      "toolTokens": 1400
+    },
+    "quickAdd": {
+      "calls": 2,
+      "contextTokens": 2000,
+      "growthPerCall": 300,
+      "outputPerCall": 250,
+      "toolTokens": 1800
+    },
+    "classify": {
+      "inputExtra": 120,
+      "output": 20
+    },
+    "compact": {
+      "notesTokens": 4000,
+      "output": 900
+    },
+    "readerSearch": {
+      "resultTokens": 8000,
+      "output": 900,
+      "shapeIn": 2000,
+      "shapeOut": 250
+    },
+    "readerRead": {
+      "pageTokens": 6000,
+      "output": 600
+    },
+    "mailLook": {
+      "candidates": 6,
+      "tokensPerImage": 220,
+      "output": 120
+    },
+    "mailBodyTokens": 3000,
+    "imageTokens": 1600,
+    "embedTokensPerDump": 1200,
+    "embedTokensPerQuestion": 60,
+    "activeHoursPerDay": 14,
+    "eval": {
+      "_read_me": "The principle evals run on fresh accounts with almost no context; this is the turn shape that reproduces them, for the calibration check.",
+      "contextTokens": 1200,
+      "calls": 2,
+      "growthPerCall": 300
+    }
+  },
+  "storage": {
+    "_read_me": "Bytes per kept thing, in MB. A photo is three R2 objects: the original, a 2048px rendition and a 400px thumb.",
+    "photoOriginal": 2.5,
+    "photoLarge": 0.5,
+    "photoThumb": 0.04,
+    "voicePerSecond": 0.004,
+    "mailImage": 0.3,
+    "dbPerDump": 0.012,
+    "photoViewMb": 0.3,
+    "monthsKept": 12
+  },
+  "whatsapp": {
+    "extraReceiptsPerSend": 0.1,
+    "linkingMessagesPerNewUser": 3,
+    "strangerRepliesPerDay": 100,
+    "receiptCapPerAccountPerDay": 50,
+    "marketMix": {
+      "United Kingdom": 0.5,
+      "Germany": 0.1,
+      "France": 0.05,
+      "Spain": 0.05,
+      "Netherlands": 0.05,
+      "Rest of Western Europe": 0.1,
+      "North America": 0.15
+    }
+  },
+  "infra": {
+    "_read_me": "Railway is billed on measured CPU, memory, egress and volume. These are estimates of the provisioned shape at each scale, not a bill; replace railwayActual with the figure from Railway's usage page and the report uses it at the smallest scale.",
+    "railwayActual": null,
+    "shapes": [
+      {
+        "upToMau": 1000,
+        "vcpu": 0.6,
+        "ramGb": 2.5,
+        "volumeGb": 5
+      },
+      {
+        "upToMau": 10000,
+        "vcpu": 2.5,
+        "ramGb": 8,
+        "volumeGb": 40
+      },
+      {
+        "upToMau": 100000,
+        "vcpu": 12,
+        "ramGb": 36,
+        "volumeGb": 350
+      },
+      {
+        "upToMau": 1000000,
+        "vcpu": 90,
+        "ramGb": 260,
+        "volumeGb": 3200
+      }
+    ],
+    "newUsersShareOfMau": 0.1,
+    "invitesPerNewUser": 2
+  },
+  "fleet": {
+    "levels": [
+      100,
+      1000,
+      10000,
+      100000
+    ],
+    "basis": "dau",
+    "frequencyMix": {
+      "light": 0.45,
+      "moderate": 0.35,
+      "heavy": 0.2
+    },
+    "behaviourMix": {
+      "normal": 0.86,
+      "llmHeavy": 0.13,
+      "badActor": 0.01
+    }
+  },
+  "options": {
+    "fileModel": "from-code",
+    "answerModel": "from-code",
+    "whatsapp": true,
+    "budgetEnforced": false
+  }
+}

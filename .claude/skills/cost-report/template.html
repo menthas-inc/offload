@@ -1,0 +1,474 @@
+<meta charset="utf-8">
+<title>offload cost sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap">
+<style>
+/* Layout: one reading column; the two range charts lead, the money split follows,
+   and every table sits in a closed section underneath. offload's own neutrals and moss. */
+:root {
+  --bg: #ffffff;
+  --surface: #f8f8f8;
+  --fill: #f2f2f2;
+  --hairline: #eaeaea;
+  --rule: #dedede;
+  --text: #0b0b0b;
+  --text-2: #5c5c5c;
+  --text-3: #6e6e6e;
+  --accent: #3f6b4f;
+  --range: #c7dacd;
+  --danger: #c0392b;
+  --danger-soft: #fbe6e1;
+  --warn: #8a5a00;
+  --warn-soft: #fbf1dc;
+  --info-soft: #f2f2f2;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300;
+  --font-core: "Instrument Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-quiet: "Literata", Georgia, serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111312; --surface: #181a19; --fill: #202321; --hairline: #262a28; --rule: #333835;
+    --text: #f2f2f2; --text-2: #b4b8b5; --text-3: #9a9f9c;
+    --accent: #8fbf9e; --range: #34503e;
+    --danger: #ef8b7f; --danger-soft: #3a1d19; --warn: #e6b45a; --warn-soft: #33270f; --info-soft: #202321;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111312; --surface: #181a19; --fill: #202321; --hairline: #262a28; --rule: #333835;
+  --text: #f2f2f2; --text-2: #b4b8b5; --text-3: #9a9f9c;
+  --accent: #8fbf9e; --range: #34503e;
+  --danger: #ef8b7f; --danger-soft: #3a1d19; --warn: #e6b45a; --warn-soft: #33270f; --info-soft: #202321;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font: 15px/1.5 var(--font-core); margin: 0; }
+.page { max-width: 1080px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 64px; display: grid; gap: 36px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 600; }
+h1 { font-size: 30px; line-height: 1.15; letter-spacing: -0.01em; }
+h2 { font-size: 19px; line-height: 1.3; }
+h3 { font-size: 15px; }
+p { margin: 0; max-width: 68ch; }
+.quiet { font-family: var(--font-quiet); color: var(--text-2); }
+.meta { color: var(--text-3); font-size: 13px; }
+.num { font-variant-numeric: tabular-nums; }
+.label { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); font-weight: 500; }
+header { display: grid; gap: 10px; }
+.stale { background: var(--warn-soft); color: var(--text); border-radius: var(--r); padding: 10px 14px; font-size: 14px; }
+
+/* Controls: one row above the charts, wrapping on a phone. */
+.controls { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: end; padding: 14px 16px; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r); }
+.control { display: grid; gap: 4px; min-width: 0; }
+.control label, .control .label { font-size: 12px; color: var(--text-3); font-weight: 500; letter-spacing: 0.02em; text-transform: none; }
+select, input[type="number"] { font: inherit; font-size: 14px; color: var(--text); background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; padding: 6px 8px; min-height: 36px; max-width: 100%; }
+input[type="number"] { width: 6.5em; text-align: right; font-variant-numeric: tabular-nums; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-size: 14px; border: 0; background: var(--bg); color: var(--text-2); padding: 6px 12px; min-height: 36px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
+button:focus-visible, select:focus-visible, input:focus-visible, [tabindex]:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Headline figures. */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.tile { padding: 14px 16px; border: 1px solid var(--hairline); border-radius: var(--r); display: grid; gap: 2px; }
+.tile .v { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.tile .s { color: var(--text-3); font-size: 13px; }
+
+/* Findings. */
+.findings { display: grid; gap: 8px; }
+.finding { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; padding: 12px 14px; border-radius: var(--r); background: var(--info-soft); }
+.finding[data-sev="critical"] { background: var(--danger-soft); }
+.finding[data-sev="warning"] { background: var(--warn-soft); }
+.chip { grid-row: span 3; align-self: start; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; border: 1px solid currentColor; color: var(--text-2); white-space: nowrap; }
+.finding[data-sev="critical"] .chip { color: var(--danger); }
+.finding[data-sev="warning"] .chip { color: var(--warn); }
+.finding .ref { font-size: 12px; color: var(--text-3); overflow-wrap: anywhere; }
+.finding p { font-size: 14px; }
+
+/* Range charts. */
+section.chart { display: grid; gap: 14px; }
+.chart-head { display: grid; gap: 6px; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--text-2); align-items: center; }
+.key i { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.key .kbar { width: 28px; height: 10px; border-radius: 4px; background: var(--range); }
+.key .kdot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
+.range { display: grid; gap: 2px; }
+.rrow { display: grid; grid-template-columns: 170px minmax(0, 1fr) 104px; gap: 12px; align-items: center; min-height: 40px; border-radius: 6px; padding-inline: 4px; }
+.rrow[data-i]:hover, .rrow[data-i]:focus-visible { background: var(--surface); }
+.rgroup { font-size: 12px; color: var(--text-3); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 12px 4px 2px; }
+.rlab { font-size: 14px; color: var(--text); min-width: 0; }
+.rlab small { display: block; color: var(--text-3); font-size: 12px; }
+.track { position: relative; height: 28px; }
+.grid { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--hairline); }
+.bar { position: absolute; top: 9px; height: 10px; border-radius: 4px; background: var(--range); min-width: 4px; }
+.dot { position: absolute; top: 7px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
+.rval { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 14px; }
+.rval small { display: block; font-weight: 400; color: var(--text-3); font-size: 12px; white-space: nowrap; }
+.axis { position: relative; height: 18px; }
+.tick { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tick:first-child { transform: none; }
+.tick:last-child { transform: translateX(-100%); }
+
+/* Where the money goes. */
+.split { display: grid; gap: 4px; }
+.srow { display: grid; grid-template-columns: 170px minmax(0, 1fr) 104px; gap: 12px; align-items: center; min-height: 32px; padding-inline: 4px; border-radius: 6px; }
+.srow:hover, .srow:focus-visible { background: var(--surface); }
+.stack { display: flex; gap: 2px; height: 14px; }
+.seg-s { height: 100%; min-width: 2px; }
+.seg-s:first-child { border-radius: 4px 0 0 4px; }
+.seg-s:last-child { border-radius: 0 4px 4px 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--text-2); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+
+.tip { position: fixed; z-index: 10; pointer-events: none; background: var(--text); color: var(--bg); border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.45; max-width: 340px; box-shadow: 0 6px 24px rgb(0 0 0 / 0.18); }
+.tip b { font-weight: 600; }
+.tip .tl { display: flex; justify-content: space-between; gap: 16px; font-variant-numeric: tabular-nums; }
+.tip .sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+
+/* Detail sections. */
+details { border-top: 1px solid var(--hairline); padding-block: 14px 4px; }
+summary { cursor: pointer; font-weight: 600; font-size: 16px; min-height: 32px; }
+details > .body { display: grid; gap: 16px; padding-block: 12px; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 14px; width: 100%; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+th { font-weight: 500; color: var(--text-3); font-size: 12px; letter-spacing: 0.02em; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td small { color: var(--text-3); }
+.editors { display: grid; gap: 22px; }
+.reset { font: inherit; font-size: 14px; border: 1px solid var(--rule); background: var(--bg); color: var(--text); border-radius: 8px; padding: 6px 12px; min-height: 36px; cursor: pointer; justify-self: start; }
+a { color: var(--accent); }
+code { font-size: 12.5px; background: var(--fill); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+
+@media (max-width: 640px) {
+  .page { padding-inline: 16px; }
+  .rrow, .srow { grid-template-columns: minmax(0, 1fr) 96px; }
+  .rrow .track, .srow .stack { grid-column: 1 / -1; grid-row: 2; }
+  .axis-row .axis { grid-column: 1 / -1; }
+  .axis-row > span { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) { .dot, .bar { transition: left 160ms ease, width 160ms ease; } }
+</style>
+
+<div class="page">
+  <header>
+    <span class="label">offload · finance</span>
+    <h1>offload cost sheet</h1>
+    <p class="quiet">What one person costs offload in a month, and what the whole thing costs at a hundred to a hundred thousand people. Built from the code, the latest evals and vendor prices checked on the day, so it moves when the app does.</p>
+    <p class="meta" id="stamp"></p>
+    <div class="stale" id="stale" hidden></div>
+  </header>
+
+  <div class="controls" id="controls">
+    <div class="control"><label for="c-level">Scale</label><select id="c-level"></select></div>
+    <div class="control"><span class="label" id="l-basis">Counted as</span><div class="seg" role="group" aria-labelledby="l-basis" id="c-basis"></div></div>
+    <div class="control"><label for="c-file">Filing model</label><select id="c-file"></select></div>
+    <div class="control"><label for="c-answer">Answering model</label><select id="c-answer"></select></div>
+    <div class="control"><span class="label" id="l-wa">WhatsApp</span><div class="seg" role="group" aria-labelledby="l-wa" id="c-wa"></div></div>
+    <div class="control"><label for="c-market">WhatsApp market</label><select id="c-market"></select></div>
+    <div class="control"><span class="label" id="l-budget">Daily budget</span><div class="seg" role="group" aria-labelledby="l-budget" id="c-budget"></div></div>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <section class="chart">
+    <div class="chart-head">
+      <h2>What one person costs a month</h2>
+      <p class="meta">Each bar runs from the cheapest configuration to the dearest: four filing models, three answering models, WhatsApp on or off in every market, the daily budget working or not, and every scale. The dot is what the controls above select. Hover or focus a row for the split and what drives each end.</p>
+      <div class="key"><span><i class="kbar"></i>Range across configurations</span><span><i class="kdot"></i>Selected</span><span class="meta">Log scale</span></div>
+    </div>
+    <div class="range" id="person"></div>
+  </section>
+
+  <section class="chart">
+    <div class="chart-head">
+      <h2>What the whole thing costs a month</h2>
+      <p class="meta" id="fleet-note"></p>
+    </div>
+    <div class="range" id="fleet"></div>
+  </section>
+
+  <section class="chart">
+    <div class="chart-head">
+      <h2>Where the money goes</h2>
+      <p class="meta">Share of each person's month by what it pays for, at the selected configuration and scale.</p>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="split" id="split"></div>
+  </section>
+
+  <section class="findings" id="findings" aria-label="What the code shows"></section>
+
+  <div>
+    <details id="d-fleet"><summary>The fleet in numbers</summary><div class="body"><div class="tablewrap" id="fleet-table"></div><p class="meta" id="fleet-parts"></p></div></details>
+    <details id="d-units"><summary>What one of each thing costs</summary><div class="body"><div class="tablewrap" id="units"></div></div></details>
+    <details id="d-edit"><summary>Change the assumptions</summary><div class="body"><p class="meta">Every number here is a judgement, not a price. Changes recalculate the whole page and last until you reload it. To change a default, edit <code>assumptions.json</code> and rebuild.</p><button class="reset" id="reset" type="button">Put the defaults back</button><div class="editors" id="editors"></div></div></details>
+    <details id="d-cal"><summary>How far to trust it</summary><div class="body" id="calibration"></div></details>
+    <details id="d-prices"><summary>Prices and where they came from</summary><div class="body"><div class="tablewrap" id="prices"></div></div></details>
+    <details id="d-code"><summary>Read from the code</summary><div class="body"><div class="tablewrap" id="code"></div></div></details>
+  </div>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>/*__DATA__*/</script>
+<script>/*__MODEL__*/</script>
+<script>
+(() => {
+  const A0 = DATA.assumptions;
+  const COLORS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)"];
+  const MODEL_NAMES = { "claude-sonnet-5": "Sonnet 5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-opus-5": "Opus 5", "claude-opus-5-5": "Opus 5.5", "claude-haiku-4-5": "Haiku 4.5" };
+  const FIELDS = {
+    textDumps: "Typed dumps", photoDumps: "Dumps with photos", photosPerPhotoDump: "Photos in each", voiceNotes: "Voice notes",
+    voiceSeconds: "Seconds per voice note", questions: "Questions asked", quickAdds: "Quick adds", searches: "Web searches",
+    reads: "Pages read", mailForwards: "Emails forwarded", whatsappSends: "WhatsApp sends", threadsTouched: "Threads touched",
+    photoViews: "Photos opened",
+  };
+  const S = { A: structuredClone(A0), level: A0.fleet.levels[1], basis: A0.fleet.basis, options: { ...A0.options, whatsappMarket: "mix" } };
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const input = () => ({ prices: DATA.prices, code: DATA.code, assumptions: S.A, options: S.options });
+
+  function money(v) {
+    if (!isFinite(v)) return "n/a";
+    const a = Math.abs(v);
+    if (a >= 1e6) return "$" + (v / 1e6).toFixed(a >= 1e7 ? 1 : 2) + "M";
+    if (a >= 1e4) return "$" + Math.round(v / 1e3).toLocaleString("en-US") + "k";
+    if (a >= 100) return "$" + Math.round(v).toLocaleString("en-US");
+    if (a >= 1) return "$" + v.toFixed(2);
+    if (a >= 0.01) return "$" + v.toFixed(3);
+    return "$" + v.toFixed(4);
+  }
+  const lower = (s) => /^[A-Z]{2}/.test(s) ? s : s.charAt(0).toLowerCase() + s.slice(1);
+  const people = (n) => Math.round(n).toLocaleString("en-US");
+  const tickLabel = (v) => v >= 1e6 ? "$" + v / 1e6 + "M" : v >= 1e3 ? "$" + v / 1e3 + "k" : "$" + v;
+  const cfgText = (c) => !c ? "" : [
+    `filing ${MODEL_NAMES[c.fileModel] ?? c.fileModel}`, `answers ${MODEL_NAMES[c.answerModel] ?? c.answerModel}`,
+    c.whatsapp ? `WhatsApp on, ${c.whatsappMarket && c.whatsappMarket !== "mix" ? c.whatsappMarket : "market mix"}` : "WhatsApp off",
+    c.budgetEnforced ? "budget working" : "budget as built",
+    c.level ? `at ${people(c.level)} ${S.basis === "dau" ? "daily" : "monthly"}` : "",
+  ].filter(Boolean).join(", ");
+
+  // Controls.
+  function select(id, options, value, onChange) {
+    const el = $(id);
+    el.innerHTML = options.map(([v, l]) => `<option value="${esc(v)}"${String(v) === String(value) ? " selected" : ""}>${esc(l)}</option>`).join("");
+    el.onchange = () => { onChange(el.value); render(); };
+  }
+  function seg(id, options, value, onChange) {
+    const el = $(id);
+    el.innerHTML = options.map(([v, l]) => `<button type="button" aria-pressed="${v === value}" data-v="${v}">${esc(l)}</button>`).join("");
+    el.onclick = (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      const opt = options.find(([v]) => String(v) === b.dataset.v);
+      onChange(opt[0]); controls(); render();
+    };
+  }
+  function controls() {
+    select("c-level", S.A.fleet.levels.map((l) => [l, people(l)]), S.level, (v) => (S.level = Number(v)));
+    seg("c-basis", [["dau", "Daily active"], ["mau", "Monthly active"]], S.basis, (v) => (S.basis = v));
+    const fm = DATA.code.models;
+    const fileOpts = [["from-code", `${MODEL_NAMES[fm.file] ?? fm.file}, as built`], ...["claude-sonnet-5-5", "claude-opus-5", "claude-opus-5-5"].filter((m) => m !== fm.file).map((m) => [m, MODEL_NAMES[m]])];
+    select("c-file", fileOpts, S.options.fileModel, (v) => (S.options.fileModel = v));
+    const ansOpts = [["from-code", `${MODEL_NAMES[fm.answer] ?? fm.answer}, as built`], ...["claude-opus-5-5", "claude-sonnet-5-5", "claude-sonnet-5"].filter((m) => m !== fm.answer).map((m) => [m, MODEL_NAMES[m]])];
+    select("c-answer", ansOpts, S.options.answerModel, (v) => (S.options.answerModel = v));
+    seg("c-wa", [[true, "On"], [false, "Off"]], S.options.whatsapp, (v) => (S.options.whatsapp = v));
+    select("c-market", [["mix", "Market mix"], ...Object.keys(DATA.prices.whatsapp.perReceiptByMarket).filter((m) => m !== "Other").map((m) => [m, m])], S.options.whatsappMarket, (v) => (S.options.whatsappMarket = v));
+    $("c-market").disabled = !S.options.whatsapp;
+    seg("c-budget", [[false, "As built"], [true, "Working"]], S.options.budgetEnforced, (v) => (S.options.budgetEnforced = v));
+  }
+
+  // Tooltip, by pointer or keyboard focus.
+  const tip = $("tip");
+  function showTip(html, x, y) {
+    tip.innerHTML = html; tip.hidden = false;
+    const r = tip.getBoundingClientRect();
+    const left = Math.min(window.innerWidth - r.width - 8, Math.max(8, x + 14));
+    const top = y + r.height + 20 > window.innerHeight ? y - r.height - 14 : y + 14;
+    tip.style.left = left + "px"; tip.style.top = Math.max(8, top) + "px";
+  }
+  const hideTip = () => (tip.hidden = true);
+  function bindTip(el, html) {
+    el.addEventListener("mousemove", (e) => showTip(html, e.clientX, e.clientY));
+    el.addEventListener("mouseleave", hideTip);
+    el.addEventListener("focus", () => { const r = el.getBoundingClientRect(); showTip(html, r.left + Math.min(r.width / 2, 260), r.bottom); });
+    el.addEventListener("blur", hideTip);
+  }
+  function splitHtml(row) {
+    const t = total(row);
+    return CATEGORIES.map((c, i) => (row[c.key] || 0) > 0
+      ? `<div class="tl"><span><i class="sw" style="background:${COLORS[i]}"></i>${c.label}</span><span>${money(row[c.key])} · ${Math.round((row[c.key] / t) * 100)}%</span></div>` : "").join("");
+  }
+
+  // A log-scale range chart: a bar from cheapest to dearest, a dot at the selection.
+  function rangeChart(el, rows, groups) {
+    const all = rows.flatMap((r) => [r.min, r.max, r.value]).filter((v) => v > 0);
+    const lo = Math.pow(10, Math.floor(Math.log10(Math.min(...all))));
+    const hi = Math.pow(10, Math.ceil(Math.log10(Math.max(...all))));
+    const x = (v) => ((Math.log10(Math.max(v, lo)) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo))) * 100;
+    const ticks = [];
+    for (let v = lo; v <= hi * 1.0001; v *= 10) ticks.push(v);
+    const grid = ticks.map((t) => `<span class="grid" style="left:${x(t)}%"></span>`).join("");
+    let html = `<div class="rrow axis-row" aria-hidden="true"><span></span><div class="axis">${ticks.map((t) => `<span class="tick" style="left:${x(t)}%">${tickLabel(t)}</span>`).join("")}</div><span></span></div>`;
+    let lastGroup = null;
+    rows.forEach((r, i) => {
+      if (groups && r.group !== lastGroup) { html += `<div class="rgroup">${esc(r.group)}</div>`; lastGroup = r.group; }
+      html += `<div class="rrow" tabindex="0" data-i="${i}" aria-label="${esc(r.aria)}">
+        <div class="rlab">${esc(r.label)}${r.sub ? `<small>${esc(r.sub)}</small>` : ""}</div>
+        <div class="track">${grid}<span class="bar" style="left:${x(r.min)}%;width:${Math.max(0.6, x(r.max) - x(r.min))}%"></span><span class="dot" style="left:${x(r.value)}%"></span></div>
+        <div class="rval">${money(r.value)}<small>${money(r.min)} to ${money(r.max)}</small></div></div>`;
+    });
+    el.innerHTML = html;
+    el.querySelectorAll(".rrow[data-i]").forEach((n) => bindTip(n, rows[Number(n.dataset.i)].tip));
+  }
+
+  function render() {
+    hideTip();
+    const inp = input();
+    const f = fleet(inp, S.level, S.basis);
+    const rg = ranges(inp, S.basis);
+
+    $("tiles").innerHTML = [
+      [money(f.total), "A month in all", `${people(f.pop.mau)} monthly people, ${people(f.pop.dau)} on an average day`],
+      [money(f.perMau), "Per monthly person", `${money(f.total / f.pop.dau)} per daily active person`],
+      [Math.round((f.sum.claude / f.total) * 100) + "%", "Goes to Claude", `${money(f.sum.whatsapp)} to WhatsApp, ${money(f.sum.platform)} to the platform`],
+    ].map(([v, l, s]) => `<div class="tile"><span class="label">${l}</span><span class="v">${v}</span><span class="s">${s}</span></div>`).join("");
+
+    const pRows = [];
+    for (const [fk, fr] of Object.entries(S.A.frequency)) {
+      for (const [bk, br] of Object.entries(S.A.behaviour)) {
+        const p = f.profiles.find((x) => x.fk === fk && x.bk === bk);
+        const r = rg.person[`${fk}:${bk}`];
+        const v = total(p.row);
+        pRows.push({
+          group: `${fr.label}, ${fr.activeDays} days a month`, label: br.label, sub: `${people(p.people)} people at this scale`,
+          min: r.min, max: r.max, value: v,
+          aria: `${fr.label}, ${br.label}: ${money(v)} a month selected, ${money(r.min)} to ${money(r.max)}`,
+          tip: `<b>${esc(fr.label)}, ${esc(lower(br.label))}</b><br>${esc(br.note)}<br><br>${splitHtml(p.row)}${p.row.capped ? "<br>The daily budget holds this person back." : ""}<br><b>Cheapest ${money(r.min)}</b>: ${esc(cfgText(r.minCfg))}.<br><b>Dearest ${money(r.max)}</b>: ${esc(cfgText(r.maxCfg))}.`,
+        });
+      }
+    }
+    rangeChart($("person"), pRows, true);
+
+    const fRows = S.A.fleet.levels.map((level) => {
+      const cur = fleet(inp, level, S.basis);
+      const r = rg.fleet[level];
+      return {
+        label: `${people(level)} ${S.basis === "dau" ? "daily" : "monthly"}`, sub: S.basis === "dau" ? `${people(cur.pop.mau)} monthly` : `${people(cur.pop.dau)} daily`,
+        min: r.min, max: r.max, value: cur.total,
+        aria: `${people(level)}: ${money(cur.total)} a month selected, ${money(r.min)} to ${money(r.max)}`,
+        tip: `<b>${people(level)} ${S.basis === "dau" ? "daily active" : "monthly active"}</b><br>${money(cur.perMau)} per monthly person<br><br>${splitHtml(cur.sum)}<br><b>Cheapest ${money(r.min)}</b>: ${esc(cfgText(r.minCfg))}.<br><b>Dearest ${money(r.max)}</b>: ${esc(cfgText(r.maxCfg))}.`,
+      };
+    });
+    rangeChart($("fleet"), fRows, false);
+    const fm = S.A.fleet;
+    $("fleet-note").textContent = `Everybody together: ${Object.entries(fm.frequencyMix).map(([k, v]) => `${Math.round(v * 100)}% ${lower(S.A.frequency[k].label)}`).join(", ")}; ${Object.entries(fm.behaviourMix).map(([k, v]) => `${Math.round(v * 1000) / 10}% ${lower(S.A.behaviour[k].label)}`).join(", ")}. Plans and fixed fees included. Each bar's range is the same configuration sweep as above. Log scale.`;
+
+    $("legend").innerHTML = CATEGORIES.map((c, i) => `<span style="--c:${COLORS[i]}">${c.label}</span>`).join("");
+    const sRows = [...f.profiles.map((p) => ({ label: `${S.A.frequency[p.fk].label}, ${lower(S.A.behaviour[p.bk].label)}`, row: p.row })),
+      { label: `Everybody, ${people(S.level)}`, row: f.sum }];
+    $("split").innerHTML = sRows.map((r, i) => {
+      const t = total(r.row);
+      return `<div class="srow" tabindex="0" data-i="${i}" aria-label="${esc(r.label)}: ${money(t)}"><div class="rlab">${esc(r.label)}</div><div class="stack">${CATEGORIES.map((c, j) => (r.row[c.key] || 0) / t > 0.004 ? `<span class="seg-s" style="flex:${r.row[c.key]};background:${COLORS[j]}"></span>` : "").join("")}</div><div class="rval">${money(t)}</div></div>`;
+    }).join("");
+    $("split").querySelectorAll(".srow").forEach((n) => bindTip(n, `<b>${esc(sRows[n.dataset.i].label)}</b><br>${splitHtml(sRows[n.dataset.i].row)}`));
+
+    tables(f, inp);
+  }
+
+  function tables(f, inp) {
+    const levels = S.A.fleet.levels.map((l) => fleet(inp, l, S.basis));
+    $("fleet-table").innerHTML = `<table><thead><tr><th>${S.basis === "dau" ? "Daily active" : "Monthly active"}</th><th class="n">Monthly people</th>${CATEGORIES.map((c) => `<th class="n">${c.label}</th>`).join("")}<th class="n">Total</th><th class="n">Per person</th></tr></thead><tbody>${levels.map((x) => `<tr><td class="num">${people(x.level)}</td><td class="n">${people(x.pop.mau)}</td>${CATEGORIES.map((c) => `<td class="n">${money(x.sum[c.key])}</td>`).join("")}<td class="n"><b>${money(x.total)}</b></td><td class="n">${money(x.perMau)}</td></tr>`).join("")}</tbody></table>`;
+    $("fleet-parts").textContent = `At ${people(S.level)}: Railway ${money(f.parts.railway)}, Expo ${money(f.parts.expo)}, Resend ${f.parts.resend.name} ${money(f.parts.resend.cost)}, fixed fees ${money(f.parts.fixed)}. The cached prompt prefix is warm ${Object.entries(f.warm).map(([k, v]) => `${Math.round(v * 100)}% of the time for ${k === "quickAdd" ? "quick adds" : k === "file" ? "filing" : "answers"}`).join(", ")}.`;
+
+    const u = f.units;
+    const T = S.A.turn;
+    const unitRows = [
+      ["A filing turn", u.fileText, `${MODEL_NAMES[u.models.file]}, ${T.file.calls} calls, a ${u.prefixes.file.toLocaleString("en-US")} token cached prefix, ${T.file.contextTokens.toLocaleString("en-US")} tokens of context`],
+      ["Each photo in it", u.filePhotoPerPhoto, `${T.imageTokens.toLocaleString("en-US")} tokens, re-sent on every call because only the system block is cached`],
+      ["An answer", u.answer, `${MODEL_NAMES[u.models.answer]}, ${T.answer.calls} calls, a ${u.prefixes.answer.toLocaleString("en-US")} token prefix`],
+      ["A quick add", u.quickAdd, `${MODEL_NAMES[u.models.file]}, ${T.quickAdd.calls} calls`],
+      ["Asking whether it is a question", u.classify, `${MODEL_NAMES[u.models.sort]}, one call, too short to cache`],
+      ["Folding a thread's notes", u.compact, `${MODEL_NAMES[u.models.sort]}, once a day per thread touched`],
+      ["A web search", u.search, `$${DATA.prices.anthropic.webSearchPer1k / 1000} search fee and ${MODEL_NAMES[u.models.sort]} reading the results`],
+      ["Reading a page", u.read, `${MODEL_NAMES[u.models.sort]}, page text as input; fetching is free`],
+      ["The extra for an email", u.fileMailExtra + u.mailLook, "a longer filing turn and the look at its pictures"],
+      ["A minute of voice", u.voicePerSecond * 60, `AssemblyAI at ${money(DATA.prices.assemblyai[DATA.prices.assemblyai.used])} an hour`],
+      ["A WhatsApp receipt", u.receipt, S.options.whatsappMarket === "mix" ? "the market mix" : S.options.whatsappMarket],
+    ];
+    $("units").innerHTML = `<table><thead><tr><th>Thing</th><th class="n">Cost</th><th>How it is built</th></tr></thead><tbody>${unitRows.map(([a, v, b]) => `<tr><td>${a}</td><td class="n">${money(v)}</td><td><small>${esc(b)}</small></td></tr>`).join("")}</tbody></table>`;
+
+    const e = evalLike(inp);
+    const cal = DATA.calibration;
+    const s = cal.surfaces?.means ?? {};
+    const lf = cal.lastFull;
+    const ledger = DATA.ledger;
+    const when = (w) => `${w.slice(0, 4)}-${w.slice(4, 6)}-${w.slice(6, 8)}`;
+    $("calibration").innerHTML = `
+      <p>The model builds every turn from tokens and prices. Two checks keep it honest. Shaped like the evals (fresh accounts, almost no context) it should land near what the evals measured. Shaped like production it should land inside the range measured per dump on 2026-09-17.</p>
+      <div class="tablewrap"><table><thead><tr><th>Turn</th><th class="n">Model, eval shaped</th><th class="n">Evals measured</th><th class="n">Model, production</th><th class="n">Measured per dump</th></tr></thead><tbody>
+        <tr><td>Filing</td><td class="n">${money(e.fileText)}</td><td class="n">${s.file ? money(s.file.mean) : "n/a"}</td><td class="n">${money(f.units.fileText)}</td><td class="n">${money(cal.decisions.file[0])} to ${money(cal.decisions.file[1])}</td></tr>
+        <tr><td>Answer</td><td class="n">${money(e.answer)}</td><td class="n">${s.answer ? money(s.answer.mean) : "n/a"}</td><td class="n">${money(f.units.answer)}</td><td class="n">${money(cal.decisions.opus[0])} to ${money(cal.decisions.opus[1])} <small>filing on Opus</small></td></tr>
+        <tr><td>Quick add</td><td class="n">${money(e.quickAdd)}</td><td class="n">${s.quick_add ? money(s.quick_add.mean) : "n/a"}</td><td class="n">${money(f.units.quickAdd)}</td><td class="n">n/a</td></tr>
+        <tr><td>Classify</td><td class="n">${money(e.classify)}</td><td class="n">${s.classify ? money(s.classify.mean) : "n/a"}</td><td class="n">${money(f.units.classify)}</td><td class="n">n/a</td></tr>
+        <tr><td>Folding notes</td><td class="n">${money(e.compact)}</td><td class="n">${s.compact ? money(s.compact.mean) : "n/a"}</td><td class="n">${money(f.units.compact)}</td><td class="n">n/a</td></tr>
+      </tbody></table></div>
+      <p class="meta">Per-case eval costs from <code>${esc(cal.surfaces?.file ?? "no results file on disk")}</code>, which include the eval's own grader, so they run a little high. The latest full run: ${lf ? `${lf.total} cases on ${when(lf.when)}, $${lf.cost_usd}, about ${money(lf.cost_usd / lf.total)} a case` : "none recorded"}. Measured per dump: <code>${esc(cal.decisions.ref)}</code>.</p>
+      ${ledger ? `<h3>Production, the last ${ledger.days} days</h3><div class="tablewrap"><table><thead><tr><th>Job</th><th>Model</th><th class="n">Rows</th><th class="n">Accounts</th><th class="n">Input</th><th class="n">Cache read</th><th class="n">Output</th><th class="n">Priced now</th></tr></thead><tbody>${ledger.usage.map((r) => { const p = DATA.prices.anthropic.models[r.model]; const cost = p ? ((Number(r.input) - Number(r.cache_read)) * p.in + Number(r.cache_read) * p.cacheRead + Number(r.output) * p.out) / 1e6 : null; return `<tr><td>${esc(r.job_kind)}</td><td>${esc(r.model)}</td><td class="n">${r.rows}</td><td class="n">${r.accounts}</td><td class="n">${Number(r.input).toLocaleString("en-US")}</td><td class="n">${Number(r.cache_read).toLocaleString("en-US")}</td><td class="n">${Number(r.output).toLocaleString("en-US")}</td><td class="n">${cost == null ? "n/a" : money(cost)}</td></tr>`; }).join("")}</tbody></table></div><p class="meta">${ledger.dumps.dumps} messages from ${ledger.dumps.accounts} accounts in the same window. Calls the ledger does not record are missing, so this is a floor.</p>` : `<p class="meta">Not built against production. Run the build with <code>--ledger</code> and <code>LEDGER_DATABASE_URL</code> set to read the last 30 days of token counts from <code>llm_usage</code>, aggregates only.</p>`}`;
+
+    const P = DATA.prices;
+    const priceRows = [
+      ...Object.entries(P.anthropic.models).map(([m, p]) => [`Anthropic, ${MODEL_NAMES[m] ?? m}`, `$${p.in} in, $${p.out} out, $${p.cacheWrite5m} cache write, $${p.cacheRead} cache read, per million tokens`, P.anthropic]),
+      ["Anthropic, web search", `$${P.anthropic.webSearchPer1k} per 1,000 searches; web fetch costs tokens only`, P.anthropic],
+      ["Voyage, voyage-4", `$${P.voyage["voyage-4"]} per million tokens; the first 200M free`, P.voyage],
+      ["AssemblyAI", `$${P.assemblyai.universal35ProPerHour} an hour for Universal-3.5 Pro, $${P.assemblyai.universal2PerHour} for Universal-2`, P.assemblyai],
+      ["Meta, WhatsApp receipts", Object.entries(P.whatsapp.perReceiptByMarket).map(([k, v]) => `${k} $${v}`).join(", "), P.whatsapp],
+      ["Cloudflare R2", `$${P.r2.storagePerGbMonth} per GB a month, $${P.r2.classAPerMillion} per million writes, $${P.r2.classBPerMillion} per million reads, no egress`, P.r2],
+      ["Railway", `$${P.railway.proMonthly} a month floor, $${P.railway.vcpuMonth} per vCPU, $${P.railway.gbRamMonth} per GB of memory, $${P.railway.egressPerGb} per GB out, $${P.railway.volumeGbMonth} per GB of volume`, P.railway],
+      ["Resend", P.resend.tiers.map((t) => `${t.name} $${t.monthly}`).join(", "), P.resend],
+      ["Expo", P.expo.plans.map((t) => `${t.name} $${t.monthly}`).join(", ") + "; push free", P.expo],
+      ...P.fixed.items.map((x) => [x.name, `$${x.monthly} a month, ${x.note}`, { checked: P.fixed.checked, source: x.source }]),
+    ];
+    $("prices").innerHTML = `<table><thead><tr><th>What</th><th>Price</th><th>Checked</th></tr></thead><tbody>${priceRows.map(([a, b, src]) => `<tr><td>${esc(a)}</td><td>${esc(b)}${src.notes ? `<br><small>${esc(src.notes)}</small>` : ""}</td><td class="num"><a href="${esc(src.source.split(" ")[0])}" target="_blank" rel="noopener">${esc(src.checked)}</a></td></tr>`).join("")}</tbody></table>`;
+
+    const K = DATA.code.constants;
+    const names = { file: "Filing model", sort: "Small model", answer: "Answering model", maxPrompt: "Prompt context budget, tokens", running: "Jobs running at once per account", voiceRate: "Ledger voice rate, micros a second", maxCalls: "Model calls per turn, most", maxOut: "Output tokens per call, most", maxTools: "Tool calls per turn, most", searches: "Searches per turn", reads: "Pages read per turn", budget: "Daily model budget, micros", photosPerDump: "Photos per dump", photosPerDay: "Photos per day", photoBytesPerDay: "Photo bytes per day", voicePerDay: "Voice notes per day", voiceMsPerDay: "Voice per day, ms", voiceMaxMs: "Longest voice note, ms", mailHour: "Emails per hour", mailDay: "Emails per day", labelSort: "Nightly label sort" };
+    $("code").innerHTML = `<table><thead><tr><th>Constant</th><th class="n">Value</th><th>Where</th></tr></thead><tbody>${Object.entries(K).map(([k, v]) => `<tr><td>${esc(names[k] ?? k)}</td><td class="n">${esc(typeof v.value === "number" ? v.value.toLocaleString("en-US") : v.value)}</td><td><code>${esc(v.ref)}</code></td></tr>`).join("")}${Object.entries(DATA.code.promptChars).map(([k, v]) => `<tr><td>Prompt ${esc(k)}</td><td class="n">${promptTokens(v, S.A.turn).toLocaleString("en-US")} tokens</td><td><code>apps/agent/src/offload_agent/prompts/${esc(k)}.md</code></td></tr>`).join("")}</tbody></table>`;
+  }
+
+  function editors() {
+    const num = (path, value, step = "any") => `<input type="number" id="e-${path.join("-").replace(/\s+/g, "_")}" data-path="${esc(path.join("."))}" value="${value ?? ""}" step="${step}" min="0" aria-label="${esc(path.join(" "))}">`;
+    const beh = Object.keys(S.A.behaviour);
+    const freq = Object.keys(S.A.frequency);
+    let html = `<div><h3>A day in each behaviour</h3><p class="meta">On a day the person uses offload.</p><div class="tablewrap"><table><thead><tr><th>Per active day</th>${beh.map((b) => `<th class="n">${esc(S.A.behaviour[b].label)}</th>`).join("")}</tr></thead><tbody>`;
+    for (const [k, l] of Object.entries(FIELDS)) html += `<tr><td>${l}</td>${beh.map((b) => `<td class="n">${num(["behaviour", b, "perActiveDay", k], S.A.behaviour[b].perActiveDay[k])}</td>`).join("")}</tr>`;
+    html += `</tbody></table></div></div>`;
+    html += `<div><h3>How often, and who</h3><div class="tablewrap"><table><thead><tr><th></th>${freq.map((f) => `<th class="n">${esc(S.A.frequency[f].label)}</th>`).join("")}</tr></thead><tbody><tr><td>Active days a month</td>${freq.map((f) => `<td class="n">${num(["frequency", f, "activeDays"], S.A.frequency[f].activeDays, 1)}</td>`).join("")}</tr><tr><td>Share of people</td>${freq.map((f) => `<td class="n">${num(["fleet", "frequencyMix", f], S.A.fleet.frequencyMix[f], 0.01)}</td>`).join("")}</tr></tbody></table></div>`;
+    html += `<div class="tablewrap"><table><thead><tr><th></th>${beh.map((b) => `<th class="n">${esc(S.A.behaviour[b].label)}</th>`).join("")}</tr></thead><tbody><tr><td>Share of people</td>${beh.map((b) => `<td class="n">${num(["fleet", "behaviourMix", b], S.A.fleet.behaviourMix[b], 0.005)}</td>`).join("")}</tr></tbody></table></div></div>`;
+    html += `<div><h3>A model turn</h3><div class="tablewrap"><table><thead><tr><th></th><th class="n">Filing</th><th class="n">Answer</th><th class="n">Quick add</th></tr></thead><tbody>${[["calls", "Model calls"], ["contextTokens", "Context tokens"], ["growthPerCall", "Added each call"], ["outputPerCall", "Output per call"]].map(([k, l]) => `<tr><td>${l}</td>${["file", "answer", "quickAdd"].map((t) => `<td class="n">${num(["turn", t, k], S.A.turn[t][k])}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+    html += `<div><h3>WhatsApp</h3><div class="tablewrap"><table><tbody>${Object.keys(S.A.whatsapp.marketMix).map((m) => `<tr><td>Share in ${esc(m)}</td><td class="n">${num(["whatsapp", "marketMix", m], S.A.whatsapp.marketMix[m], 0.01)}</td></tr>`).join("")}<tr><td>Receipts per account per day, most</td><td class="n">${num(["whatsapp", "receiptCapPerAccountPerDay"], S.A.whatsapp.receiptCapPerAccountPerDay, 1)}</td></tr><tr><td>Replies to strangers a day, most</td><td class="n">${num(["whatsapp", "strangerRepliesPerDay"], S.A.whatsapp.strangerRepliesPerDay, 1)}</td></tr></tbody></table></div></div>`;
+    html += `<div><h3>Railway</h3><div class="tablewrap"><table><tbody><tr><td>Actual monthly bill from Railway's usage page, used at the smallest scale; blank to estimate</td><td class="n">${num(["infra", "railwayActual"], S.A.infra.railwayActual)}</td></tr></tbody></table></div></div>`;
+    $("editors").innerHTML = html;
+  }
+  let pending = 0;
+  $("editors").addEventListener("input", (e) => {
+    const el = e.target.closest("input[data-path]"); if (!el) return;
+    const path = el.dataset.path.split(".");
+    let o = S.A; for (const k of path.slice(0, -1)) o = o[k];
+    o[path.at(-1)] = el.value === "" ? null : Number(el.value);
+    cancelAnimationFrame(pending); pending = requestAnimationFrame(render);
+  });
+  $("reset").onclick = () => { S.A = structuredClone(A0); editors(); render(); };
+
+  $("stamp").textContent = `Built ${DATA.built} from ${DATA.branch} at ${DATA.commit}. Rebuild with node .claude/skills/cost-report/build.mjs.`;
+  if (DATA.stale.length) { $("stale").hidden = false; $("stale").textContent = "Some prices are more than 45 days old: " + DATA.stale.join("; ") + "."; }
+  $("findings").innerHTML = `<h2>What the code shows</h2>` + DATA.findings.map((x) => `<div class="finding" data-sev="${x.severity}"><span class="chip">${x.severity === "critical" ? "Fix" : x.severity === "warning" ? "Check" : "Note"}</span><h3>${esc(x.title)}</h3><p>${esc(x.body)}</p><span class="ref">${esc(x.ref)}</span></div>`).join("");
+
+  controls();
+  editors();
+  render();
+})();
+</script>
