@@ -418,4 +418,4 @@ export {
   toggleUnlabelled,
 } from "./labels.js";
 export type { LabelPick } from "./labels.js";
-export { GOOGLE_EVENT_LINK, afterWrite, dayName, eventPast, eventRange, nextLine, nothingLine, retryDelay, stackView, type LineEvent, type WeekStart } from "./today.js";
+export { GOOGLE_EVENT_LINK, afterWrite, dayName, eventMeta, eventPast, eventRange, nextLine, nothingLine, retryDelay, stackView, type LineEvent, type WeekStart } from "./today.js";

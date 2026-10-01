@@ -10,24 +10,6 @@ import type { Transaction, Kysely } from "kysely";
 import type { Database } from "../schema.js";
 import type { GoogleEvent } from "./google.js";
 
-/** What a calendar keeps of the people on an event.
- *
- *  **Minimised on the way in**, because these are people who never signed up to
- *  offload and never agreed to anything. A name and whether they accepted,
- *  always, because "dinner with Ana" needs a name. An address only for an event
- *  offload created with guests, because editing that one later has to name them
- *  again. Everything else drops the address. */
-export function minimiseAttendees(
-  attendees: GoogleEvent["attendees"],
-  keepAddresses: boolean
-): Array<{ name: string | null; email?: string; response: string | null }> {
-  return attendees.map((attendee) => ({
-    name: attendee.name,
-    response: attendee.response,
-    ...(keepAddresses && attendee.email ? { email: attendee.email } : {}),
-  }));
-}
-
 /** `<calendar>:<event>`, so one prefix scan finds everything one calendar filed
  *  and disconnect can offer to remove it. */
 export function sourceRefFor(calendarExternalId: string, eventId: string): string {
@@ -54,8 +36,44 @@ export interface MappedEvent {
   seriesRef: string | null;
   organizerIsMe: boolean;
   untrusted: boolean;
-  attendees: ReturnType<typeof minimiseAttendees>;
   link: string | null;
+  createdByMe: boolean | null;
+  invitedMe: boolean | null;
+}
+
+/** 027. The account that read the event: its connected address, and whether
+ *  the calendar it was read from is that account's primary. */
+export interface Reader {
+  accountEmail: string;
+  primary: boolean;
+}
+
+/** Whose the event is. Created by the account (Google names its address, or
+ *  marks the creator as the primary calendar it was read from), or on the
+ *  guest list as the account itself without having declined. */
+export function whoseOf(event: GoogleEvent, reader: Reader): { createdByMe: boolean; invitedMe: boolean } {
+  const creator = event.creator ?? { email: null, self: false };
+  // Google's `self` says the entry is the calendar this copy was read from,
+  // which on a calendar somebody shares with you is them. It counts only on
+  // the account's own primary; anywhere else the address decides.
+  const isMe = (email: string | null, self: boolean | undefined) => sameAddress(email, reader.accountEmail) || (self === true && reader.primary);
+  // An event a calendar made itself (holidays, an imported feed, a group
+  // calendar's own) is what the person subscribed to, so it is theirs to see.
+  const byACalendar = creator.email !== null && /@([a-z0-9.-]+\.)?calendar\.google\.com$/i.test(creator.email);
+  const createdByMe = isMe(creator.email, creator.self) || byACalendar;
+  const invitedMe = event.attendees.some((guest) => guest.response !== "declined" && isMe(guest.email, guest.self));
+  return { createdByMe, invitedMe };
+}
+
+function sameAddress(a: string | null, b: string): boolean {
+  return a !== null && a.toLowerCase() === b.toLowerCase();
+}
+
+/** Whether the account organised it, by the same rule: its address, or
+ *  Google's `self` on its own primary. Without a reader, Google's flag alone. */
+function organizedByReader(event: GoogleEvent, reader: Reader | undefined): boolean {
+  if (!reader) return event.organizedByMe === true;
+  return sameAddress(event.organizerEmail ?? null, reader.accountEmail) || (event.organizedByMe === true && reader.primary);
 }
 
 /** The whole mapping, in one place.
@@ -64,8 +82,11 @@ export interface MappedEvent {
  *  the fields that behave like mail rather than like structure, which is what
  *  OFF-4 is about. The organiser is kept because the trust rule cannot be
  *  computed without it. */
-export function mapEvent(event: GoogleEvent, calendarExternalId: string): MappedEvent {
+export function mapEvent(event: GoogleEvent, calendarExternalId: string, reader?: Reader): MappedEvent {
+  const whose = reader ? whoseOf(event, reader) : { createdByMe: null, invitedMe: null };
+  const organizerIsMe = organizedByReader(event, reader);
   return {
+    ...whose,
     sourceRef: sourceRefFor(calendarExternalId, event.externalId),
     title: event.title,
     occursAt: event.startsAt,
@@ -74,9 +95,8 @@ export function mapEvent(event: GoogleEvent, calendarExternalId: string): Mapped
     timezone: event.timezone,
     location: event.location,
     seriesRef: event.seriesId,
-    organizerIsMe: event.organizedByMe,
-    untrusted: isUntrusted(event),
-    attendees: minimiseAttendees(event.attendees, event.organizedByMe),
+    organizerIsMe,
+    untrusted: isUntrusted({ ...event, organizedByMe: organizerIsMe }),
     link: event.link,
   };
 }
@@ -106,8 +126,9 @@ export async function upsertEvent(
       series_ref: mapped.seriesRef,
       organizer_is_me: mapped.organizerIsMe,
       untrusted: mapped.untrusted,
-      attendees: JSON.stringify(mapped.attendees),
       link: mapped.link,
+      created_by_me: mapped.createdByMe,
+      invited_me: mapped.invitedMe,
     })
     .onConflict((oc) =>
       oc.columns(["calendar_id", "source_ref"]).doUpdateSet((eb) => ({
@@ -120,8 +141,9 @@ export async function upsertEvent(
         series_ref: eb.ref("excluded.series_ref"),
         organizer_is_me: eb.ref("excluded.organizer_is_me"),
         untrusted: eb.ref("excluded.untrusted"),
-        attendees: eb.ref("excluded.attendees"),
         link: eb.ref("excluded.link"),
+        created_by_me: eb.ref("excluded.created_by_me"),
+        invited_me: eb.ref("excluded.invited_me"),
         // **Brought back, not just updated.** A row retired by reconciliation
         // or by a cancellation stays soft-deleted otherwise, so an event that
         // Google returns again, because a series' end moved back out or the
