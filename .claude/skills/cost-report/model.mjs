@@ -26,9 +26,10 @@ function modelPrice(prices, id) {
 
 // One model turn of `calls` calls. The system block is the cached prefix: the
 // first call reads it when warm and writes it when cold, later calls in the same
-// turn read it. Everything after the prefix is uncached on every call, images
-// included, because only the system block carries cache_control.
-export function turnCost({ prices, model, prefix, ctx, growth, out, calls, images = 0, imageTokens = 0, warm }) {
+// turn read it. When the code caches the conversation too (`conversation`),
+// each call writes what is new and the next reads everything before it;
+// otherwise the conversation, images included, is full price on every call.
+export function turnCost({ prices, model, prefix, ctx, growth, out, calls, images = 0, imageTokens = 0, warm, conversation = false }) {
   const p = modelPrice(prices, model);
   const cacheable = prefix >= p.minCacheTokens;
   let cost = 0;
@@ -40,7 +41,12 @@ export function turnCost({ prices, model, prefix, ctx, growth, out, calls, image
     if (!cacheable) pre = prefix * p.in;
     else if (i === 0) pre = prefix * (warm * p.cacheRead + (1 - warm) * p.cacheWrite5m);
     else pre = prefix * p.cacheRead;
-    const dyn = (ctx + growth * i + images * imageTokens) * p.in;
+    const sent = ctx + growth * i + images * imageTokens;
+    const dyn = !conversation
+      ? sent * p.in
+      : i === 0
+        ? sent * p.cacheWrite5m
+        : (sent - growth) * p.cacheRead + growth * p.cacheWrite5m;
     cost += (weight * (pre + dyn + out * p.out)) / M;
   }
   return cost;
@@ -72,7 +78,7 @@ export function units({ prices, code, assumptions, options }, warm) {
   const quickPrefix = pt("quick_add") + tools(md.file, t.quickAdd.toolTokens);
   const fileTurn = (extraCtx = 0, images = 0) =>
     turnCost({ prices, model: md.file, prefix: filePrefix, ctx: t.file.contextTokens + extraCtx, growth: t.file.growthPerCall,
-      out: t.file.outputPerCall, calls: t.file.calls, images, imageTokens: t.imageTokens, warm: warm.file });
+      out: t.file.outputPerCall, calls: t.file.calls, images, imageTokens: t.imageTokens, warm: warm.file, conversation: code.cachesConversation });
 
   const wa = assumptions.whatsapp;
   const rates = prices.whatsapp.perReceiptByMarket;
@@ -93,9 +99,9 @@ export function units({ prices, code, assumptions, options }, warm) {
     fileMailExtra: fileTurn(t.mailBodyTokens) - fileTurn(),
     fileWhatsappExtra: fileTurn(300) - fileTurn(),
     answer: turnCost({ prices, model: md.answer, prefix: answerPrefix, ctx: t.answer.contextTokens, growth: t.answer.growthPerCall,
-      out: t.answer.outputPerCall, calls: t.answer.calls, warm: warm.answer }),
+      out: t.answer.outputPerCall, calls: t.answer.calls, warm: warm.answer, conversation: code.cachesConversation }),
     quickAdd: turnCost({ prices, model: md.file, prefix: quickPrefix, ctx: t.quickAdd.contextTokens, growth: t.quickAdd.growthPerCall,
-      out: t.quickAdd.outputPerCall, calls: t.quickAdd.calls, warm: warm.quickAdd }),
+      out: t.quickAdd.outputPerCall, calls: t.quickAdd.calls, warm: warm.quickAdd, conversation: code.cachesConversation }),
     classify: oneCall({ prices, model: md.sort, input: pt("classify") + t.classify.inputExtra, out: t.classify.output }),
     compact: oneCall({ prices, model: md.sort, input: pt("compact") + t.compact.notesTokens, out: t.compact.output }),
     search: oneCall({ prices, model: md.sort, input: readerPrompt + t.readerSearch.resultTokens, out: t.readerSearch.output })

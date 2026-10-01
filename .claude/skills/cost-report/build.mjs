@@ -159,6 +159,8 @@ const code = {
   promptChars,
   budgetMicros: c.budget?.value,
   dailyTurns: c.dailyTurns?.value ?? null,
+  // Each call marks its last block for the cache (harness/plan.py, 2026-10-02).
+  cachesConversation: /def _cache_so_far/.test(harness),
   budgetWorks,
   constants: Object.fromEntries(Object.entries(c).filter(([, v]) => v).map(([k, v]) => [k, v])),
 };
