@@ -104,3 +104,14 @@ describe("027 the schema (AC-12, AC-19)", () => {
     await calendarEvent(me, cal, "ok too", "2026-10-02T11:00:00Z", { link: "https://calendar.google.com/calendar/event?eid=y" });
   });
 });
+
+// 027 AC-29: the web's launch screen waits as long as a Retry-After asks, so a
+// browser on another origin has to be allowed to read it.
+describe("027 launch can read Retry-After across origins", () => {
+  it("exposes the header to the web app's origin", async () => {
+    const { webOrigins } = await import("../src/env.js");
+    const origin = [webOrigins].flat()[0] as string;
+    const response = await app.inject({ method: "GET", url: "/api/me", headers: { origin } });
+    expect(String(response.headers["access-control-expose-headers"] ?? "").toLowerCase()).toContain("retry-after");
+  });
+});

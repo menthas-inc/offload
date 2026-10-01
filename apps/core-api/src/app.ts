@@ -112,6 +112,9 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
     origin: webOrigins,
     credentials: true,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    // 027. Launch waits as long as a Retry-After asks, and a browser on the
+    // web app's origin can only read a header it is told it may.
+    exposedHeaders: ["retry-after"],
     // **The preflight is cached, because it was half the wait.** A JSON POST
     // from the web app is not a simple request, so the browser asks OPTIONS
     // first, and without a max-age it asks again five seconds later. Traced

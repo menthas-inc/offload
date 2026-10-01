@@ -430,29 +430,6 @@
   margin-top: var(--space-3);
 }
 
-/* A reference, as a Chip. Accent because offload derived it, and clickable
-   because a reply that names a place you cannot go to makes you go looking. */
-.threadLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: var(--chip-h);
-  padding: 0 var(--space-5);
-  border-radius: var(--radius-pill);
-  background: var(--moss-100);
-  color: var(--text-accent);
-  font-weight: var(--weight-medium);
-  font-size: calc(13px * var(--type-scale));
-  line-height: 1;
-  font-family: var(--font-core);
-  text-decoration: none;
-}
-
-.threadLink:hover {
-  background: var(--moss-200);
-  color: var(--text-accent);
-}
-
 /* The shell's one toast, floated over the composer. The design system's Toast
    contract. `pointer-events` back on, because the composer block it sits in
    turns them off and a toast whose Undo cannot be pressed is not a toast. */

@@ -20,13 +20,15 @@
 // its box would re-centre the mark by half its height plus the gap, and every
 // cold start would blink.
 
-import { useEffect, useState } from "react";
-import { Image, Platform, Pressable, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { AppState, Image, Platform, Pressable, Text, View } from "react-native";
+import * as Network from "expo-network";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useColorScheme } from "nativewind";
 import Animated, { FadeIn } from "react-native-reanimated";
-import { getMe, stillAsking } from "../lib/api";
+import { getMe, lastRetryAfter, stillAsking } from "../lib/api";
+import { LAUNCH_COPY, failureOf, nextWait, type LaunchFailure } from "../lib/launch";
 import { useColors } from "../lib/colors";
 import { Spinner } from "../components/Spinner";
 
@@ -35,8 +37,9 @@ const MARK = Platform.OS === "android" ? 192 : 216;
 /** The spinner's centre, below the mark's box. */
 const SPINNER_GAP = 64;
 const SPINNER = 18;
-/** The failure line's height, centred where the spinner was. */
-const LINE = 20;
+/** 027. The failure's block starts this far under the mark's lower edge,
+ *  where the kit's `LaunchHold` puts it. */
+const FAILURE_GAP = 52;
 const HOLD_MS = 1000;
 
 const light = require("../assets/splash-mark.png");
@@ -44,14 +47,18 @@ const dark = require("../assets/splash-mark-dark.png");
 
 export default function Index() {
   const router = useRouter();
+  // 027. A tapped evening digest hands its day through launch to Today.
+  const { day } = useLocalSearchParams<{ day?: string }>();
   const COLOR = useColors();
   const { colorScheme } = useColorScheme();
   const [holding, setHolding] = useState(false);
-  // No answer came, so the screen holds with a way to ask again. Only a 401
-  // sends anyone to the gate: on 2026-09-30 an edge outage showed the Pixel
-  // the gate for nine minutes while its session was still good.
-  const [unanswered, setUnanswered] = useState(false);
+  // No answer came, so the screen holds and says which of two things is true.
+  // Only a 401 sends anyone to the gate: on 2026-09-30 an edge outage showed
+  // the Pixel the gate for nine minutes while its session was still good.
+  // 027: offline or not answering, and it asks again on its own.
+  const [failure, setFailure] = useState<LaunchFailure | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const tries = useRef(0);
   // The screen's own height, so the spinner is placed from its centre and not
   // from a window that may or may not count the status bar.
   const [screen, setScreen] = useState(0);
@@ -67,13 +74,19 @@ export default function Index() {
         // from a broken app, which cost an afternoon on a device once. The
         // gate is not the answer to that either, since it says signed out.
         setHolding(true);
-        setUnanswered(true);
         void SplashScreen.hideAsync();
+        void Network.getNetworkStateAsync()
+          .then((state) => state.isInternetReachable ?? state.isConnected ?? null)
+          .catch(() => null)
+          .then((online) => {
+            if (live) setFailure(failureOf(online));
+          });
       }
       // Not `needsFirstRun` alone. An account that finished first run before
       // there was a name to give still has one thing to answer, and it is
       // asked on the same screen rather than left for Settings to be found.
-      else router.replace(stillAsking(me) ? "/welcome" : "/today");
+      else if (stillAsking(me)) router.replace("/welcome");
+      else router.replace(day ? { pathname: "/today", params: { day } } : "/today");
     });
 
     // The handover, if the answer has not come by then.
@@ -87,7 +100,42 @@ export default function Index() {
       live = false;
       clearTimeout(timer);
     };
-  }, [router, attempt]);
+  }, [router, attempt, day]);
+
+  const again = () => {
+    tries.current += 1;
+    setFailure(null);
+    setAttempt((n) => n + 1);
+  };
+
+  // Offline: ask again the moment the network is back.
+  useEffect(() => {
+    if (failure !== "offline") return;
+    const subscription = Network.addNetworkStateListener((state) => {
+      if (state.isInternetReachable ?? state.isConnected) again();
+    });
+    return () => subscription.remove();
+  }, [failure]);
+
+  // Not answering: ask again on the schedule, never sooner than the server
+  // asked, and not at all while the app is in the background.
+  useEffect(() => {
+    if (failure !== "unanswered") return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const arm = () => {
+      clearTimeout(timer);
+      timer = setTimeout(again, nextWait(tries.current, lastRetryAfter()));
+    };
+    if (AppState.currentState === "active") arm();
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") arm();
+      else clearTimeout(timer);
+    });
+    return () => {
+      clearTimeout(timer);
+      subscription.remove();
+    };
+  }, [failure]);
 
   const below = screen / 2 + MARK / 2 + SPINNER_GAP;
 
@@ -103,26 +151,38 @@ export default function Index() {
         accessibilityIgnoresInvertColors
         accessible={false}
       />
-      {unanswered && screen > 0 ? (
+      {failure && screen > 0 ? (
+        // In the spinner's place and out of the centring flow, so the mark
+        // never moves. Never danger red: neither state is the person's.
         <Animated.View
           entering={FadeIn.duration(280)}
-          style={{ position: "absolute", top: below - LINE / 2, alignSelf: "center" }}
-          className="flex-row items-center gap-space-3"
+          style={{ position: "absolute", top: screen / 2 + MARK / 2 + FAILURE_GAP, left: 24, right: 24 }}
+          className="items-center gap-space-4"
+          accessibilityLiveRegion="polite"
         >
-          <Text className="font-core text-text-danger" style={{ fontSize: 13, lineHeight: LINE }} accessibilityRole="alert">
-            That didn't go through.
-          </Text>
-          <Pressable
-            onPress={() => {
-              setUnanswered(false);
-              setAttempt((n) => n + 1);
-            }}
-            hitSlop={12}
-            accessibilityRole="button"
-          >
-            <Text className="font-core font-medium text-text-accent" style={{ fontSize: 13, lineHeight: LINE }}>
-              Try again
+          <View className="items-center gap-space-1">
+            <Text
+              className="text-center font-core font-semibold text-text-primary"
+              style={{ fontSize: 17, lineHeight: 22 }}
+              accessibilityRole="header"
+            >
+              {LAUNCH_COPY[failure].title}
             </Text>
+            <Text className="text-center font-core text-text-secondary" style={{ fontSize: 14, lineHeight: 20 }}>
+              {LAUNCH_COPY[failure].line}
+            </Text>
+          </View>
+          <Pressable
+            onPress={again}
+            hitSlop={4}
+            accessibilityRole="button"
+            className="min-h-tap-min justify-center"
+          >
+            <View className="justify-center rounded-pill border border-border-strong px-space-6" style={{ minHeight: 36 }}>
+              <Text className="font-core font-medium text-text-primary" style={{ fontSize: 14 }}>
+                Try again
+              </Text>
+            </View>
           </Pressable>
         </Animated.View>
       ) : holding && screen > 0 ? (

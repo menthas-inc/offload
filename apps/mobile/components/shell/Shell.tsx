@@ -26,6 +26,7 @@ import { plateAway, plateBack } from "../../lib/motion";
 import { useKeyboardHandler, useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { Plate, type Tab } from "./Plate";
 import { Conversation, ConversationPhotoSheet, ConversationPhotoViewer, ConversationScrim } from "./Conversation";
+import { resetToday } from "../../lib/today";
 import { useConversation } from "./conversation-context";
 import { ToastHost, useToast } from "./Toast";
 import { timeOfDay } from "../../lib/sun";
@@ -160,7 +161,8 @@ export function Shell() {
           label: tod.label,
           icon: tod.icon === "moon" ? "moon" : "sun",
           active: pathname === "/today",
-          onPress: () => go("/today"),
+          // 027. Tapped while Today shows, it goes back to Today's day.
+          onPress: () => (pathname === "/today" ? resetToday() : go("/today")),
         },
         {
           key: "threads",

@@ -1,0 +1,292 @@
+"use client";
+
+// 027. Today's rows act in place exactly as the thread page's do: the tick,
+// the row's modal with When and Repeats, the label sheet, Archive and Delete,
+// each drawn first and written second with the thread page's words and the
+// eight-second Undo. One hook, used by To do and by If you have time, so the
+// two cannot drift from each other or from the thread page.
+//
+// + Today is here too, since it moves a row between the two: the row goes
+// into To do at the press, the toast says "Added to today" with Undo, and the
+// Undo gives the row back through its own route.
+
+import { useCallback, useState } from "react";
+import { rowLabelledCopy } from "@offload/widgets";
+import { Icon } from "../Icon";
+import { useToast } from "../shell/Toast";
+import { EditModal } from "../panes/EditModal";
+import { rowIcon } from "../panes/Thread";
+import type { RowHandlers } from "../panes/ContentRowView";
+import { LabelPopover, type LabelChoice } from "../labels/LabelPopover";
+import { createLabel, deleteLabel, type Label } from "../../lib/labels";
+import { perform, useWrites } from "../../lib/optimistic";
+import { useClock } from "../../lib/clock";
+import { drawnWhen } from "../../lib/when";
+import { giveBackToday, takeToday, type AgendaRow } from "../../lib/today";
+import {
+  completeContent,
+  deleteContent,
+  editContent,
+  fetchThread,
+  setArchived,
+  type ContentPatch,
+  type ContentRow,
+  type ContentSnapshot,
+} from "../../lib/threads";
+import pane from "../../app/(shell)/shell.module.css";
+
+export interface TodayRows {
+  /** The rows as drawn: changed fields applied, taken-out rows gone. */
+  shown: (rows: AgendaRow[]) => AgendaRow[];
+  /** Rows + Today moved into To do ahead of the server. */
+  taken: AgendaRow[];
+  handlers: RowHandlers;
+  lead: (row: ContentRow) => React.ReactNode;
+  take: (row: AgendaRow) => void;
+  /** The modal and the label sheet, wherever the page puts them. */
+  overlays: React.ReactNode;
+  writes: ReturnType<typeof useWrites>;
+}
+
+export function useTodayRows(reload: () => Promise<void>, labels: Map<string, Label>): TodayRows {
+  const toast = useToast();
+  const { zone, today } = useClock();
+  const [asking, setAsking] = useState<string | null>(null);
+  const [editRow, setEditRow] = useState<ContentRow | null>(null);
+  const [labelling, setLabelling] = useState<{ row: ContentRow; anchor: HTMLElement; labels: Label[] } | null>(null);
+  const [drawn, setDrawn] = useState<Map<string, Partial<AgendaRow>>>(new Map());
+  const [dropped, setDropped] = useState<Set<string>>(new Set());
+  const [taken, setTaken] = useState<AgendaRow[]>([]);
+
+  const fresh = useCallback(async () => {
+    await reload();
+    setDrawn(new Map());
+    setDropped(new Set());
+    setTaken([]);
+  }, [reload]);
+  const writes = useWrites(fresh);
+
+  const patchRow = (id: string, patch: Partial<AgendaRow>) =>
+    setDrawn((held) => new Map(held).set(id, { ...(held.get(id) ?? {}), ...patch }));
+  const dropRow = (id: string) => setDropped((held) => new Set(held).add(id));
+  const putRow = (id: string) =>
+    setDropped((held) => {
+      const next = new Set(held);
+      next.delete(id);
+      return next;
+    });
+
+  function tick(row: ContentRow): void {
+    const wasDone = row.doneAt !== null;
+    void perform(
+      {
+        apply: () => patchRow(row.id, { doneAt: wasDone ? null : new Date().toISOString() }),
+        revert: () => patchRow(row.id, { doneAt: row.doneAt }),
+        write: () => completeContent(row.id, !wasDone),
+        failed: wasDone ? "Couldn't put that back" : "Couldn't tick that off",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  function archive(row: ContentRow): void {
+    const wasArchived = row.archivedAt !== null;
+    void perform(
+      {
+        apply: () => dropRow(row.id),
+        revert: () => putRow(row.id),
+        write: () => setArchived(row.id, !wasArchived),
+        unwrite: () => setArchived(row.id, wasArchived),
+        did: wasArchived ? "Back in the thread" : "Archived",
+        failed: wasArchived ? "Couldn't put that back" : "Couldn't archive that",
+        unfailed: wasArchived ? "Couldn't archive that" : "Couldn't put that back",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  function remove(row: ContentRow): void {
+    setAsking(null);
+    void perform(
+      {
+        apply: () => dropRow(row.id),
+        revert: () => putRow(row.id),
+        write: () => deleteContent(row.id),
+        unwrite: () => setArchived(row.id, false),
+        did: "Deleted, gone in a moment",
+        failed: "Couldn't delete that",
+        unfailed: "Couldn't put that back",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  function edit(row: ContentRow, patch: ContentPatch): void {
+    const next: Partial<ContentRow> = {};
+    if (patch.title !== undefined) next.title = patch.title;
+    if (patch.body !== undefined) next.body = patch.body;
+    if (patch.isReminder !== undefined) next.isReminder = patch.isReminder;
+    Object.assign(next, drawnWhen(patch, zone));
+    const before: Partial<ContentRow> = {
+      title: row.title,
+      body: row.body,
+      isReminder: row.isReminder,
+      dueAt: row.dueAt,
+      occursAt: row.occursAt,
+      occursEndAt: row.occursEndAt,
+      rrule: row.rrule,
+      allDay: row.allDay,
+    };
+    let previous: ContentSnapshot | null = null;
+    void perform(
+      {
+        apply: () => patchRow(row.id, next),
+        revert: () => patchRow(row.id, before),
+        write: () =>
+          editContent(row.id, patch).then((result) => {
+            if (!result) return false;
+            previous = result.previous;
+            return true;
+          }),
+        unwrite: () => (previous ? editContent(row.id, previous) : Promise.resolve(null)).then((result) => result !== null),
+        did: "Saved",
+        failed: "Couldn't save that",
+        unfailed: "Couldn't put it back",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  /** 025's label sheet. Today has no thread bundle, so the thread's labels
+   *  are read when the tag is pressed. */
+  async function openLabels(row: ContentRow, anchor: HTMLElement): Promise<void> {
+    const thread = await fetchThread((row as AgendaRow).threadId).catch(() => null);
+    if (!thread) {
+      toast.show("Couldn't open that");
+      return;
+    }
+    setLabelling({ row, anchor, labels: thread.labels });
+  }
+
+  function labelRow(row: ContentRow, threadLabels: Label[], choice: LabelChoice): void {
+    setLabelling(null);
+    const same = choice.made.length === 0 && choice.ids.length === row.labels.length && choice.ids.every((one) => row.labels.includes(one));
+    if (same) return;
+    const before = row.labels;
+    const made: string[] = [];
+    const names = [...threadLabels.filter((label) => choice.ids.includes(label.id)).map((label) => label.name), ...choice.made];
+    void perform(
+      {
+        apply: () => patchRow(row.id, { labels: choice.ids }),
+        revert: () => patchRow(row.id, { labels: before }),
+        write: async () => {
+          for (const name of choice.made) {
+            const result = await createLabel((row as AgendaRow).threadId, { name });
+            if (!result.ok) return false;
+            made.push(result.value.label.id);
+          }
+          return (await editContent(row.id, { labels: [...choice.ids, ...made] })) !== null;
+        },
+        unwrite: async () => {
+          const edited = await editContent(row.id, { labels: before });
+          for (const labelId of made) await deleteLabel(labelId);
+          return edited !== null;
+        },
+        did: rowLabelledCopy(row.title, names),
+        failed: "Couldn't save that",
+        unfailed: "Couldn't put it back",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  /** + Today: into To do at the press, today's date with no hour. */
+  function take(row: AgendaRow): void {
+    const dated: AgendaRow = { ...row, dueAt: `${today}T12:00:00.000Z`, allDay: true };
+    void perform(
+      {
+        apply: () => setTaken((held) => [...held.filter((one) => one.id !== row.id), dated]),
+        revert: () => setTaken((held) => held.filter((one) => one.id !== row.id)),
+        write: async () => (await takeToday(row.id)) !== null,
+        unwrite: () => giveBackToday(row.id),
+        did: "Added to today",
+        failed: "Couldn't save that",
+        unfailed: "Couldn't put it back",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  const handlers: RowHandlers = {
+    editing: null,
+    draft: "",
+    asking,
+    arrived: new Set(),
+    onDraft: () => undefined,
+    onEdit: (row) => setEditRow(row),
+    onSaveTitle: () => undefined,
+    onStopEditing: () => undefined,
+    onArchive: archive,
+    onAsk: setAsking,
+    onDelete: remove,
+    labels,
+    onLabel: (row, anchor) => void openLabels(row, anchor),
+  };
+
+  const lead = (row: ContentRow) => {
+    if (row.type !== "task") {
+      return (
+        <span className={pane.rowIcon}>
+          <Icon name={rowIcon(row.type)} size={18} />
+        </span>
+      );
+    }
+    const done = row.doneAt !== null;
+    return (
+      <input
+        type="checkbox"
+        className={pane.rowCheck}
+        checked={done}
+        onChange={() => tick(row)}
+        aria-label={done ? `Put ${row.title} back on the list` : `Finish ${row.title}`}
+      />
+    );
+  };
+
+  const shown = (rows: AgendaRow[]) =>
+    rows.filter((row) => !dropped.has(row.id)).map((row) => ({ ...row, ...(drawn.get(row.id) ?? {}) }));
+
+  const overlays = (
+    <>
+      {editRow ? (
+        <EditModal
+          key={editRow.id}
+          row={editRow}
+          onClose={() => setEditRow(null)}
+          onSave={(row, patch) => {
+            setEditRow(null);
+            edit(row, patch);
+          }}
+        />
+      ) : null}
+      {labelling ? (
+        <LabelPopover
+          anchor={labelling.anchor}
+          title={labelling.row.title}
+          labels={labelling.labels}
+          carried={labelling.row.labels}
+          onDone={(choice) => labelRow(labelling.row, labelling.labels, choice)}
+          onClose={() => setLabelling(null)}
+        />
+      ) : null}
+    </>
+  );
+
+  return { shown, taken: shown(taken), handlers, lead, take, overlays, writes };
+}

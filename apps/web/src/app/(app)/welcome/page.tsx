@@ -150,7 +150,7 @@ export default function WelcomePage() {
   // Held blank rather than showing a spinner: the redirect decision lands in a
   // few milliseconds and a spinner that flashes reads as slower than nothing.
   if (state.status === "loading") return <main className={`${styles.page} ${styles.run}`} />;
-  if (state.status === "unreachable") return <Unanswered retry={state.retry} />;
+  if (state.status === "unreachable") return <Unanswered retry={state.retry} attempt={state.attempt} retryAfter={state.retryAfter} />;
 
   // step 0..2 are the tutorial, step 3 asks for a name and step 4 is the
   // consent. `screen` is undefined on both of the last two, which is what

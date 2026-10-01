@@ -119,6 +119,8 @@ export interface Sent<T> {
   /** The refusal's code when the server named one, `{ "error": "..." }`. 025:
    *  a label sheet says the one clause that code names. */
   error?: string;
+  /** 027. Seconds from a `Retry-After` on a refusal, when it carried one. */
+  retryAfter?: number;
 }
 
 /** The three requests whose body ends in a model prompt. */
@@ -175,7 +177,13 @@ export async function send<T>(path: string, init: RequestInit = {}): Promise<Sen
       .json()
       .then((body: unknown) => (body && typeof body === "object" && typeof (body as { error?: unknown }).error === "string" ? (body as { error: string }).error : undefined))
       .catch(() => undefined);
-    return { status: response.status, data: null, ...(error ? { error } : {}) };
+    const wait = Number(response.headers?.get?.("retry-after") ?? NaN);
+    return {
+      status: response.status,
+      data: null,
+      ...(error ? { error } : {}),
+      ...(Number.isFinite(wait) && wait > 0 ? { retryAfter: Math.min(wait, 300) } : {}),
+    };
   }
 
   // 204 and an empty body are legitimate answers, not parse failures.
@@ -224,13 +232,22 @@ export { API_URL };
  *  that null sent a phone with a good session to the gate. Anything but a 401
  *  or the account is the app not hearing an answer, and launch holds. */
 export async function getMe(): Promise<Me | "signed-out" | "unreachable"> {
+  retryAfter = null;
   try {
-    const { status, data } = await send<Me>("/api/me");
+    const { status, data, retryAfter: wait } = await send<Me>("/api/me");
     if (status === 401) return "signed-out";
+    if (!data) retryAfter = wait ?? null;
     return data ?? "unreachable";
   } catch {
     return "unreachable";
   }
+}
+
+/** 027. The seconds a `Retry-After` asked for on launch's last unanswered
+ *  read, which launch waits at least as long as. */
+let retryAfter: number | null = null;
+export function lastRetryAfter(): number | null {
+  return retryAfter;
 }
 
 /** Finishing first run, with both ticks from the consent screen. The server
@@ -281,9 +298,6 @@ export async function markActivitySeen(): Promise<void> {
   await request("/v1/activity/seen", { method: "POST" }).catch(() => null);
 }
 
-export async function fetchToday<T>(): Promise<T | null> {
-  return request<T>("/v1/today");
-}
 
 export async function registerPushToken(token: string, platform: "ios" | "android"): Promise<boolean> {
   const result = await request("/v1/push-tokens", { method: "POST", body: JSON.stringify({ token, platform }) }).catch(() => null);

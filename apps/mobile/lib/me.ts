@@ -57,6 +57,8 @@ export interface Me {
   /** 026. Whether mail forwarded from the sign-in address can reach them:
    *  false for an Apple private relay address. */
   mailAvailable: boolean;
+  /** 027. Customize Today's layout, resolved by the server. */
+  todayLayout?: import("./today").Layout;
 }
 
 /** Ask again, and tell every mounted `useMe`. For after a request is

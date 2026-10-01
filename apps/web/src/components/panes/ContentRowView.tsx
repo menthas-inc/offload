@@ -24,6 +24,7 @@ import Link from "next/link";
 import { Icon } from "../Icon";
 import { DateChip } from "../shell/DateChip";
 import { PhotoThumb } from "../shell/PhotoThumb";
+import { ThreadPill } from "../shell/ThreadPill";
 import { ReorderHandle, RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
 import { domainOf, isFiling, isProvisional, type ContentRow } from "../../lib/threads";
@@ -68,6 +69,9 @@ export function ContentRowView({
   handlers,
   reorder,
   handleSpace,
+  thread,
+  chip,
+  trail,
 }: {
   row: ContentRow;
   /** The tile, the checkbox, whatever leads this row where it is shown. */
@@ -82,6 +86,16 @@ export function ContentRowView({
    *  that can be arranged, so its checkbox sits under the others'
    *  (2026-09-29). */
   handleSpace?: boolean | undefined;
+  /** 027. The row's thread, drawn as the thread pill on the marks line before
+   *  its labels, where the row is shown away from its thread. Its own prop,
+   *  never the `meta` slot, as 025 did for labels. */
+  thread?: { id: string; name: string } | undefined;
+  /** 027. What stands in for the date chip: Today's clock chip with the hour,
+   *  or `null` for a row whose day the section already says. Left out, the
+   *  row draws its own date chip. */
+  chip?: React.ReactNode;
+  /** 027. A control at the trailing edge, before the row's tools: + Today. */
+  trail?: React.ReactNode;
 }) {
   // Shown on a link row and nowhere else. What says the row goes somewhere.
   const domain = domainOf(row.url);
@@ -118,6 +132,7 @@ export function ContentRowView({
   return (
     <div
       className={styles.row}
+      data-row
       // Secondary ink and a hollow tile, never opacity: dimming a row on a warm
       // page reads as a rendering fault and takes the label under the contrast
       // floor with it.
@@ -251,7 +266,8 @@ export function ContentRowView({
           {/* 025. The marks line: the date chip, then the row's labels,
               wrapping. A row with neither draws nothing. */}
           <span className={labelStyles.marks}>
-            <DateChip row={row} isReminder={row.isReminder} />
+            {chip !== undefined ? chip : <DateChip row={row} isReminder={row.isReminder} />}
+            {thread ? <ThreadPill id={thread.id} name={thread.name} size={24} /> : null}
             {handlers.labels
               ? row.labels.map((id) => {
                   const label = handlers.labels!.get(id);
@@ -287,6 +303,8 @@ export function ContentRowView({
       {isFiling(row.filingAt) ? (
         <span className={styles.rowFiling} role="status" aria-label="offload is reading this" />
       ) : null}
+
+      {trail}
 
       <RowTools
         title={row.title}

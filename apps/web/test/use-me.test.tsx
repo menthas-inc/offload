@@ -101,4 +101,22 @@ describe("the shell's first question", () => {
     expect(last()).toEqual({ status: "ready", me: ME });
     expect(replace).not.toHaveBeenCalled();
   });
+
+  // 027 AC-29. Launch's wait grows with each ask and honours Retry-After.
+  it("says how many times it has asked, and how long the server asked it to wait", async () => {
+    answer = () => Promise.resolve(new Response("Busy", { status: 503, headers: { "retry-after": "30" } }));
+    await mount();
+    const first = last();
+    if (first.status !== "unreachable") throw new Error(`expected unreachable, got ${first.status}`);
+    expect(first.attempt).toBe(0);
+    expect(first.retryAfter).toBe(30);
+
+    answer = () => Promise.reject(new TypeError("Failed to fetch"));
+    await act(async () => first.retry());
+    await settle();
+    const second = last();
+    if (second.status !== "unreachable") throw new Error(`expected unreachable, got ${second.status}`);
+    expect(second.attempt).toBe(1);
+    expect(second.retryAfter).toBeNull();
+  });
 });

@@ -8,7 +8,7 @@
 // reports `is_reminder` and sets nothing.
 
 import { Text, View } from "react-native";
-import { chipFor, type ChipRow } from "@offload/widgets";
+import { chipFor, timeIn, type ChipRow } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { useClock } from "../../lib/clock";
@@ -47,6 +47,29 @@ export function DateChip({ row, isReminder }: { row: ChipRow; isReminder: boolea
         {chip.label}
       </Text>
       {isReminder ? <Glyph name="bell" size={11} color={ink} /> : null}
+    </View>
+  );
+}
+
+/** 027. Today's chip for a row with a time on the day shown: the hour, with a
+ *  clock, on the raised ground in secondary ink. The day itself is the
+ *  stepper's, so it is not repeated. */
+export function HourChip({ row }: { row: ChipRow }) {
+  const { zone } = useClock();
+  const COLOR = useColors();
+  const at = row.type === "event" ? row.occursAt : row.dueAt;
+  if (!at) return null;
+  const hour = timeIn(new Date(at), zone, "en-GB");
+  return (
+    <View
+      className="flex-row items-center gap-space-1 self-start rounded-xs bg-surface-raised px-space-2"
+      style={{ minHeight: 24 }}
+      accessibilityLabel={`At ${hour}`}
+    >
+      <Glyph name="clock" size={12} color={COLOR.secondary} />
+      <Text className="font-core font-medium text-caption" style={{ color: COLOR.secondary, fontVariant: ["tabular-nums"], lineHeight: 16 }}>
+        {hour}
+      </Text>
     </View>
   );
 }

@@ -13,6 +13,7 @@ import { Logo } from "../Logo";
 import { Preferences } from "./Preferences";
 import styles from "../../app/(shell)/shell.module.css";
 import type { ThreadRow } from "../../lib/threads";
+import { TODAY_RESET } from "../../lib/today";
 
 interface Props {
   threads: ThreadRow[];
@@ -68,7 +69,15 @@ export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityNew
         {tabs.map((tab) => {
           const on = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
           return (
-            <Link key={tab.href} href={tab.href} className={styles.navItem} data-on={on} aria-current={on ? "page" : undefined}>
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={styles.navItem}
+              data-on={on}
+              aria-current={on ? "page" : undefined}
+              // 027. Today's tab, pressed while Today shows, goes back to Today.
+              onClick={tab.href === "/today" ? () => window.dispatchEvent(new Event(TODAY_RESET)) : undefined}
+            >
               {on ? <span className={styles.marker} /> : null}
               <Icon name={tab.icon} size={17} />
               <span className={styles.navLabel}>{tab.label}</span>

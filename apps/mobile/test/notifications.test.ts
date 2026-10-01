@@ -54,6 +54,9 @@ const THREAD = "01a0c9c9-200a-732d-b56b-fd30e9379d81";
 describe("024 AC-13 the payload maps to a screen from a table", () => {
   it("a digest opens Today, a request My people, a share the invitation and an addition the thread, by id", () => {
     expect(routeFor({ kind: "digest", send: "morning" })).toEqual({ pathname: "/" });
+    // 027 AC-15. An evening digest hands the day it named through launch.
+    expect(routeFor({ kind: "digest", send: "evening", day: "2026-10-01" }, "2026-09-30")).toEqual({ pathname: "/", params: { day: "2026-10-01" } });
+    expect(routeFor({ kind: "digest", send: "evening", day: "2026-10-01" }, "2026-10-01")).toEqual({ pathname: "/" });
     expect(routeFor({ kind: "request" })).toEqual({ pathname: "/settings/people" });
     expect(routeFor({ kind: "share", memberId: THREAD })).toEqual({ pathname: "/invitations/[memberId]", params: { memberId: THREAD } });
     expect(routeFor({ kind: "shared_activity", threadId: THREAD })).toEqual({ pathname: "/threads/[id]", params: { id: THREAD } });

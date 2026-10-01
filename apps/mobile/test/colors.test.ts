@@ -27,3 +27,29 @@ describe("the plate's shadow", () => {
     expect(paletteFor(true).plateShadow).toBe(resolved.dark["shadow-sheet"]);
   });
 });
+
+// 027 AC-31: the scrim's opacity is the token's, per theme, and typed nowhere.
+describe("the scrim's opacity", () => {
+  it("is --surface-scrim's alpha in each theme", () => {
+    const alpha = (value: string) => Number(/,\s*([\d.]+)\)$/.exec(value)?.[1]);
+    expect(paletteFor(false).scrimOpacity).toBe(alpha(resolved.light["surface-scrim"]!));
+    expect(paletteFor(true).scrimOpacity).toBe(alpha(resolved.dark["surface-scrim"]!));
+    expect(paletteFor(false).scrimOpacity).toBe(0.35);
+  });
+
+  it("is never typed by hand", async () => {
+    const { readFileSync } = await import("node:fs");
+    for (const file of ["lib/colors.ts", "components/shell/DragSheet.tsx"]) {
+      const source = readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
+      expect(source, file).not.toMatch(/SCRIM_OPACITY\s*=\s*0\.|scrim\s*=\s*0\./);
+    }
+  });
+});
+
+// 027: a card of rows paints its own ground under each row's swipe.
+describe("the fill", () => {
+  it("is --surface-fill", () => {
+    expect(paletteFor(false).fill).toBe(resolved.light["surface-fill"]);
+    expect(paletteFor(true).fill).toBe(resolved.dark["surface-fill"]);
+  });
+});
