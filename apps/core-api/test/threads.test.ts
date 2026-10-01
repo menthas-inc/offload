@@ -208,32 +208,6 @@ describe("who can see what", () => {
 });
 
 describe("My threads", () => {
-  it("groups by always_on and by staleness, never by both (AC-1)", async () => {
-    const me = await account();
-    await thread(me, "Lisbon trip");
-    await thread(me, "Read later", { alwaysOn: true, activeDaysAgo: 400 });
-    await thread(me, "Berlin", { activeDaysAgo: 31 });
-
-    const rows = await db
-      .selectFrom("threads")
-      .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
-      .select(["threads.name as name", "threads.always_on as alwaysOn", "threads.last_activity_at as at"])
-      .where("thread_members.account_id", "=", me)
-      .execute();
-
-    const stale = Date.now() - 30 * 86_400_000;
-    const group = (r: (typeof rows)[number]) =>
-      r.alwaysOn ? "always" : r.at.getTime() < stale ? "older" : "now";
-
-    expect(Object.fromEntries(rows.map((r) => [r.name, group(r)]))).toEqual({
-      "Lisbon trip": "now",
-      // always_on wins over staleness. A thread that never closes has not gone
-      // quiet, it is waiting.
-      "Read later": "always",
-      Berlin: "older",
-    });
-  });
-
   it("never lists another account's threads (AC-1)", async () => {
     const me = await account();
     const them = await account("Other");
@@ -706,7 +680,8 @@ describe("the routes, with a real session", () => {
     const sam = await account("Sam Ibekwe");
     const lisbon = await thread(me, "Lisbon trip");
     await join(sam, lisbon);
-    await thread(me, "Read later", { alwaysOn: true });
+    // 028: always_on no longer holds a thread in a group of its own.
+    await thread(me, "Read later", { alwaysOn: true, activeDaysAgo: 2 });
     await thread(me, "Berlin", { activeDaysAgo: 40 });
     await content(me, lisbon, "Book the flat");
 
@@ -722,14 +697,14 @@ describe("the routes, with a real session", () => {
     };
     const byKey = Object.fromEntries(body.groups.map((g) => [g.key, g.threads]));
 
-    expect(byKey["now"]!.map((t) => t.name)).toEqual(["Lisbon trip"]);
-    expect(byKey["always"]!.map((t) => t.name)).toEqual(["Read later"]);
+    expect(Object.keys(byKey)).toEqual(["now", "older"]);
+    expect(byKey["now"]!.map((t) => t.name)).toEqual(["Lisbon trip", "Read later"]);
     expect(byKey["older"]!.map((t) => t.name)).toEqual(["Berlin"]);
 
     // Composed server-side so three clients cannot drift. What is open in the
     // thread by kind, and who with; never "you" (2026-09-29).
     expect(byKey["now"]![0]!.meta).toBe("1 to do, with Sam");
-    expect(byKey["always"]![0]!.meta).toBe("");
+    expect(byKey["now"]![1]!.meta).toBe("");
   });
 
   it("serves a thread bundle, and says it is unsummarised (AC-4, AC-8)", async () => {

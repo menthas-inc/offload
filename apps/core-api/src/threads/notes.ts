@@ -213,6 +213,31 @@ export async function readableNotes(
   return rows.map(toNote);
 }
 
+/** 028. A thread's current notes, newest first, a page at a time.
+ *
+ *  By id rather than by when it was written, so an edit never moves a note:
+ *  ids are UUIDv7, the same order content's ids run in, which is what lets the
+ *  loose list merge the two tables on one cursor. */
+export async function notesNewestFirst(
+  accountId: string,
+  threadId: string,
+  opts: { before?: string | undefined; limit: number },
+  trx: Executor = db,
+): Promise<Note[]> {
+  let query = trx
+    .selectFrom("readable_notes as notes")
+    .select((eb) => [...COLUMNS, authorIsMember(eb)])
+    .where("notes.subject_id", "=", threadId)
+    .where("notes.scope", "=", "thread")
+    .where("notes.deleted_at", "is", null)
+    .where("notes.superseded_at", "is", null)
+    .where("notes.viewer_account_id", "=", accountId)
+    .orderBy("notes.id", "desc")
+    .limit(opts.limit);
+  if (opts.before) query = query.where("notes.id", "<", opts.before);
+  return (await query.execute()).map(toNote);
+}
+
 /** Move a note within its section.
  *
  *  Any member, like every other arrangement of a shared thread. The number
