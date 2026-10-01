@@ -6,8 +6,27 @@
 
 -- A dismissed suggestion, as a fact about the thing: no words, gone with it,
 -- and the reason that thing is never suggested for again.
+--
+-- `readable_content` and `readable_notes` are `select *`, so they name every
+-- column and are dropped around the change and recreated as 0057 wrote them.
+drop view if exists readable_notes;
+drop view if exists readable_content;
+
 alter table content add column suggest_dismissed_at timestamptz;
 alter table notes   add column suggest_dismissed_at timestamptz;
+
+create view readable_content as
+select content.*, thread_members.account_id as viewer_account_id
+from content
+join thread_members on thread_members.thread_id = content.thread_id
+where thread_members.state = 'accepted';
+
+create view readable_notes as
+select notes.*, thread_members.account_id as viewer_account_id
+from notes
+join thread_members on thread_members.thread_id = notes.subject_id
+where notes.scope = 'thread'
+  and thread_members.state = 'accepted';
 
 -- offload's proposal of a new thread. Plain text, as threads.name is: the
 -- database is not encrypted by us and nothing here says otherwise (OFF-2).
