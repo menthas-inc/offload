@@ -79,7 +79,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 - [x] **T4.4** `app/(shell)/threads/loose/page.tsx`: the pane, paging, archived foot row, states; `threads/[id]` redirects on `isDefault`. Tests. *(AC-4, AC-12 to AC-15)*
 - [x] **T4.5** `EditModal` gains Move for every row that can move, and the note edit gains it. Component tests. *(AC-11, AC-32, AC-33)*
 - [x] **T4.6** Null thread names: `ContentRowView`, Today, `TurnFooter`, `AnswerResult`, the content crumb. Component tests. *(AC-3, AC-27)*
-- [ ] **T4.7** In the browser: the group, filtering, a Move to with Undo, a Create with Undo, the full list, the redirect, keyboard reach and focus order through chips, suggestion and cross. *(AC-6 to AC-26)*
+- [x] **T4.7** In the browser: the group, filtering, a Move to with Undo, a Create with Undo, the full list, the redirect, keyboard reach and focus order through chips, suggestion and cross. *(AC-6 to AC-26)*
 
 ## 5. Close
 
