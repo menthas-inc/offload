@@ -158,6 +158,6 @@ describe("the model never reads the stored name (T2.1, AC-29)", () => {
     expect((await accountFacts(me)).defaultThread).toEqual({ id: loose, name: "not in a thread" });
     const listed = await listContent(me, { threadId: loose });
     expect(JSON.stringify(listed)).not.toContain("Miscellaneous");
-    expect(listed.threadName).toBe("not in a thread");
+    expect(listed?.threadName).toBe("not in a thread");
   });
 });
