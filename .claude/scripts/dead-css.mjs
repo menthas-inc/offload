@@ -13,8 +13,12 @@
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const ROOT = "~/dev/offload_app/apps/web/src";
+// The checkout this script is in, never a fixed path: run from a worktree it
+// read the main checkout's files and reported them clean.
+const CHECKOUT = fileURLToPath(new URL("../..", import.meta.url));
+const ROOT = join(CHECKOUT, "apps/web/src");
 
 const files = [];
 (function walk(dir) {
@@ -56,7 +60,7 @@ for (const file of files) {
       if (!have.has(name)) {
         const line = src.slice(0, src.indexOf(`${local}.${name}`)).split("\n").length;
         findings.push({
-          file: `${file.replace("~/dev/offload_app/", "")}:${line}`,
+          file: `${file.replace(CHECKOUT, "")}:${line}`,
           name: `${local}.${name}`,
           why: `not defined in ${spec}`,
         });

@@ -11,10 +11,15 @@
 //   node .claude/scripts/dead-classes.mjs
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
-const preset = require("~/dev/offload_app/packages/tokens/dist/tailwind-preset.cjs").theme.extend;
+// The checkout this script is in, never a fixed path: run from a worktree it
+// read the main checkout's files and reported them clean.
+const ROOT = fileURLToPath(new URL("../..", import.meta.url));
+
+const preset = require(join(ROOT, "packages/tokens/dist/tailwind-preset.cjs")).theme.extend;
 const colors = new Set(Object.keys(preset.colors ?? {}));
 const spacing = new Set(Object.keys(preset.spacing ?? {}));
 const radius = new Set(Object.keys(preset.borderRadius ?? {}));
@@ -35,7 +40,7 @@ const files = [];
     if (statSync(p).isDirectory()) { if (e !== "node_modules" && e !== "android" && e !== "ios") walk(p); }
     else if (/\.(tsx|ts)$/.test(p)) files.push(p);
   }
-})("~/dev/offload_app/apps/mobile");
+})(join(ROOT, "apps/mobile"));
 
 const findings = [];
 for (const file of files) {
@@ -84,6 +89,6 @@ for (const file of files) {
 
 if (!findings.length) { console.log("No dead classes."); process.exit(0); }
 for (const f of findings) {
-  console.log(`  ${f.file.replace("~/dev/offload_app/", "")}:${f.line}  ${f.cls}   (${f.why})`);
+  console.log(`  ${f.file.replace(ROOT, "")}:${f.line}  ${f.cls}   (${f.why})`);
 }
 console.log(`\n  ${findings.length} dead class use(s).`);
