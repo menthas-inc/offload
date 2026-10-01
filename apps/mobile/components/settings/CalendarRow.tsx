@@ -86,7 +86,7 @@ export function CalendarRow({
       >
         {picked ? (
           <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
-            <Path d="M20 6L9 17l-5-5" stroke={COLOR.onSolid} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+            <Path d="M20 6L9 17l-5-5" stroke={isAndroid ? COLOR.onBrand : COLOR.onSolid} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
           </Svg>
         ) : null}
       </View>
