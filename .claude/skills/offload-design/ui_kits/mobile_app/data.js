@@ -8,20 +8,39 @@ function plusDays(iso,n){const x=new Date(iso+"T00:00:00");x.setDate(x.getDate()
 
 window.OFFLOAD_DATA={
   todayIso:TODAY,
-  /* Three kinds of thread: ones with an end (for now), ones that never close
-     (always on), and ones that have gone quiet (older threads). */
+  /* One list by last activity, then older threads (gone quiet). Always on was retired on
+     1 October 2026; a slow thread sinks and comes back up when something lands. */
   spaces:[
     {id:"lisbon",name:"Lisbon trip",icon:"lasso",kind:"now",count:14,people:["Ana","Tom"],meta:"14 things · Ana, Tom"},
     {id:"shelf",name:"Bookshelf build",icon:"lasso",kind:"now",count:9,people:[],meta:"9 things · just you"},
     {id:"dentist",name:"Dentist and insurance",icon:"lasso",kind:"now",count:5,people:[],meta:"5 things · just you"},
-    {id:"read",name:"Read later",icon:"bookmark",kind:"always",count:23,people:[],meta:"23 things · 4 unread this week"},
-    {id:"home",name:"Flat admin",icon:"house",kind:"always",count:6,people:["Sam"],meta:"6 things · Sam"},
-    {id:"gifts",name:"Gift ideas",icon:"bookmark",kind:"always",count:11,people:[],meta:"11 things · just you"},
+    {id:"read",name:"Read later",icon:"bookmark",kind:"now",count:23,people:[],meta:"23 things · 4 unread this week"},
+    {id:"home",name:"Flat admin",icon:"house",kind:"now",count:6,people:["Sam"],meta:"6 things · Sam"},
+    {id:"gifts",name:"Gift ideas",icon:"bookmark",kind:"now",count:11,people:[],meta:"11 things · just you"},
     {id:"berlin",name:"Berlin, March",icon:"lasso",kind:"older",count:31,people:["Ana"],meta:"31 things · last opened in April"},
     {id:"bike",name:"Bike repair",icon:"lasso",kind:"older",count:8,people:[],meta:"8 things · last opened in March"},
     {id:"tax",name:"Tax return 2025",icon:"lasso",kind:"older",count:19,people:[],meta:"19 things · finished in January"},
     {id:"wedding",name:"Sam's wedding",icon:"lasso",kind:"older",count:44,people:["Sam","Ana"],meta:"44 things · finished last year"},
     {id:"flat",name:"Flat hunt",icon:"lasso",kind:"older",count:27,people:[],meta:"27 things · finished last year"}
+  ],
+  /* Things without a thread (1 October 2026). On main these live in the account's default
+     thread, which is never drawn as a thread. sug: an existing thread id (to), or a proposed
+     new thread with the ids it would hold (name, with). */
+  loose:[
+    {id:"l1",type:"note",icon:"text-quote",title:"Oak brackets, 30cm, matte black",meta:"Note \u00b7 just now",sug:{name:"Kitchen shelves",with:["l1","l6","l7"]}},
+    {id:"l2",type:"photo",icon:"image",title:"Boiler service receipt",meta:"Photo \u00b7 Monday",sug:{to:"home"}},
+    {id:"l3",type:"link",icon:"link",title:"Miso aubergine, a recipe",meta:"Link \u00b7 yesterday"},
+    {id:"l4",type:"event",icon:"calendar",title:"Drinks with Priya",meta:"Event \u00b7 Thursday 19:00"},
+    {id:"l5",type:"link",icon:"link",title:"Hotels near Alfama",meta:"Link \u00b7 Sunday",sug:{to:"lisbon"}},
+    {id:"l6",type:"link",icon:"link",title:"Wall plugs for plasterboard",meta:"Link \u00b7 Sunday",sug:{name:"Kitchen shelves",with:["l1","l6","l7"]}},
+    {id:"l7",type:"photo",icon:"image",title:"Photo of the alcove",meta:"Photo \u00b7 Saturday",sug:{name:"Kitchen shelves",with:["l1","l6","l7"]}},
+    {id:"l8",type:"todo",icon:"square-check-big",title:"Renew passport",meta:"To-do \u00b7 no date"},
+    {id:"l9",type:"todo",icon:"square-check-big",title:"Call the landlord about the damp",meta:"To-do \u00b7 no date",sug:{to:"home"}},
+    {id:"l10",type:"link",icon:"link",title:"A podcast on sleep",meta:"Link \u00b7 last week"},
+    {id:"l11",type:"note",icon:"text-quote",title:"Ana's shoe size is 38",meta:"Note \u00b7 last week"},
+    {id:"l12",type:"link",icon:"link",title:"Flat-pack desk, 120cm",meta:"Link \u00b7 2 weeks ago"},
+    {id:"l13",type:"photo",icon:"image",title:"Parking sign on Elm Road",meta:"Photo \u00b7 2 weeks ago"},
+    {id:"l14",type:"todo",icon:"square-check-big",title:"Return the library books",meta:"To-do \u00b7 no date"}
   ],
   today:[
     {id:1,icon:"map-pin",title:"Miradouro da Senhora do Monte",meta:"Lisbon trip · from Safari",time:"2m",tag:"Lisbon trip"},

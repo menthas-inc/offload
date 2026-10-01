@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"SentVoice","sourcePath":"components/conversation/SentVoice.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Avatar","sourcePath":"components/core/Avatar.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"LabelMark","sourcePath":"components/core/LabelMark.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/SentVoice.jsx":"08bb27934031","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Avatar.jsx":"1c8eef696ff5","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"fcac9a7cce5d","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/core/LabelMark.jsx":"f7c78223c974","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"7f6290747633","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"d58108f37e4d","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"c5d8ae19a52c","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"fafa6cd83dc4","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"815b631d6e6d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"fd0b5edce6dd","ui_kits/android_app/M3SettingsScreen.jsx":"dade732e7925","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"74bb28c09731","ui_kits/android_app/M3TodayScreen.jsx":"0bc87b953e81","ui_kits/mobile_app/App.jsx":"98207e3ef49a","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"828eecc1f7ca","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"4ef26e230ccd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"269d6f059c17","ui_kits/mobile_app/SettingsScreen.jsx":"8bbffe11f5d4","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"65f843b08dfa","ui_kits/mobile_app/TodayParts.jsx":"66adfacb1077","ui_kits/mobile_app/TodayScreen.jsx":"ba3c48281d49","ui_kits/mobile_app/data.js":"01d6d5ac0b68","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"fdac02706b2e","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"SentVoice","sourcePath":"components/conversation/SentVoice.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Avatar","sourcePath":"components/core/Avatar.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"LabelMark","sourcePath":"components/core/LabelMark.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/SentVoice.jsx":"08bb27934031","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Avatar.jsx":"1c8eef696ff5","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"fcac9a7cce5d","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/core/LabelMark.jsx":"f7c78223c974","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"7f6290747633","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"d58108f37e4d","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"c5d8ae19a52c","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"fafa6cd83dc4","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"815b631d6e6d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"fd0b5edce6dd","ui_kits/android_app/M3SettingsScreen.jsx":"dade732e7925","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"d4e7d87079cb","ui_kits/android_app/M3TodayScreen.jsx":"0bc87b953e81","ui_kits/mobile_app/App.jsx":"98207e3ef49a","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"828eecc1f7ca","ui_kits/mobile_app/LooseParts.jsx":"d39791d4afdd","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"4ef26e230ccd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"269d6f059c17","ui_kits/mobile_app/SettingsScreen.jsx":"8bbffe11f5d4","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"b1d227129152","ui_kits/mobile_app/TodayParts.jsx":"66adfacb1077","ui_kits/mobile_app/TodayScreen.jsx":"ba3c48281d49","ui_kits/mobile_app/data.js":"9cbe9c7e1010","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"d32465d6f729","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -12322,6 +12322,7 @@ function ThreadRow({
   }));
 }
 function ThreadsScreen({
+  onToast,
   spaces,
   onOpen,
   onNew,
@@ -12339,7 +12340,6 @@ function ThreadsScreen({
   const [restH, setRestH] = React.useState(0);
   const live = spaces.filter(s => (hidden || []).indexOf(s.id) < 0);
   const now = live.filter(s => s.kind === "now");
-  const always = live.filter(s => s.kind === "always");
   const older = live.filter(s => s.kind === "older");
   const shownOlder = older.slice(0, OLDER_SHOWN);
   const restOlder = older.slice(OLDER_SHOWN);
@@ -12379,16 +12379,13 @@ function ThreadsScreen({
     onOpen: onOpen,
     onDelete: onDelete,
     border: i < now.length - 1
-  }))), /*#__PURE__*/React.createElement(ASection, {
-    tone: "accent",
-    count: always.length
-  }, "Always on"), /*#__PURE__*/React.createElement(React.Fragment, null, always.map((s, i) => /*#__PURE__*/React.createElement(ThreadRow, {
-    key: s.id,
-    thread: s,
-    onOpen: onOpen,
-    onDelete: onDelete,
-    border: i < always.length - 1
-  }))), /*#__PURE__*/React.createElement(ASection, {
+  }))), /*#__PURE__*/React.createElement(LooseGroup, {
+    and: true,
+    items: (window.OFFLOAD_DATA || {}).loose || [],
+    threads: spaces,
+    Section: ASection,
+    onToast: onToast
+  }), /*#__PURE__*/React.createElement(ASection, {
     count: older.length
   }, "Older threads"), /*#__PURE__*/React.createElement(React.Fragment, null, shownOlder.map((s, i) => /*#__PURE__*/React.createElement(ThreadRow, {
     key: s.id,
@@ -15355,6 +15352,311 @@ Object.assign(window, {
 });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/mobile_app/LiveConversation.jsx", error: String((e && e.message) || e) }); }
 
+// ui_kits/mobile_app/LooseParts.jsx
+try { (() => {
+/* Things without a thread (decided 1 October 2026, readme: Not in a thread).
+   Shared by the iOS, Android and web kits. Stored in the account's default thread on main;
+   that thread is never drawn as a thread. Rows are the things themselves. */
+const LOOSE_DS = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
+const LooseSwipe = LOOSE_DS.SwipeRow || (({
+  children
+}) => children);
+const LOOSE_SHOWN = 3;
+const LOOSE_TYPES = [["todo", "square-check-big", "To-dos"], ["link", "link", "Links"], ["photo", "image", "Photos"], ["note", "text-quote", "Notes"], ["event", "calendar", "Events"]];
+function LooseGlyph({
+  name,
+  size = 16
+}) {
+  const I = LOOSE_DS.Icon;
+  return I ? /*#__PURE__*/React.createElement(I, {
+    name: name,
+    size: size
+  }) : null;
+}
+
+/* The whole line is one button. Existing thread: moss soft ground, lasso. New thread:
+   dashed moss outline on paper, plus, and the words "new thread". The pill is a label
+   here and never opens the thread. */
+function LooseSuggestion({
+  sug,
+  threads,
+  onAccept,
+  onDismiss,
+  and
+}) {
+  const existing = !!sug.to;
+  const name = existing ? (threads.find(t => t.id === sug.to) || {}).name || sug.to : sug.name;
+  const r = and ? 8 : 99;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onAccept,
+    style: {
+      all: "unset",
+      cursor: "pointer",
+      minHeight: 32,
+      boxSizing: "border-box",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "0 12px 0 10px",
+      borderRadius: r,
+      maxWidth: "100%",
+      background: existing ? "var(--surface-accent-soft)" : "var(--surface-raised)",
+      border: existing ? "1px solid transparent" : "1px dashed var(--moss-600)",
+      font: "var(--weight-regular) 13px/1 var(--font-core)",
+      color: "var(--text-secondary)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--moss-600)",
+      display: "flex"
+    }
+  }, /*#__PURE__*/React.createElement(LooseGlyph, {
+    name: "sparkles",
+    size: 13
+  })), existing ? "Move to" : "Create", /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      color: "var(--moss-700)",
+      fontWeight: 500,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement(LooseGlyph, {
+    name: existing ? "lasso" : "plus",
+    size: 12
+  }), name), existing ? null : /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--text-secondary)"
+    }
+  }, "new thread")), /*#__PURE__*/React.createElement("button", {
+    "aria-label": "Dismiss suggestion",
+    onClick: onDismiss,
+    style: {
+      all: "unset",
+      cursor: "pointer",
+      width: 32,
+      height: 32,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "var(--text-tertiary)"
+    }
+  }, /*#__PURE__*/React.createElement(LooseGlyph, {
+    name: "x",
+    size: 14
+  })));
+}
+function LooseRow({
+  item,
+  threads,
+  border,
+  onAccept,
+  onDismiss,
+  onDelete,
+  and,
+  web
+}) {
+  const tileBg = and ? "var(--a-c-low)" : "var(--surface-fill)";
+  const row = /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 12,
+      padding: web ? "10px 0" : "12px var(--gutter-screen)",
+      background: web ? "transparent" : and ? "var(--a-surface)" : "var(--surface-page)",
+      boxShadow: border ? "inset 0 -1px 0 var(--border-hairline)" : "none"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 36,
+      height: 36,
+      flex: "0 0 auto",
+      borderRadius: and ? 8 : "var(--radius-sm)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "var(--text-secondary)",
+      background: item.type === "photo" ? "linear-gradient(135deg,var(--ink-200),var(--ink-100))" : tileBg
+    }
+  }, item.type === "photo" ? null : /*#__PURE__*/React.createElement(LooseGlyph, {
+    name: item.icon,
+    size: 18
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-medium) 15.5px/21px var(--font-core)",
+      color: and ? "var(--a-on)" : "var(--text-primary)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, item.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 2,
+      font: "var(--weight-regular) 13px/18px var(--font-core)",
+      color: and ? "var(--a-on-var)" : "var(--text-secondary)"
+    }
+  }, item.meta), item.sug ? /*#__PURE__*/React.createElement(LooseSuggestion, {
+    sug: item.sug,
+    threads: threads,
+    and: and,
+    onAccept: onAccept,
+    onDismiss: onDismiss
+  }) : null));
+  return web ? row : /*#__PURE__*/React.createElement(LooseSwipe, {
+    background: and ? "var(--a-surface)" : undefined,
+    onDelete: onDelete
+  }, row);
+}
+
+/* The group on My threads: header with count, type chips that filter in place, three
+   rows, then All N (of that type when filtered). Not drawn when empty. */
+function LooseGroup({
+  items,
+  threads,
+  Section,
+  and,
+  web,
+  onOpenAll,
+  onToast
+}) {
+  const [type, setType] = React.useState(null);
+  const [gone, setGone] = React.useState({});
+  const [dismissed, setDismissed] = React.useState({});
+  const live = items.filter(i => !gone[i.id]).map(i => dismissed[i.id] ? {
+    ...i,
+    sug: null
+  } : i);
+  if (!live.length) return null;
+  const types = LOOSE_TYPES.filter(([k]) => live.some(i => i.type === k));
+  const list = type ? live.filter(i => i.type === type) : live;
+  const shown = list.slice(0, LOOSE_SHOWN);
+  const label = type ? LOOSE_TYPES.find(t => t[0] === type)[2].toLowerCase() : null;
+  const accept = item => {
+    const s = item.sug;
+    if (s.to) {
+      setGone(g => ({
+        ...g,
+        [item.id]: 1
+      }));
+      const t = threads.find(x => x.id === s.to);
+      onToast && onToast("Moved to " + (t ? t.name : s.to));
+      return;
+    }
+    const ids = s.with || [item.id];
+    setGone(g => {
+      const n = {
+        ...g
+      };
+      ids.forEach(id => n[id] = 1);
+      return n;
+    });
+    onToast && onToast(s.name + " created");
+  };
+  const chip = (k, glyph, name, n) => {
+    const on = (type || null) === k;
+    return /*#__PURE__*/React.createElement("button", {
+      key: k || "all",
+      onClick: () => setType(k),
+      style: {
+        all: "unset",
+        cursor: "pointer",
+        flex: "0 0 auto",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        height: and ? 32 : 34,
+        padding: "0 12px",
+        borderRadius: and ? 8 : 99,
+        whiteSpace: "nowrap",
+        font: "var(--weight-medium) 13px/1 var(--font-core)",
+        background: on ? and ? "var(--surface-accent-soft)" : "var(--surface-inverse)" : and ? "transparent" : "var(--surface-fill)",
+        color: on ? and ? "var(--moss-700)" : "var(--text-inverse)" : "var(--text-primary)",
+        boxShadow: and && !on ? "inset 0 0 0 1px var(--a-outline)" : "none"
+      }
+    }, glyph ? /*#__PURE__*/React.createElement(LooseGlyph, {
+      name: glyph,
+      size: 14
+    }) : null, name, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 400,
+        opacity: .7
+      }
+    }, n));
+  };
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Section, {
+    count: live.length
+  }, "Not in a thread"), types.length > 1 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      overflowX: "auto",
+      scrollbarWidth: "none",
+      padding: web ? "0 0 6px" : "0 var(--gutter-screen) 6px"
+    }
+  }, chip(null, null, "All", live.length), types.map(([k, g, n]) => chip(k, g, n, live.filter(i => i.type === k).length))) : null, shown.map((it, i) => /*#__PURE__*/React.createElement(LooseRow, {
+    key: it.id,
+    item: it,
+    threads: threads,
+    and: and,
+    web: web,
+    border: i < shown.length - 1,
+    onAccept: () => accept(it),
+    onDismiss: () => setDismissed(d => ({
+      ...d,
+      [it.id]: 1
+    })),
+    onDelete: () => {
+      setGone(g => ({
+        ...g,
+        [it.id]: 1
+      }));
+      onToast && onToast("Deleted");
+    }
+  })), list.length > LOOSE_SHOWN ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: web ? "var(--space-4) 0 0" : "var(--space-5) var(--gutter-screen) 0"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => onOpenAll && onOpenAll(type),
+    style: {
+      all: "unset",
+      cursor: "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      minHeight: 44,
+      font: "var(--weight-medium) 14px/1 var(--font-core)",
+      color: "var(--text-secondary)"
+    }
+  }, "All " + list.length + (label ? " " + label : ""), /*#__PURE__*/React.createElement(LooseGlyph, {
+    name: "chevron-right",
+    size: 14
+  }))) : null);
+}
+Object.assign(window, {
+  LooseGroup,
+  LooseRow,
+  LooseSuggestion,
+  LOOSE_TYPES
+});
+})(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/mobile_app/LooseParts.jsx", error: String((e && e.message) || e) }); }
+
 // ui_kits/mobile_app/MemoriesScreen.jsx
 try { (() => {
 const OFFLOAD_DS = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
@@ -18307,6 +18609,7 @@ function ThreadRow({
   }));
 }
 function ThreadsScreen({
+  onToast,
   spaces,
   onOpen,
   onNew,
@@ -18324,7 +18627,6 @@ function ThreadsScreen({
   const [restH, setRestH] = React.useState(0);
   const live = spaces.filter(s => (hidden || []).indexOf(s.id) < 0);
   const now = live.filter(s => s.kind === "now");
-  const always = live.filter(s => s.kind === "always");
   const older = live.filter(s => s.kind === "older");
   const shownOlder = older.slice(0, OLDER_SHOWN);
   const restOlder = older.slice(OLDER_SHOWN);
@@ -18374,16 +18676,12 @@ function ThreadsScreen({
     onOpen: onOpen,
     onDelete: onDelete,
     border: i < now.length - 1
-  })), /*#__PURE__*/React.createElement(SectionHeader, {
-    tone: "accent",
-    count: always.length
-  }, "Always on"), always.map((s, i) => /*#__PURE__*/React.createElement(ThreadRow, {
-    key: s.id,
-    thread: s,
-    onOpen: onOpen,
-    onDelete: onDelete,
-    border: i < always.length - 1
-  })), /*#__PURE__*/React.createElement(SectionHeader, {
+  })), /*#__PURE__*/React.createElement(LooseGroup, {
+    items: (window.OFFLOAD_DATA || {}).loose || [],
+    threads: spaces,
+    Section: SectionHeader,
+    onToast: onToast
+  }), /*#__PURE__*/React.createElement(SectionHeader, {
     count: older.length
   }, "Older threads"), shownOlder.map((s, i) => /*#__PURE__*/React.createElement(ThreadRow, {
     key: s.id,
@@ -19816,8 +20114,8 @@ try { (() => {
   }
   window.OFFLOAD_DATA = {
     todayIso: TODAY,
-    /* Three kinds of thread: ones with an end (for now), ones that never close
-       (always on), and ones that have gone quiet (older threads). */
+    /* One list by last activity, then older threads (gone quiet). Always on was retired on
+       1 October 2026; a slow thread sinks and comes back up when something lands. */
     spaces: [{
       id: "lisbon",
       name: "Lisbon trip",
@@ -19846,7 +20144,7 @@ try { (() => {
       id: "read",
       name: "Read later",
       icon: "bookmark",
-      kind: "always",
+      kind: "now",
       count: 23,
       people: [],
       meta: "23 things · 4 unread this week"
@@ -19854,7 +20152,7 @@ try { (() => {
       id: "home",
       name: "Flat admin",
       icon: "house",
-      kind: "always",
+      kind: "now",
       count: 6,
       people: ["Sam"],
       meta: "6 things · Sam"
@@ -19862,7 +20160,7 @@ try { (() => {
       id: "gifts",
       name: "Gift ideas",
       icon: "bookmark",
-      kind: "always",
+      kind: "now",
       count: 11,
       people: [],
       meta: "11 things · just you"
@@ -19906,6 +20204,115 @@ try { (() => {
       count: 27,
       people: [],
       meta: "27 things · finished last year"
+    }],
+    /* Things without a thread (1 October 2026). On main these live in the account's default
+       thread, which is never drawn as a thread. sug: an existing thread id (to), or a proposed
+       new thread with the ids it would hold (name, with). */
+    loose: [{
+      id: "l1",
+      type: "note",
+      icon: "text-quote",
+      title: "Oak brackets, 30cm, matte black",
+      meta: "Note \u00b7 just now",
+      sug: {
+        name: "Kitchen shelves",
+        with: ["l1", "l6", "l7"]
+      }
+    }, {
+      id: "l2",
+      type: "photo",
+      icon: "image",
+      title: "Boiler service receipt",
+      meta: "Photo \u00b7 Monday",
+      sug: {
+        to: "home"
+      }
+    }, {
+      id: "l3",
+      type: "link",
+      icon: "link",
+      title: "Miso aubergine, a recipe",
+      meta: "Link \u00b7 yesterday"
+    }, {
+      id: "l4",
+      type: "event",
+      icon: "calendar",
+      title: "Drinks with Priya",
+      meta: "Event \u00b7 Thursday 19:00"
+    }, {
+      id: "l5",
+      type: "link",
+      icon: "link",
+      title: "Hotels near Alfama",
+      meta: "Link \u00b7 Sunday",
+      sug: {
+        to: "lisbon"
+      }
+    }, {
+      id: "l6",
+      type: "link",
+      icon: "link",
+      title: "Wall plugs for plasterboard",
+      meta: "Link \u00b7 Sunday",
+      sug: {
+        name: "Kitchen shelves",
+        with: ["l1", "l6", "l7"]
+      }
+    }, {
+      id: "l7",
+      type: "photo",
+      icon: "image",
+      title: "Photo of the alcove",
+      meta: "Photo \u00b7 Saturday",
+      sug: {
+        name: "Kitchen shelves",
+        with: ["l1", "l6", "l7"]
+      }
+    }, {
+      id: "l8",
+      type: "todo",
+      icon: "square-check-big",
+      title: "Renew passport",
+      meta: "To-do \u00b7 no date"
+    }, {
+      id: "l9",
+      type: "todo",
+      icon: "square-check-big",
+      title: "Call the landlord about the damp",
+      meta: "To-do \u00b7 no date",
+      sug: {
+        to: "home"
+      }
+    }, {
+      id: "l10",
+      type: "link",
+      icon: "link",
+      title: "A podcast on sleep",
+      meta: "Link \u00b7 last week"
+    }, {
+      id: "l11",
+      type: "note",
+      icon: "text-quote",
+      title: "Ana's shoe size is 38",
+      meta: "Note \u00b7 last week"
+    }, {
+      id: "l12",
+      type: "link",
+      icon: "link",
+      title: "Flat-pack desk, 120cm",
+      meta: "Link \u00b7 2 weeks ago"
+    }, {
+      id: "l13",
+      type: "photo",
+      icon: "image",
+      title: "Parking sign on Elm Road",
+      meta: "Photo \u00b7 2 weeks ago"
+    }, {
+      id: "l14",
+      type: "todo",
+      icon: "square-check-big",
+      title: "Return the library books",
+      meta: "To-do \u00b7 no date"
     }],
     today: [{
       id: 1,
@@ -22131,7 +22538,7 @@ function WThings({
   pending,
   onOpenInvite
 }) {
-  const groups = [["For now", "now", null], ["Always on", "always", "accent"], ["Older threads", "older", null]];
+  const groups = [["For now", "now", null], ["Not in a thread", "loose", null], ["Older threads", "older", null]];
   const [allOlder, setAllOlder] = React.useState(false);
   const alive = D.spaces.filter(s => !dead[s.id]);
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(WPaneHead, {
@@ -22144,6 +22551,13 @@ function WThings({
     initials: pending.initials,
     onOpen: onOpenInvite
   }) : null, groups.map(([label, kind, tone]) => {
+    if (kind === "loose") return /*#__PURE__*/React.createElement(LooseGroup, {
+      key: "loose",
+      web: true,
+      items: D.loose || [],
+      threads: D.spaces,
+      Section: WSection
+    });
     let list = D.spaces.filter(s => s.kind === kind);
     const total = list.filter(s => !dead[s.id]).length;
     if (kind === "older" && !allOlder) list = list.slice(0, 3);

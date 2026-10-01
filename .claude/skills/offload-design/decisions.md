@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-01 · Things without a thread, and Always on retired
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, off `explorations/loose-items.html`. Handoff: `handoff/APPLY-2026-10-01-loose.md`.
+
+**Was:** a dump with no obvious home went in Miscellaneous, an ordinary thread that `accounts.default_thread_id` points at, drawn in My threads under **Always on** with Read later, Flat admin and Gift ideas. offload said *Saved to Miscellaneous.*
+
+**Is:** **Always on is gone**: My threads is one list by last activity, then Older threads; a slow thread sinks and comes back up when something lands. **The default thread is storage, never drawn as a thread**: not in My threads, not as a pill, not in the move sheet's list, not shareable. Its contents are a group, **Not in a thread**, between the list and Older threads: the things themselves with their type tile, type chips that filter the group in place (three rows, then *All 5 links*), and *All 14* to a pushed screen of the same rows newest first. **A row can carry one suggestion**, drawn under it as one button: *Move to* an existing thread on moss soft ground with the lasso, or *Create* a new thread on paper with a dashed moss outline, a plus and *new thread*; the cross beside it dismisses for good. Move to comes from the planner at filing time when it was not confident enough to file; Create from a daily job, only for two or more things, and opens a sheet with the name and the things, each untickable. offload's reply for a thing it files without a thread is *Saved.*
+
+**Considered and not taken:** a nullable `thread_id` with account-key encryption; sorting by type as homes; leaving loose things to Today and search alone; a tray above the composer; loose things fading into Memories; tapping the pill to accept; pinning, for now.
+
+**Design system impact:** `readme.md` gains **Not in a thread**; the moss role drops Always on; the 27 August naming of Miscellaneous is superseded. `ui_kits/mobile_app/LooseParts.jsx`, shared by the three kits, and `OFFLOAD_DATA.loose`; `kind:"always"` is gone from fixtures.
+
 ### 2026-10-01 · Today as built (027)
 **Surface:** iOS, Android, web
 **Raised by:** the 027 build of `handoff/APPLY-2026-10-01-today.md`, with the product owner's answers during planning and on the simulator, and the project-lead, client and security reviews. Spec and divergences: `docs/specs/027-today/feature-spec.md`, `at-merge.md`.
