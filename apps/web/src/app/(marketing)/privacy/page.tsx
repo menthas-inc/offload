@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
 };
 
-const UPDATED = "1 October 2026";
+const UPDATED = "2 October 2026";
 
 function Todo({ children }: { children: ReactNode }) {
   return <span className={styles.todo}>{children}</span>;
@@ -176,6 +176,12 @@ export default function Privacy() {
               true about it, or how you want it handled. You write some of them and offload writes
               others from what you dumped, and they are what lets it be useful without your whole
               history in front of it. Plus the numeric representations that make search work.
+            </li>
+            <li>
+              <strong>Suggestions.</strong> When offload puts something down without a thread, it
+              may suggest a thread it could go in, and once a day it looks over those things and
+              may propose a new thread for two or more that belong together. Nothing moves until
+              you tap the suggestion.
             </li>
           </ul>
 
@@ -662,6 +668,11 @@ export default function Privacy() {
               it was on, is gone for good, inside the 30 days above.
             </li>
             <li>
+              <strong>A dismissed suggestion.</strong> When you dismiss one, offload keeps a record
+              that you did, with no words in it, so it never suggests anything for that thing again.
+              It goes when the thing does. A proposal it no longer makes is removed.
+            </li>
+            <li>
               <strong>Anything else you delete: immediately, then 30 days.</strong> It goes from the live
               database and from file storage as soon as you ask. Our backups, which exist so a bad
               day is recoverable, roll over within 30 days, and after that it is gone from those
@@ -693,7 +704,9 @@ export default function Privacy() {
             <strong>Sharing is a deliberate act, on one thread, with one person you already know.</strong>{" "}
             offload has no public links and nothing is shared by default. You pick a thread and you
             pick a connection, someone you and they have both agreed to be connected to, and you do
-            it again for the next thread. Nothing arrives in a shared thread by accident.
+            it again for the next thread. Nothing arrives in a shared thread without you. offload
+            may suggest a shared thread for something you put down, and the suggestion shows who is
+            in it; it moves only when you tap it, and you can undo it for a few seconds after.
           </p>
           <p>
             <strong>What you put in a shared thread becomes part of a shared record.</strong> The
