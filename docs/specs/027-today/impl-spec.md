@@ -28,7 +28,7 @@ Five parts, in this order, each shippable behind the old screen until part 3 lan
 
 **Indexes.**
 - `connector_events (account_id, occurs_at) where deleted_at is null` exists (0049) and serves the day's events.
-- **New** `content_thread_due_idx on content (thread_id, due_at) where due_at is not null and done_at is null and deleted_at is null and archived_at is null`, for the day's rows and the picks' *has something due soon* test. The view `readable_content` joins `thread_members` on `thread_id`, so thread leads.
+- `content_thread_due_idx (thread_id, due_at) where due_at is not null and deleted_at is null and archived_at is null` exists (0027) and serves the day's rows and the picks' *has something due soon* test. The view `readable_content` joins `thread_members` on `thread_id`, so thread leads.
 - `content_thread_dated_idx (thread_id, occurs_at)` exists and serves offload's events.
 - `content_rule_idx (thread_id) where rrule is not null` exists and serves repeating rows.
 - **New** `content_picks_idx on content (account_id, created_at) where type = 'task' and due_at is null and rrule is null and done_at is null and archived_at is null and deleted_at is null`.
@@ -66,8 +66,6 @@ alter table connector_events add column link text
 -- Every synced event lacks a link; the next pass reads each calendar whole.
 update connector_calendars set sync_token = null;
 
-create index content_thread_due_idx on content (thread_id, due_at)
-  where due_at is not null and done_at is null and deleted_at is null and archived_at is null;
 create index content_picks_idx on content (account_id, created_at)
   where type = 'task' and due_at is null and rrule is null
     and done_at is null and archived_at is null and deleted_at is null;

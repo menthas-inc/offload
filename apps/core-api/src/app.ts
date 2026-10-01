@@ -27,6 +27,7 @@ import { wellKnownRoutes } from "./routes/well-known.js";
 import { blobRoutes } from "./routes/blobs.js";
 import { peopleRoutes } from "./routes/people.js";
 import { notificationRoutes } from "./routes/notifications.js";
+import { todayRoutes } from "./routes/today.js";
 import { sharingRoutes } from "./routes/sharing.js";
 import { MAX_PHOTO_BYTES } from "./blobs/photos.js";
 import { mailInRoutes } from "./routes/mail-in.js";
@@ -142,6 +143,7 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
   await app.register(blobRoutes);
   await app.register(peopleRoutes);
   await app.register(notificationRoutes);
+  await app.register(todayRoutes);
   await app.register(sharingRoutes);
   await app.register(mailInRoutes, {
     secret: options.resendWebhookSecret ?? env.RESEND_WEBHOOK_SECRET,

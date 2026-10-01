@@ -708,7 +708,7 @@ export async function storeQuestions(
 
 // ---------------------------------------------------------------- read
 
-function onWire(row: {
+export function onWire(row: {
   id: string;
   field: string;
   text: string;
