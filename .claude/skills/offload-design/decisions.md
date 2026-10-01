@@ -11,6 +11,19 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-02 · The composer closes for the day
+**Surface:** iOS, Android, web
+**Raised by:** the daily limits (`docs/tech/decisions.md`, 2026-10-02): once an account has spent the day's model budget or started its hundred turns, a dump can only be refused.
+
+**Was:** no kit draws a closed composer. A refused send put *Enough for today.* in the line under the composer and handed the words back, and the next send was refused again.
+
+**Is:**
+- **The field gives way to one line in its place**, *Enough for today. Back tomorrow.*, in the field's own type and padding so the composer keeps its height, in `--text-secondary` rather than the disabled grey, because it is read.
+- **Photo, voice and Send are disabled** on the same state; the rest of the app is untouched.
+- **It closes on load** when the account says it is at the limit, and on a refused send before the account is read again.
+
+**Design system impact:** add the closed state to `Composer` in the mobile, Android and web kits: the line in the field's place, controls disabled. Copy is fixed: *Enough for today. Back tomorrow.*
+
 ### 2026-10-02 · Not in a thread as built (028)
 **Surface:** iOS, Android, web
 **Raised by:** the 028 build of `handoff/APPLY-2026-10-01-loose.md`, with the product owner's answers during planning and the project-lead, client and security reviews. Spec and divergences: `docs/specs/028-loose/feature-spec.md`, `at-merge.md`.
