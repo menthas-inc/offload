@@ -48,6 +48,8 @@ from offload_agent.harness.plan import (
 )
 from offload_agent.label_sort import KINDS as LABEL_SORT_KINDS
 from offload_agent.label_sort import handle_label_sort
+from offload_agent.loose_propose import KINDS as LOOSE_PROPOSE_KINDS
+from offload_agent.loose_propose import handle_loose_propose
 from offload_agent.og import picture
 from offload_agent.queue import ClaimedJob, claim, finish, reap, release_for_retry, retry_or_die
 from offload_agent.renditions import prepare
@@ -74,6 +76,7 @@ KINDS = [
     *EMBED_KINDS,
     *COMPACT_KINDS,
     *LABEL_SORT_KINDS,
+    *LOOSE_PROPOSE_KINDS,
 ]
 
 
@@ -931,6 +934,17 @@ async def handle(
             log.error("compaction failed", kind=job.kind, error=type(exc).__name__)
             async with engine.begin() as conn:
                 await retry_or_die(conn, job, "compact_error", delay_seconds=3600)
+        return
+
+    if job.kind in LOOSE_PROPOSE_KINDS:
+        # 028. Nobody is waiting on a proposal either, and the same guard: the
+        # type, never the value, since the request is somebody's loose things.
+        try:
+            await handle_loose_propose(job, cfg=cfg, engine=engine, http=http, client=anthropic)
+        except Exception as exc:
+            log.error("loose proposal failed", kind=job.kind, error=type(exc).__name__)
+            async with engine.begin() as conn:
+                await retry_or_die(conn, job, "loose_error", delay_seconds=3600)
         return
 
     if job.kind in LABEL_SORT_KINDS:

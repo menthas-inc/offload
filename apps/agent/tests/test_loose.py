@@ -128,3 +128,56 @@ def test_a_stopped_turn_says_saved_for_what_landed_loose():
     assert _partial_reply(Outcome(reply=None, landed=[loose])) == "Saved."
     assert _partial_reply(Outcome(reply=None, landed=[loose, lisbon])) == "Saved to Lisbon trip."
     assert _partial_reply(Outcome(reply=None, landed=[lisbon])) == "Saved to Lisbon trip."
+
+
+def _evals():
+    import importlib.util
+    import sys
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[1] / "evals" / "run.py"
+    spec = importlib.util.spec_from_file_location("evals_run", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["evals_run"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+async def test_the_eval_stub_answers_not_in_a_thread_as_the_server_does():
+    run = _evals()
+    case = run.Case(
+        id="x", why="", surface="file", input="x", expect={}, principle="02", fixture={}
+    )
+    recorder = run.Recorder(case, "x")
+    out = await recorder(
+        "add_content",
+        "c1",
+        {"thread_id": "00000003-0000-0000-0000-000000000000", "title": "x", "type": "task"},
+    )
+    assert out["threadName"] == "not in a thread"
+    out = await recorder(
+        "add_content",
+        "c2",
+        {"thread_id": "00000001-0000-0000-0000-000000000000", "title": "x", "type": "task"},
+    )
+    assert out["threadName"] == "Lisbon trip"
+
+
+def test_an_eval_case_can_ask_for_a_suggestion_or_for_none():
+    run = _evals()
+    loose = "00000003-0000-0000-0000-000000000000"
+    lisbon = "00000001-0000-0000-0000-000000000000"
+    with_one = [
+        ("add_content", {"thread_id": loose, "title": "hotel", "suggest_thread_id": lisbon})
+    ]
+    without = [("add_content", {"thread_id": loose, "title": "hotel"})]
+    assert (
+        run._match_filing({"thread": "Miscellaneous", "suggest": "Lisbon trip"}, with_one, {})
+        is None
+    )
+    assert (
+        run._match_filing({"thread": "Miscellaneous", "suggest": "Lisbon trip"}, without, {})
+        is not None
+    )
+    assert run._match_filing({"no_suggest": True}, without, {}) is None
+    assert run._match_filing({"no_suggest": True}, with_one, {}) is not None

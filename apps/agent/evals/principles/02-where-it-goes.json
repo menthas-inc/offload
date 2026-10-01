@@ -6,7 +6,8 @@
     "004 AC-2 (default thread by id)",
     "004 AC-6 (by id, never by name)",
     "018: where something goes is never asked",
-    "plan_v2.md: Filing"
+    "plan_v2.md: Filing",
+    "028: suggest_thread_id"
   ],
   "cases": [
     {
@@ -335,6 +336,56 @@
       ],
       "expect": {
         "asks": "none"
+      }
+    },
+    {
+      "id": "loose-with-a-home-in-mind",
+      "why": "028: filed loose with a near home it was not sure of, that home is suggested",
+      "surface": "file",
+      "input": "a guy at work recommended a plasterer, Tony 07700 900123",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "thread": "Miscellaneous",
+            "suggest": "Flat admin"
+          }
+        ],
+        "say": null,
+        "creates_thread": false
+      }
+    },
+    {
+      "id": "loose-with-no-home-suggests-nothing",
+      "why": "028: most filings carry no suggestion",
+      "surface": "file",
+      "input": "renew the library card",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "thread": "Miscellaneous",
+            "no_suggest": true
+          }
+        ],
+        "say": null,
+        "creates_thread": false
+      }
+    },
+    {
+      "id": "a-sure-home-is-filed-not-suggested",
+      "why": "028: confidence files into the thread; a suggestion is only for doubt",
+      "surface": "file",
+      "input": "the boiler service is booked for next Tuesday",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "thread": "Flat admin",
+            "no_suggest": true
+          }
+        ],
+        "say": null
       }
     }
   ]

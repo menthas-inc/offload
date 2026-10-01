@@ -557,7 +557,10 @@ class Recorder:
             out: dict[str, Any] = {
                 "ok": True,
                 "threadId": thread_id,
-                "threadName": named.name if named else "Miscellaneous",
+                # 028. The default thread's name never reaches the model, as on
+                # the server: a stub that answered "Miscellaneous" would let a
+                # reply say it back and pass.
+                "threadName": named.name if named and not named.is_default else "not in a thread",
                 "notes": _notes_for(fx, "notes", thread_id),
                 "notesFromMembers": _notes_for(fx, "notes_from_members", thread_id),
                 "notesFromApps": _notes_for(fx, "notes_from_apps", thread_id),
@@ -793,6 +796,13 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
             if name.lower() == matcher["thread_not"].lower():
                 return False
         if "thread_id" in matcher and str(args.get("thread_id")) != matcher["thread_id"]:
+            return False
+        # 028. The suggested thread on a filing into the default thread.
+        if "suggest" in matcher:
+            name = threads.get(str(args.get("suggest_thread_id") or ""), "")
+            if name.lower() != matcher["suggest"].lower():
+                return False
+        if matcher.get("no_suggest") and args.get("suggest_thread_id"):
             return False
         text = " ".join(str(args.get(k) or "") for k in ("title", "text", "name", "body"))
         for needle in matcher.get("has", []):

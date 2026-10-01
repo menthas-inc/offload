@@ -52,7 +52,6 @@ create index notes_thread_current_idx on notes (subject_id, id desc)
 alter table accounts add column loose_pass_key text;
 
 -- The worker reads the candidates and writes nothing: its proposal goes to the
--- Core API, which decides.
-grant select (suggest_dismissed_at) on content to offload_agent;
-grant select (suggest_dismissed_at) on notes to offload_agent;
+-- Core API, which decides. It already reads content and notes whole; of
+-- suggestions it needs only which things carry one.
 grant select (content_id, note_id) on suggestions to offload_agent;

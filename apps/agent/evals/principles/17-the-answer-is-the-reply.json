@@ -309,9 +309,10 @@
       "may_read_links": false,
       "has_calendar": true,
       "expect": {
-        "rubric": "Says Inbox, the default thread. One short sentence, nothing else.",
+        "rubric": "Says what has no obvious home is kept not in a thread. Names no thread for it (028). One short sentence, nothing else.",
         "must_not_contain": [
-          "calendar"
+          "calendar",
+          "inbox"
         ],
         "max_words": 16
       }
@@ -516,10 +517,11 @@
       "may_read_links": false,
       "has_calendar": true,
       "expect": {
-        "rubric": "Says Odds and ends. One short sentence, nothing else.",
+        "rubric": "Says there is no catch-all thread: what has no home is kept not in a thread. Names no thread for it (028). One short sentence, nothing else.",
         "must_not_contain": [
           "calendar",
-          "fieldwork"
+          "fieldwork",
+          "odds and ends"
         ],
         "max_words": 14
       }
@@ -764,9 +766,10 @@
       "may_read_links": false,
       "has_calendar": true,
       "expect": {
-        "rubric": "Says Miscellaneous. Nothing else.",
+        "rubric": "Says what has no obvious home is kept not in a thread. Names no thread for it (028). Nothing else.",
         "must_not_contain": [
-          "calendar"
+          "calendar",
+          "miscellaneous"
         ],
         "max_words": 12
       }
