@@ -62,10 +62,13 @@ export interface Colors {
   textNoticed: string;
   shadow: string;
   /** `--shadow-2`, spelled the way the row that lifts off the list can draw it:
-   *  the colour, and whether the theme's shadow is a blur or a hard line. It is
-   *  the one shadow token with a value in dark, so it is the only one a lift may
-   *  take. */
+   *  the colour, and whether the theme's shadow is a blur or a hard line.
+   *  `--shadow-1` is `none` in dark, so a lift takes the second. */
   shadowLift: { color: string; offsetY: number; radius: number };
+  /** `--shadow-sheet`, whole: the plate's shadow up onto the screen. React
+   *  Native draws a `boxShadow` string on both platforms, which the old shadow
+   *  props could not, since Android reads them as `elevation` lit from above. */
+  plateShadow: string;
   /** The quietest ink there is. Not `iconOnWell`, which is `text-secondary`
    *  and a visibly different grey: the fourth dot kind was that on a phone and
    *  `text-tertiary` on web, which is one legend drawn two ways. */
@@ -164,7 +167,7 @@ export function paletteFor(dark: boolean): Colors {
     /** The lift's own shadow, as a colour rather than a CSS string.
      *
      *  `--shadow-1` and `--shadow-2` are whole `box-shadow` declarations, which
-     *  React Native cannot take, and in the dark scope `--shadow-1` is the
+     *  the lift's shadow props cannot take, and in the dark scope `--shadow-1` is the
      *  keyword `none`. So the two scopes are expressed here as the one thing RN
      *  needs: light gets the blurred drop's colour, dark gets the hard 1px
      *  line's, and the caller picks its geometry. Same values, same two rules,
@@ -173,6 +176,7 @@ export function paletteFor(dark: boolean): Colors {
     shadowLift: dark
       ? { color: "rgba(255,255,255,0.04)", offsetY: 1, radius: 0 }
       : { color: "rgba(11,11,11,0.08)", offsetY: 4, radius: 8 },
+    plateShadow: base["shadow-sheet"] ?? light["shadow-sheet"]!,
     inverse: base["surface-inverse"] ?? light["surface-inverse"]!,
     viewerPlane: dark
       ? (base["surface-plate"] ?? light["surface-plate"]!)

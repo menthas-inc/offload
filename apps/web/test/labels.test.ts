@@ -218,3 +218,18 @@ describe("the privacy page says labels (AC-34)", () => {
     expect(page).not.toMatch(/All of it is on the thread/);
   });
 });
+
+describe("a sent digest in Activity", () => {
+  // 2026-09-30, the owner's call: the row opens Today, where the notification
+  // itself opens, rather than being a record that goes nowhere.
+  it("opens Today, and a suppressed one still opens the setting", async () => {
+    const activity = await import("../src/lib/notifications");
+    const row = {
+      id: "a2", kind: "digest" as const, sent: true, reason: null, title: "Five still open", body: "Call the plumber, and four more.",
+      send: "morning" as const, threadId: null, contentId: null, memberId: null, requestId: null, occurredAt: "2026-09-30T07:00:00Z",
+      undoable: false, undone: false,
+    };
+    expect(activity.doorOf(row)).toBe("/today");
+    expect(activity.doorOf({ ...row, sent: false, reason: "setting" as const })).toBe("/settings/notifications");
+  });
+});

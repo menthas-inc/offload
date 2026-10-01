@@ -2,10 +2,12 @@
 //
 // One template with three arms, so a sentence is testable rather than judged
 // per send: one is named, two to four are listed, five or more name the first
-// two and count the rest. The title is verb-free and subject-free, Due today
-// or Tomorrow, never "You have 3 tasks due". Overdue is a second sentence and
-// never a second notification. An event says its hour and a task says nothing
-// about time even when it has one. Another member's row is named with its
+// two and count the rest. The title is verb-free and subject-free and says the
+// day in counts, "Three today" or "One today, three from yesterday", never
+// "You have 3 tasks due" and never a person's words (2026-09-30). What is
+// still open is named after today's list and never a second notification.
+// An event says its hour and a task says nothing about time even when it has
+// one. Another member's row is named with its
 // author, yours never is, so the possessive itself carries the meaning. Every
 // string a person wrote is clamped before it is rendered, and the words are
 // stored verbatim on the Activity row and never rendered again.
@@ -46,6 +48,7 @@ export interface Copy {
   body: string | null;
 }
 
+/** The switches' names, which a suppressed digest's title names. */
 const TITLES: Record<Send, string> = { morning: "Due today", evening: "Tomorrow" };
 
 const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
@@ -59,19 +62,20 @@ export function count(n: number): string {
  *  string so no editor can turn an escape into the character itself. */
 const CONTROL = new RegExp("[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]+", "g");
 
+/** One line, control characters stripped, and no bound: for a whole
+ *  notification's words, which its own column bounds. */
+export function oneLine(text: string): string {
+  return text.replace(CONTROL, " ").replace(/\s+/g, " ").trim();
+}
+
 /** One line, control characters stripped, 120 characters. */
 export function clamp(text: string): string {
-  return clampTo(text, CLAMP);
+  return oneLine(text).slice(0, CLAMP).trim();
 }
 
 /** The same, to another length. 026 keeps an email's subject to 300. */
 export function clampTo(text: string, max: number): string {
-  return text
-    .replace(CONTROL, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, max)
-    .trim();
+  return oneLine(text).slice(0, max).trim();
 }
 
 export function capital(sentence: string): string {
@@ -104,10 +108,10 @@ function possessive(author: string): string {
 }
 
 /** The phrase one row becomes in a list. */
-function phrase(row: DigestRow, zone: string | null): string {
+function phrase(row: DigestRow, zone: string | null, hour = true): string {
   const title = clamp(row.title);
   const named = row.author === null ? title : `${possessive(row.author)} ${title}`;
-  return row.type === "event" && row.at && !row.allDay ? `${named} at ${hourOf(row.at, zone)}` : named;
+  return hour && row.type === "event" && row.at && !row.allDay ? `${named} at ${hourOf(row.at, zone)}` : named;
 }
 
 /** The three arms over a list of phrases, with the rest counted. */
@@ -121,9 +125,9 @@ function listOf(phrases: string[], hidden: number): string {
   return `${head.join(", ")}, and ${tail}.`;
 }
 
-/** At most two rows by any one other member are named; the rest are counted. */
-function capped(rows: DigestRow[]): { named: DigestRow[]; hidden: number } {
-  const seen = new Map<string, number>();
+/** At most two rows by any one other member are named; the rest are counted.
+ *  `seen` is shared across a send's lists, so the bound is per send. */
+function capped(rows: DigestRow[], seen = new Map<string, number>()): { named: DigestRow[]; hidden: number } {
   const named: DigestRow[] = [];
   let hidden = 0;
   for (const row of rows) {
@@ -139,18 +143,28 @@ function capped(rows: DigestRow[]): { named: DigestRow[]; hidden: number } {
   return { named, hidden };
 }
 
-/** The overdue sentence: one for the count, from the day or from last week. */
-function overdueSentence(overdue: DigestRow[], today: string, locale: string): string {
-  if (overdue.length === 0) return "";
+/** Where the oldest overdue row is from: yesterday, a weekday, or last week. */
+function fromOf(overdue: DigestRow[], today: string, locale: string): string {
   const oldest = [...overdue].map((row) => row.day).sort()[0]!;
   const daysAgo = Math.round((noonUtc(today).getTime() - noonUtc(oldest).getTime()) / 86_400_000);
-  const from = daysAgo >= 7 ? "last week" : weekdayOf(oldest, locale);
-  const n = overdue.length;
-  return `${capital(count(n))} ${n === 1 ? "is" : "are"} from ${from}.`;
+  if (daysAgo >= 7) return "last week";
+  return daysAgo === 1 ? "yesterday" : weekdayOf(oldest, locale);
+}
+
+/** The title, in counts: "Three today", "Five still open", "One today, three
+ *  from yesterday", "Two tomorrow". Never a person's words, 024's rule for a
+ *  digest title. 2026-09-30. */
+function titleOf(send: Send, rows: DigestRow[], overdue: DigestRow[], today: string, locale: string): string {
+  const due = rows.length > 0 ? `${count(rows.length)} ${send === "morning" ? "today" : "tomorrow"}` : "";
+  if (overdue.length === 0) return capital(due);
+  if (!due) return `${capital(count(overdue.length))} still open`;
+  return `${capital(due)}, ${count(overdue.length)} from ${fromOf(overdue, today, locale)}`;
 }
 
 /** A digest's title and body. `rows` are what lands in the send's day;
- *  `overdue` the reminders one to seven days late, morning only. */
+ *  `overdue` the reminders one to seven days late, morning only. The body
+ *  names today's rows, then a repeating row's clause, then what is still
+ *  open, named the same way but never with an hour. */
 export function digestCopy(
   send: Send,
   rows: DigestRow[],
@@ -160,20 +174,31 @@ export function digestCopy(
   locale = "en",
 ): { title: string; body: string } {
   const coming = rows.filter((row) => row.repeating && !row.daily);
-  const { named, hidden } = capped(rows.filter((row) => !(row.repeating && !row.daily)));
+  const seen = new Map<string, number>();
+  const { named, hidden } = capped(
+    rows.filter((row) => !(row.repeating && !row.daily)),
+    seen,
+  );
   const sentences: string[] = [];
   const list = listOf(
     named.map((row) => phrase(row, zone)),
     hidden,
   );
   if (list) sentences.push(capital(list));
-  const late = overdueSentence(overdue, today, locale);
-  if (late) sentences.push(late);
   for (const row of coming) {
     const named = row.author === null ? clamp(row.title) : `${possessive(row.author)} ${clamp(row.title)}`;
     sentences.push(`${capital(named)} is back on ${weekdayOf(row.day, locale)}.`);
   }
-  return { title: TITLES[send], body: sentences.join(" ") };
+  const late = capped(overdue, seen);
+  // Every overdue row can be past its member's two, which leaves a count alone.
+  const open =
+    late.named.length > 0
+      ? capital(listOf(late.named.map((row) => phrase(row, null, false)), late.hidden))
+      : late.hidden > 0
+        ? `${capital(count(late.hidden))} more.`
+        : "";
+  if (open) sentences.push(sentences.length > 0 ? `Still open: ${open}` : open);
+  return { title: titleOf(send, rows, overdue, today, locale), body: sentences.join(" ") };
 }
 
 /** The title of a digest that was suppressed by its switch. */

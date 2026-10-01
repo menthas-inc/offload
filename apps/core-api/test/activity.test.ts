@@ -61,6 +61,19 @@ describe("024 AC-17 and AC-21 a row", () => {
     expect(row.title.length).toBeLessThanOrEqual(200);
     expect(row.body?.length).toBeLessThanOrEqual(600);
   });
+
+  // Found in review, 2026-09-30: the words went through the 120 character
+  // clamp for a person's single string, so a digest naming four rows and
+  // what is still open was stored cut mid-word, and Activity draws it now.
+  it("keeps the words as sent up to what the columns hold, on one line", async () => {
+    const me = await account();
+    const body = `${"Pay the rent, ".repeat(20)}and Call the clinic.`;
+    const title = `Ana shared ${"Lisbon trip ".repeat(12)}`.trim();
+    await record(me, { kind: "share", sent: true, title: `${title}\n`, body: `${body}\n` });
+    const row = await db.selectFrom("activity").select(["title", "body"]).where("account_id", "=", me).executeTakeFirstOrThrow();
+    expect(row.title).toBe(title);
+    expect(row.body).toBe(body);
+  });
 });
 
 describe("024 AC-18 the list, and AC-20 who may read it", () => {

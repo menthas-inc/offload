@@ -198,9 +198,9 @@ describe("024 AC-6 and AC-8 what the job decides", () => {
     const b = await token(me);
     expect(await runDigest(me, "morning", TODAY, at(`${TODAY}T07:00:00Z`), at(`${TODAY}T07:00:10Z`))).toBe("sent");
     expect(memory.sent.map((m) => [m.to, m.title, m.body, m.categoryId, m.channelId, m.data]).sort()).toEqual(
-      [a, b].sort().map((to) => [to, "Due today", "Pay the rent.", "digest_verbs", "due_today", { kind: "digest", send: "morning", contentId: id }]),
+      [a, b].sort().map((to) => [to, "One today", "Pay the rent.", "digest_verbs", "due_today", { kind: "digest", send: "morning", contentId: id }]),
     );
-    expect(await activityOf(me)).toEqual([{ kind: "digest", sent: true, reason: null, title: "Due today", body: "Pay the rent.", send: "morning", content_id: id }]);
+    expect(await activityOf(me)).toEqual([{ kind: "digest", sent: true, reason: null, title: "One today", body: "Pay the rent.", send: "morning", content_id: id }]);
     const receipts = await db.selectFrom("jobs").select(["kind", "payload"]).where("kind", "=", "push.receipts").execute();
     expect(receipts).toHaveLength(1);
     expect((receipts[0]?.payload as { tickets: unknown[] }).tickets).toHaveLength(2);
@@ -230,7 +230,7 @@ describe("024 AC-6 and AC-8 what the job decides", () => {
     const phoneless = await account();
     await reminder(phoneless, await thread([phoneless]), "Pay the rent", TODAY);
     expect(await runDigest(phoneless, "morning", TODAY, at(`${TODAY}T07:00:00Z`), at(`${TODAY}T07:00:10Z`))).toBe("skipped_permission");
-    expect(await activityOf(phoneless)).toEqual([{ kind: "digest", sent: false, reason: "permission", title: "Due today", body: "Pay the rent.", send: "morning", content_id: null }]);
+    expect(await activityOf(phoneless)).toEqual([{ kind: "digest", sent: false, reason: "permission", title: "One today", body: "Pay the rent.", send: "morning", content_id: null }]);
   });
 
   it("drops a job more than two hours late without a send or a record", async () => {
@@ -323,15 +323,15 @@ describe("024 review of 2026-09-22: what fails a send, and what a cap drops", ()
     expect(await db.selectFrom("jobs").select("id").where("kind", "=", "push.receipts").execute()).toEqual([]);
   });
 
-  // A pin, not a change: the overdue sentence counts a row and never names
-  // it, so a verb on a lone overdue row would act on something the
-  // notification never said. The verbs need the row to be the one named.
-  it("a digest whose only row is overdue carries no verbs, because the send counts it and never names it", async () => {
+  // The verbs are for a task due today. A lone overdue row is named since
+  // 2026-09-30, and still carries none: Tomorrow on a row a week late would
+  // be a second date change the notification never offered.
+  it("a digest whose only row is overdue names it and carries no verbs, which are for what is due today", async () => {
     const me = await account();
     await reminder(me, await thread([me]), "Call the clinic", "2026-09-20");
     await token(me);
     expect(await runDigest(me, "morning", TODAY, at(`${TODAY}T07:00:00Z`), at(`${TODAY}T07:00:10Z`))).toBe("sent");
-    expect(memory.sent.map((m) => [m.body, m.categoryId, m.data])).toEqual([["One is from Sunday.", "digest", { kind: "digest", send: "morning" }]]);
+    expect(memory.sent.map((m) => [m.body, m.categoryId, m.data])).toEqual([["Call the clinic.", "digest", { kind: "digest", send: "morning" }]]);
   });
 
   it("past the candidate cap, what is furthest off is dropped first, never what is due today", async () => {

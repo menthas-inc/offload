@@ -2719,16 +2719,9 @@ a.actRow:hover {
   font: var(--weight-medium) calc(15px * var(--type-scale)) / 1.35 var(--font-core);
 }
 
-/* 024's words under the title, one line quieter than it, two at most. */
+/* 2026-09-30. The words as sent, under the title: a digest's names. */
 .actBody {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-  margin-top: var(--space-1);
-  font-size: calc(13px * var(--type-scale));
-  line-height: 1.4;
+  font: var(--text-body-sm-role);
   color: var(--text-secondary);
 }
 
@@ -2794,12 +2787,4 @@ a.actRow:hover {
   margin: var(--space-2) 0 0;
   font: var(--weight-regular) calc(15px * var(--type-scale)) / 1.45 var(--font-core);
   color: var(--text-secondary);
-}
-
-/* 026. Copy is the Mail block's one action: a full 44px target, whatever the
-   section action beside a heading gets away with. */
-.mailCopy {
-  min-height: 44px;
-  height: auto;
-  padding-inline: var(--space-4);
 }

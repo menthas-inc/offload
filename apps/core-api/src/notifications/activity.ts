@@ -14,7 +14,7 @@
 import { sql, type Kysely, type Transaction } from "kysely";
 import { db } from "../db.js";
 import type { ActivityTable, Database } from "../schema.js";
-import { clamp } from "./copy.js";
+import { oneLine } from "./copy.js";
 import { mailUndoOpen } from "../mail-in/activity.js";
 
 type Executor = Kysely<Database> | Transaction<Database>;
@@ -55,8 +55,8 @@ export async function record(accountId: string, row: ActivityRow, trx: Executor 
       kind: row.kind,
       sent: row.sent,
       reason: row.sent ? null : (row.reason ?? "design"),
-      title: clamp(row.title).slice(0, 200),
-      body: row.body === null ? null : clamp(row.body).slice(0, 600),
+      title: oneLine(row.title).slice(0, 200),
+      body: row.body === null ? null : oneLine(row.body).slice(0, 600),
       send: row.send ?? null,
       thread_id: row.threadId ?? null,
       content_id: row.contentId ?? null,

@@ -126,14 +126,8 @@ export default function Activity() {
                       {whenOf(row.occurredAt, here, zone)}
                     </Text>
                   </View>
-                  {/* 024's words under the title: what was sent, or for 026
-                      the email's subject and what it left out. */}
                   {row.body ? (
-                    <Text
-                      className={`mt-space-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
-                      style={{ fontSize: 13.5, lineHeight: 19 }}
-                      numberOfLines={2}
-                    >
+                    <Text className={`pt-space-1 font-core text-body-sm leading-tight ${quiet}`}>
                       {row.body}
                     </Text>
                   ) : null}
@@ -165,7 +159,13 @@ export default function Activity() {
                 <View className="flex-row items-start">
                   <View className="flex-1">
                     {door ? (
-                      <Pressable onPress={() => router.push(door as never)} accessibilityRole="button" className="min-h-tap-min">
+                      <Pressable
+                        // A tab is gone back down to, never pushed on top,
+                        // as the plate's own tabs do.
+                        onPress={() => (door.pathname === "/today" ? router.dismissTo("/today") : router.push(door as never))}
+                        accessibilityRole="button"
+                        className="min-h-tap-min"
+                      >
                         {body}
                       </Pressable>
                     ) : (

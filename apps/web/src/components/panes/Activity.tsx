@@ -107,8 +107,6 @@ export function ActivityPane() {
                       <span className={pane.actTitle}>{row.title}</span>
                       <span className={pane.actWhen}>{when}</span>
                     </span>
-                    {/* 024's words under the title: what was sent, or for
-                        026 the email's subject and what it left out. */}
                     {row.body ? <span className={pane.actBody}>{row.body}</span> : null}
                     {tag ? <span className={`${pane.actTag} ${tag.tone === "quiet" ? pane.actTagQuiet : ""}`}>{tag.label}</span> : null}
                     {line === row.id ? <span className={pane.actFailed}>Couldn&apos;t undo that</span> : null}
