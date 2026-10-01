@@ -178,7 +178,7 @@ code { font-size: 12.5px; background: var(--fill); padding: 1px 5px; border-radi
   <section class="chart">
     <div class="chart-head">
       <h2>What one person costs a month</h2>
-      <p class="meta">Each bar runs from the cheapest configuration to the dearest: four filing models, three answering models, WhatsApp on or off in every market, the daily budget working or not, and every scale. The dot is what the controls above select. Hover or focus a row for the split and what drives each end.</p>
+      <p class="meta" id="person-note"></p>
       <div class="key"><span><i class="kbar"></i>Range across configurations</span><span><i class="kdot"></i>Selected</span><span class="meta">Log scale</span></div>
     </div>
     <div class="range" id="person"></div>
@@ -248,7 +248,7 @@ code { font-size: 12.5px; background: var(--fill); padding: 1px 5px; border-radi
   const cfgText = (c) => !c ? "" : [
     `filing ${MODEL_NAMES[c.fileModel] ?? c.fileModel}`, `answers ${MODEL_NAMES[c.answerModel] ?? c.answerModel}`,
     c.whatsapp ? `WhatsApp on, ${c.whatsappMarket && c.whatsappMarket !== "mix" ? c.whatsappMarket : "market mix"}` : "WhatsApp off",
-    c.budgetEnforced ? "budget working" : "budget as built",
+    DATA.code.budgetWorks ? "" : c.budgetEnforced ? "budget working" : "budget as built",
     c.level ? `at ${people(c.level)} ${S.basis === "dau" ? "daily" : "monthly"}` : "",
   ].filter(Boolean).join(", ");
 
@@ -278,7 +278,7 @@ code { font-size: 12.5px; background: var(--fill); padding: 1px 5px; border-radi
     seg("c-wa", [[true, "On"], [false, "Off"]], S.options.whatsapp, (v) => (S.options.whatsapp = v));
     select("c-market", [["mix", "Market mix"], ...Object.keys(DATA.prices.whatsapp.perReceiptByMarket).filter((m) => m !== "Other").map((m) => [m, m])], S.options.whatsappMarket, (v) => (S.options.whatsappMarket = v));
     $("c-market").disabled = !S.options.whatsapp;
-    seg("c-budget", [[false, "As built"], [true, "Working"]], S.options.budgetEnforced, (v) => (S.options.budgetEnforced = v));
+    seg("c-budget", DATA.code.budgetWorks ? [[true, "Working, as built"], [false, "Off"]] : [[false, "As built"], [true, "Working"]], S.options.budgetEnforced, (v) => (S.options.budgetEnforced = v));
   }
 
   // Tooltip, by pointer or keyboard focus.
@@ -463,6 +463,8 @@ code { font-size: 12.5px; background: var(--fill); padding: 1px 5px; border-radi
   });
   $("reset").onclick = () => { S.A = structuredClone(A0); editors(); render(); };
 
+  const caps = [`$${(DATA.code.budgetMicros / 1e6).toFixed(0)} a day of model spend${DATA.code.budgetWorks ? "" : ", not enforced"}`, DATA.code.dailyTurns ? `${DATA.code.dailyTurns} turns a day` : "no limit on turns"];
+  $("person-note").textContent = `Each bar runs from the cheapest configuration to the dearest: four filing models, three answering models, WhatsApp on or off in every market${DATA.code.budgetWorks ? "" : ", the daily budget working or not"}, and every scale. The dot is what the controls above select. Every person is held to ${caps.join(" and ")}. Hover or focus a row for the split and what drives each end.`;
   $("stamp").textContent = `Built ${DATA.built} from ${DATA.branch} at ${DATA.commit}. Rebuild with node .claude/skills/cost-report/build.mjs.`;
   if (DATA.stale.length) { $("stale").hidden = false; $("stale").textContent = "Some prices are more than 45 days old: " + DATA.stale.join("; ") + "."; }
   $("findings").innerHTML = `<h2>What the code shows</h2>` + DATA.findings.map((x) => `<div class="finding" data-sev="${x.severity}"><span class="chip">${x.severity === "critical" ? "Fix" : x.severity === "warning" ? "Check" : "Note"}</span><h3>${esc(x.title)}</h3><p>${esc(x.body)}</p><span class="ref">${esc(x.ref)}</span></div>`).join("");

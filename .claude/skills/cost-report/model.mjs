@@ -125,22 +125,27 @@ export function personMonth(input, u, frequencyKey, behaviourKey) {
   const fileTurns = b.textDumps + b.photoDumps + b.voiceNotes + b.mailForwards + wa;
   const photos = b.photoDumps * b.photosPerPhotoDump;
   const classified = b.textDumps + b.questions + b.voiceNotes + wa;
+  // The daily turn cap, when the code has one: turns past it are refused
+  // before they cost anything, so everything a turn drives scales down.
+  const turnsWanted = fileTurns + b.questions + b.quickAdds;
+  const turnShare = input.code.dailyTurns && turnsWanted > input.code.dailyTurns ? input.code.dailyTurns / turnsWanted : 1;
   let claudeDay =
-    fileTurns * u.fileText +
-    photos * u.filePhotoPerPhoto +
-    b.mailForwards * (u.fileMailExtra + u.mailLook) +
-    wa * u.fileWhatsappExtra +
-    b.questions * u.answer +
-    b.quickAdds * u.quickAdd +
-    classified * u.classify +
-    b.threadsTouched * u.compact +
-    b.searches * u.search +
-    b.reads * u.read;
-  let voiceDay = b.voiceNotes * b.voiceSeconds * u.voicePerSecond;
+    turnShare * (
+      fileTurns * u.fileText +
+      photos * u.filePhotoPerPhoto +
+      b.mailForwards * (u.fileMailExtra + u.mailLook) +
+      wa * u.fileWhatsappExtra +
+      b.questions * u.answer +
+      b.quickAdds * u.quickAdd +
+      classified * u.classify +
+      b.searches * u.search +
+      b.reads * u.read) +
+    b.threadsTouched * u.compact;
+  let voiceDay = turnShare * b.voiceNotes * b.voiceSeconds * u.voicePerSecond;
 
   // The daily budget, when it works, caps everything the ledger prices: model
   // turns, search fees and transcription together.
-  let capped = false;
+  let capped = turnShare < 1;
   if (options.budgetEnforced) {
     const cap = input.code.budgetMicros / M;
     const spend = claudeDay + voiceDay;
@@ -297,7 +302,8 @@ export function sweepOptions(input) {
     for (const answerModel of answerModels)
       for (const whatsapp of [true, false])
         for (const whatsappMarket of whatsapp ? markets : ["mix"])
-          for (const budgetEnforced of [false, true])
+          // Once the code enforces the budget there is no configuration without it.
+          for (const budgetEnforced of input.code.budgetWorks ? [true] : [false, true])
             out.push({ fileModel, answerModel, whatsapp, whatsappMarket, budgetEnforced });
   return out;
 }

@@ -3,7 +3,7 @@
 // the latest eval run, and optionally the production ledger, runs model.mjs
 // over them, and writes one self-contained HTML page.
 //
-//   node .claude/skills/cost-report/build.mjs [--out <path>] [--ledger]
+//   node .claude/skills/cost-report/build.mjs [--out <path>] [--root <checkout>] [--ledger]
 //
 // --ledger reads aggregate token counts from llm_usage through the URL in
 // LEDGER_DATABASE_URL. Aggregates only: no row, no account, no content.
@@ -16,8 +16,9 @@ import { fileURLToPath } from "node:url";
 import * as model from "./model.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(HERE, "../../..");
 const args = process.argv.slice(2);
+// --root reads another checkout's code, so a branch can be costed before it merges.
+const ROOT = args.includes("--root") ? resolve(args[args.indexOf("--root") + 1]) : resolve(HERE, "../../..");
 const OUT = args.includes("--out") ? resolve(args[args.indexOf("--out") + 1]) : join(HERE, "cost-report.html");
 const WITH_LEDGER = args.includes("--ledger");
 
@@ -62,6 +63,10 @@ const c = {
   mailDay: grab("apps/core-api/src/mail-in/receive.ts", /DAILY_MAIL = (\d+)/, "emails per day"),
   labelSort: grab("apps/core-api/src/jobs/handlers.ts", /NIGHTLY_LABEL_SORT = (true|false)/, "nightly label sort", (s) => s === "true"),
 };
+// Optional constants: present once the code has them, absent before.
+const maybe = (file, re, name, map = Number) => (existsSync(join(ROOT, file)) && re.test(read(file)) ? grab(file, re, name, map) : null);
+c.dailyTurns = maybe("apps/core-api/src/budget.ts", /DAILY_TURNS = ([\d_]+)/, "turns per day");
+c.speechModel = maybe(`${AGENT}/transcribe.py`, /SPEECH_MODELS = \["([^"]+)"/, "speech model", String);
 
 const promptDir = `${AGENT}/prompts`;
 const promptChars = Object.fromEntries(
@@ -77,16 +82,17 @@ const srcHasLangfuse = (() => {
   try { return execSync(`grep -rli langfuse apps/*/src || true`, { cwd: ROOT }).toString().trim().length > 0; } catch { return false; }
 })();
 const findings = [];
-if (/"costMicros": 0,/.test(worker)) findings.push({ severity: "critical", title: "The daily model budget never trips",
+const budgetWorks = !/"costMicros": 0,/.test(worker) && existsSync(join(ROOT, "apps/core-api/src/pricing.ts"));
+if (!budgetWorks) findings.push({ severity: "critical", title: "The daily model budget never trips",
   body: "Every model turn is written to the ledger at a cost of zero, so the $5 a day budget only ever counts voice, which tops out near $0.21 a day. Nothing stops an account sending dumps, questions or quick adds all day. Turn on Budget enforced above to see what the cap would hold a bad actor to.",
   ref: `${AGENT}/worker.py, _usage_wire; apps/core-api/src/budget.ts` });
-findings.push({ severity: "critical", title: "No limit on how many dumps an account can send",
+if (!c.dailyTurns) findings.push({ severity: "critical", title: "No limit on how many dumps an account can send",
   body: "Photos, voice and email have daily caps. Typed dumps, questions and quick adds have none beyond two jobs running at a time per account. Checked by hand on 2026-10-02; re-check when core-api gains a rate limit.",
   ref: "apps/core-api/src/routes/dumps.ts, threads.ts" });
-if (!/speech_model/.test(transcribe)) findings.push({ severity: "warning", title: "Voice is priced at an old rate",
+if (!/speech_models?/.test(transcribe)) findings.push({ severity: "warning", title: "Voice is priced at an old rate",
   body: `No speech model is sent, so AssemblyAI's default runs, which is Universal-3.5 Pro at $${prices.assemblyai.universal35ProPerHour.toFixed(2)} an hour. The ledger prices it at $${((c.voiceRate?.value ?? 0) * 3600 / 1e6).toFixed(2)} an hour.`,
   ref: `${AGENT}/transcribe.py; ${c.voiceRate?.ref}` });
-findings.push({ severity: "warning", title: "Some model calls are never ledgered",
+if (!existsSync(join(ROOT, `${AGENT}/ledger.py`))) findings.push({ severity: "warning", title: "Some model calls are never ledgered",
   body: "The classifier, the open-question judge, the mail image look, the reader's tokens and every embedding cost money and write no ledger row. Cache writes are not recorded either. A ledger total is a floor.",
   ref: "apps/agent/src/offload_agent/harness/plan.py, look.py, reader.py" });
 if (!/thinking/.test(harness)) findings.push({ severity: "info", title: "Thinking is left at each model's default",
@@ -152,6 +158,8 @@ const code = {
   models: { file: c.file?.value, sort: c.sort?.value, answer: c.answer?.value },
   promptChars,
   budgetMicros: c.budget?.value,
+  dailyTurns: c.dailyTurns?.value ?? null,
+  budgetWorks,
   constants: Object.fromEntries(Object.entries(c).filter(([, v]) => v).map(([k, v]) => [k, v])),
 };
 
@@ -160,6 +168,9 @@ if (problems.length) {
   process.exit(1);
 }
 
+// The voice price follows the model the code asks for.
+if (c.speechModel?.value === "universal-2") prices.assemblyai.used = "universal2PerHour";
+assumptions.options.budgetEnforced = budgetWorks;
 const input = { prices, code, assumptions, options: { ...assumptions.options, whatsappMarket: "mix" } };
 // Check the model runs, and print what a reader would look for first.
 for (const level of assumptions.fleet.levels) {
