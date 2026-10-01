@@ -4,7 +4,7 @@
 // AC-24 the empty day's line; AC-29 the retry schedule.
 
 import { describe, expect, it } from "vitest";
-import { dayName, eventRange, nextLine, nothingLine, retryDelay } from "@offload/widgets";
+import { afterWrite, dayName, eventRange, nextLine, nothingLine, retryDelay, stackView } from "@offload/widgets";
 
 // Tuesday 29 September 2026.
 const TUE = "2026-09-29";
@@ -112,5 +112,31 @@ describe("027 AC-29 the retry schedule", () => {
       expect(retryDelay(attempt, () => 0.999999)).toBeLessThan(ms * 1.5);
       expect(retryDelay(attempt, () => 0.5)).toBe(ms);
     });
+  });
+});
+
+describe("027 AC-11 the stack's count", () => {
+  const cards = ["a", "b", "c", "d"].map((key) => ({ key }));
+  it("counts N of M from the load and draws one sliver at two and two at three", () => {
+    expect(stackView(cards, new Set())).toMatchObject({ position: 1, total: 4, slivers: 2 });
+    expect(stackView(cards, new Set(["a", "b"]))).toMatchObject({ position: 3, total: 4, slivers: 1 });
+    expect(stackView(cards, new Set(["a", "b", "c", "d"])).current).toBeNull();
+  });
+  it("goes on counting when a card leaves by itself", () => {
+    const left = cards.filter((card) => card.key !== "b");
+    expect(stackView(left, new Set(["a"]), 4)).toMatchObject({ position: 3, total: 4, current: { key: "c" } });
+  });
+});
+
+describe("027 AC-27 a write that fails undoes only itself", () => {
+  const A = { v: "a" }, B = { v: "b" }, C = { v: "c" };
+  it("confirms what landed", () => {
+    expect(afterWrite({ shown: B, confirmed: A }, B, true)).toEqual({ shown: B, confirmed: B });
+  });
+  it("puts back the last confirmed value when nothing newer was drawn", () => {
+    expect(afterWrite({ shown: B, confirmed: A }, B, false)).toEqual({ shown: A, confirmed: A });
+  });
+  it("leaves a newer gesture drawn when an older write fails", () => {
+    expect(afterWrite({ shown: C, confirmed: A }, B, false)).toEqual({ shown: C, confirmed: A });
   });
 });

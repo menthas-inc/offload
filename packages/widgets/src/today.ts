@@ -109,3 +109,35 @@ export function retryDelay(attempt: number, random: () => number = Math.random):
   const seconds = RETRY_SECONDS[attempt] ?? RETRY_STEADY;
   return seconds * 1000 * (0.5 + random());
 }
+
+/** What the stack draws once `gone` have been settled or put off: the card on
+ *  top, *N of M* counted from the load, and the slivers under it. `loaded` is
+ *  how many the load held, since a card can also leave by itself (the zone
+ *  card once Keep lands) and the count goes on from where it was. */
+export function stackView<T extends { key: string }>(
+  cards: T[],
+  gone: Set<string>,
+  loaded: number = cards.length,
+): { current: T | null; position: number; total: number; slivers: 0 | 1 | 2 } {
+  const left = cards.filter((card) => !gone.has(card.key));
+  const total = Math.max(loaded, cards.length);
+  return {
+    current: left[0] ?? null,
+    position: total - left.length + 1,
+    total,
+    slivers: left.length >= 3 ? 2 : left.length === 2 ? 1 : 0,
+  };
+}
+
+/** A write drawn first and sent second, once its answer is in. A failure puts
+ *  back the last confirmed value only when nothing newer has been drawn since,
+ *  so a quick second gesture is never undone by the first one failing. */
+export function afterWrite<T>(state: { shown: T; confirmed: T }, wrote: T, ok: boolean): { shown: T; confirmed: T } {
+  if (ok) return { shown: state.shown, confirmed: wrote };
+  return state.shown === wrote ? { shown: state.confirmed, confirmed: state.confirmed } : state;
+}
+
+/** Google's own link to an event: https on Google's calendar hosts, under
+ *  `/calendar/`. The sync keeps nothing else, the column checks the same, and
+ *  the clients open nothing else. */
+export const GOOGLE_EVENT_LINK = /^https:\/\/(www\.google\.com|calendar\.google\.com)\/calendar\//;

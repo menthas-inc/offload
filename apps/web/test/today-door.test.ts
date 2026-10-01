@@ -43,3 +43,15 @@ describe("027 AC-15 the evening digest's door", () => {
     expect(doorOf(digest("morning", "2026-09-29T07:00:00Z"), LISBON, "2026-09-29")).toBe("/today");
   });
 });
+
+// 027 AC-19: the web opens only what the server would have stored.
+describe("027 an event's link", () => {
+  it("is opened only when it is https on a Google host under /calendar/, as the column requires", async () => {
+    const { calendarHref } = await import("../src/lib/today");
+    expect(calendarHref("https://www.google.com/calendar/event?eid=a")).toBe("https://www.google.com/calendar/event?eid=a");
+    expect(calendarHref("https://calendar.google.com/calendar/event?eid=a")).toBe("https://calendar.google.com/calendar/event?eid=a");
+    for (const bad of ["https://calendar.google.com/elsewhere", "http://www.google.com/calendar/x", "javascript:alert(1)", null]) {
+      expect(calendarHref(bad)).toBeUndefined();
+    }
+  });
+});

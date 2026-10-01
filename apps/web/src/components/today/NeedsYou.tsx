@@ -13,7 +13,7 @@
 // again. The clock puts a card off until tomorrow; the web has no swipe.
 
 import { useRef, useState } from "react";
-import { zoneCity } from "@offload/widgets";
+import { zoneCity, stackView } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { QuickReplies } from "../shell/QuickReplies";
 import { ThreadPill } from "../shell/ThreadPill";
@@ -71,18 +71,26 @@ function waited(since: string, fresh: string): string {
   return days >= 1 ? `Waiting ${days} ${days === 1 ? "day" : "days"}` : fresh;
 }
 
-export function NeedsYou({ cards }: { cards: Card[] }) {
+export function NeedsYou({ cards, load }: { cards: Card[]; load: number }) {
   const toast = useToast();
   const threads = useThreads();
   const [settled, setSettled] = useState<Set<string>>(new Set());
+  // How many this read held: a card can leave by itself (the zone card once
+  // Keep lands) and *N of M* goes on from where it was. A new read starts over.
+  const [loaded, setLoaded] = useState(cards.length);
+  const [seen, setSeen] = useState(load);
+  if (seen !== load) {
+    setSeen(load);
+    setLoaded(cards.length);
+    setSettled(new Set());
+  }
   const [failed, setFailed] = useState<{ key: string; label: string; line: string } | null>(null);
   const inertUntil = useRef(0);
 
-  const waiting = cards.filter((card) => !settled.has(card.key));
-  const card = waiting[0];
+  const view = stackView(cards, settled, loaded);
+  const card = view.current;
   if (!card) return null;
-  const position = cards.indexOf(card) + 1;
-  const slivers = Math.min(waiting.length - 1, 2);
+  const { position, slivers } = view;
 
   const arrive = () => {
     inertUntil.current = Date.now() + INERT_MS;
@@ -291,7 +299,7 @@ export function NeedsYou({ cards }: { cards: Card[] }) {
           <Icon name={icon} size={14} />
           <span className={styles.kindName}>{kind}</span>
           <span className={styles.kindCount}>
-            {position} of {cards.length}
+            {position} of {view.total}
           </span>
         </div>
         <p className={styles.cardTitle} data-alone={why ? undefined : true}>

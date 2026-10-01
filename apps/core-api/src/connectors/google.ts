@@ -12,6 +12,7 @@
 // whether a write is put to the person first, and nothing else about the list
 // is kept anywhere.
 
+import { GOOGLE_EVENT_LINK } from "@offload/widgets";
 import { env } from "../env.js";
 
 export const SCOPES = [
@@ -248,7 +249,7 @@ export interface GoogleEvent {
  *  cannot store anything else. */
 export function eventLink(value: unknown): string | null {
   if (typeof value !== "string" || value.length > 2048) return null;
-  return /^https:\/\/(www\.google\.com|calendar\.google\.com)\/calendar\//.test(value) ? value : null;
+  return GOOGLE_EVENT_LINK.test(value) ? value : null;
 }
 
 function whenOf(slot: Record<string, unknown> | undefined): { at: Date | null; allDay: boolean; tz: string | null } {

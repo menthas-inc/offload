@@ -572,6 +572,16 @@ describe("027 AC-4 to AC-10 the cards", () => {
     expect(writes("PATCH", "/api/me")[0]!.body).toEqual({ timeZone: "Asia/Tokyo" });
   });
 
+  it("goes on counting when the zone card leaves after Keep", async () => {
+    browserZone = "Asia/Tokyo";
+    needs = [{ key: "tip:forwarding", kind: "tip", tip: "forwarding", address: "over@to.offload.club", from: "jo@hey.com" }];
+    await open();
+    const total = text().match(/1 of (\d+)/)?.[1];
+    expect(total).toBeDefined();
+    await press(button("Keep Lisbon"));
+    expect(text()).toContain(`2 of ${total}`);
+  });
+
   it("keeps the zone card under Account issues, and never draws a notifications card", async () => {
     browserZone = "Asia/Tokyo";
     me = {
@@ -712,6 +722,17 @@ describe("027 AC-20 to AC-23 To do and If you have time", () => {
     expect(writes("DELETE", "/v1/today/picks/c9")).toHaveLength(1);
   });
 
+  it("keeps a row taken with + Today on Today when the day moves before the write lands", async () => {
+    days["2026-09-30"] = { ...emptyDay("2026-09-30"), rest: [row("c1", "Something")] };
+    overrides["POST /v1/today/picks/c9"] = () => new Promise<Response>(() => undefined);
+    await open();
+    await press(button("Add Return the drill to Tom to today"));
+    await press(button("Next day"));
+    expect(text()).toContain("Something");
+    expect(text()).not.toContain("Return the drill to Tom");
+    delete overrides["POST /v1/today/picks/c9"];
+  });
+
   it("draws no picks on another day", async () => {
     days["2026-09-30"] = { ...emptyDay("2026-09-30"), rest: [row("c1", "Something")], picks: [row("c9", "Return the drill to Tom")] };
     await open();
@@ -847,6 +868,26 @@ describe("027 AC-27 Customize Today", () => {
     delete overrides["PATCH /api/me"];
     await press(button("Try again"));
     expect(switchFor("Tips").checked).toBe(false);
+  });
+
+  it("keeps a second change when the first one's write fails after it", async () => {
+    let first = true;
+    overrides["PATCH /api/me"] = async (call) => {
+      if (first) {
+        first = false;
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        return json({ error: "bad_layout" }, 400);
+      }
+      return json({ ...me, todayLayout: (call.body as { todayLayout: unknown }).todayLayout });
+    };
+    await open("customize=1");
+    await press(switchFor("Tips"));
+    await press(switchFor("People"));
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    await settle();
+    expect(switchFor("People").checked).toBe(false);
+    expect(switchFor("Tips").checked).toBe(false);
+    delete overrides["PATCH /api/me"];
   });
 
   it("closes with Done", async () => {

@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { addUtcDays, dayIn, dayName, nothingLine } from "@offload/widgets";
+import { addUtcDays, afterWrite, dayIn, dayName, nothingLine } from "@offload/widgets";
 import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { GearDot } from "../people/GearDot";
 import { Glyph } from "../Glyph";
@@ -177,18 +177,29 @@ export default function TodayScreen() {
   }, [now, zone, show, loadNeeds]);
 
   // ---------------------------------------------------------------- the layout
-  const [layout, setLayout] = useState<Layout>(me?.todayLayout ?? DEFAULT_LAYOUT);
+  const [layoutState, setLayoutState] = useState(() => {
+    const held = me?.todayLayout ?? DEFAULT_LAYOUT;
+    return { shown: held, confirmed: held };
+  });
+  const latestLayout = useRef(layoutState);
+  latestLayout.current = layoutState;
   useEffect(() => {
-    if (me?.todayLayout) setLayout(me.todayLayout);
+    const held = me?.todayLayout;
+    if (!held) return;
+    // A gesture still in flight stays drawn; its own answer decides.
+    setLayoutState((now) => (now.shown === now.confirmed ? { shown: held, confirmed: held } : { ...now, confirmed: held }));
   }, [me?.todayLayout]);
+  const layout = layoutState.shown;
   const [customizing, setCustomizing] = useState(false);
   const changeLayout = async (next: Layout): Promise<boolean> => {
-    const before = layout;
-    setLayout(next);
+    setLayoutState((now) => ({ ...now, shown: next }));
     const ok = await saveLayout(next);
-    if (!ok) setLayout(before);
-    else loadNeeds();
-    return ok;
+    const after = afterWrite(latestLayout.current, next, ok);
+    // Only a write that undid itself is a failure the sheet shows.
+    const undone = !ok && after.shown !== latestLayout.current.shown;
+    setLayoutState(after);
+    if (ok) loadNeeds();
+    return ok || !undone;
   };
 
   // ---------------------------------------------------------------- the cards

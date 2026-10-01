@@ -6,7 +6,7 @@
 
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { eventPast, eventRange, nextLine, type LineEvent } from "@offload/widgets";
+import { GOOGLE_EVENT_LINK, eventPast, eventRange, nextLine, type LineEvent } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { ThreadPill } from "../shell/ThreadPill";
 import { useColors } from "../../lib/colors";
@@ -137,7 +137,7 @@ export function EventsStrip({
           const open =
             event.source === "offload" && event.threadId
               ? () => router.push({ pathname: "/threads/[id]", params: { id: event.threadId! } })
-              : event.link
+              : event.link && GOOGLE_EVENT_LINK.test(event.link)
                 ? () => void openLink(event.link)
                 : null;
           const body = (

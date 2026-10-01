@@ -5,6 +5,7 @@
 // `apps/core-api/src/routes/today.ts` and `src/today/layout.ts`; the server's
 // zod schemas are the shapes, and these types say only what the page reads.
 
+import { GOOGLE_EVENT_LINK } from "@offload/widgets";
 import type { QuestionOnWire } from "./dump";
 import type { ContentRow } from "./threads";
 
@@ -138,7 +139,7 @@ export async function fetchDay(date: string): Promise<Day | null> {
  *  hosts, the same pattern the column holds. Anything else is not opened. */
 export function calendarHref(link: string | null): string | undefined {
   if (!link) return undefined;
-  return /^https:\/\/(www\.google\.com\/calendar\/|calendar\.google\.com\/)/.test(link) ? link : undefined;
+  return GOOGLE_EVENT_LINK.test(link) ? link : undefined;
 }
 
 // ---------------------------------------------------------------- Needs you

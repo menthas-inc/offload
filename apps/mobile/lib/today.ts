@@ -134,24 +134,8 @@ export function stackOf(server: ServerCard[], device: DeviceCard[], layout: Layo
   return [...calendar, ...mine, ...rest];
 }
 
-/** What the stack draws once `gone` have been settled or put off: the card on
- *  top, *N of M* counted from the load, and the slivers under it. `loaded` is
- *  how many the load held, since a card can also leave by itself, the zone
- *  card once Keep is written, and the count goes on from where it was. */
-export function stackView(
-  cards: Card[],
-  gone: Set<string>,
-  loaded: number = cards.length,
-): { current: Card | null; position: number; total: number; slivers: 0 | 1 | 2 } {
-  const left = cards.filter((card) => !gone.has(card.key));
-  const total = Math.max(loaded, cards.length);
-  return {
-    current: left[0] ?? null,
-    position: total - left.length + 1,
-    total,
-    slivers: left.length >= 3 ? 2 : left.length === 2 ? 1 : 0,
-  };
-}
+/** The stack's count and slivers, shared with the web. */
+export { stackView } from "@offload/widgets";
 
 /** Until the start of tomorrow, or for good where that exists. */
 export async function putOff(card: string, forGood?: boolean): Promise<boolean> {

@@ -10,8 +10,9 @@
 // "Couldn't save that" and Try again. The last switch on is drawn disabled, so
 // Today is never blank. Reset returns the defaults; Done closes the pane.
 
+import { afterWrite } from "@offload/widgets";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "../Icon";
 import { Switch } from "../Switch";
 import { currentMe, onMe, updateTodayLayout } from "../../lib/use-me";
@@ -50,28 +51,41 @@ export interface LayoutState {
 /** The layout both panes draw: the server's, with a change drawn ahead of
  *  the write and put back when the write is refused. */
 export function useTodayLayout(): LayoutState {
-  const [layout, setLayout] = useState<TodayLayout>(() => layoutOf(currentMe()?.todayLayout));
+  const [state, setState] = useState(() => {
+    const held = layoutOf(currentMe()?.todayLayout);
+    return { shown: held, confirmed: held };
+  });
+  // Mirrored for the write's answer, which lands after later renders.
+  const latest = useRef(state);
+  latest.current = state;
   const [failed, setFailed] = useState<TodayLayout | null>(null);
-  useEffect(() => onMe((me) => setLayout(layoutOf(me.todayLayout))), []);
-
-  const change = useCallback(
-    (next: TodayLayout) => {
-      const before = layout;
-      setLayout(next);
-      setFailed(null);
-      void updateTodayLayout(next).then((me) => {
-        if (me) return;
-        setLayout(before);
-        setFailed(next);
-      });
-    },
-    [layout],
+  useEffect(
+    () =>
+      onMe((me) => {
+        const held = layoutOf(me.todayLayout);
+        // A gesture still in flight stays drawn; the server's answer to it follows.
+        setState((now) => (now.shown === now.confirmed ? { shown: held, confirmed: held } : { ...now, confirmed: held }));
+      }),
+    [],
   );
+
+  const change = useCallback((next: TodayLayout) => {
+    setState((now) => ({ ...now, shown: next }));
+    setFailed(null);
+    void updateTodayLayout(next).then((me) => {
+      const after = afterWrite(latest.current, next, me !== null);
+      // Only a write that undid itself says so: a newer gesture's own write
+      // decides what is drawn.
+      if (!me && after.shown !== latest.current.shown) setFailed(next);
+      setState(after);
+    });
+  }, []);
 
   const retry = useCallback(() => {
     if (failed) change(failed);
   }, [failed, change]);
 
+  const layout = state.shown;
   return { layout, change, failed: failed !== null, retry };
 }
 

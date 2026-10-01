@@ -125,6 +125,7 @@ export function TodayPane({
   const [me, setMe] = useState<Me | null>(currentMe());
   const [needs, setNeeds] = useState<NeedsCard[] | null>(null);
   const [needsRead, setNeedsRead] = useState(false);
+  const [needsLoad, setNeedsLoad] = useState(0);
   const [confirmed, setConfirmed] = useState<string | null>(null);
 
   useEffect(
@@ -203,6 +204,7 @@ export function TodayPane({
       if (!live) return;
       setNeeds(cards);
       setNeedsRead(true);
+      setNeedsLoad((n) => n + 1);
     });
     return () => {
       live = false;
@@ -226,7 +228,7 @@ export function TodayPane({
   }
   for (const card of needs ?? []) if (on.has(partOf(card))) cards.push(card);
 
-  const needsYou = needsRead && cards.length > 0 ? <NeedsYou key="needs" cards={cards} /> : null;
+  const needsYou = needsRead && cards.length > 0 ? <NeedsYou key="needs" cards={cards} load={needsLoad} /> : null;
 
   // ------------------------------------------------------------ the day
 
@@ -279,7 +281,10 @@ export function TodayPane({
     } else if (shown) {
       const takenIds = new Set(rows.taken.map((row) => row.id));
       const picks = isToday ? rows.shown(shown.picks).filter((row) => !takenIds.has(row.id)) : [];
-      const rest = [...rows.shown(shown.rest), ...rows.taken.filter((row) => !shown.rest.some((one) => one.id === row.id))];
+      // A row taken with + Today is today's, so it is drawn on Today only,
+      // whatever day the stepper moved to while its write was in flight.
+      const taken = isToday ? rows.taken.filter((row) => !shown.rest.some((one) => one.id === row.id)) : [];
+      const rest = [...rows.shown(shown.rest), ...taken];
       const late = isToday ? rows.shown(shown.late) : [];
       const timed = rows.shown(shown.timed);
       const next = nextLine(shown.events, now, isToday, zone);

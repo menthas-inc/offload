@@ -73,25 +73,22 @@ export function CustomizeSheet({
   onClose,
 }: {
   layout: Layout;
-  /** The new layout, drawn at once; resolves false when the write failed. */
+  /** The new layout, drawn at once by the screen; resolves false when the
+   *  write failed and was put back. */
   onChange: (next: Layout) => Promise<boolean>;
   onClose: () => void;
 }) {
-  const [shown, setShown] = useState(layout);
+  // Drawn from the screen's layout, which is drawn ahead of each write and
+  // put back by the shared rule when one fails: one copy, not two.
+  const shown = layout;
   const [failed, setFailed] = useState(false);
   const ink = isAndroid ? "text-a-on" : "text-text-primary";
   const quiet = "text-text-tertiary";
 
   const apply = (next: Layout) => {
-    const before = shown;
-    if (next === before) return;
-    setShown(next);
+    if (next === shown) return;
     setFailed(false);
-    void onChange(next).then((ok) => {
-      if (ok) return;
-      setShown(before);
-      setFailed(true);
-    });
+    void onChange(next).then((ok) => setFailed(!ok));
   };
 
   const switchRow = (key: Part | "day", name: string, line: string, inset: boolean) => {
