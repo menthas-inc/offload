@@ -893,22 +893,28 @@ describe("027 AC-27 Customize Today", () => {
   });
 
   it("keeps a second change when the first one's write fails after it", async () => {
+    // The first write is held open until the second has been pressed and has
+    // landed, then refused: the order is the test's, not the runner's speed.
+    let failFirst: () => void = () => undefined;
     let first = true;
-    overrides["PATCH /api/me"] = async (call) => {
+    overrides["PATCH /api/me"] = (call) => {
       if (first) {
         first = false;
-        await new Promise((resolve) => setTimeout(resolve, 30));
-        return json({ error: "bad_layout" }, 400);
+        return new Promise<Response>((resolve) => {
+          failFirst = () => resolve(json({ error: "bad_layout" }, 400));
+        });
       }
       return json({ ...me, todayLayout: (call.body as { todayLayout: unknown }).todayLayout });
     };
     await open("customize=1");
     await press(switchFor("Tips"));
     await press(switchFor("People"));
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    await settle();
+    failFirst();
     await settle();
     expect(switchFor("People").checked).toBe(false);
     expect(switchFor("Tips").checked).toBe(false);
+    expect(text()).not.toContain("Couldn't save that");
     delete overrides["PATCH /api/me"];
   });
 
