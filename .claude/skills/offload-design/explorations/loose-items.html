@@ -1,0 +1,208 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Things without a thread, final</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;background:var(--surface-page);color:var(--text-primary);font:var(--text-body-role);padding:48px 56px 96px}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+h1{margin:0 0 8px;font:var(--weight-semibold) 30px/1.15 var(--font-core);letter-spacing:-.02em}
+.lede{max-width:680px;color:var(--text-secondary);font:var(--weight-regular) 15px/1.6 var(--font-core);margin:0 0 40px;text-wrap:pretty}
+.sec{display:flex;align-items:baseline;gap:12px;margin:64px 0 6px}.sec h2{margin:0;font:var(--weight-semibold) 20px/1.2 var(--font-core)}.sec u{text-decoration:none;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.06em}
+.secp{max-width:680px;color:var(--text-secondary);font:var(--weight-regular) 14px/1.6 var(--font-core);margin:0 0 20px;text-wrap:pretty}
+.lay{display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap}
+.notes{flex:1;min-width:300px;max-width:520px;font:var(--weight-regular) 14px/1.6 var(--font-core);color:var(--text-secondary)}
+.notes b{color:var(--text-primary);font-weight:500}.notes ul{margin:8px 0 0;padding-left:18px}.notes li{margin-bottom:6px}
+.v{display:flex;flex-direction:column;gap:10px}.vt{display:flex;align-items:baseline;gap:8px;font:var(--weight-semibold) 14px/1.2 var(--font-core)}.vt i{font-style:normal;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:6px;background:var(--surface-inverse);color:var(--text-inverse);font-size:12px}
+.vd{max-width:390px;font:var(--weight-regular) 13.5px/1.55 var(--font-core);color:var(--text-secondary);margin:0}.vd b{color:var(--text-primary);font-weight:500}
+.rec{display:inline-block;font:var(--weight-semibold) 10.5px/1 var(--font-core);padding:4px 7px;border-radius:6px;background:var(--moss-600);color:#fff;text-transform:uppercase;letter-spacing:.05em}
+.g{display:inline-block;width:18px;height:18px;flex:0 0 auto;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+.ph{width:390px;height:780px;flex:0 0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);position:relative;display:flex;flex-direction:column}
+.ph.crop{height:auto;padding-bottom:16px}
+.st{display:flex;justify-content:space-between;padding:16px 30px 8px;font:var(--weight-semibold) 15px/1 var(--font-core)}
+.ab{height:52px;display:flex;align-items:center;gap:16px;padding:0 var(--gutter-screen);color:var(--text-secondary)}.ab b{flex:1;color:var(--text-primary);font:var(--weight-semibold) 19px/1 var(--font-core);letter-spacing:-.01em}.ab .g{width:21px;height:21px}
+.sc{flex:1;min-height:0;overflow:hidden;padding-top:6px}
+.r{display:flex;align-items:center;gap:12px;min-height:60px;padding:0 var(--gutter-screen);position:relative}
+.r.tall{align-items:flex-start;padding-top:12px;padding-bottom:12px}
+.r:after{content:"";position:absolute;left:calc(var(--gutter-screen) + 48px);right:0;bottom:0;height:1px;background:var(--border-hairline)}
+.r.nb:after{display:none}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);background:var(--surface-fill);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.tile.ph2{background:linear-gradient(135deg,var(--ink-200),var(--ink-100))}
+.bd{flex:1;min-width:0}.bd>b{display:block;font:var(--weight-medium) 15.5px/21px var(--font-core);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bd>s{display:flex;align-items:center;gap:6px;min-width:0;text-overflow:ellipsis;text-decoration:none;font:var(--weight-regular) 13px/18px var(--font-core);color:var(--text-secondary);white-space:nowrap;overflow:hidden}
+.chev{color:var(--text-tertiary);display:flex}.chev .g{width:16px;height:16px}
+.badge{min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:99px;background:var(--surface-fill);font:var(--weight-semibold) 12px/22px var(--font-core);text-align:center;color:var(--text-secondary)}
+.sh{display:flex;align-items:center;gap:8px;padding:28px var(--gutter-screen) 8px;font:var(--weight-semibold) 21px/1.2 var(--font-core)}.sh em{font-style:normal;font:var(--weight-regular) 12px/1 var(--font-core);color:var(--text-secondary);background:var(--surface-fill);border-radius:99px;padding:4px 8px}.sh .act{margin-left:auto;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-accent)}.sh .act.chev{color:var(--text-tertiary)}
+.ghost{display:inline-flex;align-items:center;gap:4px;margin:12px var(--gutter-screen) 0;font:var(--weight-medium) 13.5px/1 var(--font-core);color:var(--text-secondary)}.ghost .g{width:14px;height:14px}
+.plate{margin-top:auto;background:var(--surface-plate);border-radius:20px 20px 0 0;box-shadow:0 -6px 12px rgb(11 11 11 / .08);padding:14px var(--gutter-screen) 30px;position:relative;z-index:3}
+.pill{display:flex;align-items:center;min-height:48px;padding:0 16px 0 18px;border-radius:99px;background:var(--surface-input);border:1px solid var(--border-hairline);color:var(--text-tertiary)}.pill s{flex:1;text-decoration:none}.pill .g{width:20px;height:20px;color:var(--text-secondary)}
+.tabs{display:flex;margin-top:8px}.tabs span{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary)}.tabs span.on{color:var(--text-primary)}.tabs .g{width:22px;height:22px}
+.chips{display:flex;gap:6px;padding:4px var(--gutter-screen) 4px;overflow:hidden}
+.chip{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:99px;background:var(--surface-fill);font:var(--weight-medium) 13px/1 var(--font-core);white-space:nowrap}.chip em{font-style:normal;color:var(--text-tertiary);font-weight:400}.chip .g{width:14px;height:14px;color:var(--text-secondary)}
+.chip.on{background:var(--surface-inverse);color:var(--text-inverse)}.chip.on .g,.chip.on em{color:var(--text-inverse);opacity:.8}
+/* thread references: existing vs new */
+.tp,.np{display:inline-flex;align-items:center;gap:4px;height:22px;box-sizing:border-box;padding:0 8px;border-radius:99px;font:var(--weight-medium) 12.5px/1 var(--font-core);white-space:nowrap;flex:0 0 auto}
+.tp{background:var(--surface-accent-soft);color:var(--moss-700)}
+.np{border:1px dashed var(--moss-600);color:var(--moss-700);background:var(--surface-raised)}
+.tp .g,.np .g{width:11px;height:11px}.np em{font-style:normal;font-weight:400;color:var(--text-secondary)}
+.sg1{display:flex;align-items:center;gap:4px;margin-top:8px}
+.sgb{display:inline-flex;align-items:center;gap:6px;min-height:32px;box-sizing:border-box;padding:0 12px 0 10px;border-radius:99px;background:var(--surface-accent-soft);border:1px solid transparent;font:var(--weight-regular) 13px/1 var(--font-core);color:var(--text-secondary);white-space:nowrap;min-width:0;cursor:pointer}
+.sgb.nw{background:var(--surface-raised);border:1px dashed var(--moss-600)}
+.sgb>.g{width:13px;height:13px;color:var(--moss-600)}.sgb b{display:inline-flex;align-items:center;gap:4px;color:var(--moss-700);font-weight:500;overflow:hidden;text-overflow:ellipsis}.sgb b .g{width:12px;height:12px}
+[data-plat=android] .sgb{border-radius:8px}
+.sg1 .x{width:32px;height:32px;color:var(--text-tertiary);display:flex;align-items:center;justify-content:center}.sg1 .x .g{width:14px;height:14px}
+.okb{width:34px;height:34px;border-radius:99px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;background:var(--surface-accent-soft);color:var(--moss-700);align-self:center}.okb .g{width:16px;height:16px}
+.band{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-4px var(--gutter-screen) 10px calc(var(--gutter-screen) + 48px);padding:9px 10px 9px 12px;border-radius:12px;background:var(--surface-accent-soft);font:var(--weight-regular) 13px/1.3 var(--font-core);color:var(--ink-800)}
+.band>.g{width:13px;height:13px;color:var(--moss-700)}.band .tx{flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.band .bb{height:28px;display:inline-flex;align-items:center;padding:0 12px;border-radius:99px;background:var(--surface-inverse);color:var(--text-inverse);font:var(--weight-medium) 12.5px/1 var(--font-core)}
+.band .x{color:var(--moss-700);display:flex}.band .x .g{width:14px;height:14px}
+.band .tp{background:var(--surface-raised)}
+.ttl{padding:4px var(--gutter-screen) 2px;font:var(--weight-semibold) 26px/1.15 var(--font-core);letter-spacing:-.01em}.ttls{padding:0 var(--gutter-screen) 10px;font:var(--weight-regular) 13.5px/1.4 var(--font-core);color:var(--text-secondary)}
+.ncard{margin:4px var(--gutter-screen) 0;border-radius:var(--radius-lg);background:var(--surface-fill);padding:14px 16px}
+.ncard .k{display:flex;align-items:center;gap:8px}
+.ncard .mini{display:flex;flex-direction:column;gap:7px;margin-top:12px;font:var(--weight-regular) 13.5px/1.3 var(--font-core)}.ncard .mini span{display:flex;align-items:center;gap:8px}.ncard .mini .g{width:14px;height:14px;color:var(--text-secondary)}
+.acts{display:flex;gap:6px;margin-top:12px}.acts span{height:32px;display:inline-flex;align-items:center;padding:0 14px;border-radius:99px;border:1px solid var(--border-strong);font:var(--weight-medium) 13px/1 var(--font-core);background:var(--surface-raised)}.acts span.pri{background:var(--surface-inverse);color:var(--text-inverse);border-color:transparent}
+.toast{position:absolute;left:var(--gutter-screen);right:var(--gutter-screen);bottom:150px;z-index:5;display:flex;align-items:center;gap:8px;padding:0 8px 0 16px;min-height:48px;border-radius:14px;background:var(--surface-inverse);color:var(--text-inverse);font:var(--weight-regular) 14px/1.3 var(--font-core);box-shadow:var(--shadow-2)}
+.toast .tp{background:rgb(255 255 255 / .14);color:#fff}.toast u{margin-left:auto;text-decoration:none;font-weight:500;padding:0 8px}
+.leaving{background:var(--surface-accent-soft);opacity:.6}
+.scrim{position:absolute;inset:0;background:rgb(11 11 11 / .35);z-index:6}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:7;background:var(--surface-raised);border-radius:20px 20px 0 0;box-shadow:var(--shadow-sheet);padding:8px var(--gutter-screen) 34px}
+.sheet .grab{width:36px;height:4px;border-radius:99px;background:var(--border-strong);margin:0 auto 14px}
+.sheet h3{margin:0 0 4px;font:var(--text-title-2)}.sheet .sub{font:var(--text-body-sm-role);color:var(--text-secondary);margin-bottom:14px}
+.field{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 14px;border-radius:12px;border:1px solid var(--border-strong);font:var(--weight-medium) 16px/1 var(--font-core)}.field .g{width:15px;height:15px;color:var(--moss-600)}
+.ck{display:flex;align-items:center;gap:12px;min-height:46px;box-shadow:inset 0 -1px 0 var(--border-hairline);font:var(--weight-regular) 15px/1.3 var(--font-core)}.ck:last-of-type{box-shadow:none}
+.ck i{width:21px;height:21px;border-radius:var(--radius-xs);background:var(--moss-600);color:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto}.ck i .g{width:13px;height:13px}.ck i.off{background:transparent;box-shadow:inset 0 0 0 1px var(--text-secondary)}
+.ck .g.t{width:15px;height:15px;color:var(--text-secondary)}
+.sfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}.sfoot span{height:40px;display:inline-flex;align-items:center;padding:0 18px;border-radius:99px;border:1px solid var(--border-strong);font:var(--weight-medium) 14px/1 var(--font-core)}.sfoot span.pri{background:var(--surface-inverse);color:var(--text-inverse);border-color:transparent}
+.cap{font:var(--weight-medium) 11px/1 var(--font-core);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px}
+.pair{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+.plat{position:sticky;top:12px;z-index:50;display:inline-flex;gap:2px;padding:3px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline),var(--shadow-2);margin:0 0 8px}
+.plat button{height:32px;padding:0 16px;border-radius:99px;border:0;background:transparent;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary);cursor:pointer}
+.plat button.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.wsb{display:none}
+/* Android */
+[data-plat=android] .ph{width:412px;--a-c-low:#F6F5F2;--a-outline:#DEDDD8;--a-on:#1B1B1A;--a-on-var:#5A5A57;--a-on-quiet:#8A8A86}
+[data-plat=android] .st{padding:12px 20px 6px;font:var(--weight-medium) 13px/1 var(--font-core)}
+[data-plat=android] .ab{height:64px;color:var(--a-on-var)}[data-plat=android] .ab b{font-size:22px;font-weight:400}
+[data-plat=android] .tile{border-radius:8px}[data-plat=android] .r:after{background:var(--a-outline)}
+[data-plat=android] .ncard,[data-plat=android] .band{border-radius:16px}[data-plat=android] .ncard{background:var(--a-c-low)}
+[data-plat=android] .chip{border-radius:8px;height:32px;background:transparent;box-shadow:inset 0 0 0 1px var(--a-outline)}[data-plat=android] .chip.on{background:var(--surface-accent-soft);color:var(--moss-700);box-shadow:none}[data-plat=android] .chip.on .g,[data-plat=android] .chip.on em{color:var(--moss-700)}
+[data-plat=android] .acts span,[data-plat=android] .sfoot span{border-radius:99px;height:40px;padding:0 18px}[data-plat=android] .acts span.pri,[data-plat=android] .sfoot span.pri,[data-plat=android] .band .bb{background:var(--a-on)}
+[data-plat=android] .plate,[data-plat=android] .sheet{border-radius:28px 28px 0 0}[data-plat=android] .plate{padding-bottom:20px}[data-plat=android] .pill{background:var(--surface-raised)}[data-plat=android] .sheet{background:var(--a-c-low)}[data-plat=android] .field{border-radius:4px;border-color:var(--a-on-var)}
+[data-plat=android] .tabs span{color:var(--a-on-quiet)}[data-plat=android] .tabs span.on{color:var(--a-on)}
+[data-plat=android] .toast{border-radius:4px;background:#323230}
+/* Web */
+[data-plat=web] .ph{width:896px;height:600px;border-radius:14px;display:grid;grid-template-columns:200px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
+[data-plat=web] .ph.crop{height:auto;min-height:360px;grid-template-rows:auto auto 1fr}
+[data-plat=web] .st,[data-plat=web] .tabs,[data-plat=web] .ab>.g{display:none}
+[data-plat=web] .wsb{display:flex;grid-row:1/-1;flex-direction:column;gap:2px;padding:18px 10px;background:#161614;color:#EDEDED}
+.wsb b{font:var(--weight-semibold) 17px/1 var(--font-core);padding:0 10px 18px}
+.wsb span{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;font:var(--weight-medium) 13.5px/1 var(--font-core);color:#B3B3B3;position:relative}.wsb span .g{width:16px;height:16px}
+.wsb span.on{background:#262624;color:#fff}.wsb span.on:before{content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--blue-600)}
+[data-plat=web] .ab{height:auto;padding:24px 40px 8px}[data-plat=web] .ab b{font-size:26px;letter-spacing:-.02em}
+[data-plat=web] .sc{padding:0 24px;width:100%;max-width:640px;box-sizing:border-box;justify-self:center;overflow:hidden}
+[data-plat=web] .r{min-height:52px}
+[data-plat=web] .plate{border-radius:0;box-shadow:inset 0 1px 0 var(--border-hairline);background:var(--surface-page);padding:12px 40px 18px}
+[data-plat=web] .plate>*{max-width:640px;margin-left:auto;margin-right:auto}
+[data-plat=web] .pill{border:1.5px solid var(--blue-500);background:var(--surface-raised);border-radius:28px;min-height:52px}
+[data-plat=web] .pair .ph{width:620px;grid-template-columns:170px minmax(0,1fr)}[data-plat=web] .pair .ab{padding:20px 24px 6px}[data-plat=web] .pair .sc{padding:0 12px}
+[data-plat=web] .vd{max-width:620px}
+
+[data-plat=web] .scrim{display:none}[data-plat=web] .sheet{left:auto;top:0;width:340px;border-radius:0;box-shadow:-1px 0 0 var(--border-hairline);padding:24px}[data-plat=web] .sheet .grab{display:none}
+[data-plat=web] .toast{left:auto;right:24px;bottom:24px;width:340px}
+</style></head><body>
+<div class="plat" id="plat"><button data-p="ios">iOS</button><button data-p="android">Android</button><button data-p="web">Web</button></div>
+<h1>Things without a thread</h1>
+<p class="lede">Final view for approval. Loose things sit in My threads as their own group, filtered by type, and are never a thread. offload suggests where each one goes on the row itself: an existing thread to move it to, or a new thread to create. Always on is gone.</p>
+
+<div class="sec"><h2>0 &middot; My threads without Always on</h2><u>settled</u></div>
+<p class="secp">Its three threads join the top list by last activity. Older threads stays as the only group. If slow threads like Read later sinking bothers you later, pinning covers it better than a section.</p>
+<div class="pair"><div><p class="cap">Now</p><div class="ph crop" id="always-now"></div></div><div><p class="cap">Without it</p><div class="ph crop" id="always-gone"></div></div></div>
+
+<div class="sec"><h2>1 &middot; The group in My threads</h2><u>M1</u></div>
+<div class="lay"><div class="pair"><div><p class="cap">All</p><div class="ph" id="m1"></div></div><div><p class="cap">Links, filtered in place</p><div class="ph" id="m1f"></div></div></div>
+<div class="notes"><p><b>The things themselves, never a thread.</b> A group called Not in a thread sits between current threads and Older threads. Rows show their type tile and no thread name. Type chips sit under the header, only for types that are present, and filter the group in place: still three rows, then <i>All 5 links</i>. All 14 opens the full list.</p><ul>
+<li><b>Cannot be opened, renamed, shared or deleted as a whole.</b> Swipe on a row moves or deletes that one thing.</li>
+<li><b>Elsewhere,</b> a row that shows its thread (Today, search) shows nothing in that slot.</li>
+<li><b>Empty:</b> the group, chips and All link disappear. One type only: no chips.</li>
+<li><b>Swipe deletes</b>, as every row's swipe does. Moving by hand is the row sheet's Move.</li>
+<li><b>offload's reply</b> when it files without a thread is <i>Saved.</i> No thread is named, because there is none.</li>
+</ul></div></div>
+
+<div class="sec"><h2>2 &middot; A suggestion on the row</h2><u>A</u></div>
+<div class="lay"><div class="ph crop" id="sA"></div>
+<div class="notes"><p><b>A line under the row, and the whole line is one button.</b> Tap anywhere on it to accept; the cross beside it dismisses. The thread name inside is a label, not a link.</p><ul>
+<li><b>Move to an existing thread:</b> moss soft ground and the lasso, the thread reference's own colours.</li>
+<li><b>Create a new thread:</b> paper with a dashed moss outline, a plus, and the words "new thread". Only offered when two or more loose things belong together.</li>
+<li><b>Where they come from:</b> Move to from the planner at filing time, when it was not confident enough to file. Create from a daily job that groups loose things.</li>
+<li><b>Only when offload is confident.</b> Most rows have none. A dismissed suggestion does not come back for that thing.</li>
+<li><b>Moss, because offload is suggesting.</b> Nothing moves until you tap.</li>
+</ul></div></div>
+
+<div class="sec"><h2>3 &middot; Accepting</h2><u>move and create</u></div>
+<div class="pair">
+<div class="v"><div class="vt"><i>Move</i>Immediate, with Undo</div><p class="vd">The row leaves the group with the moss change mark and a toast names the thread it went to.</p><div class="ph" id="acc-move"></div></div>
+<div class="v"><div class="vt"><i>Create</i>A sheet, because it makes something</div><p class="vd">Name prefilled and editable, and the things offload would put in it, each one can be unticked. The thread opens after.</p><div class="ph" id="acc-new"></div></div>
+</div>
+
+<div class="sec"><h2>4 &middot; Where All 14 leads</h2><u>P1</u></div>
+<p class="secp">A pushed screen titled Not in a thread. Every loose thing, newest first, with the same rows, suggestions and chips as the group on My threads. A chip narrows the list; counts stay on the chips.</p>
+<div class="pair">
+<div class="v"><div class="vt"><i>All</i></div><div class="ph" id="p1"></div></div>
+<div class="v"><div class="vt"><i>Links</i></div><div class="ph" id="p1f"></div></div>
+</div>
+
+<div class="sec"><h2>What changes</h2></div>
+<div class="notes" style="max-width:680px"><ul>
+<li><b>Storage is unchanged.</b> Loose things stay in the account's default thread (<code>accounts.default_thread_id</code>), under its key. That thread is never drawn as a thread: not in My threads, not as a pill, not in the move sheet's list. Its contents are the group.</li>
+<li><b>One new thing per item:</b> an optional suggestion, either an existing thread id or a proposed name with the ids it would hold, plus a dismissed mark.</li>
+<li><b>Older threads is about time.</b> Slow threads sink and come back up when something lands.</li>
+<li><b>Always on goes:</b> <code>kind:"always"</code> in fixtures, the accent header in three kits, and its mention in the readme's moss role.</li>
+<li><b>Kits:</b> <code>ui_kits/mobile_app/LooseParts.jsx</code>, shared by all three, and <code>OFFLOAD_DATA.loose</code>.</li>
+</ul></div>
+
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#3F6B4F"/><rect x="30" y="34" width="40" height="8" rx="4" fill="#fff"/><rect x="30" y="48" width="28" height="8" rx="4" fill="none" stroke="#fff" stroke-dasharray="3 2"/></svg></template>
+<script>
+const g=n=>`<span class="g" style="--ic:url(../assets/icons/${n}.svg)"></span>`;
+const st=`<div class="st"><span>9:41</span><span>&bull;&bull;&bull;</span></div>`;
+const abMain=`<div class="ab"><b data-t="offload">offload</b>${g('bell')}${g('settings')}</div>`;
+const abBack=t=>`<div class="ab">${g('chevron-left')}<b></b>${g('ellipsis')}</div>`;
+const plate=`<div class="plate"><div class="pill"><s>Dump anything</s>${g('mic')}</div><div class="tabs"><span>${g('sun')}Today</span><span class="on">${g('lasso')}Threads</span><span>${g('brain')}Memories</span></div></div>`;
+const tp=n=>`<span class="tp">${g('lasso')}${n}</span>`;
+const np=n=>`<span class="np">${g('plus')}${n}<em>new thread</em></span>`;
+const thr=(ic,t,m,o={})=>`<div class="r ${o.nb?'nb':''}"><span class="tile">${g(ic)}</span><div class="bd"><b>${t}</b><s>${m}</s></div><span class="chev">${g('chevron-right')}</span></div>`;
+const tile=x=>x.img?`<span class="tile ph2"></span>`:`<span class="tile">${g(x.ic)}</span>`;
+function row(x,v,nb){const s=x.sug;const ref=s?(s.to?tp(s.to):np(s.nw)):'';
+ if(!s||!v)return `<div class="r ${nb?'nb':''}">${tile(x)}<div class="bd"><b>${x.t}</b><s>${x.m}</s></div></div>`;
+ if(v==='A')return `<div class="r tall ${nb?'nb':''}">${tile(x)}<div class="bd"><b>${x.t}</b><s>${x.m}</s><div class="sg1"><span class="sgb ${s.to?'':'nw'}">${g('sparkles')}${s.to?`Move to<b>${g('lasso')}${s.to}</b>`:`Create<b>${g('plus')}${s.nw}</b>new thread`}</span><span class="x">${g('x')}</span></div></div></div>`;
+ if(v==='B')return `<div class="r tall ${nb?'nb':''}">${tile(x)}<div class="bd"><b>${x.t}</b><s>${ref}<span style="color:var(--moss-700)">?</span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis">${x.m.split(' · ')[1]||x.m}</span></s></div><span class="okb">${g('check')}</span></div>`;
+ return `<div class="r nb">${tile(x)}<div class="bd"><b>${x.t}</b><s>${x.m}</s></div></div><div class="band">${g('sparkles')}<span class="tx">${s.to?`Belongs in ${ref}`:`Start ${ref} with ${s.w}`}</span><span class="bb">${s.to?'Move':'Create'}</span><span class="x">${g('x')}</span></div>${nb?'':'<div style="height:1px;background:var(--border-hairline);margin-left:calc(var(--gutter-screen) + 48px)"></div>'}`;}
+const L={
+ oak:{ic:'text-quote',t:'Oak brackets, 30cm, matte black',m:'Note · just now',sug:{nw:'Kitchen shelves',w:'2 others'}},
+ boiler:{img:1,t:'Boiler service receipt',m:'Photo · Monday',sug:{to:'Flat admin'}},
+ miso:{ic:'link',t:'Miso aubergine, a recipe',m:'Link · yesterday'},
+ priya:{ic:'calendar',t:'Drinks with Priya',m:'Event · Thursday 19:00'},
+ alfama:{ic:'link',t:'Hotels near Alfama',m:'Link · Sunday',sug:{to:'Lisbon trip'}},
+ plugs:{ic:'link',t:'Wall plugs for plasterboard',m:'Link · Sunday',sug:{nw:'Kitchen shelves',w:'2 others'}},
+ alcove:{img:1,t:'Photo of the alcove',m:'Photo · Saturday',sug:{nw:'Kitchen shelves',w:'2 others'}},
+ passport:{ic:'square-check-big',t:'Renew passport',m:'To-do · no date'},
+ damp:{ic:'square-check-big',t:'Call the landlord about the damp',m:'To-do · no date',sug:{to:'Flat admin'}},
+ podcast:{ic:'link',t:'A podcast on sleep',m:'Link · last week'},
+ shoes:{ic:'text-quote',t:"Ana's shoe size is 38",m:'Note · last week'},
+};
+const chips=(on,lk)=>`<div class="chips"><span class="chip ${on==='all'?'on':''}">All <em>14</em></span><span class="chip ${on==='todo'?'on':''}">${g('square-check-big')}To-dos <em>3</em></span><span class="chip ${on==='link'?'on':''}">${g('link')}Links <em>5</em></span><span class="chip ${on==='photo'?'on':''}">${g('image')}Photos <em>3</em></span><span class="chip">${g('text-quote')}Notes <em>2</em></span></div>`;
+const top3=thr('lasso','Lisbon trip','6 to do, with Ana, Tom')+thr('bookmark','Read later','23 links')+thr('lasso','Bookshelf build','7 to do, 2 links',{nb:1});
+const S={};
+S['always-now']=st+abMain+`<div class="sc">`+thr('lasso','Lisbon trip','6 to do, with Ana, Tom')+thr('lasso','Bookshelf build','7 to do, 2 links')+thr('lasso','Dentist and insurance','3 to do, 2 notes',{nb:1})+`<div class="sh" style="color:var(--text-accent)">Always on <em>3</em></div>`+thr('bookmark','Read later','23 links')+thr('house','Flat admin','4 to do, with Sam')+thr('bookmark','Gift ideas','11 notes',{nb:1})+`<div class="sh">Older threads <em>5</em></div>`+thr('lasso','Berlin, March','last opened in April',{nb:1})+`</div>`;
+S['always-gone']=st+abMain+`<div class="sc">`+thr('lasso','Lisbon trip','6 to do, with Ana, Tom')+thr('bookmark','Read later','23 links')+thr('lasso','Bookshelf build','7 to do, 2 links')+thr('house','Flat admin','4 to do, with Sam')+thr('lasso','Dentist and insurance','3 to do, 2 notes')+thr('bookmark','Gift ideas','11 notes',{nb:1})+`<div class="sh">Older threads <em>5</em></div>`+thr('lasso','Berlin, March','last opened in April',{nb:1})+`</div>`;
+S.m1f=st+abMain+`<div class="sc">`+top3+`<div class="sh">Not in a thread <em>14</em></div>`+chips('link')+row(L.miso,'A')+row(L.alfama,'A')+row(L.plugs,'A',1)+`<div class="ghost">All 5 links ${g('chevron-right')}</div><div class="sh">Older threads <em>5</em></div></div>`+plate;
+S.m1=st+abMain+`<div class="sc">`+top3+`<div class="sh">Not in a thread <em>14</em></div>`+chips('all')+row(L.oak,'A')+row(L.boiler,'A')+row(L.miso,'A',1)+`<div class="ghost">All 14 ${g('chevron-right')}</div><div class="sh">Older threads <em>5</em></div></div>`+plate;
+['A'].forEach(v=>S['s'+v]=st+`<div class="sh" style="padding-top:12px">Not in a thread <em>14</em></div>`+row(L.boiler,v)+row(L.oak,v)+row(L.miso,v,1));
+S['acc-move']=st+abMain+`<div class="sc">`+top3+`<div class="sh">Not in a thread <em>13</em><span class="act chev">${g('chevron-right')}</span></div><div class="leaving">${row(L.boiler)}</div>`+row(L.oak,'A')+row(L.miso,'A',1)+`</div><div class="toast">Moved to ${tp('Flat admin')}<u>Undo</u></div>`+plate;
+S['acc-new']=st+abMain+`<div class="sc">`+top3+`<div class="sh">Not in a thread <em>14</em></div>`+row(L.boiler,'A')+row(L.oak,'A')+`</div>`+plate+`<div class="scrim"></div><div class="sheet"><div class="grab"></div><h3>Create a thread</h3><div class="sub">These three look like one project.</div><div class="field">${g('lasso')}Kitchen shelves</div><div class="sh" style="padding:18px 0 4px">Moves into it</div><div class="ck"><i>${g('check')}</i>${g('text-quote').replace('class="g"','class="g t"')}Oak brackets, 30cm, matte black</div><div class="ck"><i>${g('check')}</i>${g('link').replace('class="g"','class="g t"')}Wall plugs for plasterboard</div><div class="ck"><i>${g('check')}</i>${g('image').replace('class="g"','class="g t"')}Photo of the alcove</div><div class="sfoot"><span>Cancel</span><span class="pri">Create thread</span></div></div>`;
+S.p1=st+abBack()+`<div class="sc"><div class="ttl">Not in a thread</div><div class="ttls">Put down without a thread, newest first.</div>`+chips('all')+row(L.oak,'A')+row(L.miso,'A')+row(L.boiler,'A')+row(L.priya,'A')+row(L.alfama,'A')+row(L.plugs,'A',1)+`</div>`;
+S.p1f=st+abBack()+`<div class="sc"><div class="ttl">Not in a thread</div><div class="ttls">Put down without a thread, newest first.</div>`+chips('link')+row(L.miso,'A')+row(L.alfama,'A')+row(L.plugs,'A')+row(L.podcast,'A')+row({ic:'link',t:'Flat-pack desk, 120cm',m:'Link · 2 weeks ago'},'A',1)+`</div>`;
+Object.keys(S).forEach(k=>{const el=document.getElementById(k);if(el)el.innerHTML=S[k]});
+document.querySelectorAll('.ph').forEach(ph=>{const s=document.createElement('div');s.className='wsb';s.innerHTML=`<b>offload</b><span>${g('sun')}Today</span><span class="on">${g('lasso')}My threads</span><span>${g('brain')}Memories</span><span style="margin-top:auto">${g('bell')}Activity</span><span>${g('settings')}Settings</span>`;ph.prepend(s)});
+let PLAT=localStorage.getItem('loose-platform')||'ios';
+const render=()=>{document.body.dataset.plat=PLAT;document.querySelectorAll('.ab b[data-t]').forEach(b=>b.textContent=PLAT==='web'?'My threads':'offload');document.querySelectorAll('#plat button').forEach(x=>x.classList.toggle('on',x.dataset.p===PLAT))};
+document.querySelectorAll('#plat button').forEach(x=>x.onclick=()=>{PLAT=x.dataset.p;localStorage.setItem('loose-platform',PLAT);render()});
+render();
+</script>
+</body></html>

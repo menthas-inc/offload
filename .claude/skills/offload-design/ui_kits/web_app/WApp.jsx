@@ -41,7 +41,7 @@ function navTarget(p){
 }
 
 function WThings({open,dead,onDelete,pending,onOpenInvite}){
-  const groups=[["For now","now",null],["Always on","always","accent"],["Older threads","older",null]];
+  const groups=[["For now","now",null],["Not in a thread","loose",null],["Older threads","older",null]];
   const [allOlder,setAllOlder]=React.useState(false);
   const alive=D.spaces.filter(s=>!dead[s.id]);
   return (
@@ -50,6 +50,7 @@ function WThings({open,dead,onDelete,pending,onOpenInvite}){
       <WBody>
         {pending?<WPendingInvite from={pending.from} thing={pending.thing} initials={pending.initials} onOpen={onOpenInvite}/>:null}
         {groups.map(([label,kind,tone])=>{
+          if(kind==="loose")return <LooseGroup key="loose" web items={D.loose||[]} threads={D.spaces} Section={WSection}/>;
           let list=D.spaces.filter(s=>s.kind===kind);
           const total=list.filter(s=>!dead[s.id]).length;
           if(kind==="older"&&!allOlder)list=list.slice(0,3);

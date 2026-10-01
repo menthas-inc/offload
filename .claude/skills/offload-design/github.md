@@ -4,20 +4,19 @@ path:
 
 ## Last sync
 
-date: 2026-09-30T21:05:00Z
+date: 2026-10-01T19:05:00Z
 
-Pulled `main`: 26 commits past `70a5fa4`. The immersive conversation is built (PR #31), 026 Mail in
-is specced, and launch holds on a failure. The two new code log entries are adopted; their asks were
-decided with the owner and folded in, see the table in `handoff/APPLY-2026-10-01-today.md`.
+Pulled `main`, read at `e30feeea473c`: 63 commits past `70a5fa4`, with 027 Today and 026 Mail in
+built. The shared log was adopted from the repository whole (it held every entry of ours, plus
+*Today as built* and *Text on a fixed fill is on-solid*), then this project's new entry prepended.
+The design impacts of those two code entries are not folded into the readme in this pass.
 
 ### Updated in this project
 
-- Launch L3 and tabs fading under the keyboard (K2), folded into the readme and the Today handoff
-- Both mobile kits redrawn to the app as built (5A), `ui_kits/mobile_app/TodayParts.jsx` shared
-
-- **Today**: `explorations/today.html`, the readme section, `handoff/APPLY-2026-10-01-today.md` and its standalone copy
-- `sliders-horizontal` and `mail` glyphs (87); `--spring-sheet-*`; `--surface-scrim` 0.35
-- `Sheet.prompt.md` and the readme's conversation notes brought to the build
+- **Things without a thread**: `explorations/loose-items.html`, `handoff/APPLY-2026-10-01-loose.md` and its standalone copy
+- Always on retired; the default thread is storage, drawn as the *Not in a thread* group with row suggestions
+- `ui_kits/mobile_app/LooseParts.jsx` shared by the iOS, Android and web kits; `OFFLOAD_DATA.loose`
+- `readme.md` gains **Not in a thread**; `decisions.md` gains one entry
 
 ## Screen map
 
@@ -35,6 +34,7 @@ decided with the owner and folded in, see the table in `handoff/APPLY-2026-10-01
 | Today | `explorations/today.html`, `handoff/APPLY-2026-10-01-today.md` | `apps/mobile/components/screens/Today.tsx`, `apps/web/src/components/panes/Today.tsx`, `TodayAgenda.tsx` |
 | Labels | `explorations/labels.html`, `handoff/APPLY-2026-09-26-labels.md`, `components/core/LabelMark*`, `Chip` | `apps/mobile/components/shell/ContentRow.tsx`, `apps/web/src/components/panes/ContentRowView.tsx`, `apps/mobile/components/screens/Thread.tsx`, `apps/web/src/components/panes/Thread.tsx`, `TodayAgenda.tsx`, `Activity.tsx`, `Composer.tsx` |
 | Dates and notifications | `explorations/due-dates-and-notifications.html`, `handoff/APPLY-2026-09-22-dates.md` | `DateChip.tsx`, `WhenSheet.tsx`, `CustomRepeatSheet.tsx`, `ZoneStrip.tsx`, `Activity.tsx`, `NotificationsPage.tsx`, `packages/widgets/src/rrule.ts` |
+| Things without a thread | `explorations/loose-items.html`, `handoff/APPLY-2026-10-01-loose.md`, `ui_kits/mobile_app/LooseParts.jsx` | `apps/mobile/components/screens/MyThreads.tsx`, `shell/ThreadRow.tsx`, `apps/web/src/components/panes/MyThreads.tsx`, `apps/core-api/src/admin/promote.ts`, `apps/agent/src/offload_agent/harness/plan.py` |
 | Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/` |
 | Landing page, invite email | `ui_kits/marketing_site/` | `apps/web/src/app/(marketing)/` |
 | Design tokens | `styles.css`, `tokens/` | `packages/tokens/`, generated from `.claude/skills/offload-design/tokens` |
@@ -44,6 +44,21 @@ decided with the owner and folded in, see the table in `handoff/APPLY-2026-10-01
 | Atmosphere tokens | not carried, the marketing site's | `packages/tokens/atmosphere.css` (keep from the repository) |
 
 ## Sync history
+
+### 2026-09-30T21:05:00Z
+
+Pulled `main`: 26 commits past `70a5fa4`. The immersive conversation is built (PR #31), 026 Mail in
+is specced, and launch holds on a failure. The two new code log entries are adopted; their asks were
+decided with the owner and folded in, see the table in `handoff/APPLY-2026-10-01-today.md`.
+
+### Updated in this project
+
+- Launch L3 and tabs fading under the keyboard (K2), folded into the readme and the Today handoff
+- Both mobile kits redrawn to the app as built (5A), `ui_kits/mobile_app/TodayParts.jsx` shared
+
+- **Today**: `explorations/today.html`, the readme section, `handoff/APPLY-2026-10-01-today.md` and its standalone copy
+- `sliders-horizontal` and `mail` glyphs (87); `--spring-sheet-*`; `--surface-scrim` 0.35
+- `Sheet.prompt.md` and the readme's conversation notes brought to the build
 
 ### 2026-09-30T09:00:00Z
 

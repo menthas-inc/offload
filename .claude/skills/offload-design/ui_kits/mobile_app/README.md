@@ -9,7 +9,7 @@ A click-through recreation of the offload iOS app, composed from this design sys
 | File | Screen | What it shows |
 | --- | --- | --- |
 | `TodayScreen.jsx` | Today / Tonight | What needs you now: priority rows, what moved without you, the day's agenda, then everything else. The tab renames itself to Tonight with a moon after the real sunset. |
-| `ThreadsScreen.jsx` | My threads | Threads in three groups: for now, always on, older threads with an overflow to the full list. |
+| `ThreadsScreen.jsx` | My threads | One list by last activity, then Not in a thread (`LooseParts.jsx`, shared with Android and web), then older threads with an overflow to the full list. |
 | `MemoriesScreen.jsx` | Memories | What offload knows about you as tinted chips by kind, plus past conversations grouped by period. |
 
 ## Screens behind them
