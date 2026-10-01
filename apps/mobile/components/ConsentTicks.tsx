@@ -43,7 +43,7 @@ function Box({ tone, on }: { tone: ConsentTone; on: boolean }) {
         <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
           <Path
             d="M20 6L9 17l-5-5"
-            stroke={COLOR.onSolid}
+            stroke={tone === "android" ? COLOR.onBrand : COLOR.onSolid}
             strokeWidth={3}
             strokeLinecap="round"
             strokeLinejoin="round"

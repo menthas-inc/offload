@@ -1024,7 +1024,7 @@ function Waiting({ turn }: { turn: Turn }) {
           accessibilityRole="button"
         >
           <Text
-            className="font-core font-medium text-text-inverse"
+            className={`font-core font-medium ${isAndroid ? "text-text-on-solid" : "text-text-inverse"}`}
             style={{ fontSize: 15 }}
           >
             {share ? "Share" : "Add it"}

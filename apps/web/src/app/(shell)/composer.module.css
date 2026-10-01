@@ -143,7 +143,7 @@
 
 .send:not(:disabled) {
   background: var(--blue-600);
-  color: var(--text-inverse);
+  color: var(--text-on-solid);
 }
 
 /* On the recording row Send is primary with no tone: the attention blue
@@ -312,7 +312,7 @@
   border: 1px solid var(--moss-600);
   border-radius: 99px;
   background: var(--moss-600);
-  color: var(--paper);
+  color: var(--text-on-solid);
   font-weight: var(--weight-medium);
   font-size: calc(11px * var(--type-scale));
   line-height: 1;

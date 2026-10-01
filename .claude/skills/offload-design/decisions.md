@@ -11,6 +11,54 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-01 · Today as built (027)
+**Surface:** iOS, Android, web
+**Raised by:** the 027 build of `handoff/APPLY-2026-10-01-today.md`, with the product owner's answers during planning and on the simulator, and the project-lead, client and security reviews. Spec and divergences: `docs/specs/027-today/feature-spec.md`, `at-merge.md`.
+
+**Was:** the handoff's Today, drawn in `TodayParts.jsx` and `explorations/today.html`.
+
+**Is:**
+- **Customize Today:** What moved is held back until it is designed, so the sheet draws Needs you and Your day. Needs you has no switch of its own; under it, four kinds each have a switch: Account issues, People, Questions, Tips. The last switch on is disabled, so Today is never blank. Its switches are Settings' own switch, ink when on. On the web it is a second pane at `/today?customize=1`, with Today at 520px beside it.
+- **The zone strip** is now a *Time zone* card in Needs you, with Use and Keep and no clock, since Keep already answers once per zone.
+- **New card words:**
+  - The calendar card's line is *Sign in again to see its events here.*, preceded by the account's address when two accounts are connected. The kit's *Events after Sunday are missing from your day.* had no source. The card has no *Not now*.
+  - The notifications card, phones only: *Notifications are off* / *Reminders can't reach this phone.* / Turn on.
+  - The invitation card uses 022's preview line.
+  - The connection request card has no context line.
+- **A question card is `QuickReplies`:** no option is filled, *Not that* sits alone on its line, and the clock is beside it. Its chips are 30px on the web and 34px on the phones.
+- **Kind colours** are `--text-attention` and `--text-accent`, replacing `--blue-700` and `--moss-700`, which fall below 4.5:1 in dark.
+- **Past events** dim their title only, not the whole card. Another member's event carries *Ana's*.
+- **The thread pill** is one component: 24px on Today and 30px in the turn footer, with a 44px target.
+- **Today's To do rows are tighter than the thread page's**, at the owner's request: 12 at the sides, 8 between the checkbox and the title, and the checkbox at its own width. The rows sit on the card's `--surface-fill`.
+- *N more late* is in quiet ink. Past the read's caps, *and N more*.
+- **An empty day** reads *Nothing today.*, *Nothing on Thursday.*, *Nothing next Monday.* and so on.
+- **The stepper's week** ends on the day *Starts on* sets, and the stepper stops twelve months ahead.
+- **An offload event** opens its thread.
+- **Launch's second line** shipped as *Trying again.* (see the entry below).
+
+**Considered and not taken:** What moved drawn from Activity rows without a design; one switch for the whole of Needs you (the owner asked for one per kind); late to-dos in Needs you.
+
+**Design system impact:**
+- **readme, Today section:**
+  - Customize Today: two rows, the four kinds and the disabled last switch.
+  - The zone strip folded into Needs you as a card.
+  - The calendar, notifications and invitation cards' words.
+  - The question card as `QuickReplies`.
+  - Kind colours by alias.
+  - Past events dimming only the title.
+  - Today's tighter To do rows.
+  - The *Nothing* lines and *and N more*.
+- **readme, launch:** *offload isn't answering* / *Trying again.*, since the client cannot tell an outage from a captive portal.
+- **`TodayParts.jsx`** and **`M3TodayScreen.jsx`** follow the above.
+- **`QuickReplies`** gains a `trailing` slot.
+- **`ui_kits/web_app/WToday.jsx`** is wholly superseded by the web Today in the exploration and should be redrawn from it.
+
+### 2026-10-01 · Text on a fixed fill is on-solid, and the row tools sit on the title line
+**Surface:** iOS, Android, web
+**Was:** the web's Done chip, Send, the admin link and the admin nav, its logo included, drew `--paper` or `--text-inverse` on moss or blue, and Android's filled blue buttons and its consent and calendar ticks did the same. Those flip to near black in dark mode while the ramps do not, so the words read dark on green or blue. The web row tools were drawn against the row's top edge: a `margin-block` written after the tools' `margin-top` replaced it.
+**Is:** any text or glyph on a moss, blue or clay fill is `--text-on-solid` (`COLOR.onBrand` on the phones), white in both themes. iOS keeps `--text-inverse` on `--surface-inverse`, which flips with it. The row tools take the tile's own offset, so they sit on the title line exactly as the tile does, and a negative bottom margin alone keeps them out of the row's height. Both are pinned by a scan in each app's suite.
+**Why:** seen by the owner on the web in dark mode, the Done chip and a row's tools on hover.
+**Design system impact:** readme, colour: state that text on a ramp fill is `--text-on-solid`, never `--text-inverse` or `--paper`, which are for `--surface-inverse` only. `WRow`: the tools align with the tile, not with the row's top. `M3*` kits: any filled primary in blue draws its label in `--text-on-solid`. `Logo`'s contract already declares `style`; the app implements it now, over the tone, and the admin nav passes `--text-on-solid` through it, since `inverse` is for ink.
 ### 2026-10-01 · The mobile kits redrawn to the app as built (5A)
 **Surface:** iOS, Android kits
 **Is:** Today, the row sheet, Activity, Notifications, the Mail page and first-run step, the conversation at 54pt with no fold, and launch's two failure states, in both kits; Today's body, Activity, launch, the Mail step and the row sheet are one shared file, `ui_kits/mobile_app/TodayParts.jsx`. `NotificationSheet` now renders Activity.
@@ -22,7 +70,7 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Was:** launch drew *That didn't go through.* in `--text-danger` with Try again beside it, and waited for a tap. Under the keyboard the tabs were covered as it rose.
 
-**Is:** **two messages**: *You're offline* / *offload picks up when you're back.* with no network, retrying on reconnect; *offload isn't answering* / *It's on our side. Trying again.* otherwise, retrying at 2, 4, 8 then every 15 seconds; a Try again pill under both, never in danger red. **The tabs fade** over the keyboard's first 60pt as it rises; the plate's geometry is as built.
+**Is:** **two messages**: *You're offline* / *offload picks up when you're back.* with no network, retrying on reconnect; *offload isn't answering* / *It's on our side. Trying again.* otherwise, retrying at 2, 4, 8 then every 15 seconds; a Try again pill under both, never in danger red. **The tabs fade** over the keyboard's first 60pt as it rises; the plate's geometry is as built. *Amended 2026-10-01 by 027: the second line shipped as "Trying again." alone.*
 
 **Considered and not taken:** the built single line; a quiet retry with one message.
 
