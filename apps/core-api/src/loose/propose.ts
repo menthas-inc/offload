@@ -48,6 +48,21 @@ function candidateContent(executor: Executor, threadId: string) {
     .where("content.archived_at", "is", null)
     .where((eb) => eb.or([eb("content.type", "!=", "task"), eb("content.done_at", "is", null)]))
     .where("content.suggest_dismissed_at", "is", null)
+    // Only what the person put down: never a connected app's row or one filed
+    // from a forwarded email, whose words somebody else wrote (SEC-1), as the
+    // notes below leave out the untrusted ones.
+    .where("content.source", "=", "person")
+    .where((eb) =>
+      eb.not(
+        eb.exists(
+          eb
+            .selectFrom("messages")
+            .select("messages.id")
+            .whereRef("messages.id", "=", "content.derived_from_message_id")
+            .where("messages.source", "=", "mail")
+        )
+      )
+    )
     .where((eb) => eb.not(eb.exists(eb.selectFrom("suggestions").select("suggestions.id").whereRef("suggestions.content_id", "=", "content.id"))));
 }
 

@@ -68,6 +68,13 @@ async def test_the_candidates_are_the_loose_things_with_nothing_on_them():
             )
 
         kept = await row("Oak brackets")
+        await conn.execute(
+            text(
+                "insert into content (account_id, thread_id, type, title, source) "
+                "values (:a, :t, 'task', 'From Gmail', 'gmail')"
+            ),
+            {"a": account, "t": loose},
+        )
         await row("Done already", done=True)
         await row("Dismissed", dismissed=True)
         await row("In a thread", thread=home)

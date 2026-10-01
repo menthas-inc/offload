@@ -350,8 +350,10 @@ export async function undoProposal(accountId: string, proposalId: string): Promi
       .where("thread_id", "=", threadId)
       .where("state", "in", ["accepted", "pending"])
       .execute();
-    const content = await trx.selectFrom("content").select(["id", "deleted_at"]).where("thread_id", "=", threadId).execute();
-    const notes = await trx.selectFrom("notes").select(["id", "deleted_at"]).where("subject_id", "=", threadId).where("scope", "=", "thread").execute();
+    // Locked, so nothing can land in the thread between this look and the
+    // delete: a row that did would be purged with it.
+    const content = await trx.selectFrom("content").select(["id", "deleted_at"]).where("thread_id", "=", threadId).forUpdate().execute();
+    const notes = await trx.selectFrom("notes").select(["id", "deleted_at"]).where("subject_id", "=", threadId).where("scope", "=", "thread").forUpdate().execute();
     // The proposal took the name the thread was made with, so a rename shows
     // as a difference here.
     const unchanged =

@@ -9,6 +9,7 @@ import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { handlers } from "../src/jobs/handlers.js";
 import { MemoryMailer } from "../src/mail/mailer.js";
+import { uuidv7 } from "../src/uuid.js";
 import { PROPOSAL_CANDIDATES, proposalCandidates } from "../src/loose/propose.js";
 import { createSuggestion, moveSuggestion, note, owner, proposal, row, thread, wipe } from "./loose-kit.js";
 
@@ -75,6 +76,21 @@ describe("the candidates (T1.18, AC-19, OFF-8)", () => {
     const candidates = await proposalCandidates(me);
     expect(candidates.map((c) => c.id)).toEqual([plain, kept]);
     expect(candidates.map((c) => c.kind)).toEqual(["note", "content"]);
+  });
+
+  it("leave out content a forwarded email or a connected app put there (SEC-1)", async () => {
+    const { me, loose } = await owner();
+    const kept = await row(me, loose, "Typed by them");
+    await row(me, loose, "From Gmail", { source: "gmail" });
+    const mail = await db
+      .insertInto("conversations").values({ account_id: me }).returning("id").executeTakeFirstOrThrow();
+    const message = await db
+      .insertInto("messages")
+      .values({ conversation_id: mail.id, account_id: me, role: "person", type: "text", turn_id: uuidv7(), text: "fwd", state: "answered", source: "mail" } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await row(me, loose, "From a forwarded email", { derived_from_message_id: message.id });
+    expect((await proposalCandidates(me)).map((c) => c.id)).toEqual([kept]);
   });
 
   it("stop at the bound however many there are", async () => {
@@ -175,6 +191,18 @@ describe("what the pass may write (T1.19, AC-19, AC-35)", () => {
     const names = (await db.selectFrom("thread_proposals").select("name").where("account_id", "=", me).orderBy("created_at").execute()).map((p) => p.name);
     expect(names.sort()).toEqual(["First good", "Second good", "Third good"]);
     expect(await db.selectFrom("suggestions").select("id").where("content_id", "=", notSent).execute()).toEqual([]);
+  });
+
+  it("writes once for a job, however many times its answer is posted", async () => {
+    const { me, loose } = await owner();
+    const a = await row(me, loose, "Oak brackets");
+    const b = await row(me, loose, "Wall plugs");
+    const c = await row(me, loose, "Shelf paint");
+    const d = await row(me, loose, "Spirit level");
+    const id = await job(me);
+    expect((await proposed({ jobId: id, sent: [a, b], groups: [{ name: "Kitchen shelves", ids: [a, b] }] })).json()).toEqual({ proposals: 1 });
+    expect((await proposed({ jobId: id, sent: [c, d], groups: [{ name: "Again", ids: [c, d] }] })).json()).toEqual({ proposals: 0 });
+    expect((await db.selectFrom("thread_proposals").select("name").execute()).map((p) => p.name)).toEqual(["Kitchen shelves"]);
   });
 
   it("uses the account from the job, refuses without the token, and logs no words", async () => {

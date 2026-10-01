@@ -74,6 +74,10 @@ _CANDIDATES = text(
          and c.archived_at is null
          and (c.type <> 'task' or c.done_at is null)
          and c.suggest_dismissed_at is null
+         and c.source = 'person'
+         and not exists (
+           select 1 from messages m where m.id = c.derived_from_message_id and m.source = 'mail'
+         )
          and not exists (select 1 from suggestions s where s.content_id = c.id)
       union all
       select n.id::text as id, 'note' as kind, 'note' as type, n.text as text

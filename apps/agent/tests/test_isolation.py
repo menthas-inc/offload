@@ -274,9 +274,10 @@ async def test_the_thread_on_screen_comes_back_with_its_name(two_accounts):
     assert ctx is not None
     assert ctx.looking_at is not None
     assert ctx.looking_at.id == alice["thread"]
-    assert ctx.looking_at.name == "alice thread"
-    # It is their default as well here, and the flag has to say so: the prompt
-    # reads it to decide how to describe the thread.
+    # It is their default as well here, so since 028 its stored name never
+    # reaches the model, and the flag has to say so: the prompt reads it to
+    # decide how to describe the thread.
+    assert ctx.looking_at.name == "not in a thread"
     assert ctx.looking_at.is_default is True
 
 

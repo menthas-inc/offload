@@ -550,6 +550,10 @@ export async function internalRoutes(app: App): Promise<void> {
       const accountId = job.account_id;
 
       const proposals = await db.transaction().execute(async (trx) => {
+        // Once per job, as the label sort's: a retried post after a lost
+        // response writes nothing a second time.
+        const open = await trx.selectFrom("jobs").select("state").where("id", "=", result.jobId).forUpdate().executeTakeFirstOrThrow();
+        if (open.state !== "running") return 0;
         const written = await applyProposals(trx, accountId, result.sent, result.groups);
         if (result.usage && result.usage.length > 0) {
           await trx
