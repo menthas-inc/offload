@@ -3,6 +3,7 @@
 
 import { sql } from "kysely";
 import type { Executor } from "../threads/access.js";
+import { shownThreadName } from "../threads/default.js";
 import { db } from "../db.js";
 import { capital, clamp, count } from "../notifications/copy.js";
 
@@ -102,6 +103,16 @@ export function leftOutSentences(leftOut: Partial<Record<string, number>>): stri
  *  what landed and where, a question it stopped on, or nothing. Written in
  *  the turn result's own transaction, and rewritten rather than added when a
  *  resumed turn posts again, since one email is one record. */
+/** The Activity line for what an email filed. 028: a thing filed without a
+ *  thread names none, since the default thread is never named. */
+export function mailLandedLine(landed: { title: string | null; thread_id: string | null; threadName: string | null }[]): string {
+  const threads = new Set(landed.map((l) => l.thread_id));
+  const one = landed.length === 1 ? landed[0]! : null;
+  if (one) return one.threadName ? `${clamp(one.title ?? "")}, in ${clamp(one.threadName)}` : clamp(one.title ?? "");
+  const only = threads.size === 1 ? landed[0]!.threadName : null;
+  return only ? `${capital(count(landed.length))} into ${clamp(only)}, from an email` : `${capital(count(landed.length))} from an email`;
+}
+
 export async function recordMailTurn(trx: Executor, accountId: string, messageId: string, turnId: string): Promise<void> {
   const message = await trx
     .selectFrom("messages")
@@ -117,7 +128,7 @@ export async function recordMailTurn(trx: Executor, accountId: string, messageId
   const content = await trx
     .selectFrom("content")
     .innerJoin("threads", "threads.id", "content.thread_id")
-    .select(["content.id", "content.title", "content.thread_id", "threads.name as threadName"])
+    .select(["content.id", "content.title", "content.thread_id", shownThreadName("threads.id", "threads.name", accountId).as("threadName")])
     .where("content.derived_from_message_id", "=", messageId)
     .where("content.account_id", "=", accountId)
     .where("content.deleted_at", "is", null)
@@ -125,7 +136,7 @@ export async function recordMailTurn(trx: Executor, accountId: string, messageId
   const notes = await trx
     .selectFrom("notes")
     .innerJoin("threads", "threads.id", "notes.subject_id")
-    .select(["notes.text as title", "notes.subject_id as thread_id", "threads.name as threadName"])
+    .select(["notes.text as title", "notes.subject_id as thread_id", shownThreadName("threads.id", "threads.name", accountId).as("threadName")])
     .where("notes.derived_from_message_id", "=", messageId)
     .where("notes.account_id", "=", accountId)
     .where("notes.scope", "=", "thread")
@@ -148,11 +159,7 @@ export async function recordMailTurn(trx: Executor, accountId: string, messageId
   } else {
     const threads = new Set(landed.map((l) => l.thread_id));
     const one = landed.length === 1 ? landed[0]! : null;
-    const title = one
-      ? `${clamp(one.title ?? "")}, in ${clamp(one.threadName)}`
-      : threads.size === 1
-        ? `${capital(count(landed.length))} into ${clamp(landed[0]!.threadName)}, from an email`
-        : `${capital(count(landed.length))} from an email`;
+    const title = mailLandedLine(landed);
     const lead = one && subject ? `From an email, ${subject}` : subject;
     row = {
       mail_outcome: "filed",

@@ -6,11 +6,12 @@
 import { sql } from "kysely";
 import { z } from "zod";
 import { db } from "../db.js";
+import { shownThreadName } from "../threads/default.js";
 import { contentRow, toRow, withPhotos, type RawRow } from "../routes/threads.js";
 
-export const agendaRow = contentRow.extend({ threadId: z.string(), threadName: z.string() });
+export const agendaRow = contentRow.extend({ threadId: z.string(), threadName: z.string().nullable() });
 export type AgendaRow = z.infer<typeof agendaRow>;
-export type AgendaRaw = RawRow & { threadId: string; threadName: string };
+export type AgendaRaw = RawRow & { threadId: string; threadName: string | null };
 
 /** Open, live content the account reads, in a live thread. Callers add the
  *  date predicate, the order and the limit. */
@@ -43,7 +44,8 @@ export function agendaQuery(accountId: string) {
       "content.attrs as attrs",
       "accounts.display_name as authorName",
       "content.thread_id as threadId",
-      "threads.name as threadName",
+      // 028. Null for a row in the default thread, which no surface names.
+      shownThreadName("threads.id", "threads.name", accountId).as("threadName"),
       sql<boolean>`exists (
         select 1 from thread_members am
         where am.thread_id = content.thread_id

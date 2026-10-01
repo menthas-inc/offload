@@ -10,6 +10,7 @@ import { sql } from "kysely";
 import { z } from "zod";
 import { zoneOf } from "../accounts/zone.js";
 import { db } from "../db.js";
+import { shownThreadName } from "../threads/default.js";
 import { ADDRESS } from "../mail-in/sender.js";
 import { requestsFor } from "../people/people.js";
 import { onWire, questionOnWire } from "../questions.js";
@@ -122,7 +123,7 @@ async function questionCards(accountId: string): Promise<NeedsCard[]> {
       "q.derived_from_untrusted",
       "m.source",
       "t.id as threadId",
-      "t.name as threadName",
+      shownThreadName("t.id", "t.name", accountId).as("threadName"),
     ])
     .where("q.account_id", "=", accountId)
     .where("q.state", "=", "open")

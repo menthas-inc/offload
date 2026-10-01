@@ -231,13 +231,14 @@ const waitingOn = z
 const foundResults = z.array(
   z.object({
     threadId: z.string(),
-    threadName: z.string(),
+    /** 028. Null for the default thread: the card says Not in a thread. */
+    threadName: z.string().nullable(),
     truncated: z.boolean(),
     rows: z.array(
       z.object({
         contentId: z.string(),
         threadId: z.string(),
-        threadName: z.string(),
+        threadName: z.string().nullable(),
         type: z.string(),
         title: z.string(),
         body: z.string().nullable(),
@@ -573,7 +574,7 @@ export async function sourcesForAll(
   return out;
 }
 
-async function threadsFor(
+export async function threadsFor(
   messageId: string,
   accountId: string,
 ): Promise<{ landed: { id: string; name: string }[]; changed: string[] }> {
@@ -604,10 +605,13 @@ async function threadsFor(
   const landed: { id: string; name: string }[] = [];
   const changed = new Set<string>();
   const seen = new Set<string>();
+  // 028. What landed in the default thread draws no pill: the footer's Done is
+  // the whole of it. It still counts as changed, so My threads reloads.
+  const account = await db.selectFrom("accounts").select("default_thread_id").where("id", "=", accountId).executeTakeFirst();
 
   for (const row of [...filed.map((r) => ({ ...r, landed: true })), ...noted]) {
     changed.add(row.id);
-    if (!row.landed || seen.has(row.id)) continue;
+    if (!row.landed || seen.has(row.id) || row.id === account?.default_thread_id) continue;
     seen.add(row.id);
     landed.push({ id: row.id, name: row.name });
   }

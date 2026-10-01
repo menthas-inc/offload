@@ -14,14 +14,15 @@ import { ANSWER_ROW_CHARS } from "./read.js";
 
 export interface FoundResult {
   threadId: string;
-  threadName: string;
+  /** 028. Null for the default thread, which no surface names. */
+  threadName: string | null;
   /** The read hit its page. The tail becomes the thread rather than a Show more
    *  that would expand into rows nobody fetched. */
   truncated: boolean;
   rows: {
     contentId: string;
     threadId: string;
-    threadName: string;
+    threadName: string | null;
     type: string;
     title: string;
     body: string | null;
@@ -51,7 +52,7 @@ export async function foundFor(
     truncated: boolean;
     id: string;
     thread_id: string;
-    thread_name: string;
+    thread_name: string | null;
     type: string;
     title: string;
     body: string | null;
@@ -62,7 +63,9 @@ export async function foundFor(
     blob_ready: boolean | null;
   }>`
     select mc.message_id::text as message_id, mc.ord as ord, mc.truncated as truncated,
-           c.id::text as id, c.thread_id::text as thread_id, t.name as thread_name,
+           c.id::text as id, c.thread_id::text as thread_id,
+           -- 028. The default thread is never named: the card says Not in a thread.
+           case when t.id = (select a.default_thread_id from accounts a where a.id = ${accountId}::uuid) then null else t.name end as thread_name,
            c.type as type, c.title as title, c.body as body, c.done_at as done_at,
            p.id::text as blob_id, p.width as blob_width, p.height as blob_height,
            (p.renditions_at is not null) as blob_ready

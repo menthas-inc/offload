@@ -60,6 +60,7 @@ import { purgeAbout } from "../notifications/activity.js";
 import { LabelRefused, carriesAny, contentLabelsFor, labelsOfThread, setRowLabels, unlabelledCount, withContentLabels, withNoteLabels } from "../threads/labels.js";
 import { noteAddition } from "../notifications/people.js";
 import { looseSummary } from "../loose/read.js";
+import { shownThreadName } from "../threads/default.js";
 import { holdFloor } from "../loose/suggestions.js";
 
 /** 022. The account's default thread cannot be shared or deleted. */
@@ -393,7 +394,7 @@ const contentPage = z.object({
 
 const contentDetail = contentRow.extend({
   threadId: z.string(),
-  threadName: z.string(),
+  threadName: z.string().nullable(),
   from: z
     .object({ messageId: z.string(), text: z.string().nullable(), at: z.string() })
     .nullable(),
@@ -1811,7 +1812,8 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.attrs as attrs",
             "content.derived_from_message_id as fromMessageId",
             "content.thread_id as threadId",
-            "threads.name as threadName",
+            // 028. A loose row names no thread; the crumb says Not in a thread.
+            shownThreadName("threads.id", "threads.name", accountId).as("threadName"),
             "accounts.display_name as authorName",
       sql<boolean>`exists (
         select 1 from thread_members am
