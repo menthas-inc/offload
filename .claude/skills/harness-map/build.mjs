@@ -39,12 +39,19 @@ const readerPy = read("apps/agent/src/offload_agent/reader.py");
 const configPy = read("apps/agent/src/offload_agent/config.py");
 const internalTs = read("apps/core-api/src/routes/internal.ts");
 const composerTsx = read("apps/web/src/components/shell/Composer.tsx");
+const loosePy = read("apps/agent/src/offload_agent/loose_propose.py");
 
 const num = (s) => Number(String(s).replace(/_/g, ""));
 const C = {
   modelCalls: num(grab(planPy, /^MAX_MODEL_CALLS\s*=\s*([\d_]+)/m)),
   toolCalls: num(grab(planPy, /^MAX_TOOL_CALLS\s*=\s*([\d_]+)/m)),
-  maxTokens: num(grab(planPy, /max_tokens=([\d_]+)/)),
+  // The planner's own budget, not the first max_tokens= in the file, which
+  // is the classifier's 64.
+  maxTokens: num(grab(planPy, /^MAX_OUTPUT_TOKENS\s*=\s*([\d_]+)/m)),
+  maxTokensRetry: num(grab(planPy, /^MAX_OUTPUT_TOKENS_RETRY\s*=\s*([\d_]+)/m)),
+  toolBudget: num(grab(planPy, /^TOOL_DEFINITION_BUDGET\s*=\s*([\d_]+)/m)),
+  questions: num(grab(planPy, /^MAX_QUESTIONS\s*=\s*(\d+)/m)),
+  looseCandidates: num(grab(loosePy, /^CANDIDATES\s*=\s*(\d+)/m)),
   promptCeiling: num(grab(configPy, /max_prompt_tokens:\s*int\s*=\s*([\d_]+)/)),
   threads: num(grab(configPy, /max_threads:\s*int\s*=\s*([\d_]+)/)),
   turns: num(grab(configPy, /max_turns:\s*int\s*=\s*([\d_]+)/)),
@@ -108,6 +115,8 @@ const PROMPTS = [
   { file: "reader.md", name: "reader.md", path: "inside look_up", model: C.sortModel, mode: "headers", where: "the reader, with web_search and web_fetch" },
   { file: "quick_add.md", name: "quick_add.md", path: "thread.quick_add", model: C.model, mode: "headers", where: "a row typed straight into a thread" },
   { file: "compact.md", name: "compact.md", path: "notes.compact", model: C.sortModel, mode: "headers", where: "once a day, a thread's notes" },
+  { file: "label_sort.md", name: "label_sort.md", path: "labels.sort", model: C.sortModel, mode: "paragraphs", where: "once a night, a thread's labels (switched off)" },
+  { file: "loose_propose.md", name: "loose_propose.md", path: "loose.propose", model: C.sortModel, mode: "paragraphs", where: "once a day, what is not in a thread" },
 ];
 
 const words = (s) => (s.trim().match(/\S+/g) || []).length;
@@ -245,7 +254,12 @@ const modelRows = [
   ["answering (answer.md)", C.answerModel, "Cross-thread reading. Its first round trip is the long wait."],
   ["reader", C.sortModel, "Extract fields from a page. Server-side web_search and web_fetch."],
   ["quick add", C.model, "Same loop, two tools, the row and its thread."],
+  ["judge (a typed answer)", C.sortModel, "Reads a typed reply against the open question, before the classifier. Forced tool."],
+  ["mail look", C.sortModel, "Which pictures in a forwarded email are worth keeping. Forced tool."],
   ["notes.compact", C.sortModel, "Folds a thread's notes when they pass the budget."],
+  ["labels.sort", C.sortModel, "Nightly labels for a busy thread. Built and switched off."],
+  ["loose.propose", C.sortModel, "Proposes a thread for two to ten things not in one. Daily, only when that set changed."],
+  ["transcription", "AssemblyAI, European endpoint", "A voice note's words, before anything reads the message. Not a Claude call."],
   ["embeddings", "voyage-4, halfvec(1024)", "The search tool's vector half; text search alongside."],
 ]
   .map(([a, b, c]) => `<tr><td>${a}</td><td class="tool">${esc(b)}</td><td>${c}</td></tr>`)
@@ -254,10 +268,12 @@ const modelRows = [
 const boundRows = [
   ["Model calls per turn", C.modelCalls, "harness MAX_MODEL_CALLS"],
   ["Filing tool calls per turn", C.toolCalls, "harness MAX_TOOL_CALLS"],
-  ["Output tokens per call", C.maxTokens.toLocaleString("en-GB"), "harness"],
+  ["Output tokens per call", `${C.maxTokens.toLocaleString("en-GB")}, then ${C.maxTokensRetry.toLocaleString("en-GB")} once`, "harness; raised when a call runs out of room"],
+  ["Tool definitions", `${C.toolBudget.toLocaleString("en-GB")} tokens`, "harness TOOL_DEFINITION_BUDGET, tested"],
+  ["Questions asked back per turn", C.questions, "harness MAX_QUESTIONS; one shown at a time"],
   ["Prompt ceiling", `${C.promptCeiling.toLocaleString("en-GB")} tokens`, "config; turns dropped first, then threads"],
   ["Threads in the prompt", C.threads, "config"],
-  ["Earlier turns in the prompt", C.turns, "config; filing path only"],
+  ["Earlier turns in the prompt", C.turns, "config; both paths since 018"],
   ["Web searches, reads per turn", `${C.searches}, ${C.reads}`, "worker Lookups; shared across every look_up"],
   ["Reader pauses per lookup", C.pauses, "reader"],
   ["Sources kept per turn", C.sources, "worker and API schema"],
@@ -265,6 +281,7 @@ const boundRows = [
   ["Step shown from", `${C.sayAfterMs / 1000}s`, "client, from the press"],
   ["Stop offered from", `${C.stopAfterMs / 1000}s`, "client, from the press"],
   ["Undo window", `${C.undoMs / 1000}s`, "client toast"],
+  ["Things the daily pass reads", C.looseCandidates, "loose_propose.py CANDIDATES, newest first"],
 ]
   .map(([a, b, c]) => `<tr><td>${a}</td><td class="n">${b}</td><td class="where">${c}</td></tr>`)
   .join("\n");
@@ -301,6 +318,9 @@ const fill = {
   STEP_CHARS: String(C.stepChars),
   SAY_AFTER: `${C.sayAfterMs / 1000}s`,
   MAX_TOKENS: C.maxTokens.toLocaleString("en-GB"),
+  MAX_TOKENS_RETRY: C.maxTokensRetry.toLocaleString("en-GB"),
+  TOOL_BUDGET: C.toolBudget.toLocaleString("en-GB"),
+  LOOSE_CANDIDATES: C.looseCandidates,
   PROMPT_LEGEND: legend,
   PROMPTS_FULL: PROMPTS.map(renderPrompt).join("\n"),
 };
