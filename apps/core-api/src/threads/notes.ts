@@ -27,6 +27,7 @@ import { sql, type ExpressionBuilder, type Selectable } from "kysely";
 import { db } from "../db.js";
 import type { Database, NotesTable } from "../schema.js";
 import { NotYours, type Executor } from "./access.js";
+import { holdFloor } from "../loose/suggestions.js";
 
 /** How many of a thread's notes reach a prompt.
  *
@@ -580,6 +581,72 @@ export async function editNote(
   return { note: toNote(row), previous };
 }
 
+/** 028. The destination already holds these words as a note offload wrote,
+ *  which `notes_thread_text` would refuse with the words in the error. */
+export class NoteDuplicate extends Error {
+  constructor() {
+    super("duplicate");
+  }
+}
+
+/** 028. Move a note to another thread, the way a row moves: by its author, or
+ *  by anybody still in the thread once the author has left (OFF-3), into a
+ *  thread the caller is in. One refusal for every reason.
+ *
+ *  Only `subject_id` changes. The origin, the untrusted mark and when it was
+ *  put down travel with it, so a note from an email stays reference wherever
+ *  it lands and an edit never reorders anything. Its label joins stay where
+ *  they are: a label belongs to a thread and every read filters on that, so
+ *  they are unseen in the new thread and seen again if it comes back, which
+ *  is what Undo needs and destroys nothing. */
+export async function moveNoteIn(
+  trx: Executor,
+  accountId: string,
+  noteId: string,
+  destination: string,
+): Promise<{ note: Note; previous: { threadId: string } }> {
+  const current = await requireNoteAuthor(accountId, noteId, trx);
+  const scoped = await trx.selectFrom("notes").select(["scope", "origin", "text"]).where("id", "=", noteId).executeTakeFirstOrThrow();
+  if (scoped.scope !== "thread") throw new NotYours();
+  const member = await trx
+    .selectFrom("thread_members")
+    .innerJoin("threads", "threads.id", "thread_members.thread_id")
+    .select("thread_members.id")
+    .where("thread_members.thread_id", "=", destination)
+    .where("thread_members.account_id", "=", accountId)
+    .where("thread_members.state", "=", "accepted")
+    .where("threads.deleted_at", "is", null)
+    .executeTakeFirst();
+  if (!member) throw new NotYours();
+
+  if (destination !== current.threadId) {
+    if (scoped.origin === "learned") {
+      const clash = await trx
+        .selectFrom("notes")
+        .select("id")
+        .where("subject_id", "=", destination)
+        .where("scope", "=", "thread")
+        .where("deleted_at", "is", null)
+        .where("origin", "=", "learned")
+        .where(sql`lower(notes.text)`, "=", scoped.text.toLowerCase())
+        .executeTakeFirst();
+      if (clash) throw new NoteDuplicate();
+    }
+    await trx.updateTable("notes").set({ subject_id: destination }).where("id", "=", noteId).execute();
+    for (const threadId of [current.threadId, destination]) {
+      await trx.updateTable("threads").set({ last_activity_at: sql`now()`, updated_at: sql`now()` }).where("id", "=", threadId).execute();
+    }
+  }
+
+  await holdFloor(trx, { noteId });
+  const row = await trx
+    .selectFrom("notes")
+    .select((eb) => [...COLUMNS, authorIsMember(eb)])
+    .where("notes.id", "=", noteId)
+    .executeTakeFirstOrThrow();
+  return { note: toNote(row), previous: { threadId: current.threadId } };
+}
+
 /** Delete, for the author only.
  *
  *  Soft, with `purge_after` eight seconds out, so Undo has something to find
@@ -607,6 +674,8 @@ export async function deleteNote(
     .where("deleted_at", "is", null)
     .returning("id")
     .executeTakeFirst();
+  // 028. A proposal that just lost a note may be below two.
+  if (row) await holdFloor(trx, { noteId });
   return row !== undefined;
 }
 

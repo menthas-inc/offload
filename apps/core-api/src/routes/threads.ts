@@ -60,6 +60,7 @@ import { purgeAbout } from "../notifications/activity.js";
 import { LabelRefused, carriesAny, contentLabelsFor, labelsOfThread, setRowLabels, unlabelledCount, withContentLabels, withNoteLabels } from "../threads/labels.js";
 import { noteAddition } from "../notifications/people.js";
 import { looseSummary } from "../loose/read.js";
+import { holdFloor } from "../loose/suggestions.js";
 
 /** 022. The account's default thread cannot be shared or deleted. */
 async function isDefaultThreadOf(accountId: string, threadId: string): Promise<boolean> {
@@ -787,6 +788,7 @@ export async function setArchived(
     }
 
     await touchThread(ref.threadId, trx);
+    await holdFloor(trx, { contentId: ref.id });
   });
 }
 
@@ -850,6 +852,8 @@ export async function moveContentIn(
 
   await touchThread(ref.threadId, trx);
   await touchThread(destination, trx);
+  // 028. A proposal that just lost a thing may be below two.
+  await holdFloor(trx, { contentId: ref.id });
 
   return { threadId: ref.threadId };
 }
@@ -887,6 +891,7 @@ export async function deleteContent(
         .execute();
     }
     await touchThread(ref.threadId, trx);
+    await holdFloor(trx, { contentId: ref.id });
 
     // Enqueued by the delete rather than left to a timer, exactly as 004's undo
     // does. A timer that stops running leaves content the person believes is
@@ -925,6 +930,7 @@ export async function completeContent(
       .where("id", "=", ref.id)
       .execute();
     await touchThread(ref.threadId, trx);
+    await holdFloor(trx, { contentId: ref.id });
   });
 
   return { done: before.done_at !== null };
