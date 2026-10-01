@@ -98,7 +98,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className={styles.frame}>
       <nav className={styles.nav}>
         <div className={styles.brand}>
-          <Logo variant="mark" size={19} tone="inverse" />
+          <Logo variant="mark" size={19} style={{ color: "var(--text-on-solid)" }} />
           <span className={styles.brandWord}>offload</span>
           <span className={styles.tag}>admin</span>
         </div>

@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // Text on a fill that does not flip with the theme.
 //
 // The moss, blue and clay ramps are the same in both themes, while --paper
@@ -10,7 +11,10 @@
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
+import { Logo } from "../src/components/Logo";
 
 const SRC = join(import.meta.dirname, "../src");
 
@@ -39,6 +43,22 @@ describe("text on a fixed fill", () => {
         .map(([selector]) => `${file.slice(SRC.length + 1)} ${selector}`),
     );
     expect(wrong).toEqual([]);
+  });
+});
+
+describe("the admin nav's mark", () => {
+  // The nav is moss-700. Logo's inverse tone is for ink surfaces and flips,
+  // so the mark takes on-solid through the contract's style prop.
+  it("takes a colour from style, over its tone", () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const host = document.createElement("div");
+    act(() => createRoot(host).render(<Logo variant="mark" style={{ color: "var(--text-on-solid)" }} />));
+    expect((host.firstElementChild as HTMLElement).style.color).toBe("var(--text-on-solid)");
+  });
+
+  it("is never drawn in a tone that flips", () => {
+    const layout = readFileSync(join(SRC, "app/(admin)/layout.tsx"), "utf8");
+    expect(layout).not.toMatch(/<Logo[^>]*tone="inverse"/);
   });
 });
 

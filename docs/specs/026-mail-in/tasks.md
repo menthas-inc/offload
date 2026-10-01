@@ -43,7 +43,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 - [x] **T4.1** Icons regenerated from the design set; `dead-icons.mjs` passes with `mail` used in the three places below. *(AC-21)*
 - [x] **T4.2** Connected apps: the Mail row in its own group as a door with the address as its note, or *Unavailable*; the Mail page with Copy, Add to contacts, the sign-in address, the two lines, the relay note, one spinner until `me`. *(AC-18)*
-- [ ] **T4.3** Add to contacts opens `https://offload.club/offload.vcf` in the system browser. Tried on the iOS simulator and on the Pixel, and what each does is written here; if either does not offer to add the contact, stop and bring it to the owner before an alternative. *(AC-19)*
+- [x] **T4.3** *(2026-10-01. iOS: the card opens Contacts' own sheet, with the name, the address, Create New Contact and Add to Existing Contact. Android, on the Pixel: the Custom Tab downloads `offload.vcf` and offers Open, and Open offers Contacts. Both offer to add it, one tap apart.)* Add to contacts opens `https://offload.club/offload.vcf` in the system browser. Tried on the iOS simulator and on the Pixel, and what each does is written here; if either does not offer to add the contact, stop and bring it to the owner before an alternative. *(AC-19)*
 - [x] **T4.4** First run: `MAIL_STEP` after the calendar's, skipped for `mailAvailable = false`, the bar's total from the account's own step list; both buttons move on. *(AC-20)*
 - [x] **T4.5** The conversation draws a mail message with the glyph, the subject and *Forwarded*. *(AC-5)*
 - [x] **T4.6** Activity: the `mail` rows, their doors and Undo, in both themes. *(AC-15, AC-16, AC-17)*
