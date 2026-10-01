@@ -35,7 +35,8 @@ def test_no_definition_mentions_tags():
 
 
 def test_the_definitions_fit_at_the_same_number():
-    assert TOOL_DEFINITION_BUDGET == 1_800
+    # 028 raised it to 1,900 by the owner's decision; see plan.py.
+    assert TOOL_DEFINITION_BUDGET == 1_900
     assert len(json.dumps(TOOLS)) // 4 + 1 < TOOL_DEFINITION_BUDGET
 
 

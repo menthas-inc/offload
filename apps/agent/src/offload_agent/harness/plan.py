@@ -141,7 +141,27 @@ MAX_QUESTIONS = 2
 # trimmed to fit. **The answer the comment prescribes is still the answer** and
 # it has not been done: the next thing that grows this set should move it behind
 # `defer_loading` rather than move this number again.
-TOOL_DEFINITION_BUDGET = 1_800
+#
+# **028 raised it to 1,900, by the product owner's decision on 2026-10-01**, for
+# `suggest_thread_id` on both filing tools, and logged it in
+# docs/tech/decisions.md: the 2026-09-17 measurement found `defer_loading` does
+# not pay below about ten thousand tokens, so moving the tail now costs every
+# turn latency for nothing.
+TOOL_DEFINITION_BUDGET = 1_900
+
+#: 028. What the model calls the default thread. Its stored name, Miscellaneous
+#: on every account, is never shown to it, so a reply cannot say it back.
+NOT_IN_A_THREAD = "not in a thread"
+DEFAULT_SUFFIX = (
+    "   (where anything with no obvious home goes. A person may call it "
+    "miscellaneous, unsorted or the inbox)"
+)
+
+
+def _thread_line(thread) -> str:
+    if thread.is_default:
+        return f"- {thread.id}  {NOT_IN_A_THREAD}{DEFAULT_SUFFIX}"
+    return f"- {thread.id}  {thread.name}"
 
 
 @dataclass(frozen=True)
@@ -310,14 +330,7 @@ def build_blocks(ctx: DumpContext) -> list[dict]:
     blocks: list[dict] = []
 
     if ctx.threads:
-        lines = []
-        for thread in ctx.threads:
-            suffix = (
-                "   (their default thread, for anything with no obvious home)"
-                if thread.is_default
-                else ""
-            )
-            lines.append(f"- {thread.id}  {thread.name}{suffix}")
+        lines = [_thread_line(thread) for thread in ctx.threads]
         blocks.append(
             {
                 "type": "text",
@@ -1267,10 +1280,7 @@ def build_answer_blocks(ctx: AnswerContext) -> list[dict]:
         )
 
     if ctx.threads:
-        lines = []
-        for thread in ctx.threads:
-            suffix = "   (their default thread)" if thread.is_default else ""
-            lines.append(f"- {thread.id}  {thread.name}{suffix}")
+        lines = [_thread_line(thread) for thread in ctx.threads]
         blocks.append(
             {
                 "type": "text",

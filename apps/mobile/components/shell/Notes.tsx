@@ -33,7 +33,8 @@ import { LabelDot } from "../labels/LabelMark";
 import { useRowLabels } from "../labels/labels-context";
 import { useClock } from "../../lib/clock";
 import { useColors } from "../../lib/colors";
-import { perform, type Toaster, type Writes } from "../../lib/optimistic";
+import { perform, type Reversible, type Toaster, type Writes } from "../../lib/optimistic";
+import { duplicateCopy, moveNote, movedCopy } from "../../lib/loose";
 import { useConversation } from "./conversation-context";
 import {
   NOTE_BUDGET,
@@ -47,8 +48,10 @@ import {
   setNotePriority,
   type Member,
   type Note,
+  type ThreadRow,
 } from "../../lib/threads";
 import { DragSheet } from "./DragSheet";
+import { MoveSheet } from "./MoveSheet";
 
 const isAndroid = Platform.OS === "android";
 
@@ -104,6 +107,8 @@ export function NotesSection({
   const COLOR = useColors();
   const { raiseFor } = useConversation();
   const [editing, setEditing] = useState<Note | null>(null);
+  // 028. The note whose move sheet is up.
+  const [moving, setMoving] = useState<Note | null>(null);
   const [folded, setFolded] = useState<Note[] | null>(null);
 
   const viewerId = members.find((m) => m.isYou)?.accountId ?? null;
@@ -190,6 +195,37 @@ export function NotesSection({
       toast,
       writes,
     );
+  }
+
+  /** 028. To another thread, by the same rule as a row: the author's, or
+   *  anybody's once the author has left. The note leaves the section at the
+   *  press; Undo is the same move back. Its labels stay behind with the
+   *  thread they belong to, and show again when it comes back. */
+  function move(note: Note, to: ThreadRow): void {
+    setMoving(null);
+    const at = notes.findIndex((one) => one.id === note.id);
+    const op: Reversible = {
+      apply: () => onNotes((current) => current.filter((one) => one.id !== note.id)),
+      revert: () =>
+        onNotes((current) =>
+          current.some((one) => one.id === note.id) ? current : [...current.slice(0, at), note, ...current.slice(at)],
+        ),
+      write: async () => {
+        const moved = await moveNote(note.id, to.id);
+        // The same words are already there: trying again changes nothing.
+        if (moved === "duplicate") {
+          op.failed = duplicateCopy(to.name);
+          op.retry = null;
+        }
+        return moved !== null && moved !== "duplicate";
+      },
+      unwrite: () => moveNote(note.id, threadId).then((moved) => moved !== null && moved !== "duplicate"),
+      did: movedCopy(to.name),
+      failed: "Couldn't move that",
+      unfailed: "Couldn't put that back",
+      retry: "Try again",
+    };
+    void perform(op, toast, writes);
   }
 
   /** No Undo: the same control, pressed again, is the undo. */
@@ -287,12 +323,12 @@ export function NotesSection({
   // The editor goes to the screen's root. The handlers are read through a ref
   // so the sheet is handed over when a note opens or closes, not on every
   // render of this section, and still acts on the notes as they are now.
-  const latest = useRef({ save, close, mute, remove, canDelete });
-  latest.current = { save, close, mute, remove, canDelete };
+  const latest = useRef({ save, close, mute, remove, canDelete, move });
+  latest.current = { save, close, mute, remove, canDelete, move };
   useEffect(() => {
     onSheet(
       editing ? (
-        <Editor
+        <NoteEditor
           key={editing.id}
           note={editing}
           canDelete={latest.current.canDelete(editing)}
@@ -300,10 +336,26 @@ export function NotesSection({
           onClose={() => latest.current.close()}
           onMute={() => latest.current.mute(editing)}
           onDelete={() => latest.current.remove(editing)}
+          // 028. Move, for whoever may move it, which is whoever may delete it.
+          onMove={
+            latest.current.canDelete(editing)
+              ? () => {
+                  latest.current.close();
+                  setMoving(editing);
+                }
+              : undefined
+          }
+        />
+      ) : moving ? (
+        <MoveSheet
+          open
+          exceptThreadId={threadId}
+          onClose={() => setMoving(null)}
+          onPick={(to) => latest.current.move(moving, to)}
         />
       ) : null,
     );
-  }, [editing, onSheet]);
+  }, [editing, moving, onSheet, threadId]);
   useEffect(() => () => onSheet(null), [onSheet]);
 
   // Nothing to show: draw nothing at all. A heading over an empty row is a
@@ -567,14 +619,16 @@ function NoteRow({
  *  Where the web grows the chip. A phone has a third of the width and the
  *  keyboard has to go somewhere, and this is the one interaction in the whole
  *  feature where the keyboard problem is solved by the pattern rather than
- *  fought. */
-function Editor({
+ *  fought. 028: Not in a thread opens the same one. */
+export function NoteEditor({
   note,
   canDelete,
   onSave,
   onClose,
   onMute,
   onDelete,
+  onMove,
+  placeholder = "What is true about this thread?",
 }: {
   note: Note | null;
   canDelete: boolean;
@@ -582,6 +636,11 @@ function Editor({
   onClose: () => void;
   onMute: () => void;
   onDelete: () => void;
+  /** 028. To another thread. Its own line above the foot, which already
+   *  holds four pills and has no room on a small phone for a fifth. */
+  onMove?: (() => void) | undefined;
+  /** 028. Not in a thread asks its own question, since there is no thread. */
+  placeholder?: string;
 }) {
   const COLOR = useColors();
   // The fields are the sheet's own, so typing re-renders the sheet and not
@@ -606,7 +665,7 @@ function Editor({
             onChangeText={onDraft}
             maxLength={NOTE_CHARS}
             multiline
-            placeholder="What is true about this thread?"
+            placeholder={placeholder}
             placeholderTextColor={COLOR.iconOnWell}
             className={`rounded-sm border border-border-hairline px-space-4 py-space-3 font-core ${
               isAndroid ? "text-a-on" : "text-text-primary"
@@ -614,6 +673,21 @@ function Editor({
             style={{ fontSize: 15, minHeight: 76 }}
           />
 
+          {onMove ? (
+            <Pressable
+              onPress={onMove}
+              accessibilityRole="button"
+              className="mt-space-2 min-h-tap-min flex-row items-center gap-space-3 self-start"
+            >
+              <Glyph name="layers" size={16} color={COLOR.iconOnWell} />
+              <Text
+                className={`font-core font-medium ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+                style={{ fontSize: 13 }}
+              >
+                Move
+              </Text>
+            </Pressable>
+          ) : null}
 
           <View className="mt-space-4 flex-row items-center gap-space-4">
             <Text className="mr-auto font-core text-text-tertiary" style={{ fontSize: 12.5 }}>

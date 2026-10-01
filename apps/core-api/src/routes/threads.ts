@@ -59,6 +59,9 @@ import { OverBudget, requireBudget } from "../budget.js";
 import { purgeAbout } from "../notifications/activity.js";
 import { LabelRefused, carriesAny, contentLabelsFor, labelsOfThread, setRowLabels, unlabelledCount, withContentLabels, withNoteLabels } from "../threads/labels.js";
 import { noteAddition } from "../notifications/people.js";
+import { looseSummary } from "../loose/read.js";
+import { shownThreadName } from "../threads/default.js";
+import { holdFloor } from "../loose/suggestions.js";
 
 /** 022. The account's default thread cannot be shared or deleted. */
 async function isDefaultThreadOf(accountId: string, threadId: string): Promise<boolean> {
@@ -148,12 +151,17 @@ const threadRow = z.object({
 const threadList = z.object({
   groups: z.array(
     z.object({
-      key: z.enum(["now", "always", "older"]),
+      // 028. Two groups: Always on is retired, and the one thread that was
+      // ever in it, the default, is drawn as `loose` instead.
+      key: z.enum(["now", "older"]),
       threads: z.array(threadRow),
     })
   ),
   /** 022. Waiting shares, one strip each at the top of the list. Read here
    *  rather than on their own route so an open of My threads is one call. */
+  /** 028. What is not in a thread: null when nothing is, which is when the
+   *  group is not drawn. */
+  loose: z.lazy(() => looseSummarySchema).nullable(),
   invitations: z.array(
     z.object({
       memberId: z.string(),
@@ -170,7 +178,7 @@ const threadList = z.object({
  *  worked with, so this is small on purpose. */
 const FOLDED_PAGE = 20;
 
-const noteSchema = z.object({
+export const noteSchema = z.object({
   id: z.string(),
   text: z.string(),
   /** What was dumped when it did not fit in 200 characters. Never in a prompt,
@@ -197,6 +205,9 @@ const noteSchema = z.object({
   /** When it was last written. What decides which notes reach a prompt when a
    *  thread holds more than the budget, and what the row shows. */
   writtenAt: z.coerce.date(),
+  /** 028. When it was put down, which an edit does not move: the loose list's
+   *  order and its meta line. */
+  createdAt: z.coerce.date(),
   /** The date carries no time, so nothing may draw one. */
   allDay: z.boolean(),
   /** That it comes round again, as a rule rather than as occurrences. The
@@ -250,6 +261,10 @@ const threadBundle = z.object({
    *  not drawn: every dump with no obvious home lands there, so sharing it
    *  would share whatever arrives next. The server refuses it too. */
   shareable: z.boolean(),
+  /** 028. The caller's own default thread, which no client draws as a thread:
+   *  they open Not in a thread in its place. Still served, because search and
+   *  answering read it. */
+  isDefault: z.boolean(),
 });
 
 export const contentRow = z.object({
@@ -324,6 +339,56 @@ export const contentRow = z.object({
   filingAt: z.string().nullable(),
 });
 
+// 028. A loose thing on the wire: the thread page's own row or note, so both
+// clients reuse their rows and sheets, plus at most one suggestion.
+export const suggestionSchema = z.discriminatedUnion("kind", [
+  z.object({
+    id: z.string(),
+    kind: z.literal("move"),
+    thread: z.object({ id: z.string(), name: z.string() }),
+    /** Up to two of the thread's other members, then how many more: who will
+     *  see it, before the tap. Empty on a thread nobody else is in. */
+    faces: z.array(z.object({ accountId: z.string(), initials: z.string(), displayName: z.string() })),
+    more: z.number(),
+  }),
+  z.object({
+    id: z.string(),
+    kind: z.literal("create"),
+    proposal: z.object({ id: z.string(), name: z.string(), count: z.number() }),
+  }),
+]);
+
+export const looseEntrySchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("content"), row: contentRow, suggestion: suggestionSchema.nullable() }),
+  z.object({ kind: z.literal("note"), note: noteSchema, suggestion: suggestionSchema.nullable() }),
+]);
+
+const chipCounts = z.object({
+  todo: z.number().optional(),
+  link: z.number().optional(),
+  photo: z.number().optional(),
+  note: z.number().optional(),
+  event: z.number().optional(),
+  place: z.number().optional(),
+  voice: z.number().optional(),
+  file: z.number().optional(),
+});
+
+export const looseSummarySchema = z.object({
+  count: z.number(),
+  byType: chipCounts,
+  rows: z.array(looseEntrySchema),
+});
+
+export const loosePageSchema = z.object({
+  rows: z.array(looseEntrySchema),
+  nextCursor: z.string().nullable(),
+  count: z.number(),
+  byType: chipCounts,
+  /** The default thread's archived rows, for the list's foot row. */
+  archived: z.number(),
+});
+
 const contentPage = z.object({
   /** `ticked` only when the label's list asked, with `ticksFor`. */
   rows: z.array(contentRow.extend({ ticked: z.boolean().optional() })),
@@ -332,7 +397,7 @@ const contentPage = z.object({
 
 const contentDetail = contentRow.extend({
   threadId: z.string(),
-  threadName: z.string(),
+  threadName: z.string().nullable(),
   from: z
     .object({ messageId: z.string(), text: z.string().nullable(), at: z.string() })
     .nullable(),
@@ -727,6 +792,7 @@ export async function setArchived(
     }
 
     await touchThread(ref.threadId, trx);
+    await holdFloor(trx, { contentId: ref.id });
   });
 }
 
@@ -790,6 +856,8 @@ export async function moveContentIn(
 
   await touchThread(ref.threadId, trx);
   await touchThread(destination, trx);
+  // 028. A proposal that just lost a thing may be below two.
+  await holdFloor(trx, { contentId: ref.id });
 
   return { threadId: ref.threadId };
 }
@@ -827,6 +895,7 @@ export async function deleteContent(
         .execute();
     }
     await touchThread(ref.threadId, trx);
+    await holdFloor(trx, { contentId: ref.id });
 
     // Enqueued by the delete rather than left to a timer, exactly as 004's undo
     // does. A timer that stops running leaves content the person believes is
@@ -865,6 +934,7 @@ export async function completeContent(
       .where("id", "=", ref.id)
       .execute();
     await touchThread(ref.threadId, trx);
+    await holdFloor(trx, { contentId: ref.id });
   });
 
   return { done: before.done_at !== null };
@@ -1279,9 +1349,9 @@ export async function quickAdd(
 export async function threadRoutes(app: App): Promise<void> {
   // ------------------------------------------------------------ My threads
   //
-  // Three groups, and only one of them is stored. `always_on` is a column;
-  // "older" is derived from activity, because a thread does not become old, it
-  // stops being used.
+  // Two groups, neither stored: "older" is derived from activity, because a
+  // thread does not become old, it stops being used. 028 retired Always on and
+  // took the default thread out; what is in it is `loose`.
   app.get(
     "/v1/threads",
     { schema: { response: { 200: threadList, 401: unauthenticated } } },
@@ -1306,7 +1376,6 @@ export async function threadRoutes(app: App): Promise<void> {
           "threads.id as id",
           "threads.name as name",
           "threads.icon as icon",
-          "threads.always_on as alwaysOn",
           "threads.content_count as count",
           "threads.last_activity_at as lastActivityAt",
         ])
@@ -1351,8 +1420,10 @@ export async function threadRoutes(app: App): Promise<void> {
       const kinds = ids.length ? await openKinds(accountId, ids) : new Map<string, Record<string, number>>();
 
       type Row = z.infer<typeof threadRow>;
-      const groups = { now: [] as Row[], always: [] as Row[], older: [] as Row[] };
+      const groups = { now: [] as Row[], older: [] as Row[] };
       for (const row of rows) {
+        // 028. Never drawn as a thread: its contents are `loose`.
+        if (row.id === account?.default_thread_id) continue;
         const shaped = {
           id: row.id,
           name: row.name,
@@ -1361,10 +1432,9 @@ export async function threadRoutes(app: App): Promise<void> {
           meta: threadLine(kinds.get(row.id) ?? {}, others.get(row.id) ?? []),
           isDefault: row.id === account?.default_thread_id,
         };
-        // always_on wins over staleness: a thread that never closes has not
-        // gone quiet, it is just waiting.
-        if (row.alwaysOn) groups.always.push(shaped);
-        else if (row.lastActivityAt.getTime() < stale) groups.older.push(shaped);
+        // 028. Time only. A slow thread sinks and comes back up when
+        // something lands in it.
+        if (row.lastActivityAt.getTime() < stale) groups.older.push(shaped);
         else groups.now.push(shaped);
       }
 
@@ -1372,9 +1442,9 @@ export async function threadRoutes(app: App): Promise<void> {
         invitations: await invitationsFor(accountId),
         groups: [
           { key: "now" as const, threads: groups.now },
-          { key: "always" as const, threads: groups.always },
           { key: "older" as const, threads: groups.older },
         ],
+        loose: await looseSummary(accountId),
       });
     }
   );
@@ -1434,6 +1504,7 @@ export async function threadRoutes(app: App): Promise<void> {
         const members = await membersOf(id, accountId);
         const kinds = await openKinds(accountId, [id]);
 
+        const isDefault = await isDefaultThreadOf(accountId, id);
         return reply.send({
           id: thread.id,
           name: thread.name,
@@ -1455,7 +1526,8 @@ export async function threadRoutes(app: App): Promise<void> {
           },
           standing: null,
           calendars: await calendarCounts(accountId, id),
-          shareable: !(await isDefaultThreadOf(accountId, id)),
+          shareable: !isDefault,
+          isDefault,
         });
       })
   );
@@ -1744,7 +1816,8 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.attrs as attrs",
             "content.derived_from_message_id as fromMessageId",
             "content.thread_id as threadId",
-            "threads.name as threadName",
+            // 028. A loose row names no thread; the crumb says Not in a thread.
+            shownThreadName("threads.id", "threads.name", accountId).as("threadName"),
             "accounts.display_name as authorName",
       sql<boolean>`exists (
         select 1 from thread_members am

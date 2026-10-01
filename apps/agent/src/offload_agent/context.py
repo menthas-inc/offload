@@ -269,7 +269,10 @@ _DEFAULT_THREAD = text(
 # returning nothing, which is the price of a resume never duplicating.
 _LANDED = text(
     """
-    select c.title, t.name as thread_name
+    select c.title,
+           -- 028. The default thread's stored name never reaches the model.
+           case when t.id = (select default_thread_id from accounts where id = :account_id)
+                then 'not in a thread' else t.name end as thread_name
     from content c
     join threads t on t.id = c.thread_id
     where c.derived_from_message_id = :message_id
@@ -395,7 +398,8 @@ _DUMP = text(
            m.attrs->'mentions' as mentions,
            case when m.source = 'mail' then m.attrs->'mail' end as mail,
            lt.id as looking_at_id,
-           lt.name as looking_at_name
+           case when lt.id = a.default_thread_id then 'not in a thread' else lt.name end
+             as looking_at_name
     from messages m
     join accounts a on a.id = m.account_id
     left join threads lt
@@ -752,7 +756,9 @@ class QuickAddContext:
 
 _TYPED = text(
     """
-    select c.id, c.title, c.thread_id, t.name as thread_name,
+    select c.id, c.title, c.thread_id,
+           case when t.id = a.default_thread_id then 'not in a thread' else t.name end
+             as thread_name,
            a.time_zone as account_time_zone
       from content c
       join threads t on t.id = c.thread_id

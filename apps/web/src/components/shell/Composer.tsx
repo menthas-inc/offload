@@ -42,6 +42,8 @@ import {
   type Sent,
   type WaitingOn,
   type TouchedThread,
+  turnDid,
+  turnUndoable,
   uploadVoice,
   VoiceRefused,
   type VoiceOnWire,
@@ -344,7 +346,7 @@ export function Composer({
           threads: message.threads,
           sources: message.sources,
           labels: message.labels,
-          did: message.threads.length > 0,
+          did: turnDid(message),
         })),
       );
       // No toast on hydration. The eight seconds belongs to the moment offload
@@ -379,7 +381,7 @@ export function Composer({
         (answer: Answer) => {
         cancels.current.delete(messageId);
         setTurns((current) => {
-          const filed = (answer.threads?.length ?? 0) > 0;
+          const filed = turnDid(answer);
           const next = current.map((turn) =>
             turn.id === messageId
               ? {
@@ -433,16 +435,15 @@ export function Composer({
         // **A turn offers a way back only when it changed something.**
         // Undo reverses writes, and an answer writes nothing: offering it after
         // "I could not find that" is a control that would do nothing, sitting
-        // under a sentence that already said nothing happened. `threads` is
-        // where things went and `changed` is everywhere a screen has to reload,
-        // so between them they are the whole of what a turn did.
+        // under a sentence that already said nothing happened. `turnUndoable`
+        // is what was filed and everywhere `changed` names, so a move or a
+        // delete that filed nothing still gets Undo. `turnDid` is narrower and
+        // decides Done only.
         //
         // Only a finished turn, too. A partial one offers a way forward, and
         // both at once asks somebody to choose between finishing and undoing
         // inside eight seconds.
-        const did =
-          (answer.threads?.length ?? 0) > 0 || (answer.changed?.length ?? 0) > 0;
-        if (answer.state === "answered" && answer.reply && did)
+        if (answer.state === "answered" && answer.reply && turnUndoable(answer))
           // Markers stripped rather than drawn. A toast is one line with a
           // control beside it, so a list has nowhere to go.
           offerUndo(turnId, plainText(answer.reply));

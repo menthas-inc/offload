@@ -1,0 +1,33 @@
+"use client";
+
+// 028. Not in a thread, beside the list it came from, as a thread is.
+//
+// Its own directory so it wins over `[id]`. The chip that was on in the group
+// arrives as `type`, and the pane opens filtered to it. Keyed by it, so a
+// second link with another chip starts the list again.
+
+import { useSearchParams } from "next/navigation";
+import { Panes } from "../../../../components/shell/Panes";
+import { MyThreads } from "../../../../components/panes/MyThreads";
+import { LoosePane } from "../../../../components/loose/LoosePane";
+import { useThreads } from "../../../../components/shell/threads-context";
+import { CHIPS, type ChipKey } from "../../../../lib/loose";
+
+export default function LooseRoute() {
+  const { groups, loose, invitations, ready, reload } = useThreads();
+  const asked = useSearchParams().get("type");
+  const type: ChipKey | null = CHIPS.find((chip) => chip.key === asked)?.key ?? null;
+
+  return (
+    <Panes
+      crumbs={[
+        { label: "My threads", href: "/threads", icon: "message-circle" },
+        { label: "Not in a thread", href: "/threads/loose" },
+      ]}
+      panes={[
+        <MyThreads key="threads" groups={groups} loose={loose} invitations={invitations} loading={!ready} onChanged={reload} />,
+        <LoosePane key={type ?? "all"} type={type} onChanged={reload} />,
+      ]}
+    />
+  );
+}

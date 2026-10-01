@@ -52,6 +52,9 @@ export interface Reversible {
   did?: string;
   failed: string;
   unfailed?: string;
+  /** The word on the failure's action, Retry unless the op says otherwise.
+   *  Null offers none: a refusal that trying again cannot change. */
+  retry?: string | null;
 }
 
 /** Draw it, write it, and put it back with a word if the server refuses. */
@@ -73,7 +76,9 @@ export async function perform(op: Reversible, toast: Toaster, writes: Writes): P
   }
   if (await written) return true;
   op.revert();
-  toast.show(op.failed, { label: "Retry", onPress: () => void perform(op, toast, writes) });
+  // Read after the write, which may have settled on a truer word.
+  if (op.retry === null) toast.show(op.failed);
+  else toast.show(op.failed, { label: op.retry ?? "Retry", onPress: () => void perform(op, toast, writes) });
   return false;
 }
 
@@ -84,7 +89,7 @@ export async function reverse(op: Reversible, toast: Toaster, writes: Writes): P
   if (await writes.track(op.unwrite())) return true;
   op.apply();
   toast.show(op.unfailed ?? op.failed, {
-    label: "Retry",
+    label: op.retry ?? "Retry",
     onPress: () => void reverse(op, toast, writes),
   });
   return false;

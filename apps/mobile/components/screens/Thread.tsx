@@ -102,6 +102,7 @@ import {
   type Label,
 } from "../../lib/labels";
 import { DragSheet } from "../shell/DragSheet";
+import { movedCopy, redirectFor } from "../../lib/loose";
 
 const isAndroid = Platform.OS === "android";
 
@@ -206,6 +207,10 @@ export default function Thread() {
         fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
       ]);
       if (!writes.idle()) return;
+      // 028. The caller's own default thread is never drawn as a thread: from
+      // the loading state straight to Not in a thread, never a flash of this.
+      const away = redirectFor(bundle);
+      if (away) return router.replace(away);
       setThread(bundle);
       setRows(page?.rows ?? []);
       setCursor(page?.nextCursor ?? null);
@@ -214,7 +219,7 @@ export default function Thread() {
       failed("thread.load", error, { threadId: id });
     }
     // `writes` is a ref holder and stable, so it is not a dependency.
-  }, [id, showArchived, adopt, pick]);
+  }, [id, showArchived, adopt, pick, router]);
 
   // Every write here is drawn before it is sent. `writes` counts what is in
   // flight and reloads once nothing is; a reload that lands while something
@@ -258,6 +263,8 @@ export default function Thread() {
         fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
       ]);
       if (!writes.idle()) return;
+      // A turn that filed before the first read landed: load does the leaving.
+      if (redirectFor(bundle)) return;
       const next = page?.rows ?? [];
       setThread(bundle);
       setRows(next);
@@ -486,7 +493,7 @@ export default function Thread() {
    *  and the picture goes with the row: the server adjusts its wraps in the
    *  same transaction. The row leaves this list at the press and comes back
    *  if the server refuses; Undo is the same move back. */
-  function move(row: ContentRow, threadId: string): void {
+  function move(row: ContentRow, threadId: string, threadName: string): void {
     setMoving(null);
     if (isProvisional(row.id) || !id) return;
     setViewing(null);
@@ -504,7 +511,8 @@ export default function Thread() {
         },
         write: () => moveContent(row.id, threadId).then((moved) => moved !== null),
         unwrite: () => moveContent(row.id, home).then((moved) => moved !== null),
-        did: "Moved",
+        // 028. Where it went, as every move between threads now says.
+        did: movedCopy(threadName),
         failed: "Couldn't move that",
         unfailed: "Couldn't put that back",
       },
@@ -1232,7 +1240,7 @@ export default function Thread() {
         exceptThreadId={id}
         onClose={() => setMoving(null)}
         onPick={(thread) => {
-          if (moving) move(moving, thread.id);
+          if (moving) move(moving, thread.id, thread.name);
         }}
       />
       <CalendarsSheet

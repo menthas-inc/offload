@@ -62,6 +62,7 @@ import { VoiceNotePlayer } from "./SentVoice";
 import { RowActionSheet } from "./RowActionSheet";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import { putKeyboardAway } from "../../lib/keyboard";
+import { threadHref } from "../../lib/loose";
 
 /** 020. The viewer for a sent message's photos, mounted by the shell above
  *  the sheet. No row yet, so no tools: the Files grid is where a photo's row
@@ -764,9 +765,9 @@ function Theirs({ turn, sent }: { turn: Turn; sent: Turn | null }) {
         <AnswerResults
           found={turn.found}
           onToggle={(row) => void tickFound(turn.id, row)}
-          onOpenThread={(threadId) => {
+          onOpenThread={(threadId, threadName) => {
             lower();
-            router.push({ pathname: "/threads/[id]", params: { id: threadId } });
+            router.push(threadHref(threadId, threadName));
           }}
         />
       ) : null}

@@ -24,6 +24,7 @@ import { useClock } from "../../lib/clock";
 import { useColors } from "../../lib/colors";
 import { drawnWhen } from "../../lib/when";
 import { takeToday, untakeToday, type Day, type TodayRow } from "../../lib/today";
+import { openThreadLabel, threadHref } from "../../lib/loose";
 
 export interface RowOptions {
   border: boolean;
@@ -63,7 +64,8 @@ export function useTodayRows(
   // The open row's thread labels, for the sheet's Labels panel.
   useEffect(() => {
     setLabels(undefined);
-    if (!renaming) return;
+    // 028. A row not in a thread has no thread's labels to offer.
+    if (!renaming || renaming.threadName === null) return;
     let live = true;
     void fetchThread(renaming.threadId).then((bundle) => {
       if (live && bundle) setLabels(bundle.labels);
@@ -215,7 +217,8 @@ export function useTodayRows(
         ...(acting.photo
           ? []
           : [{ label: acting.doneAt ? "Mark not done" : "Mark done", icon: acting.doneAt ? "rewind" : "check", run: () => tick(acting) }]),
-        { label: "Open the thread", icon: "message-circle", run: () => router.push({ pathname: "/threads/[id]", params: { id: acting.threadId } }) },
+        // 028. A row not in a thread opens Not in a thread.
+        { label: openThreadLabel(acting.threadName), icon: "message-circle", run: () => router.push(threadHref(acting.threadId, acting.threadName)) },
         ...(acting.archivedAt
           ? [{ label: "Put back in the thread", icon: "rewind", run: () => archive(acting) }]
           : acting.canDelete
@@ -237,7 +240,12 @@ export function useTodayRows(
       ground={COLOR.fill}
       dense
       thread={{ id: item.threadId, name: item.threadName }}
-      metaMarks={item.labels.flatMap((labelId) => (day?.threadLabels ?? []).filter((label) => label.id === labelId))}
+      // 028. A row not in a thread keeps any old labels stored and draws none.
+      metaMarks={
+        item.threadName === null
+          ? []
+          : item.labels.flatMap((labelId) => (day?.threadLabels ?? []).filter((label) => label.id === labelId))
+      }
       onToggle={item.type === "task" ? () => tick(item) : undefined}
       onEdit={() => setRenaming(item)}
       onActions={() => setActing(item)}

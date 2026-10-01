@@ -273,3 +273,7 @@ Audited against `docs/constitution/principles.md` read fresh, after the three re
 ## Amended 2026-09-29
 
 **A note's body is no longer drawn or edited** on any surface: no second field in the editor and no "more" on the row. It is still stored and still never reaches a prompt. On the phones a note offload wrote no longer leads with `sparkles`; its ink says who wrote it.
+
+## Amended 2026-10-02 by 028
+
+A note moves between threads, by its author, or by any member once its author has left, into a thread the caller is in: the note sheet's Move on every surface, and 028's suggestions. It keeps its words, its origin, its untrusted mark and when it was put down. Its labels stay where they are and are unseen in the new thread, because a label belongs to a thread. A learned note whose words the destination already holds is refused rather than duplicated.

@@ -35,6 +35,8 @@ export type JobKind =
   | "notes.compact"
   // 025. One thread's labelling, drained by the Python worker like the fold.
   | "labels.sort"
+  // 028. The daily pass over what is not in a thread; the worker runs it.
+  | "loose.propose"
   // 013. The sweep runs here and finds what needs embedding; the three embed
   // kinds are drained by the Python worker, which is where the client lives.
   | "embed.sweep"

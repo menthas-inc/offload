@@ -75,6 +75,9 @@ export interface AccountsTable {
   /** 027. Customize Today's document; null is the defaults. Only a value
    *  `todayLayout` parsed is ever written. */
   today_layout: ColumnType<unknown, string | null | undefined, string | null>;
+  /** 028. A hash of the daily pass's last candidate set, so it runs only when
+   *  that set changed. */
+  loose_pass_key: string | null;
   /** 022. The mark, a 176px PNG drawn once from the id and never rewritten.
    *  Not content. Null until somebody first asks for it. */
   avatar_png: Buffer | null;
@@ -542,6 +545,9 @@ export interface ContentTable {
   /** Out of the active list, reversibly, by anybody in the thread. The opposite
    *  of `deleted_at` despite the resemblance: nothing is destroyed and nothing
    *  is scheduled. */
+  /** 028. The person dismissed a suggestion on this row, which is never
+   *  given another. No words: the record is the timestamp. */
+  suggest_dismissed_at: Generated<Timestamp | null>;
   archived_at: Timestamp | null;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;
@@ -666,6 +672,8 @@ export interface NotesTable {
   /** Set aside by the daily job: out of the prompt, out of the section, still
    *  on the thread. Filtered by every current-note query, because forgetting
    *  is silent. */
+  /** 028. As `content.suggest_dismissed_at`. */
+  suggest_dismissed_at: Generated<Timestamp | null>;
   superseded_at: Timestamp | null;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;
@@ -1025,7 +1033,35 @@ export interface TodayPutOffsTable {
   created_at: Generated<Timestamp>;
 }
 
+/** 028. offload's proposal of a new thread for two to ten loose things.
+ *  Plain text, as `threads.name` is (OFF-2). Spent, not deleted, so Undo
+ *  restores the same row. */
+export interface ThreadProposalsTable {
+  id: Generated<string>;
+  account_id: string;
+  name: string;
+  created_at: Generated<Timestamp>;
+  spent_at: Timestamp | null;
+  spent_thread_id: string | null;
+}
+
+/** 028. At most one per loose thing: move to `thread_id`, or the proposal's
+ *  new thread. Drawn only while the thing is loose and not accepted. */
+export interface SuggestionsTable {
+  id: Generated<string>;
+  account_id: string;
+  content_id: string | null;
+  note_id: string | null;
+  kind: "move" | "create";
+  thread_id: string | null;
+  proposal_id: string | null;
+  accepted_at: Timestamp | null;
+  created_at: Generated<Timestamp>;
+}
+
 export interface Database {
+  thread_proposals: ThreadProposalsTable;
+  suggestions: SuggestionsTable;
   today_put_offs: TodayPutOffsTable;
   connector_connections: ConnectorConnectionsTable;
   connector_secrets: ConnectorSecretsTable;

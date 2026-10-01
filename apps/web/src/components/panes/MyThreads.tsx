@@ -2,9 +2,10 @@
 
 // My threads. From ui_kits/web_app/WApp.jsx's WThings.
 //
-// Three groups, and only one of them is stored: `always_on` is a column, and
-// "older" is derived from activity, because a thread does not become old, it
-// stops being used. The server derives it so all three clients agree.
+// One list by last activity, then Older threads, which is derived from
+// activity, because a thread does not become old, it stops being used. The
+// server derives it so all three clients agree. 028 retired Always on, whose
+// only thread was the default thread, and put Not in a thread between the two.
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -13,30 +14,22 @@ import { QuietEmpty } from "./QuietEmpty";
 import { threadIcon } from "../shell/Sidebar";
 import { useToast } from "../shell/Toast";
 import styles from "../../app/(shell)/shell.module.css";
-import { deleteThread, restoreThread, type ThreadGroup, type ThreadRow } from "../../lib/threads";
+import { deleteThread, restoreThread, type GroupKey, type ThreadGroup, type ThreadRow } from "../../lib/threads";
 import type { Invitation } from "../../lib/people";
 import { InvitationStrip } from "../people/InvitationStrip";
 import { InvitationModal } from "../people/InvitationModal";
+import { LooseGroup } from "../loose/LooseGroup";
+import type { LooseSummary } from "../../lib/loose";
 
-const HEADINGS: Record<string, string> = {
+const HEADINGS: Record<GroupKey, string> = {
   now: "For now",
-  always: "Always on",
   older: "Older threads",
-};
-
-/** Which group gets which badge, and it is not a free choice: `WThings` gives
- *  "Always on" the accent and leaves "Older threads" on the default, so the
- *  solid blue lands on the group that is finished rather than the one that
- *  never closes. Written down because it reads backwards until you see it on
- *  screen. */
-const TONE: Record<string, "solid" | "accent"> = {
-  now: "solid",
-  always: "accent",
-  older: "solid",
 };
 
 interface Props {
   groups: ThreadGroup[];
+  /** 028. What is not in a thread. Null draws no group. */
+  loose?: LooseSummary | null;
   /** 022. Waiting shares, one strip each at the top. */
   invitations?: Invitation[];
   loading: boolean;
@@ -127,31 +120,18 @@ function Row({
               {thread.meta ? <span className={styles.rowMeta}>{thread.meta}</span> : null}
             </span>
             <span className={styles.rowTools}>
-              {/* The default thread keeps the control and cannot use it. Hiding
-                  it would leave somebody hunting for a delete that is simply
-                  absent on one row; disabled with the reason on it answers the
-                  question where they are already looking. */}
               <button
                 type="button"
                 className={styles.rowTool}
                 data-tone="danger"
-                disabled={thread.isDefault}
-                aria-label={
-                  thread.isDefault
-                    ? `${thread.name} is your default thread and cannot be deleted`
-                    : `Delete ${thread.name}`
-                }
-                title={
-                  thread.isDefault
-                    ? "Your default thread. Anything with no obvious home lands here."
-                    : "Delete"
-                }
+                aria-label={`Delete ${thread.name}`}
+                title="Delete"
                 onClick={(event) => {
                   // Inside a link, so both, or the row navigates out from
                   // under the question it just opened.
                   event.preventDefault();
                   event.stopPropagation();
-                  if (!thread.isDefault) setAsking(true);
+                  setAsking(true);
                 }}
               >
                 <Icon name="trash-2" size={15} />
@@ -164,7 +144,7 @@ function Row({
   );
 }
 
-export function MyThreads({ groups, invitations = [], loading, onChanged }: Props) {
+export function MyThreads({ groups, loose = null, invitations = [], loading, onChanged }: Props) {
   const toast = useToast();
   const [looking, setLooking] = useState<Invitation | null>(null);
   const strips = invitations.map((invitation) => (
@@ -197,9 +177,32 @@ export function MyThreads({ groups, invitations = [], loading, onChanged }: Prop
   }
 
   const total = groups.reduce((n, group) => n + group.threads.length, 0);
+
+  function list(key: GroupKey) {
+    const group = groups.find((one) => one.key === key);
+    if (!group || group.threads.length === 0) return null;
+    return (
+      <section key={key}>
+        {/* The first group has no heading. The kit omits it, and it is
+            right: the page title already says My threads, and a heading
+            directly under it that says something else is a label for a list
+            nobody was confused about. */}
+        {key === "now" ? null : (
+          <h2 className={styles.section}>
+            {HEADINGS[key]}
+            <em className={styles.sectionCount}>{group.threads.length}</em>
+          </h2>
+        )}
+        {group.threads.map((thread) => (
+          <Row key={thread.id} thread={thread} onDeleted={offerUndo} />
+        ))}
+      </section>
+    );
+  }
   const live = groups.find((group) => group.key === "now")?.threads.length ?? 0;
 
-  if (!loading && total === 0) {
+  // 028. The threads only: what is not in a thread is not one.
+  if (!loading && total === 0 && !loose) {
     // The kit's own line. True, and worth saying rather than showing a zero:
     // nobody makes a thread, they appear once enough has landed in one place
     // to be one.
@@ -233,30 +236,14 @@ export function MyThreads({ groups, invitations = [], loading, onChanged }: Prop
       <div className={styles.paneBody}>
         {strips}
         {loading ? null : (
-          groups.map((group) =>
-            group.threads.length === 0 ? null : (
-              <section key={group.key}>
-                {/* The first group has no heading. The kit omits it, and it is
-                    right: the page title already says My threads, and a
-                    heading directly under it that says something else is a
-                    label for a list nobody was confused about. */}
-                {group.key === "now" ? null : (
-                  <h2 className={styles.section}>
-                    {HEADINGS[group.key]}
-                    <em
-                      className={styles.sectionCount}
-                      data-tone={TONE[group.key]}
-                    >
-                      {group.threads.length}
-                    </em>
-                  </h2>
-                )}
-                {group.threads.map((thread) => (
-                  <Row key={thread.id} thread={thread} onDeleted={offerUndo} />
-                ))}
-              </section>
-            )
-          ))}
+          <>
+            {list("now")}
+            {/* 028. Between the first list and Older threads, as `WThings`
+                draws it, and not drawn when there is nothing in it. */}
+            {loose && loose.count > 0 ? <LooseGroup summary={loose} onChanged={() => onChanged?.()} /> : null}
+            {list("older")}
+          </>
+        )}
       </div>
       {modal}
     </>

@@ -13,6 +13,7 @@
 // browser, and it is the same lesson as trusting a model's output for a
 // destination.
 
+import { PROPOSAL_CANDIDATES, applyProposals } from "../loose/propose.js";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { sql } from "kysely";
@@ -512,6 +513,78 @@ export async function internalRoutes(app: App): Promise<void> {
       // hundred sentences of dumped text at once, and the shortest route from
       // here to an OFF-1 breach is a helpful log line.
       return reply.send(outcome);
+    }
+  );
+
+  // 028. The daily pass's proposals. The account comes from the job row;
+  // `applyProposals` holds every id to the set the worker sent and to what is
+  // still a candidate, and every name to one plain line.
+  const proposalsBody = z.strictObject({
+    jobId: z.string().uuid(),
+    sent: z.array(z.string().uuid()).max(PROPOSAL_CANDIDATES),
+    groups: z.array(z.strictObject({ name: z.string().max(200), ids: z.array(z.string().uuid()).max(20) })).max(10),
+    usage: z.array(usageEntry).max(4).optional(),
+  });
+
+  app.post(
+    "/internal/v1/loose-proposals",
+    {
+      schema: {
+        body: proposalsBody,
+        response: { 200: z.object({ proposals: z.number() }), 401: refused, 404: refused },
+      },
+    },
+    async (request, reply) => {
+      const header = request.headers.authorization;
+      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+      if (!tokenMatches(presented)) return reply.code(401).send({ error: "unauthorised" as const });
+
+      const result = request.body;
+      const job = await db
+        .selectFrom("jobs")
+        .select(["id", "account_id"])
+        .where("id", "=", result.jobId)
+        .where("kind", "=", "loose.propose")
+        .executeTakeFirst();
+      if (!job?.account_id) return reply.code(404).send({ error: "unknown_job" as const });
+      const accountId = job.account_id;
+
+      const proposals = await db.transaction().execute(async (trx) => {
+        // Once per job, as the label sort's: a retried post after a lost
+        // response writes nothing a second time.
+        const open = await trx.selectFrom("jobs").select("state").where("id", "=", result.jobId).forUpdate().executeTakeFirstOrThrow();
+        if (open.state !== "running") return 0;
+        const written = await applyProposals(trx, accountId, result.sent, result.groups);
+        if (result.usage && result.usage.length > 0) {
+          await trx
+            .insertInto("llm_usage")
+            .values(
+              result.usage.map((entry) => ({
+                account_id: accountId,
+                job_kind: "loose.propose",
+                category: "scheduled" as const,
+                model: entry.model,
+                input_tokens: entry.inputTokens,
+                output_tokens: entry.outputTokens,
+                cache_read_tokens: entry.cacheReadTokens,
+                cost_micros: entry.costMicros,
+                latency_ms: entry.latencyMs,
+              }))
+            )
+            .execute();
+        }
+        await trx
+          .updateTable("jobs")
+          .set({ state: "done", locked_at: null, locked_by: null, updated_at: sql`now()` })
+          .where("id", "=", result.jobId)
+          .execute();
+        return written;
+      });
+
+      // Counts, never a word: the names are offload's words about somebody's
+      // things, and the shortest route to an OFF-1 breach is a helpful log.
+      console.log(JSON.stringify({ level: "info", msg: "loose proposals", sent: result.sent.length, groups: result.groups.length, written: proposals }));
+      return reply.send({ proposals });
     }
   );
 

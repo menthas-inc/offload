@@ -231,13 +231,14 @@ const waitingOn = z
 const foundResults = z.array(
   z.object({
     threadId: z.string(),
-    threadName: z.string(),
+    /** 028. Null for the default thread: the card says Not in a thread. */
+    threadName: z.string().nullable(),
     truncated: z.boolean(),
     rows: z.array(
       z.object({
         contentId: z.string(),
         threadId: z.string(),
-        threadName: z.string(),
+        threadName: z.string().nullable(),
         type: z.string(),
         title: z.string(),
         body: z.string().nullable(),
@@ -298,6 +299,9 @@ const messageResponse = z.object({
   voice: voiceOnWire.nullable(),
   reply: z.string().nullable(),
   threads: touchedThreads,
+  /** 028. The turn filed something, including into the default thread, which
+   *  has no pill: what draws Done. */
+  filed: z.boolean(),
   /** Thread ids whose contents this turn changed, a superset of `threads`.
    *  A move's source is in here and not in `threads`: the screen has to reload
    *  it, and a pill saying the dump went there would be untrue. */
@@ -347,6 +351,8 @@ const currentConversation = z.object({
       /** Where this turn filed, and where a fact in it came from. Empty on an
        *  offload message and on any turn that read nothing. */
       threads: z.array(z.object({ id: z.string(), name: z.string() })),
+      /** 028. Filed something, loose or not: what draws Done. */
+      filed: z.boolean(),
       sources: z.array(z.object({ domain: z.string(), url: z.string() })),
       /** 025. What the turn applied, in order, for the footer's marks. */
       labels: z.array(z.object({ id: z.string(), name: z.string(), colour: z.number() })),
@@ -540,10 +546,13 @@ export async function threadsForAll(
       .execute(),
   ]);
 
+  // 028. A turn that filed only loose keeps its key with no pill in it, which
+  // is how the tail says it filed something.
+  const account = await db.selectFrom("accounts").select("default_thread_id").where("id", "=", accountId).executeTakeFirst();
   for (const row of [...filed, ...noted]) {
     if (!row.message_id) continue;
     const list = out.get(row.message_id) ?? [];
-    if (!list.some((t) => t.id === row.id)) list.push({ id: row.id, name: row.name });
+    if (row.id !== account?.default_thread_id && !list.some((t) => t.id === row.id)) list.push({ id: row.id, name: row.name });
     out.set(row.message_id, list);
   }
   return out;
@@ -573,10 +582,10 @@ export async function sourcesForAll(
   return out;
 }
 
-async function threadsFor(
+export async function threadsFor(
   messageId: string,
   accountId: string,
-): Promise<{ landed: { id: string; name: string }[]; changed: string[] }> {
+): Promise<{ landed: { id: string; name: string }[]; changed: string[]; filed: boolean }> {
   const [filed, noted] = await Promise.all([
     db
       .selectFrom("content")
@@ -604,15 +613,22 @@ async function threadsFor(
   const landed: { id: string; name: string }[] = [];
   const changed = new Set<string>();
   const seen = new Set<string>();
+  // 028. What landed in the default thread draws no pill: the footer's Done is
+  // the whole of it. It still counts as changed, so My threads reloads.
+  const account = await db.selectFrom("accounts").select("default_thread_id").where("id", "=", accountId).executeTakeFirst();
 
+  let any = false;
   for (const row of [...filed.map((r) => ({ ...r, landed: true })), ...noted]) {
     changed.add(row.id);
-    if (!row.landed || seen.has(row.id)) continue;
+    if (row.landed) any = true;
+    if (!row.landed || seen.has(row.id) || row.id === account?.default_thread_id) continue;
     seen.add(row.id);
     landed.push({ id: row.id, name: row.name });
   }
 
-  return { landed, changed: [...changed] };
+  // `filed` is what draws Done: a turn that filed only loose has no pill and
+  // still did something.
+  return { landed, changed: [...changed], filed: any };
 }
 
 async function replyFor(
@@ -663,6 +679,8 @@ export type StreamStep =
       replyId: string | null;
       threads: TouchedThread[];
       changed: string[];
+      /** 028. The turn filed something, loose or not: what draws Done. */
+      filed: boolean;
       sources: { domain: string; url: string }[];
       /** 025. What the turn applied, for the footer's marks. */
       labels: { id: string; name: string; colour: number }[];
@@ -673,6 +691,8 @@ export type StreamStep =
       replyId: string | null;
       threads: TouchedThread[];
       changed: string[];
+      /** 028. The turn filed something, loose or not: what draws Done. */
+      filed: boolean;
       sources: { domain: string; url: string }[];
       /** 025. What the turn applied, for the footer's marks. */
       labels: { id: string; name: string; colour: number }[];
@@ -725,6 +745,7 @@ export async function streamStep(
       replyId: reply?.id ?? null,
       threads: touched.landed,
       changed: touched.changed,
+      filed: touched.filed,
       sources,
       // 025. The labels the turn applied, for the footer's marks.
       labels: labelled.get(current.turn_id) ?? [],
@@ -1218,7 +1239,7 @@ export async function dumpRoutes(app: App): Promise<void> {
       const settled = message.state === "answered" || message.state === "partial";
       const touched = settled
         ? await threadsFor(message.id, accountId)
-        : { landed: [], changed: [] };
+        : { landed: [], changed: [], filed: false };
       // One lookup for both the sentence and the id its rows hang off.
       const replyRow = settled ? await replyFor(message.turn_id, accountId) : null;
 
@@ -1233,6 +1254,7 @@ export async function dumpRoutes(app: App): Promise<void> {
         // Where it actually went, and everything it changed. Both empty until
         // the turn settles, which is the honest answer while it is running.
         threads: settled ? touched.landed : [],
+        filed: settled ? touched.filed : false,
         changed: settled ? touched.changed : [],
         // Read at the turn rather than at the reply: a filing turn writes no
         // reply and may still have read something.
@@ -1369,6 +1391,8 @@ export async function dumpRoutes(app: App): Promise<void> {
           // Where it went and where a fact came from, both from the record of
           // what was written rather than from anything the reply said.
           threads: landed.get(row.id) ?? [],
+          // 028. Filed something, loose or not: what draws Done after a reload.
+          filed: landed.has(row.id),
           sources: sources.get(row.turn_id) ?? [],
           // 025. On the person's message only, where the footer is drawn.
           labels: row.role === "person" ? (labelled.get(row.turn_id) ?? []) : [],

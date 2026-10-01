@@ -129,6 +129,9 @@ export function Shell() {
 
   const onTab = TABS.includes(pathname);
   const inThread = pathname.startsWith("/threads/");
+  // 028. Not in a thread sits under `threads/` for the tabs and the push, but
+  // it is not a thread: a dump from it is filed like any other.
+  const inLoose = pathname === "/threads/loose";
   const elsewhere = !onTab && !inThread;
 
   // A screen without the shell opened over a raised conversation, from a
@@ -200,7 +203,7 @@ export function Shell() {
         importantForAccessibility={sheetOpen ? "no-hide-descendants" : "auto"}
         accessibilityElementsHidden={sheetOpen}
       >
-        <Plate tabs={tabs} placeholder={inThread ? "Add to this" : undefined} />
+        <Plate tabs={tabs} placeholder={inThread && !inLoose ? "Add to this" : undefined} />
       </Animated.View>
       <ConversationScrim />
       <Conversation />

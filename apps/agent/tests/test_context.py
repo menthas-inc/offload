@@ -92,7 +92,9 @@ def test_threads_carry_their_ids_and_the_default_is_marked():
     # By id, not by name: nothing makes a thread name unique within an account,
     # so a name is an ambiguous address.
     assert "00000000-0000-0000-0000-000000000001" in listing
-    assert "default thread" in listing
+    # 028: the default thread reads as not in a thread, never by its name.
+    assert "not in a thread" in listing
+    assert "Thread 0" not in listing
 
 
 def test_what_already_landed_is_its_own_block_and_says_not_to_repeat_it():

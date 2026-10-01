@@ -53,7 +53,8 @@ export interface TouchedThread {
  *  answer. */
 export interface FoundResult {
   threadId: string;
-  threadName: string;
+  /** 028. Null for what is not in a thread, which the result never names. */
+  threadName: string | null;
   /** The read hit its page. The tail becomes the thread rather than a Show more
    *  that would expand into rows nobody fetched. */
   truncated: boolean;
@@ -63,7 +64,7 @@ export interface FoundResult {
 export interface FoundRow {
   contentId: string;
   threadId: string;
-  threadName: string;
+  threadName: string | null;
   type: string;
   title: string;
   body: string | null;
@@ -109,6 +110,8 @@ export interface Answer {
    *  A move's source is here and not there: the screen has to reload it, and a
    *  pill saying the dump went there would be untrue. */
   changed?: string[];
+  /** 028. Filed something, loose or not: what draws Done. */
+  filed?: boolean;
   /** What an answer showed. Empty for a dump, which files rather than answers.
    *
    *  Resolved by the server every time it is read, so a row ticked or deleted
@@ -327,6 +330,8 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     labels?: { id: string; name: string; colour: number }[];
     step?: string | null;
     changed?: string[];
+    /** 028. Filed something, loose or not: what draws Done. */
+    filed?: boolean;
     waiting?: WaitingOn | null;
     found?: FoundResult[];
     voice?: VoiceOnWire | null;
@@ -339,6 +344,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     labels: body.labels ?? [],
     step: body.step ?? null,
     changed: body.changed ?? [],
+    filed: body.filed ?? false,
     waiting: body.waiting ?? null,
     found: body.found ?? [],
     voice: body.voice ?? null,
@@ -460,6 +466,8 @@ export interface TailMessage {
    *  and this endpoint has now been the place a reload loses something three
    *  times. */
   threads: TouchedThread[];
+  /** 028. Filed something, loose included: what draws Done after a reload. */
+  filed?: boolean;
   sources: Source[];
   /** 025. On the person's message: what the turn applied. */
   labels: { id: string; name: string; colour: number }[];
@@ -611,4 +619,19 @@ export async function answerPending(
   } catch {
     return false;
   }
+}
+
+/** Whether a settled turn filed something, which is what draws the footer's
+ *  Done. 028: what lands only where no thread is named draws no pill, so
+ *  `threads` can be empty on a turn that filed; the server's `filed` says so.
+ *  A move's source in `changed` alone is not a filing. */
+export function turnDid(answer: { threads?: TouchedThread[]; changed?: string[]; filed?: boolean }): boolean {
+  return (answer.threads?.length ?? 0) > 0 || answer.filed === true;
+}
+
+/** Whether a settled turn offers Undo: anything it filed, and anything else
+ *  it changed. A move out of a thread or a delete files nothing and is still
+ *  a write somebody may want back, so this is wider than Done. */
+export function turnUndoable(answer: { threads?: TouchedThread[]; changed?: string[]; filed?: boolean }): boolean {
+  return turnDid(answer) || (answer.changed?.length ?? 0) > 0;
 }

@@ -122,8 +122,9 @@ interface Props {
   /** 020. A photo row's tile opens the viewer; the row itself opens as a row. */
   onOpenPhoto?: (() => void) | undefined;
   /** 027. Today: the row's thread, drawn as the thread pill on the marks
-   *  line after the chip and before `metaMarks`, in place of `meta`. */
-  thread?: { id: string; name: string } | undefined;
+   *  line after the chip and before `metaMarks`, in place of `meta`. 028: a
+   *  row not in a thread has no name, and draws no pill. */
+  thread?: { id: string; name: string | null } | undefined;
   /** 027. Which chip leads the marks line: the date chip (the default), the
    *  hour with a clock for a row with a time on its day, or none for a row
    *  due that day with no hour. */
@@ -137,6 +138,12 @@ interface Props {
   /** 027. Today's card: tighter at the sides and around the checkbox, so a
    *  title has the width (the kit's 14px sides and 8px gap). */
   dense?: boolean | undefined;
+  /** 028. Not in a thread draws each title on one line. */
+  titleLines?: number | undefined;
+  /** 028. A muted note, drawn in tertiary ink as the thread page draws it. */
+  muted?: boolean | undefined;
+  /** 028. Under the meta, inside the row: a suggestion. */
+  below?: ReactNode;
 }
 
 export function ContentRowView({
@@ -158,6 +165,9 @@ export function ContentRowView({
   trailing,
   ground,
   dense,
+  titleLines,
+  muted,
+  below,
 }: Props) {
   const COLOR = useColors();
   const router = useRouter();
@@ -441,8 +451,11 @@ export function ContentRowView({
               somewhere else; it was a detail screen with the page a second
               step. Every other row opens its edit sheet on the same tap
               (2026-09-29), and a link reaches its sheet from the ellipsis. */}
+          {/* 028. A column, so a suggestion sits under the row's words and
+              outside its press: inside it, a screen reader would read the
+              row as one button and never reach the suggestion's two. */}
+          <View className="flex-1">
           <Pressable
-            className="flex-1"
             disabled={provisional}
             onPress={door ? () => void openLink(row.url) : sheet}
             accessibilityRole={door ? "link" : "button"}
@@ -450,7 +463,7 @@ export function ContentRowView({
             accessibilityHint={door ? undefined : row.canDelete ? "Edit, label or delete" : "Actions"}
             // 027. The thread pill inside is unreachable to a screen reader
             // once the row is one element, so the row carries it as an action.
-            {...(thread
+            {...(thread && thread.name !== null
               ? {
                   accessibilityActions: [{ name: "openThread", label: `Open ${thread.name}` }],
                   onAccessibilityAction: (event: { nativeEvent: { actionName: string } }) => {
@@ -468,8 +481,8 @@ export function ContentRowView({
             <View className="items-start gap-space-1">
               <Text
                 className={`self-stretch font-core font-medium ${
-                  row.doneAt || row.archivedAt
-                    ? row.doneAt
+                  row.doneAt || row.archivedAt || muted
+                    ? row.doneAt || muted
                       ? "text-text-tertiary"
                       : "text-text-secondary"
                     : isAndroid
@@ -483,6 +496,7 @@ export function ContentRowView({
                   // and loses the opacity: tertiary ink already says it.
                   ...(row.doneAt ? { textDecorationLine: "line-through" as const } : {}),
                 }}
+                {...(titleLines ? { numberOfLines: titleLines } : {})}
               >
                 {row.title}
               </Text>
@@ -496,7 +510,7 @@ export function ContentRowView({
                 <View className="flex-row flex-wrap items-center gap-space-2">
                   {chip === "date" ? <DateChip row={row} isReminder={row.isReminder} /> : null}
                   {chip === "time" ? <HourChip row={row} /> : null}
-                  <ThreadPill id={thread.id} name={thread.name} size={24} />
+                  {thread.name !== null ? <ThreadPill id={thread.id} name={thread.name} size={24} /> : null}
                   {(metaMarks ?? []).map((label) => (
                     <LabelMark key={label.id} color={label.colour}>
                       {label.name}
@@ -574,6 +588,8 @@ export function ContentRowView({
               </Pressable>
             ) : null}
           </Pressable>
+          {below}
+          </View>
 
           {trailing ? <View style={{ marginTop: (TITLE_LINE - 44) / 2 }}>{trailing}</View> : null}
 

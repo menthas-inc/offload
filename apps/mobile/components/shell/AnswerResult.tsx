@@ -17,6 +17,7 @@ import { Glyph } from "../Glyph";
 import { PhotoThumb } from "./PhotoThumb";
 import { useColors } from "../../lib/colors";
 import type { FoundResult, FoundRow } from "../../lib/dump";
+import { foundFoot, foundHead } from "../../lib/loose";
 
 /** This surface's default, passed in rather than reached for.
  *
@@ -51,7 +52,9 @@ export function AnswerResults({
   found: FoundResult[];
   /** Absent draws the rows untickable, which is right for a fact. */
   onToggle?: ((row: FoundRow) => void) | undefined;
-  onOpenThread?: ((threadId: string) => void) | undefined;
+  /** 028. The name is null for what is not in a thread, which opens the
+   *  full list rather than a thread. */
+  onOpenThread?: ((threadId: string, threadName: string | null) => void) | undefined;
   /** Rows drawn before the tail. Defaults to this surface's number. */
   shown?: number;
 }) {
@@ -83,7 +86,7 @@ function Result({
   // prop and one passed as undefined as different things, and this is passed
   // through from a parent that may not have it.
   onToggle?: ((row: FoundRow) => void) | undefined;
-  onOpenThread?: ((threadId: string) => void) | undefined;
+  onOpenThread?: ((threadId: string, threadName: string | null) => void) | undefined;
 }) {
   const colors = useColors();
   // No expand state on the phones. Show more is a web affordance in a pane that
@@ -105,18 +108,20 @@ function Result({
           chip above it: one link out per result, and the count has somewhere
           honest to sit. */}
       <Pressable
-        onPress={() => onOpenThread?.(result.threadId)}
+        onPress={() => onOpenThread?.(result.threadId, result.threadName)}
         accessibilityRole="button"
-        accessibilityLabel={`Open ${result.threadName}`}
+        accessibilityLabel={`Open ${foundHead(result.threadName)}`}
         className="min-h-tap-min flex-row items-center gap-space-4 border-b border-border-hairline bg-surface-accent-soft px-space-5 py-space-4"
       >
-        <Glyph name="lasso" size={15} color={colors.accent} />
+        {/* 028. The lasso is a thread's mark, and what is not in a thread
+            is not one. */}
+        {result.threadName !== null ? <Glyph name="lasso" size={15} color={colors.accent} /> : null}
         <Text
           className="font-core font-medium text-text-accent"
           style={{ fontSize: 13.5 }}
           numberOfLines={1}
         >
-          {result.threadName}
+          {foundHead(result.threadName)}
         </Text>
         <Text className="ml-auto font-core text-text-accent" style={{ fontSize: 12 }}>
           {result.rows.length}
@@ -139,7 +144,7 @@ function Result({
               // The name carries the thread. On the thread page a checkbox can
               // lean on the screen for context; in an answer the rows come from
               // anywhere, and "checkbox, not checked" says nothing at all.
-              accessibilityLabel={`${row.title}, ${row.threadName}`}
+              accessibilityLabel={`${row.title}, ${foundHead(row.threadName)}`}
             >
               <View
                 className={`items-center justify-center rounded-a-xs ${
@@ -199,18 +204,20 @@ function Result({
           to expand into, because what was not read was not sent. */}
       {result.truncated || more > 0 ? (
         <Pressable
-          onPress={() => onOpenThread?.(result.threadId)}
+          onPress={() => onOpenThread?.(result.threadId, result.threadName)}
           accessibilityRole="button"
           className="min-h-tap-min flex-row items-center gap-space-4 border-t border-border-hairline bg-surface-accent-soft px-space-5 py-space-4"
         >
-          <Glyph name="lasso" size={15} color={colors.accent} />
+          {result.threadName !== null ? <Glyph name="lasso" size={15} color={colors.accent} /> : null}
           <Text
             className="flex-1 font-core text-text-secondary"
             style={{ fontSize: 12.5, lineHeight: 17.5 }}
           >
             {result.truncated
-              ? "The rest of the answer is in the thread."
-              : `${more} more in ${result.threadName}.`}
+              ? result.threadName === null
+                ? "The rest of the answer is in the list."
+                : "The rest of the answer is in the thread."
+              : foundFoot(more, result.threadName)}
           </Text>
           <Glyph name="chevron-right" size={15} color={colors.accent} />
         </Pressable>

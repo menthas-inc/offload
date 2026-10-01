@@ -18,6 +18,7 @@ export function SheetFoot({
   onCancel,
   onConfirm,
   confirm,
+  disabled = false,
 }: {
   /** Delete, Archive, Put back or Clear. Danger draws it in clay. */
   lead?: { label: string; icon?: string; danger?: boolean; onPress: () => void } | undefined;
@@ -25,6 +26,8 @@ export function SheetFoot({
   onConfirm: () => void;
   /** Save where it writes, Done where it hands back to a sheet that will. */
   confirm: string;
+  /** 028. The confirming pill, until what it would write is writable. */
+  disabled?: boolean;
 }) {
   const COLOR = useColors();
   const quiet = isAndroid ? "text-a-on-var" : "text-text-secondary";
@@ -60,12 +63,17 @@ export function SheetFoot({
       </Pressable>
       <Pressable
         onPress={onConfirm}
+        disabled={disabled}
         hitSlop={SLOP}
         accessibilityRole="button"
-        className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`}
+        accessibilityState={{ disabled }}
+        className={`rounded-pill px-space-5 ${disabled ? "bg-state-disabled-surface" : isAndroid ? "bg-a-on" : "bg-surface-inverse"}`}
         style={{ minHeight: 30, justifyContent: "center" }}
       >
-        <Text className={`font-core font-medium ${isAndroid ? "text-a-surface" : "text-text-inverse"}`} style={{ fontSize: 13 }}>
+        <Text
+          className={`font-core font-medium ${disabled ? "text-state-disabled-text" : isAndroid ? "text-a-surface" : "text-text-inverse"}`}
+          style={{ fontSize: 13 }}
+        >
           {confirm}
         </Text>
       </Pressable>

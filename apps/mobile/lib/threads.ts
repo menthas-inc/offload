@@ -13,6 +13,7 @@
 import type { Label } from "./labels";
 import { send } from "./api";
 import type { Invitation } from "./people";
+import type { LooseSummary } from "./loose";
 import type { Sortable } from "@offload/widgets";
 
 export interface ThreadRow {
@@ -21,13 +22,14 @@ export interface ThreadRow {
   icon: string | null;
   count: number;
   meta: string;
-  /** The default thread, which cannot be deleted: everything with no obvious
-   *  home lands there. From the server, never inferred from a name. */
+  /** Always false since 028, which took the default thread out of the list.
+   *  Kept because the server still sends it. */
   isDefault: boolean;
 }
 
+/** 028. Two groups: Always on went, and Older is about time only. */
 export interface ThreadGroup {
-  key: "now" | "always" | "older";
+  key: "now" | "older";
   threads: ThreadRow[];
 }
 
@@ -69,6 +71,9 @@ export interface Note {
   /** When it was last written. Decides which notes reach offload when a thread
    *  holds more than the budget. */
   writtenAt: string;
+  /** When it was put down, which nothing changes. 028 sorts and dates the
+   *  notes that are not in a thread by it. */
+  createdAt: string;
   supersededAt: string | null;
 }
 
@@ -94,6 +99,9 @@ export interface ThreadBundle {
   standing: string | null;
   /** 022. False on the account's default thread, where Share is not drawn. */
   shareable: boolean;
+  /** 028. The caller's own default thread, which is never drawn as a thread:
+   *  the screen opens Not in a thread in its place. */
+  isDefault: boolean;
   /** 019. The viewer's picks and approved count, and whether anybody has
    *  picked here, which earns the rail. Null when the account has no calendar
    *  connection at all, which hides the glyph. */
@@ -230,7 +238,7 @@ export interface ContentPage {
 
 /** The shared rule asks whether a row has a place; the API sends the place
  *  itself. One line, once, at the edge, exactly as the web does it. */
-const withPlaceId = (row: ContentRow): ContentRow => ({
+export const withPlaceId = (row: ContentRow): ContentRow => ({
   ...row,
   placeId: row.place?.id ?? null,
 });
@@ -242,10 +250,31 @@ export async function fetchThreads(): Promise<ThreadGroup[]> {
   return data?.groups ?? [];
 }
 
-/** 022. The list and the strips in one read, which is what My threads draws. */
-export async function fetchThreadsAndInvitations(): Promise<{ groups: ThreadGroup[]; invitations: Invitation[] } | null> {
-  const { data } = await send<{ groups: ThreadGroup[]; invitations: Invitation[] }>("/v1/threads");
-  return data;
+export interface ThreadsPage {
+  groups: ThreadGroup[];
+  invitations: Invitation[];
+  /** 028. What is not in a thread, or null when there is nothing to draw. */
+  loose: LooseSummary | null;
+}
+
+/** 022. The list and the strips in one read, which is what My threads draws.
+ *  028: and the group of what is not in a thread. */
+export async function fetchThreadsAndInvitations(): Promise<ThreadsPage | null> {
+  const { data } = await send<Partial<ThreadsPage>>("/v1/threads");
+  if (!data) return null;
+  return { groups: data.groups ?? [], invitations: data.invitations ?? [], loose: data.loose ?? null };
+}
+
+/** 028. My threads' two lists, and whether there is nothing at all: the
+ *  empty state is drawn only with no thread and nothing loose. */
+export function myThreads(
+  groups: ThreadGroup[],
+  loose: LooseSummary | null,
+): { now: ThreadRow[]; older: ThreadRow[]; total: number; empty: boolean } {
+  const now = groups.find((g) => g.key === "now")?.threads ?? [];
+  const older = groups.find((g) => g.key === "older")?.threads ?? [];
+  const total = now.length + older.length;
+  return { now, older, total, empty: total === 0 && (loose?.count ?? 0) === 0 };
 }
 
 export async function fetchThread(id: string): Promise<ThreadBundle | null> {
@@ -546,6 +575,7 @@ export function provisionalNote(text: string, authorId: string | null): Note {
     allDay: false,
     rrule: null,
     writtenAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
     supersededAt: null,
   };
 }

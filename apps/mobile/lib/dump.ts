@@ -69,7 +69,8 @@ export interface WaitingOn {
  *  answer. */
 export interface FoundResult {
   threadId: string;
-  threadName: string;
+  /** 028. Null for what is not in a thread, which no surface names. */
+  threadName: string | null;
   /** The read hit its page. The tail becomes the thread rather than a control
    *  that would expand into rows nobody fetched. */
   truncated: boolean;
@@ -79,7 +80,7 @@ export interface FoundResult {
 export interface FoundRow {
   contentId: string;
   threadId: string;
-  threadName: string;
+  threadName: string | null;
   type: string;
   title: string;
   body: string | null;
@@ -121,6 +122,8 @@ export interface Answer {
    *  A move's source is here and not there: the screen has to reload it, and a
    *  pill saying the dump went there would be untrue. */
   changed: string[];
+  /** 028. Filed something, loose or not: what draws Done. */
+  filed?: boolean;
   waiting?: WaitingOn | null;
   /** What an answer showed. Empty on a dump, which files rather than answers.
    *
@@ -167,6 +170,8 @@ export interface TailMessage {
   found?: FoundResult[];
   /** Where the turn filed, and where a fact in it came from. The footer's whole
    *  content, and a reload used to drop all of it. */
+  /** 028. Filed something, loose included: what draws Done after a reload. */
+  filed?: boolean;
   threads?: TouchedThread[];
   sources?: Source[];
   /** 025. On the person's message: what the turn applied. */
@@ -372,6 +377,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     labels?: { id: string; name: string; colour: number }[];
     step?: string | null;
     changed?: string[];
+    filed?: boolean;
     waiting?: WaitingOn | null;
     question?: QuestionOnWire | null;
     // **The rows, which this used to drop on the floor.** `awaitAnswer` is the
@@ -391,6 +397,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     labels: data.labels ?? [],
     step: data.step ?? null,
     changed: data.changed ?? [],
+    filed: data.filed ?? false,
     waiting: data.waiting ?? null,
     question: data.question ?? null,
     found: data.found ?? [],

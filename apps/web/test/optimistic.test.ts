@@ -73,6 +73,17 @@ describe("perform", () => {
     expect(h.log.slice(0, 2)).toEqual(["apply", "write"]);
   });
 
+  it("names the failure's action as the op says, and offers none for null", async () => {
+    const h = harness();
+    await perform({ ...h.op({ write: false }), retry: "Try again" }, h.toast, h.writes);
+    expect(h.toasts.at(-1)).toEqual({
+      message: "Couldn't archive that",
+      action: expect.objectContaining({ label: "Try again" }),
+    });
+    await perform({ ...h.op({ write: false }), retry: null }, h.toast, h.writes);
+    expect(h.toasts.at(-1)).toEqual({ message: "Couldn't archive that" });
+  });
+
   it("offers no Undo when nothing takes it back", async () => {
     const h = harness();
     const op = h.op({ write: true });

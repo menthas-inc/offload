@@ -465,6 +465,13 @@
   color: var(--text-accent);
 }
 
+/* 028. Not in a thread's count: the fill, neither attention nor accent. It
+   is a state rather than a thread, and asks nothing. */
+.sectionCount[data-tone="neutral"] {
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+}
+
 /* A ghost button at the end of the rule, per the SectionHeader contract. */
 .sectionAction {
   margin-left: auto;

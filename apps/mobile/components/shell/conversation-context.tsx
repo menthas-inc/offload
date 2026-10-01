@@ -55,6 +55,7 @@ import {
   type TouchedThread,
   type WaitingOn,
 } from "../../lib/dump";
+import { turnDid } from "../../lib/turn-did";
 import type { ChipError } from "./AttachChip";
 import { addNote, completeContent, fetchThread, provisionalId, quickAdd } from "../../lib/threads";
 import { labelQuery } from "@offload/widgets";
@@ -728,7 +729,7 @@ export function ConversationProvider({
             threads: message.threads ?? [],
             sources: message.sources ?? [],
             labels: message.labels ?? [],
-            did: (message.threads?.length ?? 0) > 0,
+            did: turnDid(message),
           })),
         );
         // A conversation to come back to, put away as of its last message:
@@ -782,7 +783,7 @@ export function ConversationProvider({
         setWriting(false);
         setWorking((current) => (current?.messageId === messageId ? null : current));
 
-        const did = answer.threads.length > 0;
+        const did = turnDid(answer);
         setTurns((current) => {
           const next = current.map((turn) =>
             turn.id === messageId

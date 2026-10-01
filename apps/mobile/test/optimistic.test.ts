@@ -89,6 +89,28 @@ describe("perform", () => {
     expect(h.toasts).toEqual([]);
   });
 
+  // 028. Its failures say Try again, and a refusal that trying again cannot
+  // change (a note whose words are already there) offers nothing.
+  it("offers the retry under the op's own word, or none", async () => {
+    const h = harness();
+    await perform({ ...h.op({ write: false }), retry: "Try again" }, h.toast, h.writes);
+    expect(h.toasts.at(-1)?.action?.label).toBe("Try again");
+    const op: Reversible = { ...h.op({ write: false }), retry: null };
+    await perform(op, h.toast, h.writes);
+    expect(h.toasts.at(-1)).toEqual({ message: "Couldn't archive that" });
+  });
+
+  it("takes a failure word the write settled on", async () => {
+    const h = harness();
+    const op: Reversible = h.op({ write: false });
+    op.write = async () => {
+      op.failed = "That's already in Lisbon trip";
+      return false;
+    };
+    await perform(op, h.toast, h.writes);
+    expect(h.toasts.at(-1)?.message).toBe("That's already in Lisbon trip");
+  });
+
   it("reloads once the last write in flight has settled, including a failed one", async () => {
     const h = harness();
     await Promise.all([

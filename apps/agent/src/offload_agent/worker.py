@@ -37,6 +37,7 @@ from offload_agent.embed_jobs import KINDS as EMBED_KINDS
 from offload_agent.embed_jobs import handle_embed
 from offload_agent.harness.look import LookFailed, look
 from offload_agent.harness.plan import (
+    NOT_IN_A_THREAD,
     Judgement,
     Outcome,
     classify,
@@ -47,6 +48,8 @@ from offload_agent.harness.plan import (
 )
 from offload_agent.label_sort import KINDS as LABEL_SORT_KINDS
 from offload_agent.label_sort import handle_label_sort
+from offload_agent.loose_propose import KINDS as LOOSE_PROPOSE_KINDS
+from offload_agent.loose_propose import handle_loose_propose
 from offload_agent.og import picture
 from offload_agent.queue import ClaimedJob, claim, finish, reap, release_for_retry, retry_or_die
 from offload_agent.renditions import prepare
@@ -73,6 +76,7 @@ KINDS = [
     *EMBED_KINDS,
     *COMPACT_KINDS,
     *LABEL_SORT_KINDS,
+    *LOOSE_PROPOSE_KINDS,
 ]
 
 
@@ -621,14 +625,25 @@ def _tool_caller(
     cannot file twice.
     """
 
+    #: 028. Once the turn has read the web, a page's words are in the model's
+    #: context, and a page must not choose which thread a row is offered to.
+    #: Only this process knows a read happened, so this is where it is held;
+    #: the Core API refuses the same after an email or a calendar.
+    read_web = False
+
     async def call(tool: str, tool_call_id: str, args: dict) -> dict:
+        nonlocal read_web
         # The one tool that never reaches the Core API, because it writes
         # nothing. It reads the web in a call that holds none of this person's
         # data, and what comes back is fields.
         if tool == "look_up":
             if lookups is None:
                 return {"ok": False, "error": "not available on this turn"}
+            read_web = True
             return await _look_up(lookups[0], lookups[1], lookups[2], args, say, http)
+
+        if read_web and tool in ("add_content", "add_note"):
+            args = {key: value for key, value in args.items() if key != "suggest_thread_id"}
 
         # **The page's picture, on any link being filed.**
         #
@@ -926,6 +941,17 @@ async def handle(
             log.error("compaction failed", kind=job.kind, error=type(exc).__name__)
             async with engine.begin() as conn:
                 await retry_or_die(conn, job, "compact_error", delay_seconds=3600)
+        return
+
+    if job.kind in LOOSE_PROPOSE_KINDS:
+        # 028. Nobody is waiting on a proposal either, and the same guard: the
+        # type, never the value, since the request is somebody's loose things.
+        try:
+            await handle_loose_propose(job, cfg=cfg, engine=engine, http=http, client=anthropic)
+        except Exception as exc:
+            log.error("loose proposal failed", kind=job.kind, error=type(exc).__name__)
+            async with engine.begin() as conn:
+                await retry_or_die(conn, job, "loose_error", delay_seconds=3600)
         return
 
     if job.kind in LABEL_SORT_KINDS:
@@ -1715,6 +1741,10 @@ def _partial_reply(outcome: Outcome) -> str:
     """
     names: list[str] = []
     for item in outcome.landed:
+        # 028. What landed in the default thread is saved, not saved somewhere:
+        # it has no name a person would know.
+        if item.thread_name == NOT_IN_A_THREAD:
+            continue
         if item.thread_name and item.thread_name not in names:
             names.append(item.thread_name)
 
@@ -1731,6 +1761,8 @@ def _partial_reply(outcome: Outcome) -> str:
     # nothing had been saved about a move that had already happened. If a tool
     # did something, say the true thing instead, which is that the turn did not
     # finish, and let the screen offer the way to finish it.
+    if any(item.thread_name == NOT_IN_A_THREAD for item in outcome.landed):
+        return "Saved."
     if outcome.worked:
         return "That did not finish."
     return "Nothing saved."

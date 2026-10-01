@@ -148,3 +148,7 @@ It is not one identifier. In `001-data-model` alone: `things` appears 40 times, 
 - **Thread names and titles are content for OFF-1.** They are model-derived from what a person wrote, and the existing guard only catches long strings, emails and URLs, so a short sensitive thread name would sail through.
 - **The purge job is specified as a thing that can go wrong**, since it deletes on a timer and a bad predicate is a silent irreversible mass delete.
 - **The rename's real size is stated**, at 57 occurrences across six identifier families in one spec.
+
+## Amended 2026-10-02 by 028
+
+The default thread still exists, is still resolved through `accounts.default_thread_id`, and is still where a dump with no obvious home lands (AC-2 holds). What changes is that it is never drawn or named as a thread: a person sees what is in it as *Not in a thread*, and the model reads it as *not in a thread*. A turn that filed only there shows Done with no pill and no words, and a stopped turn's partial reply says *Saved.* for it, never *Saved to Miscellaneous.* See `028-loose/feature-spec.md`.

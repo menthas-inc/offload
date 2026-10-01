@@ -8,9 +8,11 @@
 // makes, minus the one the row is already in.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "../Icon";
 import { fetchThreads, type ThreadRow } from "../../lib/threads";
 import styles from "../../app/(shell)/viewer.module.css";
+import people from "../people/people.module.css";
 
 export function MoveSheet({
   exceptThreadId,
@@ -101,5 +103,23 @@ export function MoveSheet({
         </button>
       </div>
     </div>
+  );
+}
+
+/** 028. The sheet on its own, over the modals' scrim: Move from a row's edit
+ *  modal or a note's editor, where there is no viewer to sit in. The sheet is
+ *  the scrim's only child, so it is centred the way the viewer centres it. */
+export function MoveOver(props: Parameters<typeof MoveSheet>[0]) {
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div
+      className={people.scrim}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) props.onClose();
+      }}
+    >
+      <MoveSheet {...props} />
+    </div>,
+    document.body,
   );
 }

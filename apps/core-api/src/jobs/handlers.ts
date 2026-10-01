@@ -3,6 +3,7 @@
 // Handlers are pure of transport concerns: claiming, retrying, backoff and
 // scrubbing live in the runner. A handler does the work or throws.
 
+import { shouldPropose, sweepSuggestions } from "../loose/propose.js";
 import { sql, type Transaction } from "kysely";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
@@ -645,6 +646,20 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
     });
   }
 
+  // 028. The pass over what is not in a thread, when there is something new
+  // for it to read, and the sweep of what nobody can undo any more.
+  await sweepSuggestions(accountId);
+  if (await shouldPropose(accountId)) {
+    await enqueue({
+      kind: "loose.propose",
+      accountId,
+      payload: {},
+      priority: PRIORITY.background,
+      idempotencyKey: `loose.propose:${accountId}:${day}`,
+      maxAttempts: 2,
+    });
+  }
+
   // 025. The nightly sort, once per thread per day whichever member's run
   // books it first (the idempotency key is the thread's). Off for now, by the
   // owner's call on 2026-09-27: labels come from people and from live turns
@@ -823,6 +838,8 @@ export async function sortableThreads(accountId: string): Promise<string[]> {
     .where("thread_members.account_id", "=", accountId)
     .where("thread_members.state", "=", "accepted")
     .where("threads.deleted_at", "is", null)
+    // 028. Never the default thread: a label there is drawn nowhere.
+    .where(sql<boolean>`threads.id is distinct from (select a.default_thread_id from accounts a where a.id = ${accountId})`)
     .where(
       sql<boolean>`(select count(*) from content c where c.thread_id = threads.id and c.deleted_at is null and c.archived_at is null) >= ${LABEL_SORT_MIN_ROWS}`,
     )

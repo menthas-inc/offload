@@ -24,6 +24,8 @@ import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import { ReorderHandle, type RowReorder } from "./RowTools";
 import { useToast } from "../shell/Toast";
+import { MoveOver } from "../shell/MoveSheet";
+import { moveNote } from "../../lib/loose";
 import { perform, type Writes } from "../../lib/optimistic";
 import { reorderPlan, type ReorderWrite } from "../../lib/widgets";
 import {
@@ -103,6 +105,8 @@ export function Notes({
   // list only: folded history is read, not arranged.
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
+  // 028. The note whose Move sheet is open.
+  const [moving, setMoving] = useState<Note | null>(null);
 
   const shared = members.length > 1;
   const editing = notes.find((note) => note.id === editingId) ?? null;
@@ -252,6 +256,39 @@ export function Notes({
     );
   }
 
+  /** 028. To another thread, by its author, as a row moves. It leaves this
+   *  list at the press; Undo is the same move back. A thread that already
+   *  holds the same words refuses it, and says so. */
+  function move(note: Note, to: { id: string; name: string }): void {
+    setMoving(null);
+    close();
+    const at = notes.findIndex((one) => one.id === note.id);
+    let duplicate = false;
+    void perform(
+      {
+        apply: () => onNotes((current) => current.filter((one) => one.id !== note.id)),
+        revert: () =>
+          onNotes((current) =>
+            current.some((one) => one.id === note.id) ? current : [...current.slice(0, at), note, ...current.slice(at)],
+          ),
+        write: async () => {
+          const result = await moveNote(note.id, to.id);
+          duplicate = !result.ok && result.duplicate;
+          return result.ok;
+        },
+        unwrite: async () => (await moveNote(note.id, threadId)).ok,
+        did: `Moved to ${to.name}`,
+        // Read once the write is refused, so it can name the duplicate.
+        get failed() {
+          return duplicate ? `That's already in ${to.name}` : "Couldn't move that";
+        },
+        unfailed: "Couldn't put that back",
+      },
+      toast,
+      writes,
+    );
+  }
+
   async function showFolded(): Promise<void> {
     if (folded) return setFolded(null);
     const result = await foldedNotes(threadId);
@@ -340,74 +377,18 @@ export function Notes({
   if (notes.length === 0 && !adding && counts.folded === 0) return null;
 
   const editor = (note: Note | null) => (
-    <span className={styles.noteOpen}>
-      <textarea
-        className={styles.noteField}
-        value={draft}
-        maxLength={NOTE_CHARS}
-        rows={2}
-        autoFocus
-        placeholder="What is true about this thread?"
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") close();
-          // Enter saves, shift-Enter is a new line. A note is one sentence.
-          if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-            save();
-          }
-        }}
-      />
-
-
-      <span className={styles.noteActions}>
-        <span className={styles.noteCount}>
-          {draft.length}/{NOTE_CHARS}
-        </span>
-
-        {/* One control, never two. Delete and mute are the same intent at
-            different strengths, and offering both makes somebody choose
-            between them for no reason: if you can remove it, mute is a worse
-            version of that, and if you cannot, mute is the whole of what you
-            have.
-
-            Muted wins over both, whoever is asking. Mute is co-owned and
-            reversible by anyone, so a note somebody quieted has to be
-            un-quietable by anyone, including its author. Without that a muted
-            note of your own would offer only Delete, and the way back from a
-            reversible action would be a destructive one. */}
-        {note?.muted ? (
-          <button type="button" className={styles.noteAction} onClick={() => mute(note)}>
-            Unmute
-          </button>
-        ) : note && canDelete(note) ? (
-          <button
-            type="button"
-            className={styles.noteAction}
-            data-tone="danger"
-            onClick={() => remove(note)}
-          >
-            Delete
-          </button>
-        ) : note ? (
-          <button type="button" className={styles.noteAction} onClick={() => mute(note)}>
-            Mute
-          </button>
-        ) : null}
-
-        <button type="button" className={styles.noteAction} onClick={close}>
-          Cancel
-        </button>
-        <button
-          type="button"
-          className={styles.noteSave}
-          disabled={draft.trim().length === 0}
-          onClick={save}
-        >
-          Save
-        </button>
-      </span>
-    </span>
+    <NoteEditor
+      draft={draft}
+      onDraft={setDraft}
+      onSave={save}
+      onCancel={close}
+      way={note ? (note.muted ? "unmute" : canDelete(note) ? "delete" : "mute") : null}
+      onDelete={() => note && remove(note)}
+      onMute={() => note && mute(note)}
+      // 028. A note moves between threads as a row does: its author's, or
+      // anybody's once its author has gone, the same rule as delete.
+      onMove={note && canDelete(note) && !isProvisional(note.id) ? () => setMoving(note) : undefined}
+    />
   );
 
   // The row is a div holding a button and, on the active list, a handle. It
@@ -559,6 +540,104 @@ export function Notes({
           ) : null}
         </>
       ) : null}
+
+      {moving ? (
+        <MoveOver exceptThreadId={threadId} onClose={() => setMoving(null)} onPick={(thread) => move(moving, thread)} />
+      ) : null}
     </>
+  );
+}
+
+/** The open note: its text, one way out, Cancel and Save, and Move where the
+ *  note can move. The thread's Notes section and Not in a thread both draw it,
+ *  in place of the row that was clicked. */
+export function NoteEditor({
+  draft,
+  onDraft,
+  onSave,
+  onCancel,
+  way,
+  onDelete,
+  onMute,
+  onMove,
+  placeholder = "What is true about this thread?",
+}: {
+  draft: string;
+  onDraft: (text: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  /** Which one way out the note offers, or none for a new note. */
+  way: "delete" | "mute" | "unmute" | null;
+  onDelete: () => void;
+  onMute: () => void;
+  onMove?: (() => void) | undefined;
+  /** 028. Not in a thread asks its own question: there is no thread for the
+   *  note to be true about. */
+  placeholder?: string;
+}) {
+  return (
+    <span className={styles.noteOpen}>
+      <textarea
+        className={styles.noteField}
+        value={draft}
+        maxLength={NOTE_CHARS}
+        rows={2}
+        autoFocus
+        placeholder={placeholder}
+        onChange={(event) => onDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") onCancel();
+          // Enter saves, shift-Enter is a new line. A note is one sentence.
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            onSave();
+          }
+        }}
+      />
+
+      <span className={styles.noteActions}>
+        <span className={styles.noteCount}>
+          {draft.length}/{NOTE_CHARS}
+        </span>
+
+        {/* One control, never two. Delete and mute are the same intent at
+            different strengths, and offering both makes somebody choose
+            between them for no reason: if you can remove it, mute is a worse
+            version of that, and if you cannot, mute is the whole of what you
+            have.
+
+            Muted wins over both, whoever is asking. Mute is co-owned and
+            reversible by anyone, so a note somebody quieted has to be
+            un-quietable by anyone, including its author. Without that a muted
+            note of your own would offer only Delete, and the way back from a
+            reversible action would be a destructive one. */}
+        {way === "unmute" ? (
+          <button type="button" className={styles.noteAction} onClick={onMute}>
+            Unmute
+          </button>
+        ) : way === "delete" ? (
+          <button type="button" className={styles.noteAction} data-tone="danger" onClick={onDelete}>
+            Delete
+          </button>
+        ) : way === "mute" ? (
+          <button type="button" className={styles.noteAction} onClick={onMute}>
+            Mute
+          </button>
+        ) : null}
+
+        {onMove ? (
+          <button type="button" className={styles.noteAction} onClick={onMove}>
+            Move
+          </button>
+        ) : null}
+
+        <button type="button" className={styles.noteAction} onClick={onCancel}>
+          Cancel
+        </button>
+        <button type="button" className={styles.noteSave} disabled={draft.trim().length === 0} onClick={onSave}>
+          Save
+        </button>
+      </span>
+    </span>
   );
 }

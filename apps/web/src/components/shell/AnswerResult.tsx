@@ -91,12 +91,16 @@ function Result({
   // truncated read did not fetch the rest, so there is nothing to expand into
   // and the tail becomes the thread instead.
   const more = result.rows.length - drawn.length;
+  // 028. What is not in a thread is never named as one: no lasso, its own
+  // words, and the full list where the thread would open.
+  const loose = result.threadName === null;
+  const href = loose ? "/threads/loose" : `/threads/${result.threadId}`;
 
   return (
     <div className={styles.card}>
-      <Link href={`/threads/${result.threadId}`} className={styles.head}>
-        <Icon name="lasso" size={15} />
-        <b className={styles.headName}>{result.threadName}</b>
+      <Link href={href} className={styles.head}>
+        {loose ? null : <Icon name="lasso" size={15} />}
+        <b className={styles.headName}>{loose ? "Not in a thread" : result.threadName}</b>
         <span className={styles.headCount}>{result.rows.length}</span>
       </Link>
 
@@ -110,7 +114,7 @@ function Result({
               // The name carries the thread. On the thread page a checkbox can
               // rely on the page for context; in an answer the rows come from
               // anywhere, and "checkbox, not checked" says nothing at all.
-              aria-label={`${row.title}, ${row.threadName}`}
+              aria-label={`${row.title}, ${row.threadName ?? "Not in a thread"}`}
               className={styles.tick}
               onClick={() => onToggle(row)}
             >
@@ -145,8 +149,17 @@ function Result({
       {/* Whichever tail is true, never both. There is more in hand, or the read
           hit its page and what was not read was not sent, so there is nothing
           to expand into and the thread is where the rest lives. */}
-      {result.truncated ? (
-        <Link href={`/threads/${result.threadId}`} className={styles.inThread}>
+      {loose && (result.truncated || more > 0) ? (
+        // 028. Not in a thread has no rest to expand into on this card: the
+        // full list is where the rest lives, as it is on the phones.
+        <Link href={href} className={styles.inThread}>
+          <em className={styles.inThreadText}>
+            {result.truncated ? "The rest of the answer is in the list." : `${more} more not in a thread.`}
+          </em>
+          <Icon name="chevron-right" size={15} className={styles.accent} />
+        </Link>
+      ) : result.truncated ? (
+        <Link href={href} className={styles.inThread}>
           <Icon name="lasso" size={15} className={styles.accent} />
           <em className={styles.inThreadText}>The rest of the answer is in the thread.</em>
           <Icon name="chevron-right" size={15} className={styles.accent} />
