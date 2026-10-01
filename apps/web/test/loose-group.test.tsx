@@ -7,6 +7,8 @@
 //
 // Tuesday 29 September 2026 in Lisbon. Only `Date` is faked.
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -124,7 +126,7 @@ const links = [
 const proposal = {
   id: "p1",
   name: "Kitchen shelves",
-  items: [
+  entries: [
     { kind: "note", note: note("n1", "Oak brackets, 30cm, matte black"), suggestion: null },
     { kind: "content", row: row("c7", "Wall plugs for plasterboard"), suggestion: null },
     { kind: "content", row: row("c8", "Photo of the alcove", "image"), suggestion: null },
@@ -290,7 +292,23 @@ describe("the rows (AC-9 to AC-11)", () => {
     await draw();
     await click(buttons().find((b) => b.textContent?.startsWith("Oak brackets")));
     expect(host.querySelector("textarea")!.value).toBe("Oak brackets, 30cm, matte black");
+    expect(host.querySelector("textarea")!.placeholder).toBe("What is worth remembering?");
     expect(named("Move")).toBeTruthy();
+  });
+
+  it("say a note is already in the thread with nothing to try again", async () => {
+    overrides["POST /v1/notes/n1/move"] = () => json({ error: "duplicate" }, 409);
+    await draw();
+    await click(buttons().find((b) => b.textContent?.startsWith("Oak brackets")));
+    await click(named("Move"));
+    const sheet = document.querySelector('[aria-label="Move to a thread"]')!;
+    await click([...sheet.querySelectorAll("button")].find((b) => b.textContent?.includes("Lisbon trip")));
+    expect(said()).toContain("That's already in Lisbon trip");
+    expect(said()).toContain("Oak brackets");
+    const toast = [...document.querySelectorAll('[role="status"], [role="alert"]')].find((one) =>
+      one.textContent?.includes("That's already in"),
+    )!;
+    expect(toast.querySelector("button")).toBeNull();
   });
 });
 
@@ -330,6 +348,39 @@ describe("the suggestions (AC-16, AC-18, AC-23 to AC-25)", () => {
     expect(named("Move Boiler service receipt to Flat admin")!.textContent).not.toContain("+");
   });
 
+  it("say who will see it when the thread is shared, in the phones' words", async () => {
+    const shared = summary({
+      rows: [
+        {
+          kind: "content",
+          row: row("c1", "Boiler service receipt", "image"),
+          suggestion: moveTo("Flat admin", [
+            { accountId: "p1", initials: "SM", displayName: "Sam" },
+            { accountId: "p2", initials: "AD", displayName: "Ana" },
+          ], 2),
+        },
+      ] as Summary["rows"],
+    });
+    await draw(shared);
+    const move = named("Move Boiler service receipt to Flat admin")!;
+    const hint = document.getElementById(move.getAttribute("aria-describedby") ?? "");
+    expect(hint?.textContent).toBe("Shared with Sam, Ana and 2 more");
+    await draw();
+    expect(named("Move Boiler service receipt to Flat admin")!.hasAttribute("aria-describedby")).toBe(false);
+  });
+
+  it("draw 32 high in a 44 target, the pill inside the button rather than the button", async () => {
+    await draw();
+    const move = named("Move Boiler service receipt to Flat admin")!;
+    expect(move.children).toHaveLength(1);
+    expect(move.firstElementChild!.textContent).toContain("Move to");
+    const css = readFileSync(join(process.cwd(), "src/components/loose/loose.module.css"), "utf8");
+    const body = (selector: string) => css.match(new RegExp(`(?:^|\\n)\\${selector}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+    expect(body(".suggestHit")).toMatch(/min-height:\s*44px/);
+    expect(body(".suggestHit")).not.toMatch(/background:\s*var/);
+    expect(body(".suggest")).toMatch(/min-height:\s*32px/);
+  });
+
   it("move at once on Move to, and Undo brings the row back with its suggestion", async () => {
     await draw();
     await click(named("Move Boiler service receipt to Flat admin"));
@@ -347,6 +398,10 @@ describe("the suggestions (AC-16, AC-18, AC-23 to AC-25)", () => {
     await click(named("Move Boiler service receipt to Flat admin"));
     expect(said()).toContain("Couldn't move that");
     expect(named("Move Boiler service receipt to Flat admin")).toBeTruthy();
+    // 028's failures offer Try again, and a failure interrupts.
+    const toast = document.querySelector('[role="alert"]')!;
+    expect(toast.textContent).toContain("Couldn't move that");
+    expect(toast.querySelector("button")!.textContent).toBe("Try again");
   });
 
   it("go at once on the cross, with no toast, and come back when that is refused", async () => {
@@ -385,7 +440,7 @@ describe("the create modal (AC-20 to AC-22, AC-25)", () => {
     const dialog = await openCreate();
     expect(of("/v1/proposals/p1")).toHaveLength(1);
     expect(dialog.textContent).toContain("Create a thread");
-    expect(dialog.textContent).toContain("These three look like one project.");
+    expect(dialog.textContent).toContain("These three look like they belong together.");
     expect(dialog.textContent).toContain("Moves into it");
     expect(field().value).toBe("Kitchen shelves");
     expect(ticks().map((t) => t.getAttribute("aria-checked"))).toEqual(["true", "true", "true"]);
@@ -407,6 +462,21 @@ describe("the create modal (AC-20 to AC-22, AC-25)", () => {
     expect(createButton().disabled).toBe(true);
     await type("Shelves");
     expect(createButton().disabled).toBe(false);
+  });
+
+  it("says when the name is over 60, under the field", async () => {
+    await openCreate();
+    expect(said()).not.toContain("A name is 60 characters at most.");
+    await type("x".repeat(61));
+    expect(said()).toContain("A name is 60 characters at most.");
+    await type(` ${"x".repeat(60)} `);
+    expect(said()).not.toContain("A name is 60 characters at most.");
+  });
+
+  it("heads Moves into it with the kit's semibold section heading, 21 high", () => {
+    const css = readFileSync(join(process.cwd(), "src/components/loose/loose.module.css"), "utf8");
+    const moves = css.match(/\n\.moves\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(moves).toMatch(/font:\s*var\(--weight-semibold\)\s*calc\(21px/);
   });
 
   it("creates with what is ticked, opens the thread, and Undo lands on My threads", async () => {

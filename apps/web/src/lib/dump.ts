@@ -621,9 +621,17 @@ export async function answerPending(
   }
 }
 
-/** Whether a settled turn did something, which is what draws the footer's
+/** Whether a settled turn filed something, which is what draws the footer's
  *  Done. 028: what lands only where no thread is named draws no pill, so
- *  `threads` can be empty on a turn that filed; `changed` still holds it. */
+ *  `threads` can be empty on a turn that filed; the server's `filed` says so.
+ *  A move's source in `changed` alone is not a filing. */
 export function turnDid(answer: { threads?: TouchedThread[]; changed?: string[]; filed?: boolean }): boolean {
   return (answer.threads?.length ?? 0) > 0 || answer.filed === true;
+}
+
+/** Whether a settled turn offers Undo: anything it filed, and anything else
+ *  it changed. A move out of a thread or a delete files nothing and is still
+ *  a write somebody may want back, so this is wider than Done. */
+export function turnUndoable(answer: { threads?: TouchedThread[]; changed?: string[]; filed?: boolean }): boolean {
+  return turnDid(answer) || (answer.changed?.length ?? 0) > 0;
 }

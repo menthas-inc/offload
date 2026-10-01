@@ -39,20 +39,23 @@ import {
   acceptSuggestion,
   createFromProposal,
   dismissSuggestion,
-  itemKey,
+  entryKey,
   moveNote,
   undoProposal,
   undoSuggestion,
-  withItem,
-  withoutItem,
-  type LooseItem,
+  withEntry,
+  withoutEntry,
+  type LooseEntry,
   type LooseSummary,
 } from "../../lib/loose";
 
+/** 028's failures offer Try again, as the phones' do. */
+export const RETRY = "Try again";
+
 export interface LooseRows {
   handlers: RowHandlers;
-  accept: (item: LooseItem) => void;
-  dismiss: (item: LooseItem) => void;
+  accept: (entry: LooseEntry) => void;
+  dismiss: (entry: LooseEntry) => void;
   /** The note open in its editor, by id. */
   editingNote: string | null;
   openNote: (note: Note) => void;
@@ -82,11 +85,11 @@ export function useLooseRows<S extends LooseSummary>(
   // ------------------------------------------------------------ the list
 
   const keyOf = (kind: "content" | "note", id: string) => `${kind}:${id}`;
-  const find = (key: string): LooseItem | undefined => list.rows.find((one) => itemKey(one) === key);
-  const drop = (item: LooseItem) => setList((current) => withoutItem(current, item));
-  const put = (item: LooseItem, at: number) => setList((current) => withItem(current, item, at));
-  const patch = (key: string, update: (item: LooseItem) => LooseItem) =>
-    setList((current) => ({ ...current, rows: current.rows.map((one) => (itemKey(one) === key ? update(one) : one)) }));
+  const find = (key: string): LooseEntry | undefined => list.rows.find((one) => entryKey(one) === key);
+  const drop = (entry: LooseEntry) => setList((current) => withoutEntry(current, entry));
+  const put = (entry: LooseEntry, at: number) => setList((current) => withEntry(current, entry, at));
+  const patch = (key: string, update: (entry: LooseEntry) => LooseEntry) =>
+    setList((current) => ({ ...current, rows: current.rows.map((one) => (entryKey(one) === key ? update(one) : one)) }));
   const patchRow = (id: string, fields: Partial<ContentRow>) =>
     patch(keyOf("content", id), (one) => (one.kind === "content" ? { ...one, row: { ...one.row, ...fields } } : one));
   const patchNote = (id: string, fields: Partial<Note>) =>
@@ -96,14 +99,21 @@ export function useLooseRows<S extends LooseSummary>(
    *  A row this list is not holding (the full list's archived rows) is only
    *  written, and the reload draws it. */
   function leave(
-    item: LooseItem | undefined,
-    op: { write: () => Promise<boolean>; unwrite?: () => Promise<boolean>; did?: string; failed: string; unfailed?: string },
+    entry: LooseEntry | undefined,
+    op: {
+      write: () => Promise<boolean>;
+      unwrite?: () => Promise<boolean>;
+      did?: string;
+      failed: string;
+      unfailed?: string;
+      retry?: string | null;
+    },
   ): void {
-    const at = item ? list.rows.findIndex((one) => itemKey(one) === itemKey(item)) : -1;
+    const at = entry ? list.rows.findIndex((one) => entryKey(one) === entryKey(entry)) : -1;
     void perform(
       {
-        apply: () => (item && at >= 0 ? drop(item) : undefined),
-        revert: () => (item && at >= 0 ? put(item, at) : undefined),
+        apply: () => (entry && at >= 0 ? drop(entry) : undefined),
+        revert: () => (entry && at >= 0 ? put(entry, at) : undefined),
         write: op.write,
         ...(op.unwrite ? { unwrite: op.unwrite } : {}),
         ...(op.did ? { did: op.did } : {}),
@@ -111,6 +121,10 @@ export function useLooseRows<S extends LooseSummary>(
           return op.failed;
         },
         ...(op.unfailed ? { unfailed: op.unfailed } : {}),
+        // Read when the write has settled, as `failed` is.
+        get retry() {
+          return op.retry === undefined ? RETRY : op.retry;
+        },
       },
       toast,
       writes,
@@ -174,6 +188,7 @@ export function useLooseRows<S extends LooseSummary>(
         did: "Saved",
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
+        retry: RETRY,
       },
       toast,
       writes,
@@ -216,6 +231,7 @@ export function useLooseRows<S extends LooseSummary>(
         did: "Note changed",
         failed: "Couldn't change the note",
         unfailed: "Couldn't put the note back",
+        retry: RETRY,
       },
       toast,
       writes,
@@ -224,9 +240,9 @@ export function useLooseRows<S extends LooseSummary>(
 
   function removeNote(note: Note): void {
     closeNote();
-    const item = find(keyOf("note", note.id));
-    if (!item) return;
-    leave(item, {
+    const entry = find(keyOf("note", note.id));
+    if (!entry) return;
+    leave(entry, {
       write: () => deleteNote(note.id),
       unwrite: () => restoreNote(note.id),
       did: "Note deleted",
@@ -243,6 +259,7 @@ export function useLooseRows<S extends LooseSummary>(
         revert: () => patchNote(note.id, { muted: note.muted }),
         write: () => muteNote(note.id, !note.muted),
         failed: note.muted ? "Couldn't unmute the note" : "Couldn't mute the note",
+        retry: RETRY,
       },
       toast,
       writes,
@@ -252,8 +269,8 @@ export function useLooseRows<S extends LooseSummary>(
   function moveOne(note: Note, to: { id: string; name: string }): void {
     setMovingNote(null);
     closeNote();
-    const item = find(keyOf("note", note.id));
-    if (!item) return;
+    const entry = find(keyOf("note", note.id));
+    if (!entry) return;
     let from: string | null = null;
     let duplicate = false;
     const op = {
@@ -268,21 +285,25 @@ export function useLooseRows<S extends LooseSummary>(
       get failed() {
         return duplicate ? `That's already in ${to.name}` : "Couldn't move that";
       },
+      // Already there is not something trying again can change.
+      get retry() {
+        return duplicate ? null : RETRY;
+      },
       unfailed: "Couldn't put that back",
     };
-    leave(item, op);
+    leave(entry, op);
   }
 
   // ---------------------------------------------------------- suggestions
 
-  function accept(item: LooseItem): void {
-    const suggestion = item.suggestion;
+  function accept(entry: LooseEntry): void {
+    const suggestion = entry.suggestion;
     if (!suggestion) return;
     if (suggestion.kind === "create") {
       setCreating({ id: suggestion.proposal.id, name: suggestion.proposal.name });
       return;
     }
-    leave(item, {
+    leave(entry, {
       write: async () => (await acceptSuggestion(suggestion.id)) !== null,
       unwrite: () => undoSuggestion(suggestion.id),
       did: `Moved to ${suggestion.thread.name}`,
@@ -292,16 +313,17 @@ export function useLooseRows<S extends LooseSummary>(
   }
 
   /** Gone at once, with no toast; back with a word if refused. */
-  function dismiss(item: LooseItem): void {
-    const suggestion = item.suggestion;
+  function dismiss(entry: LooseEntry): void {
+    const suggestion = entry.suggestion;
     if (!suggestion) return;
-    const key = itemKey(item);
+    const key = entryKey(entry);
     void perform(
       {
         apply: () => patch(key, (one) => ({ ...one, suggestion: null })),
         revert: () => patch(key, (one) => ({ ...one, suggestion })),
         write: () => dismissSuggestion(suggestion.id),
         failed: "Couldn't dismiss that",
+        retry: RETRY,
       },
       toast,
       writes,
@@ -328,7 +350,7 @@ export function useLooseRows<S extends LooseSummary>(
         toast.show("Couldn't undo that");
         return;
       }
-      toast.show("Couldn't put that back", { label: "Try again", onPress: undo });
+      toast.show("Couldn't put that back", { label: RETRY, onPress: undo });
     };
     toast.show(`Created ${result.thread.name}`, { label: "Undo", onPress: undo });
     return true;
@@ -362,6 +384,7 @@ export function useLooseRows<S extends LooseSummary>(
       onDelete={() => removeNote(note)}
       onMute={() => muteOne(note)}
       onMove={() => setMovingNote(note)}
+      placeholder="What is worth remembering?"
     />
   );
 

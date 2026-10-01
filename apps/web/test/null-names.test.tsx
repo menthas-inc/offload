@@ -144,6 +144,20 @@ describe("an answer's result not in a thread", () => {
     expect(host.querySelector('a[href="/threads/tdefault"]')).toBeNull();
   });
 
+  it("says the rest of the answer is in the list when the read was cut short", async () => {
+    await act(async () => root.render(<AnswerResults found={[found({ truncated: true })]} />));
+    const links = [...host.querySelectorAll('a[href="/threads/loose"]')];
+    expect(links.map((a) => a.textContent)).toContain("The rest of the answer is in the list.");
+  });
+
+  it("names a row's tick with Not in a thread, capitalised, as the header reads", async () => {
+    const tasks = found({
+      rows: [{ contentId: "c1", threadId: "tdefault", threadName: null, type: "task", title: "Renew passport", body: null, done: false, photo: null }],
+    } as Partial<Found>);
+    await act(async () => root.render(<AnswerResults found={[tasks]} onToggle={() => undefined} />));
+    expect(host.querySelector('[role="checkbox"]')!.getAttribute("aria-label")).toBe("Renew passport, Not in a thread");
+  });
+
   it("ends with N more not in a thread.", async () => {
     await act(async () => root.render(<AnswerResults found={[found()]} />));
     const links = [...host.querySelectorAll('a[href="/threads/loose"]')];

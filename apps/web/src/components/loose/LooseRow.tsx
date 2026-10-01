@@ -1,6 +1,6 @@
 "use client";
 
-// 028. A thing not in a thread, as a row.
+// 028. An entry not in a thread, as a row.
 //
 // From `LooseRow` in ui_kits/mobile_app/LooseParts.jsx: the type tile, the
 // title, the meta *Photo · Monday*, and the suggestion under it, with the row
@@ -16,30 +16,30 @@ import { rowIcon } from "../panes/Thread";
 import { Suggestion } from "./Suggestion";
 import type { LooseRows } from "./useLooseRows";
 import { useClock } from "../../lib/clock";
-import { itemTitle, metaLine, type LooseItem } from "../../lib/loose";
+import { entryTitle, metaLine, type LooseEntry } from "../../lib/loose";
 import pane from "../../app/(shell)/shell.module.css";
 import styles from "./loose.module.css";
 
-export function LooseRow({ item, rows }: { item: LooseItem; rows: LooseRows }) {
+export function LooseRow({ entry, rows }: { entry: LooseEntry; rows: LooseRows }) {
   const { today, zone } = useClock();
-  const meta = metaLine(item, today, zone);
-  const suggestion = item.suggestion ? (
+  const meta = metaLine(entry, today, zone);
+  const suggestion = entry.suggestion ? (
     <Suggestion
-      title={itemTitle(item)}
-      suggestion={item.suggestion}
-      onAccept={() => rows.accept(item)}
-      onDismiss={() => rows.dismiss(item)}
+      title={entryTitle(entry)}
+      suggestion={entry.suggestion}
+      onAccept={() => rows.accept(entry)}
+      onDismiss={() => rows.dismiss(entry)}
     />
   ) : null;
 
-  if (item.kind === "content") {
+  if (entry.kind === "content") {
     return (
       <ContentRowView
-        row={item.row}
+        row={entry.row}
         handlers={rows.handlers}
         lead={
           <span className={pane.rowIcon}>
-            <Icon name={rowIcon(item.row.type)} size={18} />
+            <Icon name={rowIcon(entry.row.type)} size={18} />
           </span>
         }
         meta={
@@ -52,7 +52,7 @@ export function LooseRow({ item, rows }: { item: LooseItem; rows: LooseRows }) {
     );
   }
 
-  const note = item.note;
+  const note = entry.note;
   if (rows.editingNote === note.id) {
     return (
       <div className={pane.noteRow} data-tone="neutral" data-open={true}>

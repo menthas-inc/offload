@@ -560,6 +560,7 @@ export function NoteEditor({
   onDelete,
   onMute,
   onMove,
+  placeholder = "What is true about this thread?",
 }: {
   draft: string;
   onDraft: (text: string) => void;
@@ -570,6 +571,9 @@ export function NoteEditor({
   onDelete: () => void;
   onMute: () => void;
   onMove?: (() => void) | undefined;
+  /** 028. Not in a thread asks its own question: there is no thread for the
+   *  note to be true about. */
+  placeholder?: string;
 }) {
   return (
     <span className={styles.noteOpen}>
@@ -579,7 +583,7 @@ export function NoteEditor({
         maxLength={NOTE_CHARS}
         rows={2}
         autoFocus
-        placeholder="What is true about this thread?"
+        placeholder={placeholder}
         onChange={(event) => onDraft(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Escape") onCancel();

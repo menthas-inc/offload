@@ -18,7 +18,7 @@ import { Icon } from "../Icon";
 import { LooseRow } from "./LooseRow";
 import { TypeChips } from "./TypeChips";
 import { useLooseRows } from "./useLooseRows";
-import { allLabel, chipOf, chipsShown, fetchLoose, itemKey, type ChipKey, type LooseSummary } from "../../lib/loose";
+import { allLabel, chipOf, chipsShown, fetchLoose, entryKey, type ChipKey, type LooseSummary } from "../../lib/loose";
 import pane from "../../app/(shell)/shell.module.css";
 import styles from "./loose.module.css";
 
@@ -40,7 +40,7 @@ export function LooseGroup({ summary, onChanged }: { summary: LooseSummary; onCh
       return;
     }
     // Drawn from what is in hand while the page is read.
-    setView((current) => ({ ...current, rows: summary.rows.filter((item) => chipOf(item) === next) }));
+    setView((current) => ({ ...current, rows: summary.rows.filter((entry) => chipOf(entry) === next) }));
     const page = await fetchLoose({ type: next });
     if (page) setView((current) => ({ ...current, rows: page.rows }));
   }
@@ -74,8 +74,8 @@ export function LooseGroup({ summary, onChanged }: { summary: LooseSummary; onCh
         </em>
       </h2>
       <TypeChips count={view.count} byType={view.byType} picked={picked} onPick={(next) => void pick(next)} />
-      {shown.map((item) => (
-        <LooseRow key={itemKey(item)} item={item} rows={rows} />
+      {shown.map((entry) => (
+        <LooseRow key={entryKey(entry)} entry={entry} rows={rows} />
       ))}
       {total > LOOSE_SHOWN ? (
         <Link href={`/threads/loose?${query.toString()}`} className={styles.all}>

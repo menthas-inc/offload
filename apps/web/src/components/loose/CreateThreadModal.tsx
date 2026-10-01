@@ -5,31 +5,40 @@
 // The kit draws a sheet on the phones and a side pane on the web; the web's is
 // a `people/Modal` wide instead, modelled on the label's list (025), which is
 // the web's other modal of ticked rows (logged with the feature's
-// divergences). *Create a thread*, *These three look like one project.*, the
-// name prefilled and editable, *Moves into it* with every thing still not in a
-// thread ticked, and Cancel and *Create thread*. The last ticked thing cannot
-// be unticked. The modal makes the one write; a refusal keeps it open with
+// divergences). *Create a thread*, *These three look like they belong
+// together.*, the name prefilled and editable, *A name is 60 characters at
+// most.* under it while it is over, *Moves into it* with every entry still not
+// in a thread ticked, and Cancel and *Create thread*. The last ticked entry
+// cannot be unticked. The modal makes the one write; a refusal keeps it open with
 // what was typed, and the button says Try again.
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Modal } from "../people/Modal";
 import people from "../people/people.module.css";
 import pane from "../../app/(shell)/shell.module.css";
 import { Icon } from "../Icon";
+import { rowIcon } from "../panes/Thread";
 import {
   THREAD_NAME_CHARS,
   chipInfo,
   chipOf,
   countInWords,
   fetchProposal,
-  itemId,
-  itemKey,
-  itemTitle,
+  entryId,
+  entryKey,
+  entryTitle,
   validThreadName,
-  type LooseItem,
+  type LooseEntry,
   type Proposal,
 } from "../../lib/loose";
 import styles from "./loose.module.css";
+
+/** The chip's glyph, or the thread page's for a type with no chip. */
+function glyphOf(entry: LooseEntry): string {
+  const chip = chipOf(entry);
+  if (chip) return chipInfo(chip).icon;
+  return entry.kind === "content" ? rowIcon(entry.row.type) : "text-quote";
+}
 
 export interface CreateChoice {
   name: string;
@@ -72,11 +81,13 @@ export function CreateThreadModal({
     };
   }, [proposalId, attempt]);
 
-  const items = proposal?.items ?? [];
-  const ticked = items.filter((item) => !unticked.has(itemKey(item)));
+  const entries = proposal?.entries ?? [];
+  const overLong = [...name.trim()].length > THREAD_NAME_CHARS;
+  const overId = useId();
+  const ticked = entries.filter((entry) => !unticked.has(entryKey(entry)));
 
-  function flip(item: LooseItem): void {
-    const key = itemKey(item);
+  function flip(entry: LooseEntry): void {
+    const key = entryKey(entry);
     setUnticked((current) => {
       const next = new Set(current);
       if (next.has(key)) next.delete(key);
@@ -91,8 +102,8 @@ export function CreateThreadModal({
     setFailed(false);
     const ok = await onCreate({
       name: name.trim(),
-      contentIds: ticked.filter((item) => item.kind === "content").map(itemId),
-      noteIds: ticked.filter((item) => item.kind === "note").map(itemId),
+      contentIds: ticked.filter((entry) => entry.kind === "content").map(entryId),
+      noteIds: ticked.filter((entry) => entry.kind === "note").map(entryId),
     });
     setBusy(false);
     if (!ok) setFailed(true);
@@ -101,7 +112,7 @@ export function CreateThreadModal({
   return (
     <Modal label="Create a thread" wide onClose={onClose}>
       <h2 className={people.modalTitle}>Create a thread</h2>
-      {proposal ? <p className={styles.line}>These {countInWords(items.length)} look like one project.</p> : null}
+      {proposal ? <p className={styles.line}>These {countInWords(entries.length)} look like they belong together.</p> : null}
 
       <label className={styles.field}>
         <Icon name="lasso" size={15} />
@@ -109,6 +120,8 @@ export function CreateThreadModal({
           value={name}
           maxLength={THREAD_NAME_CHARS + 20}
           aria-label="Name"
+          aria-invalid={overLong ? true : undefined}
+          aria-describedby={overLong ? overId : undefined}
           onChange={(event) => setName(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
@@ -118,6 +131,11 @@ export function CreateThreadModal({
           }}
         />
       </label>
+      {overLong ? (
+        <p id={overId} className={styles.over}>
+          A name is {THREAD_NAME_CHARS} characters at most.
+        </p>
+      ) : null}
 
       <h3 className={styles.moves}>Moves into it</h3>
       {unread ? (
@@ -131,25 +149,25 @@ export function CreateThreadModal({
         <span className={pane.paneSpinner} role="status" aria-label="loading" />
       ) : (
         <ul className={styles.ticks}>
-          {items.map((item) => {
-            const on = !unticked.has(itemKey(item));
+          {entries.map((entry) => {
+            const on = !unticked.has(entryKey(entry));
             const last = on && ticked.length === 1;
             return (
-              <li key={itemKey(item)}>
+              <li key={entryKey(entry)}>
                 <button
                   type="button"
                   role="checkbox"
                   aria-checked={on}
                   className={styles.tickRow}
                   disabled={last}
-                  title={last ? "At least one thing moves into it" : undefined}
-                  onClick={() => flip(item)}
+                  title={last ? "At least one has to move into it" : undefined}
+                  onClick={() => flip(entry)}
                 >
                   <span className={styles.box} data-on={on ? true : undefined}>
                     {on ? <Icon name="check" size={13} /> : null}
                   </span>
-                  <Icon name={chipInfo(chipOf(item)).icon} size={15} className={styles.tickGlyph} />
-                  <span className={styles.tickTitle}>{itemTitle(item)}</span>
+                  <Icon name={glyphOf(entry)} size={15} className={styles.tickGlyph} />
+                  <span className={styles.tickTitle}>{entryTitle(entry)}</span>
                 </button>
               </li>
             );

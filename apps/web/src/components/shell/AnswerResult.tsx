@@ -114,7 +114,7 @@ function Result({
               // The name carries the thread. On the thread page a checkbox can
               // rely on the page for context; in an answer the rows come from
               // anywhere, and "checkbox, not checked" says nothing at all.
-              aria-label={`${row.title}, ${row.threadName ?? "not in a thread"}`}
+              aria-label={`${row.title}, ${row.threadName ?? "Not in a thread"}`}
               className={styles.tick}
               onClick={() => onToggle(row)}
             >
@@ -154,7 +154,7 @@ function Result({
         // full list is where the rest lives, as it is on the phones.
         <Link href={href} className={styles.inThread}>
           <em className={styles.inThreadText}>
-            {result.truncated ? "The rest is not in a thread." : `${more} more not in a thread.`}
+            {result.truncated ? "The rest of the answer is in the list." : `${more} more not in a thread.`}
           </em>
           <Icon name="chevron-right" size={15} className={styles.accent} />
         </Link>

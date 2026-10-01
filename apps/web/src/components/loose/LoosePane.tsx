@@ -21,10 +21,10 @@ import { ContentRowView } from "../panes/ContentRowView";
 import { rowIcon } from "../panes/Thread";
 import { LooseRow } from "./LooseRow";
 import { TypeChips } from "./TypeChips";
-import { useLooseRows } from "./useLooseRows";
+import { RETRY, useLooseRows } from "./useLooseRows";
 import { perform } from "../../lib/optimistic";
 import { setArchived, type ContentRow } from "../../lib/threads";
-import { fetchLoose, fetchLooseArchived, itemKey, type ChipKey, type LoosePage } from "../../lib/loose";
+import { fetchLoose, fetchLooseArchived, entryKey, type ChipKey, type LoosePage } from "../../lib/loose";
 import pane from "../../app/(shell)/shell.module.css";
 import quiet from "../../app/(shell)/today.module.css";
 import people from "../people/people.module.css";
@@ -89,13 +89,13 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
       setNextFailed(true);
       return;
     }
-    setPage((current) => ({ ...read, rows: [...current.rows, ...read.rows.filter((one) => !current.rows.some((had) => itemKey(had) === itemKey(one)))] }));
+    setPage((current) => ({ ...read, rows: [...current.rows, ...read.rows.filter((one) => !current.rows.some((had) => entryKey(had) === entryKey(one)))] }));
   }
 
   async function openArchived(cursor?: string): Promise<void> {
     const read = await fetchLooseArchived(cursor);
     if (!read) {
-      toast.show("Couldn't load these", { label: "Try again", onPress: () => openArchived(cursor) });
+      toast.show("Couldn't load these", { label: RETRY, onPress: () => openArchived(cursor) });
       return;
     }
     setArchivedRows((current) => ({
@@ -128,6 +128,7 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
         did: "Put back",
         failed: "Couldn't put that back",
         unfailed: "Couldn't archive that",
+        retry: RETRY,
       },
       toast,
       rows.writes,
@@ -206,10 +207,10 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
     }
     if (page.count === 0 && page.rows.length === 0) {
       // The design system's empty state, as `QuietEmpty` draws it under a
-      // head that is already on screen.
+      // head that is already on screen: the title alone. No mark, as on the
+      // phones: the lasso is a thread's, and this is not a thread.
       return (
         <div className={quiet.quiet}>
-          <Icon name="lasso" size={34} className={quiet.quietMark} />
           <p className={quiet.quietLine}>Nothing in here yet</p>
         </div>
       );
@@ -217,8 +218,8 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
     return (
       <>
         <TypeChips sticky count={page.count} byType={page.byType} picked={type} onPick={setType} />
-        {page.rows.map((item) => (
-          <LooseRow key={itemKey(item)} item={item} rows={rows} />
+        {page.rows.map((entry) => (
+          <LooseRow key={entryKey(entry)} entry={entry} rows={rows} />
         ))}
         {nextFailed ? (
           <p className={styles.state} role="alert">

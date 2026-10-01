@@ -15,33 +15,34 @@ import {
   fetchLoose,
   fetchLooseArchived,
   fetchProposal,
-  itemTitle,
+  entryTitle,
   metaLine,
   moveNote,
+  sharedHint,
   suggestionName,
   undoProposal,
   undoSuggestion,
   validThreadName,
-  withItem,
-  withoutItem,
-  type LooseItem,
+  withEntry,
+  withoutEntry,
+  type LooseEntry,
   type LooseSummary,
 } from "../src/lib/loose";
 import { fetchThreadsAndInvitations } from "../src/lib/threads";
 
-const content = (id: string, type: string, createdAt = "2026-09-28T10:00:00Z"): LooseItem =>
+const content = (id: string, type: string, createdAt = "2026-09-28T10:00:00Z"): LooseEntry =>
   ({
     kind: "content",
     row: { id, type, title: `Row ${id}`, createdAt, labels: [], canMove: true, canDelete: true },
     suggestion: null,
-  }) as unknown as LooseItem;
+  }) as unknown as LooseEntry;
 
-const note = (id: string, text: string, createdAt = "2026-09-28T10:00:00Z"): LooseItem =>
+const note = (id: string, text: string, createdAt = "2026-09-28T10:00:00Z"): LooseEntry =>
   ({
     kind: "note",
     note: { id, text, createdAt, writtenAt: createdAt, labels: [], muted: false, origin: "stated" },
     suggestion: null,
-  }) as unknown as LooseItem;
+  }) as unknown as LooseEntry;
 
 describe("the wire (AC-1, AC-6)", () => {
   it("has two groups, and Always on is not one of them", () => {
@@ -133,14 +134,26 @@ describe("the words (AC-8, AC-9, AC-20, AC-24)", () => {
     expect(metaLine(content("c", "image", "2026-09-28T23:30:00Z"), today, zone)).toBe("Photo · today");
     expect(metaLine(content("d", "task", "2026-09-26T08:00:00Z"), today, zone)).toBe("To-do · Saturday");
     expect(metaLine(note("n", "x", "2026-09-23T08:00:00Z"), today, zone)).toBe("Note · Wednesday");
-    expect(metaLine(content("e", "event", "2026-09-20T08:00:00Z"), today, zone)).toBe("Event · last week");
-    expect(metaLine(content("f", "voice", "2026-09-12T08:00:00Z"), today, zone)).toBe("Voice note · 2 weeks ago");
-    expect(metaLine(content("g", "file", "2026-07-29T08:00:00Z"), today, zone)).toBe("File · 2 months ago");
+    // A date from a week back, as @offload/widgets' putDown says it on both
+    // clients, never "last week".
+    expect(metaLine(content("e", "event", "2026-09-20T08:00:00Z"), today, zone)).toMatch(/^Event · (20 Sept?|Sep 20)$/);
+    expect(metaLine(content("g", "file", "2026-07-29T08:00:00Z"), today, zone)).toMatch(/^File · (29 Jul|Jul 29)$/);
+  });
+
+  it("gives a type it does not know no chip and no singular, as the phones do", () => {
+    const odd = content("x", "something-new", "2026-09-29T08:00:00Z");
+    expect(chipOf(odd)).toBeNull();
+    expect(metaLine(odd, "2026-09-29", "Europe/Lisbon")).toBe("today");
+    const summary: LooseSummary = { count: 2, byType: { link: 1 }, rows: [odd, content("a", "link")] };
+    const next = withoutEntry(summary, odd);
+    expect(next.count).toBe(1);
+    expect(next.byType).toEqual({ link: 1 });
+    expect(withEntry(next, odd, 0).byType).toEqual({ link: 1 });
   });
 
   it("titles a note by its text", () => {
-    expect(itemTitle(note("n", "Ana's shoe size is 38"))).toBe("Ana's shoe size is 38");
-    expect(itemTitle(content("a", "link"))).toBe("Row a");
+    expect(entryTitle(note("n", "Ana's shoe size is 38"))).toBe("Ana's shoe size is 38");
+    expect(entryTitle(content("a", "link"))).toBe("Row a");
   });
 
   it("names the suggestion by what it does", () => {
@@ -158,6 +171,20 @@ describe("the words (AC-8, AC-9, AC-20, AC-24)", () => {
     ).toBe("Create Kitchen shelves and move 3 into it");
   });
 
+  it("says who will see a move into a shared thread, in the phones' words", () => {
+    const move = (faces: string[], more = 0) => ({
+      id: "s1",
+      kind: "move" as const,
+      thread: { id: "t1", name: "Flat admin" },
+      faces: faces.map((displayName, i) => ({ accountId: `p${i}`, initials: displayName.slice(0, 2), displayName })),
+      more,
+    });
+    expect(sharedHint(move([]))).toBeUndefined();
+    expect(sharedHint(move(["Sam"]))).toBe("Shared with Sam");
+    expect(sharedHint(move(["Sam", "Ana"]))).toBe("Shared with Sam and Ana");
+    expect(sharedHint(move(["Sam", "Ana"], 2))).toBe("Shared with Sam, Ana and 2 more");
+  });
+
   it("takes a thread name of 1 to 60 characters once trimmed, on one line", () => {
     expect(validThreadName("Kitchen shelves")).toBe(true);
     expect(validThreadName("   ")).toBe(false);
@@ -173,23 +200,23 @@ describe("the words (AC-8, AC-9, AC-20, AC-24)", () => {
       byType: { link: 2, note: 1 },
       rows: [content("a", "link"), content("b", "link"), note("n", "x")],
     };
-    const next = withoutItem(summary, summary.rows[0]!);
+    const next = withoutEntry(summary, summary.rows[0]!);
     expect(next.count).toBe(2);
     expect(next.byType).toEqual({ link: 1, note: 1 });
-    expect(next.rows.map(itemTitle)).toEqual(["Row b", "x"]);
-    const last = withoutItem(withoutItem(next, next.rows[0]!), note("n", "x"));
+    expect(next.rows.map(entryTitle)).toEqual(["Row b", "x"]);
+    const last = withoutEntry(withoutEntry(next, next.rows[0]!), note("n", "x"));
     expect(last.byType).toEqual({});
     expect(last.count).toBe(0);
   });
 
   it("puts a thing back where it was, and its counts with it", () => {
     const summary: LooseSummary = { count: 1, byType: { note: 1 }, rows: [note("n", "x")] };
-    const back = withItem(summary, content("a", "link"), 0);
+    const back = withEntry(summary, content("a", "link"), 0);
     expect(back.count).toBe(2);
     expect(back.byType).toEqual({ link: 1, note: 1 });
-    expect(back.rows.map(itemTitle)).toEqual(["Row a", "x"]);
+    expect(back.rows.map(entryTitle)).toEqual(["Row a", "x"]);
     // Twice is once.
-    expect(withItem(back, content("a", "link"), 0)).toBe(back);
+    expect(withEntry(back, content("a", "link"), 0)).toBe(back);
   });
 });
 
@@ -255,8 +282,10 @@ describe("the calls (AC-12, AC-16, AC-20 to AC-23, AC-32)", () => {
   });
 
   it("reads a proposal and creates from it, and says why it could not", async () => {
-    answer = () => json({ id: "p1", name: "Kitchen shelves", items: [] });
-    expect((await fetchProposal("p1"))?.name).toBe("Kitchen shelves");
+    answer = () => json({ id: "p1", name: "Kitchen shelves", entries: [content("a", "link")] });
+    const read = await fetchProposal("p1");
+    expect(read?.name).toBe("Kitchen shelves");
+    expect(read?.entries.map(entryTitle)).toEqual(["Row a"]);
     answer = () => json({ thread: { id: "t9", name: "Kitchen shelves" } });
     expect(await createFromProposal("p1", { name: "Kitchen shelves", contentIds: ["a"], noteIds: ["n"] })).toEqual({
       ok: true,
@@ -300,5 +329,16 @@ describe("a turn that filed only where no thread is named (AC-27)", () => {
     expect(turnDid({ threads: [], changed: ["tsource"], filed: false })).toBe(false);
     expect(turnDid({ threads: [], changed: [] })).toBe(false);
     expect(turnDid({})).toBe(false);
+  });
+
+  it("offers Undo for anything the turn changed, filed or not", async () => {
+    const { turnUndoable } = await import("../src/lib/dump");
+    // A move out of a thread, or a delete, files nothing and still changed
+    // something a person may want back.
+    expect(turnUndoable({ threads: [], changed: ["tsource"], filed: false })).toBe(true);
+    expect(turnUndoable({ threads: [], changed: ["tdefault"], filed: true })).toBe(true);
+    expect(turnUndoable({ threads: [{ id: "t1", name: "Flat" }], changed: [] })).toBe(true);
+    expect(turnUndoable({ threads: [], changed: [], filed: false })).toBe(false);
+    expect(turnUndoable({})).toBe(false);
   });
 });

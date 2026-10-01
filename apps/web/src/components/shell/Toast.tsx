@@ -78,9 +78,10 @@ export function ToastHost() {
   const { message, action } = state.showing;
 
   // The readme's split: an Undo announces politely, a failure interrupts.
-  // Retry is the failure form, and the only action that is one.
+  // Retry and Try again are the failure forms, and the only actions that are.
+  const failure = action?.label === "Retry" || action?.label === "Try again";
   return (
-    <div className={styles.toast} role={action?.label === "Retry" ? "alert" : "status"}>
+    <div className={styles.toast} role={failure ? "alert" : "status"}>
       <span className={styles.toastMessage}>{message}</span>
       {action ? (
         <button

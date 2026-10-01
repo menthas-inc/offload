@@ -63,23 +63,23 @@ const row = (id: string, title: string, type = "link", extra: Record<string, unk
   filingAt: null,
   ...extra,
 });
-const item = (id: string, title: string, type = "link") => ({ kind: "content", row: row(id, title, type), suggestion: null });
-const noteItem = (id: string, text: string) => ({
+const entry = (id: string, title: string, type = "link") => ({ kind: "content", row: row(id, title, type), suggestion: null });
+const noteEntry = (id: string, text: string) => ({
   kind: "note",
   note: { id, labels: [], text, body: null, origin: "stated", authorId: "a1", authorIsMember: true, muted: false, occursAt: null, occursEndAt: null, dueAt: null, placeId: null, priority: 50, allDay: false, rrule: null, writtenAt: "2026-09-27T10:00:00Z", createdAt: "2026-09-27T10:00:00Z", supersededAt: null },
   suggestion: null,
 });
 
 const counts = { count: 32, byType: { link: 20, photo: 10, note: 2 }, archived: 3 };
-const first = { rows: [item("c1", "Miso aubergine, a recipe"), noteItem("n1", "Ana's shoe size is 38"), item("c2", "Boiler service receipt", "image")], nextCursor: "c2", ...counts };
-const second = { rows: [noteItem("n2", "The landlord's number"), item("c3", "Hotels near Alfama")], nextCursor: null, ...counts };
+const first = { rows: [entry("c1", "Miso aubergine, a recipe"), noteEntry("n1", "Ana's shoe size is 38"), entry("c2", "Boiler service receipt", "image")], nextCursor: "c2", ...counts };
+const second = { rows: [noteEntry("n2", "The landlord's number"), entry("c3", "Hotels near Alfama")], nextCursor: null, ...counts };
 
 function serve(call: Call): Response | Promise<Response> {
   const override = overrides[call.path];
   if (override) return override();
   if (call.path === "/v1/loose") return json(first);
   if (call.path === "/v1/loose?cursor=c2") return json(second);
-  if (call.path === "/v1/loose?type=link") return json({ rows: [item("c1", "Miso aubergine, a recipe")], nextCursor: null, ...counts });
+  if (call.path === "/v1/loose?type=link") return json({ rows: [entry("c1", "Miso aubergine, a recipe")], nextCursor: null, ...counts });
   if (call.path === "/v1/loose?archived=true") return json({ rows: [row("c9", "Old receipt", "image", { archivedAt: "2026-09-01T10:00:00Z" })], nextCursor: null });
   if (call.path === "/v1/threads/tdefault") return json({ id: "tdefault", name: "Miscellaneous", isDefault: true, notes: [], labels: [], members: [], counts: { active: 0, archived: 0, unlabelled: 0 }, preference: {}, noteCounts: { active: 0, folded: 0 }, line: "", standing: null, shareable: false, calendars: null, icon: null, alwaysOn: true });
   if (call.path.startsWith("/v1/threads/tdefault/content")) return json({ rows: [], nextCursor: null });
@@ -204,10 +204,12 @@ describe("the full list (AC-12 to AC-15)", () => {
     expect(said()).toContain("Hotels near Alfama");
   });
 
-  it("is EmptyState's Nothing in here yet when empty", async () => {
+  it("is the title Nothing in here yet alone when empty, with no mark", async () => {
     overrides["/v1/loose"] = () => json({ rows: [], nextCursor: null, count: 0, byType: {}, archived: 0 });
     await draw(<LoosePane type={null} />);
     expect(said()).toContain("Nothing in here yet");
+    // The lasso is a thread's mark, and this is not a thread.
+    expect(host.querySelector('[style*="lasso"]')).toBeNull();
   });
 
   it("ends with the archived foot row, which opens them with Put back", async () => {

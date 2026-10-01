@@ -1,12 +1,12 @@
 // 028. What is not in a thread.
 //
 // Stored in the account's default thread, which is never drawn as a thread: the
-// things in it are drawn as themselves, sorted by what they are, each with at
+// entries in it are drawn as themselves, sorted by what they are, each with at
 // most one suggestion of where it could go. Mirrors apps/core-api/src/routes/
 // loose.ts and loose/read.ts. "Loose" is the code's word only; nothing a
 // person reads says it.
 
-import { daysBetween, dayIn, noonUtc } from "@offload/widgets";
+import { dayIn, putDown } from "@offload/widgets";
 import type { ContentPage, ContentRow, Note } from "./threads";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
@@ -33,7 +33,7 @@ export type Suggestion =
     }
   | { id: string; kind: "create"; proposal: { id: string; name: string; count: number } };
 
-export type LooseItem =
+export type LooseEntry =
   | { kind: "content"; row: ContentRow; suggestion: Suggestion | null }
   | { kind: "note"; note: Note; suggestion: Suggestion | null };
 
@@ -43,11 +43,11 @@ export interface LooseSummary {
   count: number;
   byType: ByType;
   /** The newest three. */
-  rows: LooseItem[];
+  rows: LooseEntry[];
 }
 
 export interface LoosePage {
-  rows: LooseItem[];
+  rows: LooseEntry[];
   nextCursor: string | null;
   count: number;
   byType: ByType;
@@ -58,8 +58,8 @@ export interface LoosePage {
 export interface Proposal {
   id: string;
   name: string;
-  /** Every thing of the proposal that is still not in a thread. */
-  items: LooseItem[];
+  /** Every entry of the proposal that is still not in a thread. */
+  entries: LooseEntry[];
 }
 
 export interface ChipInfo {
@@ -100,9 +100,10 @@ const OF_TYPE: Record<string, ChipKey> = {
   file: "file",
 };
 
-/** Which chip a thing is under. */
-export function chipOf(item: LooseItem): ChipKey {
-  return item.kind === "note" ? "note" : (OF_TYPE[item.row.type] ?? "file");
+/** Which chip an entry is under. A type this table does not know is under
+ *  none, as on the phones, rather than counted as a file it is not. */
+export function chipOf(entry: LooseEntry): ChipKey | null {
+  return entry.kind === "note" ? "note" : (OF_TYPE[entry.row.type] ?? null);
 }
 
 /** The chips drawn after All: only the types present, and none at all unless
@@ -119,49 +120,37 @@ export function allLabel(count: number, chip: ChipKey | null): string {
 
 const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 
-/** *These three look like one project.* A proposal holds two to ten. */
+/** *These three look like they belong together.* A proposal holds two to
+ *  ten. */
 export function countInWords(n: number): string {
   return WORDS[n] ?? String(n);
 }
 
-const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-/** When a thing was put down, in the fewest words: today, yesterday, the
- *  weekday within the week, then weeks and months, in the account's clock. */
-export function putDown(iso: string, today: string, zone: string | null): string {
-  const day = dayIn(new Date(iso), zone);
-  const ago = daysBetween(day, today);
-  if (ago <= 0) return "today";
-  if (ago === 1) return "yesterday";
-  if (ago < 7) return WEEKDAYS[noonUtc(day).getUTCDay()]!;
-  if (ago < 14) return "last week";
-  if (ago < 28) return `${Math.floor(ago / 7)} weeks ago`;
-  const months = Math.max(1, Math.round(ago / 30));
-  return months === 1 ? "a month ago" : `${months} months ago`;
-}
-
 /** When it was put down. A note read without `createdAt` uses when it was
  *  written, which for most notes is the same. */
-export function createdOf(item: LooseItem): string {
-  return item.kind === "note" ? (item.note.createdAt ?? item.note.writtenAt) : item.row.createdAt;
+export function createdOf(entry: LooseEntry): string {
+  return entry.kind === "note" ? (entry.note.createdAt ?? entry.note.writtenAt) : entry.row.createdAt;
 }
 
-/** *Photo · Monday*. */
-export function metaLine(item: LooseItem, today: string, zone: string | null): string {
-  return `${chipInfo(chipOf(item)).singular} · ${putDown(createdOf(item), today, zone)}`;
+/** *Photo · Monday*, the day in the account's clock and worded by
+ *  `putDown`, as the phones word it. A type with no chip says only when. */
+export function metaLine(entry: LooseEntry, today: string, zone: string | null): string {
+  const chip = chipOf(entry);
+  const when = putDown(dayIn(new Date(createdOf(entry)), zone), today);
+  return chip ? `${chipInfo(chip).singular} · ${when}` : when;
 }
 
-export function itemTitle(item: LooseItem): string {
-  return item.kind === "note" ? item.note.text : item.row.title;
+export function entryTitle(entry: LooseEntry): string {
+  return entry.kind === "note" ? entry.note.text : entry.row.title;
 }
 
-export function itemId(item: LooseItem): string {
-  return item.kind === "note" ? item.note.id : item.row.id;
+export function entryId(entry: LooseEntry): string {
+  return entry.kind === "note" ? entry.note.id : entry.row.id;
 }
 
 /** Unique across both tables. */
-export function itemKey(item: LooseItem): string {
-  return `${item.kind}:${itemId(item)}`;
+export function entryKey(entry: LooseEntry): string {
+  return `${entry.kind}:${entryId(entry)}`;
 }
 
 /** The suggestion button's accessible name: the action, never the label. */
@@ -169,6 +158,14 @@ export function suggestionName(title: string, suggestion: Suggestion): string {
   return suggestion.kind === "move"
     ? `Move ${title} to ${suggestion.thread.name}`
     : `Create ${suggestion.proposal.name} and move ${suggestion.proposal.count} into it`;
+}
+
+/** Who will see it, for a move into a shared thread: the faces are hidden
+ *  from assistive tech, which hears this instead. The phones' words. */
+export function sharedHint(suggestion: Extract<Suggestion, { kind: "move" }>): string | undefined {
+  const names = suggestion.faces.slice(0, 2).map((face) => face.displayName);
+  if (names.length === 0) return undefined;
+  return suggestion.more > 0 ? `Shared with ${names.join(", ")} and ${suggestion.more} more` : `Shared with ${names.join(" and ")}`;
 }
 
 export const THREAD_NAME_CHARS = 60;
@@ -179,35 +176,37 @@ export function validThreadName(name: string): boolean {
   return trimmed.length >= 1 && [...trimmed].length <= THREAD_NAME_CHARS && !/[\u0000-\u001f\u007f]/.test(trimmed);
 }
 
-/** The summary less one thing, its counts with it: what a row leaving looks
+/** The summary less one entry, its counts with it: what a row leaving looks
  *  like before the server is read again. Any list with counts, so the full
  *  list's page uses it as well. */
-export function withoutItem<T extends LooseSummary>(summary: T, item: LooseItem): T {
-  const key = itemKey(item);
-  const chip = chipOf(item);
+export function withoutEntry<T extends LooseSummary>(summary: T, entry: LooseEntry): T {
+  const key = entryKey(entry);
+  const chip = chipOf(entry);
   const byType: ByType = { ...summary.byType };
-  const left = (byType[chip] ?? 0) - 1;
-  if (left > 0) byType[chip] = left;
-  else delete byType[chip];
+  if (chip) {
+    const left = (byType[chip] ?? 0) - 1;
+    if (left > 0) byType[chip] = left;
+    else delete byType[chip];
+  }
   return {
     ...summary,
     count: Math.max(0, summary.count - 1),
     byType: ordered(byType),
-    rows: summary.rows.filter((one) => itemKey(one) !== key),
+    rows: summary.rows.filter((one) => entryKey(one) !== key),
   };
 }
 
-/** The same thing back where it was: a write that was refused, or Undo. */
-export function withItem<T extends LooseSummary>(summary: T, item: LooseItem, at: number): T {
-  const key = itemKey(item);
-  if (summary.rows.some((one) => itemKey(one) === key)) return summary;
-  const chip = chipOf(item);
+/** The same entry back where it was: a write that was refused, or Undo. */
+export function withEntry<T extends LooseSummary>(summary: T, entry: LooseEntry, at: number): T {
+  const key = entryKey(entry);
+  if (summary.rows.some((one) => entryKey(one) === key)) return summary;
+  const chip = chipOf(entry);
   const rows = [...summary.rows];
-  rows.splice(Math.max(0, Math.min(at, rows.length)), 0, item);
+  rows.splice(Math.max(0, Math.min(at, rows.length)), 0, entry);
   return {
     ...summary,
     count: summary.count + 1,
-    byType: ordered({ ...summary.byType, [chip]: (summary.byType[chip] ?? 0) + 1 }),
+    byType: chip ? ordered({ ...summary.byType, [chip]: (summary.byType[chip] ?? 0) + 1 }) : summary.byType,
     rows,
   };
 }

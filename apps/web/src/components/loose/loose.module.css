@@ -68,6 +68,24 @@
   margin-top: var(--space-4);
 }
 
+/* The button is the 44px target with no paint, and the pill inside it is
+   drawn 32 high, as `Chip` draws 30 in 44. The negative margin keeps the
+   drawn spacing the kit's. */
+.suggestHit {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  margin: -6px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
 .suggest {
   display: inline-flex;
   align-items: center;
@@ -83,17 +101,20 @@
   font: var(--weight-regular) calc(13px * var(--type-scale)) / 1 var(--font-core);
   color: var(--text-secondary);
   white-space: nowrap;
-  cursor: pointer;
 }
 
 /* Create: paper with a dashed moss outline, as the kit draws a thread that
    does not exist yet. */
-.suggest[data-kind="create"] {
+.suggestHit[data-kind="create"] > .suggest {
   background: var(--surface-raised);
   border: 1px dashed var(--moss-600);
 }
 
-.suggest:focus-visible {
+.suggestHit:focus-visible {
+  outline: none;
+}
+
+.suggestHit:focus-visible > .suggest {
   outline: 2px solid var(--border-focus);
   outline-offset: 2px;
 }
@@ -206,6 +227,13 @@
   border-color: var(--border-focus);
 }
 
+/* The name is over 60: said under the field while it is. */
+.over {
+  margin: var(--space-3) 0 0;
+  font: var(--text-body-sm-role);
+  color: var(--text-danger);
+}
+
 .field input {
   flex: 1;
   min-width: 0;
@@ -216,9 +244,10 @@
   color: var(--text-primary);
 }
 
+/* The kit's section heading, 21px semibold, as the phones draw it. */
 .moves {
   margin: var(--space-7) 0 var(--space-2);
-  font: var(--weight-semibold) calc(15px * var(--type-scale)) / 1.2 var(--font-core);
+  font: var(--weight-semibold) calc(21px * var(--type-scale)) / 1.2 var(--font-core);
   color: var(--text-primary);
 }
 
