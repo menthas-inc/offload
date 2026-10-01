@@ -29,7 +29,7 @@ import {
   type Day,
   type RailRow,
 } from "../../lib/widgets";
-import { dayIn, utcDay } from "@offload/widgets";
+import { dayIn, utcDay, eventMeta } from "@offload/widgets";
 import { useClock } from "../../lib/clock";
 import { useAppearance } from "../../lib/appearance";
 import { QUICK_ADD_CHARS, fetchThreadEvents, rangeOf } from "../../lib/threads";
@@ -354,8 +354,11 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
                 />
                 <span className={cal.eventTime}>{when}</span>
                 <span className={cal.text}>
-                  <span className={cal.eventTitle}>{event.title}</span>
-                  <span className={cal.eventName}>{event.calendarName}</span>
+                  {/* 027. An event the viewer is not in stays, quieter, and says so. */}
+                  <span className={cal.eventTitle} data-theirs={event.involved === false || undefined}>
+                    {event.title}
+                  </span>
+                  <span className={cal.eventName}>{eventMeta(event.calendarName, event.involved)}</span>
                 </span>
               </div>
             );

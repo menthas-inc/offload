@@ -192,6 +192,11 @@
   color: var(--text-primary);
 }
 
+/* 027. An event the viewer neither made nor was invited to. */
+.eventTitle[data-theirs] {
+  color: var(--text-secondary);
+}
+
 .eventName {
   display: block;
   margin-top: var(--space-1);

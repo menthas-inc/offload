@@ -266,3 +266,11 @@ One component per client: `apps/web/src/components/shell/ThreadPill.tsx` and `ap
 `GATE: PASS` (no open MUST violation; DEV-1 is satisfied with two owner-stated exceptions).
 
 **Evals:** none. Today calls no model and changes nothing a model does.
+
+## Amended 2026-10-01: whose an event is
+
+- **Migration `0065_whose_event.sql`**: `connector_events.created_by_me` and `invited_me`, both nullable booleans, and every calendar's sync token cleared so the next pass reads each whole.
+- **The sync** (`connectors/sync.ts`) passes the connection's address and the calendar's `is_primary` to `mapEvent`; `whoseOf` (`connectors/events.ts`) sets `createdByMe` when Google's `creator.email` equals that address ignoring case, or `creator.self` holds on the primary calendar, and `invitedMe` when an attendee with `self` has not declined. Google's `creator` and the attendee's `self` are read by name in `listEvents` and dropped after; no address is stored.
+- **The day read** keeps a calendar event when `created_by_me` or `invited_me` is true, or both are null. The calendar line is `Calendar: <name>`, built on the server, so an installed client shows it unchanged.
+- **The thread's events** (`threads/calendars.ts` `threadEvents`) gain `involved`: the event is on the viewer's own calendar and created by them, invites them, or is not read yet. The clients draw `eventMeta(calendarName, involved)` from `@offload/widgets` under the title and quiet the title when `involved` is false.
+- **Privacy:** two booleans about the account's own relation to an event; the page's account of what a calendar keeps stays true.

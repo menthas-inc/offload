@@ -101,7 +101,7 @@ export async function syncConnection(connectionId: string, full = false): Promis
 
   const connection = await db
     .selectFrom("connector_connections")
-    .select(["id", "account_id"])
+    .select(["id", "account_id", "external_account_email"])
     .where("id", "=", connectionId)
     .where("state", "=", "active")
     .where("deleted_at", "is", null)
@@ -179,7 +179,12 @@ export async function syncConnection(connectionId: string, full = false): Promis
       }
       if (!event.startsAt) continue;
 
-      await upsertEvent(db, connection.account_id, calendar.id, mapEvent(event, calendar.external_id));
+      await upsertEvent(
+        db,
+        connection.account_id,
+        calendar.id,
+        mapEvent(event, calendar.external_id, { accountEmail: connection.external_account_email, primary: calendar.is_primary }),
+      );
       outcome.written += 1;
     }
 

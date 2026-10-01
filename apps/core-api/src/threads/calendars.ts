@@ -198,6 +198,9 @@ export interface ThreadEvent {
   occursEndAt: string | null;
   allDay: boolean;
   untrusted: boolean;
+  /** 027. The viewer is in it: on the viewer's own calendar, and created by
+   *  them, invited, or not read yet. False for another member's calendar. */
+  involved: boolean;
 }
 
 /** The events on a thread's calendars inside a window, through every member's
@@ -233,6 +236,8 @@ export async function threadEvents(
       "e.occurs_end_at as occursEndAt",
       "e.all_day as allDay",
       "e.untrusted as untrusted",
+      "e.created_by_me as createdByMe",
+      "e.invited_me as invitedMe",
       "n.account_id as ownerId",
       "owner.display_name as ownerName",
     ])
@@ -274,6 +279,9 @@ export async function threadEvents(
       occursEndAt: row.occursEndAt ? row.occursEndAt.toISOString() : null,
       allDay: row.allDay,
       untrusted: row.ownerId !== accountId || row.untrusted,
+      involved:
+        row.ownerId === accountId &&
+        (row.createdByMe === true || row.invitedMe === true || (row.createdByMe === null && row.invitedMe === null)),
     }));
 }
 

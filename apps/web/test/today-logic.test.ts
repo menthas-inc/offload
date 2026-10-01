@@ -140,3 +140,12 @@ describe("027 AC-27 a write that fails undoes only itself", () => {
     expect(afterWrite({ shown: C, confirmed: A }, B, false)).toEqual({ shown: C, confirmed: A });
   });
 });
+
+describe("027 tweak: an event the person is not in", () => {
+  it("says so after its calendar's name, and nothing extra otherwise", async () => {
+    const { eventMeta } = await import("@offload/widgets");
+    expect(eventMeta("Family", false)).toBe("Family, not yours");
+    expect(eventMeta("Family", true)).toBe("Family");
+    expect(eventMeta("Family", undefined)).toBe("Family");
+  });
+});

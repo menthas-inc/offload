@@ -141,3 +141,10 @@ export function afterWrite<T>(state: { shown: T; confirmed: T }, wrote: T, ok: b
  *  `/calendar/`. The sync keeps nothing else, the column checks the same, and
  *  the clients open nothing else. */
 export const GOOGLE_EVENT_LINK = /^https:\/\/(www\.google\.com|calendar\.google\.com)\/calendar\//;
+
+/** 027. A thread's calendar event, its line under the title: the calendar's
+ *  name, and *not yours* when the person neither made it nor was invited.
+ *  Absent is an older server's answer and reads as theirs. */
+export function eventMeta(calendarName: string, involved: boolean | undefined): string {
+  return involved === false ? `${calendarName}, not yours` : calendarName;
+}

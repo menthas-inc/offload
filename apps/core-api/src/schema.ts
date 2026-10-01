@@ -758,6 +758,10 @@ export interface ConnectorEventsTable {
   attendees: ColumnType<unknown, string | undefined, string>;
   /** 027. Google's own link to the event, https on a Google host or null. */
   link: string | null;
+  /** 027. This account created it, or is on its guest list and has not
+   *  declined. Null until a sync has read it. */
+  created_by_me: boolean | null;
+  invited_me: boolean | null;
   created_at: Timestamp;
   updated_at: Timestamp;
   deleted_at: Timestamp | null;

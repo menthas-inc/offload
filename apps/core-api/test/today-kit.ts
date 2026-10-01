@@ -103,7 +103,7 @@ export async function calendarEvent(
   cal: { id: string; external: string },
   title: string,
   at: string,
-  over: { end?: string | null; allDay?: boolean; sourceRef?: string; link?: string | null } = {},
+  over: { end?: string | null; allDay?: boolean; sourceRef?: string; link?: string | null; createdByMe?: boolean | null; invitedMe?: boolean | null } = {},
 ): Promise<string> {
   const row = await db
     .insertInto("connector_events")
@@ -118,6 +118,8 @@ export async function calendarEvent(
       untrusted: false,
       attendees: "[]",
       link: over.link === undefined ? null : over.link,
+      created_by_me: over.createdByMe === undefined ? true : over.createdByMe,
+      invited_me: over.invitedMe === undefined ? false : over.invitedMe,
     } as never)
     .returning("id")
     .executeTakeFirstOrThrow();

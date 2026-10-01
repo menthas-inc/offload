@@ -56,6 +56,26 @@ export interface MappedEvent {
   untrusted: boolean;
   attendees: ReturnType<typeof minimiseAttendees>;
   link: string | null;
+  createdByMe: boolean | null;
+  invitedMe: boolean | null;
+}
+
+/** 027. The account that read the event: its connected address, and whether
+ *  the calendar it was read from is that account's primary. */
+export interface Reader {
+  accountEmail: string;
+  primary: boolean;
+}
+
+/** Whose the event is. Created by the account (Google names its address, or
+ *  marks the creator as the primary calendar it was read from), or on the
+ *  guest list as the account itself without having declined. */
+export function whoseOf(event: GoogleEvent, reader: Reader): { createdByMe: boolean; invitedMe: boolean } {
+  const creator = event.creator ?? { email: null, self: false };
+  const createdByMe =
+    (creator.email !== null && creator.email.toLowerCase() === reader.accountEmail.toLowerCase()) || (creator.self && reader.primary);
+  const invitedMe = event.attendees.some((guest) => guest.self === true && guest.response !== "declined");
+  return { createdByMe, invitedMe };
 }
 
 /** The whole mapping, in one place.
@@ -64,8 +84,10 @@ export interface MappedEvent {
  *  the fields that behave like mail rather than like structure, which is what
  *  OFF-4 is about. The organiser is kept because the trust rule cannot be
  *  computed without it. */
-export function mapEvent(event: GoogleEvent, calendarExternalId: string): MappedEvent {
+export function mapEvent(event: GoogleEvent, calendarExternalId: string, reader?: Reader): MappedEvent {
+  const whose = reader ? whoseOf(event, reader) : { createdByMe: null, invitedMe: null };
   return {
+    ...whose,
     sourceRef: sourceRefFor(calendarExternalId, event.externalId),
     title: event.title,
     occursAt: event.startsAt,
@@ -108,6 +130,8 @@ export async function upsertEvent(
       untrusted: mapped.untrusted,
       attendees: JSON.stringify(mapped.attendees),
       link: mapped.link,
+      created_by_me: mapped.createdByMe,
+      invited_me: mapped.invitedMe,
     })
     .onConflict((oc) =>
       oc.columns(["calendar_id", "source_ref"]).doUpdateSet((eb) => ({
@@ -122,6 +146,8 @@ export async function upsertEvent(
         untrusted: eb.ref("excluded.untrusted"),
         attendees: eb.ref("excluded.attendees"),
         link: eb.ref("excluded.link"),
+        created_by_me: eb.ref("excluded.created_by_me"),
+        invited_me: eb.ref("excluded.invited_me"),
         // **Brought back, not just updated.** A row retired by reconciliation
         // or by a cancellation stays soft-deleted otherwise, so an event that
         // Google returns again, because a series' end moved back out or the

@@ -53,7 +53,20 @@ describe("027 the day's events (AC-16, AC-17, AC-18)", () => {
     await calendarEvent(me, hidden, "Secret", `${TOMORROW}T10:00:00Z`);
     const body = await day(await signIn(me), TOMORROW);
     expect(body.events.map((e) => e.title)).toEqual(["Holiday", "Standup", "Call with Ana"]);
-    expect(body.events[1]).toMatchObject({ source: "calendar", mine: true, calendarName: "Google, Work", threadId: null });
+    expect(body.events[1]).toMatchObject({ source: "calendar", mine: true, calendarName: "Calendar: Work", threadId: null });
+  });
+
+  it("draws only what the account created or was invited to, from a calendar shared with somebody else", async () => {
+    const me = await account();
+    const shared = await calendar(await connection(me), { summary: "Family" });
+    await calendarEvent(me, shared, "Her class", `${TOMORROW}T08:00:00Z`, { createdByMe: false, invitedMe: false });
+    await calendarEvent(me, shared, "Our dinner", `${TOMORROW}T19:00:00Z`, { createdByMe: false, invitedMe: true });
+    await calendarEvent(me, shared, "My run", `${TOMORROW}T07:00:00Z`, { createdByMe: true, invitedMe: false });
+    await calendarEvent(me, shared, "Not read yet", `${TOMORROW}T12:00:00Z`, { createdByMe: null, invitedMe: null });
+    const body = await day(await signIn(me), TOMORROW);
+    expect(body.events.map((e) => e.title)).toEqual(["My run", "Not read yet", "Our dinner"]);
+    expect(body.eventCount).toBe(3);
+    expect(body.events[0]!.calendarName).toBe("Calendar: Family");
   });
 
   it("never draws a calendar another member picked for a shared thread", async () => {
