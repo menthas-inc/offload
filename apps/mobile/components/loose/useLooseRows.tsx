@@ -55,7 +55,9 @@ import {
   titleOf,
   undoProposal,
   undoSuggestion,
-  type LooseItem,
+  withoutEntries,
+  type LooseEntry,
+  type LooseSummary,
 } from "../../lib/loose";
 import { perform, useWrites, type Reversible } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
@@ -71,26 +73,28 @@ export function useLooseRows(
   toast: ToastState,
 ): {
   /** The rows as drawn, with what the screen has drawn ahead of the server. */
-  live: (items: LooseItem[]) => LooseItem[];
-  /** How many have left since the last read, for the heading's count. */
-  gone: number;
-  row: (item: LooseItem, options: { border: boolean }) => ReactNode;
+  live: (entries: LooseEntry[]) => LooseEntry[];
+  /** Counts less what has left since the last read: the heading's, the
+   *  chips' and the All link's. */
+  less: <T extends Pick<LooseSummary, "count" | "byType">>(counts: T) => T;
+  row: (entry: LooseEntry, options: { border: boolean }) => ReactNode;
   sheets: ReactNode;
 } {
   const router = useRouter();
   const { notify } = useConversation();
   const { zone, today } = useClock();
-  const [dropped, setDropped] = useState<Set<string>>(new Set());
+  // What has left, by key, kept whole so its type can come off the counts.
+  const [dropped, setDropped] = useState<Map<string, LooseEntry>>(new Map());
   const [unsuggested, setUnsuggested] = useState<Set<string>>(new Set());
   const [drawn, setDrawn] = useState<Map<string, Partial<ContentRow> & Partial<Note>>>(new Map());
   const [renaming, setRenaming] = useState<ContentRow | null>(null);
   const [noting, setNoting] = useState<Note | null>(null);
-  const [acting, setActing] = useState<LooseItem | null>(null);
-  const [moving, setMoving] = useState<LooseItem | null>(null);
+  const [acting, setActing] = useState<LooseEntry | null>(null);
+  const [moving, setMoving] = useState<LooseEntry | null>(null);
   const [viewing, setViewing] = useState<ContentRow | null>(null);
   const [creating, setCreating] = useState<string | null>(null);
   useEffect(() => {
-    setDropped(new Set());
+    setDropped(new Map());
     setUnsuggested(new Set());
     setDrawn(new Map());
   }, [source]);
@@ -102,23 +106,27 @@ export function useLooseRows(
     next.delete(key);
     return next;
   };
-  const drop = (key: string) => setDropped((held) => add(held, key));
-  const put = (key: string) => setDropped((held) => take(held, key));
+  const drop = (entry: LooseEntry) => setDropped((held) => new Map(held).set(keyOf(entry), entry));
+  const put = (entry: LooseEntry) =>
+    setDropped((held) => {
+      const next = new Map(held);
+      next.delete(keyOf(entry));
+      return next;
+    });
   const patch = (key: string, fields: Partial<ContentRow> & Partial<Note>) =>
     setDrawn((held) => new Map(held).set(key, { ...(held.get(key) ?? {}), ...fields }));
 
   // ------------------------------------------------------------ the writes
 
-  function remove(item: LooseItem): void {
-    const key = keyOf(item);
+  function remove(entry: LooseEntry): void {
     setViewing(null);
-    if (item.kind === "note") {
+    if (entry.kind === "note") {
       void perform(
         {
-          apply: () => drop(key),
-          revert: () => put(key),
-          write: () => deleteNote(item.note.id),
-          unwrite: () => restoreNote(item.note.id),
+          apply: () => drop(entry),
+          revert: () => put(entry),
+          write: () => deleteNote(entry.note.id),
+          unwrite: () => restoreNote(entry.note.id),
           did: "Note deleted",
           failed: "Couldn't delete the note",
           unfailed: "Couldn't put the note back",
@@ -128,11 +136,11 @@ export function useLooseRows(
       );
       return;
     }
-    const row = item.row;
+    const row = entry.row;
     void perform(
       {
-        apply: () => drop(key),
-        revert: () => put(key),
+        apply: () => drop(entry),
+        revert: () => put(entry),
         write: async () => {
           const ok = await deleteContent(row.id);
           if (ok && row.photo) forgetRendition(row.photo.blobId);
@@ -150,11 +158,11 @@ export function useLooseRows(
 
   /** An archived row back with the rest, from the foot row's list. */
   function restore(row: ContentRow): void {
-    const key = `c:${row.id}`;
+    const entry: LooseEntry = { kind: "content", row, suggestion: null };
     void perform(
       {
-        apply: () => drop(key),
-        revert: () => put(key),
+        apply: () => drop(entry),
+        revert: () => put(entry),
         write: () => setArchived(row.id, false),
         unwrite: () => setArchived(row.id, true),
         did: "Put back",
@@ -167,11 +175,11 @@ export function useLooseRows(
   }
 
   function archive(row: ContentRow): void {
-    const key = `c:${row.id}`;
+    const entry: LooseEntry = { kind: "content", row, suggestion: null };
     void perform(
       {
-        apply: () => drop(key),
-        revert: () => put(key),
+        apply: () => drop(entry),
+        revert: () => put(entry),
         write: () => setArchived(row.id, true),
         unwrite: () => setArchived(row.id, false),
         did: "Archived",
@@ -268,20 +276,19 @@ export function useLooseRows(
 
   /** Move, by hand, from the move sheet. The row leaves as a deleted row does
    *  and Undo is the same move back to wherever the server says it was. */
-  function move(item: LooseItem, to: ThreadRow): void {
+  function move(entry: LooseEntry, to: ThreadRow): void {
     setMoving(null);
     setViewing(null);
-    const key = keyOf(item);
     let home: string | null = null;
     const op: Reversible = {
-      apply: () => drop(key),
-      revert: () => put(key),
+      apply: () => drop(entry),
+      revert: () => put(entry),
       write: async () => {
-        if (item.kind === "content") {
-          home = (await moveContent(item.row.id, to.id))?.previous.threadId ?? null;
+        if (entry.kind === "content") {
+          home = (await moveContent(entry.row.id, to.id))?.previous.threadId ?? null;
           return home !== null;
         }
-        const moved = await moveNote(item.note.id, to.id);
+        const moved = await moveNote(entry.note.id, to.id);
         if (moved === "duplicate") {
           op.failed = duplicateCopy(to.name);
           op.retry = null;
@@ -292,8 +299,8 @@ export function useLooseRows(
       },
       unwrite: async () => {
         if (!home) return false;
-        if (item.kind === "content") return (await moveContent(item.row.id, home)) !== null;
-        const back = await moveNote(item.note.id, home);
+        if (entry.kind === "content") return (await moveContent(entry.row.id, home)) !== null;
+        const back = await moveNote(entry.note.id, home);
         return back !== null && back !== "duplicate";
       },
       did: movedCopy(to.name),
@@ -307,18 +314,17 @@ export function useLooseRows(
   /** Move to: at once, with Undo, which brings the row back with its
    *  suggestion. A refusal (the row already left, on another device) puts it
    *  back with a word, and the reload after it shows where it now is. */
-  function accept(item: LooseItem): void {
-    const suggestion = item.suggestion;
+  function accept(entry: LooseEntry): void {
+    const suggestion = entry.suggestion;
     if (!suggestion) return;
     if (suggestion.kind === "create") {
       setCreating(suggestion.proposal.id);
       return;
     }
-    const key = keyOf(item);
     void perform(
       {
-        apply: () => drop(key),
-        revert: () => put(key),
+        apply: () => drop(entry),
+        revert: () => put(entry),
         write: () => acceptSuggestion(suggestion.id).then((thread) => thread !== null),
         unwrite: () => undoSuggestion(suggestion.id).then((outcome) => outcome === "ok"),
         did: movedCopy(suggestion.thread.name),
@@ -332,10 +338,10 @@ export function useLooseRows(
   }
 
   /** The cross: gone at once, no toast, and never offered again. */
-  function dismiss(item: LooseItem): void {
-    const suggestion = item.suggestion;
+  function dismiss(entry: LooseEntry): void {
+    const suggestion = entry.suggestion;
     if (!suggestion) return;
-    const key = keyOf(item);
+    const key = keyOf(entry);
     void perform(
       {
         apply: () => setUnsuggested((held) => add(held, key)),
@@ -351,9 +357,9 @@ export function useLooseRows(
 
   /** The thread is made and opens. Its toast is the shell's, since this
    *  screen is under the thread by the time anybody reads it. */
-  function created(proposalId: string, thread: { id: string; name: string }, moved: ReadonlySet<string>): void {
+  function created(proposalId: string, thread: { id: string; name: string }, moved: readonly LooseEntry[]): void {
     setCreating(null);
-    setDropped((held) => new Set([...held, ...moved]));
+    setDropped((held) => new Map([...held, ...moved.map((entry) => [keyOf(entry), entry] as const)]));
     router.push({ pathname: "/threads/[id]", params: { id: thread.id } });
     const undo = async (): Promise<void> => {
       const outcome = await undoProposal(proposalId);
@@ -396,41 +402,41 @@ export function useLooseRows(
               : { label: "Archive", icon: "archive", run: () => archive(acting.row) },
           ];
 
-  const live = (items: LooseItem[]): LooseItem[] =>
-    items
-      .filter((item) => !dropped.has(keyOf(item)))
-      .map((item) => {
-        const key = keyOf(item);
+  const live = (entries: LooseEntry[]): LooseEntry[] =>
+    entries
+      .filter((entry) => !dropped.has(keyOf(entry)))
+      .map((entry) => {
+        const key = keyOf(entry);
         const fields = drawn.get(key);
-        const suggestion = unsuggested.has(key) ? null : item.suggestion;
-        if (item.kind === "note") return { ...item, note: { ...item.note, ...(fields ?? {}) } as Note, suggestion };
-        return { ...item, row: { ...item.row, ...(fields ?? {}) } as ContentRow, suggestion };
+        const suggestion = unsuggested.has(key) ? null : entry.suggestion;
+        if (entry.kind === "note") return { ...entry, note: { ...entry.note, ...(fields ?? {}) } as Note, suggestion };
+        return { ...entry, row: { ...entry.row, ...(fields ?? {}) } as ContentRow, suggestion };
       });
 
   const dayOf = (iso: string) => dayIn(new Date(iso), zone);
 
-  const row = (item: LooseItem, options: { border: boolean }) => {
-    const content = item.kind === "content" ? item.row : noteRow(item.note);
-    const suggestion = item.suggestion;
+  const row = (entry: LooseEntry, options: { border: boolean }) => {
+    const content = entry.kind === "content" ? entry.row : noteRow(entry.note);
+    const suggestion = entry.suggestion;
     return (
       <ContentRowView
-        key={keyOf(item)}
+        key={keyOf(entry)}
         row={content}
         border={options.border}
-        meta={metaOf(item, today, dayOf)}
+        meta={metaOf(entry, today, dayOf)}
         titleLines={1}
-        muted={item.kind === "note" && item.note.muted}
-        onEdit={() => (item.kind === "note" ? setNoting(item.note) : setRenaming(item.row))}
-        onActions={() => setActing(item)}
-        onDelete={() => remove(item)}
-        onOpenPhoto={item.kind === "content" && item.row.photo ? () => setViewing(item.row) : undefined}
+        muted={entry.kind === "note" && entry.note.muted}
+        onEdit={() => (entry.kind === "note" ? setNoting(entry.note) : setRenaming(entry.row))}
+        onActions={() => setActing(entry)}
+        onDelete={() => remove(entry)}
+        onOpenPhoto={entry.kind === "content" && entry.row.photo ? () => setViewing(entry.row) : undefined}
         below={
           suggestion ? (
             <SuggestionLine
               suggestion={suggestion}
-              title={titleOf(item)}
-              onAccept={() => accept(item)}
-              onDismiss={() => dismiss(item)}
+              title={titleOf(entry)}
+              onAccept={() => accept(entry)}
+              onDismiss={() => dismiss(entry)}
             />
           ) : null
         }
@@ -479,6 +485,7 @@ export function useLooseRows(
           key={noting.id}
           note={noting}
           canDelete
+          placeholder="What is worth remembering?"
           onSave={(text) => {
             setNoting(null);
             editNoteText(noting, text);
@@ -520,5 +527,9 @@ export function useLooseRows(
     </>
   );
 
-  return { live, gone: dropped.size, row, sheets };
+  // An archived row put back leaves the archived list, not the counts.
+  const left = [...dropped.values()].filter((entry) => !(entry.kind === "content" && entry.row.archivedAt));
+  const less = <T extends Pick<LooseSummary, "count" | "byType">>(counts: T): T => withoutEntries(counts, left);
+
+  return { live, less, row, sheets };
 }

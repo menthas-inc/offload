@@ -6,9 +6,10 @@
 // label, never a link**: the button's accessible name is the action and the
 // name is hidden from assistive tech. The cross beside it dismisses for good.
 //
-// Two changes from the kit: the cross is a 44px target rather than 32, drawn
-// so the two targets do not overlap; and a shared thread draws its faces after
-// the name. The name ellipsises before the faces drop, and the button never
+// Two changes from the kit: the button and the cross are 44px targets while
+// they draw 32, the button by its hit slop and the cross by its box, so the
+// two targets do not overlap; and a shared thread draws its faces after the
+// name. The name ellipsises before the faces drop, and the button never
 // wraps.
 
 import { Platform, Pressable, Text, View } from "react-native";
@@ -46,6 +47,7 @@ export function SuggestionLine({
     <View className="mt-space-4 flex-row items-center">
       <Pressable
         onPress={onAccept}
+        hitSlop={{ top: (TARGET - DRAWN) / 2, bottom: (TARGET - DRAWN) / 2 }}
         accessibilityRole="button"
         accessibilityLabel={suggestionName(suggestion, title)}
         {...(hint ? { accessibilityHint: hint } : {})}

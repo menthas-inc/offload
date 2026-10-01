@@ -189,7 +189,7 @@ export default function MyThreads() {
             summary={loose}
             heading={(label, count) => <Section label={label} count={count} />}
             live={rows.live}
-            gone={rows.gone}
+            less={rows.less}
             row={rows.row}
           />
 

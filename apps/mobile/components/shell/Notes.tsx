@@ -628,6 +628,7 @@ export function NoteEditor({
   onMute,
   onDelete,
   onMove,
+  placeholder = "What is true about this thread?",
 }: {
   note: Note | null;
   canDelete: boolean;
@@ -638,6 +639,8 @@ export function NoteEditor({
   /** 028. To another thread. Its own line above the foot, which already
    *  holds four pills and has no room on a small phone for a fifth. */
   onMove?: (() => void) | undefined;
+  /** 028. Not in a thread asks its own question, since there is no thread. */
+  placeholder?: string;
 }) {
   const COLOR = useColors();
   // The fields are the sheet's own, so typing re-renders the sheet and not
@@ -662,7 +665,7 @@ export function NoteEditor({
             onChangeText={onDraft}
             maxLength={NOTE_CHARS}
             multiline
-            placeholder="What is true about this thread?"
+            placeholder={placeholder}
             placeholderTextColor={COLOR.iconOnWell}
             className={`rounded-sm border border-border-hairline px-space-4 py-space-3 font-core ${
               isAndroid ? "text-a-on" : "text-text-primary"

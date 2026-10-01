@@ -9,7 +9,7 @@
 // a test can see them: which chips show, what the All link says, the meta
 // line, the count in words, the name a create will take.
 
-import { addUtcDays, daysBetween, noonUtc } from "@offload/widgets";
+import { noonUtc, putDown } from "@offload/widgets";
 import { send } from "./api";
 import { withPlaceId, type ContentRow, type Note } from "./threads";
 
@@ -37,7 +37,7 @@ export type Suggestion =
     }
   | { id: string; kind: "create"; proposal: { id: string; name: string; count: number } };
 
-export type LooseItem =
+export type LooseEntry =
   | { kind: "content"; row: ContentRow; suggestion: Suggestion | null }
   | { kind: "note"; note: Note; suggestion: Suggestion | null };
 
@@ -45,7 +45,7 @@ export type LooseItem =
 export interface LooseSummary {
   count: number;
   byType: Partial<Record<ChipKey, number>>;
-  rows: LooseItem[];
+  rows: LooseEntry[];
 }
 
 export interface LoosePage extends LooseSummary {
@@ -58,7 +58,7 @@ export interface Proposal {
   id: string;
   name: string;
   /** Every still-loose thing of the proposal, each without its suggestion. */
-  items: LooseItem[];
+  entries: LooseEntry[];
 }
 
 // ------------------------------------------------------------------ chips
@@ -87,8 +87,8 @@ const CHIP_OF_TYPE: Record<string, ChipKey> = {
   file: "file",
 };
 
-export function chipOf(item: LooseItem): ChipKey | null {
-  return item.kind === "note" ? "note" : (CHIP_OF_TYPE[item.row.type] ?? null);
+export function chipOf(entry: LooseEntry): ChipKey | null {
+  return entry.kind === "note" ? "note" : (CHIP_OF_TYPE[entry.row.type] ?? null);
 }
 
 /** The chips to draw: none unless two types or more are present. */
@@ -126,19 +126,36 @@ export function allLink(count: number, chip: ChipKey | null): string | null {
 }
 
 /** The group's rows: the summary's three on All, and on a chip the first
- *  three of the page read by that type, or none until it comes back. */
-export function groupRows(summary: LooseSummary, chip: ChipKey | null, page: LooseItem[] | null): LooseItem[] {
+ *  three of the page read by that type. Until that page comes back, or when
+ *  it does not, the rows in hand of that type. */
+export function groupRows(summary: LooseSummary, chip: ChipKey | null, page: LooseEntry[] | null): LooseEntry[] {
   if (!chip) return summary.rows.slice(0, LOOSE_SHOWN);
-  return (page ?? []).slice(0, LOOSE_SHOWN);
+  return (page ?? summary.rows.filter((entry) => chipOf(entry) === chip)).slice(0, LOOSE_SHOWN);
+}
+
+/** The counts less what has left since they were read: what a row leaving
+ *  looks like before the server is read again. The heading, the chips and
+ *  the All link all count from here. */
+export function withoutEntries<T extends Pick<LooseSummary, "count" | "byType">>(counts: T, left: readonly LooseEntry[]): T {
+  if (left.length === 0) return counts;
+  const byType = { ...counts.byType };
+  for (const entry of left) {
+    const chip = chipOf(entry);
+    if (!chip) continue;
+    const rest = (byType[chip] ?? 0) - 1;
+    if (rest > 0) byType[chip] = rest;
+    else delete byType[chip];
+  }
+  return { ...counts, count: Math.max(0, counts.count - left.length), byType };
 }
 
 /** One key across both tables, which the screen cannot tell apart by id. */
-export function keyOf(item: LooseItem): string {
-  return item.kind === "note" ? `n:${item.note.id}` : `c:${item.row.id}`;
+export function keyOf(entry: LooseEntry): string {
+  return entry.kind === "note" ? `n:${entry.note.id}` : `c:${entry.row.id}`;
 }
 
-export function titleOf(item: LooseItem): string {
-  return item.kind === "note" ? item.note.text : item.row.title;
+export function titleOf(entry: LooseEntry): string {
+  return entry.kind === "note" ? entry.note.text : entry.row.title;
 }
 
 /** A note, as the row the list draws for it: the kit draws every loose thing
@@ -180,24 +197,19 @@ export function noteRow(note: Note): ContentRow {
 
 // ------------------------------------------------------------------- rows
 
-/** *Photo · Monday*: what it is, then when it was put down. */
-export function metaOf(item: LooseItem, today: string, dayOf: (iso: string) => string): string {
-  const chip = chipOf(item);
+/** *Photo · Monday*: what it is, then when it was put down. An archived row
+ *  says when it was archived, as the thread page's archived rows do. */
+export function metaOf(entry: LooseEntry, today: string, dayOf: (iso: string) => string): string {
+  if (entry.kind === "content" && entry.row.archivedAt) return `archived ${dateOf(dayOf(entry.row.archivedAt))}`;
+  const chip = chipOf(entry);
   const singular = CHIPS.find((one) => one.key === chip)?.singular;
-  const createdAt = item.kind === "note" ? item.note.createdAt : item.row.createdAt;
+  const createdAt = entry.kind === "note" ? entry.note.createdAt : entry.row.createdAt;
   const when = putDown(dayOf(createdAt), today);
   return singular ? `${singular} · ${when}` : when;
 }
 
-/** Today, yesterday, the weekday within the week, then the date. A date
- *  rather than "last week", which says less than the day it stands for. */
-function putDown(day: string, today: string): string {
-  if (day === today) return "today";
-  if (day === addUtcDays(today, -1)) return "yesterday";
-  const ago = daysBetween(day, today);
-  if (ago > 1 && ago < 7) {
-    return new Intl.DateTimeFormat(undefined, { weekday: "long", timeZone: "UTC" }).format(noonUtc(day));
-  }
+/** *3 Oct*, in the order the person's locale puts it. */
+function dateOf(day: string): string {
   return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", timeZone: "UTC" }).format(noonUtc(day));
 }
 
@@ -236,15 +248,15 @@ export function countInWords(n: number): string {
 }
 
 export function createLine(count: number): string {
-  return `These ${countInWords(count)} look like one project.`;
+  return `These ${countInWords(count)} look like they belong together.`;
 }
 
 export const NAME_CHARS = 60;
 
-/** 1 to 60 once trimmed, one line: what the server will take. */
+/** 1 to 60 once trimmed, no control characters: what the server will take. */
 export function nameOk(name: string): boolean {
   const clean = name.trim();
-  return clean.length > 0 && [...clean].length <= NAME_CHARS && !/[\r\n]/.test(clean);
+  return clean.length > 0 && [...clean].length <= NAME_CHARS && !/[\u0000-\u001f\u007f]/.test(clean);
 }
 
 /** Flip one tick, except the last: a thread is never made empty. */
@@ -272,6 +284,11 @@ export function threadHref(
   return threadName === null ? "/threads/loose" : { pathname: "/threads/[id]", params: { id: threadId } };
 }
 
+/** Today's action to a row's thread; a row with none opens the list. */
+export function openThreadLabel(threadName: string | null): string {
+  return threadName === null ? "Open Not in a thread" : "Open the thread";
+}
+
 /** An answer's found result: the thread, or the state. */
 export function foundHead(threadName: string | null): string {
   return threadName ?? "Not in a thread";
@@ -283,8 +300,8 @@ export function foundFoot(more: number, threadName: string | null): string {
 
 // ------------------------------------------------------------------ reads
 
-const withPlace = (item: LooseItem): LooseItem =>
-  item.kind === "content" ? { ...item, row: withPlaceId(item.row) } : item;
+const withPlace = (entry: LooseEntry): LooseEntry =>
+  entry.kind === "content" ? { ...entry, row: withPlaceId(entry.row) } : entry;
 
 /** A page of the list, newest first; by chip with `type`. Null when it did
  *  not come back, so the screen can say so and offer Try again. */
@@ -310,7 +327,7 @@ export async function fetchLooseArchived(cursor?: string | null): Promise<{ rows
 export async function fetchProposal(id: string): Promise<Proposal | null> {
   const { status, data } = await send<Proposal>(`/v1/proposals/${id}`);
   if (status !== 200 || !data) return null;
-  return { ...data, items: data.items.map(withPlace) };
+  return { ...data, entries: data.entries.map(withPlace) };
 }
 
 // ----------------------------------------------------------------- writes

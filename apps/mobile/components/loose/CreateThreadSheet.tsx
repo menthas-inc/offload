@@ -1,5 +1,5 @@
 // 028. Create a thread from offload's proposal, from the exploration's
-// accepting sheet: *Create a thread*, *These three look like one project.*,
+// accepting sheet: *Create a thread*, *These three look like they belong together.*,
 // the name prefilled and editable, *Moves into it* with each thing ticked,
 // then Cancel and *Create thread*.
 //
@@ -24,6 +24,7 @@ import {
   nameOk,
   titleOf,
   toggleTick,
+  type LooseEntry,
   type Proposal,
 } from "../../lib/loose";
 import { DragSheet } from "../shell/DragSheet";
@@ -38,8 +39,8 @@ export function CreateThreadSheet({
 }: {
   proposalId: string;
   onClose: () => void;
-  /** Made: the thread, and the keys of what moved into it. */
-  onCreated: (thread: { id: string; name: string }, moved: ReadonlySet<string>) => void;
+  /** Made: the thread, and what moved into it. */
+  onCreated: (thread: { id: string; name: string }, moved: LooseEntry[]) => void;
 }) {
   const COLOR = useColors();
   const [proposal, setProposal] = useState<Proposal | null>(null);
@@ -59,7 +60,7 @@ export function CreateThreadSheet({
       if (!read) return setUnread(true);
       setProposal(read);
       setName(read.name);
-      setTicked(new Set(read.items.map(keyOf)));
+      setTicked(new Set(read.entries.map(keyOf)));
     });
     return () => {
       live.current = false;
@@ -76,7 +77,7 @@ export function CreateThreadSheet({
     const made = await createFromProposal(proposalId, name, ticked);
     if (!live.current) return;
     setBusy(false);
-    if (made.ok) onCreated(made.thread, ticked);
+    if (made.ok) onCreated(made.thread, proposal.entries.filter((entry) => ticked.has(keyOf(entry))));
     else setFailed(true);
   }
 
@@ -93,7 +94,7 @@ export function CreateThreadSheet({
       </Text>
       {proposal ? (
         <Text className={`mt-space-2 font-core text-body-sm ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}>
-          {createLine(proposal.items.length)}
+          {createLine(proposal.entries.length)}
         </Text>
       ) : null}
 
@@ -153,23 +154,23 @@ export function CreateThreadSheet({
             Moves into it
           </Text>
           <ScrollView style={{ flexShrink: 1 }} keyboardShouldPersistTaps="handled">
-            {proposal.items.map((item, i) => {
-              const key = keyOf(item);
+            {proposal.entries.map((entry, i) => {
+              const key = keyOf(entry);
               const on = ticked.has(key);
               const last = on && ticked.size === 1;
-              const glyph = CHIPS.find((chip) => chip.key === chipOf(item))?.glyph ?? "text-quote";
+              const glyph = CHIPS.find((chip) => chip.key === chipOf(entry))?.glyph ?? "text-quote";
               return (
                 <Pressable
                   key={key}
                   onPress={() => setTicked((current) => toggleTick(current, key))}
                   className={`min-h-tap-min flex-row items-center gap-space-5 py-space-3 ${
-                    i < proposal.items.length - 1 ? "border-b border-border-hairline" : ""
+                    i < proposal.entries.length - 1 ? "border-b border-border-hairline" : ""
                   }`}
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: on, disabled: last }}
                 >
                   <View
-                    className={`items-center justify-center rounded-xs ${on ? "bg-moss-600" : "border border-border-strong"}`}
+                    className={`items-center justify-center rounded-xs ${on ? "bg-surface-accent" : "border border-border-strong"}`}
                     style={{ width: 21, height: 21, borderWidth: on ? 0 : 1.5 }}
                   >
                     {on ? <Glyph name="check" size={13} color={COLOR.onBrand} /> : null}
@@ -180,7 +181,7 @@ export function CreateThreadSheet({
                     style={{ fontSize: 15, lineHeight: 20 }}
                     numberOfLines={2}
                   >
-                    {titleOf(item)}
+                    {titleOf(entry)}
                   </Text>
                 </Pressable>
               );

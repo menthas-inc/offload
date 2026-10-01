@@ -19,20 +19,21 @@ vi.mock("../lib/api", () => ({
 const threads = await import("../lib/threads");
 const loose = await import("../lib/loose");
 import type { ThreadGroup } from "../lib/threads";
+import type { LooseEntry } from "../lib/loose";
 
 beforeEach(() => {
   calls.length = 0;
   reply = { status: 200, data: null };
 });
 
-const note = (id: string, createdAt = "2026-10-01T09:00:00.000Z") => ({
+const note = (id: string, createdAt = "2026-10-01T09:00:00.000Z"): LooseEntry => ({
   kind: "note" as const,
   note: { id, text: "Oak brackets, 30cm, matte black", createdAt } as never,
   suggestion: null,
 });
-const content = (id: string, type: string, createdAt = "2026-10-01T09:00:00.000Z") => ({
+const content = (id: string, type: string, createdAt = "2026-10-01T09:00:00.000Z", archivedAt: string | null = null): LooseEntry => ({
   kind: "content" as const,
-  row: { id, type, title: "Boiler service receipt", createdAt } as never,
+  row: { id, type, title: "Boiler service receipt", createdAt, archivedAt } as never,
   suggestion: null,
 });
 
@@ -104,8 +105,9 @@ describe("T3.3 the chips and the All link", () => {
     const page = [content("c1", "link"), content("c2", "link"), content("c3", "link"), content("c4", "link")];
     expect(loose.groupRows(summary, null, null).map(loose.keyOf)).toEqual(["n:n1", "c:c1", "n:n2"]);
     expect(loose.groupRows(summary, "link", page).map(loose.keyOf)).toEqual(["c:c1", "c:c2", "c:c3"]);
-    // The page by type has not come back yet: nothing rather than the wrong three.
-    expect(loose.groupRows(summary, "link", null)).toEqual([]);
+    // The page by type has not come back, or failed: the rows in hand of
+    // that type, rather than emptying.
+    expect(loose.groupRows(summary, "link", null).map(loose.keyOf)).toEqual(["c:c1"]);
     expect(loose.listCount(summary, "link")).toBe(5);
     expect(loose.listCount(summary, null)).toBe(9);
   });
@@ -129,6 +131,29 @@ describe("T3.4 a row's meta line", () => {
     // 28 September 2026 is a Monday.
     expect(at("2026-09-28T08:00:00.000Z")).toBe("Link · Monday");
     expect(at("2026-09-12T08:00:00.000Z")).toMatch(/^Link · (12 Sept?|Sept? 12)$/);
+  });
+
+  it("says it through the one wording both clients share, not its own", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync(new URL("../lib/loose.ts", import.meta.url), "utf8");
+    expect(source).toMatch(/import \{[^}]*\bputDown\b[^}]*\} from "@offload\/widgets"/);
+    expect(source).not.toMatch(/function putDown/);
+  });
+
+  it("says when an archived row was archived, as the thread page does", () => {
+    const row = content("c", "link", "2026-09-01T08:00:00.000Z", "2026-10-03T08:00:00.000Z");
+    expect(loose.metaOf(row, "2026-10-05", dayOf)).toMatch(/^archived (3 Oct|Oct 3)$/);
+  });
+});
+
+describe("T3.3 what left takes its counts with it", () => {
+  it("subtracts from the count and each type, dropping a type it empties", () => {
+    const counts = { count: 9, byType: { link: 5, note: 4 } };
+    const less = loose.withoutEntries(counts, [content("c1", "link"), note("n1")]);
+    expect(less).toEqual({ count: 7, byType: { link: 4, note: 3 } });
+    expect(loose.withoutEntries({ count: 2, byType: { link: 1, note: 1 } }, [content("c1", "link")]).byType).toEqual({ note: 1 });
+    expect(loose.withoutEntries(counts, [])).toBe(counts);
+    expect(loose.withoutEntries({ count: 0, byType: {} }, [note("n1")]).count).toBe(0);
   });
 });
 
@@ -176,7 +201,8 @@ describe("T3.6 the create sheet", () => {
   it("counts in words from two to ten", () => {
     expect([2, 3, 10].map(loose.countInWords)).toEqual(["two", "three", "ten"]);
     expect(loose.countInWords(11)).toBe("11");
-    expect(loose.createLine(3)).toBe("These three look like one project.");
+    expect(loose.createLine(3)).toBe("These three look like they belong together.");
+    expect(loose.createLine(2)).toBe("These two look like they belong together.");
   });
 
   it("takes a name of 1 to 60 once trimmed, on one line", () => {
@@ -185,6 +211,8 @@ describe("T3.6 the create sheet", () => {
     expect(loose.nameOk("x".repeat(60))).toBe(true);
     expect(loose.nameOk("x".repeat(61))).toBe(false);
     expect(loose.nameOk("Kitchen\nshelves")).toBe(false);
+    // Every control character, as the server and the web refuse them.
+    for (const c of ["\t", "\u0000", "\u001b", "\u001f", "\u007f"]) expect(loose.nameOk(`Kitchen${c}shelves`), JSON.stringify(c)).toBe(false);
   });
 
   it("will not untick the last ticked thing", () => {
@@ -196,8 +224,10 @@ describe("T3.6 the create sheet", () => {
   });
 
   it("reads the proposal and creates with the ticked ids split by kind", async () => {
-    reply = { status: 200, data: { id: "p1", name: "Kitchen shelves", items: [note("n1")] } };
-    expect((await loose.fetchProposal("p1"))?.name).toBe("Kitchen shelves");
+    reply = { status: 200, data: { id: "p1", name: "Kitchen shelves", entries: [note("n1")] } };
+    const proposal = await loose.fetchProposal("p1");
+    expect(proposal?.name).toBe("Kitchen shelves");
+    expect(proposal?.entries.map(loose.keyOf)).toEqual(["n:n1"]);
     expect(calls[0]?.path).toBe("/v1/proposals/p1");
 
     reply = { status: 200, data: { thread: { id: "t9", name: "Kitchen shelves" } } };
@@ -265,6 +295,11 @@ describe("T3.9 a thread name that is not there", () => {
   it("opens Not in a thread where the thread would have opened", () => {
     expect(loose.threadHref("t1", "Lisbon trip")).toEqual({ pathname: "/threads/[id]", params: { id: "t1" } });
     expect(loose.threadHref("t0", null)).toBe("/threads/loose");
+  });
+
+  it("offers Today's row its way to the list by name", () => {
+    expect(loose.openThreadLabel("Lisbon trip")).toBe("Open the thread");
+    expect(loose.openThreadLabel(null)).toBe("Open Not in a thread");
   });
 
   it("heads and tails an answer's loose result without naming a thread", () => {

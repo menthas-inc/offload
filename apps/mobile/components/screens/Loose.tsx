@@ -14,26 +14,25 @@
 // state when there is nothing; the screen stays until the person goes back.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Platform, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Glyph } from "../Glyph";
-import { Chip } from "../labels/Chip";
 import { ToastHost, useToast } from "../shell/Toast";
 import { PlateSpace } from "../shell/plate-inset";
 import { useConversation } from "../shell/conversation-context";
+import { TypeChips } from "../loose/TypeChips";
 import { useLooseRows } from "../loose/useLooseRows";
 import { useColors } from "../../lib/colors";
 import { failed as logFailed } from "../../lib/log";
 import {
   asChip,
-  chipsFor,
   fetchLoose,
   fetchLooseArchived,
   keepChip,
   keyOf,
   type ChipKey,
-  type LooseItem,
+  type LooseEntry,
   type LoosePage,
 } from "../../lib/loose";
 
@@ -42,7 +41,7 @@ const isAndroid = Platform.OS === "android";
 /** What the list holds now: a page or more of the live rows, or the archived
  *  ones, with the cursor for the next page. */
 interface Held {
-  items: LooseItem[];
+  entries: LooseEntry[];
   nextCursor: string | null;
   counts: Pick<LoosePage, "count" | "byType" | "archived">;
 }
@@ -71,7 +70,7 @@ export default function Loose() {
         const read = await fetchLooseArchived();
         if (!read) return setUnread(true);
         setHeld({
-          items: read.rows.map((row) => ({ kind: "content" as const, row, suggestion: null })),
+          entries: read.rows.map((row) => ({ kind: "content" as const, row, suggestion: null })),
           nextCursor: read.nextCursor,
           counts: counts.current,
         });
@@ -85,7 +84,7 @@ export default function Loose() {
       const kept = keepChip(chip, read.byType);
       if (kept !== chip) return setChip(kept);
       counts.current = { count: read.count, byType: read.byType, archived: read.archived };
-      setHeld({ items: read.rows, nextCursor: read.nextCursor, counts: counts.current });
+      setHeld({ entries: read.rows, nextCursor: read.nextCursor, counts: counts.current });
       setReadAt((n) => n + 1);
     } catch (error) {
       logFailed("loose.load", error);
@@ -122,8 +121,8 @@ export default function Loose() {
     setNext("idle");
     setHeld((current) => {
       if (!current || current.nextCursor !== cursor) return current;
-      const known = new Set(current.items.map(keyOf));
-      return { ...current, items: [...current.items, ...read.rows.filter((item) => !known.has(keyOf(item)))], nextCursor: read.nextCursor };
+      const known = new Set(current.entries.map(keyOf));
+      return { ...current, entries: [...current.entries, ...read.rows.filter((entry) => !known.has(keyOf(entry)))], nextCursor: read.nextCursor };
     });
   }
 
@@ -140,8 +139,9 @@ export default function Loose() {
     setArchived(on);
   }
 
-  const shown = held ? rows.live(held.items) : [];
-  const chips = archived ? [] : chipsFor(counts.current.byType);
+  const shown = held ? rows.live(held.entries) : [];
+  // The live list's counts, less what has left since they were read.
+  const live = rows.less(counts.current);
   const quiet = isAndroid ? "text-a-on-var" : "text-text-secondary";
   const ink = isAndroid ? "text-a-on" : "text-text-primary";
 
@@ -155,23 +155,7 @@ export default function Loose() {
       <Text className={`px-gutter-screen pb-space-5 pt-space-1 font-core ${quiet}`} style={{ fontSize: 13.5, lineHeight: 19 }}>
         Put down without a thread, newest first.
       </Text>
-      {chips.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="items-center gap-space-3 px-gutter-screen pb-space-3"
-          accessibilityLabel="Filter by type"
-        >
-          <Chip selected={chip === null} onClick={() => pick(null)}>
-            {`All ${counts.current.count}`}
-          </Chip>
-          {chips.map((one) => (
-            <Chip key={one.key} icon={one.glyph} selected={chip === one.key} onClick={() => pick(one.key)}>
-              {`${one.label} ${one.count}`}
-            </Chip>
-          ))}
-        </ScrollView>
-      ) : null}
+      {archived ? null : <TypeChips count={live.count} byType={live.byType} picked={chip} onPick={pick} />}
       {archived ? (
         <Text className={`px-gutter-screen pb-space-3 pt-space-5 font-core font-semibold ${ink}`} style={{ fontSize: 21 }}>
           Archived
@@ -248,7 +232,7 @@ export default function Loose() {
         <FlatList
           data={shown}
           keyExtractor={keyOf}
-          renderItem={({ item, index }) => <>{rows.row(item, { border: index < shown.length - 1 })}</>}
+          renderItem={({ item: entry, index }) => <>{rows.row(entry, { border: index < shown.length - 1 })}</>}
           ListHeaderComponent={header}
           ListFooterComponent={footer}
           ListEmptyComponent={

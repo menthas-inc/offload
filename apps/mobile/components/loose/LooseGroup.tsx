@@ -10,20 +10,19 @@
 // where the kit draws its own 34px moss ones: logged with the divergences.
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, Pressable, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { Glyph } from "../Glyph";
-import { Chip } from "../labels/Chip";
+import { TypeChips } from "./TypeChips";
 import { useColors } from "../../lib/colors";
 import {
   allLink,
-  chipsFor,
   fetchLoose,
   groupRows,
   keepChip,
   listCount,
   type ChipKey,
-  type LooseItem,
+  type LooseEntry,
   type LooseSummary,
 } from "../../lib/loose";
 
@@ -33,67 +32,59 @@ export function LooseGroup({
   summary,
   heading,
   live,
-  gone,
+  less,
   row,
 }: {
   summary: LooseSummary | null;
   /** My threads' own section heading. */
   heading: (label: string, count: number) => ReactNode;
-  live: (items: LooseItem[]) => LooseItem[];
-  gone: number;
-  row: (item: LooseItem, options: { border: boolean }) => ReactNode;
+  live: (entries: LooseEntry[]) => LooseEntry[];
+  /** The counts less what has left since the read. */
+  less: <T extends Pick<LooseSummary, "count" | "byType">>(counts: T) => T;
+  row: (entry: LooseEntry, options: { border: boolean }) => ReactNode;
 }) {
   const COLOR = useColors();
   const router = useRouter();
   const [chip, setChip] = useState<ChipKey | null>(null);
-  const [page, setPage] = useState<LooseItem[] | null>(null);
+  const [page, setPage] = useState<LooseEntry[] | null>(null);
+
+  // What has left comes off every count at once, as it does the heading's:
+  // a type it empties loses its chip, and the pick goes back to All.
+  const counts = less(summary ?? { count: 0, byType: {}, rows: [] });
+  const kept = keepChip(chip, counts.byType);
 
   // A new read: the pick holds while its type is still there, and its first
-  // page is read again so the three are the server's.
-  const byType = summary?.byType ?? {};
-  const kept = keepChip(chip, byType);
+  // page is read again so the three are the server's. A read that fails keeps
+  // the rows in hand.
   useEffect(() => {
     if (kept !== chip) setChip(kept);
     if (!kept) return setPage(null);
     let current = true;
     void fetchLoose({ type: kept }).then((read) => {
-      if (current) setPage(read?.rows ?? []);
+      if (current && read) setPage(read.rows);
     });
     return () => {
       current = false;
     };
   }, [summary, kept]);
 
-  if (!summary) return null;
-  const count = summary.count - gone;
-  if (count <= 0) return null;
+  /** Another type: what is in hand of it, until its page comes back. */
+  function pick(next: ChipKey | null): void {
+    if (next === kept) return;
+    setPage(null);
+    setChip(next);
+  }
 
-  const chips = chipsFor(byType);
+  if (!summary || counts.count <= 0) return null;
+
   const rows = live(groupRows(summary, kept, page));
-  const total = listCount(summary, kept);
-  const link = allLink(total, kept);
+  const link = allLink(listCount(counts, kept), kept);
 
   return (
     <>
-      {heading("Not in a thread", count)}
-      {chips.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="items-center gap-space-3 px-gutter-screen pb-space-3"
-          accessibilityLabel="Filter by type"
-        >
-          <Chip selected={kept === null} onClick={() => setChip(null)}>
-            {`All ${summary.count}`}
-          </Chip>
-          {chips.map((one) => (
-            <Chip key={one.key} icon={one.glyph} selected={kept === one.key} onClick={() => setChip(one.key)}>
-              {`${one.label} ${one.count}`}
-            </Chip>
-          ))}
-        </ScrollView>
-      ) : null}
-      {rows.map((item, i) => row(item, { border: i < rows.length - 1 }))}
+      {heading("Not in a thread", counts.count)}
+      <TypeChips count={counts.count} byType={counts.byType} picked={kept} onPick={pick} />
+      {rows.map((entry, i) => row(entry, { border: i < rows.length - 1 }))}
       {link ? (
         <Pressable
           onPress={() => router.push(kept ? { pathname: "/threads/loose", params: { type: kept } } : "/threads/loose")}

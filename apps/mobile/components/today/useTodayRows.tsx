@@ -24,7 +24,7 @@ import { useClock } from "../../lib/clock";
 import { useColors } from "../../lib/colors";
 import { drawnWhen } from "../../lib/when";
 import { takeToday, untakeToday, type Day, type TodayRow } from "../../lib/today";
-import { threadHref } from "../../lib/loose";
+import { openThreadLabel, threadHref } from "../../lib/loose";
 
 export interface RowOptions {
   border: boolean;
@@ -218,7 +218,7 @@ export function useTodayRows(
           ? []
           : [{ label: acting.doneAt ? "Mark not done" : "Mark done", icon: acting.doneAt ? "rewind" : "check", run: () => tick(acting) }]),
         // 028. A row not in a thread opens Not in a thread.
-        { label: "Open the thread", icon: "message-circle", run: () => router.push(threadHref(acting.threadId, acting.threadName)) },
+        { label: openThreadLabel(acting.threadName), icon: "message-circle", run: () => router.push(threadHref(acting.threadId, acting.threadName)) },
         ...(acting.archivedAt
           ? [{ label: "Put back in the thread", icon: "rewind", run: () => archive(acting) }]
           : acting.canDelete
