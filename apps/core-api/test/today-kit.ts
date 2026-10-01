@@ -116,7 +116,6 @@ export async function calendarEvent(
       occurs_end_at: over.end === null ? null : new Date(over.end ?? new Date(new Date(at).getTime() + 3600_000).toISOString()),
       all_day: over.allDay ?? false,
       untrusted: false,
-      attendees: "[]",
       link: over.link === undefined ? null : over.link,
       created_by_me: over.createdByMe === undefined ? true : over.createdByMe,
       invited_me: over.invitedMe === undefined ? false : over.invitedMe,

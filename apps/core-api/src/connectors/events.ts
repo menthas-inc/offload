@@ -10,18 +10,6 @@ import type { Transaction, Kysely } from "kysely";
 import type { Database } from "../schema.js";
 import type { GoogleEvent } from "./google.js";
 
-/** What a calendar keeps of the people on an event.
- *
- *  **Minimised on the way in**, because these are people who never signed up to
- *  offload and never agreed to anything. A name and whether they accepted,
- *  always, because "dinner with Ana" needs a name. **Never an address** (027):
- *  nothing read the stored ones, since a change to an event with guests asks
- *  Google who they are at that moment (`verdictFor`), so a stranger's address
- *  had no reason to sit in the copy. */
-export function minimiseAttendees(attendees: GoogleEvent["attendees"]): Array<{ name: string | null; response: string | null }> {
-  return attendees.map((attendee) => ({ name: attendee.name, response: attendee.response }));
-}
-
 /** `<calendar>:<event>`, so one prefix scan finds everything one calendar filed
  *  and disconnect can offer to remove it. */
 export function sourceRefFor(calendarExternalId: string, eventId: string): string {
@@ -48,7 +36,6 @@ export interface MappedEvent {
   seriesRef: string | null;
   organizerIsMe: boolean;
   untrusted: boolean;
-  attendees: ReturnType<typeof minimiseAttendees>;
   link: string | null;
   createdByMe: boolean | null;
   invitedMe: boolean | null;
@@ -110,7 +97,6 @@ export function mapEvent(event: GoogleEvent, calendarExternalId: string, reader?
     seriesRef: event.seriesId,
     organizerIsMe,
     untrusted: isUntrusted({ ...event, organizedByMe: organizerIsMe }),
-    attendees: minimiseAttendees(event.attendees),
     link: event.link,
   };
 }
@@ -140,7 +126,6 @@ export async function upsertEvent(
       series_ref: mapped.seriesRef,
       organizer_is_me: mapped.organizerIsMe,
       untrusted: mapped.untrusted,
-      attendees: JSON.stringify(mapped.attendees),
       link: mapped.link,
       created_by_me: mapped.createdByMe,
       invited_me: mapped.invitedMe,
@@ -156,7 +141,6 @@ export async function upsertEvent(
         series_ref: eb.ref("excluded.series_ref"),
         organizer_is_me: eb.ref("excluded.organizer_is_me"),
         untrusted: eb.ref("excluded.untrusted"),
-        attendees: eb.ref("excluded.attendees"),
         link: eb.ref("excluded.link"),
         created_by_me: eb.ref("excluded.created_by_me"),
         invited_me: eb.ref("excluded.invited_me"),

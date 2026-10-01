@@ -755,7 +755,10 @@ export interface ConnectorEventsTable {
   organizer_is_me: Generated<boolean>;
   /** Text somebody else wrote. Defaults true so a path that forgets errs safe. */
   untrusted: Generated<boolean>;
-  attendees: ColumnType<unknown, string | undefined, string>;
+  /** Always empty (027). Nothing is kept about an event's guests: nothing read
+   *  it, and a change to an event with guests asks Google who they are at that
+   *  moment. Unwritable here so nothing starts keeping them again by accident. */
+  attendees: ColumnType<unknown, never, never>;
   /** 027. Google's own link to the event, https on a Google host or null. */
   link: string | null;
   /** 027. This account created it, or is on its guest list and has not

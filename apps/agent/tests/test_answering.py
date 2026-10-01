@@ -289,4 +289,6 @@ def test_find_events_says_whose_each_event_is() -> None:
 
     description = _DESCRIPTIONS["find_events"]
     assert "`yours`" in description
+    # A stranger's invitation is yours and untrusted: `yours` is not trust.
+    assert "says nothing about who wrote" in description
     assert "somebody else" in description

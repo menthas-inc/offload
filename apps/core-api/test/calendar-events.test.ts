@@ -8,7 +8,7 @@
 // an event to be routed to, so `threadFor` and its rules are gone.
 
 import { describe, expect, it } from "vitest";
-import { isUntrusted, mapEvent, minimiseAttendees, sourceRefFor } from "../src/connectors/events.js";
+import { isUntrusted, mapEvent, sourceRefFor } from "../src/connectors/events.js";
 import { eventLink, listEvents, type GoogleEvent } from "../src/connectors/google.js";
 
 function event(over: Partial<GoogleEvent> = {}): GoogleEvent {
@@ -47,23 +47,17 @@ describe("AC-11 untrusted is per event, by who wrote it", () => {
   });
 });
 
-describe("AC-6 attendees are minimised", () => {
-  it("keeps a name and a response but drops the address", () => {
-    // People who never signed up to offload. A name renders "dinner with Ana";
-    // an address is contact details for a stranger.
-    const [ana] = minimiseAttendees(event().attendees);
-    expect(ana).toEqual({ name: "Ana", response: "accepted" });
-    expect(ana).not.toHaveProperty("email");
-  });
-
-  it("never keeps an address, whoever made the event", () => {
-    // 027: nothing ever read the stored addresses. A change to an event with
-    // guests asks Google who they are at that moment, so a stranger's address
-    // has no reason to sit in the copy.
-    const [ana] = minimiseAttendees(event().attendees);
-    expect(ana).toEqual({ name: "Ana", response: "accepted" });
-    const mapped = mapEvent(event({ organizedByMe: true }), "cal-1", { accountEmail: "jo@hey.com", primary: true });
-    expect(mapped.attendees.every((guest) => !("email" in guest))).toBe(true);
+describe("AC-6 nothing about the guests is kept", () => {
+  it("keeps no name, no answer and no address, whoever made the event", () => {
+    // People who never signed up to offload. 027: nothing ever read what the
+    // copy kept of them, and a change to an event with guests asks Google who
+    // they are at that moment, so none of it has a reason to sit here.
+    for (const over of [{}, { organizedByMe: true }]) {
+      const mapped = mapEvent(event(over), "cal-1", { accountEmail: "jo@hey.com", primary: true });
+      expect(mapped).not.toHaveProperty("attendees");
+      expect(JSON.stringify(mapped)).not.toContain("ana@example.com");
+      expect(JSON.stringify(mapped)).not.toContain("accepted");
+    }
   });
 });
 
@@ -214,11 +208,11 @@ describe("027 self is the calendar's, not the person's", () => {
     expect(mapEvent(event({ ...her, attendees: [selfOnPrimary] }), "cal-1", { ...shared, primary: true }).invitedMe).toBe(true);
   });
 
-  it("treats somebody else's event on a shared calendar as theirs: untrusted, and no guest addresses kept", () => {
+  it("treats somebody else's event on a shared calendar as theirs: untrusted, and no guest kept", () => {
     const mapped = mapEvent(event({ ...her, attendees: [{ name: "Sam", email: "sam@hey.com", response: "accepted", self: false }] }), "shared", shared);
     expect(mapped.organizerIsMe).toBe(false);
     expect(mapped.untrusted).toBe(true);
-    expect(mapped.attendees[0]).not.toHaveProperty("email");
+    expect(mapped).not.toHaveProperty("attendees");
   });
 
   it("still trusts what you organised, by your address or on your own primary", () => {

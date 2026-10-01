@@ -8,11 +8,10 @@
 alter table connector_events add column created_by_me boolean;
 alter table connector_events add column invited_me boolean;
 
--- And no guest's address, ever: nothing read them, and a change to an event
--- with guests asks Google who they are at that moment. Names and answers stay.
-update connector_events
-  set attendees = (select coalesce(jsonb_agg(guest - 'email'), '[]'::jsonb) from jsonb_array_elements(attendees) guest)
-  where jsonb_typeof(attendees) = 'array' and attendees::text like '%"email"%';
+-- And nothing about an event's guests, ever: nothing read what the copy kept
+-- of them, and a change to an event with guests asks Google who they are at
+-- that moment. The column stays, empty; the server can no longer write it.
+update connector_events set attendees = '[]'::jsonb where attendees <> '[]'::jsonb;
 
 -- Every synced event has neither flag; the next pass reads each calendar whole.
 update connector_calendars set sync_token = null

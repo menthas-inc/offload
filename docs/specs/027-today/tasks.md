@@ -91,4 +91,4 @@ Every task starts with its failing test, run and seen red for the reason the tas
 - [x] **T6.3** The thread's events carry `involved`, false for another member's calendar. *(AC-36)*
 - [x] **T6.4** `eventMeta` and both timelines draw it. *(AC-36)*
 - [x] **T6.5** `find_events` carries `yours`; the description says to keep them apart; eval cases added. Running them is a separate ask. *(AC-37)*
-- [x] **T6.6** No guest address kept, the stored ones stripped, the privacy page says so. *(AC-38)*
+- [x] **T6.6** Nothing about guests kept, the stored lists emptied, settled proposals deleted by the daily purge, the privacy page says so. *(AC-38)*
