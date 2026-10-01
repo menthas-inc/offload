@@ -15,6 +15,7 @@
 //   /today          Today
 //   /threads        My threads
 //   /threads/:id    My threads | that thread
+//   /threads/loose  My threads | not in a thread
 //   /content/:id    its thread  | that piece
 //
 // **The composer is under the panes and belongs to none of them.** The kit says
@@ -31,6 +32,7 @@ import { useMe } from "../../lib/use-me";
 import { Unanswered } from "../../components/Unanswered";
 import { fetchThreadsAndInvitations, type ThreadGroup } from "../../lib/threads";
 import type { Invitation } from "../../lib/people";
+import type { LooseSummary } from "../../lib/loose";
 import styles from "./shell.module.css";
 
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
@@ -38,6 +40,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [groups, setGroups] = useState<ThreadGroup[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [loose, setLoose] = useState<LooseSummary | null>(null);
   const [ready, setReady] = useState(false);
   // What the last turn wrote to, so a screen already showing one of those
   // threads can catch up without being reloaded.
@@ -47,6 +50,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     const page = await fetchThreadsAndInvitations();
     setGroups(page?.groups ?? []);
     setInvitations(page?.invitations ?? []);
+    setLoose(page?.loose ?? null);
     setReady(true);
   }, []);
 
@@ -77,7 +81,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const inThread = open ? (threads.find((one) => one.id === open[1]) ?? null) : null;
 
   return (
-    <ThreadsProvider value={{ groups, invitations, ready, reload: () => void loadThreads(), filed }}>
+    <ThreadsProvider value={{ groups, invitations, loose, ready, reload: () => void loadThreads(), filed }}>
       <ToastProvider>
       <div className={styles.shell}>
         <Sidebar threads={threads} threadCount={threads.length} requestsWaiting={state.me.requestsWaiting} activityNew={state.me.activityNew} />

@@ -1,0 +1,302 @@
+/* 028. Not in a thread on the web: the group's chips and its All link, the
+   suggestion under a row with its faces, the create modal, and the full
+   list's states. From ui_kits/mobile_app/LooseParts.jsx, which the web kit
+   draws too. Rows and chips are the thread page's and 025's own. */
+
+/* ------------------------------------------------------------- the group */
+
+/* The chips under the heading. 025's bar without its stickiness: on My
+   threads the group scrolls with the lists around it. The row runs past the
+   pane's gutter, so the chips scroll under its edge. */
+.chips {
+  margin: var(--space-2) calc(var(--space-8) * -1) var(--space-2);
+  padding: var(--space-2) var(--space-8);
+}
+
+/* A chip's count, quieter than its name, in whatever ink the chip is. */
+.count {
+  font-weight: var(--weight-regular);
+  opacity: 0.7;
+}
+
+/* All 14, or All 5 links: a 44px target. */
+.all {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  margin-top: var(--space-2);
+  font: var(--weight-medium) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.all:hover {
+  color: var(--text-primary);
+}
+
+/* A note drawn as a row: its title is the button that opens it. */
+.noteTitle {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-weight: var(--weight-medium);
+  font-size: calc(15.5px * var(--type-scale));
+  line-height: 1.35;
+  font-family: var(--font-core);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* Muted, as the thread page draws a muted note: secondary ink, no opacity. */
+.noteTitle[data-muted] {
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------------------- the suggestion */
+
+/* Under the meta, 8px down: one button and the cross, never wrapping. */
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  margin-top: var(--space-4);
+}
+
+.suggest {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  max-width: 100%;
+  min-height: 32px;
+  box-sizing: border-box;
+  padding: 0 var(--space-5) 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--surface-accent-soft);
+  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Create: paper with a dashed moss outline, as the kit draws a thread that
+   does not exist yet. */
+.suggest[data-kind="create"] {
+  background: var(--surface-raised);
+  border: 1px dashed var(--moss-600);
+}
+
+.suggest:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.spark {
+  flex: 0 0 auto;
+  color: var(--text-accent);
+}
+
+.suggest > span {
+  flex: 0 0 auto;
+}
+
+/* The name is a label, never a link, and the one part that gives way: it
+   ellipsises before the faces drop. */
+.suggest > .name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 1 auto;
+  min-width: 0;
+  font-weight: var(--weight-medium);
+  color: var(--moss-700);
+}
+
+.nameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The cross: its 14px glyph in a 44px target that does not overlap the
+   button beside it. */
+.dismiss {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: calc(var(--space-4) * -1) 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.dismiss:hover {
+  color: var(--text-primary);
+}
+
+/* ------------------------------------------------------------ the faces */
+
+/* Who else is in a shared thread, before the tap: 20px initials marks on the
+   fill, the second over the first, then +N. */
+.faces {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  box-shadow: 0 0 0 1.5px var(--surface-accent-soft);
+  font: var(--weight-semibold) calc(9px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.face + .face {
+  margin-left: calc(var(--space-3) * -1);
+}
+
+.more {
+  margin-left: var(--space-2);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------- create modal */
+
+.line {
+  margin: var(--space-2) 0 0;
+  font: var(--text-body-sm-role);
+  color: var(--text-secondary);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 48px;
+  margin-top: var(--space-6);
+  padding: 0 var(--space-5);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-field);
+  color: var(--text-accent);
+}
+
+.field:focus-within {
+  border-color: var(--border-focus);
+}
+
+.field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: var(--weight-medium) calc(16px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-primary);
+}
+
+.moves {
+  margin: var(--space-7) 0 var(--space-2);
+  font: var(--weight-semibold) calc(15px * var(--type-scale)) / 1.2 var(--font-core);
+  color: var(--text-primary);
+}
+
+.ticks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.tickRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  width: 100%;
+  min-height: 46px;
+  padding: 0;
+  border: 0;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+  background: none;
+  text-align: left;
+  font: var(--weight-regular) calc(15px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.tickRow:disabled {
+  cursor: default;
+}
+
+li:last-child > .tickRow {
+  box-shadow: none;
+}
+
+.box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 21px;
+  height: 21px;
+  border-radius: var(--radius-xs);
+  box-shadow: inset 0 0 0 1px var(--text-secondary);
+  color: var(--text-on-solid);
+}
+
+.box[data-on] {
+  background: var(--surface-accent);
+  box-shadow: none;
+}
+
+.tickGlyph {
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+}
+
+.tickTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.failed {
+  margin: var(--space-4) 0 0;
+  font: var(--text-body-sm-role);
+  color: var(--text-danger);
+}
+
+/* ------------------------------------------------------- the full list */
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-7) 0;
+  font: var(--text-body-sm-role);
+  color: var(--text-secondary);
+}

@@ -16,6 +16,7 @@
 import { createContext, useContext } from "react";
 import type { ThreadGroup } from "../../lib/threads";
 import type { Invitation } from "../../lib/people";
+import type { LooseSummary } from "../../lib/loose";
 
 /** What the last turn wrote to, so an open screen can catch up on its own.
  *
@@ -37,6 +38,8 @@ interface Threads {
   groups: ThreadGroup[];
   /** 022. Waiting shares, from the same read, for the strips. */
   invitations: Invitation[];
+  /** 028. What is not in a thread, from the same read. Null draws no group. */
+  loose: LooseSummary | null;
   /** False only on the very first load, when there is genuinely nothing yet. */
   ready: boolean;
   reload: () => void;
@@ -47,6 +50,7 @@ interface Threads {
 const ThreadsContext = createContext<Threads>({
   groups: [],
   invitations: [],
+  loose: null,
   ready: false,
   reload: () => {},
   filed: null,

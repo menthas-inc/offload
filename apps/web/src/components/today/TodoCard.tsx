@@ -30,7 +30,8 @@ function Row({ row, rows, chip, trail }: { row: AgendaRow; rows: TodayRows; chip
       lead={rows.lead(row)}
       meta={null}
       handlers={rows.handlers}
-      thread={{ id: row.threadId, name: row.threadName }}
+      // 028. A row not in a thread draws no pill.
+      thread={row.threadName === null ? undefined : { id: row.threadId, name: row.threadName }}
       chip={chip}
       trail={trail}
     />

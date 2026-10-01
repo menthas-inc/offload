@@ -64,9 +64,17 @@ export function ContentDetail({ detail, onToggle }: Props) {
       />
 
       <div className={styles.paneBody}>
-        <Link href={`/threads/${detail.threadId}`} className={styles.chip}>
-          ◦ {detail.threadName}
-        </Link>
+        {/* 028. Not in a thread is a state, and the chip says so and opens the
+            list rather than naming the default thread. */}
+        {detail.threadName === null ? (
+          <Link href="/threads/loose" className={styles.chip}>
+            Not in a thread
+          </Link>
+        ) : (
+          <Link href={`/threads/${detail.threadId}`} className={styles.chip}>
+            ◦ {detail.threadName}
+          </Link>
+        )}
 
         {/* 020. A photo row opened as a row: the picture, then what offload
             wrote about it. The large rendition, since the pane is wide. */}

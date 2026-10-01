@@ -53,7 +53,8 @@ export interface TouchedThread {
  *  answer. */
 export interface FoundResult {
   threadId: string;
-  threadName: string;
+  /** 028. Null for what is not in a thread, which the result never names. */
+  threadName: string | null;
   /** The read hit its page. The tail becomes the thread rather than a Show more
    *  that would expand into rows nobody fetched. */
   truncated: boolean;
@@ -63,7 +64,7 @@ export interface FoundResult {
 export interface FoundRow {
   contentId: string;
   threadId: string;
-  threadName: string;
+  threadName: string | null;
   type: string;
   title: string;
   body: string | null;
@@ -611,4 +612,11 @@ export async function answerPending(
   } catch {
     return false;
   }
+}
+
+/** Whether a settled turn did something, which is what draws the footer's
+ *  Done. 028: what lands only where no thread is named draws no pill, so
+ *  `threads` can be empty on a turn that filed; `changed` still holds it. */
+export function turnDid(answer: { threads?: TouchedThread[]; changed?: string[] }): boolean {
+  return (answer.threads?.length ?? 0) > 0 || (answer.changed?.length ?? 0) > 0;
 }

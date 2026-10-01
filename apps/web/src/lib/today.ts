@@ -90,7 +90,8 @@ export function moved(layout: TodayLayout, kind: LayoutSection["kind"], to: numb
 /** A row on Today: the thread page's row, with the thread it lives in. */
 export interface AgendaRow extends ContentRow {
   threadId: string;
-  threadName: string;
+  /** 028. Null for a row that is not in a thread, which draws no pill. */
+  threadName: string | null;
 }
 
 export interface TodayEvent {

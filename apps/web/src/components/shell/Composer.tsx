@@ -42,6 +42,7 @@ import {
   type Sent,
   type WaitingOn,
   type TouchedThread,
+  turnDid,
   uploadVoice,
   VoiceRefused,
   type VoiceOnWire,
@@ -379,7 +380,7 @@ export function Composer({
         (answer: Answer) => {
         cancels.current.delete(messageId);
         setTurns((current) => {
-          const filed = (answer.threads?.length ?? 0) > 0;
+          const filed = turnDid(answer);
           const next = current.map((turn) =>
             turn.id === messageId
               ? {
@@ -440,8 +441,7 @@ export function Composer({
         // Only a finished turn, too. A partial one offers a way forward, and
         // both at once asks somebody to choose between finishing and undoing
         // inside eight seconds.
-        const did =
-          (answer.threads?.length ?? 0) > 0 || (answer.changed?.length ?? 0) > 0;
+        const did = turnDid(answer);
         if (answer.state === "answered" && answer.reply && did)
           // Markers stripped rather than drawn. A toast is one line with a
           // control beside it, so a list has nowhere to go.

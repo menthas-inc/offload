@@ -27,11 +27,12 @@ import {
 } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { Modal } from "../people/Modal";
+import { MoveOver } from "../shell/MoveSheet";
 import styles from "../../app/(shell)/shell.module.css";
 import people from "../people/people.module.css";
 import { useAppearance } from "../../lib/appearance";
 import { useClock } from "../../lib/clock";
-import type { ContentPatch, ContentRow } from "../../lib/threads";
+import type { ContentPatch, ContentRow, ThreadRow } from "../../lib/threads";
 import { anHourAfter, patchFor, repeatsLabel, sameWhen, whenValueOf, type WhenValue } from "../../lib/when";
 
 const UNITS: { freq: Freq; one: string; many: string }[] = [
@@ -49,12 +50,19 @@ function weekdayOf(day: string): Weekday {
 
 export function EditModal({
   row,
+  threadId = null,
   onClose,
   onSave,
+  onMove,
 }: {
   row: ContentRow;
+  /** The thread the row is in, which the move sheet leaves out. */
+  threadId?: string | null;
   onClose: () => void;
   onSave: (row: ContentRow, patch: ContentPatch) => void;
+  /** 028. Move, for a row that can move, in any thread. The modal gives way to
+   *  the move sheet; a pick moves the row and nothing typed here is saved. */
+  onMove?: ((row: ContentRow, thread: ThreadRow) => void) | undefined;
 }) {
   const { zone, today } = useClock();
   const { weekStart } = useAppearance();
@@ -64,6 +72,7 @@ export function EditModal({
   const [remind, setRemind] = useState(row.isReminder);
   const [month, setMonth] = useState(held.day ?? today);
   const [custom, setCustom] = useState(false);
+  const [moving, setMoving] = useState(false);
   const isEvent = row.type === "event";
 
   const grid = useMemo(() => monthFor(month, [], today, weekStart), [month, today, weekStart]);
@@ -85,6 +94,10 @@ export function EditModal({
     if (row.isReminder && !remind) patch.isReminder = false;
     if (Object.keys(patch).length === 0) return onClose();
     onSave(row, patch);
+  }
+
+  if (moving && onMove) {
+    return <MoveOver exceptThreadId={threadId} onClose={() => setMoving(false)} onPick={(thread) => onMove(row, thread)} />;
   }
 
   return (
@@ -216,6 +229,11 @@ export function EditModal({
         {!row.onCalendar && when.day ? (
           <button type="button" className={`${people.ghost} ${styles.editClear}`} onClick={() => setWhen({ day: null, time: null, endTime: null, rrule: null })}>
             Clear
+          </button>
+        ) : null}
+        {onMove && row.canMove ? (
+          <button type="button" className={people.ghost} onClick={() => setMoving(true)}>
+            Move
           </button>
         ) : null}
         <button type="button" className={people.ghost} onClick={onClose}>

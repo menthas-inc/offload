@@ -10,6 +10,7 @@ import { timeZoneHeader } from "./time-zone";
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 import type { Invitation } from "./people";
 import type { Label } from "./labels";
+import type { LooseSummary } from "./loose";
 
 /** A request with no body.
  *
@@ -36,13 +37,13 @@ export interface ThreadRow {
   icon: string | null;
   count: number;
   meta: string;
-  /** The default thread, which cannot be deleted: everything with no obvious
-   *  home lands there. The row shows the control unavailable rather than
-   *  hiding it, so the rule is visible where somebody would go looking. */
+  /** 028. Always false: the default thread is in no group any more. Kept
+   *  because the server still sends it, so a shipped build parses. */
   isDefault: boolean;
 }
 
-export type GroupKey = "now" | "always" | "older";
+/** 028. Two groups. Always on is retired, and Older threads is about time. */
+export type GroupKey = "now" | "older";
 
 export interface ThreadGroup {
   key: GroupKey;
@@ -97,6 +98,9 @@ export interface Note {
   writtenAt: string;
   /** Set aside by the daily job. Only ever set on the folded list. */
   supersededAt: string | null;
+  /** 028. When it was put down, which never moves. Not on every read, so a
+   *  reader falls back to `writtenAt`. */
+  createdAt?: string;
 }
 
 /** A hundred, matching NOTE_PROMPT_BUDGET in the Core API.
@@ -120,6 +124,9 @@ export interface ThreadBundle {
   name: string;
   icon: string | null;
   alwaysOn: boolean;
+  /** 028. The account's default thread, which is never drawn as a thread: the
+   *  client goes to Not in a thread instead. */
+  isDefault: boolean;
   /** `unlabelled` is 025's No label count. */
   counts: { active: number; archived: number; unlabelled: number };
   members: Member[];
@@ -269,7 +276,8 @@ export interface ContentRow {
 
 export interface ContentDetail extends ContentRow {
   threadId: string;
-  threadName: string;
+  /** 028. Null for a row that is not in a thread. */
+  threadName: string | null;
   from: { messageId: string; text: string | null; at: string } | null;
 }
 
@@ -290,9 +298,17 @@ export async function fetchThreads(): Promise<ThreadGroup[]> {
   return body?.groups ?? [];
 }
 
+/** What My threads draws, in one read. */
+export interface ThreadsPage {
+  groups: ThreadGroup[];
+  /** 022. The strips. */
+  invitations: Invitation[];
+  /** 028. What is not in a thread. Null draws no group. */
+  loose: LooseSummary | null;
+}
+
 /** 022. The list and the strips in one read, which is what My threads draws. */
-export const fetchThreadsAndInvitations = (): Promise<{ groups: ThreadGroup[]; invitations: Invitation[] } | null> =>
-  get<{ groups: ThreadGroup[]; invitations: Invitation[] }>("/v1/threads");
+export const fetchThreadsAndInvitations = (): Promise<ThreadsPage | null> => get<ThreadsPage>("/v1/threads");
 
 export const fetchThread = (id: string): Promise<ThreadBundle | null> =>
   get<ThreadBundle>(`/v1/threads/${id}`);

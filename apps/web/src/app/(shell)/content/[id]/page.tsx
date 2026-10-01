@@ -10,6 +10,7 @@ import { use, useEffect, useState } from "react";
 import { Panes } from "../../../../components/shell/Panes";
 import { Thread } from "../../../../components/panes/Thread";
 import { ContentDetail } from "../../../../components/panes/ContentDetail";
+import { LoosePane } from "../../../../components/loose/LoosePane";
 import { useToast } from "../../../../components/shell/Toast";
 import { completeContent, fetchOne, type ContentDetail as Detail } from "../../../../lib/threads";
 
@@ -48,19 +49,29 @@ export default function ContentRoute({ params }: { params: Promise<{ id: string 
     return <Panes crumbs={[{ label: "…", href: `/content/${id}` }]} panes={[<div key="wait" />]} />;
   }
 
+  // 028. A row not in a thread stands beside Not in a thread, never beside a
+  // thread page for the default thread, which is drawn nowhere.
+  const loose = detail.threadName === null;
+
   return (
     <Panes
       crumbs={[
         { label: "My threads", href: "/threads", icon: "message-circle" },
-        { label: detail.threadName, href: `/threads/${detail.threadId}`, icon: "lasso" },
+        loose
+          ? { label: "Not in a thread", href: "/threads/loose" }
+          : { label: detail.threadName ?? "", href: `/threads/${detail.threadId}`, icon: "lasso" },
         { label: detail.title, href: `/content/${id}`, icon: "text-quote" },
       ]}
       panes={[
-        <Thread
-          key={`${detail.threadId}-${nonce}`}
-          id={detail.threadId}
-          onChanged={() => setNonce((n) => n + 1)}
-        />,
+        loose ? (
+          <LoosePane key={`loose-${nonce}`} type={null} onChanged={() => setNonce((n) => n + 1)} />
+        ) : (
+          <Thread
+            key={`${detail.threadId}-${nonce}`}
+            id={detail.threadId}
+            onChanged={() => setNonce((n) => n + 1)}
+          />
+        ),
         <ContentDetail key={id} detail={detail} onToggle={() => void toggle()} />,
       ]}
     />

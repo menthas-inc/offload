@@ -16,7 +16,7 @@ import { fetchThread } from "../../../../lib/threads";
 
 export default function ThreadRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { groups, ready, reload: reloadThreads } = useThreads();
+  const { groups, loose, ready, reload: reloadThreads } = useThreads();
   const [name, setName] = useState<string>("Thread");
   const [nonce, setNonce] = useState(0);
 
@@ -30,7 +30,9 @@ export default function ThreadRoute({ params }: { params: Promise<{ id: string }
   useEffect(() => {
     let live = true;
     void fetchThread(id).then((bundle) => {
-      if (live && bundle) setName(bundle.name);
+      // 028. The default thread's name is never shown; the pane goes to Not
+      // in a thread.
+      if (live && bundle && !bundle.isDefault) setName(bundle.name);
     });
     return () => {
       live = false;
@@ -44,7 +46,7 @@ export default function ThreadRoute({ params }: { params: Promise<{ id: string }
         { label: name, href: `/threads/${id}`, icon: "lasso" },
       ]}
       panes={[
-        <MyThreads key="threads" groups={groups} loading={!ready} onChanged={reload} />,
+        <MyThreads key="threads" groups={groups} loose={loose} loading={!ready} onChanged={reload} />,
         <Thread key={id} id={id} onChanged={reload} />,
       ]}
     />

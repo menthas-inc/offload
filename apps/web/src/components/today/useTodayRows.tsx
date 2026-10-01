@@ -28,6 +28,7 @@ import {
   deleteContent,
   editContent,
   fetchThread,
+  moveContent,
   setArchived,
   type ContentPatch,
   type ContentRow,
@@ -161,6 +162,24 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
     );
   }
 
+  /** 028. Move, from the row's modal. The row stays on Today, since it is
+   *  still due, and its thread pill names where it went. */
+  function move(row: AgendaRow, to: { id: string; name: string }): void {
+    void perform(
+      {
+        apply: () => patchRow(row.id, { threadId: to.id, threadName: to.name }),
+        revert: () => patchRow(row.id, { threadId: row.threadId, threadName: row.threadName }),
+        write: async () => (await moveContent(row.id, to.id)) !== null,
+        unwrite: async () => (await moveContent(row.id, row.threadId)) !== null,
+        did: `Moved to ${to.name}`,
+        failed: "Couldn't move that",
+        unfailed: "Couldn't put that back",
+      },
+      toast,
+      writes,
+    );
+  }
+
   /** 025's label sheet. Today has no thread bundle, so the thread's labels
    *  are read when the tag is pressed. */
   async function openLabels(row: ContentRow, anchor: HTMLElement): Promise<void> {
@@ -268,10 +287,15 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
         <EditModal
           key={editRow.id}
           row={editRow}
+          threadId={(editRow as AgendaRow).threadId}
           onClose={() => setEditRow(null)}
           onSave={(row, patch) => {
             setEditRow(null);
             edit(row, patch);
+          }}
+          onMove={(row, to) => {
+            setEditRow(null);
+            move(row as AgendaRow, to);
           }}
         />
       ) : null}

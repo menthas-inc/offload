@@ -258,6 +258,12 @@ export function Thread({ id, onChanged }: Props) {
         fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
       ]);
       if (!live) return;
+      // 028. The account's default thread is never drawn as a thread: from
+      // the loading state straight to Not in a thread, so it never flashes.
+      if (bundle?.isDefault) {
+        router.replace("/threads/loose");
+        return;
+      }
       setThread(bundle);
       setRows(page?.rows ?? []);
       setCursor(page?.nextCursor ?? null);
@@ -402,7 +408,7 @@ export function Thread({ id, onChanged }: Props) {
    *  picture goes with the row: the server adjusts its wraps in the same
    *  transaction. The row leaves this list at the press and comes back if the
    *  server refuses; Undo is the same move back. */
-  function move(row: ContentRow, threadId: string): void {
+  function move(row: ContentRow, to: { id: string; name: string }): void {
     if (isProvisional(row.id)) return;
     setViewing(null);
     const at = rows.findIndex((one) => one.id === row.id);
@@ -416,9 +422,10 @@ export function Thread({ id, onChanged }: Props) {
           putRow(row, at);
           if (thread) count({ active: thread.counts.active });
         },
-        write: () => telling(moveContent(row.id, threadId).then((moved) => moved !== null)),
+        write: () => telling(moveContent(row.id, to.id).then((moved) => moved !== null)),
         unwrite: () => telling(moveContent(row.id, id).then((moved) => moved !== null)),
-        did: "Moved",
+        // 028. Where it went, as every move between threads says.
+        did: `Moved to ${to.name}`,
         failed: "Couldn't move that",
         unfailed: "Couldn't put that back",
       },
@@ -1100,7 +1107,7 @@ export function Thread({ id, onChanged }: Props) {
             onClose={() => setViewing(null)}
             actions={{
               onRename: (row, title) => rename(row, title),
-              onMove: (row, thread) => move(row, thread.id),
+              onMove: (row, thread) => move(row, thread),
               onArchive: (row) => {
                 setViewing(null);
                 return archive(row);
@@ -1117,10 +1124,15 @@ export function Thread({ id, onChanged }: Props) {
           <EditModal
             key={editRow.id}
             row={editRow}
+            threadId={id}
             onClose={() => setEditRow(null)}
             onSave={(row, patch) => {
               setEditRow(null);
               edit(row, patch);
+            }}
+            onMove={(row, to) => {
+              setEditRow(null);
+              move(row, to);
             }}
           />
         ) : null}
