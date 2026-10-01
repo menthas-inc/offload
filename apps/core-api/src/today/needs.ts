@@ -35,7 +35,8 @@ export const needsCard = z.discriminatedUnion("kind", [
     memberId: z.string(),
     threadName: z.string(),
     from: person,
-    preview: z.object({ count: z.number(), titles: z.array(z.string()) }),
+    // The count only: the titles of a thread not joined yet have no reader here.
+    preview: z.object({ count: z.number() }),
   }),
   z.object({
     key: z.string(),
@@ -100,7 +101,7 @@ async function peopleCards(accountId: string): Promise<NeedsCard[]> {
       memberId: row.memberId,
       threadName: row.threadName,
       from: row.from,
-      preview: row.preview,
+      preview: { count: row.preview.count },
     })),
   ];
 }
@@ -200,12 +201,29 @@ export async function putOff(accountId: string, card: string, forGood: boolean):
   return "ok";
 }
 
-/** Nightly: a put-off a day past its time is never read again. */
+/** Nightly: a put-off a day past its time is never read again, and an
+ *  invitation put off for good goes once the invitation itself has. The tip's
+ *  Got it stays, since nothing else remembers it. */
 export async function sweepPutOffs(): Promise<number> {
-  const gone = await db
+  const past = await db
     .deleteFrom("today_put_offs")
     .where("until", "is not", null)
     .where("until", "<", sql<Date>`now() - interval '1 day'`)
     .executeTakeFirst();
-  return Number(gone.numDeletedRows);
+  const orphans = await db
+    .deleteFrom("today_put_offs")
+    .where("until", "is", null)
+    .where("card", "like", "invitation:%")
+    .where(({ not, exists, selectFrom }) =>
+      not(
+        exists(
+          selectFrom("thread_members as tm")
+            .select("tm.id")
+            .where(sql<boolean>`'invitation:' || tm.id::text = today_put_offs.card`)
+            .where("tm.state", "=", "pending"),
+        ),
+      ),
+    )
+    .executeTakeFirst();
+  return Number(past.numDeletedRows) + Number(orphans.numDeletedRows);
 }

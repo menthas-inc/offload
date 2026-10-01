@@ -641,7 +641,15 @@ a.event:hover {
   margin-top: var(--space-6);
 }
 
+/* Reset and Done: drawn 30, a 44 target by a hit area with no paint. */
+.footPill::after {
+  content: "";
+  position: absolute;
+  inset: calc((30px - var(--tap-min)) / 2) 0;
+}
+
 .footPill {
+  position: relative;
   display: inline-flex;
   align-items: center;
   min-height: 30px;

@@ -126,6 +126,20 @@ describe("027 + Today and its Undo (AC-23)", () => {
     expect(off.until).not.toBeNull();
   });
 
+  it("Undo answers a refusal as 400, never a 500", async () => {
+    const me = await account();
+    const flat = await thread([me], "Flat");
+    await task(me, flat, "Due today", TODAY);
+    const id = await task(me, flat, "Fix the tap", null);
+    const cookie = await signIn(me);
+    await app.inject({ method: "POST", url: `/v1/today/picks/${id}`, headers: { cookie } });
+    // A row that went onto a calendar since: its date lives there now.
+    await db.updateTable("content").set({ source_ref: "cal:evt" } as never).where("id", "=", id).execute();
+    const undo = await app.inject({ method: "DELETE", url: `/v1/today/picks/${id}`, headers: { cookie } });
+    expect(undo.statusCode).toBe(400);
+    expect(undo.json()).toEqual({ error: "on_calendar" });
+  });
+
   it("Undo after somebody moved the date is 409 and leaves the date", async () => {
     const me = await account();
     const flat = await thread([me], "Flat");

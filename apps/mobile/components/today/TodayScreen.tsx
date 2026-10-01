@@ -281,7 +281,8 @@ export default function TodayScreen() {
       ...timed.map((row) => ({ row, chip: "time" as const })),
       ...rest.map((row) => ({ row, chip: "none" as const })),
     ];
-    const todoCount = late.length + timed.length + rest.length + day.lateMore + day.restMore;
+    const todoCount = late.length + timed.length + rest.length + day.lateMore + day.timedMore + day.restMore;
+    const notDrawn = day.timedMore + day.restMore;
 
     if (day.events.length === 0 && todoCount === 0 && picks.length === 0) {
       return (
@@ -314,9 +315,9 @@ export default function TodayScreen() {
                 rows.row(row, { border: lateShown.length + index < todo.length - 1, chip }),
               )}
             </View>
-            {day.restMore > 0 ? (
+            {notDrawn > 0 ? (
               <Text className="pt-space-2 font-core text-text-tertiary" style={{ fontSize: 13 }}>
-                and {day.restMore} more
+                and {notDrawn} more
               </Text>
             ) : null}
           </View>
@@ -337,7 +338,7 @@ export default function TodayScreen() {
 
   const dayOne = day && !day.everDumped && isToday;
   const sections = layout.sections.map((section) => {
-    if (section.kind === "needs_you") return cards.length > 0 ? <NeedsYou key="needs" cards={cards} load={needsLoad} toast={toast} onChanged={reloadDay} /> : null;
+    if (section.kind === "needs_you") return cards.length > 0 ? <NeedsYou key="needs" cards={cards} load={needsLoad} toast={toast} onChanged={reloadDay} onReload={loadNeeds} /> : null;
     if (!dayOn(layout)) return null;
     if (dayOne) {
       return (

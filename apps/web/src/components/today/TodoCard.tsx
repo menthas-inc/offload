@@ -54,7 +54,7 @@ export function TodoCard({
   lateMore,
   timed,
   rest,
-  restMore,
+  notDrawn,
   rows,
   zone,
 }: {
@@ -62,16 +62,18 @@ export function TodoCard({
   lateMore: number;
   timed: AgendaRow[];
   rest: AgendaRow[];
-  restMore: number;
+  /** Rows of the day past the read's caps, timed and the rest. */
+  notDrawn: number;
   rows: TodayRows;
   zone: string | null;
 }) {
   const [lateOpen, setLateOpen] = useState(false);
-  const count = late.length + lateMore + timed.length + rest.length + restMore;
+  const count = late.length + lateMore + timed.length + rest.length + notDrawn;
   if (late.length + timed.length + rest.length === 0) return null;
 
   const lateShown = lateOpen ? late : late.slice(0, LATE_SHOWN);
-  const lateFolded = late.length - lateShown.length;
+  // The fold counts the late rows the read left out too, as the phones do.
+  const lateFolded = lateOpen ? 0 : late.length - lateShown.length + lateMore;
 
   return (
     <section className={styles.daySection}>
@@ -87,7 +89,6 @@ export function TodoCard({
             {lateFolded} more late
           </button>
         ) : null}
-        {lateOpen && lateMore > 0 ? <p className={styles.foldNote}>{lateMore} more before these</p> : null}
         {timed.map((row) => (
           <Row key={row.id} row={row} rows={rows} chip={<HourChip row={row} zone={zone} />} />
         ))}
@@ -96,7 +97,7 @@ export function TodoCard({
         ))}
         {/* The read stops at a hundred and counts the rest; they are on the
             thread pages, and the count says how many. */}
-        {restMore > 0 ? <p className={styles.foldNote}>{restMore} more</p> : null}
+        {notDrawn > 0 ? <p className={styles.foldNote}>and {notDrawn} more</p> : null}
       </div>
     </section>
   );

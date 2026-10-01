@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { ReduceMotion, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
 import { Switch } from "../settings/Switch";
 import { DragSheet } from "../shell/DragSheet";
@@ -44,7 +44,7 @@ function Grip({ name, onMove }: { name: string; onMove: (step: -1 | 1) => void }
     })
     .onFinalize(() => {
       lifted.value = 0;
-      dy.value = withTiming(0, { duration: 120 });
+      dy.value = withTiming(0, { duration: 120, reduceMotion: ReduceMotion.System });
     });
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: dy.value }], opacity: lifted.value ? 0.7 : 1 }));
   return (
@@ -81,20 +81,21 @@ export function CustomizeSheet({
   // Drawn from the screen's layout, which is drawn ahead of each write and
   // put back by the shared rule when one fails: one copy, not two.
   const shown = layout;
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<Layout | null>(null);
   const ink = isAndroid ? "text-a-on" : "text-text-primary";
   const quiet = "text-text-tertiary";
 
   const apply = (next: Layout) => {
     if (next === shown) return;
-    setFailed(false);
-    void onChange(next).then((ok) => setFailed(!ok));
+    setFailed(null);
+    void onChange(next).then((ok) => setFailed(ok ? null : next));
   };
+  const rule = isAndroid ? "border-a-outline" : "border-border-hairline";
 
   const switchRow = (key: Part | "day", name: string, line: string, inset: boolean) => {
     const on = key === "day" ? dayOn(shown) : partOn(shown, key);
     return (
-      <View key={key} className={`flex-row items-center gap-space-4 ${inset ? "border-b border-border-hairline" : ""}`} style={{ minHeight: ROW_H, paddingLeft: inset ? 32 : 0 }}>
+      <View key={key} className={`flex-row items-center gap-space-4 ${inset ? `border-b ${rule}` : ""}`} style={{ minHeight: ROW_H, paddingLeft: inset ? 32 : 0 }}>
         <View className="flex-1 py-space-2">
           <Text className={`font-core ${ink}`} style={{ fontSize: 16 }}>
             {name}
@@ -119,7 +120,7 @@ export function CustomizeSheet({
       {shown.sections.map((section) =>
         section.kind === "needs_you" ? (
           <View key="needs_you">
-            <View className="flex-row items-center gap-space-4 border-b border-border-hairline" style={{ minHeight: ROW_H }}>
+            <View className={`flex-row items-center gap-space-4 border-b ${rule}`} style={{ minHeight: ROW_H }}>
               <Grip name="Needs you" onMove={(step) => apply(moveSection(shown, "needs_you", step))} />
               <Text className={`flex-1 font-core font-medium ${ink}`} style={{ fontSize: 16 }}>
                 Needs you
@@ -128,16 +129,23 @@ export function CustomizeSheet({
             {PARTS.map((part) => switchRow(part, KIND[part][0], KIND[part][1], true))}
           </View>
         ) : (
-          <View key="day" className="flex-row items-center gap-space-4 border-b border-border-hairline">
+          <View key="day" className={`flex-row items-center gap-space-4 border-b ${rule}`}>
             <Grip name="Your day" onMove={(step) => apply(moveSection(shown, "day", step))} />
             <View className="flex-1">{switchRow("day", "Your day", "Events and to-dos, a day at a time", false)}</View>
           </View>
         ),
       )}
       {failed ? (
-        <Text className="mt-space-3 font-core text-text-danger" style={{ fontSize: 13 }} accessibilityRole="alert">
-          Couldn&apos;t save that.
-        </Text>
+        <View className="mt-space-3 flex-row items-center gap-space-4">
+          <Text className="font-core text-text-danger" style={{ fontSize: 13 }} accessibilityRole="alert">
+            Couldn&apos;t save that.
+          </Text>
+          <Pressable onPress={() => apply(failed)} accessibilityRole="button" className="min-h-tap-min justify-center">
+            <Text className="font-core font-medium text-text-accent" style={{ fontSize: 13 }}>
+              Try again
+            </Text>
+          </Pressable>
+        </View>
       ) : null}
       <View className="mt-space-5 flex-row justify-between">
         <Pressable onPress={() => apply(DEFAULT_LAYOUT)} accessibilityRole="button" className="min-h-tap-min justify-center">

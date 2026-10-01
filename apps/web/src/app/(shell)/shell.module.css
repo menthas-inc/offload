@@ -2827,6 +2827,22 @@ a.actRow:hover {
   padding: 0 var(--space-4) 0 var(--space-3);
 }
 
+/* Drawn 24 or 30, a 44 target by a hit area with no paint, so the marks line
+   and the turn footer do not grow. */
+a.threadPill {
+  position: relative;
+}
+
+a.threadPill::after {
+  content: "";
+  position: absolute;
+  inset: calc((24px - var(--tap-min)) / 2) 0;
+}
+
+a.threadPill[data-size="30"]::after {
+  inset: calc((30px - var(--tap-min)) / 2) 0;
+}
+
 a.threadPill:hover {
   box-shadow: inset 0 0 0 1px var(--border-accent);
 }

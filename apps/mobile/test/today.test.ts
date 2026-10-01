@@ -6,10 +6,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 const sent: { path: string; init: RequestInit | undefined }[] = [];
+let status = 200;
 vi.mock("../lib/api", () => ({
   send: (path: string, init?: RequestInit) => {
     sent.push({ path, init });
-    return Promise.resolve({ status: 200, data: { ok: true } });
+    return Promise.resolve({ status, data: status === 200 ? { ok: true } : null });
   },
   request: (path: string, init?: RequestInit) => {
     sent.push({ path, init });
@@ -135,6 +136,15 @@ describe("027 AC-12, AC-23 the writes", () => {
       ["/v1/today/put-off", { card: "question:q" }],
       ["/v1/today/put-off", { card: "invitation:i", forGood: true }],
     ]);
+  });
+
+  it("lets a card go quietly when it was settled somewhere else, and says so when a write fails", async () => {
+    status = 404;
+    expect(await today.putOff("question:q")).toBe("gone");
+    status = 500;
+    expect(await today.putOff("question:q")).toBe("failed");
+    status = 200;
+    expect(await today.putOff("question:q")).toBe("ok");
   });
 
   it("+ Today posts and its Undo deletes", async () => {

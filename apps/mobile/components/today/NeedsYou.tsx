@@ -17,11 +17,12 @@ import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
 import { zoneCity } from "@offload/widgets";
 import { Glyph } from "../Glyph";
+import { QuickReplies } from "../shell/QuickReplies";
 import { ThreadPill } from "../shell/ThreadPill";
 import type { ToastState } from "../shell/Toast";
 import { useColors } from "../../lib/colors";
 import { API_URL } from "../../lib/auth";
-import { answerQuestion } from "../../lib/dump";
+import { answerQuestion, undoTurn } from "../../lib/dump";
 import { setClock } from "../../lib/me";
 import { acceptInvitation, answerRequest, firstNameOf, nameOf } from "../../lib/people";
 import { putOff, stackView, type Card } from "../../lib/today";
@@ -57,7 +58,8 @@ function faceOf(card: Card): Face {
         tone: "danger",
         kind: "Calendar",
         title: "Google Calendar stopped syncing",
-        line: card.email ?? "Sign in again to see its events here.",
+        // The account first when there are two, then the way forward.
+        line: card.email ? `${card.email}. Sign in again to see its events here.` : "Sign in again to see its events here.",
         thread: null,
       };
     case "zone":
@@ -97,11 +99,19 @@ function faceOf(card: Card): Face {
   }
 }
 
+/** Landed; already settled somewhere else, so the card goes quietly; or
+ *  refused, so it comes back with its line and Try again. */
+type Outcome = "ok" | "gone" | "failed";
+const outcomeOf = (ok: boolean): Outcome => (ok ? "ok" : "failed");
+
 interface Action {
   label: string;
-  run: () => Promise<boolean>;
+  run: () => Promise<Outcome>;
   /** The line a refusal puts the card back with. */
   failed: string;
+  /** Acts without settling the card: Copy address, and Reconnect, whose
+   *  card goes only once a fresh read finds the account syncing. */
+  keeps?: boolean;
 }
 
 export function NeedsYou({
@@ -109,16 +119,19 @@ export function NeedsYou({
   load,
   toast,
   onChanged,
+  onReload,
 }: {
   cards: Card[];
   /** Which read of Needs you this is: a new one starts the stack afresh. */
   load: number;
   toast: ToastState;
   onChanged: () => void;
+  /** Read Needs you again: after a sign-in, which only a read can confirm. */
+  onReload: () => void;
 }) {
   const COLOR = useColors();
   const [gone, setGone] = useState<Set<string>>(new Set());
-  const [failed, setFailed] = useState<string | null>(null);
+  const [failed, setFailed] = useState<{ key: string; label: string; line: string } | null>(null);
   const [inert, setInert] = useState(false);
   const [loaded, setLoaded] = useState(cards.length);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -147,8 +160,9 @@ export function NeedsYou({
   const tone = face.tone === "danger" ? "text-text-danger" : face.tone === "attention" ? "text-text-attention" : "text-text-accent";
   const toneColor = face.tone === "danger" ? COLOR.danger : face.tone === "attention" ? COLOR.textAttention : COLOR.accent;
 
-  /** Off the stack at the press; back with its line if the write is refused. */
-  const settle = (key: string, write: () => Promise<boolean>, failure: string) => {
+  /** Off the stack at the press; back with its line and Try again if the
+   *  write is refused; gone quietly if it was settled somewhere else. */
+  const settle = (key: string, write: () => Promise<Outcome>, failure: string, label: string) => {
     setFailed(null);
     setGone((held) => new Set(held).add(key));
     setInert(true);
@@ -156,29 +170,31 @@ export function NeedsYou({
     timer.current = setTimeout(() => setInert(false), INERT_MS);
     // A settled card stays gone from this load's stack, so *N of M* counts
     // on from where it was; the next focus reads the stack afresh.
-    void write().then((ok) => {
-      if (ok) {
-        onChanged();
-        return;
-      }
-      setGone((held) => {
-        const next = new Set(held);
-        next.delete(key);
-        return next;
+    void write()
+      .catch((): Outcome => "failed")
+      .then((outcome) => {
+        if (outcome === "ok") onChanged();
+        if (outcome !== "failed") return;
+        setGone((held) => {
+          const next = new Set(held);
+          next.delete(key);
+          return next;
+        });
+        setFailed({ key, label, line: failure });
       });
-      setFailed(failure);
-    });
   };
 
-  const tomorrow = async (): Promise<boolean> => {
+  const tomorrow = async (): Promise<Outcome> => {
     if (card.kind === "notifications") {
+      // The phone's own midnight, on purpose: this card is a fact about the
+      // phone, not the account.
       const start = new Date();
       start.setHours(24, 0, 0, 0);
       try {
         SecureStore.setItem(NOTIFICATIONS_PUT_OFF, start.toISOString());
-        return true;
+        return "ok";
       } catch {
-        return false;
+        return "failed";
       }
     }
     return putOff(card.key);
@@ -191,38 +207,48 @@ export function NeedsYou({
         return [
           {
             label: "Reconnect",
+            keeps: true,
             run: async () => {
               await WebBrowser.openAuthSessionAsync(`${API_URL}/api/connectors/google/start?landing=settings`, `${WEB}/settings/apps`);
-              return true;
+              onReload();
+              return "ok";
             },
             failed: "That didn't go through.",
           },
         ];
       case "zone":
         return [
-          { label: `Use ${zoneCity(card.device)}`, run: async () => (await setClock({ timeZone: card.device })) !== null, failed: "Couldn't save that." },
-          { label: `Keep ${zoneCity(card.account)}`, run: async () => (await setClock({ keptTimeZone: card.device })) !== null, failed: "Couldn't save that." },
+          { label: `Use ${zoneCity(card.device)}`, run: async () => outcomeOf((await setClock({ timeZone: card.device })) !== null), failed: "Couldn't save that." },
+          { label: `Keep ${zoneCity(card.account)}`, run: async () => outcomeOf((await setClock({ keptTimeZone: card.device })) !== null), failed: "Couldn't save that." },
         ];
       case "notifications":
-        return [{ label: "Turn on", run: async () => (await Linking.openSettings().then(() => true, () => false)), failed: "That didn't go through." }];
+        return [{ label: "Turn on", keeps: true, run: async () => outcomeOf(await Linking.openSettings().then(() => true, () => false)), failed: "That didn't go through." }];
       case "request":
         return [
-          { label: "Accept", run: () => answerRequest(card.requestId, "accept"), failed: "That didn't go through." },
-          { label: "Not now", run: () => answerRequest(card.requestId, "dismiss"), failed: "That didn't go through." },
+          { label: "Accept", run: async () => outcomeOf(await answerRequest(card.requestId, "accept")), failed: "That didn't go through." },
+          { label: "Not now", run: async () => outcomeOf(await answerRequest(card.requestId, "dismiss")), failed: "That didn't go through." },
         ];
       case "invitation":
         return [
-          { label: "Add it to my threads", run: async () => (await acceptInvitation(card.memberId)) !== null, failed: "That didn't go through." },
+          {
+            label: "Add it to my threads",
+            run: async () => {
+              const accepted = await acceptInvitation(card.memberId);
+              return accepted === "gone" ? "gone" : outcomeOf(accepted !== null);
+            },
+            failed: "That didn't go through.",
+          },
           { label: "Not now", run: () => putOff(card.key, true), failed: "That didn't go through." },
         ];
       case "tip":
         return [
           {
             label: "Copy address",
+            keeps: true,
             run: async () => {
               await Clipboard.setStringAsync(card.address);
               toast.show("Copied");
-              return true;
+              return "ok";
             },
             failed: "That didn't go through.",
           },
@@ -233,10 +259,34 @@ export function NeedsYou({
     }
   })();
 
-  // Copy address leaves the card where it is: the tip is settled by Got it.
-  const keeps = (action: Action) => card.kind === "tip" && action.label === "Copy address";
+  const putAway = () => settle(card.key, tomorrow, "Couldn't save that.", "Tomorrow");
+  const failure = failed?.key === card.key ? failed : null;
+  const labelOf = (label: string) => (failure?.label === label ? "Try again" : label);
 
-  const putAway = () => settle(card.key, tomorrow, "Couldn't save that.");
+  /** 018's answer by option, with 018's Undo on a value, and a question
+   *  already closed somewhere else let go with nothing to retry. */
+  const answer = (on: Extract<Card, { kind: "question" }>, index: number) => {
+    const option = on.question.options[index]!;
+    settle(
+      on.key,
+      async () => {
+        const { status, sent } = await answerQuestion(on.question.id, index);
+        if (status === 404 || status === 409) return "gone";
+        if (!sent) return "failed";
+        if (option.kind === "value") {
+          toast.show(option.label, {
+            label: "Undo",
+            onPress: async () => {
+              if (!(await undoTurn(sent.turnId).catch(() => false))) toast.show("Couldn't undo that");
+            },
+          });
+        }
+        return "ok";
+      },
+      "That didn't go through.",
+      option.label,
+    );
+  };
   const swipe = Gesture.Pan()
     .enabled(canPutOff && !inert)
     .activeOffsetX([-16, 16])
@@ -256,8 +306,8 @@ export function NeedsYou({
   const ground = "bg-surface-raised border border-border-hairline";
   const lift = { shadowColor: COLOR.shadowLift.color, shadowOffset: { width: 0, height: COLOR.shadowLift.offsetY }, shadowRadius: COLOR.shadowLift.radius, shadowOpacity: 1 };
   const pill = "min-h-tap-min justify-center";
-  const outline = `justify-center rounded-pill border border-border-hairline px-space-5 ${isAndroid ? "rounded-xs" : ""}`;
-  const filled = `justify-center rounded-pill px-space-5 ${isAndroid ? "bg-a-on rounded-xs" : "bg-surface-inverse"}`;
+  const outline = `justify-center border px-space-5 ${isAndroid ? "rounded-a-sm border-a-outline" : "rounded-pill border-border-hairline"}`;
+  const filled = `justify-center px-space-5 ${isAndroid ? "rounded-a-sm bg-a-on" : "rounded-pill bg-surface-inverse"}`;
   const pillHeight = isAndroid ? 32 : 34;
 
   const clock = canPutOff ? (
@@ -314,61 +364,23 @@ export function NeedsYou({
               <ThreadPill id={face.thread.id} name={face.thread.name} size={24} />
             </View>
           ) : null}
-          {failed ? (
+          {failure ? (
             <Text className="mt-space-2 font-core text-text-danger" style={{ fontSize: 13 }} accessibilityRole="alert">
-              {failed}
+              {failure.line}
             </Text>
           ) : null}
 
           {question ? (
-            // `QuickReplies`' rule: no option is filled, since a filled one
-            // would say offload recommends it; Not that alone on the last
-            // line with its x; the group named by the question itself.
-            <View className="mt-space-4 gap-space-2" accessibilityLabel={question.question.text}>
-              <View className="flex-row flex-wrap gap-space-2">
-                {question.question.options.map((option, index) =>
-                  option.kind === "value" ? (
-                    <Pressable
-                      key={index}
-                      disabled={inert}
-                      onPress={() =>
-                        settle(card.key, async () => (await answerQuestion(question.question.id, index)).status === 200, "That didn't go through.")
-                      }
-                      accessibilityRole="button"
-                      className={pill}
-                    >
-                      <View className={outline} style={{ minHeight: pillHeight }}>
-                        <Text className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 13 }}>
-                          {option.label}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  ) : null,
-                )}
-              </View>
-              <View className="flex-row items-center">
-                {question.question.options.map((option, index) =>
-                  option.kind === "plain" ? (
-                    <Pressable
-                      key={index}
-                      disabled={inert}
-                      onPress={() =>
-                        settle(card.key, async () => (await answerQuestion(question.question.id, index)).status === 200, "That didn't go through.")
-                      }
-                      accessibilityRole="button"
-                      className={pill}
-                    >
-                      <View className={`${outline} flex-row items-center gap-space-1`} style={{ minHeight: pillHeight }}>
-                        <Glyph name="x" size={13} color={COLOR.secondary} />
-                        <Text className={`font-core font-medium ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13 }}>
-                          {option.label}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  ) : null,
-                )}
-                {clock}
-              </View>
+            // The conversation's own QuickReplies: no option filled, Not
+            // that alone on its line with the clock beside it.
+            <View className="mt-space-4">
+              <QuickReplies
+                options={question.question.options.map((option) => ({ ...option, label: labelOf(option.label) }))}
+                label={question.question.text}
+                disabled={inert}
+                onPick={(index) => answer(question, index)}
+                trailing={clock}
+              />
             </View>
           ) : (
             <View className="mt-space-4 flex-row flex-wrap items-center gap-space-2">
@@ -377,8 +389,8 @@ export function NeedsYou({
                   key={action.label}
                   disabled={inert}
                   onPress={() => {
-                    if (keeps(action)) void action.run();
-                    else settle(card.key, action.run, action.failed);
+                    if (action.keeps) void action.run();
+                    else settle(card.key, action.run, action.failed, action.label);
                   }}
                   accessibilityRole="button"
                   className={pill}
@@ -388,7 +400,7 @@ export function NeedsYou({
                       className={`font-core font-medium ${index === 0 ? (isAndroid ? "text-a-surface" : "text-text-inverse") : isAndroid ? "text-a-on" : "text-text-primary"}`}
                       style={{ fontSize: 13 }}
                     >
-                      {action.label}
+                      {labelOf(action.label)}
                     </Text>
                   </View>
                 </Pressable>

@@ -119,6 +119,7 @@ export async function todayRoutes(app: App): Promise<void> {
         return reply.send({ ok: true as const });
       } catch (error) {
         if (error instanceof NotYours) return reply.status(404).send({ error: "not_found" as const });
+        if (error instanceof Refused) return reply.status(400).send({ error: error.code });
         throw error;
       }
     },

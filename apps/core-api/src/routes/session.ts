@@ -4,7 +4,7 @@
 // render anything: the current account, the address a refused sign-in used,
 // and the write that ends onboarding.
 
-import { resolveLayout, todayLayout } from "../today/layout.js";
+import { layoutShape, resolveLayout, todayLayout } from "../today/layout.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { sql } from "kysely";
@@ -125,7 +125,7 @@ const meResponse = z.object({
    *  address mail comes from. */
   mailAvailable: z.boolean(),
   /** 027. Customize Today's layout, resolved: every kind present, in order. */
-  todayLayout: z.unknown(),
+  todayLayout: layoutShape,
 });
 
 /** 024. An hour as the page sends it, HH:MM, twenty-four hour. */

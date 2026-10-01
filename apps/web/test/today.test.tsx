@@ -487,6 +487,20 @@ describe("027 AC-4 to AC-10 the cards", () => {
     expect(text()).toContain("Ana Duarte wants to connect");
   });
 
+  it("names the account and still says the way forward when two are connected", async () => {
+    needs = [{ ...card.calendar, email: "jo@work.example" }];
+    await open();
+    expect(text()).toContain("jo@work.example. Sign in again to see its events here.");
+  });
+
+  it("puts a broken calendar above the time zone card, as the table orders account issues", async () => {
+    browserZone = "Asia/Tokyo";
+    needs = [card.calendar];
+    await open();
+    expect(text()).toContain("Google Calendar stopped syncing");
+    expect(text()).toContain("1 of 2");
+  });
+
   it("reconnects a calendar through the sign-in Settings opens, and offers no Not now", async () => {
     needs = [card.calendar];
     await open();
@@ -687,6 +701,14 @@ describe("027 AC-20 to AC-23 To do and If you have time", () => {
     expect(text()).not.toContain("Late number 4");
     await press(button("2 more late"));
     expect(text()).toContain("Late number 5");
+  });
+
+  it("counts what the read left out in the late fold, and says and N more for the rest, as the phones do", async () => {
+    days["2026-09-29"] = { ...(days["2026-09-29"] as object), lateMore: 4, timedMore: 2, restMore: 3 };
+    await open();
+    await press(button("6 more late"));
+    expect(text()).not.toContain("more before these");
+    expect(text()).toContain("and 5 more");
   });
 
   it("draws a timed row with its hour, the rest with no date, each with its thread pill and labels", async () => {

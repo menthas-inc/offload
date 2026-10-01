@@ -172,6 +172,15 @@ describe("027 the day's to-dos (AC-20)", () => {
     expect([...body.timed, ...body.rest].map((r) => r.title)).toEqual(["Kept"]);
   });
 
+  it("caps the timed rows too, and counts what it left out", async () => {
+    const me = await account();
+    const flat = await thread([me], "Flat");
+    for (let i = 0; i < 103; i += 1) await task(me, flat, `T${i}`, null, { due_at: new Date(`${TOMORROW}T10:${String(i % 60).padStart(2, "0")}:00Z`) });
+    const body = (await day(await signIn(me), TOMORROW)) as Day & { timedMore: number };
+    expect(body.timed).toHaveLength(100);
+    expect(body.timedMore).toBe(3);
+  });
+
   it("folds the rest past a hundred", async () => {
     const me = await account();
     const flat = await thread([me], "Flat");

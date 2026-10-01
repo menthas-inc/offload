@@ -119,6 +119,7 @@ export interface Day {
   timed: AgendaRow[];
   rest: AgendaRow[];
   restMore: number;
+  timedMore: number;
   picks: AgendaRow[];
   everDumped: boolean;
   threadLabels: { id: string; name: string; colour: number }[];
@@ -160,7 +161,7 @@ export type NeedsCard =
       memberId: string;
       threadName: string;
       from: Person;
-      preview: { count: number; titles: string[] };
+      preview: { count: number };
     }
   | {
       key: string;

@@ -164,7 +164,8 @@ export function NeedsYou({ cards, load }: { cards: Card[]; load: number }) {
           kind: "Calendar",
           tone: "danger",
           title: "Google Calendar stopped syncing",
-          why: one.email ?? "Sign in again to see its events here.",
+          // The account first when there are two, then the way forward.
+          why: one.email ? `${one.email}. Sign in again to see its events here.` : "Sign in again to see its events here.",
           actions: [{ label: "Reconnect", run: async () => "ok", href: connectUrl("settings") }],
           clock: true,
         };
@@ -261,6 +262,7 @@ export function NeedsYou({ cards, load }: { cards: Card[]; load: number }) {
     const option = on.question.options[index]!;
     return {
       label: option.label,
+      // 018's own words on the web, as the conversation's chips say them.
       failed: "That did not go through.",
       gone: "That did not go through.",
       run: async () => {

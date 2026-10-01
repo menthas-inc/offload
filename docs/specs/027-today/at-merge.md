@@ -23,6 +23,15 @@ What was built differently from the specs, and what the logs need. Written durin
 - **One link pattern** (`GOOGLE_EVENT_LINK` in `@offload/widgets`) is what the sync keeps and both clients open; the column's check says the same.
 - **A failed Customize write undoes only itself** (`afterWrite`): a quicker second gesture is never put back by the first one failing.
 
+- **A question answered on Today has 018's Undo** on both surfaces, and a question already closed somewhere else leaves quietly; the phones draw it with the conversation's own `QuickReplies`, which gains a `trailing` slot for the clock, as the web's did.
+- **Failure words stay each action's own**: 018's are *That did not go through.* on the web and *That didn't go through.* on the phones, as each conversation already says them.
+- **The day read is capped as a whole** (2,000 rows) and timed rows at a hundred with `timedMore`; past the caps both surfaces say *and N more*, and the late fold counts the late rows the read left out.
+- **The invitation card carries only its count**; the titles of a thread not yet joined are not sent to Today.
+- **A put-off for good on an invitation is swept** once the invitation has gone; the tip's Got it stays, since nothing else remembers it.
+- **Android's ripple is not drawn** on Today's controls; no screen in the app draws one yet, so it is a standing gap, not this feature's.
+- **Deploying 0064 re-reads every connected calendar** whole once, to fill in the event links: the migration clears each calendar's sync token. Derived and discarded as every sync is (OFF-4); expect one heavier sync pass after the deploy.
+- **Left as found by review, deliberately**: the server's `AgendaRow` name (024's) beside the phones' `TodayRow`; the twelve-month reach as 365 days; the kit's off-scale paddings, parked as the design system's own decision.
+
 ## Verified on devices
 
 - **iOS simulator (iPhone 17)** against the worktree's API on an isolated database: Needs you (put off, the zone card's Keep, the count), the stepper and its names through Sunday, Tomorrow with another member's event, a three-day all-day event, To do with late, timed and plain rows, + Today with its toast, the row sheet's Labels panel, Customize Today's switch, drag and Reset, and the Today tab's reset.

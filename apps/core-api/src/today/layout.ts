@@ -15,12 +15,13 @@ const needsYou = z.object({ kind: z.literal("needs_you"), parts: z.array(part).l
 const day = z.object({ kind: z.literal("day"), on: z.boolean() }).strict();
 const section = z.discriminatedUnion("kind", [needsYou, day]);
 
-const shape = z.object({ version: z.literal(1), sections: z.array(section).min(1).max(2) }).strict();
+/** The document's shape, for a response; `todayLayout` adds the refusals. */
+export const layoutShape = z.object({ version: z.literal(1), sections: z.array(section).min(1).max(2) }).strict();
 
-export type TodayLayout = z.infer<typeof shape>;
+export type TodayLayout = z.infer<typeof layoutShape>;
 type Section = TodayLayout["sections"][number];
 
-export const todayLayout = shape
+export const todayLayout = layoutShape
   .refine((value) => new Set(value.sections.map((one) => one.kind)).size === value.sections.length, "a kind twice")
   .refine(
     (value) =>

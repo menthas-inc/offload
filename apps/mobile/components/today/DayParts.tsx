@@ -40,10 +40,13 @@ export function DayStepper({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled }}
-      className={`items-center justify-center rounded-pill ${isAndroid ? "bg-a-c-high" : "bg-surface-fill"}`}
+      className="items-center justify-center"
       style={{ width: 44, height: 44, opacity: disabled ? 0.35 : 1 }}
     >
-      <Glyph name={icon} size={18} color={COLOR.ink} />
+      {/* Drawn at 40 inside the 44 target, as the kit's stepper is. */}
+      <View className={`items-center justify-center rounded-pill ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`} style={{ width: 40, height: 40 }}>
+        <Glyph name={icon} size={18} color={COLOR.ink} />
+      </View>
     </Pressable>
   );
   return (

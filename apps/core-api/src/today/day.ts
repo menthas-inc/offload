@@ -18,8 +18,13 @@ import { agendaQuery, agendaRow, everDumped, labelsOf, shapeRows, type AgendaRaw
 export const DAYS_AHEAD = 365;
 /** Events drawn on one day; the header counts them all. */
 export const EVENTS_CAP = 30;
-/** The rest of a day's to-dos drawn before they fold. */
+/** The rest of a day's to-dos drawn before they fold, and the timed ones. */
 export const REST_CAP = 100;
+export const TIMED_CAP = 100;
+/** A backstop on the rows one day reads, repeating ones included: every
+ *  section is capped below it, and nothing a member of a shared thread files
+ *  can make another member's Today unbounded. */
+const DAY_ROWS = 2000;
 
 export const todayEvent = z.object({
   id: z.string(),
@@ -44,6 +49,7 @@ export const dayResponse = z.object({
   late: z.array(agendaRow),
   lateMore: z.number(),
   timed: z.array(agendaRow),
+  timedMore: z.number(),
   rest: z.array(agendaRow),
   restMore: z.number(),
   picks: z.array(agendaRow),
@@ -107,6 +113,7 @@ export async function readDay(accountId: string, date: string, now = new Date())
       .where((eb) => eb.or([eb.and([eb("content.due_at", ">=", lateFrom), eb("content.due_at", "<", to)]), eb("content.rrule", "is not", null)]))
       .orderBy("content.created_at", "asc")
       .orderBy("content.id", "asc")
+      .limit(DAY_ROWS)
       .execute() as Promise<AgendaRaw[]>,
     eventsOn(accountId, date, start, end, zone),
   ]);
@@ -131,7 +138,7 @@ export async function readDay(accountId: string, date: string, now = new Date())
 
   const [lateRows, timedRows, restRows, pickRows] = await Promise.all([
     shapeRows(late.slice(0, OVERDUE_CAP).map((one) => one.row), accountId),
-    shapeRows(timed, accountId),
+    shapeRows(timed.slice(0, TIMED_CAP), accountId),
     shapeRows(rest.slice(0, REST_CAP), accountId),
     isToday ? todayPicks(accountId, today, zone) : Promise.resolve([] as AgendaRow[]),
   ]);
@@ -143,6 +150,7 @@ export async function readDay(accountId: string, date: string, now = new Date())
     late: lateRows,
     lateMore: Math.max(0, late.length - OVERDUE_CAP),
     timed: timedRows,
+    timedMore: Math.max(0, timed.length - TIMED_CAP),
     rest: restRows,
     restMore: Math.max(0, rest.length - REST_CAP),
     picks: pickRows,

@@ -39,7 +39,7 @@ export function ThreadPill({
       className={`flex-row items-center self-start rounded-pill bg-surface-accent-soft ${small ? "gap-space-1" : "gap-space-2 px-space-5"}`}
       style={{ minHeight: size, ...(small ? { paddingLeft: 7, paddingRight: 9 } : {}) }}
     >
-      <Glyph name="lasso" size={small ? 13 : 12} color={COLOR.accent} />
+      <Glyph name="lasso" size={13} color={COLOR.accent} />
       <Text className="font-core font-medium text-text-accent" style={{ fontSize: 12.5 }} numberOfLines={1}>
         {name}
       </Text>

@@ -93,6 +93,8 @@ describe("027 people (AC-8, AC-13)", () => {
     const member = await invite(ana, me, trip);
     const cards = await needs(await signIn(me));
     expect(cards.map((c) => c.key)).toEqual([`request:${first}`, `request:${second}`, `invitation:${member}`]);
+    // Only the count travels: the titles of a thread not yet joined have no reader on Today.
+    expect(cards.find((c) => c.kind === "invitation")!["preview"]).toEqual({ count: 0 });
   });
 });
 
@@ -226,6 +228,26 @@ describe("027 putting a card off (AC-12, AC-13)", () => {
     const me = await settled();
     const response = await app.inject({ method: "GET", url: "/v1/today/put-off?card=tip:forwarding", headers: { cookie: await signIn(me) } });
     expect(response.statusCode).toBe(404);
+  });
+
+  it("the sweep also removes a put-off for good whose card has gone", async () => {
+    const me = await settled();
+    const ana = await account();
+    await connect(ana, me);
+    const kept = await invite(ana, me, await thread([ana], "Kept"));
+    const gone = await invite(ana, me, await thread([ana], "Gone"));
+    await db
+      .insertInto("today_put_offs")
+      .values([
+        { account_id: me, card: `invitation:${kept}`, until: null },
+        { account_id: me, card: `invitation:${gone}`, until: null },
+        { account_id: me, card: "tip:forwarding", until: null },
+      ] as never)
+      .execute();
+    await db.updateTable("thread_members").set({ state: "declined" } as never).where("id", "=", gone).execute();
+    await sweepPutOffs();
+    const left = await db.selectFrom("today_put_offs").select("card").where("account_id", "=", me).orderBy("card").execute();
+    expect(left.map((r) => r.card)).toEqual([`invitation:${kept}`, "tip:forwarding"]);
   });
 
   it("the sweep removes put-offs a day past their time and keeps the ones for good", async () => {

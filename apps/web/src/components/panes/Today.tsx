@@ -221,12 +221,15 @@ export function TodayPane({
   // ------------------------------------------------------------ Needs you
 
   const on = partsOn(layout);
-  const cards: Card[] = [];
+  // Account issues in the table's order: a broken calendar, then this
+  // browser's zone, then people, questions and tips as the server sent them.
+  const served = (needs ?? []).filter((card) => on.has(partOf(card)));
+  const cards: Card[] = served.filter((card) => card.kind === "calendar");
   if (on.has("account") && me) {
     const strip = zoneStrip(me, deviceZone());
     if (strip) cards.push({ key: "zone", kind: "zone", device: strip.device, account: strip.account });
   }
-  for (const card of needs ?? []) if (on.has(partOf(card))) cards.push(card);
+  cards.push(...served.filter((card) => card.kind !== "calendar"));
 
   const needsYou = needsRead && cards.length > 0 ? <NeedsYou key="needs" cards={cards} load={needsLoad} /> : null;
 
@@ -289,7 +292,7 @@ export function TodayPane({
       const timed = rows.shown(shown.timed);
       const next = nextLine(shown.events, now, isToday, zone);
       const empty =
-        shown.events.length + late.length + timed.length + rest.length + picks.length + shown.lateMore + shown.restMore === 0;
+        shown.events.length + late.length + timed.length + rest.length + picks.length + shown.lateMore + shown.restMore + (shown.timedMore ?? 0) === 0;
       sections = empty ? (
         <p className={styles.nothing}>{nothingLine(named.name)}</p>
       ) : (
@@ -303,7 +306,7 @@ export function TodayPane({
             lateMore={isToday ? shown.lateMore : 0}
             timed={timed}
             rest={rest}
-            restMore={shown.restMore}
+            notDrawn={(shown.timedMore ?? 0) + shown.restMore}
             rows={rows}
             zone={zone}
           />
@@ -334,7 +337,6 @@ export function TodayPane({
       <PaneHead
         title="Today"
         big
-        sub={everDumped === false ? "Nothing in here yet" : undefined}
         tools={
           <Link
             href={customizing ? "/today" : "/today?customize=1"}

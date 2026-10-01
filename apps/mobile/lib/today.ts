@@ -38,6 +38,7 @@ export interface Day {
   late: TodayRow[];
   lateMore: number;
   timed: TodayRow[];
+  timedMore: number;
   rest: TodayRow[];
   restMore: number;
   picks: TodayRow[];
@@ -74,7 +75,7 @@ export type ServerCard =
       memberId: string;
       threadName: string;
       from: Person;
-      preview: { count: number; titles: string[] };
+      preview: { count: number };
     }
   | {
       key: string;
@@ -137,13 +138,14 @@ export function stackOf(server: ServerCard[], device: DeviceCard[], layout: Layo
 /** The stack's count and slivers, shared with the web. */
 export { stackView } from "@offload/widgets";
 
-/** Until the start of tomorrow, or for good where that exists. */
-export async function putOff(card: string, forGood?: boolean): Promise<boolean> {
+/** Until the start of tomorrow, or for good where that exists. A card the
+ *  server no longer has (settled somewhere else) is `gone`, not a failure. */
+export async function putOff(card: string, forGood?: boolean): Promise<"ok" | "gone" | "failed"> {
   const sent = await send<{ ok: true }>("/v1/today/put-off", {
     method: "POST",
     body: JSON.stringify(forGood ? { card, forGood: true } : { card }),
   });
-  return sent.status === 200;
+  return sent.status === 200 ? "ok" : sent.status === 404 ? "gone" : "failed";
 }
 
 // ---------------------------------------------------------------- + Today
