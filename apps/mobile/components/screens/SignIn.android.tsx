@@ -124,7 +124,7 @@ export default function SignIn() {
                   <GoogleGlyph />
                 )}
                 <Text
-                  className={`font-core font-medium ${filled || dark ? "text-text-inverse" : "text-a-on"}`}
+                  className={`font-core font-medium ${filled ? "text-text-on-solid" : dark ? "text-text-inverse" : "text-a-on"}`}
                   style={{ fontSize: 15, letterSpacing: 0.15 }}
                 >
                   {pending === provider

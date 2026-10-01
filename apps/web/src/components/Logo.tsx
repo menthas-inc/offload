@@ -13,13 +13,15 @@ export interface LogoProps {
   size?: number;
   /** ink on light surfaces, inverse on ink surfaces. */
   tone?: "ink" | "inverse";
+  /** Over the tone: a colour for a surface that is neither, as the admin nav's moss. */
+  style?: React.CSSProperties;
 }
 
-export function Logo({ variant = "lockup", size = 22, tone = "ink" }: LogoProps) {
+export function Logo({ variant = "lockup", size = 22, tone = "ink", style }: LogoProps) {
   const color = tone === "inverse" ? "var(--text-inverse)" : "var(--text-primary)";
 
   return (
-    <span style={{ display: "flex", alignItems: "center", gap: 9, color }}>
+    <span style={{ display: "flex", alignItems: "center", gap: 9, color, ...style }}>
       <svg width={size} height={size} viewBox="0 0 96 96" aria-hidden="true" style={{ display: "block" }}>
         <circle cx="48" cy="21" r="10" fill="currentColor" />
         <path
