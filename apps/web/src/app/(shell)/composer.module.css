@@ -119,6 +119,20 @@
 
 .composerInput::placeholder { color: var(--text-tertiary); }
 
+/* The day's limit, in the field's place: the field's own type and padding, so
+   the card keeps its height, in secondary text rather than the disabled grey,
+   because it is read, not skipped. */
+.dayUsed {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-2) 0;
+  font: var(--text-body-role);
+  letter-spacing: var(--tracking-body);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
 /* Quiet until there is something to send, then it fills. The kit's own rule:
    the send button earns its colour from the field having content. */
 .send {

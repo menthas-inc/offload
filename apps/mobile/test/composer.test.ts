@@ -7,7 +7,7 @@
 // needed two. The rule is a latch, and it is pure so it can be pinned here.
 
 import { describe, expect, it } from "vitest";
-import { PLACEHOLDERS, staysOpen } from "../lib/composer";
+import { DAY_USED, PLACEHOLDERS, closedForTheDay, staysOpen } from "../lib/composer";
 
 describe("the box opened for height", () => {
   it("opens when the words are taller than one line, and stays open while any words remain", () => {
@@ -32,5 +32,18 @@ describe("the placeholders", () => {
   it("are short enough to stay on one line", () => {
     const long = PLACEHOLDERS.filter((line) => line.length > 25);
     expect(long).toEqual([]);
+  });
+});
+
+describe("the composer at the day's limit", () => {
+  // Once the day's model budget is spent or its turns are used, a dump can
+  // only be refused, so the field is not offered. The same words as the web.
+  it("says the day is used and when it comes back", () => {
+    expect(DAY_USED).toBe("Enough for today. Back tomorrow.");
+    expect(closedForTheDay(null, false)).toBe(false);
+    expect(closedForTheDay({ atDailyLimit: false }, false)).toBe(false);
+    expect(closedForTheDay({ atDailyLimit: true }, false)).toBe(true);
+    // A refusal on send closes it too, before the account is read again.
+    expect(closedForTheDay({ atDailyLimit: false }, true)).toBe(true);
   });
 });

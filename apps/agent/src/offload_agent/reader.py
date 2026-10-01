@@ -36,6 +36,8 @@ import structlog
 from anthropic import AsyncAnthropic
 from pydantic import BaseModel, Field, ValidationError
 
+from offload_agent import ledger
+
 from .countries import name_of
 
 log = structlog.get_logger()
@@ -409,11 +411,5 @@ def shape(answer: Answer, asked) -> Found:
 def _usage(response, model: str, started: float) -> dict:
     use = getattr(response, "usage", None)
     server = getattr(use, "server_tool_use", None)
-    return {
-        "model": model,
-        "inputTokens": getattr(use, "input_tokens", 0) or 0,
-        "outputTokens": getattr(use, "output_tokens", 0) or 0,
-        "cacheReadTokens": getattr(use, "cache_read_input_tokens", 0) or 0,
-        "webSearches": getattr(server, "web_search_requests", 0) or 0,
-        "latencyMs": int((time.monotonic() - started) * 1000),
-    }
+    searches = getattr(server, "web_search_requests", 0) or 0
+    return {**ledger.usage_of(model, use, started), "webSearches": searches}

@@ -51,6 +51,9 @@ export interface Me {
   /** 026. Whether mail forwarded from the sign-in address can reach them:
    *  false for an Apple private relay address. */
   mailAvailable: boolean;
+  /** The day's model budget is spent or its turns are used: the composer is
+   *  closed until the rolling day moves on. */
+  atDailyLimit: boolean;
   /** What Apple or Google called them, to fill the field in. Only ever sent to
    *  the account it belongs to, and null when the provider sent nothing. */
   suggestedName: string | null;
