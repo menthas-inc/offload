@@ -22,9 +22,11 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
 
-const root = process.cwd();
+// The checkout this script is in, whatever directory it is run from.
+const root = fileURLToPath(new URL("../..", import.meta.url));
 const known = new Set(
   readdirSync(join(root, "apps/web/public/icons"))
     .filter((f) => f.endsWith(".svg"))
