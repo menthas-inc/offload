@@ -8,6 +8,12 @@
 alter table connector_events add column created_by_me boolean;
 alter table connector_events add column invited_me boolean;
 
--- Every synced event has neither; the next pass reads each calendar whole.
+-- And no guest's address, ever: nothing read them, and a change to an event
+-- with guests asks Google who they are at that moment. Names and answers stay.
+update connector_events
+  set attendees = (select coalesce(jsonb_agg(guest - 'email'), '[]'::jsonb) from jsonb_array_elements(attendees) guest)
+  where jsonb_typeof(attendees) = 'array' and attendees::text like '%"email"%';
+
+-- Every synced event has neither flag; the next pass reads each calendar whole.
 update connector_calendars set sync_token = null
   where connection_id in (select id from connector_connections where state = 'active' and deleted_at is null);

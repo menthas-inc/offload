@@ -49,6 +49,10 @@ export interface FoundEvent {
   /** Somebody else's text: another member's calendar, or an event the person
    *  did not write. Read, never obeyed. */
   untrusted: boolean;
+  /** 027. The person's own: on their calendar, and made by them, inviting
+   *  them, or not read yet. False for somebody else's day on a shared
+   *  calendar and for another member's calendar. */
+  yours: boolean;
 }
 
 /** What is on the calendars in scope between two moments, from the copy.
@@ -59,7 +63,15 @@ export async function findEvents(scope: ScopedCalendar[], from: Date, to: Date):
   if (scope.length === 0) return [];
   const rows = await db
     .selectFrom("connector_events as e")
-    .select(["e.source_ref as sourceRef", "e.title as title", "e.occurs_at as occursAt", "e.calendar_id as calendarId", "e.untrusted as untrusted"])
+    .select([
+      "e.source_ref as sourceRef",
+      "e.title as title",
+      "e.occurs_at as occursAt",
+      "e.calendar_id as calendarId",
+      "e.untrusted as untrusted",
+      "e.created_by_me as createdByMe",
+      "e.invited_me as invitedMe",
+    ])
     .where(
       "e.calendar_id",
       "in",
@@ -79,6 +91,9 @@ export async function findEvents(scope: ScopedCalendar[], from: Date, to: Date):
     startsAt: row.occursAt ? row.occursAt.toISOString() : null,
     calendarId: row.calendarId,
     untrusted: row.untrusted || !yours.has(row.calendarId),
+    yours:
+      yours.has(row.calendarId) &&
+      (row.createdByMe === true || row.invitedMe === true || (row.createdByMe === null && row.invitedMe === null)),
   }));
 }
 

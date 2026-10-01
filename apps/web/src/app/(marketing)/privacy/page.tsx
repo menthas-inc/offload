@@ -216,10 +216,11 @@ export default function Privacy() {
           <p>
             <strong>An event brings other people with it.</strong> If somebody is invited to an
             event on your calendar, offload keeps their name and whether they accepted, so it can
-            tell you who you are seeing. It keeps their email address only for an event offload
-            itself created with guests, because changing that event later means telling those guests
-            again. Everyone else&rsquo;s address is dropped before anything is stored. Our copy of a
-            calendar holds a rolling window, sixty days back and twelve months ahead, and an event
+            tell you who you are seeing. It never keeps their email address: when offload changes an
+            event that has guests, it asks Google who they are at that moment and tells you before
+            anyone hears about it. It also notes whether you made an event or were invited to it,
+            so it can show you your own day apart from what other people put on a calendar you
+            share. Our copy of a calendar holds a rolling window, sixty days back and twelve months ahead, and an event
             that falls behind it leaves the copy; the whole copy goes when you un-tick the calendar
             or disconnect the account. We keep what a calendar describes and none of the
             event&rsquo;s own description text.

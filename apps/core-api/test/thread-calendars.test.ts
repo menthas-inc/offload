@@ -528,6 +528,36 @@ describe("AC-10 the agent's scope", () => {
   });
 });
 
+describe("027 tweak: what the model reads says whose each event is", () => {
+  it("find_events returns everything on the calendars, each marked yours or not", async () => {
+    const me = await account();
+    const other = await account("Tom Reilly");
+    const t = await thread(me);
+    await join(other, t);
+    const shared = await calendar(await connection(me), { summary: "Family" });
+    const theirs = await calendar(await connection(other));
+    await pick(t, shared, me);
+    await pick(t, theirs, other);
+    await event(me, shared, "My run", "2026-09-22T07:00:00Z", { createdByMe: true });
+    await event(me, shared, "Our dinner", "2026-09-22T19:00:00Z", { createdByMe: false, invitedMe: true });
+    await event(me, shared, "Her class", "2026-09-23T08:00:00Z", { createdByMe: false, invitedMe: false });
+    await event(me, shared, "Not read yet", "2026-09-23T12:00:00Z", { createdByMe: null, invitedMe: null });
+    await event(other, theirs, "Standup", "2026-09-24T09:00:00Z", { createdByMe: true });
+
+    const { jobId } = await dump(me, t);
+    const found = (
+      await tool({ tool: "find_events", jobId, toolCallId: "f2", fromIso: "2026-09-21T00:00:00Z", toIso: "2026-09-28T00:00:00Z" })
+    ).json() as { events: Array<{ title: string; yours: boolean }> };
+    expect(found.events.map((e) => [e.title, e.yours])).toEqual([
+      ["My run", true],
+      ["Our dinner", true],
+      ["Her class", false],
+      ["Not read yet", true],
+      ["Standup", false],
+    ]);
+  });
+});
+
 describe("AC-11 where a write goes", () => {
   it("one writable pick: written, and the row remembers its event", async () => {
     const me = await account();

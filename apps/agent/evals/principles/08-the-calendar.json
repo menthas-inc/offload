@@ -523,6 +523,71 @@
         ],
         "rubric": "Says nothing is on the 16th, in one short sentence. Does not say a calendar is missing or not connected, does not list nearby days, does not suggest checking Settings."
       }
+    },
+    {
+      "id": "answer-whose-events-are-apart",
+      "why": "027: a calendar shared with a partner carries their daily classes; the person's own plans come first and the rest are named as other people's",
+      "surface": "answer",
+      "input": "what's on tomorrow",
+      "context": "calendar",
+      "events": [
+        {
+          "sourceRef": "cal-2:evt20",
+          "title": "Dentist",
+          "startsAt": "2026-09-18T09:00:00Z",
+          "untrusted": false,
+          "yours": true
+        },
+        {
+          "sourceRef": "cal-3:evt21",
+          "title": "Yoga class",
+          "startsAt": "2026-09-18T07:00:00Z",
+          "untrusted": true,
+          "yours": false
+        },
+        {
+          "sourceRef": "cal-3:evt22",
+          "title": "Yoga class",
+          "startsAt": "2026-09-18T18:00:00Z",
+          "untrusted": true,
+          "yours": false
+        }
+      ],
+      "expect": {
+        "called": [
+          "find_events"
+        ],
+        "rubric": "Says the dentist at its time as theirs, and mentions the two yoga classes apart, as somebody else's or on a shared calendar, never as the person's own plans. Short; no list of every field."
+      }
+    },
+    {
+      "id": "answer-all-yours-says-nothing-about-whose",
+      "why": "027: when every event is the person's, whose they are is not worth a word",
+      "surface": "answer",
+      "input": "what's on tomorrow",
+      "context": "calendar",
+      "events": [
+        {
+          "sourceRef": "cal-2:evt23",
+          "title": "Dentist",
+          "startsAt": "2026-09-18T09:00:00Z",
+          "untrusted": false,
+          "yours": true
+        },
+        {
+          "sourceRef": "cal-2:evt24",
+          "title": "Lunch with Maya",
+          "startsAt": "2026-09-18T12:00:00Z",
+          "untrusted": false,
+          "yours": true
+        }
+      ],
+      "expect": {
+        "called": [
+          "find_events"
+        ],
+        "rubric": "Names the dentist and lunch with Maya with their times. Says nothing about whose they are or which calendar they are on."
+      }
     }
   ]
 }

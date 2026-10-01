@@ -276,7 +276,12 @@ The owner's account reads a calendar shared with their wife, who puts her daily 
 - **A thread keeps every event on its calendars**, since a family thread may want them all, and marks one the person is not in: its title in quiet ink and *Family, not yours* under it. This covers another member's calendar picked for a shared thread as well.
 - **Filtering a thread's events to the person's own** (a note such as "only show my events in this thread") is not built. A thread note reaches the model, not the page; it needs a thread preference the model can set, and is its own change.
 
+- **What the model reads says whose each event is.** A question in the conversation such as "what's on tomorrow" still gets everything on the person's calendars, with each event marked `yours` or not, and the reply says theirs first and the rest apart, as other people's.
+- **No guest's address is kept**, on any event. Nothing read them: a change to an event with guests asks Google who they are at that moment. Addresses already stored are removed by the migration, and the privacy page says so, along with the new note of whether the person made an event or was invited.
+
 **Acceptance criteria added:**
 - **AC-34** A calendar event created by the account, or listing it as a guest who has not declined, is drawn on Today; one created by somebody else that does not invite it is not drawn and is never the next line; an event not yet read is drawn.
 - **AC-35** Today's calendar event says *Calendar:* and the calendar's own name.
+- **AC-37** `find_events` returns every event in scope, each with `yours`; the answering model keeps the person's own and other people's apart (eval cases `answer-whose-events-are-apart`, `answer-all-yours-says-nothing-about-whose`).
+- **AC-38** No stored event carries a guest's address, and the privacy page says none is kept.
 - **AC-36** A thread draws every event on its calendars, and one the person is not in has its title in quiet ink and *not yours* after its calendar's name, on the web and both phones.

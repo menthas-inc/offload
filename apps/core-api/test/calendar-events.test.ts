@@ -51,15 +51,19 @@ describe("AC-6 attendees are minimised", () => {
   it("keeps a name and a response but drops the address", () => {
     // People who never signed up to offload. A name renders "dinner with Ana";
     // an address is contact details for a stranger.
-    const [ana] = minimiseAttendees(event().attendees, false);
+    const [ana] = minimiseAttendees(event().attendees);
     expect(ana).toEqual({ name: "Ana", response: "accepted" });
     expect(ana).not.toHaveProperty("email");
   });
 
-  it("keeps the address on an event offload created with guests", () => {
-    // Because editing that one later has to name them again.
-    const [ana] = minimiseAttendees(event().attendees, true);
-    expect(ana?.email).toBe("ana@example.com");
+  it("never keeps an address, whoever made the event", () => {
+    // 027: nothing ever read the stored addresses. A change to an event with
+    // guests asks Google who they are at that moment, so a stranger's address
+    // has no reason to sit in the copy.
+    const [ana] = minimiseAttendees(event().attendees);
+    expect(ana).toEqual({ name: "Ana", response: "accepted" });
+    const mapped = mapEvent(event({ organizedByMe: true }), "cal-1", { accountEmail: "jo@hey.com", primary: true });
+    expect(mapped.attendees.every((guest) => !("email" in guest))).toBe(true);
   });
 });
 

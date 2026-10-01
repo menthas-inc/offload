@@ -279,3 +279,14 @@ def test_a_typed_row_is_not_asked_about_a_country_it_has_no_field_for() -> None:
     )
     assert blocks
     assert not any("country" in b["text"].lower() for b in blocks)
+
+
+def test_find_events_says_whose_each_event_is() -> None:
+    """027: a calendar shared with somebody else carries their day too. The
+    read marks each event `yours` or not, and the description tells the model
+    to keep the two apart when it says what is on."""
+    from offload_agent.harness.tools import _DESCRIPTIONS
+
+    description = _DESCRIPTIONS["find_events"]
+    assert "`yours`" in description
+    assert "somebody else" in description

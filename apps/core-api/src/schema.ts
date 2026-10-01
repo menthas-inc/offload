@@ -736,8 +736,8 @@ export interface ConnectorCalendarsTable {
 /** 019. One copy of each event per calendar, on the connection, outside every
  *  thread, held for the window and no longer. Threads read it through their
  *  picks; Today reads all of it. Same minimisation 012 wrote: no description,
- *  no conferencing, no attachments, and an address only on an event offload
- *  created with guests. */
+ *  no conferencing, no attachments, and no guest's address at all (027: a
+ *  change to an event with guests asks Google who they are at the time). */
 export interface ConnectorEventsTable {
   id: Generated<string>;
   /** Denormalised from the connection, for Today's read. Written once. */

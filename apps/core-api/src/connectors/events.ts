@@ -14,18 +14,12 @@ import type { GoogleEvent } from "./google.js";
  *
  *  **Minimised on the way in**, because these are people who never signed up to
  *  offload and never agreed to anything. A name and whether they accepted,
- *  always, because "dinner with Ana" needs a name. An address only for an event
- *  offload created with guests, because editing that one later has to name them
- *  again. Everything else drops the address. */
-export function minimiseAttendees(
-  attendees: GoogleEvent["attendees"],
-  keepAddresses: boolean
-): Array<{ name: string | null; email?: string; response: string | null }> {
-  return attendees.map((attendee) => ({
-    name: attendee.name,
-    response: attendee.response,
-    ...(keepAddresses && attendee.email ? { email: attendee.email } : {}),
-  }));
+ *  always, because "dinner with Ana" needs a name. **Never an address** (027):
+ *  nothing read the stored ones, since a change to an event with guests asks
+ *  Google who they are at that moment (`verdictFor`), so a stranger's address
+ *  had no reason to sit in the copy. */
+export function minimiseAttendees(attendees: GoogleEvent["attendees"]): Array<{ name: string | null; response: string | null }> {
+  return attendees.map((attendee) => ({ name: attendee.name, response: attendee.response }));
 }
 
 /** `<calendar>:<event>`, so one prefix scan finds everything one calendar filed
@@ -116,7 +110,7 @@ export function mapEvent(event: GoogleEvent, calendarExternalId: string, reader?
     seriesRef: event.seriesId,
     organizerIsMe,
     untrusted: isUntrusted({ ...event, organizedByMe: organizerIsMe }),
-    attendees: minimiseAttendees(event.attendees, organizerIsMe),
+    attendees: minimiseAttendees(event.attendees),
     link: event.link,
   };
 }

@@ -481,6 +481,9 @@ class Recorder:
                     {
                         **{k: v for k, v in e.items() if k != "calendarId"},
                         "untrusted": e.get("untrusted", False),
+                        # 027: the server marks whose each event is; a
+                        # fixture's event is the person's unless it says not.
+                        "yours": e.get("yours", True),
                     }
                     for e in fx.get("events") or []
                 ],
