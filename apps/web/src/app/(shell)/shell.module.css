@@ -486,6 +486,18 @@
   color: var(--text-primary);
 }
 
+/* 026. Mail's Copy, drawn as every section action at 26px and made a 44px
+   target by a hit area with no paint, so the settings row does not grow. */
+.mailCopy {
+  position: relative;
+}
+
+.mailCopy::after {
+  content: "";
+  position: absolute;
+  inset: calc((26px - var(--tap-min)) / 2) 0;
+}
+
 .showMore {
   margin-top: var(--space-5);
   border: 0;
@@ -2790,4 +2802,56 @@ a.actRow:hover {
   margin: var(--space-2) 0 0;
   font: var(--weight-regular) calc(15px * var(--type-scale)) / 1.45 var(--font-core);
   color: var(--text-secondary);
+}
+
+/* ------------------------------------------------------------ 027. The thread pill
+   The conversation's moss chip, one component: 30 in the turn footer, where
+   every mark is 30, and 24 on Today's marks line and event cards. A height is
+   a floor, never a ceiling, so the pill grows with the type size. */
+
+.threadPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 0 9px 0 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-accent-soft);
+  color: var(--text-accent);
+  font: var(--weight-medium) calc(12.5px * var(--type-scale)) / 1 var(--font-core);
+  text-decoration: none;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.threadPill[data-size="30"] {
+  min-height: 30px;
+  padding: 0 var(--space-4) 0 var(--space-3);
+}
+
+/* Drawn 24 or 30, a 44 target by a hit area with no paint, so the marks line
+   and the turn footer do not grow. */
+a.threadPill {
+  position: relative;
+}
+
+a.threadPill::after {
+  content: "";
+  position: absolute;
+  inset: calc((24px - var(--tap-min)) / 2) 0;
+}
+
+a.threadPill[data-size="30"]::after {
+  inset: calc((30px - var(--tap-min)) / 2) 0;
+}
+
+a.threadPill:hover {
+  box-shadow: inset 0 0 0 1px var(--border-accent);
+}
+
+.threadPillName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

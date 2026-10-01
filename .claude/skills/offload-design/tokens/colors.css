@@ -82,7 +82,7 @@
      consume a ramp. */
   --surface-noticed-soft:var(--amber-100);
   --surface-danger-soft:var(--clay-100);
-  --surface-scrim:rgba(11,11,11,0.32);
+  --surface-scrim:rgba(11,11,11,0.35);
   --surface-scrim-soft:rgba(11,11,11,0.16);
   --surface-chrome:var(--surface-raised);
   --surface-input:var(--ink-100);
@@ -106,7 +106,7 @@
      beside its surface token the way --text-accent sits beside --surface-accent-soft. */
   --text-noticed:var(--amber-700);
   /* The plane a photo is shown on, over whatever was on screen. Not --surface-scrim, which
-     is 0.32 and dims what is behind it: this is a surface in its own right. Light dims
+     is 0.35 and dims what is behind it: this is a surface in its own right. Light dims
      towards ink and reads as depth. Dark is OPAQUE, because a translucent plane in dark has
      nowhere to go: --surface-page at 92% over --surface-page measures 1.00:1, and even the
      darkest value reaches only 1.11:1. What says a viewer is open there is that the screen
@@ -141,7 +141,7 @@
   --surface-inverse:var(--ink-950);--surface-accent-soft:var(--moss-50);
   --surface-attention-soft:var(--blue-100);--surface-attention:var(--blue-600);
   --surface-noticed:var(--amber-600);--surface-noticed-soft:var(--amber-100);--surface-danger-soft:var(--clay-100);
-  --surface-scrim:rgba(11,11,11,0.32);--surface-scrim-soft:rgba(11,11,11,0.16);
+  --surface-scrim:rgba(11,11,11,0.35);--surface-scrim-soft:rgba(11,11,11,0.16);
   --surface-chrome:var(--surface-raised);--surface-chrome-strong:var(--surface-raised);
   --surface-input:var(--ink-100);
   --border-hairline:var(--ink-150);--border-strong:#8C8C8C; /* 3:1 on every light surface: fields, checkboxes, outlined buttons */--border-focus:var(--blue-500);
@@ -216,3 +216,6 @@
   --label-6:#088285;--label-7:#AD4EAC;--label-8:#7D7616;--label-9:#6F67CB;--label-10:#06855A;
   --surface-accent:var(--moss-600);
 }
+
+/* A glyph drawn on a well or beside a row: the app's iconOnWell, in both themes (1 October). */
+:root,[data-theme="light"],[data-theme="dark"]{--icon-on-well:var(--text-secondary)}

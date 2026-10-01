@@ -4,6 +4,11 @@
   --duration-base:200ms; /* @kind other */
   --duration-slow:280ms; /* @kind other */
   --duration-sheet:340ms; /* @kind other */
+  /* A dragged sheet moves on a spring from the release speed, not on a duration (30 September).
+     --duration-sheet and --ease-entrance now govern only the plate sliding off for a screen
+     sheet. Unitless; read by the phones' spring, not by CSS. */
+  --spring-sheet-stiffness:380; /* @kind other */
+  --spring-sheet-damping:36; /* @kind other */
   /* The change mark, and the only duration this long: a moss ground settling to
      transparent on something that arrived while somebody was looking at the screen.
      Not an interaction, so it does not belong on the 140/200/280 ladder. Reduced

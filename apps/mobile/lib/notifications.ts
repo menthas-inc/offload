@@ -15,9 +15,10 @@
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
-import { CHANNELS, PEOPLE_CATEGORY, PLAIN_CATEGORY, VERBS_CATEGORY } from "@offload/widgets";
+import { CHANNELS, PEOPLE_CATEGORY, PLAIN_CATEGORY, VERBS_CATEGORY, dayIn } from "@offload/widgets";
 import { actOnNotification, deletePushToken, registerPushToken } from "./api";
 import { beforeSignOut } from "./auth";
+import { dayOfPush } from "./today";
 import { failed } from "./log";
 
 // The ids are the shared package's, the same declaration the server files a
@@ -34,13 +35,16 @@ export type Payload =
 /** The screen a kind opens, from a fixed table. A path never travels in a
  *  payload; an id does, and the screen it opens reads that id from the
  *  server as it does today. Null for anything the table does not name. */
-export function routeFor(data: unknown): { pathname: string; params?: Record<string, string> } | null {
+export function routeFor(data: unknown, today?: string): { pathname: string; params?: Record<string, string> } | null {
   if (!data || typeof data !== "object") return null;
   const payload = data as Record<string, unknown>;
   const id = (key: string): string | null => (typeof payload[key] === "string" && /^[0-9a-f-]{36}$/.test(payload[key] as string) ? (payload[key] as string) : null);
   switch (payload["kind"]) {
-    case "digest":
-      return { pathname: "/" };
+    case "digest": {
+      // 027. An evening digest names tomorrow; launch hands its day to Today.
+      const day = today ? dayOfPush(payload, today) : null;
+      return day ? { pathname: "/", params: { day } } : { pathname: "/" };
+    }
     case "request":
       return { pathname: "/settings/people" };
     case "share": {
@@ -166,7 +170,8 @@ export async function respond(
     }
     return;
   }
-  const route = routeFor(data);
+  // The phone's own day: Today checks the account's again when it opens.
+  const route = routeFor(data, dayIn(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone || null));
   if (route) {
     await clearLast();
     open(route);

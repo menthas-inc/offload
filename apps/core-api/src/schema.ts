@@ -72,6 +72,9 @@ export interface AccountsTable {
   notify_shared_activity: Generated<boolean>;
   /** When Activity was last opened: the dot is a row newer than this. */
   activity_seen_at: Timestamp | null;
+  /** 027. Customize Today's document; null is the defaults. Only a value
+   *  `todayLayout` parsed is ever written. */
+  today_layout: ColumnType<unknown, string | null | undefined, string | null>;
   /** 022. The mark, a 176px PNG drawn once from the id and never rewritten.
    *  Not content. Null until somebody first asks for it. */
   avatar_png: Buffer | null;
@@ -753,6 +756,8 @@ export interface ConnectorEventsTable {
   /** Text somebody else wrote. Defaults true so a path that forgets errs safe. */
   untrusted: Generated<boolean>;
   attendees: ColumnType<unknown, string | undefined, string>;
+  /** 027. Google's own link to the event, https on a Google host or null. */
+  link: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
   deleted_at: Timestamp | null;
@@ -1005,7 +1010,16 @@ export interface LabelRunsTable {
   created_at: Generated<Timestamp>;
 }
 
+/** 027. A card put off until `until`, or for good when it is null. */
+export interface TodayPutOffsTable {
+  account_id: string;
+  card: string;
+  until: Timestamp | null;
+  created_at: Generated<Timestamp>;
+}
+
 export interface Database {
+  today_put_offs: TodayPutOffsTable;
   connector_connections: ConnectorConnectionsTable;
   connector_secrets: ConnectorSecretsTable;
   connector_calendars: ConnectorCalendarsTable;

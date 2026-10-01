@@ -331,6 +331,8 @@ export interface Invitation {
   from: Face;
   preview: { count: number; titles: string[] };
   members: string[];
+  /** 027. When it was sent, for Needs you's order and its waiting line. */
+  since: Date;
 }
 
 /** The strips: waiting shares whose thread is live, whose sharer is still in
@@ -356,6 +358,7 @@ export async function invitationsFor(accountId: string, trx: Executor = db): Pro
       "tm.id as memberId",
       "tm.thread_id as threadId",
       "tm.preview as preview",
+      "tm.created_at as since",
       "threads.name as threadName",
       "accounts.id as id",
       "accounts.display_name as display_name",
@@ -384,6 +387,7 @@ export async function invitationsFor(accountId: string, trx: Executor = db): Pro
       from: faceOf(row),
       preview: row.preview ?? { count: 0, titles: [] },
       members: members.map((m) => m.display_name ?? "Someone"),
+      since: row.since,
     });
   }
   return out;

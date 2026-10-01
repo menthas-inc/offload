@@ -55,6 +55,7 @@ export interface MappedEvent {
   organizerIsMe: boolean;
   untrusted: boolean;
   attendees: ReturnType<typeof minimiseAttendees>;
+  link: string | null;
 }
 
 /** The whole mapping, in one place.
@@ -76,6 +77,7 @@ export function mapEvent(event: GoogleEvent, calendarExternalId: string): Mapped
     organizerIsMe: event.organizedByMe,
     untrusted: isUntrusted(event),
     attendees: minimiseAttendees(event.attendees, event.organizedByMe),
+    link: event.link,
   };
 }
 
@@ -105,6 +107,7 @@ export async function upsertEvent(
       organizer_is_me: mapped.organizerIsMe,
       untrusted: mapped.untrusted,
       attendees: JSON.stringify(mapped.attendees),
+      link: mapped.link,
     })
     .onConflict((oc) =>
       oc.columns(["calendar_id", "source_ref"]).doUpdateSet((eb) => ({
@@ -118,6 +121,7 @@ export async function upsertEvent(
         organizer_is_me: eb.ref("excluded.organizer_is_me"),
         untrusted: eb.ref("excluded.untrusted"),
         attendees: eb.ref("excluded.attendees"),
+        link: eb.ref("excluded.link"),
         // **Brought back, not just updated.** A row retired by reconciliation
         // or by a cancellation stays soft-deleted otherwise, so an event that
         // Google returns again, because a series' end moved back out or the

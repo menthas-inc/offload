@@ -95,3 +95,33 @@ describe("launch's question", () => {
     expect(await asked).toBe("unreachable");
   });
 });
+
+// 027 AC-29: launch when nothing answers says which of two things happened,
+// and asks again on its own.
+describe("027 launch's two failures", () => {
+  it("says offline with no network and not answering otherwise, never as a failure of the person's", async () => {
+    const { failureOf, LAUNCH_COPY } = await import("../lib/launch");
+    expect(failureOf(false)).toBe("offline");
+    expect(failureOf(true)).toBe("unanswered");
+    expect(failureOf(null)).toBe("unanswered");
+    expect(LAUNCH_COPY.offline).toEqual({ title: "You're offline", line: "offload picks up when you're back." });
+    expect(LAUNCH_COPY.unanswered).toEqual({ title: "offload isn't answering", line: "Trying again." });
+  });
+
+  it("waits the schedule, or longer when the server said so", async () => {
+    const { nextWait } = await import("../lib/launch");
+    expect(nextWait(0, null, () => 0.5)).toBe(2000);
+    expect(nextWait(3, null, () => 0.5)).toBe(15000);
+    expect(nextWait(0, 30, () => 0.5)).toBe(30000);
+  });
+
+  it("remembers a Retry-After the server sent with no answer", async () => {
+    const { lastRetryAfter } = await import("../lib/api");
+    answer = () => Promise.resolve(new Response("busy", { status: 503, headers: { "retry-after": "20" } }));
+    expect(await getMe()).toBe("unreachable");
+    expect(lastRetryAfter()).toBe(20);
+    answer = () => Promise.resolve(new Response("Bad gateway", { status: 502 }));
+    await getMe();
+    expect(lastRetryAfter()).toBeNull();
+  });
+});

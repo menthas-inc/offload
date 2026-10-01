@@ -21,6 +21,7 @@ import { notifyPerson, notifySharedActivity } from "../notifications/people.js";
 import { emit } from "../analytics.js";
 import { sweepEmbeds } from "../search/sweep.js";
 import { sweepPeople } from "../people/people.js";
+import { sweepPutOffs } from "../today/needs.js";
 
 export type Handler = (
   payload: Record<string, unknown>,
@@ -687,10 +688,12 @@ const blobLocate: Handler = async (payload) => {
  *  the provider could not name is in the cache with no town and is not
  *  asked about again. Ids only, in the payload and the log. */
 const LOCATE_BACKFILL = 200;
-/** 022. One sweep a day over the people tables. */
+/** 022. One sweep a day over the people tables, and 027's put-off cards
+ *  whose day has passed. */
 const peopleDaily: Handler = async () => {
   await scheduleDaily("people.daily");
   await sweepPeople();
+  await sweepPutOffs();
 };
 
 // 024. The hourly placer, and the digest it places.

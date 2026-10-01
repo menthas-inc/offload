@@ -1,7 +1,5 @@
 # Apply: the conversation sheet, taller and quieter, and every sheet on one drag
 
-**Built 30 September 2026 (PR #31).** Where the build differs from this note, and what that asks of the design system: `FROM-CODE-2026-09-30-immersive-conversation.md`.
-
 Drawn in `explorations/immersive-conversation.html` (idea 1) with the product owner on 29 and 30
 September 2026, against `main` at `70a5fa4` (still the head on 30 September; nothing to reconcile).
 Standalone copy: `handoff/immersive-conversation-standalone.html`, with an iOS and Android switch. iOS and Android. Read against `Conversation.tsx`, `Plate.tsx`,

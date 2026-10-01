@@ -42,12 +42,16 @@ export function QuickReplies({
   label,
   onPick,
   disabled = false,
+  trailing,
 }: {
   options: QuickReplyOption[];
   /** The sentence that asked, as the group's accessible name. */
   label: string;
   onPick: (index: number) => void;
   disabled?: boolean;
+  /** 027. A control at the end of the last line, after the way out: Today's
+   *  clock, which puts the question off rather than answering it. */
+  trailing?: React.ReactNode;
 }) {
   if (options.length === 0) return null;
   const shown = fiveOf(options);
@@ -76,6 +80,7 @@ export function QuickReplies({
       {values.map(reply)}
       {ways.length > 0 ? <span className={styles.quickReplyBreak} /> : null}
       {ways.map(reply)}
+      {trailing}
     </div>
   );
 }
