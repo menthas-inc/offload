@@ -293,8 +293,11 @@ describe("the calls (AC-12, AC-16, AC-20 to AC-23, AC-32)", () => {
 describe("a turn that filed only where no thread is named (AC-27)", () => {
   it("still draws Done, with no pill", async () => {
     const { turnDid } = await import("../src/lib/dump");
-    expect(turnDid({ threads: [], changed: ["tdefault"] })).toBe(true);
+    // 028: Done is what the server says was filed, loose included; a move's
+    // source in `changed` alone is not a filing.
+    expect(turnDid({ threads: [], changed: ["tdefault"], filed: true })).toBe(true);
     expect(turnDid({ threads: [{ id: "t1", name: "Flat" }], changed: ["t1"] })).toBe(true);
+    expect(turnDid({ threads: [], changed: ["tsource"], filed: false })).toBe(false);
     expect(turnDid({ threads: [], changed: [] })).toBe(false);
     expect(turnDid({})).toBe(false);
   });

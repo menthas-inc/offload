@@ -325,3 +325,13 @@ describe("T3.7 the chip a link opens the list on", () => {
     expect(loose.asChip(["link"])).toBeNull();
   });
 });
+
+describe("Done for a turn that filed only loose (AC-27)", () => {
+  it("comes from what the server says was filed, not from the pills", async () => {
+    const { turnDid } = await import("../lib/turn-did");
+    expect(turnDid({ threads: [], filed: true })).toBe(true);
+    expect(turnDid({ threads: [{ id: "t1", name: "Flat admin" }] })).toBe(true);
+    expect(turnDid({ threads: [], filed: false })).toBe(false);
+    expect(turnDid({})).toBe(false);
+  });
+});

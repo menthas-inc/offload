@@ -110,6 +110,8 @@ export interface Answer {
    *  A move's source is here and not there: the screen has to reload it, and a
    *  pill saying the dump went there would be untrue. */
   changed?: string[];
+  /** 028. Filed something, loose or not: what draws Done. */
+  filed?: boolean;
   /** What an answer showed. Empty for a dump, which files rather than answers.
    *
    *  Resolved by the server every time it is read, so a row ticked or deleted
@@ -328,6 +330,8 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     labels?: { id: string; name: string; colour: number }[];
     step?: string | null;
     changed?: string[];
+    /** 028. Filed something, loose or not: what draws Done. */
+    filed?: boolean;
     waiting?: WaitingOn | null;
     found?: FoundResult[];
     voice?: VoiceOnWire | null;
@@ -340,6 +344,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     labels: body.labels ?? [],
     step: body.step ?? null,
     changed: body.changed ?? [],
+    filed: body.filed ?? false,
     waiting: body.waiting ?? null,
     found: body.found ?? [],
     voice: body.voice ?? null,
@@ -461,6 +466,8 @@ export interface TailMessage {
    *  and this endpoint has now been the place a reload loses something three
    *  times. */
   threads: TouchedThread[];
+  /** 028. Filed something, loose included: what draws Done after a reload. */
+  filed?: boolean;
   sources: Source[];
   /** 025. On the person's message: what the turn applied. */
   labels: { id: string; name: string; colour: number }[];
@@ -617,6 +624,6 @@ export async function answerPending(
 /** Whether a settled turn did something, which is what draws the footer's
  *  Done. 028: what lands only where no thread is named draws no pill, so
  *  `threads` can be empty on a turn that filed; `changed` still holds it. */
-export function turnDid(answer: { threads?: TouchedThread[]; changed?: string[] }): boolean {
-  return (answer.threads?.length ?? 0) > 0 || (answer.changed?.length ?? 0) > 0;
+export function turnDid(answer: { threads?: TouchedThread[]; changed?: string[]; filed?: boolean }): boolean {
+  return (answer.threads?.length ?? 0) > 0 || answer.filed === true;
 }

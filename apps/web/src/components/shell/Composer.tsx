@@ -345,7 +345,7 @@ export function Composer({
           threads: message.threads,
           sources: message.sources,
           labels: message.labels,
-          did: message.threads.length > 0,
+          did: turnDid(message),
         })),
       );
       // No toast on hydration. The eight seconds belongs to the moment offload

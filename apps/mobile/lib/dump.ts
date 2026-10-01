@@ -122,6 +122,8 @@ export interface Answer {
    *  A move's source is here and not there: the screen has to reload it, and a
    *  pill saying the dump went there would be untrue. */
   changed: string[];
+  /** 028. Filed something, loose or not: what draws Done. */
+  filed?: boolean;
   waiting?: WaitingOn | null;
   /** What an answer showed. Empty on a dump, which files rather than answers.
    *
@@ -168,6 +170,8 @@ export interface TailMessage {
   found?: FoundResult[];
   /** Where the turn filed, and where a fact in it came from. The footer's whole
    *  content, and a reload used to drop all of it. */
+  /** 028. Filed something, loose included: what draws Done after a reload. */
+  filed?: boolean;
   threads?: TouchedThread[];
   sources?: Source[];
   /** 025. On the person's message: what the turn applied. */
@@ -373,6 +377,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     labels?: { id: string; name: string; colour: number }[];
     step?: string | null;
     changed?: string[];
+    filed?: boolean;
     waiting?: WaitingOn | null;
     question?: QuestionOnWire | null;
     // **The rows, which this used to drop on the floor.** `awaitAnswer` is the
@@ -392,6 +397,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     labels: data.labels ?? [],
     step: data.step ?? null,
     changed: data.changed ?? [],
+    filed: data.filed ?? false,
     waiting: data.waiting ?? null,
     question: data.question ?? null,
     found: data.found ?? [],
