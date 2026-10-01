@@ -22,13 +22,12 @@ function ThreadRow({thread,onOpen,border,onDelete}){
   );
 }
 
-function ThreadsScreen({spaces,onOpen,onNew,unread,onOpenNotifications,onOpenSettings,barSolid,hidden,onDelete,pending,onOpenInvite}){
+function ThreadsScreen({onToast,spaces,onOpen,onNew,unread,onOpenNotifications,onOpenSettings,barSolid,hidden,onDelete,pending,onOpenInvite}){
   const [allOlder,setAllOlder]=React.useState(false);
   const rest=React.useRef(null);
   const [restH,setRestH]=React.useState(0);
   const live=spaces.filter(s=>(hidden||[]).indexOf(s.id)<0);
   const now=live.filter(s=>s.kind==="now");
-  const always=live.filter(s=>s.kind==="always");
   const older=live.filter(s=>s.kind==="older");
   const shownOlder=older.slice(0,OLDER_SHOWN);
   const restOlder=older.slice(OLDER_SHOWN);
@@ -45,8 +44,8 @@ function ThreadsScreen({spaces,onOpen,onNew,unread,onOpenNotifications,onOpenSet
         </div>:null}
         {now.map((s,i)=><ThreadRow key={s.id} thread={s} onOpen={onOpen} onDelete={onDelete} border={i<now.length-1}/>)}
 
-        <SectionHeader tone="accent" count={always.length}>Always on</SectionHeader>
-        {always.map((s,i)=><ThreadRow key={s.id} thread={s} onOpen={onOpen} onDelete={onDelete} border={i<always.length-1}/>)}
+        {/* Always on retired 1 October 2026. Things without a thread sit here as their own group. */}
+        <LooseGroup items={(window.OFFLOAD_DATA||{}).loose||[]} threads={spaces} Section={SectionHeader} onToast={onToast}/>
 
         <SectionHeader count={older.length}>Older threads</SectionHeader>
         {shownOlder.map((s,i)=><ThreadRow key={s.id} thread={s} onOpen={onOpen} onDelete={onDelete}

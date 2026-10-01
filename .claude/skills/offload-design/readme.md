@@ -83,7 +83,7 @@ offload's voice is a calm assistant that has already done the work and does not 
 
 **Colour.** A pure achromatic ramp (`--paper` through `--ink-950`) does virtually all the work: ink for content, `--ink-600` for metadata, `--ink-400` for the third rank, `--border-hairline` for separators and `--border-strong` for anything that outlines a control. On top of that sit exactly two accents, each with one narrow job and nothing else:
 
-- **moss** `--moss-600` #3F6B4F, *offload did this, you didn't.* Inferred notes, the What moved and Always on sections, thread references in a reply, the Done mark, selection highlight.
+- **moss** `--moss-600` #3F6B4F, *offload did this, you didn't.* Inferred notes, the What moved section, a suggestion on a thing without a thread, thread references in a reply, the Done mark, selection highlight.
 - **ink blue** `--blue-600` #3355D6, *this needs you.* Something is waiting, unresolved, or about to expire. Chosen as a cool counterweight so it separates from moss by temperature rather than by loudness, and never competes with it for attention.
 
 Use the semantic aliases, not the ramps: `--text-accent` / `--surface-accent-soft` / `--border-accent` for moss, `--text-attention` / `--text-on-attention` / `--surface-attention` / `--surface-attention-soft` / `--border-attention` for blue. Neither accent is ever a page background, neither fills a primary button (that is always ink), and the two never appear on the same row, if something was sorted *and* is waiting, waiting wins. Beyond them, semantics stay muted: amber `--amber-600` for a soft warning, clay `--clay-600` for genuine failure. No gradients as decoration, no colour-coded categories.
@@ -1020,6 +1020,36 @@ read by the server; no model call is involved.
 **The forwarding tip** (026): *Forward emails to offload*, the address `over@to.offload.club` and
 the sign-in address in its line, with *Copy address* and *Got it*. Never shown to an Apple hidden
 email. A filed or failed email stays in Activity.
+
+## Not in a thread
+
+Decided 1 October 2026 off `explorations/loose-items.html`. A thing can be put down without
+belonging anywhere, and that is a state, not a thread. **Always on is retired**: My threads is one
+list by last activity, then Older threads, which is about time; a slow thread sinks and comes back
+up when something lands.
+
+**Storage is the default thread** (`accounts.default_thread_id`), unchanged and under its own key.
+It is never drawn as a thread: not in My threads, not as a thread pill, not in the move sheet, not
+shareable. A row elsewhere (Today, search) draws nothing in its thread slot.
+
+**The group** sits between the list and Older threads, titled *Not in a thread* with its count.
+Rows are the things themselves with their type tile, no thread name, and the meta *Photo · Monday*.
+Type chips under the heading, only for types present and only when there are two, filter the group
+in place: three rows, then *All 5 links*. *All 14* opens a pushed screen, *Not in a thread*, *Put
+down without a thread, newest first.*, the same chips, rows and suggestions. A swipe deletes; Move
+is the row sheet's. Not drawn when empty.
+
+**A suggestion is one button under the row**, with a cross beside it that dismisses it for good:
+- *Move to* an existing thread: moss soft ground, `lasso` and the name in `--moss-700`. From the
+  planner at filing time, when it was not confident enough to file.
+- *Create* a new thread: paper with a dashed `--moss-600` outline, `plus`, the name, *new thread*.
+  From a daily job, for two or more things only. It opens a sheet, *Create a thread*, *These three
+  look like one project.*, the name editable and the things each untickable, Cancel and *Create
+  thread*; the thread opens after.
+- The name inside is a label, never a link. Most rows carry none. Move is immediate with a toast,
+  *Moved to* and the thread, and Undo.
+
+**offload's reply** for a thing filed without a thread is *Saved.* No thread is named.
 
 ## The admin panel
 
