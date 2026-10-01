@@ -12,3 +12,12 @@ import { sql } from "kysely";
 export function shownThreadName(threadId: string, name: string, accountId: string) {
   return sql<string | null>`case when ${sql.ref(threadId)} = (select a.default_thread_id from accounts a where a.id = ${accountId}) then null else ${sql.ref(name)} end`;
 }
+
+/** What the model reads for a thread's name: the stored one, or for the
+ *  default thread the words the prompt uses for it, so a reply can never
+ *  repeat "Miscellaneous" back to a person. */
+export const NOT_IN_A_THREAD = "not in a thread";
+
+export function shownToModel(threadId: string, name: string, accountId: string) {
+  return sql<string>`case when ${sql.ref(threadId)} = (select a.default_thread_id from accounts a where a.id = ${accountId}) then ${NOT_IN_A_THREAD} else ${sql.ref(name)} end`;
+}

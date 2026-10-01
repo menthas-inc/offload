@@ -819,6 +819,8 @@ export async function sortableThreads(accountId: string): Promise<string[]> {
     .where("thread_members.account_id", "=", accountId)
     .where("thread_members.state", "=", "accepted")
     .where("threads.deleted_at", "is", null)
+    // 028. Never the default thread: a label there is drawn nowhere.
+    .where(sql<boolean>`threads.id is distinct from (select a.default_thread_id from accounts a where a.id = ${accountId})`)
     .where(
       sql<boolean>`(select count(*) from content c where c.thread_id = threads.id and c.deleted_at is null and c.archived_at is null) >= ${LABEL_SORT_MIN_ROWS}`,
     )

@@ -93,6 +93,54 @@ export async function holdFloor(trx: Executor, target: { contentId?: string | nu
   if (count < 2) await trx.deleteFrom("thread_proposals").where("id", "=", suggestion.proposalId).execute();
 }
 
+/** 028. offload's Move to, written at filing time.
+ *
+ *  Only when the thing landed in the default thread, the suggested thread is
+ *  another live thread the person is in, and the turn read nothing untrusted:
+ *  a forwarded email, a calendar, or a web page (the worker strips the
+ *  argument after a web read). Otherwise ignored rather than refused, so a
+ *  filing never fails over a suggestion. A thing already dismissed, or already
+ *  carrying one, keeps what it has. */
+export async function suggestAtFiling(
+  trx: Executor,
+  input: {
+    accountId: string;
+    target: { contentId?: string; noteId?: string };
+    landedIn: string;
+    suggested: string | null | undefined;
+    untrusted: boolean;
+  },
+): Promise<void> {
+  if (!input.suggested || input.untrusted) return;
+  const looseThreadId = await defaultThreadOf(input.accountId, trx);
+  if (!looseThreadId || input.landedIn !== looseThreadId || input.suggested === looseThreadId) return;
+  const member = await trx
+    .selectFrom("thread_members")
+    .innerJoin("threads", "threads.id", "thread_members.thread_id")
+    .select("thread_members.id")
+    .where("thread_members.thread_id", "=", input.suggested)
+    .where("thread_members.account_id", "=", input.accountId)
+    .where("thread_members.state", "=", "accepted")
+    .where("threads.deleted_at", "is", null)
+    .executeTakeFirst();
+  if (!member) return;
+  const dismissed = input.target.contentId
+    ? await trx.selectFrom("content").select("suggest_dismissed_at as at").where("id", "=", input.target.contentId).executeTakeFirst()
+    : await trx.selectFrom("notes").select("suggest_dismissed_at as at").where("id", "=", input.target.noteId!).executeTakeFirst();
+  if (!dismissed || dismissed.at !== null) return;
+  await trx
+    .insertInto("suggestions")
+    .values({
+      account_id: input.accountId,
+      content_id: input.target.contentId ?? null,
+      note_id: input.target.noteId ?? null,
+      kind: "move",
+      thread_id: input.suggested,
+    })
+    .onConflict((oc) => oc.doNothing())
+    .execute();
+}
+
 /** The caller's own suggestion, still drawable, or the one refusal. */
 async function drawable(trx: Trx, accountId: string, suggestionId: string) {
   const looseThreadId = await defaultThreadOf(accountId, trx);

@@ -703,6 +703,10 @@ export async function storeQuestions(
       })
       .onConflict((oc) => oc.columns(["turn_id", "ordinal"]).doNothing())
       .execute();
+    // 028. offload asked where this goes, so it does not also suggest.
+    if (row.field === "thread" && row.targetContentId) {
+      await trx.deleteFrom("suggestions").where("content_id", "=", row.targetContentId).execute();
+    }
   }
 }
 

@@ -66,6 +66,8 @@ import {
 import { calendarOfEvent, findEvents, summarise, writeThroughTool } from "../connectors/tool-calls.js";
 import { approvedWritable, turnScope, writablePicks } from "../threads/calendars.js";
 import { raiseCalendarQuestion } from "../questions.js";
+import { shownToModel } from "../threads/default.js";
+import { suggestAtFiling } from "../loose/suggestions.js";
 import { proposeShare } from "../threads/proposals.js";
 import type { WriteAction } from "../connectors/write.js";
 import { linkPhoto, photoForRow, withTaken } from "../blobs/rows.js";
@@ -180,6 +182,9 @@ const body = z.discriminatedUnion("tool", [
     // is where it goes. A row whose type nobody stated is a bug rather than
     // something to guess at.
     type: z.enum(["link", "image", "screenshot", "voice", "file", "task", "event", "location"]),
+    /** 028. Filed into the default thread with a home in mind it was not sure
+     *  enough to file into: offered on the row as Move to, never acted on. */
+    suggestThreadId: z.string().uuid().nullish(),
     /** 020. Which of the message's photos this row is, one-based, in the
      *  order they were attached. An index rather than an id, so the model can
      *  only ever name a photo it was handed on this very message: the server
@@ -338,6 +343,8 @@ const body = z.discriminatedUnion("tool", [
     toolCallId: z.string().min(1).max(120),
     threadId: z.string().uuid(),
     text: z.string().min(1).max(NOTE_TEXT_CHARS),
+    /** 028. As `add_content`'s. */
+    suggestThreadId: z.string().uuid().nullish(),
     /** The rest of the words, when what they dumped did not fit in `text`.
      *  Kept whole and handed to no prompt, which is what lets a paragraph be
      *  dumped without being truncated or refused. */
@@ -1152,12 +1159,20 @@ async function existing(
       await touchThread(call.threadId, trx);
       // 024. A note added to a thread with other members reaches them, coalesced.
       await noteAddition(call.threadId, accountId, new Date(), trx);
+      await suggestAtFiling(trx, {
+        accountId,
+        target: { noteId: note.id },
+        landedIn: call.threadId,
+        suggested: call.suggestThreadId,
+        untrusted: sawApps || sawMail,
+      });
 
       // The name, for the same reason `add_content` returns it: the model has
-      // just been handed a thread id it did not choose the name of.
+      // just been handed a thread id it did not choose the name of. 028: the
+      // default thread's stored name never reaches the model.
       const named = await trx
         .selectFrom("threads")
-        .select("name")
+        .select(shownToModel("threads.id", "threads.name", accountId).as("name"))
         .where("id", "=", call.threadId)
         .executeTakeFirstOrThrow();
 
@@ -1473,6 +1488,11 @@ async function labelContent(
   if (threads.length !== 1) return { ok: false, error: "unknown_content" };
   const threadId = threads[0]!.thread_id;
   if (!(await memberOf(accountId, threadId, trx))) return { ok: false, error: "unknown_content" };
+  // 028. Nothing is labelled in the default thread: a label there would be
+  // drawn nowhere and removable nowhere. Done, not refused, so the model does
+  // not try again.
+  const account = await trx.selectFrom("accounts").select("default_thread_id").where("id", "=", accountId).executeTakeFirst();
+  if (account?.default_thread_id === threadId) return { ok: true, done: true };
 
   const runId = await runForTurn(trx, threadId, message.turn_id, "offload");
   const actor = { accountId, via: "offload" as const, runId };
@@ -1680,7 +1700,8 @@ export async function toolRoutes(app: App): Promise<void> {
         const thread = await trx
           .selectFrom("threads")
           .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
-          .select(["threads.id as id", "threads.name as name"])
+          // 028. The default thread's stored name never reaches the model.
+          .select(["threads.id as id", shownToModel("threads.id", "threads.name", accountId).as("name")])
           .where("threads.id", "=", call.threadId)
           .where("threads.deleted_at", "is", null)
           .where("thread_members.account_id", "=", accountId)
@@ -1774,6 +1795,17 @@ export async function toolRoutes(app: App): Promise<void> {
         // 024. A row filed into a thread with other members reaches them,
         // coalesced over ten minutes and composed at send time.
         if (inserted) await noteAddition(thread.id, accountId, new Date(), trx);
+        // 028. A home in mind, offered on the row. Never on a quick add, whose
+        // thread the person picked.
+        if (inserted && pinned === null) {
+          await suggestAtFiling(trx, {
+            accountId,
+            target: { contentId: inserted.id },
+            landedIn: thread.id,
+            suggested: call.suggestThreadId,
+            untrusted: sawApps || sawMail,
+          });
+        }
 
         if (!inserted) {
           // The first post won. Return its id rather than a new row, and touch

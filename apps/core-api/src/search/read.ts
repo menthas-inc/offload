@@ -17,6 +17,7 @@
 import { sql } from "kysely";
 import { calendarName } from "../connectors/calendars.js";
 import { db } from "../db.js";
+import { NOT_IN_A_THREAD, shownToModel } from "../threads/default.js";
 
 /** Candidates per arm, before fusion. Enough for the fusion to reorder
  *  meaningfully, small enough that the post-filter stays cheap. */
@@ -151,7 +152,7 @@ export async function listContent(
   const thread = await db
     .selectFrom("threads")
     .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
-    .select(["threads.id as id", "threads.name as name"])
+    .select(["threads.id as id", shownToModel("threads.id", "threads.name", accountId).as("name")])
     .where("threads.id", "=", options.threadId)
     .where("thread_members.account_id", "=", accountId)
     .where("thread_members.state", "=", "accepted")
@@ -170,7 +171,7 @@ export async function listContent(
     .select([
       "content.id as id",
       "content.thread_id as thread_id",
-      "threads.name as thread_name",
+      shownToModel("threads.id", "threads.name", accountId).as("thread_name"),
       "content.type as type",
       "content.title as title",
       "content.body as body",
@@ -230,7 +231,7 @@ export async function listAgenda(
     .select([
       "content.id as id",
       "content.thread_id as thread_id",
-      "threads.name as thread_name",
+      shownToModel("threads.id", "threads.name", accountId).as("thread_name"),
       "content.type as type",
       "content.title as title",
       "content.body as body",
@@ -355,7 +356,7 @@ export async function search(accountId: string, options: SearchOptions): Promise
     .select([
       "content.id as id",
       "content.thread_id as thread_id",
-      "threads.name as thread_name",
+      shownToModel("threads.id", "threads.name", accountId).as("thread_name"),
       "content.type as type",
       "content.title as title",
       "content.body as body",
@@ -401,7 +402,9 @@ export const ASIDES = 5;
  */
 async function asidesFor(accountId: string, options: SearchOptions): Promise<Aside[]> {
   const notes = await sql<{ text: string; thread_name: string | null }>`
-    select m.text as text, t.name as thread_name
+    select m.text as text,
+      -- 028. The default thread's stored name never reaches the model.
+      case when t.id = (select a.default_thread_id from accounts a where a.id = ${accountId}::uuid) then ${NOT_IN_A_THREAD} else t.name end as thread_name
     from readable_notes m
     left join threads t on t.id = m.subject_id
     where m.viewer_account_id = ${accountId}::uuid
@@ -492,7 +495,7 @@ export async function accountFacts(accountId: string): Promise<AccountFacts> {
     .select([
       "accounts.display_name as display_name",
       "threads.id as thread_id",
-      "threads.name as thread_name",
+      shownToModel("threads.id", "threads.name", accountId).as("thread_name"),
     ])
     .where("accounts.id", "=", accountId)
     .executeTakeFirst();
@@ -514,7 +517,7 @@ export async function accountFacts(accountId: string): Promise<AccountFacts> {
     displayName: account?.display_name ?? null,
     defaultThread:
       account?.thread_id && account.thread_name
-        ? { id: account.thread_id, name: account.thread_name }
+        ? { id: account.thread_id, name: NOT_IN_A_THREAD }
         : null,
     calendars: calendars.map((c) => ({ name: calendarName(c, account?.display_name ?? null) })),
     knowsDevicePreferences: false,
