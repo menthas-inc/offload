@@ -11,8 +11,7 @@
 // confirms inline; the two clients differ on purpose and `decisions.md` records
 // the argument that was overruled.
 //
-// The default thread does not delete, and swiping it answers rather than doing
-// nothing: a gesture that silently fails is worse than one that says why.
+// 028. The default thread is never in the list, so no row refuses its swipe.
 
 import { Platform, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -35,11 +34,9 @@ interface Props {
   border: boolean;
   onOpen: () => void;
   onDelete: () => void;
-  /** The default thread cannot go. Swiping it says so. */
-  onRefuse: () => void;
 }
 
-export function ThreadRow({ thread, border, onOpen, onDelete, onRefuse }: Props) {
+export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
   const COLOR = useColors();
   const dx = useSharedValue(0);
 
@@ -57,11 +54,6 @@ export function ThreadRow({ thread, border, onOpen, onDelete, onRefuse }: Props)
     })
     .onEnd(() => {
       if (dx.value < -REVEAL / 2) {
-        if (thread.isDefault) {
-          dx.value = withSpring(0, { damping: 20, stiffness: 220 });
-          runOnJS(onRefuse)();
-          return;
-        }
         dx.value = withSpring(-REVEAL, { damping: 20, stiffness: 220 });
       } else {
         dx.value = withSpring(0, { damping: 20, stiffness: 220 });

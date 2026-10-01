@@ -13,6 +13,7 @@ import { useColors } from "../../lib/colors";
 import { firstNameOf } from "../../lib/people";
 import { openLink } from "../../lib/links";
 import type { TodayEvent } from "../../lib/today";
+import { threadHref } from "../../lib/loose";
 
 const isAndroid = Platform.OS === "android";
 
@@ -139,7 +140,7 @@ export function EventsStrip({
           const past = isToday && eventPast(event, now);
           const open =
             event.source === "offload" && event.threadId
-              ? () => router.push({ pathname: "/threads/[id]", params: { id: event.threadId! } })
+              ? () => router.push(threadHref(event.threadId!, event.threadName))
               : event.link && GOOGLE_EVENT_LINK.test(event.link)
                 ? () => void openLink(event.link)
                 : null;

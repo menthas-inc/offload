@@ -1,8 +1,9 @@
 // My threads, from ui_kits/mobile_app/ThreadsScreen.jsx.
 //
-// Three groups, and only one of them is stored: `always_on` is a column, and
-// "older" is derived from activity, because a thread does not become old, it
-// stops being used. The server derives all three so every client agrees.
+// One list by last activity, then Older threads, which is about time only: a
+// thread does not become old, it stops being used, and the server derives it
+// so every client agrees. 028 retired Always on, and put what is not in a
+// thread between the two as its own group.
 //
 // **Two divergences from the kit, both logged in the design system:**
 //
@@ -32,9 +33,13 @@ import { ToastHost, useToast } from "../shell/Toast";
 import {
   deleteThread,
   fetchThreadsAndInvitations,
+  myThreads,
   restoreThread,
   type ThreadGroup,
 } from "../../lib/threads";
+import type { LooseSummary } from "../../lib/loose";
+import { LooseGroup } from "../loose/LooseGroup";
+import { useLooseRows } from "../loose/useLooseRows";
 import type { Invitation } from "../../lib/people";
 import { InvitationStrip } from "../people/InvitationStrip";
 import { useConversation } from "../shell/conversation-context";
@@ -42,11 +47,6 @@ import { PlateSpace } from "../shell/plate-inset";
 import { failed } from "../../lib/log";
 
 const isAndroid = Platform.OS === "android";
-
-const HEADINGS: Record<string, string> = {
-  always: "Always on",
-  older: "Older threads",
-};
 
 /** The kit shows three older threads and hides the rest behind one control. */
 const OLDER_SHOWN = 3;
@@ -60,6 +60,8 @@ export default function MyThreads() {
 
   const router = useRouter();
   const [groups, setGroups] = useState<ThreadGroup[] | null>(null);
+  // 028. What is not in a thread, from the same read.
+  const [loose, setLoose] = useState<LooseSummary | null>(null);
   // 022. Waiting shares, one strip each at the top, from the same read.
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [allOlder, setAllOlder] = useState(false);
@@ -71,6 +73,7 @@ export default function MyThreads() {
       const page = await fetchThreadsAndInvitations();
       setGroups(page?.groups ?? []);
       setInvitations(page?.invitations ?? []);
+      setLoose(page?.loose ?? null);
     } catch (error) {
       failed("threads.load", error);
     }
@@ -96,6 +99,8 @@ export default function MyThreads() {
     lastFiled.current = filed.at;
     void load();
   }, [filed, load]);
+
+  const rows = useLooseRows(loose, load, toast);
 
   async function remove(id: string, name: string): Promise<void> {
     const result = await deleteThread(id);
@@ -129,11 +134,8 @@ export default function MyThreads() {
     );
   }
 
-  const now = groups.find((g) => g.key === "now")?.threads ?? [];
-  const always = groups.find((g) => g.key === "always")?.threads ?? [];
-  const older = groups.find((g) => g.key === "older")?.threads ?? [];
+  const { now, older, empty } = myThreads(groups, loose);
   const shownOlder = allOlder ? older : older.slice(0, OLDER_SHOWN);
-  const total = now.length + always.length + older.length;
 
   return (
     <SafeAreaView
@@ -144,7 +146,7 @@ export default function MyThreads() {
         <Logo size={21} />
       </View>
 
-      {total === 0 ? (
+      {empty ? (
         <>
           {/* 022. A strip stays over the empty state: a first thread may well
               be somebody else's. */}
@@ -178,39 +180,21 @@ export default function MyThreads() {
                 })
               }
               onDelete={() => void remove(thread.id, thread.name)}
-              onRefuse={() =>
-                toast.show(
-                  "This thread can't be deleted. It's where things land by default.",
-                )
-              }
             />
           ))}
 
-          {always.length > 0 ? (
-            <Section label={HEADINGS["always"]!} count={always.length} accent />
-          ) : null}
-          {always.map((thread, i) => (
-            <ThreadRow
-              key={thread.id}
-              thread={thread}
-              border={i < always.length - 1}
-              onOpen={() =>
-                router.push({
-                  pathname: "/threads/[id]",
-                  params: { id: thread.id },
-                })
-              }
-              onDelete={() => void remove(thread.id, thread.name)}
-              onRefuse={() =>
-                toast.show(
-                  "This thread can't be deleted. It's where things land by default.",
-                )
-              }
-            />
-          ))}
+          {/* 028. Between the first list and Older threads, and not drawn
+              when there is nothing in it. */}
+          <LooseGroup
+            summary={loose}
+            heading={(label, count) => <Section label={label} count={count} />}
+            live={rows.live}
+            gone={rows.gone}
+            row={rows.row}
+          />
 
           {older.length > 0 ? (
-            <Section label={HEADINGS["older"]!} count={older.length} />
+            <Section label="Older threads" count={older.length} />
           ) : null}
           {shownOlder.map((thread, i) => (
             <ThreadRow
@@ -224,11 +208,6 @@ export default function MyThreads() {
                 })
               }
               onDelete={() => void remove(thread.id, thread.name)}
-              onRefuse={() =>
-                toast.show(
-                  "This thread can't be deleted. It's where things land by default.",
-                )
-              }
             />
           ))}
 
@@ -249,20 +228,13 @@ export default function MyThreads() {
         </Animated.ScrollView>
       )}
 
+      {rows.sheets}
       <ToastHost state={toast} />
     </SafeAreaView>
   );
 }
 
-function Section({
-  label,
-  count,
-  accent,
-}: {
-  label: string;
-  count: number;
-  accent?: boolean;
-}) {
+function Section({ label, count }: { label: string; count: number }) {
   return (
     <View className="flex-row items-center gap-space-3 px-gutter-screen pb-space-3 pt-space-7">
       <Text
@@ -271,15 +243,8 @@ function Section({
       >
         {label}
       </Text>
-      <View
-        className={`rounded-pill px-space-3 py-space-1 ${
-          accent ? "bg-surface-accent-soft" : "bg-surface-fill"
-        }`}
-      >
-        <Text
-          className={`font-core ${accent ? "text-text-accent" : "text-text-secondary"}`}
-          style={{ fontSize: 12 }}
-        >
+      <View className="rounded-pill bg-surface-fill px-space-3 py-space-1">
+        <Text className="font-core text-text-secondary" style={{ fontSize: 12 }}>
           {count}
         </Text>
       </View>

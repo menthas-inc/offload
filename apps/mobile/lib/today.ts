@@ -13,7 +13,8 @@ import type { ContentRow } from "./threads";
 
 export interface TodayRow extends ContentRow {
   threadId: string;
-  threadName: string;
+  /** 028. Null for a row not in a thread, which draws no pill. */
+  threadName: string | null;
 }
 
 export interface TodayEvent {

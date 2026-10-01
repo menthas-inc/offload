@@ -69,7 +69,8 @@ export interface WaitingOn {
  *  answer. */
 export interface FoundResult {
   threadId: string;
-  threadName: string;
+  /** 028. Null for what is not in a thread, which no surface names. */
+  threadName: string | null;
   /** The read hit its page. The tail becomes the thread rather than a control
    *  that would expand into rows nobody fetched. */
   truncated: boolean;
@@ -79,7 +80,7 @@ export interface FoundResult {
 export interface FoundRow {
   contentId: string;
   threadId: string;
-  threadName: string;
+  threadName: string | null;
   type: string;
   title: string;
   body: string | null;

@@ -189,6 +189,18 @@ export default function RootLayout() {
                 animationDuration: 300,
               }}
             />
+            {/* 028. Not in a thread is a push into My threads, as a thread is. */}
+            <Stack.Screen
+              name="threads/loose"
+              options={{
+                animation: reduceMotion
+                  ? "none"
+                  : Platform.OS === "ios"
+                    ? "default"
+                    : "slide_from_right",
+                animationDuration: 300,
+              }}
+            />
           </Stack>
           </ThemeProvider>
           </Recede>
