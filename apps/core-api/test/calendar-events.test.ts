@@ -26,6 +26,7 @@ function event(over: Partial<GoogleEvent> = {}): GoogleEvent {
     attendees: [{ name: "Ana", email: "ana@example.com", response: "accepted" }],
     link: null,
     creator: { email: null, self: false },
+    organizerEmail: null,
     ...over,
   };
 }
@@ -186,6 +187,44 @@ describe("027 an event is yours when you created it or were invited to it", () =
       expect(one?.attendees[0]).toMatchObject({ email: "jo@hey.com", self: true, response: "accepted" });
     } finally {
       globalThis.fetch = original;
+    }
+  });
+});
+
+// The review of the tweak: Google's `self` is about the calendar a copy sits
+// on, not the person. On a calendar somebody shares with you, their own events
+// carry `self` for them.
+describe("027 self is the calendar's, not the person's", () => {
+  const shared = { accountEmail: "jo@hey.com", primary: false };
+  const her = { creator: { email: "ana@hey.com", self: true }, organizedByMe: true, organizerEmail: "ana@hey.com" };
+
+  it("does not count a guest marked self on somebody else's calendar as you", () => {
+    const mapped = mapEvent(event({ ...her, attendees: [{ name: "Ana", email: "ana@hey.com", response: "accepted", self: true }] }), "shared", shared);
+    expect(mapped.invitedMe).toBe(false);
+  });
+
+  it("counts your own address on the guest list, and a self guest on your own primary", () => {
+    const you = { name: "Jo", email: "JO@hey.com", response: "accepted", self: false };
+    expect(mapEvent(event({ ...her, attendees: [you] }), "shared", shared).invitedMe).toBe(true);
+    const selfOnPrimary = { name: "Jo", email: null, response: "accepted", self: true };
+    expect(mapEvent(event({ ...her, attendees: [selfOnPrimary] }), "cal-1", { ...shared, primary: true }).invitedMe).toBe(true);
+  });
+
+  it("treats somebody else's event on a shared calendar as theirs: untrusted, and no guest addresses kept", () => {
+    const mapped = mapEvent(event({ ...her, attendees: [{ name: "Sam", email: "sam@hey.com", response: "accepted", self: false }] }), "shared", shared);
+    expect(mapped.organizerIsMe).toBe(false);
+    expect(mapped.untrusted).toBe(true);
+    expect(mapped.attendees[0]).not.toHaveProperty("email");
+  });
+
+  it("still trusts what you organised, by your address or on your own primary", () => {
+    expect(mapEvent(event({ organizerEmail: "jo@hey.com", organizedByMe: false }), "shared", shared).untrusted).toBe(false);
+    expect(mapEvent(event({ organizerEmail: null, organizedByMe: true }), "cal-1", { ...shared, primary: true }).untrusted).toBe(false);
+  });
+
+  it("counts an event a subscribed calendar made itself as yours, so holidays and imports stay on Today", () => {
+    for (const email of ["en.usa#holiday@group.v.calendar.google.com", "abc123@import.calendar.google.com", "team@group.calendar.google.com"]) {
+      expect(mapEvent(event({ creator: { email, self: false }, attendees: [] }), "subscribed", shared).createdByMe, email).toBe(true);
     }
   });
 });

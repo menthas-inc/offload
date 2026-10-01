@@ -244,6 +244,9 @@ export interface GoogleEvent {
   /** 027. Who made it: an address, and whether it was the calendar this copy
    *  was read from. Read to decide whose the event is, then dropped. */
   creator: { email: string | null; self: boolean };
+  /** 027. The organiser's address. `organizedByMe` is Google's `self`, which
+   *  is about the calendar this copy was read from, not the account. */
+  organizerEmail: string | null;
 }
 
 /** 027. **Kept only when it is https on a Google host**, because the event can
@@ -325,6 +328,7 @@ export async function listEvents(
         allDay: start.allDay,
         timezone: start.tz,
         organizedByMe: organizer["self"] === true,
+        organizerEmail: typeof organizer["email"] === "string" ? organizer["email"] : null,
         attendees: ((item["attendees"] as Array<Record<string, unknown>>) ?? []).map((a) => ({
           name: typeof a["displayName"] === "string" ? a["displayName"] : null,
           email: typeof a["email"] === "string" ? a["email"] : null,

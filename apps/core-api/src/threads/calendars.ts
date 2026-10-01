@@ -261,6 +261,9 @@ export async function threadEvents(
       )
     )
     .orderBy("e.source_ref")
+    // Two members connecting the same calendar hold two copies; the viewer's
+    // own is the one read, so whose an event is answers for the viewer.
+    .orderBy(sql`(n.account_id = ${accountId})`, "desc")
     .orderBy("e.occurs_at")
     .execute();
 

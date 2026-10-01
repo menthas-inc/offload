@@ -72,10 +72,27 @@ export interface Reader {
  *  guest list as the account itself without having declined. */
 export function whoseOf(event: GoogleEvent, reader: Reader): { createdByMe: boolean; invitedMe: boolean } {
   const creator = event.creator ?? { email: null, self: false };
-  const createdByMe =
-    (creator.email !== null && creator.email.toLowerCase() === reader.accountEmail.toLowerCase()) || (creator.self && reader.primary);
-  const invitedMe = event.attendees.some((guest) => guest.self === true && guest.response !== "declined");
+  // Google's `self` says the entry is the calendar this copy was read from,
+  // which on a calendar somebody shares with you is them. It counts only on
+  // the account's own primary; anywhere else the address decides.
+  const isMe = (email: string | null, self: boolean | undefined) => sameAddress(email, reader.accountEmail) || (self === true && reader.primary);
+  // An event a calendar made itself (holidays, an imported feed, a group
+  // calendar's own) is what the person subscribed to, so it is theirs to see.
+  const byACalendar = creator.email !== null && /@([a-z0-9.-]+\.)?calendar\.google\.com$/i.test(creator.email);
+  const createdByMe = isMe(creator.email, creator.self) || byACalendar;
+  const invitedMe = event.attendees.some((guest) => guest.response !== "declined" && isMe(guest.email, guest.self));
   return { createdByMe, invitedMe };
+}
+
+function sameAddress(a: string | null, b: string): boolean {
+  return a !== null && a.toLowerCase() === b.toLowerCase();
+}
+
+/** Whether the account organised it, by the same rule: its address, or
+ *  Google's `self` on its own primary. Without a reader, Google's flag alone. */
+function organizedByReader(event: GoogleEvent, reader: Reader | undefined): boolean {
+  if (!reader) return event.organizedByMe === true;
+  return sameAddress(event.organizerEmail ?? null, reader.accountEmail) || (event.organizedByMe === true && reader.primary);
 }
 
 /** The whole mapping, in one place.
@@ -86,6 +103,7 @@ export function whoseOf(event: GoogleEvent, reader: Reader): { createdByMe: bool
  *  computed without it. */
 export function mapEvent(event: GoogleEvent, calendarExternalId: string, reader?: Reader): MappedEvent {
   const whose = reader ? whoseOf(event, reader) : { createdByMe: null, invitedMe: null };
+  const organizerIsMe = organizedByReader(event, reader);
   return {
     ...whose,
     sourceRef: sourceRefFor(calendarExternalId, event.externalId),
@@ -96,9 +114,9 @@ export function mapEvent(event: GoogleEvent, calendarExternalId: string, reader?
     timezone: event.timezone,
     location: event.location,
     seriesRef: event.seriesId,
-    organizerIsMe: event.organizedByMe,
-    untrusted: isUntrusted(event),
-    attendees: minimiseAttendees(event.attendees, event.organizedByMe),
+    organizerIsMe,
+    untrusted: isUntrusted({ ...event, organizedByMe: organizerIsMe }),
+    attendees: minimiseAttendees(event.attendees, organizerIsMe),
     link: event.link,
   };
 }

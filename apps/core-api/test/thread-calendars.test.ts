@@ -456,6 +456,29 @@ describe("027 tweak: whether the viewer is in an event", () => {
   });
 });
 
+describe("027 tweak: the viewer's own copy of a calendar two members connect", () => {
+  it("reads the viewer's own copy, so their own event is never not theirs", async () => {
+    const me = await account();
+    const other = await account("Tom Reilly");
+    const t = await thread(me);
+    await join(other, t);
+    const external = `cal-${uuidv7()}`;
+    const mine = await calendar(await connection(me), { summary: "Family", externalId: external });
+    const theirs = await calendar(await connection(other), { summary: "Family", externalId: external });
+    await pick(t, mine, me);
+    await pick(t, theirs, other);
+    const ref = `${external}:evt-1`;
+    await event(other, theirs, "My run", "2026-09-22T07:00:00Z", { sourceRef: ref, createdByMe: false });
+    await event(me, mine, "My run", "2026-09-22T07:00:00Z", { sourceRef: ref, createdByMe: true });
+    for (let i = 0; i < 3; i += 1) {
+      const body = (await get(`/v1/threads/${t}/events?from=2026-09-21&to=2026-09-27`, await signIn(me))).json() as {
+        events: Array<{ title: string; involved: boolean; untrusted: boolean }>;
+      };
+      expect(body.events.map((e) => [e.title, e.involved, e.untrusted])).toEqual([["My run", true, false]]);
+    }
+  });
+});
+
 describe("AC-10 the agent's scope", () => {
   it("in a thread, reads through its picks; from Today, every approved calendar", async () => {
     const me = await account();

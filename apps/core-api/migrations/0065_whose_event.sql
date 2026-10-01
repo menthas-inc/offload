@@ -9,4 +9,5 @@ alter table connector_events add column created_by_me boolean;
 alter table connector_events add column invited_me boolean;
 
 -- Every synced event has neither; the next pass reads each calendar whole.
-update connector_calendars set sync_token = null;
+update connector_calendars set sync_token = null
+  where connection_id in (select id from connector_connections where state = 'active' and deleted_at is null);
