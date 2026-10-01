@@ -366,8 +366,10 @@ async function sharedThreads(a: string, b: string, trx: Executor) {
     .execute();
 }
 
-export async function people(accountId: string): Promise<PeoplePage> {
-  const cards = await db
+/** Requests waiting for this account's answer, newest first: the People
+ *  page's top section and 027's Needs you. */
+export async function requestsFor(accountId: string, trx: Executor = db): Promise<RequestCard[]> {
+  const rows = await trx
     .selectFrom("connection_requests")
     .innerJoin("accounts", "accounts.id", "connection_requests.from_account_id")
     .select(["connection_requests.id as id", "connection_requests.created_at as since", "accounts.id as accountId", "accounts.display_name as display_name"])
@@ -381,6 +383,11 @@ export async function people(accountId: string): Promise<PeoplePage> {
     .where("accounts.deleted_at", "is", null)
     .orderBy("connection_requests.created_at", "desc")
     .execute();
+  return rows.map((row) => ({ ...personOf({ id: row.accountId, display_name: row.display_name }), id: row.id, since: row.since }));
+}
+
+export async function people(accountId: string): Promise<PeoplePage> {
+  const requestsForYou = await requestsFor(accountId);
 
   const connectionRows = await db
     .selectFrom("connections")
@@ -448,7 +455,7 @@ export async function people(accountId: string): Promise<PeoplePage> {
     .execute();
 
   return {
-    requestsForYou: cards.map((row) => ({ ...personOf({ id: row.accountId, display_name: row.display_name }), id: row.id, since: row.since })),
+    requestsForYou,
     connections,
     pending: pending.map((row) => ({ ...personOf({ id: row.accountId, display_name: row.display_name }), id: row.id, since: row.since })),
     blocked: blocked.map(personOf),

@@ -36,7 +36,8 @@ import {
   View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
+import { useRouter } from "expo-router";
 import Animated, {
   ReduceMotion,
   interpolateColor,
@@ -47,7 +48,8 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
-import { DateChip } from "./DateChip";
+import { DateChip, HourChip } from "./DateChip";
+import { ThreadPill } from "./ThreadPill";
 import { PhotoThumb } from "./PhotoThumb";
 import { useColors } from "../../lib/colors";
 import { domainOf, isFiling, isProvisional, rowTap, type ContentRow } from "../../lib/threads";
@@ -119,6 +121,22 @@ interface Props {
   handleSpace?: boolean | undefined;
   /** 020. A photo row's tile opens the viewer; the row itself opens as a row. */
   onOpenPhoto?: (() => void) | undefined;
+  /** 027. Today: the row's thread, drawn as the thread pill on the marks
+   *  line after the chip and before `metaMarks`, in place of `meta`. */
+  thread?: { id: string; name: string } | undefined;
+  /** 027. Which chip leads the marks line: the date chip (the default), the
+   *  hour with a clock for a row with a time on its day, or none for a row
+   *  due that day with no hour. */
+  chip?: "date" | "time" | "none" | undefined;
+  /** 027. A control at the trailing edge, centred on the title line: Today's
+   *  + Today pill on a pick. */
+  trailing?: ReactNode;
+  /** 027. The ground the row paints under its swipe, when it sits on a card
+   *  rather than on the page. */
+  ground?: string | undefined;
+  /** 027. Today's card: tighter at the sides and around the checkbox, so a
+   *  title has the width (the kit's 14px sides and 8px gap). */
+  dense?: boolean | undefined;
 }
 
 export function ContentRowView({
@@ -135,8 +153,14 @@ export function ContentRowView({
   metaMarks,
   reorder,
   handleSpace,
+  thread,
+  chip = "date",
+  trailing,
+  ground,
+  dense,
 }: Props) {
   const COLOR = useColors();
+  const router = useRouter();
   // 025. The thread's labels, from the screen that holds the thread, and the
   // marks this row carries. Absent on Today, which passes `metaMarks`.
   const threadLabels = useRowLabels();
@@ -244,7 +268,7 @@ export function ContentRowView({
     backgroundColor:
       lifted.value === 1
         ? COLOR.raised
-        : interpolateColor(mark.value, [0, 1], [COLOR.page, COLOR.accentSoft]),
+        : interpolateColor(mark.value, [0, 1], [ground ?? COLOR.page, COLOR.accentSoft]),
     shadowColor: COLOR.shadowLift.color,
     shadowOffset: { width: 0, height: COLOR.shadowLift.offsetY },
     shadowRadius: COLOR.shadowLift.radius,
@@ -295,7 +319,7 @@ export function ContentRowView({
           // the body under the title read as the row's detail. Centred on
           // the whole row, a checkbox beside a three-line row floated
           // between lines that were not its own.
-          className={`flex-row items-start gap-space-5 px-gutter-screen py-space-4 ${
+          className={`flex-row items-start ${dense ? "gap-space-4 px-space-5" : "gap-space-5 px-gutter-screen"} py-space-4 ${
             border ? "border-b border-border-hairline" : ""
           }`}
         >
@@ -329,7 +353,7 @@ export function ContentRowView({
             // Not beside a handle: To do is all tasks, so there is nothing to
             // line up with, and grip, slot and gap together pushed the title
             // half an inch in (2026-09-29).
-            <View className="items-center" style={{ width: reorder || handleSpace ? 21 : 36 }}>
+            <View className="items-center" style={{ width: reorder || handleSpace || dense ? 21 : 36 }}>
               <Pressable
                 onPress={onToggle}
                 disabled={provisional}
@@ -424,6 +448,16 @@ export function ContentRowView({
             accessibilityRole={door ? "link" : "button"}
             accessibilityLabel={door ? `Open ${domain ?? row.title}` : undefined}
             accessibilityHint={door ? undefined : row.canDelete ? "Edit, label or delete" : "Actions"}
+            // 027. The thread pill inside is unreachable to a screen reader
+            // once the row is one element, so the row carries it as an action.
+            {...(thread
+              ? {
+                  accessibilityActions: [{ name: "openThread", label: `Open ${thread.name}` }],
+                  onAccessibilityAction: (event: { nativeEvent: { actionName: string } }) => {
+                    if (event.nativeEvent.actionName === "openThread") router.push({ pathname: "/threads/[id]", params: { id: thread.id } });
+                  },
+                }
+              : {})}
           >
             {/* 023, moved on 2026-09-26. The date chip sits on its own line
                 under the title, above the meta. It trailed the title on one
@@ -456,7 +490,20 @@ export function ContentRowView({
                   wrapping. A row with neither draws nothing. Chips of a
                   fixed size wrap on Yoga, which a growing title beside a
                   chip did not. */}
-              {marks.length > 0 ? (
+              {thread ? (
+                // 027. Today's marks line: the chip it asked for, the
+                // thread, then the labels the row carries there.
+                <View className="flex-row flex-wrap items-center gap-space-2">
+                  {chip === "date" ? <DateChip row={row} isReminder={row.isReminder} /> : null}
+                  {chip === "time" ? <HourChip row={row} /> : null}
+                  <ThreadPill id={thread.id} name={thread.name} size={24} />
+                  {(metaMarks ?? []).map((label) => (
+                    <LabelMark key={label.id} color={label.colour}>
+                      {label.name}
+                    </LabelMark>
+                  ))}
+                </View>
+              ) : marks.length > 0 ? (
                 <View className="flex-row flex-wrap items-center gap-space-2">
                   <DateChip row={row} isReminder={row.isReminder} />
                   {marks.map((label) => (
@@ -469,7 +516,7 @@ export function ContentRowView({
                 <DateChip row={row} isReminder={row.isReminder} />
               )}
             </View>
-            {meta ? (
+            {meta && !thread ? (
               <View className="mt-space-1 flex-row flex-wrap items-center gap-space-2">
                 <Text
                   className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
@@ -527,6 +574,8 @@ export function ContentRowView({
               </Pressable>
             ) : null}
           </Pressable>
+
+          {trailing ? <View style={{ marginTop: (TITLE_LINE - 44) / 2 }}>{trailing}</View> : null}
 
           {isFiling(row.filingAt) ? (
             <ActivityIndicator

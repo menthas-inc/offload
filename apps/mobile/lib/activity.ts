@@ -5,7 +5,7 @@
 // re-rendered. What each row opens, and which glyph and tag it carries, is
 // decided here once so the screen only draws.
 
-import { activityGlyph, activityTag, type ActivityKind, type ActivityReason } from "@offload/widgets";
+import { activityGlyph, activityTag, addUtcDays, dayIn, type ActivityKind, type ActivityReason } from "@offload/widgets";
 import { fetchActivity, markActivitySeen, send } from "./api";
 
 export type { ActivityKind };
@@ -52,18 +52,25 @@ export const glyphOf = activityGlyph;
 export const tagOf = activityTag;
 
 export type Door =
-  | { pathname: "/today" }
+  | { pathname: "/today"; params?: { day: string } }
   | { pathname: "/settings/notifications" }
   | { pathname: "/settings/people" }
   | { pathname: "/invitations/[memberId]"; params: { memberId: string } }
   | { pathname: "/threads/[id]"; params: { id: string } }
-  | { pathname: "/today" }
+  | { pathname: "/today"; params?: { day: string } }
   | { pathname: "/settings/[page]"; params: { page: "mail" } };
 
 /** Where a row goes, or null for a row that is the record and nothing more.
  *  A digest's words are what was said, not what is true now; its door is
  *  Today, which is. */
-export function doorOf(row: ActivityEntry): Door | null {
+/** 027. Where the person is now: an evening digest opens on the day it
+ *  named while that day is still ahead. */
+export interface DoorContext {
+  today: string;
+  zone: string | null;
+}
+
+export function doorOf(row: ActivityEntry, at?: DoorContext): Door | null {
   // 026. An email's row opens the thread it filed into, or Today, where the
   // conversation holding the email is; a refused email opens the Mail page,
   // which names the one address that works.
@@ -76,8 +83,11 @@ export function doorOf(row: ActivityEntry): Door | null {
   if (!row.sent && row.reason !== "design") return { pathname: "/settings/notifications" };
   switch (row.kind) {
     // 2026-09-30: a digest opens Today, as its notification does.
-    case "digest":
-      return { pathname: "/today" };
+    case "digest": {
+      // 027. The evening send named the day after it went out.
+      const named = row.send === "evening" && at ? addUtcDays(dayIn(new Date(row.occurredAt), at.zone), 1) : null;
+      return named && named > at!.today ? { pathname: "/today", params: { day: named } } : { pathname: "/today" };
+    }
     case "request":
       return { pathname: "/settings/people" };
     case "share":

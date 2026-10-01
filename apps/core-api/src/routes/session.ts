@@ -4,6 +4,7 @@
 // render anything: the current account, the address a refused sign-in used,
 // and the write that ends onboarding.
 
+import { layoutShape, resolveLayout, todayLayout } from "../today/layout.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { sql } from "kysely";
@@ -123,6 +124,8 @@ const meResponse = z.object({
    *  account: false for an Apple private relay address, which is never the
    *  address mail comes from. */
   mailAvailable: z.boolean(),
+  /** 027. Customize Today's layout, resolved: every kind present, in order. */
+  todayLayout: layoutShape,
 });
 
 /** 024. An hour as the page sends it, HH:MM, twenty-four hour. */
@@ -249,6 +252,7 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
       "notify_coming_tomorrow_at",
       "notify_people_requests",
       "notify_shared_activity",
+      "today_layout",
     ])
     .where("id", "=", accountId)
     .where("deleted_at", "is", null)
@@ -289,6 +293,7 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
     notifySharedActivity: account.notify_shared_activity,
     activityNew: await activityNew(accountId),
     mailAvailable: !/@privaterelay\.appleid\.com$/i.test(account.email),
+    todayLayout: resolveLayout(account.today_layout),
   };
 }
 
@@ -352,6 +357,8 @@ export async function sessionRoutes(app: App): Promise<void> {
           notifyComingTomorrowAt: z.string().regex(HOUR, "not an hour").optional(),
           notifyPeopleRequests: z.boolean().optional(),
           notifySharedActivity: z.boolean().optional(),
+          /** 027. The whole document, refused as a 400 unless it parses. */
+          todayLayout: todayLayout.optional(),
         }),
         response: { 200: meResponse, 401: unauthenticated },
       },
@@ -367,6 +374,7 @@ export async function sessionRoutes(app: App): Promise<void> {
       const {
         displayName, webSearch, webLinks, calendarAskFirst, country, timeZone, followDevice, keptTimeZone,
         notifyDueToday, notifyDueTodayAt, notifyComingTomorrow, notifyComingTomorrowAt, notifyPeopleRequests, notifySharedActivity,
+        todayLayout: layout,
       } = request.body;
       // Stored as ICU resolves the name, never as sent: the schema above has
       // already refused anything ICU does not know.
@@ -389,6 +397,7 @@ export async function sessionRoutes(app: App): Promise<void> {
           ...(notifyComingTomorrowAt !== undefined ? { notify_coming_tomorrow_at: notifyComingTomorrowAt } : {}),
           ...(notifyPeopleRequests !== undefined ? { notify_people_requests: notifyPeopleRequests } : {}),
           ...(notifySharedActivity !== undefined ? { notify_shared_activity: notifySharedActivity } : {}),
+          ...(layout !== undefined ? { today_layout: JSON.stringify(layout) } : {}),
           updated_at: new Date(),
         })
         .where("id", "=", accountId)

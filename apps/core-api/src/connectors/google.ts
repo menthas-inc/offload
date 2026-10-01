@@ -12,6 +12,7 @@
 // whether a write is put to the person first, and nothing else about the list
 // is kept anywhere.
 
+import { GOOGLE_EVENT_LINK } from "@offload/widgets";
 import { env } from "../env.js";
 
 export const SCOPES = [
@@ -238,6 +239,17 @@ export interface GoogleEvent {
    *  invitation is. Absent reads as not-yours, which fails closed. */
   organizedByMe: boolean;
   attendees: Array<{ name: string | null; email: string | null; response: string | null }>;
+  /** 027. Google's own link to the event, or null when it is not one. */
+  link: string | null;
+}
+
+/** 027. **Kept only when it is https on a Google host**, because the event can
+ *  be a stranger's invitation and Today hands this to the platform to open.
+ *  The column checks the same pattern, so a path that skipped this still
+ *  cannot store anything else. */
+export function eventLink(value: unknown): string | null {
+  if (typeof value !== "string" || value.length > 2048) return null;
+  return GOOGLE_EVENT_LINK.test(value) ? value : null;
 }
 
 function whenOf(slot: Record<string, unknown> | undefined): { at: Date | null; allDay: boolean; tz: string | null } {
@@ -315,6 +327,7 @@ export async function listEvents(
           email: typeof a["email"] === "string" ? a["email"] : null,
           response: typeof a["responseStatus"] === "string" ? a["responseStatus"] : null,
         })),
+        link: eventLink(item["htmlLink"]),
       });
     }
 

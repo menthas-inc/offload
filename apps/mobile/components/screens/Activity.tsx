@@ -105,7 +105,7 @@ export default function Activity() {
             const here = sectionOf(row.occurredAt, today, yesterday, dayOf);
             const heading = here !== section;
             section = here;
-            const door = doorOf(row);
+            const door = doorOf(row, { today, zone });
             const tag = tagOf(row);
             const body = (
               <View className="flex-row items-start gap-space-4 py-space-3">
@@ -162,7 +162,7 @@ export default function Activity() {
                       <Pressable
                         // A tab is gone back down to, never pushed on top,
                         // as the plate's own tabs do.
-                        onPress={() => (door.pathname === "/today" ? router.dismissTo("/today") : router.push(door as never))}
+                        onPress={() => (door.pathname === "/today" ? router.dismissTo(door as never) : router.push(door as never))}
                         accessibilityRole="button"
                         className="min-h-tap-min"
                       >

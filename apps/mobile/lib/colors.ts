@@ -42,6 +42,9 @@ export interface Colors {
    *  warm and a true black scrim reads cold against it. Opacity is applied at
    *  the call site so this stays a token rather than a computed literal. */
   scrim: string;
+  /** 027. `--surface-scrim`'s own alpha in this theme, 0.35 light and 0.55
+   *  dark, read from the token rather than typed. */
+  scrimOpacity: number;
   /** The ground a row sits on, which the change mark fades back to. */
   page: string;
   /** Clay. The one destructive action in a sheet, at most. */
@@ -88,6 +91,9 @@ export interface Colors {
   borderAttention: string;
   hairline: string;
   sunken: string;
+  /** 027. The ground a card of rows sits on: `--surface-fill`, and the
+   *  Android twin's `a-c-low`. Today's To do rows paint it under their swipe. */
+  fill: string;
   /** White, in both themes, because the fill it sits on is blue in both and
    *  does not flip. `onSolid` does flip, which is how a near-black number ends
    *  up on blue. */
@@ -143,6 +149,7 @@ export function paletteFor(dark: boolean): Colors {
     // receded page sat on a white ground under light status bar text. A dim is
     // a dim on either ground, as `--surface-scrim` is in both scopes.
     scrim: light["ink-950"]!,
+    scrimOpacity: alphaOf(base["surface-scrim"]),
     page: isAndroid ? m3["a-surface"]! : base["surface-page"] ?? light["surface-page"]!,
     danger: base["text-danger"] ?? light["text-danger"]!,
     ink: base["text-primary"] ?? light["text-primary"]!,
@@ -155,6 +162,7 @@ export function paletteFor(dark: boolean): Colors {
     borderAttention: base["border-attention"] ?? light["border-attention"]!,
     hairline: base["border-hairline"] ?? light["border-hairline"]!,
     sunken: base["surface-sunken"] ?? light["surface-sunken"]!,
+    fill: isAndroid ? m3["a-c-low"]! : base["surface-fill"] ?? light["surface-fill"]!,
     onAttention: base["text-on-solid"] ?? light["text-on-solid"]!,
     // The rail's two tiers, 14 September. `raised` and `lift` are the lift; the
     // two dot colours are text aliases rather than the fill aliases they were,
@@ -207,8 +215,11 @@ export function useColors(): Colors {
  *  that runs before or outside React. */
 export const COLOR = LIGHT;
 
-/** `--surface-scrim` is ink at this opacity; the soft one is half of it. */
-export const SCRIM_OPACITY = 0.32;
+/** The alpha of an `rgba()` token. A token with none is opaque. */
+function alphaOf(value: string | undefined): number {
+  const alpha = /^rgba\([^)]*,\s*([\d.]+)\s*\)$/.exec(value?.trim() ?? "")?.[1];
+  return alpha === undefined ? 1 : Number(alpha);
+}
 
 /** A colour at an opacity, as one colour rather than a colour and an opacity.
  *

@@ -29,6 +29,11 @@ interface Props {
    *  one before it is fixed, which is what makes a third push the first out
    *  rather than squeezing all three. */
   panes: React.ReactNode[];
+  /** 027. What the crumb bar holds at its right: Today's date. */
+  aside?: React.ReactNode;
+  /** 027. Every pane, whichever way you came: Customize Today is opened from
+   *  the pane beside it, not walked into. */
+  together?: boolean;
 }
 
 /** Where a navigation came from.
@@ -43,7 +48,7 @@ interface Props {
  *  looking at rather than collapsing it under you. */
 export const FROM = "from";
 
-export function Panes({ crumbs, panes }: Props) {
+export function Panes({ crumbs, panes, aside, together = false }: Props) {
   const search = useSearchParams();
   const full = search.get(FULL) === "1";
   const arrived = search.get(FROM) !== null;
@@ -53,7 +58,7 @@ export function Panes({ crumbs, panes }: Props) {
   // One pane unless you walked here, and one pane when you asked for full.
   // The trail stays in both cases: it is what says where this sits, and losing
   // it would make a direct link a dead end.
-  const shown = full || !arrived ? panes.slice(-1) : panes;
+  const shown = together ? panes : full || !arrived ? panes.slice(-1) : panes;
   const offset = panes.length - shown.length;
 
   return (
@@ -86,6 +91,8 @@ export function Panes({ crumbs, panes }: Props) {
             </span>
           ))}
         </span>
+
+        {aside ? <span className={styles.crumbTools}>{aside}</span> : null}
       </div>
 
       <div className={styles.paneRow}>

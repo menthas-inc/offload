@@ -23,6 +23,7 @@
 // rather than answering it, and without a mark a borderless chip beside
 // bordered ones reads as a value whose border failed to draw.
 
+import type { ReactNode } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
@@ -51,12 +52,15 @@ export function QuickReplies({
   label,
   onPick,
   disabled = false,
+  trailing,
 }: {
   options: QuickReplyOption[];
   /** The sentence that asked, read as each chip's hint. */
   label: string;
   onPick: (index: number) => void;
   disabled?: boolean;
+  /** 027. A control at the end of the way-out line: Today's clock. */
+  trailing?: ReactNode;
 }) {
   const COLOR = useColors();
   if (options.length === 0) return null;
@@ -133,8 +137,11 @@ export function QuickReplies({
   return (
     <View className="gap-space-4">
       <View className="flex-row flex-wrap items-center gap-space-4">{values.map(reply)}</View>
-      {ways.length > 0 ? (
-        <View className="flex-row flex-wrap items-center gap-space-4">{ways.map(reply)}</View>
+      {ways.length > 0 || trailing ? (
+        <View className="flex-row flex-wrap items-center gap-space-4">
+          {ways.map(reply)}
+          {trailing ? <View className="ml-auto">{trailing}</View> : null}
+        </View>
       ) : null}
     </View>
   );

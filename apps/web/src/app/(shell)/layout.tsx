@@ -63,7 +63,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   }, [pathname, loadThreads]);
 
   if (state.status === "loading") return <div className={styles.shell} />;
-  if (state.status === "unreachable") return <Unanswered retry={state.retry} />;
+  if (state.status === "unreachable") return <Unanswered retry={state.retry} attempt={state.attempt} retryAfter={state.retryAfter} />;
 
   const threads = groups.flatMap((group) => group.threads);
 
