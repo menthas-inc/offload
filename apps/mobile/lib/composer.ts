@@ -35,3 +35,14 @@ export const PLACEHOLDERS = [
   "Where it goes is on me",
   "Give it to me",
 ];
+
+/** The day's limit, in the field's place. Once the day's model budget is spent
+ *  or its turns are used (core-api budget.ts), a dump can only be refused, so
+ *  the field is not offered. The refusal's own words and when it comes back;
+ *  the limit is a rolling day, so tomorrow is never later than true. */
+export const DAY_USED = "Enough for today. Back tomorrow.";
+
+/** Closed when the account said so on load, or a send was refused for it. */
+export function closedForTheDay(me: { atDailyLimit: boolean } | null, refused: boolean): boolean {
+  return refused || Boolean(me?.atDailyLimit);
+}

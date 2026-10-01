@@ -88,6 +88,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         <div className={styles.main}>
           {children}
           <Composer
+            atDailyLimit={state.me.atDailyLimit}
             inThread={inThread ? { id: inThread.id, name: inThread.name } : null}
             onFiled={(threadIds) => {
               void loadThreads();

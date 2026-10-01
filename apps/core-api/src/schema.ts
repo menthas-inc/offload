@@ -587,6 +587,9 @@ export interface LlmUsageTable {
   input_tokens: Generated<number>;
   output_tokens: Generated<number>;
   cache_read_tokens: Generated<number>;
+  /** 0067. Priced apart from input, which excludes it. */
+  cache_write_tokens: Generated<number>;
+  /** Priced by core-api from the tokens (src/pricing.ts), never by the caller. */
   cost_micros: Generated<number>;
   latency_ms: Generated<number>;
   created_at: Timestamp;

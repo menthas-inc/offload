@@ -16,12 +16,16 @@ from __future__ import annotations
 import asyncio
 import base64
 import io
+import time
 
 import structlog
 from PIL import Image, ImageOps
 from pydantic import BaseModel, Field, ValidationError
 
-from offload_agent import renditions  # noqa: F401  (its pixel bound applies to every open)
+from offload_agent import (
+    ledger,
+    renditions,  # noqa: F401  (its pixel bound applies to every open)
+)
 from offload_agent.harness.tools import _schema_for
 
 log = structlog.get_logger()
@@ -97,6 +101,7 @@ async def look(client, model: str, originals: list[bytes]) -> list[int]:
     messages: list[dict] = [{"role": "user", "content": content}]
 
     for attempt in range(2):
+        started = time.monotonic()
         response = await client.messages.create(
             model=model,
             max_tokens=512,
@@ -111,6 +116,7 @@ async def look(client, model: str, originals: list[bytes]) -> list[int]:
             ],
             tool_choice={"type": "tool", "name": "decide"},
         )
+        ledger.record(ledger.usage_of(model, response.usage, started))
         block = next((b for b in response.content if b.type == "tool_use"), None)
         try:
             answer = LookAnswer.model_validate(block.input if block else {})

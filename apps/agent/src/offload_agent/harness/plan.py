@@ -34,6 +34,7 @@ import structlog
 from anthropic import AsyncAnthropic
 from pydantic import BaseModel, ValidationError
 
+from offload_agent import ledger
 from offload_agent.context import AnswerContext, DumpContext, QuickAddContext, clock_line
 from offload_agent.countries import name_of
 from offload_agent.harness.tools import (
@@ -171,6 +172,21 @@ class Usage:
     output_tokens: int
     cache_read_tokens: int
     latency_ms: int
+    #: Counted apart from input, which excludes it, and priced at a quarter
+    #: more than input by core-api.
+    cache_write_tokens: int = 0
+
+    @classmethod
+    def of(cls, model: str, usage, started: float) -> "Usage":
+        wire = ledger.usage_of(model, usage, started)
+        return cls(
+            model=model,
+            input_tokens=wire["inputTokens"],
+            output_tokens=wire["outputTokens"],
+            cache_read_tokens=wire["cacheReadTokens"],
+            cache_write_tokens=wire["cacheWriteTokens"],
+            latency_ms=wire["latencyMs"],
+        )
 
 
 @dataclass(frozen=True)
@@ -743,6 +759,23 @@ async def plan_quick_add(
     )
 
 
+def _cache_so_far(messages: list[dict]) -> list[dict]:
+    """The conversation as sent, its last block marked for the cache.
+
+    A turn is several calls and each re-sends everything before it: the dump,
+    the context, the photos, the tool results so far. Only the system prompt
+    was cached, so that was full price on every call, most of a filing turn's
+    bill. Marked here, the next call reads it at a tenth. A copy, so the mark
+    moves forward with the turn rather than accumulating on the history: the
+    API allows four and the system prompt holds one. Measured on the cost
+    sheet as about a quarter off a filing turn, 2026-10-02.
+    """
+    *earlier, last = messages
+    blocks = list(last["content"])
+    blocks[-1] = {**blocks[-1], "cache_control": {"type": "ephemeral"}}
+    return [*earlier, {**last, "content": blocks}]
+
+
 async def _run(
     client: AsyncAnthropic,
     model: str,
@@ -770,7 +803,7 @@ async def _run(
             # that repeats across every dump from every account.
             system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
             tools=tools,
-            messages=messages,
+            messages=_cache_so_far(messages),
         )
 
         # **A turn that ran out of room is asked again with more, once.** The
@@ -782,15 +815,7 @@ async def _run(
         # a photo it had read perfectly well. Only used tokens are billed, so
         # the retry costs what the retry uses.
         if response.stop_reason == "max_tokens":
-            outcome.usage.append(
-                Usage(
-                    model=model,
-                    input_tokens=response.usage.input_tokens,
-                    output_tokens=response.usage.output_tokens,
-                    cache_read_tokens=getattr(response.usage, "cache_read_input_tokens", 0) or 0,
-                    latency_ms=int((time.monotonic() - started) * 1000),
-                )
-            )
+            outcome.usage.append(Usage.of(model, response.usage, started))
             if max_tokens < MAX_OUTPUT_TOKENS_RETRY:
                 log.info("model ran out of room, asking again", max_tokens=max_tokens)
                 max_tokens = MAX_OUTPUT_TOKENS_RETRY
@@ -800,15 +825,7 @@ async def _run(
 
         # Every call, not just the first. A turn that used three calls and
         # billed one understates every turn that used a tool (AC-20).
-        outcome.usage.append(
-            Usage(
-                model=model,
-                input_tokens=response.usage.input_tokens,
-                output_tokens=response.usage.output_tokens,
-                cache_read_tokens=getattr(response.usage, "cache_read_input_tokens", 0) or 0,
-                latency_ms=int((time.monotonic() - started) * 1000),
-            )
-        )
+        outcome.usage.append(Usage.of(model, response.usage, started))
 
         # stop_reason, not the presence of text: a response can carry both a
         # paragraph and a tool call, and reading the text would end the turn
@@ -1081,6 +1098,7 @@ async def classify(client: AsyncAnthropic, text: str, model: str) -> Question:
     wrong call files rather than loses: the worst case is a row somebody
     archives, never a note that went nowhere.
     """
+    started = time.monotonic()
     response = await client.messages.create(
         model=model,
         max_tokens=64,
@@ -1095,6 +1113,7 @@ async def classify(client: AsyncAnthropic, text: str, model: str) -> Question:
         ],
         tool_choice={"type": "tool", "name": "decide"},
     )
+    ledger.record(ledger.usage_of(model, response.usage, started))
     for block in response.content:
         if block.type == "tool_use":
             try:
@@ -1188,6 +1207,7 @@ async def judge_answer(
         f"Option values: {values}\nToday: {today or 'unknown'}\n\n"
         f"Their message:\n{text}"
     )
+    started = time.monotonic()
     response = await client.messages.create(
         model=model,
         max_tokens=128,
@@ -1202,6 +1222,7 @@ async def judge_answer(
         ],
         tool_choice={"type": "tool", "name": "answer"},
     )
+    ledger.record(ledger.usage_of(model, response.usage, started))
     for block in response.content:
         if block.type == "tool_use":
             try:

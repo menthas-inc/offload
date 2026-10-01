@@ -123,19 +123,30 @@ CONCURRENCY = 10
 COUNTRY = "PT"
 
 #: Dollars per million tokens, input and output, from stack.md. A cache read
-#: is a tenth of input. Used to price a run so the number is measured rather
-#: than guessed at.
+#: is a tenth of input and a cache write a quarter more than it. Used to price
+#: a run so the number is measured rather than guessed at.
 PRICES = {
     "claude-opus-5": (5.0, 25.0),
+    "claude-opus-5-5": (4.0, 20.0),
     "claude-sonnet-5": (2.0, 10.0),
     "claude-haiku-4-5": (1.0, 5.0),
 }
 
 
-def _cost(model: str, input_tokens: int, output_tokens: int, cache_read: int = 0) -> float:
+#: A cache read as a share of input: a tenth, except Opus 5.5's twentieth.
+CACHE_READ_SHARE = {"claude-opus-5-5": 0.05}
+
+
+def _cost(
+    model: str, input_tokens: int, output_tokens: int, cache_read: int = 0, cache_write: int = 0
+) -> float:
+    """Anthropic's input count excludes both cache counts, so nothing is
+    subtracted from it; until 2026-10-02 a cache read was, and every run with a
+    warm prefix was priced low."""
     price_in, price_out = PRICES.get(model, (5.0, 25.0))
-    uncached = max(0, input_tokens - cache_read)
-    return (uncached * price_in + cache_read * price_in / 10 + output_tokens * price_out) / 1e6
+    read_share = CACHE_READ_SHARE.get(model, 0.1)
+    cached = cache_read * price_in * read_share + cache_write * price_in * 1.25
+    return (input_tokens * price_in + cached + output_tokens * price_out) / 1e6
 
 
 TODAY = "Friday 11 September 2026"
@@ -1161,12 +1172,13 @@ def _usage_cost(response: Any, model: str) -> float:
         getattr(usage, "input_tokens", 0) or 0,
         getattr(usage, "output_tokens", 0) or 0,
         getattr(usage, "cache_read_input_tokens", 0) or 0,
+        getattr(usage, "cache_creation_input_tokens", 0) or 0,
     )
 
 
 def _outcome_cost(outcome: Any) -> float:
     return sum(
-        _cost(u.model, u.input_tokens, u.output_tokens, u.cache_read_tokens)
+        _cost(u.model, u.input_tokens, u.output_tokens, u.cache_read_tokens, u.cache_write_tokens)
         for u in getattr(outcome, "usage", [])
     )
 

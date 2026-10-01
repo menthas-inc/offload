@@ -81,8 +81,14 @@ def test_the_us_host_raises_even_if_the_constant_is_changed(monkeypatch):
 
 def test_the_request_carries_the_declared_keys_and_nothing_else(monkeypatch):
     body = _submit_body("https://cdn.example/x")
-    assert set(body) == SUBMIT_KEYS == {"audio_url", "language_detection", "audio_end_at"}
+    declared = {"audio_url", "language_detection", "audio_end_at", "speech_models"}
+    assert set(body) == SUBMIT_KEYS == declared
     assert body["audio_end_at"] == 600_000
+    # Pinned rather than left to the vendor's default, which moved to a dearer
+    # model (Universal-3.5 Pro, $0.21 an hour, 18 languages) without a change
+    # here. Universal-2 is $0.15 an hour across 99 languages, and the price the
+    # ledger charges for a second of audio.
+    assert body["speech_models"] == ["universal-2"]
     assert body["language_detection"] is True
     # A key the vendor stopped declaring fails before a request is built.
     monkeypatch.setattr(transcribe, "SUBMIT_KEYS", frozenset({"audio_url"}))
@@ -150,6 +156,7 @@ async def test_submit_then_poll_returns_the_words_the_measurement_and_the_cost(m
             {
                 "audio_url": "https://cdn.eu.assemblyai.com/u/1",
                 "language_detection": True,
+                "speech_models": ["universal-2"],
                 "audio_end_at": 600_000,
             }
         ]

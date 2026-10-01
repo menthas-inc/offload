@@ -24,6 +24,8 @@ and is not committed.
 | 2026-10-02 00:07 | file-question-only-violence | 1 | 0/1 (0%) | $0.00 | `claude-sonnet-5` | `974dd859` | `6228452` | diagnosis: stop reason on a silent turn |
 | 2026-10-02 00:07 | single-letter | 1 | 0/1 (0%) | $0.01 | `claude-sonnet-5` | `974dd859` | `6228452` | diagnosis: stop reason on a silent turn |
 | 2026-10-02 00:20 | all | 1 | 498/516 (96%) | $6.41 | `claude-sonnet-5` | `6335e11e` | `6228452` | after: refusal and failure handling in the loop, stub and matcher fixes, four case corrections, prompt fixes across filing, answering, judge, quick add and compaction |
+| 2026-10-02 02:52 | answer | 1 | 98/112 (88%) | $1.92 | `claude-sonnet-5` | `04a2d8af` | `ec2b061` | Opus 5.5 for answering, with the conversation cached inside a turn |
+| 2026-10-02 02:54 | answer | 1 | 109/112 (97%) | $2.74 | `claude-sonnet-5` | `04a2d8af` | `ec2b061` | Opus 5 on the same answering cases, the comparison for the Opus 5.5 switch |
 
 ## Full runs by principle
 
