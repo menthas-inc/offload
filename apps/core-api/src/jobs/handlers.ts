@@ -15,6 +15,7 @@ import { env } from "../env.js";
 import { scheduleFullSyncs, scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
 import { enqueue, PRIORITY, scheduleDaily, scheduleHourly } from "./queue.js";
 import { purgeActivity } from "../notifications/activity.js";
+import { forgetPendingWrites } from "../connectors/tool-calls.js";
 import { LABEL_SORT_MIN_ROWS, purgeLabelRuns, purgeLabels } from "../threads/labels.js";
 import { runDigest, scheduleDigests, readReceipts, type Send } from "../notifications/digest.js";
 import { notifyPerson, notifySharedActivity } from "../notifications/people.js";
@@ -395,6 +396,8 @@ const jobsPurge: Handler = async () => {
   // 025. A deleted label and a sort's record keep the same thirty.
   await purgeLabels();
   await purgeLabelRuns();
+  // 027. A calendar proposal nobody can answer any more.
+  const proposals = await forgetPendingWrites();
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const result = await db
     .deleteFrom("jobs")
@@ -433,6 +436,7 @@ const jobsPurge: Handler = async () => {
       lookups: Number(lookups.numDeletedRows ?? 0),
       sessions: Number(sessions.numDeletedRows ?? 0),
       verifications: Number(verifications.numDeletedRows ?? 0),
+      proposals,
     })
   );
 };

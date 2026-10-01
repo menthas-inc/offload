@@ -103,7 +103,7 @@ export async function calendarEvent(
   cal: { id: string; external: string },
   title: string,
   at: string,
-  over: { end?: string | null; allDay?: boolean; sourceRef?: string; link?: string | null } = {},
+  over: { end?: string | null; allDay?: boolean; sourceRef?: string; link?: string | null; createdByMe?: boolean | null; invitedMe?: boolean | null } = {},
 ): Promise<string> {
   const row = await db
     .insertInto("connector_events")
@@ -116,8 +116,9 @@ export async function calendarEvent(
       occurs_end_at: over.end === null ? null : new Date(over.end ?? new Date(new Date(at).getTime() + 3600_000).toISOString()),
       all_day: over.allDay ?? false,
       untrusted: false,
-      attendees: "[]",
       link: over.link === undefined ? null : over.link,
+      created_by_me: over.createdByMe === undefined ? true : over.createdByMe,
+      invited_me: over.invitedMe === undefined ? false : over.invitedMe,
     } as never)
     .returning("id")
     .executeTakeFirstOrThrow();

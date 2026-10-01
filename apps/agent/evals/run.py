@@ -416,6 +416,12 @@ class Recorder:
         #: Title of every row this turn added, by the id handed back, so an
         #: edit naming that id can be read as the title's final state.
         self.content_titles: dict[str, str] = {}
+        #: The thread this turn made, by name, and the rows filed into it.
+        #: `create_thread` answers with the id `new`, so a row added to `new`
+        #: lands there; the stub said Miscellaneous and the model filed the
+        #: whole dump twice (2026-10-02).
+        self.made_thread: str | None = None
+        self.made_rows: list[dict] = []
 
     @property
     def country(self) -> str | None:
@@ -481,6 +487,9 @@ class Recorder:
                     {
                         **{k: v for k, v in e.items() if k != "calendarId"},
                         "untrusted": e.get("untrusted", False),
+                        # 027: the server marks whose each event is; a
+                        # fixture's event is the person's unless it says not.
+                        "yours": e.get("yours", True),
                     }
                     for e in fx.get("events") or []
                 ],
@@ -526,6 +535,7 @@ class Recorder:
                 "because": f"Share it with {args.get('person')}?",
             }
         if tool == "create_thread":
+            self.made_thread = str(args.get("name") or "")
             return {
                 "ok": True,
                 "threadId": "new",
@@ -534,6 +544,8 @@ class Recorder:
                 "notesFromMembers": [],
                 "notesFromApps": [],
             }
+        if tool in {"list_thread_content"} and args.get("thread_id") == "new":
+            return {"ok": True, "rows": list(self.made_rows), "truncated": False}
         if tool in {"list_thread_content"}:
             return {
                 "ok": True,
@@ -557,11 +569,26 @@ class Recorder:
             out: dict[str, Any] = {
                 "ok": True,
                 "threadId": thread_id,
-                "threadName": named.name if named else "Miscellaneous",
+                "threadName": named.name
+                if named
+                else (
+                    self.made_thread if thread_id == "new" and self.made_thread else "Miscellaneous"
+                ),
                 "notes": _notes_for(fx, "notes", thread_id),
                 "notesFromMembers": _notes_for(fx, "notes_from_members", thread_id),
                 "notesFromApps": _notes_for(fx, "notes_from_apps", thread_id),
             }
+            if thread_id == "new":
+                self.made_rows.append(
+                    {
+                        "contentId": f"c{self.filed_ids}",
+                        "type": args.get("type") or "note",
+                        "title": args.get("title") or args.get("text"),
+                        "body": args.get("body"),
+                        "done": False,
+                        "yours": True,
+                    }
+                )
             if tool == "add_content":
                 out["contentId"] = f"c{self.filed_ids}"
                 self.content_titles[out["contentId"]] = str(args.get("title") or "")
@@ -767,6 +794,24 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
     """Does any filing call satisfy this matcher. None means yes; otherwise
     the reason it did not, for the report."""
     threads = {t.id: t.name for t in _threads(fx)}
+    # An edit to a row this turn filed is part of that filing, as it is in
+    # production: the model files, reads the thread's notes off the result,
+    # and sets the date with `edit_content`. Ids follow the stub's own count.
+    folded: list[tuple[str, dict]] = []
+    by_id: dict[str, int] = {}
+    for tool, args in calls:
+        if tool in {"add_content", "add_note"}:
+            folded.append((tool, dict(args)))
+            by_id[f"c{sum(1 for t, _ in folded if t in {'add_content', 'add_note'})}"] = (
+                len(folded) - 1
+            )
+        elif tool == "edit_content" and str(args.get("content_id")) in by_id:
+            target = folded[by_id[str(args.get("content_id"))]][1]
+            target.update({k: v for k, v in args.items() if k != "content_id" and v is not None})
+            folded.append((tool, args))
+        else:
+            folded.append((tool, args))
+    calls = folded
     candidates = []
     for tool, args in calls:
         if matcher.get("tool") and tool != matcher["tool"]:

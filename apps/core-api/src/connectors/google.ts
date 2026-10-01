@@ -238,9 +238,15 @@ export interface GoogleEvent {
    *  including on a calendar nobody else can see, because that is what an
    *  invitation is. Absent reads as not-yours, which fails closed. */
   organizedByMe: boolean;
-  attendees: Array<{ name: string | null; email: string | null; response: string | null }>;
+  attendees: Array<{ name: string | null; email: string | null; response: string | null; self?: boolean }>;
   /** 027. Google's own link to the event, or null when it is not one. */
   link: string | null;
+  /** 027. Who made it: an address, and whether it was the calendar this copy
+   *  was read from. Read to decide whose the event is, then dropped. */
+  creator: { email: string | null; self: boolean };
+  /** 027. The organiser's address. `organizedByMe` is Google's `self`, which
+   *  is about the calendar this copy was read from, not the account. */
+  organizerEmail: string | null;
 }
 
 /** 027. **Kept only when it is https on a Google host**, because the event can
@@ -322,12 +328,18 @@ export async function listEvents(
         allDay: start.allDay,
         timezone: start.tz,
         organizedByMe: organizer["self"] === true,
+        organizerEmail: typeof organizer["email"] === "string" ? organizer["email"] : null,
         attendees: ((item["attendees"] as Array<Record<string, unknown>>) ?? []).map((a) => ({
           name: typeof a["displayName"] === "string" ? a["displayName"] : null,
           email: typeof a["email"] === "string" ? a["email"] : null,
           response: typeof a["responseStatus"] === "string" ? a["responseStatus"] : null,
+          self: a["self"] === true,
         })),
         link: eventLink(item["htmlLink"]),
+        creator: {
+          email: typeof (item["creator"] as Record<string, unknown> | undefined)?.["email"] === "string" ? String((item["creator"] as Record<string, unknown>)["email"]) : null,
+          self: (item["creator"] as Record<string, unknown> | undefined)?.["self"] === true,
+        },
       });
     }
 

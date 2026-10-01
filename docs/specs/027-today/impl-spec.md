@@ -266,3 +266,16 @@ One component per client: `apps/web/src/components/shell/ThreadPill.tsx` and `ap
 `GATE: PASS` (no open MUST violation; DEV-1 is satisfied with two owner-stated exceptions).
 
 **Evals:** none. Today calls no model and changes nothing a model does.
+
+## Amended 2026-10-01: whose an event is
+
+- **Migration `0065_whose_event.sql`**: `connector_events.created_by_me` and `invited_me`, both nullable booleans, and every calendar's sync token cleared so the next pass reads each whole.
+- **The sync** (`connectors/sync.ts`) passes the connection's address and the calendar's `is_primary` to `mapEvent`; `whoseOf` (`connectors/events.ts`) sets `createdByMe` when Google's `creator.email` equals that address ignoring case, or `creator.self` holds on the primary calendar, and `invitedMe` when an attendee with `self` has not declined. Google's `creator` and the attendee's `self` are read by name in `listEvents` and dropped after; no address is stored.
+- **The day read** keeps a calendar event when `created_by_me` or `invited_me` is true, or both are null. The calendar line is `Calendar: <name>`, built on the server, so an installed client shows it unchanged.
+- **The thread's events** (`threads/calendars.ts` `threadEvents`) gain `involved`: the event is on the viewer's own calendar and created by them, invites them, or is not read yet. The clients draw `eventMeta(calendarName, involved)` from `@offload/widgets` under the title and quiet the title when `involved` is false.
+- **Privacy:** two booleans about the account's own relation to an event; the page's account of what a calendar keeps stays true.
+- **Google's `self` is the calendar's, not the person's.** On a calendar somebody shares with the account, their own events carry `self` for them. So `self`, on the creator, a guest or the organiser, counts only on the account's own primary calendar; anywhere else the account's address decides. The organiser rule this fixes predates 027: somebody else's event on a calendar they share read as trusted and kept its guests' addresses; it now reads as untrusted.
+- **An event a calendar made itself** (a creator address under `calendar.google.com`: holidays, an imported feed, a group calendar's own) counts as the account's, so a subscribed calendar stays on Today.
+- **Two members connecting the same calendar** hold two copies; a thread reads the viewer's own, so `involved` and `untrusted` answer for the viewer.
+- **`find_events`** (`connectors/tool-calls.ts`, `routes/tools.ts`) returns `yours` per event, by the same rule as the thread's `involved`. The tool's description tells the model to say the person's own first and the rest apart; two eval cases in `08-the-calendar.json` test it and have not been run.
+- **Nothing about guests is kept.** `mapEvent` carries no attendees and the schema types `connector_events.attendees` as unwritable; migration 0065 empties every stored list. `verdictFor` already read guests live from Google, so no write loses anything. `forgetPendingWrites` (`connectors/tool-calls.ts`), run by `jobs.purge`, deletes every proposal that was confirmed, declined or expired, since every reader asks for open ones only.

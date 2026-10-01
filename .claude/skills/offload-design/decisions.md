@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-01 · Whose an event is: Today shows yours, a thread marks the rest
+**Surface:** iOS, Android, web
+**Raised by:** the product owner on production: a calendar shared with his wife put her daily classes on his Today, as his next line and under Where you will be.
+
+**Was:** every event on a ticked calendar was the person's, on Today and on a thread, and Today's events read *Google, Family*.
+
+**Is:** Today draws a calendar's event only when the person created it or is invited and has not declined, so somebody else's day on a shared calendar is neither under Where you will be nor the next line. The calendar line reads *Calendar: Family*. A thread keeps every event and marks one the person is not in: its title in quiet ink, *Family, not yours* under it.
+
+**Considered and not taken:** a switch per calendar for Today (blunter: it takes an event the person is invited to off with the rest); filtering a thread by a note, which needs a thread preference the model can set and is its own change.
+
+**Design system impact:** readme, Today: Where you will be and the next line are the person's own events; the event card's calendar line is *Calendar:* and the name. readme, the thread's calendar events: one the person is not in is quieter and says *not yours*. `TodayParts.jsx`'s `s:"Google, Work"` becomes *Calendar: Work*.
+
 ### 2026-10-01 · Things without a thread, and Always on retired
 **Surface:** iOS, Android, web
 **Raised by:** the product owner, off `explorations/loose-items.html`. Handoff: `handoff/APPLY-2026-10-01-loose.md`.

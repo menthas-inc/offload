@@ -253,3 +253,11 @@ async def test_the_reader_is_told_the_date_and_the_country(monkeypatch):
 
     assert out["ok"] is True
     assert got == {"today": "Tuesday 15 September 2026", "country": "PT"}
+
+
+def test_an_apostrophe_is_not_a_word():
+    """2026-10-02 evals: "mother's day Portugal" was refused against a dump
+    that said "mothers day", because the apostrophe split off an "s"."""
+    assert _from_the_dump("mother's day Portugal", "book a table for mothers day", "PT")
+    assert _from_the_dump("mothers day", "book a table for mother’s day")
+    assert not _from_the_dump("mother's address", "book a table for mothers day")

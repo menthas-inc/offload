@@ -261,3 +261,27 @@ One entry, **Today as built**, for the kits to follow:
 - The empty day's *Nothing* lines; an offload event opening its thread; the stepper's week end following *Starts on* and stopping twelve months ahead.
 - Launch's second line is *Trying again.*
 - `ui_kits/web_app/WToday.jsx` still draws the old week strip and is wholly superseded.
+
+## Amended 2026-10-01: whose an event is
+
+The owner's account reads a calendar shared with their wife, who puts her daily classes on it, so Today drew her day as his: *Yoga in 30m* as his next line and her classes under Where you will be. Decided with the owner the same evening.
+
+- **Two facts per calendar event**, read from Google at each sync and nothing else kept:
+  - whether the account created it: Google names the account's address as the creator, or marks the creator as the primary calendar it was read from;
+  - whether the account is on its guest list without having declined.
+  
+  Null until a sync has read them, and null is treated as the account's own, so nothing disappears before the next pass.
+- **Today draws a calendar's event only when one of them holds.** Somebody else's event on a shared calendar is not under Where you will be and is never the next line. A declined invitation is not the person's either.
+- **The calendar line names the calendar**: *Calendar: Family*, never *Google, Family*. "Google" told a person nothing.
+- **A thread keeps every event on its calendars**, since a family thread may want them all, and marks one the person is not in: its title in quiet ink and *Family, not yours* under it. This covers another member's calendar picked for a shared thread as well.
+- **Filtering a thread's events to the person's own** (a note such as "only show my events in this thread") is not built. A thread note reaches the model, not the page; it needs a thread preference the model can set, and is its own change.
+
+- **What the model reads says whose each event is.** A question in the conversation such as "what's on tomorrow" still gets everything on the person's calendars, with each event marked `yours` or not, and the reply says theirs first and the rest apart, as other people's.
+- **Nothing about an event's guests is kept**, on any event: no name, no answer, no address. Nothing read any of it: a change to an event with guests asks Google who they are at that moment. What is already stored is emptied by the migration. A proposal to invite somebody holds their address until it is answered or its hour runs out, and the daily purge deletes it after. The privacy page says all of this, along with the new note of whether the person made an event or was invited.
+
+**Acceptance criteria added:**
+- **AC-34** A calendar event created by the account, or listing it as a guest who has not declined, is drawn on Today; one created by somebody else that does not invite it is not drawn and is never the next line; an event not yet read is drawn.
+- **AC-35** Today's calendar event says *Calendar:* and the calendar's own name.
+- **AC-37** `find_events` returns every event in scope, each with `yours`; the answering model keeps the person's own and other people's apart (eval cases `answer-whose-events-are-apart`, `answer-all-yours-says-nothing-about-whose`).
+- **AC-38** No stored event carries anything about its guests; a proposal that was confirmed, declined or expired is deleted by the daily purge; the privacy page says both.
+- **AC-36** A thread draws every event on its calendars, and one the person is not in has its title in quiet ink and *not yours* after its calendar's name, on the web and both phones.

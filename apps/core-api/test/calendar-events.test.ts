@@ -8,7 +8,7 @@
 // an event to be routed to, so `threadFor` and its rules are gone.
 
 import { describe, expect, it } from "vitest";
-import { isUntrusted, mapEvent, minimiseAttendees, sourceRefFor } from "../src/connectors/events.js";
+import { isUntrusted, mapEvent, sourceRefFor } from "../src/connectors/events.js";
 import { eventLink, listEvents, type GoogleEvent } from "../src/connectors/google.js";
 
 function event(over: Partial<GoogleEvent> = {}): GoogleEvent {
@@ -25,6 +25,8 @@ function event(over: Partial<GoogleEvent> = {}): GoogleEvent {
     organizedByMe: true,
     attendees: [{ name: "Ana", email: "ana@example.com", response: "accepted" }],
     link: null,
+    creator: { email: null, self: false },
+    organizerEmail: null,
     ...over,
   };
 }
@@ -45,19 +47,17 @@ describe("AC-11 untrusted is per event, by who wrote it", () => {
   });
 });
 
-describe("AC-6 attendees are minimised", () => {
-  it("keeps a name and a response but drops the address", () => {
-    // People who never signed up to offload. A name renders "dinner with Ana";
-    // an address is contact details for a stranger.
-    const [ana] = minimiseAttendees(event().attendees, false);
-    expect(ana).toEqual({ name: "Ana", response: "accepted" });
-    expect(ana).not.toHaveProperty("email");
-  });
-
-  it("keeps the address on an event offload created with guests", () => {
-    // Because editing that one later has to name them again.
-    const [ana] = minimiseAttendees(event().attendees, true);
-    expect(ana?.email).toBe("ana@example.com");
+describe("AC-6 nothing about the guests is kept", () => {
+  it("keeps no name, no answer and no address, whoever made the event", () => {
+    // People who never signed up to offload. 027: nothing ever read what the
+    // copy kept of them, and a change to an event with guests asks Google who
+    // they are at that moment, so none of it has a reason to sit here.
+    for (const over of [{}, { organizedByMe: true }]) {
+      const mapped = mapEvent(event(over), "cal-1", { accountEmail: "jo@hey.com", primary: true });
+      expect(mapped).not.toHaveProperty("attendees");
+      expect(JSON.stringify(mapped)).not.toContain("ana@example.com");
+      expect(JSON.stringify(mapped)).not.toContain("accepted");
+    }
   });
 });
 
@@ -120,6 +120,109 @@ describe("027 AC-19 the event's link", () => {
       expect(page !== "resync" && page.events[0]?.link).toBe("https://www.google.com/calendar/event?eid=abc");
     } finally {
       globalThis.fetch = original;
+    }
+  });
+});
+
+// 027 tweak: whose an event is. A shared calendar carries somebody else's day;
+// Today shows only what this account created or was asked to.
+describe("027 an event is yours when you created it or were invited to it", () => {
+  const me = { accountEmail: "Jo@Hey.com", primary: false };
+  const guest = (self: boolean, response: string | null) => ({ name: "Jo", email: self ? "jo@hey.com" : "ana@hey.com", response, self });
+
+  it("is yours when Google names you as its creator, whatever the case of the address", () => {
+    const mapped = mapEvent(event({ creator: { email: "jo@hey.com", self: false } }), "shared", me);
+    expect([mapped.createdByMe, mapped.invitedMe]).toEqual([true, false]);
+  });
+
+  it("is yours when you created it on your own primary calendar", () => {
+    expect(mapEvent(event({ creator: { email: null, self: true } }), "cal-1", { ...me, primary: true }).createdByMe).toBe(true);
+    expect(mapEvent(event({ creator: { email: null, self: true } }), "shared", me).createdByMe).toBe(false);
+  });
+
+  it("is yours when you are on its guest list and have not declined", () => {
+    const by = { creator: { email: "ana@hey.com", self: false } };
+    expect(mapEvent(event({ ...by, attendees: [guest(true, "accepted")] }), "shared", me).invitedMe).toBe(true);
+    expect(mapEvent(event({ ...by, attendees: [guest(true, "needsAction")] }), "shared", me).invitedMe).toBe(true);
+    expect(mapEvent(event({ ...by, attendees: [guest(true, "declined")] }), "shared", me).invitedMe).toBe(false);
+    expect(mapEvent(event({ ...by, attendees: [guest(false, "accepted")] }), "shared", me).invitedMe).toBe(false);
+  });
+
+  it("is somebody else's when they made it on a shared calendar and did not invite you", () => {
+    const mapped = mapEvent(event({ creator: { email: "ana@hey.com", self: false }, attendees: [] }), "shared", me);
+    expect([mapped.createdByMe, mapped.invitedMe]).toEqual([false, false]);
+  });
+
+  it("is not known when nothing says whose account read it", () => {
+    const mapped = mapEvent(event(), "cal-1");
+    expect([mapped.createdByMe, mapped.invitedMe]).toEqual([null, null]);
+  });
+
+  it("reads the creator and the guest's self from the fields events.list documents", async () => {
+    const original = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "evt2",
+              status: "confirmed",
+              summary: "Class",
+              creator: { email: "ana@hey.com", self: false },
+              attendees: [{ email: "jo@hey.com", self: true, responseStatus: "accepted" }],
+              start: { dateTime: "2026-10-02T19:00:00Z" },
+              end: { dateTime: "2026-10-02T20:00:00Z" },
+            },
+          ],
+          nextSyncToken: "t",
+        }),
+        { status: 200 },
+      )) as typeof fetch;
+    try {
+      const page = await listEvents("token", "shared", {});
+      const one = page !== "resync" ? page.events[0] : undefined;
+      expect(one?.creator).toEqual({ email: "ana@hey.com", self: false });
+      expect(one?.attendees[0]).toMatchObject({ email: "jo@hey.com", self: true, response: "accepted" });
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+});
+
+// The review of the tweak: Google's `self` is about the calendar a copy sits
+// on, not the person. On a calendar somebody shares with you, their own events
+// carry `self` for them.
+describe("027 self is the calendar's, not the person's", () => {
+  const shared = { accountEmail: "jo@hey.com", primary: false };
+  const her = { creator: { email: "ana@hey.com", self: true }, organizedByMe: true, organizerEmail: "ana@hey.com" };
+
+  it("does not count a guest marked self on somebody else's calendar as you", () => {
+    const mapped = mapEvent(event({ ...her, attendees: [{ name: "Ana", email: "ana@hey.com", response: "accepted", self: true }] }), "shared", shared);
+    expect(mapped.invitedMe).toBe(false);
+  });
+
+  it("counts your own address on the guest list, and a self guest on your own primary", () => {
+    const you = { name: "Jo", email: "JO@hey.com", response: "accepted", self: false };
+    expect(mapEvent(event({ ...her, attendees: [you] }), "shared", shared).invitedMe).toBe(true);
+    const selfOnPrimary = { name: "Jo", email: null, response: "accepted", self: true };
+    expect(mapEvent(event({ ...her, attendees: [selfOnPrimary] }), "cal-1", { ...shared, primary: true }).invitedMe).toBe(true);
+  });
+
+  it("treats somebody else's event on a shared calendar as theirs: untrusted, and no guest kept", () => {
+    const mapped = mapEvent(event({ ...her, attendees: [{ name: "Sam", email: "sam@hey.com", response: "accepted", self: false }] }), "shared", shared);
+    expect(mapped.organizerIsMe).toBe(false);
+    expect(mapped.untrusted).toBe(true);
+    expect(mapped).not.toHaveProperty("attendees");
+  });
+
+  it("still trusts what you organised, by your address or on your own primary", () => {
+    expect(mapEvent(event({ organizerEmail: "jo@hey.com", organizedByMe: false }), "shared", shared).untrusted).toBe(false);
+    expect(mapEvent(event({ organizerEmail: null, organizedByMe: true }), "cal-1", { ...shared, primary: true }).untrusted).toBe(false);
+  });
+
+  it("counts an event a subscribed calendar made itself as yours, so holidays and imports stay on Today", () => {
+    for (const email of ["en.usa#holiday@group.v.calendar.google.com", "abc123@import.calendar.google.com", "team@group.calendar.google.com"]) {
+      expect(mapEvent(event({ creator: { email, self: false }, attendees: [] }), "subscribed", shared).createdByMe, email).toBe(true);
     }
   });
 });
