@@ -134,6 +134,11 @@ class AddContent(BaseModel):
     # definition on every call, and the prompt already says one to ten.
     photo: int | None = None
 
+    # 028. Filed into their default thread with a home in mind you were not
+    # sure enough to file into: that thread's id. Offered to them as a
+    # suggestion on the row; nothing moves.
+    suggest_thread_id: str | None = None
+
     @field_validator("title")
     @classmethod
     def title_is_usable(cls, v: str) -> str:
@@ -264,6 +269,8 @@ class AddNote(BaseModel):
     # 200 characters, matching NOTE_TEXT_CHARS in the Core API. Long enough for
     # a sentence and short enough that a hundred of them stay a prompt.
     text: str = Field(min_length=1, max_length=200)
+    # 028. As `add_content`'s.
+    suggest_thread_id: str | None = None
     # The rest of their words, when what they dumped did not fit above. Kept
     # whole, and never handed back to you: `text` is what you read.
     body: str | None = Field(default=None, max_length=4000)
