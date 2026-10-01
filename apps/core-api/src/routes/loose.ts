@@ -13,7 +13,7 @@ import { db } from "../db.js";
 import { NotYours } from "../threads/access.js";
 import { NoteDuplicate, moveNoteIn } from "../threads/notes.js";
 import { withNoteLabels } from "../threads/labels.js";
-import { contentRow, looseItemSchema, loosePageSchema, noteSchema } from "./threads.js";
+import { contentRow, looseEntrySchema, loosePageSchema, noteSchema } from "./threads.js";
 import { CHIP_KEYS, archivedCount, defaultThreadOf, looseArchived, looseCounts, loosePage } from "../loose/read.js";
 import {
   LooseRefused,
@@ -139,7 +139,7 @@ export async function looseRoutes(app: App): Promise<void> {
       schema: {
         params: idParams,
         response: {
-          200: z.object({ id: z.string(), name: z.string(), items: z.array(looseItemSchema) }),
+          200: z.object({ id: z.string(), name: z.string(), entries: z.array(looseEntrySchema) }),
           401: unauthenticated,
           404: notFound,
         },

@@ -117,3 +117,17 @@ export function instantIn(naive: string, zone: string | null): Date | null {
   at = guess - offsetAt(at);
   return new Date(at);
 }
+
+/** 028. When a loose thing was put down, as its meta line says it: today,
+ *  yesterday, the weekday within the week, then the date. A date rather than
+ *  "last week", which says less than the day it stands for. One wording, so a
+ *  row reads the same on the phones and the web. */
+export function putDown(day: string, today: string): string {
+  if (day === today) return "today";
+  if (day === addDays(today, -1)) return "yesterday";
+  const ago = daysBetween(day, today);
+  if (ago > 1 && ago < 7) {
+    return new Intl.DateTimeFormat(undefined, { weekday: "long", timeZone: "UTC" }).format(noonUtc(day));
+  }
+  return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", timeZone: "UTC" }).format(noonUtc(day));
+}

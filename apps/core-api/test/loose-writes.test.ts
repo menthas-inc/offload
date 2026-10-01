@@ -197,9 +197,9 @@ describe("a proposal read (for the create sheet)", () => {
     const { p } = await threeThings(me, loose);
     const response = await as(app, await signIn(me)).get(`/v1/proposals/${p}`);
     expect(response.statusCode).toBe(200);
-    const body = response.json() as { name: string; items: { kind: string }[] };
+    const body = response.json() as { name: string; entries: { kind: string }[] };
     expect(body.name).toBe("Kitchen shelves");
-    expect(body.items).toHaveLength(3);
+    expect(body.entries).toHaveLength(3);
     expect((await as(app, await signIn(them)).get(`/v1/proposals/${p}`)).statusCode).toBe(404);
   });
 });

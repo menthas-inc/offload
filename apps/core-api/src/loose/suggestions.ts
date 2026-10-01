@@ -15,7 +15,7 @@ import { NotYours, type Executor } from "../threads/access.js";
 import { moveNoteIn } from "../threads/notes.js";
 import { withNoteLabels } from "../threads/labels.js";
 import { moveContentIn } from "../routes/threads.js";
-import { defaultThreadOf, loosePage, proposalCounts, type LooseItem } from "./read.js";
+import { defaultThreadOf, loosePage, proposalCounts, type LooseEntry } from "./read.js";
 
 type Trx = Transaction<Database>;
 
@@ -208,7 +208,7 @@ async function holdFloorOf(trx: Executor, proposalId: string, accountId: string)
 
 /** What the create sheet lists: every still-loose, unaccepted thing of the
  *  caller's unspent proposal. */
-export async function readProposal(accountId: string, proposalId: string): Promise<{ id: string; name: string; items: LooseItem[] }> {
+export async function readProposal(accountId: string, proposalId: string): Promise<{ id: string; name: string; entries: LooseEntry[] }> {
   const proposal = await db
     .selectFrom("thread_proposals")
     .select(["id", "name"])
@@ -232,9 +232,9 @@ export async function readProposal(accountId: string, proposalId: string): Promi
       noteIds: targets.flatMap((t) => (t.note_id ? [t.note_id] : [])),
     },
   });
-  const items = rows.map((item) => ({ ...item, suggestion: null }));
-  if (items.length < 1) throw new NotYours();
-  return { ...proposal, items };
+  const entries = rows.map((entry) => ({ ...entry, suggestion: null }));
+  if (entries.length < 1) throw new NotYours();
+  return { ...proposal, entries };
 }
 
 /** Make the thread, move the ticked things into it, spend the proposal. One

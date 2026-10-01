@@ -358,7 +358,7 @@ export const suggestionSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const looseItemSchema = z.discriminatedUnion("kind", [
+export const looseEntrySchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("content"), row: contentRow, suggestion: suggestionSchema.nullable() }),
   z.object({ kind: z.literal("note"), note: noteSchema, suggestion: suggestionSchema.nullable() }),
 ]);
@@ -377,11 +377,11 @@ const chipCounts = z.object({
 export const looseSummarySchema = z.object({
   count: z.number(),
   byType: chipCounts,
-  rows: z.array(looseItemSchema),
+  rows: z.array(looseEntrySchema),
 });
 
 export const loosePageSchema = z.object({
-  rows: z.array(looseItemSchema),
+  rows: z.array(looseEntrySchema),
   nextCursor: z.string().nullable(),
   count: z.number(),
   byType: chipCounts,

@@ -43,8 +43,8 @@ export const LOOSE_SHOWN = 3;
 /** Faces drawn on a shared Move to before the count. */
 const FACES = 2;
 
-export type ContentItem = Awaited<ReturnType<typeof withPhotos<ReturnType<typeof toRow>>>>[number];
-export type NoteItem = Note & { labels: string[] };
+export type LooseRow = Awaited<ReturnType<typeof withPhotos<ReturnType<typeof toRow>>>>[number];
+export type LooseNote = Note & { labels: string[] };
 
 export type Suggestion =
   | {
@@ -56,9 +56,9 @@ export type Suggestion =
     }
   | { id: string; kind: "create"; proposal: { id: string; name: string; count: number } };
 
-export type LooseItem =
-  | { kind: "content"; row: ContentItem; suggestion: Suggestion | null }
-  | { kind: "note"; note: NoteItem; suggestion: Suggestion | null };
+export type LooseEntry =
+  | { kind: "content"; row: LooseRow; suggestion: Suggestion | null }
+  | { kind: "note"; note: LooseNote; suggestion: Suggestion | null };
 
 export async function defaultThreadOf(accountId: string, executor: Executor = db): Promise<string | null> {
   const row = await executor.selectFrom("accounts").select("default_thread_id").where("id", "=", accountId).executeTakeFirst();
@@ -116,7 +116,7 @@ async function contentNewestFirst(
   accountId: string,
   threadId: string,
   opts: { before?: string | undefined; limit: number; types?: ContentType[] | undefined; archived?: boolean; ids?: string[] | undefined },
-): Promise<ContentItem[]> {
+): Promise<LooseRow[]> {
   if (opts.ids && opts.ids.length === 0) return [];
   let query = (opts.archived
     ? db.selectFrom("content").where("content.thread_id", "=", threadId).where("content.deleted_at", "is", null).where("content.archived_at", "is not", null)
@@ -311,7 +311,7 @@ export async function loosePage(
     /** Only these things, as the create sheet reads a proposal's. */
     only?: { contentIds: string[]; noteIds: string[] } | undefined;
   },
-): Promise<{ rows: LooseItem[]; nextCursor: string | null }> {
+): Promise<{ rows: LooseEntry[]; nextCursor: string | null }> {
   const threadId = await defaultThreadOf(accountId);
   if (!threadId) return { rows: [], nextCursor: null };
   const limit = opts.limit ?? LOOSE_PAGE;
@@ -330,11 +330,11 @@ export async function loosePage(
       ? notesNewestFirst(accountId, threadId, { before: opts.cursor, limit: limit + 1, ids: opts.only?.noteIds }).then((page) =>
           withNoteLabels(page)
         )
-      : Promise.resolve([] as NoteItem[]),
+      : Promise.resolve([] as LooseNote[]),
   ]);
 
   // Both are UUIDv7 in lower-case hex, so string order is creation order.
-  const merged: ({ id: string } & ({ kind: "content"; row: ContentItem } | { kind: "note"; note: NoteItem }))[] = [
+  const merged: ({ id: string } & ({ kind: "content"; row: LooseRow } | { kind: "note"; note: LooseNote }))[] = [
     ...content.map((row) => ({ id: row.id, kind: "content" as const, row })),
     ...notes.map((note) => ({ id: note.id, kind: "note" as const, note })),
   ].sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
@@ -342,21 +342,21 @@ export async function loosePage(
   const more = merged.length > limit;
 
   const suggestions = await suggestionsFor(accountId, threadId, {
-    contentIds: page.flatMap((item) => (item.kind === "content" ? [item.id] : [])),
-    noteIds: page.flatMap((item) => (item.kind === "note" ? [item.id] : [])),
+    contentIds: page.flatMap((entry) => (entry.kind === "content" ? [entry.id] : [])),
+    noteIds: page.flatMap((entry) => (entry.kind === "note" ? [entry.id] : [])),
   });
   return {
-    rows: page.map((item) =>
-      item.kind === "content"
-        ? { kind: "content", row: item.row, suggestion: suggestions.get(item.id) ?? null }
-        : { kind: "note", note: item.note, suggestion: suggestions.get(item.id) ?? null }
+    rows: page.map((entry) =>
+      entry.kind === "content"
+        ? { kind: "content", row: entry.row, suggestion: suggestions.get(entry.id) ?? null }
+        : { kind: "note", note: entry.note, suggestion: suggestions.get(entry.id) ?? null }
     ),
     nextCursor: more ? page.at(-1)!.id : null,
   };
 }
 
 /** The default thread's archived rows, the thread page's own way. */
-export async function looseArchived(accountId: string, cursor?: string): Promise<{ rows: ContentItem[]; nextCursor: string | null }> {
+export async function looseArchived(accountId: string, cursor?: string): Promise<{ rows: LooseRow[]; nextCursor: string | null }> {
   const threadId = await defaultThreadOf(accountId);
   if (!threadId) return { rows: [], nextCursor: null };
   const rows = await contentNewestFirst(accountId, threadId, { before: cursor, limit: LOOSE_PAGE + 1, archived: true });
@@ -377,7 +377,7 @@ export async function archivedCount(threadId: string): Promise<number> {
 
 /** What My threads draws: the count, the chips and the newest three. Null
  *  when nothing is loose, which is when the group is not drawn. */
-export async function looseSummary(accountId: string): Promise<{ count: number; byType: Partial<Record<ChipKey, number>>; rows: LooseItem[] } | null> {
+export async function looseSummary(accountId: string): Promise<{ count: number; byType: Partial<Record<ChipKey, number>>; rows: LooseEntry[] } | null> {
   const threadId = await defaultThreadOf(accountId);
   if (!threadId) return null;
   const { count, byType } = await looseCounts(threadId);
