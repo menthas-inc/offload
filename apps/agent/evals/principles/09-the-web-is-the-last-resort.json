@@ -270,7 +270,7 @@
       "context": "behrooz",
       "notes": {
         "00000003-0000-0000-0000-000000000000": [
-          "Memorial day is on the 14th this year for us"
+          "Memorial day is on 14 October this year for us"
         ]
       },
       "looking_at": "00000003-0000-0000-0000-000000000000",
@@ -278,7 +278,7 @@
         "look_up": false,
         "filed": [
           {
-            "date": "2026-05-14"
+            "date": "2026-10-14"
           }
         ],
         "say": null

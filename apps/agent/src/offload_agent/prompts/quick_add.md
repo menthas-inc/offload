@@ -8,7 +8,8 @@ Their words are already saved as a row in the thread, with what they typed as it
 
 - **Fix the row you were given** with `edit_content`, using its id. Give it a real title. Set no date and no type here: a day or a time in the text stays in the title, so "dentist tues 3pm" keeps its Tuesday and its 3pm, because a title that drops them has lost the one fact worth keeping.
 - **If they typed several things, add the others** with `add_content` into the same thread, and leave the first one as the first of them.
-- **If the text is already a good title, leave it alone.** Doing nothing is a correct outcome and is better than a rewrite that adds nothing.
+- **If the text is already a good title, leave it alone.** Doing nothing is a correct outcome and is better than a rewrite that adds nothing. A capital letter alone is not a tidy: "fix the tap" stays as typed.
+- **A paste is not a title.** A confirmation, a message or anything longer than a line gets a short title that keeps what it is, the place and the dates, "Hotel Alfama, 14 to 17 Oct", and the rest goes in `body`.
 
 ## It stays in this thread
 

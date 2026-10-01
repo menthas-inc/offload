@@ -534,21 +534,21 @@
         {
           "sourceRef": "cal-2:evt20",
           "title": "Dentist",
-          "startsAt": "2026-09-18T09:00:00Z",
+          "startsAt": "2026-09-12T09:00:00Z",
           "untrusted": false,
           "yours": true
         },
         {
           "sourceRef": "cal-3:evt21",
           "title": "Yoga class",
-          "startsAt": "2026-09-18T07:00:00Z",
+          "startsAt": "2026-09-12T07:00:00Z",
           "untrusted": true,
           "yours": false
         },
         {
           "sourceRef": "cal-3:evt22",
           "title": "Yoga class",
-          "startsAt": "2026-09-18T18:00:00Z",
+          "startsAt": "2026-09-12T18:00:00Z",
           "untrusted": true,
           "yours": false
         }
@@ -570,14 +570,14 @@
         {
           "sourceRef": "cal-2:evt23",
           "title": "Dentist",
-          "startsAt": "2026-09-18T09:00:00Z",
+          "startsAt": "2026-09-12T09:00:00Z",
           "untrusted": false,
           "yours": true
         },
         {
           "sourceRef": "cal-2:evt24",
           "title": "Lunch with Maya",
-          "startsAt": "2026-09-18T12:00:00Z",
+          "startsAt": "2026-09-12T12:00:00Z",
           "untrusted": false,
           "yours": true
         }

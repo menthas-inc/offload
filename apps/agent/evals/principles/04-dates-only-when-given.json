@@ -79,7 +79,7 @@
       "id": "month-no-year-next",
       "why": "March has passed, so March is next year",
       "surface": "file",
-      "input": "Ana's birthday on 3 March",
+      "input": "dinner at Ana's on 3 March",
       "context": "behrooz",
       "expect": {
         "filed": [

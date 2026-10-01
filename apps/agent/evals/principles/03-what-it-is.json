@@ -177,25 +177,23 @@
     },
     {
       "id": "location-title-is-the-place",
-      "why": "the place is the title and the rest is its own piece",
+      "why": "a plan at a place is a note with its date, the prompt's own rule (2026-10-02: the case asked for a location row and contradicted it)",
       "surface": "file",
       "input": "Time Out Market for lunch on Thursday",
       "context": "behrooz",
       "expect": {
         "filed": [
           {
-            "type": "location",
             "has": [
               "Time Out Market"
             ],
-            "lacks": [
-              "lunch",
-              "Thursday"
-            ]
+            "date": "2026-09-17"
           }
         ],
-        "say": null,
-        "rubric": "A location row titled Time Out Market and nothing more, plus lunch on Thursday as a separate row or note."
+        "not_called": [
+          "create_event"
+        ],
+        "say": null
       }
     },
     {
