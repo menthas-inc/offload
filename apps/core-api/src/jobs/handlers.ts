@@ -3,6 +3,7 @@
 // Handlers are pure of transport concerns: claiming, retrying, backoff and
 // scrubbing live in the runner. A handler does the work or throws.
 
+import { shouldPropose, sweepSuggestions } from "../loose/propose.js";
 import { sql, type Transaction } from "kysely";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
@@ -637,6 +638,20 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
       payload: { threadId: thread.id },
       priority: PRIORITY.background,
       idempotencyKey: `notes.compact:${thread.id}:${day}`,
+      maxAttempts: 2,
+    });
+  }
+
+  // 028. The pass over what is not in a thread, when there is something new
+  // for it to read, and the sweep of what nobody can undo any more.
+  await sweepSuggestions(accountId);
+  if (await shouldPropose(accountId)) {
+    await enqueue({
+      kind: "loose.propose",
+      accountId,
+      payload: {},
+      priority: PRIORITY.background,
+      idempotencyKey: `loose.propose:${accountId}:${day}`,
       maxAttempts: 2,
     });
   }
