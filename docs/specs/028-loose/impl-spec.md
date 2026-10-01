@@ -27,8 +27,8 @@ Reads with `feature-spec.md`. Grounded in the code at `e30feee` and in `docs/tec
 | Sort and filter | Loose content: `thread_id = default`, live (not deleted, not archived), task not done, optional `type in (...)`, by `(created_at desc, id desc)`. Loose notes: `subject_id = default`, `scope = 'thread'`, not deleted, not superseded, by `(created_at desc, id desc)`. Counts by type over the same predicates. Suggestions by target id. Proposal candidates: the newest 50 loose things with no suggestion and never dismissed. |
 
 **What follows.**
-- **Pagination:** server-side, keyset, page 30, over a merge of two tables. The cursor is opaque: base64url of `created_at` (microseconds) and `id` of the last row, validated on decode, and every page re-scopes to the caller's default thread, so a forged cursor can only move within the caller's own rows. Both branches take `(created_at, id) < cursor` and `limit 31`; the merge keeps 31 and returns 30. Ordering on `created_at`, which nothing updates, so an edit never moves a row (AC-13). `id` breaks ties; both are UUIDv7.
-- **Indexes:** content already has `content_thread_active_idx (thread_id, created_at desc) where deleted_at is null and archived_at is null` (0013), which serves the content branch and the count; its `id` tie-break is resolved from the heap at these sizes. Notes get `notes_thread_current_idx on notes (subject_id, created_at desc, id desc) where scope = 'thread' and deleted_at is null and superseded_at is null`. Suggestions are keyed by target (unique, below), so the per-page join is an index lookup per row.
+- **Pagination:** server-side, keyset, page 30, over a merge of two tables. **As built, the cursor is the last id** (a uuid, validated as one), and both branches take `id < cursor` and `limit 31`: both ids are UUIDv7, so id order is creation order across the two tables and nothing updates it, so an edit never moves a row (AC-13). A `(created_at, id)` cursor would truncate microseconds on the round trip, the defect the thread page's content route documents. Every page re-scopes to the caller's default thread, so a borrowed cursor only walks the caller's own rows.
+- **Indexes:** content already has `content_thread_active_idx (thread_id, created_at desc) where deleted_at is null and archived_at is null` (0013), which serves the content branch and the count; its `id` tie-break is resolved from the heap at these sizes. Notes get `notes_thread_current_idx on notes (subject_id, id desc) where scope = 'thread' and deleted_at is null and superseded_at is null`. Suggestions are keyed by target (unique, below), so the per-page join is an index lookup per row.
 - **Counts:** computed per load, not denormalised. The heavy case is a `group by type` over 2,000 index entries plus a `count` over 150 notes, about a millisecond each, on a screen that already runs a grouped query per load (`openKinds`). `threads.content_count` is not used, because it counts ticked to-dos. Revisit if a loose thread passes 10,000.
 - **Normalisation:** the dismissal is a timestamp on the thing itself (`content.suggest_dismissed_at`, `notes.suggest_dismissed_at`), so it goes when the thing goes and carries no words; the suggestion and proposal tables can then be deleted freely.
 - **Partitioning:** none.
@@ -73,7 +73,7 @@ create unique index suggestions_content_idx on suggestions (content_id) where co
 create unique index suggestions_note_idx    on suggestions (note_id)    where note_id is not null;
 create index suggestions_proposal_idx on suggestions (proposal_id) where proposal_id is not null;
 
-create index notes_thread_current_idx on notes (subject_id, created_at desc, id desc)
+create index notes_thread_current_idx on notes (subject_id, id desc)
   where scope = 'thread' and deleted_at is null and superseded_at is null;
 
 -- The daily pass runs only when its candidate set changed.
@@ -101,8 +101,8 @@ grant select on suggestions to offload_agent;
 
 ```ts
 type ChipKey = "todo" | "link" | "photo" | "note" | "event" | "place" | "voice" | "file";
-type LooseSummary = { count: number; byType: Partial<Record<ChipKey, number>>; rows: LooseItem[] /* ≤ 3 */ };
-type LooseItem =
+type LooseSummary = { count: number; byType: Partial<Record<ChipKey, number>>; rows: LooseEntry[] /* ≤ 3 */ };
+type LooseEntry =
   | { kind: "content"; row: ContentRow; suggestion: Suggestion | null }
   | { kind: "note"; note: Note; suggestion: Suggestion | null };
 type Suggestion =
@@ -114,7 +114,7 @@ type Suggestion =
 
 **`GET /v1/loose?type=&cursor=&archived=`** (new `routes/loose.ts`)
 - `type` is a `ChipKey`; `cursor` is the opaque keyset; `archived=true` returns the default thread's archived content rows in the thread page's own archived shape and cursor, so the foot row reuses the thread page's archived list.
-- Returns `{ rows: LooseItem[]; nextCursor: string | null; byType; count; archived: number }`.
+- Returns `{ rows: LooseEntry[]; nextCursor: string | null; byType; count; archived: number }`.
 - The thread is always `accounts.default_thread_id` of the session; no thread id is accepted.
 
 **Suggestions** (new `routes/loose.ts`, writes in `loose/suggestions.ts`)
