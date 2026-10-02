@@ -8,7 +8,6 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { storeQuestions } from "../src/questions.js";
-import { sortableThreads } from "../src/jobs/handlers.js";
 import { accountFacts, listContent } from "../src/search/read.js";
 import { account, dump, join, moveSuggestion, owner, row, thread, tool, wipe } from "./loose-kit.js";
 
@@ -131,14 +130,6 @@ describe("labels (T1.6, AC-5)", () => {
     expect(response.json().ok).toBe(true);
     expect(await db.selectFrom("labels").select("id").where("thread_id", "=", loose).execute()).toEqual([]);
     expect(await db.selectFrom("content_labels").select("label_id").where("content_id", "=", r).execute()).toEqual([]);
-  });
-});
-
-describe("the nightly sort (T1.6, AC-5)", () => {
-  it("never takes the default thread", async () => {
-    const { me, loose } = await owner();
-    for (let i = 0; i < 12; i += 1) await row(me, loose, `Loose ${i}`);
-    expect(await sortableThreads(me)).toEqual([]);
   });
 });
 

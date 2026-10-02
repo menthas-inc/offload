@@ -5,6 +5,9 @@
 **Depends on:** 006 and 007, whose `tags` and widget grouping this retires; 014, whose notes carry labels as content does; 015, whose timeline and rail the filter narrows; 016, whose provenance bound the live creation rule borrows; 017, whose turn footer draws the mark; 018, whose tag question goes; 022, whose membership predicate every label read and write goes through; 023, whose person-facing edit route gains `labels` and whose row owns the marks line; 024, whose Activity records what offload labelled and which this amends to carry its first Undo
 **Amends:** 024's Activity contract (a row may carry one action, and *Undone* is rendered from a column rather than written into the words); 007's grouping, retired; 018's tag question, retired; 006's AC-8 on tags, retired
 
+
+*Amended 2026-10-02 by 032: the nightly sort is deleted, its job, worker, prompt, endpoint and switch. Labels come from people and from live turns. Activity rows it wrote keep their Undo until they age out.*
+
 ## Why
 
 A thread can hold more than one subject. A trip across Lisbon, Paris and Istanbul keeps all three cities in one flat list, and on a long trip that list is confusing to read and slow to find anything in. Today a thread's only arrangement is by type: To do, the widgets, notes, the list.

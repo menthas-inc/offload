@@ -27,8 +27,6 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from offload_agent import context as ctx_mod
 from offload_agent import ledger, reader
 from offload_agent.cancels import Cancels, listen
-from offload_agent.compact import KINDS as COMPACT_KINDS
-from offload_agent.compact import handle_compact
 from offload_agent.config import Config
 from offload_agent.context import DumpContext, Photo
 from offload_agent.countries import name_of
@@ -45,10 +43,8 @@ from offload_agent.harness.plan import (
     plan,
     plan_answer,
 )
-from offload_agent.label_sort import KINDS as LABEL_SORT_KINDS
-from offload_agent.label_sort import handle_label_sort
-from offload_agent.loose_propose import KINDS as LOOSE_PROPOSE_KINDS
-from offload_agent.loose_propose import handle_loose_propose
+from offload_agent.nightly import KINDS as NIGHTLY_KINDS
+from offload_agent.nightly import handle_nightly
 from offload_agent.og import picture
 from offload_agent.queue import ClaimedJob, claim, finish, reap, release_for_retry, retry_or_die
 from offload_agent.renditions import prepare
@@ -72,9 +68,7 @@ KINDS = [
     "dump.answer",
     "voice.forget",
     *EMBED_KINDS,
-    *COMPACT_KINDS,
-    *LABEL_SORT_KINDS,
-    *LOOSE_PROPOSE_KINDS,
+    *NIGHTLY_KINDS,
 ]
 
 
@@ -934,45 +928,20 @@ async def _handle(
     """One job. Never raises: the outcome always reaches the Core API, because a
     dump that silently stops being answered is indistinguishable from one still
     being thought about."""
-    if job.kind in COMPACT_KINDS:
-        # Nobody is waiting on a fold, so a failure releases the job and the
-        # thread keeps every note it has. Wrapped for the same reason the embed
-        # branch below is: it returns before the catch-all, and a stuck
-        # `running` row is nothing's job to reap.
+    if job.kind in NIGHTLY_KINDS:
+        # 032. Nobody is waiting on a nightly pass, so a failure releases the
+        # job and the thread keeps every note it has. Wrapped because it
+        # returns before the catch-all, and a stuck `running` row is nothing's
+        # job to reap.
         try:
-            await handle_compact(job, cfg=cfg, engine=engine, http=http, client=anthropic)
+            await handle_nightly(job, cfg=cfg, engine=engine, http=http, client=anthropic)
         except Exception as exc:
             # **`log.error`, never `log.exception`.** The type, never the value:
             # an SDK exception can echo the request body, and the request body
-            # here is a hundred notes (OFF-1). `log.exception` sets
-            # `exc_info=True` and structlog renders the whole traceback with
-            # `str(exc)` in it, which is the breach this comment was written to
-            # prevent and did not. Same shape as `dump failed` below.
-            log.error("compaction failed", kind=job.kind, error=type(exc).__name__)
+            # here is somebody's notes and dumps (OFF-1).
+            log.error("nightly failed", kind=job.kind, error=type(exc).__name__)
             async with engine.begin() as conn:
-                await retry_or_die(conn, job, "compact_error", delay_seconds=3600)
-        return
-
-    if job.kind in LOOSE_PROPOSE_KINDS:
-        # 028. Nobody is waiting on a proposal either, and the same guard: the
-        # type, never the value, since the request is somebody's loose things.
-        try:
-            await handle_loose_propose(job, cfg=cfg, engine=engine, http=http, client=anthropic)
-        except Exception as exc:
-            log.error("loose proposal failed", kind=job.kind, error=type(exc).__name__)
-            async with engine.begin() as conn:
-                await retry_or_die(conn, job, "loose_error", delay_seconds=3600)
-        return
-
-    if job.kind in LABEL_SORT_KINDS:
-        # 025. Nobody is waiting on a sort either, and the same guard: the type,
-        # never the value, since the request here is a thread's titles.
-        try:
-            await handle_label_sort(job, cfg=cfg, engine=engine, http=http, client=anthropic)
-        except Exception as exc:
-            log.error("label sort failed", kind=job.kind, error=type(exc).__name__)
-            async with engine.begin() as conn:
-                await retry_or_die(conn, job, "label_sort_error", delay_seconds=3600)
+                await retry_or_die(conn, job, "nightly_error", delay_seconds=3600)
         return
 
     if job.kind == "voice.forget":

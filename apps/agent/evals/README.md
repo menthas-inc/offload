@@ -46,9 +46,11 @@ this way the file goes, and the diff says which behaviour was dropped.
 ```
 
 - `surface` is one of `file`, `answer`, `classify`, `judge`,
-  `compact`. It decides which model call runs and which `expect` keys apply.
-- `input` is the dump, the question, the typed reply, or for
-  `compact` the list of notes.
+  `nightly`. It decides which model call runs and which `expect` keys apply.
+- `input` is the dump, the question, the typed reply, or for `nightly`
+  either the list of notes or `{thread, notes, messages}` (an ordinary
+  thread's pass, which may learn) or `{thread, notes, candidates}` (the
+  default thread's, which suggests threads).
 - `context` names a file in `contexts/`. Any fixture key on the case replaces
   the context's value for that key wholesale.
 - `expect` holds the checks. Mechanical keys are exact; `rubric` is marked by
@@ -106,8 +108,10 @@ nothing, or `{contains, must_not_contain, max_words}`, `say_not`, `asks`,
 
 **judge**: `answers`, `whole`, `value` as `{day, to, time, tag, country}`.
 
-**compact**: `no_change`, `folds`, `supersedes`, `never_touches`, `adds`,
-`rubric`. Removing a person's note or folding two authors is always a failure.
+**nightly**: `no_change`, `folds`, `supersedes`, `never_touches`, `adds`,
+`learns`, `learned_has`, `learned_lacks`, `groups`, `rubric`. Removing a
+person's note, touching another member's, or citing a dump it was not shown
+is always a failure.
 
 Everywhere: a dash, an emoji, a capitalised offload, or a self diagnosis in
 anything offload wrote fails the case; on a lookup, the progress line is held

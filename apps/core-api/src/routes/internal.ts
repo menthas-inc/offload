@@ -19,15 +19,14 @@ import { z } from "zod";
 import { sql } from "kysely";
 import type { App } from "../app.js";
 import { db } from "../db.js";
-import { applyNightlyPlan, applyTurnLabels } from "../threads/labels.js";
-import { labelledNightlyCopy } from "../notifications/copy.js";
+import { applyTurnLabels } from "../threads/labels.js";
 import { hashtagsIn } from "@offload/widgets";
 import { ownWords } from "../mail-in/attrs.js";
 import { recordMailTurn } from "../mail-in/activity.js";
 import { emit } from "../analytics.js";
 import { env } from "../env.js";
 import { ledgerRows } from "../ledger.js";
-import { NOTE_TEXT_CHARS, applyCompaction } from "../threads/notes.js";
+import { NOTE_TEXT_CHARS, applyCompaction, applyLearned } from "../threads/notes.js";
 import { parseWhen, plausible } from "../threads/dates.js";
 import {
   applyAnswer,
@@ -279,11 +278,13 @@ const stepBody = z.strictObject({
   text: z.string().trim().min(1).max(80),
 });
 
-/** What the daily fold proposes, and what came back from applying it.
+/** 032. What a nightly pass proposes: a fold of its member's notes, what it
+ *  learned from their dumps, and on the default thread the threads it would
+ *  suggest.
  *
  *  Bounded on every axis, because this is a model's output crossing a boundary
  *  (OFF-5) and an unbounded list of ids is an unbounded number of writes. */
-const compactionBody = z.strictObject({
+const nightlyBody = z.strictObject({
   jobId: z.string().uuid(),
   supersede: z.array(z.string().uuid()).max(200).default([]),
   remove: z.array(z.string().uuid()).max(200).default([]),
@@ -301,6 +302,23 @@ const compactionBody = z.strictObject({
     )
     .max(100)
     .default([]),
+  /** New notes, each citing the messages it came from. The Core API decides
+   *  which messages a note may cite; this only bounds the shape. */
+  learned: z
+    .array(
+      z.strictObject({
+        text: z.string().min(1).max(NOTE_TEXT_CHARS),
+        from: z.array(z.string().uuid()).min(1).max(10),
+        occursAt: z.string().max(40).nullish(),
+        occursEndAt: z.string().max(40).nullish(),
+        dueAt: z.string().max(40).nullish(),
+      })
+    )
+    .max(3)
+    .default([]),
+  /** 028. The default thread's candidates the worker sent, and its groups. */
+  sent: z.array(z.string().uuid()).max(PROPOSAL_CANDIDATES).default([]),
+  groups: z.array(z.strictObject({ name: z.string().max(200), ids: z.array(z.string().uuid()).max(20) })).max(10).default([]),
   usage: usage.optional(),
 });
 
@@ -312,26 +330,29 @@ function when(raw: string | null | undefined): Date | null {
   return at && plausible(at) ? at : null;
 }
 
-const compacted = z.object({
+const nightlyApplied = z.object({
   superseded: z.number(),
   removed: z.number(),
   added: z.number(),
+  learned: z.number(),
+  proposals: z.number(),
   ignored: z.number(),
 });
 
 export async function internalRoutes(app: App): Promise<void> {
-  // The daily fold, applied.
+  // 032. A nightly pass, applied.
   //
-  // The worker reads a thread's notes directly, asks a model what the set says
-  // now, and posts the answer here. **Every rule is enforced on this side**:
-  // the prompt states them too, and stating them twice is the point, because a
-  // prompt is a request and this is the enforcement.
+  // The worker read one thread for one member, asked a model what that
+  // member's notes say now, what their day's dumps add, and on the default
+  // thread which threads to suggest, and posts the answer here. **Every rule is
+  // enforced on this side**: the prompt states them too, and stating them
+  // twice is the point, because a prompt is a request and this is the
+  // enforcement.
   //
-  // The thread comes from the job row, never from the body, which is the same
-  // rule the endpoints above follow for the account.
+  // The thread and the member come from the job row, never from the body.
   app.post(
-    "/internal/v1/notes-compacted",
-    { schema: { body: compactionBody, response: { 200: compacted, 401: refused, 404: refused } } },
+    "/internal/v1/nightly-result",
+    { schema: { body: nightlyBody, response: { 200: nightlyApplied, 401: refused, 404: refused } } },
     async (request, reply) => {
       const header = request.headers.authorization;
       const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
@@ -344,41 +365,48 @@ export async function internalRoutes(app: App): Promise<void> {
         .selectFrom("jobs")
         .select(["id", "account_id", "payload"])
         .where("id", "=", result.jobId)
-        .where("kind", "=", "notes.compact")
+        .where("kind", "=", "thread.nightly")
         .executeTakeFirst();
-
       if (!job?.account_id) return reply.code(404).send({ error: "unknown_job" as const });
 
       const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as {
         threadId?: string;
+        propose?: boolean;
       };
       if (!payload.threadId) return reply.code(404).send({ error: "unknown_job" as const });
-
       const accountId = job.account_id;
       const threadId = payload.threadId;
-
-      // The job runs as whichever member's daily run enqueued it, and that
-      // member can have been taken out between the enqueue and now. A fold
-      // applied as somebody no longer in the thread is refused whole; the
-      // next member's daily run books another.
-      if (!(await memberOf(accountId, threadId))) {
-        return reply.send({ superseded: 0, removed: 0, added: 0, ignored: 0 });
-      }
+      const none = { superseded: 0, removed: 0, added: 0, learned: 0, proposals: 0, ignored: 0 };
 
       const outcome = await db.transaction().execute(async (trx) => {
-        const applied = await applyCompaction(
+        // Once per job: a retried post after a lost response writes nothing a
+        // second time.
+        const open = await trx.selectFrom("jobs").select("state").where("id", "=", result.jobId).forUpdate().executeTakeFirstOrThrow();
+        if (open.state !== "running") return none;
+
+        const close = () =>
+          trx
+            .updateTable("jobs")
+            .set({ state: "done", locked_at: null, locked_by: null, updated_at: sql`now()` })
+            .where("id", "=", result.jobId)
+            .execute();
+
+        // A member taken out between the booking and now: the pass is refused
+        // whole, and the job closed so it does not hold the account's slot.
+        if (!(await memberOf(accountId, threadId, trx))) {
+          await close();
+          return none;
+        }
+
+        const folded = await applyCompaction(
           threadId,
           {
             supersede: result.supersede,
             remove: result.remove,
             add: result.add.map((entry) => ({
               text: entry.text,
-              // The same guard `add_note` puts on the same three columns. A
-              // model writes `2026-09-28` as often as an ISO string, and a date
-              // a century out sorts to the bottom forever where nobody sees it
-              // to fix it. **The date is dropped, never the entry**: a fold
-              // whose replacement is right and whose date is wrong should lose
-              // the date, not put the thread back where it was.
+              // The same guard `add_note` puts on the same three columns: the
+              // date is dropped, never the entry.
               occursAt: when(entry.occursAt),
               occursEndAt: when(entry.occursEndAt),
               dueAt: when(entry.dueAt),
@@ -386,158 +414,57 @@ export async function internalRoutes(app: App): Promise<void> {
             })),
           },
           trx,
+          { author: accountId },
         );
 
+        // The default thread is never learned from: what lands there has no
+        // shared subject. Its pass suggests threads instead.
+        const isDefault = await trx
+          .selectFrom("accounts")
+          .select("id")
+          .where("id", "=", accountId)
+          .where("default_thread_id", "=", threadId)
+          .executeTakeFirst();
+
+        const taught = isDefault
+          ? { learned: 0, ignored: result.learned.length }
+          : await applyLearned(trx, {
+              accountId,
+              threadId,
+              entries: result.learned.map((entry) => ({
+                text: entry.text,
+                from: entry.from,
+                occursAt: when(entry.occursAt),
+                occursEndAt: when(entry.occursEndAt),
+                dueAt: when(entry.dueAt),
+              })),
+            });
+
+        const proposals = isDefault && payload.propose ? await applyProposals(trx, accountId, result.sent, result.groups) : 0;
+
         if (result.usage && result.usage.length > 0) {
           await trx
             .insertInto("llm_usage")
-            // Scheduled, not interactive: nobody is waiting on the fold.
-            .values(ledgerRows(accountId, "notes.compact", "scheduled", result.usage))
+            // Scheduled, not interactive: nobody is waiting on it.
+            .values(ledgerRows(accountId, "thread.nightly", "scheduled", result.usage))
             .execute();
         }
+        await close();
 
-        // Closed here rather than by the worker, for the reason turn-result
-        // states: a job left running counts against the account's concurrency
-        // cap forever.
-        await trx
-          .updateTable("jobs")
-          .set({ state: "done", locked_at: null, locked_by: null, updated_at: sql`now()` })
-          .where("id", "=", result.jobId)
-          .execute();
-
-        return applied;
+        return {
+          superseded: folded.superseded,
+          removed: folded.removed,
+          added: folded.added,
+          learned: taught.learned,
+          proposals,
+          ignored: folded.ignored + taught.ignored,
+        };
       });
 
-      // Counts, never text. This is the first job in the product that holds a
-      // hundred sentences of dumped text at once, and the shortest route from
-      // here to an OFF-1 breach is a helpful log line.
+      // Counts, never text (OFF-1).
+      console.log(JSON.stringify({ level: "info", msg: "nightly applied", ...outcome }));
       return reply.send(outcome);
     }
-  );
-
-  // 028. The daily pass's proposals. The account comes from the job row;
-  // `applyProposals` holds every id to the set the worker sent and to what is
-  // still a candidate, and every name to one plain line.
-  const proposalsBody = z.strictObject({
-    jobId: z.string().uuid(),
-    sent: z.array(z.string().uuid()).max(PROPOSAL_CANDIDATES),
-    groups: z.array(z.strictObject({ name: z.string().max(200), ids: z.array(z.string().uuid()).max(20) })).max(10),
-    usage: z.array(usageEntry).max(4).optional(),
-  });
-
-  app.post(
-    "/internal/v1/loose-proposals",
-    {
-      schema: {
-        body: proposalsBody,
-        response: { 200: z.object({ proposals: z.number() }), 401: refused, 404: refused },
-      },
-    },
-    async (request, reply) => {
-      const header = request.headers.authorization;
-      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
-      if (!tokenMatches(presented)) return reply.code(401).send({ error: "unauthorised" as const });
-
-      const result = request.body;
-      const job = await db
-        .selectFrom("jobs")
-        .select(["id", "account_id"])
-        .where("id", "=", result.jobId)
-        .where("kind", "=", "loose.propose")
-        .executeTakeFirst();
-      if (!job?.account_id) return reply.code(404).send({ error: "unknown_job" as const });
-      const accountId = job.account_id;
-
-      const proposals = await db.transaction().execute(async (trx) => {
-        // Once per job, as the label sort's: a retried post after a lost
-        // response writes nothing a second time.
-        const open = await trx.selectFrom("jobs").select("state").where("id", "=", result.jobId).forUpdate().executeTakeFirstOrThrow();
-        if (open.state !== "running") return 0;
-        const written = await applyProposals(trx, accountId, result.sent, result.groups);
-        if (result.usage && result.usage.length > 0) {
-          await trx
-            .insertInto("llm_usage")
-            .values(ledgerRows(accountId, "loose.propose", "scheduled", result.usage))
-            .execute();
-        }
-        await trx
-          .updateTable("jobs")
-          .set({ state: "done", locked_at: null, locked_by: null, updated_at: sql`now()` })
-          .where("id", "=", result.jobId)
-          .execute();
-        return written;
-      });
-
-      // Counts, never a word: the names are offload's words about somebody's
-      // things, and the shortest route to an OFF-1 breach is a helpful log.
-      console.log(JSON.stringify({ level: "info", msg: "loose proposals", sent: result.sent.length, groups: result.groups.length, written: proposals }));
-      return reply.send({ proposals });
-    }
-  );
-
-  // 025. The nightly sort's plan. The worker read one thread's recent titles
-  // and asked a model which of them group; this is where every rule is kept:
-  // the thread and the account come from the job row, the account must still
-  // be in the thread, every row and label must be the thread's, nothing a
-  // person set is touched, and the plan cannot say remove.
-  const sortBody = z.strictObject({
-    jobId: z.string().uuid(),
-    create: z.array(z.strictObject({ name: z.string().min(1).max(60), contentIds: z.array(z.string().uuid()).max(200) })).max(6),
-    apply: z.array(z.strictObject({ labelId: z.string().uuid(), contentIds: z.array(z.string().uuid()).max(200) })).max(10),
-    usage: z.array(usageEntry).max(4).optional(),
-  });
-  app.post(
-    "/internal/v1/labels-sorted",
-    {
-      schema: {
-        body: sortBody,
-        response: { 200: z.object({ created: z.number(), applied: z.number() }), 401: refused, 404: refused },
-      },
-    },
-    async (request, reply) => {
-      const header = request.headers.authorization;
-      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
-      if (!tokenMatches(presented)) {
-        return reply.code(401).send({ error: "unauthorised" as const });
-      }
-      const result = request.body;
-      const job = await db
-        .selectFrom("jobs")
-        .select(["id", "account_id", "payload"])
-        .where("id", "=", result.jobId)
-        .where("kind", "=", "labels.sort")
-        .executeTakeFirst();
-      if (!job?.account_id) return reply.code(404).send({ error: "unknown_job" as const });
-      const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as { threadId?: string };
-      if (!payload.threadId) return reply.code(404).send({ error: "unknown_job" as const });
-      const accountId = job.account_id;
-      const threadId = payload.threadId;
-
-      const outcome = await db.transaction().execute(async (trx) => {
-        // Only a job a worker holds may write. A retry after the plan landed
-        // changes nothing: the job is closed in this same transaction, so done
-        // means written; pending, failed and dead were never handed out.
-        const open = await trx.selectFrom("jobs").select("state").where("id", "=", result.jobId).forUpdate().executeTakeFirstOrThrow();
-        if (open.state !== "running") return { created: 0, applied: 0 };
-        const landed = (await memberOf(accountId, threadId, trx))
-          ? await applyNightlyPlan(trx, accountId, threadId, { create: result.create, apply: result.apply }, labelledNightlyCopy)
-          : { created: 0, applied: 0 };
-        if (result.usage && result.usage.length > 0) {
-          await trx
-            .insertInto("llm_usage")
-            .values(ledgerRows(accountId, "labels.sort", "scheduled", result.usage))
-            .execute();
-        }
-        await trx
-          .updateTable("jobs")
-          .set({ state: "done", locked_at: null, locked_by: null, updated_at: sql`now()` })
-          .where("id", "=", result.jobId)
-          .execute();
-        return landed;
-      });
-      // Counts, never a name or a title.
-      return reply.send(outcome);
-    },
   );
 
   // 017. What offload is doing, on its way out.

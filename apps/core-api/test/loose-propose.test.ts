@@ -30,15 +30,27 @@ async function daily(me: string) {
   await handlers["account.daily.run"]!({}, { mailer: new MemoryMailer() }, me);
 }
 const booked = (me: string) =>
-  db.selectFrom("jobs").select(["kind", "payload"]).where("account_id", "=", me).where("kind", "=", "loose.propose").execute();
+  db
+    .selectFrom("jobs")
+    .select(["kind", "payload"])
+    .where("account_id", "=", me)
+    .where("kind", "=", "thread.nightly")
+    .where(sql<boolean>`(payload->>'propose')::boolean`)
+    .execute();
 
+/** 032. The default thread's nightly pass, with proposals. */
 async function job(accountId: string): Promise<string> {
+  const { default_thread_id: threadId } = await db
+    .selectFrom("accounts")
+    .select("default_thread_id")
+    .where("id", "=", accountId)
+    .executeTakeFirstOrThrow();
   const inserted = await db
     .insertInto("jobs")
     .values({
-      kind: "loose.propose",
+      kind: "thread.nightly",
       account_id: accountId,
-      payload: JSON.stringify({}),
+      payload: JSON.stringify({ threadId, propose: true }),
       priority: 1,
       run_after: new Date(),
       state: "running",
@@ -54,7 +66,7 @@ async function job(accountId: string): Promise<string> {
 const proposed = (payload: unknown) =>
   app.inject({
     method: "POST",
-    url: "/internal/v1/loose-proposals",
+    url: "/internal/v1/nightly-result",
     headers: { authorization: `Bearer ${env.INTERNAL_SERVICE_TOKEN}` },
     payload: payload as Record<string, unknown>,
   });
@@ -151,13 +163,13 @@ describe("what the pass may write (T1.19, AC-19, AC-35)", () => {
       usage: [{ model: "claude-haiku-4-5", inputTokens: 100, outputTokens: 20, cacheReadTokens: 0, costMicros: 200, latencyMs: 900 }],
     });
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ proposals: 1 });
+    expect(response.json()).toMatchObject({ proposals: 1 });
     const [p] = await db.selectFrom("thread_proposals").select(["id", "name"]).where("account_id", "=", me).execute();
     expect(p!.name).toBe("Kitchen shelves");
     const made = await db.selectFrom("suggestions").select(["content_id", "note_id", "kind"]).where("proposal_id", "=", p!.id).execute();
     expect(made).toHaveLength(3);
     const usage = await db.selectFrom("llm_usage").select(["job_kind", "category"]).where("account_id", "=", me).execute();
-    expect(usage).toEqual([{ job_kind: "loose.propose", category: "scheduled" }]);
+    expect(usage).toEqual([{ job_kind: "thread.nightly", category: "scheduled" }]);
     const state = await db.selectFrom("jobs").select("state").where("id", "=", id).executeTakeFirstOrThrow();
     expect(state.state).toBe("done");
   });
@@ -200,8 +212,8 @@ describe("what the pass may write (T1.19, AC-19, AC-35)", () => {
     const c = await row(me, loose, "Shelf paint");
     const d = await row(me, loose, "Spirit level");
     const id = await job(me);
-    expect((await proposed({ jobId: id, sent: [a, b], groups: [{ name: "Kitchen shelves", ids: [a, b] }] })).json()).toEqual({ proposals: 1 });
-    expect((await proposed({ jobId: id, sent: [c, d], groups: [{ name: "Again", ids: [c, d] }] })).json()).toEqual({ proposals: 0 });
+    expect((await proposed({ jobId: id, sent: [a, b], groups: [{ name: "Kitchen shelves", ids: [a, b] }] })).json()).toMatchObject({ proposals: 1 });
+    expect((await proposed({ jobId: id, sent: [c, d], groups: [{ name: "Again", ids: [c, d] }] })).json()).toMatchObject({ proposals: 0 });
     expect((await db.selectFrom("thread_proposals").select("name").execute()).map((p) => p.name)).toEqual(["Kitchen shelves"]);
   });
 
@@ -224,7 +236,7 @@ describe("what the pass may write (T1.19, AC-19, AC-35)", () => {
     expect(await db.selectFrom("thread_proposals").select("id").execute()).toEqual([]);
     expect(logs.join("\n")).not.toContain("Shelving secrets");
     expect(logs.join("\n")).not.toContain("Their brackets");
-    const unsigned = await app.inject({ method: "POST", url: "/internal/v1/loose-proposals", payload: { jobId: id, sent: [], groups: [] } });
+    const unsigned = await app.inject({ method: "POST", url: "/internal/v1/nightly-result", payload: { jobId: id, sent: [], groups: [] } });
     expect(unsigned.statusCode).toBe(401);
   });
 });

@@ -94,6 +94,8 @@ A thread's **active** notes are the ones that reach the model, and there are at 
 
 Shortening is what falls out of that rather than the goal.
 
+*Amended 2026-10-02 by 032: compaction is one part of a nightly pass per thread and member, which also adds what that member's day of dumps shows, and which may set aside, fold or remove only notes its member wrote. Security review L27, closed.*
+
 **It runs once a day, as part of one job per account**, alongside Today generation and thread-level compaction. That job is described in `docs/tech/context-and-memory.md`; this feature builds its first part and nothing else in it.
 
 **Superseding is offload's; deleting is not.** offload may set any note aside, including one somebody typed, because that changes what it acts on and destroys nothing. It may delete only notes it wrote itself. A sentence a person typed straight into a thread is not a derivation of anything, it is the dump, and living in a derived table does not make it offload's to remove. OFF-1 was amended on 2026-09-10 to say exactly this.

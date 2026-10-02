@@ -1,4 +1,7 @@
-"""028. The daily pass's candidates, read as the worker reads them.
+"""032. What the nightly pass reads, read as the worker reads it.
+
+028's candidates for suggestions, and the member's own dumps that landed in a
+thread.
 
 Run as `offload_agent`, so a column the role was never granted fails here
 rather than on the platform, and against the same rules the Core API books
@@ -14,7 +17,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent.config import _asyncpg
-from offload_agent.loose_propose import _CANDIDATES
+from offload_agent.nightly import _CANDIDATES, _MESSAGES, _NOTES
 
 ADMIN_DB = os.environ.get("DATABASE_URL")
 AGENT_DB = os.environ.get("AGENT_DATABASE_URL")
@@ -112,5 +115,91 @@ async def test_the_candidates_are_the_loose_things_with_nothing_on_them():
     await agent.dispose()
 
     assert [r["id"] for r in rows] == [note, kept]
-    assert [r["kind"] for r in rows] == ["note", "content"]
+    assert [r["type"] for r in rows] == ["note", "task"]
     assert rows[1]["text"] == "Oak brackets"
+
+
+async def test_a_pass_reads_only_its_members_own_dumps_that_landed_in_the_thread():
+    admin = create_async_engine(_asyncpg(ADMIN_DB))
+    async with admin.begin() as conn:
+
+        async def person(name: str) -> str:
+            return await _id(
+                conn,
+                "insert into accounts (email, state, email_verified, analytics_subject_id) "
+                "values (:email, 'active', true, gen_random_uuid()) returning id",
+                email=f"{uuid.uuid4()}@example.invalid",
+            )
+
+        ana, sam = await person("Ana"), await person("Sam")
+        trip = await _id(conn, "insert into threads (name) values ('Lisbon') returning id")
+        elsewhere = await _id(conn, "insert into threads (name) values ('Flat') returning id")
+        for who in (ana, sam):
+            await conn.execute(
+                text(
+                    "insert into thread_members (thread_id, account_id, state) "
+                    "values (:t, :a, 'accepted')"
+                ),
+                {"t": trip, "a": who},
+            )
+        conversation = await _id(
+            conn, "insert into conversations (account_id) values (:a) returning id", a=ana
+        )
+        theirs = await _id(
+            conn, "insert into conversations (account_id) values (:a) returning id", a=sam
+        )
+
+        async def said(who: str, conv: str, words: str, *, source="person", hours=1, role="person"):
+            return await _id(
+                conn,
+                "insert into messages (conversation_id, account_id, role, type, turn_id, text, "
+                "state, source, created_at) values (:c, :a, :role, 'text', gen_random_uuid(), :t, "
+                "'answered', :source, now() - make_interval(hours => :h)) returning id",
+                c=conv,
+                a=who,
+                t=words,
+                source=source,
+                h=hours,
+                role=role,
+            )
+
+        async def filed(message: str, who: str, thread: str):
+            await conn.execute(
+                text(
+                    "insert into content "
+                    "(account_id, thread_id, type, title, derived_from_message_id) "
+                    "values (:a, :t, 'task', 'row', :m)"
+                ),
+                {"a": who, "t": thread, "m": message},
+            )
+
+        kept = await said(ana, conversation, "staying in Alfama")
+        await filed(kept, ana, trip)
+        sams = await said(sam, theirs, "Sam's dump")
+        await filed(sams, sam, trip)
+        await said(ana, conversation, "what is left for Lisbon")
+        mail = await said(ana, conversation, "booking confirmed", source="mail")
+        await filed(mail, ana, trip)
+        old = await said(ana, conversation, "two days ago", hours=49)
+        await filed(old, ana, trip)
+        other = await said(ana, conversation, "the boiler")
+        await filed(other, ana, elsewhere)
+        await conn.execute(
+            text(
+                "insert into notes (account_id, scope, subject_id, kind, text, origin) "
+                "values (:a, 'thread', :t, 'going_on', 'Sam books the ferry', 'stated')"
+            ),
+            {"a": sam, "t": trip},
+        )
+    await admin.dispose()
+
+    agent = create_async_engine(_asyncpg(AGENT_DB))
+    async with agent.connect() as conn:
+        params = {"thread_id": trip, "account_id": ana}
+        messages = (await conn.execute(_MESSAGES, {**params, "limit": 40})).mappings().all()
+        notes = (await conn.execute(_NOTES, {**params, "budget": 100})).mappings().all()
+    await agent.dispose()
+
+    assert [m["id"] for m in messages] == [kept]
+    assert messages[0]["text"] == "staying in Alfama"
+    assert [(n["text"], n["theirs"]) for n in notes] == [("Sam books the ferry", False)]
