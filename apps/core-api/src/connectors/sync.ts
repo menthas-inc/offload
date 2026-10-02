@@ -155,8 +155,13 @@ export async function syncConnection(connectionId: string, full = false): Promis
       timeMax,
     });
 
+    // Per calendar. On the outcome alone it leaked: one calendar's expired
+    // token made the next one in the connection read its delta as the whole
+    // window and retire everything the delta did not mention.
+    let reread = full;
     if (page === "resync") {
       outcome.resynced = true;
+      reread = true;
       page = await listEvents(accessToken, calendar.external_id, { syncToken: null, timeMin, timeMax });
       if (page === "resync") continue;
     }
@@ -204,7 +209,7 @@ export async function syncConnection(connectionId: string, full = false): Promis
     // window is enforced: the copy holds sixty days back and no more, since it
     // is a cache of somebody else's system and not a record of what anybody
     // dumped.
-    if (full || outcome.resynced) {
+    if (reread) {
       outcome.retired += await retireMissing(calendar.id, seen, timeMin, timeMax);
       await forgetBehindTheWindow(calendar.id, timeMin);
     } else {

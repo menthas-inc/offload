@@ -205,6 +205,63 @@ describe("a whole series deleted at Google", () => {
   });
 });
 
+describe("one calendar's expired token", () => {
+  it("re-reads that calendar only, and the next one in the connection stays a delta", async () => {
+    const ids = await setup();
+    const work = await db
+      .insertInto("connector_calendars")
+      .values({
+        connection_id: ids.connectionId,
+        external_id: "cal-work",
+        summary: "Work",
+        access_role: "owner",
+        is_primary: false,
+        selected: true,
+        sync_token: "tok-w",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await occurrence({ accountId: ids.accountId, calendarId: work.id }, null, 3);
+
+    // Home's token is too old; work's delta is empty, nothing changed there.
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = new URL(String(input));
+      calls.push(url);
+      const home = url.pathname.includes(`/calendars/${CAL}/`);
+      if (home && url.searchParams.has("syncToken")) return new Response("{}", { status: 410 });
+      return new Response(JSON.stringify({ items: [], nextSyncToken: "tok-2" }), { status: 200 });
+    }) as typeof fetch;
+
+    const outcome = await syncConnection(ids.connectionId);
+
+    expect(outcome.resynced).toBe(true);
+    expect(await live(work.id)).toEqual(["single_3"]);
+  });
+});
+
+describe("a series with more occurrences than one page", () => {
+  it("reads every page before deciding what is gone", async () => {
+    const ids = await setup();
+    for (const days of [1, 8, 15]) await occurrence(ids, "swim", days);
+
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = new URL(String(input));
+      calls.push(url);
+      if (!url.pathname.endsWith("/instances")) {
+        return new Response(JSON.stringify({ items: [item("swim", 1)], nextSyncToken: "tok-2" }), { status: 200 });
+      }
+      const body = url.searchParams.get("pageToken") === "p2"
+        ? { items: [item("swim", 15)] }
+        : { items: [item("swim", 1), item("swim", 8)], nextPageToken: "p2" };
+      return new Response(JSON.stringify(body), { status: 200 });
+    }) as typeof fetch;
+
+    await syncConnection(ids.connectionId);
+
+    expect(await live(ids.calendarId)).toEqual(["swim_1", "swim_8", "swim_15"]);
+  });
+});
+
 describe("what the delta pass costs", () => {
   it("asks Google nothing more when no series changed", async () => {
     const ids = await setup();
