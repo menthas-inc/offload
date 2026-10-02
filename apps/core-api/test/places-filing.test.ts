@@ -8,6 +8,7 @@ import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
 import { uuidv7 } from "../src/uuid.js";
+import { undoTurn } from "../src/routes/dumps.js";
 
 await migrate(() => {});
 
@@ -94,7 +95,7 @@ async function dump(accountId: string, text = "dinner at Time Out Market on Frid
     })
     .returning("id")
     .executeTakeFirstOrThrow();
-  return { messageId: message.id, jobId: job.id };
+  return { messageId: message.id, jobId: job.id, turnId };
 }
 
 const tool = (payload: Record<string, unknown>) =>
@@ -210,5 +211,131 @@ describe("the worker's envelope on a link (T1.8, AC-2)", () => {
     const { jobId } = await dump(me);
     const res = await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId: t, title: "Dinner", type: "event", worker: { pageRead: true } });
     expect(res.json()).toEqual({ ok: false, error: "location_not_here" });
+  });
+});
+
+describe("editing a row's place (T1.9, AC-9)", () => {
+  async function filedEvent(me: string, t: string, location = "Time Out Market") {
+    const first = await dump(me);
+    const res = await tool({ tool: "add_content", jobId: first.jobId, toolCallId: "e1", threadId: t, title: "Dinner", type: "event", location });
+    const id = res.json().contentId as string;
+    const placeId = (await db.insertInto("places").values({ provider: "google", provider_place_id: "ChIJ_market", lat: 38.7, lng: -9.1, coords_at: new Date() }).returning("id").executeTakeFirstOrThrow()).id;
+    await db.updateTable("content").set({ place_id: placeId }).where("id", "=", id).execute();
+    await db.deleteFrom("jobs").where("kind", "=", "location.resolve").execute();
+    return { id, placeId };
+  }
+  const read = (id: string) =>
+    db.selectFrom("content").select(["location", "place_id", "place_read_at", "title"]).where("id", "=", id).executeTakeFirstOrThrow();
+
+  it("changes an event's location, dropping the old place and booking a lookup", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const { id } = await filedEvent(me, t);
+    const { jobId } = await dump(me, "actually it's at Cervejaria Ramiro");
+    const res = await tool({ tool: "edit_content", jobId, toolCallId: "x1", contentId: id, location: "Cervejaria Ramiro" });
+    expect(res.json().ok).toBe(true);
+    expect(await read(id)).toMatchObject({ location: "Cervejaria Ramiro", place_id: null });
+    expect(await resolveJobs()).toEqual([{ contentId: id }]);
+  });
+
+  it("clears an event's location", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const { id } = await filedEvent(me, t);
+    const { jobId } = await dump(me, "it's not there any more");
+    await tool({ tool: "edit_content", jobId, toolCallId: "x1", contentId: id, clearLocation: true });
+    expect(await read(id)).toMatchObject({ location: null, place_id: null });
+    expect(await resolveJobs()).toEqual([]);
+  });
+
+  it("refuses a location the filter would not send", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const { id } = await filedEvent(me, t);
+    const { jobId } = await dump(me);
+    const res = await tool({ tool: "edit_content", jobId, toolCallId: "x1", contentId: id, location: "Rua Augusta 12" });
+    expect(res.json()).toEqual({ ok: false, error: "bad_place_name" });
+  });
+
+  it("clears a link's point and keeps it from being read again, but sets none", async () => {
+    mapsOn();
+    const me = await account();
+    const t = await thread(me);
+    const { jobId } = await dump(me, "https://www.airbnb.com/rooms/1");
+    const filed = await tool({ tool: "add_content", jobId, toolCallId: "l1", threadId: t, title: "Casa Alfama", type: "link", url: "https://www.airbnb.com/rooms/1", worker: { pageRead: true, pageLocation: { lat: 38.7113, lng: -9.1301 } } });
+    const id = filed.json().contentId as string;
+    const later = await dump(me, "take it off the map");
+    const set = await tool({ tool: "edit_content", jobId: later.jobId, toolCallId: "x1", contentId: id, location: "Alfama" });
+    expect(set.json()).toEqual({ ok: false, error: "location_not_here" });
+    await tool({ tool: "edit_content", jobId: later.jobId, toolCallId: "x2", contentId: id, clearLocation: true });
+    const row = await read(id);
+    expect(row.place_id).toBeNull();
+    expect(row.place_read_at).toBeInstanceOf(Date);
+  });
+
+  it("refuses a location on a saved place, and looks it up again on a rename", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const first = await dump(me);
+    const filed = await tool({ tool: "add_content", jobId: first.jobId, toolCallId: "p1", threadId: t, title: "Time Out Market", type: "location" });
+    const id = filed.json().contentId as string;
+    await db.deleteFrom("jobs").where("kind", "=", "location.resolve").execute();
+    const later = await dump(me);
+    expect((await tool({ tool: "edit_content", jobId: later.jobId, toolCallId: "x1", contentId: id, location: "Alfama" })).json()).toEqual({
+      ok: false,
+      error: "location_not_here",
+    });
+    await tool({ tool: "edit_content", jobId: later.jobId, toolCallId: "x2", contentId: id, title: "Cervejaria Ramiro" });
+    expect(await resolveJobs()).toEqual([{ contentId: id }]);
+  });
+
+  it("refuses another member changing the place on a row that is not theirs (OFF-3)", async () => {
+    const ana = await account();
+    const t = await thread(ana);
+    const { id } = await filedEvent(ana, t);
+    const ben = await account();
+    await db.insertInto("thread_members").values({ thread_id: t, account_id: ben, state: "accepted" }).execute();
+    const { jobId } = await dump(ben);
+    for (const change of [{ location: "Cervejaria Ramiro" }, { clearLocation: true }]) {
+      const res = await tool({ tool: "edit_content", jobId, toolCallId: `b${Object.keys(change)[0]}`, contentId: id, ...change });
+      expect(res.json()).toEqual({ ok: false, error: "not_yours" });
+    }
+    expect((await read(id)).location).toBe("Time Out Market");
+  });
+
+  it("puts the place back when the turn that changed it is undone, and books nothing", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const { id, placeId } = await filedEvent(me, t);
+    const { jobId, turnId } = await dump(me, "actually it's at Cervejaria Ramiro");
+    await tool({ tool: "edit_content", jobId, toolCallId: "x1", contentId: id, location: "Cervejaria Ramiro" });
+    await db.deleteFrom("jobs").where("kind", "=", "location.resolve").execute();
+    await undoTurn(me, turnId);
+    const row = await db.selectFrom("content").select(["location", "place_id", "place_prior", "deleted_at"]).where("id", "=", id).executeTakeFirstOrThrow();
+    expect(row).toEqual({ location: "Time Out Market", place_id: placeId, place_prior: null, deleted_at: null });
+    expect(await resolveJobs()).toEqual([]);
+  });
+
+  it("keeps the old place alive for Undo through the daily sweep", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const { id, placeId } = await filedEvent(me, t);
+    const { jobId } = await dump(me);
+    await tool({ tool: "edit_content", jobId, toolCallId: "x1", contentId: id, clearLocation: true });
+    const { agePlaces } = await import("../src/places/age.js");
+    await agePlaces();
+    expect(await db.selectFrom("places").select("id").where("id", "=", placeId).executeTakeFirst()).toBeDefined();
+  });
+});
+
+describe("what no request can set (T1.9, SEC-2)", () => {
+  it("refuses the place columns in a tool body", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const { jobId } = await dump(me);
+    for (const key of ["placeId", "placePrior", "placeReadAt"]) {
+      const res = await tool({ tool: "add_content", jobId, toolCallId: key, threadId: t, title: "Dinner", type: "event", [key]: "x" });
+      expect(res.statusCode, key).toBe(400);
+    }
   });
 });

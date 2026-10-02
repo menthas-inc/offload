@@ -318,6 +318,12 @@ const body = z.discriminatedUnion("tool", [
     /** 023. The rule, which this tool never took: a recurrence could be
      *  created and never changed by anyone. Null is not stated, never remove. */
     rrule: z.string().max(200).nullish(),
+    /** 030. An event's location, through the same filter as on filing. Null
+     *  is not stated, as everywhere in this tool; clearing is said outright. */
+    location: z.string().max(400).nullish(),
+    /** 030. Take the row off the map: an event's location, or a link's point.
+     *  A cleared link is never read again. */
+    clearLocation: z.boolean().nullish(),
   }),
   z.strictObject({
     tool: z.literal("move_content"),
@@ -994,6 +1000,52 @@ async function noteThread(
  *  **One refusal shape.** A content id that does not exist and one in a thread
  *  you are not in are the same answer, for the reason the header states.
  */
+/** 030. What an `edit_content` call does to a row's place, decided before the
+ *  write: the columns to set, whether to book a lookup, or a refusal the model
+ *  can read. Null when the call does not touch the place. */
+async function placeEdit(
+  trx: Executor,
+  call: { title?: string | null | undefined; location?: string | null | undefined; clearLocation?: boolean | null | undefined },
+  contentId: string,
+  messageId: string | null,
+): Promise<{ set: Record<string, unknown>; lookUp: boolean } | { error: "location_not_here" | "bad_place_name" } | null> {
+  const wantsPlace = call.location != null || call.clearLocation === true;
+  const row = await trx
+    .selectFrom("content")
+    .select(["type", "title", "location", "place_id", "place_read_at"])
+    .where("id", "=", contentId)
+    .executeTakeFirstOrThrow();
+  const renamed = row.type === "location" && call.title != null && call.title !== row.title;
+  if (!wantsPlace && !renamed) return null;
+
+  // The place as it was, for this turn's Undo. Server-written only.
+  const prior = messageId
+    ? {
+        place_prior: JSON.stringify({
+          messageId,
+          placeId: row.place_id,
+          location: row.location,
+          placeReadAt: row.place_read_at ? row.place_read_at.toISOString() : null,
+        }),
+        place_prior_at: sql`now()`,
+      }
+    : {};
+
+  if (wantsPlace) {
+    if (row.type === "event") {
+      if (call.clearLocation === true) return { set: { ...prior, location: null, place_id: null }, lookUp: false };
+      const location = placeQuery(call.location ?? "");
+      if (location === null) return { error: "bad_place_name" };
+      return { set: { ...prior, location, place_id: null }, lookUp: true };
+    }
+    if (row.type === "link" && call.clearLocation === true && call.location == null) {
+      return { set: { ...prior, place_id: null }, lookUp: false };
+    }
+    return { error: "location_not_here" };
+  }
+  return { set: { ...prior, place_id: null }, lookUp: true };
+}
+
 async function existing(
   call: Extract<z.infer<typeof body>, { tool: Exclude<ToolName, "create_thread" | "add_content" | "label_content"> }>,
   accountId: string,
@@ -1435,9 +1487,17 @@ async function existing(
     }
   }
 
+  // 030. A row's place. An event's location is set through the filter or
+  // cleared; a link's point is only cleared; a saved place is renamed instead,
+  // and a rename looks it up again. Whatever changes, the place as it was is
+  // kept for this turn's Undo.
+  const placeChange = await placeEdit(trx, call, ref.id, messageId);
+  if (placeChange && "error" in placeChange) return { ok: false, error: placeChange.error };
+
   await trx
     .updateTable("content")
     .set({
+      ...(placeChange?.set ?? {}),
       ...(call.title == null ? {} : { title: call.title }),
       ...(call.body === undefined ? {} : { body: call.body }),
       ...(call.url === undefined ? {} : { url: call.url }),
@@ -1460,6 +1520,10 @@ async function existing(
       call.priority == null ? eb.val(true) : eb("priority_pinned", "=", false)
     )
     .execute();
+
+  if (placeChange?.lookUp) {
+    await enqueue({ kind: "location.resolve", payload: { contentId: ref.id }, priority: PRIORITY.background, tx: trx });
+  }
 
   await touchThread(ref.threadId, trx);
   await noteThread(messageId, ref.threadId, true, trx);

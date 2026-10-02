@@ -45,6 +45,17 @@ export async function agePlaces(): Promise<{ aged: number; dropped: number; prio
         ),
       ),
     )
+    // Nor one a live Undo record still points at, so a turn undone within
+    // its window gets its place back.
+    .where(({ not, exists, selectFrom }) =>
+      not(
+        exists(
+          selectFrom("content")
+            .select("content.id")
+            .where(sql<string>`content.place_prior->>'placeId'`, "=", sql<string>`places.id::text`),
+        ),
+      ),
+    )
     .executeTakeFirst();
 
   const priors = await db
