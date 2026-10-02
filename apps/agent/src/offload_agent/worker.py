@@ -27,8 +27,6 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from offload_agent import context as ctx_mod
 from offload_agent import ledger, reader
 from offload_agent.cancels import Cancels, listen
-from offload_agent.compact import KINDS as COMPACT_KINDS
-from offload_agent.compact import handle_compact
 from offload_agent.config import Config
 from offload_agent.context import DumpContext, Photo
 from offload_agent.countries import name_of
@@ -44,12 +42,9 @@ from offload_agent.harness.plan import (
     judge_answer,
     plan,
     plan_answer,
-    plan_quick_add,
 )
-from offload_agent.label_sort import KINDS as LABEL_SORT_KINDS
-from offload_agent.label_sort import handle_label_sort
-from offload_agent.loose_propose import KINDS as LOOSE_PROPOSE_KINDS
-from offload_agent.loose_propose import handle_loose_propose
+from offload_agent.nightly import KINDS as NIGHTLY_KINDS
+from offload_agent.nightly import handle_nightly
 from offload_agent.og import picture
 from offload_agent.queue import ClaimedJob, claim, finish, reap, release_for_retry, retry_or_die
 from offload_agent.renditions import prepare
@@ -71,12 +66,9 @@ class ReportFailed(Exception):
 
 KINDS = [
     "dump.answer",
-    "thread.quick_add",
     "voice.forget",
     *EMBED_KINDS,
-    *COMPACT_KINDS,
-    *LABEL_SORT_KINDS,
-    *LOOSE_PROPOSE_KINDS,
+    *NIGHTLY_KINDS,
 ]
 
 
@@ -936,49 +928,20 @@ async def _handle(
     """One job. Never raises: the outcome always reaches the Core API, because a
     dump that silently stops being answered is indistinguishable from one still
     being thought about."""
-    if job.kind == "thread.quick_add":
-        await _handle_quick_add(job, cfg=cfg, engine=engine, anthropic=anthropic, http=http)
-        return
-
-    if job.kind in COMPACT_KINDS:
-        # Nobody is waiting on a fold, so a failure releases the job and the
-        # thread keeps every note it has. Wrapped for the same reason the embed
-        # branch below is: it returns before the catch-all, and a stuck
-        # `running` row is nothing's job to reap.
+    if job.kind in NIGHTLY_KINDS:
+        # 032. Nobody is waiting on a nightly pass, so a failure releases the
+        # job and the thread keeps every note it has. Wrapped because it
+        # returns before the catch-all, and a stuck `running` row is nothing's
+        # job to reap.
         try:
-            await handle_compact(job, cfg=cfg, engine=engine, http=http, client=anthropic)
+            await handle_nightly(job, cfg=cfg, engine=engine, http=http, client=anthropic)
         except Exception as exc:
             # **`log.error`, never `log.exception`.** The type, never the value:
             # an SDK exception can echo the request body, and the request body
-            # here is a hundred notes (OFF-1). `log.exception` sets
-            # `exc_info=True` and structlog renders the whole traceback with
-            # `str(exc)` in it, which is the breach this comment was written to
-            # prevent and did not. Same shape as `dump failed` below.
-            log.error("compaction failed", kind=job.kind, error=type(exc).__name__)
+            # here is somebody's notes and dumps (OFF-1).
+            log.error("nightly failed", kind=job.kind, error=type(exc).__name__)
             async with engine.begin() as conn:
-                await retry_or_die(conn, job, "compact_error", delay_seconds=3600)
-        return
-
-    if job.kind in LOOSE_PROPOSE_KINDS:
-        # 028. Nobody is waiting on a proposal either, and the same guard: the
-        # type, never the value, since the request is somebody's loose things.
-        try:
-            await handle_loose_propose(job, cfg=cfg, engine=engine, http=http, client=anthropic)
-        except Exception as exc:
-            log.error("loose proposal failed", kind=job.kind, error=type(exc).__name__)
-            async with engine.begin() as conn:
-                await retry_or_die(conn, job, "loose_error", delay_seconds=3600)
-        return
-
-    if job.kind in LABEL_SORT_KINDS:
-        # 025. Nobody is waiting on a sort either, and the same guard: the type,
-        # never the value, since the request here is a thread's titles.
-        try:
-            await handle_label_sort(job, cfg=cfg, engine=engine, http=http, client=anthropic)
-        except Exception as exc:
-            log.error("label sort failed", kind=job.kind, error=type(exc).__name__)
-            async with engine.begin() as conn:
-                await retry_or_die(conn, job, "label_sort_error", delay_seconds=3600)
+                await retry_or_die(conn, job, "nightly_error", delay_seconds=3600)
         return
 
     if job.kind == "voice.forget":
@@ -1940,94 +1903,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-async def _handle_quick_add(
-    job: ClaimedJob,
-    *,
-    cfg: Config,
-    engine,
-    anthropic: AsyncAnthropic,
-    http: httpx.AsyncClient,
-) -> None:
-    """A row somebody typed straight into a thread.
-
-    Never raises, for the same reason `handle` does not: a job that stops
-    without reporting leaves a spinner turning on somebody's screen forever.
-
-    **Failure here is cheap and that is the design.** The row was written before
-    this job existed and holds exactly what they typed, in the thread they typed
-    it into. Everything below is an improvement on something already safe, so
-    the failure path has nothing to recover and only has to stop the spinner.
-    """
-    content_id = job.payload.get("contentId")
-
-    if not (content_id and job.account_id):
-        await _post_result(
-            http, cfg, {"outcome": "failed", "jobId": job.id}, path="quick-add-result"
-        )
-        return
-
-    outcome = None
-    try:
-        async with engine.connect() as conn:
-            loaded = await ctx_mod.load_quick_add(
-                conn,
-                account_id=job.account_id,
-                content_id=content_id,
-                time_zone=str(job.payload.get("timeZone") or "") or None,
-            )
-
-        if loaded is None:
-            # Deleted between the write and the claim, which is a thing somebody
-            # is entitled to do to their own row.
-            await _post_result(
-                http, cfg, {"outcome": "failed", "jobId": job.id}, path="quick-add-result"
-            )
-            return
-
-        outcome = await plan_quick_add(
-            anthropic, loaded, cfg.model, _tool_caller(http, cfg, job.id)
-        )
-
-        await _post_result(
-            http,
-            cfg,
-            {
-                "outcome": "done",
-                "jobId": job.id,
-                "usage": _usage_wire(outcome),
-            },
-            path="quick-add-result",
-        )
-        # Ids and counts only, never the typed text and never a thread name
-        # (OFF-1).
-        log.info(
-            "quick add read",
-            job_id=job.id,
-            calls=len(outcome.usage),
-            wrote=len(outcome.landed),
-            latency_ms=sum(u.latency_ms for u in outcome.usage),
-        )
-
-    except ReportFailed as exc:
-        # Nothing to report through. Leave the job for another attempt rather
-        # than closing it: see the note on the same case in `handle`.
-        log.error("quick add undeliverable", job_id=job.id, error_type=str(exc))
-        raise
-
-    except Exception as exc:  # noqa: BLE001
-        log.error("quick add failed", job_id=job.id, error_type=type(exc).__name__)
-        await _post_result(
-            http,
-            cfg,
-            {
-                "outcome": "failed",
-                "jobId": job.id,
-                **({"usage": wire} if (wire := _usage_wire(outcome)) else {}),
-            },
-            path="quick-add-result",
-        )
 
 
 async def _handle_answer(

@@ -62,11 +62,12 @@ export function models(code, options) {
     file: options.fileModel && options.fileModel !== "from-code" ? options.fileModel : code.models.file,
     answer: options.answerModel && options.answerModel !== "from-code" ? options.answerModel : code.models.answer,
     sort: code.models.sort,
+    nightly: code.models.nightly,
   };
 }
 
 // Unit costs: what one of each action costs, given how warm each cached prefix
-// is. `warm` is { file, answer, quickAdd } between 0 and 1.
+// is. `warm` is { file, answer, nightly } between 0 and 1.
 export function units({ prices, code, assumptions, options }, warm) {
   const t = assumptions.turn;
   const md = models(code, options);
@@ -75,7 +76,7 @@ export function units({ prices, code, assumptions, options }, warm) {
 
   const filePrefix = pt("plan_v2") + tools(md.file, t.file.toolTokens);
   const answerPrefix = pt("answer") + tools(md.answer, t.answer.toolTokens);
-  const quickPrefix = pt("quick_add") + tools(md.file, t.quickAdd.toolTokens);
+  const nightlyPrefix = pt("nightly") + tools(md.nightly, t.nightly.toolTokens);
   const fileTurn = (extraCtx = 0, images = 0) =>
     turnCost({ prices, model: md.file, prefix: filePrefix, ctx: t.file.contextTokens + extraCtx, growth: t.file.growthPerCall,
       out: t.file.outputPerCall, calls: t.file.calls, images, imageTokens: t.imageTokens, warm: warm.file, conversation: code.cachesConversation });
@@ -92,7 +93,7 @@ export function units({ prices, code, assumptions, options }, warm) {
   const readerPrompt = pt("reader");
 
   return {
-    prefixes: { file: filePrefix, answer: answerPrefix, quickAdd: quickPrefix },
+    prefixes: { file: filePrefix, answer: answerPrefix, nightly: nightlyPrefix },
     models: md,
     fileText: fileTurn(),
     filePhotoPerPhoto: fileTurn(0, 1) - fileTurn(),
@@ -100,10 +101,11 @@ export function units({ prices, code, assumptions, options }, warm) {
     fileWhatsappExtra: fileTurn(300) - fileTurn(),
     answer: turnCost({ prices, model: md.answer, prefix: answerPrefix, ctx: t.answer.contextTokens, growth: t.answer.growthPerCall,
       out: t.answer.outputPerCall, calls: t.answer.calls, warm: warm.answer, conversation: code.cachesConversation }),
-    quickAdd: turnCost({ prices, model: md.file, prefix: quickPrefix, ctx: t.quickAdd.contextTokens, growth: t.quickAdd.growthPerCall,
-      out: t.quickAdd.outputPerCall, calls: t.quickAdd.calls, warm: warm.quickAdd, conversation: code.cachesConversation }),
     classify: oneCall({ prices, model: md.sort, input: pt("classify") + t.classify.inputExtra, out: t.classify.output }),
-    compact: oneCall({ prices, model: md.sort, input: pt("compact") + t.compact.notesTokens, out: t.compact.output }),
+    // One call per thread and member, the system prompt cached; the notes and
+    // the member's dumps since their last pass are the uncached input.
+    nightly: turnCost({ prices, model: md.nightly, prefix: nightlyPrefix, ctx: t.nightly.notesTokens + t.nightly.messagesTokens, growth: 0,
+      out: t.nightly.output, calls: 1, warm: warm.nightly }),
     search: oneCall({ prices, model: md.sort, input: readerPrompt + t.readerSearch.resultTokens, out: t.readerSearch.output })
       + oneCall({ prices, model: md.sort, input: t.readerSearch.shapeIn, out: t.readerSearch.shapeOut }) + searchFee,
     read: oneCall({ prices, model: md.sort, input: readerPrompt + t.readerRead.pageTokens, out: t.readerRead.output }),
@@ -133,7 +135,7 @@ export function personMonth(input, u, frequencyKey, behaviourKey) {
   const classified = b.textDumps + b.questions + b.voiceNotes + wa;
   // The daily turn cap, when the code has one: turns past it are refused
   // before they cost anything, so everything a turn drives scales down.
-  const turnsWanted = fileTurns + b.questions + b.quickAdds;
+  const turnsWanted = fileTurns + b.questions;
   const turnShare = input.code.dailyTurns && turnsWanted > input.code.dailyTurns ? input.code.dailyTurns / turnsWanted : 1;
   let claudeDay =
     turnShare * (
@@ -142,11 +144,9 @@ export function personMonth(input, u, frequencyKey, behaviourKey) {
       b.mailForwards * (u.fileMailExtra + u.mailLook) +
       wa * u.fileWhatsappExtra +
       b.questions * u.answer +
-      b.quickAdds * u.quickAdd +
       classified * u.classify +
       b.searches * u.search +
-      b.reads * u.read) +
-    b.threadsTouched * u.compact;
+      b.reads * u.read);
   let voiceDay = turnShare * b.voiceNotes * b.voiceSeconds * u.voicePerSecond;
 
   // The daily budget, when it works, caps everything the ledger prices: model
@@ -161,6 +161,9 @@ export function personMonth(input, u, frequencyKey, behaviourKey) {
       voiceDay *= cap / spend;
     }
   }
+  // The night's passes come after, and neither the budget nor the turn count
+  // holds them back.
+  claudeDay += nightlyPasses(input, b) * u.nightly;
 
   const receiptsDay = Math.min(wa * (1 + assumptions.whatsapp.extraReceiptsPerSend), assumptions.whatsapp.receiptCapPerAccountPerDay);
   const whatsappDay = receiptsDay * u.receipt;
@@ -189,12 +192,19 @@ export function personMonth(input, u, frequencyKey, behaviourKey) {
     other: embed + mailIn,
     capped,
     counts: {
-      turns: (fileTurns + b.questions + b.quickAdds) * days,
-      fileTurns: fileTurns * days, answers: b.questions * days, quickAdds: b.quickAdds * days,
+      turns: (fileTurns + b.questions) * days,
+      fileTurns: fileTurns * days, answers: b.questions * days, nightlyPasses: nightlyPasses(input, b) * days,
       receipts: receiptsDay * days, voiceSeconds: b.voiceNotes * b.voiceSeconds * days, photos: photos * days,
       emails: b.mailForwards * days, gbAdded: gbMonth, egressGb,
     },
   };
+}
+
+// Nightly passes after an active day: one per thread with a material change,
+// at most the code's cap, and the default thread's beside them.
+export function nightlyPasses(input, b) {
+  const cap = input.code.nightlyThreads ?? Infinity;
+  return Math.min(b.threadsTouched, cap) + 1;
 }
 
 export function total(row) {
@@ -215,7 +225,7 @@ export function population(assumptions, level, basis) {
 // since the system block is the same for everybody.
 export function warmth(input, mau) {
   const { assumptions } = input;
-  const perDay = { file: 0, answer: 0, quickAdd: 0 };
+  const perDay = { file: 0, answer: 0, nightly: 0 };
   for (const [fk, fShare] of Object.entries(assumptions.fleet.frequencyMix)) {
     for (const [bk, bShare] of Object.entries(assumptions.fleet.behaviourMix)) {
       const b = assumptions.behaviour[bk].perActiveDay;
@@ -224,12 +234,16 @@ export function warmth(input, mau) {
       const wa = input.options.whatsapp ? b.whatsappSends : 0;
       perDay.file += (people * days * (b.textDumps + b.photoDumps + b.voiceNotes + b.mailForwards + wa)) / MONTH;
       perDay.answer += (people * days * b.questions) / MONTH;
-      perDay.quickAdd += (people * days * b.quickAdds) / MONTH;
+      perDay.nightly += (people * days * nightlyPasses(input, b)) / MONTH;
     }
   }
   const seconds = assumptions.turn.activeHoursPerDay * 3600;
   const w = {};
-  for (const k of Object.keys(perDay)) w[k] = 1 - Math.exp(-(perDay[k] / seconds) * 300);
+  for (const k of ["file", "answer"]) w[k] = 1 - Math.exp(-(perDay[k] / seconds) * 300);
+  // Every account's night is enqueued at once and the passes run back to back,
+  // so each prompt variant is written once a night and read by every pass after.
+  const variants = assumptions.turn.nightly.promptVariants;
+  w.nightly = perDay.nightly > 0 ? Math.max(0, 1 - variants / perDay.nightly) : 0;
   return w;
 }
 
@@ -347,7 +361,6 @@ export function evalLike(input) {
   const t = input.assumptions.turn;
   const shaped = { ...input, assumptions: { ...input.assumptions, turn: { ...t,
     file: { ...t.file, contextTokens: e.contextTokens, calls: e.calls, growthPerCall: e.growthPerCall },
-    answer: { ...t.answer, contextTokens: e.contextTokens, calls: e.calls, growthPerCall: e.growthPerCall },
-    quickAdd: { ...t.quickAdd, contextTokens: e.contextTokens, calls: e.calls, growthPerCall: e.growthPerCall } } } };
-  return units(shaped, { file: 1, answer: 1, quickAdd: 1 });
+    answer: { ...t.answer, contextTokens: e.contextTokens, calls: e.calls, growthPerCall: e.growthPerCall } } } };
+  return units(shaped, { file: 1, answer: 1, nightly: 1 });
 }

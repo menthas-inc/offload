@@ -11,6 +11,20 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-02 · A typed row is saved as typed (032)
+**Surface:** iOS, Android, web
+**Raised by:** code, building 032 (`docs/specs/032-fewer-better-model-calls/`) from the product owner's decision to stop reading typed rows with a model, and the client review.
+
+**Was:** a row typed into a section's + drew at once with the one spinner while offload read it, and its title could change a few seconds later (decisions of 2026-09-14 on the provisional row and the spinner). The field's placeholder read *Type it, offload will sort it out*.
+
+**Is:**
+- **No spinner on a typed row**, on the row or on the provisional row drawn at the press: nothing reads it, so nothing is pending, and the title never changes after enter. `filingAt` stays in the API, always null.
+- **The placeholder is *Add to this***, the kit's nearest line (`ui_kits/web_app/WApp.jsx`), on the four typed-row fields: web and phones, To do and the timeline's day.
+- **A line that is one web address shows its domain chip from the press**, since the provisional row carries the address the server will write.
+- **On the phones a section's + stays open at the day's limit**, where the composer drew *Enough for today*: a typed row is not a model call.
+
+**Design system impact:** none in the kits, which never drew the typed row's spinner and have no mock for the section's +. Readme: wherever it describes a typed row being read or tidied by offload, it is saved as typed.
+
 ### 2026-10-02 · Settings, as built (031)
 **Surface:** iOS, Android, web
 **Raised by:** code, building *Settings, tightened* in 031 (`docs/specs/031-settings/`), with the owner's answers of the same day and the client review.

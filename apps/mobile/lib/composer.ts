@@ -43,6 +43,7 @@ export const PLACEHOLDERS = [
 export const DAY_USED = "Enough for today. Back tomorrow.";
 
 /** Closed when the account said so on load, or a send was refused for it. */
-export function closedForTheDay(me: { atDailyLimit: boolean } | null, refused: boolean): boolean {
+export function closedForTheDay(me: { atDailyLimit: boolean } | null, refused: boolean, pinned = false): boolean {
+  if (pinned) return false;
   return refused || Boolean(me?.atDailyLimit);
 }

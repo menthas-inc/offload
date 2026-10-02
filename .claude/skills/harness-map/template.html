@@ -185,7 +185,7 @@
     <h1 style="margin-top:10px">One turn through offload</h1>
     <p class="lede">What happens between somebody pressing send and a sentence coming back: the services a dump crosses, the loop every model call runs in, the prompt as it is actually sent, and the places a person can already be asked something.</p>
     <div class="meta">
-      <span><b>Read from</b> apps/agent (worker.py, harness/plan.py, harness/tools.py, harness/look.py, reader.py, context.py, loose_propose.py, prompts/), apps/core-api (routes/dumps.ts, internal.ts, tools.ts, sharing.ts, mail-in.ts), apps/web (Composer.tsx, lib/dump.ts)</span>
+      <span><b>Read from</b> apps/agent (worker.py, harness/plan.py, harness/tools.py, harness/look.py, reader.py, context.py, nightly.py, prompt_files.py, prompts/), apps/core-api (routes/dumps.ts, internal.ts, tools.ts, sharing.ts, mail-in.ts), apps/web (Composer.tsx, lib/dump.ts)</span>
       <span><b>Commit</b> {{COMMIT}} on main</span>
     </div>
     <nav class="contents" aria-label="Contents">
@@ -335,7 +335,8 @@
       <figcaption><b>Ten steps, five lanes.</b> The only thing the client ever receives is what the messages table says: a step, or the settled turn. The model never talks to the client, and it never talks to Postgres except through the tool-call endpoint, which derives the account from the job id rather than from anything the model sends.</figcaption>
     </figure>
     <ul class="notes">
-      <li><b>Other job kinds share the worker</b> and are not drawn: <code>thread.quick_add</code> (a row typed straight into a thread, {{MODEL}}, two tools), <code>notes.compact</code> and <code>loose.propose</code> once a day ({{SORT_MODEL}}), <code>labels.sort</code> (built, switched off), <code>voice.forget</code> (deletes a transcript at the provider) and the <code>embed.*</code> jobs (Voyage). Only <code>dump.answer</code> talks to a person.</li>
+      <li><b>Other job kinds share the worker</b> and are not drawn: <code>thread.nightly</code> (032, one model call per thread and member, booked only when something of theirs changed since their last pass, {{NIGHTLY_MODEL}}: it keeps their notes true, adds what their dumps showed, and on the default thread suggests threads), <code>voice.forget</code> (deletes a transcript at the provider) and the <code>embed.*</code> jobs (Voyage). Only <code>dump.answer</code> talks to a person.</li>
+      <li><b>A row typed into a section is not a turn (032).</b> The + on a To do or Timeline heading writes the row as typed, with the section's type, and no job is enqueued: no model reads it and its title never changes after enter.</li>
       <li><b>An email forwarded to offload is a dump that arrives by mail (026).</b> Resend receives it and calls <code>POST /v1/mail/resend</code>, which checks the sender is an account's own address, keeps the text and the pictures worth keeping, and writes a message with source <code>mail</code> and the same <code>dump.answer</code> job. The worker first asks {{SORT_MODEL}} which pictures are worth reading (<code>look.py</code>, "Looking at the pictures"), never classifies it, and files it: an email is filed, not answered. Everything the turn writes is marked untrusted, nothing it reads can suggest a thread, and its Undo sits on the email's Activity row for a day, since nobody is at a toast.</li>
       <li><b>Not in a thread (028).</b> What has no home is filed in the account's default thread, which the model reads as <em>not in a thread</em> and a person never sees named. Filing there may carry <code>suggest_thread_id</code>, a thread the model had in mind and was not sure of, which the person sees as a suggestion on the row. A turn that filed only there shows Done with no pill: <code>filed</code> on the done event is what draws it.</li>
       <li><b>The step before the classifier is the one thing written before any model runs.</b> Everything else the person sees is produced by, or after, a model call.</li>
@@ -351,7 +352,7 @@
     <header>
       <div class="eyebrow">2</div>
       <h2>The loop every call runs in</h2>
-      <p class="intro">One function, <code>_run</code>, serves the filing path, the answering path and quick add. What differs between them is passed in: the system prompt, the user blocks, the tool list. What is the same is where a tool result becomes the next model turn, and that is the only place it happens.</p>
+      <p class="intro">One function, <code>_run</code>, serves the filing path and the answering path. What differs between them is passed in: the system prompt, the user blocks, the tool list. What is the same is where a tool result becomes the next model turn, and that is the only place it happens.</p>
     </header>
     <figure>
       <div class="fig">
@@ -465,7 +466,7 @@
     <header>
       <div class="eyebrow">3</div>
       <h2>The prompt, as sent</h2>
-      <p class="intro">Two system prompts, one per path, each sent as a single cached text block. The person's material never goes in the system prompt: it arrives as a user turn made of separate labelled blocks, each saying where it came from and whether it may be obeyed.</p>
+      <p class="intro">Two system prompts, one per path, each sent as a single cached text block and each assembled once at import: what offload is and the policy both paths hold are written once in <code>prompts/shared/</code> and joined into both. The person's material never goes in the system prompt: it arrives as a user turn made of separate labelled blocks, each saying where it came from and whether it may be obeyed.</p>
     </header>
     <figure>
       <div class="fig">
@@ -562,7 +563,7 @@
           <text x="690" y="580" font-size="11" fill="var(--tertiary)">A tool that cannot work is not sent, rather than sent and refused.</text>
 
           <path d="M660,380 L682,380" stroke="var(--hairline)" stroke-width="1.5" fill="none"/>
-          <text x="30" y="640" font-size="12" fill="var(--secondary)">Without a calendar the system prompt is plan_v2.md with its calendar section left out. Quick add uses quick_add.md ({{QUICK_WORDS}} words), the row and its thread as blocks, and two tools.</text>
+          <text x="30" y="640" font-size="12" fill="var(--secondary)">Without a calendar the system prompt is plan_v2.md with its calendar section left out. Its opening and its refusal and query rules are the shared parts answer.md also carries.</text>
           <text x="30" y="660" font-size="12" fill="var(--secondary)">The reader has its own {{READER_WORDS}}-word prompt and no blocks from the person at all: one question or one URL, the wanted fields, today, and the country.</text>
         </svg>
       </div>
@@ -603,31 +604,30 @@
             <th>Tool</th>
             <th>Filing</th>
             <th>Answering</th>
-            <th>Quick add</th>
             <th>Runs in</th>
             <th>What it does</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td class="tool">add_content</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot"></i></td><td class="where">core-api</td><td>Files one piece into a thread by id, with a type. With <code>photo: n</code> on an image or screenshot row, the server links the message's nth photo to it and wraps its key for the thread. Filed not in a thread, it may carry <code>suggest_thread_id</code> (028), written as a suggestion only when the thread is theirs and the turn read no email or calendar, and stripped by the worker after a web read. Counts as landed.</td></tr>
-          <tr><td class="tool">add_note</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>A sentence about a thread, dated when they gave a date, with the same <code>suggest_thread_id</code> when it lands not in a thread. Counts as landed.</td></tr>
-          <tr><td class="tool">create_thread</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Only when nothing existing is a home. Counts as landed.</td></tr>
-          <tr><td class="tool">list_thread_content</td><td><i class="dot read"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Read a thread before filing into it, so nothing goes in twice.</td></tr>
-          <tr><td class="tool">edit_content</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot"></i></td><td class="where">core-api</td><td>Retitle, retag, reprioritise. Only content this account wrote.</td></tr>
-          <tr><td class="tool">move_content</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Between threads they are a member of. Author only.</td></tr>
-          <tr><td class="tool">label_content</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>025. Rows of one thread under that thread's labels by id; a new label only from words in the dump. Nothing in the default thread is labelled.</td></tr>
-          <tr><td class="tool">complete_content</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Tick, or untick. Any member.</td></tr>
-          <tr><td class="tool">archive_content</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>The nearest thing to delete the model has. Any member.</td></tr>
-          <tr><td class="tool">rename_thread</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Co-owned.</td></tr>
-          <tr><td class="tool">set_thread_preference</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Widget order and grouping. Not the fold, which is the person's.</td></tr>
-          <tr><td class="tool">list_calendars, find_events</td><td><i class="dot read"></i></td><td><i class="dot read"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Only when a calendar is in reach: the thread on screen reads through its picks, Today reads every approved calendar. Since 019 both read offload's own copy, never Google, and take no calendar id.</td></tr>
-          <tr><td class="tool">create_event, edit_event, delete_event</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">core-api → Google</td><td><code>create_event</code> takes the row's id and the row's thread decides the calendar: one writes, several or none yet answers <code>asked</code> and the question is on screen, nothing approved answers <code>noCalendar</code>. The server decides whether a write reaches somebody else and answers <code>waitingForThem</code> instead of doing it. See section 6.</td></tr>
-          <tr><td class="tool">share_thread</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>022. Only with a connection. The person by name or a mention's id, resolved on the server against their connections; two matches become a person question. Never done: it answers <code>waitingForThem</code> and the tap shares. See section 6.</td></tr>
-          <tr><td class="tool">list_content, list_agenda, search</td><td><i class="dot none"></i></td><td><i class="dot read"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>The answering reads. Rows come back as ids and are drawn beside the reply, never typed into it. <code>search</code> carries a Voyage query vector the worker computes.</td></tr>
-          <tr><td class="tool">account_facts</td><td><i class="dot none"></i></td><td><i class="dot read"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Connected apps, calendars, settings: facts that are not rows.</td></tr>
-          <tr><td class="tool">look_up</td><td><i class="dot"></i></td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">worker → reader → Anthropic server tools</td><td>Question or URL, wanted fields, a <code>doing</code> line. The bound, the budget and the refusal list are code in the worker; the reader is a second haiku call with <code>web_search</code> and <code>web_fetch</code>.</td></tr>
-          <tr><td class="tool">say</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">the loop itself</td><td>The only sentence a filing turn can send. Never called on an ordinary filing; the Done mark and the thread pills carry it.</td></tr>
-          <tr><td class="tool">ask</td><td><i class="dot"></i></td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">the loop, then turn-result</td><td>One field the row just filed needs (<code>date</code>, <code>span</code>, <code>time</code>), the <code>country</code> an answer is for, or, for a photo alone from outside any thread, which <code>thread</code>. Values only; the sentence is a server template. Two per turn, validated and stored by core-api with the reply. See section 6.</td></tr>
+          <tr><td class="tool">add_content</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Files one piece into a thread by id, with a type. With <code>photo: n</code> on an image or screenshot row, the server links the message's nth photo to it and wraps its key for the thread. Filed not in a thread, it may carry <code>suggest_thread_id</code> (028), written as a suggestion only when the thread is theirs and the turn read no email or calendar, and stripped by the worker after a web read. Counts as landed.</td></tr>
+          <tr><td class="tool">add_note</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>A sentence about a thread, dated when they gave a date, with the same <code>suggest_thread_id</code> when it lands not in a thread. Counts as landed.</td></tr>
+          <tr><td class="tool">create_thread</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Only when nothing existing is a home. Counts as landed.</td></tr>
+          <tr><td class="tool">list_thread_content</td><td><i class="dot read"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Read a thread before filing into it, so nothing goes in twice.</td></tr>
+          <tr><td class="tool">edit_content</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Retitle, retag, reprioritise. Only content this account wrote.</td></tr>
+          <tr><td class="tool">move_content</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Between threads they are a member of. Author only.</td></tr>
+          <tr><td class="tool">label_content</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>025. Rows of one thread under that thread's labels by id; a new label only from words in the dump. Nothing in the default thread is labelled.</td></tr>
+          <tr><td class="tool">complete_content</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Tick, or untick. Any member.</td></tr>
+          <tr><td class="tool">archive_content</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>The nearest thing to delete the model has. Any member.</td></tr>
+          <tr><td class="tool">rename_thread</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Co-owned.</td></tr>
+          <tr><td class="tool">set_thread_preference</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Widget order and grouping. Not the fold, which is the person's.</td></tr>
+          <tr><td class="tool">list_calendars, find_events</td><td><i class="dot read"></i></td><td><i class="dot read"></i></td><td class="where">core-api</td><td>Only when a calendar is in reach: the thread on screen reads through its picks, Today reads every approved calendar. Since 019 both read offload's own copy, never Google, and take no calendar id.</td></tr>
+          <tr><td class="tool">create_event, edit_event, delete_event</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">core-api → Google</td><td><code>create_event</code> takes the row's id and the row's thread decides the calendar: one writes, several or none yet answers <code>asked</code> and the question is on screen, nothing approved answers <code>noCalendar</code>. The server decides whether a write reaches somebody else and answers <code>waitingForThem</code> instead of doing it. See section 6.</td></tr>
+          <tr><td class="tool">share_thread</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>022. Only with a connection. The person by name or a mention's id, resolved on the server against their connections; two matches become a person question. Never done: it answers <code>waitingForThem</code> and the tap shares. See section 6.</td></tr>
+          <tr><td class="tool">list_content, list_agenda, search</td><td><i class="dot none"></i></td><td><i class="dot read"></i></td><td class="where">core-api</td><td>The answering reads. Rows come back as ids and are drawn beside the reply, never typed into it. <code>search</code> carries a Voyage query vector the worker computes.</td></tr>
+          <tr><td class="tool">account_facts</td><td><i class="dot none"></i></td><td><i class="dot read"></i></td><td class="where">core-api</td><td>Connected apps, calendars, settings: facts that are not rows.</td></tr>
+          <tr><td class="tool">look_up</td><td><i class="dot"></i></td><td><i class="dot"></i></td><td class="where">worker → reader → Anthropic server tools</td><td>Question or URL, wanted fields, a <code>doing</code> line. The bound, the budget and the refusal list are code in the worker; the reader is a second haiku call with <code>web_search</code> and <code>web_fetch</code>.</td></tr>
+          <tr><td class="tool">say</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">the loop itself</td><td>The only sentence a filing turn can send. Never called on an ordinary filing; the Done mark and the thread pills carry it.</td></tr>
+          <tr><td class="tool">ask</td><td><i class="dot"></i></td><td><i class="dot"></i></td><td class="where">the loop, then turn-result</td><td>One field the row just filed needs (<code>date</code>, <code>span</code>, <code>time</code>), the <code>country</code> an answer is for, or, for a photo alone from outside any thread, which <code>thread</code>. Values only; the sentence is a server template. Two per turn, validated and stored by core-api with the reply. See section 6.</td></tr>
         </tbody>
       </table>
     </div>
@@ -742,7 +742,7 @@
       </div>
       <div class="card">
         <h3>A suggestion on the row <span class="pill moss">028</span></h3>
-        <p>Not in the conversation at all. Something filed not in a thread can carry one suggestion: <b>Move to</b> a thread, from <code>suggest_thread_id</code> at filing time, or <b>Create</b> a new one for two to ten things, from the daily <code>loose.propose</code> pass ({{SORT_MODEL}}, at most {{LOOSE_CANDIDATES}} things, its ids held to what it was sent). A tap moves or opens a sheet, with Undo; the cross dismisses for good. No model runs on the tap.</p>
+        <p>Not in the conversation at all. Something filed not in a thread can carry one suggestion: <b>Move to</b> a thread, from <code>suggest_thread_id</code> at filing time, or <b>Create</b> a new one for two to ten things, from the nightly pass on the default thread ({{NIGHTLY_MODEL}}, at most {{LOOSE_CANDIDATES}} things, its ids held to what it was sent). A tap moves or opens a sheet, with Undo; the cross dismisses for good. No model runs on the tap.</p>
       </div>
       <div class="card">
         <h3>say <span class="pill moss">one way</span></h3>
@@ -763,7 +763,7 @@
     </div>
     <ul class="notes">
       <li><b>What the model never sees:</b> which option was tapped. The server applies the value and writes the label as the person's turn; the model meets it, if at all, as a line in the tail or as the "they answered your question" block on a typed reply.</li>
-      <li><b>What the server refuses whatever the prompt says:</b> a question about a row this turn did not file, a field a thread note forbids, a sentence over 80 characters or a label over 24, a <code>thread</code> question outside its one condition, country from anything but a question job, <code>calendar</code> or <code>person</code> from the model at all, and any question at all on a quick add, a partial turn or a stopped one.</li>
+      <li><b>What the server refuses whatever the prompt says:</b> a question about a row this turn did not file, a field a thread note forbids, a sentence over 80 characters or a label over 24, a <code>thread</code> question outside its one condition, country from anything but a question job, <code>calendar</code> or <code>person</code> from the model at all, and any question at all on a partial turn or a stopped one.</li>
       <li><b>What the design system commits to, kept:</b> ask only what Undo cannot cover, never a dialog, options as words somebody would say, a choice among equals has no primary, and the way out is drawn plain.</li>
     </ul>
   </section>

@@ -924,6 +924,11 @@ export async function applyCompaction(
   threadId: string,
   plan: CompactionPlan,
   trx: Executor = db,
+  /** 032. The member a nightly pass runs as. Set, the plan may touch only
+   *  notes this account wrote: other members' notes reach the pass as context
+   *  and are never its to set aside, so one person's dump cannot quiet
+   *  another's words. */
+  options: { author?: string } = {},
 ): Promise<CompactionOutcome> {
   const rows = await trx
     .selectFrom("notes")
@@ -939,7 +944,7 @@ export async function applyCompaction(
 
   const touchable = (id: string): boolean => {
     const row = held.get(id);
-    if (!row || row.derived_from_untrusted) {
+    if (!row || row.derived_from_untrusted || (options.author !== undefined && row.account_id !== options.author)) {
       ignored += 1;
       return false;
     }
@@ -1056,4 +1061,144 @@ export async function applyCompaction(
   }
 
   return { superseded, removed, added, ignored };
+}
+
+/** 032. The most learned notes one member holds in one thread. Past it a pass
+ *  adds nothing until it has folded some away, so offload's notes never push
+ *  a person's own out of the hundred the prompt carries. */
+export const LEARNED_CAP = 20;
+
+/** 032. What a pass reads: since its member's last pass in the thread, a day
+ *  for a first pass, and never more than a week. */
+const LEARN_WINDOW_HOURS = 25;
+const LEARN_WINDOW_MAX_DAYS = 7;
+
+/** What a nightly pass would add, citing the messages it came from. */
+export interface LearnedEntry {
+  text: string;
+  from: string[];
+  occursAt?: Date | null;
+  occursEndAt?: Date | null;
+  dueAt?: Date | null;
+}
+
+/** Add what a nightly pass learned, with every rule held here.
+ *
+ *  **The set of messages a note may cite is derived here, from the database,
+ *  and never from what the worker sent** (SEC-2): the member's own messages,
+ *  said by them rather than by offload, not forwarded mail or anything from a
+ *  connected app or the browser, not marked untrusted, from the last day, from
+ *  which a live row or note in this thread was filed. A question files nothing
+ *  and so is never in it, and neither is anything another member said.
+ *
+ *  A note that cites anything outside that set is dropped whole, as is an
+ *  empty one, one of two lines, one longer than a note may be, one the thread
+ *  already says, and every one past the member's cap. Nothing here notifies:
+ *  a note is not news.
+ */
+export async function applyLearned(
+  trx: Executor,
+  { accountId, threadId, entries }: { accountId: string; threadId: string; entries: LearnedEntry[] },
+): Promise<{ learned: number; ignored: number }> {
+  const cited = [...new Set(entries.flatMap((entry) => entry.from))];
+  if (cited.length === 0) return { learned: 0, ignored: 0 };
+
+  const eligible = new Set(
+    (
+      await trx
+        .selectFrom("messages")
+        .select("messages.id")
+        .where("messages.id", "in", cited)
+        .where("messages.account_id", "=", accountId)
+        .where("messages.role", "=", "person")
+        .where("messages.source", "not in", ["mail", "gmail", "calendar", "browser"])
+        .where("messages.derived_from_untrusted", "=", false)
+        // Since the member's last pass here, so a missed night loses nothing;
+        // the first pass reads a day, and no pass reads more than a week.
+        .where(
+          sql<boolean>`messages.created_at > greatest(
+            coalesce(
+              (select tm.nightly_at from thread_members tm where tm.thread_id = ${threadId} and tm.account_id = ${accountId}),
+              now() - make_interval(hours => ${LEARN_WINDOW_HOURS})
+            ),
+            now() - make_interval(days => ${LEARN_WINDOW_MAX_DAYS})
+          )`,
+        )
+        .where((eb) =>
+          eb.or([
+            eb.exists(
+              eb
+                .selectFrom("content")
+                .select("content.id")
+                .whereRef("content.derived_from_message_id", "=", "messages.id")
+                .where("content.thread_id", "=", threadId)
+                .where("content.deleted_at", "is", null),
+            ),
+            eb.exists(
+              eb
+                .selectFrom("notes")
+                .select("notes.id")
+                .whereRef("notes.derived_from_message_id", "=", "messages.id")
+                .where("notes.scope", "=", "thread")
+                .where("notes.subject_id", "=", threadId)
+                .where("notes.deleted_at", "is", null),
+            ),
+          ]),
+        )
+        .execute()
+    ).map((row) => row.id),
+  );
+
+  const current = await trx
+    .selectFrom("notes")
+    .select(["text", "origin", "account_id"])
+    .where("scope", "=", "thread")
+    .where("subject_id", "=", threadId)
+    .where("deleted_at", "is", null)
+    .where("superseded_at", "is", null)
+    .execute();
+  const said = new Set(current.map((row) => row.text.trim().toLowerCase()));
+  let held = current.filter((row) => row.origin === "learned" && row.account_id === accountId).length;
+
+  let learned = 0;
+  let ignored = 0;
+  for (const entry of entries) {
+    const text = entry.text.trim();
+    const ok =
+      text.length > 0 &&
+      text.length <= NOTE_TEXT_CHARS &&
+      !/[\r\n]/.test(text) &&
+      entry.from.length > 0 &&
+      entry.from.every((id) => eligible.has(id)) &&
+      !said.has(text.toLowerCase()) &&
+      held < LEARNED_CAP;
+    if (!ok) {
+      ignored += 1;
+      continue;
+    }
+    const written = await addNote(
+      {
+        threadId,
+        accountId,
+        text,
+        origin: "learned",
+        occursAt: entry.occursAt ?? null,
+        occursEndAt: entry.occursEndAt ?? null,
+        dueAt: entry.dueAt ?? null,
+        fromMessageId: entry.from[0] ?? null,
+      },
+      trx,
+    );
+    // `addNote` hands back an existing learned note with the same words, set
+    // aside or not and whoever's it is, rather than writing a second: that is
+    // nothing learned.
+    if (written.supersededAt !== null || written.authorId !== accountId) {
+      ignored += 1;
+      continue;
+    }
+    said.add(text.toLowerCase());
+    held += 1;
+    learned += 1;
+  }
+  return { learned, ignored };
 }

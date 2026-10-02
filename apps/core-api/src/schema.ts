@@ -183,6 +183,9 @@ export interface ThreadMembersTable {
    *  for a question the product never raises. */
   removed_by_account_id: string | null;
   removed_at: Timestamp | null;
+  /** 032. When this member's nightly pass last applied here. What the next one
+   *  is booked on and reads is what changed since. */
+  nightly_at: Timestamp | null;
 }
 
 /** 022. The invitation's whole view of a thread. */

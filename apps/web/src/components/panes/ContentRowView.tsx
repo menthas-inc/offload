@@ -27,7 +27,7 @@ import { PhotoThumb } from "../shell/PhotoThumb";
 import { ThreadPill } from "../shell/ThreadPill";
 import { ReorderHandle, RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
-import { domainOf, isFiling, isProvisional, type ContentRow } from "../../lib/threads";
+import { domainOf, isProvisional, type ContentRow } from "../../lib/threads";
 import { webHref } from "../../lib/links";
 import type { Label } from "../../lib/labels";
 import { LabelMark } from "../labels/LabelMark";
@@ -294,15 +294,6 @@ export function ContentRowView({
           </span>
         ) : null}
       </span>
-
-      {/* offload is still reading a row somebody typed straight in. The one
-          spinner, not a second progress word: the readme reserves "filing" for
-          the thread slot on a row that does not know where it is going, and
-          this row knows. It is already saved and already usable; the spinner
-          only says a tidier version may arrive. */}
-      {isFiling(row.filingAt) ? (
-        <span className={styles.rowFiling} role="status" aria-label="offload is reading this" />
-      ) : null}
 
       {trail}
 

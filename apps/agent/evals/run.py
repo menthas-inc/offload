@@ -9,10 +9,8 @@ Six surfaces, one per model call the product makes:
 - ``file``       a dump through the planner (``plan``)
 - ``answer``     a question through the answerer (``plan_answer``)
 - ``classify``   question or note (``classify``)
-- ``quick_add``  a row typed into a thread (``plan_quick_add``)
 - ``judge``      does a typed message answer the open question (``judge_answer``)
-- ``compact``    one thread's notes, folded (``compact._ask``)
-- ``label_sort`` one thread's rows, grouped overnight (``label_sort._ask``)
+- ``nightly``    one thread's nightly pass (``nightly._ask``)
 
 Each runs the real prompt assembly and the real loop, with every tool answered
 from the case's fixture. The Core API is the one thing not exercised: what a
@@ -59,8 +57,7 @@ from typing import Any
 
 from anthropic import AsyncAnthropic
 
-from offload_agent import compact as compact_mod
-from offload_agent import label_sort as label_sort_mod
+from offload_agent import nightly as nightly_mod
 from offload_agent.config import Config
 from offload_agent.context import (
     AnswerContext,
@@ -68,8 +65,6 @@ from offload_agent.context import (
     LabelRef,
     Mail,
     Photo,
-    Piece,
-    QuickAddContext,
     Thread,
     Turn,
     mail_of,
@@ -80,7 +75,6 @@ from offload_agent.harness.plan import (
     judge_answer,
     plan,
     plan_answer,
-    plan_quick_add,
 )
 from offload_agent.renditions import make
 from offload_agent.worker import (
@@ -108,12 +102,10 @@ HISTORY_MD = HERE / "HISTORY.md"
 _DEFAULTS = {f.name: f.default for f in Config.__dataclass_fields__.values()}
 MODELS = {
     "file": _DEFAULTS["model"],
-    "quick_add": _DEFAULTS["model"],
     "answer": _DEFAULTS["answer_model"],
     "classify": _DEFAULTS["sort_model"],
     "judge": _DEFAULTS["sort_model"],
-    "compact": _DEFAULTS["sort_model"],
-    "label_sort": _DEFAULTS["sort_model"],
+    "nightly": _DEFAULTS["nightly_model"],
 }
 # The eval's own judge is a different tier from the answerer on purpose: a
 # model marking its own work is the failure this file exists to avoid.
@@ -1499,112 +1491,6 @@ async def _run_classify(client: AsyncAnthropic, case: Case, model: str) -> Resul
     return Result(case, routes, transcript, failures, True, transcript, cost=_cost(model, 400, 30))
 
 
-async def _run_quick_add(client: AsyncAnthropic, case: Case, model: str) -> Result:
-    fx = case.fixture
-    typed = str(case.input)
-    rec = Recorder(case, typed)
-    threads = _threads(fx)
-    thread = _thread(fx, fx.get("thread_id")) or threads[0]
-    ctx = QuickAddContext(
-        content_id=fx.get("content_id") or "c0",
-        thread_id=thread.id,
-        thread_name=thread.name,
-        typed=typed,
-        notes=[
-            n if isinstance(n, str) else n["text"]
-            for n in (fx.get("notes") or {}).get(thread.id, [])
-        ],
-        notes_from_members=[
-            n if isinstance(n, str) else n["text"]
-            for n in (fx.get("notes_from_members") or {}).get(thread.id, [])
-        ],
-        pieces=[Piece(title=p["title"], done=bool(p.get("done"))) for p in fx.get("pieces") or []],
-        today=fx.get("today") or TODAY,
-        time_zone=fx.get("time_zone", TIME_ZONE),
-    )
-    try:
-        outcome = await plan_quick_add(client, ctx, model, rec)
-    except Exception as exc:  # noqa: BLE001
-        return Result(case, "", "", [f"raised {type(exc).__name__}: {exc}"], False, "")
-
-    expect = case.expect
-    failures: list[str] = []
-    failures.extend(_call_problems(expect, rec.calls))
-    for tool, args in rec.calls:
-        if tool == "add_content" and str(args.get("thread_id")) != thread.id:
-            failures.append(f"added to another thread: {args.get('thread_id')}")
-        if tool == "edit_content" and str(args.get("content_id")) != ctx.content_id:
-            failures.append(f"edited a row it was not given: {args.get('content_id')}")
-        # 019 gave edit_content a time for the filing turn; a quick add still
-        # leaves the day it arrived with alone, and sends none of its own.
-        if tool == "edit_content" and any(
-            args.get(k) for k in ("due_at", "occurs_at", "occurs_end_at")
-        ):
-            failures.append("set a date on a quick add, which keeps the day it arrived with")
-        if tool not in {"edit_content", "add_content"}:
-            failures.append(f"called {tool}, which a quick add cannot")
-        for key in ("title", "body"):
-            failures.extend(_copy_problems(str(args.get(key) or "")))
-    # An edit that sets the title to what was typed and nothing else changed
-    # nothing, and is read as leaving the row alone.
-    edits = [
-        args
-        for t, args in rec.calls
-        if t == "edit_content"
-        and not (
-            args.get("title") == typed
-            and not any(args.get(k) for k in ("body", "url", "image_url"))
-        )
-    ]
-    adds = [args for t, args in rec.calls if t == "add_content"]
-    if expect.get("untouched") and (edits or adds):
-        failures.append(f"changed a row that was already right: {_transcript(rec.calls, '', [])}")
-    if "edit" in expect:
-        want = expect["edit"]
-        if not edits:
-            failures.append("did not edit the row")
-        else:
-            got = edits[-1]
-            title = str(got.get("title") or "")
-            if "title" in want and title != want["title"]:
-                failures.append(f"title {title!r}, wanted {want['title']!r}")
-            for needle in want.get("title_has", []):
-                if needle.lower() not in title.lower():
-                    failures.append(f"title {title!r} lacks {needle!r}")
-            for needle in want.get("title_lacks", []):
-                if needle.lower() in title.lower():
-                    failures.append(f"title {title!r} contains {needle!r}")
-            if "max_title_words" in want and len(title.split()) > want["max_title_words"]:
-                failures.append(
-                    f"title is {len(title.split())} words, cap {want['max_title_words']}"
-                )
-            if "url" in want and got.get("url") != want["url"]:
-                failures.append(f"url {got.get('url')!r}, wanted {want['url']!r}")
-    for needle in expect.get("title_keeps", []):
-        for got in edits:
-            title = str(got.get("title") or "")
-            if title and needle.lower() not in title.lower():
-                failures.append(f"the edit dropped {needle!r}: {title!r}")
-    if "adds" in expect:
-        want = expect["adds"]
-        if isinstance(want, int) and len(adds) != want:
-            failures.append(
-                f"added {len(adds)} rows, wanted {want}: {[a.get('title') for a in adds]}"
-            )
-        elif isinstance(want, list):
-            for matcher in want:
-                problem = _match_filing({"tool": "add_content", **matcher}, rec.calls, fx)
-                if problem:
-                    failures.append(problem)
-    transcript = _transcript(rec.calls, "", [])
-    judged, note = True, ""
-    before = len(_spent)
-    if expect.get("rubric") and not failures:
-        judged, note = await _judge(client, case, transcript)
-    cost = _outcome_cost(outcome) + sum(_spent[before:])
-    return Result(case, "", transcript, failures, judged, note, cost=cost)
-
-
 async def _run_judge(client: AsyncAnthropic, case: Case, model: str) -> Result:
     fx = case.fixture
     asked = fx.get("question_asked") or {}
@@ -1642,46 +1528,72 @@ async def _run_judge(client: AsyncAnthropic, case: Case, model: str) -> Result:
     )
 
 
-async def _run_compact(client: AsyncAnthropic, case: Case, model: str) -> Result:
-    rows = case.input
-    fx = case.fixture
-    listing = f"Today is {fx.get('today') or TODAY}.\n\n" + compact_mod._lines(rows)
+async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result:
+    """032. One thread's nightly pass for one member.
+
+    The input is either a list of notes, for a case about keeping them true, or
+    {thread, notes, messages: [{day, text}], candidates: [{type, text}]}: the
+    messages make it an ordinary thread's pass that may learn, the candidates
+    make it the default thread's, which suggests threads. Notes are
+    {id, written_at, theirs, origin, text}; `theirs` false is another member's.
+
+    Structural rules hold on every case, as the Core API holds them: nothing
+    removed that a person typed, nothing touched that is not theirs, no fold
+    across two people, at most three learned notes and every one citing a dump
+    it was shown."""
+    fx = case.input if isinstance(case.input, dict) else {"notes": case.input}
+    rows = fx.get("notes") or []
+    messages = [{"id": f"m{n}", **m} for n, m in enumerate(fx.get("messages") or [], start=1)]
+    candidates = [{"id": f"c{n}", **c} for n, c in enumerate(fx.get("candidates") or [], start=1)]
+    propose = "candidates" in fx
+    listing = nightly_mod.listing(
+        thread_name=str(fx.get("thread") or "A thread"),
+        today=case.fixture.get("today") or TODAY,
+        notes=rows,
+        messages=None if propose else messages,
+        candidates=candidates if propose else None,
+    )
     cfg = Config(
-        database_url="",
-        api_url="",
-        internal_token="",
-        anthropic_api_key="",
-        sort_model=model,
+        database_url="", api_url="", internal_token="", anthropic_api_key="", nightly_model=model
     )
     try:
-        plan_, usage = await compact_mod._ask(client, cfg, listing)
+        plan_, usage = await nightly_mod._ask(client, cfg, listing, propose=propose)
     except Exception as exc:  # noqa: BLE001
         return Result(case, "", "", [f"raised {type(exc).__name__}: {exc}"], False, "")
     if plan_ is None:
-        return Result(case, "", "", ["no parseable compaction"], False, "")
-    # The worker holds two rules in code after the model; so does this.
-    plan_ = compact_mod._held_to_the_rules(plan_, rows)
+        return Result(case, "", "", ["no parseable nightly plan"], False, "")
     by_id = {r["id"]: r for r in rows}
-    supersede = list(plan_.supersede)
-    remove = list(plan_.remove)
+    supersede, remove = list(plan_.supersede), list(plan_.remove)
     adds = [a.model_dump() for a in plan_.add]
+    learned_raw = [n.model_dump() for n in getattr(plan_, "learned", [])]
+    groups_raw = [g.model_dump() for g in getattr(plan_, "groups", [])]
     touched = set(supersede) | set(remove) | {i for a in adds for i in a.get("folded_from", [])}
     transcript = json.dumps(
-        {"supersede": supersede, "remove": remove, "add": adds}, ensure_ascii=False
+        {"supersede": supersede, "remove": remove, "add": adds, "learned": learned_raw,
+         "groups": groups_raw},
+        ensure_ascii=False,
     )
     failures: list[str] = []
-    # Structural rules that hold on every case.
+    # What the model did, before the code holds it: a broken rule is a finding
+    # about the prompt even when the Core API would have caught it.
     for i in remove:
         if by_id.get(i, {}).get("origin") != "learned":
             failures.append(f"removed {i}, which a person typed")
+    for i in touched:
+        if i in by_id and not by_id[i].get("theirs", True):
+            failures.append(f"touched {i}, which is another member's")
     for a in adds:
-        authors = {by_id[i]["theirs"] for i in a.get("folded_from", []) if i in by_id}
-        if len(authors) > 1:
-            failures.append(f"a fold mixed two people: {a.get('folded_from')}")
         failures.extend(_copy_problems(str(a.get("text", ""))))
+    for n in learned_raw:
+        failures.extend(_copy_problems(str(n.get("text", ""))))
+        if any(not 1 <= k <= len(messages) for k in n.get("from_messages", [])):
+            failures.append(f"cited a dump it was not shown: {n.get('from_messages')}")
+    for g in groups_raw:
+        failures.extend(_copy_problems(str(g.get("name", ""))))
+    learned_text = [str(n.get("text", "")) for n in learned_raw]
     expect = case.expect
-    if expect.get("no_change") and (supersede or remove or adds):
-        failures.append(f"changed a tidy set: {transcript}")
+    if expect.get("no_change") and (supersede or remove or adds or learned_raw or groups_raw):
+        failures.append(f"changed a set that needed nothing: {transcript}")
     for i in expect.get("never_touches", []):
         if i in touched:
             failures.append(f"touched {i}, which must stand")
@@ -1694,18 +1606,32 @@ async def _run_compact(client: AsyncAnthropic, case: Case, model: str) -> Result
         want = set(expect["folds"])
         if not any(want <= set(a.get("folded_from", [])) for a in adds):
             failures.append(f"did not fold {sorted(want)} into one note: {transcript}")
+    if "learns" in expect and len(learned_raw) != expect["learns"]:
+        got = len(learned_raw)
+        failures.append(f"learned {got} notes, wanted {expect['learns']}: {transcript}")
+    for word in expect.get("learned_has", []):
+        if not any(word.lower() in t.lower() for t in learned_text):
+            failures.append(f"no learned note says {word!r}: {transcript}")
+    for word in expect.get("learned_lacks", []):
+        if any(word.lower() in t.lower() for t in learned_text):
+            failures.append(f"a learned note says {word!r}: {transcript}")
+    if "groups" in expect and len(groups_raw) != expect["groups"]:
+        failures.append(f"suggested {len(groups_raw)} threads, wanted {expect['groups']}")
     judged, note = True, ""
     before = len(_spent)
     if expect.get("rubric") and not failures:
         legend = (
-            "Each note line is: id | date written | who wrote it (you means the "
-            "thread's owner, someone else means another member) | whether offload "
-            "wrote it or a person typed it | the text. The answer lists ids to "
-            "supersede (set aside, kept as history), ids to remove, and new notes "
-            "each naming the ids it folds."
+            "The pass is shown a thread's notes, one JSON entry per line, its own "
+            "member's under 'Your notes' and other members' under their own heading; "
+            "by is typed for a person's sentence and assistant for one offload wrote. "
+            "Then either the "
+            "person's dumps into the thread since yesterday, numbered, or a numbered "
+            "list of what they put down without a thread. The answer lists notes to "
+            "supersede, notes to remove, folded notes naming what they replace, new "
+            "learned notes naming the dumps they came from, and suggested threads."
         )
         judged, note = await _judge(
-            client, case, legend + "\n\nnotes:\n" + listing + "\n\nanswer:\n" + transcript
+            client, case, legend + "\n\nshown:\n" + listing + "\n\nanswer:\n" + transcript
         )
     cost = sum(
         _cost(
@@ -1719,72 +1645,12 @@ async def _run_compact(client: AsyncAnthropic, case: Case, model: str) -> Result
     return Result(case, "", transcript, failures, judged, note, cost=cost)
 
 
-async def _run_label_sort(client: AsyncAnthropic, case: Case, model: str) -> Result:
-    """025. One thread's rows and labels, asked how they group.
-
-    The input is {thread, rows: [{id, type, title}], labels: [{id, name}]}. The
-    structural rules are the ones the Core API enforces: a label for a single
-    row, a name over 24 characters, or a row that is not the thread's are
-    failures here too. What counts as a sensible grouping is the case's."""
-    fx = case.input
-    rows = fx.get("rows") or []
-    labels = fx.get("labels") or []
-    listing = label_sort_mod._listing(str(fx.get("thread") or ""), rows, labels)
-    cfg = Config(
-        database_url="", api_url="", internal_token="", anthropic_api_key="", sort_model=model
-    )
-    try:
-        plan_, usage = await label_sort_mod._ask(client, cfg, listing)
-    except Exception as exc:  # noqa: BLE001
-        return Result(case, "", "", [f"raised {type(exc).__name__}: {exc}"], False, "")
-    if plan_ is None:
-        return Result(case, "", "", ["no parseable plan"], False, "")
-    ids = {r["id"] for r in rows}
-    label_ids = {one["id"] for one in labels}
-    transcript = json.dumps(plan_.model_dump(), ensure_ascii=False)
-    failures: list[str] = []
-    for one in plan_.create:
-        if len(one.content_ids) < 2:
-            failures.append(f"made {one.name!r} for one row")
-        if any(i not in ids for i in one.content_ids):
-            failures.append(f"named a row the thread does not have under {one.name!r}")
-        failures.extend(_copy_problems(one.name))
-    for one in plan_.apply:
-        if one.label_id not in label_ids:
-            failures.append(f"applied a label the thread does not have: {one.label_id}")
-    expect = case.expect
-    names = {one.name.lower() for one in plan_.create}
-    if expect.get("no_change") and (plan_.create or plan_.apply):
-        failures.append(f"sorted a thread about one thing: {transcript}")
-    for want in expect.get("creates", []):
-        if want.lower() not in names:
-            failures.append(f"did not make {want!r}: {transcript}")
-    for group in expect.get("together", []):
-        if not any(set(group) <= set(one.content_ids) for one in [*plan_.create, *plan_.apply]):
-            failures.append(f"did not put {group} under one label: {transcript}")
-    for i in expect.get("left_alone", []):
-        if any(i in one.content_ids for one in [*plan_.create, *plan_.apply]):
-            failures.append(f"labelled {i}, which belongs to no group")
-    cost = sum(
-        _cost(
-            u.get("model", model),
-            u.get("inputTokens", 0),
-            u.get("outputTokens", 0),
-            u.get("cacheReadTokens", 0),
-        )
-        for u in usage
-    )
-    return Result(case, "", transcript, failures, True, "", cost=cost)
-
-
 _SURFACES = {
     "file": _run_file,
     "answer": _run_answer,
     "classify": _run_classify,
-    "quick_add": _run_quick_add,
     "judge": _run_judge,
-    "compact": _run_compact,
-    "label_sort": _run_label_sort,
+    "nightly": _run_nightly,
 }
 
 
