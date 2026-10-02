@@ -5,6 +5,7 @@
 // a link's domain. Nothing Google named, and nothing somebody wrote is drawn
 // as anything but text.
 
+import { useEffect, useRef } from "react";
 import { directionsUrl } from "@offload/widgets";
 import { domainOf, type Point } from "../../lib/threads";
 import { Icon } from "../Icon";
@@ -55,8 +56,18 @@ export function PlaceSheet({
   }
   if (!calendar && author) rows.push({ key: "added", icon: "users", label: "Added by", value: author.isYou ? "You" : author.displayName });
 
+  // A keyboard lands in the sheet it opened, on its close, and Escape leaves.
+  const close = useRef<HTMLButtonElement>(null);
+  useEffect(() => close.current?.focus(), [point.key]);
+
   return (
-    <aside className={styles.sheet} aria-label={point.title}>
+    <aside
+      className={styles.sheet}
+      aria-label={point.title}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") onClose();
+      }}
+    >
       <div className={styles.sheetHead}>
         <span className={styles.sheetTile}>
           {point.imageUrl ? <img src={point.imageUrl} alt="" referrerPolicy="no-referrer" /> : <Icon name={rowIcon(point.type)} size={20} />}
@@ -67,7 +78,7 @@ export function PlaceSheet({
             {kind.charAt(0).toUpperCase() + kind.slice(1)} · {threadName}
           </div>
         </div>
-        <button type="button" className={styles.close} aria-label="Close" onClick={onClose}>
+        <button ref={close} type="button" className={styles.close} aria-label="Close" onClick={onClose}>
           <Icon name="x" size={14} />
         </button>
       </div>

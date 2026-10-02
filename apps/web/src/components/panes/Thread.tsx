@@ -16,6 +16,7 @@
 import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, type LabelPick } from "@offload/widgets";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import { PaneHead } from "../shell/PaneHead";
@@ -41,6 +42,7 @@ import {
   restoreThread,
   editContent,
   fetchContent,
+  fetchOne,
   fetchThread,
   isProvisional,
   moveContent,
@@ -57,6 +59,7 @@ import {
   setPreference,
   type ContentPatch,
   type ContentSnapshot,
+  type Point,
 } from "../../lib/threads";
 import { PhotoViewer, type ViewerPhoto } from "../shell/PhotoViewer";
 import { Avatar } from "../Avatar";
@@ -71,6 +74,8 @@ import { LabelPopover, type LabelChoice } from "../labels/LabelPopover";
 import { LabelList, type ListSave } from "../labels/LabelList";
 import labelStyles from "../labels/labels.module.css";
 import { rowIcon } from "./rowIcon";
+import { MapFrame, MapSwitch, useThreadMap } from "../map/MapFrame";
+import { PlaceSheet } from "../map/PlaceSheet";
 import {
   createLabel,
   deleteLabel,
@@ -109,6 +114,9 @@ interface Props {
   id: string;
   onChanged: () => void;
 }
+
+// 030. The map's library and Google's script load the first time a map shows.
+const ThreadMap = dynamic(() => import("../map/ThreadMap"), { ssr: false });
 
 export function Thread({ id, onChanged }: Props) {
   const [thread, setThread] = useState<ThreadBundle | null>(null);
@@ -179,6 +187,9 @@ export function Thread({ id, onChanged }: Props) {
   // still is gets dropped, or it would undo the change on screen for the
   // length of a round trip.
   const writes = useWrites(load);
+  // 030. The map beside the list, or behind the switch. `thread` is the
+  // version: the points follow every read of the bundle while a map shows.
+  const map = useThreadMap({ threadId: id, hasPoint: thread?.hasPoint === true, version: thread });
 
   /** The pick as the content read takes it. */
   const filterOf = (current: LabelPick): { labels?: string[]; unlabelled?: boolean } => ({
@@ -846,7 +857,25 @@ export function Thread({ id, onChanged }: Props) {
         setListing({ label });
       }
     },
+    // 030. A row's point scales under the pointer, and a picked point marks
+    // its row, while the map is beside the list.
+    ...(map.layout === "split"
+      ? {
+          onHover: (rowId: string | null) =>
+            map.setHovered(rowId ? (map.points.find((point) => point.contentId === rowId)?.key ?? null) : null),
+          picked: map.points.find((point) => point.key === map.selected)?.contentId ?? null,
+        }
+      : {}),
   };
+
+  /** 030. Edit from the place sheet opens the row's own edit, reading the row
+   *  when it is not on the page yet. */
+  async function editFromMap(point: Point): Promise<void> {
+    if (!point.contentId) return;
+    map.setOpen(null);
+    const row = rows.find((one) => one.id === point.contentId) ?? (await fetchOne(point.contentId));
+    if (row) setEditRow(row);
+  }
 
   // 020. What the viewer pages through: every photo row on the page, in the
   // page's order, each with its row so the tools follow it.
@@ -918,6 +947,9 @@ export function Thread({ id, onChanged }: Props) {
         }
         tools={
           <>
+            {/* 030. List or Map, while the thread has a point and the pane is
+                too narrow for the column. First, since it changes the most. */}
+            {map.showSwitch ? <MapSwitch view={map.view} onChange={map.setView} /> : null}
             {/* 2026-09-29. Labels' way in while the thread has none: it changes
                 what the pane shows, which is the head's criterion. The filter
                 bar's plus takes over once there is one. */}
@@ -1014,6 +1046,51 @@ export function Thread({ id, onChanged }: Props) {
         />
       ) : null}
 
+      <MapFrame
+        state={map}
+        map={() => (
+          <ThreadMap
+            points={map.points}
+            labels={thread.labels}
+            pick={pick}
+            pickedNames={pickedNames}
+            theme={map.theme}
+            selected={map.selected}
+            hovered={map.hovered}
+            onSelect={map.setSelected}
+            onOpen={map.setOpen}
+            failed={map.failed}
+            onRetry={map.retry}
+            threadName={thread.name}
+          />
+        )}
+        chips={
+          <FilterBar
+            floating
+            labels={thread.labels}
+            unlabelled={thread.counts.unlabelled}
+            pick={pick}
+            onPick={setPick}
+            onNew={() => undefined}
+            onOpen={(labelId) => handlers.onOpenLabel?.(labelId)}
+          />
+        }
+        sheet={
+          map.open ? (
+            <PlaceSheet
+              point={map.open}
+              threadName={thread.name}
+              labels={thread.labels}
+              members={thread.members}
+              onClose={() => map.setOpen(null)}
+              onEdit={(point) => void editFromMap(point)}
+              onOpenLink={(point) => {
+                if (point.url) window.open(point.url, "_blank", "noopener,noreferrer");
+              }}
+            />
+          ) : null
+        }
+      >
       <div className={styles.paneBody}>
         {/* 025. The filter bar, sticky under the pane head. Not on the
             archived view, which is its own list. */}
@@ -1285,6 +1362,7 @@ export function Thread({ id, onChanged }: Props) {
           </button>
         ) : null}
       </div>
+      </MapFrame>
     </>
   );
 }

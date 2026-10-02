@@ -30,6 +30,12 @@
   pointer-events: none;
 }
 
+/* 030. The top thread pane's map column is drawn: the composer keeps to the
+   list, so the map and Google's logo and legal line stay uncovered. */
+.composer[data-map-column] {
+  right: var(--map-column);
+}
+
 /* The kit's card: a rounded well with a blue ring and an inner glow, holding
    the conversation and the field. Not a bar with a border on top, which is
    what this was. */

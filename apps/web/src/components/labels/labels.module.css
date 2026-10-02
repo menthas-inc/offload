@@ -196,6 +196,18 @@ button.mark:focus-visible {
   background: var(--pane-ground, var(--surface-page));
 }
 
+/* 030. The same chips floating over the map on Map: no ground of their own,
+   each chip raised off the map instead. */
+.barFloating {
+  display: flex;
+  align-items: center;
+}
+
+.barFloating .chip:not([data-selected]) {
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-1);
+}
+
 .barScroll {
   display: flex;
   align-items: center;

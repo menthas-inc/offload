@@ -106,4 +106,12 @@ describe("the place sheet (AC-25)", () => {
     expect(directions.href).toContain("https://www.google.com/maps/dir/?api=1&destination=38.7069%2C-9.1459");
     expect(directions.rel).toBe("noreferrer noopener");
   });
+
+  it("takes the focus when it opens, and closes on Escape", async () => {
+    const onClose = vi.fn();
+    await render(point({}), { onClose });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Close");
+    await act(async () => document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(onClose).toHaveBeenCalled();
+  });
 });

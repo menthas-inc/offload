@@ -9,6 +9,7 @@
 // where it filed something both need, and it means there is no stack to get out
 // of step with the URL.
 
+import { createContext } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "../Icon";
@@ -47,6 +48,10 @@ interface Props {
  *  A query rather than router state, so a reload keeps the view you were
  *  looking at rather than collapsing it under you. */
 export const FROM = "from";
+
+/** 030. Whether a pane is the top one. A thread behind another pane draws no
+ *  map and no switch, since it is 520px of context for the pane beside it. */
+export const PaneTop = createContext(true);
 
 export function Panes({ crumbs, panes, aside, together = false }: Props) {
   const search = useSearchParams();
@@ -120,7 +125,7 @@ export function Panes({ crumbs, panes, aside, together = false }: Props) {
                 .filter(Boolean)
                 .join(" ")}
             >
-              {pane}
+              <PaneTop.Provider value={top}>{pane}</PaneTop.Provider>
             </div>
           );
         })}

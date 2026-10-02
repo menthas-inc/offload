@@ -27,6 +27,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "../../components/shell/Sidebar";
 import { ThreadsProvider, type Filed } from "../../components/shell/threads-context";
 import { Composer } from "../../components/shell/Composer";
+import { MapColumnContext } from "../../components/shell/map-column";
 import { ToastProvider } from "../../components/shell/Toast";
 import { useMe } from "../../lib/use-me";
 import { Unanswered } from "../../components/Unanswered";
@@ -45,6 +46,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   // What the last turn wrote to, so a screen already showing one of those
   // threads can catch up without being reloaded.
   const [filed, setFiled] = useState<Filed | null>(null);
+  // 030. The top thread pane's map column, which the composer keeps clear of.
+  const [mapColumn, setMapColumn] = useState(false);
 
   const loadThreads = useCallback(async () => {
     const page = await fetchThreadsAndInvitations();
@@ -86,8 +89,9 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       <div className={styles.shell}>
         <Sidebar threads={threads} threadCount={threads.length} requestsWaiting={state.me.requestsWaiting} activityNew={state.me.activityNew} />
         <div className={styles.main}>
-          {children}
+          <MapColumnContext.Provider value={setMapColumn}>{children}</MapColumnContext.Provider>
           <Composer
+            mapColumn={mapColumn}
             atDailyLimit={state.me.atDailyLimit}
             inThread={inThread ? { id: inThread.id, name: inThread.name } : null}
             onFiled={(threadIds) => {

@@ -15,7 +15,13 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? "https://api.offload.club";
 
 export function middleware(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
-  const policy = contentSecurityPolicy({ nonce, api: API, dev: process.env.NODE_ENV === "development" });
+  const policy = contentSecurityPolicy({
+    nonce,
+    api: API,
+    dev: process.env.NODE_ENV === "development",
+    // 030. The same two values the client needs before it draws a map.
+    maps: Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY) && Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAP_ID),
+  });
 
   // The render reads the policy off the request and puts its nonce on Next's
   // own scripts. x-nonce is for a script the app renders itself.

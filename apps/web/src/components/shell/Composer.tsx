@@ -142,7 +142,11 @@ export function Composer({
   onFiled,
   inThread,
   atDailyLimit = false,
+  mapColumn = false,
 }: {
+  /** 030. The top thread pane is drawing its map column: the card keeps to
+   *  the list. */
+  mapColumn?: boolean;
   /** The day's budget or turns are used, as the account said on load. A
    *  refusal on send closes the composer the same way. */
   atDailyLimit?: boolean;
@@ -981,7 +985,7 @@ export function Composer({
   });
 
   return (
-    <div className={styles.composer}>
+    <div className={styles.composer} data-map-column={mapColumn ? true : undefined}>
       <ToastHost />
 
       <div className={styles.card}>

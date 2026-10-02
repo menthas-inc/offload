@@ -10,13 +10,121 @@
   background: var(--surface-page);
 }
 
-.frame[data-hidden="true"] {
-  visibility: hidden;
-}
-
 .map {
   position: absolute;
   inset: 0;
+}
+
+/* The thread pane's body and its map, in one grid. Every child sits in the one
+   cell until the pane splits, and the map element never moves in the tree:
+   only its grid area changes, so no layout change makes another map. */
+.split {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.split[data-layout="split"] {
+  grid-template-columns: minmax(0, 1fr) var(--map-column);
+}
+
+.list {
+  grid-area: 1 / 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The list's 700px cap is lifted beside the column. */
+.split[data-layout="split"] > .list > * {
+  max-width: none;
+}
+
+.list[data-hidden],
+.column[data-hidden] {
+  visibility: hidden;
+}
+
+.column {
+  grid-area: 1 / 1;
+  position: relative;
+  min-height: 0;
+}
+
+.split[data-layout="split"] > .column {
+  grid-area: 1 / 2;
+  box-shadow: inset 1px 0 0 var(--border-hairline);
+}
+
+/* On Map the foot stops above the composer, which floats over the pane, so
+   Google's logo and legal line are never under it. */
+.split[data-layout="map"] > .column {
+  margin-block-end: var(--map-foot);
+}
+
+/* Beside the place sheet on Map, the map narrows rather than sitting under it. */
+.split[data-layout="map"][data-sheet] > .column {
+  margin-inline-end: 360px;
+}
+
+/* Over the list's side beside the column, leaving the map whole. */
+.split[data-layout="split"] > .sheet {
+  inset-inline-end: var(--map-column);
+}
+
+.split[data-layout="map"] > .sheet {
+  inset-block-end: var(--map-foot);
+}
+
+/* The label chips over the map on Map: no counts, raised, the list's own
+   filter. */
+.chips {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  z-index: 2;
+  padding: var(--space-4) var(--space-8);
+  pointer-events: none;
+}
+
+.chips > * {
+  pointer-events: auto;
+}
+
+/* `SegmentedControl`'s icon variant, from the exploration: a pill track and
+   two 36 by 30 segments, the picked one raised. */
+.switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+}
+
+.switchSegment {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-ui), color var(--transition-ui);
+}
+
+.switchSegment:hover {
+  color: var(--text-primary);
+}
+
+.switchSegment[aria-pressed="true"] {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-1);
 }
 
 /* A point: 16px, a 2.5px ring in --paper, its label colours split down the
