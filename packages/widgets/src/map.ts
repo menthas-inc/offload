@@ -109,6 +109,25 @@ function unmercator(x: number, y: number): LatLng {
   return { lat, lng };
 }
 
+/** A point's position in world pixels at a zoom: enough to group points that
+ *  overlap on screen without asking either map for its projection. */
+export function worldPixel(point: LatLng, zoom: number): { x: number; y: number } {
+  const { x, y } = mercator(point);
+  const scale = TILE * 2 ** zoom;
+  return { x: x * scale, y: y * scale };
+}
+
+/** How many metres a screen pixel covers at a latitude and zoom. */
+export function metresPerPixel(lat: number, zoom: number): number {
+  return (156_543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** zoom;
+}
+
+/** The zoom a phone's map is at, from the longitude span it reports and its
+ *  width in points: react-native-maps hands back a region, not a zoom. */
+export function zoomOf(longitudeDelta: number, width: number): number {
+  return Math.log2((width / TILE) * (360 / longitudeDelta));
+}
+
 /** The camera that shows every point inside the padding, on Web Mercator as
  *  both of Google's maps use. The points sit in the middle of the padded frame,
  *  not of the whole view, since the padding is uneven (the chips above, the
@@ -147,6 +166,40 @@ export function fitBounds(
  *  above it: 190px, or 40% of the map's height on a short one. */
 export function calloutPadding(height: number): number {
   return Math.min(190, Math.round(height * 0.4));
+}
+
+/** Half the callout's 228px and 12px to spare: how far from either side a
+ *  picked point has to sit for its callout to stay inside the frame. */
+const CALLOUT_SIDE = 126;
+
+export interface Camera {
+  center: LatLng;
+  zoom: number;
+}
+
+/** Where a point is on screen, from the camera and the view's size alone. */
+export function screenOf(point: LatLng, camera: Camera, view: { width: number; height: number }): { x: number; y: number } {
+  const p = worldPixel(point, camera.zoom);
+  const c = worldPixel(camera.center, camera.zoom);
+  return { x: p.x - c.x + view.width / 2, y: p.y - c.y + view.height / 2 };
+}
+
+/** How far to move the camera, in pixels, so a picked point's callout fits:
+ *  126 from either side and `calloutPadding` from the top. Nothing when it
+ *  already does. A positive `dx` moves the view east. */
+export function calloutPan(screen: { x: number; y: number }, view: { width: number; height: number }): { dx: number; dy: number } {
+  const right = view.width - CALLOUT_SIDE;
+  const dx = screen.x < CALLOUT_SIDE ? screen.x - CALLOUT_SIDE : screen.x > right ? screen.x - right : 0;
+  const top = calloutPadding(view.height);
+  const dy = screen.y < top ? screen.y - top : 0;
+  return { dx, dy };
+}
+
+/** The camera's centre moved by that many pixels at its zoom. */
+export function panned(camera: Camera, dx: number, dy: number): LatLng {
+  const scale = TILE * 2 ** camera.zoom;
+  const { x, y } = mercator(camera.center);
+  return unmercator(x + dx / scale, y + dy / scale);
 }
 
 /** Google Maps' directions link to a place.
@@ -220,4 +273,17 @@ export function pointPasses(
   if (point.source === "calendar") return false;
   if (pick.none && point.labelIds.length === 0) return true;
   return point.labelIds.some((id) => pick.labels.includes(id));
+}
+
+/** What a kind of row is called beside its title, for assistive tech and the
+ *  callout. The vocabulary's words, never "item" or "thing". */
+export function kindWord(type: string): string {
+  switch (type) {
+    case "location":
+      return "place";
+    case "task":
+      return "to-do";
+    default:
+      return type;
+  }
 }

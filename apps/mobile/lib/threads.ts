@@ -106,6 +106,8 @@ export interface ThreadBundle {
    *  picked here, which earns the rail. Null when the account has no calendar
    *  connection at all, which hides the glyph. */
   calendars: { picked: number; total: number; anyPicked: boolean } | null;
+  /** 030. One live thing in the thread has a point: earns the switch. */
+  hasPoint: boolean;
 }
 
 /** 019. One of the viewer's approved calendars, against a thread. */
@@ -287,6 +289,34 @@ export function myThreads(
 
 export async function fetchThread(id: string): Promise<ThreadBundle | null> {
   const { data } = await send<ThreadBundle>(`/v1/threads/${id}`);
+  return data;
+}
+
+/** 030. A point on a thread's map, as the server draws it: offload's own
+ *  title and address, Google's id only for Directions, nothing Google named. */
+export interface Point {
+  key: string;
+  source: "row" | "calendar";
+  contentId: string | null;
+  type: string;
+  title: string;
+  address: string | null;
+  approximate: boolean;
+  lat: number;
+  lng: number;
+  googlePlaceId: string | null;
+  labelIds: string[];
+  when: { at: string; endAt: string | null; allDay: boolean } | null;
+  url: string | null;
+  imageUrl: string | null;
+  authorId: string | null;
+  calendarName: string | null;
+}
+
+/** 030. A thread's points. `pending` counts places being fetched again, and
+ *  a reader that gets more than none reads once more a moment later. */
+export async function fetchPoints(id: string): Promise<{ points: Point[]; pending: number } | null> {
+  const { data } = await send<{ points: Point[]; pending: number }>(`/v1/threads/${id}/points`);
   return data;
 }
 

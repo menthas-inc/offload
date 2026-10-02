@@ -28,13 +28,18 @@ import {
 } from "@vis.gl/react-google-maps";
 import {
   CIRCLE_METRES,
+  calloutPan,
   cluster,
   fitBounds,
   hitCircle,
+  metresPerPixel,
   pointFill,
   pointPasses,
   pointShape,
+  panned,
+  screenOf,
   splitZoom,
+  worldPixel,
   type LabelPick,
 } from "@offload/widgets";
 import type { Theme } from "../../lib/appearance";
@@ -71,23 +76,8 @@ const SCHEME: Record<Theme, ColorScheme> = {
  *  top for the chips, 40 above the foot. */
 const PADDING = { top: 70, right: 28, bottom: 40, left: 28 };
 
-const TILE = 256;
-
-/** A point's position in world pixels at a zoom, on Web Mercator as Google
- *  draws it: enough to group points that overlap on screen without asking the
- *  map for a projection. */
-function worldPixel(lat: number, lng: number, zoom: number): { x: number; y: number } {
-  const sin = Math.sin((lat * Math.PI) / 180);
-  const scale = TILE * 2 ** zoom;
-  return {
-    x: ((lng + 180) / 360) * scale,
-    y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale,
-  };
-}
-
-function metresPerPixel(lat: number, zoom: number): number {
-  return (156_543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** zoom;
-}
+/** Read once: a camera that moves for a pick jumps instead of gliding. */
+const REDUCED = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
 /** A label's colour as Google's circle needs it: a value, not a variable. */
 function labelColour(colour: number | null): string {
@@ -188,11 +178,30 @@ function Drawn({
     fitted.current = true;
   }, [map, points, onFit]);
 
+  // A picked point's callout is kept inside the frame: the map moves just
+  // enough, and only when the pick changes, never because the points were
+  // read again.
+  const pointsByKey = useRef(new globalThis.Map<string, Point>());
+  pointsByKey.current = new globalThis.Map(points.map((p) => [p.key, p]));
+  useEffect(() => {
+    const p = selected ? pointsByKey.current.get(selected) : undefined;
+    const center = map?.getCenter();
+    const zoom = map?.getZoom();
+    if (!map || !p || !center || zoom === undefined) return;
+    const div = map.getDiv() as HTMLElement;
+    const view = { width: div.offsetWidth || 460, height: div.offsetHeight || 600 };
+    const camera = { center: { lat: center.lat(), lng: center.lng() }, zoom };
+    const { dx, dy } = calloutPan(screenOf(p, camera, view), view);
+    if (!dx && !dy) return;
+    if (REDUCED) map.moveCamera({ center: panned(camera, dx, dy) });
+    else map.panBy(dx, dy);
+  }, [map, selected]);
+
   const spots = shown.filter((p) => !p.approximate);
   const areas = shown.filter((p) => p.approximate);
   const groups = useMemo(() => {
     if (zoom === null) return spots.map((p) => ({ keys: [p.key], x: 0, y: 0 }));
-    return cluster(spots.map((p) => ({ key: p.key, ...worldPixel(p.lat, p.lng, zoom) })));
+    return cluster(spots.map((p) => ({ key: p.key, ...worldPixel(p, zoom) })));
   }, [spots, zoom]);
   const byKey = useMemo(() => new globalThis.Map(points.map((p) => [p.key, p])), [points]);
   const picked = selected ? byKey.get(selected) ?? null : null;

@@ -9,12 +9,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Point } from "../src/lib/threads";
 
 const made = vi.hoisted(() => ({ maps: 0, schemes: [] as string[], onError: null as null | ((e: unknown) => void) }));
-const camera = vi.hoisted(() => ({ moveCamera: vi.fn() }));
+const camera = vi.hoisted(() => ({ moveCamera: vi.fn(), panBy: vi.fn() }));
 
 vi.mock("@vis.gl/react-google-maps", async () => {
   const React = await import("react");
   const fakeMap = {
     moveCamera: camera.moveCamera,
+    panBy: camera.panBy,
     getZoom: () => 14,
     getCenter: () => ({ lat: () => 38.71, lng: () => -9.14 }),
     getDiv: () => ({ offsetWidth: 460, offsetHeight: 600 }),
@@ -170,6 +171,18 @@ describe("the callout (AC-17, AC-24)", () => {
     expect(open.getAttribute("aria-label")).toBe("Open Time Out Market");
     await act(async () => open.click());
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ key: "c:1" }));
+  });
+
+  it("moves the map just enough for a picked point's callout to stay inside it", async () => {
+    camera.panBy.mockClear();
+    const west = point({ key: "c:w", title: "Belém", lat: 38.71, lng: -9.2 });
+    await render(base({ points: [...POINTS, west], selected: "c:w" }));
+    expect(camera.panBy).toHaveBeenCalledTimes(1);
+    expect(camera.panBy.mock.calls[0]![0]).toBeLessThan(0);
+    camera.panBy.mockClear();
+    const middle = point({ key: "c:m", title: "Rossio", lat: 38.71, lng: -9.14 });
+    await render(base({ points: [...POINTS, middle], selected: "c:m" }));
+    expect(camera.panBy).not.toHaveBeenCalled();
   });
 
   it("closes when the map is tapped where nothing is", async () => {

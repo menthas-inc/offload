@@ -15,6 +15,13 @@ import {
   pointPasses,
   pointShape,
   splitZoom,
+  calloutPan,
+  kindWord,
+  metresPerPixel,
+  panned,
+  screenOf,
+  worldPixel,
+  zoomOf,
 } from "@offload/widgets";
 
 const labels = [
@@ -192,5 +199,60 @@ describe("pointPasses (AC-19, AC-15)", () => {
   it("hides a calendar's event under any pick, since it carries no labels", () => {
     expect(pointPasses(point([], "calendar"), { labels: [], none: true })).toBe(false);
     expect(pointPasses(point([], "calendar"), { labels: ["food"], none: false })).toBe(false);
+  });
+});
+
+describe("screen positions without the map's projection (T4.12)", () => {
+  it("puts a point in world pixels on Web Mercator", () => {
+    expect(worldPixel({ lat: 0, lng: 0 }, 0)).toEqual({ x: 128, y: 128 });
+    const a = worldPixel({ lat: 38.7069, lng: -9.1459 }, 15);
+    const b = worldPixel({ lat: 38.7069, lng: -9.1449 }, 15);
+    // A thousandth of a degree of longitude at zoom 15 is about 23 pixels.
+    expect(b.x - a.x).toBeCloseTo(23.3, 1);
+    expect(b.y).toBeCloseTo(a.y, 6);
+  });
+
+  it("knows how many metres a pixel covers, shrinking toward the poles", () => {
+    expect(metresPerPixel(0, 0)).toBeCloseTo(156_543, 0);
+    expect(metresPerPixel(60, 10)).toBeCloseTo(156_543.03392 / 2 / 1024, 3);
+  });
+
+  it("reads a zoom from the span a phone's map reports", () => {
+    // 390 points showing a twentieth of a degree is about zoom 13.
+    expect(zoomOf(0.05, 390)).toBeCloseTo(Math.log2((390 / 256) * (360 / 0.05)), 6);
+    expect(zoomOf(360, 256)).toBeCloseTo(0, 6);
+  });
+});
+
+describe("what a point is called (AC-17)", () => {
+  it("uses the vocabulary's words", () => {
+    expect(["location", "event", "link", "task"].map(kindWord)).toEqual(["place", "event", "link", "to-do"]);
+  });
+});
+
+describe("keeping the callout inside the frame (AC-17)", () => {
+  const camera = { center: { lat: 38.71, lng: -9.14 }, zoom: 14 };
+  const size = { width: 390, height: 600 };
+
+  it("places a point on screen from the camera alone", () => {
+    expect(screenOf(camera.center, camera, size)).toEqual({ x: 195, y: 300 });
+    const east = screenOf({ lat: 38.71, lng: -9.13 }, camera, size);
+    expect(east.x).toBeGreaterThan(195);
+    expect(east.y).toBeCloseTo(300, 6);
+  });
+
+  it("pans nothing when the callout already fits", () => {
+    expect(calloutPan({ x: 195, y: 300 }, size)).toEqual({ dx: 0, dy: 0 });
+  });
+
+  it("pans a point near an edge or the top far enough for the callout", () => {
+    expect(calloutPan({ x: 40, y: 300 }, size)).toEqual({ dx: -86, dy: 0 });
+    expect(calloutPan({ x: 380, y: 300 }, size)).toEqual({ dx: 116, dy: 0 });
+    expect(calloutPan({ x: 195, y: 100 }, size)).toEqual({ dx: 0, dy: -90 });
+  });
+
+  it("moves the camera by that many pixels", () => {
+    const moved = panned(camera, 100, 0);
+    expect(screenOf(camera.center, { ...camera, center: moved }, size).x).toBeCloseTo(95, 6);
   });
 });

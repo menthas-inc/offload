@@ -33,19 +33,4 @@ export function PointDot({
   );
 }
 
-/** What a kind of row is called beside its title, for assistive tech and the
- *  callout. The vocabulary's words, never "item" or "thing". */
-export function kindWord(type: string): string {
-  switch (type) {
-    case "location":
-      return "place";
-    case "event":
-      return "event";
-    case "link":
-      return "link";
-    case "task":
-      return "to-do";
-    default:
-      return type;
-  }
-}
+export { kindWord } from "@offload/widgets";

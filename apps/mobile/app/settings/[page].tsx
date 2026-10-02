@@ -11,7 +11,7 @@ import * as WebBrowser from "expo-web-browser";
 import Constants from "expo-constants";
 import { Glyph } from "../../components/Glyph";
 import { EditableRow, Group, Row } from "../../components/settings/Rows";
-import { Segmented } from "../../components/settings/Segmented";
+import { Segmented } from "../../components/Segmented";
 import { Switch } from "../../components/settings/Switch";
 import { ToastHost, useToast, type ToastState } from "../../components/shell/Toast";
 import { useColors } from "../../lib/colors";
