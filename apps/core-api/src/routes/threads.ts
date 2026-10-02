@@ -43,6 +43,7 @@ import {
 } from "../threads/notes.js";
 import { WIDGET_KIND_CHARS, readPreference, type ThreadPreference } from "../threads/widgets.js";
 import { calendarCounts, dropPicksOf, setPick, threadEvents, viewerCalendars } from "../threads/calendars.js";
+import { hasPoint, threadPoints } from "../places/points.js";
 import { emit } from "../analytics.js";
 import { isBareDate, parseWhen, plausible } from "../threads/dates.js";
 import { invitationsFor } from "../threads/sharing.js";
@@ -265,6 +266,9 @@ const threadBundle = z.object({
    *  they open Not in a thread in its place. Still served, because search and
    *  answering read it. */
   isDefault: z.boolean(),
+  /** 030. Something in it is on the map, so the switch is drawn. Computed by
+   *  the server so the three surfaces agree; false while the map is off. */
+  hasPoint: z.boolean(),
 });
 
 export const contentRow = z.object({
@@ -1534,7 +1538,45 @@ export async function threadRoutes(app: App): Promise<void> {
           calendars: await calendarCounts(accountId, id),
           shareable: !isDefault,
           isDefault,
+          hasPoint: await hasPoint(id),
         });
+      })
+  );
+
+  // 030. A thread's points, for its map. A member's read, empty while the map
+  // is off; nothing Google named is in it.
+  const pointSchema = z.object({
+    key: z.string(),
+    source: z.enum(["row", "calendar"]),
+    contentId: z.string().nullable(),
+    type: z.string(),
+    title: z.string(),
+    address: z.string().nullable(),
+    approximate: z.boolean(),
+    lat: z.number(),
+    lng: z.number(),
+    googlePlaceId: z.string().nullable(),
+    labelIds: z.array(z.string()),
+    when: z.object({ at: z.string(), endAt: z.string().nullable(), allDay: z.boolean() }).nullable(),
+    url: z.string().nullable(),
+    imageUrl: z.string().nullable(),
+    authorId: z.string().nullable(),
+    calendarName: z.string().nullable(),
+  });
+  app.get(
+    "/v1/threads/:id/points",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: { 200: z.object({ points: z.array(pointSchema), pending: z.number() }), 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+        await requireMember(accountId, request.params.id);
+        return reply.send(await threadPoints(accountId, request.params.id));
       })
   );
 
