@@ -48,6 +48,8 @@ from offload_agent.harness.plan import (
 )
 from offload_agent.label_sort import KINDS as LABEL_SORT_KINDS
 from offload_agent.label_sort import handle_label_sort
+from offload_agent.link_place import KINDS as LINK_PLACE_KINDS
+from offload_agent.link_place import handle_link_place
 from offload_agent.loose_propose import KINDS as LOOSE_PROPOSE_KINDS
 from offload_agent.loose_propose import handle_loose_propose
 from offload_agent.og import page, picture
@@ -77,6 +79,7 @@ KINDS = [
     *COMPACT_KINDS,
     *LABEL_SORT_KINDS,
     *LOOSE_PROPOSE_KINDS,
+    *LINK_PLACE_KINDS,
 ]
 
 
@@ -993,6 +996,17 @@ async def _handle(
             log.error("loose proposal failed", kind=job.kind, error=type(exc).__name__)
             async with engine.begin() as conn:
                 await retry_or_die(conn, job, "loose_error", delay_seconds=3600)
+        return
+
+    if job.kind in LINK_PLACE_KINDS:
+        # 030. One page read for one kept link. No retry: a page that does not
+        # answer leaves the link as it is. The type, never the value.
+        try:
+            await handle_link_place(job, cfg=cfg, engine=engine, http=http)
+        except Exception as exc:
+            log.error("link place failed", kind=job.kind, error=type(exc).__name__)
+            async with engine.begin() as conn:
+                await retry_or_die(conn, job, "link_place_error")
         return
 
     if job.kind in LABEL_SORT_KINDS:
