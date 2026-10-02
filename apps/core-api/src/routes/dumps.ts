@@ -1931,8 +1931,10 @@ export async function undoTurn(
   accountId: string,
   turnId: string,
   /** 026. Undo from a forwarded email's Activity row: the email is the dump
-   *  and stays, and a row somebody changed after `since` is left as it is. */
-  opts: { keepMessageId?: string; since?: Date } = {},
+   *  and stays, and a row somebody changed after `since` is left as it is.
+   *  `since` is Postgres's own text for the time: a Date holds milliseconds,
+   *  so a row filed in the same millisecond as the bound would read as later. */
+  opts: { keepMessageId?: string; since?: string } = {},
 ): Promise<{ undone: boolean } | null> {
   // **Calendar rows are undone before the transaction, not inside it.**
   //
@@ -1977,6 +1979,7 @@ export async function undoTurn(
     // as a unit.
     const stamp = sql<Date>`now()`;
     const purge = sql<Date>`now() + interval '8 seconds'`;
+    const since = sql<Date>`${opts.since}::timestamptz`;
 
     // **Calendar rows are excluded, and this is not a refinement.** 012 lets a
     // tool write an event into somebody's Google Calendar, and this update
@@ -1999,7 +2002,7 @@ export async function undoTurn(
       .where("account_id", "=", accountId)
       .where("deleted_at", "is", null)
       .where("source_ref", "is", null)
-      .$if(opts.since !== undefined, (qb) => qb.where("updated_at", "<=", opts.since!))
+      .$if(opts.since !== undefined, (qb) => qb.where("updated_at", "<=", since))
       .execute();
 
     // 025. What the turn labelled, the person's # and the model's alike.
@@ -2022,7 +2025,7 @@ export async function undoTurn(
       )
       .where("account_id", "=", accountId)
       .where("deleted_at", "is", null)
-      .$if(opts.since !== undefined, (qb) => qb.where("updated_at", "<=", opts.since!))
+      .$if(opts.since !== undefined, (qb) => qb.where("updated_at", "<=", since))
       .execute();
 
     // 018. The asking turn's questions close with what they were about; an
@@ -2081,7 +2084,7 @@ export async function undoTurn(
  *  Best effort, and deliberately so: a failure here leaves both the event and
  *  its row exactly where they are, and the rest of the turn still undoes. The
  *  alternative is refusing to undo a dump because Google is down. */
-async function undoCalendarWrites(accountId: string, turnId: string, since?: Date): Promise<void> {
+async function undoCalendarWrites(accountId: string, turnId: string, since?: string): Promise<void> {
   // Rows this turn filed and then put on a calendar, and rows a tapped answer
   // in this turn put on one: both remember their event in `source_ref`.
   const filed = await db
@@ -2092,7 +2095,7 @@ async function undoCalendarWrites(accountId: string, turnId: string, since?: Dat
     .where("content.account_id", "=", accountId)
     .where("content.deleted_at", "is", null)
     .where("content.source_ref", "is not", null)
-    .$if(since !== undefined, (qb) => qb.where("content.updated_at", "<=", since!))
+    .$if(since !== undefined, (qb) => qb.where("content.updated_at", "<=", sql<Date>`${since}::timestamptz`))
     .execute();
   const answered = await db
     .selectFrom("questions")
