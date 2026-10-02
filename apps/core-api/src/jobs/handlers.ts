@@ -10,6 +10,7 @@ import type { Database } from "../schema.js";
 import { NOTE_PROMPT_BUDGET, deleteNotesForThread } from "../threads/notes.js";
 import { locateCalendar, refreshPlace, resolvePlace } from "../places/resolve.js";
 import { agePlaces } from "../places/age.js";
+import { backfillMaps } from "../places/backfill.js";
 import { locateBlob, reverseGeocodingOn } from "../places/reverse.js";
 import { objectKey, objectStore, RENDITIONS } from "../blobs/store.js";
 import type { Mailer } from "../mail/index.js";
@@ -831,6 +832,12 @@ const eventLocate: Handler = async (payload) => {
   console.log(JSON.stringify({ level: "info", msg: "calendar located", calendar_id: calendarId, ...done }));
 };
 
+/** 030. The one pass over what existed before the map. Counts only. */
+const mapsBackfill: Handler = async () => {
+  const booked = await backfillMaps();
+  console.log(JSON.stringify({ level: "info", msg: "maps backfill booked", ...booked }));
+};
+
 export const handlers: Record<string, Handler> = {
   "account.daily": accountDaily,
   "account.daily.run": accountDailyRun,
@@ -845,6 +852,7 @@ export const handlers: Record<string, Handler> = {
   "places.refresh": placesRefresh,
   "places.age": placesAge,
   "event.locate": eventLocate,
+  "maps.backfill": mapsBackfill,
   "blob.purge": blobPurge,
   "blob.locate": blobLocate,
   "blob.daily": blobDaily,
