@@ -10,26 +10,23 @@
 // Share is the confirmation (OFF-6), and there is no Undo.
 //
 // Add a connection is the modal's second step, as the kit has it: one field,
-// one full address, one account or none.
+// one full address, one account or none. Since 031 the step's body is
+// `NewConnectionBody`, which My people also draws.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "../Icon";
 import { Avatar } from "../Avatar";
 import { Modal, ConfirmModal } from "./Modal";
-import { refreshMe } from "../../lib/use-me";
+import { NewConnectionBody } from "./NewConnectionBody";
 import {
   dayMonth,
   SHARE_LINE,
-  answerRequest,
   fetchShareSheet,
   firstNameOf,
-  lookup,
   nameOf,
-  requestConnection,
   shareThread,
   takeOut,
-  type Found,
   type Person,
   type ShareRefusal,
   type ShareSheet,
@@ -315,77 +312,9 @@ export function ShareModal({
   );
 }
 
-type State =
-  | { kind: "empty" }
-  | { kind: "looking" }
-  | { kind: "found"; found: Found; line?: string; answered?: "dismissed" }
-  | { kind: "none" }
-  | { kind: "failed" };
-
-function since(iso: string | null): string {
-  if (!iso) return "Pending";
-  return `Pending since ${dayMonth(iso)}`;
-}
-
-/** Add a connection: the modal's second step. */
+/** Add a connection: the modal's second step. The field, its states and the
+ *  found row are `NewConnectionBody`, which My people draws inline (031). */
 export function NewConnection({ onBack, onClose, onAsked }: { onBack: () => void; onClose: () => void; onAsked?: () => void }) {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [state, setState] = useState<State>({ kind: "empty" });
-  const [sending, setSending] = useState(false);
-  const [sendFailed, setSendFailed] = useState(false);
-
-  async function look() {
-    const address = email.trim();
-    if (!address.includes("@")) return;
-    setState({ kind: "looking" });
-    setSendFailed(false);
-    const result = await lookup(address);
-    if (result.kind === "found") setState(result.found ? { kind: "found", found: result.found } : { kind: "none" });
-    else setState({ kind: "failed" });
-  }
-
-  async function ask(found: Found) {
-    setSending(true);
-    setSendFailed(false);
-    const outcome = await requestConnection(found.accountId);
-    setSending(false);
-    if (outcome.ok) {
-      setState({ kind: "found", found: { ...found, relation: "you_asked", requestId: outcome.requestId, since: outcome.since } });
-      onAsked?.();
-      return;
-    }
-    if (outcome.error === "connected") setState({ kind: "found", found: { ...found, relation: "connected" } });
-    else if (outcome.error === "pending") setState({ kind: "found", found: { ...found, relation: "you_asked", requestId: outcome.requestId ?? null } });
-    // A request to this person ended in the last week: what is refused is
-    // said, and the row keeps its control for when the week is up.
-    else if (outcome.error === "too_soon") setState({ kind: "found", found, line: "You asked recently. Try again in a week." });
-    else if (outcome.error === "asked_you") setState({ kind: "found", found: { ...found, relation: "asked_you", requestId: outcome.requestId ?? null } });
-    else if (outcome.error === "not_found") setState({ kind: "none" });
-    else setSendFailed(true);
-  }
-
-  async function answer(found: Found, which: "accept" | "dismiss") {
-    if (!found.requestId) return;
-    setSending(true);
-    const ok = await answerRequest(found.requestId, which);
-    setSending(false);
-    if (!ok) {
-      setSendFailed(true);
-      return;
-    }
-    void refreshMe();
-    onAsked?.();
-    // Not now leaves their request standing on their side, so the row says
-    // so rather than offering Request, which the server would refuse.
-    setState(which === "accept" ? { kind: "found", found: { ...found, relation: "connected" } } : { kind: "found", found, answered: "dismissed" });
-  }
-
-  const found = state.kind === "found" ? state.found : null;
-  const dismissed = state.kind === "found" && state.answered === "dismissed";
-  const line = state.kind === "found" ? state.line : undefined;
-  const first = found ? firstNameOf(found) : "";
-
   return (
     <Modal label="Add a connection" onClose={onClose}>
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
@@ -394,104 +323,7 @@ export function NewConnection({ onBack, onClose, onAsked }: { onBack: () => void
         </button>
         <h2 className={styles.modalTitle}>Add a connection</h2>
       </div>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void look();
-        }}
-      >
-        <input
-          className={styles.field}
-          value={email}
-          onChange={(event) => {
-            setEmail(event.target.value);
-            if (state.kind !== "empty") setState({ kind: "empty" });
-          }}
-          placeholder="Their email address"
-          aria-label="Their email address"
-          type="email"
-          autoComplete="off"
-          autoFocus
-        />
-      </form>
-      {state.kind === "empty" || state.kind === "looking" ? (
-        <>
-          <p className={styles.emptyTitle} style={{ marginTop: 0 }}>You need their offload email</p>
-          <p className={styles.emptyBody}>
-            Sharing does not invite anyone in, so there is nobody to look up who is not already here. Ask them which email they signed up with.
-          </p>
-        </>
-      ) : null}
-      {state.kind === "none" ? (
-        <>
-          <p className={styles.emptyTitle} style={{ marginTop: 0 }}>No offload account for that</p>
-          <p className={styles.emptyBody}>Check the spelling. If they are not on offload, there is nothing here that can add them.</p>
-        </>
-      ) : null}
-      {state.kind === "failed" ? (
-        <p className={styles.failed} role="alert" style={{ marginTop: 0 }}>
-          That didn&rsquo;t go through.{" "}
-          <button type="button" className={styles.ghost} onClick={() => void look()} style={{ minHeight: 28, padding: 0, color: "var(--text-accent)" }}>
-            Try again
-          </button>
-        </p>
-      ) : null}
-      {found ? (
-        <>
-          <div className={`${styles.pickRow} ${styles.pickRowLast}`} style={{ margin: 0, padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--surface-fill)" }}>
-            <button
-              type="button"
-              className={styles.door}
-              aria-label={nameOf(found)}
-              onClick={() => {
-                if (found.relation === "you") return;
-                onClose();
-                router.push(`/people/${found.accountId}`);
-              }}
-            >
-              <Avatar uid={found.accountId} initials={found.initials} name={found.displayName ?? undefined} size={36} />
-            </button>
-            <span className={styles.personText}>
-              <span className={styles.personName}>{nameOf(found)}</span>
-              <span className={styles.personNote}>{found.email}</span>
-            </span>
-            {dismissed ? <span className={styles.personValue}>Not now</span> : null}
-            {!dismissed && found.relation === "you" ? <span className={styles.personValue}>That&rsquo;s you</span> : null}
-            {!dismissed && found.relation === "connected" ? <span className={styles.personValue}>Already connected</span> : null}
-            {!dismissed && found.relation === "you_asked" ? <span className={styles.personValue}>{since(found.since)}</span> : null}
-            {!dismissed && found.relation === "asked_you" ? (
-              <span className={styles.cardChips}>
-                <button type="button" className={styles.chip} onClick={() => void answer(found, "accept")} disabled={sending}>
-                  {sendFailed ? "Try again" : "Accept"}
-                </button>
-                <button type="button" className={styles.chipOutlined} onClick={() => void answer(found, "dismiss")} disabled={sending}>
-                  Not now
-                </button>
-              </span>
-            ) : null}
-            {found.relation === "none" ? (
-              <button type="button" className={styles.chip} onClick={() => void ask(found)} disabled={sending}>
-                {sendFailed ? "Try again" : "Request"}
-              </button>
-            ) : null}
-          </div>
-          {line ? (
-            <p className={styles.failed} role="alert">
-              {line}
-            </p>
-          ) : null}
-          {!dismissed && (found.relation === "none" || found.relation === "you_asked") ? (
-            <p className={styles.modalHint}>
-              {first} decides whether to accept. Until then you cannot share anything with them, and they are not told what you wanted to share.
-            </p>
-          ) : null}
-          {sendFailed ? (
-            <p className={styles.failed} role="alert">
-              That didn&rsquo;t go through.
-            </p>
-          ) : null}
-        </>
-      ) : null}
+      <NewConnectionBody onAsked={onAsked} onLeave={onClose} />
       <div className={styles.modalActions}>
         <button type="button" className={styles.ghost} onClick={onBack}>
           Back

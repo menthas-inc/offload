@@ -271,6 +271,36 @@ function whenOf(slot: Record<string, unknown> | undefined): { at: Date | null; a
   return { at: null, allDay: false, tz };
 }
 
+function eventOf(item: Record<string, unknown>): GoogleEvent {
+  const organizer = (item["organizer"] ?? {}) as Record<string, unknown>;
+  const start = whenOf(item["start"] as Record<string, unknown> | undefined);
+  const end = whenOf(item["end"] as Record<string, unknown> | undefined);
+  return {
+    externalId: String(item["id"] ?? ""),
+    seriesId: typeof item["recurringEventId"] === "string" ? item["recurringEventId"] : null,
+    status: (item["status"] as GoogleEvent["status"]) ?? "confirmed",
+    title: String(item["summary"] ?? "Untitled"),
+    location: typeof item["location"] === "string" ? item["location"] : null,
+    startsAt: start.at,
+    endsAt: end.at,
+    allDay: start.allDay,
+    timezone: start.tz,
+    organizedByMe: organizer["self"] === true,
+    organizerEmail: typeof organizer["email"] === "string" ? organizer["email"] : null,
+    attendees: ((item["attendees"] as Array<Record<string, unknown>>) ?? []).map((a) => ({
+      name: typeof a["displayName"] === "string" ? a["displayName"] : null,
+      email: typeof a["email"] === "string" ? a["email"] : null,
+      response: typeof a["responseStatus"] === "string" ? a["responseStatus"] : null,
+      self: a["self"] === true,
+    })),
+    link: eventLink(item["htmlLink"]),
+    creator: {
+      email: typeof (item["creator"] as Record<string, unknown> | undefined)?.["email"] === "string" ? String((item["creator"] as Record<string, unknown>)["email"]) : null,
+      self: (item["creator"] as Record<string, unknown> | undefined)?.["self"] === true,
+    },
+  };
+}
+
 export interface EventPage {
   events: GoogleEvent[];
   nextSyncToken: string | null;
@@ -313,41 +343,51 @@ export async function listEvents(
       nextSyncToken?: string;
     };
 
-    for (const item of body.items ?? []) {
-      const organizer = (item["organizer"] ?? {}) as Record<string, unknown>;
-      const start = whenOf(item["start"] as Record<string, unknown> | undefined);
-      const end = whenOf(item["end"] as Record<string, unknown> | undefined);
-      events.push({
-        externalId: String(item["id"] ?? ""),
-        seriesId: typeof item["recurringEventId"] === "string" ? item["recurringEventId"] : null,
-        status: (item["status"] as GoogleEvent["status"]) ?? "confirmed",
-        title: String(item["summary"] ?? "Untitled"),
-        location: typeof item["location"] === "string" ? item["location"] : null,
-        startsAt: start.at,
-        endsAt: end.at,
-        allDay: start.allDay,
-        timezone: start.tz,
-        organizedByMe: organizer["self"] === true,
-        organizerEmail: typeof organizer["email"] === "string" ? organizer["email"] : null,
-        attendees: ((item["attendees"] as Array<Record<string, unknown>>) ?? []).map((a) => ({
-          name: typeof a["displayName"] === "string" ? a["displayName"] : null,
-          email: typeof a["email"] === "string" ? a["email"] : null,
-          response: typeof a["responseStatus"] === "string" ? a["responseStatus"] : null,
-          self: a["self"] === true,
-        })),
-        link: eventLink(item["htmlLink"]),
-        creator: {
-          email: typeof (item["creator"] as Record<string, unknown> | undefined)?.["email"] === "string" ? String((item["creator"] as Record<string, unknown>)["email"]) : null,
-          self: (item["creator"] as Record<string, unknown> | undefined)?.["self"] === true,
-        },
-      });
-    }
+    for (const item of body.items ?? []) events.push(eventOf(item));
 
     pageToken = body.nextPageToken;
     nextSyncToken = body.nextSyncToken ?? nextSyncToken;
   } while (pageToken);
 
   return { events, nextSyncToken };
+}
+
+/** One series' occurrences in a window, as Google holds them now.
+ *
+ *  `"gone"` when the series no longer exists: Google answers a deleted event
+ *  with `410` and an unknown one with `404`, and to the caller both mean every
+ *  occurrence it still has is stale. */
+export async function listInstances(
+  accessToken: string,
+  calendarId: string,
+  seriesId: string,
+  window: { timeMin: Date; timeMax: Date }
+): Promise<GoogleEvent[] | "gone"> {
+  const events: GoogleEvent[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const params = new URLSearchParams({
+      maxResults: "2500",
+      timeMin: window.timeMin.toISOString(),
+      timeMax: window.timeMax.toISOString(),
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+
+    const response = await fetch(
+      `${API}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(seriesId)}/instances?${params.toString()}`,
+      { headers: { authorization: `Bearer ${accessToken}` } }
+    );
+    if (response.status === 404 || response.status === 410) return "gone";
+    if (response.status === 401) throw new GrantRevoked();
+    if (!response.ok) throw new Error(`google events.instances ${response.status}`);
+
+    const body = (await response.json()) as { items?: Array<Record<string, unknown>>; nextPageToken?: string };
+    for (const item of body.items ?? []) events.push(eventOf(item));
+    pageToken = body.nextPageToken;
+  } while (pageToken);
+
+  return events;
 }
 
 export interface EventDraft {

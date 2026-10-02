@@ -27,7 +27,9 @@ import { useFocusEffect, useRouter } from "expo-router";
 import Constants from "expo-constants";
 import { zoneCity } from "@offload/widgets";
 import { Glyph } from "../../components/Glyph";
-import { Group, Row } from "../../components/settings/Rows";
+import { Group, Row, Sections } from "../../components/settings/Rows";
+import { useCalendars } from "../../lib/calendars";
+import { appsValue } from "../../lib/settings";
 import { ToastHost, useToast } from "../../components/shell/Toast";
 import { useColors } from "../../lib/colors";
 import { refreshMe, useMe } from "../../lib/me";
@@ -35,8 +37,7 @@ import { answerRequest, fetchPeople, type PeoplePage } from "../../lib/people";
 import { Avatar } from "../../components/Avatar";
 import { RequestCard } from "../../components/people/RequestCard";
 import { useTheme, THEME_LABEL } from "../../lib/appearance";
-import { signOut, SignOutFailed } from "../../lib/auth";
-import { forgetPlayback } from "../../components/shell/SentVoice";
+import { useSignOut } from "../../components/settings/useSignOut";
 
 const isAndroid = Platform.OS === "android";
 
@@ -67,32 +68,12 @@ export default function Settings() {
     }
     return ok;
   }
+  // 031. What Connected apps has connected, as its value. On focus, since
+  // the page under it connects and disconnects.
+  const calendars = useCalendars();
+  useFocusEffect(useCallback(calendars.reload, [calendars.reload]));
   const toast = useToast();
-  const [leaving, setLeaving] = useState(false);
-
-  async function leave(): Promise<void> {
-    if (leaving) return;
-    setLeaving(true);
-    try {
-      await signOut();
-      // Only now. Everything before this point could still have failed.
-      // 021. And the device copies of any voice note being heard go with
-      // the session.
-      forgetPlayback();
-      router.replace("/");
-    } catch (error) {
-      setLeaving(false);
-      // What happened, and the way forward next to it. Not why: this cannot
-      // see whether the network or the server was the problem and would be
-      // wrong about it.
-      toast.show(
-        error instanceof SignOutFailed
-          ? "That didn't go through."
-          : "That didn't go through.",
-        { label: "Try again", onPress: () => void leave() },
-      );
-    }
-  }
+  const { leaving, leave } = useSignOut(toast);
 
   return (
     <SafeAreaView
@@ -178,7 +159,8 @@ export default function Settings() {
           <RequestCard key={card.id} card={card} onAnswer={(answer) => answerCard(card.id, answer)} />
         ))}
 
-        <Group label="You">
+        <Sections>
+        <Group label="You" icon="circle-dot">
           <Row
             icon="circle-dot"
             title="My account"
@@ -198,7 +180,7 @@ export default function Settings() {
           />
         </Group>
 
-        <Group label="Reaching you">
+        <Group label="Reaching you" icon="bell">
           {/* 024. Notifications, where the kit drew Communication. */}
           <Row
             icon="bell"
@@ -208,12 +190,16 @@ export default function Settings() {
           <Row
             icon="link"
             title="Connected apps"
+            value={appsValue({
+              calendar: calendars.connections.length > 0,
+              mail: me?.mailAvailable ?? false,
+            })}
             onPress={() => router.push("/settings/apps")}
             last
           />
         </Group>
 
-        <Group label="What offload does with it">
+        <Group label="What offload does with it" icon="lock">
           {/* The kit's Privacy group holds "Let offload notice patterns" too.
               That row is not built, so this group holds the two that are. */}
           <Row
@@ -224,7 +210,7 @@ export default function Settings() {
           />
         </Group>
 
-        <Group label="The app">
+        <Group label="The app" icon="sliders-horizontal">
           {/* 023. The account's clock, as a city. Nothing until a device has
               named one. */}
           <Row
@@ -247,6 +233,7 @@ export default function Settings() {
             last
           />
         </Group>
+        </Sections>
       </ScrollView>
 
       <ToastHost state={toast} />

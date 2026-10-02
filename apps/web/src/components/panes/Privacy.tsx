@@ -46,7 +46,7 @@ export function PrivacyPane() {
     <div className={styles.pane}>
       <PaneHead title="Privacy" />
       <div className={styles.paneBody}>
-        <Group label="What offload does with it">
+        <Group label="Reaching the web" icon="globe" caption="Each says what leaves, then the limit on it.">
           <Toggle
             title="Search the web"
             note="Sends the words you dumped to a search company when offload can't answer from your threads. Your threads and notes are never sent."

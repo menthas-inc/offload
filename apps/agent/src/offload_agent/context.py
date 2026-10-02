@@ -163,9 +163,7 @@ class DumpContext:
     #
     # A default, not a destination. Somebody typing into the composer from
     # inside a thread means that thread nearly every time, and the prompt says
-    # so, but words naming another thread override it. Distinct from the hard
-    # pin a quick add carries, where the section they pressed + in is the
-    # choice and nothing may leave it.
+    # so, but words naming another thread override it.
     looking_at: Thread | None = None
     #: 025. The labels in the threads above, at most `LABELS_IN_PROMPT`.
     labels: list[LabelRef] = field(default_factory=list)
@@ -723,67 +721,6 @@ def fit_answer(ctx: "AnswerContext", ceiling: int) -> "AnswerContext":
     )
 
 
-# ---------------------------------------------------------------- quick add
-#
-# A row somebody typed straight into a thread, with the + on a section heading.
-# The thread is already chosen, so none of the account-wide context a dump needs
-# applies: no thread list, no conversation, no default thread. What replaces it
-# is the one thread's own contents and its standing rules, which is what
-# "grounded in the thread" means.
-
-
-@dataclass(frozen=True)
-class Piece:
-    """One thing already in the thread, so offload does not file a second copy
-    of something that is there and can match how the others are written."""
-
-    title: str
-    done: bool
-
-
-@dataclass(frozen=True)
-class QuickAddContext:
-    content_id: str
-    thread_id: str
-    thread_name: str
-    typed: str
-    notes: list[str]
-    notes_from_members: list[str]
-    pieces: list[Piece]
-    today: str | None = None
-    time_zone: str | None = None
-
-
-_TYPED = text(
-    """
-    select c.id, c.title, c.thread_id,
-           case when t.id = a.default_thread_id then 'not in a thread' else t.name end
-             as thread_name,
-           a.time_zone as account_time_zone
-      from content c
-      join threads t on t.id = c.thread_id
-      join accounts a on a.id = c.account_id
-     where c.id = :content_id
-       and c.account_id = :account_id
-       and c.deleted_at is null
-    """
-)
-
-# Membership, not authorship: a shared thread's contents are everybody's, and
-# the person typing is a member or the write would not have happened.
-_PIECES = text(
-    """
-    select c.title, c.done_at is not null as done
-      from content c
-     where c.thread_id = :thread_id
-       and c.id <> :content_id
-       and c.deleted_at is null
-       and c.archived_at is null
-     order by c.created_at desc
-     limit :limit
-    """
-)
-
 # Is there a calendar to talk to at all. One row or none; the tools are sent
 # only when there is, so an account with no connector never pays for their
 # definitions and is never offered a tool that can only fail.
@@ -856,53 +793,6 @@ _THREAD_NOTES = text(
 )
 
 
-async def load_quick_add(
-    conn: AsyncConnection,
-    *,
-    account_id: str,
-    content_id: str,
-    max_pieces: int = 30,
-    time_zone: str | None = None,
-) -> QuickAddContext | None:
-    """The one thread, and the row that was typed into it.
-
-    Filtered by account_id like everything else here: the content id is enough
-    to find the row and not enough to prove it is this account's, and a missing
-    filter puts one person's thread into another person's model call.
-    """
-    row = (await conn.execute(_TYPED, {"content_id": content_id, "account_id": account_id})).first()
-    if row is None or not row.title:
-        return None
-
-    pieces = (
-        await conn.execute(
-            _PIECES,
-            {"thread_id": row.thread_id, "content_id": content_id, "limit": max_pieces},
-        )
-    ).all()
-    notes = (
-        await conn.execute(_THREAD_NOTES, {"thread_id": row.thread_id, "account_id": account_id})
-    ).all()
-
-    # The account's clock, else the zone the device sent with the typed row.
-    zone = clock_zone(row.account_time_zone, time_zone)
-    return QuickAddContext(
-        content_id=str(row.id),
-        thread_id=str(row.thread_id),
-        thread_name=row.thread_name,
-        typed=row.title,
-        # **Split the way `notesForPrompt` splits it.** A note another member
-        # of a shared thread wrote is read and weighed, not obeyed; giving it
-        # the same standing as your own here would leave the one surface where
-        # 014's containment does not apply.
-        notes=[n.text for n in reversed(notes) if n.theirs],
-        notes_from_members=[n.text for n in reversed(notes) if not n.theirs],
-        pieces=[Piece(title=p.title, done=p.done) for p in pieces],
-        today=await today_in(conn, zone),
-        time_zone=zone,
-    )
-
-
 @dataclass(frozen=True)
 class AnswerContext:
     """What a question turn is shown before it reads anything.
@@ -954,7 +844,7 @@ class AnswerContext:
 
 
 # The account's clock first, then the zone the device sent with the message:
-# an answer or a quick add read in the device's zone while the dump was read
+# an answer read in the device's zone while the dump was read
 # in the clock filed the wrong hour from a phone that was somewhere else.
 _MESSAGE_ZONE = text(
     """

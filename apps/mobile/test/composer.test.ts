@@ -46,4 +46,12 @@ describe("the composer at the day's limit", () => {
     // A refusal on send closes it too, before the account is read again.
     expect(closedForTheDay({ atDailyLimit: false }, true)).toBe(true);
   });
+
+  // 032. A section's + writes a row as typed and no model reads it, so the
+  // day's limit never closes the field it raises.
+  it("stays open for a section's + at the limit", () => {
+    expect(closedForTheDay({ atDailyLimit: true }, false, true)).toBe(false);
+    expect(closedForTheDay({ atDailyLimit: false }, true, true)).toBe(false);
+    expect(closedForTheDay({ atDailyLimit: true }, false, false)).toBe(true);
+  });
 });

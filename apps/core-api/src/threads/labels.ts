@@ -40,9 +40,6 @@ export const LABEL_COLOURS = 10;
 export const LABEL_KEPT_DAYS = 30;
 /** The eight-second Undo, and the round trip after it. */
 export const RESTORE_WINDOW_SECONDS = 30;
-/** The nightly sort looks at a thread of this many live rows or more, the
- *  same six that draw Group with labels. */
-export const LABEL_SORT_MIN_ROWS = 6;
 
 export type Via = "person" | "offload";
 
@@ -984,99 +981,3 @@ export async function labelsForTurns(
   return out;
 }
 
-// ---------------------------------------------------------------- the nightly sort
-
-export interface NightlyPlan {
-  create: { name: string; contentIds: string[] }[];
-  apply: { labelId: string; contentIds: string[] }[];
-}
-
-/** A nightly sort's plan, applied as far as it may be. Everything the model
- *  proposed is checked here: a row or label outside the thread, a name a
- *  person deleted, a seventh label, and anything a person set or took off are
- *  each dropped, and the rest lands. It creates and applies and never removes:
- *  the plan has no way to say remove. Returns what landed. */
-export async function applyNightlyPlan(
-  trx: Transaction<Database>,
-  accountId: string,
-  threadId: string,
-  plan: NightlyPlan,
-  words: (facts: { threadName: string; rows: number; labels: string[] }) => string,
-): Promise<{ created: number; applied: number }> {
-  const run = await trx
-    .insertInto("label_runs")
-    .values({ thread_id: threadId, kind: "nightly", set_by: "offload" })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-  const actor: Actor = { accountId, via: "offload", runId: run.id };
-  let created = 0;
-  let applied = 0;
-
-  // Only rows of this thread are ever named to applyLabels, so one stray id
-  // costs its own entry and not the plan.
-  const allIds = [...new Set([...plan.create, ...plan.apply].flatMap((entry) => entry.contentIds))];
-  const inThread = new Set(
-    allIds.length === 0
-      ? []
-      : (
-          await trx
-            .selectFrom("content")
-            .select("id")
-            .where("id", "in", allIds)
-            .where("thread_id", "=", threadId)
-            .where("deleted_at", "is", null)
-            .execute()
-        ).map((r) => r.id),
-  );
-  const rowsOf = (ids: string[]) => ids.filter((id) => inThread.has(id));
-
-  const place = async (labelId: string, ids: string[]) => {
-    const rows = rowsOf(ids);
-    if (rows.length === 0) return;
-    try {
-      const out = await applyLabels(trx, actor, threadId, { content: rows }, [labelId], [], { skipRefused: true });
-      applied += out.applied.length;
-    } catch (error) {
-      if (!(error instanceof NotYours) && !(error instanceof LabelRefused)) throw error;
-    }
-  };
-
-  const live = await liveLabelsOf(trx, threadId);
-  for (const entry of plan.create) {
-    if (rowsOf(entry.contentIds).length === 0) continue;
-    let name: string;
-    try {
-      name = normaliseLabelName(entry.name);
-    } catch {
-      continue;
-    }
-    const existing = live.find((label) => label.name.toLowerCase() === name.toLowerCase());
-    let labelId = existing?.id;
-    if (!labelId) {
-      try {
-        const made = await createLabel(trx, actor, threadId, { name });
-        live.push({ id: made.id, name: made.name, colour: made.colour });
-        labelId = made.id;
-        created += 1;
-      } catch (error) {
-        if (error instanceof LabelRefused) continue;
-        throw error;
-      }
-    }
-    await place(labelId, entry.contentIds);
-  }
-  for (const entry of plan.apply) {
-    if (!live.some((label) => label.id === entry.labelId)) continue;
-    await place(entry.labelId, entry.contentIds);
-  }
-
-  // A label made for rows that all turned out to be refused holds nothing
-  // offload set; it goes rather than sitting empty in the bar.
-  await trx.updateTable("threads").set({ labels_sorted_at: sql`now()` }).where("id", "=", threadId).execute();
-  if (applied === 0) {
-    if (created > 0) await undoRun(trx, run.id);
-    return { created: 0, applied: 0 };
-  }
-  await recordSortActivity(trx, run.id, words);
-  return { created, applied };
-}

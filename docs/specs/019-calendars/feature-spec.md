@@ -2,6 +2,7 @@
 
 **Status:** drafted 2026-09-18, revised the same day after review
 **Surfaces:** web, iOS, Android, and the agent plane
+**Amended by 031 (2026-10-02):** Connected apps draws a Google Calendar card with Calendars offload can use and Ask before adding on it; Connect there goes straight to Google. On the web the per-account list and Disconnect move from the Connected apps pane to `/settings/apps/calendar`.
 **Depends on:** 012, whose connector this reshapes; 018, whose control asks which calendar; 015, whose rail shows a thread's days
 **Design:** `handoff/APPLY-2026-09-17-calendars.md`, decided item by item off `explorations/calendars-options.html`, and the 17 September entry in the design log
 **Amends:** 012's AC-8 (routing) and AC-12 (disconnect), 018's five-field rule and its "no option writes outside offload"

@@ -4,7 +4,7 @@
 // scrubbing live in the runner. A handler does the work or throws.
 
 import { shouldPropose, sweepSuggestions } from "../loose/propose.js";
-import { sql, type Transaction } from "kysely";
+import { sql, type ExpressionBuilder, type Transaction } from "kysely";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
 import { NOTE_PROMPT_BUDGET, deleteNotesForThread } from "../threads/notes.js";
@@ -19,7 +19,7 @@ import { scheduleFullSyncs, scheduleNextSync, superviseSyncs, syncConnection } f
 import { enqueue, PRIORITY, scheduleDaily, scheduleHourly } from "./queue.js";
 import { purgeActivity } from "../notifications/activity.js";
 import { forgetPendingWrites } from "../connectors/tool-calls.js";
-import { LABEL_SORT_MIN_ROWS, purgeLabelRuns, purgeLabels } from "../threads/labels.js";
+import { purgeLabelRuns, purgeLabels } from "../threads/labels.js";
 import { runDigest, scheduleDigests, readReceipts, type Send } from "../notifications/digest.js";
 import { notifyPerson, notifySharedActivity } from "../notifications/people.js";
 import { emit } from "../analytics.js";
@@ -546,6 +546,25 @@ const accountDaily: Handler = async () => {
           .where((inner) =>
             inner.or([
               inner("threads.last_activity_at", ">=", since),
+              // 032. A dated note of theirs that passed its date since their
+              // last pass there is the one change no activity causes. Since the
+              // last pass, as the run itself reads it, so a night this fan-out
+              // missed loses nothing either.
+              inner.exists(
+                inner
+                  .selectFrom("notes")
+                  .select("notes.id")
+                  .whereRef("notes.subject_id", "=", "threads.id")
+                  .whereRef("notes.account_id", "=", "accounts.id")
+                  .where("notes.scope", "=", "thread")
+                  .where("notes.deleted_at", "is", null)
+                  .where("notes.superseded_at", "is", null)
+                  .where(
+                    sql<boolean>`coalesce(notes.occurs_end_at, notes.occurs_at, notes.due_at)
+                      between greatest(coalesce(thread_members.nightly_at, now() - interval '25 hours'), now() - interval '7 days')
+                      and now()`,
+                  )
+              ),
               // **Over the budget is its own reason to run.** Activity alone
               // was the gate until the review found what it misses: a thread
               // goes over a hundred, the account goes quiet, and nothing ever
@@ -587,103 +606,109 @@ const accountDaily: Handler = async () => {
 
 /** One account's day.
  *
- *  Step one of three. Today generation and thread compaction land here as they
- *  are built, which is why this is a job of its own rather than the fan-out
- *  enqueuing `notes.compact` directly.
+ *  032. One nightly pass per thread this member needs one in, and nothing
+ *  else that reads their threads: the pass keeps their notes true, learns from
+ *  what they dumped into the thread that day, and on their default thread
+ *  suggests threads. Today generation and thread compaction land here as they
+ *  are built.
  *
- *  A thread is worth compacting when it has more notes than the prompt carries,
- *  or when the day left new ones on it: the first is the budget, the second is
- *  how a contradiction written this morning gets resolved tonight rather than
- *  in a fortnight.
+ *  A thread needs a pass only when something material changed since this
+ *  member's last pass there: see `needs` below.
  */
+/** 032. The most nightly passes one member gets in a night, beside their
+ *  default thread's. */
+export const NIGHTLY_THREADS = 10;
+
 const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
   if (!accountId) throw new Error("account.daily.run has no account");
 
-  const since = new Date(Date.now() - 25 * 60 * 60 * 1000);
-  const threads = await db
+  const account = await db.selectFrom("accounts").select("default_thread_id").where("id", "=", accountId).executeTakeFirst();
+  const defaultThread = account?.default_thread_id ?? null;
+
+  // **Something material since this member's last pass here**, and nothing
+  // else: a pass's own writes come before its stamp, so it never books the
+  // next one; ticking or moving rows changes nothing a pass reads. In order:
+  // a dump of theirs the pass may read landed; a note of theirs changed and
+  // they hold two or more there (one has nothing to fold); a dated note of
+  // theirs passed its date; a first pass on a thread over the budget.
+  const since = sql`greatest(coalesce(thread_members.nightly_at, now() - interval '25 hours'), now() - interval '7 days')`;
+  const own = sql`(select count(*) from notes n where n.scope = 'thread' and n.subject_id = threads.id
+      and n.account_id = ${accountId} and n.deleted_at is null and n.superseded_at is null)`;
+  const needs = sql<boolean>`(
+    exists (
+      select 1 from messages m
+       where m.account_id = ${accountId} and m.role = 'person'
+         and m.source not in ('mail', 'gmail', 'calendar', 'browser')
+         and not m.derived_from_untrusted and m.created_at > ${since}
+         and (exists (select 1 from content c where c.derived_from_message_id = m.id
+                       and c.thread_id = threads.id and c.deleted_at is null)
+              or exists (select 1 from notes n where n.derived_from_message_id = m.id
+                       and n.scope = 'thread' and n.subject_id = threads.id and n.deleted_at is null))
+    )
+    or (${own} >= 2 and exists (
+      select 1 from notes n where n.scope = 'thread' and n.subject_id = threads.id
+         and n.account_id = ${accountId} and n.deleted_at is null and n.superseded_at is null
+         and n.updated_at > ${since}
+    ))
+    or exists (
+      select 1 from notes n where n.scope = 'thread' and n.subject_id = threads.id
+         and n.account_id = ${accountId} and n.deleted_at is null and n.superseded_at is null
+         and coalesce(n.occurs_end_at, n.occurs_at, n.due_at) > ${since}
+         and coalesce(n.occurs_end_at, n.occurs_at, n.due_at) <= now()
+    )
+    or (thread_members.nightly_at is null and ${own} >= 2 and (
+      select count(*) from notes n where n.scope = 'thread' and n.subject_id = threads.id
+         and n.deleted_at is null and n.superseded_at is null) > ${NOTE_PROMPT_BUDGET})
+  )`;
+
+  const owed = db
     .selectFrom("threads")
     .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
     .select(["threads.id as id"])
     .where("thread_members.account_id", "=", accountId)
     .where("thread_members.state", "=", "accepted")
     .where("threads.deleted_at", "is", null)
-    .where((eb) =>
-      eb.or([
-        eb.exists(
-          eb
-            .selectFrom("notes")
-            .select("notes.id")
-            .whereRef("notes.subject_id", "=", "threads.id")
-            .where("notes.scope", "=", "thread")
-            .where("notes.deleted_at", "is", null)
-            .where("notes.superseded_at", "is", null)
-            .where("notes.updated_at", ">=", since)
-        ),
-        // Counted as a number, not as text. `count` comes back as a string in
-        // the driver, and comparing it as one makes "100" smaller than "20".
-        eb(
-          eb
-            .selectFrom("notes")
-            .select(({ fn }) => fn.countAll<number>().as("n"))
-            .whereRef("notes.subject_id", "=", "threads.id")
-            .where("notes.scope", "=", "thread")
-            .where("notes.deleted_at", "is", null)
-            .where("notes.superseded_at", "is", null),
-          ">",
-          NOTE_PROMPT_BUDGET
-        ),
-      ])
-    )
+    .where(needs);
+  // The most recently active first, and no more than the cap: a guardrail for
+  // a member busy in many threads. A thread left over keeps everything it is
+  // owed, since only a pass stamps it, and is read on a later night.
+  const threads = await owed
+    .where(sql<boolean>`threads.id is distinct from ${defaultThread}`)
+    .orderBy("threads.last_activity_at", "desc")
+    .limit(NIGHTLY_THREADS)
     .execute();
+  const defaultOwed = defaultThread
+    ? Boolean(await owed.where("threads.id", "=", defaultThread).executeTakeFirst())
+    : false;
+
+  // 028. The sweep of what nobody can undo any more, then whether the default
+  // thread has something new for proposals to read.
+  await sweepSuggestions(accountId);
+  const propose = defaultThread ? await shouldPropose(accountId) : false;
 
   const day = new Date().toISOString().slice(0, 10);
+  const book = (threadId: string, withProposals: boolean) =>
+    enqueue({
+      kind: "thread.nightly",
+      accountId,
+      payload: { threadId, propose: withProposals },
+      priority: PRIORITY.background,
+      idempotencyKey: `thread.nightly:${threadId}:${accountId}:${day}`,
+      maxAttempts: 2,
+    });
+
+  let booked = 0;
   for (const thread of threads) {
-    await enqueue({
-      kind: "notes.compact",
-      accountId,
-      payload: { threadId: thread.id },
-      priority: PRIORITY.background,
-      idempotencyKey: `notes.compact:${thread.id}:${day}`,
-      maxAttempts: 2,
-    });
+    await book(thread.id, false);
+    booked += 1;
+  }
+  if (defaultThread && (propose || defaultOwed)) {
+    await book(defaultThread, propose);
+    booked += 1;
   }
 
-  // 028. The pass over what is not in a thread, when there is something new
-  // for it to read, and the sweep of what nobody can undo any more.
-  await sweepSuggestions(accountId);
-  if (await shouldPropose(accountId)) {
-    await enqueue({
-      kind: "loose.propose",
-      accountId,
-      payload: {},
-      priority: PRIORITY.background,
-      idempotencyKey: `loose.propose:${accountId}:${day}`,
-      maxAttempts: 2,
-    });
-  }
-
-  // 025. The nightly sort, once per thread per day whichever member's run
-  // books it first (the idempotency key is the thread's). Off for now, by the
-  // owner's call on 2026-09-27: labels come from people and from live turns
-  // only until the sort is reworked. The worker, the endpoint and Activity's
-  // Undo stay, so turning it on is this one constant.
-  const sortable = NIGHTLY_LABEL_SORT ? await sortableThreads(accountId) : [];
-  for (const threadId of sortable) {
-    await enqueue({
-      kind: "labels.sort",
-      accountId,
-      payload: { threadId },
-      priority: PRIORITY.background,
-      idempotencyKey: `labels.sort:${threadId}:${day}`,
-      maxAttempts: 2,
-    });
-  }
-
-  // Counts, never text. This job is about a hundred sentences of dumped text
-  // and it is the first one in the product that holds that many at once.
-  console.log(
-    JSON.stringify({ level: "info", msg: "daily run", threads: threads.length, sortable: sortable.length })
-  );
+  // Counts, never text.
+  console.log(JSON.stringify({ level: "info", msg: "daily run", passes: booked }));
 };
 
 /** 020. Name the town a photo was taken in, from its rounded coordinate.
@@ -865,27 +890,3 @@ export const handlers: Record<string, Handler> = {
   "shared.activity": sharedActivity,
 };
 
-export const NIGHTLY_LABEL_SORT = false;
-
-/** Threads the account is in with six or more live rows that changed since
- *  they were last sorted. */
-export async function sortableThreads(accountId: string): Promise<string[]> {
-  const sortable = await db
-    .selectFrom("threads")
-    .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
-    .select(["threads.id as id"])
-    .where("thread_members.account_id", "=", accountId)
-    .where("thread_members.state", "=", "accepted")
-    .where("threads.deleted_at", "is", null)
-    // 028. Never the default thread: a label there is drawn nowhere.
-    .where(sql<boolean>`threads.id is distinct from (select a.default_thread_id from accounts a where a.id = ${accountId})`)
-    .where(
-      sql<boolean>`(select count(*) from content c where c.thread_id = threads.id and c.deleted_at is null and c.archived_at is null) >= ${LABEL_SORT_MIN_ROWS}`,
-    )
-    .where(
-      sql<boolean>`exists (select 1 from content c where c.thread_id = threads.id and c.deleted_at is null
-        and c.updated_at > coalesce(threads.labels_sorted_at, '-infinity'::timestamptz))`,
-    )
-    .execute();
-  return sortable.map((thread) => thread.id);
-}

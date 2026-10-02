@@ -5,6 +5,9 @@
 **Depends on:** 004, which made the default thread; 005 and 014, whose rows and notes the group draws; 013, whose answers name a thread; 016 and 026, whose untrusted reads gate a suggestion; 018, whose photo question stays; 020, whose blobs move with a row; 022, which already refuses sharing the default thread; 024 and 027, whose Activity, Today and thread pill this touches; 025, whose labels and row tools this touches.
 **Amends:** the readme's **Always on** group and the moss role's mention of it; 004's partial reply *Saved to Miscellaneous.*; 014, in that a note can move between threads; 025's live labeller and nightly sort, which skip the default thread; the web's row edit, which gains Move; `decisions.md`'s reversible allowlist, for a suggested move into a shared thread; the privacy policy's *Nothing arrives in a shared thread by accident*.
 
+
+*Amended 2026-10-02 by 032: the daily pass is the default thread's nightly pass, booked as `thread.nightly` with proposals, and posted to `/internal/v1/nightly-result`. What it proposes and every rule its endpoint held are unchanged.*
+
 ## Why
 
 A dump with no obvious home goes in the account's default thread, which is drawn as a thread called Miscellaneous under a heading, Always on, that it has to itself. That makes the one place offload could not decide look like a decision: a person sees a thread they never made, with a name they never chose, filling with unrelated things. Nothing in it can be found by browsing, and nothing helps it leave.

@@ -18,7 +18,7 @@ export default function Notes() {
       edges={["top"]}
     >
       <View className="h-appbar-height flex-row items-center px-gutter-screen">
-        <Logo size={21} />
+        <Logo size={24} />
       </View>
       <QuietEmpty line="What offload learns about you collects here. Nothing is learned yet." />
     </SafeAreaView>

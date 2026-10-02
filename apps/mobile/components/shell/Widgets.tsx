@@ -28,7 +28,7 @@ import { useColors } from "../../lib/colors";
 import { ContentRowView } from "./ContentRow";
 import { PhotoThumb } from "./PhotoThumb";
 import { useConversation } from "./conversation-context";
-import { QUICK_ADD_CHARS } from "../../lib/threads";
+import { QUICK_ADD_CHARS, TYPED_ROW_PLACEHOLDER } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
 
 const isAndroid = Platform.OS === "android";
@@ -249,7 +249,7 @@ function WidgetBlock({
                 write: "quickAdd",
                 section: widget.kind,
                 title: `Add to ${HEADINGS[widget.kind]}`,
-                placeholder: "Type it, offload will sort it out",
+                placeholder: TYPED_ROW_PLACEHOLDER,
                 charLimit: QUICK_ADD_CHARS,
               })
             }

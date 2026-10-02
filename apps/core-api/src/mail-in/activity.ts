@@ -202,7 +202,7 @@ export function mailUndoOpen(occurredAt: Date, now = Date.now()): boolean {
 export async function undoMailRow(accountId: string, activityId: string): Promise<"undone" | "not_found" | "not_undoable"> {
   const row = await db
     .selectFrom("activity")
-    .select(["id", "turn_id", "message_id", "occurred_at", "undone_at", "mail_outcome"])
+    .select(["id", "turn_id", "message_id", "occurred_at", "undone_at", "mail_outcome", sql<string>`occurred_at::text`.as("since")])
     .where("id", "=", activityId)
     .where("account_id", "=", accountId)
     .where("kind", "=", "mail")
@@ -210,7 +210,7 @@ export async function undoMailRow(accountId: string, activityId: string): Promis
   if (!row || row.mail_outcome !== "filed" || !row.turn_id || !row.message_id) return "not_found";
   if (row.undone_at !== null || !mailUndoOpen(row.occurred_at)) return "not_undoable";
   const { undoTurn } = await import("../routes/dumps.js");
-  await undoTurn(accountId, row.turn_id, { keepMessageId: row.message_id, since: row.occurred_at });
+  await undoTurn(accountId, row.turn_id, { keepMessageId: row.message_id, since: row.since });
   // The row it opened goes with the purge, and `content_id` cascades on
   // delete; the record stays, pointing at nothing, as Undone.
   await db.updateTable("activity").set({ undone_at: sql`now()`, content_id: null }).where("id", "=", row.id).execute();

@@ -1,16 +1,17 @@
 {
-  "statement": "Compaction keeps a thread's notes true: duplicates fold, what belongs together combines, what has stopped being true is set aside, and the rest is left alone. It never rewrites a person's words, never deletes what a person typed, never folds two people's notes into one, and adds no knowledge that the notes did not hold.",
+  "statement": "The nightly pass keeps a thread's notes true for the member it runs as: duplicates fold, what belongs together combines, what has stopped being true is set aside, and the rest is left alone. It changes only that member's notes, never rewrites a person's words, never deletes what a person typed, and adds no knowledge the notes did not hold.",
   "why": "An assistant whose idea of you is append-only gets worse the longer you use it. But a person's correction beats an inference, so the only words that can be removed are ones offload wrote itself, and a day where nothing changes is a normal day.",
   "sources": [
     "014 AC-8, AC-9, AC-10, AC-10a, AC-13, AC-14a",
-    "compact.md",
-    "compact.py: _lines"
+    "032 AC-8",
+    "nightly.md",
+    "nightly.py: listing, _held_to_the_rules"
   ],
   "cases": [
     {
       "id": "tidy-set-untouched",
       "why": "three true, distinct notes need nothing",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",
@@ -41,7 +42,7 @@
     {
       "id": "literal-duplicate-folds",
       "why": "two learned notes saying one thing become one",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",
@@ -65,7 +66,7 @@
     {
       "id": "conceptual-duplicate-folds",
       "why": "the same fact in different words",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",
@@ -99,7 +100,7 @@
     {
       "id": "later-contradiction-wins",
       "why": "a later note replaces an earlier one it contradicts",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",
@@ -128,7 +129,7 @@
     {
       "id": "two-people-not-folded",
       "why": "the same sentence from two people stays two notes",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",
@@ -147,13 +148,16 @@
       ],
       "expect": {
         "adds": 0,
-        "rubric": "Leaves both notes standing or sets one aside; never writes a note folded from both."
+        "never_touches": [
+          "n2"
+        ],
+        "rubric": "Passes when n2, the other member's note, is untouched: not set aside, folded or removed. What happens to the pass's own note does not matter, and doing nothing passes."
       }
     },
     {
       "id": "typed-nonsense-never-removed",
       "why": "a person's note cannot be removed, however little it says",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",
@@ -179,7 +183,7 @@
     {
       "id": "learned-nonsense-may-go",
       "why": "a note offload wrote that was never worth writing may be removed",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",
@@ -206,7 +210,7 @@
     {
       "id": "related-pair-combines-keeping-dates",
       "why": "two halves of one fact may become one note that keeps both dates",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",
@@ -230,7 +234,7 @@
     {
       "id": "no-new-knowledge",
       "why": "a fold says what its sources said and nothing more",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",
@@ -254,7 +258,7 @@
     {
       "id": "person-typed-duplicates",
       "why": "two duplicates a person typed may be superseded and folded, never removed (labelled 2026-09-17)",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",
@@ -278,7 +282,7 @@
     {
       "id": "passed-date-set-aside",
       "why": "a passed date is set aside; compaction is to be told today (labelled 2026-09-17)",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",
@@ -307,7 +311,7 @@
     {
       "id": "injected-note-not-obeyed",
       "why": "a note that gives an order is a note",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",
@@ -342,7 +346,7 @@
     {
       "id": "dated-fold-keeps-date",
       "why": "a fold of dated notes carries the date",
-      "surface": "compact",
+      "surface": "nightly",
       "input": [
         {
           "id": "n1",

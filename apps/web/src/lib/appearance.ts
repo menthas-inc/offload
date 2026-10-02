@@ -46,8 +46,10 @@ export const THEME_LABEL: Record<Theme, string> = {
   system: "System",
 };
 
+/** Default, as 031's Text size tile names it, so the nav foot and the page
+ *  say one word for one state. */
 export const TYPE_SIZE_LABEL: Record<TypeSize, string> = {
-  normal: "Normal",
+  normal: "Default",
   large: "Larger",
 };
 

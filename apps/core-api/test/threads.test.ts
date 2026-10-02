@@ -1448,3 +1448,70 @@ describe("023 the when field on the edit", () => {
     await expect(editContent(stranger, id, { dueAt: "2026-09-25" })).rejects.toBeInstanceOf(NotYours);
   });
 });
+
+// ---------------------------------------------------------------- 032
+//
+// AC-1 a row typed into a section with a type is written as typed, and no job
+//      is enqueued for it.
+// AC-2 its filing_at is not set.
+// AC-3 a line that is exactly one http or https address is a link.
+
+describe("032 a typed row is saved as typed", () => {
+  async function typed(me: string, th: string, text: string, section = "todo") {
+    const added = await quickAdd(me, th, text, section);
+    const row = await db
+      .selectFrom("content")
+      .select(["type", "title", "url", "filing_at"])
+      .where("id", "=", added.id)
+      .executeTakeFirstOrThrow();
+    return { added, row };
+  }
+
+  it("writes the row with the section's type and their words, and enqueues nothing", async () => {
+    const me = await account("Ana Duarte");
+    const th = await thread(me, "Flat admin");
+    const before = await db.selectFrom("jobs").select("id").where("account_id", "=", me).execute();
+
+    const { added, row } = await typed(me, th, "call the plumber, milk, eggs");
+
+    expect(added.kind).toBe("content");
+    expect(row.type).toBe("task");
+    expect(row.title).toBe("call the plumber, milk, eggs");
+    const after = await db
+      .selectFrom("jobs")
+      .select("kind")
+      .where("account_id", "=", me)
+      .where("kind", "not in", ["shared.activity"])
+      .execute();
+    expect(after).toHaveLength(before.length);
+  });
+
+  it("is never drawn as being sorted", async () => {
+    const me = await account("Ana Duarte");
+    const th = await thread(me, "Flat admin");
+    const { row } = await typed(me, th, "fix the tap");
+    expect(row.filing_at).toBeNull();
+  });
+
+  it("makes a line that is one web address a link, and leaves an address inside words alone", async () => {
+    const me = await account("Ana Duarte");
+    const th = await thread(me, "Flat admin");
+    const address = "https://www.ikea.com/pt/en/p/lack-wall-shelf-white-30305718/";
+
+    const link = await typed(me, th, `  ${address}  `);
+    expect(link.row.url).toBe(address);
+    expect(link.row.title).toBe(address);
+
+    const words = await typed(me, th, `shelf ${address}`);
+    expect(words.row.url).toBeNull();
+
+    const other = await typed(me, th, "ftp://example.test/file");
+    expect(other.row.url).toBeNull();
+
+    // The column's check is case-sensitive, so a capital the phone's keyboard
+    // added keeps the line words rather than failing the write.
+    const capital = await typed(me, th, "Https://example.test/a");
+    expect(capital.row.url).toBeNull();
+    expect(capital.row.title).toBe("Https://example.test/a");
+  });
+});

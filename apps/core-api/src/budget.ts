@@ -53,7 +53,7 @@ export async function turnsToday(accountId: string, trx: Executor = db): Promise
     .selectFrom("jobs")
     .select(({ fn }) => fn.countAll<number>().as("n"))
     .where("account_id", "=", accountId)
-    .where("kind", "in", ["dump.answer", "thread.quick_add"])
+    .where("kind", "=", "dump.answer")
     .where(sql<boolean>`created_at > now() - interval '24 hours'`)
     .executeTakeFirstOrThrow();
   return Number(row.n);

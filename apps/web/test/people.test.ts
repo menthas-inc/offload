@@ -34,3 +34,52 @@ describe("looking somebody up", () => {
     expect(init?.credentials).toBe("include");
   });
 });
+
+// 031. What the connect step draws, out of the component, as the phones have
+// it: a lookup's answer, including the refused one, and a request's refusals.
+describe("what a lookup draws", () => {
+  const found = {
+    accountId: "p9",
+    displayName: "Lena Hart",
+    initials: "LH",
+    email: "lena@hart.studio",
+    relation: "none" as const,
+    requestId: null,
+    since: null,
+    mark: "",
+  };
+
+  it("says a refused lookup in its own line, and every other answer as it is", async () => {
+    const { LOOKUP_LIMITED, stateOfLookup } = await import("../src/lib/people");
+    expect(LOOKUP_LIMITED).toBe("Too many lookups. Try again in a few minutes.");
+    expect(stateOfLookup({ kind: "rate_limited" })).toEqual({ kind: "limited" });
+    expect(stateOfLookup({ kind: "failed" })).toEqual({ kind: "failed" });
+    expect(stateOfLookup({ kind: "found", found: null })).toEqual({ kind: "none" });
+    expect(stateOfLookup({ kind: "found", found })).toEqual({ kind: "found", found });
+  });
+
+  it("turns a request's answer into the row it leaves", async () => {
+    const { stateOfRequest } = await import("../src/lib/people");
+    expect(stateOfRequest(found, { ok: true, requestId: "r9", since: "2026-09-28T10:00:00Z" })).toEqual({
+      kind: "found",
+      found: { ...found, relation: "you_asked", requestId: "r9", since: "2026-09-28T10:00:00Z" },
+    });
+    expect(stateOfRequest(found, { ok: false, error: "connected" })).toEqual({ kind: "found", found: { ...found, relation: "connected" } });
+    expect(stateOfRequest(found, { ok: false, error: "pending", requestId: "r1" })).toEqual({
+      kind: "found",
+      found: { ...found, relation: "you_asked", requestId: "r1" },
+    });
+    expect(stateOfRequest(found, { ok: false, error: "asked_you", requestId: "r2" })).toEqual({
+      kind: "found",
+      found: { ...found, relation: "asked_you", requestId: "r2" },
+    });
+    expect(stateOfRequest(found, { ok: false, error: "too_soon" })).toEqual({
+      kind: "found",
+      found,
+      line: "You asked recently. Try again in a week.",
+    });
+    expect(stateOfRequest(found, { ok: false, error: "not_found" })).toEqual({ kind: "none" });
+    expect(stateOfRequest(found, { ok: false, error: "too_many" })).toEqual({ kind: "failed" });
+    expect(stateOfRequest(found, { ok: false, error: "failed" })).toEqual({ kind: "failed" });
+  });
+});

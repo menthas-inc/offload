@@ -8,6 +8,7 @@
 // this asserts it.
 
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { sql } from "kysely";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { createJobRunner } from "../src/jobs/runner.js";
@@ -93,8 +94,41 @@ describe("the job runner the server builds", () => {
     // What the previous version of this test was really guarding, kept now that
     // an unowned kind is skipped quietly rather than failed loudly: a kind
     // nobody drains would sit queued forever and nothing would say so.
-    const enqueued = ["email.waitlist_joined", "email.invited", "dump.answer"];
+    const enqueued = ["email.waitlist_joined", "email.invited", "dump.answer", "thread.nightly"];
     const owned = new Set<string>([...Object.keys(handlers), ...MODEL_KINDS]);
     expect(enqueued.filter((k) => !owned.has(k))).toEqual([]);
+  });
+});
+
+// 032 AC-5. A kind nothing claims any more is closed at deploy rather than
+// left queued forever, and a typed row is never left drawn as being sorted.
+describe("032 the retired kinds", () => {
+  it("closes queued and running jobs of every retired kind, and clears filing_at", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const retired = ["thread.quick_add", "notes.compact", "loose.propose", "labels.sort"];
+    const ids: string[] = [];
+    for (const kind of retired) {
+      const row = await db
+        .insertInto("jobs")
+        .values({ kind, payload: JSON.stringify({}), priority: 100, run_after: new Date(), state: "queued" } as never)
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      ids.push(row.id);
+    }
+    const live = await db
+      .insertInto("jobs")
+      .values({ kind: "dump.answer", payload: JSON.stringify({}), priority: 10, run_after: new Date(), state: "queued" } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    const file = fileURLToPath(new URL("../migrations/0070_fewer_model_calls.sql", import.meta.url));
+    await sql.raw(readFileSync(file, "utf8")).execute(db);
+
+    const states = await db.selectFrom("jobs").select(["id", "state"]).where("id", "in", [...ids, live.id]).execute();
+    for (const id of ids) expect(states.find((s) => s.id === id)?.state).toBe("done");
+    expect(states.find((s) => s.id === live.id)?.state).toBe("queued");
+    const filing = await db.selectFrom("content").select("id").where("filing_at", "is not", null).execute();
+    expect(filing).toHaveLength(0);
   });
 });

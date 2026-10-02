@@ -33,7 +33,10 @@ import { useMe } from "../../lib/me";
 import { useCalendars } from "../../lib/calendars";
 import { API_URL } from "../../lib/auth";
 
-export default function Welcome() {
+/** `replay`, 031: Help's See the tutorial again. The three screens and nothing
+ *  else: Skip and the last screen's Done go back to Help, and nothing about the
+ *  account is written or asked. */
+export default function Welcome({ replay = false }: { replay?: boolean } = {}) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [leaving, setLeaving] = useState(false);
@@ -131,7 +134,10 @@ export default function Welcome() {
   // tutorial; the only thing missing is the name. They get that screen and
   // nothing else, rather than three screens of introduction they have already
   // seen and a consent they have already given.
-  const nameOnly = me !== null && !me.needsFirstRun;
+  const nameOnly = !replay && me !== null && !me.needsFirstRun;
+  const lastScreen = replay && step === TUTORIAL.length - 1;
+  // Back to Help, or to Help when a deep link opened it with nothing behind.
+  const close = () => (router.canGoBack() ? router.back() : router.replace("/settings/help"));
   // Whether a calendar screen still comes after the consent. It decides one
   // word: the tutorial's flow does not end at consent when it does.
   const offers = offersFor({
@@ -211,7 +217,7 @@ export default function Welcome() {
                   // prevent. The web has always done this correctly; only the phones
                   // regressed, and the comment at the top of this file already said
                   // what the code was supposed to do.
-                  onPress={() => setStep(TUTORIAL.length)}
+                  onPress={() => (replay ? close() : setStep(TUTORIAL.length))}
                   className="min-h-tap-min justify-center"
                 >
                   <Text
@@ -335,7 +341,9 @@ export default function Welcome() {
                     ).then(() => router.replace("/settings/calendar"))
                   : consenting || nameOnly
                     ? void finish(!nameOnly)
-                    : setStep(step + 1)
+                    : lastScreen
+                      ? close()
+                      : setStep(step + 1)
               }
               disabled={blocked && !offering}
               className={`min-h-a-row-height w-full items-center justify-center rounded-pill active:opacity-90 ${
@@ -358,7 +366,9 @@ export default function Welcome() {
                         offerAhead
                         ? "Next"
                         : "Get started"
-                      : "Next"}
+                      : lastScreen
+                        ? "Done"
+                        : "Next"}
               </Text>
             </Pressable>
           </View>

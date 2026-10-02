@@ -13,7 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent.config import _asyncpg
-from offload_agent.context import load, load_quick_add
+from offload_agent.context import load
 
 ADMIN_DB = os.environ.get("DATABASE_URL")
 AGENT_DB = os.environ.get("AGENT_DATABASE_URL")
@@ -97,13 +97,3 @@ async def test_a_retried_turn_reads_what_landed_loose_without_its_name():
     assert ctx.looking_at is not None and ctx.looking_at.name == "not in a thread"
 
 
-async def test_a_quick_add_reads_its_thread_without_the_default_name():
-    seeded = await _seed()
-    agent = create_async_engine(_asyncpg(AGENT_DB))
-    async with agent.connect() as conn:
-        loaded = await load_quick_add(
-            conn, account_id=seeded["account"], content_id=seeded["content"]
-        )
-    await agent.dispose()
-    assert loaded is not None
-    assert loaded.thread_name == "not in a thread"

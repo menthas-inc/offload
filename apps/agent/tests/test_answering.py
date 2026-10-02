@@ -254,34 +254,6 @@ def test_the_turn_always_says_where_they_are_or_that_nobody_knows() -> None:
     assert "do not know what country" in block_with(unknown, "do not know what country")
 
 
-def test_a_typed_row_is_not_asked_about_a_country_it_has_no_field_for() -> None:
-    """The quick-add turn has no country and never needed one.
-
-    The block went in there first by a bad search-and-replace, which is an
-    `AttributeError` on every row somebody types straight into a thread: a
-    dataclass without the field raises rather than defaulting. Caught by looking
-    at where the block actually landed, not by a test, which is why there is one
-    now.
-    """
-    from offload_agent.context import QuickAddContext
-    from offload_agent.harness.plan import build_quick_add_blocks
-
-    blocks = build_quick_add_blocks(
-        QuickAddContext(
-            content_id="c1",
-            thread_id="t1",
-            thread_name="Lisbon",
-            typed="oat milk",
-            notes=[],
-            notes_from_members=[],
-            pieces=[],
-            today="Monday 15 September 2026",
-        )
-    )
-    assert blocks
-    assert not any("country" in b["text"].lower() for b in blocks)
-
-
 def test_find_events_says_whose_each_event_is() -> None:
     """027: a calendar shared with somebody else carries their day too. The
     read marks each event `yours` or not, and the description tells the model

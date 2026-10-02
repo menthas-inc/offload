@@ -758,14 +758,8 @@ type Outcome =
 
 interface JobContext {
   accountId: string;
-  /** Null for a row typed straight into a thread. There is no message, because
-   *  nobody said anything to offload: they added something to a list and asked
-   *  it to be read. Provenance is the person, so anything written under this
-   *  carries no `derived_from_message_id`, which is the truth. */
-  messageId: string | null;
-  /** The one thread a `thread.quick_add` job may touch. Null for a dump, which
-   *  chooses its own home. */
-  threadId: string | null;
+  /** The dump this turn is reading. */
+  messageId: string;
   /** Whether this turn has already read a connected app.
    *
    *  **The taint is per turn and there is no partial version of it.** 008's own
@@ -793,23 +787,17 @@ async function jobContext(jobId: string): Promise<JobContext | null> {
     .selectFrom("jobs")
     .select(["account_id", "kind", "payload"])
     .where("id", "=", jobId)
-    .where("kind", "in", ["dump.answer", "thread.quick_add"])
+    .where("kind", "=", "dump.answer")
     .executeTakeFirst();
 
   if (!job?.account_id) return null;
 
   const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as {
     messageId?: string;
-    threadId?: string;
     sawApps?: boolean;
   };
 
   const sawApps = payload.sawApps === true;
-
-  if (job.kind === "thread.quick_add") {
-    if (!payload.threadId) return null;
-    return { accountId: job.account_id, messageId: null, threadId: payload.threadId, sawApps, sawMail: false };
-  }
 
   if (!payload.messageId) return null;
   const message = await db
@@ -819,7 +807,7 @@ async function jobContext(jobId: string): Promise<JobContext | null> {
     .where("account_id", "=", job.account_id)
     .executeTakeFirst();
   const sawMail = message?.source === "mail";
-  return { accountId: job.account_id, messageId: payload.messageId, threadId: null, sawApps, sawMail };
+  return { accountId: job.account_id, messageId: payload.messageId, sawApps, sawMail };
 }
 
 /** Remember that this turn has read a connected app.
@@ -1066,7 +1054,7 @@ async function existing(
   /** 026. The message is a forwarded email; see `jobContext`. */
   sawMail: boolean,
   /** 019. The thread whose picks scope the calendar reads: the one on screen
-   *  when the dump was made, or the pinned one for a quick add. Null from
+   *  when the dump was made. Null from
    *  Today, where every approved calendar is in scope. */
   scopeThreadId: string | null,
 ): Promise<Outcome> {
@@ -1321,9 +1309,8 @@ async function existing(
       .select(["title", "occurs_at", "occurs_end_at", "source_ref", "derived_from_message_id", "rrule"])
       .where("id", "=", row.id)
       .executeTakeFirstOrThrow();
-    // And filed by this turn, or typed straight into the thread the quick add
-    // is pinned to: a question raised on a row from another turn would hang
-    // off a message it has nothing to do with.
+    // And filed by this turn: a question raised on a row from another turn
+    // would hang off a message it has nothing to do with.
     if (messageId ? detail.derived_from_message_id !== messageId : row.threadId !== scopeThreadId) {
       return { ok: false, error: "unknown_content" };
     }
@@ -1355,7 +1342,6 @@ async function existing(
     // Several, or none yet while the account has approved a writable calendar:
     // offload asks which, in the conversation, and the model says nothing.
     // The tap picks the calendar for the thread when the thread had none.
-    // A quick add has no conversation to ask in, so the row stays where it is.
     const offered = picks.length > 1 ? picks : await approvedWritable(accountId, trx);
     if (offered.length === 0) return { ok: true, noCalendar: true };
     if (!messageId) return { ok: true, noCalendar: true };
@@ -1655,37 +1641,7 @@ export async function toolRoutes(app: App): Promise<void> {
       const context = await jobContext(call.jobId);
       if (!context) return reply.code(404).send({ error: "unknown_job" as const });
 
-      const { accountId, messageId, threadId: pinned, sawApps, sawMail } = context;
-
-      // A quick-add job reads one thread and may only write to it.
-      //
-      // The person picked the thread by typing into it, so the model has no
-      // choice to make and must not be given one: without this, a row typed
-      // into To do could be moved somewhere else, or a new thread could be
-      // started, by a model reading text somebody else wrote into a shared
-      // thread. The narrow tool set is in the prompt; this is the enforcement,
-      // and the two are deliberately not the same thing.
-      if (pinned !== null) {
-        // An allow-list, not a deny-list. The deny-list named six tools and
-        // anything carrying a thread id, and let every tool carrying a content
-        // id through: `existing()` then resolved that id against everything
-        // the account can read, so text another member wrote into the shared
-        // thread could steer the model at a row in the person's private one.
-        // Found by the security review of 2026-09-22, M2.
-        const allowed =
-          call.tool === "add_content" || call.tool === "edit_content" || call.tool === "list_thread_content";
-        if (!allowed) return reply.send({ ok: false, error: "unknown_thread" as const });
-        if ("threadId" in call && call.threadId !== pinned) {
-          return reply.send({ ok: false, error: "unknown_thread" as const });
-        }
-        if (call.tool === "edit_content") {
-          // The row has to be in the pinned thread, not merely readable.
-          const target = await readableContent(accountId, call.contentId);
-          if (!target || target.threadId !== pinned) {
-            return reply.send({ ok: false, error: "unknown_content" as const });
-          }
-        }
-      }
+      const { accountId, messageId, sawApps, sawMail } = context;
 
       // A refusal from the access helpers is a refusal, not a crash.
       //
@@ -1712,23 +1668,11 @@ export async function toolRoutes(app: App): Promise<void> {
         // person can see and delete rather than a bill. Stated rather than
         // quietly true, because the acceptance criterion says "the number of
         // tool calls in a turn is bounded" and this bounds one of the two.
-        // A quick-add writes nothing derived from a message, so the same
-        // count would be zero forever and bound nothing. Its own bound is the
-        // rows already in the thread that are still filing, which is one on
-        // the way in and grows only if the model adds more.
-        const filed = messageId
-          ? await trx
-              .selectFrom("content")
-              .select(({ fn }) => fn.countAll<string>().as("n"))
-              .where("derived_from_message_id", "=", messageId)
-              .where("deleted_at", "is", null)
-              .executeTakeFirstOrThrow()
-          : await trx
-              .selectFrom("content")
-              .select(({ fn }) => fn.countAll<string>().as("n"))
-              .where("thread_id", "=", pinned)
-              .where("filing_at", "is not", null)
-              .where("deleted_at", "is", null)
+        const filed = await trx
+          .selectFrom("content")
+          .select(({ fn }) => fn.countAll<string>().as("n"))
+          .where("derived_from_message_id", "=", messageId)
+          .where("deleted_at", "is", null)
               .executeTakeFirstOrThrow();
 
         // 025. Labelling files nothing, so it is not held to the filing
@@ -1798,7 +1742,7 @@ export async function toolRoutes(app: App): Promise<void> {
         // the functions the thread page already uses, so the rule the screen
         // enforces and the rule the model gets are the same rule.
         if (call.tool !== "add_content") {
-          return existing(call, accountId, trx, messageId, sawApps, sawMail, pinned ?? (await lookingAt(messageId, trx)));
+          return existing(call, accountId, trx, messageId, sawApps, sawMail, await lookingAt(messageId, trx));
         }
 
         // add_content.
@@ -1878,8 +1822,6 @@ export async function toolRoutes(app: App): Promise<void> {
           .values({
             account_id: accountId,
             thread_id: thread.id,
-            // Null for a quick add: nobody said anything to offload, so there
-            // is no message this came from. Provenance is the person.
             derived_from_message_id: messageId,
             type: call.type,
             title: call.title,
@@ -1925,9 +1867,8 @@ export async function toolRoutes(app: App): Promise<void> {
         // 024. A row filed into a thread with other members reaches them,
         // coalesced over ten minutes and composed at send time.
         if (inserted) await noteAddition(thread.id, accountId, new Date(), trx);
-        // 028. A home in mind, offered on the row. Never on a quick add, whose
-        // thread the person picked.
-        if (inserted && pinned === null) {
+        // 028. A home in mind, offered on the row.
+        if (inserted) {
           await suggestAtFiling(trx, {
             accountId,
             target: { contentId: inserted.id },

@@ -141,7 +141,7 @@ describe("the tool (AC-24, AC-25)", () => {
     expect((await tool({ tool: "share_thread", jobId, toolCallId: "t4", threadId: lisbon, person: sam.id })).json().ok).toBe(true);
   });
 
-  it("refuses a stranger, a substring, the default thread, a thread they are not in, and a quick add", async () => {
+  it("refuses a stranger, a substring, the default thread and a thread they are not in", async () => {
     const jo = await person("Jo Martins");
     const sam = await person("Sam Ibekwe");
     const samira = await person("Samira Lee");
@@ -160,13 +160,6 @@ describe("the tool (AC-24, AC-25)", () => {
     await db.insertInto("thread_members").values({ thread_id: lisbon, account_id: ana.id, state: "accepted" }).execute();
     expect((await tool({ tool: "share_thread", jobId, toolCallId: "t5", threadId: lisbon, person: "Ana" })).json()).toEqual({ ok: false, error: "already_in" });
     expect(await db.selectFrom("pending_shares").select("id").execute()).toHaveLength(0);
-    // A quick add may not share.
-    const quick = await db
-      .insertInto("jobs")
-      .values({ kind: "thread.quick_add", account_id: jo.id, payload: JSON.stringify({ threadId: lisbon }), priority: 10, run_after: new Date(), state: "running", locked_at: new Date(), locked_by: "test", attempts: 1 })
-      .returning("id")
-      .executeTakeFirstOrThrow();
-    expect((await tool({ tool: "share_thread", jobId: quick.id, toolCallId: "t6", threadId: lisbon, person: "Samira" })).json()).toEqual({ ok: false, error: "unknown_thread" });
   });
 
   it("asks which, from the database, when two connections match, and the tap is the share", async () => {

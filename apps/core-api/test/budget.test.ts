@@ -82,11 +82,14 @@ describe("the daily model budget", () => {
     expect(theirs.messageId).toBeTruthy();
   });
 
-  it("refuses a row typed into a thread the same way", async () => {
+  // 032 AC-4. A typed row is not a model call, so the day's spend never stops
+  // somebody writing into their own list.
+  it("lets a row typed into a thread through, since no model reads it", async () => {
     const me = await account();
     const thread = (await db.selectFrom("threads").select("id").executeTakeFirstOrThrow()).id;
     await spend(me, DAILY_MODEL_BUDGET_MICROS);
-    await expect(quickAdd(me, thread, "brackets", "todo")).rejects.toBeInstanceOf(OverBudget);
+    const typed = await quickAdd(me, thread, "brackets", "todo");
+    expect(typed.kind).toBe("content");
   });
 
   it("lets the day's first dump through when the ledger is just under", async () => {

@@ -8,11 +8,15 @@
 // worth opening it for. Labels match the notification titles word for word.
 // A switch or an hour is drawn first and written second, and put back with
 // one clause when the write fails.
+//
+// 031: Dates, People and On your phones under headings, each hour indented
+// under its switch with the hour in a pill, and the head says when they come.
 
 import { useEffect, useState } from "react";
-import { Group } from "./SettingsRows";
+import { Group, Row } from "./SettingsRows";
 import { Switch } from "../Switch";
 import { currentMe, onMe, updateNotify, type Me } from "../../lib/use-me";
+import { notifySummary } from "../../lib/settings";
 import pane from "../../app/(shell)/shell.module.css";
 
 type Switches = "notifyDueToday" | "notifyComingTomorrow" | "notifyPeopleRequests" | "notifySharedActivity";
@@ -40,8 +44,9 @@ export function NotificationsPane() {
     if (!ok) setFailed(patch);
   }
 
-  const toggle = (key: Switches, title: string, note?: string, last?: boolean) => (
-    <label className={`${pane.settingsRow} ${last ? pane.settingsRowLast : ""}`}>
+  // `joined` for a switch with its hour under it: no hairline between them.
+  const toggle = (key: Switches, title: string, note?: string, last?: boolean, joined?: boolean) => (
+    <label className={`${pane.settingsRow} ${last ? pane.settingsRowLast : ""} ${joined ? pane.settingsRowJoined : ""}`}>
       <span className={pane.settingsText}>
         <span className={pane.settingsTitle}>{title}</span>
         {note ? <span className={pane.settingsNote}>{note}</span> : null}
@@ -53,7 +58,7 @@ export function NotificationsPane() {
   );
 
   const hour = (key: Hours, title: string, on: boolean, last?: boolean) => (
-    <div className={`${pane.settingsRow} ${last ? pane.settingsRowLast : ""} ${on ? "" : pane.settingsRowOff}`}>
+    <div className={`${pane.settingsRow} ${pane.settingsRowSub} ${last ? pane.settingsRowLast : ""} ${on ? "" : pane.settingsRowOff}`}>
       <span className={pane.settingsText}>
         <span className={pane.settingsTitle}>{title}</span>
       </span>
@@ -71,12 +76,21 @@ export function NotificationsPane() {
     </div>
   );
 
+  const summary = me
+    ? notifySummary({
+        notifyDueToday: value("notifyDueToday") === true,
+        notifyDueTodayAt: value("notifyDueTodayAt") ?? me.notifyDueTodayAt,
+        notifyComingTomorrow: value("notifyComingTomorrow") === true,
+        notifyComingTomorrowAt: value("notifyComingTomorrowAt") ?? me.notifyComingTomorrowAt,
+      })
+    : undefined;
+
   return (
     <>
       <div className={pane.paneHead}>
         <div style={{ minWidth: 0 }}>
           <h1 className={`${pane.paneTitle} ${pane.paneTitleBig}`}>Notifications</h1>
-          <p className={pane.paneSub}>offload sends these to your phone.</p>
+          {summary ? <p className={pane.paneSub}>{summary}</p> : null}
         </div>
       </div>
 
@@ -90,16 +104,27 @@ export function NotificationsPane() {
           </div>
         ) : null}
 
-        <Group label="Dates">
-          {toggle("notifyDueToday", "Due today", "One message each morning.")}
+        <Group label="Dates" icon="calendar" caption="What is due, said once a day rather than one by one.">
+          {toggle("notifyDueToday", "Due today", "One message each morning.", false, true)}
           {hour("notifyDueTodayAt", "In the morning at", value("notifyDueToday") === true)}
-          {toggle("notifyComingTomorrow", "Tomorrow", "One message each evening.")}
+          {toggle("notifyComingTomorrow", "Tomorrow", "One message each evening.", false, true)}
           {hour("notifyComingTomorrowAt", "In the evening at", value("notifyComingTomorrow") === true, true)}
         </Group>
 
-        <Group label="People">
+        <Group label="People" icon="users" caption="When someone reaches for you.">
           {toggle("notifyPeopleRequests", "Connection requests")}
           {toggle("notifySharedActivity", "Added to a shared thread", undefined, true)}
+        </Group>
+
+        {/* The web sends nothing itself: browser push is a permission, a
+            transport and a refusal state of its own, and none of the four
+            sends is worth opening it for. */}
+        <Group label="On your phones" icon="smartphone">
+          <Row
+            title="These go to your phones"
+            note="offload for web does not send notifications. Each phone has its own switch in its system settings."
+            last
+          />
         </Group>
       </div>
     </>

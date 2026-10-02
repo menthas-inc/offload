@@ -33,7 +33,7 @@ import { useColors } from "../../lib/colors";
 import { useWeekStart } from "../../lib/appearance";
 import { ContentRowView } from "./ContentRow";
 import { useConversation } from "./conversation-context";
-import { QUICK_ADD_CHARS, fetchThreadEvents, rangeOf } from "../../lib/threads";
+import { QUICK_ADD_CHARS, TYPED_ROW_PLACEHOLDER, fetchThreadEvents, rangeOf } from "../../lib/threads";
 import type { ContentRow, Note, ThreadEvent } from "../../lib/threads";
 
 /** 019. A calendar's event as an entry on the rail: kind `calendar`, never done,
@@ -440,7 +440,7 @@ export function Timeline({
                 day: "numeric",
                 month: "long",
               })}`,
-              placeholder: "Type it, offload will sort it out",
+              placeholder: TYPED_ROW_PLACEHOLDER,
               charLimit: QUICK_ADD_CHARS,
               day: selected,
             })

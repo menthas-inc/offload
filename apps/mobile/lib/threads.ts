@@ -10,6 +10,7 @@
 // deriving one. A client that decides who may delete something is a client that
 // can disagree with the server, and the server is the one that enforces it.
 
+import { typedAddress } from "./typed-row";
 import type { Label } from "./labels";
 import { send } from "./api";
 import type { Invitation } from "./people";
@@ -509,25 +510,16 @@ export async function restoreThread(id: string): Promise<boolean> {
 
 // ------------------------------------------------------------------- notes
 
-/** How long a row may claim to be filing before the spinner gives up.
- *  Mirrors the server's constant; nothing sweeps the column, and the row is a
- *  perfectly good row either way. */
-export const FILING_PATIENCE_MS = 2 * 60 * 1000;
-
 /** The most a section heading's + will take. */
 export const QUICK_ADD_CHARS = 500;
 
-/** Whether offload is still reading a row somebody typed in. */
-export function isFiling(filingAt: string | null): boolean {
-  if (!filingAt) return false;
-  return Date.now() - new Date(filingAt).getTime() < FILING_PATIENCE_MS;
-}
+export { TYPED_ROW_PLACEHOLDER, typedAddress } from "./typed-row";
 
 // ------------------------------------------------------- provisional rows
 //
 // A row drawn at the press, before the server has written it. It is the row
 // the server is about to write, with a made-up id: the same words, the same
-// type, the same spinner a typed-in row carries while offload reads it. The
+// type. The
 // screen swaps the id for the real one when the write lands, and takes the
 // row away with a word if it does not.
 
@@ -565,12 +557,13 @@ export function provisionalRow(
   day?: string,
 ): ContentRow {
   const now = new Date().toISOString();
+  const address = typedAddress(text);
   return {
     id: provisionalId(),
     type,
-    title: text,
+    title: address ?? text,
     body: null,
-    url: null,
+    url: address,
     imageUrl: null,
     createdAt: now,
     archivedAt: null,
@@ -595,7 +588,7 @@ export function provisionalRow(
     author: { ...author, isYou: true },
     canDelete: true,
     canMove: true,
-    filingAt: now,
+    filingAt: null,
   };
 }
 
@@ -624,18 +617,12 @@ export function provisionalNote(text: string, authorId: string | null): Note {
 }
 
 /** Type something straight into a thread, without going through the composer.
- *
- *  Resolves as soon as the row is written, which is before offload has read it:
- *  the words are saved first and tidied second, so waiting for the model here
- *  would give back the one thing this was built to avoid. */
+ *  The row is written exactly as typed, with the type the section gives it. */
 export async function quickAdd(
   threadId: string,
   text: string,
   section: string,
-  /** The rail's own day. Structured, because a day heading's + is a choice
-   *  about where the row goes rather than something said in the words. How
-   *  often it comes round is not: "weekly on Monday at 2pm" says that, and the
-   *  model reads it at the moment it writes the row. */
+  /** The rail's own day: the heading they pressed + on. */
   options?: { day?: string },
 ): Promise<{ id: string; kind: "content" | "note" } | null> {
   const { data } = await send<{ id: string; kind: "content" | "note" }>(

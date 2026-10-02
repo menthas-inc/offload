@@ -1,12 +1,12 @@
 // @vitest-environment happy-dom
 //
 // 026. Where the address lives on the web: the Mail block in Connected apps
-// (AC-18, AC-19).
+// (AC-18, AC-19). Since 031 it is the Mail card there.
 
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { MailBlock, MAIL_ADDRESS } from "../src/components/MailBlock";
+import { MailCard, MAIL_ADDRESS } from "../src/components/MailBlock";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -16,27 +16,27 @@ async function render(email: string, mailAvailable: boolean, onCopied = vi.fn())
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
-  await act(async () => root.render(<MailBlock email={email} mailAvailable={mailAvailable} onCopied={onCopied} />));
+  await act(async () => root.render(<MailCard email={email} mailAvailable={mailAvailable} onCopied={onCopied} />));
   return { host, onCopied };
 }
 
-describe("the Mail block (AC-18, AC-19)", () => {
-  it("shows the address, the sign-in address and how it works", async () => {
+describe("the Mail card (AC-18, AC-19, 031 AC-12)", () => {
+  it("shows the address, the sign-in address and that it is forwarded by hand", async () => {
     const { host } = await render("jo@hey.com", true);
     const text = host.textContent ?? "";
     expect(MAIL_ADDRESS).toBe("over@to.offload.club");
+    expect(text).toContain("Forward an email and it's filed like anything you dump");
+    expect(text).toContain("Ready");
     expect(text).toContain("over@to.offload.club");
-    expect(text).toContain("Forward an email from jo@hey.com and it's filed like anything else you dump.");
-    expect(text).toContain("Mail from any other address isn't accepted.");
-    expect(text).toContain("Automatic forwarding rules don't work yet.");
-    expect(text).not.toMatch(/[–—]/);
+    expect(text).toContain("Only mail from jo@hey.com is accepted. Forward by hand.");
+    expect(text).not.toMatch(/[\u2013\u2014]/);
   });
 
   it("copies the address and says so", async () => {
     const writeText = vi.fn(async () => undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     const { host, onCopied } = await render("jo@hey.com", true);
-    const copy = [...host.querySelectorAll("button")].find((b) => b.textContent === "Copy")!;
+    const copy = host.querySelector<HTMLButtonElement>('[aria-label="Copy the address"]')!;
     await act(async () => copy.click());
     expect(writeText).toHaveBeenCalledWith("over@to.offload.club");
     expect(onCopied).toHaveBeenCalled();
@@ -149,8 +149,9 @@ describe("when first run offers Mail (AC-20)", () => {
 describe("the Copy control (AC-18)", () => {
   it("names what it copies", async () => {
     const { host } = await render("jo@hey.com", true);
-    const copy = [...host.querySelectorAll("button")].find((b) => b.textContent === "Copy")!;
-    expect(copy.getAttribute("aria-label")).toBe("Copy the address");
+    // The whole row is the control; its name says what it copies.
+    const copy = host.querySelector<HTMLButtonElement>('[aria-label="Copy the address"]')!;
+    expect(copy.textContent).toContain("Copy");
   });
 });
 
