@@ -185,6 +185,7 @@ export function noteRow(note: Note): ContentRow {
     priorityPinned: false,
     labels: [],
     place: null,
+    location: null,
     placeId: note.placeId,
     seriesRef: null,
     allDay: note.allDay,

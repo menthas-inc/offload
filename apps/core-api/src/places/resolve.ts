@@ -189,11 +189,9 @@ export async function resolvePlace(
       .values({
         provider: "google",
         provider_place_id: place.providerPlaceId,
-        name: place.name,
-        formatted_address: place.formattedAddress,
         lat: place.lat,
         lng: place.lng,
-        resolved_at: sql`now()`,
+        coords_at: sql`now()`,
       })
       .onConflict((oc) => oc.columns(["provider", "provider_place_id"]).doNothing())
       .execute();

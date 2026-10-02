@@ -191,12 +191,14 @@ export interface ThreadEvent {
   involved?: boolean;
 }
 
+/** 030. Where a row is, and nothing Google named: its name and address are
+ *  neither kept nor sent. The coordinates are null once they age past thirty
+ *  days, until a map asks for them again. */
 export interface Place {
   id: string;
-  name: string;
-  address: string | null;
   lat: number | null;
   lng: number | null;
+  approximate: boolean;
 }
 
 /** The registrable domain of a URL, for a row that is a link.
@@ -254,6 +256,8 @@ export interface ContentRow {
   /** 025. The row's live labels, by id, in the thread's label order. */
   labels: string[];
   place: Place | null;
+  /** 030. An event's location, in offload's own words. */
+  location: string | null;
   /** The same place, as the id the shared widget rule takes. Derived in
    *  `fetchContent` rather than sent twice, so nothing above has to know that
    *  the server holds a key where this holds an object. */
@@ -596,6 +600,7 @@ export function provisionalRow(
     priorityPinned: false,
     labels: [],
     place: null,
+    location: null,
     placeId: null,
     seriesRef: null,
     allDay: day !== undefined,

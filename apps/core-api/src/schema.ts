@@ -534,6 +534,17 @@ export interface ContentTable {
   rrule: string | null;
   /** Null forever is a normal state: a location with a name and no pin. */
   place_id: string | null;
+  /** 030. What a row that is not a `location` is looked up by: an event's
+   *  location, or the place name a link's page gave. One line, at most 120, on
+   *  an event or a link only; the database refuses anything else. */
+  location: string | null;
+  /** 030. A link's page was read for a location, found or not; kept when the
+   *  point is cleared, so a cleared link is never read again. */
+  place_read_at: Timestamp | null;
+  /** 030. The place fields before a turn's edit changed them, for that turn's
+   *  Undo. Server-written only, and cleared once no Undo can use it. */
+  place_prior: unknown;
+  place_prior_at: Timestamp | null;
   source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
   source_ref: string | null;
   /** The model's tool_use block id. Idempotent within a turn, and deliberately
@@ -553,15 +564,20 @@ export interface ContentTable {
   purge_after: Timestamp | null;
 }
 
+/** 030. What Google's terms let offload keep about a place: its id,
+ *  indefinitely, and its coordinates and whether it is an area, for at most
+ *  thirty days. Never its name, address or categories. A `page` place's
+ *  coordinates are the page's and are kept. */
 export interface PlacesTable {
   id: Generated<string>;
-  provider: Generated<"google">;
+  provider: "google" | "page";
+  /** Google's place id, or a page place's coordinates rounded to five places. */
   provider_place_id: string;
-  name: string;
-  formatted_address: string | null;
   lat: number | null;
   lng: number | null;
-  resolved_at: Timestamp;
+  approximate: boolean | null;
+  /** When the coordinates were fetched; null with them. */
+  coords_at: Timestamp | null;
 }
 
 /** Search text to place id. The half of the cache that actually saves the
@@ -778,6 +794,10 @@ export interface ConnectorEventsTable {
   invited_me: boolean | null;
   created_at: Timestamp;
   updated_at: Timestamp;
+  /** 030. Where it is, once its location was looked up. */
+  place_id: Generated<string | null>;
+  /** 030. A keyed fingerprint of the location last looked up, never the text. */
+  located_key: Generated<string | null>;
   deleted_at: Timestamp | null;
 }
 

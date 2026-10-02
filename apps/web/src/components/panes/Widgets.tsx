@@ -401,24 +401,8 @@ function Row({
           </span>
         )
       }
-      meta={note ? <span className={styles.rowMeta}>{note}</span> : <Meta row={row} />}
+      meta={note ? <span className={styles.rowMeta}>{note}</span> : null}
     />
   );
 }
 
-/** One line under a title, built from whatever the row actually has.
- *
- *  Every date label is derived from the date rather than written down, which is
- *  the kit's own rule and the reason a weekday can never disagree with the
- *  calendar. */
-function Meta({ row }: { row: ContentRow }) {
-  const parts: string[] = [];
-
-  // 023. The date and the reminder are the chip's and the bell's now, on the
-  // title line; saying them here again would be two marks for one fact.
-  if (row.place?.address) parts.push(row.place.address);
-
-  // 2026-09-29. No details line: offload is for short things.
-  if (parts.length === 0) return null;
-  return <span className={styles.rowMeta}>{parts.join(" · ")}</span>;
-}

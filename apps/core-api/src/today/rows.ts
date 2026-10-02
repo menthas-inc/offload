@@ -52,10 +52,10 @@ export function agendaQuery(accountId: string) {
           and am.account_id = content.account_id
           and am.state = 'accepted'
       )`.as("authorIsMember"),
-      sql<string | null>`null`.as("placeName"),
-      sql<string | null>`null`.as("placeAddress"),
+      sql<string | null>`null`.as("location"),
       sql<number | null>`null`.as("placeLat"),
       sql<number | null>`null`.as("placeLng"),
+      sql<boolean | null>`null`.as("placeApproximate"),
     ])
     .where("content.viewer_account_id", "=", accountId)
     .where("content.deleted_at", "is", null)

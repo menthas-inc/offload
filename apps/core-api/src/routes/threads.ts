@@ -316,12 +316,13 @@ export const contentRow = z.object({
   place: z
     .object({
       id: z.string(),
-      name: z.string(),
-      address: z.string().nullable(),
       lat: z.number().nullable(),
       lng: z.number().nullable(),
+      approximate: z.boolean(),
     })
     .nullable(),
+  /** 030. An event's location, in offload's own words. */
+  location: z.string().nullable(),
   author: z.object({
     /** Null once they deleted their account. Their content stays in the
      *  threads they shared; the name comes off it. */
@@ -464,10 +465,11 @@ export interface RawRow {
    *  `unknown` because that is what Kysely gives a jsonb column, and narrowing
    *  it at the boundary would be claiming a shape nothing validates. */
   attrs: unknown;
-  placeName: string | null;
-  placeAddress: string | null;
+  /** 030. An event's location; a link's is a lookup key and never sent. */
+  location: string | null;
   placeLat: number | null;
   placeLng: number | null;
+  placeApproximate: boolean | null;
 }
 
 /** Which repeating series an occurrence belongs to, or null.
@@ -532,15 +534,20 @@ export function toRow(row: RawRow, viewerId: string) {
     // rest of what a calendar sync wrote.
     seriesRef: seriesRefOf(row.attrs),
     allDay: allDayOf(row.attrs),
+    // 030. Where it is and whether it is an area, and nothing Google named:
+    // its name and address are neither kept nor sent. The coordinates are null
+    // once they age past thirty days, until a map asks for them again.
     place: row.place_id
       ? {
           id: row.place_id,
-          name: row.placeName ?? "",
-          address: row.placeAddress,
           lat: row.placeLat,
           lng: row.placeLng,
+          approximate: row.placeApproximate === true,
         }
       : null,
+    // An event's own words for where it is. A link's location is the name its
+    // page gave, a lookup key, and is not shown.
+    location: row.type === "event" ? row.location : null,
     author: {
       accountId: row.account_id,
       displayName: row.authorName ?? "Someone",
@@ -1722,10 +1729,10 @@ export async function threadRoutes(app: App): Promise<void> {
                 and am.account_id = content.account_id
                 and am.state = 'accepted'
             )`.as("authorIsMember"),
-            "places.name as placeName",
-            "places.formatted_address as placeAddress",
+            "content.location as location",
             "places.lat as placeLat",
             "places.lng as placeLng",
+            "places.approximate as placeApproximate",
           ])
           .where("content.thread_id", "=", id)
           .where("content.deleted_at", "is", null)
@@ -1830,10 +1837,10 @@ export async function threadRoutes(app: App): Promise<void> {
                 and am.account_id = content.account_id
                 and am.state = 'accepted'
             )`.as("authorIsMember"),
-            "places.name as placeName",
-            "places.formatted_address as placeAddress",
+            "content.location as location",
             "places.lat as placeLat",
             "places.lng as placeLng",
+            "places.approximate as placeApproximate",
           ])
           .where("content.id", "=", request.params.id)
           .executeTakeFirstOrThrow();
@@ -2547,10 +2554,10 @@ async function rowById(contentId: string, viewerId: string) {
           and am.account_id = content.account_id
           and am.state = 'accepted'
       )`.as("authorIsMember"),
-      "places.name as placeName",
-      "places.formatted_address as placeAddress",
+      "content.location as location",
       "places.lat as placeLat",
       "places.lng as placeLng",
+      "places.approximate as placeApproximate",
     ])
     .where("content.id", "=", contentId)
     .executeTakeFirstOrThrow();

@@ -261,8 +261,8 @@ describe("the thread read does not grow with what a thread holds (AC-9)", () => 
     const place = await db
       .insertInto("places")
       .values({
-        provider: "google", provider_place_id: `p-${uuidv7()}`, name: "Time Out Market",
-        lat: 38.7, lng: -9.1,
+        provider: "google", provider_place_id: `p-${uuidv7()}`,
+        lat: 38.7, lng: -9.1, coords_at: new Date(),
       })
       .returning("id").executeTakeFirstOrThrow();
 

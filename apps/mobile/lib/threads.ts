@@ -144,12 +144,14 @@ export interface ThreadEvent {
   involved?: boolean;
 }
 
+/** 030. Where a row is, and nothing Google named: its name and address are
+ *  neither kept nor sent. The coordinates are null once they age past thirty
+ *  days, until a map asks for them again. */
 export interface Place {
   id: string;
-  name: string;
-  address: string | null;
   lat: number | null;
   lng: number | null;
+  approximate: boolean;
 }
 
 /** Satisfies `Sortable` so the shared widget rule takes it unchanged. */
@@ -217,6 +219,8 @@ export interface ContentRow extends Sortable {
   /** 025. The row's live labels, by id, in the thread's label order. */
   labels: string[];
   place: Place | null;
+  /** 030. An event's location, in offload's own words. */
+  location: string | null;
   placeId: string | null;
   /** The repeating series this occurrence belongs to, or null for a one off.
    *  A timeline collapses a series to one entry; a calendar draws every one. */
@@ -543,6 +547,7 @@ export function provisionalRow(
     priorityPinned: false,
     labels: [],
     place: null,
+    location: null,
     placeId: null,
     seriesRef: null,
     allDay: day !== undefined,
