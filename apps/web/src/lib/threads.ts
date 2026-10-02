@@ -174,8 +174,9 @@ export interface ThreadCalendars {
   others: Array<{ displayName: string; count: number }>;
 }
 
-/** 019. An event on one of the thread's calendars, for the rail. A title and
- *  a time: never the guests, never the place. */
+/** 019. An event on one of the thread's calendars, for the rail. A title, a
+ *  time and, while the map is on, where it is (030): never the guests, their
+ *  answers or the description. */
 export interface ThreadEvent {
   id: string;
   sourceRef: string;
@@ -189,6 +190,9 @@ export interface ThreadEvent {
   untrusted: boolean;
   /** 027. False when the viewer neither made it nor was invited to it. */
   involved?: boolean;
+  /** 030. Where it is, in the calendar's words, and its point. */
+  location: string | null;
+  place: { id: string; lat: number | null; lng: number | null; approximate: boolean } | null;
 }
 
 /** 030. Where a row is, and nothing Google named: its name and address are

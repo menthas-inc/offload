@@ -28,7 +28,7 @@ import type { Executor } from "../threads/access.js";
 import { env } from "../env.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { details, kindOf, searchId } from "./google.js";
-import { placeQuery, queryKey } from "./query.js";
+import { calendarKey, placeQuery, queryKey } from "./query.js";
 
 export type ResolveOutcome = "hit" | "resolved" | "not_found" | "provider_error" | "skipped";
 
@@ -291,4 +291,82 @@ export async function mayReadForPlace(accountId: string, trx: Executor = db): Pr
   if (!mapsConfig().on) return false;
   const row = await trx.selectFrom("accounts").select("web_links_enabled").where("id", "=", accountId).executeTakeFirst();
   return row?.web_links_enabled === true;
+}
+
+/** A connected calendar's event, put on the map (030).
+ *
+ *  The location text was written by whoever made the event, so it is a query
+ *  and nothing else: it goes to Google only through the filter and **never
+ *  enters the query cache**. The event keeps a keyed fingerprint of the text
+ *  it last looked up, so an unchanged location is not asked about again
+ *  without a second copy of somebody else's words, and the fingerprint goes
+ *  with the calendar copy. Text the filter refuses is fingerprinted too, so it
+ *  is not reconsidered on every sync. */
+export async function resolveEventPlace(
+  eventId: string,
+  geocode: Geocoder = googleGeocoder,
+  config: MapsConfig = mapsConfig(),
+): Promise<ResolveOutcome> {
+  if (!config.on) return "skipped";
+  const event = await db
+    .selectFrom("connector_events")
+    .select(["id", "location", "located_key"])
+    .where("id", "=", eventId)
+    .where("deleted_at", "is", null)
+    .executeTakeFirst();
+  if (!event?.location) return "skipped";
+  const key = calendarKey(event.location, config.pepper);
+  if (event.located_key === key) return "skipped";
+
+  const query = placeQuery(event.location);
+  if (query === null) {
+    await settleEvent(event.id, key, null);
+    return "skipped";
+  }
+  let found: Found | null;
+  try {
+    found = await geocode(query, config.key);
+  } catch {
+    return "provider_error";
+  }
+  await settleEvent(event.id, key, found ? await keep(found) : null);
+  return found ? "resolved" : "not_found";
+}
+
+async function settleEvent(eventId: string, key: string, placeId: string | null): Promise<void> {
+  await db.updateTable("connector_events").set({ located_key: key, place_id: placeId }).where("id", "=", eventId).execute();
+}
+
+/** How many of a calendar's events one run looks up; the rest wait for the
+ *  next sync, fifteen minutes on, so a newly picked work calendar fills in
+ *  within the hour rather than in one burst. */
+export const LOCATE_BATCH = 200;
+
+/** A calendar's events from yesterday to sixty days ahead whose location has
+ *  not been looked up as it now reads, oldest first, a batch at a time. */
+export async function locateCalendar(
+  calendarId: string,
+  geocode: Geocoder = googleGeocoder,
+  config: MapsConfig = mapsConfig(),
+): Promise<{ looked: number; waiting: number }> {
+  if (!config.on) return { looked: 0, waiting: 0 };
+  const candidates = await db
+    .selectFrom("connector_events")
+    .select(["id", "location", "located_key"])
+    .where("calendar_id", "=", calendarId)
+    .where("deleted_at", "is", null)
+    .where("location", "is not", null)
+    .where(sql<boolean>`coalesce(occurs_end_at, occurs_at) >= now() - interval '1 day'`)
+    .where("occurs_at", "<=", sql<Date>`now() + interval '60 days'`)
+    .orderBy("occurs_at")
+    .execute();
+  const due = candidates.filter((e) => e.located_key !== calendarKey(e.location ?? "", config.pepper));
+  for (const event of due.slice(0, LOCATE_BATCH)) await resolveEventPlace(event.id, geocode, config);
+  return { looked: Math.min(due.length, LOCATE_BATCH), waiting: Math.max(0, due.length - LOCATE_BATCH) };
+}
+
+/** Book a calendar's lookups, while the map is on. */
+export async function bookLocate(calendarId: string, idempotencyKey: string): Promise<void> {
+  if (!mapsConfig().on) return;
+  await enqueue({ kind: "event.locate", payload: { calendarId }, priority: PRIORITY.background, idempotencyKey });
 }

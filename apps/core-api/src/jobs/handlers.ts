@@ -8,7 +8,7 @@ import { sql, type Transaction } from "kysely";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
 import { NOTE_PROMPT_BUDGET, deleteNotesForThread } from "../threads/notes.js";
-import { refreshPlace, resolvePlace } from "../places/resolve.js";
+import { locateCalendar, refreshPlace, resolvePlace } from "../places/resolve.js";
 import { agePlaces } from "../places/age.js";
 import { locateBlob, reverseGeocodingOn } from "../places/reverse.js";
 import { objectKey, objectStore, RENDITIONS } from "../blobs/store.js";
@@ -822,6 +822,15 @@ const placesAge: Handler = async () => {
   console.log(JSON.stringify({ level: "info", msg: "places aged", ...swept }));
 };
 
+/** 030. A calendar's event locations looked up, a batch at a time. Ids and
+ *  counts in the log, never a location. */
+const eventLocate: Handler = async (payload) => {
+  const calendarId = String(payload["calendarId"] ?? "");
+  if (!calendarId) throw new Error("event.locate job has no calendarId");
+  const done = await locateCalendar(calendarId);
+  console.log(JSON.stringify({ level: "info", msg: "calendar located", calendar_id: calendarId, ...done }));
+};
+
 export const handlers: Record<string, Handler> = {
   "account.daily": accountDaily,
   "account.daily.run": accountDailyRun,
@@ -835,6 +844,7 @@ export const handlers: Record<string, Handler> = {
   "location.resolve": locationResolve,
   "places.refresh": placesRefresh,
   "places.age": placesAge,
+  "event.locate": eventLocate,
   "blob.purge": blobPurge,
   "blob.locate": blobLocate,
   "blob.daily": blobDaily,

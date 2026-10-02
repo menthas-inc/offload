@@ -1601,7 +1601,8 @@ export async function threadRoutes(app: App): Promise<void> {
   );
 
   // The events on the thread's calendars inside a window, for the rail. A
-  // title and a time, whoever asks: never the guests, never the place.
+  // title, a time and, while the map is on, where it is (030), whoever asks:
+  // never the guests, their answers or the description.
   app.get(
     "/v1/threads/:id/events",
     {
@@ -1626,6 +1627,10 @@ export async function threadRoutes(app: App): Promise<void> {
                 allDay: z.boolean(),
                 untrusted: z.boolean(),
                 involved: z.boolean(),
+                location: z.string().nullable(),
+                place: z
+                  .object({ id: z.string(), lat: z.number().nullable(), lng: z.number().nullable(), approximate: z.boolean() })
+                  .nullable(),
               })
             ),
           }),
