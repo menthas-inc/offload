@@ -161,7 +161,7 @@ describe("what offload draws over the map (AC-15)", () => {
     expect(host.querySelectorAll("[data-circle]")).toHaveLength(1);
   });
 
-  it("draws points at 20px, 28px when picked", async () => {
+  it("draws points at 20, and 28 when picked", async () => {
     const { readFileSync } = await import("node:fs");
     const css = readFileSync(`${process.cwd()}/src/components/map/map.module.css`, "utf8");
     expect(css).toMatch(/\.point \{[^}]*width: 20px/);
