@@ -760,6 +760,8 @@ ARGUMENT_REFUSALS = frozenset(
         "person_deleted",
         "unknown_photo",
         "bad_place_name",
+        # 030. A location on a row that is not an event.
+        "location_not_here",
         "unknown_content",
         "not_yours",
         "bad_date",

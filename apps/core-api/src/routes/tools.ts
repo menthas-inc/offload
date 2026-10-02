@@ -71,6 +71,8 @@ import { suggestAtFiling } from "../loose/suggestions.js";
 import { proposeShare } from "../threads/proposals.js";
 import type { WriteAction } from "../connectors/write.js";
 import { linkPhoto, photoForRow, withTaken } from "../blobs/rows.js";
+import { placeQuery } from "../places/query.js";
+import { attachPagePoint, mayReadForPlace } from "../places/resolve.js";
 
 /** The only string that ever leaves for a geocoder.
  *
@@ -210,6 +212,27 @@ const body = z.discriminatedUnion("tool", [
     /** 0 to 100, higher first. Orders content inside a thread; it is not
      *  `needs_attention`, which decides what leaves one. */
     priority: z.number().int().min(0).max(100).default(50),
+    /** 030. Where an event happens: the name of a public place, from the
+     *  person's words or the reader's `place`. Checked below with the filter
+     *  that stands in front of Google, and refused by name, so the model hears
+     *  that a street address or a person's home is not a venue. */
+    location: z.string().max(400).nullish(),
+    /** 030. What the worker read from a link's own page, attached by the
+     *  worker and never in the model's schema: the model has no field it could
+     *  set here. Honoured only on a link, only while the map is on, and only
+     *  when the link's author has *Read links I paste* on, which is read here
+     *  rather than taken on the worker's word. */
+    worker: z
+      .strictObject({
+        pageRead: z.literal(true),
+        pageLocation: z
+          .union([
+            z.strictObject({ lat: z.number(), lng: z.number() }),
+            z.strictObject({ name: z.string().min(1).max(400) }),
+          ])
+          .nullish(),
+      })
+      .nullish(),
   }),
   z.strictObject({
     tool: z.literal("list_thread_content"),
@@ -586,6 +609,8 @@ const result = z.union([
       // this turn already filed, or an index on a row that is not a picture.
       "unknown_photo",
       "bad_place_name",
+      // 030. A location on a row that cannot have one.
+      "location_not_here",
       "unknown_content",
       "not_yours",
       "bad_date",
@@ -702,6 +727,7 @@ type Outcome =
         | "person_deleted"
         | "unknown_photo"
         | "bad_place_name"
+        | "location_not_here"
         | "unknown_content"
         | "not_yours"
         | "unknown_calendar"
@@ -1729,6 +1755,25 @@ export async function toolRoutes(app: App): Promise<void> {
           return { ok: false, error: "bad_place_name" };
         }
 
+        // 030. An event's location goes to Google, so it passes the filter
+        // here or is refused by name; a location on anything else is not
+        // somewhere a row can be.
+        let location: string | null = null;
+        if (call.location != null) {
+          if (call.type !== "event") return { ok: false, error: "location_not_here" };
+          location = placeQuery(call.location);
+          if (location === null) return { ok: false, error: "bad_place_name" };
+        }
+        if (call.worker != null && call.type !== "link") return { ok: false, error: "location_not_here" };
+        // The page's read counts only while the map is on and the author's
+        // switch is, read here: the worker is not trusted for an access
+        // decision (routes/internal.ts).
+        const page = call.worker != null && (await mayReadForPlace(accountId, trx)) ? call.worker : null;
+        const pageName =
+          page?.pageLocation && "name" in page.pageLocation && !/[\r\n]/.test(page.pageLocation.name)
+            ? page.pageLocation.name.trim().slice(0, 120) || null
+            : null;
+
         const when = parseDates(call, await zoneOf(accountId, trx));
         if (when === null) return { ok: false, error: "bad_date" };
         // A rule anchors on the type's column: an event repeats when it
@@ -1778,6 +1823,9 @@ export async function toolRoutes(app: App): Promise<void> {
             rrule: contentRule,
             is_reminder: call.isReminder,
             priority: call.priority,
+            // 030. An event's place name, or the name a link's page gave.
+            location: location ?? pageName,
+            place_read_at: page ? sql`now()` : null,
             ...(allDayAttrs(call) ? { attrs: allDayAttrs(call) } : {}),
             updated_at: sql`now()`,
           })
@@ -1835,7 +1883,12 @@ export async function toolRoutes(app: App): Promise<void> {
         // happens in a job. Enqueued in the same transaction as the row, so a
         // rolled back filing cannot leave a job pointing at nothing and a
         // committed one cannot be silently un-geocoded.
-        if (call.type === "location") {
+        // 030. A page's own coordinates are the page's: kept as they are, with
+        // nothing sent to Google.
+        if (page?.pageLocation && "lat" in page.pageLocation) {
+          await attachPagePoint(inserted.id, page.pageLocation.lat, page.pageLocation.lng, trx);
+        }
+        if (call.type === "location" || location !== null || pageName !== null) {
           await enqueue({
             kind: "location.resolve",
             accountId,

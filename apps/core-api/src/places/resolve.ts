@@ -24,6 +24,7 @@
 
 import { sql } from "kysely";
 import { db } from "../db.js";
+import type { Executor } from "../threads/access.js";
 import { env } from "../env.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { details, kindOf, searchId } from "./google.js";
@@ -215,18 +216,23 @@ export async function bookRefresh(placeId: string): Promise<void> {
  *  Google, never aged, keyed on its coordinates rounded to five places (about
  *  a metre) so two links to one spot share a row. Refused unless it is a real
  *  place on Earth; `0,0` is the commonest default a page publishes by mistake. */
-export async function attachPagePoint(contentId: string, lat: number, lng: number): Promise<boolean> {
+export async function attachPagePoint(
+  contentId: string,
+  lat: number,
+  lng: number,
+  trx: Executor = db,
+): Promise<boolean> {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
   if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
   if (lat === 0 && lng === 0) return false;
   const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
-  const kept = await db
+  const kept = await trx
     .insertInto("places")
     .values({ provider: "page", provider_place_id: key, lat, lng, approximate: false, coords_at: sql`now()` })
     .onConflict((oc) => oc.columns(["provider", "provider_place_id"]).doUpdateSet({ provider_place_id: key }))
     .returning("id")
     .executeTakeFirstOrThrow();
-  const result = await db
+  const result = await trx
     .updateTable("content")
     .set({ place_id: kept.id, updated_at: sql`now()` })
     .where("id", "=", contentId)
@@ -276,4 +282,13 @@ export async function refreshPlace(
     .where("id", "=", place.id)
     .execute();
   return "refreshed";
+}
+
+/** Whether a link's author may have its page read for a place: the map is on
+ *  and their *Read links I paste* is. Read at the moment of writing, never
+ *  taken on the worker's word. */
+export async function mayReadForPlace(accountId: string, trx: Executor = db): Promise<boolean> {
+  if (!mapsConfig().on) return false;
+  const row = await trx.selectFrom("accounts").select("web_links_enabled").where("id", "=", accountId).executeTakeFirst();
+  return row?.web_links_enabled === true;
 }
