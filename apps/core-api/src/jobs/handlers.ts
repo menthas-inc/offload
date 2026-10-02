@@ -544,8 +544,10 @@ const accountDaily: Handler = async () => {
           .where((inner) =>
             inner.or([
               inner("threads.last_activity_at", ">=", since),
-              // 032. A dated note of theirs that passed its date in the day is
-              // the one change no activity causes, and is worth a pass.
+              // 032. A dated note of theirs that passed its date since their
+              // last pass there is the one change no activity causes. Since the
+              // last pass, as the run itself reads it, so a night this fan-out
+              // missed loses nothing either.
               inner.exists(
                 inner
                   .selectFrom("notes")
@@ -555,7 +557,11 @@ const accountDaily: Handler = async () => {
                   .where("notes.scope", "=", "thread")
                   .where("notes.deleted_at", "is", null)
                   .where("notes.superseded_at", "is", null)
-                  .where(sql<boolean>`coalesce(notes.occurs_end_at, notes.occurs_at, notes.due_at) between ${since} and now()`)
+                  .where(
+                    sql<boolean>`coalesce(notes.occurs_end_at, notes.occurs_at, notes.due_at)
+                      between greatest(coalesce(thread_members.nightly_at, now() - interval '25 hours'), now() - interval '7 days')
+                      and now()`,
+                  )
               ),
               // **Over the budget is its own reason to run.** Activity alone
               // was the gate until the review found what it misses: a thread

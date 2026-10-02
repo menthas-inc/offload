@@ -66,6 +66,10 @@ export const loggerOptions: NonNullable<FastifyServerOptions["logger"]> = {
   hooks: {
     logMethod(args, method) {
       const [first, second] = args as unknown[];
+      // A bare error logged on its own: pino would make its message the line's.
+      if (fromDatabase(first)) {
+        return method.apply(this, [{ err: first }, `database error ${first.code}`] as never);
+      }
       const error = (first as { err?: unknown; error?: unknown } | null)?.err ?? (first as { error?: unknown } | null)?.error;
       if (fromDatabase(error) && typeof second === "string" && second.includes(error.message)) {
         return method.apply(this, [first, `database error ${error.code}`] as never);

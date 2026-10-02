@@ -50,6 +50,7 @@ describe("OFF-1 a database error reaches the log without the row", () => {
     lines.length = 0;
     app.log.error({ err: refusedRow() }, "write failed");
     app.log.error({ error: refusedRow() }, "write failed");
+    app.log.error(refusedRow());
     const out = lines.join("\n");
     expect(out).not.toContain("SENTINEL");
     expect(out).toContain("22P02");

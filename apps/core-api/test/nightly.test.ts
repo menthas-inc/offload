@@ -480,6 +480,17 @@ describe("AC-7 the daily run books one pass per thread and member", () => {
     expect(runs.map((r) => r.account_id)).toContain(ana);
   });
 
+  it("wakes it after a night the fan-out itself missed", async () => {
+    const ana = await account("Ana");
+    const flat = await thread(ana, "Flat admin");
+    await db.updateTable("threads").set({ last_activity_at: sql<Date>`now() - interval '10 days'` }).where("id", "=", flat).execute();
+    await noted(ana, flat, "Boiler service on Thursday", 200, new Date(Date.now() - 30 * 60 * 60 * 1000));
+    await lastPass(ana, flat, 50);
+    await handlers["account.daily"]!({}, { mailer: new MemoryMailer() }, undefined);
+    const runs = await db.selectFrom("jobs").select("account_id").where("kind", "=", "account.daily.run").execute();
+    expect(runs.map((r) => r.account_id)).toContain(ana);
+  });
+
   it("books the default thread with proposals when its set has two", async () => {
     const { me, loose } = await owner();
     await row(me, loose, "Oak brackets");
