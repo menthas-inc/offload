@@ -6,7 +6,7 @@
 // refuses as much as by what it lets through.
 
 import { describe, expect, it } from "vitest";
-import { placeQuery, queryKey } from "../src/places/query.js";
+import { calendarKey, placeQuery, queryKey } from "../src/places/query.js";
 
 describe("placeQuery", () => {
   it("lets a public place's name through, tidied", () => {
@@ -57,12 +57,51 @@ describe("placeQuery", () => {
   });
 });
 
+describe("placeQuery, hardened (T1.2b)", () => {
+  it("refuses a digit in any script, after normalising", () => {
+    expect(placeQuery("Terminal \uff12")).toBeNull(); // full-width 2
+    expect(placeQuery("Terminal \u0662")).toBeNull(); // Arabic-Indic 2
+  });
+
+  it("refuses a slash and a bare host with no scheme", () => {
+    expect(placeQuery("around.co/room-abc")).toBeNull();
+    expect(placeQuery("around.co")).toBeNull();
+    expect(placeQuery("Rua A/B")).toBeNull();
+  });
+
+  it("refuses the other shapes a possessive takes", () => {
+    expect(placeQuery("the Silvas' place")).toBeNull();
+    expect(placeQuery("the Silvas’")).toBeNull();
+    expect(placeQuery("Anaʼs")).toBeNull();
+    expect(placeQuery("casa da Ana")).toBeNull();
+    expect(placeQuery("Casa do João")).toBeNull();
+    expect(placeQuery("chez Ana")).toBeNull();
+    expect(placeQuery("bei Ana")).toBeNull();
+  });
+
+  it("refuses a string that starts with a street word, and only then", () => {
+    expect(placeQuery("Rua da Saudade")).toBeNull();
+    expect(placeQuery("Avenida da Liberdade")).toBeNull();
+    expect(placeQuery("Av. da Liberdade")).toBeNull();
+    expect(placeQuery("Travessa do Fala-Só")).toBeNull();
+    expect(placeQuery("Street food market")).toBeNull();
+    expect(placeQuery("Baker Street")).toBe("Baker Street");
+    expect(placeQuery("Praça do Comércio")).toBeNull();
+    expect(placeQuery("Wayfarer café")).toBe("Wayfarer café");
+  });
+});
+
 describe("queryKey", () => {
   it("is the same for case and spacing, and differs by pepper", () => {
     const a = queryKey("Time Out Market", "pepper-one");
     expect(queryKey("time out market", "pepper-one")).toBe(a);
     expect(queryKey("Time Out Market", "pepper-two")).not.toBe(a);
     expect(a).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("never equals a calendar fingerprint of the same words", () => {
+    expect(calendarKey("Time Out Market", "pepper-one")).not.toBe(queryKey("Time Out Market", "pepper-one"));
+    expect(calendarKey("time out  market", "pepper-one")).toBe(calendarKey("Time Out Market", "pepper-one"));
   });
 
   it("refuses to make a key with no pepper", () => {

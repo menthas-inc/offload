@@ -23,25 +23,41 @@ export const PLACE_QUERY_CHARS = 120;
  *  *Zoomarine* is a place and *Zoom* is not. */
 const NO_PLACE = /\b(zoom|google meet|meet|teams|webex|whereby|jitsi|online|phone|call|tbc|tbd)\b/i;
 
-/** A possessive at the end of a word: somebody's home, by name. Either
- *  apostrophe, since phones type the curly one. */
-const POSSESSIVE = /\p{L}['’]s\b/u;
+/** Somebody's home, by name. A possessive in any apostrophe a phone types
+ *  (straight, curly, modifier), the plural form (*the Silvas'*), and the
+ *  shapes this product's languages use instead: *casa da Ana*, *chez Ana*,
+ *  *bei Ana*. */
+const POSSESSIVE = /\p{L}['’ʼ]s\b|\p{L}s['’ʼ](?=\s|$)|\bcasa d[aeo]s?\s|\bchez\s|\bbei\s/iu;
+
+/** A street with no number is still an address. Refused only when the street
+ *  word leads, as addresses are written, so *Baker Street* the name passes and
+ *  *Rua da Saudade* does not. */
+const STREET = /^(rua|r\.|avenida|av\.?|travessa|tv\.?|calçada|largo|praça|estrada|street|st\.|road|rd\.?|lane|ln\.?|drive|dr\.?|boulevard|blvd\.?|way)(\s|$)/iu;
+
+/** A web address with no scheme and no `www.`: a dot, then two to six letters
+ *  ending a word (*around.co*). */
+const BARE_HOST = /\.\p{L}{2,6}\b/u;
 
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g;
 
 /** The query to send, or null when nothing may be sent.
  *
- *  Tidied first (NFC, control characters out, whitespace collapsed), then
- *  refused for: a line break, an empty or overlong string, any digit, an `@`,
- *  a web address, a possessive, or a call or no-place word. */
+ *  Tidied first (NFKC, control characters out, whitespace collapsed), then
+ *  refused for: a line break, an empty or overlong string, any digit, an `@`
+ *  or a `/`, a web address with or without `www.`, a possessive, a leading
+ *  street word, or a call or no-place word. **A filter, not a guarantee**: a
+ *  bare person's name with none of those marks passes, and the privacy page
+ *  says what this does rather than what it hopes to catch. */
 export function placeQuery(raw: string): string | null {
   if (/[\r\n]/.test(raw)) return null;
-  const q = raw.normalize("NFC").replace(CONTROL, "").replace(/\s+/g, " ").trim();
+  // NFKC, so a full-width or compatibility digit is a digit.
+  const q = raw.normalize("NFKC").replace(CONTROL, "").replace(/\s+/g, " ").trim();
   if (q.length === 0 || q.length > PLACE_QUERY_CHARS) return null;
-  if (/\p{Nd}/u.test(q)) return null;
-  if (q.includes("@")) return null;
-  if (q.includes("://") || /^www\./i.test(q)) return null;
+  if (/\p{N}/u.test(q)) return null;
+  if (q.includes("@") || q.includes("/")) return null;
+  if (/^www\./i.test(q) || BARE_HOST.test(q)) return null;
   if (POSSESSIVE.test(q)) return null;
+  if (STREET.test(q)) return null;
   if (NO_PLACE.test(q)) return null;
   return q;
 }
@@ -51,7 +67,19 @@ export function placeQuery(raw: string): string | null {
  *  first, so two spellings of one phrase are one entry. The pepper lives in
  *  the environment, never in the database. */
 export function queryKey(q: string, pepper: string): string {
+  return keyed("lookup", q, pepper);
+}
+
+/** A calendar event's fingerprint of the location it last looked up, so an
+ *  unchanged location is not looked up twice without keeping a second copy of
+ *  somebody else's words. Its own domain, so it can never be joined to the
+ *  query cache's key. */
+export function calendarKey(text: string, pepper: string): string {
+  return keyed("calendar", text, pepper);
+}
+
+function keyed(domain: string, text: string, pepper: string): string {
   if (!pepper) throw new Error("PLACE_HASH_PEPPER is not set");
-  const normalised = q.trim().toLowerCase().replace(/\s+/g, " ");
-  return createHmac("sha256", pepper).update(normalised).digest("hex");
+  const normalised = text.trim().toLowerCase().replace(/\s+/g, " ");
+  return createHmac("sha256", pepper).update(`${domain}|${normalised}`).digest("hex");
 }
