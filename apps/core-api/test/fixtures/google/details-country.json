@@ -1,0 +1,10 @@
+{
+  "types": [
+    "country",
+    "political"
+  ],
+  "location": {
+    "latitude": 39.399871999999995,
+    "longitude": -8.224454
+  }
+}

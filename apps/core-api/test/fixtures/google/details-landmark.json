@@ -1,0 +1,12 @@
+{
+  "types": [
+    "monument",
+    "tourist_attraction",
+    "point_of_interest",
+    "establishment"
+  ],
+  "location": {
+    "latitude": 38.691583699999995,
+    "longitude": -9.215977299999999
+  }
+}
