@@ -422,3 +422,21 @@ export {
 } from "./labels.js";
 export type { LabelPick } from "./labels.js";
 export { GOOGLE_EVENT_LINK, afterWrite, dayName, eventMeta, eventPast, eventRange, nextLine, nothingLine, retryDelay, stackView, type LineEvent, type WeekStart } from "./today.js";
+// 030. A thread's map: point colours and shapes, count dots, the opening fit,
+// and the hand-off to Google Maps.
+export {
+  ANDROID_DARK_STYLE,
+  CLUSTER_PX,
+  FIT_MAX_ZOOM,
+  calloutPadding,
+  cluster,
+  directionsUrl,
+  fitBounds,
+  pointFill,
+  pointShape,
+  type Cluster,
+  type LatLng,
+  type Padding,
+  type PointLabel,
+  type ScreenPoint,
+} from "./map.js";
