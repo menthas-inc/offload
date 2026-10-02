@@ -3,18 +3,39 @@
 // Security review 2026-09-22, M8. The privacy page promised this control and
 // no client had it. Better Auth already lists and revokes sessions; this is
 // the thin layer the account pane reads.
+//
+// 031: this device comes from the session the client holds, apart from the
+// list, so it draws when the list fails; the list is the others only, and a
+// failed read throws rather than coming back empty, which the page used to
+// draw as "Nothing else".
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const revoked: string[] = [];
+let revokedOthers = 0;
 let sessions: { token: string; userAgent: string | null; createdAt: string }[] = [];
+let listFails: "reject" | "error" | null = null;
+
+const HERE_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 Version/17.5 Safari/605.1.15";
 
 vi.mock("better-auth/react", () => ({
   createAuthClient: () => ({
-    listSessions: () => Promise.resolve({ data: sessions, error: null }),
-    getSession: () => Promise.resolve({ data: { session: { token: "here" } }, error: null }),
+    listSessions: () => {
+      if (listFails === "reject") return Promise.reject(new Error("offline"));
+      if (listFails === "error") return Promise.resolve({ data: null, error: { status: 500 } });
+      return Promise.resolve({ data: sessions, error: null });
+    },
+    getSession: () =>
+      Promise.resolve({
+        data: { session: { token: "here", userAgent: HERE_UA, createdAt: "2026-09-20T10:00:00Z" } },
+        error: null,
+      }),
     revokeSession: ({ token }: { token: string }) => {
       revoked.push(token);
+      return Promise.resolve({ data: { status: true }, error: null });
+    },
+    revokeOtherSessions: () => {
+      revokedOthers += 1;
       return Promise.resolve({ data: { status: true }, error: null });
     },
     signIn: { social: () => Promise.resolve({}) },
@@ -22,13 +43,15 @@ vi.mock("better-auth/react", () => ({
   }),
 }));
 
-const { describeDevice, endSignedIn, listSignedIn } = await import("../src/lib/sessions");
+const { describeDevice, endOthers, endSignedIn, listSignedIn, thisDevice } = await import("../src/lib/sessions");
 
 beforeEach(() => {
   revoked.length = 0;
+  revokedOthers = 0;
+  listFails = null;
   sessions = [
     { token: "old", userAgent: "Mozilla/5.0 (Windows NT 10.0) Chrome/128.0 Safari/537.36", createdAt: "2026-09-01T10:00:00Z" },
-    { token: "here", userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 Version/17.5 Safari/605.1.15", createdAt: "2026-09-20T10:00:00Z" },
+    { token: "here", userAgent: HERE_UA, createdAt: "2026-09-20T10:00:00Z" },
     { token: "phone", userAgent: "okhttp/4.12.0", createdAt: "2026-09-10T10:00:00Z" },
   ];
 });
@@ -44,19 +67,35 @@ describe("a session, described", () => {
   });
 });
 
-describe("the list", () => {
-  it("marks this device and puts it first, then newest first", async () => {
+describe("this device", () => {
+  it("comes from the session alone, so it is there when the list fails", async () => {
+    listFails = "reject";
+    expect(await thisDevice()).toEqual({ device: "Safari on Mac" });
+  });
+});
+
+describe("the others", () => {
+  it("leaves this device out and lists the rest newest first", async () => {
     const rows = await listSignedIn();
-    expect(rows.map((row) => [row.token, row.current])).toEqual([
-      ["here", true],
-      ["phone", false],
-      ["old", false],
-    ]);
-    expect(rows[0]!.device).toBe("Safari on Mac");
+    expect(rows.map((row) => row.token)).toEqual(["phone", "old"]);
+    expect(rows[1]!.device).toBe("Chrome on Windows");
+  });
+
+  it("throws when the read is refused or fails, rather than coming back empty", async () => {
+    listFails = "error";
+    await expect(listSignedIn()).rejects.toThrow();
+    listFails = "reject";
+    await expect(listSignedIn()).rejects.toThrow();
   });
 
   it("ends the one asked for and no other", async () => {
     expect(await endSignedIn("old")).toBe(true);
     expect(revoked).toEqual(["old"]);
+  });
+
+  it("ends every other session through the revoke-others endpoint", async () => {
+    expect(await endOthers()).toBe(true);
+    expect(revokedOthers).toBe(1);
+    expect(revoked).toEqual([]);
   });
 });

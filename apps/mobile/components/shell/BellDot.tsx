@@ -35,7 +35,7 @@ export function BellDot() {
       accessibilityLabel={dot ? "Activity, something new" : "Activity"}
     >
       <View>
-        <Glyph name="bell" size={21} color={COLOR.iconOnWell} />
+        <Glyph name="bell" size={24} color={COLOR.iconOnWell} />
         {dot ? (
           <View
             className="absolute rounded-pill border-paper bg-clay-600"

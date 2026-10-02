@@ -260,6 +260,16 @@ describe("where they are", () => {
     for (const country of countries) expect(isCountry(country.code)).toBe(true);
   });
 
+  it("names each country once, with no retired or alias code beside the current one", async () => {
+    const { countries } = (await app.inject({ method: "GET", url: "/api/countries" })).json() as {
+      countries: { code: string; name: string }[];
+    };
+    const names = countries.map((c) => c.name);
+    expect(names.filter((name, i) => names.indexOf(name) !== i)).toEqual([]);
+    for (const code of ["CS", "YU", "SU", "UK", "BU", "DD", "ZR", "TP", "AN"]) expect(isCountry(code)).toBe(false);
+    for (const code of ["RS", "RU", "GB", "MM", "DE", "CD", "TL", "CW"]) expect(isCountry(code)).toBe(true);
+  });
+
   it("refuses something that is not a country", async () => {
     expect(isCountry("ZZ")).toBe(false);
     expect(isCountry("gb")).toBe(false);

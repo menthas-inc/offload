@@ -34,13 +34,16 @@ export const CONNECT_FACTS = [
   ],
 ] as const;
 
-export function ProviderMark({ size = 88 }: { size?: 88 | 34 }) {
+/** 88 on first run's screen, 42 on 031's Connected apps card, 34 beside an
+ *  account on the calendar page. */
+export function ProviderMark({ size = 88 }: { size?: 88 | 42 | 34 }) {
   const [ok, setOk] = useState(true);
+  const small = size === 88 ? undefined : { width: size, height: size };
   if (!ok) {
     return (
       <span
         className={run.providerMark}
-        style={size === 34 ? { width: 34, height: 34, borderRadius: 8 } : undefined}
+        style={small ? { ...small, borderRadius: size === 42 ? 11 : 8 } : undefined}
         aria-hidden="true"
       />
     );
@@ -52,7 +55,7 @@ export function ProviderMark({ size = 88 }: { size?: 88 | 34 }) {
       width={size}
       height={size}
       className={run.providerMarkImage}
-      style={size === 34 ? { width: 34, height: 34 } : undefined}
+      style={small}
       onError={() => setOk(false)}
     />
   );

@@ -2,6 +2,7 @@
 
 **Status:** drafted 2026-09-21, revised 2026-09-22 with the product owner's answers and the three reviews
 **Surfaces:** web, iOS, Android, the Core API and the agent plane
+**Amended by 031 (2026-10-02):** connecting also starts from My people, Connect with someone, which is the new-connection step in place; the found row's button is *Ask to connect*; a refused lookup says *Too many lookups. Try again in a few minutes.* The rule that connecting starts only from a thread no longer holds.
 **Depends on:** 001, whose `thread_members` and `thread_keys` were built for this and have waited since; 002, whose key layers make sharing one small rewrap; 004 and 006, whose model actions this adds one to; 005, whose thread page draws the Share control dead; 010, whose Settings gains My people; 014, whose notes already carry an author and survive them; 018, whose Ask settles which Sam; 019, whose proposal on the reply is how a said share is confirmed; 020, whose fetch-and-cache is how a phone draws a mark
 
 ## Why

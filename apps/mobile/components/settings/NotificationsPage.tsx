@@ -14,6 +14,11 @@
 // system page, and the account switch is set off so that Activity tells the
 // truth about it. iOS has no per-kind switches in the system, so this page
 // is the only place a person can refuse one kind and keep another.
+//
+// 031, *Settings, tightened*: the three sections open with their glyphs and
+// say what each is for, each hour sits indented under the switch it belongs
+// to with the hour in a small raised pill, and On this phone says first
+// whether this phone allows them at all.
 
 import { useCallback, useState } from "react";
 import { Linking, Platform, Pressable, Text, View } from "react-native";
@@ -21,7 +26,7 @@ import { useFocusEffect } from "expo-router";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from "@react-native-community/datetimepicker";
-import { Group, Row } from "./Rows";
+import { Group, Row, Sections, useRowEdge } from "./Rows";
 import { Switch } from "./Switch";
 import { setNotify, useMe, type Me } from "../../lib/me";
 import { clockLabel } from "../../lib/when";
@@ -141,37 +146,37 @@ export function NotificationsPage() {
   const hourRow = (key: Hours, title: string, on: boolean) => {
     const held = value(key) ?? (key === "notifyDueTodayAt" ? "08:00" : "19:00");
     return (
-      <View className={on ? "" : "opacity-60"} pointerEvents={on ? "auto" : "none"}>
-        <Row title={title} value={clockLabel(held)} onPress={() => pickHour(key)} last={key === "notifyComingTomorrowAt"} />
-        {!isAndroid && picking === key ? (
-          <DateTimePicker
-            mode="time"
-            display="spinner"
-            minuteInterval={5}
-            value={dateOf(held)}
-            onChange={(_event: DateTimePickerEvent, picked?: Date) => {
-              if (picked) void write({ [key]: hourOf(picked) });
-            }}
-          />
-        ) : null}
-      </View>
+      <HourRow
+        title={title}
+        hour={clockLabel(held)}
+        on={on}
+        onPress={() => pickHour(key)}
+        last={key === "notifyComingTomorrowAt"}
+        picker={
+          !isAndroid && picking === key ? (
+            <DateTimePicker
+              mode="time"
+              display="spinner"
+              minuteInterval={5}
+              value={dateOf(held)}
+              onChange={(_event: DateTimePickerEvent, picked?: Date) => {
+                if (picked) void write({ [key]: hourOf(picked) });
+              }}
+            />
+          ) : null
+        }
+      />
     );
   };
 
-  const toggle = (key: Switches, title: string, note?: string, last?: boolean) => (
-    <View className={`gap-space-2 py-space-4 ${last ? "" : "border-b border-border-hairline"}`}>
-      <View className="min-h-tap-min flex-row items-center gap-space-4">
-        <Text className={`flex-1 font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 15.5 }}>
-          {title}
-        </Text>
-        <Switch checked={value(key) === true && !blocked.has(CHANNEL_OF[key])} onChange={(next) => onSwitch(key, next)} label={title} />
-      </View>
-      {note ? (
-        <Text className={`font-core ${quiet}`} style={{ fontSize: 12.5, lineHeight: 17.5 }}>
-          {note}
-        </Text>
-      ) : null}
-    </View>
+  const toggle = (key: Switches, title: string, note?: string, last?: boolean, joined?: boolean) => (
+    <SwitchRow
+      title={title}
+      note={note}
+      checked={value(key) === true && !blocked.has(CHANNEL_OF[key])}
+      onChange={(next) => onSwitch(key, next)}
+      last={last || joined}
+    />
   );
 
   return (
@@ -189,47 +194,130 @@ export function NotificationsPage() {
         </View>
       ) : null}
 
-      <Group label="Dates">
-        {toggle("notifyDueToday", "Due today", "One message each morning.")}
-        {hourRow("notifyDueTodayAt", "In the morning at", value("notifyDueToday") === true)}
-        {toggle("notifyComingTomorrow", "Tomorrow", "One message each evening.")}
-        {hourRow("notifyComingTomorrowAt", "In the evening at", value("notifyComingTomorrow") === true)}
-      </Group>
+      <Sections>
+        <Group label="Dates" icon="calendar" caption="What is due, said once a day rather than one by one.">
+          {toggle("notifyDueToday", "Due today", "One message each morning.", false, true)}
+          {hourRow("notifyDueTodayAt", "In the morning at", value("notifyDueToday") === true)}
+          {toggle("notifyComingTomorrow", "Tomorrow", "One message each evening.", false, true)}
+          {hourRow("notifyComingTomorrowAt", "In the evening at", value("notifyComingTomorrow") === true)}
+        </Group>
 
-      <Group label="People">
-        {toggle("notifyPeopleRequests", "Connection requests")}
-        {toggle("notifySharedActivity", "Added to a shared thread", undefined, true)}
-      </Group>
+        <Group label="People" icon="users" caption="When someone reaches for you.">
+          {toggle("notifyPeopleRequests", "Connection requests")}
+          {toggle("notifySharedActivity", "Added to a shared thread", undefined, true)}
+        </Group>
 
-      <Group label="On this phone">
-        {permission === "denied" ? (
-          <Text className={`px-space-1 pt-space-4 font-core ${quiet}`} style={{ fontSize: 13.5, lineHeight: 19 }}>
-            Notifications are off for offload on this phone.
-          </Text>
-        ) : null}
-        {/* Never asked on this phone: an account from before first run asked,
-            or a reinstall. Not a refusal, so the one ask is offered here; a
-            refusal is never asked again, above. */}
-        {permission === "undetermined" ? (
+        <Group label="On this phone" icon="smartphone">
+          {permission === "granted" ? (
+            <Row
+              title="Allowed"
+              status="On"
+              note="Sounds, the lock screen, and turning offload off entirely are in System settings."
+            />
+          ) : null}
+          {permission === "denied" ? <Row title="Not allowed" note="Notifications are off for offload on this phone." /> : null}
+          {/* Never asked on this phone: an account from before first run asked,
+              or a reinstall. Not a refusal, so the one ask is offered here; a
+              refusal is never asked again, above. */}
+          {permission === "undetermined" ? (
+            <Row
+              title="Turn on notifications"
+              onPress={() =>
+                void Notifications.requestPermissionsAsync()
+                  .then((granted) => {
+                    setPermission(granted.status);
+                    if (granted.status === "granted") void register();
+                  })
+                  .catch(() => undefined)
+              }
+            />
+          ) : null}
           <Row
-            title="Turn on notifications"
-            onPress={() =>
-              void Notifications.requestPermissionsAsync()
-                .then((granted) => {
-                  setPermission(granted.status);
-                  if (granted.status === "granted") void register();
-                })
-                .catch(() => undefined)
-            }
+            title="System settings"
+            note={permission === "granted" ? undefined : "Sounds, the lock screen, and turning offload off entirely."}
+            external
+            onPress={() => void Linking.openSettings()}
+            last
           />
-        ) : null}
-        <Row
-          title="System settings"
-          note="Sounds, the lock screen, and turning offload off entirely."
-          onPress={() => void Linking.openSettings()}
-          last
-        />
-      </Group>
+        </Group>
+      </Sections>
     </>
+  );
+}
+
+/** A switch and its note. `last` drops the divider, which a switch with its
+ *  hour under it also wants: the two read as one. */
+function SwitchRow({
+  title,
+  note,
+  checked,
+  onChange,
+  last,
+}: {
+  title: string;
+  note?: string | undefined;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  last?: boolean | undefined;
+}) {
+  const edge = useRowEdge(last);
+  return (
+    <View className={`gap-space-2 py-space-4 ${edge}`}>
+      <View className="min-h-tap-min flex-row items-center gap-space-4">
+        <Text className={`flex-1 font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 15.5 }}>
+          {title}
+        </Text>
+        <Switch checked={checked} onChange={onChange} label={title} />
+      </View>
+      {note ? (
+        <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 12.5, lineHeight: 17.5 }}>
+          {note}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+/** An hour, indented under its switch and greyed with it. 031. 18 more than
+ *  the row, so its title sits 32 from the card's edge as the drawing has it. */
+function HourRow({
+  title,
+  hour,
+  on,
+  onPress,
+  last,
+  picker,
+}: {
+  title: string;
+  hour: string;
+  on: boolean;
+  onPress: () => void;
+  last: boolean;
+  picker: React.ReactNode;
+}) {
+  const edge = useRowEdge(last);
+  return (
+    <View className={`${on ? "" : "opacity-60"} ${edge}`} pointerEvents={on ? "auto" : "none"}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`${title} ${hour}`}
+        className="flex-row items-center gap-space-4"
+        style={{ minHeight: 44, paddingTop: 4, paddingBottom: 10, paddingLeft: 18 }}
+      >
+        <Text className={`flex-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 14.5 }}>
+          {title}
+        </Text>
+        <View className={isAndroid ? "bg-a-c-high" : "bg-surface-raised"} style={{ borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}>
+          <Text
+            className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+            style={{ fontSize: 15, fontVariant: ["tabular-nums"] }}
+          >
+            {hour}
+          </Text>
+        </View>
+      </Pressable>
+      {picker}
+    </View>
   );
 }

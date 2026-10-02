@@ -76,6 +76,19 @@ export async function lookup(email: string): Promise<Lookup> {
   return { kind: "found", found: body.found };
 }
 
+/** 031. The line a refused lookup draws. A fact the server stated, so it is
+ *  said; the retry is not offered, because pressing it is refused again. */
+export const LOOKUP_LIMITED = "Too many lookups. Try again in a few minutes.";
+
+export type LookupState = { kind: "found"; found: Found } | { kind: "none" } | { kind: "limited" } | { kind: "failed" };
+
+/** What the connect step draws for a lookup's answer. As the phones'. */
+export function stateOfLookup(result: Lookup): LookupState {
+  if (result.kind === "rate_limited") return { kind: "limited" };
+  if (result.kind === "failed") return { kind: "failed" };
+  return result.found ? { kind: "found", found: result.found } : { kind: "none" };
+}
+
 export type RequestOutcome =
   | { ok: true; requestId: string; since: string }
   | {
@@ -98,6 +111,33 @@ export async function requestConnection(accountId: string): Promise<RequestOutco
     };
   }
   return { ok: false, error: "failed" };
+}
+
+/** What the found row becomes after Ask to connect. The server's refusals
+ *  say what the person already is to us, and the row says it; `failed` keeps
+ *  the row and says the request did not go through. */
+export type RequestState = { kind: "found"; found: Found; line?: string } | { kind: "none" } | { kind: "failed" };
+
+export function stateOfRequest(found: Found, outcome: RequestOutcome): RequestState {
+  if (outcome.ok) {
+    return { kind: "found", found: { ...found, relation: "you_asked", requestId: outcome.requestId, since: outcome.since } };
+  }
+  switch (outcome.error) {
+    case "connected":
+      return { kind: "found", found: { ...found, relation: "connected" } };
+    case "pending":
+      return { kind: "found", found: { ...found, relation: "you_asked", requestId: outcome.requestId ?? null } };
+    case "asked_you":
+      return { kind: "found", found: { ...found, relation: "asked_you", requestId: outcome.requestId ?? null } };
+    // A request to this person ended in the last week: what is refused is
+    // said, and the row keeps its control for when the week is up.
+    case "too_soon":
+      return { kind: "found", found, line: "You asked recently. Try again in a week." };
+    case "not_found":
+      return { kind: "none" };
+    default:
+      return { kind: "failed" };
+  }
 }
 
 export async function answerRequest(requestId: string, answer: "accept" | "dismiss"): Promise<boolean> {

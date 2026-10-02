@@ -16,17 +16,25 @@
 //
 // The email is not editable here. Changing one is an identity change with a
 // verification flow behind it, not a text field. The name is, since 011.
+//
+// 031: Profile, Where you are, Signed in on and Sign out, as the phones have
+// them. Country is a combobox rather than a native select, which drew a white
+// field in dark.
 
 import { useCallback, useEffect, useState } from "react";
-import { EditableRow, Group, Row } from "./SettingsRows";
+import { useRouter } from "next/navigation";
+import { Combobox, EditableRow, Group, Row } from "./SettingsRows";
 import { NAME_MAX } from "../../lib/name";
+import { deviceGlyph, emailNote } from "../../lib/settings";
+import { signOut } from "../../lib/sign-out";
 import { fetchCountries, updateCountry, updateName, useMe } from "../../lib/use-me";
-import { endSignedIn, listSignedIn, type SignedIn } from "../../lib/sessions";
-
-const since = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+import { endOthers, endSignedIn, listSignedIn, thisDevice, type SignedIn } from "../../lib/sessions";
 import pane from "../../app/(shell)/shell.module.css";
 
+const since = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+
 export function AccountPane() {
+  const router = useRouter();
   const me = useMe("shell");
   const account = me.status === "ready" ? me.me : null;
 
@@ -37,13 +45,49 @@ export function AccountPane() {
     void fetchCountries().then(setCountries);
   }, []);
 
-  // Where they are signed in. Read on mount and after every End, since the
-  // list is the only thing on this screen that changes under them.
-  const [signedIn, setSignedIn] = useState<SignedIn[] | null>(null);
-  const loadSignedIn = useCallback(() => {
-    void listSignedIn().then(setSignedIn).catch(() => setSignedIn([]));
+  // This device, from the session this browser holds, apart from the list:
+  // it is drawn whatever the list does.
+  const [here, setHere] = useState<string | null>(null);
+  useEffect(() => {
+    void thisDevice().then(({ device }) => setHere(device));
   }, []);
-  useEffect(loadSignedIn, [loadSignedIn]);
+
+  // The others. Read on mount and after every End, since the list is the only
+  // thing on this screen that changes under them. A failed read is said as
+  // one, never drawn as an empty list.
+  const [others, setOthers] = useState<SignedIn[] | "failed" | null>(null);
+  const loadOthers = useCallback(() => {
+    void listSignedIn().then(setOthers, () => setOthers("failed"));
+  }, []);
+  useEffect(loadOthers, [loadOthers]);
+
+  // A refused End keeps its row and says so, with the same End beside it: a
+  // security control that did not run must not look like one that did.
+  const [endFailed, setEndFailed] = useState<string | null>(null);
+  async function end(token: string | "others") {
+    setEndFailed(null);
+    const ok = token === "others" ? await endOthers() : await endSignedIn(token);
+    if (ok) loadOthers();
+    else setEndFailed(token);
+  }
+
+  const [leaving, setLeaving] = useState(false);
+  const [leaveFailed, setLeaveFailed] = useState(false);
+  async function leave(): Promise<void> {
+    if (leaving) return;
+    setLeaving(true);
+    setLeaveFailed(false);
+    try {
+      await signOut();
+      // Only once the server has agreed, as the index's Sign out does.
+      router.replace("/sign-in");
+    } catch {
+      setLeaving(false);
+      setLeaveFailed(true);
+    }
+  }
+
+  const listed = Array.isArray(others) ? others : [];
 
   return (
     <>
@@ -54,7 +98,7 @@ export function AccountPane() {
       </div>
 
       <div className={pane.paneBody}>
-        <Group label="Details">
+        <Group label="Profile" icon="circle-dot" caption="How you appear to people you share with.">
           <EditableRow
             title="Name"
             value={account?.displayName ?? null}
@@ -65,63 +109,104 @@ export function AccountPane() {
             // and the settings index beside it both move, initials included.
             onSave={async (next) => (await updateName(next)) !== null}
           />
-          <Row title="Email" value={account?.email} />
+          <Row
+            title="Email"
+            value={account?.email}
+            note={account ? emailNote(account.signInProviders ?? []) : undefined}
+            last
+          />
+        </Group>
 
-          {/* **Where they are, because offload had no idea.** Asked for the
-              next bank holiday it answered Columbus Day from three American
-              sources: correct somewhere, wrong for whoever asked. A search takes
-              its assumptions from nowhere.
-
-              Here rather than in Privacy: it is a fact about them, like their
-              name, and it reads as one. What it changes is in the note. */}
-          <div className={pane.settingsRow} data-last>
+        {/* **Where they are, because offload had no idea.** Asked for the
+            next bank holiday it answered Columbus Day from three American
+            sources: correct somewhere, wrong for whoever asked. A search takes
+            its assumptions from nowhere. Here rather than in Privacy: it is a
+            fact about them, like their name. */}
+        <Group
+          label="Where you are"
+          icon="map-pin"
+          caption="Used to show dates and times in local time."
+        >
+          <div className={`${pane.settingsRow} ${pane.settingsRowLast}`}>
             <span className={pane.settingsText}>
               <span className={pane.settingsTitle}>Country</span>
-              <span className={pane.settingsNote}>
-                So a date or a forecast is the one where you are. Leave it unset
-                and offload says it does not know rather than guessing.
-              </span>
             </span>
-            <select
-              className={pane.settingsValue}
-              aria-label="Country"
+            <Combobox
+              label="Country"
               value={account?.country ?? ""}
-              onChange={(event) => void updateCountry(event.target.value || null)}
-            >
-              <option value="">Not set</option>
-              {countries.map((country) => (
-                <option key={country.code} value={country.code}>
-                  {country.name}
-                </option>
-              ))}
-            </select>
+              options={countries.map((country) => ({ value: country.code, label: country.name, code: country.code }))}
+              notSet
+              filterPlaceholder="Find a country"
+              onChange={(next) => void updateCountry(next || null)}
+            />
           </div>
         </Group>
 
-        {/* Every live session, this one first. Ending one signs that device
-            out on its next request; this device leaves through Sign out. */}
-        <Group label="Signed in on">
-          {(signedIn ?? []).map((row, index) => (
-            <div key={row.token} className={pane.settingsRow} data-last={index === (signedIn?.length ?? 0) - 1 || undefined}>
-              <span className={pane.settingsText}>
-                <span className={pane.settingsTitle}>{row.device}</span>
-                <span className={pane.settingsNote}>
-                  {row.current ? "This device" : `Since ${since.format(row.since)}`}
-                </span>
-              </span>
-              {row.current ? null : (
-                <button
-                  type="button"
-                  className={pane.settingsValue}
-                  onClick={() => void endSignedIn(row.token).then(loadSignedIn)}
-                  aria-label={`End the session on ${row.device}`}
-                >
-                  End
-                </button>
-              )}
-            </div>
+        {/* This device first, then every other live session. Ending one signs
+            that device out on its next request; this device leaves through
+            Sign out. */}
+        <Group label="Signed in on" icon="monitor" caption="Ending a session signs that device out on its next request.">
+          {here ? (
+            <Row
+              icon="monitor"
+              title={here}
+              status="This device"
+              last={!Array.isArray(others)}
+            />
+          ) : null}
+          {listed.map((row) => (
+            <Row
+              key={row.token}
+              icon={deviceGlyph(row.device)}
+              title={row.device}
+              note={`Since ${since.format(row.since)}`}
+              pill="End"
+              actionLabel={`End the session on ${row.device}`}
+              onClick={() => void end(row.token)}
+            />
           ))}
-          {signedIn !== null && signedIn.length === 0 ? <Row title="Nothing else" last /> : null}
+          {listed.length > 0 ? (
+            <Row title="End all other sessions" strong last onClick={() => void end("others")} />
+          ) : null}
+          {Array.isArray(others) && others.length === 0 ? (
+            <Row title="Nowhere else" note="Sign in on another device and it shows here." last />
+          ) : null}
+          {endFailed ? (
+            <p className={pane.settingsFailLine} role="alert">
+              That didn&apos;t go through.
+              <button type="button" className={pane.settingsRetry} onClick={() => void end(endFailed)}>
+                Try again
+              </button>
+            </p>
+          ) : null}
+          {others === "failed" ? (
+            <p className={pane.settingsFailLine} role="alert">
+              Couldn&apos;t load your other devices.
+              <button type="button" className={pane.settingsRetry} onClick={loadOthers}>
+                Try again
+              </button>
+            </p>
+          ) : null}
+        </Group>
+
+        <Group>
+          <Row
+            icon="log-out"
+            title={leaving ? "Signing out" : "Sign out"}
+            strong
+            last
+            disabled={leaving}
+            onClick={() => void leave()}
+          />
+          {/* What happened, and the way forward beside it. */}
+          {leaveFailed ? (
+            <p className={pane.settingsFailLine} role="alert">
+              That didn&rsquo;t go through.
+              <button type="button" className={pane.settingsRetry} onClick={() => void leave()}>
+                Try again
+              </button>
+            </p>
+          ) : null}
         </Group>
       </div>
     </>

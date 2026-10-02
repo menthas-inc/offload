@@ -37,6 +37,14 @@ export interface Colors {
   tabOff: string;
   /** Moss. "offload did this, you didn't", which is also the change mark. */
   accentSoft: string;
+  /** 031. A settings section's glyph on its tile: moss on iOS, Material's
+   *  blue on Android, as the design draws the two tiles. */
+  sectionGlyph: string;
+  /** 031. Moss's ink step, `--moss-700`, on both phones: the Mail card's mark. */
+  accentInk: string;
+  /** 031. The choice tiles' pictures of a theme. They depict a theme, so they
+   *  are the light and dark scopes' own values whichever theme is showing. */
+  preview: { lightPage: string; lightBar: string; darkPage: string; darkBar: string };
   /** What a sheet dims the screen behind it with, and what an elevated surface
    *  casts. Both are ink at a low opacity rather than black: the palette is
    *  warm and a true black scrim reads cold against it. Opacity is applied at
@@ -144,6 +152,14 @@ export function paletteFor(dark: boolean): Colors {
     tabOn: isAndroid ? m3["a-on"]! : base["text-primary"] ?? light["text-primary"]!,
     tabOff: isAndroid ? m3["a-on-quiet"]! : base["text-tertiary"] ?? light["text-tertiary"]!,
     accentSoft: base["surface-accent-soft"] ?? light["surface-accent-soft"]!,
+    sectionGlyph: isAndroid ? base["blue-700"] ?? light["blue-700"]! : base["moss-700"] ?? light["moss-700"]!,
+    accentInk: base["moss-700"] ?? light["moss-700"]!,
+    preview: {
+      lightPage: light["surface-page"]!,
+      lightBar: light["ink-200"]!,
+      darkPage: resolved.dark["surface-page"]!,
+      darkBar: light["ink-700"]!,
+    },
     // **Dark ink in both themes.** The ramp flips, and in dark `ink-950` is
     // #EDEDED: every scrim dimmed the page to white and the conversation's
     // receded page sat on a white ground under light status bar text. A dim is
