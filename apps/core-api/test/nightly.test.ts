@@ -178,6 +178,18 @@ describe("AC-9 to AC-11 what a pass may learn", () => {
     expect(res.json()).toMatchObject({ learned: 0 });
   });
 
+  it("does not count a note the thread once said and set aside", async () => {
+    const ana = await account("Ana");
+    const trip = await thread(ana, "Lisbon in October");
+    await db
+      .insertInto("notes")
+      .values({ account_id: ana, scope: "thread", subject_id: trip, text: "Ferry at 9", kind: "noticed", origin: "learned", superseded_at: new Date() } as never)
+      .execute();
+    const from = await landed(ana, trip, "ferry at 9");
+    const res = await post({ jobId: await job(ana, trip), learned: [{ text: "Ferry at 9", from: [from] }] });
+    expect(res.json()).toMatchObject({ learned: 0 });
+  });
+
   it("adds nothing once the member holds the cap of learned notes in the thread", async () => {
     const ana = await account("Ana");
     const trip = await thread(ana, "Lisbon in October");

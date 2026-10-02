@@ -12,6 +12,7 @@ describe("a typed row", () => {
     expect(typedAddress("shelf https://example.test/a")).toBeNull();
     expect(typedAddress("ftp://example.test/a")).toBeNull();
     expect(typedAddress("www.example.test")).toBeNull();
+    expect(typedAddress("Https://example.test/a")).toBeNull();
   });
 
   it("promises nothing about tidying", () => {

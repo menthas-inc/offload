@@ -68,13 +68,30 @@ def _variant(keep: str, drop: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", out)
 
 
-_LEARN = _variant("learn", "propose")
-_PROPOSE = _variant("propose", "learn")
+_VARIANTS = {
+    "learn": _variant("learn", "propose"),
+    "propose": _variant("propose", "learn"),
+    # The default thread with nothing new to suggest: its notes kept true and
+    # nothing else, so the prompt never describes a list it is not shown.
+    "keep": re.sub(
+        r"\n{3,}",
+        "\n\n",
+        re.sub(r"<!-- (learn|propose) -->.*?<!-- /\1 -->\n?", "", _PROMPT, flags=re.DOTALL),
+    ),
+}
 
 
-def prompt_for(*, propose: bool) -> str:
-    """The pass's system prompt: two fixed texts, so both cache."""
-    return _PROPOSE if propose else _LEARN
+def prompt_for(*, mode: str) -> str:
+    """The pass's system prompt: three fixed texts, one per mode."""
+    return _VARIANTS[mode]
+
+
+def mode_for(*, on_default: bool, candidates: list | None) -> str:
+    """An ordinary thread learns; the default thread suggests threads when it
+    has a list to read, and otherwise only keeps its notes true."""
+    if not on_default:
+        return "learn"
+    return "propose" if candidates is not None else "keep"
 
 
 _MEMBER = text(
@@ -356,8 +373,8 @@ def _held_to_the_rules(plan: _Fold, rows: list) -> _Fold:
 
 
 async def _ask(
-    client: AsyncAnthropic, cfg: Config, turn: str, *, propose: bool
-) -> tuple[LearnPlan | ProposePlan | None, list[dict]]:
+    client: AsyncAnthropic, cfg: Config, turn: str, *, propose: bool, mode: str | None = None
+) -> tuple[_Fold | None, list[dict]]:
     """One call, one repair, then give up (OFF-5). Paid for either way.
 
     **The repair is a `tool_result`**, answering the `tool_use` it repairs. A
@@ -365,7 +382,8 @@ async def _ask(
     production and what compaction, proposals and the label sort did on every
     repair until this replaced them.
     """
-    shape = ProposePlan if propose else LearnPlan
+    mode = mode or ("propose" if propose else "learn")
+    shape = {"propose": ProposePlan, "learn": LearnPlan, "keep": _Fold}[mode]
     messages: list[dict] = [{"role": "user", "content": turn}]
     usage: list[dict] = []
     model = cfg.nightly_model
@@ -374,17 +392,17 @@ async def _ask(
         response = await client.messages.create(
             model=model,
             max_tokens=4096,
-            system=[{"type": "text", "text": prompt_for(propose=propose)}],
+            system=[{"type": "text", "text": prompt_for(mode=mode)}],
             messages=messages,
             tools=[
                 {
                     "name": "nightly",
                     "description": "Say what this thread's notes say now"
-                    + (
-                        ", and which threads to suggest."
-                        if propose
-                        else ", and what the day's dumps add."
-                    ),
+                    + {
+                        "propose": ", and which threads to suggest.",
+                        "learn": ", and what the day's dumps add.",
+                        "keep": ".",
+                    }[mode],
                     "input_schema": _schema(shape),
                 }
             ],
@@ -478,7 +496,7 @@ async def handle_nightly(
         )
         today = await today_line(conn)
 
-    asks_for_groups = candidates is not None
+    mode = mode_for(on_default=on_default, candidates=candidates)
     owns_notes = any(row["theirs"] for row in notes)
     if not owns_notes and not messages and not candidates:
         # Nothing of theirs to keep true and nothing new to read.
@@ -494,7 +512,7 @@ async def handle_nightly(
         messages=None if on_default else (messages or []),
         candidates=candidates,
     )
-    plan, usage = await _ask(client, cfg, turn, propose=asks_for_groups)
+    plan, usage = await _ask(client, cfg, turn, propose=mode == "propose", mode=mode)
     if plan is None:
         async with engine.begin() as conn:
             await retry_or_die(conn, job, "nightly_unparseable", delay_seconds=3600)

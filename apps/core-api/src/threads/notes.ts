@@ -1164,7 +1164,7 @@ export async function applyLearned(
       ignored += 1;
       continue;
     }
-    await addNote(
+    const written = await addNote(
       {
         threadId,
         accountId,
@@ -1177,6 +1177,13 @@ export async function applyLearned(
       },
       trx,
     );
+    // `addNote` hands back an existing learned note with the same words, set
+    // aside or not and whoever's it is, rather than writing a second: that is
+    // nothing learned.
+    if (written.supersededAt !== null || written.authorId !== accountId) {
+      ignored += 1;
+      continue;
+    }
     said.add(text.toLowerCase());
     held += 1;
     learned += 1;

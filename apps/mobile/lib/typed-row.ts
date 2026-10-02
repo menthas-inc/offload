@@ -8,5 +8,5 @@ export const TYPED_ROW_PLACEHOLDER = "Add to this";
  *  mirroring the server's own check. Words around one keep it words. */
 export function typedAddress(text: string): string | null {
   const trimmed = text.trim();
-  return /^https?:\/\/\S+$/i.test(trimmed) ? trimmed : null;
+  return /^https?:\/\/\S+$/.test(trimmed) ? trimmed : null;
 }

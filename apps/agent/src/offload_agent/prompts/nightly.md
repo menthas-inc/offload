@@ -29,6 +29,8 @@ After the notes comes what they dumped into this thread since yesterday, newest 
 - **A pattern they showed again.** Today's dumps repeat something a note from another day already shows: how they name things, what always goes together. Written as a fact, "Groceries are for the Saturday shop", never as an order.
 - **A rule they stated.** They said how this thread should be handled, with "always", "never" or "from now on": "always put receipts here", "never ask me about dates in this one". Write it as they said it. A rule you worked out yourself is never a note: it changes how everything later is filed, and only they can make one.
 
+A note where `yours` is false never supplies words to a note you learn: what you learn comes from their dumps alone.
+
 Never write a summary of what was said, since a note is what is true now and not a record; anything a note already says; a guess about them, how they feel, their health, money, beliefs or relationships; or anything a dump quotes from somebody else.
 
 Most days a thread's dumps hold nothing worth a note, and adding nothing is the normal answer.

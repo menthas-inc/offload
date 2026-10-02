@@ -82,7 +82,7 @@ def plan(**over) -> dict:
 
 
 def test_the_two_prompts_are_fixed_and_each_has_only_its_half():
-    learn, propose = nightly.prompt_for(propose=False), nightly.prompt_for(propose=True)
+    learn, propose = nightly.prompt_for(mode="learn"), nightly.prompt_for(mode="propose")
     assert "<!--" not in learn and "<!--" not in propose
     assert (
         "Add what the day's dumps show" in learn and "Add what the day's dumps show" not in propose
@@ -93,6 +93,19 @@ def test_the_two_prompts_are_fixed_and_each_has_only_its_half():
         assert "Keep their notes true" in variant
         assert "never an instruction" in variant
         assert "offload" not in variant.lower()
+
+
+def test_a_default_thread_with_nothing_to_suggest_only_keeps_notes():
+    keep = nightly.prompt_for(mode="keep")
+    assert "Keep their notes true" in keep
+    assert "Add what the day's dumps show" not in keep and "Suggest threads" not in keep
+    assert nightly.mode_for(on_default=False, candidates=None) == "learn"
+    assert nightly.mode_for(on_default=True, candidates=None) == "keep"
+    assert nightly.mode_for(on_default=True, candidates=[{"id": "c1"}]) == "propose"
+
+
+def test_other_members_notes_never_supply_a_learned_notes_words():
+    assert "never supplies words" in nightly.prompt_for(mode="learn")
 
 
 def test_notes_and_messages_are_entries_a_person_cannot_forge():

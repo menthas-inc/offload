@@ -1241,7 +1241,9 @@ const STARTS_AS: Record<string, "task" | "location" | "event"> = {
 
 /** 032. A line that is one web address and nothing else. Anything around it,
  *  "shelf https://...", is words, and stays words. */
-const ONE_ADDRESS = /^https?:\/\/\S+$/i;
+// Case-sensitive, as the column's own check is: a capital the keyboard added
+// keeps the line words rather than failing the write.
+const ONE_ADDRESS = /^https?:\/\/\S+$/;
 
 /** Write what somebody typed, exactly as they typed it.
  *

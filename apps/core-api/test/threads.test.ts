@@ -1507,5 +1507,11 @@ describe("032 a typed row is saved as typed", () => {
 
     const other = await typed(me, th, "ftp://example.test/file");
     expect(other.row.url).toBeNull();
+
+    // The column's check is case-sensitive, so a capital the phone's keyboard
+    // added keeps the line words rather than failing the write.
+    const capital = await typed(me, th, "Https://example.test/a");
+    expect(capital.row.url).toBeNull();
+    expect(capital.row.title).toBe("Https://example.test/a");
   });
 });
