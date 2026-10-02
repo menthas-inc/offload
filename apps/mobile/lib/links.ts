@@ -22,8 +22,11 @@ export const PRIVACY_URL = `${WEB_URL}/privacy`;
  *  own scheme with arguments would open from a tap on a row (security review
  *  2026-09-22, L21). The server refuses anything but https on a row; this is
  *  the same rule on the device, for the day the server forgets. */
+/** Whether `openLink` would open it: an http or https address. */
+export const isOpenable = (url: string | null | undefined): url is string => Boolean(url && /^https?:\/\//i.test(url));
+
 export async function openLink(url: string | null | undefined): Promise<boolean> {
-  if (!url || !/^https?:\/\//i.test(url)) return false;
+  if (!isOpenable(url)) return false;
   await Linking.openURL(url);
   return true;
 }

@@ -19,6 +19,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, Platform, Pressable, Text, View } from "react-native";
 import MapView, { Circle, Marker, PROVIDER_GOOGLE, type Region } from "react-native-maps";
 import { useReducedMotion } from "react-native-reanimated";
+import { cameraMs } from "../../lib/motion";
+import { emptyLine } from "../../lib/map-view";
 import { useColorScheme } from "nativewind";
 import {
   CIRCLE_METRES,
@@ -110,16 +112,19 @@ export function ThreadMap({
   const areas = useMemo(() => shown.filter((p) => p.approximate), [shown]);
   const byKey = useMemo(() => new Map(points.map((p) => [p.key, p])), [points]);
   const picked = selected ? (byKey.get(selected) ?? null) : null;
+  // Clustering follows the zoom alone, so a pan regroups nothing.
+  const zoom = camera?.zoom ?? null;
   const groups = useMemo(() => {
-    if (!camera) return spots.map((p) => ({ keys: [p.key] }));
-    return cluster(spots.map((p) => ({ key: p.key, ...worldPixel(p, camera.zoom) })));
-  }, [spots, camera]);
+    if (zoom === null) return spots.map((p) => ({ keys: [p.key] }));
+    return cluster(spots.map((p) => ({ key: p.key, ...worldPixel(p, zoom) })));
+  }, [spots, zoom]);
+  const grouping = groups.map((g) => g.keys.join(",")).join("|");
 
   useEffect(() => {
     setTracking(true);
     const frame = requestAnimationFrame(() => setTracking(false));
     return () => cancelAnimationFrame(frame);
-  }, [selected, dark, order, groups]);
+  }, [selected, dark, order, grouping]);
 
   // The keyboard coming up closes the callout, and the map does not re-fit.
   useEffect(() => {
@@ -153,7 +158,7 @@ export function ThreadMap({
     const { dx, dy } = calloutPan(screenOf(p, camera, view), view);
     if (!dx && !dy) return;
     const center = panned(camera, dx, dy);
-    map.current?.animateCamera({ center: { latitude: center.lat, longitude: center.lng } }, { duration: reduced ? 0 : 300 });
+    map.current?.animateCamera({ center: { latitude: center.lat, longitude: center.lng } }, { duration: cameraMs(reduced) });
     // Only the pick moves the camera; a re-read of the points does not.
   }, [selected]);
 
@@ -253,6 +258,20 @@ export function ThreadMap({
             />
           );
         })}
+        {/* An area's own target at its centre, named like a point, so a
+            screen reader reaches it as a finger does. */}
+        {areas.map((p) => (
+          <Marker
+            key={`area:${p.key}`}
+            coordinate={{ latitude: p.lat, longitude: p.lng }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+            accessibilityLabel={`${p.title}, ${kindWord(p.type)}`}
+            onPress={() => onSelect(p.key)}
+          >
+            <View style={{ width: 44, height: 44 }} />
+          </Marker>
+        ))}
         {groups.map((group) => {
           if (group.keys.length > 1) {
             const members = group.keys.map((k) => byKey.get(k)).filter((m): m is Point => Boolean(m));
@@ -269,17 +288,20 @@ export function ThreadMap({
                   const split = splitZoom(members, { width: size.width, height: size.height - bottom }, PADDING);
                   map.current?.animateCamera(
                     { center: { latitude: split.center.lat, longitude: split.center.lng }, zoom: split.zoom },
-                    { duration: reduced ? 0 : 300 },
+                    { duration: cameraMs(reduced) },
                   );
                 }}
               >
-                <View
-                  className="items-center justify-center rounded-pill bg-text-primary"
-                  style={{ width: 24, height: 24, borderWidth: 2, borderColor: COLOR.paper, boxShadow: COLOR.shadowPoint }}
-                >
-                  <Text className="font-core font-semibold text-surface-page" style={{ fontSize: 12, fontVariant: ["tabular-nums"] }}>
-                    {members.length}
-                  </Text>
+                {/* The 44 target a point has, around the 24 dot. */}
+                <View style={{ width: 44, height: 44 }} className="items-center justify-center">
+                  <View
+                    className="items-center justify-center rounded-pill bg-text-primary"
+                    style={{ width: 24, height: 24, borderWidth: 2, borderColor: COLOR.paper, boxShadow: COLOR.shadowPoint }}
+                  >
+                    <Text className="font-core font-semibold text-surface-page" style={{ fontSize: 12, fontVariant: ["tabular-nums"] }}>
+                      {members.length}
+                    </Text>
+                  </View>
                 </View>
               </Marker>
             );
@@ -322,7 +344,7 @@ export function ThreadMap({
             className="overflow-hidden rounded-pill bg-surface-raised px-space-6 py-space-3 font-core font-medium text-text-primary"
             style={{ fontSize: 13 }}
           >
-            Nothing under {pickedNames.join(", ") || "that"} on the map.
+            {emptyLine(pickedNames)}
           </Text>
         </View>
       ) : null}

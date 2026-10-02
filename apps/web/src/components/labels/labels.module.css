@@ -208,6 +208,11 @@ button.mark:focus-visible {
   box-shadow: var(--shadow-1);
 }
 
+/* Dark has no drop shadow: the chip takes the lift's edge over the map. */
+:global([data-theme="dark"]) .barFloating .chip:not([data-selected]) {
+  box-shadow: inset 0 0 0 1px var(--border-lift);
+}
+
 .barScroll {
   display: flex;
   align-items: center;

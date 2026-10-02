@@ -9,6 +9,7 @@ import { Image, Linking, Platform, Pressable, Text, View } from "react-native";
 import { directionsUrl, kindWord } from "@offload/widgets";
 import type { Label } from "../../lib/labels";
 import { domainOf, type Member, type Point } from "../../lib/threads";
+import { isOpenable, openLink } from "../../lib/links";
 import { useColors } from "../../lib/colors";
 import { Glyph } from "../Glyph";
 import { LabelMark } from "../labels/LabelMark";
@@ -90,7 +91,7 @@ export function PlaceSheet({
               {point.title}
             </Text>
             <Text className="font-core text-text-secondary" style={{ fontSize: 13.5, marginTop: 2 }}>
-              {kind.charAt(0).toUpperCase() + kind.slice(1)} · {threadName}
+              {calendar ? kind : kind.charAt(0).toUpperCase() + kind.slice(1)} · {threadName}
             </Text>
           </View>
           <Pressable
@@ -142,8 +143,10 @@ export function PlaceSheet({
             </Text>
           </Pressable>
           {calendar ? null : point.url ? (
+            // Only an http link opens, through the guard every link uses.
+            !isOpenable(point.url) ? null : (
             <Pressable
-              onPress={() => void Linking.openURL(point.url!)}
+              onPress={() => void openLink(point.url)}
               accessibilityRole="link"
               className={`flex-1 flex-row items-center justify-center rounded-pill ${secondary}`}
               style={{ minHeight: button, gap: 8 }}
@@ -153,6 +156,7 @@ export function PlaceSheet({
                 Open link
               </Text>
             </Pressable>
+            )
           ) : (
             <Pressable
               onPress={() => onEdit(point)}

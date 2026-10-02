@@ -1194,6 +1194,12 @@ export default function Thread() {
           onRetry={map.retry}
         />
       ) : null}
+      {onMap && !map.made ? (
+        // The one spinner, in the map's place, until the points arrive.
+        <View className="absolute inset-0 items-center justify-center">
+          <ActivityIndicator />
+        </View>
+      ) : null}
       {onMap && !showArchived ? (
         <View pointerEvents="box-none" className="absolute inset-x-0 top-0">
           <FilterBar
@@ -1443,9 +1449,9 @@ function Bar({
           the kit's `IconButton` in a bar is the ghost one, and a filled circle
           here read as a state. Share first, then the calendar, then More: the
           web's aside, tools and ellipsis, in that order. */}
-      {mapSwitch}
       {onMore ? (
       <View className="flex-row items-center gap-space-5">
+        {mapSwitch}
         {onLabels ? (
           <Pressable onPress={onLabels} hitSlop={10} accessibilityRole="button" accessibilityLabel="Group with labels">
             <Glyph name="tag" size={21} color={COLOR.iconOnWell} />

@@ -25,3 +25,11 @@ describe("the phones' map (AC-30)", () => {
     }
   });
 });
+
+describe("the place sheet's Open link (security review, 030)", () => {
+  it("goes through the http guard every other link uses", () => {
+    const sheet = readFileSync(`${dir}/PlaceSheet.tsx`, "utf8");
+    expect(sheet).toContain("openLink(point.url)");
+    expect(sheet).not.toMatch(/openURL\(point\.url/);
+  });
+});

@@ -1,8 +1,10 @@
 // 030. A thread's map on the phones: the small rules around it.
 
 import * as SecureStore from "expo-secure-store";
+import { nameList } from "@offload/widgets";
 
-export type MapView = "list" | "map";
+/** List or Map. Not `MapView`, which is react-native-maps' component. */
+export type MapChoice = "list" | "map";
 
 /** How many threads left on Map the phone remembers. List is the default and
  *  is not stored, and one value holds them all, most recent last, small enough
@@ -21,11 +23,11 @@ function kept(): string[] {
 }
 
 /** The way a thread was left on this phone; List when it never was. */
-export function readView(threadId: string): MapView {
+export function readView(threadId: string): MapChoice {
   return kept().includes(threadId) ? "map" : "list";
 }
 
-export function writeView(threadId: string, view: MapView): void {
+export function writeView(threadId: string, view: MapChoice): void {
   const ids = kept().filter((id) => id !== threadId);
   if (view === "map") ids.push(threadId);
   try {
@@ -52,4 +54,9 @@ export function barTools({ switchShown, labels, calendars }: { switchShown: bool
 } {
   const tools: BarTool[] = [...(labels ? (["labels"] as const) : []), ...(calendars ? (["calendars"] as const) : [])];
   return switchShown ? { inBar: [], moreFirst: tools } : { inBar: tools, moreFirst: [] };
+}
+
+/** A pick that leaves nothing on the map, in the list's own words. */
+export function emptyLine(pickedNames: string[]): string {
+  return pickedNames.length > 0 ? `Nothing under ${nameList(pickedNames)} on the map.` : "Nothing without a label on the map.";
 }

@@ -153,6 +153,9 @@ export function ContentRowView({
       data-picked={handlers.picked === row.id ? true : undefined}
       onMouseEnter={handlers.onHover ? () => handlers.onHover?.(row.id) : undefined}
       onMouseLeave={handlers.onHover ? () => handlers.onHover?.(null) : undefined}
+      // A keyboard moving through the list lifts the point the same way.
+      onFocus={handlers.onHover ? () => handlers.onHover?.(row.id) : undefined}
+      onBlur={handlers.onHover ? () => handlers.onHover?.(null) : undefined}
       // A drop target while a row in the same list is being dragged. The line
       // is drawn on whichever edge the dragged row would land on, and the row
       // under the pointer is what the list reads to decide where.

@@ -22,7 +22,8 @@ import { MAP_ID, MAPS_KEY, readView, splitFor, webMapReady, writeView, type MapV
 import { fetchPoints, type Point } from "../../lib/threads";
 import { PaneTop } from "../shell/Panes";
 import { MapColumnContext } from "../shell/map-column";
-import { Icon } from "../Icon";
+import { Segmented } from "../panes/Appearance";
+import pane from "../../app/(shell)/shell.module.css";
 import styles from "./map.module.css";
 
 export type MapLayout = "list" | "map" | "split";
@@ -125,7 +126,7 @@ export function useThreadMap({ threadId, hasPoint, version }: { threadId: string
       setViewState(next);
     },
     frame,
-    made: ready && visited && (points !== null || failed),
+    made: visited && (points !== null || failed),
     points: points ?? [],
     failed,
     retry: () => setAttempt((n) => n + 1),
@@ -139,24 +140,17 @@ export function useThreadMap({ threadId, hasPoint, version }: { threadId: string
   };
 }
 
-/** The switch: `SegmentedControl`'s icon variant, from the exploration. */
+/** The switch: `SegmentedControl`'s icon variant. */
 export function MapSwitch({ view, onChange }: { view: MapView; onChange: (view: MapView) => void }) {
   return (
-    <div className={styles.switch} role="group" aria-label="Show as">
-      {(["list", "map"] as const).map((one) => (
-        <button
-          key={one}
-          type="button"
-          className={styles.switchSegment}
-          aria-pressed={view === one}
-          aria-label={one === "list" ? "List" : "Map"}
-          title={one === "list" ? "List" : "Map"}
-          onClick={() => onChange(one)}
-        >
-          <Icon name={one === "list" ? "list" : "map-pin"} size={16} />
-        </button>
-      ))}
-    </div>
+    <Segmented<MapView>
+      label="Show as"
+      options={["list", "map"]}
+      labelFor={(one) => (one === "list" ? "List" : "Map")}
+      iconFor={(one) => (one === "list" ? "list" : "map-pin")}
+      value={view}
+      onChange={onChange}
+    />
   );
 }
 
@@ -193,6 +187,11 @@ export function MapFrame({
         <div className={styles.column} data-map-column inert={hidden} data-hidden={hidden ? "true" : undefined}>
           {map()}
           {layout === "map" && chips ? <div className={styles.chips}>{chips}</div> : null}
+        </div>
+      ) : !hidden ? (
+        // The one spinner, in the map's place, until the points arrive.
+        <div className={styles.column} data-map-column data-map-loading>
+          <span className={`${pane.paneSpinner} ${styles.loading}`} role="status" aria-label="loading" />
         </div>
       ) : null}
       {sheet}

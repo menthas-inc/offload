@@ -19,7 +19,9 @@ export function middleware(request: NextRequest) {
     nonce,
     api: API,
     dev: process.env.NODE_ENV === "development",
-    // 030. The same two values the client needs before it draws a map.
+    // 030. The same two values the client needs before it draws a map. Not
+    // the server's switch: a build with both and the switch off names the
+    // hosts and makes no request, so this header is not evidence the map is on.
     maps: Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY) && Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAP_ID),
   });
 

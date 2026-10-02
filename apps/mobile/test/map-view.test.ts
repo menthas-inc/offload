@@ -17,7 +17,7 @@ vi.mock("expo-secure-store", () => ({
   },
 }));
 
-const { MAP_VIEWS_KEPT, readView, writeView, mapsReady, barTools } = await import("../lib/map-view");
+const { MAP_VIEWS_KEPT, readView, writeView, mapsReady, barTools, emptyLine } = await import("../lib/map-view");
 
 beforeEach(() => {
   store.clear();
@@ -70,5 +70,12 @@ describe("the bar with the switch in it (AC-13)", () => {
 
   it("leaves the bar as it was without the switch", () => {
     expect(barTools({ switchShown: false, labels: true, calendars: true })).toEqual({ inBar: ["labels", "calendars"], moreFirst: [] });
+  });
+});
+
+describe("a pick with nothing on the map (AC-19)", () => {
+  it("says what the list says, in the same words", () => {
+    expect(emptyLine(["Stay", "Food"])).toBe("Nothing under Stay and Food on the map.");
+    expect(emptyLine([])).toBe("Nothing without a label on the map.");
   });
 });

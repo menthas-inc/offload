@@ -51,7 +51,7 @@ const labels = [{ id: "food", name: "Food", colour: 5 }];
 async function render(p: Point, handlers: Partial<React.ComponentProps<typeof PlaceSheet>> = {}) {
   await act(async () =>
     root.render(
-      <PlaceSheet point={p} threadName="Lisbon trip" labels={labels} members={members} onClose={() => undefined} onEdit={() => undefined} onOpenLink={() => undefined} {...handlers} />,
+      <PlaceSheet point={p} threadName="Lisbon trip" labels={labels} members={members} onClose={() => undefined} onEdit={() => undefined} {...handlers} />,
     ),
   );
 }
@@ -78,6 +78,15 @@ describe("the place sheet (AC-25)", () => {
     expect(rowKeys()).toEqual(["link", "labels", "added"]);
     expect(host.textContent).toContain("airbnb.com");
     expect([...host.querySelectorAll("a, button")].map((b) => b.textContent)).toContain("Open link");
+  });
+
+  it("opens a link as an anchor in a new tab, and only an http one", async () => {
+    await render(point({ type: "link", address: null, url: "https://www.airbnb.com/rooms/1", when: null }));
+    const open = [...host.querySelectorAll("a")].find((a) => a.textContent === "Open link") as HTMLAnchorElement;
+    expect(open.href).toBe("https://www.airbnb.com/rooms/1");
+    expect(open.rel).toBe("noreferrer noopener");
+    await render(point({ type: "link", address: null, url: "javascript:alert(1)", when: null }));
+    expect([...host.querySelectorAll("a, button")].map((b) => b.textContent)).not.toContain("Open link");
   });
 
   it("says an approximate place is approximate", async () => {

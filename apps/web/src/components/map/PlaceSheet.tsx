@@ -8,10 +8,12 @@
 import { useEffect, useRef } from "react";
 import { directionsUrl } from "@offload/widgets";
 import { domainOf, type Point } from "../../lib/threads";
+import { webHref } from "../../lib/links";
 import { Icon } from "../Icon";
 import { LabelMark } from "../labels/LabelMark";
 import { rowIcon } from "../panes/rowIcon";
 import { kindWord } from "./Point";
+import { kindLine } from "./Callout";
 import styles from "./map.module.css";
 
 function whenLine(when: NonNullable<Point["when"]>): string {
@@ -27,7 +29,6 @@ export function PlaceSheet({
   members,
   onClose,
   onEdit,
-  onOpenLink,
 }: {
   point: Point;
   threadName: string;
@@ -35,9 +36,11 @@ export function PlaceSheet({
   members: { accountId: string | null; displayName: string; isYou: boolean }[];
   onClose: () => void;
   onEdit: (point: Point) => void;
-  onOpenLink: (point: Point) => void;
 }) {
   const calendar = point.source === "calendar";
+  // Only an http link opens, as everywhere else: the guard is the device's
+  // too, for the day the server forgets.
+  const href = webHref(point.url);
   const kind = calendar ? (point.calendarName ?? "Calendar") : kindWord(point.type);
   const carried = labels.filter((label) => point.labelIds.includes(label.id));
   const author = point.authorId ? members.find((m) => m.accountId === point.authorId) : undefined;
@@ -75,7 +78,7 @@ export function PlaceSheet({
         <div className={styles.sheetTitle}>
           <h3>{point.title}</h3>
           <div className={styles.sheetKind}>
-            {kind.charAt(0).toUpperCase() + kind.slice(1)} · {threadName}
+            {kindLine(point, kind)} · {threadName}
           </div>
         </div>
         <button ref={close} type="button" className={styles.close} aria-label="Close" onClick={onClose}>
@@ -91,7 +94,7 @@ export function PlaceSheet({
           </div>
         ))}
       </div>
-      <div className={styles.foot} data-one={calendar}>
+      <div className={styles.foot} data-one={calendar || (point.url !== null && !href)}>
         <a
           className={`${styles.button} ${styles.buttonPrimary}`}
           href={directionsUrl({ lat: point.lat, lng: point.lng, googlePlaceId: point.googlePlaceId })}
@@ -102,10 +105,12 @@ export function PlaceSheet({
           Directions
         </a>
         {calendar ? null : point.url ? (
-          <button type="button" className={styles.button} onClick={() => onOpenLink(point)}>
-            <Icon name="arrow-up-right" size={16} />
-            Open link
-          </button>
+          href ? (
+            <a className={styles.button} href={href} target="_blank" rel="noreferrer noopener">
+              <Icon name="arrow-up-right" size={16} />
+              Open link
+            </a>
+          ) : null
         ) : (
           <button type="button" className={styles.button} onClick={() => onEdit(point)}>
             <Icon name="pencil" size={16} />

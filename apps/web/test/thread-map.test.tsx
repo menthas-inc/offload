@@ -106,7 +106,6 @@ const base = (over: Partial<Props> = {}): Props => ({
   onOpen: () => undefined,
   failed: false,
   onRetry: () => undefined,
-  threadName: "Lisbon trip",
   ...over,
 });
 
@@ -133,6 +132,19 @@ describe("what offload draws over the map (AC-15)", () => {
     expect(host.querySelectorAll("[data-circle]")).toHaveLength(0);
     await render(base({ pick: { labels: ["none-here"], none: false }, pickedNames: ["Shopping"] }));
     expect(host.textContent).toContain("Nothing under Shopping on the map.");
+    await render(base({ pick: { labels: ["x", "y"], none: false }, pickedNames: ["Stay", "Food"] }));
+    expect(host.textContent).toContain("Nothing under Stay and Food on the map.");
+    await render(base({ points: [POINTS[1]!], pick: { labels: [], none: true }, pickedNames: [] }));
+    expect(host.textContent).toContain("Nothing without a label on the map.");
+  });
+
+  it("gives an approximate place a named target of its own, so a keyboard reaches it", async () => {
+    const onSelect = vi.fn();
+    await render(base({ onSelect }));
+    const area = host.querySelector('[data-marker="Casa Alfama, link"]') as HTMLElement;
+    expect(area).not.toBeNull();
+    await act(async () => area.click());
+    expect(onSelect).toHaveBeenCalledWith("c:3");
   });
 });
 
@@ -161,7 +173,8 @@ describe("the callout (AC-17, AC-24)", () => {
 
     const onOpen = vi.fn();
     await render(base({ selected: "c:1", onOpen }));
-    const dialog = host.querySelector('[role="dialog"]') as HTMLElement;
+    const dialog = host.querySelector('[data-callout]') as HTMLElement;
+    expect(dialog.getAttribute("role")).not.toBe("dialog");
     expect(dialog.getAttribute("aria-label")).toBe("Time Out Market");
     const directions = dialog.querySelector("a") as HTMLAnchorElement;
     expect(directions.href).toBe("https://www.google.com/maps/dir/?api=1&destination=38.7069%2C-9.1459&destination_place_id=ChIJ_market");
@@ -171,6 +184,14 @@ describe("the callout (AC-17, AC-24)", () => {
     expect(open.getAttribute("aria-label")).toBe("Open Time Out Market");
     await act(async () => open.click());
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ key: "c:1" }));
+  });
+
+  it("closes on Escape", async () => {
+    const onSelect = vi.fn();
+    await render(base({ selected: "c:1", onSelect }));
+    const callout = host.querySelector("[data-callout]") as HTMLElement;
+    await act(async () => callout.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(onSelect).toHaveBeenCalledWith(null);
   });
 
   it("moves the map just enough for a picked point's callout to stay inside it", async () => {

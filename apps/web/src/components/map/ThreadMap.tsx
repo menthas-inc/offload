@@ -33,6 +33,7 @@ import {
   fitBounds,
   hitCircle,
   metresPerPixel,
+  nameList,
   pointFill,
   pointPasses,
   pointShape,
@@ -63,7 +64,6 @@ export interface ThreadMapProps {
   /** The points read failed. */
   failed: boolean;
   onRetry: () => void;
-  threadName: string;
 }
 
 const SCHEME: Record<Theme, ColorScheme> = {
@@ -79,11 +79,12 @@ const PADDING = { top: 70, right: 28, bottom: 40, left: 28 };
 /** Read once: a camera that moves for a pick jumps instead of gliding. */
 const REDUCED = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
-/** A label's colour as Google's circle needs it: a value, not a variable. */
-function labelColour(colour: number | null): string {
-  if (typeof window === "undefined") return "";
-  const name = colour === null ? "--text-primary" : `--label-${colour}`;
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+/** The label colours as Google's circle needs them, values rather than
+ *  variables: index 0 the ink of no label. Read once per theme. */
+function labelColours(): string[] {
+  if (typeof window === "undefined") return [];
+  const root = getComputedStyle(document.documentElement);
+  return Array.from({ length: 11 }, (_, n) => root.getPropertyValue(n === 0 ? "--text-primary" : `--label-${n}`).trim());
 }
 
 export default function ThreadMap(props: ThreadMapProps) {
@@ -98,8 +99,8 @@ export default function ThreadMap(props: ThreadMapProps) {
   if (props.failed || loadFailed) {
     return (
       <div className={styles.frame}>
-        <div className={styles.failed} role="status">
-          <span>Couldn&apos;t load the map</span>
+        <div className={styles.failed}>
+          <span role="status">Couldn&apos;t load the map</span>
           <button
             type="button"
             className={styles.pill}
@@ -160,9 +161,11 @@ function Drawn({
   onOpen,
   zoom,
   onFit,
+  theme,
 }: ThreadMapProps & { zoom: number | null; onFit: (zoom: number) => void }) {
   const map = useMap();
   const fitted = useRef(false);
+  const colours = useMemo(labelColours, [theme]);
 
   const shown = useMemo(() => points.filter((p) => pointPasses(p, pick)), [points, pick]);
   const order = useMemo(() => labels.map((l) => ({ id: l.id, colour: l.colour })), [labels]);
@@ -182,7 +185,9 @@ function Drawn({
   // enough, and only when the pick changes, never because the points were
   // read again.
   const pointsByKey = useRef(new globalThis.Map<string, Point>());
-  pointsByKey.current = new globalThis.Map(points.map((p) => [p.key, p]));
+  useEffect(() => {
+    pointsByKey.current = new globalThis.Map(points.map((p) => [p.key, p]));
+  }, [points]);
   useEffect(() => {
     const p = selected ? pointsByKey.current.get(selected) : undefined;
     const center = map?.getCenter();
@@ -210,7 +215,7 @@ function Drawn({
     <>
       {areas.map((p) => {
         const fill = pointFill(p.labelIds, order);
-        const colour = labelColour(fill.a);
+        const colour = colours[fill.a ?? 0] ?? "";
         const isPicked = p.key === selected;
         return (
           <Circle
@@ -226,6 +231,20 @@ function Drawn({
           />
         );
       })}
+
+      {/* An area's own target at its centre, named like a point, so a
+          keyboard and a screen reader reach it as a pointer does. */}
+      {areas.map((p) => (
+        <AdvancedMarker
+          key={`area:${p.key}`}
+          position={{ lat: p.lat, lng: p.lng }}
+          anchorPoint={AdvancedMarkerAnchorPoint.CENTER}
+          title={`${p.title}, ${kindWord(p.type)}`}
+          onClick={() => onSelect(p.key)}
+        >
+          <span className={styles.target} />
+        </AdvancedMarker>
+      ))}
 
       {groups.map((group) => {
         if (group.keys.length > 1) {
@@ -245,7 +264,9 @@ function Drawn({
                 map.moveCamera({ center: split.center, zoom: split.zoom });
               }}
             >
-              <span className={styles.count}>{members.length}</span>
+              <span className={styles.target}>
+                <span className={styles.count}>{members.length}</span>
+              </span>
             </AdvancedMarker>
           );
         }
@@ -280,12 +301,14 @@ function Drawn({
           anchorPoint={AdvancedMarkerAnchorPoint.BOTTOM_CENTER}
           zIndex={10}
         >
-          <Callout point={picked} labels={labels} onOpen={onOpen} />
+          <Callout point={picked} labels={labels} onOpen={onOpen} onClose={() => onSelect(null)} />
         </AdvancedMarker>
       ) : null}
 
       {shown.length === 0 && points.length > 0 ? (
-        <p className={styles.nothing}>Nothing under {pickedNames.join(", ") || "that"} on the map.</p>
+        <p className={styles.nothing}>
+          {pickedNames.length > 0 ? `Nothing under ${nameList(pickedNames)} on the map.` : "Nothing without a label on the map."}
+        </p>
       ) : null}
     </>
   );

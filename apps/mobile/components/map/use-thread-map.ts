@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Keyboard, Platform } from "react-native";
 import Constants from "expo-constants";
 import { useMe } from "../../lib/me";
-import { mapsReady, readView, writeView, type MapView } from "../../lib/map-view";
+import { mapsReady, readView, writeView, type MapChoice } from "../../lib/map-view";
 import { fetchPoints, type Point } from "../../lib/threads";
 
 /** One re-read, this long after a read that said places were being fetched
@@ -23,9 +23,9 @@ export interface ThreadMapState {
   /** The switch is drawn. */
   ready: boolean;
   /** What the body shows: Map only while there is a map to show. */
-  layout: MapView;
-  view: MapView;
-  setView: (view: MapView) => void;
+  layout: MapChoice;
+  view: MapChoice;
+  setView: (view: MapChoice) => void;
   /** Shown on Map at least once this visit, so the map exists from here on. */
   made: boolean;
   points: Point[];
@@ -46,7 +46,7 @@ export interface ThreadMapState {
 export function useThreadMap({ threadId, hasPoint, version }: { threadId: string | undefined; hasPoint: boolean; version: unknown }): ThreadMapState {
   const me = useMe();
   const ready = mapsReady({ serverOn: me?.maps === true, available: available(), hasPoint });
-  const [view, setViewState] = useState<MapView>(() => (threadId ? readView(threadId) : "list"));
+  const [view, setViewState] = useState<MapChoice>(() => (threadId ? readView(threadId) : "list"));
   const [points, setPoints] = useState<Point[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -55,7 +55,7 @@ export function useThreadMap({ threadId, hasPoint, version }: { threadId: string
   const [open, setOpen] = useState<Point | null>(null);
   const [sheetHeight, setSheetHeight] = useState(0);
   const [keyboard, setKeyboard] = useState(0);
-  const layout: MapView = ready ? view : "list";
+  const layout: MapChoice = ready ? view : "list";
   const shown = layout === "map";
 
   useEffect(() => {
@@ -102,7 +102,7 @@ export function useThreadMap({ threadId, hasPoint, version }: { threadId: string
       if (threadId) writeView(threadId, next);
       setViewState(next);
     },
-    made: ready && visited && (points !== null || failed),
+    made: visited && (points !== null || failed),
     points: points ?? [],
     failed,
     retry: () => setAttempt((n) => n + 1),

@@ -1733,6 +1733,29 @@ a.settingsRow:hover {
   box-shadow: var(--shadow-1);
 }
 
+/* 030. The icon variant, a thread's List | Map switch in the pane head: a pill
+   track and two 36px segments, from the exploration. */
+.segmented[data-icons] {
+  margin-top: 0;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+}
+
+.segmented[data-icons] .segment {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  min-height: 30px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+}
+
+/* Dark has no drop shadow, so the picked half takes the lift's edge. */
+:global([data-theme="dark"]) .segment[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px var(--border-lift);
+}
+
 /* ---------------------------------------------------------------- notes
    The standing rules a thread holds about itself. No kit draws this section:
    `WThing` has no notes section, and the chip rows in `WMemories` and `WPerson` are

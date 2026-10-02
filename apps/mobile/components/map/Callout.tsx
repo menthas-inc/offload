@@ -30,7 +30,9 @@ export function Callout({
 }) {
   const COLOR = useColors();
   const carried = labels.filter((label) => point.labelIds.includes(label.id));
-  const kind = point.source === "calendar" ? (point.calendarName ?? "Calendar") : kindWord(point.type);
+  // A calendar's name is somebody's own text and is drawn as written.
+  const calendar = point.source === "calendar";
+  const kind = calendar ? (point.calendarName ?? "Calendar") : kindWord(point.type);
   // A 36 or 32 pill, reaching 44 by slop.
   const pill = isAndroid ? 36 : 32;
   const reach = (44 - pill) / 2;
@@ -53,7 +55,7 @@ export function Callout({
       </Text>
       <View className="flex-row flex-wrap items-center" style={{ gap: 6, marginTop: 3 }}>
         <Text className="font-core text-text-secondary" style={{ fontSize: 12.5 }}>
-          {kind.charAt(0).toUpperCase() + kind.slice(1)}
+          {calendar ? kind : kind.charAt(0).toUpperCase() + kind.slice(1)}
         </Text>
         {carried.map((label) => (
           <LabelMark key={label.id} color={label.colour}>
@@ -68,7 +70,7 @@ export function Callout({
           accessibilityRole="link"
           accessibilityLabel={`Directions to ${point.title}`}
           className="flex-row items-center rounded-pill bg-surface-inverse px-space-5"
-          style={{ height: pill, gap: 5 }}
+          style={{ minHeight: pill, gap: 5 }}
         >
           <Glyph name="compass" size={13} color={COLOR.onSolid} />
           <Text className="font-core font-medium text-text-inverse" style={{ fontSize: 13 }}>
@@ -81,7 +83,7 @@ export function Callout({
           accessibilityRole="button"
           accessibilityLabel={`Open ${point.title}`}
           className="items-center justify-center rounded-pill bg-surface-fill px-space-5"
-          style={{ height: pill }}
+          style={{ minHeight: pill }}
         >
           <Text className="font-core font-medium text-text-primary" style={{ fontSize: 13 }}>
             Open

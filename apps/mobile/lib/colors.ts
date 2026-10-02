@@ -124,7 +124,8 @@ export interface Colors {
   shadowPoint: string;
   shadowPointPicked: string;
   shadowCallout: string;
-  /** 030. `--shadow-1`, a chip floating over the map; `none` in dark. */
+  /** 030. A chip floating over the map: `--shadow-1`, and in dark, where
+   *  that is none, the `--border-lift` edge. */
   shadowRaised: string;
 }
 
@@ -202,7 +203,9 @@ export function paletteFor(dark: boolean): Colors {
     shadowPoint: base["shadow-point"] ?? light["shadow-point"]!,
     shadowPointPicked: base["shadow-point-picked"] ?? light["shadow-point-picked"]!,
     shadowCallout: base["shadow-callout"] ?? light["shadow-callout"]!,
-    shadowRaised: base["shadow-1"] ?? light["shadow-1"]!,
+    // Dark has no drop shadow (`--shadow-1` is `none`), so a raised chip
+    // takes the lift's edge instead.
+    shadowRaised: dark ? `inset 0 0 0 1px ${base["border-lift"] ?? light["border-lift"]!}` : (base["shadow-1"] ?? light["shadow-1"]!),
     labels: Array.from({ length: 11 }, (_, n) =>
       n === 0 ? (base["text-primary"] ?? light["text-primary"]!) : (base[`label-${n}` as keyof typeof base] ?? light[`label-${n}` as keyof typeof light]!),
     ),

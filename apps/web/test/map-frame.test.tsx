@@ -20,11 +20,15 @@ vi.mock("../src/lib/use-me", () => ({
   },
 }));
 
-const reads = vi.hoisted(() => ({ count: 0, answer: { points: [] as unknown[], pending: 0 } as { points: unknown[]; pending: number } | null }));
+const reads = vi.hoisted(() => ({
+  count: 0,
+  answer: { points: [] as unknown[], pending: 0 } as { points: unknown[]; pending: number } | null,
+  wait: null as Promise<{ points: unknown[]; pending: number }> | null,
+}));
 vi.mock("../src/lib/threads", () => ({
   fetchPoints: async () => {
     reads.count += 1;
-    return reads.answer;
+    return reads.wait ? await reads.wait : reads.answer;
   },
 }));
 
@@ -55,6 +59,7 @@ beforeEach(() => {
   mounts = 0;
   reads.count = 0;
   reads.answer = { points: [], pending: 0 };
+  reads.wait = null;
   me.maps = true;
   window.localStorage.clear();
 });
@@ -163,6 +168,27 @@ describe("one map for the life of the pane (AC-21)", () => {
     expect(mounts).toBe(1);
   });
 
+  it("keeps the map it made when the pane goes behind or the last point goes, and comes back", async () => {
+    function Host({ top, hasPoint }: { top: boolean; hasPoint: boolean }) {
+      return (
+        <PaneTop.Provider value={top}>
+          <Pane hasPoint={hasPoint} />
+        </PaneTop.Provider>
+      );
+    }
+    await render(<Host top hasPoint />);
+    await width(1200);
+    const made = host.querySelector('[data-testid="map"]');
+    expect(made).not.toBeNull();
+    await render(<Host top={false} hasPoint />);
+    expect(column()?.hasAttribute("inert")).toBe(true);
+    await render(<Host top hasPoint={false} />);
+    await render(<Host top hasPoint />);
+    await width(1200);
+    expect(host.querySelector('[data-testid="map"]')).toBe(made);
+    expect(mounts).toBe(1);
+  });
+
   it("floats the chips over the map on Map only", async () => {
     await render(<Pane />);
     await width(900);
@@ -187,6 +213,18 @@ describe("the choice is the device's (AC-13)", () => {
 });
 
 describe("the points read", () => {
+  it("shows the one spinner in the map's place until the points arrive", async () => {
+    let answer: (v: { points: unknown[]; pending: number }) => void = () => undefined;
+    reads.wait = new Promise((resolve) => (answer = resolve));
+    await render(<Pane />);
+    await width(900);
+    await press("Map");
+    expect(host.querySelector('[data-map-loading]')).not.toBeNull();
+    await act(async () => answer({ points: [], pending: 0 }));
+    expect(host.querySelector('[data-map-loading]')).toBeNull();
+    expect(host.querySelector('[data-testid="map"]')).not.toBeNull();
+  });
+
   it("reads again once while places are still being fetched", async () => {
     vi.useFakeTimers();
     try {

@@ -1061,7 +1061,6 @@ export function Thread({ id, onChanged }: Props) {
             onOpen={map.setOpen}
             failed={map.failed}
             onRetry={map.retry}
-            threadName={thread.name}
           />
         )}
         chips={
@@ -1084,9 +1083,6 @@ export function Thread({ id, onChanged }: Props) {
               members={thread.members}
               onClose={() => map.setOpen(null)}
               onEdit={(point) => void editFromMap(point)}
-              onOpenLink={(point) => {
-                if (point.url) window.open(point.url, "_blank", "noopener,noreferrer");
-              }}
             />
           ) : null
         }

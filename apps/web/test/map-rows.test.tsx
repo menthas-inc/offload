@@ -75,6 +75,16 @@ describe("a row and its point (AC-18)", () => {
     expect(onHover).toHaveBeenLastCalledWith(null);
   });
 
+  it("reports a keyboard's focus the same way", async () => {
+    const onHover = vi.fn();
+    await render(<ContentRowView row={row} lead={null} meta={null} handlers={handlers({ onHover })} />);
+    const el = host.querySelector("[data-row]") as HTMLElement;
+    await act(async () => el.dispatchEvent(new FocusEvent("focusin", { bubbles: true })));
+    expect(onHover).toHaveBeenLastCalledWith("c1");
+    await act(async () => el.dispatchEvent(new FocusEvent("focusout", { bubbles: true })));
+    expect(onHover).toHaveBeenLastCalledWith(null);
+  });
+
   it("is marked while its point is picked, and only then", async () => {
     await render(<ContentRowView row={row} lead={null} meta={null} handlers={handlers({ picked: "c1" })} />);
     expect(host.querySelector("[data-row]")?.hasAttribute("data-picked")).toBe(true);

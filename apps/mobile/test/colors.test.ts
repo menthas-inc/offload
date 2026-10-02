@@ -66,6 +66,7 @@ describe("the map's values (030)", () => {
     expect(light.shadowCallout).toBe(resolved.light["shadow-callout"]);
     // A chip floating over the map: --shadow-1, which is no shadow in dark.
     expect(light.shadowRaised).toBe(resolved.light["shadow-1"]);
-    expect(paletteFor(true).shadowRaised).toBe("none");
+    // Dark has no drop shadow, so a raised chip takes the lift's edge.
+    expect(paletteFor(true).shadowRaised).toBe(`inset 0 0 0 1px ${resolved.dark["border-lift"]}`);
   });
 });

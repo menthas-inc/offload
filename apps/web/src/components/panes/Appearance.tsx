@@ -25,6 +25,7 @@ import {
   type TypeSize,
 } from "../../lib/appearance";
 import pane from "../../app/(shell)/shell.module.css";
+import { Icon } from "../Icon";
 
 export function AppearancePane() {
   const { theme, size, setTheme, setSize } = useAppearance();
@@ -76,26 +77,32 @@ export function Segmented<T extends string>({
   label,
   options,
   labelFor,
+  iconFor,
   value,
   onChange,
 }: {
   label: string;
   options: readonly T[];
   labelFor: (value: T) => string;
+  /** 030. The icon variant, a thread's List | Map switch: each segment draws
+   *  its icon and its label names it. */
+  iconFor?: (value: T) => string;
   value: T;
   onChange: (value: T) => void;
 }) {
   return (
-    <div className={pane.segmented} role="group" aria-label={label}>
+    <div className={pane.segmented} role="group" aria-label={label} data-icons={iconFor ? true : undefined}>
       {options.map((option) => (
         <button
           key={option}
           type="button"
           className={pane.segment}
           aria-pressed={option === value}
+          aria-label={iconFor ? labelFor(option) : undefined}
+          title={iconFor ? labelFor(option) : undefined}
           onClick={() => onChange(option)}
         >
-          {labelFor(option)}
+          {iconFor ? <Icon name={iconFor(option)} size={16} /> : labelFor(option)}
         </button>
       ))}
     </div>
