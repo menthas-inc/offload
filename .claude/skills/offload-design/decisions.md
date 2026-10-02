@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-02 · Settings, tightened
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, off `explorations/settings.html` and `explorations/settings-v2.html`. Handoff: `handoff/APPLY-2026-10-02-settings.md`.
+
+**Was:** every settings page built from `Group` and `Row`, the group label at 12px tertiary over 15px rows; Theme and Week starts on as a bare segmented control; Country and Time zone on the web as a native `select`, unreadable in dark; Signed in on drawing *Nothing else* when its read failed; My people with no way to start a connection; Connected apps as four one-row groups, two of them not built and one a paragraph.
+
+**Is:** **sections open with a 32px glyph tile, a 17px semibold heading and an optional caption** (direction B), on every page and surface. **Preview tiles** for Theme, Week starts on and Text size. A token-drawn **combobox** for Country and Time zone on the web. **This device always heads Signed in on**, and a failed read says so. **My people gains Connect with someone**, reusing the Share sheet's lookup. **Connected apps is one card per app**: Calendar's carries *Ask before adding*, Mail's carries the address and *Copy*, and **the Mail card is always shown**. *Not built yet* and *What offload may do* are removed. **Help gains See the tutorial again.**
+
+**Considered and not taken:** A, the current cards with only a larger label; C, a summary head and a raised card per section; radio cards and the segmented control for choices; a Tonight after sunset switch; a Conversations kept row in Privacy; renaming Reaching the web to Privacy.
+
+**Design system impact:** `readme.md` gains **Settings**. Eight Lucide glyphs vendored, 95 in all: `smartphone` `monitor` `user-plus` `globe` `copy` `log-out` `ban` `type`. No new tokens. The kits are not redrawn; `explorations/settings-v2.html` is the reference.
+
 ### 2026-10-02 · A thread's map
 **Surface:** iOS, Android, web
 **Raised by:** the product owner, off `explorations/maps.html`. Handoff: `handoff/APPLY-2026-10-02-maps.md`.

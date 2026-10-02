@@ -4,20 +4,19 @@ path:
 
 ## Last sync
 
-date: 2026-10-01T23:30:00Z
+date: 2026-10-02T13:40:00Z
 
-Pulled `main`, read at `78e6836114c1`: 51 commits past `e30feeea473c`, with 028 Not in a thread
-built. The design-system files on main matched this project except the shared log, which was adopted
-whole (it adds *Not in a thread as built (028)* and *Whose an event is*) before this entry was
-prepended. Two of 028's asks are folded into the readme: no *Saved.* reply, and the faces. The kit
-changes 028 lists for `LooseParts.jsx` are not made in this pass.
+Read `main` for the settings work: every settings page on both clients, `PeoplePage.tsx`,
+`NotificationsPage.tsx`, `Rows.tsx`, `sessions.ts`, `people.ts` and the web panes. No files were
+taken from the repository in this pass. Found while reading: Signed in on draws *Nothing else* when
+its read fails, and the web's Country and Time zone are native selects with no dark scheme.
 
 ### Updated in this project
 
-- **A thread's map**: `explorations/maps.html`, `handoff/APPLY-2026-10-02-maps.md` and its standalone copy
-- List | Map switch on phones and narrow web, a 460px map column on wide web; Places section retired
-- MapLibre with MapTiler Streets; place lookup moves to MapTiler Geocoding
-- `readme.md` gains **A thread's map**; `decisions.md` gains one entry
+- **Settings, tightened**: `explorations/settings-v2.html` (and the first round, `settings.html`), `handoff/APPLY-2026-10-02-settings.md` and `handoff/settings-standalone.html`
+- Direction B section headings and preview tiles on all three; Connected apps as cards with Mail always shown; Connect with someone; See the tutorial again
+- Eight Lucide glyphs vendored, 95 in all
+- `readme.md` gains **Settings**; `decisions.md` gains one entry
 
 ## Screen map
 
@@ -37,6 +36,7 @@ changes 028 lists for `LooseParts.jsx` are not made in this pass.
 | Dates and notifications | `explorations/due-dates-and-notifications.html`, `handoff/APPLY-2026-09-22-dates.md` | `DateChip.tsx`, `WhenSheet.tsx`, `CustomRepeatSheet.tsx`, `ZoneStrip.tsx`, `Activity.tsx`, `NotificationsPage.tsx`, `packages/widgets/src/rrule.ts` |
 | A thread's map | `explorations/maps.html`, `handoff/APPLY-2026-10-02-maps.md` | `apps/mobile/components/screens/Thread.tsx`, `apps/mobile/components/shell/Widgets.tsx`, `apps/web/src/components/panes/Thread.tsx`, `apps/web/src/components/panes/Widgets.tsx`, `packages/widgets/src/index.ts`, `apps/core-api/src/places/resolve.ts`, `apps/agent/src/offload_agent/og.py` |
 | Things without a thread | `explorations/loose-items.html`, `handoff/APPLY-2026-10-01-loose.md`, `ui_kits/mobile_app/LooseParts.jsx` | `apps/mobile/components/screens/MyThreads.tsx`, `shell/ThreadRow.tsx`, `apps/web/src/components/panes/MyThreads.tsx`, `apps/core-api/src/admin/promote.ts`, `apps/agent/src/offload_agent/harness/plan.py` |
+| Settings | `explorations/settings-v2.html`, `handoff/APPLY-2026-10-02-settings.md` | `apps/mobile/app/settings/`, `apps/mobile/components/settings/`, `apps/mobile/components/people/PeoplePage.tsx`, `apps/mobile/lib/sessions.ts`, `apps/web/src/components/panes/Settings.tsx`, `SettingsRows.tsx`, `Account.tsx`, `DateTime.tsx`, `Appearance.tsx` |
 | Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/` |
 | Landing page, invite email | `ui_kits/marketing_site/` | `apps/web/src/app/(marketing)/` |
 | Design tokens | `styles.css`, `tokens/` | `packages/tokens/`, generated from `.claude/skills/offload-design/tokens` |
@@ -46,6 +46,23 @@ changes 028 lists for `LooseParts.jsx` are not made in this pass.
 | Atmosphere tokens | not carried, the marketing site's | `packages/tokens/atmosphere.css` (keep from the repository) |
 
 ## Sync history
+
+### 2026-10-01T23:30:00Z
+
+date: 2026-10-01T23:30:00Z
+
+Pulled `main`, read at `78e6836114c1`: 51 commits past `e30feeea473c`, with 028 Not in a thread
+built. The design-system files on main matched this project except the shared log, which was adopted
+whole (it adds *Not in a thread as built (028)* and *Whose an event is*) before this entry was
+prepended. Two of 028's asks are folded into the readme: no *Saved.* reply, and the faces. The kit
+changes 028 lists for `LooseParts.jsx` are not made in this pass.
+
+### Updated in this project
+
+- **A thread's map**: `explorations/maps.html`, `handoff/APPLY-2026-10-02-maps.md` and its standalone copy
+- List | Map switch on phones and narrow web, a 460px map column on wide web; Places section retired
+- MapLibre with MapTiler Streets; place lookup moves to MapTiler Geocoding
+- `readme.md` gains **A thread's map**; `decisions.md` gains one entry
 
 ### 2026-10-01T19:05:00Z
 
