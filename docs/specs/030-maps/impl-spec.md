@@ -41,7 +41,7 @@ Reads with `feature-spec.md`. Where the two disagree, the feature spec wins and 
 
 ## Data model
 
-Migration `0068_places_google.sql` (0067 is taken):
+Migration `0072_places_google.sql` (0067 is taken):
 
 ```sql
 -- No place ever resolved in production; a local database may hold some, each
