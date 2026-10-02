@@ -11,6 +11,26 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-02 · Settings, as built (031)
+**Surface:** iOS, Android, web
+**Raised by:** code, building *Settings, tightened* in 031 (`docs/specs/031-settings/`), with the owner's answers of the same day and the client review.
+
+**Was:** the handoff and `explorations/settings-v2.html` as drawn.
+
+**Is:** built as drawn, with these differences, code leading:
+- **The found row's button is *Ask to connect***, in My people and in the Share sheet, where the built step said *Request* (owner). **A refused lookup has its own line**, *Too many lookups. Try again in a few minutes.*, with no retry, where a 429 fell into the generic failure (owner).
+- **Status pills are `--text-accent`, word and dot**, not `--moss-700`, which measures 3.81:1 on `--surface-accent-soft` in dark. The section tile's glyph stays `--moss-700`, which clears 3:1 for a graphic.
+- **Android outlines are `--border-strong`.** The exploration's `#79786F` is Material's outline; the Android scope's `a-outline` is outline-variant, the hairline, at 1.29:1. The card `#F1EFEA` is `a-c-low` and the wells `#E4E1DA` are `a-c-high`, as built before.
+- **The person mark stays 36 on Android**, where the handoff asks 40: `Avatar`'s contract lists five sizes as every size the product draws.
+- **The phones' Mail card has a third row, *How it works***, as the door to the Mail page, where the spec said the card's head: a tappable head carrying a status pill says nothing about where it goes.
+- **Theme previews take their colours from the light and dark scopes' own values** (`surface-page` and `ink-200` light, `surface-page` dark and `ink-700` light), so a preview depicts a theme whichever is showing.
+- **The web's pointer controls drawn under 44px** (the card actions, the combobox field) keep their drawn size; touch targets on the phones reach 44 by hit slop.
+- **Text size's first option is *Default***, renamed from *Normal* so the nav foot and the tile say one word.
+- **Connect on the Calendar card goes straight to Google.** The connect screen's *You choose which calendars after this.* stays on the calendar page, which is now one level down on the web too (`/settings/apps/calendar`).
+- **Profile carries the exploration's caption**, *How you appear to people you share with.*, which the handoff did not restate.
+
+**Design system impact:** readme **People, and connecting** and **Sharing**: the found row's button is *Ask to connect*, and the 429 line joins the step. Readme **Settings**: status pills are `--text-accent`; Android outlines are `--border-strong`; the person mark is 36 on both phones; the phones' Mail card has a *How it works* row. Consider an `a-outline-strong` in the Android scope so the outline is a token rather than a borrowed alias. The kits are not redrawn for this.
+
 ### 2026-10-02 · Settings, tightened
 **Surface:** iOS, Android, web
 **Raised by:** the product owner, off `explorations/settings.html` and `explorations/settings-v2.html`. Handoff: `handoff/APPLY-2026-10-02-settings.md`.

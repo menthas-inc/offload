@@ -2,6 +2,7 @@
 
 **Status:** drafted 2026-09-22 against the design handoff of the same day (`handoff/APPLY-2026-09-22-dates.md` items 10 to 14, `explorations/due-dates-and-notifications.html` sections 7 to 9), revised the same day with the product owner's answers and the three reviews
 **Surfaces:** iOS, Android, web, the Core API and the agent plane
+**Amended by 031 (2026-10-02):** the page's three groups become sections with captions, each hour sits indented under its switch, the phones' last section says whether this phone allows them, and the web gains On your phones.
 **Depends on:** 023, whose zone, rule, chip and write path every section here reads; 022, whose requests, invitations and dot the people sends sit beside; 009, whose first run already asks the permission and whose Today draws a bell that does nothing; 010, whose Settings gains a page; 013, whose agenda read Today reuses
 
 ## Why
