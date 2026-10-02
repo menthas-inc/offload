@@ -354,10 +354,10 @@ export interface ComboOption {
  *  control kept the browser's white field with light grey text. Drawn from
  *  tokens, so dark is not a special case.
  *
- *  The field is the combobox and opens a popover with a filter on top, which
- *  holds focus while it is open and drives the list by
- *  `aria-activedescendant`, the way a select's own list is driven. Arrows
- *  move, Enter picks, Escape closes with focus back on the field, and a
+ *  The closed field is a plain button named for what it sets. It opens a
+ *  popover whose filter is the combobox, the editable pattern: it holds focus
+ *  while open and drives the list by `aria-activedescendant`. Arrows move,
+ *  Enter picks, Escape closes with focus back on the field, and Tab or a
  *  click anywhere else closes it. */
 export function Combobox({
   label,
@@ -435,6 +435,10 @@ export function Combobox({
     } else if (event.key === "Escape") {
       event.preventDefault();
       close();
+    } else if (event.key === "Tab") {
+      // Focus goes on to wherever Tab takes it; a list left open behind it
+      // would answer arrows nobody is pressing.
+      setOpen(false);
     }
   }
 
@@ -476,11 +480,8 @@ export function Combobox({
       <button
         ref={field}
         type="button"
-        role="combobox"
         aria-label={label}
         aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listId}
         className={styles.comboField}
         onClick={() => (open ? setOpen(false) : show())}
         onKeyDown={(event) => {
@@ -503,7 +504,9 @@ export function Combobox({
               className={styles.comboFilterInput}
               value={query}
               placeholder={filterPlaceholder}
-              aria-label={filterPlaceholder}
+              role="combobox"
+              aria-label={label}
+              aria-expanded={open}
               aria-controls={listId}
               aria-autocomplete="list"
               aria-activedescendant={shown[active] ? `${id}-${active}` : undefined}

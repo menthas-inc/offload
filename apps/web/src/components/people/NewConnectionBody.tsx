@@ -15,7 +15,18 @@ import { useRouter } from "next/navigation";
 import { Icon } from "../Icon";
 import { Avatar } from "../Avatar";
 import { refreshMe } from "../../lib/use-me";
-import { answerRequest, dayMonth, firstNameOf, lookup, nameOf, requestConnection, type Found } from "../../lib/people";
+import {
+  LOOKUP_LIMITED,
+  answerRequest,
+  dayMonth,
+  firstNameOf,
+  lookup,
+  nameOf,
+  requestConnection,
+  stateOfLookup,
+  stateOfRequest,
+  type Found,
+} from "../../lib/people";
 import styles from "./people.module.css";
 
 type State =
@@ -55,10 +66,7 @@ export function NewConnectionBody({
     if (!address.includes("@")) return;
     setState({ kind: "looking" });
     setSendFailed(false);
-    const result = await lookup(address);
-    if (result.kind === "found") setState(result.found ? { kind: "found", found: result.found } : { kind: "none" });
-    else if (result.kind === "rate_limited") setState({ kind: "limited" });
-    else setState({ kind: "failed" });
+    setState(stateOfLookup(await lookup(address)));
   }
 
   async function ask(found: Found) {
@@ -66,19 +74,10 @@ export function NewConnectionBody({
     setSendFailed(false);
     const outcome = await requestConnection(found.accountId);
     setSending(false);
-    if (outcome.ok) {
-      setState({ kind: "found", found: { ...found, relation: "you_asked", requestId: outcome.requestId, since: outcome.since } });
-      onAsked?.();
-      return;
-    }
-    if (outcome.error === "connected") setState({ kind: "found", found: { ...found, relation: "connected" } });
-    else if (outcome.error === "pending") setState({ kind: "found", found: { ...found, relation: "you_asked", requestId: outcome.requestId ?? null } });
-    // A request to this person ended in the last week: what is refused is
-    // said, and the row keeps its control for when the week is up.
-    else if (outcome.error === "too_soon") setState({ kind: "found", found, line: "You asked recently. Try again in a week." });
-    else if (outcome.error === "asked_you") setState({ kind: "found", found: { ...found, relation: "asked_you", requestId: outcome.requestId ?? null } });
-    else if (outcome.error === "not_found") setState({ kind: "none" });
-    else setSendFailed(true);
+    const next = stateOfRequest(found, outcome);
+    if (next.kind === "failed") setSendFailed(true);
+    else setState(next);
+    if (outcome.ok) onAsked?.();
   }
 
   async function answer(found: Found, which: "accept" | "dismiss") {
@@ -133,7 +132,13 @@ export function NewConnectionBody({
               <Icon name="search" size={16} />
               {input}
             </label>
-            <button type="submit" className={`${styles.primary} ${styles.addFind}`} disabled={state.kind === "looking"}>
+            {/* Not pressable until there is an address to look up, so a
+                press is never silently dead. */}
+            <button
+              type="submit"
+              className={`${styles.primary} ${styles.addFind}`}
+              disabled={state.kind === "looking" || !email.includes("@")}
+            >
               Find
             </button>
           </>
@@ -147,7 +152,7 @@ export function NewConnectionBody({
 
       {!inline && (state.kind === "empty" || state.kind === "looking") ? (
         <>
-          <p className={styles.emptyTitle} style={{ marginTop: 0 }}>You need their offload email</p>
+          <p className={styles.stepTitle}>You need their offload email</p>
           <p className={styles.emptyBody}>
             Sharing does not invite anyone in, so there is nobody to look up who is not already here. Ask them which email they signed up with.
           </p>
@@ -155,26 +160,26 @@ export function NewConnectionBody({
       ) : null}
       {state.kind === "none" ? (
         <div className={inline ? styles.addResult : undefined}>
-          <p className={styles.emptyTitle} style={{ marginTop: 0 }}>No offload account for that</p>
+          <p className={styles.stepTitle}>No offload account for that</p>
           <p className={styles.emptyBody}>Check the spelling. If they are not on offload, there is nothing here that can add them.</p>
         </div>
       ) : null}
       {state.kind === "limited" ? (
-        <p className={styles.failed} role="alert" style={inline ? undefined : { marginTop: 0 }}>
-          Too many lookups. Try again in a few minutes.
+        <p className={inline ? styles.failed : styles.stepFailed} role="alert">
+          {LOOKUP_LIMITED}
         </p>
       ) : null}
       {state.kind === "failed" ? (
-        <p className={styles.failed} role="alert" style={inline ? undefined : { marginTop: 0 }}>
+        <p className={inline ? styles.failed : styles.stepFailed} role="alert">
           That didn&rsquo;t go through.{" "}
-          <button type="button" className={styles.ghost} onClick={() => void look()} style={{ minHeight: 28, padding: 0, color: "var(--text-accent)" }}>
+          <button type="button" className={styles.retryLink} onClick={() => void look()}>
             Try again
           </button>
         </p>
       ) : null}
       {found ? (
         <div className={inline ? styles.addResult : undefined}>
-          <div className={`${styles.pickRow} ${styles.pickRowLast}`} style={{ margin: 0, padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--surface-fill)" }}>
+          <div className={styles.foundRow}>
             <button
               type="button"
               className={styles.door}

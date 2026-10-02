@@ -564,7 +564,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  height: 44px;
+  min-height: 44px;
   padding: 0 14px;
   border-radius: 12px;
   background: var(--surface-raised);
@@ -574,7 +574,7 @@
 }
 
 .addField:focus-within {
-  box-shadow: inset 0 0 0 1px var(--border-focus);
+  box-shadow: inset 0 0 0 1px var(--border-focus), var(--shadow-focus);
 }
 
 .addInput {
@@ -614,4 +614,30 @@
 
 .waiting > .card:last-child {
   margin-bottom: 0;
+}
+
+/* The step's pieces that sit flush under the field, and its found row. */
+.stepTitle {
+  composes: emptyTitle;
+  margin-top: 0;
+}
+
+.stepFailed {
+  composes: failed;
+  margin-top: 0;
+}
+
+.retryLink {
+  composes: ghost;
+  min-height: 28px;
+  padding: 0;
+  color: var(--text-accent);
+}
+
+.foundRow {
+  composes: pickRow pickRowLast;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-fill);
 }

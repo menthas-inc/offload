@@ -2,7 +2,20 @@
 // down the middle for System, the week with its first day filled and the
 // weekend quieter, two sizes of Aa. From `explorations/settings-v2.html`.
 
+import { resolved } from "@offload/tokens";
 import styles from "../../app/(shell)/shell.module.css";
+
+/** **The colours of a theme, not of this page.** Each theme's own values,
+ *  resolved, the ones the phones draw their previews with, set inline so a
+ *  Light tile stays light in dark. The web's token sheet has no light scope
+ *  to pin a subtree to, and retyping the values would be a second source. */
+const DEPICT = {
+  "--depict-light-page": resolved.light["surface-page"],
+  "--depict-light-bar": resolved.light["ink-200"],
+  "--depict-light-edge": resolved.light["border-hairline"],
+  "--depict-dark-page": resolved.dark["surface-page"],
+  "--depict-dark-bar": resolved.light["ink-700"],
+} as React.CSSProperties;
 
 function Bars({ two }: { two?: boolean }) {
   return (
@@ -17,7 +30,7 @@ function Bars({ two }: { two?: boolean }) {
 export function ThemePreview({ theme }: { theme: "light" | "dark" | "system" }) {
   if (theme === "system") {
     return (
-      <span className={styles.depictSplit}>
+      <span className={styles.depictSplit} style={DEPICT}>
         <span className={styles.depictLight}>
           <Bars two />
         </span>
@@ -28,7 +41,7 @@ export function ThemePreview({ theme }: { theme: "light" | "dark" | "system" }) 
     );
   }
   return (
-    <span className={theme === "light" ? styles.depictLight : styles.depictDark}>
+    <span className={theme === "light" ? styles.depictLight : styles.depictDark} style={DEPICT}>
       <Bars />
     </span>
   );

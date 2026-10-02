@@ -1722,6 +1722,8 @@ a.settingsRow:hover,
    the exploration gives it on web, where the rows sit on the page. */
 .settingsTime {
   flex: 0 0 auto;
+  /* The hit area stays the tap minimum; the padding draws the pill. */
+  min-height: var(--tap-min);
   padding: 6px 10px;
   border: 0;
   border-radius: 8px;
@@ -1824,7 +1826,7 @@ a.settingsRow:hover,
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 24px;
+  min-height: 24px;
   padding: 0 9px;
   border-radius: var(--radius-pill);
   background: var(--surface-fill-strong);
@@ -1833,9 +1835,11 @@ a.settingsRow:hover,
   white-space: nowrap;
 }
 
+/* --text-accent, not --moss-700: the ramp step measures 3.81:1 on its soft
+   ground in dark, and the alias is pitched per theme to read. */
 .settingsStatus[data-tone="on"] {
   background: var(--surface-accent-soft);
-  color: var(--moss-700);
+  color: var(--text-accent);
 }
 
 .settingsStatus[data-tone="on"]::before {
@@ -1843,7 +1847,7 @@ a.settingsRow:hover,
   width: 6px;
   height: 6px;
   border-radius: var(--radius-pill);
-  background: currentColor;
+  background: var(--text-accent);
 }
 
 /* A row that acts in place: End, Withdraw, Copy. */
@@ -1852,7 +1856,7 @@ a.settingsRow:hover,
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 32px;
+  min-height: 32px;
   padding: 0 14px;
   border-radius: var(--radius-pill);
   background: var(--surface-raised);
@@ -1953,7 +1957,7 @@ a.settingsRow:hover,
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  height: 32px;
+  min-height: 32px;
   padding: 0 14px;
   border-radius: var(--radius-pill);
   background: var(--surface-inverse);
@@ -1985,7 +1989,7 @@ a.settingsRow:hover,
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  height: 34px;
+  min-height: 34px;
   min-width: 150px;
   padding: 0 10px 0 12px;
   border: 0;
@@ -2024,7 +2028,7 @@ a.settingsRow:hover,
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  height: 36px;
+  min-height: 36px;
   margin-bottom: var(--space-2);
   padding: 0 10px;
   border-radius: 8px;
@@ -2095,17 +2099,11 @@ a.settingsRow:hover,
 /* ------------------------------------------------------- the choice tiles */
 
 /* **The theme previews depict a theme and do not follow it.** A Light tile
-   drawn in dark tokens would show a dark screen labelled Light. The web's
-   token sheet restates every alias under `[data-theme="dark"]` but has no
-   light scope to pin a subtree to, so the colours are written once here and
-   named for what they depict: each theme's own `--surface-page`, and the
-   exploration's bars on it. */
+   drawn in dark tokens would show a dark screen labelled Light, and the web's
+   token sheet has no light scope to pin a subtree to. So `ChoicePreviews.tsx`
+   sets the `--depict-*` properties inline from `@offload/tokens`' resolved
+   values, the ones the phones draw with: nothing is retyped here. */
 .tiles {
-  --depict-light-page: #FAF9F7;
-  --depict-light-bar: #D9D7D1;
-  --depict-light-edge: rgb(11 11 11 / 0.08);
-  --depict-dark-page: #1C1B19;
-  --depict-dark-bar: #3A3936;
   display: grid;
   gap: 10px;
   margin-top: 14px;

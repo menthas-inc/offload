@@ -98,7 +98,7 @@ export function AccountPane() {
       </div>
 
       <div className={pane.paneBody}>
-        <Group label="Profile" icon="circle-dot">
+        <Group label="Profile" icon="circle-dot" caption="How you appear to people you share with.">
           <EditableRow
             title="Name"
             value={account?.displayName ?? null}

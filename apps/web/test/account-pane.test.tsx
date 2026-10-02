@@ -123,11 +123,12 @@ describe("My account's sections", () => {
   it("draws Profile, Where you are and Signed in on as headings, and Sign out with none", async () => {
     const host = await render();
     expect([...host.querySelectorAll("h2")].map((h) => h.textContent)).toEqual(["Profile", "Where you are", "Signed in on"]);
+    expect(section(host, "Profile").textContent).toContain("How you appear to people you share with.");
     expect(section(host, "Where you are").textContent).toContain(
       "So a date or a forecast is the one where you are. Leave it unset and offload says it does not know rather than guessing.",
     );
     expect(section(host, "Signed in on").textContent).toContain("Ending a session signs that device out on its next request.");
-    expect(host.querySelector('[role="combobox"]')?.textContent).toContain("Portugal");
+    expect(host.querySelector('button[aria-label="Country"]')?.textContent).toContain("Portugal");
   });
 
   it("says where the email came from (AC-4)", async () => {

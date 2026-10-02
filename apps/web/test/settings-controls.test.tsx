@@ -56,9 +56,13 @@ async function country(value = "PT") {
   const { host } = await render(
     <Combobox label="Country" value={value} options={COUNTRIES} notSet filterPlaceholder="Find a country" onChange={onChange} />,
   );
-  const field = host.querySelector<HTMLElement>('[role="combobox"]')!;
+  // The closed field is a plain button named for what it sets; the combobox
+  // is the filter, open.
+  const field = host.querySelector<HTMLElement>('button[aria-label="Country"]')!;
   return { host, field, onChange };
 }
+
+const combobox = () => document.querySelector<HTMLInputElement>('input[role="combobox"]');
 
 const options = () => [...document.querySelectorAll('[role="option"]')].map((o) => o.textContent);
 
@@ -66,14 +70,17 @@ describe("the combobox (AC-6)", () => {
   it("shows the value closed, and opens on the filter with Not set first and a check on the current one", async () => {
     const { field } = await country();
     expect(field.textContent).toContain("Portugal");
-    expect(field.getAttribute("aria-expanded")).toBe("false");
+    expect(field.getAttribute("role")).toBeNull();
+    expect(combobox()).toBeNull();
     expect(document.querySelector('[role="listbox"]')).toBeNull();
 
     await act(async () => field.click());
-    expect(field.getAttribute("aria-expanded")).toBe("true");
+    const input = combobox()!;
+    expect(document.activeElement).toBe(input);
+    expect(input.placeholder).toBe("Find a country");
+    expect(input.getAttribute("aria-expanded")).toBe("true");
     const list = document.querySelector('[role="listbox"]')!;
-    expect(field.getAttribute("aria-controls")).toBe(list.id);
-    expect((document.activeElement as HTMLInputElement).placeholder).toBe("Find a country");
+    expect(input.getAttribute("aria-controls")).toBe(list.id);
     expect(options()).toEqual(["Not set", "Poland", "Portugal", "Qatar"]);
     const current = document.querySelector('[role="option"][aria-selected="true"]')!;
     expect(current.textContent).toBe("Portugal");
@@ -98,11 +105,14 @@ describe("the combobox (AC-6)", () => {
     const { field, onChange } = await country();
     await act(async () => field.click());
     const filter = document.activeElement as HTMLInputElement;
-    // Opens on the current one; one down is the next.
+    // Opens on the current one; one down is the next, and the combobox says so.
+    const at = () => document.getElementById(filter.getAttribute("aria-activedescendant")!)?.textContent;
+    expect(at()).toBe("Portugal");
     await act(async () => key(filter, "ArrowDown"));
+    expect(at()).toBe("Qatar");
     await act(async () => key(filter, "Enter"));
     expect(onChange).toHaveBeenCalledWith("QA");
-    expect(field.getAttribute("aria-expanded")).toBe("false");
+    expect(combobox()).toBeNull();
     expect(document.activeElement).toBe(field);
   });
 
@@ -118,7 +128,7 @@ describe("the combobox (AC-6)", () => {
     const { field, onChange } = await country();
     await act(async () => field.click());
     await act(async () => key(document.activeElement!, "Escape"));
-    expect(field.getAttribute("aria-expanded")).toBe("false");
+    expect(combobox()).toBeNull();
     expect(document.querySelector('[role="listbox"]')).toBeNull();
     expect(document.activeElement).toBe(field);
     expect(onChange).not.toHaveBeenCalled();
@@ -128,7 +138,16 @@ describe("the combobox (AC-6)", () => {
     const { field } = await country();
     await act(async () => field.click());
     await act(async () => document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })));
-    expect(field.getAttribute("aria-expanded")).toBe("false");
+    expect(combobox()).toBeNull();
+  });
+
+  it("closes when Tab leaves it, without picking", async () => {
+    const { field, onChange } = await country();
+    await act(async () => field.click());
+    await act(async () => key(combobox()!, "Tab"));
+    expect(combobox()).toBeNull();
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("keeps region headings for a grouped list", async () => {
@@ -144,7 +163,7 @@ describe("the combobox (AC-6)", () => {
         onChange={() => undefined}
       />,
     );
-    await act(async () => host.querySelector<HTMLElement>('[role="combobox"]')!.click());
+    await act(async () => host.querySelector<HTMLElement>('button[aria-label="Time zone"]')!.click());
     const groups = [...document.querySelectorAll('[role="group"]')].map((g) => g.getAttribute("aria-label"));
     expect(groups).toEqual(["Europe", "Asia"]);
     expect(options()).toEqual(["Lisbon", "Tokyo"]);
@@ -166,5 +185,18 @@ describe("the choice tiles (AC-3)", () => {
 
     const size = host.querySelector('[role="radiogroup"][aria-label="Text size"]')!;
     expect([...size.querySelectorAll('[role="radio"]')].map((r) => r.textContent)).toEqual(["AaDefault", "AaLarger"]);
+  });
+});
+
+describe("the theme previews", () => {
+  it("draw each theme from the resolved tokens, whatever the page's theme", async () => {
+    const { resolved } = await import("@offload/tokens");
+    const { ThemePreview } = await import("../src/components/panes/ChoicePreviews");
+    const { host } = await render(<ThemePreview theme="system" />);
+    const root = host.firstElementChild as HTMLElement;
+    expect(root.style.getPropertyValue("--depict-light-page")).toBe(resolved.light["surface-page"]);
+    expect(root.style.getPropertyValue("--depict-light-bar")).toBe(resolved.light["ink-200"]);
+    expect(root.style.getPropertyValue("--depict-dark-page")).toBe(resolved.dark["surface-page"]);
+    expect(root.style.getPropertyValue("--depict-dark-bar")).toBe(resolved.light["ink-700"]);
   });
 });

@@ -151,6 +151,21 @@ describe("Connect with someone (AC-8, AC-9)", () => {
   });
 });
 
+describe("Find", () => {
+  it("waits for an @ before it can be pressed, so a press is never dead", async () => {
+    const host = await render(<PeoplePane />);
+    const field = host.querySelector<HTMLInputElement>('input[placeholder="Their email address"]')!;
+    expect(button(host, "Find")!.disabled).toBe(true);
+    await act(async () => type(field, "lena"));
+    expect(button(host, "Find")!.disabled).toBe(true);
+    await act(async () => field.form!.requestSubmit());
+    await settle();
+    expect(sent.some((c) => c.path === "/v1/people/lookup")).toBe(false);
+    await act(async () => type(field, "lena@hart.studio"));
+    expect(button(host, "Find")!.disabled).toBe(false);
+  });
+});
+
 describe("a refused lookup (AC-10)", () => {
   it("says so on My people, with nothing to try again", async () => {
     lookupAnswer = { status: 429, body: { error: "rate_limited" } };
