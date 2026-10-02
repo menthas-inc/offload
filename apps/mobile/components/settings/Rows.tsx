@@ -86,7 +86,7 @@ export function Group({
   if (headed) {
     return (
       <View>
-        <View className="flex-row items-start gap-space-4 pb-space-4" style={{ paddingHorizontal: 2 }}>
+        <View className="flex-row items-start gap-space-5 pb-space-5" style={{ paddingHorizontal: 2 }}>
           <View
             className={`items-center justify-center ${
               isAndroid ? "rounded-pill bg-surface-attention-soft" : "bg-surface-accent-soft"
@@ -97,7 +97,7 @@ export function Group({
           </View>
           {/* 5px down, so the heading's first line centres on the tile. */}
           <View className="flex-1" style={{ paddingTop: 5 }}>
-            <View className="flex-row flex-wrap items-center gap-space-3">
+            <View className="flex-row flex-wrap items-center gap-space-4">
               <Text
                 className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
                 style={{ fontSize: 17, lineHeight: 21, letterSpacing: -0.17 }}
@@ -202,9 +202,11 @@ export function RowPill({ label, icon }: { label: string; icon?: string | undefi
   return (
     <View
       className={`flex-row items-center justify-center rounded-pill border ${
-        isAndroid ? "border-a-outline" : "border-border-hairline bg-surface-raised"
+        // `--border-strong`, the one value that says an outlined control is
+        // there; the Android scope's `a-outline` is the hairline (1.29:1).
+        isAndroid ? "border-border-strong" : "border-border-hairline bg-surface-raised"
       }`}
-      style={isAndroid ? { height: 40, paddingHorizontal: 18, gap: 6 } : { height: 32, paddingHorizontal: 14, gap: 6 }}
+      style={isAndroid ? { minHeight: 40, paddingHorizontal: 18, gap: 6 } : { minHeight: 32, paddingHorizontal: 14, gap: 6 }}
     >
       {icon ? <Glyph name={icon} size={14} color={COLOR.ink} /> : null}
       <Text className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 14 }}>
@@ -215,17 +217,19 @@ export function RowPill({ label, icon }: { label: string; icon?: string | undefi
 }
 
 /** 031. A state that is simply true, in moss with its dot. Colour is never the
- *  whole message, so the word is always there. */
+ *  whole message, so the word is always there. `--text-accent` rather than the
+ *  handoff's `--moss-700`, which is 3.81:1 on the soft moss in dark. */
 export function StatusPill({ label, tone = "on" }: { label: string; tone?: "on" | "neutral" }) {
+  const COLOR = useColors();
   const on = tone === "on";
   return (
     <View
       className={`flex-row items-center rounded-pill ${on ? "bg-surface-accent-soft" : "bg-surface-fill-strong"}`}
-      style={{ height: 24, paddingHorizontal: 9, gap: 5 }}
+      style={{ minHeight: 24, paddingHorizontal: 9, gap: 5 }}
     >
-      {on ? <View className="rounded-pill bg-moss-600" style={{ width: 6, height: 6 }} /> : null}
+      {on ? <View className="rounded-pill" style={{ width: 6, height: 6, backgroundColor: COLOR.accent }} /> : null}
       <Text
-        className={`font-core font-medium ${on ? "text-moss-700" : isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+        className={`font-core font-medium ${on ? "text-text-accent" : isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
         style={{ fontSize: 12 }}
       >
         {label}

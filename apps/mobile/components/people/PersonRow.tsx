@@ -3,9 +3,11 @@
 // `SettingsDetail.jsx`'s `PersonRow`, with the prism where the kit drew two
 // grey letters: a 32px mark, the name, a note, and a value. The mark is a
 // door to the person, at a 44px hit; the row's own tap is whatever the page
-// says it is. 031: the mark at 36 (the design asks 40 on Android, which is not
-// one of `Avatar`'s five sizes), and an act in place (Withdraw)
-// as the settings rows' outline pill.
+// says it is. 031: the mark at 36 on both phones, and an act in place
+// (Withdraw) as the settings rows' outline pill. The handoff asks 40 on
+// Android; the governed contract (`components/core/Avatar.d.ts`) lists five
+// sizes as every size the product draws, so the contract leads and the
+// divergence is logged.
 
 import { Platform, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";

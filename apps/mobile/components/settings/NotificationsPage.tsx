@@ -278,7 +278,8 @@ function SwitchRow({
   );
 }
 
-/** An hour, indented under its switch and greyed with it. 031. */
+/** An hour, indented under its switch and greyed with it. 031. 18 more than
+ *  the row, so its title sits 32 from the card's edge as the drawing has it. */
 function HourRow({
   title,
   hour,
@@ -302,7 +303,7 @@ function HourRow({
         accessibilityRole="button"
         accessibilityLabel={`${title} ${hour}`}
         className="flex-row items-center gap-space-4"
-        style={{ minHeight: 40, paddingTop: 4, paddingBottom: 10, paddingLeft: 32 }}
+        style={{ minHeight: 44, paddingTop: 4, paddingBottom: 10, paddingLeft: 18 }}
       >
         <Text className={`flex-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 14.5 }}>
           {title}

@@ -58,7 +58,7 @@ export interface Me {
    *  false for an Apple private relay address. */
   mailAvailable: boolean;
   /** 031. The providers this account signs in with, Apple first. */
-  signInProviders?: ("apple" | "google")[];
+  signInProviders: ("apple" | "google")[];
   /** The day's model budget is spent or its turns are used: the composer is
    *  closed until the rolling day moves on. */
   atDailyLimit: boolean;

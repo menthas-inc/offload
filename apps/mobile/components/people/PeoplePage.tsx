@@ -202,11 +202,12 @@ export function PeoplePage() {
 function ConnectField({ step }: { step: ReturnType<typeof useConnectionStep> }) {
   const COLOR = useColors();
   const [focused, setFocused] = useState(false);
+  const ready = step.email.includes("@") && step.state.kind !== "looking";
   return (
     <View className="flex-row items-center gap-space-3">
       <View
         className={`flex-1 flex-row items-center gap-space-3 border bg-surface-raised ${
-          focused ? (isAndroid ? "border-blue-600" : "border-ink-950") : isAndroid ? "border-a-outline" : "border-border-strong"
+          focused ? (isAndroid ? "border-blue-600" : "border-border-focus") : "border-border-strong"
         }`}
         style={{ minHeight: 44, borderRadius: isAndroid ? 4 : 12, paddingHorizontal: 14 }}
       >
@@ -224,18 +225,21 @@ function ConnectField({ step }: { step: ReturnType<typeof useConnectionStep> }) 
           autoComplete="off"
           returnKeyType="search"
           placeholder="Their email address"
-          placeholderTextColor={COLOR.tabOff}
+          placeholderTextColor={COLOR.quiet}
           accessibilityLabel="Their email address"
           className="flex-1 font-core"
           style={{ color: COLOR.ink, fontSize: 15, paddingVertical: 0 }}
         />
       </View>
+      {/* Only once there is an address to look up, so a press is never
+          silently dead. */}
       <Pressable
         onPress={() => void step.look()}
-        disabled={step.state.kind === "looking"}
+        disabled={!ready}
         accessibilityRole="button"
+        accessibilityState={{ disabled: !ready }}
         className={`items-center justify-center rounded-pill ${isAndroid ? "bg-blue-600" : "bg-surface-inverse"}`}
-        style={{ minHeight: 44, paddingHorizontal: 18, opacity: step.state.kind === "looking" ? 0.55 : 1 }}
+        style={{ minHeight: 44, paddingHorizontal: 18, opacity: ready ? 1 : 0.55 }}
       >
         <Text className={`font-core font-medium ${isAndroid ? "text-text-on-solid" : "text-text-inverse"}`} style={{ fontSize: 14 }}>
           Find

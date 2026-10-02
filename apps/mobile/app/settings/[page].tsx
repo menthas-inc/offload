@@ -166,7 +166,7 @@ function Account({ toast }: { toast: ToastState }) {
   return (
     <>
       <Sections>
-        <Group label="Profile" icon="circle-dot">
+        <Group label="Profile" icon="circle-dot" caption="How you appear to people you share with.">
           {/* `saveName` hands the identity it got back to every mounted
               `useMe`, so the settings index behind this screen moves with it,
               initials included. */}
@@ -177,7 +177,7 @@ function Account({ toast }: { toast: ToastState }) {
           />
           {/* Not editable here: changing an email is an identity change with a
               verification flow behind it, not a text field. */}
-          <Row title="Email" value={me?.email} note={me ? emailNote(me.signInProviders ?? []) : undefined} last />
+          <Row title="Email" value={me?.email} note={me ? emailNote(me.signInProviders) : undefined} last />
         </Group>
 
         {/* **Where they are, because offload had no idea.** Asked for the next

@@ -254,6 +254,8 @@ function AnswerChip({ label, filled, onPress, disabled }: { label: string; fille
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
+      // Drawn at 30, hit at 44.
+      hitSlop={{ top: 7, bottom: 7 }}
       className={`items-center justify-center rounded-pill px-space-5 ${filled ? "bg-moss-600" : "border border-border-strong"}`}
       style={{ minHeight: 30, marginVertical: 7, opacity: disabled ? 0.55 : 1 }}
     >

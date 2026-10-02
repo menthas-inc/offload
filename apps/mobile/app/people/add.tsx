@@ -66,7 +66,7 @@ export default function AddConnection() {
             autoComplete="off"
             returnKeyType="search"
             placeholder="Their email address"
-            placeholderTextColor={COLOR.tabOff}
+            placeholderTextColor={COLOR.quiet}
             accessibilityLabel="Their email address"
             className="flex-1 font-core text-body"
             style={{ color: COLOR.ink, paddingVertical: 0 }}

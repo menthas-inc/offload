@@ -52,7 +52,7 @@ export function ChoiceTiles({
             </View>
             <View className="flex-row items-center" style={{ gap: 8, paddingHorizontal: 4 }}>
               <View
-                className={`rounded-pill ${on ? (isAndroid ? "border-blue-600" : "border-ink-950") : "border-ink-300"}`}
+                className={`rounded-pill ${on ? (isAndroid ? "border-blue-600" : "border-ink-950") : "border-border-strong"}`}
                 style={{ width: 18, height: 18, borderWidth: on ? 5.5 : 1.5 }}
               />
               <Text className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 14 }}>
@@ -103,7 +103,9 @@ export function WeekPreview({ start }: { start: "monday" | "sunday" }) {
           className={`items-center justify-center rounded-pill ${index === 0 ? (isAndroid ? "bg-blue-600" : "bg-surface-inverse") : ""}`}
           style={{ width: 22, height: 22 }}
         >
+          {/* A picture of a week: it does not grow with the type. */}
           <Text
+            allowFontScaling={false}
             className={`font-core font-medium ${
               index === 0 ? (isAndroid ? "text-text-on-solid" : "text-text-inverse") : weekend(index) ? "text-text-tertiary" : "text-text-secondary"
             }`}

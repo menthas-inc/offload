@@ -58,8 +58,9 @@ function Primary({ label, onPress }: { label: string; onPress: () => void }) {
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
+      hitSlop={isAndroid ? 2 : 6}
       className={`items-center justify-center rounded-pill ${isAndroid ? "bg-blue-600" : "bg-surface-inverse"}`}
-      style={{ height: isAndroid ? 40 : 32, paddingHorizontal: isAndroid ? 18 : 14 }}
+      style={{ minHeight: isAndroid ? 40 : 32, paddingHorizontal: isAndroid ? 18 : 14 }}
     >
       <Text className={`font-core font-medium ${isAndroid ? "text-text-on-solid" : "text-text-inverse"}`} style={{ fontSize: 14 }}>
         {label}
@@ -74,8 +75,9 @@ function Outline({ label, onPress }: { label: string; onPress: () => void }) {
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      className={`items-center justify-center rounded-pill border ${isAndroid ? "border-a-outline" : "border-border-hairline bg-surface-raised"}`}
-      style={{ height: isAndroid ? 40 : 32, paddingHorizontal: isAndroid ? 18 : 14 }}
+      hitSlop={isAndroid ? 2 : 6}
+      className={`items-center justify-center rounded-pill border ${isAndroid ? "border-border-strong" : "border-border-hairline bg-surface-raised"}`}
+      style={{ minHeight: isAndroid ? 40 : 32, paddingHorizontal: isAndroid ? 18 : 14 }}
     >
       <Text className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 14 }}>
         {label}
