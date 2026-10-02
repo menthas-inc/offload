@@ -28,7 +28,6 @@
         "voiceNotes": 0.3,
         "voiceSeconds": 40,
         "questions": 1,
-        "quickAdds": 1,
         "searches": 0.3,
         "reads": 0.3,
         "mailForwards": 0.1,
@@ -47,7 +46,6 @@
         "voiceNotes": 3,
         "voiceSeconds": 75,
         "questions": 10,
-        "quickAdds": 5,
         "searches": 4,
         "reads": 3,
         "mailForwards": 1,
@@ -66,7 +64,6 @@
         "voiceNotes": 100,
         "voiceSeconds": 36,
         "questions": 200,
-        "quickAdds": 200,
         "searches": 150,
         "reads": 150,
         "mailForwards": 100,
@@ -74,7 +71,7 @@
         "threadsTouched": 12,
         "photoViews": 0
       },
-      "_why": "Caps from code: 200 photos a day, 100 voice notes and 3,600 seconds a day, 100 emails a day, 3 searches and 3 reads a turn. WhatsApp's 200 a day is 029's planned cap. Dumps, questions and quick adds have no cap at all, so 500, 200 and 200 a day stand in for a script running slowly; the code allows far more (two jobs at a time, all day)."
+      "_why": "Caps from code: 200 photos a day, 100 voice notes and 3,600 seconds a day, 100 emails a day, 3 searches and 3 reads a turn. WhatsApp's 200 a day is 029's planned cap. Dumps and questions have no cap of their own, so 500 and 200 a day stand in for a script running slowly; the daily turn count and budget hold it back where the code has them. A row typed into a section costs nothing."
     }
   },
   "turn": {
@@ -95,20 +92,17 @@
       "outputPerCall": 300,
       "toolTokens": 1400
     },
-    "quickAdd": {
-      "calls": 2,
-      "contextTokens": 2000,
-      "growthPerCall": 300,
-      "outputPerCall": 250,
-      "toolTokens": 1800
-    },
     "classify": {
       "inputExtra": 120,
       "output": 20
     },
-    "compact": {
+    "nightly": {
+      "_read_me": "One pass per thread and member a night. Up to 100 notes, and the member's dumps since their last pass there, at most 40 of 500 characters; a few on a usual day. The system prompt has three variants, each cached.",
       "notesTokens": 4000,
-      "output": 900
+      "messagesTokens": 800,
+      "toolTokens": 700,
+      "output": 900,
+      "promptVariants": 3
     },
     "readerSearch": {
       "resultTokens": 8000,

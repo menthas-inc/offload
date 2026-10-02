@@ -28,12 +28,14 @@ Read from the repository every run, so these are never stale:
 
 - the section bar of `plan_v2.md`, proportional to word count, coloured by what
   each section is for
-- section 7, every prompt's full text, coloured by section (prompts with
+- section 7, every prompt's full text as the worker assembles it (through
+  `prompt_files.load` in `python3`, so `prompts/shared/` is joined in; the marker
+  comments the worker splits on are dropped, so every part shows), coloured by section (prompts with
   headers) or by passage (prompts without, judged by the words in it: the
   legend says so)
 - the models table and the bounds table, from the constants in `config.py`,
-  `harness/plan.py`, `worker.py`, `reader.py`, the `turn-step` schema and
-  `Composer.tsx`
+  `harness/plan.py`, `nightly.py`, `worker.py`, `reader.py`, the `turn-step`
+  schema, `Composer.tsx` and `Toast.tsx`
 - every number quoted in the prose and the figures that comes from one of those
   constants, the date, and the commit
 
