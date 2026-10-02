@@ -6,7 +6,6 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  ANDROID_DARK_STYLE,
   calloutPadding,
   cluster,
   directionsUrl,
@@ -53,7 +52,7 @@ describe("pointShape", () => {
 });
 
 describe("cluster", () => {
-  it("merges points closer than 44px and keeps apart ones further", () => {
+  it("merges points closer than a finger's target and keeps apart ones further", () => {
     const groups = cluster([
       { key: "a", x: 100, y: 100 },
       { key: "b", x: 120, y: 110 },
@@ -64,7 +63,7 @@ describe("cluster", () => {
     expect(groups[0]!.y).toBe(105);
   });
 
-  it("splits a pair once they are 44px apart", () => {
+  it("splits a pair once they are a target apart", () => {
     expect(cluster([{ key: "a", x: 0, y: 0 }, { key: "b", x: 44, y: 0 }])).toHaveLength(2);
     expect(cluster([{ key: "a", x: 0, y: 0 }, { key: "b", x: 43, y: 0 }])).toHaveLength(1);
   });
@@ -115,7 +114,7 @@ describe("fitBounds", () => {
 });
 
 describe("calloutPadding", () => {
-  it("is 190px or 40% of the height, whichever is less", () => {
+  it("is 190 or 40% of the height, whichever is less", () => {
     expect(calloutPadding(800)).toBe(190);
     expect(calloutPadding(400)).toBe(160);
   });
@@ -132,13 +131,5 @@ describe("directionsUrl", () => {
     expect(directionsUrl({ lat: 38.7101, lng: -9.1459, googlePlaceId: "ChIJ_abc-1" })).toBe(
       "https://www.google.com/maps/dir/?api=1&destination=38.7101%2C-9.1459&destination_place_id=ChIJ_abc-1",
     );
-  });
-});
-
-describe("ANDROID_DARK_STYLE", () => {
-  it("is a style array Google's SDK accepts", () => {
-    expect(Array.isArray(ANDROID_DARK_STYLE)).toBe(true);
-    expect(ANDROID_DARK_STYLE.length).toBeGreaterThan(0);
-    for (const rule of ANDROID_DARK_STYLE) expect(Array.isArray(rule.stylers)).toBe(true);
   });
 });

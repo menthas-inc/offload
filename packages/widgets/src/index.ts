@@ -425,7 +425,6 @@ export { GOOGLE_EVENT_LINK, afterWrite, dayName, eventMeta, eventPast, eventRang
 // 030. A thread's map: point colours and shapes, count dots, the opening fit,
 // and the hand-off to Google Maps.
 export {
-  ANDROID_DARK_STYLE,
   CLUSTER_PX,
   FIT_MAX_ZOOM,
   calloutPadding,
