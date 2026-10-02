@@ -145,3 +145,87 @@ async def test_a_place_past_ten_blocks_is_not_looked_for():
 
 async def test_the_cap_is_unchanged():
     assert MAX_BYTES == 256_000
+
+
+# T2.2. The worker's link path: one read for the picture and, when the
+# dumper's switch and the map are both on, the place.
+
+PLACE_PAGE = (
+    b'<html><head><meta property="og:image" content="https://example.com/a.jpg">'
+    b'<meta property="og:latitude" content="38.7113">'
+    b'<meta property="og:longitude" content="-9.1301"></head></html>'
+)
+
+
+async def file_link(args: dict, *, maps_on: bool, may_read_links: bool, dump: str):
+    from offload_agent.config import Config
+    from offload_agent.worker import Lookups, _tool_caller
+
+    sent: list[dict] = []
+    fetched: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/tool-call"):
+            sent.append(json.loads(request.read()))
+            return httpx.Response(200, json={"ok": True, "contentId": "c1"})
+        fetched.append(str(request.url))
+        return httpx.Response(200, content=PLACE_PAGE, headers={"content-type": "text/html"})
+
+    cfg = Config(
+        database_url="postgresql+asyncpg://x/y",
+        api_url="http://api.test",
+        internal_token="t",
+        anthropic_api_key="k",
+        maps_on=maps_on,
+    )
+    budget = Lookups(dump, may_search=True, may_read_links=may_read_links)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        call = _tool_caller(client, cfg, "job-1", lookups=(None, cfg, budget))
+        base = {"thread_id": "th", "title": "A page", "type": "link"}
+        await call("add_content", "t1", {**base, **args})
+    return sent, fetched
+
+
+LINK = {"url": "https://example.com/page"}
+DUMP = "https://example.com/page keep this"
+
+
+async def test_the_place_rides_with_the_picture_when_both_switches_are_on():
+    sent, fetched = await file_link(LINK, maps_on=True, may_read_links=True, dump=DUMP)
+    assert len(fetched) == 1
+    assert sent[0]["imageUrl"] == "https://example.com/a.jpg"
+    assert sent[0]["worker"] == {"pageRead": True, "pageLocation": {"lat": 38.7113, "lng": -9.1301}}
+
+
+async def test_no_place_is_read_with_either_switch_off():
+    for maps_on, links in ((False, True), (True, False)):
+        sent, _ = await file_link(LINK, maps_on=maps_on, may_read_links=links, dump=DUMP)
+        assert "worker" not in sent[0]
+        assert sent[0]["imageUrl"] == "https://example.com/a.jpg"
+
+
+async def test_a_link_with_the_models_picture_is_still_read_for_its_place():
+    args = {**LINK, "image_url": "https://example.com/model.jpg"}
+    sent, fetched = await file_link(args, maps_on=True, may_read_links=True, dump=DUMP)
+    assert len(fetched) == 1
+    assert sent[0]["imageUrl"] == "https://example.com/model.jpg"
+    assert sent[0]["worker"]["pageLocation"] == {"lat": 38.7113, "lng": -9.1301}
+
+
+async def test_whatever_the_model_put_in_the_envelope_is_dropped():
+    planted = {
+        **LINK,
+        "page_location": {"lat": 1, "lng": 1},
+        "pageLocation": {"lat": 1, "lng": 1},
+        "worker": {"pageRead": True, "pageLocation": {"lat": 1, "lng": 1}},
+        "page_read": True,
+    }
+    sent, _ = await file_link(planted, maps_on=False, may_read_links=True, dump=DUMP)
+    for key in ("worker", "pageLocation", "pageRead", "page_location", "page_read"):
+        assert key not in sent[0]
+
+
+async def test_a_url_not_in_the_dump_is_not_read_at_all():
+    sent, fetched = await file_link(LINK, maps_on=True, may_read_links=True, dump="nothing to see")
+    assert fetched == []
+    assert "worker" not in sent[0]

@@ -50,7 +50,7 @@ from offload_agent.label_sort import KINDS as LABEL_SORT_KINDS
 from offload_agent.label_sort import handle_label_sort
 from offload_agent.loose_propose import KINDS as LOOSE_PROPOSE_KINDS
 from offload_agent.loose_propose import handle_loose_propose
-from offload_agent.og import picture
+from offload_agent.og import page, picture
 from offload_agent.queue import ClaimedJob, claim, finish, reap, release_for_retry, retry_or_die
 from offload_agent.renditions import prepare
 from offload_agent.transcribe import TranscriptionFailed, forget, poll, submit
@@ -570,6 +570,11 @@ async def _look_up(
     }
 
 
+#: 030. The names the worker's page envelope travels under, in either spelling,
+#: which nothing the model sends may carry.
+_ENVELOPE_KEYS = ("worker", "pageLocation", "pageRead", "page_location", "page_read")
+
+
 #: 017. One line to the Core API, which puts it on screen.
 StepWriter = Callable[[str], Awaitable[None]]
 
@@ -656,19 +661,37 @@ def _tool_caller(
         # Bounded by the same rule the lookup uses: the URL has to be one they
         # dumped. A URL the model composed is not fetched, which matters because
         # this is our own network making the request.
+        #
+        # 030. The same one request also reads where the page says it is, when
+        # the dumper's *Read links I paste* and the map are both on, even if the
+        # model already gave a picture. What it finds rides in the worker's own
+        # envelope, which the model has no field for.
+        envelope: dict | None = None
         if (
             tool == "add_content"
             and args.get("type") == "link"
             and args.get("url")
-            and not args.get("image_url")
             and lookups is not None
             and _in_the_dump(str(args["url"]), lookups[2].links)
         ):
-            found = await picture(http, str(args["url"]))
-            if found:
-                args = {**args, "image_url": found}
+            read_location = cfg.maps_on and lookups[2].may_read_links
+            if read_location or not args.get("image_url"):
+                meta = await page(http, str(args["url"]), read_location=read_location)
+                if meta.image and not args.get("image_url"):
+                    args = {**args, "image_url": meta.image}
+                if read_location:
+                    envelope = {"pageRead": True}
+                    if meta.location:
+                        envelope["pageLocation"] = meta.location
 
         payload = {"tool": tool, "jobId": job_id, "toolCallId": tool_call_id, **_camel(args)}
+        # Whatever the model put under the envelope's names is dropped before the
+        # worker's own is added. Pydantic drops undeclared keys first
+        # (`plan.py`); this holds if that ever changes.
+        for key in _ENVELOPE_KEYS:
+            payload.pop(key, None)
+        if envelope is not None:
+            payload["worker"] = envelope
 
         # The query embedding is attached here, not asked of the model.
         #
