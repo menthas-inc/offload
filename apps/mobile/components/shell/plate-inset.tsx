@@ -27,6 +27,9 @@ export function PlateInsetProvider({ children }: { children: ReactNode }) {
 export const useSetPlateInset = (): ((height: number) => void) =>
   useContext(PlateInsetContext).setInset;
 
+/** 030. How much the plate covers, for a map's padding. */
+export const usePlateInset = (): number => useContext(PlateInsetContext).inset;
+
 /** The last child of a page's scroll: room for the plate. */
 export function PlateSpace() {
   const { inset } = useContext(PlateInsetContext);

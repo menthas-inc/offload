@@ -74,6 +74,9 @@ const ICON: Record<string, string> = {
   note: "text-quote",
 };
 
+/** A row's tile glyph by its type; also the place sheet's (030). */
+export const rowGlyph = (type: string): string => ICON[type] ?? "text-quote";
+
 /** The title's line height, which every lead and tool is centred on. */
 const TITLE_LINE = 21;
 /** A 36px tile centred on that line: the top padding is 8, so it fits. */
@@ -442,7 +445,7 @@ export function ContentRowView({
               }`}
               style={{ width: 36, height: 36, marginTop: ON_TITLE_LINE }}
             >
-              <Glyph name={ICON[row.type] ?? "text-quote"} size={18} color={COLOR.iconOnWell} />
+              <Glyph name={rowGlyph(row.type)} size={18} color={COLOR.iconOnWell} />
             </View>
             )
           )}

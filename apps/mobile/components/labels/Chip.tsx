@@ -56,7 +56,10 @@ export function ChipFace({
   label,
   selected = false,
   tone = "neutral",
+  raised = false,
 }: {
+  /** 030. Over the map: raised off it on `--surface-raised`. */
+  raised?: boolean;
   children?: string | undefined;
   glyph?: string | undefined;
   label?: number | undefined;
@@ -68,7 +71,9 @@ export function ChipFace({
     ? label
       ? labelBg(label)
       : "bg-surface-inverse"
-    : tone === "outline"
+    : raised
+      ? "bg-surface-raised"
+      : tone === "outline"
       ? "border border-border-strong"
       : isAndroid
         ? "bg-a-c"
@@ -85,7 +90,7 @@ export function ChipFace({
   return (
     <View
       className={`flex-row items-center gap-space-3 px-space-5 ${isAndroid ? "rounded-sm" : "rounded-pill"} ${fill}`}
-      style={{ minHeight: isAndroid ? 32 : 30 }}
+      style={{ minHeight: isAndroid ? 32 : 30, ...(raised ? { boxShadow: COLOR.shadowRaised } : {}) }}
     >
       {label ? <LabelDot colour={label} onSolid={selected} /> : null}
       {glyph ? <Glyph name={glyph} size={14} color={selected ? COLOR.onSolid : COLOR.iconOnWell} /> : null}

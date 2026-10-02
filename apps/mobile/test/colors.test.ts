@@ -64,5 +64,8 @@ describe("the map's values (030)", () => {
     expect(light.shadowPoint).toBe(resolved.light["shadow-point"]);
     expect(light.shadowPointPicked).toBe(resolved.light["shadow-point-picked"]);
     expect(light.shadowCallout).toBe(resolved.light["shadow-callout"]);
+    // A chip floating over the map: --shadow-1, which is no shadow in dark.
+    expect(light.shadowRaised).toBe(resolved.light["shadow-1"]);
+    expect(paletteFor(true).shadowRaised).toBe("none");
   });
 });

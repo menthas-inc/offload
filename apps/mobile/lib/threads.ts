@@ -313,6 +313,12 @@ export interface Point {
   calendarName: string | null;
 }
 
+/** 030. One row, for the place sheet's Edit when the row is not on the page. */
+export async function fetchOne(id: string): Promise<ContentRow | null> {
+  const { data } = await send<ContentRow>(`/v1/content/${id}`);
+  return data ? withPlaceId(data) : null;
+}
+
 /** 030. A thread's points. `pending` counts places being fetched again, and
  *  a reader that gets more than none reads once more a moment later. */
 export async function fetchPoints(id: string): Promise<{ points: Point[]; pending: number } | null> {
