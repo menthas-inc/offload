@@ -238,12 +238,44 @@ _LD_END = re.compile(rb"</script\s*>", re.I)
 #: schema.org types that are a place, so their name is a place's name. An
 #: Organization or a Brand is not: a hotel group is not a hotel.
 _PLACE_TYPES = {
-    "Place", "LocalBusiness", "Hotel", "LodgingBusiness", "Hostel", "Motel", "Resort", "BedAndBreakfast",
-    "Restaurant", "FoodEstablishment", "BarOrPub", "CafeOrCoffeeShop", "Bakery", "Winery", "Brewery",
-    "TouristAttraction", "Museum", "LandmarksOrHistoricalBuildings", "EventVenue", "MusicVenue",
-    "StadiumOrArena", "Park", "Beach", "Zoo", "Aquarium", "MovieTheater", "PerformingArtsTheater",
-    "Accommodation", "VacationRental", "Campground", "Store", "ShoppingCenter", "CivicStructure",
-    "PlaceOfWorship", "Church", "Airport", "TrainStation", "BusStation",
+    "Place",
+    "LocalBusiness",
+    "Hotel",
+    "LodgingBusiness",
+    "Hostel",
+    "Motel",
+    "Resort",
+    "BedAndBreakfast",
+    "Restaurant",
+    "FoodEstablishment",
+    "BarOrPub",
+    "CafeOrCoffeeShop",
+    "Bakery",
+    "Winery",
+    "Brewery",
+    "TouristAttraction",
+    "Museum",
+    "LandmarksOrHistoricalBuildings",
+    "EventVenue",
+    "MusicVenue",
+    "StadiumOrArena",
+    "Park",
+    "Beach",
+    "Zoo",
+    "Aquarium",
+    "MovieTheater",
+    "PerformingArtsTheater",
+    "Accommodation",
+    "VacationRental",
+    "Campground",
+    "Store",
+    "ShoppingCenter",
+    "CivicStructure",
+    "PlaceOfWorship",
+    "Church",
+    "Airport",
+    "TrainStation",
+    "BusStation",
 }
 
 
@@ -269,8 +301,13 @@ def _meta_point(head: bytes) -> dict | None:
     for tag in _GEO_META.finditer(head):
         content = _CONTENT.search(tag.group(0))
         if content:
-            seen[tag.group(1).decode().lower()] = html.unescape(content.group(1).decode("utf-8", "ignore"))
-    for lat, lng in (("og:latitude", "og:longitude"), ("place:location:latitude", "place:location:longitude")):
+            seen[tag.group(1).decode().lower()] = html.unescape(
+                content.group(1).decode("utf-8", "ignore")
+            )
+    for lat, lng in (
+        ("og:latitude", "og:longitude"),
+        ("place:location:latitude", "place:location:longitude"),
+    ):
         if lat in seen and lng in seen:
             point = _point(seen[lat], seen[lng])
             if point:
@@ -384,7 +421,10 @@ async def page(client: httpx.AsyncClient, url: str, read_location: bool = False)
             location = _location_from(head)
         except Exception as exc:  # noqa: BLE001
             log.info("place unreadable", error_type=type(exc).__name__)
-        log.info("place read", outcome="point" if location and "lat" in location else "name" if location else "none")
+        log.info(
+            "place read",
+            outcome="point" if location and "lat" in location else "name" if location else "none",
+        )
     return PageMeta(image=image, location=location)
 
 

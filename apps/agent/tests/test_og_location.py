@@ -33,7 +33,10 @@ def html(*parts: bytes) -> bytes:
 
 
 async def test_open_graph_coordinates():
-    body = html(b'<meta property="og:latitude" content="38.7071"><meta property="og:longitude" content="-9.1459">')
+    body = html(
+        b'<meta property="og:latitude" content="38.7071">'
+        b'<meta property="og:longitude" content="-9.1459">'
+    )
     assert (await read(body)).location == {"lat": 38.7071, "lng": -9.1459}
 
 
@@ -46,12 +49,28 @@ async def test_place_location_coordinates():
 
 
 async def test_json_ld_geo_on_a_restaurant():
-    body = html(ld({"@type": "Restaurant", "name": "Cervejaria Ramiro", "geo": {"latitude": 38.7208, "longitude": -9.1356}}))
+    body = html(
+        ld(
+            {
+                "@type": "Restaurant",
+                "name": "Cervejaria Ramiro",
+                "geo": {"latitude": 38.7208, "longitude": -9.1356},
+            }
+        )
+    )
     assert (await read(body)).location == {"lat": 38.7208, "lng": -9.1356}
 
 
 async def test_json_ld_place_name_on_an_event_venue():
-    body = html(ld({"@type": "Event", "name": "A concert", "location": {"@type": "Place", "name": "Coliseu dos Recreios"}}))
+    body = html(
+        ld(
+            {
+                "@type": "Event",
+                "name": "A concert",
+                "location": {"@type": "Place", "name": "Coliseu dos Recreios"},
+            }
+        )
+    )
     assert (await read(body)).location == {"name": "Coliseu dos Recreios"}
 
 
@@ -67,7 +86,12 @@ async def test_a_real_listing_search_gives_nothing():
 
 async def test_an_address_alone_gives_nothing():
     body = html(
-        ld({"@type": "Organization", "address": {"@type": "PostalAddress", "streetAddress": "Rua Augusta 12"}}),
+        ld(
+            {
+                "@type": "Organization",
+                "address": {"@type": "PostalAddress", "streetAddress": "Rua Augusta 12"},
+            }
+        ),
         b'<meta property="og:street-address" content="Rua Augusta 12">',
     )
     assert (await read(body)).location is None
@@ -76,7 +100,8 @@ async def test_an_address_alone_gives_nothing():
 async def test_nothing_is_read_for_a_place_unless_asked_and_the_picture_still_is():
     body = html(
         b'<meta property="og:image" content="https://example.com/a.jpg">',
-        b'<meta property="og:latitude" content="38.7"><meta property="og:longitude" content="-9.1">',
+        b'<meta property="og:latitude" content="38.7">'
+        b'<meta property="og:longitude" content="-9.1">',
     )
     found = await read(body, read_location=False)
     assert found.location is None
@@ -88,7 +113,10 @@ async def test_nothing_is_read_for_a_place_unless_asked_and_the_picture_still_is
     [("0", "0"), ("1e999", "1"), ("91", "0"), ("0", "181"), ("NaN", "1"), ("north", "1")],
 )
 async def test_coordinates_that_are_not_a_place_on_earth_are_dropped(lat: str, lng: str):
-    body = html(f'<meta property="og:latitude" content="{lat}"><meta property="og:longitude" content="{lng}">'.encode())
+    body = html(
+        f'<meta property="og:latitude" content="{lat}">'
+        f'<meta property="og:longitude" content="{lng}">'.encode()
+    )
     assert (await read(body)).location is None
 
 
@@ -99,7 +127,11 @@ async def test_a_name_is_cut_to_the_bound():
 
 async def test_hostile_json_is_dropped_without_raising():
     deep = b'<script type="application/ld+json">' + b"[" * 50 + b"]" * 50 + b"</script>"
-    big = b'<script type="application/ld+json">' + json.dumps({"@type": "Hotel", "name": "x" * 70_000}).encode() + b"</script>"
+    big = (
+        b'<script type="application/ld+json">'
+        + json.dumps({"@type": "Hotel", "name": "x" * 70_000}).encode()
+        + b"</script>"
+    )
     broken = b'<script type="application/ld+json">{"@type": "Hotel", "name": </script>'
     many = ld({"@type": "Thing"}) * 1000
     for body in (html(deep), html(big), html(broken), html(many)):
