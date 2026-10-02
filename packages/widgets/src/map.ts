@@ -161,3 +161,49 @@ export function directionsUrl(point: { lat: number; lng: number; googlePlaceId: 
   if (point.googlePlaceId) url += `&destination_place_id=${encodeURIComponent(point.googlePlaceId)}`;
   return url;
 }
+
+/** The camera that pulls a count dot's points apart: the opening fit, allowed
+ *  to go as close as the map does rather than stopping at street level. */
+export function splitZoom(
+  points: readonly LatLng[],
+  view: { width: number; height: number },
+  padding: Padding,
+): { center: LatLng; zoom: number } {
+  return fitBounds(points, view, padding, 21);
+}
+
+/** An approximate place's radius on the ground. */
+export const CIRCLE_METRES = 300;
+
+/** The smallest a circle's target gets on screen: half a finger's width, so a
+ *  circle drawn as a speck when zoomed out can still be picked. */
+const CIRCLE_MIN_PX = CLUSTER_PX / 2;
+
+function metresBetween(a: LatLng, b: LatLng): number {
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad;
+  const dLng = (b.lng - a.lng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6_371_000 * Math.asin(Math.sqrt(h));
+}
+
+/** The approximate place a tap lands in, or null.
+ *
+ *  Neither map makes a drawn circle tappable on every platform, so a tap on
+ *  the map is tested here first, before it is taken as closing the callout.
+ *  Inside the 300m, or within half a finger's width of the centre when the
+ *  circle is drawn smaller than that; the nearest centre wins where circles
+ *  overlap. `metresPerPixel` is the map's scale where the tap landed. */
+export function hitCircle(
+  tap: LatLng,
+  circles: readonly (LatLng & { key: string })[],
+  metresPerPixel: number,
+): string | null {
+  const reach = Math.max(CIRCLE_METRES, CIRCLE_MIN_PX * metresPerPixel);
+  let best: { key: string; d: number } | null = null;
+  for (const circle of circles) {
+    const d = metresBetween(tap, circle);
+    if (d <= reach && (best === null || d < best.d)) best = { key: circle.key, d };
+  }
+  return best?.key ?? null;
+}

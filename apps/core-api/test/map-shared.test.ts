@@ -10,8 +10,10 @@ import {
   cluster,
   directionsUrl,
   fitBounds,
+  hitCircle,
   pointFill,
   pointShape,
+  splitZoom,
 } from "@offload/widgets";
 
 const labels = [
@@ -131,5 +133,45 @@ describe("directionsUrl", () => {
     expect(directionsUrl({ lat: 38.7101, lng: -9.1459, googlePlaceId: "ChIJ_abc-1" })).toBe(
       "https://www.google.com/maps/dir/?api=1&destination=38.7101%2C-9.1459&destination_place_id=ChIJ_abc-1",
     );
+  });
+});
+
+describe("splitZoom", () => {
+  it("separates a count dot's points, past the opening fit's limit", () => {
+    const view = { width: 390, height: 600 };
+    const padding = { top: 70, right: 28, bottom: 40, left: 28 };
+    const fit = splitZoom([{ lat: 38.71, lng: -9.146 }, { lat: 38.7101, lng: -9.1461 }], view, padding);
+    expect(fit.zoom).toBeGreaterThan(15);
+    expect(fit.zoom).toBeLessThanOrEqual(21);
+  });
+});
+
+describe("hitCircle", () => {
+  // About 1.2m a pixel at zoom 17 in Lisbon; 300m is drawn large there.
+  const near = 1.2;
+  const circles = [
+    { key: "alfama", lat: 38.7113, lng: -9.1301 },
+    { key: "graca", lat: 38.7163, lng: -9.1301 },
+  ];
+
+  it("picks the circle a tap lands inside", () => {
+    expect(hitCircle({ lat: 38.7123, lng: -9.1301 }, circles, near)).toBe("alfama");
+  });
+
+  it("picks the nearer centre when two circles overlap", () => {
+    expect(hitCircle({ lat: 38.7136, lng: -9.1301 }, circles, near)).toBe("alfama");
+    expect(hitCircle({ lat: 38.7141, lng: -9.1301 }, circles, near)).toBe("graca");
+  });
+
+  it("misses outside every circle", () => {
+    expect(hitCircle({ lat: 38.73, lng: -9.1301 }, circles, near)).toBeNull();
+  });
+
+  it("gives a circle drawn smaller than a finger a target of its own", () => {
+    // Zoomed far out, 300m is a few pixels; a tap 15 pixels from the centre
+    // still picks it.
+    const far = 500;
+    const tap = { lat: 38.7113 + (15 * far) / 111_320, lng: -9.1301 };
+    expect(hitCircle(tap, circles.slice(0, 1), far)).toBe("alfama");
   });
 });
