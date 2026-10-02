@@ -475,7 +475,7 @@ describe("AC-7 the daily run books one pass per thread and member", () => {
     await db.updateTable("threads").set({ last_activity_at: sql<Date>`now() - interval '10 days'` }).where("id", "=", flat).execute();
     await noted(ana, flat, "Boiler service on Thursday", 200, new Date(Date.now() - 5 * 60 * 60 * 1000));
     await lastPass(ana, flat, 30);
-    await handlers["account.daily"]!({}, { mailer: new MemoryMailer() }, undefined);
+    await handlers["account.daily"]!({}, { mailer: new MemoryMailer() }, null);
     const runs = await db.selectFrom("jobs").select("account_id").where("kind", "=", "account.daily.run").execute();
     expect(runs.map((r) => r.account_id)).toContain(ana);
   });
@@ -486,7 +486,7 @@ describe("AC-7 the daily run books one pass per thread and member", () => {
     await db.updateTable("threads").set({ last_activity_at: sql<Date>`now() - interval '10 days'` }).where("id", "=", flat).execute();
     await noted(ana, flat, "Boiler service on Thursday", 200, new Date(Date.now() - 30 * 60 * 60 * 1000));
     await lastPass(ana, flat, 50);
-    await handlers["account.daily"]!({}, { mailer: new MemoryMailer() }, undefined);
+    await handlers["account.daily"]!({}, { mailer: new MemoryMailer() }, null);
     const runs = await db.selectFrom("jobs").select("account_id").where("kind", "=", "account.daily.run").execute();
     expect(runs.map((r) => r.account_id)).toContain(ana);
   });
