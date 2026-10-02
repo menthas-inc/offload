@@ -521,7 +521,7 @@ function Privacy({ toast }: { toast: ToastState }) {
       />
       <Toggle
         title="Read links I paste"
-        note="Opens a link you dumped and reads the page. Nothing of yours is sent."
+        note="Opens a link you dumped and reads the page. Where it names a place, the name goes to Google to put it on the map."
         value={links}
         onChange={(next) => void set({ webLinks: next })}
         last

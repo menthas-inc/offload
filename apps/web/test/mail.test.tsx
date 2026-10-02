@@ -179,8 +179,12 @@ describe("the privacy page says what happens to an email you forward (T6.1)", ()
     expect(page).toContain("<strong>An email you forward into a shared thread</strong> shows the others what it says, including who sent it.");
     expect(page).toContain("An email you forward travels to us the way email does, which is not encrypted end to end.");
     expect(page).not.toContain("Cloudflare Email Routing");
-    // 028 moved the date on; the pairing is what this checks.
-    expect(page).toContain('const UPDATED = "2 October 2026"');
-    expect(session).toContain('export const CONSENT_VERSION = "2026-10-02";');
+    // The pairing is what this checks: the page's date and the consent version
+    // name the same day, whichever day a later change moves them to.
+    const updated = /const UPDATED = "(\d+) (\w+) (\d{4})"/.exec(page);
+    const version = /export const CONSENT_VERSION = "(\d{4}-\d{2}-\d{2})";/.exec(session);
+    expect(updated && version).toBeTruthy();
+    const day = new Date(`${updated![2]} ${updated![1]}, ${updated![3]} 12:00 UTC`).toISOString().slice(0, 10);
+    expect(day).toBe(version![1]);
   });
 });
