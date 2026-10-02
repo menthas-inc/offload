@@ -544,6 +544,19 @@ const accountDaily: Handler = async () => {
           .where((inner) =>
             inner.or([
               inner("threads.last_activity_at", ">=", since),
+              // 032. A dated note of theirs that passed its date in the day is
+              // the one change no activity causes, and is worth a pass.
+              inner.exists(
+                inner
+                  .selectFrom("notes")
+                  .select("notes.id")
+                  .whereRef("notes.subject_id", "=", "threads.id")
+                  .whereRef("notes.account_id", "=", "accounts.id")
+                  .where("notes.scope", "=", "thread")
+                  .where("notes.deleted_at", "is", null)
+                  .where("notes.superseded_at", "is", null)
+                  .where(sql<boolean>`coalesce(notes.occurs_end_at, notes.occurs_at, notes.due_at) between ${since} and now()`)
+              ),
               // **Over the budget is its own reason to run.** Activity alone
               // was the gate until the review found what it misses: a thread
               // goes over a hundred, the account goes quiet, and nothing ever
@@ -591,67 +604,74 @@ const accountDaily: Handler = async () => {
  *  suggests threads. Today generation and thread compaction land here as they
  *  are built.
  *
- *  A thread needs a pass when a note this member wrote there changed in the
- *  day, when it holds more notes than the prompt carries, or when something
- *  they dumped landed in it. The last is what makes learning possible; the
- *  first two are 014's, and how a contradiction written this morning gets
- *  resolved tonight rather than in a fortnight.
+ *  A thread needs a pass only when something material changed since this
+ *  member's last pass there: see `needs` below.
  */
+/** 032. The most nightly passes one member gets in a night, beside their
+ *  default thread's. */
+export const NIGHTLY_THREADS = 10;
+
 const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
   if (!accountId) throw new Error("account.daily.run has no account");
 
-  const since = new Date(Date.now() - 25 * 60 * 60 * 1000);
   const account = await db.selectFrom("accounts").select("default_thread_id").where("id", "=", accountId).executeTakeFirst();
   const defaultThread = account?.default_thread_id ?? null;
 
-  const needs = (eb: ExpressionBuilder<Database, "threads" | "thread_members">) =>
-    eb.or([
-      eb.exists(
-        eb
-          .selectFrom("notes")
-          .select("notes.id")
-          .whereRef("notes.subject_id", "=", "threads.id")
-          .where("notes.scope", "=", "thread")
-          .where("notes.account_id", "=", accountId)
-          .where("notes.deleted_at", "is", null)
-          .where("notes.superseded_at", "is", null)
-          .where("notes.updated_at", ">=", since)
-      ),
-      // Counted as a number, not as text. `count` comes back as a string in
-      // the driver, and comparing it as one makes "100" smaller than "20".
-      eb(
-        eb
-          .selectFrom("notes")
-          .select(({ fn }) => fn.countAll<number>().as("n"))
-          .whereRef("notes.subject_id", "=", "threads.id")
-          .where("notes.scope", "=", "thread")
-          .where("notes.deleted_at", "is", null)
-          .where("notes.superseded_at", "is", null),
-        ">",
-        NOTE_PROMPT_BUDGET
-      ),
-      eb.exists(
-        eb
-          .selectFrom("messages")
-          .innerJoin("content", "content.derived_from_message_id", "messages.id")
-          .select("messages.id")
-          .whereRef("content.thread_id", "=", "threads.id")
-          .where("content.deleted_at", "is", null)
-          .where("messages.account_id", "=", accountId)
-          .where("messages.role", "=", "person")
-          .where("messages.created_at", ">=", since)
-      ),
-    ]);
+  // **Something material since this member's last pass here**, and nothing
+  // else: a pass's own writes come before its stamp, so it never books the
+  // next one; ticking or moving rows changes nothing a pass reads. In order:
+  // a dump of theirs the pass may read landed; a note of theirs changed and
+  // they hold two or more there (one has nothing to fold); a dated note of
+  // theirs passed its date; a first pass on a thread over the budget.
+  const since = sql`greatest(coalesce(thread_members.nightly_at, now() - interval '25 hours'), now() - interval '7 days')`;
+  const own = sql`(select count(*) from notes n where n.scope = 'thread' and n.subject_id = threads.id
+      and n.account_id = ${accountId} and n.deleted_at is null and n.superseded_at is null)`;
+  const needs = sql<boolean>`(
+    exists (
+      select 1 from messages m
+       where m.account_id = ${accountId} and m.role = 'person'
+         and m.source not in ('mail', 'gmail', 'calendar', 'browser')
+         and not m.derived_from_untrusted and m.created_at > ${since}
+         and (exists (select 1 from content c where c.derived_from_message_id = m.id
+                       and c.thread_id = threads.id and c.deleted_at is null)
+              or exists (select 1 from notes n where n.derived_from_message_id = m.id
+                       and n.scope = 'thread' and n.subject_id = threads.id and n.deleted_at is null))
+    )
+    or (${own} >= 2 and exists (
+      select 1 from notes n where n.scope = 'thread' and n.subject_id = threads.id
+         and n.account_id = ${accountId} and n.deleted_at is null and n.superseded_at is null
+         and n.updated_at > ${since}
+    ))
+    or exists (
+      select 1 from notes n where n.scope = 'thread' and n.subject_id = threads.id
+         and n.account_id = ${accountId} and n.deleted_at is null and n.superseded_at is null
+         and coalesce(n.occurs_end_at, n.occurs_at, n.due_at) > ${since}
+         and coalesce(n.occurs_end_at, n.occurs_at, n.due_at) <= now()
+    )
+    or (thread_members.nightly_at is null and ${own} >= 2 and (
+      select count(*) from notes n where n.scope = 'thread' and n.subject_id = threads.id
+         and n.deleted_at is null and n.superseded_at is null) > ${NOTE_PROMPT_BUDGET})
+  )`;
 
-  const threads = await db
+  const owed = db
     .selectFrom("threads")
     .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
     .select(["threads.id as id"])
     .where("thread_members.account_id", "=", accountId)
     .where("thread_members.state", "=", "accepted")
     .where("threads.deleted_at", "is", null)
-    .where(needs)
+    .where(needs);
+  // The most recently active first, and no more than the cap: a guardrail for
+  // a member busy in many threads. A thread left over keeps everything it is
+  // owed, since only a pass stamps it, and is read on a later night.
+  const threads = await owed
+    .where(sql<boolean>`threads.id is distinct from ${defaultThread}`)
+    .orderBy("threads.last_activity_at", "desc")
+    .limit(NIGHTLY_THREADS)
     .execute();
+  const defaultOwed = defaultThread
+    ? Boolean(await owed.where("threads.id", "=", defaultThread).executeTakeFirst())
+    : false;
 
   // 028. The sweep of what nobody can undo any more, then whether the default
   // thread has something new for proposals to read.
@@ -671,11 +691,10 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
 
   let booked = 0;
   for (const thread of threads) {
-    if (thread.id === defaultThread) continue;
     await book(thread.id, false);
     booked += 1;
   }
-  if (defaultThread && (propose || threads.some((thread) => thread.id === defaultThread))) {
+  if (defaultThread && (propose || defaultOwed)) {
     await book(defaultThread, propose);
     booked += 1;
   }

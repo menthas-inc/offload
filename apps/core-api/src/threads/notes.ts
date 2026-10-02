@@ -1068,8 +1068,10 @@ export async function applyCompaction(
  *  a person's own out of the hundred the prompt carries. */
 export const LEARNED_CAP = 20;
 
-/** 032. The window a pass learns from: the day since the last one. */
+/** 032. What a pass reads: since its member's last pass in the thread, a day
+ *  for a first pass, and never more than a week. */
 const LEARN_WINDOW_HOURS = 25;
+const LEARN_WINDOW_MAX_DAYS = 7;
 
 /** What a nightly pass would add, citing the messages it came from. */
 export interface LearnedEntry {
@@ -1111,7 +1113,17 @@ export async function applyLearned(
         .where("messages.role", "=", "person")
         .where("messages.source", "not in", ["mail", "gmail", "calendar", "browser"])
         .where("messages.derived_from_untrusted", "=", false)
-        .where(sql<boolean>`messages.created_at > now() - make_interval(hours => ${LEARN_WINDOW_HOURS})`)
+        // Since the member's last pass here, so a missed night loses nothing;
+        // the first pass reads a day, and no pass reads more than a week.
+        .where(
+          sql<boolean>`messages.created_at > greatest(
+            coalesce(
+              (select tm.nightly_at from thread_members tm where tm.thread_id = ${threadId} and tm.account_id = ${accountId}),
+              now() - make_interval(hours => ${LEARN_WINDOW_HOURS})
+            ),
+            now() - make_interval(days => ${LEARN_WINDOW_MAX_DAYS})
+          )`,
+        )
         .where((eb) =>
           eb.or([
             eb.exists(

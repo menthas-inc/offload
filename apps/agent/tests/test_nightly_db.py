@@ -201,5 +201,28 @@ async def test_a_pass_reads_only_its_members_own_dumps_that_landed_in_the_thread
     await agent.dispose()
 
     assert [m["id"] for m in messages] == [kept]
+
+    # A missed night: the last pass was three days ago, so a dump from
+    # yesterday morning that no pass has read is read now.
+    admin = create_async_engine(_asyncpg(ADMIN_DB))
+    async with admin.begin() as conn:
+        await conn.execute(
+            text(
+                "update thread_members set nightly_at = now() - interval '72 hours' "
+                "where thread_id = :t and account_id = :a"
+            ),
+            {"t": trip, "a": ana},
+        )
+        await conn.execute(
+            text("update messages set created_at = now() - interval '40 hours' where id = :m"),
+            {"m": kept},
+        )
+    await admin.dispose()
+    agent = create_async_engine(_asyncpg(AGENT_DB))
+    async with agent.connect() as conn:
+        missed = (await conn.execute(_MESSAGES, {**params, "limit": 40})).mappings().all()
+    await agent.dispose()
+    # Both dumps since that pass, the 40 and the 49 hour one, newest first.
+    assert [m["id"] for m in missed] == [kept, old]
     assert messages[0]["text"] == "staying in Alfama"
     assert [(n["text"], n["theirs"]) for n in notes] == [("Sam books the ferry", False)]

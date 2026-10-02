@@ -124,8 +124,9 @@ _NOTES = text(
     """
 )
 
-# The member's own dumps that landed in this thread in the last day: a row or a
-# note in it was filed from them. A question files nothing and is never here;
+# The member's own dumps that landed in this thread since their last pass there
+# (a day for a first pass, never more than a week): a row or a note in it was
+# filed from them. A question files nothing and is never here;
 # neither is mail, a calendar, the browser, anything untrusted, or anybody
 # else. The Core API checks the same set again before it writes.
 _MESSAGES = text(
@@ -137,7 +138,12 @@ _MESSAGES = text(
        and m.role = 'person'
        and m.source not in ('mail', 'gmail', 'calendar', 'browser')
        and not m.derived_from_untrusted
-       and m.created_at > now() - interval '25 hours'
+       and m.created_at > greatest(
+             coalesce((select tm.nightly_at from thread_members tm
+                        where tm.thread_id = cast(:thread_id as uuid)
+                          and tm.account_id = cast(:account_id as uuid)),
+                      now() - interval '25 hours'),
+             now() - interval '7 days')
        and said(m.text, m.transcript) is not null
        and (exists (select 1 from content c where c.derived_from_message_id = m.id
                      and c.thread_id = cast(:thread_id as uuid) and c.deleted_at is null)

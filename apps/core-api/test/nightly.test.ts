@@ -21,7 +21,7 @@ import { db, closeDb } from "../src/db.js";
 import { env } from "../src/env.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
-import { handlers } from "../src/jobs/handlers.js";
+import { NIGHTLY_THREADS, handlers } from "../src/jobs/handlers.js";
 import { MemoryMailer } from "../src/mail/mailer.js";
 import { uuidv7 } from "../src/uuid.js";
 import { LEARNED_CAP } from "../src/threads/notes.js";
@@ -92,6 +92,34 @@ async function job(accountId: string, threadId: string, propose = false): Promis
 
 const empty = { supersede: [], remove: [], add: [], learned: [], sent: [], groups: [] };
 
+/** The member's last pass in the thread, `hoursAgo` back. */
+async function lastPass(accountId: string, threadId: string, hoursAgo: number) {
+  await db
+    .updateTable("thread_members")
+    .set({ nightly_at: sql<Date>`now() - make_interval(hours => ${hoursAgo})` })
+    .where("thread_id", "=", threadId)
+    .where("account_id", "=", accountId)
+    .execute();
+}
+
+/** A note of the member's, written `hoursAgo` back, with a date when given. */
+async function noted(accountId: string, threadId: string, text: string, hoursAgo: number, dueAt?: Date) {
+  await db
+    .insertInto("notes")
+    .values({
+      account_id: accountId,
+      scope: "thread",
+      subject_id: threadId,
+      text,
+      kind: "going_on",
+      origin: "stated",
+      ...(dueAt ? { due_at: dueAt } : {}),
+      created_at: sql<Date>`now() - make_interval(hours => ${hoursAgo})`,
+      updated_at: sql<Date>`now() - make_interval(hours => ${hoursAgo})`,
+    } as never)
+    .execute();
+}
+
 const post = (payload: Record<string, unknown>) =>
   app.inject({
     method: "POST",
@@ -148,6 +176,35 @@ describe("AC-9 to AC-11 what a pass may learn", () => {
       expect(res.json()).toMatchObject({ learned: 0 });
     }
     expect(await active(trip)).toEqual([]);
+  });
+
+  it("reads since the member's last pass, so a missed night loses nothing", async () => {
+    const ana = await account("Ana");
+    const trip = await thread(ana, "Lisbon in October");
+    await lastPass(ana, trip, 72);
+    const missed = await landed(ana, trip, "the flat is in Alfama", { hoursAgo: 40 });
+    const before = await landed(ana, trip, "an old dump", { hoursAgo: 80 });
+    const res = await post({
+      jobId: await job(ana, trip),
+      learned: [
+        { text: "The flat is in Alfama", from: [missed] },
+        { text: "Something old", from: [before] },
+      ],
+    });
+    expect(res.json()).toMatchObject({ learned: 1 });
+  });
+
+  it("stamps the member's last pass when it applies", async () => {
+    const ana = await account("Ana");
+    const trip = await thread(ana, "Lisbon in October");
+    await post({ jobId: await job(ana, trip) });
+    const member = await db
+      .selectFrom("thread_members")
+      .select("nightly_at")
+      .where("thread_id", "=", trip)
+      .where("account_id", "=", ana)
+      .executeTakeFirstOrThrow();
+    expect(member.nightly_at).not.toBeNull();
   });
 
   it("drops one bad citation in a note even when another is good", async () => {
@@ -344,6 +401,83 @@ describe("AC-7 the daily run books one pass per thread and member", () => {
 
     expect(await booked(ana)).toHaveLength(1);
     expect(await booked(sam)).toHaveLength(0);
+  });
+
+  it("never books a pass on the last pass's own writes", async () => {
+    const ana = await account("Ana");
+    const trip = await thread(ana, "Lisbon in October");
+    await noted(ana, trip, "Staying in Alfama", 2);
+    await noted(ana, trip, "Ferry at 10", 2);
+    await lastPass(ana, trip, 1);
+    await daily(ana);
+    expect(await booked(ana)).toEqual([]);
+  });
+
+  it("books nothing for a big thread where nothing changed since the last pass", async () => {
+    const ana = await account("Ana");
+    const trip = await thread(ana, "Lisbon in October");
+    for (let n = 0; n < 101; n++) await noted(ana, trip, `note ${n}`, 100);
+    await lastPass(ana, trip, 30);
+    await daily(ana);
+    expect(await booked(ana)).toEqual([]);
+  });
+
+  it("needs two of the member's notes when no dump landed", async () => {
+    const ana = await account("Ana");
+    const one = await thread(ana, "One note");
+    const two = await thread(ana, "Two notes");
+    await noted(ana, one, "Staying in Alfama", 2);
+    await noted(ana, two, "Staying in Alfama", 2);
+    await noted(ana, two, "Staying at the Alfama flat", 200);
+    await lastPass(ana, one, 30);
+    await lastPass(ana, two, 30);
+    await daily(ana);
+    expect((await booked(ana)).map((j) => (j.payload as { threadId: string }).threadId)).toEqual([two]);
+  });
+
+  it("books a pass when a dated note of theirs passed its date, however quiet the thread", async () => {
+    const ana = await account("Ana");
+    const flat = await thread(ana, "Flat admin");
+    await noted(ana, flat, "Boiler service on Thursday", 200, new Date(Date.now() - 5 * 60 * 60 * 1000));
+    await lastPass(ana, flat, 30);
+    await daily(ana);
+    expect(await booked(ana)).toHaveLength(1);
+  });
+
+  it("books no pass for a dump that landed before the last pass", async () => {
+    const ana = await account("Ana");
+    const trip = await thread(ana, "Lisbon in October");
+    await landed(ana, trip, "ferry at 9", { hoursAgo: 10 });
+    await lastPass(ana, trip, 5);
+    await daily(ana);
+    expect(await booked(ana)).toEqual([]);
+  });
+
+  it("books at most ten threads a night, the most recently active, and the rest wait", async () => {
+    const ana = await account("Ana");
+    const threads: string[] = [];
+    for (let n = 0; n < 12; n++) {
+      const th = await thread(ana, `Thread ${n}`);
+      await landed(ana, th, `dump ${n}`);
+      await db.updateTable("threads").set({ last_activity_at: sql<Date>`now() - make_interval(hours => ${n})` }).where("id", "=", th).execute();
+      threads.push(th);
+    }
+    await daily(ana);
+    const first = (await booked(ana)).map((j) => (j.payload as { threadId: string }).threadId);
+    expect(first.sort()).toEqual(threads.slice(0, NIGHTLY_THREADS).sort());
+    // The two left over are still owed a pass: nothing stamped them.
+    expect(NIGHTLY_THREADS).toBe(10);
+  });
+
+  it("wakes a quiet account whose dated note just passed", async () => {
+    const ana = await account("Ana");
+    const flat = await thread(ana, "Flat admin");
+    await db.updateTable("threads").set({ last_activity_at: sql<Date>`now() - interval '10 days'` }).where("id", "=", flat).execute();
+    await noted(ana, flat, "Boiler service on Thursday", 200, new Date(Date.now() - 5 * 60 * 60 * 1000));
+    await lastPass(ana, flat, 30);
+    await handlers["account.daily"]!({}, { mailer: new MemoryMailer() }, undefined);
+    const runs = await db.selectFrom("jobs").select("account_id").where("kind", "=", "account.daily.run").execute();
+    expect(runs.map((r) => r.account_id)).toContain(ana);
   });
 
   it("books the default thread with proposals when its set has two", async () => {

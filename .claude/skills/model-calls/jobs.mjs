@@ -262,14 +262,14 @@ export const JOBS = [
     lane: "daily",
     tier: "nightly_model",
     model: "nightly_model",
-    when: "Per thread a member touched",
-    cadence: "Daily, per thread and member: their notes there changed, the thread is over 100 notes, or a dump of theirs landed in it. The default thread when 028's set changed",
+    when: "Threads with material change",
+    cadence: "Daily, per thread and member, only on change since that member's last pass there: a dump of theirs landed, a note of theirs changed and they hold two or more, or a dated note of theirs passed. At most ten threads per member per night, most recent first; the default thread also when 028's set changed",
     trigger: "jobs/handlers.ts `account.daily.run`, key thread.nightly:<thread>:<member>:<day>",
     call: "One call, forced tool nightly, max_tokens 4,096, one repair through a tool_result. Two fixed prompts: learn for ordinary threads, propose for the default thread",
     inputs: [
       "Today, and the thread's name",
       "Up to 100 active notes, oldest first, one JSON entry each: id, written, yours, by, text",
-      "Ordinary thread: the member's own dumps that landed there in 25 hours, at most 40 of 500 characters, numbered",
+      "Ordinary thread: the member's own dumps that landed there since their last pass (at most a week), at most 40 of 500 characters, numbered",
       "Default thread: 028's candidates, at most 50 of 200 characters, numbered",
     ],
     outputs: [

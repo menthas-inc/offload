@@ -58,7 +58,7 @@ or, for the default thread, the 028 candidates as `{"n": 1, "kind": "task", "tex
 
 | Field | Estimate |
 | --- | --- |
-| Passes per active account per night | 2 typical (threads with that day's activity), 15 heavy |
+| Passes per active account per night | 2 typical (threads with that day's activity), 11 at most (`NIGHTLY_THREADS`, 10, plus the default thread) |
 | Notes read per pass | 10 typical, 100 cap |
 | Messages read per pass | 3 typical, 40 cap |
 | Input tokens per pass | 2,000 to 4,000 typical, about 15,000 cap |

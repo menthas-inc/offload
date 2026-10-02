@@ -51,7 +51,14 @@ It never writes a summary of what was said, anything a note or a row already hol
 
 **The default thread: suggest threads.** 028's pass, unchanged in what it proposes and in every rule its endpoint holds, run by the member whose default thread it is (it is never shared). The default thread is not learned from: what lands there has no shared subject.
 
-**When a pass runs.** For a member in an ordinary thread: a note they authored there changed in the last 25 hours, or the thread holds more than 100 active notes (014's budget), or something of theirs counts as the thread's conversation (section 3). For the default thread: its notes changed or are over budget, or 028's condition holds. At most one pass per thread per member per day.
+**When a pass runs, and when it does not.** A pass is booked for a member in a thread only when something material changed **since that member's last pass there**, which is stamped on their membership when a pass applies:
+
+- a dump of theirs that the pass may read landed in the thread;
+- a note of theirs there was written or edited, by them or by a live turn, **and they hold two or more notes there**: one note has nothing to fold;
+- a dated note of theirs passed its date, the one change no activity causes;
+- or the thread has never had a pass for them, holds more than 100 notes, and two or more are theirs.
+
+A pass's own writes come before its stamp, so a pass never books the next one. Ticking, archiving or moving rows is activity that changes nothing a pass reads, and books nothing. The default thread follows the same rules for its notes, and is also booked when 028's condition holds. What a pass reads is **since its member's last pass**, at most seven days back, so a night that failed or was skipped loses nothing. At most one pass per thread per member per day, and **at most ten threads per member per night**, the most recently active first, beside their default thread: a guardrail for somebody busy in many threads. A thread left over is still owed its pass, since only a pass stamps it, and is read on a later night.
 
 **A pass that fails** applies nothing when its answer does not fit the schema after one repair, and the thread is as it was; the job retries once an hour later, as compaction's does, and otherwise the next night's pass reads the same thread. A single learned note or proposal that fails its own check is dropped, and the rest of the pass applies.
 
@@ -97,11 +104,11 @@ In a shared thread, a learned note reaches the other members the way every note 
 - **AC-6** The four typed-row fields say *Add to this*.
 
 **The nightly pass**
-- **AC-7** The daily run books at most one nightly pass per thread per member per day, on the conditions in section 2, and books no compaction, loose proposal or label sort job.
+- **AC-7** The daily run books at most one nightly pass per thread per member per day, only on the conditions in section 2, and books no compaction, loose proposal or label sort job. A pass's own writes book nothing; a thread over 100 notes with nothing changed since the last pass books nothing; one changed note with no new dumps books nothing; no member gets more than ten passes a night beside their default thread's, and a thread over the ten is booked on a later night.
 - **AC-8** A pass applies compaction under 014's AC-8 to AC-10 through the same code, and sets aside, folds or removes only notes authored by its member; any other id is ignored.
 - **AC-9** A pass may add at most three learned notes, and none once its member holds twenty active learned notes in the thread. Each is at most 200 characters, cites at least one message, and every message it cites is one the pass was shown; the Core API re-derives that set itself (section 3) rather than trusting the worker. A note failing any check is dropped and the rest of the pass applies.
 - **AC-10** A learned note is `learned` in origin and authored by the pass's member; a note with the same text as an active note on the thread is not added again; adding one sends no notification.
-- **AC-11** A pass is shown only its member's own messages that landed in the thread in the last 25 hours, at most 40, newest first, each cut to 500 characters, as structured entries; never a question, a dump that filed nothing there, mail, calendar, browser or untrusted messages, or offload's.
+- **AC-11** A pass is shown only its member's own messages that landed in the thread since their last pass there (at most seven days back, 25 hours for a first pass), at most 40, newest first, each cut to 500 characters, as structured entries; never a question, a dump that filed nothing there, mail, calendar, browser or untrusted messages, or offload's.
 - **AC-12** A pass on the default thread proposes threads under every rule 028 states, through the same code, and is shown no messages and adds no learned note.
 - **AC-13** A pass whose answer does not fit its schema gets one repair, sent as a `tool_result`, and then applies nothing.
 - **AC-14** A result posted twice for one job applies once.

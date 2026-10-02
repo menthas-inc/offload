@@ -449,6 +449,16 @@ export async function internalRoutes(app: App): Promise<void> {
             .values(ledgerRows(accountId, "thread.nightly", "scheduled", result.usage))
             .execute();
         }
+        // The member's last pass here, after everything this one wrote: the
+        // next is booked on, and reads, what changed since, so this pass's own
+        // notes never book it. clock_timestamp, not now(): now() is the
+        // transaction's start, which the writes above would come after.
+        await trx
+          .updateTable("thread_members")
+          .set({ nightly_at: sql`clock_timestamp()` })
+          .where("thread_id", "=", threadId)
+          .where("account_id", "=", accountId)
+          .execute();
         await close();
 
         return {
