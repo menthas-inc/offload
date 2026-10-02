@@ -131,13 +131,13 @@ Roles: display 34, title-1 26, title-2 21, title-3 17, body 16, body-sm 14, labe
 
 ## Iconography
 
-**Lucide, and only Lucide.** Outline, 2px stroke, 24px grid, no fills, no duotone, no colour. 87 glyphs are vendored in `assets/icons/` as SVG so this system works offline; `Icon` reads from the jsDelivr copy of `lucide-static` by default and accepts `basePath="./assets/icons/"` to use the local set.
+**Lucide, and only Lucide.** Outline, 2px stroke, 24px grid, no fills, no duotone, no colour. 95 glyphs are vendored in `assets/icons/` as SVG so this system works offline; `Icon` reads from the jsDelivr copy of `lucide-static` by default and accepts `basePath="./assets/icons/"` to use the local set.
 
 Icons are rendered as a **`currentColor` mask**, so a glyph always inherits the colour of the text it sits beside, that is why there is no coloured-icon rule to remember. Sizes: 14 (inside chips), 16 (metadata, small buttons), 18 (list rows, fields), 20 (bars, buttons), 22 (tab bar), 28 (empty states, in `--ink-300`).
 
 Tab glyphs: `sun` / `moon` (Today and Tonight, on real sunset), `lasso` (My threads, a loop drawn round related things), `cloudy` (Notes). Then `sparkles` (anything offload did for you), `map-pin` `link` `image` `mic` `camera` `paperclip` `scan-text` (kinds of dumped thing), `square-check-big` / `check` / `check-check` (tasks and done states), `users` (shared threads and people), `arrow-up` (send), `plus` (new), `ellipsis` (more), `chevron-*` and `maximize-2` (navigation), `bell` `settings` `search` `clock` `calendar` `bookmark` `archive` `trash-2` `pencil` `share-2` `funnel` `lock` `house` `message-circle` `circle` `list`.
 
-All 87 vendored glyphs: `album` `archive` `arrow-up` `arrow-up-right` `bell` `blend` `bookmark` `brain` `calendar` `camera` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `coffee` `compass` `ellipsis` `eye` `folder` `funnel` `gallery-vertical-end` `git-branch` `grip-vertical` `group` `house` `image` `inbox` `lasso` `layers` `library-big` `link` `list` `lock` `mail` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `moon` `moon-star` `newspaper` `orbit` `paperclip` `pause` `pencil` `play` `plus` `radio` `rewind` `rss` `scan-text` `search` `settings` `share-2` `sliders-horizontal` `snowflake` `sparkles` `spline` `square-check-big` `sun` `sunrise` `tag` `text-quote` `thermometer-sun` `trash-2` `umbrella` `users` `waypoints` `wind` `x` .
+All 95 vendored glyphs: `album` `archive` `arrow-up` `arrow-up-right` `ban` `bell` `blend` `bookmark` `brain` `calendar` `camera` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `coffee` `compass` `copy` `ellipsis` `eye` `folder` `funnel` `gallery-vertical-end` `git-branch` `globe` `grip-vertical` `group` `house` `image` `inbox` `lasso` `layers` `library-big` `link` `list` `lock` `log-out` `mail` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `monitor` `moon` `moon-star` `newspaper` `orbit` `paperclip` `pause` `pencil` `play` `plus` `radio` `rewind` `rss` `scan-text` `search` `settings` `share-2` `sliders-horizontal` `smartphone` `snowflake` `sparkles` `spline` `square-check-big` `sun` `sunrise` `tag` `text-quote` `thermometer-sun` `trash-2` `type` `umbrella` `user-plus` `users` `waypoints` `wind` `x`.
 
 No icon font. No PNG icons. No emoji. No hand-drawn or bespoke SVG illustration, if a screen needs a picture, it uses a real image the user provided, or nothing.
 
@@ -973,8 +973,8 @@ it too, which makes its tools "up to two".
 
 **Outside the thread a label always travels with its thread's name.** Today: the meta line, then
 the marks, and no way to label from there. The calendar: offload's own dated rows carry their marks
-and a Google event carries none; the month's dots are the type dots and narrow with the filter. **The
-map is not built**; the split pin waits for a map provider.
+and a Google event carries none; the month's dots are the type dots and narrow with the filter. The
+map's pins are the split pin (see **A thread's map**).
 
 **What offload does.** It labels live while filing (apply by id, make one only when its name is in
 the message, remove when asked), inside the turn's Undo. The nightly sort is built and **switched off
@@ -1049,7 +1049,87 @@ is the row sheet's. Not drawn when empty.
 - The name inside is a label, never a link. Most rows carry none. Move is immediate with a toast,
   *Moved to* and the thread, and Undo.
 
-**offload's reply** for a thing filed without a thread is *Saved.* No thread is named.
+**offload's reply** for a thing filed without a thread is Done alone, with no thread pill and no words (as built, 028). A shared Move to draws the people it would share with as faces: 20px initials marks on `--surface-fill`, overlapping by 6px, then *+1*.
+
+## A thread's map
+
+Decided 2 October 2026 off `explorations/maps.html`. A thread has a map once one live thing in it
+has a point: a saved place, a link whose page gives a location, or an event with a venue, offload's
+own or from a connected calendar the thread shows. The map is never there by default.
+
+**The switch.** `list` and `map-pin` in a segmented pair in the app bar, before share and More,
+only while the thread has a point. Map replaces the body under the app bar: the thread's name moves
+into the bar, the label chips float over the map on `--surface-raised` with `--shadow-1` and filter
+the pins exactly as they filter the list, and the composer stays. Kept per thread on the device.
+Android draws the pair as an outlined segmented button with the picked half on
+`--surface-accent-soft`. **The Places section is retired**; located things sit in Everything in here.
+
+**The web column.** From 1200px the thread pane splits: the list keeps its column, the map takes 460px
+on the right, full height and sticky, and the switch is not drawn. Hovering a row lifts its pin;
+picking a pin highlights its row with `--surface-fill`. Below 1200px the web uses the switch.
+
+**Pins.** 16px dots with a 2.5px white ring, 24px with 3px when picked, each in a 44px target. The
+label's colour, split down the middle for two labels (the first two of more), `--ink-900` for none;
+events are 5px-radius squares. Overlapping pins become an ink count dot until zoomed apart. **An
+approximate place**, a listing that gives an area until booked, is a circle about 300m across in its
+label's colour, 16% fill and a 1.5px ring at 70%, picked at 26% and 2.5px; its sheet's Address reads
+*Approximate, Alfama*.
+
+**The callout.** 228px on `--surface-raised`, 14px radius (16 on Android), a tail on the point: the
+name, the kind and labels, then *Directions* (filled, `compass`) and *Open*. Tapping the map closes it,
+another pin moves it, and it is kept inside the frame. **Directions** opens the device's maps app with
+the place as the destination: Apple Maps on iOS, or a choice when Google Maps is installed; Google Maps
+on Android; Google Maps in a new tab on the web. **Open** is the thing's sheet, the same as its row:
+a half sheet over the map on the phones dimming it at 35%, the side pane on the web. Header with the
+type tile, name, kind and thread, and a close; rows for When, Address, Link, Labels and Added by; two
+equal 48px buttons, *Directions* filled and *Open link* or *Edit* on `--surface-fill` (outlined on
+Android).
+
+**Framing.** Fitted to every point, never closer than street level (zoom 15). A filter that leaves
+none shows the whole area with *Nothing under Food on the map.* A thing with no point is not drawn.
+
+**The stack.** MapLibre on all three, MapTiler Streets and Streets Dark, with *© MapTiler ©
+OpenStreetMap contributors* small at the bottom right. Place lookup is MapTiler Geocoding.
+
+## Settings
+
+Decided 2 October 2026 off `explorations/settings-v2.html` (the first round, with the two directions not
+taken, is `explorations/settings.html`). Handoff: `handoff/APPLY-2026-10-02-settings.md`.
+
+**A section opens with a glyph, a heading and, where it needs one, a caption.** The 12px tertiary
+label over 15px rows is gone on every settings page and every surface: a 32px tile on
+`--surface-accent-soft` with its glyph at 17px in `--moss-700` (Android: a circle on
+`--surface-attention-soft`, `--blue-700`), a 17px semibold heading (16px on web), a count pill beside
+it where the section lists people, and a 13px secondary caption under it. Sections sit 26px apart on the
+phones and 34px on the web. The phones keep the fill card under the heading; the web keeps open rows,
+with a hairline under the heading.
+
+**Choosing one of a few shows what you get.** Theme, Week starts on and the web's Text size are
+preview tiles, not a segmented control: a light and a dark screen and a split one for System, the
+week with its first day filled, two sizes of *Aa*. A tile is a raised card with a hairline; the picked
+one takes a 2px ink ring and a filled radio, on Android a 2px `--blue-600` ring on
+`--surface-attention-soft`. `SegmentedControl` stays for switching views.
+
+**Pages, as built plus three things:**
+
+- **My account**: Profile (Name, Email), Where you are (Country, with the web's note as its caption),
+  Signed in on, Sign out. **This device is always the first row** of Signed in on, with a *This device*
+  status pill; other sessions list under it with *End*, then *End all other sessions*. A failed read says
+  *Couldn't load your other devices.* beside *Try again*, never *Nothing else*.
+- **Country and Time zone on the web** are a token-drawn combobox, not a native `select`: the value in
+  a field with `chevron-down`, a popover with a filter, *Not set* first, a check on the current one. The
+  phones keep their pushed picker page, and its *Now* value becomes a `check`.
+- **My people**: Waiting on you (the request card), **Connect with someone** (an email field and *Find*,
+  the Share sheet's lookup and found row), Connected with its count, Asked by you, Blocked. Day one
+  shows the field and *Nobody yet* with one line on what a connection is.
+- **Notifications**: Dates, People, On this phone. The hour rows sit indented under their switch, the
+  hour in a small raised pill. The web says notifications go to the phones.
+- **Connected apps is one card per app.** A card is a 42px mark, the name, one line, and a status pill
+  (*Connected* in moss, *Ready*) or *Connect*. Google Calendar's card carries *Calendars offload can use*
+  and **Ask before adding**; Mail's carries **the address with Copy** and *Add to contacts*. **The Mail
+  card is always shown**, connected calendar or not. *Not built yet* and *What offload may do* are gone.
+- **Reaching the web**, **Date and time**, **Appearance** as built, in the new sections.
+- **Help and about** gains **See the tutorial again**, replaying first run's three screens.
 
 ## The admin panel
 

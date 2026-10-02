@@ -125,7 +125,7 @@ export default function MyThreads() {
         edges={["top"]}
       >
         <View className="h-appbar-height flex-row items-center px-gutter-screen">
-          <Logo size={21} />
+          <Logo size={24} />
         </View>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
@@ -143,7 +143,7 @@ export default function MyThreads() {
       edges={["top"]}
     >
       <View className="h-appbar-height flex-row items-center px-gutter-screen">
-        <Logo size={21} />
+        <Logo size={24} />
       </View>
 
       {empty ? (

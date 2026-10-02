@@ -1,0 +1,213 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>A thread's map, final</title>
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<style>
+body{margin:0;background:var(--surface-page);color:var(--text-primary);font:var(--text-body-role);padding:48px 56px 96px}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+h1{margin:0 0 8px;font:var(--weight-semibold) 30px/1.15 var(--font-core);letter-spacing:-.02em}
+.lede{max-width:720px;color:var(--text-secondary);font:var(--weight-regular) 15px/1.6 var(--font-core);margin:0 0 12px;text-wrap:pretty}
+.sec{display:flex;align-items:baseline;gap:12px;margin:56px 0 6px}.sec h2{margin:0;font:var(--weight-semibold) 20px/1.2 var(--font-core)}.sec u{text-decoration:none;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.06em}
+.secp{max-width:720px;color:var(--text-secondary);font:var(--weight-regular) 14px/1.6 var(--font-core);margin:0 0 20px;text-wrap:pretty}
+.notes{max-width:720px;font:var(--weight-regular) 14px/1.6 var(--font-core);color:var(--text-secondary)}
+.notes b{color:var(--text-primary);font-weight:500}.notes ul{margin:8px 0 0;padding-left:18px}.notes li{margin-bottom:6px}
+.cap{font:var(--weight-medium) 11px/1 var(--font-core);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px}
+.pair{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+.g{display:inline-block;width:18px;height:18px;flex:0 0 auto;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+.ph{width:390px;height:780px;flex:0 0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);position:relative;display:flex;flex-direction:column}
+.st{display:flex;justify-content:space-between;padding:16px 30px 8px;font:var(--weight-semibold) 15px/1 var(--font-core);flex:0 0 auto}
+.ab{height:52px;flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:0 var(--gutter-screen);color:var(--text-secondary);position:relative;z-index:460;background:var(--surface-page)}.ab b{flex:1;min-width:0;color:var(--text-primary);font:var(--weight-semibold) 17px/1 var(--font-core);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ab>.g{width:21px;height:21px}
+.seg{display:inline-flex;padding:2px;border-radius:99px;background:var(--surface-fill);gap:2px;cursor:pointer}.seg span{width:36px;height:30px;border-radius:99px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}.seg span.on{background:var(--surface-raised);color:var(--text-primary);box-shadow:var(--shadow-1)}.seg .g{width:16px;height:16px}
+.body{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;position:relative}
+.body.full{overflow:hidden}
+.head{padding:8px var(--gutter-screen) 4px}.head h3{margin:0;font:var(--text-title-1);letter-spacing:var(--tracking-title)}
+.ppl{display:flex;gap:8px;margin-top:12px}.pc{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:99px;background:var(--surface-fill);font:var(--weight-medium) 13px/1 var(--font-core)}.pc .g{width:14px;height:14px;color:var(--text-secondary)}.pc.out{background:transparent;box-shadow:inset 0 0 0 1px var(--border-strong)}
+.stand{margin:16px 0 0;font:var(--text-quiet-role);font-size:17px;line-height:1.5}
+.chips{display:flex;gap:6px;padding:14px var(--gutter-screen) 4px;overflow:hidden}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:99px;background:var(--surface-fill);font:var(--weight-medium) 13px/1 var(--font-core);white-space:nowrap}.chip em{font-style:normal;opacity:.7;font-weight:400}.chip.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.chip i{width:8px;height:8px;border-radius:2px;background:var(--c)}
+.sh{display:flex;align-items:center;gap:8px;padding:22px var(--gutter-screen) 6px;font:var(--weight-semibold) 19px/1.2 var(--font-core)}.sh em{font-style:normal;font:var(--weight-regular) 12px/1 var(--font-core);color:var(--text-secondary);background:var(--surface-fill);border-radius:99px;padding:4px 8px}
+.r{display:flex;align-items:center;gap:12px;min-height:60px;padding:0 var(--gutter-screen);position:relative;transition:background 140ms var(--ease-out)}
+.r:after{content:"";position:absolute;left:calc(var(--gutter-screen) + 48px);right:0;bottom:0;height:1px;background:var(--border-hairline)}.r.nb:after{display:none}
+.r.hl{background:var(--surface-fill)}
+.tile{width:36px;height:36px;border-radius:var(--radius-sm);background:var(--surface-fill);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.bd{flex:1;min-width:0}.bd>b{display:block;font:var(--weight-medium) 15.5px/21px var(--font-core);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bd>s{display:flex;align-items:center;gap:6px;text-decoration:none;font:var(--weight-regular) 13px/18px var(--font-core);color:var(--text-secondary);white-space:nowrap;overflow:hidden;margin-top:2px}
+.lm{display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:var(--radius-xs);background:var(--c);color:#fff;font:var(--weight-medium) 11.5px/1 var(--font-core)}
+.chev{color:var(--text-tertiary);display:flex}.chev .g{width:16px;height:16px}
+.plate{margin-top:auto;flex:0 0 auto;background:var(--surface-plate);border-radius:20px 20px 0 0;box-shadow:0 -6px 12px rgb(11 11 11 / .08);padding:14px var(--gutter-screen) 30px;position:relative;z-index:500}
+.pill{display:flex;align-items:center;min-height:48px;padding:0 16px 0 18px;border-radius:99px;background:var(--surface-input);border:1px solid var(--border-hairline);color:var(--text-tertiary)}.pill s{flex:1;text-decoration:none}.pill .g{width:20px;height:20px;color:var(--text-secondary)}
+.map{position:relative;background:#eeeae2}
+.map .leaflet-control-attribution{font:var(--weight-regular) 9.5px/1.3 var(--font-core);background:rgb(255 255 255 / .75);padding:1px 5px}
+.map .leaflet-control-attribution a{color:var(--text-secondary)}
+.pin{display:block;width:16px;height:16px;box-sizing:border-box;border-radius:99px;border:2.5px solid #fff;background:linear-gradient(90deg,var(--a) 50%,var(--b,var(--a)) 50%);box-shadow:0 1px 4px rgb(11 11 11 / .35);transition:transform 140ms var(--ease-out)}
+.pin.sel{width:24px;height:24px;border-width:3px;box-shadow:0 2px 8px rgb(11 11 11 / .4)}
+.pin.hov{transform:scale(1.35)}
+.pin.ev{border-radius:5px}
+.callout{position:relative;width:228px;box-sizing:border-box;padding:12px 12px 12px 14px;border-radius:14px;background:var(--surface-raised);box-shadow:0 6px 20px rgb(11 11 11 / .22);font-family:var(--font-core)}
+.callout:after{content:"";position:absolute;left:50%;bottom:-6px;width:12px;height:12px;margin-left:-6px;background:var(--surface-raised);transform:rotate(45deg);box-shadow:3px 3px 4px rgb(11 11 11 / .08)}
+.callout b{display:block;font:var(--weight-semibold) 15px/1.25 var(--font-core);color:var(--text-primary)}.callout s{display:flex;align-items:center;gap:6px;text-decoration:none;margin-top:3px;font:var(--weight-regular) 12.5px/1.3 var(--font-core);color:var(--text-secondary)}
+.cb{display:flex;gap:6px;margin-top:10px}.cb span{height:32px;display:inline-flex;align-items:center;gap:5px;padding:0 12px;border-radius:99px;background:var(--surface-fill);font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-primary);cursor:pointer}.cb span.pri{background:var(--surface-inverse);color:#fff}.cb .g{width:13px;height:13px}.cb span.pri .g{background:#fff}
+.mchips{position:absolute;left:0;right:0;top:0;z-index:450;padding:10px var(--gutter-screen);display:flex;gap:6px;overflow:hidden}.mchips .chip{background:var(--surface-raised);box-shadow:var(--shadow-1)}.mchips .chip.on{background:var(--surface-inverse)}
+.fullmap{position:absolute;inset:0;animation:fm-in 220ms var(--ease-entrance)}
+@keyframes fm-in{from{opacity:0}to{opacity:1}}
+/* item sheet */
+.scrim{position:absolute;inset:0;background:rgb(11 11 11 / .35);z-index:900;opacity:0;pointer-events:none;transition:opacity 200ms var(--ease-out)}
+.isheet{position:absolute;left:0;right:0;bottom:0;z-index:901;background:var(--surface-raised);border-radius:20px 20px 0 0;box-shadow:var(--shadow-sheet);padding:8px var(--gutter-screen) 30px;transform:translateY(105%);transition:transform 320ms var(--ease-entrance)}
+.on-sheet .scrim{opacity:1;pointer-events:auto}.on-sheet .isheet{transform:none}
+.isheet .grab{width:36px;height:4px;border-radius:99px;background:var(--border-strong);margin:0 auto 16px}
+.ih{display:flex;align-items:center;gap:12px}.ih .tile{width:44px;height:44px}.ih .tt{flex:1;min-width:0}.ih h4{margin:0;font:var(--weight-semibold) 19px/1.25 var(--font-core)}.ih .ik{margin-top:2px;font:var(--weight-regular) 13.5px/1.3 var(--font-core);color:var(--text-secondary)}
+.ix{width:32px;height:32px;border-radius:99px;background:var(--surface-fill);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);cursor:pointer;flex:0 0 auto}.ix .g{width:14px;height:14px}
+.irows{margin-top:14px}.ir{display:flex;align-items:center;gap:12px;min-height:46px;box-shadow:inset 0 -1px 0 var(--border-hairline);font:var(--weight-regular) 15px/1.3 var(--font-core)}.ir:last-child{box-shadow:none}
+.ir>.g{width:16px;height:16px;color:var(--text-secondary)}.ir .k{width:76px;flex:0 0 auto;color:var(--text-secondary);font-size:14px}.ir .v{flex:1;min-width:0;display:flex;gap:6px;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ifoot{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.btn{height:48px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:99px;background:var(--surface-fill);color:var(--text-primary);font:var(--weight-medium) 15px/1 var(--font-core);cursor:pointer}.btn .g{width:16px;height:16px}
+.btn.pri{background:var(--surface-inverse);color:#fff}.btn.pri .g{background:#fff}
+/* plat */
+.plat{position:sticky;top:12px;z-index:1000;display:inline-flex;gap:2px;padding:3px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline),var(--shadow-2);margin:0 0 8px}
+.plat button{height:32px;padding:0 16px;border-radius:99px;border:0;background:transparent;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary);cursor:pointer}
+.plat button.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.wsb{display:none}
+[data-plat=android] .ph:not(.web){width:412px}
+[data-plat=android] .st{padding:12px 20px 6px;font:var(--weight-medium) 13px/1 var(--font-core)}
+[data-plat=android] .ab{height:64px}[data-plat=android] .ab b{text-align:left;font-size:22px;font-weight:400}
+[data-plat=android] .seg{padding:0;background:transparent;box-shadow:inset 0 0 0 1px #79786F}[data-plat=android] .seg span{width:44px;height:32px}[data-plat=android] .seg span.on{background:var(--surface-accent-soft);color:var(--moss-700);box-shadow:none}
+[data-plat=android] .chip{border-radius:8px}[data-plat=android] .tile{border-radius:8px}
+[data-plat=android] .plate{border-radius:28px 28px 0 0;padding-bottom:20px}
+[data-plat=android] .callout{border-radius:16px}[data-plat=android] .cb span{height:36px}
+[data-plat=android] .isheet{border-radius:28px 28px 0 0;background:#F6F5F2}[data-plat=android] .btn{height:40px;font-size:14px}[data-plat=android] .btn:not(.pri){background:transparent;box-shadow:inset 0 0 0 1px #79786F}
+/* web */
+.ph.web,[data-plat=web] .ph{width:960px;height:640px;border-radius:14px;display:grid;grid-template-columns:200px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
+.ph.web .st,[data-plat=web] .ph .st,.ph.web .plate,[data-plat=web] .ph .plate{display:none}
+.ph.web .wsb,[data-plat=web] .wsb{display:flex;grid-row:1/-1;flex-direction:column;gap:2px;padding:18px 10px;background:#161614;color:#EDEDED}
+.wsb b{font:var(--weight-semibold) 17px/1 var(--font-core);padding:0 10px 18px}
+.wsb span{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;font:var(--weight-medium) 13.5px/1 var(--font-core);color:#B3B3B3;position:relative}.wsb span .g{width:16px;height:16px}
+.wsb span.on{background:#262624;color:#fff}.wsb span.on:before{content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--blue-600)}
+.ph.web .ab,[data-plat=web] .ph .ab{height:56px;padding:0 32px}.ph.web .ab b,[data-plat=web] .ph .ab b{text-align:left}
+[data-plat=web] .ph .body:not(.full),.ph.web:not(.wide) .body:not(.full){width:100%;max-width:680px;justify-self:center}
+.ph.web:not(.wide) .mchips{padding:12px 24px}.ph.mid{width:1000px}
+[data-plat=web] .ph .mchips{padding:12px 24px}
+.ph.web .scrim,[data-plat=web] .ph .scrim{display:none}
+.ph.web .isheet,[data-plat=web] .ph .isheet{left:auto;top:0;width:360px;border-radius:0;box-shadow:-1px 0 0 var(--border-hairline),var(--shadow-2);padding:24px;transform:translateX(105%)}
+.ph.web.on-sheet .isheet,[data-plat=web] .ph.on-sheet .isheet{transform:none}
+.ph.web .isheet .grab,[data-plat=web] .ph .isheet .grab{display:none}
+.ph.wide{width:1240px;height:700px;grid-template-columns:200px minmax(0,1fr) 460px}
+.ph.wide .ab{grid-column:2}.ph.wide .body{grid-column:2;max-width:none;padding:0 16px}
+.ph.wide .side{grid-column:3;grid-row:1/-1;position:relative;box-shadow:inset 1px 0 0 var(--border-hairline)}
+.ph.wide .side .map{position:absolute;inset:0}
+.ph.wide .r{cursor:default}
+.dl{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px 20px;max-width:760px;font:var(--weight-regular) 14px/1.55 var(--font-core);color:var(--text-secondary);margin:0}.dl dt{color:var(--text-primary);font-weight:500}.dl dd{margin:0}
+</style></head><body>
+<div class="plat" id="plat"><button data-p="ios">iOS</button><button data-p="android">Android</button><button data-p="web">Web</button></div>
+<h1>A thread's map</h1>
+<p class="lede">Final view for approval. A thread with at least one point (a saved place, a link with a location, an event with a venue, offload's or a connected calendar's) gets a List | Map switch in its app bar. On the web, a window 1200px or wider shows the map as a column beside the list instead. The map is MapTiler Streets on every surface, drawn by MapLibre.</p>
+<p class="secp">The tiles here are OpenStreetMap's standard style standing in for MapTiler Streets, which needs a key to preview. Pins, callouts, chips and the sheet are offload's own, so they look exactly like this on MapTiler. Every frame is live: tap the switch, a pin, the map, Open.</p>
+
+<div class="sec"><h2>1 &middot; List | Map</h2><u>phones, and the web below 1200px</u></div>
+<p class="secp">The switch is there only when the thread has a point. Map replaces the page body below the app bar; the thread's name moves into the app bar; the label chips float over the map and filter the pins. The composer stays. The choice is remembered per thread on the device.</p>
+<div class="pair"><div><p class="cap">Live: start on the list</p><div class="ph" id="a1"></div></div><div><p class="cap">Live: on the map, Open tapped</p><div class="ph" id="a2"></div></div></div>
+
+<div class="sec"><h2>2 &middot; The map column</h2><u>web, 1200px and wider</u></div>
+<p class="secp">The pane splits: the list keeps its width on the left, the map takes a 460px column on the right, full height and sticky. No switch in the head. Hover a row to lift its pin; tap a pin to open its callout and highlight its row. Open shows the sheet as the side pane over the map column.</p>
+<div class="pair"><div><p class="cap">Live: hover a row, tap a pin</p><div class="ph web wide" id="c1"></div></div></div>
+<div class="pair" style="margin-top:28px"><div><p class="cap">Live: the same thread below 1200px, back to the List | Map switch</p><div class="ph web mid" id="c2"></div></div></div>
+
+<div class="sec"><h2>3 &middot; Rules</h2></div>
+<dl class="dl">
+<dt>What puts a pin</dt><dd>A saved place; a link with a location (offload reads it from the page: an Airbnb, a restaurant, a hotel); an event with a venue, offload's own or from a connected calendar the thread shows. A place offload could not locate is not drawn and stays in the list as it is.</dd>
+<dt>Approximate places</dt><dd>A listing that only gives an area until it is booked (Casa Alfama here) is a soft circle in the label's colour instead of a pin: 16% fill, a 1.5px ring at 70%, about 300m across; picked, the ring is 2.5px and the fill 26%. Its callout sits on the centre, and the sheet's Address reads <i>Approximate, Alfama</i>. It becomes a pin when an exact address arrives.</dd>
+<dt>The switch earns</dt><dd>When at least one live thing in the thread has a point. Losing the last one removes the switch and returns the thread to List. The Places section in the list is retired: located things sit in Everything in here like anything else.</dd>
+<dt>Pins</dt><dd>16px dots with a white ring, 24px when picked, each inside a 44px target. The label's colour; two labels split down the middle; three or more show the first two; none is ink. Events are rounded squares. Overlapping pins group into an ink count dot until zoomed apart.</dd>
+<dt>Callout</dt><dd>Name, kind and labels, then <i>Directions</i> and <i>Open</i>. Tapping the map closes it; tapping another pin moves it.</dd>
+<dt>Directions</dt><dd>Opens the device's maps app with the place as the destination: Apple Maps on iOS, or a choice when Google Maps is installed; Google Maps on Android; Google Maps in a new tab on the web.</dd>
+<dt>Open</dt><dd>The thing's sheet, the same as tapping its row: a half sheet over the map on the phones, dimming it at 35%; the side pane on the web. Header with the type tile, name, kind and thread, and a close. Rows for When, Address, Link, Labels and Added by. Two equal buttons: <i>Directions</i> filled, and <i>Open link</i> for a link or <i>Edit</i> otherwise.</dd>
+<dt>Filtering</dt><dd>The chips are the thread's own filter, with the same pick in list and map. A filter that leaves no pins shows the thread's whole area with <i>Nothing under Food on the map.</i></dd>
+<dt>Framing</dt><dd>The map opens fitted to every pin, never closer than street level. A picked pin's callout is kept inside the frame.</dd>
+<dt>Attribution</dt><dd><i>© MapTiler © OpenStreetMap contributors</i>, small, bottom right, always shown, as both licences require.</dd>
+<dt>Stack</dt><dd>MapLibre on all three (maplibre-gl-js; @maplibre/maplibre-react-native in an Expo dev build), MapTiler Streets, and Streets Dark in the dark theme. Place lookup moves to MapTiler Geocoding, so one supplier draws and finds. MapTiler bills per map created, so the web keeps one map alive across threads and swaps its pins.</dd>
+</dl>
+
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#3F6B4F"/><circle cx="40" cy="44" r="9" fill="#fff"/><circle cx="62" cy="58" r="7" fill="#fff" opacity=".8"/></svg></template>
+<script>
+const g=n=>`<span class="g" style="--ic:url(../assets/icons/${n}.svg)"></span>`;
+const LB={Stay:'var(--label-1)',Food:'var(--label-5)',Saturday:'var(--label-4)'};
+const P=[
+ {id:'alfama',t:'Casa Alfama',k:'Airbnb link',ic:'link',ll:[38.7113,-9.1301],l:['Stay'],approx:1,addr:'Approximate, Alfama',url:'airbnb.com/rooms/48213907',by:'Ana',when:'Thu 9 to Sun 12 Oct'},
+ {id:'market',t:'Time Out Market',k:'Place',ic:'map-pin',ll:[38.7069,-9.1459],l:['Food'],addr:'Av. 24 de Julho 49, Cais do Sodré',by:'Tom'},
+ {id:'fado',t:'Fado at Tasca do Chico',k:'Event · Sat 21:30',ic:'calendar',ll:[38.7123,-9.1446],l:['Saturday'],ev:1,addr:'R. do Diário de Notícias 39, Bairro Alto',when:'Sat 11 Oct, 21:30',by:'you'},
+ {id:'lxf',t:'LX Factory',k:'Place',ic:'map-pin',ll:[38.7036,-9.1784],l:['Food','Saturday'],addr:'R. Rodrigues de Faria 103, Alcântara',by:'Ana'},
+ {id:'belem',t:'Pastéis de Belém',k:'Link',ic:'link',ll:[38.6975,-9.2033],l:['Food'],addr:'R. de Belém 84, Belém',url:'pasteisdebelem.pt',by:'Tom'},
+ {id:'maat',t:'MAAT',k:'Place',ic:'map-pin',ll:[38.6957,-9.1946],l:[],addr:'Av. Brasília, Belém',by:'you'},
+];
+const byId=id=>P.find(p=>p.id===id);
+const pinHtml=(p,sel)=>{const a=p.l[0]?LB[p.l[0]]:'var(--ink-900)';const b=p.l[1]?LB[p.l[1]]:a;return `<span class="pin ${p.ev?'ev':''} ${sel?'sel':''}" data-pin="${p.id}" style="--a:${a};--b:${b}"></span>`};
+const lm=l=>`<span class="lm" style="--c:${LB[l]}">${l}</span>`;
+const st=`<div class="st"><span>9:41</span><span>&bull;&bull;&bull;</span></div>`;
+const seg=on=>`<span class="seg" role="tablist"><span class="${on==='list'?'on':''}" data-v="list">${g('list')}</span><span class="${on==='map'?'on':''}" data-v="map">${g('map-pin')}</span></span>`;
+const ab=(title,right)=>`<div class="ab">${g('chevron-left')}<b>${title||''}</b>${right||''}${g('share-2')}${g('ellipsis')}</div>`;
+const head=`<div class="head"><h3>Lisbon trip</h3><div class="ppl"><span class="pc">${g('users')}Ana</span><span class="pc">${g('users')}Tom</span><span class="pc out">${g('share-2')}Share</span></div><p class="stand">Flights are booked. The stay in Alfama needs a yes from Tom, and Saturday is still open after LX Factory.</p></div>`;
+const chipsRow=`<span class="chip on">All <em>9</em></span><span class="chip"><i style="--c:${LB.Stay}"></i>Stay</span><span class="chip"><i style="--c:${LB.Food}"></i>Food</span><span class="chip"><i style="--c:${LB.Saturday}"></i>Saturday</span>`;
+const chips=`<div class="chips">${chipsRow}</div>`;
+const mchips=`<div class="mchips">${chipsRow.replace(' <em>9</em>','')}</div>`;
+const row=(p,o={})=>`<div class="r ${o.nb?'nb':''}" ${p.id?`data-row="${p.id}"`:''}><span class="tile">${g(p.ic)}</span><div class="bd"><b>${p.t}</b><s>${p.k}${p.l.map(lm).join('')}</s></div><span class="chev">${g('chevron-right')}</span></div>`;
+const nopin={t:"Ana's cousin's tasca",k:'Place · no address',ic:'map-pin',l:['Food']};
+const rows=`<div class="sh">Everything in here <em>9</em></div>`+[P[0],P[2],P[1],nopin,P[3],P[4]].map((p,i,a)=>row(p,{nb:i===a.length-1})).join('');
+const todo=`<div class="sh">To do <em>2</em></div>`+row({t:'Ask Tom about Casa Alfama',k:'Friday',ic:'square-check-big',l:['Stay']})+row({t:'Book the fado table',k:'no date',ic:'square-check-big',l:['Saturday']},{nb:1});
+const plate=`<div class="plate"><div class="pill"><s>Dump anything</s>${g('mic')}</div></div>`;
+const wsb=`<div class="wsb"><b>offload</b><span>${g('sun')}Today</span><span class="on">${g('lasso')}My threads</span><span>${g('brain')}Memories</span><span style="margin-top:auto">${g('bell')}Activity</span><span>${g('settings')}Settings</span></div>`;
+
+const MAPS=[];
+const pinIcon=(p,sel)=>L.divIcon({className:'',html:pinHtml(p,sel),iconSize:sel?[24,24]:[16,16]});
+const callIcon=s=>L.divIcon({className:'',iconSize:[228,0],iconAnchor:[114,s.approx?14:24],html:`<div class="callout" style="transform:translateY(-100%)"><b>${s.t}</b><s>${s.k}${s.l.map(lm).join('')}</s><div class="cb"><span class="pri">${g('compass')}Directions</span><span class="open" data-id="${s.id}">Open</span></div></div>`});
+function fitOne(o){const el=o.el;if(!el.offsetWidth)return;o.m.invalidateSize();const H=el.offsetHeight,W=el.offsetWidth;
+ o.m.fitBounds(L.latLngBounds(P.map(p=>p.ll)),{paddingTopLeft:[28,o.sel?Math.min(190,Math.round(H*.4)):70],paddingBottomRight:[28,40],maxZoom:15,animate:false});
+ if(o.sel){const pt=o.m.latLngToContainerPoint(byId(o.sel).ll);let dx=0;if(pt.x<126)dx=pt.x-126;else if(pt.x>W-126)dx=pt.x-(W-126);if(dx)o.m.panBy([dx,0],{animate:false})}}
+function setSel(o,id,pan){o.sel=id;Object.keys(o.pins).forEach(k=>o.pins[k].setIcon(pinIcon(byId(k),k===id)));Object.keys(o.circles||{}).forEach(k=>o.circles[k].setStyle(k===id?{weight:2.5,opacity:1,fillOpacity:.26}:{weight:1.5,opacity:.7,fillOpacity:.16}));if(o.call){o.m.removeLayer(o.call);o.call=null}
+ const ph=o.el.closest('.ph');ph.querySelectorAll('.r.hl').forEach(r=>r.classList.remove('hl'));if(ph.dataset)ph.dataset.sel=id||'';
+ if(!id)return;const p=byId(id);o.call=L.marker(p.ll,{zIndexOffset:1000,icon:callIcon(p)}).addTo(o.m);
+ const r=ph.querySelector(`[data-row="${id}"]`);if(r)r.classList.add('hl');
+ if(pan){const W=o.el.offsetWidth,pt=o.m.latLngToContainerPoint(p.ll);let dx=0,dy=0;if(pt.x<126)dx=pt.x-126;else if(pt.x>W-126)dx=pt.x-(W-126);if(pt.y<190)dy=pt.y-190;if(dx||dy)o.m.panBy([dx,dy])}}
+function initMap(el,sel){
+ const m=L.map(el,{zoomControl:false,scrollWheelZoom:false,maxZoom:15});
+ const tl=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:15,crossOrigin:true}).addTo(m);
+ tl.on('tileload',e=>{const img=e.tile;try{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0);const d=x.getImageData(0,0,256,256).data;let y=0,w=0;for(let i=0;i<d.length;i+=32){if(d[i]>200&&d[i+1]>170&&d[i+2]<90)y++;if(d[i]===255&&d[i+1]===255&&d[i+2]===255)w++}if(y>200||w>2400){img.style.visibility='hidden';img.parentNode&&(img.parentNode.style.background='#eeeae2')}}catch(_){}});
+ m.attributionControl.setPrefix(false);
+ const o={m,el,pins:{},sel:null,call:null};
+ o.circles={};
+ P.forEach(p=>{if(p.approx){const col=getComputedStyle(document.body).getPropertyValue(LB[p.l[0]].slice(4,-1)).trim()||'#0C7BB0';const c=L.circle(p.ll,{radius:320,color:col,weight:1.5,opacity:.7,fillColor:col,fillOpacity:.16,bubblingMouseEvents:false}).addTo(m);c.on('click',()=>setSel(o,p.id,true));o.circles[p.id]=c;return}
+  const mk=L.marker(p.ll,{icon:pinIcon(p,false)}).addTo(m);o.pins[p.id]=mk;mk.on('click',ev=>{L.DomEvent.stopPropagation(ev);setSel(o,p.id,true)})});
+ m.on('click',()=>setSel(o,null));
+ MAPS.push(o);o.sel=sel||null;fitOne(o);if(sel)setSel(o,sel,false);return o;}
+function killMaps(ph){for(let i=MAPS.length-1;i>=0;i--)if(ph.contains(MAPS[i].el)){MAPS[i].m.remove();MAPS.splice(i,1)}}
+function openSheet(ph,p){let sc=ph.querySelector(':scope>.scrim');if(!sc){sc=document.createElement('div');sc.className='scrim';ph.appendChild(sc);sc.onclick=()=>ph.classList.remove('on-sheet')}
+ let sh=ph.querySelector(':scope>.isheet');if(!sh){sh=document.createElement('div');sh.className='isheet';ph.appendChild(sh)}
+ const rows=[p.when?['calendar','When',p.when]:null,['map-pin','Address',p.addr],p.url?['link','Link',p.url]:null,['tag','Labels',p.l.length?p.l.map(lm).join(''):'<span style="color:var(--text-tertiary)">None</span>'],['users','Added by',p.by]].filter(Boolean);
+ sh.innerHTML=`<div class="grab"></div><div class="ih"><span class="tile">${g(p.ic)}</span><div class="tt"><h4>${p.t}</h4><div class="ik">${p.k.split(' · ')[0]} · Lisbon trip</div></div><span class="ix">${g('x')}</span></div><div class="irows">${rows.map(r=>`<div class="ir">${g(r[0])}<span class="k">${r[1]}</span><span class="v">${r[2]}</span></div>`).join('')}</div><div class="ifoot"><span class="btn pri">${g('compass')}Directions</span>${p.url?`<span class="btn">${g('arrow-up-right')}Open link</span>`:`<span class="btn">${g('pencil')}Edit</span>`}</div>`;
+ sh.querySelector('.ix').onclick=()=>ph.classList.remove('on-sheet');
+ requestAnimationFrame(()=>requestAnimationFrame(()=>ph.classList.add('on-sheet')))}
+document.addEventListener('click',e=>{const op=e.target.closest('.open');if(!op)return;e.stopPropagation();openSheet(op.closest('.ph'),byId(op.dataset.id))},true);
+
+function drawA(ph){killMaps(ph);ph.classList.remove('on-sheet');const v=ph.dataset.v;
+ const body=v==='map'?`<div class="body full"><div class="fullmap" style="position:absolute;inset:0"><div class="map" style="position:absolute;inset:0"></div></div>${mchips}</div>`:`<div class="body">${head}${chips}${todo}${rows}</div>`;
+ ph.innerHTML=wsb+st+ab(v==='map'?'Lisbon trip':'',seg(v))+body+plate;
+ ph.querySelectorAll('.seg [data-v]').forEach(s=>s.onclick=()=>{ph.dataset.v=s.dataset.v;drawA(ph)});
+ const el=ph.querySelector('.map');if(el)requestAnimationFrame(()=>{const o=initMap(el,ph.dataset.sel||null);if(ph.dataset.open){const p=byId(ph.dataset.open);delete ph.dataset.open;setTimeout(()=>openSheet(ph,p),350)}});}
+function drawC(ph){killMaps(ph);
+ ph.innerHTML=wsb+ab('')+`<div class="body">${head}${chips}${todo}${rows}</div><div class="side"><div class="map"></div>${mchips.replace('class="mchips"','class="mchips" style="padding:12px 16px"')}</div>`;
+ const el=ph.querySelector('.map');requestAnimationFrame(()=>{const o=initMap(el,null);
+  ph.querySelectorAll('[data-row]').forEach(r=>{const id=r.dataset.row;
+   r.onmouseenter=()=>{if(!o.pins[id])return o.circles[id]&&o.circles[id].setStyle({fillOpacity:.3});const pe=o.pins[id].getElement();pe&&pe.firstChild&&pe.firstChild.classList.add('hov')};
+   r.onmouseleave=()=>{if(!o.pins[id])return o.circles[id]&&o.circles[id].setStyle({fillOpacity:o.sel===id?.26:.16});const pe=o.pins[id].getElement();pe&&pe.firstChild&&pe.firstChild.classList.remove('hov')};
+   r.onclick=()=>setSel(o,id,true)})})}
+const a1=document.getElementById('a1');a1.dataset.v='list';drawA(a1);
+const a2=document.getElementById('a2');a2.dataset.v='map';a2.dataset.sel='alfama';a2.dataset.open='alfama';drawA(a2);
+drawC(document.getElementById('c1'));
+const c2=document.getElementById('c2');c2.dataset.v='list';drawA(c2);
+
+const fit=()=>MAPS.forEach(fitOne);
+let PLAT=localStorage.getItem('maps-platform')||'ios';
+const render=()=>{document.body.dataset.plat=PLAT;document.querySelectorAll('#plat button').forEach(x=>x.classList.toggle('on',x.dataset.p===PLAT));setTimeout(()=>MAPS.forEach(o=>{fitOne(o);if(o.sel)setSel(o,o.sel,false)}),60)};
+document.querySelectorAll('#plat button').forEach(x=>x.onclick=()=>{PLAT=x.dataset.p;localStorage.setItem('maps-platform',PLAT);render()});
+render();window.addEventListener('load',fit);
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(fit,200)});
+</script>
+</body></html>

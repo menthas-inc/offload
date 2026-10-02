@@ -51,6 +51,9 @@ export interface Me {
   /** 026. Whether mail forwarded from the sign-in address can reach them:
    *  false for an Apple private relay address. */
   mailAvailable: boolean;
+  /** 031. The providers this account signs in with, in a fixed order, for
+   *  Email's note on My account. */
+  signInProviders: ("apple" | "google")[];
   /** The day's model budget is spent or its turns are used: the composer is
    *  closed until the rolling day moves on. */
   atDailyLimit: boolean;

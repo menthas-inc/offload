@@ -18,8 +18,11 @@ const isAndroid = Platform.OS === "android";
 export function RequestCard({
   card,
   onAnswer,
+  last,
 }: {
   card: Card;
+  /** 031. The last card in a section, which the section's own gap spaces. */
+  last?: boolean;
   /** Resolves true when the server took it. */
   onAnswer: (answer: "accept" | "dismiss") => Promise<boolean>;
 }) {
@@ -37,7 +40,7 @@ export function RequestCard({
 
   return (
     <View
-      className={`mb-space-4 rounded-lg px-space-5 py-space-4 ${
+      className={`${last ? "" : "mb-space-4"} rounded-lg px-space-5 py-space-4 ${
         isAndroid ? "bg-a-c-low" : "bg-surface-accent-soft"
       }`}
     >

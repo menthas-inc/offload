@@ -9,11 +9,12 @@
 // server.
 
 import { useEffect, useMemo, useState } from "react";
-import { modernZoneName, zoneCity, zonesByRegion } from "@offload/widgets";
-import { Segmented } from "./Appearance";
-import { Group } from "./SettingsRows";
+import { modernZoneName, zonesByRegion } from "@offload/widgets";
+import { ChoiceTiles, Combobox, Group } from "./SettingsRows";
+import { WeekPreview } from "./ChoicePreviews";
 import { Switch } from "../Switch";
 import { WEEK_STARTS, WEEK_START_LABEL, useAppearance } from "../../lib/appearance";
+import { clockSummary } from "../../lib/settings";
 import { currentMe, onMe, updateClock, type Me } from "../../lib/use-me";
 import pane from "../../app/(shell)/shell.module.css";
 
@@ -22,7 +23,15 @@ export function DateTimePane() {
   const [me, setMe] = useState<Me | null>(currentMe());
   useEffect(() => onMe(setMe), []);
   const { weekStart, setWeekStart } = useAppearance();
-  const groups = useMemo(() => zonesByRegion(), []);
+  // 031. The runtime's zones as the combobox's options, each run under its
+  // region's heading; a zone's own name is the code the filter matches whole.
+  const zones = useMemo(
+    () =>
+      zonesByRegion().flatMap((group) =>
+        group.zones.map((zone) => ({ value: zone.name, label: zone.city, code: zone.name, group: group.region })),
+      ),
+    [],
+  );
 
   // The switch drawn first and written second; back to the server's word
   // once it answers, either way.
@@ -41,34 +50,23 @@ export function DateTimePane() {
       <div className={pane.paneHead}>
         <div style={{ minWidth: 0 }}>
           <h1 className={`${pane.paneTitle} ${pane.paneTitleBig}`}>Date and time</h1>
-          {current ? <p className={pane.paneSub}>{zoneCity(current)}</p> : null}
+          <p className={pane.paneSub}>{clockSummary(current || null, weekStart)}</p>
         </div>
       </div>
 
       <div className={pane.paneBody}>
-        <Group label="Your clock">
+        <Group label="Your clock" icon="clock" caption="Everything is shown and scheduled in this zone.">
           <div className={pane.settingsRow}>
             <span className={pane.settingsText}>
               <span className={pane.settingsTitle}>Time zone</span>
-              <span className={pane.settingsNote}>Everything is shown and scheduled in this one.</span>
             </span>
-            <select
-              className={pane.settingsValue}
-              aria-label="Time zone"
+            <Combobox
+              label="Time zone"
               value={current}
-              onChange={(event) => void updateClock({ timeZone: event.target.value })}
-            >
-              {current ? null : <option value="">Not set</option>}
-              {groups.map((group) => (
-                <optgroup key={group.region} label={group.region}>
-                  {group.zones.map((zone) => (
-                    <option key={zone.name} value={zone.name}>
-                      {zone.city}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+              options={zones}
+              filterPlaceholder="Find a city"
+              onChange={(next) => void updateClock({ timeZone: next })}
+            />
           </div>
           <label className={`${pane.settingsRow} ${pane.settingsRowLast}`}>
             <span className={pane.settingsText}>
@@ -83,19 +81,18 @@ export function DateTimePane() {
           </label>
         </Group>
 
-        <section className={pane.settingsBlock}>
-          <h2 className={pane.settingsBlockTitle}>Week starts on</h2>
-          <p className={pane.settingsNote}>
-            Which day a thread&apos;s timeline begins its weeks on.
-          </p>
-          <Segmented<"monday" | "sunday">
+        <Group label="Week starts on" icon="calendar" caption="Which day a thread's timeline begins its weeks on.">
+          <ChoiceTiles<"monday" | "sunday">
             label="Week starts on"
-            options={[...WEEK_STARTS]}
-            labelFor={(value) => WEEK_START_LABEL[value] ?? value}
+            options={WEEK_STARTS.map((value) => ({
+              value,
+              label: WEEK_START_LABEL[value] ?? value,
+              preview: <WeekPreview start={value} />,
+            }))}
             value={weekStart}
             onChange={setWeekStart}
           />
-        </section>
+        </Group>
       </div>
     </>
   );

@@ -383,10 +383,10 @@ export default function TodayScreen() {
       {/* The kit's bar on Today: the wordmark, then Customize Today, the bell
           and settings. Only Today draws the sliders. */}
       <View className="h-appbar-height flex-row items-center px-gutter-screen">
-        <Logo size={21} />
-        <View className="ml-auto flex-row items-center gap-space-5">
+        <Logo size={24} />
+        <View className="ml-auto flex-row items-center gap-space-6">
           <Pressable onPress={() => setCustomizing(true)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Customize Today">
-            <Glyph name="sliders-horizontal" size={21} color={COLOR.iconOnWell} />
+            <Glyph name="sliders-horizontal" size={24} color={COLOR.iconOnWell} />
           </Pressable>
           <BellDot />
           <GearDot />

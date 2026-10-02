@@ -1549,8 +1549,27 @@
   cursor: pointer;
 }
 
-a.settingsRow:hover {
+a.settingsRow:hover,
+.settingsRowButton:hover:not(:disabled) {
   background: var(--state-hover);
+}
+
+.settingsRowButton:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+.settingsRowButton:disabled {
+  cursor: default;
+}
+
+/* 031. A row that is an action with no pill: End all other sessions, Sign out. */
+.settingsTitle[data-strong] {
+  font-weight: var(--weight-medium);
+}
+
+.settingsTitle[data-tabular] {
+  font-variant-numeric: tabular-nums;
 }
 
 .settingsIcon {
@@ -1587,11 +1606,14 @@ a.settingsRow:hover {
   color: var(--text-secondary);
 }
 
+/* 031. 15px, the rows' own size: at 13.5 a value read as a footnote to the
+   title beside it. */
 .settingsValue {
   flex: 0 0 auto;
-  font-size: calc(13.5px * var(--type-scale));
+  font-size: calc(15px * var(--type-scale));
   font-family: var(--font-core);
   color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 /* An editable row's field and its two buttons. 011.
@@ -1696,22 +1718,29 @@ a.settingsRow:hover {
   opacity: 0.6;
 }
 
-/* 024. The hour, as a field the row's own height, in the row's own type. */
+/* 024. The hour. 031 made it a pill: 15px tabular at radius 8, on the fill
+   the exploration gives it on web, where the rows sit on the page. */
 .settingsTime {
   flex: 0 0 auto;
-  min-height: 44px;
-  padding: 0 var(--space-3);
+  /* The hit area stays the tap minimum; the padding draws the pill. */
+  min-height: var(--tap-min);
+  padding: 6px 10px;
   border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1 var(--font-core);
-  color: var(--text-secondary);
+  border-radius: 8px;
+  background: var(--surface-fill);
+  font: var(--weight-medium) calc(15px * var(--type-scale)) / 1 var(--font-core);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
   color-scheme: light dark;
   cursor: pointer;
 }
 
 .settingsTime:hover:not(:disabled) {
-  background: var(--state-hover);
+  background: var(--surface-fill-strong);
+}
+
+.settingsTime:disabled {
+  cursor: default;
 }
 
 .settingsTime:focus-visible {
@@ -1723,6 +1752,508 @@ a.settingsRow:hover {
   flex: 0 0 auto;
   display: inline-flex;
   color: var(--ink-300);
+}
+
+/* ------------------------------------------------- 031 settings, tightened
+   From `explorations/settings-v2.html`, direction B on web: a glyph tile, a
+   16px heading and a caption, a hairline under the heading, open rows, 34px
+   between sections. */
+
+.settingsSection {
+  padding-top: 34px;
+}
+
+.settingsSection:first-child {
+  padding-top: var(--space-2);
+}
+
+.settingsHead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding-bottom: 10px;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+}
+
+.settingsTile {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  background: var(--surface-accent-soft);
+  color: var(--moss-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Five down, so the heading's first line centres on the tile. */
+.settingsHeadText {
+  flex: 1;
+  min-width: 0;
+  padding-top: 5px;
+}
+
+.settingsHeading {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font: var(--weight-semibold) calc(16px * var(--type-scale)) / 1.25 var(--font-core);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.settingsCount {
+  padding: 4px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill-strong);
+  font: var(--weight-medium) calc(12px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.settingsCaption {
+  margin: 3px 0 0;
+  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.45 var(--font-core);
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+/* A state: This device, Connected. Neutral for Ready and Unavailable. */
+.settingsStatus {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill-strong);
+  font: var(--weight-medium) calc(12px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* --text-accent, not --moss-700: the ramp step measures 3.81:1 on its soft
+   ground in dark, and the alias is pitched per theme to read. */
+.settingsStatus[data-tone="on"] {
+  background: var(--surface-accent-soft);
+  color: var(--text-accent);
+}
+
+.settingsStatus[data-tone="on"]::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--text-accent);
+}
+
+/* A row that acts in place: End, Withdraw, Copy. */
+.settingsPill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  font: var(--weight-medium) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* An hour under its switch, indented, with no hairline between the two. */
+.settingsRowJoined {
+  box-shadow: none;
+}
+
+.settingsRowSub {
+  min-height: 40px;
+  padding-top: 0;
+  padding-left: 32px;
+}
+
+.settingsRowSub .settingsTitle {
+  font-size: calc(14.5px * var(--type-scale));
+  color: var(--text-secondary);
+}
+
+/* The failed list's line, under the rows, with Try again beside it. */
+.settingsFailLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-danger);
+}
+
+/* ------------------------------------------------------- the app cards
+   031. Connected apps, one card per app, side by side at 280px or more. */
+
+.appCards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin-top: 14px;
+}
+
+.appCard {
+  flex: 1 1 280px;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+}
+
+.appHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: 14px;
+}
+
+.appMark {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.appMark[data-tone="mail"] {
+  background: var(--surface-accent-soft);
+  color: var(--moss-700);
+}
+
+.appText {
+  flex: 1;
+  min-width: 0;
+}
+
+.appName {
+  display: block;
+  font: var(--weight-semibold) calc(16px * var(--type-scale)) / 1.25 var(--font-core);
+  color: var(--text-primary);
+}
+
+.appLine {
+  display: block;
+  margin-top: 2px;
+  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+/* Connect and Sign in again: the card's one button, primary. */
+.appAction {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  font: var(--weight-medium) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.appRows {
+  box-shadow: inset 0 1px 0 var(--border-hairline);
+}
+
+.appRows > .settingsRow {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+/* ---------------------------------------------------------- the combobox */
+
+.combo {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.comboField {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 34px;
+  min-width: 150px;
+  padding: 0 10px 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--surface-input);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.comboField:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.comboValue {
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.comboPop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: 250px;
+  box-sizing: border-box;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-hairline), var(--shadow-3);
+}
+
+.comboFilter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 36px;
+  margin-bottom: var(--space-2);
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--surface-fill);
+  color: var(--text-tertiary);
+}
+
+.comboFilterInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-primary);
+}
+
+.comboFilterInput::placeholder {
+  color: var(--text-tertiary);
+}
+
+.comboList {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.comboOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1.2 var(--font-core);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.comboOption[data-active] {
+  background: var(--surface-fill);
+}
+
+.comboOption[data-quiet] {
+  color: var(--text-secondary);
+}
+
+.comboOptionLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comboRule {
+  height: 1px;
+  margin: var(--space-2) 6px;
+  border: 0;
+  background: var(--border-hairline);
+}
+
+.comboGroup {
+  padding: 10px 10px var(--space-2);
+  font: var(--weight-medium) calc(12px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+/* ------------------------------------------------------- the choice tiles */
+
+/* **The theme previews depict a theme and do not follow it.** A Light tile
+   drawn in dark tokens would show a dark screen labelled Light, and the web's
+   token sheet has no light scope to pin a subtree to. So `ChoicePreviews.tsx`
+   sets the `--depict-*` properties inline from `@offload/tokens`' resolved
+   values, the ones the phones draw with: nothing is retyped here. */
+.tiles {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.tiles[data-n="3"] {
+  grid-template-columns: repeat(3, minmax(0, 170px));
+}
+
+.tiles[data-n="2"] {
+  grid-template-columns: repeat(2, minmax(0, 220px));
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 8px 8px 11px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  text-align: left;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.tile[aria-checked="true"] {
+  box-shadow: inset 0 0 0 2px var(--text-primary);
+}
+
+.tile:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.tilePreview {
+  display: block;
+  height: 62px;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.tileLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 4px;
+  font: var(--weight-medium) calc(14px * var(--type-scale)) / 1 var(--font-core);
+}
+
+.tileRadio {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border-strong);
+}
+
+.tile[aria-checked="true"] .tileRadio {
+  border: 5.5px solid var(--text-primary);
+}
+
+.depictLight,
+.depictDark,
+.depictSplit {
+  display: block;
+  height: 100%;
+}
+
+.depictLight {
+  background: var(--depict-light-page);
+  box-shadow: inset 0 0 0 1px var(--depict-light-edge);
+}
+
+.depictDark {
+  background: var(--depict-dark-page);
+}
+
+.depictSplit {
+  display: flex;
+}
+
+.depictSplit > span {
+  flex: 1;
+  box-shadow: none;
+}
+
+.depictBar {
+  display: block;
+  width: 60%;
+  height: 7px;
+  margin: 9px 10px 0;
+  border-radius: 4px;
+  background: var(--depict-light-bar);
+}
+
+.depictBar + .depictBar {
+  width: 80%;
+  margin-top: 6px;
+}
+
+.depictBar[data-short] {
+  width: 40%;
+}
+
+.depictDark .depictBar {
+  background: var(--depict-dark-bar);
+}
+
+.depictWeek {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 100%;
+  padding: 0 6px;
+  background: var(--surface-fill);
+}
+
+.depictDay {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--weight-medium) calc(11.5px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.depictDay[data-weekend] {
+  color: var(--text-tertiary);
+}
+
+.depictDay[data-first] {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+.depictSize {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: var(--surface-fill);
+  font-family: var(--font-core);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  color: var(--text-primary);
 }
 
 /* SegmentedControl: offload's only tab-like control. A track holding two to

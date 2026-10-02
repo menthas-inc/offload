@@ -57,6 +57,19 @@ export async function lookup(email: string): Promise<Lookup> {
   return { kind: "found", found: data.found };
 }
 
+/** 031. The line a refused lookup draws. A fact the server stated, so it is
+ *  said; the retry is not offered, because pressing it is refused again. */
+export const LOOKUP_LIMITED = "Too many lookups. Try again in a few minutes.";
+
+export type LookupState = { kind: "found"; found: Found } | { kind: "none" } | { kind: "limited" } | { kind: "failed" };
+
+/** What the step draws for a lookup's answer. */
+export function stateOfLookup(result: Lookup): LookupState {
+  if (result.kind === "rate_limited") return { kind: "limited" };
+  if (result.kind === "failed") return { kind: "failed" };
+  return result.found ? { kind: "found", found: result.found } : { kind: "none" };
+}
+
 export type RequestOutcome =
   | { ok: true; requestId: string; since: string }
   | { ok: false; error: "yourself" | "not_found" | "connected" | "pending" | "asked_you" | "too_soon" | "too_many" | "failed"; requestId?: string };
