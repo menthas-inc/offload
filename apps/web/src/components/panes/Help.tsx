@@ -9,6 +9,10 @@
 //
 // The kit also draws "How offload works", "Ask for help", "Report something
 // wrong", Terms and Licences. None of those pages or channels exists.
+//
+// 031: Learn replays first run's three tutorial screens at `/tutorial`, which
+// writes nothing and ends back here. The privacy policy is the marketing
+// site's page, so it opens in a tab of its own.
 
 import { Group, Row } from "./SettingsRows";
 import pane from "../../app/(shell)/shell.module.css";
@@ -23,8 +27,11 @@ export function HelpPane() {
       </div>
 
       <div className={pane.paneBody}>
-        <Group>
-          <Row title="Privacy policy" href="/privacy" last />
+        <Group label="Learn" icon="compass">
+          <Row title="See the tutorial again" note="The three screens from your first day." href="/tutorial" last />
+        </Group>
+        <Group label="About" icon="text-quote">
+          <Row title="Privacy policy" href="/privacy" external last />
         </Group>
       </div>
     </>

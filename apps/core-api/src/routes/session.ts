@@ -125,6 +125,10 @@ const meResponse = z.object({
    *  account: false for an Apple private relay address, which is never the
    *  address mail comes from. */
   mailAvailable: z.boolean(),
+  /** 031. The providers this account can sign in with, Apple first, so My
+   *  account can say where its email came from. Empty for an account with no
+   *  identity yet, rather than a guess. */
+  signInProviders: z.array(z.enum(["apple", "google"])),
   /** 027. Customize Today's layout, resolved: every kind present, in order. */
   todayLayout: layoutShape,
   /** The day's model budget is spent or its turns are used, so the composer is
@@ -297,9 +301,23 @@ export async function meFor(accountId: string): Promise<z.infer<typeof meRespons
     notifySharedActivity: account.notify_shared_activity,
     activityNew: await activityNew(accountId),
     mailAvailable: !/@privaterelay\.appleid\.com$/i.test(account.email),
+    signInProviders: await signInProviders(accountId),
     todayLayout: resolveLayout(account.today_layout),
     atDailyLimit: await atDailyLimit(accountId),
   };
+}
+
+/** 031. Read from the identity rows Better Auth already keeps; nothing new is
+ *  stored for it. */
+async function signInProviders(accountId: string): Promise<("apple" | "google")[]> {
+  const rows = await db
+    .selectFrom("account_identities")
+    .select("provider")
+    .distinct()
+    .where("account_id", "=", accountId)
+    .execute();
+  const held = new Set(rows.map((row) => row.provider));
+  return (["apple", "google"] as const).filter((provider) => held.has(provider));
 }
 
 export async function sessionRoutes(app: App): Promise<void> {

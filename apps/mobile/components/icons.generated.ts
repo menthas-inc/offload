@@ -1,7 +1,7 @@
 // Generated from the design system. Do not edit: run `pnpm icons`.
 // Source: .claude/skills/offload-design/assets/icons
 
-export type IconName = "album" | "archive" | "arrow-up-right" | "arrow-up" | "bell" | "blend" | "bookmark" | "brain" | "calendar" | "camera" | "check-check" | "check" | "chevron-down" | "chevron-left" | "chevron-right" | "circle-dashed" | "circle-dot" | "circle" | "clock-fading" | "clock" | "cloud-cog" | "cloud-download" | "cloud-drizzle" | "cloud-lightning" | "cloud-moon" | "cloud-off" | "cloud-rain" | "cloud-sun" | "cloud" | "cloudy" | "coffee" | "compass" | "ellipsis" | "eye" | "folder" | "funnel" | "gallery-vertical-end" | "git-branch" | "grip-vertical" | "group" | "house" | "image" | "inbox" | "lasso" | "layers" | "library-big" | "link" | "list" | "lock" | "mail" | "map-pin" | "maximize-2" | "message-circle-more" | "message-circle" | "mic" | "moon-star" | "moon" | "newspaper" | "orbit" | "paperclip" | "pause" | "pencil" | "play" | "plus" | "radio" | "rewind" | "rss" | "scan-text" | "search" | "settings" | "share-2" | "sliders-horizontal" | "snowflake" | "sparkles" | "spline" | "square-check-big" | "sun" | "sunrise" | "tag" | "text-quote" | "thermometer-sun" | "trash-2" | "umbrella" | "users" | "waypoints" | "wind" | "x";
+export type IconName = "album" | "archive" | "arrow-up-right" | "arrow-up" | "ban" | "bell" | "blend" | "bookmark" | "brain" | "calendar" | "camera" | "check-check" | "check" | "chevron-down" | "chevron-left" | "chevron-right" | "circle-dashed" | "circle-dot" | "circle" | "clock-fading" | "clock" | "cloud-cog" | "cloud-download" | "cloud-drizzle" | "cloud-lightning" | "cloud-moon" | "cloud-off" | "cloud-rain" | "cloud-sun" | "cloud" | "cloudy" | "coffee" | "compass" | "copy" | "ellipsis" | "eye" | "folder" | "funnel" | "gallery-vertical-end" | "git-branch" | "globe" | "grip-vertical" | "group" | "house" | "image" | "inbox" | "lasso" | "layers" | "library-big" | "link" | "list" | "lock" | "log-out" | "mail" | "map-pin" | "maximize-2" | "message-circle-more" | "message-circle" | "mic" | "monitor" | "moon-star" | "moon" | "newspaper" | "orbit" | "paperclip" | "pause" | "pencil" | "play" | "plus" | "radio" | "rewind" | "rss" | "scan-text" | "search" | "settings" | "share-2" | "sliders-horizontal" | "smartphone" | "snowflake" | "sparkles" | "spline" | "square-check-big" | "sun" | "sunrise" | "tag" | "text-quote" | "thermometer-sun" | "trash-2" | "type" | "umbrella" | "user-plus" | "users" | "waypoints" | "wind" | "x";
 
 export type Shape =
   | { kind: "path"; d: string }
@@ -60,6 +60,18 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "M12 19V5"
+    }
+  ],
+  "ban": [
+    {
+      "kind": "path",
+      "d": "m4.9 4.9 14.2 14.2"
+    },
+    {
+      "kind": "circle",
+      "cx": 12,
+      "cy": 12,
+      "r": 10
     }
   ],
   "bell": [
@@ -494,6 +506,20 @@ export const ICONS: Record<IconName, Shape[]> = {
       "r": 10
     }
   ],
+  "copy": [
+    {
+      "kind": "path",
+      "d": "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+    },
+    {
+      "kind": "rect",
+      "width": 14,
+      "height": 14,
+      "x": 8,
+      "y": 8,
+      "rx": 2
+    }
+  ],
   "ellipsis": [
     {
       "kind": "circle",
@@ -572,6 +598,22 @@ export const ICONS: Record<IconName, Shape[]> = {
       "cx": 6,
       "cy": 18,
       "r": 3
+    }
+  ],
+  "globe": [
+    {
+      "kind": "path",
+      "d": "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"
+    },
+    {
+      "kind": "path",
+      "d": "M2 12h20"
+    },
+    {
+      "kind": "circle",
+      "cx": 12,
+      "cy": 12,
+      "r": 10
     }
   ],
   "grip-vertical": [
@@ -784,6 +826,20 @@ export const ICONS: Record<IconName, Shape[]> = {
       "rx": 2
     }
   ],
+  "log-out": [
+    {
+      "kind": "path",
+      "d": "m16 17 5-5-5-5"
+    },
+    {
+      "kind": "path",
+      "d": "M21 12H9"
+    },
+    {
+      "kind": "path",
+      "d": "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+    }
+  ],
   "mail": [
     {
       "kind": "path",
@@ -874,6 +930,30 @@ export const ICONS: Record<IconName, Shape[]> = {
       "x": 9,
       "y": 2,
       "rx": 3
+    }
+  ],
+  "monitor": [
+    {
+      "kind": "rect",
+      "width": 20,
+      "height": 14,
+      "x": 2,
+      "y": 3,
+      "rx": 2
+    },
+    {
+      "kind": "line",
+      "x1": 8,
+      "y1": 21,
+      "x2": 16,
+      "y2": 21
+    },
+    {
+      "kind": "line",
+      "x1": 12,
+      "y1": 17,
+      "x2": 12,
+      "y2": 21
     }
   ],
   "moon-star": [
@@ -1199,6 +1279,20 @@ export const ICONS: Record<IconName, Shape[]> = {
       "y2": 22
     }
   ],
+  "smartphone": [
+    {
+      "kind": "path",
+      "d": "M12 18h.01"
+    },
+    {
+      "kind": "rect",
+      "width": 14,
+      "height": 20,
+      "x": 5,
+      "y": 2,
+      "rx": 2
+    }
+  ],
   "snowflake": [
     {
       "kind": "path",
@@ -1449,6 +1543,26 @@ export const ICONS: Record<IconName, Shape[]> = {
       "d": "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
     }
   ],
+  "type": [
+    {
+      "kind": "line",
+      "x1": 9,
+      "y1": 20,
+      "x2": 15,
+      "y2": 20
+    },
+    {
+      "kind": "line",
+      "x1": 12,
+      "y1": 4,
+      "x2": 12,
+      "y2": 20
+    },
+    {
+      "kind": "path",
+      "d": "M4 7L4 4L20 4L20 7"
+    }
+  ],
   "umbrella": [
     {
       "kind": "path",
@@ -1461,6 +1575,32 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "M20.992 13a1 1 0 0 0 .97-1.274 10.284 10.284 0 0 0-19.923 0A1 1 0 0 0 3 13z"
+    }
+  ],
+  "user-plus": [
+    {
+      "kind": "path",
+      "d": "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+    },
+    {
+      "kind": "circle",
+      "cx": 9,
+      "cy": 7,
+      "r": 4
+    },
+    {
+      "kind": "line",
+      "x1": 19,
+      "y1": 8,
+      "x2": 19,
+      "y2": 14
+    },
+    {
+      "kind": "line",
+      "x1": 22,
+      "y1": 11,
+      "x2": 16,
+      "y2": 11
     }
   ],
   "users": [

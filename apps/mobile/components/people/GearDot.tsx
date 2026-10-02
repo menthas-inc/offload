@@ -34,7 +34,7 @@ export function GearDot() {
       accessibilityLabel={dot ? "Settings, a request is waiting" : "Settings"}
     >
       <View>
-        <Glyph name="settings" size={21} color={COLOR.iconOnWell} />
+        <Glyph name="settings" size={24} color={COLOR.iconOnWell} />
         {dot ? (
           <View
             className="absolute rounded-pill border-paper bg-clay-600"

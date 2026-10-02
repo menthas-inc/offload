@@ -2,23 +2,26 @@
 
 // 026. Where the address lives on the web: forwarding an email to offload.
 //
-// **Inline in Connected apps, as the calendar is**, rather than a third pane:
-// Connected apps is already the second pane, and 019 put the calendar's page
-// where its row was for that reason. The phones open a page one level down.
-//
 // **No switch.** Forwarding has nothing to turn on: the address works for
-// anybody whose mail comes from the address they signed in with, and the lines
-// under it say which one that is, because a work address is the failure people
-// will actually have.
+// anybody whose mail comes from the address they signed in with, and the line
+// under it says which one that is, because a work address is the failure
+// people will actually have.
+//
+// 031: a card in Connected apps beside the calendar's, always shown, with the
+// address, Copy and Add to contacts on it. The phones keep a Mail page for How
+// it works; on the web the card's note says the two things that page did.
 
 import { Icon } from "./Icon";
-import { Group, Row } from "./panes/SettingsRows";
+import { Row, StatusPill } from "./panes/SettingsRows";
 import styles from "../app/(shell)/shell.module.css";
 import run from "../app/(app)/auth.module.css";
 
 export const MAIL_ADDRESS = "over@to.offload.club";
 /** A static card on our own site; the browser hands it to the system's contacts. */
 export const MAIL_CARD_PATH = "/offload.vcf";
+/** Why an Apple hidden email cannot use it. A fact, not a diagnosis. */
+export const MAIL_RELAY_NOTE =
+  "You signed in with an address Apple keeps private, so mail you forward can't be matched to you.";
 
 /** First run offers Mail once: in a first run, to an address mail can come
  *  from. Never on the name-only path somebody who finished first run takes. */
@@ -26,7 +29,7 @@ export function mailOffered(me: { mailAvailable: boolean; needsFirstRun: boolean
   return me.mailAvailable && me.needsFirstRun;
 }
 
-export function MailBlock({
+export function MailCard({
   email,
   mailAvailable,
   onCopied,
@@ -35,19 +38,6 @@ export function MailBlock({
   mailAvailable: boolean;
   onCopied: () => void;
 }) {
-  if (!mailAvailable) {
-    return (
-      <Group label="Mail">
-        <Row
-          title="Mail"
-          note="You signed in with an address Apple keeps private, so mail you forward can't be matched to you."
-          value="Unavailable"
-          last
-        />
-      </Group>
-    );
-  }
-
   async function copy(): Promise<void> {
     try {
       await navigator.clipboard.writeText(MAIL_ADDRESS);
@@ -59,42 +49,36 @@ export function MailBlock({
   }
 
   return (
-    <>
-      <Group label="Mail">
-        <div className={styles.settingsRow}>
-          <span className={styles.settingsText}>
-            <span className={styles.settingsTitle}>{MAIL_ADDRESS}</span>
+    <div className={styles.appCard}>
+      <div className={styles.appHead}>
+        <span className={styles.appMark} data-tone="mail" aria-hidden="true">
+          <Icon name="mail" size={21} />
+        </span>
+        <span className={styles.appText}>
+          <span className={styles.appName}>Mail</span>
+          <span className={styles.appLine}>
+            {mailAvailable ? "Forward an email and it's filed like anything you dump" : MAIL_RELAY_NOTE}
           </span>
-          <span className={styles.settingsValue}>
-            <button
-              type="button"
-              className={`${styles.sectionAction} ${styles.mailCopy}`}
-              aria-label="Copy the address"
-              onClick={() => void copy()}
-            >
-              Copy
-            </button>
-          </span>
+        </span>
+        <StatusPill tone="neutral">{mailAvailable ? "Ready" : "Unavailable"}</StatusPill>
+      </div>
+      {mailAvailable ? (
+        <div className={styles.appRows}>
+          <Row
+            title={MAIL_ADDRESS}
+            tabular
+            note={`Only mail from ${email} is accepted. Forward by hand.`}
+            pill="Copy"
+            pillIcon="copy"
+            actionLabel="Copy the address"
+            onClick={() => void copy()}
+          />
+          {/* Downloaded: the browser hands it to the system's contacts, and
+              nothing asks for a permission. */}
+          <Row title="Add to contacts" href={MAIL_CARD_PATH} download="offload.vcf" last />
         </div>
-        {/* A static card on our own site, downloaded: the browser hands it to
-            the system's contacts, and nothing asks for a permission. */}
-        <a href={MAIL_CARD_PATH} download="offload.vcf" className={`${styles.settingsRow} ${styles.settingsRowLast}`}>
-          <span className={styles.settingsText}>
-            <span className={styles.settingsTitle}>Add to contacts</span>
-          </span>
-          <span className={styles.settingsChevron} aria-hidden="true">
-            <Icon name="chevron-right" size={15} />
-          </span>
-        </a>
-      </Group>
-      <Group label="How it works">
-        <Row
-          title={`From ${email}`}
-          note={`Forward an email from ${email} and it's filed like anything else you dump. Mail from any other address isn't accepted.`}
-        />
-        <Row title="Forward by hand" note="Automatic forwarding rules don't work yet." last />
-      </Group>
-    </>
+      ) : null}
+    </div>
   );
 }
 

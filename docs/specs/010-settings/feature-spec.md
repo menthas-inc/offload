@@ -2,6 +2,7 @@
 
 **Status:** drafted 2026-09-07, revised the same day against three reviews
 **Surfaces:** web, iOS, Android
+**Amended by 031 (2026-10-02):** every page's sections now open with a glyph, a heading and a caption, Connected apps is cards, Help gains See the tutorial again, and My account gains Sign out and a Signed in on that never says *Nothing else*. Where the two disagree, `docs/specs/031-settings/` is current.
 
 ## Why
 

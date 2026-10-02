@@ -33,3 +33,13 @@ describe("looking somebody up", () => {
     expect(JSON.parse(String(init.body))).toEqual({ email: "Ana@Example.com" });
   });
 });
+
+describe("a lookup's state on the page (031, AC-10)", () => {
+  it("keeps a refused lookup apart from a failed one", async () => {
+    const { stateOfLookup, LOOKUP_LIMITED } = await import("../lib/people");
+    expect(stateOfLookup({ kind: "rate_limited" })).toEqual({ kind: "limited" });
+    expect(stateOfLookup({ kind: "failed" })).toEqual({ kind: "failed" });
+    expect(stateOfLookup({ kind: "found", found: null })).toEqual({ kind: "none" });
+    expect(LOOKUP_LIMITED).toBe("Too many lookups. Try again in a few minutes.");
+  });
+});

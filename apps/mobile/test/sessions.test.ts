@@ -6,6 +6,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const revoked: string[] = [];
+let revokedOthers = 0;
+let listFails = false;
+let noSession = false;
 let sessions: { token: string; userAgent: string | null; createdAt: string }[] = [];
 
 vi.mock("expo-secure-store", () => ({
@@ -22,8 +25,19 @@ vi.mock("expo-constants", () => ({ default: { expoConfig: { scheme: "offload", v
 vi.mock("@better-auth/expo/client", () => ({ expoClient: () => ({ id: "expo" }) }));
 vi.mock("better-auth/react", () => ({
   createAuthClient: () => ({
-    listSessions: () => Promise.resolve({ data: sessions, error: null }),
-    getSession: () => Promise.resolve({ data: { session: { token: "here" } }, error: null }),
+    listSessions: () =>
+      listFails
+        ? Promise.resolve({ data: null, error: { status: 500, message: "down" } })
+        : Promise.resolve({ data: sessions, error: null }),
+    getSession: () =>
+      noSession ? Promise.resolve({ data: null, error: { status: 500, message: "down" } }) : Promise.resolve({
+        data: { session: { token: "here", userAgent: "okhttp/4.12.0", createdAt: "2026-09-20T10:00:00Z" } },
+        error: null,
+      }),
+    revokeOtherSessions: () => {
+      revokedOthers += 1;
+      return Promise.resolve({ data: { status: true }, error: null });
+    },
     revokeSession: ({ token }: { token: string }) => {
       revoked.push(token);
       return Promise.resolve({ data: { status: true }, error: null });
@@ -34,23 +48,45 @@ vi.mock("better-auth/react", () => ({
   }),
 }));
 
-const { endSignedIn, listSignedIn } = await import("../lib/sessions");
+const { endOthers, endSignedIn, listSignedIn, thisDevice } = await import("../lib/sessions");
 
 beforeEach(() => {
   revoked.length = 0;
+  revokedOthers = 0;
+  listFails = false;
+  noSession = false;
   sessions = [
     { token: "old", userAgent: "Mozilla/5.0 (Windows NT 10.0) Chrome/128.0 Safari/537.36", createdAt: "2026-09-01T10:00:00Z" },
     { token: "here", userAgent: "okhttp/4.12.0", createdAt: "2026-09-20T10:00:00Z" },
   ];
 });
 
+describe("this device (031, AC-5)", () => {
+  it("comes from the session the phone holds, not the list", async () => {
+    listFails = true;
+    expect((await thisDevice())?.device).toBe("The app on Android");
+  });
+});
+
 describe("the list", () => {
-  it("marks this device first and describes the rest", async () => {
+  it("is every other session, described, without this one", async () => {
     const rows = await listSignedIn();
-    expect(rows.map((row) => [row.device, row.current])).toEqual([
-      ["The app on Android", true],
-      ["Chrome on Windows", false],
-    ]);
+    expect(rows.map((row) => row.device)).toEqual(["Chrome on Windows"]);
+  });
+
+  it("throws when the read fails, so nobody is told there is nothing", async () => {
+    listFails = true;
+    await expect(listSignedIn()).rejects.toThrow();
+  });
+
+  it("throws when this session cannot be told apart, so it is never offered an End", async () => {
+    noSession = true;
+    await expect(listSignedIn()).rejects.toThrow();
+  });
+
+  it("ends every other session at once", async () => {
+    expect(await endOthers()).toBe(true);
+    expect(revokedOthers).toBe(1);
   });
 
   it("ends the one asked for", async () => {

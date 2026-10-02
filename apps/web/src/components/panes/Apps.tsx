@@ -1,31 +1,31 @@
 "use client";
 
-// Connected apps: Calendar, Mail (026), and two rows that are not built.
+// Connected apps: one card per app. 031.
 //
-// **The kit draws four connectors and one of them works.** Mail, Browser and
-// Photos stay listed because knowing what is coming is worth more than a page
-// with one row on it, and each says plainly that it is not built rather than
-// offering a button that does nothing.
+// **The kit drew four connectors and one of them worked.** Browser and Photos
+// were listed as not built, and What offload may do was a paragraph in a row;
+// all three went in 031, leaving the two that exist as cards side by side.
 //
-// **The whole pane reads `available` first.** With no Google credentials
+// **The calendar card reads `available` first.** With no Google credentials
 // configured this connector is inert by design, and Connect would be a control
-// that cannot work. That is the shape the Maps key already established here.
+// that cannot work, so there is no card at all. Mail is always shown, whatever
+// the calendar's state.
 //
-// **019: the calendar page, inline.** Connected apps is already the second
-// pane, so the calendar block sits where the Calendar row was rather than
-// opening a third level. Before anything is connected it is first run's
-// connect screen, verbatim, plus one sentence. Once connected: one block per
-// account, then one switch for the offload account. Approving a calendar here
-// adds it to no thread; threads pick from inside.
+// **The per-account list is one level down.** 019 put the calendar page inline
+// here, because this was already the second pane; the cards made room for
+// what a person changes often, the count and Ask before adding, and the list
+// with its Disconnect moved to `/settings/apps/calendar`, as the phones have
+// it. Approving a calendar adds it to no thread; threads pick from inside.
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../Icon";
 import { Switch } from "../Switch";
 import { CalendarRow } from "../CalendarRow";
 import { ConnectBlock, ProviderMark } from "../ConnectBlock";
-import { Group, Row } from "./SettingsRows";
-import { MailBlock } from "../MailBlock";
+import { Group, Row, StatusPill } from "./SettingsRows";
+import { MailCard } from "../MailBlock";
 import { useMe } from "../../lib/use-me";
+import { appsSummary } from "../../lib/settings";
 import { useToast } from "../shell/Toast";
 import {
   approveCalendar,
@@ -45,10 +45,132 @@ function connectedOn(iso: string): string {
   return `${at.getDate()} ${at.toLocaleString("en-GB", { month: "short" })}`;
 }
 
+/** Ask before adding, as a row. A label, as the Privacy pane's rows are, so
+ *  the whole row is the switch's target and the hidden input has a name. */
+function AskRow({ checked, onChange }: { checked: boolean; onChange: (next: boolean) => void }) {
+  return (
+    <label className={`${pane.settingsRow} ${pane.settingsRowLast}`}>
+      <span className={pane.settingsText}>
+        <span className={pane.settingsTitle}>Ask before adding</span>
+        <span className={pane.settingsNote}>
+          Off means offload adds it without asking, unless somebody else would see it.
+        </span>
+      </span>
+      <span className={pane.settingsValue}>
+        <Switch checked={checked} onChange={onChange} />
+      </span>
+    </label>
+  );
+}
+
 export function AppsPane() {
-  const { status, available, askFirst, connections, reload, settle } = useCalendars();
+  const { status, available, askFirst, connections, settle } = useCalendars();
   const me = useMe("shell");
   const toast = useToast();
+  const [failed, setFailed] = useState(false);
+  const account = me.status === "ready" ? me.me : null;
+
+  async function ask(next: boolean) {
+    setFailed(false);
+    if (await setAskFirst(next)) settle({ askFirst: next });
+    else setFailed(true);
+  }
+
+  const summary = account ? appsSummary({ calendar: connections.length > 0, mail: account.mailAvailable }) : undefined;
+
+  return (
+    <>
+      <div className={pane.paneHead}>
+        <div style={{ minWidth: 0 }}>
+          <h1 className={`${pane.paneTitle} ${pane.paneTitleBig}`}>Connected apps</h1>
+          {summary ? <p className={pane.paneSub}>{summary}</p> : null}
+        </div>
+      </div>
+
+      <div className={pane.paneBody}>
+        {failed ? (
+          <p className={pane.settingsRowError} role="alert">
+            {FAILED}
+          </p>
+        ) : null}
+
+        <Group label="Connected" icon="link">
+          <div className={pane.appCards}>
+            {status === "ready" && available ? (
+              <CalendarCard connections={connections} askFirst={askFirst} onAsk={(next) => void ask(next)} />
+            ) : null}
+            {account ? (
+              <MailCard email={account.email} mailAvailable={account.mailAvailable} onCopied={() => toast.show("Copied")} />
+            ) : null}
+          </div>
+        </Group>
+      </div>
+    </>
+  );
+}
+
+/** Google Calendar's card: connected, needing sign-in again, or not
+ *  connected. Every account it holds is counted together; the calendar page
+ *  lists them one by one. */
+function CalendarCard({
+  connections,
+  askFirst,
+  onAsk,
+}: {
+  connections: Connection[];
+  askFirst: boolean;
+  onAsk: (next: boolean) => void;
+}) {
+  const connected = connections.length > 0;
+  // A lost grant, or one without the sharing scope: either way the connect
+  // flow again is what fixes it.
+  const signInAgain = connections.some((c) => c.state === "needs_reauth" || c.needsScope);
+  const calendars = connections.flatMap((c) => c.calendars);
+  const inUse = calendars.filter((c) => c.selected).length;
+  const line = !connected
+    ? "See your week in offload, and let it add things for you."
+    : connections.length === 1
+      ? `${connections[0]!.email}, connected ${connectedOn(connections[0]!.connectedAt)}`
+      : `${connections.length} Google accounts`;
+
+  return (
+    <div className={pane.appCard}>
+      <div className={pane.appHead}>
+        <span className={pane.appMark} aria-hidden="true">
+          <ProviderMark size={42} />
+        </span>
+        <span className={pane.appText}>
+          <span className={pane.appName}>Google Calendar</span>
+          <span className={pane.appLine}>{line}</span>
+        </span>
+        {!connected ? (
+          <a className={pane.appAction} href={connectUrl("settings")}>
+            Connect
+          </a>
+        ) : signInAgain ? (
+          <a className={pane.appAction} href={connectUrl("settings")}>
+            Sign in again
+          </a>
+        ) : (
+          <StatusPill>Connected</StatusPill>
+        )}
+      </div>
+      {connected ? (
+        <div className={pane.appRows}>
+          <Row title="Calendars offload can use" value={`${inUse} of ${calendars.length}`} href="/settings/apps/calendar" />
+          <AskRow checked={askFirst} onChange={onAsk} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The calendar page, one level under Connected apps: each account with its
+ *  calendars and Disconnect, then Ask before adding, which is the same switch
+ *  the card carries. Before anything is connected it is first run's connect
+ *  screen, verbatim, plus one sentence. */
+export function AppsCalendarPane() {
+  const { status, available, askFirst, connections, reload, settle } = useCalendars();
   const [busy, setBusy] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -73,7 +195,7 @@ export function AppsPane() {
     <>
       <div className={pane.paneHead}>
         <div style={{ minWidth: 0 }}>
-          <h1 className={`${pane.paneTitle} ${pane.paneTitleBig}`}>Connected apps</h1>
+          <h1 className={`${pane.paneTitle} ${pane.paneTitleBig}`}>Calendar</h1>
         </div>
       </div>
 
@@ -105,39 +227,10 @@ export function AppsPane() {
             ))}
 
             <Group label="When offload adds something">
-              {/* A label, as the Privacy pane's rows are, so the whole row is
-                  the switch's target and the hidden input has a name. */}
-              <label className={`${pane.settingsRow} ${pane.settingsRowLast}`}>
-                <span className={pane.settingsText}>
-                  <span className={pane.settingsTitle}>Ask before adding</span>
-                  <span className={pane.settingsNote}>
-                    Off means offload adds it without asking, unless somebody else would see it.
-                  </span>
-                </span>
-                <span className={pane.settingsValue}>
-                  <Switch checked={askFirst} onChange={(next) => void ask(next)} />
-                </span>
-              </label>
+              <AskRow checked={askFirst} onChange={(next) => void ask(next)} />
             </Group>
           </>
         )}
-
-        {me.status === "ready" ? (
-          <MailBlock email={me.me.email} mailAvailable={me.me.mailAvailable} onCopied={() => toast.show("Copied")} />
-        ) : null}
-
-        <Group label="Not built yet">
-          <Row title="Browser" note="Save a page straight into a thread." />
-          <Row title="Photos" note="Screenshots become things you can search." last />
-        </Group>
-
-        <Group label="What offload may do">
-          <Row
-            title="It writes to your calendar when you ask"
-            note="It never sends mail or deletes photos. When a change would reach somebody else, it asks first."
-            last
-          />
-        </Group>
       </div>
     </>
   );

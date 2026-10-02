@@ -11,6 +11,40 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-02 · Settings, as built (031)
+**Surface:** iOS, Android, web
+**Raised by:** code, building *Settings, tightened* in 031 (`docs/specs/031-settings/`), with the owner's answers of the same day and the client review.
+
+**Was:** the handoff and `explorations/settings-v2.html` as drawn.
+
+**Is:** built as drawn, with these differences, code leading:
+- **The found row's button is *Ask to connect***, in My people and in the Share sheet, where the built step said *Request* (owner). **A refused lookup has its own line**, *Too many lookups. Try again in a few minutes.*, with no retry, where a 429 fell into the generic failure (owner).
+- **Status pills are `--text-accent`, word and dot**, not `--moss-700`, which measures 3.81:1 on `--surface-accent-soft` in dark. The section tile's glyph stays `--moss-700`, which clears 3:1 for a graphic.
+- **Android outlines are `--border-strong`.** The exploration's `#79786F` is Material's outline; the Android scope's `a-outline` is outline-variant, the hairline, at 1.29:1. The card `#F1EFEA` is `a-c-low` and the wells `#E4E1DA` are `a-c-high`, as built before.
+- **The person mark stays 36 on Android**, where the handoff asks 40: `Avatar`'s contract lists five sizes as every size the product draws.
+- **The Mail card has no door to the phones' Mail page**, which a refused email in Activity still opens (owner).
+- **Where you are's caption is *Used to show dates and times in local time.*** (owner).
+- **The phones' app bar is a step larger**: Customize Today, the bell and settings at 24 with 16 between them, and the mark and wordmark at 24 on Today, My threads and Notes, where both were 21 (owner).
+- **Theme previews take their colours from the light and dark scopes' own values** (`surface-page` and `ink-200` light, `surface-page` dark and `ink-700` light), so a preview depicts a theme whichever is showing.
+- **The web's pointer controls drawn under 44px** (the card actions, the combobox field) keep their drawn size; touch targets on the phones reach 44 by hit slop.
+- **Text size's first option is *Default***, renamed from *Normal* so the nav foot and the tile say one word.
+- **Connect on the Calendar card goes straight to Google.** The connect screen's *You choose which calendars after this.* stays on the calendar page, which is now one level down on the web too (`/settings/apps/calendar`).
+- **Profile carries the exploration's caption**, *How you appear to people you share with.*, which the handoff did not restate.
+
+**Design system impact:** readme **People, and connecting** and **Sharing**: the found row's button is *Ask to connect*, and the 429 line joins the step. Readme **Settings**: status pills are `--text-accent`; Android outlines are `--border-strong`; the person mark is 36 on both phones; Where you are's caption is *Used to show dates and times in local time.* The mobile and Android kits: the app bar's glyphs at 24 with 16 between, and the lockup at 24. Consider an `a-outline-strong` in the Android scope so the outline is a token rather than a borrowed alias. The kits are not redrawn for this.
+
+### 2026-10-02 · Settings, tightened
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, off `explorations/settings.html` and `explorations/settings-v2.html`. Handoff: `handoff/APPLY-2026-10-02-settings.md`.
+
+**Was:** every settings page built from `Group` and `Row`, the group label at 12px tertiary over 15px rows; Theme and Week starts on as a bare segmented control; Country and Time zone on the web as a native `select`, unreadable in dark; Signed in on drawing *Nothing else* when its read failed; My people with no way to start a connection; Connected apps as four one-row groups, two of them not built and one a paragraph.
+
+**Is:** **sections open with a 32px glyph tile, a 17px semibold heading and an optional caption** (direction B), on every page and surface. **Preview tiles** for Theme, Week starts on and Text size. A token-drawn **combobox** for Country and Time zone on the web. **This device always heads Signed in on**, and a failed read says so. **My people gains Connect with someone**, reusing the Share sheet's lookup. **Connected apps is one card per app**: Calendar's carries *Ask before adding*, Mail's carries the address and *Copy*, and **the Mail card is always shown**. *Not built yet* and *What offload may do* are removed. **Help gains See the tutorial again.**
+
+**Considered and not taken:** A, the current cards with only a larger label; C, a summary head and a raised card per section; radio cards and the segmented control for choices; a Tonight after sunset switch; a Conversations kept row in Privacy; renaming Reaching the web to Privacy.
+
+**Design system impact:** `readme.md` gains **Settings**. Eight Lucide glyphs vendored, 95 in all: `smartphone` `monitor` `user-plus` `globe` `copy` `log-out` `ban` `type`. No new tokens. The kits are not redrawn; `explorations/settings-v2.html` is the reference.
+
 ### 2026-10-02 · A thread's map
 **Surface:** iOS, Android, web
 **Raised by:** the product owner, off `explorations/maps.html`. Handoff: `handoff/APPLY-2026-10-02-maps.md`.
