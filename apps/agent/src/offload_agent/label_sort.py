@@ -27,6 +27,7 @@ from anthropic import AsyncAnthropic
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import text
 
+from offload_agent import ledger
 from offload_agent.config import Config
 from offload_agent.queue import ClaimedJob, finish, retry_or_die
 
@@ -195,15 +196,7 @@ async def _ask(
             ],
             tool_choice={"type": "tool", "name": "sort"},
         )
-        usage.append(
-            {
-                "model": cfg.sort_model,
-                "inputTokens": getattr(response.usage, "input_tokens", 0),
-                "outputTokens": getattr(response.usage, "output_tokens", 0),
-                "cacheReadTokens": getattr(response.usage, "cache_read_input_tokens", 0) or 0,
-                "latencyMs": int((time.monotonic() - started) * 1000),
-            }
-        )
+        usage.append(ledger.usage_of(cfg.sort_model, response.usage, started))
         block = next((one for one in response.content if one.type == "tool_use"), None)
         if block is not None:
             try:

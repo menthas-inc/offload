@@ -25,7 +25,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent import context as ctx_mod
-from offload_agent import reader
+from offload_agent import ledger, reader
 from offload_agent.cancels import Cancels, listen
 from offload_agent.compact import KINDS as COMPACT_KINDS
 from offload_agent.compact import handle_compact
@@ -168,7 +168,6 @@ class Lookups:
         self.reads = 0
         self.sources: list[dict] = []
         self.rows: list[dict] = []
-        self.usage: list[dict] = []
 
     def left(self) -> int:
         return max(0, self.SEARCHES - self.searches)
@@ -520,7 +519,8 @@ async def _look_up(
 
     budget.searches += reading.searches
     budget.reads += reading.fetches
-    budget.usage.extend(reading.usage)
+    for entry in reading.usage:
+        ledger.record({k: v for k, v in entry.items() if k != "webSearches"})
     for source in reading.found.sources:
         entry = {"domain": source.domain, "url": source.url}
         if entry not in budget.sources:
@@ -895,21 +895,37 @@ def describe_value(field: str, value: dict) -> str:
     return str(next(iter(value.values()), ""))
 
 
-def _usage_wire(outcome: Outcome) -> list[dict]:
-    return [
+def _usage_wire(outcome: Outcome | None) -> list[dict]:
+    """Every call the job made: the planner's, and the small calls around it
+    that recorded into the job's sink. Tokens only; core-api prices them."""
+    planner = [
         {
             "model": u.model,
             "inputTokens": u.input_tokens,
             "outputTokens": u.output_tokens,
             "cacheReadTokens": u.cache_read_tokens,
-            "costMicros": 0,
+            "cacheWriteTokens": u.cache_write_tokens,
             "latencyMs": u.latency_ms,
         }
-        for u in outcome.usage
+        for u in (outcome.usage if outcome else [])
     ]
+    return planner + ledger.drain()
 
 
 async def handle(
+    job: ClaimedJob,
+    *,
+    cfg: Config,
+    engine,
+    anthropic: AsyncAnthropic,
+    http: httpx.AsyncClient,
+) -> None:
+    """One job, with a ledger sink open for the small calls it makes."""
+    with ledger.collecting():
+        await _handle(job, cfg=cfg, engine=engine, anthropic=anthropic, http=http)
+
+
+async def _handle(
     job: ClaimedJob,
     *,
     cfg: Config,
@@ -1148,7 +1164,9 @@ async def handle(
                 log.info("question answered", field=open_q.field, how="typed", applied=applied)
                 if applied:
                     await _post_result(
-                        http, cfg, {"outcome": "answered", "jobId": job.id, "usage": []}
+                        http,
+                        cfg,
+                        {"outcome": "answered", "jobId": job.id, "usage": _usage_wire(None)},
                     )
                     return
             elif open_q is not None:
@@ -1204,7 +1222,9 @@ async def handle(
                         # The message was nothing but the answer. Settled with no
                         # reply: the row's change is what they see.
                         await _post_result(
-                            http, cfg, {"outcome": "answered", "jobId": job.id, "usage": []}
+                            http,
+                            cfg,
+                            {"outcome": "answered", "jobId": job.id, "usage": _usage_wire(None)},
                         )
                         return
                     if applied:
@@ -2004,7 +2024,7 @@ async def _handle_quick_add(
             {
                 "outcome": "failed",
                 "jobId": job.id,
-                **({"usage": _usage_wire(outcome)} if outcome and outcome.usage else {}),
+                **({"usage": wire} if (wire := _usage_wire(outcome)) else {}),
             },
             path="quick-add-result",
         )

@@ -70,6 +70,12 @@ class Config:
     # stack.md describes as being for "hard retrieval and cross-thread
     # reasoning", written down before this feature existed.
     sort_model: str = "claude-haiku-4-5"
+    # Opus 5 still. Opus 5.5 was measured on 2026-10-02 on the 112 answering
+    # cases, same code: 98 passed against Opus 5's 109, for 30% less. Nothing
+    # it was sent is one it refuses, so the gap is behaviour: past the word
+    # caps, a softened "I couldn't find", an offer to file, and one refused
+    # subject answered. The prompts were tuned on Opus 5 and its effort
+    # defaults to medium; /test-llm against 5.5 is what would earn the switch.
     answer_model: str = "claude-opus-5"
 
     @classmethod

@@ -57,6 +57,9 @@ export interface Me {
   /** 026. Whether mail forwarded from the sign-in address can reach them:
    *  false for an Apple private relay address. */
   mailAvailable: boolean;
+  /** The day's model budget is spent or its turns are used: the composer is
+   *  closed until the rolling day moves on. */
+  atDailyLimit: boolean;
   /** 027. Customize Today's layout, resolved by the server. */
   todayLayout?: import("./today").Layout;
 }

@@ -53,6 +53,7 @@ import { AttachChip, type ChipError } from "./AttachChip";
 import { SentPhoto } from "./SentPhoto";
 import { VoiceNotePlayer, mmss } from "./SentVoice";
 import { SentMail } from "./SentMail";
+import { DayUsed } from "./DayUsed";
 import { BAR_PITCH_PX, Recorder, recorderSupported, type Recording } from "../../lib/recorder";
 import { Mentions, mentionQuery, withMention } from "../people/Mentions";
 import { HashList } from "../labels/HashList";
@@ -140,7 +141,11 @@ interface DraftPhoto {
 export function Composer({
   onFiled,
   inThread,
+  atDailyLimit = false,
 }: {
+  /** The day's budget or turns are used, as the account said on load. A
+   *  refusal on send closes the composer the same way. */
+  atDailyLimit?: boolean;
   /** The thread on screen, if one is. Sent with the dump as a filing default
    *  and shown in front of the field, so somebody typing inside a thread does
    *  not have to name it. Anything they write that names another thread wins,
@@ -208,6 +213,9 @@ export function Composer({
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
   const draftKey = useRef<string | null>(null);
   const [line, setLine] = useState<{ text: string } | null>(null);
+  // Closed for the day: said by the account on load, or learned from a refusal.
+  const [refusedToday, setRefusedToday] = useState(false);
+  const dayUsed = atDailyLimit || refusedToday;
   const [viewer, setViewer] = useState<{ turnId: string; index: number } | null>(null);
   const picker = useRef<HTMLInputElement>(null);
   // 021. The recorder while it records, the live window it draws, and the
@@ -532,6 +540,7 @@ export function Composer({
    *  ordinary refusals happen here, on the device, so they never cost a
    *  request; the server checks the same things again. */
   function addFiles(files: Iterable<File>): void {
+    if (dayUsed) return;
     const incoming = [...files];
     if (incoming.length === 0) return;
     setPhotos((current) => {
@@ -576,6 +585,7 @@ export function Composer({
    *  would not take or too many words, takes the bubble back itself and says
    *  so under the field, where the thing to change is. */
   async function submit(): Promise<void> {
+    if (dayUsed) return;
     const text = draft.trim();
     if (!hasSomething || sending) return;
     // A chip the device refused is not sent around: the way forward is its
@@ -721,7 +731,12 @@ export function Composer({
         // nothing to retry until they are shorter.
         takeBack();
         setTooLong(error.maxChars);
-      } else if (error instanceof DailyLimit || (error instanceof PhotoRefused && error.reason === "daily_limit")) {
+      } else if (error instanceof DailyLimit) {
+        // The day's turns or budget: the composer closes rather than refusing
+        // every send after this one.
+        takeBack();
+        setRefusedToday(true);
+      } else if (error instanceof PhotoRefused && error.reason === "daily_limit") {
         takeBack();
         setLine({ text: "Enough for today." });
       } else if (
@@ -1251,7 +1266,9 @@ export function Composer({
           {inThread ? (
             <span className={styles.inThread}>in thread {inThread.name}</span>
           ) : null}
-          {holdsNote ? (
+          {dayUsed ? (
+            <DayUsed />
+          ) : holdsNote ? (
             // 021. The kit's recording row: the dot while it records and not
             // after, the time, the window of bars growing from the right.
             <span className={styles.recording} role="group" aria-label="Voice note">
@@ -1341,7 +1358,7 @@ export function Composer({
                 className={styles.quiet}
                 aria-label="Add a photo"
                 title="Add a photo"
-                disabled={sending}
+                disabled={sending || dayUsed}
                 onClick={() => picker.current?.click()}
               >
                 <Icon name="camera" size={17} />
@@ -1367,7 +1384,7 @@ export function Composer({
                 className={styles.quiet}
                 aria-label="Voice note"
                 title="Voice note"
-                disabled={sending || !recorderSupported()}
+                disabled={sending || dayUsed || !recorderSupported()}
                 onClick={() => void startRecording()}
               >
                 <Icon name="mic" size={17} />
@@ -1380,7 +1397,7 @@ export function Composer({
               // A chip the device refused holds the send: the way forward is
               // its remove control, and a button that does nothing when
               // pressed is worse than one that is off.
-              disabled={!hasSomething || sending || photos.some((photo) => photo.error)}
+              disabled={dayUsed || !hasSomething || sending || photos.some((photo) => photo.error)}
               data-busy={sending ? true : undefined}
               data-recording={holdsNote ? true : undefined}
               aria-label="Send"

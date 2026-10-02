@@ -9,6 +9,8 @@ import importlib.util
 import sys
 from pathlib import Path
 
+import pytest
+
 EVALS = Path(__file__).resolve().parents[1] / "evals"
 
 
@@ -60,3 +62,21 @@ def test_a_date_set_by_an_edit_to_a_row_just_filed_counts():
         ("edit_content", {"content_id": "c1", "due_at": "2026-10-10"}),
     ]
     assert run._match_filing({"date": "2026-10-10"}, calls, {"threads": []}) is None
+
+
+def test_a_run_is_priced_with_the_cache_counted_apart_from_input():
+    # Anthropic's input count excludes both cache counts: nothing is subtracted
+    # from it, and a cache write costs a quarter more than input.
+    assert _run()._cost("claude-sonnet-5", 1_000, 500, 8_000, 2_000) == pytest.approx(
+        (1_000 * 2 + 500 * 10 + 8_000 * 0.2 + 2_000 * 2.5) / 1e6
+    )
+
+
+def test_the_evals_price_opus_5_5_when_it_is_tried():
+    # `--model answer=claude-opus-5-5` was priced as an unknown model, at Opus
+    # 5's rate, until 2026-10-02.
+    assert _run().PRICES["claude-opus-5-5"] == (4.0, 20.0)
+
+
+def test_an_opus_5_5_cache_read_is_a_twentieth_of_input():
+    assert _run()._cost("claude-opus-5-5", 0, 0, 1_000_000) == pytest.approx(0.20)

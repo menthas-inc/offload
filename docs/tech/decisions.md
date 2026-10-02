@@ -876,6 +876,32 @@ Three reviewers over the whole branch. Two findings would have shipped a feature
 
 **Design system impact:** none. The client findings are logged separately in the design system's own `decisions.md`.
 
+### 2026-10-02 · The ledger prices every call, and a day has a limit
+
+**M6 had shipped a budget that could not trip.** The $5 a day per account summed `llm_usage.cost_micros`, and every token row said zero: the worker sent the price and always sent 0, and the budget's own test wrote its spend straight into the table, so it stayed green. Only voice was priced, at most about $0.15 a day. The classifier, the open-question judge, the mail look and the reader wrote no row at all, and web search fees sat in `lookups`, which the budget never read.
+
+- **core-api prices a call from its tokens**, in `src/pricing.ts`, the one price table, and ignores any price a caller sends. Anthropic's input count excludes both cache counts, so input, output, cache reads and cache writes (a new column, 0067) are priced apart. A model missing from the table is priced at the dearest rate in it.
+- **Every call a job makes reaches the ledger.** The small calls record into a per-job sink (`offload_agent/ledger.py`) that the job's result drains. The ledger is therefore the per-account cost record analytics and the cost sheet read.
+- **The budget counts search fees, and a day has a hundred turns**: dumps, answers and typed rows together, about twice the heaviest real profile on the cost sheet.
+- **At either limit the composer closes** on all three surfaces with "Enough for today. Back tomorrow." and the rest of the app works. The account carries `atDailyLimit`, so nobody types into a refusal.
+- **Voice notes pin AssemblyAI's Universal-2**, $0.15 an hour across 99 languages, the rate the ledger already charged. The vendor's default had moved to Universal-3.5 Pro, $0.21 and 18 languages.
+- **Each model call caches the conversation so far**, not only the system prompt, so the later calls of a turn read the dump, context and tool results at a tenth of the price.
+- **Opus 5.5 for answering was measured and declined.** The 112 answering cases, same code: 98 against Opus 5's 109, for 30% less, including a refused subject answered. The prompts were tuned on Opus 5; `/test-llm` against 5.5 is what would earn the switch.
+
+**Design system impact:** the closed composer is a new state, logged in the design system's `decisions.md` on this date.
+
+### 2026-10-02 · What offload costs is a page rebuilt from the code
+
+`.claude/skills/cost-report/` builds "offload cost sheet": per-person and fleet cost as ranges across filing and answering models, WhatsApp and the budget, at 100 to 100,000 daily people. It reads models, prompt sizes, caps and the eval history from the code on every build, prices from a sheet that records each figure's source and the day it was checked, and production token counts with `--ledger`. Its findings are checks, so a fixed defect drops off the page by itself. With the entry above, a moderate person costs about $5.66 a month and a scripted one is held near $5 a day of model spend.
+
+**Design system impact:** none.
+
+### 2026-10-02 · WhatsApp is specced and not built
+
+029 is a reviewed product spec: forwarding to offload's own WhatsApp number, linked by a code sent from the account and confirmed in WhatsApp, filed as any dump, receipts composed by offload and never by the model. The owner decided not to build it now. Two outside facts were moving when it was written and are re-checked before it is picked up: Meta's terms bar general-purpose AI assistants from the Business Platform at Meta's discretion, and Meta began charging for in-window replies on 2026-10-01 while its own pages disagreed. The privacy page edits it needs were drafted and taken back out.
+
+**Design system impact:** none.
+
 ### 2026-09-29 · Mail comes in at one shared address, `over@to.offload.club`, and the sender is proven by signature
 
 **Built by 026, live 2026-10-01.** Resend receives the mail, not the Cloudflare Worker the spec planned: Email Routing on a subdomain onboards the root domain and its MX records collide with Google Workspace's, which Cloudflare's own docs say cannot share a domain. Resend takes one MX record on `to.offload.club`, signs its webhook with Svix, and `POST /v1/mail/resend` fetches the raw email from Resend's API and runs the DKIM check itself rather than trusting Resend's verdict. A 503 makes Resend deliver the webhook again. Resend keeps a received email for 30 days in the United States, and the privacy page says so. The secrets are `RESEND_WEBHOOK_SECRET` and `RESEND_API_KEY` on `core-api`, rotated in Resend and set with `railway variable set --stdin`. The rest of this entry is the direction as written. Reading Gmail through its API needs a restricted scope, which means an annual third-party security assessment on top of verification, so the first way in for mail is forwarding, which needs nothing from Google.

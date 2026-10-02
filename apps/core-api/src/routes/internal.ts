@@ -26,6 +26,7 @@ import { ownWords } from "../mail-in/attrs.js";
 import { recordMailTurn } from "../mail-in/activity.js";
 import { emit } from "../analytics.js";
 import { env } from "../env.js";
+import { ledgerRows } from "../ledger.js";
 import { NOTE_TEXT_CHARS, applyCompaction } from "../threads/notes.js";
 import { parseWhen, plausible } from "../threads/dates.js";
 import {
@@ -86,7 +87,10 @@ const usageEntry = z.object({
   inputTokens: z.number().int().min(0),
   outputTokens: z.number().int().min(0),
   cacheReadTokens: z.number().int().min(0).default(0),
-  costMicros: z.number().int().min(0).default(0),
+  cacheWriteTokens: z.number().int().min(0).default(0),
+  /** Accepted from a worker a release behind and ignored: core-api prices a
+   *  call from its tokens (src/pricing.ts). */
+  costMicros: z.number().int().min(0).optional(),
   latencyMs: z.number().int().min(0),
 });
 
@@ -379,19 +383,7 @@ export async function internalRoutes(app: App): Promise<void> {
         if (result.usage && result.usage.length > 0) {
           await trx
             .insertInto("llm_usage")
-            .values(
-              result.usage.map((entry) => ({
-                account_id: accountId,
-                job_kind: "thread.quick_add",
-                category: "interactive" as const,
-                model: entry.model,
-                input_tokens: entry.inputTokens,
-                output_tokens: entry.outputTokens,
-                cache_read_tokens: entry.cacheReadTokens,
-                cost_micros: entry.costMicros,
-                latency_ms: entry.latencyMs,
-              }))
-            )
+            .values(ledgerRows(accountId, "thread.quick_add", "interactive", result.usage))
             .execute();
         }
 
@@ -480,20 +472,8 @@ export async function internalRoutes(app: App): Promise<void> {
         if (result.usage && result.usage.length > 0) {
           await trx
             .insertInto("llm_usage")
-            .values(
-              result.usage.map((entry) => ({
-                account_id: accountId,
-                job_kind: "notes.compact",
-                // Scheduled, not interactive: nobody is waiting on the fold.
-                category: "scheduled" as const,
-                model: entry.model,
-                input_tokens: entry.inputTokens,
-                output_tokens: entry.outputTokens,
-                cache_read_tokens: entry.cacheReadTokens,
-                cost_micros: entry.costMicros,
-                latency_ms: entry.latencyMs,
-              }))
-            )
+            // Scheduled, not interactive: nobody is waiting on the fold.
+            .values(ledgerRows(accountId, "notes.compact", "scheduled", result.usage))
             .execute();
         }
 
@@ -558,19 +538,7 @@ export async function internalRoutes(app: App): Promise<void> {
         if (result.usage && result.usage.length > 0) {
           await trx
             .insertInto("llm_usage")
-            .values(
-              result.usage.map((entry) => ({
-                account_id: accountId,
-                job_kind: "loose.propose",
-                category: "scheduled" as const,
-                model: entry.model,
-                input_tokens: entry.inputTokens,
-                output_tokens: entry.outputTokens,
-                cache_read_tokens: entry.cacheReadTokens,
-                cost_micros: entry.costMicros,
-                latency_ms: entry.latencyMs,
-              }))
-            )
+            .values(ledgerRows(accountId, "loose.propose", "scheduled", result.usage))
             .execute();
         }
         await trx
@@ -638,19 +606,7 @@ export async function internalRoutes(app: App): Promise<void> {
         if (result.usage && result.usage.length > 0) {
           await trx
             .insertInto("llm_usage")
-            .values(
-              result.usage.map((entry) => ({
-                account_id: accountId,
-                job_kind: "labels.sort",
-                category: "scheduled" as const,
-                model: entry.model,
-                input_tokens: entry.inputTokens,
-                output_tokens: entry.outputTokens,
-                cache_read_tokens: entry.cacheReadTokens,
-                cost_micros: entry.costMicros,
-                latency_ms: entry.latencyMs,
-              })),
-            )
+            .values(ledgerRows(accountId, "labels.sort", "scheduled", result.usage))
             .execute();
         }
         await trx
@@ -1029,19 +985,7 @@ export async function internalRoutes(app: App): Promise<void> {
         if (calls.length > 0) {
           await trx
             .insertInto("llm_usage")
-            .values(
-              calls.map((entry) => ({
-                account_id: accountId,
-                job_kind: "dump.answer",
-                category: "interactive" as const,
-                model: entry.model,
-                input_tokens: entry.inputTokens,
-                output_tokens: entry.outputTokens,
-                cache_read_tokens: entry.cacheReadTokens,
-                cost_micros: entry.costMicros,
-                latency_ms: entry.latencyMs,
-              }))
-            )
+            .values(ledgerRows(accountId, "dump.answer", "interactive", calls))
             .execute();
         }
 

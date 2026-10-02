@@ -44,8 +44,17 @@ _EU_HOST = "api.eu.assemblyai.com"
 
 #: The keys `POST /v2/transcript` is sent, copied from the vendor's API
 #: reference as read on 2026-09-20 (`audio_url`, `language_detection`,
-#: `audio_end_at`). Widen this set only from that page.
-SUBMIT_KEYS: frozenset[str] = frozenset({"audio_url", "language_detection", "audio_end_at"})
+#: `audio_end_at`) and 2026-10-02 (`speech_models`). Widen this set only from
+#: that page.
+SUBMIT_KEYS: frozenset[str] = frozenset(
+    {"audio_url", "language_detection", "audio_end_at", "speech_models"}
+)
+
+#: Pinned, because the vendor's default moved to Universal-3.5 Pro ($0.21 an
+#: hour, 18 languages, everything else falling back to Universal-2) with no
+#: change here, and the ledger went on charging $0.15. Universal-2 is $0.15 an
+#: hour across 99 languages, checked on assemblyai.com/pricing 2026-10-02.
+SPEECH_MODELS = ["universal-2"]
 
 #: The first ten minutes and no more, in milliseconds. This is what bounds
 #: the bill per call: a browser's WebM carries no length in its header, so
@@ -82,6 +91,7 @@ def _submit_body(audio_url: str) -> dict[str, object]:
     body: dict[str, object] = {
         "audio_url": audio_url,
         "language_detection": True,
+        "speech_models": SPEECH_MODELS,
         "audio_end_at": AUDIO_END_AT_MS,
     }
     unknown = set(body) - SUBMIT_KEYS

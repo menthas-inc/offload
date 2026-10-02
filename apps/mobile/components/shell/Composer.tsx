@@ -40,7 +40,7 @@ import { useConversation } from "./conversation-context";
 import { MentionList, mentionQuery } from "../people/MentionList";
 import { HashList } from "../labels/HashList";
 import { labelQuery } from "@offload/widgets";
-import { PLACEHOLDERS, staysOpen } from "../../lib/composer";
+import { DAY_USED, PLACEHOLDERS, staysOpen } from "../../lib/composer";
 
 const isAndroid = Platform.OS === "android";
 
@@ -174,6 +174,7 @@ export function Composer({
     removePhoto,
     line,
     clearLine,
+    dayUsed,
     offerPhoto: offerPhotoSheet,
     writing,
     focusRequest,
@@ -363,7 +364,18 @@ export function Composer({
             {draft}
           </Text>
         ) : null}
-        {holdsNote ? (
+        {dayUsed ? (
+          // The day's limit, in the field's place, at the field's size so the
+          // composer keeps its height. Read, not skipped: secondary text.
+          <Text
+            accessibilityRole="text"
+            accessibilityLiveRegion="polite"
+            className={`flex-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+            style={{ fontSize: 16, lineHeight: 22, paddingVertical: 12 }}
+          >
+            {DAY_USED}
+          </Text>
+        ) : holdsNote ? (
           <>
             {recording ? <KeepAwake /> : null}
             <RecordingRow liveSamples={liveSamples} stopped={!recording} note={note} color={COLOR} />
@@ -416,7 +428,7 @@ export function Composer({
             lands in this field instead. Over the field and under the
             controls, drawn before them, so the camera, the microphone and
             Send still work from the plate. */}
-        {redirect ? (
+        {redirect && !dayUsed ? (
           <Pressable
             style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
             onPress={() => {
@@ -456,7 +468,7 @@ export function Composer({
             {pin || holdsNote ? null : (
               <Pressable
                 onPress={offerPhoto}
-                disabled={sending || writing}
+                disabled={sending || writing || dayUsed}
                 hitSlop={5}
                 accessibilityLabel="Add a photo"
                 className="items-center justify-center rounded-pill"
@@ -487,7 +499,7 @@ export function Composer({
                   Keyboard.dismiss();
                   void startRecording();
                 }}
-                disabled={sending || writing}
+                disabled={sending || writing || dayUsed}
                 hitSlop={5}
                 accessibilityLabel="Voice note"
                 className="items-center justify-center rounded-pill"
@@ -498,7 +510,7 @@ export function Composer({
             )}
             <Pressable
               onPress={() => void send()}
-              disabled={!has || held || sending}
+              disabled={dayUsed || !has || held || sending}
               accessibilityLabel={submitLabel}
               accessibilityState={{ busy: sending }}
               className={`items-center justify-center rounded-pill ${

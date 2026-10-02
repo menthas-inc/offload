@@ -4,6 +4,7 @@
 // render anything: the current account, the address a refused sign-in used,
 // and the write that ends onboarding.
 
+import { atDailyLimit } from "../budget.js";
 import { layoutShape, resolveLayout, todayLayout } from "../today/layout.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
@@ -126,6 +127,9 @@ const meResponse = z.object({
   mailAvailable: z.boolean(),
   /** 027. Customize Today's layout, resolved: every kind present, in order. */
   todayLayout: layoutShape,
+  /** The day's model budget is spent or its turns are used, so the composer is
+   *  closed until the window moves (budget.ts). */
+  atDailyLimit: z.boolean(),
 });
 
 /** 024. An hour as the page sends it, HH:MM, twenty-four hour. */
@@ -231,7 +235,7 @@ const consentBody = z.object({
  *  refetch, and it keeps initials coming from one place: a client patching the
  *  name locally and recomputing its own two letters is the disagreement 010
  *  moved them server-side to prevent. */
-async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | null> {
+export async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | null> {
   const account = await db
     .selectFrom("accounts")
     .select([
@@ -294,6 +298,7 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
     activityNew: await activityNew(accountId),
     mailAvailable: !/@privaterelay\.appleid\.com$/i.test(account.email),
     todayLayout: resolveLayout(account.today_layout),
+    atDailyLimit: await atDailyLimit(accountId),
   };
 }
 

@@ -72,6 +72,8 @@ import {
   type Recording,
 } from "../../lib/recorder";
 import { putKeyboardAway } from "../../lib/keyboard";
+import { useMe } from "../../lib/me";
+import { closedForTheDay } from "../../lib/composer";
 
 /** What a `+` pinned the composer to. Set only by a `+`, never chosen from
  *  inside the field: a section's `+` writes to that section in that thread and
@@ -269,6 +271,9 @@ export interface Conversation {
   pickPhotos: (from: "library" | "camera") => Promise<void>;
   line: { text: string; action?: { label: string; onPress: () => void } } | null;
   clearLine: () => void;
+  /** The day's model budget is spent or its turns are used: the composer is
+   *  closed, said by the account on load or learned from a refusal. */
+  dayUsed: boolean;
   /** A line under the composer: one clause, and the way forward beside it. */
   sayLine: (line: { text: string; action?: { label: string; onPress: () => void } }) => void;
   /** 021. The voice note in the composer: recording, or stopped and waiting
@@ -409,6 +414,9 @@ export function ConversationProvider({
   const draftKey = useRef<string | null>(null);
   const viaShare = useRef(false);
   const [line, setLine] = useState<{ text: string; action?: { label: string; onPress: () => void } } | null>(null);
+  const me = useMe();
+  const [refusedToday, setRefusedToday] = useState(false);
+  const dayUsed = closedForTheDay(me, refusedToday);
   const [photoOpen, setPhotoOpen] = useState<{ turnId: string; index: number } | null>(null);
   const [focusRequest, setFocusRequest] = useState(0);
   // 020. A share that lands while a send is out waits for it: the chips
@@ -1151,6 +1159,7 @@ export function ConversationProvider({
   }, []);
 
   const submit = useCallback(async (): Promise<void> => {
+    if (dayUsed) return;
     const text = draft.trim();
     const sendable = photos.filter((photo) => !photo.error);
     const holdsNote = session.current !== null || note !== null;
@@ -1331,7 +1340,12 @@ export function ConversationProvider({
         // The server's own refusal, and the words go straight back: there is
         // nothing to retry until they are shorter.
         takeBack();
-      } else if (error instanceof DailyLimit || (error instanceof PhotoRefused && error.reason === "daily_limit")) {
+      } else if (error instanceof DailyLimit) {
+        // The day's turns or budget: the composer closes rather than refusing
+        // every send after this one.
+        takeBack();
+        setRefusedToday(true);
+      } else if (error instanceof PhotoRefused && error.reason === "daily_limit") {
         takeBack();
         setLine({ text: "Enough for today." });
       } else if (
@@ -1371,7 +1385,7 @@ export function ConversationProvider({
         unsent();
       }
     }
-  }, [draft, photos, note, live, onScreen, pin, submitPin, watch]);
+  }, [dayUsed, draft, photos, note, live, onScreen, pin, submitPin, watch]);
 
   // 018. One open question per conversation.
   const openQuestion = useMemo(
@@ -1488,6 +1502,7 @@ export function ConversationProvider({
         pickPhotos,
         line,
         clearLine,
+        dayUsed,
         sayLine: setLine,
         recording,
         note,
