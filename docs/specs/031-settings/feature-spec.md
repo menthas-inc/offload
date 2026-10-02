@@ -56,7 +56,7 @@ Previews: Light `#FAF9F7` with three grey bars, Dark `#1C1B19` with darker bars,
 ### 3. My account
 
 - **Profile**: Name (as built) and Email, with the note *From your Google sign in. Changing it is not done here.* (*From your Apple sign in.* for Apple; *From your sign in.* when both are linked).
-- **Where you are**: caption *So a date or a forecast is the one where you are. Leave it unset and offload says it does not know rather than guessing.*; Country is the row.
+- **Where you are**: caption *Used to show dates and times in local time.* (owner, 2026-10-02); Country is the row.
 - **Signed in on**, caption *Ending a session signs that device out on its next request.*
   - **This device is always the first row**, built from the session the client holds, so it draws when the list fails. Lead `smartphone` (phones) or `monitor` (web), a *This device* status pill, no note.
   - Others under it: device, *Since 14 Sep*, an **End** pill.
@@ -100,7 +100,7 @@ One section, **Connected**, holding **one card per app**: `--surface-raised`, ra
 - **Google Calendar, connected:** the Google Calendar mark; *jo@hey.com, connected 14 Sep* (several accounts: *2 Google accounts*); a *Connected* pill. Under a hairline: **Calendars offload can use**, *4 of 7*, chevron to the calendar page; then **Ask before adding** with its switch and note, the same write the calendar page makes. A connection needing sign-in again swaps the pill for a **Sign in again** button that runs the connect flow.
 - **Not connected:** the head only, line *See your week in offload, and let it add things for you.*, a primary **Connect** that runs the same flow as the calendar page.
 - **Calendar not available:** no card.
-- **Mail, always shown:** a `mail` mark on `--surface-accent-soft` in `--moss-700`; *Forward an email and it's filed like anything you dump*; a *Ready* pill (neutral). Under a hairline: the address as the title, tabular, with the note *Only mail from jo@hey.com is accepted. Forward by hand.* and a **Copy** pill with `copy` (toast *Copied*); then **Add to contacts** with `arrow-up-right`. An Apple hidden email: the head with the relay note as its line and an *Unavailable* pill, nothing under it. **The phones' Mail page stays**, for How it works, reached from a third row on the card, *How it works*, since a tappable head with a status pill on it says nothing about where it goes.
+- **Mail, always shown:** a `mail` mark on `--surface-accent-soft` in `--moss-700`; *Forward an email and it's filed like anything you dump*; a *Ready* pill (neutral). Under a hairline: the address as the title, tabular, with the note *Only mail from jo@hey.com is accepted. Forward by hand.* and a **Copy** pill with `copy` (toast *Copied*); then **Add to contacts** with `arrow-up-right`. An Apple hidden email: the head with the relay note as its line and an *Unavailable* pill, nothing under it. **The phones' Mail page stays**, for How it works, reached from a refused email in Activity; the card itself has no third row (owner, 2026-10-02).
 - **Removed:** *Not built yet* (Browser, Photos) and *What offload may do*.
 - **The calendar page stays** one level down on the phones, and **becomes one on the web**, `/settings/apps/calendar`: the per-account list, Disconnect, and Ask before adding, as the web's inline block had them.
 - **The index row's value** is what is connected: *Calendar, Mail*, *Mail*, *Calendar*, or nothing.
@@ -113,6 +113,10 @@ One section, **Connected**, holding **one card per app**: `--surface-raised`, ra
 ### 9. Pane head summaries (web)
 
 The web's pane head carries a one-line summary where the page already computes one: Date and time *Lisbon, weeks start Monday*; Appearance *On this device* (as built); My people *3 connected* and *, 1 waiting on you*; Connected apps *Calendar and Mail* (the index value with *and*); Notifications *Mornings at 08:00, evenings at 19:00* from the switches that are on. Absent otherwise.
+
+## The bars, while here
+
+On the phones, the app bar's glyphs (Customize Today, the bell, settings) go from 21 to 24 with 16px between them, and the mark and wordmark go from 21 to 24 on every bar that draws them (Today, My threads, Notes) (owner, 2026-10-02).
 
 ## Not in this pass
 

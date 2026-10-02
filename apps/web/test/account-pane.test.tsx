@@ -125,7 +125,7 @@ describe("My account's sections", () => {
     expect([...host.querySelectorAll("h2")].map((h) => h.textContent)).toEqual(["Profile", "Where you are", "Signed in on"]);
     expect(section(host, "Profile").textContent).toContain("How you appear to people you share with.");
     expect(section(host, "Where you are").textContent).toContain(
-      "So a date or a forecast is the one where you are. Leave it unset and offload says it does not know rather than guessing.",
+      "Used to show dates and times in local time.",
     );
     expect(section(host, "Signed in on").textContent).toContain("Ending a session signs that device out on its next request.");
     expect(host.querySelector('button[aria-label="Country"]')?.textContent).toContain("Portugal");

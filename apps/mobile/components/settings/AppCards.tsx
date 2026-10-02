@@ -163,13 +163,11 @@ export function MailCard({
   available,
   onCopy,
   onContacts,
-  onHow,
 }: {
   email: string;
   available: boolean;
   onCopy: () => void;
   onContacts: () => void;
-  onHow: () => void;
 }) {
   const COLOR = useColors();
   const mark = (
@@ -204,9 +202,7 @@ export function MailCard({
           pillIcon="copy"
           onPress={onCopy}
         />
-        <Row title="Add to contacts" external onPress={onContacts} />
-        {/* The Mail page stays, for how it works; this is its door. */}
-        <Row title="How it works" onPress={onHow} last />
+        <Row title="Add to contacts" external onPress={onContacts} last />
       </View>
     </Card>
   );

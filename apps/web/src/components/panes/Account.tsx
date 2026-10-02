@@ -125,7 +125,7 @@ export function AccountPane() {
         <Group
           label="Where you are"
           icon="map-pin"
-          caption="So a date or a forecast is the one where you are. Leave it unset and offload says it does not know rather than guessing."
+          caption="Used to show dates and times in local time."
         >
           <div className={`${pane.settingsRow} ${pane.settingsRowLast}`}>
             <span className={pane.settingsText}>

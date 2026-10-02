@@ -187,7 +187,7 @@ function Account({ toast }: { toast: ToastState }) {
         <Group
           label="Where you are"
           icon="map-pin"
-          caption="So a date or a forecast is the one where you are. Leave it unset and offload says it does not know rather than guessing."
+          caption="Used to show dates and times in local time."
         >
           <Row
             title="Country"
@@ -656,7 +656,6 @@ function Apps({ toast }: { toast: ToastState }) {
                   .catch(() => undefined)
               }
               onContacts={() => void WebBrowser.openBrowserAsync(MAIL_CARD_URL)}
-              onHow={() => router.push("/settings/mail")}
             />
           ) : null}
         </View>
