@@ -45,11 +45,14 @@ async function forwarded(subject = "Booking LX3K9", body = "Flights on 3 and 10 
   return { jobId: job.id, messageId, turnId };
 }
 
+// `updated_at` is left to the database's clock, as the worker's rows are. Undo's
+// bound is the turn result's `now()`, and a stamp from this process's clock can
+// land after it whenever the two clocks drift by more than the gap between them.
 async function file(messageId: string, threadId: string, title: string) {
   return (
     await db
       .insertInto("content")
-      .values({ account_id: jo, thread_id: threadId, type: "event", title, derived_from_message_id: messageId, updated_at: new Date() } as never)
+      .values({ account_id: jo, thread_id: threadId, type: "event", title, derived_from_message_id: messageId } as never)
       .returning("id")
       .executeTakeFirstOrThrow()
   ).id;
@@ -187,6 +190,17 @@ describe("Undo from Activity (AC-16)", () => {
     await undo(row.id);
     const live = await db.selectFrom("content").select("id").where("id", "in", [out, back]).where("deleted_at", "is", null).execute();
     expect(live.map((r) => r.id)).toEqual([out]);
+  });
+
+  it("takes back a row filed in the same millisecond as the result", async () => {
+    const { row, out, back } = await filedRow();
+    // Microseconds past a millisecond, which a JavaScript Date cannot hold.
+    const at = sql<Date>`date_trunc('second', now()) - interval '1 minute' + interval '500 microseconds'`;
+    await db.updateTable("content").set({ updated_at: at }).where("id", "in", [out, back]).execute();
+    await db.updateTable("activity").set({ occurred_at: at }).where("id", "=", row.id).execute();
+    await undo(row.id);
+    const live = await db.selectFrom("content").select("id").where("id", "in", [out, back]).where("deleted_at", "is", null).execute();
+    expect(live).toEqual([]);
   });
 
   it("is offered for a day and not after", async () => {
