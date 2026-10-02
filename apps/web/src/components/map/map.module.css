@@ -1,0 +1,320 @@
+/* 030. A thread's map, on the web. Everything here is offload's own, drawn
+   over Google's map: the points, the circles' companions, the count dot, the
+   callout, the floating chips and the place sheet. Values from
+   explorations/maps.html; colours and shadows from the tokens. */
+
+.frame {
+  position: relative;
+  inline-size: 100%;
+  block-size: 100%;
+  background: var(--surface-page);
+}
+
+.frame[data-hidden="true"] {
+  visibility: hidden;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+}
+
+/* A point: 16px, a 2.5px ring in --paper, its label colours split down the
+   middle, ink with no label. An event is a square with a 5px radius. */
+.point {
+  display: block;
+  box-sizing: border-box;
+  width: 16px;
+  aspect-ratio: 1;
+  border-radius: var(--radius-pill);
+  border: 2.5px solid var(--paper);
+  background: linear-gradient(90deg, var(--a) 50%, var(--b, var(--a)) 50%);
+  box-shadow: var(--shadow-point);
+  transition: transform 140ms var(--ease-out);
+  cursor: pointer;
+}
+
+.point[data-shape="square"] {
+  border-radius: 5px;
+}
+
+.point[data-picked="true"] {
+  width: 24px;
+  border-width: 3px;
+  box-shadow: var(--shadow-point-picked);
+}
+
+.point[data-hover="true"] {
+  transform: scale(1.35);
+}
+
+/* The 44px target around a 16px point. */
+.target {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  aspect-ratio: 1;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+.count {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  aspect-ratio: 1;
+  border-radius: var(--radius-pill);
+  background: var(--text-primary);
+  color: var(--surface-page);
+  font: var(--weight-semibold) 12px/1 var(--font-core);
+  font-variant-numeric: tabular-nums;
+  border: 2px solid var(--paper);
+  box-shadow: var(--shadow-point);
+  cursor: pointer;
+}
+
+/* The callout: at most 228px, its contents wrapping rather than clipping. */
+.callout {
+  position: relative;
+  box-sizing: border-box;
+  max-inline-size: 228px;
+  inline-size: max-content;
+  padding: 12px 12px 12px 14px;
+  margin-block-end: 18px;
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-callout);
+  font-family: var(--font-core);
+  text-align: start;
+}
+
+.callout::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-end: -6px;
+  width: 12px;
+  aspect-ratio: 1;
+  margin-inline-start: -6px;
+  background: var(--surface-raised);
+  transform: rotate(45deg);
+}
+
+.calloutTitle {
+  display: block;
+  font: var(--weight-semibold) 15px/1.25 var(--font-core);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.calloutKind {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-block-start: 3px;
+  font: var(--weight-regular) 12.5px/1.3 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.calloutActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block-start: 10px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  border: 0;
+  background: var(--surface-fill);
+  color: var(--text-primary);
+  font: var(--weight-medium) 13px/1 var(--font-core);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pillPrimary {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+/* The label pick left nothing on the map. */
+.nothing {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 24px;
+  margin: 0 auto;
+  inline-size: max-content;
+  max-inline-size: calc(100% - 48px);
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-1);
+  font: var(--weight-medium) 13px/1.3 var(--font-core);
+  color: var(--text-primary);
+}
+
+.failed {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  background: var(--surface-page);
+  font: var(--weight-regular) 14px/1.4 var(--font-core);
+  color: var(--text-secondary);
+}
+
+/* The place sheet: a 360px pane, beside the map rather than over it. */
+.sheet {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: 360px;
+  max-inline-size: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 24px;
+  background: var(--surface-raised);
+  box-shadow: -1px 0 0 var(--border-hairline), var(--shadow-2);
+  z-index: 30;
+}
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sheetTile {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+  overflow: hidden;
+}
+
+.sheetTile img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.sheetTitle {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.sheetTitle h3 {
+  margin: 0;
+  font: var(--weight-semibold) 19px/1.25 var(--font-core);
+  overflow-wrap: anywhere;
+}
+
+.sheetKind {
+  margin-block-start: 2px;
+  font: var(--weight-regular) 13.5px/1.3 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+  cursor: pointer;
+  /* A 44px target around the 32px circle. */
+  outline-offset: 6px;
+  margin: -6px;
+  box-sizing: content-box;
+  padding: 6px;
+  background-clip: content-box;
+}
+
+.rows {
+  margin-block-start: 14px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+  font: var(--weight-regular) 15px/1.3 var(--font-core);
+}
+
+.row:last-child {
+  box-shadow: none;
+}
+
+.rowKey {
+  inline-size: 76px;
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.rowValue {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+
+.foot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-block-start: 20px;
+}
+
+.foot[data-one="true"] {
+  grid-template-columns: 1fr;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-primary);
+  font: var(--weight-medium) 15px/1 var(--font-core);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.buttonPrimary {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .point {
+    transition: none;
+  }
+}
