@@ -170,6 +170,13 @@ export function ThreadMap({
     void map.current.pointForCoordinate({ latitude: picked.lat, longitude: picked.lng }).then(setCalloutAt, () => setCalloutAt(null));
   }
   useEffect(project, [picked, size]);
+  // A change of padding (the place sheet, the keyboard) slides the map with
+  // no region event, so the callout looks for its point again once the map
+  // has moved (seen on iOS).
+  useEffect(() => {
+    const timer = setTimeout(project, 350);
+    return () => clearTimeout(timer);
+  }, [bottom]);
 
   function settle(region: Region): void {
     if (size.width === 0) return;
@@ -265,7 +272,10 @@ export function ThreadMap({
             key={`area:${p.key}`}
             coordinate={{ latitude: p.lat, longitude: p.lng }}
             anchor={{ x: 0.5, y: 0.5 }}
-            tracksViewChanges={false}
+            // Drawn after layout like a point: a marker imaged before its
+            // view has a size falls back to Google's red pin (seen on iOS).
+            tracksViewChanges={tracking}
+            opacity={0.01}
             accessibilityLabel={`${p.title}, ${kindWord(p.type)}`}
             onPress={() => onSelect(p.key)}
           >
