@@ -57,7 +57,7 @@ export const JOBS = [
     cadence: "Per forwarded email that still has images after core-api's rules (at most 30 an hour, 100 a day)",
     trigger: "payload.mailLook on a mail turn (worker.py `_run_look`)",
     call: "One call, forced tool decide, max_tokens 512, one repair through a tool_result",
-    inputs: ["Each remaining image shrunk to 400px, after a line naming its index", "A closing line: decide for each of N images"],
+    inputs: ["Each remaining image shrunk to 400 pixels, after a line naming its index", "A closing line: decide for each of N images"],
     outputs: ["The indexes to keep. Everything else is dropped from the message"],
     bounds: ["At most 20 verdicts", "Unsure means decoration"],
     source: { file: P + "look.md" },
