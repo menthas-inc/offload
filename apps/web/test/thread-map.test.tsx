@@ -36,8 +36,8 @@ vi.mock("@vis.gl/react-google-maps", async () => {
         children,
       );
     },
-    AdvancedMarker: ({ children, onClick, title }: { children: React.ReactNode; onClick?: () => void; title?: string }) =>
-      React.createElement("div", { "data-marker": title ?? "", onClick: (e: Event) => (e.stopPropagation(), onClick?.()) }, children),
+    AdvancedMarker: ({ children, onClick, title, clickable }: { children: React.ReactNode; onClick?: () => void; title?: string; clickable?: boolean }) =>
+      React.createElement("div", { "data-marker": title ?? "", "data-clickable": String(Boolean(clickable)), onClick: (e: Event) => (e.stopPropagation(), onClick?.()) }, children),
     Circle: ({ center }: { center: { lat: number } }) => React.createElement("i", { "data-circle": String(center.lat) }),
     useMap: () => fakeMap,
     ColorScheme: { LIGHT: "LIGHT", DARK: "DARK", FOLLOW_SYSTEM: "FOLLOW_SYSTEM" },
@@ -184,6 +184,12 @@ describe("the callout (AC-17, AC-24)", () => {
     expect(open.getAttribute("aria-label")).toBe("Open Time Out Market");
     await act(async () => open.click());
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ key: "c:1" }));
+  });
+
+  it("keeps a press on the callout from reaching the map, which would close it first", async () => {
+    await render(base({ selected: "c:1" }));
+    const marker = (host.querySelector("[data-callout]") as HTMLElement).closest("[data-marker]") as HTMLElement;
+    expect(marker.getAttribute("data-clickable")).toBe("true");
   });
 
   it("closes on Escape", async () => {

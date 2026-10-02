@@ -68,8 +68,14 @@ describe("the map's hosts (030, SEC-1)", () => {
   it("names Google only in a build made with a map key", () => {
     expect(off).not.toContain("googleapis");
     expect(off).not.toContain("gstatic");
-    expect(directive(on, "connect-src")).toBe(`connect-src 'self' ${API} https://maps.googleapis.com`);
-    expect(directive(on, "font-src")).toBe("font-src 'self' data: https://fonts.gstatic.com");
+    // The map's style comes from www.gstatic.com and its sprites are fetched as
+    // data: URLs, both seen refused in the browser check (T4.8).
+    expect(directive(on, "connect-src")).toBe(`connect-src 'self' ${API} https://maps.googleapis.com https://www.gstatic.com data:`);
+    // No font host: the map asks for Google's font stylesheet, which style-src
+    // refuses, and draws its own labels without it (seen in T4.8), so a font
+    // host would name a company that never receives a request.
+    expect(directive(on, "font-src")).toBe("font-src 'self' data:");
+    expect(on).not.toContain("fonts.g");
   });
 
   it("adds nothing to what may run, and no wildcard host", () => {

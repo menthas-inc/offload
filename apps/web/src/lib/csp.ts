@@ -13,7 +13,9 @@
 // question from scripts.
 //
 // 030. A build made with a map key and a map id also talks to Google's map:
-// its requests to maps.googleapis.com and the faces its labels are drawn in.
+// its requests to maps.googleapis.com, and its style from www.gstatic.com with
+// sprites fetched as data: URLs, which is what the browser check saw refused.
+// Its font stylesheet stays refused; the map draws its labels without it.
 // Its script is loaded by a script that carries the nonce, so 'strict-dynamic'
 // already admits it and nothing is added to what may run. A build without the
 // key names no Google host at all.
@@ -35,10 +37,10 @@ export function contentSecurityPolicy({
     // development alone admits eval. A build never does.
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    `font-src 'self' data:${maps ? " https://fonts.gstatic.com" : ""}`,
+    "font-src 'self' data:",
     `img-src 'self' ${api} https: data: blob:`,
     `media-src 'self' ${api} blob:`,
-    `connect-src 'self' ${api}${maps ? " https://maps.googleapis.com" : ""}`,
+    `connect-src 'self' ${api}${maps ? " https://maps.googleapis.com https://www.gstatic.com data:" : ""}`,
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",

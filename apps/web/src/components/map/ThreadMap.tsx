@@ -300,6 +300,10 @@ function Drawn({
           position={{ lat: picked.lat, lng: picked.lng }}
           anchorPoint={AdvancedMarkerAnchorPoint.BOTTOM_CENTER}
           zIndex={10}
+          // A marker of its own clicks, so Google does not also take a press
+          // on Open as a click on the map, which closed the callout before the
+          // button heard it (seen in the browser check, T4.8).
+          clickable
         >
           <Callout point={picked} labels={labels} onOpen={onOpen} onClose={() => onSelect(null)} />
         </AdvancedMarker>
