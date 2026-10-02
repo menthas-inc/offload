@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-02 · A thread's map
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, off `explorations/maps.html`. Handoff: `handoff/APPLY-2026-10-02-maps.md`.
+
+**Was:** a thread with a located place earned a **Places** section in its list, rows and no map; *the split pin waits for a map provider* (025). Places resolved through Google Places Text Search, for `location` rows only.
+
+**Is:** **A List | Map switch** in the thread's app bar, there when one live thing has a point: a saved place, a link with a location read from its page, or an event with a venue, offload's own or a connected calendar's the thread shows. Map replaces the body below the app bar, the thread's name moves into the bar, the label chips float over the map and filter the pins, the composer stays; the choice is kept per thread on the device. **On the web at 1200px and wider** the pane splits instead: the list on the left, a 460px sticky map column on the right, no switch; hovering a row lifts its pin, a pin highlights its row. **Pins** are 16px dots in the label's colour with a white ring, split for two labels, ink for none, rounded squares for events, 24px when picked; **an approximate place is a soft circle** in the label's colour. **A tap opens a callout**, name, kind and labels, *Directions* and *Open*; Directions hands off to the device's maps app; Open is the thing's sheet, a half sheet on the phones and the side pane on the web, with two equal 48px buttons. A place with no point stays in the list and off the map. **The Places section is retired.** **MapLibre on all three, MapTiler Streets and Streets Dark, and place lookup moves to MapTiler Geocoding**; every existing place is looked up once more.
+
+**Considered and not taken:** a pin row that unfolds; one map in three sizes; a map column on the phones; Google everywhere; Apple on iOS with Google elsewhere; OpenFreeMap and Stadia as tile providers; a callout card that slides up; a list scroll on tap; numbered pins.
+
+**Design system impact:** `readme.md` gains **A thread's map**, and 025's line on the split pin is closed. No new tokens: pins use `--label-1` to `--label-10` and `--ink-900`. The kits are not redrawn for the map in this pass; `explorations/maps.html` is the reference.
+
 ### 2026-10-02 · The composer closes for the day
 **Surface:** iOS, Android, web
 **Raised by:** the daily limits (`docs/tech/decisions.md`, 2026-10-02): once an account has spent the day's model budget or started its hundred turns, a dump can only be refused.

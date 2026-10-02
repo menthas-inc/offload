@@ -973,8 +973,8 @@ it too, which makes its tools "up to two".
 
 **Outside the thread a label always travels with its thread's name.** Today: the meta line, then
 the marks, and no way to label from there. The calendar: offload's own dated rows carry their marks
-and a Google event carries none; the month's dots are the type dots and narrow with the filter. **The
-map is not built**; the split pin waits for a map provider.
+and a Google event carries none; the month's dots are the type dots and narrow with the filter. The
+map's pins are the split pin (see **A thread's map**).
 
 **What offload does.** It labels live while filing (apply by id, make one only when its name is in
 the message, remove when asked), inside the turn's Undo. The nightly sort is built and **switched off
@@ -1049,7 +1049,47 @@ is the row sheet's. Not drawn when empty.
 - The name inside is a label, never a link. Most rows carry none. Move is immediate with a toast,
   *Moved to* and the thread, and Undo.
 
-**offload's reply** for a thing filed without a thread is *Saved.* No thread is named.
+**offload's reply** for a thing filed without a thread is Done alone, with no thread pill and no words (as built, 028). A shared Move to draws the people it would share with as faces: 20px initials marks on `--surface-fill`, overlapping by 6px, then *+1*.
+
+## A thread's map
+
+Decided 2 October 2026 off `explorations/maps.html`. A thread has a map once one live thing in it
+has a point: a saved place, a link whose page gives a location, or an event with a venue, offload's
+own or from a connected calendar the thread shows. The map is never there by default.
+
+**The switch.** `list` and `map-pin` in a segmented pair in the app bar, before share and More,
+only while the thread has a point. Map replaces the body under the app bar: the thread's name moves
+into the bar, the label chips float over the map on `--surface-raised` with `--shadow-1` and filter
+the pins exactly as they filter the list, and the composer stays. Kept per thread on the device.
+Android draws the pair as an outlined segmented button with the picked half on
+`--surface-accent-soft`. **The Places section is retired**; located things sit in Everything in here.
+
+**The web column.** From 1200px the thread pane splits: the list keeps its column, the map takes 460px
+on the right, full height and sticky, and the switch is not drawn. Hovering a row lifts its pin;
+picking a pin highlights its row with `--surface-fill`. Below 1200px the web uses the switch.
+
+**Pins.** 16px dots with a 2.5px white ring, 24px with 3px when picked, each in a 44px target. The
+label's colour, split down the middle for two labels (the first two of more), `--ink-900` for none;
+events are 5px-radius squares. Overlapping pins become an ink count dot until zoomed apart. **An
+approximate place**, a listing that gives an area until booked, is a circle about 300m across in its
+label's colour, 16% fill and a 1.5px ring at 70%, picked at 26% and 2.5px; its sheet's Address reads
+*Approximate, Alfama*.
+
+**The callout.** 228px on `--surface-raised`, 14px radius (16 on Android), a tail on the point: the
+name, the kind and labels, then *Directions* (filled, `compass`) and *Open*. Tapping the map closes it,
+another pin moves it, and it is kept inside the frame. **Directions** opens the device's maps app with
+the place as the destination: Apple Maps on iOS, or a choice when Google Maps is installed; Google Maps
+on Android; Google Maps in a new tab on the web. **Open** is the thing's sheet, the same as its row:
+a half sheet over the map on the phones dimming it at 35%, the side pane on the web. Header with the
+type tile, name, kind and thread, and a close; rows for When, Address, Link, Labels and Added by; two
+equal 48px buttons, *Directions* filled and *Open link* or *Edit* on `--surface-fill` (outlined on
+Android).
+
+**Framing.** Fitted to every point, never closer than street level (zoom 15). A filter that leaves
+none shows the whole area with *Nothing under Food on the map.* A thing with no point is not drawn.
+
+**The stack.** MapLibre on all three, MapTiler Streets and Streets Dark, with *© MapTiler ©
+OpenStreetMap contributors* small at the bottom right. Place lookup is MapTiler Geocoding.
 
 ## The admin panel
 
