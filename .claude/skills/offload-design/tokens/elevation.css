@@ -6,6 +6,12 @@
   --shadow-3:0 12px 32px -8px rgba(11,11,11,0.12);
   --shadow-sheet:0 -8px 40px -12px rgba(11,11,11,0.14);
   --shadow-focus:0 0 0 3px rgba(11,11,11,0.10);
+  /* 030. A thread's map: a point, a picked point and the callout. They sit over
+     Google's map rather than a surface, so dark keeps them (its "no drop
+     shadow" rule is for surfaces). See decisions.md, 2026-10-02. */
+  --shadow-point:0 1px 4px rgba(11,11,11,0.35);
+  --shadow-point-picked:0 2px 8px rgba(11,11,11,0.40);
+  --shadow-callout:0 6px 20px rgba(11,11,11,0.22);
   --blur-chrome:saturate(140%) blur(14px); /* @kind other */
   --scrim-fade:linear-gradient(to top,rgba(255,255,255,1) 0%,rgba(255,255,255,0.92) 55%,rgba(255,255,255,0) 100%); /* @kind other */
 }
