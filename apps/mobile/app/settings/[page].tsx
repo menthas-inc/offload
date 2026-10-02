@@ -10,21 +10,24 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import Constants from "expo-constants";
 import { Glyph } from "../../components/Glyph";
-import { EditableRow, Group, Row } from "../../components/settings/Rows";
-import { Segmented } from "../../components/settings/Segmented";
+import { EditableRow, Group, Row, Sections, useRowEdge } from "../../components/settings/Rows";
+import { ChoiceTiles, ThemePreview, WeekPreview } from "../../components/settings/ChoiceTiles";
 import { Switch } from "../../components/settings/Switch";
 import { ToastHost, useToast, type ToastState } from "../../components/shell/Toast";
 import { useColors } from "../../lib/colors";
-import { endSignedIn, listSignedIn, type SignedIn } from "../../lib/sessions";
+import { endOthers, endSignedIn, listSignedIn, thisDevice, type SignedIn } from "../../lib/sessions";
+import { deviceGlyph, emailNote } from "../../lib/settings";
+import { useSignOut } from "../../components/settings/useSignOut";
 import { fetchCountries, saveName, setClock, setCountry, setWebAccess, useMe } from "../../lib/me";
 import { NotificationsPage } from "../../components/settings/NotificationsPage";
 import { approveCalendar, disconnect, setAskFirst, useCalendars } from "../../lib/calendars";
 import { CalendarRow } from "../../components/settings/CalendarRow";
+import { CalendarCard, MailCard } from "../../components/settings/AppCards";
 import { ConnectButton, ConnectStepBody, ProviderMark } from "../../components/ConnectStep";
 import { RowActionSheet } from "../../components/shell/RowActionSheet";
 import { BlockedPage, PeoplePage } from "../../components/people/PeoplePage";
 import { googleCalendarMark } from "../../lib/brands";
-import { CONNECT_STEP, MAIL_ADDRESS, MAIL_CARD_URL, MAIL_RELAY_NOTE, mailLines } from "../../lib/gate";
+import { MAIL_ADDRESS, MAIL_CARD_URL, MAIL_RELAY_NOTE, mailLines } from "../../lib/gate";
 import * as Clipboard from "expo-clipboard";
 import { API_URL } from "../../lib/auth";
 import {
@@ -91,10 +94,10 @@ export default function SettingsPage() {
       </View>
 
       <ScrollView contentContainerClassName="px-gutter-screen pb-space-9 pt-space-2" keyboardShouldPersistTaps="handled">
-        {page === "apps" ? <Apps /> : null}
+        {page === "apps" ? <Apps toast={toast} /> : null}
         {page === "calendar" ? <CalendarPage /> : null}
         {page === "mail" ? <MailPage toast={toast} /> : null}
-        {page === "account" ? <Account /> : null}
+        {page === "account" ? <Account toast={toast} /> : null}
         {page === "appearance" ? <Appearance /> : null}
         {page === "datetime" ? <DateTime /> : null}
         {page === "notifications" ? <NotificationsPage /> : null}
@@ -123,9 +126,10 @@ export default function SettingsPage() {
  *  verification flow behind it, not a text field. The name is, since 011. */
 const since = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
 
-function Account() {
+function Account({ toast }: { toast: ToastState }) {
   const me = useMe();
   const router = useRouter();
+  const { leave } = useSignOut(toast);
   // One fetch for the whole list. It is the ISO register and does not change
   // while somebody is looking at this screen.
   const [countries, setCountries] = useState<{ code: string; name: string }[]>([]);
@@ -133,61 +137,119 @@ function Account() {
     void fetchCountries().then(setCountries);
   }, []);
 
-  // Where they are signed in. Read on mount and after every End.
-  const [signedIn, setSignedIn] = useState<SignedIn[] | null>(null);
-  const loadSignedIn = useCallback(() => {
-    void listSignedIn().then(setSignedIn).catch(() => setSignedIn([]));
+  // 031. This phone, from the session it holds, so its row draws whatever the
+  // list does; and every other session, or the fact that they could not be
+  // read. Read on mount and after every End.
+  const [device, setDevice] = useState<SignedIn | null>(null);
+  const [others, setOthers] = useState<SignedIn[] | "failed" | null>(null);
+  const [ending, setEnding] = useState<string | null>(null);
+  const load = useCallback(() => {
+    void thisDevice()
+      .then(setDevice)
+      .catch(() => undefined);
+    void listSignedIn()
+      .then(setOthers)
+      .catch(() => setOthers("failed"));
   }, []);
-  useEffect(loadSignedIn, [loadSignedIn]);
+  useEffect(load, [load]);
+
+  async function end(token: string | "others") {
+    setEnding(token);
+    const ok = token === "others" ? await endOthers() : await endSignedIn(token);
+    setEnding(null);
+    if (ok) load();
+    else toast.show("That didn't go through.", { label: "Try again", onPress: () => void end(token) });
+  }
+
+  const listed = Array.isArray(others) ? others : [];
 
   return (
     <>
-    <Group label="Details">
-      {/* `saveName` hands the identity it got back to every mounted `useMe`,
-          so the settings index behind this screen moves with it, initials
-          included. */}
-      <EditableRow
-        title="Name"
-        value={me?.displayName ?? null}
-        onSave={async (next) => (await saveName(next)) !== null}
-      />
-      <Row title="Email" value={me?.email} />
+      <Sections>
+        <Group label="Profile" icon="circle-dot">
+          {/* `saveName` hands the identity it got back to every mounted
+              `useMe`, so the settings index behind this screen moves with it,
+              initials included. */}
+          <EditableRow
+            title="Name"
+            value={me?.displayName ?? null}
+            onSave={async (next) => (await saveName(next)) !== null}
+          />
+          {/* Not editable here: changing an email is an identity change with a
+              verification flow behind it, not a text field. */}
+          <Row title="Email" value={me?.email} note={me ? emailNote(me.signInProviders ?? []) : undefined} last />
+        </Group>
 
-      {/* **Where they are, because offload had no idea.** Asked for the next
-          bank holiday it answered Columbus Day from three American sources:
-          correct somewhere, wrong for whoever asked. A search takes its
-          assumptions from nowhere.
+        {/* **Where they are, because offload had no idea.** Asked for the next
+            bank holiday it answered Columbus Day from three American sources:
+            correct somewhere, wrong for whoever asked. Its own screen because
+            the list is 250 rows and needs a search field. */}
+        <Group
+          label="Where you are"
+          icon="map-pin"
+          caption="So a date or a forecast is the one where you are. Leave it unset and offload says it does not know rather than guessing."
+        >
+          <Row
+            title="Country"
+            value={countryName(me?.country ?? null, countries)}
+            onPress={() => router.push("/settings/country")}
+            last
+          />
+        </Group>
 
-          Here rather than in Privacy: it is a fact about them, like their name.
-          Its own screen because the list is 250 rows and needs a search field,
-          which is not something a settings row can hold. */}
-      <Row
-        icon="map-pin"
-        title="Country"
-        value={countryName(me?.country ?? null, countries)}
-        onPress={() => router.push("/settings/country")}
-        last
-      />
-    </Group>
+        <Group label="Signed in on" icon="smartphone" caption="Ending a session signs that device out on its next request.">
+          <Row
+            icon="smartphone"
+            title={device?.device ?? THIS_PHONE}
+            status="This device"
+            last={others === "failed" || others === null}
+          />
+          {listed.map((row) => (
+            <Row
+              key={row.token}
+              icon={deviceGlyph(row.device)}
+              title={row.device}
+              note={`Since ${since.format(row.since)}`}
+              pill="End"
+              busy={ending === row.token}
+              onPress={() => void end(row.token)}
+            />
+          ))}
+          {listed.length > 0 ? (
+            <Row title="End all other sessions" action busy={ending === "others"} onPress={() => void end("others")} last />
+          ) : null}
+          {Array.isArray(others) && others.length === 0 ? (
+            <Row title="Nowhere else" note="Sign in on another device and it shows here." last />
+          ) : null}
+        </Group>
+      </Sections>
 
-    {/* Every live session, this one first. Ending one signs that device out
-        on its next request; this phone leaves through Sign out. */}
-    <Group label="Signed in on">
-      {(signedIn ?? []).map((row, index) => (
-        <Row
-          key={row.token}
-          title={row.device}
-          note={row.current ? "This device" : `Since ${since.format(row.since)}`}
-          value={row.current ? undefined : "End"}
-          onPress={row.current ? undefined : () => void endSignedIn(row.token).then(loadSignedIn)}
-          last={index === (signedIn?.length ?? 0) - 1}
-        />
-      ))}
-      {signedIn !== null && signedIn.length === 0 ? <Row title="Nothing else" last /> : null}
-    </Group>
+      {/* What happened, and the way forward beside it, under the card: this
+          phone's row above is still true. */}
+      {others === "failed" ? (
+        <View className="flex-row items-center gap-space-3 px-space-1 pt-space-3" accessibilityRole="alert">
+          <Text className="font-core text-text-danger" style={{ fontSize: 13.5 }}>
+            Couldn&apos;t load your other devices.
+          </Text>
+          <Pressable onPress={load} hitSlop={10} accessibilityRole="button" className="min-h-tap-min justify-center">
+            <Text className={`font-core font-medium ${isAndroid ? "text-blue-700" : "text-text-accent"}`} style={{ fontSize: 13.5 }}>
+              Try again
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <View style={{ marginTop: 26 }}>
+        <Group>
+          <Row icon="log-out" title="Sign out" action onPress={() => void leave()} last />
+        </Group>
+      </View>
     </>
   );
 }
+
+/** Before the session is read, this phone is still this phone. */
+const THIS_PHONE = Platform.OS === "ios" ? "The app on iPhone" : "The app on Android";
 
 /** The name for a code, or the absence said out loud.
  *
@@ -251,16 +313,12 @@ function CountryPicker() {
       </View>
 
       <Group>
-        <Row
-          title="Not set"
-          value={me?.country ? undefined : "Now"}
-          onPress={() => void pick(null)}
-        />
+        <Row title="Not set" checked={!me?.country} onPress={() => void pick(null)} />
         {shown.map((country, index) => (
           <Row
             key={country.code}
             title={country.name}
-            value={me?.country === country.code ? "Now" : undefined}
+            checked={me?.country === country.code}
             onPress={() => void pick(country.code)}
             last={index === shown.length - 1}
           />
@@ -292,11 +350,10 @@ function DateTime() {
   }
 
   return (
-    <>
-      <Group label="Your clock">
+    <Sections>
+      <Group label="Your clock" icon="clock" caption="Everything is shown and scheduled in this zone.">
         <Row
           title="Time zone"
-          note="Everything is shown and scheduled in this one."
           value={me?.timeZone ? zoneCity(me.timeZone) : undefined}
           onPress={() => router.push("/settings/timezone")}
         />
@@ -309,31 +366,20 @@ function DateTime() {
         />
       </Group>
 
-      <View className="pt-space-7">
-        <Text
-          className={`px-space-1 pb-space-3 font-core font-medium ${
-            isAndroid ? "text-a-on-var" : "text-text-tertiary"
-          }`}
-          style={{ fontSize: 12 }}
-        >
-          Week starts on
-        </Text>
-        <Segmented
+      {/* 031. Tiles that show the week each choice gives. */}
+      <Group label="Week starts on" icon="calendar" caption="Which day a thread's timeline begins its weeks on." bare>
+        <ChoiceTiles
           label="Week starts on"
-          options={WEEK_STARTS.map((value) => ({ value, label: WEEK_START_LABEL[value] }))}
+          options={WEEK_STARTS.map((value) => ({
+            value,
+            label: WEEK_START_LABEL[value],
+            preview: <WeekPreview start={value} />,
+          }))}
           value={weekStart}
           onChange={(next) => setWeekStart(next as WeekStart)}
         />
-        <Text
-          className={`px-space-1 pt-space-3 font-core ${
-            isAndroid ? "text-a-on-var" : "text-text-secondary"
-          }`}
-          style={{ fontSize: 12.5, lineHeight: 17.5 }}
-        >
-          Which day a thread&apos;s timeline begins its weeks on.
-        </Text>
-      </View>
-    </>
+      </Group>
+    </Sections>
   );
 }
 
@@ -391,7 +437,7 @@ function TimeZonePicker() {
             <Row
               key={zone.name}
               title={zone.city}
-              value={current === zone.name ? "Now" : undefined}
+              checked={current === zone.name}
               onPress={() => void pick(zone.name)}
               last={index === group.zones.length - 1}
             />
@@ -404,10 +450,8 @@ function TimeZonePicker() {
 
 /** How it looks.
  *
- *  **A segmented control, not the kit's radio list.** `decisions.md`, "The
- *  design queue, applied", surface all, put the Settings Appearance page on
- *  `SegmentedControl`; the phone kits predate that answer exactly as the web
- *  one did.
+ *  031. **Tiles, a light and a dark screen and a split one**, where it was a
+ *  segmented control showing nothing of what it chose.
  *
  *  **No text size here**, and that is structural rather than a preference: see
  *  `lib/appearance.ts`. */
@@ -418,35 +462,20 @@ function Appearance() {
   const theme = useTheme();
 
   return (
-    <>
-      <View className="pt-space-5">
-        <Text
-          className={`px-space-1 pb-space-3 font-core font-medium ${
-            isAndroid ? "text-a-on-var" : "text-text-tertiary"
-          }`}
-          style={{ fontSize: 12 }}
-        >
-          Theme
-        </Text>
-        <Segmented
+    <Sections>
+      <Group label="Theme" icon="blend" caption="System follows whatever this device is set to." bare>
+        <ChoiceTiles
           label="Theme"
           options={THEMES.map((value) => ({
             value,
             label: THEME_LABEL[value],
+            preview: <ThemePreview theme={value} />,
           }))}
           value={theme}
           onChange={(next) => setTheme(next as Theme)}
         />
-        <Text
-          className={`px-space-1 pt-space-3 font-core ${
-            isAndroid ? "text-a-on-var" : "text-text-secondary"
-          }`}
-          style={{ fontSize: 12.5, lineHeight: 17.5 }}
-        >
-          System follows whatever this device is set to.
-        </Text>
-      </View>
-    </>
+      </Group>
+    </Sections>
   );
 }
 
@@ -482,7 +511,8 @@ function Privacy({ toast }: { toast: ToastState }) {
   }
 
   return (
-    <Group label="What offload does with it">
+    <Sections>
+    <Group label="Reaching the web" icon="globe" caption="Each says what leaves, then the limit on it.">
       <Toggle
         title="Search the web"
         note="Sends the words you dumped to a search company when offload can't answer from your threads. Your threads and notes are never sent."
@@ -497,6 +527,7 @@ function Privacy({ toast }: { toast: ToastState }) {
         last
       />
     </Group>
+    </Sections>
   );
 }
 
@@ -519,10 +550,9 @@ function Toggle({
   onChange: (next: boolean) => void;
   last?: boolean;
 }) {
+  const edge = useRowEdge(last);
   return (
-    <View
-      className={`gap-space-2 py-space-4 ${last ? "" : "border-b border-border-hairline"}`}
-    >
+    <View className={`gap-space-2 py-space-4 ${edge}`}>
       <View className="min-h-tap-min flex-row items-center gap-space-4">
         <Text
           className={`flex-1 font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
@@ -545,97 +575,93 @@ function Toggle({
 /** What this is and where to read the rest.
  *
  *  The version comes from the build rather than a string typed here, which is
- *  the same rule every value on the index follows. */
+ *  the same rule every value on the index follows. 031 adds the tutorial, seen
+ *  again without anything about the account changing. */
 function Help() {
+  const router = useRouter();
   return (
-    <Group>
-      <Row title="Version" value={Constants.expoConfig?.version ?? "?"} />
-      <Row
-        title="Privacy policy"
-        onPress={() => void WebBrowser.openBrowserAsync(`${WEB}/privacy`)}
-        last
-      />
-    </Group>
+    <Sections>
+      <Group label="Learn" icon="compass">
+        <Row
+          title="See the tutorial again"
+          note="The three screens from your first day."
+          onPress={() => router.push("/tutorial")}
+          last
+        />
+      </Group>
+      <Group label="About" icon="text-quote">
+        <Row title="Version" value={Constants.expoConfig?.version ?? "?"} />
+        <Row
+          title="Privacy policy"
+          external
+          onPress={() => void WebBrowser.openBrowserAsync(`${WEB}/privacy`)}
+          last
+        />
+      </Group>
+    </Sections>
   );
 }
 
-/** Connected apps.
+/** Connected apps. 031: one card per app, and Mail always.
  *
- *  **The kit draws four and one of them works.** The other three stay listed
- *  and say they are not built, because knowing what is coming is worth more
- *  than a page with one row on it.
- *
- *  019. The Calendar row leads one level down, to the calendar page: first
- *  run's connect screen before anything is connected, the list with its count
- *  once something is. Approving a calendar there adds it to no thread; threads
- *  pick from inside. */
-function Apps() {
+ *  019. The calendar card leads one level down, to the calendar page with its
+ *  list and Disconnect; Connect runs the same sign in that page does. Approving
+ *  a calendar adds it to no thread; threads pick from inside. */
+function Apps({ toast }: { toast: ToastState }) {
   const router = useRouter();
   const me = useMe();
-  const { loading, available, connections, reload } = useCalendars();
+  const { loading, available, askFirst, connections, reload, settle } = useCalendars();
   // On focus, not only on mount: the calendar page one level down connects
-  // and disconnects, and coming back to a row that still says On after a
-  // disconnect is the version of that bug somebody notices.
+  // and disconnects, and coming back to a card that still says Connected
+  // after a disconnect is the version of that bug somebody notices.
   useFocusEffect(useCallback(reload, [reload]));
 
+  async function ask(next: boolean) {
+    settle({ askFirst: next });
+    if (!(await setAskFirst(next))) {
+      settle({ askFirst: !next });
+      toast.show("Couldn't change that", { label: "Retry", onPress: () => void ask(next) });
+    }
+  }
+
+  const connect = () =>
+    void WebBrowser.openAuthSessionAsync(
+      `${API_URL}/api/connectors/google/start?landing=settings`,
+      `${WEB}/settings/apps`,
+    ).then(reload);
+
   return (
-    <>
-      {loading ? null : !available ? (
-        <Group label="Calendar">
-          {/* Not a failure and not a promise. What is true. */}
-          <Row title="Calendar" note="Not available yet." last />
-        </Group>
-      ) : (
-        <Group label="Calendar">
-          <Row
-            title="Calendar"
-            // `On` with the address, as the kit draws it. Which calendars
-            // are in use is the page's to say, one level down.
-            note={
-              connections.length === 0
-                ? "See your week in offload, and let it add things for you."
-                : connections.length === 1
-                  ? connections[0]!.email
-                  : `${connections.length} Google accounts`
-            }
-            value={connections.length === 0 ? "Connect" : "On"}
-            onPress={() => router.push("/settings/calendar")}
-            last
-          />
-        </Group>
-      )}
-
-      {me ? (
-        <Group label="Mail">
-          <Row
-            title="Mail"
-            // 026. The address as its note and no value: nothing here is
-            // switched on or off. Unavailable for an Apple hidden email.
-            note={me.mailAvailable ? MAIL_ADDRESS : MAIL_RELAY_NOTE}
-            value={me.mailAvailable ? undefined : "Unavailable"}
-            onPress={() => router.push("/settings/mail")}
-            last
-          />
-        </Group>
-      ) : null}
-
-      <Group label="Not built yet">
-        <Row title="Browser" note="Save a page straight into a thread." />
-        <Row
-          title="Photos"
-          note="Screenshots become things you can search."
-          last
-        />
+    <Sections>
+      <Group label="Connected" icon="link" bare>
+        <View style={{ gap: 12 }}>
+          {/* Not drawn while loading, and not at all where the connector is
+              not configured: a Connect that cannot work is worse than none. */}
+          {!loading && available ? (
+            <CalendarCard
+              connections={connections}
+              askFirst={askFirst}
+              onAsk={(next) => void ask(next)}
+              onOpen={() => router.push("/settings/calendar")}
+              onConnect={connect}
+            />
+          ) : null}
+          {me ? (
+            <MailCard
+              email={me.email}
+              available={me.mailAvailable}
+              onCopy={() =>
+                void Clipboard.setStringAsync(MAIL_ADDRESS)
+                  .then(() => toast.show("Copied"))
+                  // The address stays on screen to select; nothing else to offer.
+                  .catch(() => undefined)
+              }
+              onContacts={() => void WebBrowser.openBrowserAsync(MAIL_CARD_URL)}
+              onHow={() => router.push("/settings/mail")}
+            />
+          ) : null}
+        </View>
       </Group>
-
-      <Group label="What offload may do">
-        <Row
-          title="It writes to your calendar when you ask"
-          note="It never sends mail or deletes photos. When a change would reach somebody else, it asks first."
-          last
-        />
-      </Group>
-    </>
+    </Sections>
   );
 }
 

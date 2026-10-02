@@ -201,6 +201,11 @@ export default function RootLayout() {
                 animationDuration: 300,
               }}
             />
+            {/* 031. See the tutorial again, over Help, closed back to it. */}
+            <Stack.Screen
+              name="tutorial"
+              options={{ presentation: "modal", animation: reduceMotion ? "none" : "default" }}
+            />
           </Stack>
           </ThemeProvider>
           </Recede>

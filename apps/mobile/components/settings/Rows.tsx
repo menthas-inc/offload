@@ -1,17 +1,21 @@
-// The two pieces every settings page is made of.
+// The pieces every settings page is made of.
 //
 // From `SettingsScreen.jsx` and `SettingsDetail.jsx`, which build ten pages out
-// of one small vocabulary so that ten screens cost one layout. **Two pieces,
-// not the kits' five**: the toggle, the danger tone and the radio choice group
-// have no caller here, because every page that uses them is out of this
-// feature's scope, and this repository does not build for a caller that does
-// not exist. They arrive with the page that needs them.
+// of one small vocabulary so that ten screens cost one layout.
 //
 // `Group` is `Card variant="fill"`'s shape: a sunken grey ground, `radius-lg`,
 // no border. `Row` divides with an inset hairline rather than a border, so the
 // last row's rounded corner is not cut by a line across it.
+//
+// 031, *Settings, tightened*. **A section opens with a glyph tile, a heading and
+// an optional caption**, because a 12px tertiary label over 15px rows read as a
+// caption and every page read as one long list. The heading is drawn when the
+// group has an `icon`; a `label` alone keeps the small label, which is what the
+// picker regions and the Calendar and Mail pages one level down still are. On
+// Android the card's rows part with a 2px gap in the page's colour rather than
+// a hairline, Material's list, so a group tells its rows which it is.
 
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 import { Glyph } from "../Glyph";
 import { NameField } from "../NameField";
@@ -19,18 +23,114 @@ import { useColors } from "../../lib/colors";
 
 const isAndroid = Platform.OS === "android";
 
+/** Whether the rows sit in a headed section, which on Android parts them with
+ *  the page's colour instead of a hairline. */
+const Headed = createContext(false);
+
+/** 031. The divider and gutter a custom row needs to sit in a group like
+ *  `Row` does: a hairline, or on Android in a headed section the page's colour
+ *  with the row's own gutter. */
+export function useRowEdge(last?: boolean): string {
+  const headed = useContext(Headed);
+  if (isAndroid && headed) return `px-space-5 ${last ? "" : "border-b-2 border-a-surface"}`;
+  return last ? "" : "border-b border-border-hairline";
+}
+
+/** 031. Rows inside a card inside a headed section (Connected apps) keep the
+ *  hairline: the card is their ground, not the page. */
+export function Plain({ children }: { children: React.ReactNode }) {
+  return <Headed.Provider value={false}>{children}</Headed.Provider>;
+}
+
+/** The space between sections, and the page's first one under the bar. Off the
+ *  spacing scale as the kits are (memory: kit spacing is off-scale). */
+export function Sections({ children }: { children: React.ReactNode }) {
+  return <View style={{ gap: 26, paddingTop: 10 }}>{children}</View>;
+}
+
 export function Group({
   label,
+  icon,
+  caption,
   count,
+  bare,
   children,
 }: {
-  label?: string;
-  /** 019. A trailing count on the label, `4 of 7 in use`, in the numeric role
-   *  set down to 11px. The kit's `Group` had no trailing slot and this is the
-   *  one component change the calendar page needed. */
-  count?: string;
+  label?: string | undefined;
+  /** 031. The section's glyph. With it the label is a heading; without it,
+   *  the small label as before. */
+  icon?: string | undefined;
+  /** 031. One line under the heading, for a section that needs explaining. */
+  caption?: string | undefined;
+  /** 019. A trailing count on the label, `4 of 7 in use`. Under a heading it
+   *  is the pill beside it. */
+  count?: string | undefined;
+  /** 031. Children drawn as they are, with no card around them: a request
+   *  card, a field, choice tiles. */
+  bare?: boolean;
   children: React.ReactNode;
 }) {
+  const COLOR = useColors();
+  const headed = Boolean(icon && label);
+  const card = (
+    <View
+      className={`overflow-hidden ${isAndroid ? "bg-a-c-low" : "rounded-lg bg-surface-fill"} ${
+        isAndroid && headed ? "" : "px-space-4"
+      } ${isAndroid && !headed ? "rounded-lg" : ""}`}
+      style={isAndroid && headed ? { borderRadius: 22 } : undefined}
+    >
+      {children}
+    </View>
+  );
+
+  if (headed) {
+    return (
+      <View>
+        <View className="flex-row items-start gap-space-4 pb-space-4" style={{ paddingHorizontal: 2 }}>
+          <View
+            className={`items-center justify-center ${
+              isAndroid ? "rounded-pill bg-surface-attention-soft" : "bg-surface-accent-soft"
+            }`}
+            style={isAndroid ? { width: 32, height: 32 } : { width: 32, height: 32, borderRadius: 9 }}
+          >
+            <Glyph name={icon!} size={17} color={COLOR.sectionGlyph} />
+          </View>
+          {/* 5px down, so the heading's first line centres on the tile. */}
+          <View className="flex-1" style={{ paddingTop: 5 }}>
+            <View className="flex-row flex-wrap items-center gap-space-3">
+              <Text
+                className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+                style={{ fontSize: 17, lineHeight: 21, letterSpacing: -0.17 }}
+                accessibilityRole="header"
+              >
+                {label}
+              </Text>
+              {count ? (
+                <View className="rounded-pill bg-surface-fill-strong" style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+                  <Text
+                    className={`font-core font-medium ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+                    style={{ fontSize: 12, lineHeight: 14, fontVariant: ["tabular-nums"] }}
+                  >
+                    {count}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            {caption ? (
+              <Text
+                className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+                style={{ fontSize: 13, lineHeight: 19, marginTop: 3 }}
+              >
+                {caption}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+        <Headed.Provider value>{bare ? children : card}</Headed.Provider>
+      </View>
+    );
+  }
+
   return (
     <>
       {label ? (
@@ -53,13 +153,7 @@ export function Group({
           ) : null}
         </View>
       ) : null}
-      <View
-        className={`overflow-hidden rounded-lg px-space-4 ${
-          isAndroid ? "bg-a-c-low" : "bg-surface-fill"
-        }`}
-      >
-        {children}
-      </View>
+      {bare ? children : card}
     </>
   );
 }
@@ -72,8 +166,7 @@ interface RowProps {
    *  fit on one line. Absent rather than invented: no row here shows a number
    *  nothing computes. */
   value?: string | undefined;
-  /** A Lucide slug for the leading well. The index has them, the detail pages
-   *  do not. */
+  /** A Lucide slug for the leading well. */
   icon?: string | undefined;
   /** Tappable, and the chevron appears with it. Omit for a row that only
    *  states something. */
@@ -85,10 +178,81 @@ interface RowProps {
   /** 026. False for a row that acts in place rather than going somewhere,
    *  such as Copy: a chevron promises a page. */
   chevron?: boolean;
+  /** 031. A row that acts in place (End, Withdraw, Copy) draws its verb as an
+   *  outline pill, in place of a value and a chevron. */
+  pill?: string | undefined;
+  /** 031. A glyph inside the pill, `copy` on Copy. */
+  pillIcon?: string | undefined;
+  /** 031. A state that is simply true (This device, Connected, On): the moss
+   *  pill with its dot. */
+  status?: string | undefined;
+  /** 031. It leaves the app, so `arrow-up-right` rather than a chevron. */
+  external?: boolean;
+  /** 031. An action rather than a place, End all other sessions and Sign out:
+   *  the title at medium weight and no chevron. */
+  action?: boolean;
+  /** 031. The picker's current row: a check where *Now* was. */
+  checked?: boolean;
+  busy?: boolean;
 }
 
-export function Row({ title, note, value, icon, onPress, last, badge, chevron = true }: RowProps) {
+/** 031. The outline pill on a row that acts in place. */
+export function RowPill({ label, icon }: { label: string; icon?: string | undefined }) {
   const COLOR = useColors();
+  return (
+    <View
+      className={`flex-row items-center justify-center rounded-pill border ${
+        isAndroid ? "border-a-outline" : "border-border-hairline bg-surface-raised"
+      }`}
+      style={isAndroid ? { height: 40, paddingHorizontal: 18, gap: 6 } : { height: 32, paddingHorizontal: 14, gap: 6 }}
+    >
+      {icon ? <Glyph name={icon} size={14} color={COLOR.ink} /> : null}
+      <Text className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 14 }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+/** 031. A state that is simply true, in moss with its dot. Colour is never the
+ *  whole message, so the word is always there. */
+export function StatusPill({ label, tone = "on" }: { label: string; tone?: "on" | "neutral" }) {
+  const on = tone === "on";
+  return (
+    <View
+      className={`flex-row items-center rounded-pill ${on ? "bg-surface-accent-soft" : "bg-surface-fill-strong"}`}
+      style={{ height: 24, paddingHorizontal: 9, gap: 5 }}
+    >
+      {on ? <View className="rounded-pill bg-moss-600" style={{ width: 6, height: 6 }} /> : null}
+      <Text
+        className={`font-core font-medium ${on ? "text-moss-700" : isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+        style={{ fontSize: 12 }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+export function Row({
+  title,
+  note,
+  value,
+  icon,
+  onPress,
+  last,
+  badge,
+  chevron = true,
+  pill,
+  pillIcon,
+  status,
+  external,
+  action,
+  checked,
+  busy,
+}: RowProps) {
+  const COLOR = useColors();
+  const edge = useRowEdge(last);
 
   const body = (
     <>
@@ -123,7 +287,7 @@ export function Row({ title, note, value, icon, onPress, last, badge, chevron = 
             one-row card stood 350dp tall. */}
         <View className="flex-row flex-wrap items-center justify-between gap-x-space-4 gap-y-space-1">
           <Text
-            className={`font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+            className={`font-core ${action ? "font-medium" : ""} ${isAndroid ? "text-a-on" : "text-text-primary"}`}
             style={{ fontSize: 15, lineHeight: 20 }}
           >
             {title}
@@ -131,7 +295,7 @@ export function Row({ title, note, value, icon, onPress, last, badge, chevron = 
           {value ? (
             <Text
               className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
-              style={{ fontSize: 14 }}
+              style={{ fontSize: 15, fontVariant: ["tabular-nums"] }}
               numberOfLines={1}
             >
               {value}
@@ -150,16 +314,22 @@ export function Row({ title, note, value, icon, onPress, last, badge, chevron = 
         ) : null}
       </View>
 
-      {onPress && chevron ? <Glyph name="chevron-right" size={15} color={COLOR.iconOnWell} /> : null}
+      {status ? <StatusPill label={status} /> : null}
+      {busy ? <ActivityIndicator size="small" color={COLOR.iconOnWell} /> : pill ? <RowPill label={pill} icon={pillIcon} /> : null}
+      {checked ? <Glyph name="check" size={16} color={COLOR.ink} /> : null}
+      {onPress && chevron && !pill && !action && !checked ? (
+        <Glyph name={external ? "arrow-up-right" : "chevron-right"} size={15} color={COLOR.iconOnWell} />
+      ) : null}
     </>
   );
 
   // A minimum, never a height. A row with a note is taller, and one at 200%
-  // type is taller again; a fixed height clips both.
-  const shape = `flex-row items-center gap-space-4 py-space-4 ${
-    last ? "" : "border-b border-border-hairline"
-  }`;
-  const height = { minHeight: isAndroid ? 56 : 48 };
+  // type is taller again; a fixed height clips both. In a headed section on
+  // Android the row carries its own gutter and parts from the next with the
+  // page's colour, since the card has no padding for a hairline to sit in.
+  const shape = `flex-row items-center gap-space-4 py-space-4 ${edge}`;
+  const height = { minHeight: isAndroid ? 58 : 50 };
+  const a11y = checked ? { accessibilityState: { selected: true } } : {};
 
   if (!onPress) {
     return (
@@ -170,7 +340,15 @@ export function Row({ title, note, value, icon, onPress, last, badge, chevron = 
   }
 
   return (
-    <Pressable className={shape} style={height} onPress={onPress} accessibilityRole="button">
+    <Pressable
+      className={shape}
+      style={height}
+      onPress={onPress}
+      disabled={busy}
+      accessibilityRole="button"
+      accessibilityLabel={pill ? `${pill}, ${title}` : undefined}
+      {...a11y}
+    >
       {body}
     </Pressable>
   );
@@ -227,7 +405,7 @@ export function EditableRow({
 
   // A last row has no divider whether it is editing or not. It used to keep one
   // while open, which drew a hairline across the group's rounded bottom corner.
-  const divider = last ? "" : "border-b border-border-hairline";
+  const edge = useRowEdge(last);
 
   if (!editing) {
     return (
@@ -245,7 +423,7 @@ export function EditableRow({
   }
 
   return (
-    <View className={`py-space-4 ${divider}`}>
+    <View className={`py-space-4 ${edge}`}>
       <Text
         className={`font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
         style={{ fontSize: 15, lineHeight: 20 }}
