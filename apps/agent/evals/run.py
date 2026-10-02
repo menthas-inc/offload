@@ -52,6 +52,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -355,6 +356,34 @@ def _notes_for(fx: dict, key: str, thread_id: str | None) -> list[dict[str, str]
     return _dated(table.get(thread_id or "", []))
 
 
+_NO_PLACE = re.compile(
+    r"\b(zoom|google meet|meet|teams|webex|whereby|jitsi|online|phone|call|tbc|tbd)\b", re.I
+)
+_POSSESSIVE = re.compile(
+    r"\w['\u2019\u02bc]s\b|\ws['\u2019\u02bc](?=\s|$)|\bcasa d[aeo]s?\s|\bchez\s|\bbei\s", re.I
+)
+_STREET = re.compile(
+    r"^(rua|r\.|avenida|av\.?|travessa|tv\.?|cal\u00e7ada|largo|pra\u00e7a|estrada|street|st\.|"
+    r"road|rd\.?|lane|ln\.?|drive|dr\.?|boulevard|blvd\.?|way)(\s|$)",
+    re.I,
+)
+
+
+def _place_refused(raw: str) -> bool:
+    """030. The Core API's `placeQuery`, as far as the stub needs it: what it
+    would not send to Google is refused here as `bad_place_name` too."""
+    if "\n" in raw or "\r" in raw:
+        return True
+    q = " ".join(unicodedata.normalize("NFKC", raw).split())
+    if not q or len(q) > 120 or any(c.isdigit() for c in q):
+        return True
+    if "@" in q or "/" in q or q.lower().startswith("www."):
+        return True
+    if re.search(r"\.[a-z]{2,6}\b", q, re.I):
+        return True
+    return bool(_POSSESSIVE.search(q) or _STREET.search(q) or _NO_PLACE.search(q))
+
+
 def _rows_for(fx: dict, thread_id: str | None) -> list[dict]:
     rows = fx.get("rows") or []
     if isinstance(rows, dict):
@@ -568,11 +597,21 @@ class Recorder:
                         "body": r.get("body"),
                         "done": r.get("done", False),
                         "yours": r.get("yours", True),
+                        # 030. As the server says it.
+                        "onMap": r.get("onMap", False),
                     }
                     for r in _rows_for(fx, args.get("thread_id"))
                 ],
                 "truncated": bool(fx.get("truncated")),
             }
+        # 030. The filter the Core API stands in front of Google, run here too:
+        # a stub that took any location would pass a model that files a street
+        # address or somebody's home as a venue.
+        if tool in {"add_content", "edit_content"} and args.get("location"):
+            if tool == "add_content" and args.get("type") != "event":
+                return {"ok": False, "error": "location_not_here"}
+            if _place_refused(str(args["location"])):
+                return {"ok": False, "error": "bad_place_name"}
         if tool in {"add_content", "add_note"}:
             self.filed_ids += 1
             thread_id = str(args.get("thread_id") or "")
