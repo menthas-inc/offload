@@ -5,16 +5,22 @@
 // `WSettings.jsx`'s people page predates the 21 September design and draws
 // neither marks, Pending nor Blocked, and its receiving pick is the setting
 // that is out of scope, so this is `SettingsDetail.jsx`'s page in the web's
-// open blocks: the cards on top, Connected with the shared threads as the
-// note and "Nothing shared yet", Pending with Withdraw as its value, and
-// Blocked.
+// open blocks.
+//
+// 031: five sections. Waiting on you, the cards; Connect with someone, the
+// Share modal's step drawn inline, because connecting used to start only from
+// a thread and on day one this page was a sentence and a Blocked row;
+// Connected; Asked by you, renamed from Pending, with Withdraw as a pill; and
+// Blocked. The first and the fourth are not drawn when they are empty.
 
 import { useCallback, useEffect, useState } from "react";
 import { Group, Row } from "./SettingsRows";
 import { PersonRow } from "../people/PersonRow";
 import { RequestCard } from "../people/RequestCard";
+import { NewConnectionBody } from "../people/NewConnectionBody";
 import { ConfirmModal } from "../people/Modal";
 import { refreshMe } from "../../lib/use-me";
+import { peopleSummary } from "../../lib/settings";
 import {
   dayMonth,
   answerRequest,
@@ -85,11 +91,14 @@ export function PeoplePane() {
     await load();
   }
 
+  const summary = page ? peopleSummary(page.connections.length, page.requestsForYou.length) : undefined;
+
   return (
     <>
       <div className={pane.paneHead}>
         <div style={{ minWidth: 0 }}>
           <h1 className={`${pane.paneTitle} ${pane.paneTitleBig}`}>My people</h1>
+          {summary ? <p className={pane.paneSub}>{summary}</p> : null}
         </div>
       </div>
       <div className={pane.paneBody}>
@@ -103,28 +112,49 @@ export function PeoplePane() {
         ) : null}
         {page ? (
           <>
-            {page.requestsForYou.map((card) => (
-              <RequestCard key={card.id} card={card} onAnswer={(answer) => answerCard(card.id, answer)} />
-            ))}
-            <Group label="Connected">
+            {page.requestsForYou.length > 0 ? (
+              <Group label="Waiting on you" icon="bell" count={String(page.requestsForYou.length)}>
+                <div className={styles.waiting}>
+                  {page.requestsForYou.map((card) => (
+                    <RequestCard key={card.id} card={card} onAnswer={(answer) => answerCard(card.id, answer)} />
+                  ))}
+                </div>
+              </Group>
+            ) : null}
+
+            <Group label="Connect with someone" icon="user-plus">
+              {/* A request sent here reads the page again, so it lands in
+                  Asked by you without leaving. */}
+              <NewConnectionBody inline onAsked={() => void load()} />
+            </Group>
+
+            <Group
+              label="Connected"
+              icon="users"
+              count={page.connections.length > 0 ? String(page.connections.length) : undefined}
+              caption="Who you can share a thread with."
+            >
               {page.connections.length === 0 ? (
-                <p className={styles.emptyBody} style={{ margin: 0, padding: "var(--space-3) 0" }}>
-                  Nobody yet. A connection is somebody already on offload; open a thread and click Share to ask.
-                </p>
+                <Row
+                  title="Nobody yet"
+                  note="A connection is somebody already on offload. Find them above, or open a thread and click Share."
+                  last
+                />
               ) : (
                 page.connections.map((row, i) => (
                   <PersonRow key={row.accountId} person={row} note={sharedNote(row)} last={i === page.connections.length - 1} />
                 ))
               )}
             </Group>
+
             {page.pending.length > 0 ? (
-              <Group label="Pending">
+              <Group label="Asked by you" icon="clock" count={String(page.pending.length)}>
                 {page.pending.map((card, i) => (
                   <PersonRow
                     key={card.id}
                     person={card}
                     note={sinceLabel(card.since)}
-                    value="Withdraw"
+                    pill="Withdraw"
                     onClick={() => {
                       setWithdrawFailed(false);
                       setWithdrawing(card);
@@ -134,9 +164,8 @@ export function PeoplePane() {
                 ))}
               </Group>
             ) : null}
-            {/* The kit puts Blocked under Defaults, whose toggles are not
-                drawn; alone, the row needs no label over it saying the same. */}
-            <Group>
+
+            <Group label="Blocked" icon="ban">
               <Row title="Blocked" value={page.blocked.length > 0 ? String(page.blocked.length) : "None"} href="/settings/people/blocked" last />
             </Group>
           </>

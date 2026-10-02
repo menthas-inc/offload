@@ -11,9 +11,9 @@
 // rather than a state you can only leave.
 //
 // `WSettings.jsx` draws an Appearance page and its Theme block is a radio list,
-// `SPick`. The 5 September answer says `SegmentedControl` for these two, and the
-// same entry lists this page among the kit screens still to be drawn, so the
-// component contract leads and the kit catches up. Logged as a divergence.
+// `SPick`. The 5 September answer said `SegmentedControl` for these two; 031
+// made them preview tiles, which show what each choice gives, and kept
+// `Segmented` for switching views.
 
 import {
   THEMES,
@@ -24,6 +24,8 @@ import {
   type Theme,
   type TypeSize,
 } from "../../lib/appearance";
+import { ChoiceTiles, Group } from "./SettingsRows";
+import { SizePreview, ThemePreview } from "./ChoicePreviews";
 import pane from "../../app/(shell)/shell.module.css";
 
 export function AppearancePane() {
@@ -39,39 +41,35 @@ export function AppearancePane() {
       </div>
 
       <div className={pane.paneBody}>
-        <section className={pane.settingsBlock}>
-          <h2 className={pane.settingsBlockTitle}>Theme</h2>
-          <p className={pane.settingsNote}>System follows whatever this device is set to.</p>
-          <Segmented<Theme>
+        <Group label="Theme" icon="blend" caption="System follows whatever this device is set to.">
+          <ChoiceTiles<Theme>
             label="Theme"
-            options={THEMES}
-            labelFor={(value) => THEME_LABEL[value]}
+            options={THEMES.map((value) => ({ value, label: THEME_LABEL[value], preview: <ThemePreview theme={value} /> }))}
             value={theme}
             onChange={setTheme}
           />
-        </section>
+        </Group>
 
-        <section className={pane.settingsBlock}>
-          <h2 className={pane.settingsBlockTitle}>Text size</h2>
-          <p className={pane.settingsNote}>
-            Larger sets the text bigger and leaves everything else where it is.
-          </p>
-          <Segmented<TypeSize>
+        <Group
+          label="Text size"
+          icon="type"
+          caption="Larger sets the text bigger and leaves everything else where it is."
+        >
+          <ChoiceTiles<TypeSize>
             label="Text size"
-            options={TYPE_SIZES}
-            labelFor={(value) => TYPE_SIZE_LABEL[value]}
+            options={TYPE_SIZES.map((value) => ({ value, label: TYPE_SIZE_LABEL[value], preview: <SizePreview size={value} /> }))}
             value={size}
             onChange={setSize}
           />
-        </section>
+        </Group>
       </div>
     </>
   );
 }
 
 /** The `SegmentedControl` contract: two to four mutually exclusive views, one
- *  raised out of the track. offload's only tab-like control. Date and time
- *  draws Starts on with it since 023, which is why it is exported. */
+ *  raised out of the track. offload's only tab-like control. Exported for a
+ *  view switch; since 031 no settings choice uses it. */
 export function Segmented<T extends string>({
   label,
   options,

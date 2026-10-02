@@ -9,17 +9,22 @@ import { Icon } from "../Icon";
 import { Avatar } from "../Avatar";
 import { nameOf, type Person } from "../../lib/people";
 import styles from "./people.module.css";
+import pane from "../../app/(shell)/shell.module.css";
 
 export function PersonRow({
   person,
   note,
   value,
+  pill,
   onClick,
   last,
 }: {
   person: Person;
   note?: string | undefined;
   value?: string | undefined;
+  /** 031. The row acts in place: Withdraw, as the settings rows' outline
+   *  pill draws it. */
+  pill?: string | undefined;
   onClick?: (() => void) | undefined;
   last?: boolean;
 }) {
@@ -47,6 +52,7 @@ export function PersonRow({
         {note ? <span className={styles.personNote}>{note}</span> : null}
       </span>
       {value ? <span className={styles.personValue}>{value}</span> : null}
+      {pill ? <span className={pane.settingsPill}>{pill}</span> : null}
       {onClick === undefined ? (
         <span className={styles.personChevron} aria-hidden="true">
           <Icon name="chevron-right" size={15} />

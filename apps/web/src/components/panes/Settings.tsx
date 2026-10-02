@@ -25,12 +25,16 @@ import { refreshMe, useMe } from "../../lib/use-me";
 import { answerRequest, fetchPeople, type PeoplePage } from "../../lib/people";
 import { useAppearance, THEME_LABEL } from "../../lib/appearance";
 import { signOut } from "../../lib/sign-out";
+import { appsValue } from "../../lib/settings";
+import { useCalendars } from "../../lib/use-calendars";
 import pane from "../../app/(shell)/shell.module.css";
 
 export function SettingsPane() {
   const router = useRouter();
   const me = useMe("shell");
   const { theme } = useAppearance();
+  // 031. What is connected, as the Connected apps row's value.
+  const calendars = useCalendars();
   const [leaving, setLeaving] = useState(false);
   const [failed, setFailed] = useState(false);
   // 022. The cards and the count.
@@ -145,7 +149,19 @@ export function SettingsPane() {
         <Group label="Reaching you">
           {/* 024. Notifications, where the kit drew Communication. */}
           <Row icon="bell" title="Notifications" href="/settings/notifications" />
-          <Row icon="link" title="Connected apps" href="/settings/apps" last />
+          {/* 031. What is connected: a calendar connection of any state, and
+              Mail wherever mail can reach them. */}
+          <Row
+            icon="link"
+            title="Connected apps"
+            value={
+              account
+                ? appsValue({ calendar: calendars.connections.length > 0, mail: account.mailAvailable })
+                : undefined
+            }
+            href="/settings/apps"
+            last
+          />
         </Group>
 
         <Group label="What offload does with it">
