@@ -14,6 +14,7 @@ import { enqueue } from "../jobs/queue.js";
 import {
   GrantRevoked,
   listEvents,
+  listInstances,
   type GoogleEvent,
 } from "./google.js";
 import { mapEvent, sourceRefFor, upsertEvent } from "./events.js";
@@ -161,18 +162,28 @@ export async function syncConnection(connectionId: string, full = false): Promis
     }
 
     const seen: string[] = [];
+    const touchedSeries = new Set<string>();
+    const cancelledSeries = new Set<string>();
     for (const event of page.events) {
       const sourceRef = sourceRefFor(calendar.external_id, event.externalId);
       seen.push(sourceRef);
+      if (event.seriesId) touchedSeries.add(event.seriesId);
 
-      // Cancelled arrives in a delta as the way a deletion is reported.
+      // Cancelled arrives in a delta as the way a deletion is reported. A whole
+      // series deleted can arrive as the series itself, whose id no occurrence
+      // row carries as its own, only as its `series_ref`.
       if (event.status === "cancelled") {
+        if (!event.seriesId) cancelledSeries.add(event.externalId);
         const result = await db
           .updateTable("connector_events")
           .set({ deleted_at: new Date(), updated_at: new Date() })
           .where("calendar_id", "=", calendar.id)
-          .where("source_ref", "=", sourceRef)
           .where("deleted_at", "is", null)
+          .where((eb) =>
+            event.seriesId
+              ? eb("source_ref", "=", sourceRef)
+              : eb.or([eb("source_ref", "=", sourceRef), eb("series_ref", "=", event.externalId)])
+          )
           .executeTakeFirst();
         outcome.retired += Number(result.numUpdatedRows ?? 0);
         continue;
@@ -196,6 +207,20 @@ export async function syncConnection(connectionId: string, full = false): Promis
     if (full || outcome.resynced) {
       outcome.retired += await retireMissing(calendar.id, seen, timeMin, timeMax);
       await forgetBehindTheWindow(calendar.id, timeMin);
+    } else {
+      // "Delete this and following" cancels nothing: Google moves the series'
+      // end back and may not report the occurrences it dropped. So a series
+      // the delta touched is asked for what it holds now, once per series, and
+      // the copy keeps only that. Before this, the tail stayed until the
+      // nightly pass.
+      for (const seriesId of touchedSeries) {
+        if (cancelledSeries.has(seriesId)) continue;
+        const held = await listInstances(accessToken, calendar.external_id, seriesId, { timeMin, timeMax });
+        const kept = held === "gone"
+          ? []
+          : held.filter((e) => e.status !== "cancelled").map((e) => sourceRefFor(calendar.external_id, e.externalId));
+        outcome.retired += await retireMissing(calendar.id, kept, timeMin, timeMax, seriesId);
+      }
     }
 
     await db
@@ -217,8 +242,15 @@ export async function syncConnection(connectionId: string, full = false): Promis
 /** Rows for this calendar, inside the window, that Google did not return.
  *
  *  Deleted elsewhere, or the tail of a series a split shortened. Scoped to the
- *  window because outside it Google was never asked. */
-async function retireMissing(calendarId: string, seen: string[], timeMin: Date, timeMax: Date): Promise<number> {
+ *  window because outside it Google was never asked, and to one series when
+ *  only that series was asked. */
+async function retireMissing(
+  calendarId: string,
+  seen: string[],
+  timeMin: Date,
+  timeMax: Date,
+  seriesId?: string
+): Promise<number> {
   let query = db
     .updateTable("connector_events")
     .set({ deleted_at: new Date(), updated_at: new Date() })
@@ -227,6 +259,7 @@ async function retireMissing(calendarId: string, seen: string[], timeMin: Date, 
     .where("occurs_at", ">=", timeMin)
     .where("occurs_at", "<=", timeMax);
 
+  if (seriesId) query = query.where("series_ref", "=", seriesId);
   if (seen.length) query = query.where("source_ref", "not in", seen);
 
   const result = await query.executeTakeFirst();
