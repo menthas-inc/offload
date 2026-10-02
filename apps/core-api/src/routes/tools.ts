@@ -518,6 +518,8 @@ const result = z.union([
         body: z.string().nullable(),
         done: z.boolean(),
         yours: z.boolean(),
+        /** 030. On the thread's map, and nothing else of its place. */
+        onMap: z.boolean(),
       })
     ),
     truncated: z.boolean(),
@@ -672,6 +674,7 @@ type Outcome =
         body: string | null;
         done: boolean;
         yours: boolean;
+        onMap: boolean;
       }[];
       truncated: boolean;
     }
@@ -1156,11 +1159,20 @@ async function existing(
 
     const rows = await trx
       .selectFrom("content")
-      .select(["id", "type", "title", "body", "done_at", "account_id"])
-      .where("thread_id", "=", call.threadId)
-      .where("deleted_at", "is", null)
-      .where("archived_at", "is", null)
-      .orderBy("id", "desc")
+      .leftJoin("places", "places.id", "content.place_id")
+      .select([
+        "content.id as id",
+        "content.type as type",
+        "content.title as title",
+        "content.body as body",
+        "content.done_at as done_at",
+        "content.account_id as account_id",
+        "places.lat as lat",
+      ])
+      .where("content.thread_id", "=", call.threadId)
+      .where("content.deleted_at", "is", null)
+      .where("content.archived_at", "is", null)
+      .orderBy("content.id", "desc")
       .limit(LIST_PAGE + 1)
       .execute();
 
@@ -1177,6 +1189,11 @@ async function existing(
         // Whether the planner may rewrite it, answered rather than implied, so
         // it does not have to try in order to find out.
         yours: row.account_id === accountId,
+        // 030. Whether it is on the thread's map, so "take that off the map"
+        // finds the row and the model can tell its edit worked. A yes or no
+        // and nothing else of the place: no name, address or coordinate ever
+        // reaches a prompt (Google's content, and OFF-8).
+        onMap: row.lat !== null,
       })),
       truncated: rows.length > LIST_PAGE,
     };

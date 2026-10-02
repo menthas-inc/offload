@@ -339,3 +339,23 @@ describe("what no request can set (T1.9, SEC-2)", () => {
     }
   });
 });
+
+describe("what the model sees (T1.10, AC-4)", () => {
+  it("says whether each listed row is on the map, and nothing else of its place", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const first = await dump(me);
+    const on = await tool({ tool: "add_content", jobId: first.jobId, toolCallId: "e1", threadId: t, title: "Dinner", type: "event", location: "Time Out Market" });
+    await tool({ tool: "add_content", jobId: first.jobId, toolCallId: "e2", threadId: t, title: "Lunch", type: "event", location: "Cervejaria Ramiro" });
+    const placeId = (await db.insertInto("places").values({ provider: "google", provider_place_id: "ChIJ_m", lat: 38.7, lng: -9.1, coords_at: new Date() }).returning("id").executeTakeFirstOrThrow()).id;
+    await db.updateTable("content").set({ place_id: placeId }).where("id", "=", on.json().contentId).execute();
+
+    const { jobId } = await dump(me);
+    const res = await tool({ tool: "list_thread_content", jobId, toolCallId: "l1", threadId: t });
+    const rows = res.json().rows as Record<string, unknown>[];
+    expect(rows.map((r) => [r["title"], r["onMap"]]).sort()).toEqual([["Dinner", true], ["Lunch", false]]);
+    const keys = new Set(rows.flatMap((r) => Object.keys(r)));
+    for (const forbidden of ["place", "placeId", "location", "address", "lat", "lng"]) expect(keys.has(forbidden), forbidden).toBe(false);
+    expect(JSON.stringify(res.json())).not.toContain("Time Out Market");
+  });
+});
