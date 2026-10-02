@@ -58,6 +58,10 @@ const PADDING = { top: 70, right: 28, bottom: 40, left: 28 };
  *  without `onMapLoaded`, the map says so with Try again. */
 const LOAD_TIMEOUT_MS = 12_000;
 
+/** How long a marker keeps redrawing its image after a change: enough for the
+ *  view to lay out at its new size on a slow Android frame. */
+const TRACK_MS = 500;
+
 export function ThreadMap({
   points,
   labels,
@@ -103,7 +107,9 @@ export function ThreadMap({
   const [calloutAt, setCalloutAt] = useState<{ x: number; y: number } | null>(null);
   const [calloutHeight, setCalloutHeight] = useState(0);
   // A marker draws its children into an image: on while they change, then off
-  // a frame later, so a point redraws once rather than every frame.
+  // once they have settled, so a point redraws once rather than every frame.
+  // One frame was not enough on Android: a point that changed size when picked
+  // was imaged mid-layout, drew clipped, and vanished when unpicked.
   const [tracking, setTracking] = useState(true);
 
   const order = useMemo(() => labels.map((l) => ({ id: l.id, colour: l.colour })), [labels]);
@@ -122,8 +128,8 @@ export function ThreadMap({
 
   useEffect(() => {
     setTracking(true);
-    const frame = requestAnimationFrame(() => setTracking(false));
-    return () => cancelAnimationFrame(frame);
+    const timer = setTimeout(() => setTracking(false), TRACK_MS);
+    return () => clearTimeout(timer);
   }, [selected, dark, order, grouping]);
 
   // The keyboard coming up closes the callout, and the map does not re-fit.
@@ -265,23 +271,31 @@ export function ThreadMap({
             />
           );
         })}
-        {/* An area's own target at its centre, named like a point, so a
-            screen reader reaches it as a finger does. */}
-        {areas.map((p) => (
-          <Marker
-            key={`area:${p.key}`}
-            coordinate={{ latitude: p.lat, longitude: p.lng }}
-            anchor={{ x: 0.5, y: 0.5 }}
-            // Drawn after layout like a point: a marker imaged before its
-            // view has a size falls back to Google's red pin (seen on iOS).
-            tracksViewChanges={tracking}
-            opacity={0.01}
-            accessibilityLabel={`${p.title}, ${kindWord(p.type)}`}
-            onPress={() => onSelect(p.key)}
-          >
-            <View style={{ width: 44, height: 44 }} />
-          </Marker>
-        ))}
+        {/* An area's point at its centre, inside its circle: the owner's call
+            on 2026-10-03. It is the area's named target too. Imaged after
+            layout like any point: a marker imaged before its view has a size
+            falls back to Google's red pin (seen on iOS). */}
+        {areas.map((p) => {
+          const fill = pointFill(p.labelIds, order);
+          return (
+            <Marker
+              // A new marker when the pick changes: Android does not image a
+              // marker view again at a new size, and the picked point drew
+              // clipped, then left a sliver behind when unpicked.
+              key={`area:${p.key}:${p.key === selected}`}
+              coordinate={{ latitude: p.lat, longitude: p.lng }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              zIndex={p.key === selected ? 2 : 1}
+              tracksViewChanges={tracking}
+              accessibilityLabel={`${p.title}, ${kindWord(p.type)}`}
+              onPress={() => onSelect(p.key)}
+            >
+              <View style={{ width: 44, height: 44 }} className="items-center justify-center">
+                <PointDot a={fill.a} b={fill.b} shape={pointShape(p.type, p.source)} picked={p.key === selected} />
+              </View>
+            </Marker>
+          );
+        })}
         {groups.map((group) => {
           if (group.keys.length > 1) {
             const members = group.keys.map((k) => byKey.get(k)).filter((m): m is Point => Boolean(m));
@@ -321,7 +335,8 @@ export function ThreadMap({
           const fill = pointFill(p.labelIds, order);
           return (
             <Marker
-              key={p.key}
+              // A new marker when the pick changes, as for an area above.
+              key={`${p.key}:${p.key === selected}`}
               coordinate={{ latitude: p.lat, longitude: p.lng }}
               anchor={{ x: 0.5, y: 0.5 }}
               zIndex={p.key === selected ? 2 : 1}
@@ -329,7 +344,7 @@ export function ThreadMap({
               accessibilityLabel={`${p.title}, ${p.source === "calendar" ? "event" : kindWord(p.type)}`}
               onPress={() => onSelect(p.key)}
             >
-              {/* The 44 target around a 16 point. */}
+              {/* The 44 target around a point. */}
               <View style={{ width: 44, height: 44 }} className="items-center justify-center">
                 <PointDot a={fill.a} b={fill.b} shape={pointShape(p.type, p.source)} picked={p.key === selected} />
               </View>

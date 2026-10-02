@@ -94,12 +94,13 @@
   pointer-events: auto;
 }
 
-/* A point: 16px, a 2.5px ring in --paper, its label colours split down the
+/* A point: 20px (16 in the exploration, larger on the owner's call of
+   2026-10-03), a 2.5px ring in --paper, its label colours split down the
    middle, ink with no label. An event is a square with a 5px radius. */
 .point {
   display: block;
   box-sizing: border-box;
-  width: 16px;
+  width: 20px;
   aspect-ratio: 1;
   border-radius: var(--radius-pill);
   border: 2.5px solid var(--paper);
@@ -114,7 +115,7 @@
 }
 
 .point[data-picked="true"] {
-  width: 24px;
+  width: 28px;
   border-width: 3px;
   box-shadow: var(--shadow-point-picked);
 }
@@ -123,7 +124,7 @@
   transform: scale(1.35);
 }
 
-/* The 44px target around a 16px point. */
+/* The 44px target around a point. */
 .target {
   display: grid;
   place-items: center;

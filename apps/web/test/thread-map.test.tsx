@@ -153,6 +153,21 @@ describe("what offload draws over the map (AC-15)", () => {
     expect(host.textContent).toContain("Nothing without a label on the map.");
   });
 
+  it("draws a point at an approximate place's centre as well as its circle", async () => {
+    await render(base());
+    const area = host.querySelector('[data-marker="Casa Alfama, link"] [data-point]') as HTMLElement;
+    expect(area).not.toBeNull();
+    expect(area.style.getPropertyValue("--a")).toBe("var(--label-1)");
+    expect(host.querySelectorAll("[data-circle]")).toHaveLength(1);
+  });
+
+  it("draws points at 20px, 28px when picked", async () => {
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync(`${process.cwd()}/src/components/map/map.module.css`, "utf8");
+    expect(css).toMatch(/\.point \{[^}]*width: 20px/);
+    expect(css).toMatch(/\.point\[data-picked="true"\] \{[^}]*width: 28px/);
+  });
+
   it("gives an approximate place a named target of its own, so a keyboard reaches it", async () => {
     const onSelect = vi.fn();
     await render(base({ onSelect }));

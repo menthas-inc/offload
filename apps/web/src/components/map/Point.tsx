@@ -1,6 +1,6 @@
 "use client";
 
-// 030. One point on a thread's map: 16px, a ring in --paper, its label colours
+// 030. One point on a thread's map: 20px, a ring in --paper, its label colours
 // split down the middle, ink with no label; an event is a rounded square. A
 // button inside a 44px target, named by its title and kind.
 

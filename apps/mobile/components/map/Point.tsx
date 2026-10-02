@@ -1,6 +1,7 @@
-// 030. One point on a thread's map, on the phones: 16px, a 2.5px ring in
+// 030. One point on a thread's map, on the phones: 20px, a 2.5px ring in
 // paper, its label colours split down the middle, ink with no label; an event
-// is a 5px-radius square; 24px with a 3px ring when picked. The web's
+// is a 5px-radius square; 28px with a 3px ring when picked. (16 and 24 in the
+// exploration, larger on the owner's call of 2026-10-03.) The web's
 // `PointDot`, as views, since a marker's children are drawn into its image.
 
 import { View } from "react-native";
@@ -20,7 +21,7 @@ export function PointDot({
   const COLOR = useColors();
   const first = COLOR.labels[a ?? 0]!;
   const second = b === null ? first : COLOR.labels[b]!;
-  const size = picked ? 24 : 16;
+  const size = picked ? 28 : 20;
   const radius = shape === "square" ? 5 : size / 2;
   return (
     // The shadow on the outer view and the clip on the inner one: a view that

@@ -247,19 +247,32 @@ function Drawn({
         );
       })}
 
-      {/* An area's own target at its centre, named like a point, so a
-          keyboard and a screen reader reach it as a pointer does. */}
-      {areas.map((p) => (
-        <AdvancedMarker
-          key={`area:${p.key}`}
-          position={{ lat: p.lat, lng: p.lng }}
-          anchorPoint={AdvancedMarkerAnchorPoint.CENTER}
-          title={`${p.title}, ${kindWord(p.type)}`}
-          onClick={() => onSelect(p.key)}
-        >
-          <span className={styles.target} />
-        </AdvancedMarker>
-      ))}
+      {/* An area's point at its centre, inside its circle: the owner's call
+          on 2026-10-03, so an area reads as a place and not only a tint. It
+          is the area's named target too, for a keyboard and a screen reader. */}
+      {areas.map((p) => {
+        const fill = pointFill(p.labelIds, order);
+        return (
+          <AdvancedMarker
+            key={`area:${p.key}`}
+            position={{ lat: p.lat, lng: p.lng }}
+            anchorPoint={AdvancedMarkerAnchorPoint.CENTER}
+            title={`${p.title}, ${kindWord(p.type)}`}
+            zIndex={p.key === selected ? 2 : 1}
+            onClick={() => onSelect(p.key)}
+          >
+            <span className={styles.target}>
+              <PointDot
+                a={fill.a}
+                b={fill.b}
+                shape={pointShape(p.type, p.source)}
+                picked={p.key === selected}
+                hovered={p.key === hovered}
+              />
+            </span>
+          </AdvancedMarker>
+        );
+      })}
 
       {groups.map((group) => {
         if (group.keys.length > 1) {
