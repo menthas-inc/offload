@@ -207,3 +207,17 @@ export function hitCircle(
   }
   return best?.key ?? null;
 }
+
+/** Whether a point is drawn under the thread's label pick, the same pick the
+ *  list takes. A calendar's event carries no labels (025), so any pick hides
+ *  it; a row passes on any picked label, or on carrying none when "no label"
+ *  is picked. */
+export function pointPasses(
+  point: { labelIds: readonly string[]; source: "row" | "calendar" },
+  pick: { labels: readonly string[]; none: boolean },
+): boolean {
+  if (pick.labels.length === 0 && !pick.none) return true;
+  if (point.source === "calendar") return false;
+  if (pick.none && point.labelIds.length === 0) return true;
+  return point.labelIds.some((id) => pick.labels.includes(id));
+}

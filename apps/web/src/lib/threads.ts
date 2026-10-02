@@ -127,6 +127,8 @@ export interface ThreadBundle {
   /** 028. The account's default thread, which is never drawn as a thread: the
    *  client goes to Not in a thread instead. */
   isDefault: boolean;
+  /** 030. Something in it is on the map, so the switch or the column is drawn. */
+  hasPoint: boolean;
   /** `unlabelled` is 025's No label count. */
   counts: { active: number; archived: number; unlabelled: number };
   members: Member[];
@@ -322,6 +324,32 @@ export const fetchThreadsAndInvitations = (): Promise<ThreadsPage | null> => get
 
 export const fetchThread = (id: string): Promise<ThreadBundle | null> =>
   get<ThreadBundle>(`/v1/threads/${id}`);
+
+/** 030. A point on a thread's map, as the server draws it: offload's own
+ *  title and address, Google's id only for Directions, nothing Google named. */
+export interface Point {
+  key: string;
+  source: "row" | "calendar";
+  contentId: string | null;
+  type: string;
+  title: string;
+  address: string | null;
+  approximate: boolean;
+  lat: number;
+  lng: number;
+  googlePlaceId: string | null;
+  labelIds: string[];
+  when: { at: string; endAt: string | null; allDay: boolean } | null;
+  url: string | null;
+  imageUrl: string | null;
+  authorId: string | null;
+  calendarName: string | null;
+}
+
+/** 030. A thread's points. `pending` counts places being fetched again, and
+ *  a reader that gets more than none reads once more a moment later. */
+export const fetchPoints = (id: string): Promise<{ points: Point[]; pending: number } | null> =>
+  get<{ points: Point[]; pending: number }>(`/v1/threads/${id}/points`);
 
 export const fetchThreadCalendars = (id: string): Promise<ThreadCalendars | null> =>
   get<ThreadCalendars>(`/v1/threads/${id}/calendars`);

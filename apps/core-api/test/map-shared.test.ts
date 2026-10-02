@@ -12,6 +12,7 @@ import {
   fitBounds,
   hitCircle,
   pointFill,
+  pointPasses,
   pointShape,
   splitZoom,
 } from "@offload/widgets";
@@ -173,5 +174,23 @@ describe("hitCircle", () => {
     const far = 500;
     const tap = { lat: 38.7113 + (15 * far) / 111_320, lng: -9.1301 };
     expect(hitCircle(tap, circles.slice(0, 1), far)).toBe("alfama");
+  });
+});
+
+describe("pointPasses (AC-19, AC-15)", () => {
+  const point = (labelIds: string[], source: "row" | "calendar" = "row") => ({ labelIds, source });
+  it("lets everything through with no pick", () => {
+    expect(pointPasses(point([]), { labels: [], none: false })).toBe(true);
+    expect(pointPasses(point([], "calendar"), { labels: [], none: false })).toBe(true);
+  });
+  it("keeps a row carrying a picked label, or no label when that is picked", () => {
+    expect(pointPasses(point(["food"]), { labels: ["food"], none: false })).toBe(true);
+    expect(pointPasses(point(["stay"]), { labels: ["food"], none: false })).toBe(false);
+    expect(pointPasses(point([]), { labels: [], none: true })).toBe(true);
+    expect(pointPasses(point(["stay"]), { labels: [], none: true })).toBe(false);
+  });
+  it("hides a calendar's event under any pick, since it carries no labels", () => {
+    expect(pointPasses(point([], "calendar"), { labels: [], none: true })).toBe(false);
+    expect(pointPasses(point([], "calendar"), { labels: ["food"], none: false })).toBe(false);
   });
 });

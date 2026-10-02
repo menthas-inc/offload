@@ -434,6 +434,7 @@ export {
   fitBounds,
   hitCircle,
   pointFill,
+  pointPasses,
   pointShape,
   splitZoom,
   type Cluster,

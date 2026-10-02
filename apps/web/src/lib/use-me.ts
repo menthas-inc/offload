@@ -32,6 +32,8 @@ export interface Me {
    *  they pasted. Two different promises, so two switches. */
   webSearch: boolean;
   webLinks: boolean;
+  /** 030. Whether the map is on, on every surface: the server's switch. */
+  maps?: boolean;
   /** Where they said they are, ISO 3166-1 alpha-2. Null until they say, and
    *  offload then tells the model it does not know rather than assuming. */
   country: string | null;
