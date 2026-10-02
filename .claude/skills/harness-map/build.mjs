@@ -18,15 +18,36 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
+import { execSync, execFileSync } from "node:child_process";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "../../..");
-const prompts = join(root, "apps/agent/src/offload_agent/prompts");
 const outArg = process.argv.indexOf("--out");
 const out = outArg > -1 ? resolve(process.argv[outArg + 1]) : join(root, "docs/tech/harness-map.html");
 
 const read = (rel) => readFileSync(join(root, rel), "utf8");
+
+// A prompt as the worker assembles it, through its own loader, so the shared
+// parts are in it and no include marker is. The marker comments the worker
+// strips or splits on itself (plan_v2's calendar section, nightly's learn and
+// propose parts) are dropped here, which shows every part together.
+const agentSrc = join(root, "apps/agent/src");
+const assembled = {};
+function promptText(file) {
+  const name = file.replace(/\.md$/, "");
+  if (!(name in assembled)) {
+    const py = [
+      "import json, sys",
+      `sys.path.insert(0, ${JSON.stringify(agentSrc)})`,
+      "from offload_agent.prompt_files import load",
+      "print(json.dumps(load(sys.argv[1])))",
+    ].join("\n");
+    const text = JSON.parse(execFileSync("python3", ["-c", py, name]).toString());
+    if (text.includes("<!-- include")) throw new Error(`${file} still has an include marker after load`);
+    assembled[name] = text.replace(/^<!-- \/?[\w-]+ -->\n?/gm, "");
+  }
+  return assembled[name];
+}
 const grab = (src, re, fallback = "?") => {
   const m = src.match(re);
   return m ? m[1] : fallback;
@@ -39,7 +60,8 @@ const readerPy = read("apps/agent/src/offload_agent/reader.py");
 const configPy = read("apps/agent/src/offload_agent/config.py");
 const internalTs = read("apps/core-api/src/routes/internal.ts");
 const composerTsx = read("apps/web/src/components/shell/Composer.tsx");
-const loosePy = read("apps/agent/src/offload_agent/loose_propose.py");
+const toastTsx = read("apps/web/src/components/shell/Toast.tsx");
+const nightlyPy = read("apps/agent/src/offload_agent/nightly.py");
 
 const num = (s) => Number(String(s).replace(/_/g, ""));
 const C = {
@@ -51,7 +73,10 @@ const C = {
   maxTokensRetry: num(grab(planPy, /^MAX_OUTPUT_TOKENS_RETRY\s*=\s*([\d_]+)/m)),
   toolBudget: num(grab(planPy, /^TOOL_DEFINITION_BUDGET\s*=\s*([\d_]+)/m)),
   questions: num(grab(planPy, /^MAX_QUESTIONS\s*=\s*(\d+)/m)),
-  looseCandidates: num(grab(loosePy, /^CANDIDATES\s*=\s*(\d+)/m)),
+  looseCandidates: num(grab(nightlyPy, /^CANDIDATES\s*=\s*(\d+)/m)),
+  nightlyNotes: num(grab(nightlyPy, /^NOTE_BUDGET\s*=\s*(\d+)/m)),
+  nightlyMessages: num(grab(nightlyPy, /^MESSAGE_CAP\s*=\s*(\d+)/m)),
+  nightlyChars: num(grab(nightlyPy, /^MESSAGE_CHARS\s*=\s*(\d+)/m)),
   promptCeiling: num(grab(configPy, /max_prompt_tokens:\s*int\s*=\s*([\d_]+)/)),
   threads: num(grab(configPy, /max_threads:\s*int\s*=\s*([\d_]+)/)),
   turns: num(grab(configPy, /max_turns:\s*int\s*=\s*([\d_]+)/)),
@@ -62,11 +87,16 @@ const C = {
   stepChars: num(grab(internalTs, /text:\s*z\.string\(\)[^\n]*\.max\((\d+)\)/, "80")),
   sayAfterMs: num(grab(composerTsx, /SAY_AFTER_MS\s*=\s*([\d_]+)/)),
   stopAfterMs: num(grab(composerTsx, /STOP_AFTER_MS\s*=\s*([\d_]+)/)),
-  undoMs: num(grab(composerTsx, /UNDO_WINDOW_MS\s*=\s*([\d_]+)/)),
+  undoMs: num(grab(toastTsx, /VISIBLE_MS\s*=\s*([\d_]+)/)),
   model: grab(configPy, /^\s+model:\s*str\s*=\s*"([^"]+)"/m),
   sortModel: grab(configPy, /sort_model:\s*str\s*=\s*"([^"]+)"/),
   answerModel: grab(configPy, /answer_model:\s*str\s*=\s*"([^"]+)"/),
+  nightlyModel: grab(configPy, /nightly_model:\s*str\s*=\s*"([^"]+)"/),
 };
+
+// A constant that moved or went reads as "?" or NaN; fail rather than print it.
+const lost = Object.entries(C).filter(([, v]) => v === "?" || Number.isNaN(v)).map(([k]) => k);
+if (lost.length) throw new Error(`constants not found, fix their regex: ${lost.join(", ")}`);
 
 const commit = execSync("git rev-parse --short HEAD", { cwd: root }).toString().trim();
 const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -89,12 +119,12 @@ const HEADER_MAP = [
   [/look|web|search|url|link/i, "web"],
   [/reply|answer|how to answer|being brief|say/i, "reply"],
   [/reading|data|what you are given|today|spoken/i, "frame"],
-  [/filing|notes|what something is|dates|tags|changing|calendar|row|thread|what it is|doing|rules|photos/i, "work"],
+  [/filing|notes|what something is|dates|tags|changing|calendar|row|thread|what it is|doing|rules|photos|dumps|suggest/i, "work"],
 ];
 
 const PARAGRAPH_MAP = [
   [/not sure\.|can't search|refus|political|self-harm|sexual|do not look up/i, "refusal"],
-  [/look_up|web|search|query|bound|country|site/i, "web"],
+  [/look_up|web|search|query|bound|(?:their|which|the|own) country|site/i, "web"],
   [/reply|`say`|sentence|markup|\*\*bold|list is the|answer is the|escape|no\b.*don't know|yes or no|say a thing once|shape the reply/i, "reply"],
   [/is data|never obey|not instruction|do not obey|whatever it appears|record of what was said/i, "frame"],
   [/list_content|list_agenda|account_facts|read|rows|thread|file|filing|note|task|event|tool|compaction|fold|supersede|remove|add/i, "work"],
@@ -113,10 +143,9 @@ const PROMPTS = [
   { file: "answer.md", name: "answer.md", path: "answering", model: C.answerModel, mode: "paragraphs", where: "the answering turn's system prompt" },
   { file: "classify.md", name: "classify.md", path: "before the fork", model: C.sortModel, mode: "paragraphs", where: "the classifier, one forced tool call" },
   { file: "reader.md", name: "reader.md", path: "inside look_up", model: C.sortModel, mode: "headers", where: "the reader, with web_search and web_fetch" },
-  { file: "quick_add.md", name: "quick_add.md", path: "thread.quick_add", model: C.model, mode: "headers", where: "a row typed straight into a thread" },
-  { file: "compact.md", name: "compact.md", path: "notes.compact", model: C.sortModel, mode: "headers", where: "once a day, a thread's notes" },
-  { file: "label_sort.md", name: "label_sort.md", path: "labels.sort", model: C.sortModel, mode: "paragraphs", where: "once a night, a thread's labels (switched off)" },
-  { file: "loose_propose.md", name: "loose_propose.md", path: "loose.propose", model: C.sortModel, mode: "paragraphs", where: "once a day, what is not in a thread" },
+  { file: "judge.md", name: "judge.md", path: "a typed answer", model: C.sortModel, mode: "paragraphs", where: "a typed reply read against the open question, one forced tool call" },
+  { file: "look.md", name: "look.md", path: "a forwarded email", model: C.sortModel, mode: "paragraphs", where: "which pictures in an email are worth keeping, one forced tool call" },
+  { file: "nightly.md", name: "nightly.md", path: "thread.nightly", model: C.nightlyModel, mode: "headers", where: "once a night, one thread for one member; the learn part goes to an ordinary thread, the suggest part to the default thread, both shown here" },
 ];
 
 const words = (s) => (s.trim().match(/\S+/g) || []).length;
@@ -180,7 +209,7 @@ function renderBody(text) {
 }
 
 function renderPrompt(p) {
-  const md = readFileSync(join(prompts, p.file), "utf8");
+  const md = promptText(p.file);
   const sections = sectionsOf(md, p.mode);
   const total = words(md);
   const passages = sections
@@ -211,7 +240,7 @@ function renderPrompt(p) {
 
 // ---------------------------------------------------------------- the plan bar
 function planBar() {
-  const md = readFileSync(join(prompts, "plan_v2.md"), "utf8");
+  const md = promptText("plan_v2.md");
   const sections = sectionsOf(md, "headers");
   const total = sections.reduce((n, s) => n + s.words, 0);
   const x0 = 30, width = 940, y = 66, h = 34;
@@ -253,12 +282,9 @@ const modelRows = [
   ["filing (plan_v2)", C.model, "The planner. Tools are the architecture every capability arrives on."],
   ["answering (answer.md)", C.answerModel, "Cross-thread reading. Its first round trip is the long wait."],
   ["reader", C.sortModel, "Extract fields from a page. Server-side web_search and web_fetch."],
-  ["quick add", C.model, "Same loop, two tools, the row and its thread."],
-  ["judge (a typed answer)", C.sortModel, "Reads a typed reply against the open question, before the classifier. Forced tool."],
-  ["mail look", C.sortModel, "Which pictures in a forwarded email are worth keeping. Forced tool."],
-  ["notes.compact", C.sortModel, "Folds a thread's notes when they pass the budget."],
-  ["labels.sort", C.sortModel, "Nightly labels for a busy thread. Built and switched off."],
-  ["loose.propose", C.sortModel, "Proposes a thread for two to ten things not in one. Daily, only when that set changed."],
+  ["judge (judge.md)", C.sortModel, "Reads a typed reply against the open question, before the classifier. Forced tool."],
+  ["mail look (look.md)", C.sortModel, "Which pictures in a forwarded email are worth keeping. Forced tool."],
+  ["nightly pass (nightly.md)", C.nightlyModel, "One thread for one member, booked only on a change since their last pass. Keeps their notes true, adds what their dumps showed, suggests threads on the default thread. Sonnet, because in the eval Haiku restated rows as notes."],
   ["transcription", "AssemblyAI, European endpoint", "A voice note's words, before anything reads the message. Not a Claude call."],
   ["embeddings", "voyage-4, halfvec(1024)", "The search tool's vector half; text search alongside."],
 ]
@@ -281,7 +307,9 @@ const boundRows = [
   ["Step shown from", `${C.sayAfterMs / 1000}s`, "client, from the press"],
   ["Stop offered from", `${C.stopAfterMs / 1000}s`, "client, from the press"],
   ["Undo window", `${C.undoMs / 1000}s`, "client toast"],
-  ["Things the daily pass reads", C.looseCandidates, "loose_propose.py CANDIDATES, newest first"],
+  ["Notes a nightly pass reads", C.nightlyNotes, "nightly.py NOTE_BUDGET"],
+  ["Dumps a nightly pass reads", `${C.nightlyMessages}, ${C.nightlyChars} chars each`, "nightly.py MESSAGE_CAP, MESSAGE_CHARS; newest first, their own"],
+  ["Things a nightly pass weighs for a new thread", C.looseCandidates, "nightly.py CANDIDATES, newest first"],
 ]
   .map(([a, b, c]) => `<tr><td>${a}</td><td class="n">${b}</td><td class="where">${c}</td></tr>`)
   .join("\n");
@@ -289,7 +317,7 @@ const boundRows = [
 // ---------------------------------------------------------------- assemble
 let html = readFileSync(join(here, "template.html"), "utf8");
 const bar = planBar();
-const promptWords = Object.fromEntries(PROMPTS.map((p) => [p.file, words(readFileSync(join(prompts, p.file), "utf8"))]));
+const promptWords = Object.fromEntries(PROMPTS.map((p) => [p.file, words(promptText(p.file))]));
 
 const legend = Object.values(CATEGORIES)
   .map((c) => `<span class="key ${c.css}"><i></i>${c.label}</span>`)
@@ -301,11 +329,11 @@ const fill = {
   PLAN_BAR: bar.svg,
   PLAN_WORDS: bar.total.toLocaleString("en-GB"),
   ANSWER_WORDS: promptWords["answer.md"].toLocaleString("en-GB"),
-  QUICK_WORDS: promptWords["quick_add.md"].toLocaleString("en-GB"),
   READER_WORDS: promptWords["reader.md"].toLocaleString("en-GB"),
   MODEL: C.model,
   SORT_MODEL: C.sortModel,
   ANSWER_MODEL: C.answerModel,
+  NIGHTLY_MODEL: C.nightlyModel,
   MODEL_ROWS: modelRows,
   BOUND_ROWS: boundRows,
   MODEL_CALLS: String(C.modelCalls),

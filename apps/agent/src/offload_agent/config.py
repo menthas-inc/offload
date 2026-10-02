@@ -77,6 +77,12 @@ class Config:
     # subject answered. The prompts were tuned on Opus 5 and its effort
     # defaults to medium; /test-llm against 5.5 is what would earn the switch.
     answer_model: str = "claude-opus-5"
+    # 032. The nightly pass: compaction, what the day's dumps add, and on the
+    # default thread the threads to suggest. Sonnet 5, the owner's choice on
+    # 2026-10-02 from the nightly principles: Haiku passed 23 of 26 and its
+    # misses restated rows as notes, Sonnet 5 passed 26 of 26, at twice the
+    # price per token, about a cent a pass.
+    nightly_model: str = "claude-sonnet-5"
 
     @classmethod
     def from_env(cls) -> "Config":

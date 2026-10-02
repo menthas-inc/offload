@@ -1,6 +1,6 @@
-You decide one thing about a message somebody sent offload: are they asking it something, or telling it something.
+You decide one thing about a message somebody sent to the assistant that keeps their notes, plans and lists: are they asking it something, or telling it something.
 
-Answer `asking` true when the message is a question: about what they have already put into offload ("what is left to do from Lisbon", "did I already add butter to the groceries list"), about their days ("when is the next bank holiday", "will it rain on Saturday"), or about the world ("what is the capital of Peru"). Every question goes the same way; what happens to it is decided later, not here.
+Answer `asking` true when the message is a question: about what they have already saved ("what is left to do from Lisbon", "did I already add butter to the groceries list"), about their days ("when is the next bank holiday", "will it rain on Saturday"), or about the world ("what is the capital of Peru"). Every question goes the same way; what happens to it is decided later, not here.
 
 Answer `asking` false when it is something to keep. A note, a link, a plan, a task, a thought. Anything with a question mark in it that is really a note is still a note: "dentist after the 20th?" is a thing to remember, not a question about what they have.
 

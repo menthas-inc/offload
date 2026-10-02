@@ -1,0 +1,403 @@
+<title>offload's model calls</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap">
+<style>
+  /* Layout: one column, a lane map of every model call on top, then where each
+     prompt's words go, the review, and one job opened whole at the bottom.
+     Same family as "One turn through offload": offload's neutrals, Instrument
+     Sans for structure, Literata for prose and prompt text. */
+  :root {
+    color-scheme: light;
+    --page: #FAF9F7; --raised: #FFFFFF; --sunken: #F1EFEB;
+    --ink: #0B0B0B; --text: #1A1A18; --secondary: #5C5C5C; --tertiary: #6E6E6E;
+    --hairline: #E6E3DD; --strong: #8C8C8C;
+    --i-role: #7A7F86; --i-work: #3F6B4F; --i-schema: #1F6F78; --i-perm: #A2366B;
+    --i-scope: #B4462E; --i-web: #A86E00; --i-ask: #3355D6; --i-voice: #7E5A3C; --i-guard: #6B4FA8;
+    --bug: #B4462E; --risk: #6B4FA8; --opp: #3F6B4F; --tidy: #6E6E6E;
+    --core: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+    --quiet: "Literata", Georgia, "Times New Roman", serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #1C1B19; --raised: #232220; --sunken: #171614;
+      --ink: #EDEDED; --text: #E6E4DF; --secondary: #B3B3B3; --tertiary: #959595;
+      --hairline: #34322E; --strong: #777777;
+      --i-role: #A3A7AE; --i-work: #82BC97; --i-schema: #6EC3CB; --i-perm: #E58AB8;
+      --i-scope: #E08A6F; --i-web: #F2C062; --i-ask: #95A9F7; --i-voice: #D7A57F; --i-guard: #B9A3EE;
+      --bug: #E08A6F; --risk: #B9A3EE; --opp: #82BC97; --tidy: #959595;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #1C1B19; --raised: #232220; --sunken: #171614;
+    --ink: #EDEDED; --text: #E6E4DF; --secondary: #B3B3B3; --tertiary: #959595;
+    --hairline: #34322E; --strong: #777777;
+    --i-role: #A3A7AE; --i-work: #82BC97; --i-schema: #6EC3CB; --i-perm: #E58AB8;
+    --i-scope: #E08A6F; --i-web: #F2C062; --i-ask: #95A9F7; --i-voice: #D7A57F; --i-guard: #B9A3EE;
+    --bug: #E08A6F; --risk: #B9A3EE; --opp: #82BC97; --tidy: #959595;
+  }
+
+  body { background: var(--page); color: var(--text); font-family: var(--core); font-size: 16px; line-height: 1.5; padding-block: 48px 96px; padding-inline: 20px; }
+  .page { max-width: 1060px; margin: 0 auto; }
+  h1, h2, h3 { color: var(--ink); text-wrap: balance; margin: 0; }
+  h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.022em; line-height: 1.1; }
+  h2 { font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+  h3 { font-size: 16px; font-weight: 600; }
+  p { margin: 0; }
+  code { font-family: var(--mono); font-size: 0.86em; background: var(--sunken); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+  .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tertiary); }
+  .lede { font-family: var(--quiet); font-size: 19px; line-height: 1.45; color: var(--secondary); margin-top: 14px; max-width: 660px; }
+  .meta { font-size: 13px; color: var(--tertiary); margin-top: 20px; display: flex; flex-wrap: wrap; gap: 6px 18px; font-variant-numeric: tabular-nums; }
+  .meta b { color: var(--secondary); font-weight: 500; }
+  section { margin-top: 60px; display: grid; gap: 16px; }
+  section > header { display: grid; gap: 6px; max-width: 700px; }
+  .intro { font-family: var(--quiet); font-size: 16px; color: var(--secondary); }
+
+  /* The map */
+  .mapwrap { background: var(--raised); border: 1px solid var(--hairline); border-radius: 14px; padding: 8px; overflow-x: auto; }
+  .mapwrap svg { display: block; width: 100%; min-width: 760px; height: auto; font-family: var(--core); }
+  .lane-band { fill: var(--sunken); }
+  .lane-name { fill: var(--ink); font-size: 13px; font-weight: 600; }
+  .lane-sub { fill: var(--tertiary); font-size: 11px; }
+  .node { cursor: pointer; }
+  .node rect.box { fill: var(--raised); stroke: var(--hairline); stroke-width: 1; }
+  .node.vendor rect.box { stroke-dasharray: 4 3; stroke: var(--strong); }
+  .node.off { opacity: 0.55; }
+  .node:hover rect.box, .node:focus-visible rect.box { stroke: var(--strong); }
+  .node.sel rect.box { stroke: var(--ink); stroke-width: 2; }
+  .node:focus { outline: none; }
+  .node .nm { fill: var(--ink); font-size: 13px; font-weight: 600; }
+  .node .md { fill: var(--secondary); font-size: 11px; }
+  .node .wh { fill: var(--tertiary); font-size: 11px; }
+  .tier-haiku { fill: var(--hairline); }
+  .tier-sonnet { fill: var(--strong); }
+  .tier-opus { fill: var(--ink); }
+  .edge { fill: none; stroke: var(--strong); stroke-width: 1.25; }
+  .edge-label { fill: var(--tertiary); font-size: 11px; }
+  .arrowhead { fill: var(--strong); }
+  .keyrow { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--secondary); align-items: center; }
+  .keyrow span { display: inline-flex; align-items: center; gap: 7px; }
+  .sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; flex: none; }
+  .sw.t-haiku { background: var(--hairline); } .sw.t-sonnet { background: var(--strong); } .sw.t-opus { background: var(--ink); }
+  .sw.t-vendor { border: 1px dashed var(--strong); }
+
+  /* Intent legend and bars */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font: 500 12.5px/1 var(--core); color: var(--secondary); background: var(--raised); border: 1px solid var(--hairline); border-radius: 999px; padding: 6px 10px; cursor: pointer; }
+  .chip:hover { border-color: var(--strong); }
+  .chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .chip[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); }
+  .chip .pct { color: var(--tertiary); font-variant-numeric: tabular-nums; }
+  .bars { display: grid; gap: 7px; background: var(--raised); border: 1px solid var(--hairline); border-radius: 14px; padding: 16px 18px 10px; }
+  .barrow { display: grid; grid-template-columns: 150px minmax(0, 1fr) 64px; gap: 12px; align-items: center; cursor: pointer; border-radius: 6px; padding: 2px 4px; margin: 0 -4px; }
+  .barrow:hover, .barrow:focus-visible { background: var(--sunken); outline: none; }
+  .barrow .lbl { font-size: 13.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .barrow .lbl small { color: var(--tertiary); font-size: 12px; }
+  .barrow .n { font-size: 12.5px; color: var(--tertiary); text-align: right; font-variant-numeric: tabular-nums; }
+  .track { position: relative; height: 16px; }
+  .stack { display: flex; height: 100%; border-radius: 3px; overflow: hidden; gap: 1px; background: var(--page); }
+  .stack i { display: block; height: 100%; min-width: 1px; }
+  .axis { display: grid; grid-template-columns: 150px minmax(0, 1fr) 64px; gap: 12px; border-top: 1px solid var(--hairline); padding-top: 6px; margin-top: 4px; }
+  .ticks { position: relative; height: 16px; font-size: 11px; color: var(--tertiary); font-variant-numeric: tabular-nums; }
+  .ticks span { position: absolute; transform: translateX(-50%); }
+  .ticks span:first-child { transform: none; }
+  .gridlines { position: absolute; inset: 0; pointer-events: none; }
+  .gridlines b { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--hairline); }
+  .dim { opacity: 0.18; }
+
+  /* Findings */
+  .findings { display: grid; gap: 0; border-top: 1px solid var(--hairline); }
+  .finding { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 6px 18px; padding: 18px 0; border-bottom: 1px solid var(--hairline); }
+  .finding .body { display: grid; gap: 8px; min-width: 0; max-width: 760px; }
+  .finding p { font-family: var(--quiet); font-size: 15.5px; line-height: 1.55; }
+  .finding .next { font-family: var(--core); font-size: 14.5px; color: var(--text); }
+  .finding .next b { font-weight: 600; }
+  .finding.done, .finding.handed { opacity: 0.72; }
+  .listhead { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tertiary); padding: 22px 0 6px; border-bottom: 1px solid var(--hairline); }
+  .listhead span { color: var(--secondary); margin-left: 6px; font-variant-numeric: tabular-nums; }
+  .refs { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+  .pill { justify-self: start; align-self: start; font: 600 11.5px/1 var(--core); letter-spacing: 0.04em; text-transform: uppercase; padding: 5px 8px; border-radius: 6px; border: 1px solid currentColor; }
+  .pill.decided { color: var(--page); background: var(--ink); border-color: var(--ink); } .pill.bug { color: var(--bug); } .pill.risk { color: var(--risk); } .pill.opportunity { color: var(--opp); } .pill.tidy { color: var(--tidy); }
+  .jobchips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .jobchip { font: 500 12.5px/1 var(--core); color: var(--ink); background: var(--sunken); border: 1px solid transparent; border-radius: 6px; padding: 5px 8px; cursor: pointer; }
+  .jobchip:hover, .jobchip:focus-visible { border-color: var(--strong); outline: none; }
+
+  /* One job */
+  .job { background: var(--raised); border: 1px solid var(--hairline); border-radius: 14px; padding: 24px; display: grid; gap: 22px; scroll-margin-top: 16px; }
+  .jobhead { display: grid; gap: 8px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--secondary); align-items: center; }
+  .tag { font: 500 12.5px/1 var(--mono); padding: 5px 8px; border-radius: 6px; background: var(--sunken); color: var(--text); }
+  .tag.off { font-family: var(--core); color: var(--bug); background: transparent; border: 1px solid currentColor; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px 28px; }
+  .fact { display: grid; gap: 6px; align-content: start; min-width: 0; }
+  .fact h4 { margin: 0; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tertiary); }
+  .fact p, .fact li { font-size: 14.5px; line-height: 1.5; }
+  .fact ul, .fact ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+  .fact ol li::marker { color: var(--tertiary); font-variant-numeric: tabular-nums; font-size: 13px; }
+  .jobnotes { display: grid; gap: 8px; }
+  .jobnote { display: flex; gap: 10px; align-items: baseline; font-size: 14.5px; }
+  .jobnote a { color: var(--ink); text-underline-offset: 3px; }
+  .promptbar .stack { height: 22px; border-radius: 4px; }
+  .seglist { display: grid; gap: 10px; }
+  .seg { padding: 14px 16px; background: color-mix(in srgb, var(--c) 7%, var(--raised)); border-radius: 10px; display: grid; gap: 6px; min-width: 0; }
+  .seg .sh { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; }
+  .seg .it { font: 600 11.5px/1 var(--core); letter-spacing: 0.05em; text-transform: uppercase; color: var(--c); }
+  .seg .st { font-weight: 600; font-size: 14.5px; color: var(--ink); }
+  .seg .tk { font-size: 12px; color: var(--tertiary); margin-left: auto; font-variant-numeric: tabular-nums; }
+  .seg .nt { font-family: var(--core); font-size: 13.5px; color: var(--secondary); }
+  .seg .nt.warn { color: var(--bug); }
+  .seg .tx { font-family: var(--quiet); font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); margin: 4px 0 0; }
+  .seg .tx code { font-size: 0.84em; }
+  .seg.hide { display: none; }
+  .noprompt { font-family: var(--quiet); color: var(--secondary); }
+  .srcline { font-size: 13px; color: var(--tertiary); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+
+  @media (max-width: 640px) {
+    h1 { font-size: 28px; }
+    .job { padding: 18px 16px; }
+    .barrow, .axis { grid-template-columns: 96px minmax(0, 1fr) 48px; gap: 8px; }
+    .finding { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">offload · the agent worker</div>
+    <h1 style="margin-top:10px">offload's model calls</h1>
+    <p class="lede">Every place offload calls a model: when it runs, what it reads, what it writes, and how each prompt divides by what its words are for. Built from the code, so it is as current as the commit below. Pick any job to read its prompt whole.</p>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section id="map">
+    <header>
+      <h2>The map</h2>
+      <p class="intro">Top lane is one dump, left to right in the order the worker runs it. Most steps are conditional, and the line under each says when. The strip inside each box is its prompt, coloured by intent.</p>
+    </header>
+    <div class="mapwrap"><svg id="mapsvg" role="group" aria-label="Map of offload's model calls"></svg></div>
+    <div class="keyrow">
+      <span><i class="sw t-haiku"></i>Haiku</span>
+      <span><i class="sw t-sonnet"></i>Sonnet</span>
+      <span><i class="sw t-opus"></i>Opus</span>
+      <span><i class="sw t-vendor"></i>Another vendor, no prompt</span>
+      <span style="color:var(--tertiary)">Faded: switched off</span>
+    </div>
+  </section>
+
+  <section id="words">
+    <header>
+      <h2>Where the words go</h2>
+      <p class="intro">Each system prompt to one scale, split by intent. Tap an intent to see where it lives across every job. Tool definitions are not counted: the filing planner sends about 1,900 more tokens of them.</p>
+    </header>
+    <div class="legend" id="legend"></div>
+    <div class="bars" id="bars"></div>
+  </section>
+
+  <section id="review">
+    <header>
+      <h2>The list</h2>
+      <p class="intro">What to change about these calls, open first. Opportunities need an eval run before they are anything more, and an eval run costs money.</p>
+    </header>
+    <div class="findings" id="findings"></div>
+  </section>
+
+  <section id="job-section">
+    <header>
+      <h2>One job, whole</h2>
+      <p class="intro">Pick a job on the map, a bar, or a review note.</p>
+    </header>
+    <article class="job" id="job" tabindex="-1"></article>
+  </section>
+</div>
+
+<script>
+const DATA = /*DATA*/null;
+const short = (m) => { const x = /claude-(\w+)-([\d-]+)$/.exec(m); return x ? x[1][0].toUpperCase() + x[1].slice(1) + " " + x[2].replace("-", ".") : m; };
+const STATUS = { open: "Still open", handed: "Handed to another branch", done: "Done" };
+const SEV = { decided: "Decided", bug: "Bug", risk: "Risk", opportunity: "Opportunity", tidy: "Tidy" };
+const INT = Object.fromEntries(DATA.intents.map(([k, l, d]) => [k, { label: l, desc: d }]));
+const byId = Object.fromEntries(DATA.jobs.map(j => [j.id, j]));
+const NS = "http://www.w3.org/2000/svg";
+let selected = null;
+let focusIntent = null;
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = n => n.toLocaleString("en-GB");
+const ticks = s => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+const shareOf = job => {
+  const by = {};
+  for (const s of job.segs || []) by[s.i] = (by[s.i] || 0) + s.tokens;
+  return DATA.intents.map(([k]) => [k, by[k] || 0]).filter(([, v]) => v > 0);
+};
+const stackHTML = job => shareOf(job).map(([k, v]) =>
+  `<i data-i="${k}" style="flex:${v};background:var(--i-${k})" title="${esc(INT[k].label)}: ${fmt(v)} tokens"></i>`).join("");
+
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function drawMap() {
+  const L = DATA.layout, svg = document.getElementById("mapsvg");
+  const H = Math.max(...Object.values(L.lanes).map((l) => l[1])) + 10, W = L.width, NW = 120, BIG = 170, NH = 60;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const defs = el("defs", {}, svg);
+  const m = el("marker", { id: "ah", viewBox: "0 0 8 8", refX: "7", refY: "4", markerWidth: "7", markerHeight: "7", orient: "auto" }, defs);
+  el("path", { d: "M0,0 L8,4 L0,8 z", class: "arrowhead" }, m);
+  DATA.lanes.forEach((lane, idx) => {
+    const [y0, y1] = L.lanes[lane.id];
+    if (idx % 2 === 1) el("rect", { x: 0, y: y0, width: W, height: y1 - y0, class: "lane-band", rx: 8 }, svg);
+    const t = el("text", { x: 20, y: y0 + 26, class: "lane-name" }, svg); t.textContent = lane.label;
+    const s = el("text", { x: 20, y: y0 + 43, class: "lane-sub" }, svg); s.textContent = lane.sub;
+  });
+  const box = id => { const [x, y] = L.nodes[id]; const w = ["filing", "answer"].includes(id) ? BIG : NW; return { x, y, w, h: NH }; };
+  for (const [a, b, label] of L.edges) {
+    const A = box(a), B = box(b);
+    const x1 = A.x + A.w, y1 = A.y + A.h / 2, x2 = B.x - 2, y2 = B.y + B.h / 2;
+    const mx = (x1 + x2) / 2;
+    el("path", { d: `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`, class: "edge", "marker-end": "url(#ah)" }, svg);
+    if (label) { const t = el("text", { x: x2 - 6, y: y2 - 7, class: "edge-label", "text-anchor": "end" }, svg); t.textContent = label; }
+  }
+  for (const job of DATA.jobs) {
+    const b = box(job.id);
+    const g = el("g", { class: `node ${job.tier === "vendor" ? "vendor" : ""} ${job.off ? "off" : ""}`, tabindex: "0", role: "button", "data-id": job.id, "aria-label": `${job.name}, ${job.when}` }, svg);
+    el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 9, class: "box" }, g);
+    if (job.tier !== "vendor") el("rect", { x: b.x + 12, y: b.y + 30, width: 8, height: 8, rx: 2, class: `tier-${job.tier}` }, g);
+    const nm = el("text", { x: b.x + 12, y: b.y + 21, class: "nm" }, g); nm.textContent = job.name;
+    const md = el("text", { x: b.x + (job.tier === "vendor" ? 12 : 25), y: b.y + 38, class: "md" }, g);
+    md.textContent = job.tier === "vendor" ? job.model : `${short(job.model)} · ${fmt(job.tokens)} tok`;
+    if (job.segs) {
+      const total = job.tokens; let x = b.x + 12; const span = b.w - 24;
+      for (const [k, v] of shareOf(job)) {
+        const w = span * v / total;
+        el("rect", { x, y: b.y + 46, width: Math.max(w - 0.8, 0.6), height: 5, fill: `var(--i-${k})`, "data-i": k, class: "nseg" }, g);
+        x += w;
+      }
+    } else {
+      const t = el("text", { x: b.x + 12, y: b.y + 52, class: "wh" }, g); t.textContent = "no prompt";
+    }
+    const wh = el("text", { x: b.x + 2, y: b.y + b.h + 16, class: "wh" }, g); wh.textContent = job.when;
+    const go = () => select(job.id, true);
+    g.addEventListener("click", go);
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  }
+}
+
+function drawLegend() {
+  const totals = {};
+  let all = 0;
+  for (const j of DATA.jobs) for (const [k, v] of shareOf(j)) { totals[k] = (totals[k] || 0) + v; all += v; }
+  const lg = document.getElementById("legend");
+  lg.innerHTML = DATA.intents.map(([k, l, d]) =>
+    `<button class="chip" type="button" id="lg-${k}" data-i="${k}" aria-pressed="false" title="${esc(d)}"><i class="sw" style="background:var(--i-${k})"></i>${esc(l)} <span class="pct">${Math.round(100 * (totals[k] || 0) / all)}%</span></button>`).join("");
+  lg.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => setFocus(focusIntent === c.dataset.i ? null : c.dataset.i)));
+}
+
+function drawBars() {
+  const jobs = DATA.jobs.filter(j => j.segs).sort((a, b) => b.tokens - a.tokens);
+  const max = Math.ceil(jobs[0].tokens / 1000) * 1000;
+  const tickVals = []; for (let t = 0; t <= max; t += 1000) tickVals.push(t);
+  const grid = tickVals.map(t => `<b style="left:${100 * t / max}%"></b>`).join("");
+  const rows = jobs.map(j => `
+    <div class="barrow" tabindex="0" role="button" data-id="${j.id}" aria-label="${esc(j.name)}, ${fmt(j.tokens)} tokens">
+      <div class="lbl">${esc(j.name)}${j.off ? " <small>off</small>" : ""}</div>
+      <div class="track"><div class="gridlines">${grid}</div><div class="stack" style="width:${100 * j.tokens / max}%;position:relative">${stackHTML(j)}</div></div>
+      <div class="n">${fmt(j.tokens)}</div>
+    </div>`).join("");
+  const axis = `<div class="axis"><div></div><div class="ticks">${tickVals.map((t, i) => `<span style="left:${100 * t / max}%">${i === 0 ? "0" : (t / 1000) + "k"}</span>`).join("")}</div><div class="n" style="font-size:11px;color:var(--tertiary);text-align:right">tokens</div></div>`;
+  const box = document.getElementById("bars");
+  box.innerHTML = rows + axis;
+  box.querySelectorAll(".barrow").forEach(r => {
+    const go = () => select(r.dataset.id, true);
+    r.addEventListener("click", go);
+    r.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  });
+}
+
+function drawFindings() {
+  const list = document.getElementById("findings");
+  const order = ["open", "handed", "done"];
+  const indexed = DATA.findings.map((f, n) => ({ f, n }));
+  list.innerHTML = order.map((status) => {
+    const group = indexed.filter(({ f }) => (f.status || "open") === status);
+    if (!group.length) return "";
+    return `<h3 class="listhead">${STATUS[status]} <span>${group.length}</span></h3>` + group.map(({ f, n }) => `
+    <article class="finding ${status}" id="f${n + 1}">
+      <span class="pill ${f.sev}">${SEV[f.sev]}</span>
+      <div class="body">
+        <h3>${ticks(f.title)}</h3>
+        <p>${ticks(f.body)}</p>
+        <div class="next"><b>Next:</b> ${ticks(f.next)}</div>
+        <div class="jobchips">${f.jobs.filter(id => byId[id]).map(id => `<button type="button" class="jobchip" data-id="${id}">${esc(byId[id].name)}</button>`).join("")}</div>
+        <div class="refs">${f.refs.map(r => `<code>${esc(r)}</code>`).join("")}</div>
+      </div>
+    </article>`).join("");
+  }).join("");
+  list.querySelectorAll(".jobchip").forEach(b => b.addEventListener("click", () => select(b.dataset.id, true)));
+}
+
+function drawJob(job) {
+  const notes = DATA.findings.map((f, n) => ({ f, n })).filter(({ f }) => f.jobs.includes(job.id));
+  const facts = [
+    ["When it runs", `<p>${ticks(job.cadence)}</p><p style="color:var(--tertiary);font-size:13.5px">${ticks(job.trigger)}</p>`],
+    ["The call", `<p>${ticks(job.call)}</p>`],
+    ["What it reads, in order", `<ol>${job.inputs.map(x => `<li>${ticks(x)}</li>`).join("")}</ol>`],
+    ["What it produces", `<ul>${job.outputs.map(x => `<li>${ticks(x)}</li>`).join("")}</ul>`],
+    ["Bounds", `<ul>${job.bounds.map(x => `<li>${ticks(x)}</li>`).join("")}</ul>`],
+  ];
+  const lane = DATA.lanes.find(l => l.id === job.lane);
+  let prompt = `<p class="noprompt">No prompt. ${esc(job.model)} is not a language model call.</p>`;
+  if (job.segs) {
+    const share = shareOf(job);
+    prompt = `
+      <div class="srcline"><span><code>${esc(job.sourceRef)}</code></span><span>${fmt(job.words)} words</span><span>≈ ${fmt(job.tokens)} tokens</span>${job.variantNote ? `<span>${esc(job.variantNote)}</span>` : ""}</div>
+      <div class="promptbar"><div class="stack">${stackHTML(job)}</div></div>
+      <div class="legend">${share.map(([k, v]) => `<button class="chip" type="button" data-i="${k}" aria-pressed="${focusIntent === k}"><i class="sw" style="background:var(--i-${k})"></i>${esc(INT[k].label)} <span class="pct">${Math.round(100 * v / job.tokens)}%</span></button>`).join("")}</div>
+      <div class="seglist">${job.segs.map(s => `
+        <div class="seg" data-i="${s.i}" style="--c:var(--i-${s.i})">
+          <div class="sh"><span class="it">${esc(INT[s.i].label)}</span><span class="st">${esc(s.t)}</span><span class="tk">≈ ${fmt(s.tokens)} tok</span></div>
+          ${s.n ? `<div class="nt">${ticks(s.n)}</div>` : ""}
+          <div class="tx">${ticks(s.text)}</div>
+        </div>`).join("")}</div>`;
+  }
+  const art = document.getElementById("job");
+  art.innerHTML = `
+    <div class="jobhead">
+      <div class="eyebrow">${esc(lane.label)}</div>
+      <h2>${esc(job.name)}</h2>
+      <div class="tags"><span class="tag">${esc(job.model)}</span>${job.off ? '<span class="tag off">Switched off</span>' : ""}<span>${esc(job.when)}</span></div>
+    </div>
+    <div class="facts">${facts.map(([h, b]) => `<div class="fact"><h4>${h}</h4>${b}</div>`).join("")}</div>
+    ${notes.length ? `<div class="fact"><h4>Review notes</h4><div class="jobnotes">${notes.map(({ f, n }) => `<div class="jobnote"><span class="pill ${f.sev}">${SEV[f.sev]}</span><a href="#f${n + 1}">${ticks(f.title)}</a></div>`).join("")}</div></div>` : ""}
+    <div class="fact" style="gap:12px"><h4>The prompt</h4>${prompt}</div>`;
+  art.querySelectorAll(".legend .chip").forEach(c => c.addEventListener("click", () => setFocus(focusIntent === c.dataset.i ? null : c.dataset.i)));
+  applyFocus();
+}
+
+function setFocus(k) { focusIntent = k; applyFocus(); }
+function applyFocus() {
+  document.querySelectorAll("[data-i]").forEach(e => {
+    if (e.classList.contains("chip")) { e.setAttribute("aria-pressed", String(e.dataset.i === focusIntent)); return; }
+    if (e.classList.contains("seg")) { e.classList.toggle("hide", !!focusIntent && e.dataset.i !== focusIntent); return; }
+    e.classList.toggle("dim", !!focusIntent && e.dataset.i !== focusIntent);
+  });
+}
+
+function select(id, scroll) {
+  if (!byId[id]) return;
+  selected = id;
+  document.querySelectorAll(".node").forEach(n => n.classList.toggle("sel", n.dataset.id === id));
+  drawJob(byId[id]);
+  try { history.replaceState(null, "", "#" + id); } catch (e) {}
+  if (scroll) { const a = document.getElementById("job"); a.scrollIntoView({ block: "start" }); a.focus({ preventScroll: true }); }
+}
+
+document.getElementById("meta").innerHTML =
+  `<span><b>${DATA.prompts}</b> prompts</span><span><b>2</b> other vendors</span><span><b>${fmt(DATA.totalTokens)}</b> prompt tokens</span><span>Read from <b>${DATA.commit}</b></span><span>${DATA.date}</span>`;
+drawMap(); drawLegend(); drawBars(); drawFindings();
+const fromHash = (location.hash || "").slice(1);
+select(byId[fromHash] ? fromHash : "filing", false);
+</script>

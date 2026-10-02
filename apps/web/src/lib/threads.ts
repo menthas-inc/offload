@@ -5,7 +5,6 @@
 // client that guesses the server's shape is a client that finds out it guessed
 // wrong at runtime.
 
-import { timeZoneHeader } from "./time-zone";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 import type { Invitation } from "./people";
@@ -516,27 +515,24 @@ export async function setNotePriority(
   return (await response.json()) as { previous: { priority: number } };
 }
 
-/** How long a row may claim to be filing before the spinner gives up.
- *
- *  Mirrors the server's own constant. Nothing sweeps the column, so a worker
- *  that died leaves a timestamp behind; the row is a perfectly good row either
- *  way and the only thing that has to expire is the spinner. */
-export const FILING_PATIENCE_MS = 2 * 60 * 1000;
-
 /** The most a section heading's + will take. */
 export const QUICK_ADD_CHARS = 500;
 
-/** Whether offload is still reading a row somebody typed in. */
-export function isFiling(filingAt: string | null): boolean {
-  if (!filingAt) return false;
-  return Date.now() - new Date(filingAt).getTime() < FILING_PATIENCE_MS;
+/** 032. What the field a section's + opens says before anything is typed. */
+export const TYPED_ROW_PLACEHOLDER = "Add to this";
+
+/** 032. The address, when a typed line is one web address and nothing else,
+ *  mirroring the server's own check. Words around one keep it words. */
+export function typedAddress(text: string): string | null {
+  const trimmed = text.trim();
+  return /^https?:\/\/\S+$/.test(trimmed) ? trimmed : null;
 }
 
 // ------------------------------------------------------- provisional rows
 //
 // A row drawn at the press, before the server has written it. It is the row
 // the server is about to write, with a made-up id: the same words, the same
-// type, the same spinner a typed-in row carries while offload reads it. The
+// type. The
 // screen swaps the id for the real one when the write lands, and takes the
 // row away with a word if it does not.
 
@@ -576,12 +572,13 @@ export function provisionalRow(
   day?: string,
 ): ContentRow {
   const now = new Date().toISOString();
+  const address = typedAddress(text);
   return {
     id: provisionalId(),
     type,
-    title: text,
+    title: address ?? text,
     body: null,
-    url: null,
+    url: address,
     imageUrl: null,
     createdAt: now,
     archivedAt: null,
@@ -605,7 +602,7 @@ export function provisionalRow(
     author: { ...author, isYou: true },
     canDelete: true,
     canMove: true,
-    filingAt: now,
+    filingAt: null,
   };
 }
 
@@ -633,26 +630,16 @@ export function provisionalNote(text: string, authorId: string | null): Note {
 }
 
 /** Type something straight into a thread, without going through the composer.
- *
- *  Resolves as soon as the row is written, which is before offload has read it:
- *  the point of this is that the words are saved first and tidied second, so
- *  waiting for the model here would give back the one thing it was built to
- *  avoid. */
+ *  The row is written exactly as typed, with the type the section gives it. */
 export async function quickAdd(
   threadId: string,
   text: string,
   section: string,
-  /** The rail's own day, and only that. Structured because it is the heading
-   *  they pressed + on rather than something they said; how often a thing comes
-   *  round is something they say, and the model reads it as it writes the
-   *  row. */
+  /** The rail's own day, and only that: the heading they pressed + on. */
   options?: { day?: string },
 ): Promise<{ id: string; kind: "content" | "note" } | null> {
   const response = await fetch(`${API}/v1/threads/${threadId}/quick-add`, {
     ...json,
-    // The row is read by the model, which needs to know what day it is where
-    // they are.
-    headers: { ...json.headers, ...timeZoneHeader() },
     method: "POST",
     body: JSON.stringify({ text, section, ...options }),
   });

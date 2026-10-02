@@ -16,7 +16,7 @@ import { defaultThreadOf } from "./read.js";
 import { LooseRefused, UNDO_WINDOW, threadName } from "./suggestions.js";
 
 /** How many things the pass reads, newest first. The prompt is this many short
- *  lines whatever the account's age (OFF-8); `loose_propose.py` holds the same
+ *  lines whatever the account's age (OFF-8); `nightly.py` holds the same
  *  number. */
 export const PROPOSAL_CANDIDATES = 50;
 /** Things in one proposal. */

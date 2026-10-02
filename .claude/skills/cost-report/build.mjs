@@ -24,6 +24,7 @@ const WITH_LEDGER = args.includes("--ledger");
 
 const read = (p) => readFileSync(join(ROOT, p), "utf8");
 const prices = JSON.parse(readFileSync(join(HERE, "prices.json"), "utf8"));
+const assumptions = JSON.parse(readFileSync(join(HERE, "assumptions.json"), "utf8"));
 const problems = [];
 
 // A constant read from code. A pattern that no longer matches fails the build,
@@ -44,6 +45,7 @@ const c = {
   file: grab(`${AGENT}/config.py`, /^\s*model: str = "([^"]+)"/m, "filing model", String),
   sort: grab(`${AGENT}/config.py`, /^\s*sort_model: str = "([^"]+)"/m, "sort model", String),
   answer: grab(`${AGENT}/config.py`, /^\s*answer_model: str = "([^"]+)"/m, "answer model", String),
+  nightly: grab(`${AGENT}/config.py`, /^\s*nightly_model: str = "([^"]+)"/m, "nightly model", String),
   maxPrompt: grab(`${AGENT}/config.py`, /max_prompt_tokens: int = ([\d_]+)/, "prompt budget"),
   running: grab(`${AGENT}/config.py`, /per_account_running: int = (\d+)/, "jobs per account"),
   voiceRate: grab(`${AGENT}/config.py`, /assemblyai_micros_per_second: float = ([\d.]+)/, "ledger voice rate"),
@@ -61,7 +63,7 @@ const c = {
   voiceMaxMs: grab("apps/core-api/src/blobs/audio.ts", /MAX_DURATION_MS = ([\d_]+)/, "longest voice note"),
   mailHour: grab("apps/core-api/src/mail-in/receive.ts", /HOURLY_MAIL = (\d+)/, "emails per hour"),
   mailDay: grab("apps/core-api/src/mail-in/receive.ts", /DAILY_MAIL = (\d+)/, "emails per day"),
-  labelSort: grab("apps/core-api/src/jobs/handlers.ts", /NIGHTLY_LABEL_SORT = (true|false)/, "nightly label sort", (s) => s === "true"),
+  nightlyThreads: grab("apps/core-api/src/jobs/handlers.ts", /NIGHTLY_THREADS = (\d+)/, "nightly passes per member"),
 };
 // Optional constants: present once the code has them, absent before.
 const maybe = (file, re, name, map = Number) => (existsSync(join(ROOT, file)) && re.test(read(file)) ? grab(file, re, name, map) : null);
@@ -72,6 +74,17 @@ const promptDir = `${AGENT}/prompts`;
 const promptChars = Object.fromEntries(
   readdirSync(join(ROOT, promptDir)).filter((f) => f.endsWith(".md")).map((f) => [f.replace(/\.md$/, ""), read(`${promptDir}/${f}`).length]),
 );
+// The nightly prompt is three variants of one file; most passes send the
+// learning one, which is the file without its propose blocks or any marker
+// (nightly.py, _variant).
+if (promptChars.nightly != null) {
+  const learn = read(`${promptDir}/nightly.md`)
+    .replace(/<!-- propose -->[\s\S]*?<!-- \/propose -->\n?/g, "")
+    .replace(/<!-- \/?learn -->\n?/g, "")
+    .replace(/\n{3,}/g, "\n\n");
+  if (learn.includes("<!--")) problems.push("nightly prompt: a marker the build does not strip");
+  promptChars.nightly = learn.length;
+} else problems.push(`nightly prompt: ${promptDir}/nightly.md is missing`);
 
 // Findings the code shows on every run. Each is a check, not a sentence: if the
 // code changes, the finding goes away or comes back on its own.
@@ -84,10 +97,10 @@ const srcHasLangfuse = (() => {
 const findings = [];
 const budgetWorks = !/"costMicros": 0,/.test(worker) && existsSync(join(ROOT, "apps/core-api/src/pricing.ts"));
 if (!budgetWorks) findings.push({ severity: "critical", title: "The daily model budget never trips",
-  body: "Every model turn is written to the ledger at a cost of zero, so the $5 a day budget only ever counts voice, which tops out near $0.21 a day. Nothing stops an account sending dumps, questions or quick adds all day. Turn on Budget enforced above to see what the cap would hold a bad actor to.",
+  body: "Every model turn is written to the ledger at a cost of zero, so the $5 a day budget only ever counts voice, which tops out near $0.21 a day. Nothing stops an account sending dumps or questions all day. Turn on Budget enforced above to see what the cap would hold a bad actor to.",
   ref: `${AGENT}/worker.py, _usage_wire; apps/core-api/src/budget.ts` });
 if (!c.dailyTurns) findings.push({ severity: "critical", title: "No limit on how many dumps an account can send",
-  body: "Photos, voice and email have daily caps. Typed dumps, questions and quick adds have none beyond two jobs running at a time per account. Checked by hand on 2026-10-02; re-check when core-api gains a rate limit.",
+  body: "Photos, voice and email have daily caps. Typed dumps and questions have none beyond two jobs running at a time per account. Checked by hand on 2026-10-02; re-check when core-api gains a rate limit.",
   ref: "apps/core-api/src/routes/dumps.ts, threads.ts" });
 if (!/speech_models?/.test(transcribe)) findings.push({ severity: "warning", title: "Voice is priced at an old rate",
   body: `No speech model is sent, so AssemblyAI's default runs, which is Universal-3.5 Pro at $${prices.assemblyai.universal35ProPerHour.toFixed(2)} an hour. The ledger prices it at $${((c.voiceRate?.value ?? 0) * 3600 / 1e6).toFixed(2)} an hour.`,
@@ -98,11 +111,15 @@ if (!existsSync(join(ROOT, `${AGENT}/ledger.py`))) findings.push({ severity: "wa
 if (!/thinking/.test(harness)) findings.push({ severity: "info", title: "Thinking is left at each model's default",
   body: "stack.md says adaptive thinking with an effort level; the code sends neither, so Sonnet 5 and Opus 5 think adaptively at their default effort inside the output budget. Effort is the first cost lever after caching.",
   ref: "docs/tech/stack.md; harness/plan.py" });
-findings.push({ severity: "info", title: "The Haiku prompts are too short to cache",
-  body: "Haiku 4.5 caches nothing under 4,096 tokens. The classifier, compaction and reader prompts are all shorter, so their cache_control does nothing and every call pays full input.",
-  ref: `${promptDir}/classify.md, compact.md, reader.md` });
+{
+  const haikuMin = prices.anthropic.models["claude-haiku-4-5"].minCacheTokens;
+  const short = ["classify", "reader"].filter((k) => c.sort?.value === "claude-haiku-4-5" && promptChars[k] != null
+    && model.promptTokens(promptChars[k], assumptions.turn) < haikuMin);
+  if (short.length) findings.push({ severity: "info", title: "The Haiku prompts are too short to cache",
+    body: `Haiku 4.5 caches nothing under ${haikuMin.toLocaleString("en-US")} tokens. The ${short.length > 1 ? "classifier and reader prompts are" : short[0] === "classify" ? "classifier prompt is" : "reader prompt is"} shorter, so cache_control does nothing there and every call pays full input.`,
+    ref: short.map((k) => `${promptDir}/${k}.md`).join(", ") });
+}
 if (!srcHasLangfuse) findings.push({ severity: "info", title: "Langfuse is not wired", body: "stack.md names it for LLM observability; no service code calls it, so it costs nothing today and the report carries it at $0.", ref: "docs/tech/stack.md" });
-if (c.labelSort?.value === false) findings.push({ severity: "info", title: "Nightly label sort is off", body: "When it is switched on it adds a Haiku call per thread per night; the report does not count it while it is off.", ref: c.labelSort.ref });
 
 // Calibration: the latest full eval run, and per-surface means from the newest
 // per-case results on disk.
@@ -145,7 +162,6 @@ if (WITH_LEDGER) {
 }
 
 const git = (cmd) => { try { return execSync(`git ${cmd}`, { cwd: ROOT }).toString().trim(); } catch { return "unknown"; } };
-const assumptions = JSON.parse(readFileSync(join(HERE, "assumptions.json"), "utf8"));
 const today = new Date().toISOString().slice(0, 10);
 const stale = [];
 for (const [k, v] of Object.entries(prices)) {
@@ -155,7 +171,8 @@ for (const [k, v] of Object.entries(prices)) {
 }
 
 const code = {
-  models: { file: c.file?.value, sort: c.sort?.value, answer: c.answer?.value },
+  models: { file: c.file?.value, sort: c.sort?.value, answer: c.answer?.value, nightly: c.nightly?.value },
+  nightlyThreads: c.nightlyThreads?.value ?? null,
   promptChars,
   budgetMicros: c.budget?.value,
   dailyTurns: c.dailyTurns?.value ?? null,

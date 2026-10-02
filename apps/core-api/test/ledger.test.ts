@@ -172,12 +172,13 @@ describe("how many turns a day", () => {
       .execute();
   }
 
-  it("refuses the turn past the day's count, dumps and typed rows together", async () => {
+  // 032 AC-4. A typed row is not a turn: it neither counts nor is refused.
+  it("refuses the dump past the day's count, and still takes a typed row", async () => {
     const me = await account();
-    await turns(me.id, DAILY_TURNS - 1, "dump.answer");
-    await turns(me.id, 1, "thread.quick_add");
+    await turns(me.id, DAILY_TURNS, "dump.answer");
     await expect(takeDump(me.id, "milk")).rejects.toBeInstanceOf(OverBudget);
-    await expect(quickAdd(me.id, me.thread, "brackets", "todo")).rejects.toBeInstanceOf(OverBudget);
+    const typed = await quickAdd(me.id, me.thread, "brackets", "todo");
+    expect(typed.kind).toBe("content");
   });
 
   it("counts only the last twenty four hours, only turns, and only this account", async () => {

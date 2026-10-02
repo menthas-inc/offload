@@ -264,12 +264,6 @@ export function labelledLiveCopy(facts: { threadName: string; rows: number; labe
   return `Labelled ${count(facts.rows)} in ${clamp(facts.threadName)} under ${names(facts.labels)}.`;
 }
 
-/** 025. A nightly sort's labelling, as Activity records it. */
-export function labelledNightlyCopy(facts: { threadName: string; rows: number; labels: string[] }): string {
-  const n = count(facts.rows);
-  return `Sorted ${clamp(facts.threadName)} into ${names(facts.labels)}. ${n.charAt(0).toUpperCase() + n.slice(1)} labelled.`;
-}
-
 function names(list: string[]): string {
   const clean = list.map((one) => clamp(one));
   if (clean.length <= 1) return clean[0] ?? "";

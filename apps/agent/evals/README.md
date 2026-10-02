@@ -45,10 +45,12 @@ this way the file goes, and the diff says which behaviour was dropped.
 }
 ```
 
-- `surface` is one of `file`, `answer`, `classify`, `quick_add`, `judge`,
-  `compact`. It decides which model call runs and which `expect` keys apply.
-- `input` is the dump, the question, the typed text, the typed reply, or for
-  `compact` the list of notes.
+- `surface` is one of `file`, `answer`, `classify`, `judge`,
+  `nightly`. It decides which model call runs and which `expect` keys apply.
+- `input` is the dump, the question, the typed reply, or for `nightly`
+  either the list of notes or `{thread, notes, messages}` (an ordinary
+  thread's pass, which may learn) or `{thread, notes, candidates}` (the
+  default thread's, which suggests threads).
 - `context` names a file in `contexts/`. Any fixture key on the case replaces
   the context's value for that key wholesale.
 - `expect` holds the checks. Mechanical keys are exact; `rubric` is marked by
@@ -64,14 +66,14 @@ this way the file goes, and the diff says which behaviour was dropped.
 | --- | --- | --- |
 | `threads` | `[{id, name, default?}]`; `[]` means an account with none | all |
 | `looking_at` | thread id on screen | file, answer |
-| `notes`, `notes_from_members`, `notes_from_apps` | `{thread id: [text or {text, writtenAt}]}` | file, answer, quick_add |
+| `notes`, `notes_from_members`, `notes_from_apps` | `{thread id: [text or {text, writtenAt}]}` | file, answer |
 | `rows` | a list, or `{thread id: [rows]}` in the Core API's row shape | file, answer |
 | `facts` | what `account_facts` returns | answer |
 | `calendars`, `events`, `calendar_waits` | what the calendar tools return; `calendar_waits` is the reason a write waits | file, answer |
 | `has_calendar`, `may_search`, `may_read_links` | the switches | file, answer |
 | `country` | two letters, or `null` for not known | file, answer |
 | `today` | the date line, default Friday 11 September 2026 | all |
-| `time_zone` | the device's IANA zone, default Europe/Lisbon; `null` for UTC | file, answer, quick_add |
+| `time_zone` | the device's IANA zone, default Europe/Lisbon; `null` for UTC | file, answer |
 | `history` | `[{role: person or offload, text}]` | file, answer |
 | `answered` | `{field, label}`, the block a typed answer leaves | file |
 | `country_override` | the country picked when asked | answer |
@@ -79,7 +81,6 @@ this way the file goes, and the diff says which behaviour was dropped.
 | `lookup_result` | `{found: false}` or `{fields: {...}}` in place of the stub's | file, answer |
 | `fail_tools` | `{tool or tool:N: error}`, the Core API refusing | file |
 | `tool_errors` | `{tool: error}`, every call of it refused | file |
-| `thread_id`, `content_id`, `pieces` | the row being tidied and its thread | quick_add |
 | `question_asked` | `{field, text, options}`, the open question | judge |
 
 ## Expect keys
@@ -105,14 +106,12 @@ nothing, or `{contains, must_not_contain, max_words}`, `say_not`, `asks`,
 
 **classify**: `routes` as `answer` or `file`.
 
-**quick_add**: `untouched`, `edit` as `{title, title_has, title_lacks,
-max_title_words, url}`, `adds` as a count or matchers, `title_keeps`, `rubric`.
-Leaving the thread or calling anything but the two tools is always a failure.
-
 **judge**: `answers`, `whole`, `value` as `{day, to, time, tag, country}`.
 
-**compact**: `no_change`, `folds`, `supersedes`, `never_touches`, `adds`,
-`rubric`. Removing a person's note or folding two authors is always a failure.
+**nightly**: `no_change`, `folds`, `supersedes`, `never_touches`, `adds`,
+`learns`, `learned_has`, `learned_lacks`, `groups`, `rubric`. Removing a
+person's note, touching another member's, or citing a dump it was not shown
+is always a failure.
 
 Everywhere: a dash, an emoji, a capitalised offload, or a self diagnosis in
 anything offload wrote fails the case; on a lookup, the progress line is held

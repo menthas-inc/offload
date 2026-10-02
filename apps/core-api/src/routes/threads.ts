@@ -15,7 +15,6 @@ import { sql, type Transaction } from "kysely";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
-import { timeZoneOf } from "../time-zone.js";
 import { formatRule, parseRule, utcDay } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";
 import { Refused } from "../threads/refusals.js";
@@ -55,7 +54,7 @@ import {
   touchThread,
   unowned,
 } from "../threads/access.js";
-import { OverBudget, requireBudget } from "../budget.js";
+import { OverBudget } from "../budget.js";
 import { purgeAbout } from "../notifications/activity.js";
 import { LabelRefused, carriesAny, contentLabelsFor, labelsOfThread, setRowLabels, unlabelledCount, withContentLabels, withNoteLabels } from "../threads/labels.js";
 import { noteAddition } from "../notifications/people.js";
@@ -1240,53 +1239,40 @@ const STARTS_AS: Record<string, "task" | "location" | "event"> = {
   timeline: "event",
 };
 
-/** Write what somebody typed, then ask offload what it was.
+/** 032. A line that is one web address and nothing else. Anything around it,
+ *  "shelf https://...", is words, and stays words. */
+// Case-sensitive, as the column's own check is: a capital the keyboard added
+// keeps the line words rather than failing the write.
+const ONE_ADDRESS = /^https?:\/\/\S+$/;
+
+/** Write what somebody typed, exactly as they typed it.
  *
- *  **The row exists before the model is involved and does not depend on it.**
- *  The worst mistake this product can make is losing what somebody wrote, so
- *  the text is a row in the thread from the moment they hit enter. If the
- *  worker never runs, they have a row saying exactly what they typed, in the
- *  thread they typed it into, which is a good outcome rather than a broken one.
- *  Everything the model does afterwards is an improvement on something already
- *  safe.
- *
- *  It never leaves this thread. A dump chooses a home and this one is already
- *  chosen, which is the whole difference between the composer and a + on a
- *  section: somebody adding to To do has said where it goes.
+ *  **The row is the whole of it.** A + on a section is the person choosing the
+ *  thread and the type, so there is nothing left for a model to decide, and
+ *  since 032 none is asked: no job, no spinner, no budget, and the title never
+ *  changes after they press enter. The one mechanical improvement offload used
+ *  to make with a model is made here instead: a line that is one web address
+ *  is a link.
  *
  *  **`day` is structured, and it is the only thing that is.** The rail's + knows
  *  which day heading it sits under, which is not something anybody said; it is
- *  where they pressed. It arrives as a real value rather than as something
- *  offload has to read out of a sentence, and it is final the moment this
- *  function returns, because `edit_content` carries no date.
- *
- *  **`repeats` used to arrive the same way, from a tick, and does not any
- *  more (2026-09-14).** The reasoning for the tick was that `edit_content`
- *  cannot set a repeat either, so a repeat had to be structural or it could
- *  never be set at all. It can: the model reads the words at the moment it
- *  writes the row, and "weekly on Monday at 2pm" says more than a box ever
- *  could. A box also asks somebody to choose a format before they can put
- *  something down, which is the one thing this product does not do.
+ *  where they pressed. It arrives as a real value and is final.
  */
 export async function quickAdd(
   accountId: string,
   threadId: string,
   text: string,
   section: string,
-  options: { day?: string | null | undefined; timeZone?: string | null } = {},
+  options: { day?: string | null | undefined } = {},
 ): Promise<{ id: string; kind: "content" | "note" }> {
   await requireMember(accountId, threadId);
-  // A typed row is a model call too (security review 2026-09-22, M6).
-  await requireBudget(accountId);
 
   // `hasOwn`, because `section` is a string from the request and a plain
   // object answers `constructor` with a function.
   const startsAs = Object.hasOwn(STARTS_AS, section) ? STARTS_AS[section] : undefined;
 
-  // A sentence with no widget type to start as is a note, and a note needs no
-  // job: it is already exactly what it is, in the person's own words. The
-  // reclassification below exists to turn a typed line into a task with a date,
-  // and there is nothing to turn.
+  // A sentence with no widget type to start as is a note, in the person's own
+  // words, exactly as before.
   if (!startsAs) {
     const note = await addNote({ threadId, accountId, text, origin: "stated" });
     await touchThread(threadId, db);
@@ -1298,6 +1284,7 @@ export async function quickAdd(
   // the same calendar day almost everywhere.
   const occursAt = options.day ? parseWhen(options.day) : null;
   const allDay = occursAt ? isBareDate(options.day) : false;
+  const address = ONE_ADDRESS.test(text.trim()) ? text.trim() : null;
 
   return db.transaction().execute(async (trx) => {
     const row = await trx
@@ -1305,22 +1292,17 @@ export async function quickAdd(
       .values({
         account_id: accountId,
         thread_id: threadId,
-        // Their words, untouched, as the title. offload rewrites it if it can
-        // do better, and until then the row says what they said.
         type: startsAs,
-        title: text,
+        title: address ?? text,
         source: "person",
-        filing_at: sql`now()`,
         updated_at: sql`now()`,
+        ...(address ? { url: address } : {}),
         ...(occursAt ? { occurs_at: occursAt } : {}),
         ...(allDay ? { attrs: { all_day: true } } : {}),
       })
       .returning("id")
       .executeTakeFirstOrThrow();
 
-    // In the same transaction as the row, per the queue's own reasoning: a row
-    // written without its job is a row that never gets read, and a job enqueued
-    // without its row is a job with nothing to work on.
     await trx
       .updateTable("threads")
       .set({ content_count: sql`content_count + 1` })
@@ -1329,18 +1311,6 @@ export async function quickAdd(
     await touchThread(threadId, trx);
     // 024. A row typed into a thread with other members reaches them, coalesced.
     await noteAddition(threadId, accountId, new Date(), trx);
-
-    await enqueue({
-      kind: "thread.quick_add",
-      // No message to carry the device's time zone, so the job does.
-      payload: { contentId: row.id, threadId, timeZone: options.timeZone ?? null },
-      accountId,
-      priority: PRIORITY.interactive,
-      // Somebody is looking at the row right now. One retry, the same as a
-      // dump, rather than the five an email deserves.
-      maxAttempts: 2,
-      tx: trx,
-    });
 
     return { id: row.id, kind: "content" as const };
   });
@@ -2064,8 +2034,7 @@ export async function threadRoutes(app: App): Promise<void> {
         params: z.object({ id: z.string().uuid() }),
         body: z.strictObject({
           text: z.string().min(1).max(QUICK_ADD_CHARS),
-          /** Which heading the + was on. A hint about what the row starts as,
-           *  never a constraint on what offload decides it is. */
+          /** Which heading the + was on, which decides the row's type. */
           section: z.string().max(32).optional(),
           /** The day open on the rail, when the + was that one's. A day, not a
            *  time: the rail asks which day, never which hour. */
@@ -2076,7 +2045,6 @@ export async function threadRoutes(app: App): Promise<void> {
           401: unauthenticated,
           404: notFound,
           413: z.object({ error: z.literal("too_long"), maxChars: z.number() }),
-          429: z.object({ error: z.literal("daily_limit") }),
         },
       },
     },
@@ -2091,7 +2059,6 @@ export async function threadRoutes(app: App): Promise<void> {
         return reply.send(
           await quickAdd(accountId, request.params.id, text, request.body.section ?? "", {
             day: request.body.day,
-            timeZone: timeZoneOf(request),
           })
         );
       })

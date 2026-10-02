@@ -28,7 +28,6 @@
 // the tap for its page and draws an ellipsis that opens the same sheet.
 
 import {
-  ActivityIndicator,
   Image,
   Platform,
   Pressable,
@@ -52,7 +51,7 @@ import { DateChip, HourChip } from "./DateChip";
 import { ThreadPill } from "./ThreadPill";
 import { PhotoThumb } from "./PhotoThumb";
 import { useColors } from "../../lib/colors";
-import { domainOf, isFiling, isProvisional, rowTap, type ContentRow } from "../../lib/threads";
+import { domainOf, isProvisional, rowTap, type ContentRow } from "../../lib/threads";
 import { openLink } from "../../lib/links";
 import { LabelMark } from "../labels/LabelMark";
 import { useRowLabels } from "../labels/labels-context";
@@ -593,13 +592,6 @@ export function ContentRowView({
 
           {trailing ? <View style={{ marginTop: (TITLE_LINE - 44) / 2 }}>{trailing}</View> : null}
 
-          {isFiling(row.filingAt) ? (
-            <ActivityIndicator
-              size="small"
-              color={COLOR.accent}
-              accessibilityLabel="offload is reading this"
-            />
-          ) : null}
 
           {/* A link's tap is its page, so its sheet is behind the one tool a
               row still draws. No arrow: the domain under the title already
