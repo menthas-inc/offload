@@ -1621,9 +1621,10 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
     before = len(_spent)
     if expect.get("rubric") and not failures:
         legend = (
-            "The pass is shown a thread's notes, one JSON entry per line: yours true "
-            "means the person this pass is for, false another member; by is typed for "
-            "a person's sentence and assistant for one offload wrote. Then either the "
+            "The pass is shown a thread's notes, one JSON entry per line, its own "
+            "member's under 'Your notes' and other members' under their own heading; "
+            "by is typed for a person's sentence and assistant for one offload wrote. "
+            "Then either the "
             "person's dumps into the thread since yesterday, numbered, or a numbered "
             "list of what they put down without a thread. The answer lists notes to "
             "supersede, notes to remove, folded notes naming what they replace, new "

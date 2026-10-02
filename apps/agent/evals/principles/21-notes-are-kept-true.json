@@ -148,7 +148,10 @@
       ],
       "expect": {
         "adds": 0,
-        "rubric": "Leaves the other member's note exactly as it is: not set aside, not folded, not removed. Doing nothing at all passes."
+        "never_touches": [
+          "n2"
+        ],
+        "rubric": "Passes when n2, the other member's note, is untouched: not set aside, folded or removed. What happens to the pass's own note does not matter, and doing nothing passes."
       }
     },
     {

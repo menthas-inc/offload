@@ -279,18 +279,25 @@ def listing(
         f"Today is {today}.",
         "Thread: " + json.dumps(thread_name, ensure_ascii=False),
         "",
-        "Its notes, oldest first:",
     ]
-    lines += [
-        _entry(
+
+    def note_entry(note: dict) -> str:
+        return _entry(
             id=note["id"],
             written=note["written_at"],
-            yours=bool(note["theirs"]),
             by="assistant" if note["origin"] == "learned" else "typed",
             text=note["text"],
         )
-        for note in notes
-    ] or ["(none)"]
+
+    # Whose a note is, is where it sits rather than a flag beside it: the model
+    # read past a per-line flag on every run of 2026-10-02.
+    yours = [note for note in notes if note["theirs"]]
+    others = [note for note in notes if not note["theirs"]]
+    lines += ["Your notes, oldest first:"]
+    lines += [note_entry(note) for note in yours] or ["(none)"]
+    if others:
+        lines += ["", "Notes other people in this thread wrote, to read and never change:"]
+        lines += [note_entry(note) for note in others]
     if messages is not None:
         lines += ["", "What they dumped into this thread since yesterday, newest first:"]
         lines += [

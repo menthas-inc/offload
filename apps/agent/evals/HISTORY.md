@@ -27,6 +27,8 @@ and is not committed.
 | 2026-10-02 02:52 | answer | 1 | 98/112 (88%) | $1.92 | `claude-sonnet-5` | `04a2d8af` | `ec2b061` | Opus 5.5 for answering, with the conversation cached inside a turn |
 | 2026-10-02 02:54 | answer | 1 | 109/112 (97%) | $2.74 | `claude-sonnet-5` | `04a2d8af` | `ec2b061` | Opus 5 on the same answering cases, the comparison for the Opus 5.5 switch |
 | 2026-10-02 23:10 | all | 1 | 490/515 (95%) | $9.21 | `claude-sonnet-5` | `62272c29` | `e6a184c` |  |
+| 2026-10-02 23:35 | nightly | 1 | 23/26 (88%) | $0.40 | `claude-sonnet-5` | `ee95f80b` | `fd37c23` |  |
+| 2026-10-02 23:35 | nightly | 1 | 26/26 (100%) | $0.46 | `claude-sonnet-5` | `ee95f80b` | `fd37c23` |  |
 
 ## Full runs by principle
 
