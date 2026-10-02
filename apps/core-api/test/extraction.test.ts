@@ -621,7 +621,7 @@ describe("arranging a thread", () => {
     // something.
     const { me, thread: t } = await own();
 
-    await setPreference(me, t, { widgets: ["map", "todo"] });
+    await setPreference(me, t, { widgets: ["files", "todo"] });
     // The fold is the member's: it lands on the membership row and never in
     // the thread's attrs, so a shared list folded by one member is folded for
     // nobody else.
@@ -630,7 +630,7 @@ describe("arranging a thread", () => {
     const row = await db
       .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
     expect(readPreference(row.attrs)).toEqual({
-      widgets: ["map", "todo"],
+      widgets: ["files", "todo"],
     });
     expect((row.attrs as Record<string, unknown>)["hideDone"]).toBeUndefined();
 
@@ -648,9 +648,9 @@ describe("arranging a thread", () => {
 
   it("returns what was there, so Undo is the same call (AC-7a)", async () => {
     const { me, thread: t } = await own();
-    await setPreference(me, t, { widgets: ["map"] });
+    await setPreference(me, t, { widgets: ["files"] });
     const previous = await setPreference(me, t, { widgets: ["todo"] });
-    expect(previous).toEqual({ widgets: ["map"] });
+    expect(previous).toEqual({ widgets: ["files"] });
   });
 
   it("drops a widget kind nobody defined, rather than storing it", async () => {

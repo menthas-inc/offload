@@ -559,8 +559,6 @@ export function startsAs(section: string): "task" | "location" | "event" | null 
   switch (section) {
     case "todo":
       return "task";
-    case "map":
-      return "location";
     case "timeline":
       return "event";
     default:

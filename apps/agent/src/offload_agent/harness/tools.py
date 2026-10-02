@@ -251,7 +251,7 @@ class SetThreadPreference(BaseModel):
     """Say how a thread should be arranged."""
 
     thread_id: str = Field(min_length=1)
-    # What order the widgets come in, e.g. ["map", "todo"].
+    # What order the widgets come in, e.g. ["todo", "files"].
     widgets: list[str] | None = None
 
 

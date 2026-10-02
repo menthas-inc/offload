@@ -34,7 +34,6 @@ import type { ContentRow } from "../../lib/threads";
 const isAndroid = Platform.OS === "android";
 
 const HEADINGS: Record<string, string> = {
-  map: "Places",
   todo: "To do",
   files: "Files",
 };
@@ -126,8 +125,8 @@ function WidgetBlock({
   const COLOR = useColors();
   const { raiseFor } = useConversation();
   const [allDone, setAllDone] = useState(false);
-  // Only To do earns the fold: `doneAt` is only ever set on a task, so a map
-  // or a files section has nothing to hide and never draws the control.
+  // Only To do earns the fold: `doneAt` is only ever set on a task, so a
+  // files section has nothing to hide and never draws the control.
   //
   // **A preference of the thread, not a state of the screen**, so it arrives
   // as a prop and leaves through `onFold`, and a list folded on web is folded

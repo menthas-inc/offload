@@ -965,44 +965,6 @@
   color: var(--text-inverse);
 }
 
-/* Pins on a plain surface, as the kits draw it. No tiles, so nothing about
-   where somebody has been leaves for a map company to render a background. */
-.mapSurface {
-  position: relative;
-  height: 150px;
-  margin: var(--space-4) 0 var(--space-5);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-hairline);
-  background: var(--surface-fill);
-  overflow: hidden;
-}
-
-.mapNote {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(11px * var(--type-scale));
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Fixed 22px circle, so the number inside it does not take --type-scale:
- * growing the text would break the circle rather than fill it. */
-.pin {
-  position: absolute;
-  transform: translate(-50%, -100%);
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-inverse);
-  color: var(--text-inverse);
-  font: var(--weight-semibold) 11px/22px var(--font-core);
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
 /* A task's tick, as the row's lead element.
    
    Native, deliberately. The kit draws its own box and a native checkbox is

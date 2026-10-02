@@ -1236,7 +1236,6 @@ export const QUICK_ADD_CHARS = 500;
  *  its own now, on the selected day's heading. */
 const STARTS_AS: Record<string, "task" | "location" | "event"> = {
   todo: "task",
-  map: "location",
   timeline: "event",
 };
 
