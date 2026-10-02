@@ -416,7 +416,6 @@ export function ConversationProvider({
   const [line, setLine] = useState<{ text: string; action?: { label: string; onPress: () => void } } | null>(null);
   const me = useMe();
   const [refusedToday, setRefusedToday] = useState(false);
-  const dayUsed = closedForTheDay(me, refusedToday);
   const [photoOpen, setPhotoOpen] = useState<{ turnId: string; index: number } | null>(null);
   const [focusRequest, setFocusRequest] = useState(0);
   // 020. A share that lands while a send is out waits for it: the chips
@@ -443,6 +442,9 @@ export function ConversationProvider({
   const sentNotes = useRef<Map<string, Recording>>(new Map());
   useEffect(() => sweepRecordings(), []);
   const [pin, setPin] = useState<Pin | null>(null);
+  // 032. A section's + writes a row as typed and no model reads it, so the
+  // day's limit never closes the field it raises.
+  const dayUsed = closedForTheDay(me, refusedToday, pin !== null);
   // Read through a ref by the shortcut's arrival, which releases a pin and
   // records in the same tick, before the closure could see the pin go.
   const pinRef = useRef<Pin | null>(null);

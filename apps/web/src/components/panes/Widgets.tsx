@@ -33,7 +33,7 @@ import {
   type ReorderWrite,
   type Widget,
 } from "../../lib/widgets";
-import { QUICK_ADD_CHARS } from "../../lib/threads";
+import { QUICK_ADD_CHARS, TYPED_ROW_PLACEHOLDER } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
 
 const HEADINGS: Record<string, string> = {
@@ -303,7 +303,7 @@ function QuickAdd({ onAdd, onCancel }: { onAdd: (text: string) => void; onCancel
         value={text}
         autoFocus
         maxLength={QUICK_ADD_CHARS}
-        placeholder="Type it, offload will sort it out"
+        placeholder={TYPED_ROW_PLACEHOLDER}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Escape") onCancel();

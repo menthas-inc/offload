@@ -1,4 +1,4 @@
-"""The account's clock on the answer and quick-add paths. 023 AC-5.
+"""The account's clock on the answer path. 023 AC-5.
 
 The security review of 2026-09-22: the dump was read in the account's clock
 while an answer and a quick add were read in the zone the device sent, so a
@@ -13,7 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent.config import _asyncpg
-from offload_agent.context import load_quick_add, message_zone
+from offload_agent.context import message_zone
 
 ADMIN_DB = os.environ.get("DATABASE_URL")
 AGENT_DB = os.environ.get("AGENT_DATABASE_URL")
@@ -102,22 +102,3 @@ async def test_an_answer_reads_in_the_accounts_clock_before_the_devices_zone(see
     await agent.dispose()
 
 
-async def test_a_quick_add_reads_in_the_accounts_clock_before_the_devices_zone(seeded):
-    with_clock, without = seeded
-    agent = create_async_engine(_asyncpg(AGENT_DB))
-    async with agent.connect() as conn:
-        loaded = await load_quick_add(
-            conn,
-            account_id=with_clock["account"],
-            content_id=with_clock["content"],
-            time_zone="Asia/Tokyo",
-        )
-        assert loaded is not None and loaded.time_zone == "Europe/Lisbon"
-        loaded = await load_quick_add(
-            conn,
-            account_id=without["account"],
-            content_id=without["content"],
-            time_zone="Asia/Tokyo",
-        )
-        assert loaded is not None and loaded.time_zone == "Asia/Tokyo"
-    await agent.dispose()

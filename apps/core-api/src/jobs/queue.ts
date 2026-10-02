@@ -21,7 +21,6 @@ export type JobKind =
   | "email.invited"
   | "email.download_app"
   | "dump.answer"
-  | "thread.quick_add"
   | "content.purge"
   | "location.resolve"
   | "calendar.sync"

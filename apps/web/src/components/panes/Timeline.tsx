@@ -32,7 +32,7 @@ import {
 import { dayIn, utcDay, eventMeta } from "@offload/widgets";
 import { useClock } from "../../lib/clock";
 import { useAppearance } from "../../lib/appearance";
-import { QUICK_ADD_CHARS, fetchThreadEvents, rangeOf } from "../../lib/threads";
+import { QUICK_ADD_CHARS, TYPED_ROW_PLACEHOLDER, fetchThreadEvents, rangeOf } from "../../lib/threads";
 import type { ContentRow, Note, ThreadEvent } from "../../lib/threads";
 
 interface Props {
@@ -446,7 +446,7 @@ function DayQuickAdd({ onAdd, onCancel }: { onAdd: (text: string) => void; onCan
         value={text}
         autoFocus
         maxLength={QUICK_ADD_CHARS}
-        placeholder="Type it, offload will sort it out"
+        placeholder={TYPED_ROW_PLACEHOLDER}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Escape") onCancel();

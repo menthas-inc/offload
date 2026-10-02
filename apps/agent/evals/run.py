@@ -9,7 +9,6 @@ Six surfaces, one per model call the product makes:
 - ``file``       a dump through the planner (``plan``)
 - ``answer``     a question through the answerer (``plan_answer``)
 - ``classify``   question or note (``classify``)
-- ``quick_add``  a row typed into a thread (``plan_quick_add``)
 - ``judge``      does a typed message answer the open question (``judge_answer``)
 - ``compact``    one thread's notes, folded (``compact._ask``)
 - ``label_sort`` one thread's rows, grouped overnight (``label_sort._ask``)
@@ -68,8 +67,6 @@ from offload_agent.context import (
     LabelRef,
     Mail,
     Photo,
-    Piece,
-    QuickAddContext,
     Thread,
     Turn,
     mail_of,
@@ -80,7 +77,6 @@ from offload_agent.harness.plan import (
     judge_answer,
     plan,
     plan_answer,
-    plan_quick_add,
 )
 from offload_agent.renditions import make
 from offload_agent.worker import (
@@ -108,7 +104,6 @@ HISTORY_MD = HERE / "HISTORY.md"
 _DEFAULTS = {f.name: f.default for f in Config.__dataclass_fields__.values()}
 MODELS = {
     "file": _DEFAULTS["model"],
-    "quick_add": _DEFAULTS["model"],
     "answer": _DEFAULTS["answer_model"],
     "classify": _DEFAULTS["sort_model"],
     "judge": _DEFAULTS["sort_model"],
@@ -1499,112 +1494,6 @@ async def _run_classify(client: AsyncAnthropic, case: Case, model: str) -> Resul
     return Result(case, routes, transcript, failures, True, transcript, cost=_cost(model, 400, 30))
 
 
-async def _run_quick_add(client: AsyncAnthropic, case: Case, model: str) -> Result:
-    fx = case.fixture
-    typed = str(case.input)
-    rec = Recorder(case, typed)
-    threads = _threads(fx)
-    thread = _thread(fx, fx.get("thread_id")) or threads[0]
-    ctx = QuickAddContext(
-        content_id=fx.get("content_id") or "c0",
-        thread_id=thread.id,
-        thread_name=thread.name,
-        typed=typed,
-        notes=[
-            n if isinstance(n, str) else n["text"]
-            for n in (fx.get("notes") or {}).get(thread.id, [])
-        ],
-        notes_from_members=[
-            n if isinstance(n, str) else n["text"]
-            for n in (fx.get("notes_from_members") or {}).get(thread.id, [])
-        ],
-        pieces=[Piece(title=p["title"], done=bool(p.get("done"))) for p in fx.get("pieces") or []],
-        today=fx.get("today") or TODAY,
-        time_zone=fx.get("time_zone", TIME_ZONE),
-    )
-    try:
-        outcome = await plan_quick_add(client, ctx, model, rec)
-    except Exception as exc:  # noqa: BLE001
-        return Result(case, "", "", [f"raised {type(exc).__name__}: {exc}"], False, "")
-
-    expect = case.expect
-    failures: list[str] = []
-    failures.extend(_call_problems(expect, rec.calls))
-    for tool, args in rec.calls:
-        if tool == "add_content" and str(args.get("thread_id")) != thread.id:
-            failures.append(f"added to another thread: {args.get('thread_id')}")
-        if tool == "edit_content" and str(args.get("content_id")) != ctx.content_id:
-            failures.append(f"edited a row it was not given: {args.get('content_id')}")
-        # 019 gave edit_content a time for the filing turn; a quick add still
-        # leaves the day it arrived with alone, and sends none of its own.
-        if tool == "edit_content" and any(
-            args.get(k) for k in ("due_at", "occurs_at", "occurs_end_at")
-        ):
-            failures.append("set a date on a quick add, which keeps the day it arrived with")
-        if tool not in {"edit_content", "add_content"}:
-            failures.append(f"called {tool}, which a quick add cannot")
-        for key in ("title", "body"):
-            failures.extend(_copy_problems(str(args.get(key) or "")))
-    # An edit that sets the title to what was typed and nothing else changed
-    # nothing, and is read as leaving the row alone.
-    edits = [
-        args
-        for t, args in rec.calls
-        if t == "edit_content"
-        and not (
-            args.get("title") == typed
-            and not any(args.get(k) for k in ("body", "url", "image_url"))
-        )
-    ]
-    adds = [args for t, args in rec.calls if t == "add_content"]
-    if expect.get("untouched") and (edits or adds):
-        failures.append(f"changed a row that was already right: {_transcript(rec.calls, '', [])}")
-    if "edit" in expect:
-        want = expect["edit"]
-        if not edits:
-            failures.append("did not edit the row")
-        else:
-            got = edits[-1]
-            title = str(got.get("title") or "")
-            if "title" in want and title != want["title"]:
-                failures.append(f"title {title!r}, wanted {want['title']!r}")
-            for needle in want.get("title_has", []):
-                if needle.lower() not in title.lower():
-                    failures.append(f"title {title!r} lacks {needle!r}")
-            for needle in want.get("title_lacks", []):
-                if needle.lower() in title.lower():
-                    failures.append(f"title {title!r} contains {needle!r}")
-            if "max_title_words" in want and len(title.split()) > want["max_title_words"]:
-                failures.append(
-                    f"title is {len(title.split())} words, cap {want['max_title_words']}"
-                )
-            if "url" in want and got.get("url") != want["url"]:
-                failures.append(f"url {got.get('url')!r}, wanted {want['url']!r}")
-    for needle in expect.get("title_keeps", []):
-        for got in edits:
-            title = str(got.get("title") or "")
-            if title and needle.lower() not in title.lower():
-                failures.append(f"the edit dropped {needle!r}: {title!r}")
-    if "adds" in expect:
-        want = expect["adds"]
-        if isinstance(want, int) and len(adds) != want:
-            failures.append(
-                f"added {len(adds)} rows, wanted {want}: {[a.get('title') for a in adds]}"
-            )
-        elif isinstance(want, list):
-            for matcher in want:
-                problem = _match_filing({"tool": "add_content", **matcher}, rec.calls, fx)
-                if problem:
-                    failures.append(problem)
-    transcript = _transcript(rec.calls, "", [])
-    judged, note = True, ""
-    before = len(_spent)
-    if expect.get("rubric") and not failures:
-        judged, note = await _judge(client, case, transcript)
-    cost = _outcome_cost(outcome) + sum(_spent[before:])
-    return Result(case, "", transcript, failures, judged, note, cost=cost)
-
-
 async def _run_judge(client: AsyncAnthropic, case: Case, model: str) -> Result:
     fx = case.fixture
     asked = fx.get("question_asked") or {}
@@ -1781,7 +1670,6 @@ _SURFACES = {
     "file": _run_file,
     "answer": _run_answer,
     "classify": _run_classify,
-    "quick_add": _run_quick_add,
     "judge": _run_judge,
     "compact": _run_compact,
     "label_sort": _run_label_sort,

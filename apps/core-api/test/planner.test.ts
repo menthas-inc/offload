@@ -939,29 +939,18 @@ describe("a turn that changes what is already there says so", () => {
 });
 
 
-describe("a row typed straight into a thread", () => {
-  /** A quick-add job, the way the route writes one. */
-  async function typed(accountId: string, threadId: string, text: string) {
-    const row = await db
-      .insertInto("content")
-      .values({
-        account_id: accountId,
-        thread_id: threadId,
-        type: "task",
-        title: text,
-        source: "person",
-        filing_at: new Date(),
-        updated_at: new Date(),
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
-
+// 032. Quick add is gone. A job of its kind, left from before the deploy,
+// reaches no tool: the endpoint serves dump turns and nothing else.
+describe("a job of the retired quick add kind", () => {
+  it("is refused as an unknown job", async () => {
+    const me = await account();
+    const threadId = await thread(me, "Flat admin");
     const job = await db
       .insertInto("jobs")
       .values({
         kind: "thread.quick_add",
-        account_id: accountId,
-        payload: JSON.stringify({ contentId: row.id, threadId }),
+        account_id: me,
+        payload: JSON.stringify({ threadId }),
         priority: 10,
         run_after: new Date(),
         state: "running",
@@ -972,101 +961,8 @@ describe("a row typed straight into a thread", () => {
       .returning("id")
       .executeTakeFirstOrThrow();
 
-    return { contentId: row.id, jobId: job.id };
-  }
-
-  it("may tidy the row it was given", async () => {
-    const accountId = await account();
-    const threadId = await thread(accountId, "Flat admin");
-    const { contentId, jobId } = await typed(accountId, threadId, "call plumber tues");
-
-    const response = await tool({
-      tool: "edit_content",
-      jobId,
-      toolCallId: "e1",
-      contentId,
-      title: "Call the plumber",
-    });
-    expect(response.json()).toEqual({ ok: true, done: true });
-  });
-
-  // The person picked the thread by typing into it, so the model has no choice
-  // to make and must not be given one. The prompt says so and the narrow tool
-  // list says so; this is the half that does not depend on either, because a
-  // shared thread can hold text somebody else wrote.
-  it("may not write to any other thread, whatever it asks for", async () => {
-    const accountId = await account();
-    const threadId = await thread(accountId, "Flat admin");
-    const elsewhere = await thread(accountId, "Lisbon trip");
-    const { jobId } = await typed(accountId, threadId, "brackets");
-
-    const intoAnother = await tool({
-      tool: "add_content", type: "task",
-      jobId,
-      toolCallId: "a1",
-      threadId: elsewhere,
-      title: "Sneaked in",
-    });
-    expect(intoAnother.json()).toEqual({ ok: false, error: "unknown_thread" });
-
-    const started = await tool({
-      tool: "create_thread",
-      jobId,
-      toolCallId: "c1",
-      name: "A thread of my own",
-    });
-    expect(started.json()).toEqual({ ok: false, error: "unknown_thread" });
-
-    // Nothing landed anywhere it should not have.
-    const rows = await db
-      .selectFrom("content")
-      .select("id")
-      .where("thread_id", "=", elsewhere)
-      .execute();
-    expect(rows).toHaveLength(0);
-  });
-
-  it("may add a second piece to its own thread, for text that was several things", async () => {
-    const accountId = await account();
-    const threadId = await thread(accountId, "Bookshelf build");
-    const { jobId } = await typed(accountId, threadId, "brackets, screws, timber");
-
-    const second = await tool({
-      tool: "add_content", type: "task",
-      jobId,
-      toolCallId: "a1",
-      threadId,
-      title: "Screws",
-    });
-    expect(second.statusCode).toBe(200);
-    expect((second.json() as { ok: boolean }).ok).toBe(true);
-  });
-
-  // Security review 2026-09-22, M2. The refusal was a deny-list, and a tool
-  // carrying a content id rather than a thread id walked past it to any row
-  // the account could read.
-  it("may not reach a row outside its thread, and gets no tool that is not on the list", async () => {
-    const accountId = await account();
-    const threadId = await thread(accountId, "Flat admin");
-    const elsewhere = await thread(accountId, "Lisbon trip");
-    const { jobId } = await typed(accountId, threadId, "brackets");
-    const theirs = await db
-      .insertInto("content")
-      .values({ account_id: accountId, thread_id: elsewhere, type: "task", title: "Book the flights", updated_at: new Date() })
-      .returning("id")
-      .executeTakeFirstOrThrow();
-
-    const edited = await tool({ tool: "edit_content", jobId, toolCallId: "e1", contentId: theirs.id, title: "Owes me" });
-    expect(edited.json()).toEqual({ ok: false, error: "unknown_content" });
-
-    const completed = await tool({ tool: "complete_content", jobId, toolCallId: "d1", contentId: theirs.id, done: true });
-    expect(completed.json()).toEqual({ ok: false, error: "unknown_thread" });
-
-    const searched = await tool({ tool: "search", jobId, toolCallId: "s1", query: "flights" });
-    expect(searched.json()).toEqual({ ok: false, error: "unknown_thread" });
-
-    const untouched = await db.selectFrom("content").select(["title", "done_at"]).where("id", "=", theirs.id).executeTakeFirstOrThrow();
-    expect(untouched).toEqual({ title: "Book the flights", done_at: null });
+    const res = await tool({ tool: "add_content", jobId: job.id, toolCallId: "t1", threadId, type: "task", title: "brackets" });
+    expect(res.statusCode).toBe(404);
   });
 });
 

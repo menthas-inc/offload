@@ -779,22 +779,4 @@ describe("the device's time zone on a request", () => {
     expect(await zoneOf(await postDump(cookie, undefined))).toBeNull();
   });
 
-  it("rides on a typed row's job, which has no message to carry it", async () => {
-    const me = await person();
-    const cookie = await signIn(me.id);
-    const res = await app.inject({
-      method: "POST",
-      url: `/v1/threads/${me.defaultThreadId}/quick-add`,
-      headers: { cookie, "x-time-zone": "America/Sao_Paulo" },
-      payload: { text: "call the plumber tomorrow", section: "todo" },
-    });
-    expect(res.statusCode).toBe(200);
-    const job = await db
-      .selectFrom("jobs")
-      .select("payload")
-      .where("kind", "=", "thread.quick_add")
-      .where("account_id", "=", me.id)
-      .executeTakeFirstOrThrow();
-    expect((job.payload as { timeZone: string }).timeZone).toBe("America/Sao_Paulo");
-  });
 });

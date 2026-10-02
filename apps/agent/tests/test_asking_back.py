@@ -13,12 +13,10 @@ from pydantic import ValidationError
 from offload_agent.context import AnswerContext, Thread, Turn, fit_answer
 from offload_agent.harness.plan import (
     MAX_QUESTIONS,
-    QUICK_ADD_TOOLS,
     Judgement,
     build_answer_blocks,
     plan,
     plan_answer,
-    plan_quick_add,
 )
 from offload_agent.harness.tools import ASK_TOOL, FILING_TOOLS, Ask
 from offload_agent.worker import _questions_wire, describe_value, parse_answer
@@ -64,9 +62,8 @@ def test_the_schema_is_values_and_a_title_and_nothing_free():
         )
 
 
-def test_ask_is_neither_a_filing_nor_a_quick_add_tool():
+def test_ask_is_not_a_filing_tool():
     assert "ask" not in FILING_TOOLS
-    assert "ask" not in {t["name"] for t in QUICK_ADD_TOOLS}
     assert ASK_TOOL["name"] == "ask"
 
 
@@ -107,7 +104,7 @@ async def test_two_questions_are_kept_and_the_third_is_refused():
     assert outcome.finished
 
 
-async def test_the_answering_turn_offers_ask_and_quick_add_does_not():
+async def test_the_answering_turn_offers_ask():
     model = StubModel([Response(content=[TextBlock("Two left.")], stop_reason="end_turn")])
     actx = AnswerContext(
         question="what is left",
@@ -116,9 +113,6 @@ async def test_the_answering_turn_offers_ask_and_quick_add_does_not():
     )
     await plan_answer(model, actx, "claude-opus-5", Recorder())
     assert "ask" in [t["name"] for t in model.requests[0]["tools"]]
-
-    assert "ask" not in {t["name"] for t in QUICK_ADD_TOOLS}
-    assert plan_quick_add is not None
 
 
 # ------------------------------------------------------------------ the judge's value
