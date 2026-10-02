@@ -51,7 +51,25 @@ on what it receives.
 is the thing to ask for before GA if the retention window matters to the
 privacy page's wording.
 
-## Google Maps Platform
+## Google Maps Platform (a thread's map, place lookup)
 
-Not switched on. `decisions.md` gates it on reading its terms and adding a
-privacy row of its own; capture them here on that day.
+Captured 2026-10-02 for 030, before the server code was written.
+
+| Page | File | What it establishes |
+|---|---|---|
+| Terms of service | `google-maps/terms-of-service-2026-10-02.html` | Section 4.4(c)(ii): no personal data may be sent to the services. Google's restrictions on caching, scraping and using its content with a non-Google map. |
+| Service specific terms | `google-maps/service-specific-terms-2026-10-02.html` | Place ids may be kept indefinitely; latitude and longitude may be cached for at most 30 consecutive calendar days, then deleted. |
+| Places policies | `google-maps/places-policies-2026-10-02.html` | Attribution, and Places results shown only on a Google map. |
+| Controller-controller data protection terms | `google-maps/controller-terms-2026-10-02.html` | Google receives what the services collect as an independent controller, under its own terms, not as offload's processor. |
+
+**offload's condition, and the waived bar.** Google publishes no term ruling
+out training on what it receives and no short retention, so it does not meet
+the bar the top of this file describes. The owner waived that bar for this one
+company on 2026-10-02, and the privacy page names it as the exception
+(`docs/tech/decisions.md`, *2026-10-03 · A thread's map is Google's, and Google
+acts for itself*). The owner's reading of 4.4(c)(ii): a public place's name,
+sent alone, is not personal data, and `apps/core-api/src/places/query.ts`
+refuses anything that looks like an address, a number, a contact or a person's
+place before a query leaves. What is stored follows the caching terms: the id,
+and coordinates for at most thirty days (`places.age`).
+
