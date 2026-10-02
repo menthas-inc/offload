@@ -21,7 +21,7 @@
 
 ## D. Evals (AC-19)
 - [x] D1 A nightly principle: nothing to learn, a fact, a correction, a pattern on two days, a one-off, a stated rule, a worked-out rule, an injected instruction, a sensitive guess, offload's reply as evidence, notes kept true, proposals on the default thread. Compaction's cases move under it.
-- [ ] D2 Not run: the owner approves a run.
+- [x] D2 Run 2026-10-02: the full set (490 of 515), then the nightly cases on the clearer prompt, Haiku 23 of 26 and Sonnet 5 26 of 26. The owner chose Sonnet 5.
 
 ## E. Docs (AC-20)
 - [ ] E1 On `main`: `context-and-memory.md`, `docs/tech/decisions.md` (allowlist, quick add, label sort), 014, 025 and 028 amendment notes.

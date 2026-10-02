@@ -399,7 +399,15 @@ async def _ask(
         response = await client.messages.create(
             model=model,
             max_tokens=4096,
-            system=[{"type": "text", "text": prompt_for(mode=mode)}],
+            # Cached: the same text for every pass in a night's run, and above
+            # Sonnet's 1,024 token minimum.
+            system=[
+                {
+                    "type": "text",
+                    "text": prompt_for(mode=mode),
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
             messages=messages,
             tools=[
                 {

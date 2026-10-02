@@ -258,3 +258,15 @@ def test_the_worker_runs_the_pass_and_none_of_the_retired_kinds():
     assert "thread.nightly" in KINDS
     for retired in ("notes.compact", "loose.propose", "labels.sort", "thread.quick_add"):
         assert retired not in KINDS
+
+
+async def test_the_pass_runs_on_sonnet_5_and_caches_its_prompt():
+    """The owner's choice on 2026-10-02, from the nightly principles: Haiku 23 of
+    26, Sonnet 5 26 of 26. Sonnet caches from 1,024 tokens and the prompt is
+    above that and the same for every pass in a night's run."""
+    from offload_agent.config import Config
+
+    assert Config.__dataclass_fields__["nightly_model"].default == "claude-sonnet-5"
+    model = StubModel([Response(content=[ToolUse("a", "nightly", plan())])])
+    await nightly._ask(model, Cfg(), "a listing", propose=False)
+    assert model.requests[0]["system"][0]["cache_control"] == {"type": "ephemeral"}

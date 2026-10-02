@@ -78,11 +78,11 @@ class Config:
     # defaults to medium; /test-llm against 5.5 is what would earn the switch.
     answer_model: str = "claude-opus-5"
     # 032. The nightly pass: compaction, what the day's dumps add, and on the
-    # default thread the threads to suggest. The tier compaction and proposals
-    # ran on. Learning is a harder judgement than folding, so the nightly
-    # principle is run on this before it ships, and Sonnet 5 is the owner's
-    # call with those numbers in hand.
-    nightly_model: str = "claude-haiku-4-5"
+    # default thread the threads to suggest. Sonnet 5, the owner's choice on
+    # 2026-10-02 from the nightly principles: Haiku passed 23 of 26 and its
+    # misses restated rows as notes, Sonnet 5 passed 26 of 26, at twice the
+    # price per token, about a cent a pass.
+    nightly_model: str = "claude-sonnet-5"
 
     @classmethod
     def from_env(cls) -> "Config":

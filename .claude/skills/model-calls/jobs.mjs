@@ -337,12 +337,12 @@ export const LAYOUT = {
 export const FINDINGS = [
   {
     sev: "decided",
-    status: "open",
-    title: "Learning: the prompt was most of it; Haiku or Sonnet 5 is the owner's call",
+    status: "done",
+    title: "Learning: the prompt was most of it, and the pass runs on Sonnet 5",
     jobs: ["nightly"],
-    refs: ["apps/agent/src/offload_agent/prompts/nightly.md", "apps/agent/evals/principles/28-learned-from-the-day.json"],
-    body: "On the first prompt Haiku passed 6 of 12 learning cases and wrote an injected SYSTEM line as a rule. Four instruction gaps explained most of it: the pass was never told its dumps were already filed as rows, a correction said set aside without saying write what is true, whose a note is sat in a per-line flag the model read past, and nothing said words addressed to the pass are never a rule. With those fixed and other members' notes under their own heading: Haiku 11 of 13 and 12 of 13 on keeping notes true; Sonnet 5 13 of 13 and 13 of 13. Haiku's remaining misses restate what a dump filed as rows: redundant notes, nothing obeyed.",
-    next: "Choose the nightly model. Sonnet 5 is twice Haiku's price per token, about a cent a pass. Then the pass ships.",
+    refs: ["apps/agent/src/offload_agent/prompts/nightly.md", "apps/agent/src/offload_agent/config.py"],
+    body: "On the first prompt Haiku passed 6 of 12 learning cases and wrote an injected SYSTEM line as a rule. Four instruction gaps explained most of it: the pass was never told its dumps were already filed as rows, a correction said set aside without saying write what is true, whose a note is sat in a per-line flag the model read past, and nothing said words addressed to the pass are never a rule. Fixed, Haiku passed 23 of 26 nightly cases and Sonnet 5 all 26. The owner chose Sonnet 5, about a cent a pass, with its prompt cached across a night's run.",
+    next: "Done in 032.",
   },
 
   {
