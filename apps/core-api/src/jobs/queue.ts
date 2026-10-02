@@ -69,7 +69,15 @@ export type JobKind =
   | "account.digest"
   | "people.notify"
   | "shared.activity"
-  | "push.receipts";
+  | "push.receipts"
+  // 030. A thread's map: a place's coordinates fetched again, the daily
+  // thirty-day sweep, a calendar's locations looked up, the one-off pass over
+  // existing rows, and a link's page read again for a location (the agent's).
+  | "places.refresh"
+  | "places.age"
+  | "event.locate"
+  | "maps.backfill"
+  | "link.place";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
  *  a nightly sweep is stopped from starving something a person is waiting on. */

@@ -1,172 +1,142 @@
-// Turning a place name into a point on a map.
+// Turning a row's place into a point on a map (006, rewritten for 030).
 //
-// **This is the first time anything offload holds leaves for a company that has
-// never seen any of it.** Google Maps Platform receives place names taken out
-// of what people dump. Everything in this file is shaped by that:
+// **Google Maps Platform receives place names taken out of what people dump,
+// and keeps them to improve its own products.** That is in its terms, the
+// product owner accepted it on 2026-10-02, and the privacy page says so by
+// name. Everything in this file is shaped by it:
 //
-// - **Only the name goes.** Never the dump, never a thread name, never a
-//   conversation turn, never an account id, never a forwarded header. The name
-//   was already validated as short and single-line by the tool endpoint, which
-//   is where that claim is enforced rather than requested.
-// - **In a job, never in a turn.** A dump is not held up by a third party, and a
-//   provider that is down produces a location with a name and no pin rather
-//   than a failed answer.
-// - **Two caches, because one does not do what it sounds like.** Caching by the
-//   provider's place id only saves the details lookup once the id is known; the
-//   search that turns a name into an id still runs per distinct phrase. So
-//   there are two, and a repeated place costs no outbound call at either step.
-// - **Neither cache carries an account column and neither may ever gain one.**
-//   They hold what a public geocoder returned. A place row has the sensitivity
-//   of a phone book entry, which is only true while nothing links a row to a
-//   person, so nothing may.
-// - **Ids, outcome and latency in logs. Never the query.** A place name derived
-//   from a dump is content, and the obvious thing to log while debugging a
-//   geocoder is exactly the thing OFF-1 forbids.
+// - **Only what `placeQuery` lets through goes**, and only the query: never the
+//   dump, a thread name, a turn, an account or a header. The filter is the one
+//   gate in front of Google; nothing here decides what may be sent.
+// - **In a job, never in a turn.** A dump is not held up by a third party, and
+//   a provider that is down leaves a row with no point rather than a failed
+//   answer.
+// - **What is kept is what Google's terms allow**: its place id, and the
+//   coordinates and whether the place is an area for at most thirty days. Never
+//   its name, address or categories. The age sweep (`age.ts`) enforces the
+//   thirty days; a place on a map that has lost its coordinates is asked for
+//   again then (`refreshPlace`), so Google is asked about a place only when
+//   somebody looks at it.
+// - **Two caches, neither ever tied to an account.** The query cache is keyed
+//   by a peppered hash, so a copy of it is not a dictionary of places people
+//   mentioned, and a remembered miss expires after thirty days.
+// - **Ids, outcome and latency in logs. Never the query.**
 
-import { createHash } from "node:crypto";
 import { sql } from "kysely";
 import { db } from "../db.js";
 import { env } from "../env.js";
+import { enqueue, PRIORITY } from "../jobs/queue.js";
+import { details, kindOf, searchId } from "./google.js";
+import { placeQuery, queryKey } from "./query.js";
 
-/** Long enough for a slow provider, short enough that a hung request does not
- *  hold a job runner. */
-const TIMEOUT_MS = 8_000;
+export type ResolveOutcome = "hit" | "resolved" | "not_found" | "provider_error" | "skipped";
 
-export type ResolveOutcome =
-  | "hit"
-  | "resolved"
-  | "not_found"
-  | "provider_error"
-  | "skipped";
-
-export interface Place {
-  providerPlaceId: string;
-  name: string;
-  formattedAddress: string | null;
-  lat: number | null;
-  lng: number | null;
+/** A place as Google gave it, in the shape offload keeps. */
+export interface Found {
+  placeId: string;
+  lat: number;
+  lng: number;
+  approximate: boolean;
 }
 
-/** What a geocoder looks like to this module.
- *
- *  A function rather than a class so a test can pass one in, and so this file
- *  makes no network call a test could accidentally let through. */
-export type Geocoder = (query: string) => Promise<Place | null>;
+/** What a geocoder looks like to this module: a function, so a test can pass
+ *  one in and this file makes no network call a test could let through. */
+export type Geocoder = (query: string, key: string) => Promise<Found | null>;
 
-/** The normalised form of a query, and the only thing derived from it that is
- *  stored.
- *
- *  Hashed rather than kept, so `place_lookups` does not become a plaintext list
- *  of every place anybody has ever mentioned. Lowercased and whitespace
- *  collapsed first, so "Time Out Market" and "time out  market" are one entry
- *  rather than two lookups and two outbound calls. */
-export function queryHash(name: string): string {
-  const normalised = name.trim().toLowerCase().replace(/\s+/g, " ");
-  return createHash("sha256").update(normalised).digest("hex");
+/** Whether the map is on, and what it needs. Read from the environment by
+ *  default; a test passes its own. Boot refuses `MAPS=on` without the key and
+ *  the pepper (`mapsConfigProblem`). */
+export interface MapsConfig {
+  on: boolean;
+  key: string;
+  pepper: string;
 }
 
-/** Google Places Text Search.
- *
- *  The real one, behind the `Geocoder` type so nothing else in the codebase
- *  reaches for `fetch` with a place name in it. */
-export const googleGeocoder: Geocoder = async (query) => {
-  const key = env.GOOGLE_MAPS_API_KEY;
-  if (!key) return null;
+export function mapsConfig(): MapsConfig {
+  return {
+    on: env.MAPS === "on",
+    key: env.GOOGLE_MAPS_API_KEY ?? "",
+    pepper: env.PLACE_HASH_PEPPER ?? "",
+  };
+}
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+/** A remembered miss is asked again after this long, so a provider that was
+ *  down, or a place that opened since, is not refused forever. */
+const MISS_DAYS = 30;
 
-  try {
-    const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "X-Goog-Api-Key": key,
-        // A field mask, so the response carries the four things a pin needs and
-        // nothing else. Not an optimisation: asking for less is the difference
-        // between receiving a place and receiving a dossier about one.
-        "X-Goog-FieldMask":
-          "places.id,places.displayName,places.formattedAddress,places.location",
-      },
-      // The query and nothing else. No account, no session, no language or
-      // region hint derived from a person, no bias toward where they are.
-      body: JSON.stringify({ textQuery: query, maxResultCount: 1 }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) throw new Error(`places ${response.status}`);
-
-    const body = (await response.json()) as {
-      places?: {
-        id: string;
-        displayName?: { text?: string };
-        formattedAddress?: string;
-        location?: { latitude?: number; longitude?: number };
-      }[];
-    };
-
-    const first = body.places?.[0];
-    if (!first) return null;
-
-    return {
-      providerPlaceId: first.id,
-      name: first.displayName?.text ?? query,
-      formattedAddress: first.formattedAddress ?? null,
-      lat: first.location?.latitude ?? null,
-      lng: first.location?.longitude ?? null,
-    };
-  } finally {
-    clearTimeout(timer);
-  }
+/** Google, in its two cheap steps: the id, then the coordinates and kind. A
+ *  country or a region is too coarse to draw and counts as not found. */
+export const googleGeocoder: Geocoder = async (query, key) => {
+  const placeId = await searchId(query, key);
+  if (!placeId) return null;
+  const place = await details(placeId, key);
+  if (!place) return null;
+  const kind = kindOf(place.types);
+  if (kind === "coarse") return null;
+  return { placeId, lat: place.lat, lng: place.lng, approximate: kind === "area" };
 };
 
-/** Resolve one piece of content's place, if it has one and has not got one.
+/** The words a row is looked up by: a saved place's name, or an event's or a
+ *  link's location. Anything else has none. */
+function queryOf(row: { type: string; title: string; location: string | null }): string | null {
+  if (row.type === "location") return row.title;
+  if (row.type === "event" || row.type === "link") return row.location;
+  return null;
+}
+
+/** Look up one row's place, if it has one and has not got one.
  *
- *  Returns what happened, for the log line and for the tests. Never throws on a
- *  provider problem: an unresolved location is a normal, permanent state and
- *  the row is already safe.
- */
+ *  Returns what happened, for the log line and for the tests. Never throws on
+ *  a provider problem: a row with no point is a normal, permanent state. */
 export async function resolvePlace(
   contentId: string,
   geocode: Geocoder = googleGeocoder,
+  config: MapsConfig = mapsConfig(),
 ): Promise<ResolveOutcome> {
+  if (!config.on) return "skipped";
+
   const row = await db
     .selectFrom("content")
-    .select(["id", "title", "type", "place_id"])
+    .select(["id", "type", "title", "location", "place_id"])
     .where("id", "=", contentId)
     .where("deleted_at", "is", null)
     .executeTakeFirst();
+  // Undone content lands here too, which is right: a lookup for a row somebody
+  // just took back would be a call on their behalf after they said no.
+  if (!row || row.place_id !== null) return "skipped";
 
-  // Anything but a location that still wants a pin is nothing to do. Undone
-  // content lands here too, which is right: geocoding a row somebody has just
-  // taken back would be an outbound call on their behalf after they said no.
-  if (!row || row.type !== "location" || row.place_id !== null) return "skipped";
+  const raw = queryOf(row);
+  if (raw === null) return "skipped";
+  const query = placeQuery(raw);
+  if (query === null) return "skipped";
 
-  const hash = queryHash(row.title);
-
-  // First cache: has this phrase been looked up before, by anybody. A row with
-  // a null place_id is a remembered miss, so an unresolvable name is not
-  // retried on every dump forever.
+  const hash = queryKey(query, config.pepper);
   const known = await db
     .selectFrom("place_lookups")
-    .select("place_id")
-    .where("query_hash", "=", hash)
+    .leftJoin("places", "places.id", "place_lookups.place_id")
+    .select(["place_lookups.place_id as placeId", "place_lookups.looked_up_at as lookedUpAt", "places.lat as lat"])
+    .where("place_lookups.query_hash", "=", hash)
     .executeTakeFirst();
 
   if (known) {
-    if (known.place_id) {
-      await attach(contentId, known.place_id);
+    if (known.placeId) {
+      if (!(await attach(contentId, known.placeId, row.type, raw))) return "skipped";
+      // Kept past thirty days without coordinates: asked again, once a day at
+      // most, and drawn when they arrive.
+      if (known.lat === null) await bookRefresh(known.placeId);
       return "hit";
     }
-    return "not_found";
+    if (known.lookedUpAt.getTime() > Date.now() - MISS_DAYS * 86_400_000) return "not_found";
+    await db.deleteFrom("place_lookups").where("query_hash", "=", hash).execute();
   }
 
-  let found: Place | null;
+  let found: Found | null;
   try {
-    found = await geocode(row.title);
+    found = await geocode(query, config.key);
   } catch {
-    // The error is not even inspected. A provider error can quote the request,
-    // and the request is the place name.
+    // Not even inspected: a provider error can quote the request, and the
+    // request is a place name. And not remembered as a miss, since the place
+    // may well exist.
     return "provider_error";
   }
 
@@ -179,49 +149,64 @@ export async function resolvePlace(
     return "not_found";
   }
 
-  const place = found;
-
-  // Second cache: the place itself, by the provider's id, so two phrasings of
-  // one place share a row.
-  const placeId = await db.transaction().execute(async (trx) => {
-    await trx
-      .insertInto("places")
-      .values({
-        provider: "google",
-        provider_place_id: place.providerPlaceId,
-        lat: place.lat,
-        lng: place.lng,
-        coords_at: sql`now()`,
-      })
-      .onConflict((oc) => oc.columns(["provider", "provider_place_id"]).doNothing())
-      .execute();
-
-    const existing = await trx
-      .selectFrom("places")
-      .select("id")
-      .where("provider", "=", "google")
-      .where("provider_place_id", "=", place.providerPlaceId)
-      .executeTakeFirstOrThrow();
-
-    await trx
-      .insertInto("place_lookups")
-      .values({ query_hash: hash, place_id: existing.id })
-      .onConflict((oc) => oc.column("query_hash").doNothing())
-      .execute();
-
-    return existing.id;
-  });
-
-  await attach(contentId, placeId);
+  const placeId = await keep(found);
+  await db
+    .insertInto("place_lookups")
+    .values({ query_hash: hash, place_id: placeId })
+    .onConflict((oc) => oc.column("query_hash").doNothing())
+    .execute();
+  if (!(await attach(contentId, placeId, row.type, raw))) return "skipped";
   return "resolved";
 }
 
-async function attach(contentId: string, placeId: string): Promise<void> {
-  await db
+/** Keep what Google gave, by its id: two phrasings of one place share a row,
+ *  and the coordinates and their age are brought up to date. */
+export async function keep(found: Found): Promise<string> {
+  const kept = await db
+    .insertInto("places")
+    .values({
+      provider: "google",
+      provider_place_id: found.placeId,
+      lat: found.lat,
+      lng: found.lng,
+      approximate: found.approximate,
+      coords_at: sql`now()`,
+    })
+    .onConflict((oc) =>
+      oc.columns(["provider", "provider_place_id"]).doUpdateSet({
+        lat: found.lat,
+        lng: found.lng,
+        approximate: found.approximate,
+        coords_at: sql`now()`,
+      }),
+    )
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  return kept.id;
+}
+
+/** Attach a place to a row, only if it still wants one **and** still says what
+ *  was looked up. A rename or an edit that overtook the lookup has booked its
+ *  own, and this one must not put the old place on it. */
+async function attach(contentId: string, placeId: string, type: string, raw: string): Promise<boolean> {
+  const column = type === "location" ? "title" : "location";
+  const result = await db
     .updateTable("content")
     .set({ place_id: placeId, updated_at: sql`now()` })
     .where("id", "=", contentId)
-    // Only if it still wants one, so two jobs for one row cannot fight.
     .where("place_id", "is", null)
-    .execute();
+    .where(column, "=", raw)
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows) > 0;
+}
+
+/** Book a place's coordinates to be fetched again, once a day at most. */
+export async function bookRefresh(placeId: string): Promise<void> {
+  const day = new Date().toISOString().slice(0, 10);
+  await enqueue({
+    kind: "places.refresh",
+    payload: { placeId },
+    priority: PRIORITY.background,
+    idempotencyKey: `places.refresh:${placeId}:${day}`,
+  });
 }
