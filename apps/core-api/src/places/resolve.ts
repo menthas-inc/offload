@@ -210,3 +210,70 @@ export async function bookRefresh(placeId: string): Promise<void> {
     idempotencyKey: `places.refresh:${placeId}:${day}`,
   });
 }
+
+/** A point a page's own metadata gave, kept as the page's: never sent to
+ *  Google, never aged, keyed on its coordinates rounded to five places (about
+ *  a metre) so two links to one spot share a row. Refused unless it is a real
+ *  place on Earth; `0,0` is the commonest default a page publishes by mistake. */
+export async function attachPagePoint(contentId: string, lat: number, lng: number): Promise<boolean> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+  if (lat === 0 && lng === 0) return false;
+  const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+  const kept = await db
+    .insertInto("places")
+    .values({ provider: "page", provider_place_id: key, lat, lng, approximate: false, coords_at: sql`now()` })
+    .onConflict((oc) => oc.columns(["provider", "provider_place_id"]).doUpdateSet({ provider_place_id: key }))
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  const result = await db
+    .updateTable("content")
+    .set({ place_id: kept.id, updated_at: sql`now()` })
+    .where("id", "=", contentId)
+    .where("place_id", "is", null)
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows) > 0;
+}
+
+/** Fetch a Google place's coordinates again, once its thirty days have passed
+ *  and a map wants it. Only while something live still points at it, so a
+ *  place nobody has any more is not asked about. */
+export async function refreshPlace(
+  placeId: string,
+  fetchDetails: (googleId: string) => Promise<{ lat: number; lng: number; types: string[] } | null> = (id) =>
+    details(id, mapsConfig().key),
+  config: MapsConfig = mapsConfig(),
+): Promise<"refreshed" | "skipped" | "not_found" | "provider_error"> {
+  if (!config.on) return "skipped";
+  const place = await db
+    .selectFrom("places")
+    .select(["id", "provider_place_id", "lat"])
+    .where("id", "=", placeId)
+    .where("provider", "=", "google")
+    .where(({ exists, selectFrom, or }) =>
+      or([
+        exists(selectFrom("content").select("content.id").whereRef("content.place_id", "=", "places.id").where("content.deleted_at", "is", null)),
+        exists(
+          selectFrom("connector_events")
+            .select("connector_events.id")
+            .whereRef("connector_events.place_id", "=", "places.id")
+            .where("connector_events.deleted_at", "is", null),
+        ),
+      ]),
+    )
+    .executeTakeFirst();
+  if (!place || place.lat !== null) return "skipped";
+  let fresh: { lat: number; lng: number; types: string[] } | null;
+  try {
+    fresh = await fetchDetails(place.provider_place_id);
+  } catch {
+    return "provider_error";
+  }
+  if (!fresh) return "not_found";
+  await db
+    .updateTable("places")
+    .set({ lat: fresh.lat, lng: fresh.lng, approximate: kindOf(fresh.types) === "area", coords_at: sql`now()` })
+    .where("id", "=", place.id)
+    .execute();
+  return "refreshed";
+}

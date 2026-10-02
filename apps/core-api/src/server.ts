@@ -48,6 +48,9 @@ await startDaily("calendar.supervise");
 await startDaily("jobs.purge");
 await startDaily("account.daily");
 await startDaily("blob.daily");
+// 030. Google's thirty days on place coordinates, and the Undo records
+// nothing can use any more. SQL only; it asks Google nothing.
+await startDaily("places.age");
 await startDaily("people.daily");
 // 024. The hourly placer of the two digests.
 await startHourly("digest.schedule");

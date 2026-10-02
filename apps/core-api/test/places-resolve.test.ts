@@ -12,7 +12,9 @@ import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
 import { mapsConfigProblem } from "../src/env.js";
 import { placeQuery, queryKey } from "../src/places/query.js";
-import { googleGeocoder, resolvePlace, type Geocoder, type MapsConfig } from "../src/places/resolve.js";
+import { attachPagePoint, googleGeocoder, refreshPlace, resolvePlace, type Geocoder, type MapsConfig } from "../src/places/resolve.js";
+import { agePlaces } from "../src/places/age.js";
+import { handlers } from "../src/jobs/handlers.js";
 import { reverseGeocodingOn } from "../src/places/reverse.js";
 
 await migrate(() => {});
@@ -233,5 +235,115 @@ describe("googleGeocoder (AC-3, AC-7)", () => {
   it("gives nothing for a country", async () => {
     google("country");
     expect(await googleGeocoder("Portugal", ON.key)).toBeNull();
+  });
+});
+
+describe("a point a page gave (T1.5, AC-2)", () => {
+  it("attaches the page's coordinates as a page place, keyed on five decimals", async () => {
+    const link = await row("link", "Casa Alfama on Airbnb");
+    expect(await attachPagePoint(link, 38.711301234, -9.130109876)).toBe(true);
+    const place = await db.selectFrom("places").selectAll().executeTakeFirstOrThrow();
+    expect(place).toMatchObject({ provider: "page", provider_place_id: "38.71130,-9.13011", lat: 38.711301234, lng: -9.130109876, approximate: false });
+    expect(await placeOf(link)).toBe(place.id);
+  });
+
+  it("shares one place between two links at the same rounded point", async () => {
+    const a = await row("link", "A");
+    const b = await row("link", "B");
+    await attachPagePoint(a, 38.7113, -9.1301);
+    await attachPagePoint(b, 38.711300004, -9.130100004);
+    expect(await db.selectFrom("places").selectAll().execute()).toHaveLength(1);
+  });
+
+  it("refuses coordinates that are not a place on Earth", async () => {
+    const link = await row("link", "A");
+    for (const [lat, lng] of [[0, 0], [Number.NaN, 1], [1e999, 1], [91, 0], [0, 181], [-91, 0]] as const) {
+      expect(await attachPagePoint(link, lat, lng)).toBe(false);
+    }
+    expect(await db.selectFrom("places").selectAll().execute()).toHaveLength(0);
+  });
+});
+
+describe("the thirty days (T1.6, AC-10)", () => {
+  async function aged(daysOld: number, live = true) {
+    const id = await row("location", "Time Out Market");
+    await resolvePlace(id, stub(market).geocode, ON);
+    await db.updateTable("places").set({ coords_at: sql`now() - make_interval(days => ${daysOld})` }).execute();
+    if (!live) await db.updateTable("content").set({ deleted_at: new Date(), purge_after: new Date() }).where("id", "=", id).execute();
+    return (await db.selectFrom("places").select("id").executeTakeFirstOrThrow()).id;
+  }
+
+  it("fetches a place's coordinates again when something live points at it", async () => {
+    const placeId = await aged(31);
+    await db.updateTable("places").set({ lat: null, lng: null, approximate: null, coords_at: null }).execute();
+    const calls: string[] = [];
+    const fetchDetails = async (id: string) => {
+      calls.push(id);
+      return { lat: 38.7, lng: -9.1, types: ["restaurant"] };
+    };
+    expect(await refreshPlace(placeId, fetchDetails, ON)).toBe("refreshed");
+    expect(calls).toEqual(["ChIJ_market"]);
+    expect(await db.selectFrom("places").select(["lat", "approximate"]).executeTakeFirstOrThrow()).toEqual({ lat: 38.7, approximate: false });
+  });
+
+  it("asks nothing about a place nothing live points at", async () => {
+    const placeId = await aged(31, false);
+    await db.updateTable("places").set({ lat: null, lng: null, coords_at: null }).execute();
+    const calls: string[] = [];
+    expect(await refreshPlace(placeId, async (id) => (calls.push(id), null), ON)).toBe("skipped");
+    expect(calls).toEqual([]);
+  });
+
+  it("drops coordinates and the area mark past thirty days, asking Google nothing", async () => {
+    await aged(31);
+    const called = vi.fn();
+    vi.stubGlobal("fetch", called);
+    const swept = await agePlaces();
+    expect(called).not.toHaveBeenCalled();
+    expect(swept.aged).toBe(1);
+    expect(await db.selectFrom("places").select(["lat", "lng", "approximate", "coords_at", "provider_place_id"]).executeTakeFirstOrThrow())
+      .toEqual({ lat: null, lng: null, approximate: null, coords_at: null, provider_place_id: "ChIJ_market" });
+  });
+
+  it("keeps coordinates younger than thirty days, and never touches a page place", async () => {
+    await aged(29);
+    const link = await row("link", "A");
+    await attachPagePoint(link, 38.7113, -9.1301);
+    await db.updateTable("places").set({ coords_at: sql`now() - interval '400 days'` }).where("provider", "=", "page").execute();
+    await agePlaces();
+    const left = await db.selectFrom("places").select(["provider", "lat"]).orderBy("provider").execute();
+    expect(left.map((p) => p.lat !== null)).toEqual([true, true]);
+  });
+
+  it("deletes a place nothing live points at, with its lookups", async () => {
+    await aged(5, false);
+    const swept = await agePlaces();
+    expect(swept.dropped).toBe(1);
+    expect(await db.selectFrom("places").selectAll().execute()).toHaveLength(0);
+    expect(await db.selectFrom("place_lookups").selectAll().execute()).toHaveLength(0);
+  });
+
+  it("clears an Undo record no Undo can use any more", async () => {
+    const id = await row("event", "Dinner", "Time Out Market");
+    await db
+      .updateTable("content")
+      .set({ place_prior: JSON.stringify({ messageId: "m" }), place_prior_at: sql`now() - interval '26 hours'` })
+      .where("id", "=", id)
+      .execute();
+    await agePlaces();
+    expect(await db.selectFrom("content").select(["place_prior", "place_prior_at"]).where("id", "=", id).executeTakeFirstOrThrow())
+      .toEqual({ place_prior: null, place_prior_at: null });
+  });
+});
+
+describe("the jobs (T1.6)", () => {
+  it("runs the sweep daily and arms tomorrow's before the work", async () => {
+    await handlers["places.age"]!({}, {} as never, null);
+    const next = await db.selectFrom("jobs").select(["kind", "idempotency_key"]).execute();
+    expect(next.map((j) => j.kind)).toEqual(["places.age"]);
+  });
+
+  it("refreshes a place by id, with nothing else in the payload", async () => {
+    expect(typeof handlers["places.refresh"]).toBe("function");
   });
 });
