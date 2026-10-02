@@ -94,7 +94,7 @@ describe("the job runner the server builds", () => {
     // What the previous version of this test was really guarding, kept now that
     // an unowned kind is skipped quietly rather than failed loudly: a kind
     // nobody drains would sit queued forever and nothing would say so.
-    const enqueued = ["email.waitlist_joined", "email.invited", "dump.answer"];
+    const enqueued = ["email.waitlist_joined", "email.invited", "dump.answer", "thread.nightly"];
     const owned = new Set<string>([...Object.keys(handlers), ...MODEL_KINDS]);
     expect(enqueued.filter((k) => !owned.has(k))).toEqual([]);
   });

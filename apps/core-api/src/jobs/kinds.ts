@@ -13,4 +13,4 @@
 
 /** Kinds the Python worker claims. Mirrored in apps/agent, and the test below
  *  this file's consumers is what keeps the two honest. */
-export const MODEL_KINDS = ["dump.answer"] as const;
+export const MODEL_KINDS = ["dump.answer", "thread.nightly"] as const;
