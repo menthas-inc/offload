@@ -35,6 +35,33 @@ const NOT_A_COUNTRY = new Set([
   "ZZ", // "Unknown Region"
 ]);
 
+/** Codes ICU still names that ISO 3166-1 has retired or never assigned, each
+ *  beside a current code with the same name.
+ *
+ *  **Offered, they put a country in the list twice or three times**: Serbia as
+ *  CS, RS and YU, Russia as RU and SU, the United Kingdom as GB and UK. Somebody
+ *  picking the second Serbia stored a code nothing else in the product uses. The
+ *  current code is kept; `0068_retired_country_codes.sql` moved any stored one
+ *  to it. */
+const RETIRED = new Set([
+  "AN", // Netherlands Antilles; ICU names it Curaçao, CW
+  "BU", // Burma, now MM
+  "CS", // Serbia and Montenegro, now RS
+  "DD", // East Germany, now DE
+  "DY", // Dahomey, now BJ
+  "FX", // Metropolitan France, now FR
+  "HV", // Upper Volta, now BF
+  "NH", // New Hebrides, now VU
+  "RH", // Rhodesia, now ZW
+  "SU", // the USSR, now RU
+  "TP", // East Timor, now TL
+  "UK", // reserved for the United Kingdom, which is GB
+  "VD", // North Vietnam, now VN
+  "YD", // South Yemen, now YE
+  "YU", // Yugoslavia, now RS
+  "ZR", // Zaire, now CD
+]);
+
 function build(): Country[] {
   const names = new Intl.DisplayNames(["en"], { type: "region" });
   const out: Country[] = [];
@@ -45,7 +72,7 @@ function build(): Country[] {
       const name = names.of(code);
       // `of` echoes the input back for a code it does not know, which is how a
       // reserved or user-assigned pair is told from a real one.
-      if (name && name !== code && !NOT_A_COUNTRY.has(code)) out.push({ code, name });
+      if (name && name !== code && !NOT_A_COUNTRY.has(code) && !RETIRED.has(code)) out.push({ code, name });
     }
   }
 
