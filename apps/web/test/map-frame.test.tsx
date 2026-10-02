@@ -24,10 +24,12 @@ const reads = vi.hoisted(() => ({
   count: 0,
   answer: { points: [] as unknown[], pending: 0 } as { points: unknown[]; pending: number } | null,
   wait: null as Promise<{ points: unknown[]; pending: number }> | null,
+  throws: false,
 }));
 vi.mock("../src/lib/threads", () => ({
   fetchPoints: async () => {
     reads.count += 1;
+    if (reads.throws) throw new TypeError("Failed to fetch");
     return reads.wait ? await reads.wait : reads.answer;
   },
 }));
@@ -60,6 +62,7 @@ beforeEach(() => {
   reads.count = 0;
   reads.answer = { points: [], pending: 0 };
   reads.wait = null;
+  reads.throws = false;
   me.maps = true;
   window.localStorage.clear();
 });
@@ -239,6 +242,20 @@ describe("the points read", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("treats a request that never reached the server as a failed read", async () => {
+    reads.throws = true;
+    let failed = false;
+    function Probe() {
+      const map = useThreadMap({ threadId: "t1", hasPoint: true, version: 0 });
+      failed = map.failed;
+      return <MapFrame state={map} map={() => <StubMap />}><div /></MapFrame>;
+    }
+    await render(<Probe />);
+    await width(1200);
+    expect(failed).toBe(true);
+    expect(host.querySelector("[data-map-loading]")).toBeNull();
   });
 
   it("hands a failed read to the map, which says so", async () => {

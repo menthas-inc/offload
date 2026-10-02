@@ -172,13 +172,28 @@ function Drawn({
 
   // The opening fit, once a mount, to every point: never closer than street
   // level, and never again for a point that arrives while the map is open.
+  // Applied again on the map's first idle, once the map knows how it draws
+  // (seen in the browser check, T4.8).
   useEffect(() => {
     if (!map || fitted.current || points.length === 0) return;
-    const div = map.getDiv() as HTMLElement;
-    const fit = fitBounds(points, { width: div.offsetWidth || 460, height: div.offsetHeight || 600 }, PADDING);
-    map.moveCamera({ center: fit.center, zoom: fit.zoom });
-    onFit(fit.zoom);
+    const fitNow = (): void => {
+      const div = map.getDiv() as HTMLElement;
+      const fit = fitBounds(points, { width: div.offsetWidth || 460, height: div.offsetHeight || 600 }, PADDING);
+      map.moveCamera({ center: fit.center, zoom: fit.zoom });
+      // A map drawing raster, which a browser without WebGL gets, takes whole
+      // zoom steps only, and rounding in would put the outer points off the
+      // edge: step out to the whole zoom below instead.
+      const applied = map.getZoom();
+      const zoom = applied !== undefined && applied > fit.zoom + 0.01 ? Math.floor(fit.zoom) : fit.zoom;
+      if (zoom !== fit.zoom) map.moveCamera({ zoom });
+      onFit(zoom);
+    };
+    fitNow();
     fitted.current = true;
+    const once = map.addListener("idle", () => {
+      once.remove();
+      fitNow();
+    });
   }, [map, points, onFit]);
 
   // A picked point's callout is kept inside the frame: the map moves just

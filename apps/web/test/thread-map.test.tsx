@@ -9,14 +9,29 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Point } from "../src/lib/threads";
 
 const made = vi.hoisted(() => ({ maps: 0, schemes: [] as string[], onError: null as null | ((e: unknown) => void) }));
-const camera = vi.hoisted(() => ({ moveCamera: vi.fn(), panBy: vi.fn() }));
+const camera = vi.hoisted(() => ({
+  moveCamera: vi.fn(),
+  panBy: vi.fn(),
+  idle: [] as (() => void)[],
+  // What the map makes of a requested zoom: as asked, or rounded to a whole
+  // step as a raster map does.
+  round: false,
+  zoom: 14,
+}));
 
 vi.mock("@vis.gl/react-google-maps", async () => {
   const React = await import("react");
   const fakeMap = {
-    moveCamera: camera.moveCamera,
+    moveCamera: (options: { zoom?: number }) => {
+      camera.moveCamera(options);
+      if (options.zoom !== undefined) camera.zoom = camera.round ? Math.round(options.zoom) : options.zoom;
+    },
     panBy: camera.panBy,
-    getZoom: () => 14,
+    addListener: (name: string, fn: () => void) => {
+      if (name === "idle") camera.idle.push(fn);
+      return { remove: () => (camera.idle = camera.idle.filter((f) => f !== fn)) };
+    },
+    getZoom: () => camera.zoom,
     getCenter: () => ({ lat: () => 38.71, lng: () => -9.14 }),
     getDiv: () => ({ offsetWidth: 460, offsetHeight: 600 }),
   };
@@ -161,6 +176,34 @@ describe("one map, made once (AC-21, AC-30)", () => {
     expect(made.schemes).toEqual(["FOLLOW_SYSTEM"]);
     await render(base({ theme: "dark" }));
     expect(made.schemes).toEqual(["FOLLOW_SYSTEM", "DARK"]);
+  });
+});
+
+describe("the opening fit (AC-19)", () => {
+  it("steps out to the whole zoom below when the map rounds a fractional one in", async () => {
+    camera.moveCamera.mockClear();
+    camera.round = true;
+    try {
+      await render(base());
+      const zooms = camera.moveCamera.mock.calls.map((c) => c[0].zoom).filter((z) => z !== undefined);
+      expect(zooms).toHaveLength(2);
+      expect(zooms[1]).toBe(Math.floor(zooms[0]));
+    } finally {
+      camera.round = false;
+    }
+  });
+
+  it("fits again once the map is first idle, since a map still loading its style rounds the zoom", async () => {
+    camera.moveCamera.mockClear();
+    camera.idle = [];
+    await render(base());
+    expect(camera.moveCamera).toHaveBeenCalledTimes(1);
+    const first = camera.moveCamera.mock.calls[0]![0];
+    await act(async () => camera.idle.forEach((f) => f()));
+    expect(camera.moveCamera).toHaveBeenCalledTimes(2);
+    expect(camera.moveCamera.mock.calls[1]![0]).toEqual(first);
+    await act(async () => camera.idle.forEach((f) => f()));
+    expect(camera.moveCamera).toHaveBeenCalledTimes(2);
   });
 });
 

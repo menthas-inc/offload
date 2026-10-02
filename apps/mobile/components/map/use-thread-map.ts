@@ -77,7 +77,8 @@ export function useThreadMap({ threadId, hasPoint, version }: { threadId: string
     let live = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const read = async (again: boolean): Promise<void> => {
-      const got = await fetchPoints(threadId);
+      // A request that never reached the server is a failed read too.
+      const got = await fetchPoints(threadId).catch(() => null);
       if (!live) return;
       if (!got) {
         setFailed(true);
