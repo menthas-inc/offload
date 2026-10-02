@@ -2,6 +2,7 @@
 
 **Status:** drafted 2026-09-18, revised the same day after review
 **Surfaces:** web, iOS, Android, and the agent plane
+**Amended by 030 (2026-10-03):** a picked calendar's events show where they are to everyone in the thread, and their location is looked up to put them on the thread's map; the pick sheet says so. Picks made before the map count as consented to this with the policy's consent version moving. See `docs/specs/030-maps/`.
 **Amended by 031 (2026-10-02):** Connected apps draws a Google Calendar card with Calendars offload can use and Ask before adding on it; Connect there goes straight to Google. On the web the per-account list and Disconnect move from the Connected apps pane to `/settings/apps/calendar`.
 **Depends on:** 012, whose connector this reshapes; 018, whose control asks which calendar; 015, whose rail shows a thread's days
 **Design:** `handoff/APPLY-2026-09-17-calendars.md`, decided item by item off `explorations/calendars-options.html`, and the 17 September entry in the design log

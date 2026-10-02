@@ -1,5 +1,7 @@
 # 007 Widgets and grouping, feature spec
 
+> **Amended 2026-10-03 by 030:** the map widget is retired. A thread with a point gets a List | Map switch (a column beside the list on a wide web pane) drawn by Google Maps; `WIDGET_KINDS` is `todo` and `files`, and a stored `map` reads as though it were not there. See `docs/specs/030-maps/`.
+
 > **Amended 2026-09-27 by 025:** grouping and the in-widget filter are retired. A widget is one flat list; `groupBy` is gone from the preference and from `set_thread_preference`; AC-4 to AC-6 no longer hold. Labels group a thread, `docs/specs/025-labels/`.
 
 > The what and the why. No tech choices; those are in `impl-spec.md`.
