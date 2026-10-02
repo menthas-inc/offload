@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const revoked: string[] = [];
 let revokedOthers = 0;
 let listFails = false;
+let noSession = false;
 let sessions: { token: string; userAgent: string | null; createdAt: string }[] = [];
 
 vi.mock("expo-secure-store", () => ({
@@ -29,7 +30,7 @@ vi.mock("better-auth/react", () => ({
         ? Promise.resolve({ data: null, error: { status: 500, message: "down" } })
         : Promise.resolve({ data: sessions, error: null }),
     getSession: () =>
-      Promise.resolve({
+      noSession ? Promise.resolve({ data: null, error: { status: 500, message: "down" } }) : Promise.resolve({
         data: { session: { token: "here", userAgent: "okhttp/4.12.0", createdAt: "2026-09-20T10:00:00Z" } },
         error: null,
       }),
@@ -53,6 +54,7 @@ beforeEach(() => {
   revoked.length = 0;
   revokedOthers = 0;
   listFails = false;
+  noSession = false;
   sessions = [
     { token: "old", userAgent: "Mozilla/5.0 (Windows NT 10.0) Chrome/128.0 Safari/537.36", createdAt: "2026-09-01T10:00:00Z" },
     { token: "here", userAgent: "okhttp/4.12.0", createdAt: "2026-09-20T10:00:00Z" },
@@ -74,6 +76,11 @@ describe("the list", () => {
 
   it("throws when the read fails, so nobody is told there is nothing", async () => {
     listFails = true;
+    await expect(listSignedIn()).rejects.toThrow();
+  });
+
+  it("throws when this session cannot be told apart, so it is never offered an End", async () => {
+    noSession = true;
     await expect(listSignedIn()).rejects.toThrow();
   });
 

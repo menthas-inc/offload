@@ -61,6 +61,16 @@ export function AccountPane() {
   }, []);
   useEffect(loadOthers, [loadOthers]);
 
+  // A refused End keeps its row and says so, with the same End beside it: a
+  // security control that did not run must not look like one that did.
+  const [endFailed, setEndFailed] = useState<string | null>(null);
+  async function end(token: string | "others") {
+    setEndFailed(null);
+    const ok = token === "others" ? await endOthers() : await endSignedIn(token);
+    if (ok) loadOthers();
+    else setEndFailed(token);
+  }
+
   const [leaving, setLeaving] = useState(false);
   const [leaveFailed, setLeaveFailed] = useState(false);
   async function leave(): Promise<void> {
@@ -152,14 +162,22 @@ export function AccountPane() {
               note={`Since ${since.format(row.since)}`}
               pill="End"
               actionLabel={`End the session on ${row.device}`}
-              onClick={() => void endSignedIn(row.token).then(loadOthers)}
+              onClick={() => void end(row.token)}
             />
           ))}
           {listed.length > 0 ? (
-            <Row title="End all other sessions" strong last onClick={() => void endOthers().then(loadOthers)} />
+            <Row title="End all other sessions" strong last onClick={() => void end("others")} />
           ) : null}
           {Array.isArray(others) && others.length === 0 ? (
             <Row title="Nowhere else" note="Sign in on another device and it shows here." last />
+          ) : null}
+          {endFailed ? (
+            <p className={pane.settingsFailLine} role="alert">
+              That didn&apos;t go through.
+              <button type="button" className={pane.settingsRetry} onClick={() => void end(endFailed)}>
+                Try again
+              </button>
+            </p>
           ) : null}
           {others === "failed" ? (
             <p className={pane.settingsFailLine} role="alert">

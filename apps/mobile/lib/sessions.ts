@@ -31,8 +31,10 @@ export async function thisDevice(): Promise<SignedIn | null> {
  *  failure is never drawn as an empty list. */
 export async function listSignedIn(): Promise<SignedIn[]> {
   const [listed, current] = await Promise.all([authClient.listSessions(), authClient.getSession()]);
-  if (listed.error || !listed.data) throw new Error("sessions unread");
   const mine = current.data?.session?.token ?? null;
+  // Also when this phone's own session cannot be told apart from the rest:
+  // listed among the others it would carry an End that signs this phone out.
+  if (listed.error || !listed.data || !mine) throw new Error("sessions unread");
   return listed.data
     .filter((session) => session.token !== mine)
     .map((session) => ({

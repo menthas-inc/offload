@@ -136,6 +136,8 @@ export default function Welcome({ replay = false }: { replay?: boolean } = {}) {
   // seen and a consent they have already given.
   const nameOnly = !replay && me !== null && !me.needsFirstRun;
   const lastScreen = replay && step === TUTORIAL.length - 1;
+  // Back to Help, or to Help when a deep link opened it with nothing behind.
+  const close = () => (router.canGoBack() ? router.back() : router.replace("/settings/help"));
   // Whether a calendar screen still comes after the consent. It decides one
   // word: the tutorial's flow does not end at consent when it does.
   const offers = offersFor({
@@ -215,7 +217,7 @@ export default function Welcome({ replay = false }: { replay?: boolean } = {}) {
                   // prevent. The web has always done this correctly; only the phones
                   // regressed, and the comment at the top of this file already said
                   // what the code was supposed to do.
-                  onPress={() => (replay ? router.back() : setStep(TUTORIAL.length))}
+                  onPress={() => (replay ? close() : setStep(TUTORIAL.length))}
                   className="min-h-tap-min justify-center"
                 >
                   <Text
@@ -340,7 +342,7 @@ export default function Welcome({ replay = false }: { replay?: boolean } = {}) {
                   : consenting || nameOnly
                     ? void finish(!nameOnly)
                     : lastScreen
-                      ? router.back()
+                      ? close()
                       : setStep(step + 1)
               }
               disabled={blocked && !offering}

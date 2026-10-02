@@ -220,8 +220,8 @@ function ConnectField({ step }: { step: ReturnType<typeof useConnectionStep> }) 
           autoCorrect={false}
           autoCapitalize="none"
           keyboardType="email-address"
-          textContentType="emailAddress"
-          autoComplete="email"
+          // Somebody else's address, so the OS does not offer this person's own.
+          autoComplete="off"
           returnKeyType="search"
           placeholder="Their email address"
           placeholderTextColor={COLOR.tabOff}

@@ -28,6 +28,7 @@ let listFails = false;
 let listReads = 0;
 const revoked: string[] = [];
 let revokedOthers = 0;
+let revokeRefused = false;
 let signedOut = 0;
 
 vi.mock("better-auth/react", () => ({
@@ -39,11 +40,13 @@ vi.mock("better-auth/react", () => ({
     getSession: () =>
       Promise.resolve({ data: { session: { token: "here", userAgent: HERE_UA, createdAt: "2026-09-20T10:00:00Z" } }, error: null }),
     revokeSession: ({ token }: { token: string }) => {
+      if (revokeRefused) return Promise.resolve({ data: null, error: { status: 500, message: "down" } });
       revoked.push(token);
       sessions = sessions.filter((s) => s.token !== token);
       return Promise.resolve({ data: { status: true }, error: null });
     },
     revokeOtherSessions: () => {
+      if (revokeRefused) return Promise.resolve({ data: null, error: { status: 500, message: "down" } });
       revokedOthers += 1;
       sessions = sessions.filter((s) => s.token === "here");
       return Promise.resolve({ data: { status: true }, error: null });
@@ -91,6 +94,7 @@ beforeEach(() => {
   listReads = 0;
   revoked.length = 0;
   revokedOthers = 0;
+  revokeRefused = false;
   signedOut = 0;
   providers = ["google"];
   router.replace.mockClear();
@@ -195,5 +199,22 @@ describe("Signed in on (AC-5)", () => {
     expect(listReads).toBe(reads + 1);
     expect(section(host, "Signed in on").textContent).toContain("Chrome on Windows");
     expect(section(host, "Signed in on").textContent).not.toContain("Couldn't load");
+  });
+
+  it("a refused End says so beside Try again, rather than nothing (security review)", async () => {
+    sessions = [OLD, HERE];
+    revokeRefused = true;
+    const host = await render();
+    await act(async () => section(host, "Signed in on").querySelector<HTMLButtonElement>('[aria-label="End the session on Chrome on Windows"]')!.click());
+    for (let i = 0; i < 3; i += 1) await act(async () => new Promise((r) => setTimeout(r, 0)));
+    const text = section(host, "Signed in on").textContent ?? "";
+    expect(text).toContain("Chrome on Windows");
+    expect(text).toContain("That didn't go through.");
+
+    revokeRefused = false;
+    await act(async () => button(section(host, "Signed in on"), "Try again").click());
+    for (let i = 0; i < 3; i += 1) await act(async () => new Promise((r) => setTimeout(r, 0)));
+    expect(revoked).toEqual(["old"]);
+    expect(section(host, "Signed in on").textContent).not.toContain("That didn't go through.");
   });
 });
