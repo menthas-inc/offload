@@ -30,6 +30,7 @@ feature is inert until credentials exist.
 - [x] **C5** Never writes a `messages` row, and a test says so. `AC-15`
 - [x] **C6** The next tick is enqueued before the work runs, with a per-tick idempotency key, and a daily supervisor re-enqueues any active connection with no sync pending. `AC-10`
 - [x] **C7** A nightly full-window pass, because the delta is not trusted to carry every removal. `AC-10`
+- [x] **C7a** The delta reconciles every series it touches against `events.instances`, and a series cancelled whole retires its occurrences by `series_ref`, so a series cut short or deleted in Google leaves on the quarter-hour. `AC-10`
 - [x] **C8** `is_shared` forced back to true whenever Google says the role is no longer owner. `AC-5a`
 - [x] **C9** `jobs` gains a purge: `done` and `dead` older than thirty days, in the existing sweep.
 

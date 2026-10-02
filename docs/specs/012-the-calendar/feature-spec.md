@@ -237,6 +237,14 @@ split belonged to the old series and now belong to a new one, and both are insid
 the window. Reconciliation is by `source_ref` against what Google returns for the
 window, so a row whose event no longer exists is retired rather than orphaned.
 
+The same is true of a series cut short **in Google**, and there the delta cannot
+be trusted to say so: "delete this and following" moves the series' end and may
+report nothing about the occurrences it dropped. So a delta that touches a
+series asks Google for that series' occurrences in the window, once per series,
+and retires the rows it no longer holds. A whole series deleted can arrive as
+the series itself cancelled, and retires every occurrence carrying it. Both
+reach offload on the quarter-hour, not the nightly pass.
+
 ### The tool
 
 `AC-9`. Five: list your calendars, find events, create, edit, delete. Structured
