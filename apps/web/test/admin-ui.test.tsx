@@ -158,6 +158,19 @@ describe("the table", () => {
     expect((cells[1] as HTMLElement).style.textAlign).toBe("right");
   });
 
+  // Seen in a browser: ten fixed columns left the open one no width at 1280,
+  // and at phone width a name ran down the page a letter at a time.
+  it("keeps room for the open column, so a narrow page scrolls the table instead of crushing it", async () => {
+    const host = await render(
+      <ui.Table cols={cols}>
+        <ui.Row cols={cols} cells={["Jo Alves", "$4.20"]} last />
+      </ui.Table>,
+    );
+    const rows = host.querySelectorAll('[role="row"]');
+    expect(rows).toHaveLength(2);
+    for (const row of rows) expect(parseInt((row as HTMLElement).style.minWidth, 10)).toBeGreaterThanOrEqual(96 + 140);
+  });
+
   it("makes a row a link without wrapping its buttons in one", async () => {
     const host = await render(
       <ui.Table cols={cols}>

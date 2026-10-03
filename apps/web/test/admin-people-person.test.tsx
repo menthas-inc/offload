@@ -325,7 +325,7 @@ describe("a person's page", () => {
     api({ timeline: (path) => (path.includes("cursor=c2") ? { rows: [job("j9", { kind: "account.digest" })], nextCursor: null } : path.includes("failed=1") ? { rows: [TIMELINE.rows[1]], nextCursor: null } : TIMELINE) });
     const host = await open();
     const section = host.querySelector('[data-section="happened"]')!;
-    expect([...section.querySelectorAll('[role="columnheader"]')].map((one) => one.textContent)).toEqual(["When", "Kind", "State", "Attempts", "Took", "Model", "Tokens", "Cost", "Code", ""]);
+    expect([...section.querySelectorAll('[role="columnheader"]')].map((one) => one.textContent)).toEqual(["When", "Kind", "State", "Attempts", "Took", "Model", "Cost", ""]);
     const rows = [...section.querySelectorAll('[role="row"]')].slice(1);
     expect(rows).toHaveLength(3);
     // What the job cost, from the ledger rows that name it: models, tokens in and out, spend.

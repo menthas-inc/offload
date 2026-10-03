@@ -59,9 +59,9 @@ interface Dead {
 
 const SCHEDULED_COLS: Col[] = [
   { label: "Job" },
-  { label: "Schedule", w: 130 },
-  { label: "Last run", w: 190 },
-  { label: "Next run", w: 170 },
+  { label: "Schedule", w: 110 },
+  { label: "Last run", w: 170 },
+  { label: "Next run", w: 120 },
   { label: "Runs", w: 60, right: true },
   { label: "Failures", w: 70, right: true },
   { label: "", w: 84, right: true },

@@ -160,17 +160,17 @@ const LIMIT_COLS: Col[] = [
   { label: "", w: 130, right: true },
 ];
 
+// Eight columns, not ten: the code sits under the kind and the tokens under
+// the model, so the kind keeps a width at 1280.
 const JOB_COLS: Col[] = [
-  { label: "When", w: 130 },
+  { label: "When", w: 120 },
   { label: "Kind" },
-  { label: "State", w: 92 },
-  { label: "Attempts", w: 76, right: true },
-  { label: "Took", w: 80, right: true },
-  { label: "Model", w: 170 },
-  { label: "Tokens", w: 150, right: true },
-  { label: "Cost", w: 80, right: true },
-  { label: "Code", w: 150 },
-  { label: "", w: 96, right: true },
+  { label: "State", w: 84 },
+  { label: "Attempts", w: 70, right: true },
+  { label: "Took", w: 64, right: true },
+  { label: "Model", w: 190 },
+  { label: "Cost", w: 72, right: true },
+  { label: "", w: 72, right: true },
 ];
 
 const HIT_COLS: Col[] = [
@@ -497,16 +497,20 @@ export default function PersonPage() {
                     <span key="at" className={styles.quiet}>
                       {moment(job.at)}
                     </span>,
-                    job.kind,
+                    <span key="kind">
+                      {job.kind}
+                      {job.errorCode ? <span className={styles.note}>{job.errorCode}</span> : null}
+                    </span>,
                     <StatusPill key="state" value={job.state} />,
                     job.attempts,
                     job.durationMs === null ? null : `${(job.durationMs / 1000).toFixed(1)}s`,
                     <span key="model" className={styles.quiet}>
                       {job.model}
+                      {job.tokensIn === null || job.tokensOut === null ? null : (
+                        <span className={styles.note}>{`${count(job.tokensIn)} in, ${count(job.tokensOut)} out`}</span>
+                      )}
                     </span>,
-                    job.tokensIn === null || job.tokensOut === null ? null : `${count(job.tokensIn)} in, ${count(job.tokensOut)} out`,
                     job.costMicros === null ? null : dollars(job.costMicros),
-                    job.errorCode,
                     job.canRetry ? (
                       <button key="retry" type="button" className={styles.small} onClick={() => void retry(job)} disabled={busy}>
                         Retry

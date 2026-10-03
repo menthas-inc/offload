@@ -7,6 +7,11 @@
 -- code can read a null and never write one.
 --
 -- `turn_sources` keeps its cascade: an address a person's turn read is theirs.
+--
+-- Adding the key back checks every row while it blocks writes to the table.
+-- The migrator runs a file in one transaction, so `not valid` then `validate`
+-- would hold the same lock. At alpha row counts the check is milliseconds; a
+-- table in the millions wants this split across two migrations.
 alter table llm_usage drop constraint llm_usage_account_id_fkey;
 alter table llm_usage alter column account_id drop not null;
 alter table llm_usage

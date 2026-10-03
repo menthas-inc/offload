@@ -21,10 +21,19 @@ function cellStyle(col: Col): React.CSSProperties {
   };
 }
 
+/** The least a row can be: its fixed columns, room for each open one, and
+ *  the gaps. Below that the table scrolls sideways rather than crushing the
+ *  open column to nothing. */
+const OPEN = 140;
+const GAP = 16;
+function rowWidth(cols: Col[]): React.CSSProperties {
+  return { minWidth: cols.reduce((sum, col) => sum + (col.w ?? OPEN), 0) + GAP * (cols.length + 1) };
+}
+
 export function Table({ cols, children }: { cols: Col[]; children: React.ReactNode }) {
   return (
     <div className={styles.table} role="table">
-      <div className={styles.thead} role="row">
+      <div className={styles.thead} role="row" style={rowWidth(cols)}>
         {cols.map((col, index) => (
           <span key={index} role="columnheader" style={cellStyle(col)}>
             {col.label}
@@ -58,7 +67,7 @@ function rowClass(last?: boolean, muted?: boolean, link?: boolean): string {
 
 export function Row({ cols, cells, last, muted }: RowProps) {
   return (
-    <div className={rowClass(last, muted)} role="row">
+    <div className={rowClass(last, muted)} role="row" style={rowWidth(cols)}>
       {cellsOf(cols, cells)}
     </div>
   );
@@ -69,7 +78,7 @@ export function Row({ cols, cells, last, muted }: RowProps) {
  *  they sit above the link and act without opening it. */
 export function RowLink({ cols, cells, last, muted, href, label }: RowProps & { href: string; label: string }) {
   return (
-    <div className={rowClass(last, muted, true)} role="row">
+    <div className={rowClass(last, muted, true)} role="row" style={rowWidth(cols)}>
       {cellsOf(cols, cells, (cell) => (
         <Link href={href} className={styles.rowAnchor} aria-label={label}>
           {cell}
