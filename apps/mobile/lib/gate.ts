@@ -88,7 +88,6 @@ export const CONNECT_STEP = {
     ],
   ] as const,
   connect: "Connect Google Calendar",
-  notNow: "Not now",
 } as const;
 
 /** 026. Forwarding email to offload: the address, the card that adds it to
@@ -112,35 +111,7 @@ export function mailLines(email: string): [string, string][] {
   ];
 }
 
-/** First run's Mail step, in the calendar step's shape. */
-export function mailStep(email: string) {
-  return {
-    title: "Forward what matters",
-    facts: [
-      ["mail", "Send it an email.", `Forward anything to ${MAIL_ADDRESS} and it's filed.`],
-      ["lock", "Only from your address.", `Mail from ${email} is the only mail it accepts.`],
-    ] as [string, string, string][],
-    button: "Add to contacts",
-  };
-}
-
-export type Offer = "mail" | "calendar";
-
-/** The optional steps after first run, in order. Mail comes first: connecting
- *  a calendar ends first run on the calendar page, so nothing after it would
- *  ever be seen by somebody who connects. An Apple hidden email is not offered
- *  Mail, which could not work for it. */
-export function offersFor(account: { mailAvailable: boolean; calendarOffer: boolean }): Offer[] {
-  return [...(account.mailAvailable ? (["mail"] as const) : []), ...(account.calendarOffer ? (["calendar"] as const) : [])];
-}
-
-/** The dots over an offer: the tutorial plus the offers this account is
- *  shown, never a constant, with the current offer's dot the bar. */
-export function dotsFor(offers: Offer[], current: Offer): { steps: number; active: number } {
-  return { steps: TUTORIAL.length + offers.length, active: TUTORIAL.length + offers.indexOf(current) };
-}
-
-/** The fifth screen of first run, which asks the one thing it needs.
+/** The name, on Before you start and on its own for the name-only path.
  *
  *  Here with the rest of the gate copy for the reason at the top of this file:
  *  the screen forks by platform and the words must not. */
@@ -150,7 +121,7 @@ export const NAME_STEP = {
   placeholder: "Your name",
 } as const;
 
-/** The fifth screen of first run, which is the one that asks for consent.
+/** The consent, on Before you start.
  *
  *  Two ticks and not one. A single "I agree to the privacy policy" is bundled
  *  consent, which is treated as no consent at all, and the second of these is
@@ -161,8 +132,6 @@ export const NAME_STEP = {
  *  Kept here with the rest of the gate copy so the two platforms cannot drift.
  *  The web app repeats it in its own welcome screen; the three have to match. */
 export const CONSENT = {
-  title: "Before you start",
-  sub: "offload holds what you put in it, so it is worth knowing what that means before you put anything in.",
   policyBefore: "I have read the ",
   policyLink: "privacy policy",
   policyAfter: ".",
@@ -173,43 +142,102 @@ export const CONSENT = {
   note: "We do not recommend sharing passwords, card numbers or government IDs in any AI tool.",
 } as const;
 
-export const TUTORIAL = [
+/** 033. The intro: one screen, three scenes that play themselves. Each title
+ *  and line is read as one live announcement, so they are written to stand
+ *  alone. The web repeats them in `components/firstrun/copy.ts`. */
+export const INTRO = [
   {
-    title: "Dump anything",
-    sub: "Half a thought, a photo, a voice note. No folders, no tidying.",
-    art: "bubbles",
+    title: "offload keeps track for you",
+    line: "Dump what you would otherwise forget. offload remembers it and puts it in order.",
   },
   {
-    title: "offload sorts it",
-    sub: "Related bits end up together, with the dates and the money attached.",
-    art: "threads",
+    title: "Everything lands in threads",
+    line: "What belongs together gathers in one thread. Share it, and plan it with the people in it.",
   },
   {
-    title: "It only interrupts when it matters",
-    sub: "Deadlines and answers you are waiting on. Nothing else.",
-    art: "notification",
+    title: "Send it any way",
+    line: "Type it, say it, snap a photo, or forward the email.",
   },
 ] as const;
 
-export const DUMPS = [
-  "Ana can only travel the 14th to the 17th",
-  "€214 for the flights",
-  "matte black, 30cm",
-  "dentist after the 20th",
+/** Scene one's loose dumps and which of the two threads each is filed in. */
+export const INTRO_DUMPS = [
+  ["Ana can only travel the 14th to the 17th", 0],
+  ["matte black, 30cm", 1],
+  ["€214 for the flights", 0],
+  ["4 more shelf brackets", 1],
 ] as const;
 
-/** Threads with a count, for the tutorial's second screen.
- *
- *  The count carries no unit. It used to read "4 things", and "thing" is not a
- *  word the product says any more: it named the unit vaguely on a screen whose
- *  whole job is to show that you never have to name anything. A bare number
- *  beside a thread is unambiguous in context and says less, which is the
- *  point. */
-export const THREADS = [
-  ["lasso", "Lisbon trip", "4"],
-  ["bookmark", "Bookshelf build", "2"],
-  ["cloudy", "Read later", "23"],
+/** The two threads, with the count they start at. The count carries no unit:
+ *  a bare number beside a thread is unambiguous and names nothing. */
+export const INTRO_THREADS = [
+  ["lasso", "Lisbon trip", 2],
+  ["bookmark", "Bookshelf build", 1],
 ] as const;
+
+/** Scene two, a shared thread. */
+export const INTRO_SHARED = {
+  thread: "Lisbon trip",
+  rows: [
+    ["calendar", "Alfama flat, 14 to 17 Oct"],
+    ["tag", "Flights, €214"],
+    ["text-quote", "Ana can only travel the 14th to the 17th"],
+  ],
+  people: [
+    ["Jo Martins", "JM"],
+    ["Ana Duarte", "AD"],
+    ["Tom Reis", "TR"],
+  ],
+  shared: "Shared with Ana and Tom",
+  addedBy: "Tom",
+  added: "added Pastéis de Belém",
+} as const;
+
+/** Scene three, any way in. */
+export const INTRO_WAYS = {
+  photo: "Photo",
+  voice: "Voice note, 0:12",
+  email: ["Email", "Fwd: Your booking is confirmed", "Alfama, 14 to 17 Oct"],
+  link: ["Link", "airbnb.com/rooms/4471", "Read and filed"],
+  filed: "All four filed in Lisbon trip",
+} as const;
+
+/** 033. Before you start: the name and the consent, the only two things first
+ *  run asks. The consent's own words are `CONSENT`, below. */
+export const BEFORE = {
+  title: "Before you start",
+  name: "What should we call you?",
+  agree: "What you are agreeing to",
+  next: "Continue",
+} as const;
+
+/** 033. Bring it all in: optional, after the account is active. The design
+ *  says *Bring things in*; *thing* is a retired word (owner, 2026-10-03). */
+export const BRING = {
+  title: "Bring it all in",
+  lead: "All optional. Each one is in Settings if you would rather wait.",
+  mail: {
+    title: "Forward emails to offload",
+    line: (email: string) => [`Send anything to `, MAIL_ADDRESS, ` from ${email} and it is filed.`] as const,
+    copy: "Copy address",
+    copied: "Copied",
+    contacts: "Add to contacts",
+  },
+  calendar: {
+    title: "Bring in your calendar",
+    connect: "Connect Google Calendar",
+    connected: "Connected",
+  },
+  notifications: {
+    title: "Hear about what is due",
+    line: "We will reach you at the right time with the right reminders and information.",
+    allow: "Allow notifications",
+    allowed: "Allowed",
+    settings: "Open settings",
+  },
+  skip: "Skip for now",
+  done: "Done",
+} as const;
 
 /** Day one on Today. Real sentences from one trip and one build, not "Buy
  *  milk": the point is to show what a dump looks like, and a placeholder

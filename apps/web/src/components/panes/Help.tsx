@@ -28,7 +28,7 @@ export function HelpPane() {
 
       <div className={pane.paneBody}>
         <Group label="Learn" icon="compass">
-          <Row title="See the tutorial again" note="The three screens from your first day." href="/tutorial" last />
+          <Row title="See the tutorial again" note="The intro from your first day." href="/tutorial" last />
         </Group>
         <Group label="About" icon="text-quote">
           <Row title="Privacy policy" href="/privacy" external last />

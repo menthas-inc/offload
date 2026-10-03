@@ -1,0 +1,466 @@
+/* 033. First run on the web: the intro, Before you start and Bring it all in.
+   Measurements from explorations/onboarding-v2.html; colours are tokens. */
+
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--surface-page);
+}
+
+.top { height: 72px; display: flex; align-items: center; padding: 0 44px; flex: none; }
+
+/* ------------------------------------------------------------- footer */
+
+.foot { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.footStart { justify-content: flex-start; }
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 50px;
+  padding: 0 28px;
+  border: none;
+  border-radius: var(--radius-pill);
+  font: var(--weight-medium) 16px/1 var(--font-core);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.main { background: var(--surface-inverse); color: var(--text-inverse); }
+.main:hover { background: var(--ink-800); color: var(--text-inverse); }
+.main:disabled { background: var(--state-disabled-surface); color: var(--state-disabled-text); cursor: default; }
+.skip { background: var(--surface-fill-strong); color: var(--text-primary); }
+.skip:hover { background: var(--state-hover); color: var(--text-primary); }
+
+/* ------------------------------------------------------------- intro */
+
+.story {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 64px;
+  padding: 0 64px 56px;
+  align-items: center;
+}
+
+.artSide { position: relative; height: 100%; max-height: 580px; display: flex; align-items: center; }
+
+/* The prism blooms behind the art and nowhere else. */
+.bloom {
+  position: absolute;
+  inset: -6%;
+  background: url("/prism/bloom.webp") center / contain no-repeat;
+  opacity: 0.75;
+  pointer-events: none;
+}
+/* The bloom was drawn for paper. On a dark page it reads as a stain at the
+   same strength, so it steps back. */
+:global([data-theme="dark"]) .bloom { opacity: 0.3; }
+
+.art {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  height: 480px;
+  margin: 0 auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.art:focus-visible { outline: none; box-shadow: var(--shadow-focus); border-radius: var(--radius-lg); }
+
+.words { display: flex; flex-direction: column; gap: 28px; max-width: 470px; }
+
+.bars { display: flex; gap: 6px; }
+.bar {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  /* Ink at 10%, which flips with the theme where black would vanish in dark. */
+  background: color-mix(in srgb, var(--ink-950) 10%, transparent);
+  overflow: hidden;
+}
+.barFill { display: block; height: 100%; width: 0; background: var(--ink-950); border-radius: var(--radius-pill); }
+.barDone { width: 100%; }
+.barNow { animation: fill 9600ms linear both; }
+.barStill { width: 100%; }
+.paused .barNow { animation-play-state: paused; }
+@keyframes fill { from { width: 0; } to { width: 100%; } }
+
+.copy { min-height: 250px; }
+.scene { animation: copyIn 600ms var(--ease-out) both; }
+@keyframes copyIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.introTitle {
+  margin: 0;
+  font: var(--weight-semibold) 52px/1.08 var(--font-core);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  color: var(--text-primary);
+}
+.introLine {
+  margin: 14px 0 0;
+  font: var(--weight-regular) 20px/1.45 var(--font-core);
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+/* ------------------------------------------------------------- art */
+
+.sceneArt { position: relative; width: 100%; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+
+.go .enter { animation: pop 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .popIn { animation: popIn 700ms cubic-bezier(0.3, 1.5, 0.5, 1) both; }
+@keyframes pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
+
+.dump {
+  align-self: flex-start;
+  max-width: 84%;
+  display: flex;
+  transition: transform 1100ms cubic-bezier(0.5, 0, 0.3, 1), opacity 1100ms ease-in;
+}
+.dumpRight { align-self: flex-end; }
+.filed { transform: translate(var(--dx), var(--dy)) scale(0.25); opacity: 0; }
+.gone { visibility: hidden; }
+
+.bubble {
+  padding: 12px 16px;
+  border-radius: 20px;
+  background: var(--surface-raised);
+  /* A border, not an inset shadow: `--shadow-1` is none in dark, and none
+     inside a shadow list drops the whole declaration. */
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-1);
+  font: var(--weight-regular) 16px/1.3 var(--font-core);
+  color: var(--text-primary);
+}
+
+.thread {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface-raised);
+  /* A border, not an inset shadow: `--shadow-1` is none in dark, and none
+     inside a shadow list drops the whole declaration. */
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-1);
+  transition: box-shadow 400ms, transform 400ms;
+}
+.threadFirst { margin-top: 14px; }
+.hit { border-color: var(--ink-950); box-shadow: inset 0 0 0 0.5px var(--ink-950), var(--shadow-2); transform: scale(1.03); }
+.threadName { flex: 1; font: var(--weight-semibold) 17px/1.2 var(--font-core); color: var(--text-primary); }
+.count {
+  font: var(--weight-medium) 14px/1 var(--font-core);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  transition: color 300ms;
+}
+.hit .count { color: var(--text-primary); }
+
+.well {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--surface-fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--icon-on-well);
+  flex: none;
+}
+
+.card {
+  border-radius: 20px;
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-hairline), var(--shadow-2);
+  padding: 6px 0 4px;
+  overflow: hidden;
+}
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid var(--border-hairline);
+}
+.cardTitle { flex: 1; font: var(--weight-semibold) 19px/1.2 var(--font-core); color: var(--text-primary); }
+.people { display: flex; }
+.people > * + * { margin-left: -8px; }
+.person {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-on-solid);
+  font: var(--weight-semibold) 11px/1 var(--font-core);
+  box-shadow: 0 0 0 2px var(--surface-raised);
+  flex: none;
+}
+.personSmall { width: 20px; height: 20px; font-size: 8px; box-shadow: none; }
+.label1 { background: var(--label-1); }
+.label2 { background: var(--label-2); }
+.label6 { background: var(--label-6); }
+
+.cardRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  font: var(--weight-regular) 15.5px/1.3 var(--font-core);
+  color: var(--text-primary);
+}
+.cardRow + .cardRow { border-top: 1px solid var(--border-hairline); }
+.cardRow > span:first-child { color: var(--icon-on-well); display: flex; }
+.cardRowNew { background: var(--surface-accent-soft); }
+.cardRowNew b { font-weight: var(--weight-semibold); }
+
+.pill {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 14px;
+  margin-top: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  font: var(--weight-medium) 14px/1 var(--font-core);
+}
+.pillFiled {
+  min-height: 38px;
+  padding: 0 16px;
+  margin-top: 8px;
+  background: var(--surface-accent-soft);
+  color: var(--text-accent);
+  font-size: 15px;
+}
+
+.ways { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.way {
+  border-radius: 16px;
+  background: var(--surface-raised);
+  /* A border, not an inset shadow: `--shadow-1` is none in dark, and none
+     inside a shadow list drops the whole declaration. */
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-1);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wayLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 4px;
+  font: var(--weight-medium) 13px/1 var(--font-core);
+  color: var(--text-secondary);
+}
+.photo {
+  height: 88px;
+  border-radius: 10px;
+  background: var(--surface-accent-soft);
+  color: var(--moss-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wave {
+  height: 88px;
+  border-radius: 10px;
+  background: var(--surface-fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.waveBar { display: block; width: 3px; border-radius: 2px; background: var(--icon-on-well); }
+.go .waveBar { animation: breathe 2s ease-in-out infinite alternate; }
+.go .waveBar:nth-child(3n) { animation-delay: 300ms; }
+.go .waveBar:nth-child(3n + 1) { animation-delay: 600ms; }
+@keyframes breathe { to { transform: scaleY(0.4); } }
+.note {
+  height: 88px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--surface-fill);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.noteHead { font: var(--weight-semibold) 13.5px/1.25 var(--font-core); color: var(--text-primary); }
+.noteLine { font: var(--weight-regular) 12.5px/1.3 var(--font-core); color: var(--text-secondary); }
+
+/* ------------------------------------------------------------- asking screens */
+
+.column { flex: 1; width: 560px; max-width: calc(100% - 32px); margin: 0 auto; display: flex; flex-direction: column; padding: 12px 0 48px; }
+.columnWide { width: 640px; }
+.body { flex: 1; padding: 12px 0 24px; }
+
+.title {
+  margin: 0;
+  font: var(--weight-semibold) 44px/1.08 var(--font-core);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  color: var(--text-primary);
+}
+.lead { margin: 12px 0 0; font: var(--weight-regular) 17px/1.45 var(--font-core); color: var(--text-secondary); text-wrap: pretty; }
+.block { margin-top: 28px; }
+.head { margin: 0 0 12px; font: var(--weight-semibold) 18px/1.25 var(--font-core); color: var(--text-primary); }
+
+.field {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 54px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 14px;
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1.5px var(--border-strong);
+  font: var(--weight-regular) 18px/1 var(--font-core);
+  color: var(--text-primary);
+}
+.field::placeholder { color: var(--text-tertiary); }
+.field:focus { outline: none; box-shadow: inset 0 0 0 2px var(--ink-950), var(--shadow-focus); }
+.hint { margin: 8px 2px 0; font: var(--weight-regular) 14px/1.4 var(--font-core); color: var(--text-secondary); }
+
+.tick {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 12px 0;
+  font: var(--weight-regular) 16px/1.45 var(--font-core);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.tick + .tick { border-top: 1px solid var(--border-hairline); }
+.tickInput { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.tickBox {
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  flex: none;
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 1.5px var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tickInput:checked + .tickBox { background: var(--ink-950); box-shadow: none; }
+.tickInput:focus-visible + .tickBox { box-shadow: inset 0 0 0 1.5px var(--border-strong), var(--shadow-focus); }
+.tickLink { color: var(--text-accent); font-weight: var(--weight-medium); text-decoration: underline; text-underline-offset: 2px; }
+
+.notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface-attention-soft);
+  color: var(--text-on-attention);
+  font: var(--weight-regular) 14.5px/1.4 var(--font-core);
+}
+.notice > span:first-child { margin-top: 2px; display: flex; }
+
+.refusal { margin: 0 0 12px; text-align: right; font: var(--text-body-sm-role); color: var(--text-on-attention); }
+
+.offers { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 24px; }
+.offer {
+  border-radius: 18px;
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  padding: 16px;
+}
+.offerHead { display: flex; gap: 14px; align-items: flex-start; }
+.offerText { flex: 1; min-width: 0; }
+.offerTitle { display: block; font: var(--weight-semibold) 17px/1.25 var(--font-core); color: var(--text-primary); }
+.offerLine { display: block; margin-top: 4px; font: var(--weight-regular) 14.5px/1.4 var(--font-core); color: var(--text-secondary); }
+.address { color: var(--text-primary); font-weight: var(--weight-medium); }
+.mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.markMail { background: var(--surface-accent-soft); color: var(--moss-700); }
+.offerButtons { display: flex; gap: 8px; margin-top: 14px; }
+.offerButton {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  min-height: 38px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--text-primary);
+  font: var(--weight-medium) 14px/1 var(--font-core);
+  text-decoration: none;
+  cursor: pointer;
+}
+.offerButton:hover { background: var(--state-hover); color: var(--text-primary); }
+.offerButtonMain { background: var(--surface-inverse); color: var(--text-inverse); box-shadow: none; }
+.offerButtonMain:hover { background: var(--ink-800); color: var(--text-inverse); }
+.connected {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-accent-soft);
+  color: var(--text-accent);
+  font: var(--weight-medium) 13.5px/1 var(--font-core);
+}
+.connected::before { content: ""; width: 6px; height: 6px; border-radius: var(--radius-pill); background: currentColor; }
+
+/* ------------------------------------------------------------- narrow */
+
+/* A phone-width browser takes the phones' shape: art over words, and the
+   footer's buttons full width, the main one wider. */
+@media (max-width: 900px) {
+  .top { height: 56px; padding: 0 16px; }
+  .story { grid-template-columns: 1fr; gap: 16px; padding: 0 16px 16px; align-items: start; }
+  .artSide { max-height: none; }
+  .art { height: 340px; }
+  .words { gap: 16px; max-width: none; }
+  .introTitle { font-size: 34px; }
+  .introLine { font-size: 18px; }
+  .copy { min-height: 160px; }
+  .title { font-size: 34px; }
+  .foot { flex-wrap: nowrap; }
+  .foot .button { flex: 1.5; padding: 0 12px; }
+  .foot .skip { flex: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .go .enter, .go .popIn, .go .waveBar, .barNow, .scene { animation: none; }
+  .dump, .thread { transition: none; }
+}

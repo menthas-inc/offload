@@ -29,6 +29,18 @@ describe("with INTERNAL_HOST set", () => {
     expect(response.statusCode).toBe(404);
   });
 
+  it("does not admit one spelled with an encoded letter either", async () => {
+    // The router decodes the segment and reaches the route; the raw URL does
+    // not start with /internal/, which is what the check used to read.
+    const response = await app.inject({
+      method: "POST",
+      url: "/%69nternal/v1/turn-step",
+      headers: { host: "api.offload.club", authorization: "Bearer nothing", "content-type": "application/json" },
+      payload: { jobId: "00000000-0000-7000-8000-000000000000", text: "hi" },
+    });
+    expect(response.statusCode).toBe(404);
+  });
+
   it("admits it by the private name, where the token then decides", async () => {
     const response = await app.inject({
       method: "POST",

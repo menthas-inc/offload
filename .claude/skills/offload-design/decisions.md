@@ -11,6 +11,45 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-03 · First run, as built (033)
+**Surface:** iOS, Android, web
+**Raised by:** code, building *First run is three screens* in 033 (`docs/specs/033-first-run/`), with the owner's answers of the same day and the project, client and security reviews.
+
+**Was:** the 2026-10-03 entry and `explorations/onboarding-v2.html` as drawn.
+
+**Is:** built as drawn, with these differences, code leading:
+- **No *thing* in the copy** (owner): intro line 1 *Dump what you would otherwise forget. offload remembers it and puts it in order.*, line 2 *What belongs together gathers in one thread. Share it, and plan it with the people in it.*, and the screen title **Bring it all in**. The notifications card's line gains a full stop.
+- **The story bar's track is `--ink-950` at 10%**, which flips with the theme; black at 10% vanished on a dark page.
+- **Pills are `--text-accent` on `--surface-accent-soft`** (*Connected*, *Allowed*, *All four filed in Lisbon trip*), since `--moss-700` there measured 3.81:1 in dark (031). The phones reuse 031's `StatusPill` for *Connected* and *Allowed*.
+- **The name field rings on focus**, not on having text: the exploration's filled ring is a mock of focus, and a focus ring is never removed.
+- **The intro's people are flat circles on `--label-1/2/6`**, not `Avatar`, which would fetch the mark of an account that does not exist. The photo tile is `--surface-accent-soft` with `image` in `--moss-700`, not the raw gradient; the waveform's bars are `--icon-on-well`.
+- **Android:** cards and rows `a-c-low`, wells `a-c-high`, every outline `--border-strong`, as 031 mapped them. The thread rows ring blue only on a hit.
+- **Reduced motion and screen readers:** nothing advances on its own and each scene draws its end state, scene one filed with counts 4 and 3. **The web pauses while hovered or focused within** (owner), since it cannot tell whether a screen reader is running.
+- **The web copy fades in** rather than cross-fading; the phones cross-fade.
+- **The web's Copy address confirms in a status line under the card**, *Copied*, since first run's pages have no toast host. The phones toast.
+- **Bring it all in is its own web page, `/welcome/bring`**, which the calendar's connect returns to on every surface.
+- **The consent boxes are 24px at radius 7 on iOS and the web**, larger than `Checkbox`'s 20 at 6, for first run only, as the handoff asks.
+- **The name field is 54 tall at radius 14 on iOS and the web** (Android 4), with 18px text, against the 52 and `rounded-md` Settings keeps: `NameField` takes `large` for first run.
+- **The phones' art carries no `--shadow-1`**, which is near invisible on paper and has no phone value; the hairline does the work. The scene-two card takes `--shadow-2` on iOS and Material's tonal ground on Android.
+- **The web's card buttons keep their drawn 38px**, as 031 decided for the web's pointer controls; the phones reach 44 by hit slop.
+- ***Connected* and *Allowed* on the phones are 031's 24px status pill**; the web draws the exploration's 30px pill.
+
+**Design system impact:** readme **First run**: the reworded copy and title, the focus ring, `--text-accent` pills, the bar track, the web pause and `/welcome/bring`. `Checkbox`: a first-run size, 24px at radius 7 on iOS and the web, Android 20 at radius 3 (or keep 20 at 6 everywhere and log back). The name field: a first-run size, 54 at radius 14 (Android radius 4), 18px text. The status pill: one size across the three surfaces, 24 or 30, to decide. The kits' first-run screens are still superseded by the exploration; when they are redrawn, draw them as built here.
+
+### 2026-10-03 · First run is three screens
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, off `explorations/onboarding.html` and `explorations/onboarding-v2.html`. Handoff: `handoff/APPLY-2026-10-03-onboarding.md`.
+
+**Was:** seven screens after sign in: three still tutorial screens, the name, the consent, the notification dialog, Forward what matters, Bring in your calendar, ending on the Calendar page for anyone who connected. Copy under the illustrations at `title-1` and 16px. `GateBackdrop` behind every step with no veil, including the consent's `body-sm` paragraph. Skip and Not now as 15px labels top right, the main action a full-width button at the bottom.
+
+**Is:** **an animated intro** (three scenes: offload keeps track, threads you share, any way in) with **one button, Continue**, since the scenes advance themselves and Next beside Skip intro read as two ways of doing one thing, **Before you start** (name and consent on one screen), **Bring things in** (Mail, Calendar, notifications as optional cards on one screen), then Today. **Skip beside the main button**, tonal on the left. **Large first-run type.** **The prism behind the intro's art only.** The notification request moves from after consent to its own card. Connecting Calendar returns to Bring things in.
+
+**Why:** the owner's brief: text too small for the room, the consent hard to read on the prism, too many screens with little function, an intro that said little, and a Skip that was out of reach beside an easy Next.
+
+**Considered and not taken:** B, one setup screen after the intro (two screens, but long, with Get started under a consent and three rows); C, a first dump inside first run with connections moved to Today; a stacked footer.
+
+**Design system impact:** `readme.md` gains **First run**; the boundary in `GateBackdrop`'s comment ("nothing on a gate screen is small text over the field") is now enforced by placement. `FirstRun.jsx`, `M3FirstRun.jsx` and `WFirstRunGate.jsx`'s tutorial, step bar and connect screens are superseded by the exploration; their sign-in screens stand. No new tokens or glyphs.
+
 ### 2026-10-03 · A thread's map, as built (030)
 **Surface:** iOS, Android, web
 **Raised by:** code, building *A thread's map* in 030 (`docs/specs/030-maps/`), with the owner's answers, the three reviews, a browser check and a check on an iPhone simulator and a Pixel.

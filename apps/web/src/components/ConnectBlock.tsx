@@ -1,10 +1,8 @@
 "use client";
 
-// Bring in your calendar: the one connect screen, entered two ways.
-//
-// First run's last screen and the Settings calendar page before anything is
-// connected draw the same thing, verbatim, and this is where the copy lives so
-// the two cannot drift. The phones repeat the strings from `lib/gate.ts`; the
+// Bring in your calendar, as Settings draws it before anything is connected.
+// First run used to end on this screen; since 033 it is a card on Bring it all
+// in, which repeats the title and the line. The phones repeat the strings from `lib/gate.ts`; the
 // three have to match. All of it is provisional per the design system.
 //
 // **The provider's mark is never redrawn.** A third party's radius, colours and
@@ -34,16 +32,18 @@ export const CONNECT_FACTS = [
   ],
 ] as const;
 
-/** 88 on first run's screen, 42 on 031's Connected apps card, 34 beside an
- *  account on the calendar page. */
-export function ProviderMark({ size = 88 }: { size?: 88 | 42 | 34 }) {
+/** 88 on Settings' connect block, 44 on 033's Bring it all in card, 42 on
+ *  031's Connected apps card, 34 beside an account on the calendar page. */
+const STAND_IN_RADIUS = { 44: 12, 42: 11, 34: 8 } as const;
+
+export function ProviderMark({ size = 88 }: { size?: 88 | 44 | 42 | 34 }) {
   const [ok, setOk] = useState(true);
   const small = size === 88 ? undefined : { width: size, height: size };
   if (!ok) {
     return (
       <span
         className={run.providerMark}
-        style={small ? { ...small, borderRadius: size === 42 ? 11 : 8 } : undefined}
+        style={small ? { ...small, borderRadius: STAND_IN_RADIUS[size as 44 | 42 | 34] } : undefined}
         aria-hidden="true"
       />
     );

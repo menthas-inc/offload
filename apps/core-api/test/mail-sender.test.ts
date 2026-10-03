@@ -101,6 +101,16 @@ describe("the sender check (AC-3)", () => {
     expect(await check(await signed(message))).toEqual({ outcome: "no_account", accountId: null });
   });
 
+  it("matches only an account that is in: never the waitlist, first run or a disabled one", async () => {
+    // A waitlist signup is an `accounts` row with an email, so matching on
+    // the address alone accepted mail from somebody never let in.
+    for (const state of ["waitlist", "invited", "disabled"] as const) {
+      await db.updateTable("accounts").set({ state }).where("id", "=", jo).execute();
+      await sql`delete from mail_signatures`.execute(db);
+      expect(await check(await signed(raw())), state).toEqual({ outcome: "no_account", accountId: null });
+    }
+  });
+
   it("does not strip a +tag", async () => {
     const message = raw({ from: `jo+x@${DOMAIN}` });
     expect((await check(await signed(message))).outcome).toBe("no_account");

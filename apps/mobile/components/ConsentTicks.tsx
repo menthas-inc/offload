@@ -5,8 +5,10 @@
 // is two colours, so it is a `tone` prop rather than a pair of files.
 //
 // There is no checkbox primitive in React Native, so this is the design
-// system's Checkbox drawn by hand: a 20px box at --radius-xs, filled when
-// ticked. The strike-through its label gets in the kit is left out, because
+// system's Checkbox drawn by hand, filled when ticked. 033 draws it larger than
+// the contract's 20px on iOS, 24 at radius 7, with the labels at 16px, because
+// first run is the one place it has the room and the most to say; Android
+// keeps Material's 20 at radius 3. The strike-through its label gets in the kit is left out, because
 // that behaviour is for a task being crossed off and a struck-through consent
 // line would read as one that had been withdrawn.
 
@@ -15,10 +17,10 @@ import Svg, { Path } from "react-native-svg";
 import { CONSENT } from "../lib/gate";
 import { PRIVACY_URL } from "../lib/links";
 import { useColors } from "../lib/colors";
+import { Glyph } from "./Glyph";
 
-/** The box, from components/forms/Checkbox.jsx, which draws it at this size on
- *  every surface. Not a spacing token: the component contract owns it. */
-const BOX = 20;
+/** The box, per platform. 033's first-run sizes, logged in the design log. */
+const BOX = { ios: { size: 24, radius: 7 }, android: { size: 20, radius: 3 } } as const;
 
 export type ConsentTone = "ios" | "android";
 
@@ -34,13 +36,14 @@ const TONE = {
 function Box({ tone, on }: { tone: ConsentTone; on: boolean }) {
   const COLOR = useColors();
   const skin = TONE[tone];
+  const box = BOX[tone];
   return (
     <View
-      className={`items-center justify-center rounded-xs border ${on ? `${skin.fill} border-transparent` : skin.box}`}
-      style={{ width: BOX, minHeight: BOX }}
+      className={`items-center justify-center ${on ? `${skin.fill} border-transparent` : skin.box}`}
+      style={{ width: box.size, height: box.size, borderRadius: box.radius, borderWidth: tone === "ios" ? 1.5 : 2, marginTop: 1 }}
     >
       {on ? (
-        <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+        <Svg width={15} height={15} viewBox="0 0 24 24" fill="none">
           <Path
             d="M20 6L9 17l-5-5"
             stroke={tone === "android" ? COLOR.onBrand : COLOR.onSolid}
@@ -70,19 +73,22 @@ export function ConsentTicks({
   onAgreeToProcessing,
 }: ConsentTicksProps) {
   const skin = TONE[tone];
+  const COLOR = useColors();
+  const label = { fontSize: 16, lineHeight: 23 };
 
   return (
-    <View className="gap-space-5">
-      {/* The whole row is the target, which is how a 20px box gets a 44px hit
+    <View>
+      {/* The whole row is the target, which is how a small box gets a 44px hit
           area without being drawn any bigger. */}
       <Pressable
         onPress={() => onReadPolicy(!readPolicy)}
-        className="min-h-tap-min flex-row items-center gap-space-5"
+        className="min-h-tap-min flex-row items-start"
+        style={{ gap: 14, paddingVertical: 12 }}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: readPolicy }}
       >
         <Box tone={tone} on={readPolicy} />
-        <Text className={`flex-1 font-core text-body-sm ${skin.text}`}>
+        <Text className={`flex-1 font-core ${skin.text}`} style={label}>
           {CONSENT.policyBefore}
           <Text
             className={`font-medium ${skin.link}`}
@@ -96,16 +102,27 @@ export function ConsentTicks({
 
       <Pressable
         onPress={() => onAgreeToProcessing(!agreeToProcessing)}
-        className="min-h-tap-min flex-row items-center gap-space-5"
+        className="min-h-tap-min flex-row items-start border-t border-border-hairline"
+        style={{ gap: 14, paddingVertical: 12 }}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: agreeToProcessing }}
       >
         <Box tone={tone} on={agreeToProcessing} />
-        <Text className={`flex-1 font-core text-body-sm ${skin.text}`}>{CONSENT.processing}</Text>
+        <Text className={`flex-1 font-core ${skin.text}`} style={label}>
+          {CONSENT.processing}
+        </Text>
       </Pressable>
 
-      <View className="rounded-md bg-surface-attention-soft px-space-6 py-space-5">
-        <Text className="font-core text-body-sm text-text-on-attention">{CONSENT.note}</Text>
+      <View
+        className="flex-row items-start bg-surface-attention-soft"
+        style={{ gap: 10, marginTop: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12 }}
+      >
+        <View style={{ marginTop: 2 }}>
+          <Glyph name="lock" size={16} color={COLOR.textOnAttention} />
+        </View>
+        <Text className="flex-1 font-core text-text-on-attention" style={{ fontSize: 14.5, lineHeight: 20 }}>
+          {CONSENT.note}
+        </Text>
       </View>
     </View>
   );

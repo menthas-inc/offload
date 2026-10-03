@@ -41,6 +41,7 @@ export function NameField({
   onSubmit,
   autoFocus,
   label = "Your name",
+  large = false,
 }: {
   tone: FieldTone;
   value: string;
@@ -48,16 +49,28 @@ export function NameField({
   onSubmit?: () => void;
   autoFocus?: boolean;
   label?: string;
+  /** 033. First run's field: 54 tall, 18px text, a 1.5px ring that is 2px
+   *  while focused, radius 14 on iOS and Material's 4 on Android. */
+  large?: boolean;
 }) {
   const COLOR = useColors();
   const [focused, setFocused] = useState(false);
   const skin = TONE[tone];
+  const sized = large
+    ? {
+        minHeight: 54,
+        borderWidth: focused ? 2 : tone === "ios" ? 1.5 : 1,
+        borderRadius: tone === "ios" ? 14 : 4,
+        // The ring grows inward, so the text does not move when it does.
+        paddingHorizontal: 16 - (focused ? 2 : tone === "ios" ? 1.5 : 1),
+      }
+    : { minHeight: 52 };
 
   return (
     <View
-      className={`border px-space-5 ${skin.radius} ${skin.bg} ${focused ? skin.on : skin.idle}`}
+      className={`border ${large ? "" : `px-space-5 ${skin.radius}`} ${skin.bg} ${focused ? skin.on : large ? "border-border-strong" : skin.idle}`}
       // min-height, never height: this holds text and text scales to 200%.
-      style={{ minHeight: 52, justifyContent: "center" }}
+      style={[sized, { justifyContent: "center" }]}
     >
       <TextInput
         value={value}
@@ -79,7 +92,7 @@ export function NameField({
         placeholderTextColor={COLOR.tabOff}
         accessibilityLabel={label}
         className="font-core text-body"
-        style={{ color: COLOR.ink, paddingVertical: 0 }}
+        style={{ color: COLOR.ink, paddingVertical: 0, ...(large ? { fontSize: 18 } : {}) }}
       />
     </View>
   );

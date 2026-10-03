@@ -35,6 +35,24 @@ describe("AC-1 the state binds the flow to one account", () => {
   it("is different every time, so one cannot be replayed as another", () => {
     expect(mint()).not.toBe(mint());
   });
+
+  it("shows nothing it carries to whoever sees the URL", () => {
+    // The state travels in Google's authorization URL and again in the
+    // callback's, beside the code. Readable, it handed anybody who saw the
+    // callback the code and the PKCE verifier together, which is the pair
+    // PKCE exists to keep apart.
+    const state = mint();
+    const readable = [state, ...state.split(".")].flatMap((part) => [
+      part,
+      Buffer.from(part, "base64url").toString("utf8"),
+      Buffer.from(part, "base64").toString("utf8"),
+    ]);
+    for (const text of readable) {
+      expect(text).not.toContain("verifier-value");
+      expect(text).not.toContain(ACCOUNT);
+      expect(text).not.toContain("settings");
+    }
+  });
 });
 
 describe("AC-1 anything that is not ours is refused", () => {

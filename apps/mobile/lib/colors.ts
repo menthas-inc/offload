@@ -70,6 +70,9 @@ export interface Colors {
   raised: string;
   lift: string;
   textAttention: string;
+  /** 033. `--text-on-attention`, the ink on `--surface-attention-soft`: the
+   *  consent note's lock, and the bell on Bring it all in's card. */
+  textOnAttention: string;
   textNoticed: string;
   shadow: string;
   /** `--shadow-2`, spelled the way the row that lifts off the list can draw it:
@@ -200,6 +203,7 @@ export function paletteFor(dark: boolean): Colors {
     raised: base["surface-raised"] ?? light["surface-raised"]!,
     lift: base["border-lift"] ?? light["border-lift"]!,
     textAttention: base["text-attention"] ?? light["text-attention"]!,
+    textOnAttention: base["text-on-attention"] ?? light["text-on-attention"]!,
     textNoticed: base["text-noticed"] ?? light["text-noticed"]!,
     /** The lift's own shadow, as a colour rather than a CSS string.
      *

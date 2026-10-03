@@ -20,6 +20,7 @@ import {
 } from "../connectors/google.js";
 import { calendarName, refreshCalendars } from "../connectors/calendars.js";
 import { openState, pkce, sealState, LANDINGS, type Landing } from "../connectors/state.js";
+import { isActive } from "../accounts/active.js";
 import { connectorsAvailable, seal, VAULT_NAME } from "../connectors/vault.js";
 import { revokeAndForget } from "../connectors/tokens.js";
 import { syncNow } from "../connectors/sync.js";
@@ -43,12 +44,30 @@ const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 
 /** Where a landing enum actually sends somebody. Never a value from the
  *  request: an open redirect at the end of an authenticated flow. */
-function landingUrl(landing: Landing, outcome: "connected" | "failed"): string {
+export function landingUrl(landing: Landing, outcome: "connected" | "failed"): string {
   // 019. Connected lands on the calendar page from both doors: every calendar
   // comes back unticked, and the page is where the person says which ones.
   // A failure from first run goes back to first run's offer.
-  const path = landing === "first-run" && outcome === "failed" ? "/welcome" : "/settings/apps";
-  return `${env.WEB_URL}${path}?calendar=${outcome}`;
+  // 033. Bring things in gets both outcomes back: which calendars to use is a
+  // choice for later, and first run ends on Today.
+  return `${env.WEB_URL}${landingPath(landing, outcome)}?calendar=${outcome}`;
+}
+
+/** Exhaustive, so a new landing cannot compile without a destination. */
+function landingPath(landing: Landing, outcome: "connected" | "failed"): string {
+  switch (landing) {
+    case "first-run-bring":
+      return "/welcome/bring";
+    case "first-run":
+      // Only states minted before 033 shipped, which expire in ten minutes.
+      return outcome === "failed" ? "/welcome" : "/settings/apps";
+    case "settings":
+      return "/settings/apps";
+    default: {
+      const never: never = landing;
+      return never;
+    }
+  }
 }
 
 /** The account behind a calendar, resolved through its connection.
@@ -85,10 +104,12 @@ export async function connectorRoutes(app: App): Promise<void> {
   // anything the caller sent.
   app.get(
     "/api/connectors/google/start",
-    { schema: { querystring: z.object({ landing: z.enum(["settings", "first-run"]).default("settings") }) } },
+    { schema: { querystring: z.object({ landing: z.enum(LANDINGS).default("settings") }) } },
     async (request: FastifyRequest<{ Querystring: { landing: Landing } }>, reply: FastifyReply) => {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
+      // 033. Nothing is brought in before consent, whatever the client draws.
+      if (!(await isActive(accountId))) return reply.status(403).send({ error: "not_active" });
       if (!connectorsAvailable()) return reply.status(503).send({ error: "unavailable" });
 
       const { verifier, challenge } = pkce();
@@ -123,6 +144,9 @@ export async function connectorRoutes(app: App): Promise<void> {
       if (!accountId || accountId !== opened.accountId) {
         return reply.redirect(landingUrl(opened.landing, "failed"));
       }
+      // Nothing is brought in before consent, and an account can stop being
+      // active inside the state's ten minutes.
+      if (!(await isActive(accountId))) return reply.redirect(landingUrl(opened.landing, "failed"));
       if (request.query.error || !request.query.code) {
         // They declined, which is an answer rather than a fault.
         return reply.redirect(landingUrl(opened.landing, "failed"));
