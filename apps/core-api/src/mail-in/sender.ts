@@ -95,6 +95,9 @@ async function accountFor(address: string): Promise<string | null> {
     .selectFrom("accounts")
     .select("id")
     .where(sql<boolean>`lower(email) = ${address}`)
+    // Only an account that is in. A waitlist signup is an accounts row with an
+    // email too, and an invited one has not consented to anything being held.
+    .where("state", "=", "active")
     .where("deleted_at", "is", null)
     .executeTakeFirst();
   return row?.id ?? null;

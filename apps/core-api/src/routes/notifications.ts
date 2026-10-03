@@ -95,7 +95,7 @@ export async function notificationRoutes(app: App): Promise<void> {
     {
       schema: {
         body: z.object({ token: pushToken, platform: z.enum(["ios", "android"]) }),
-        response: { 200: done, 401: unauthenticated },
+        response: { 200: done, 401: unauthenticated, 403: z.object({ error: z.literal("not_active") }) },
       },
     },
     async (request, reply) => {

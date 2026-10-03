@@ -21,16 +21,22 @@
 // the code and Google will not exchange the same code twice. The callback compares that against the session it
 // actually arrives with and refuses a mismatch rather than linking anyway.
 //
-// It also carries the PKCE verifier, so an intercepted authorization code
-// cannot be exchanged by anybody who did not start the flow.
+// It also carries the PKCE verifier, and **it is sealed, not only signed.**
+// The state rides in Google's authorization URL and again in the callback's,
+// beside the code. Signed but readable, it gave anybody who saw the callback
+// URL the code and the verifier together, which is the pair PKCE exists to
+// keep apart. AES-256-GCM both hides it and authenticates it, so a state is
+// either exactly what we minted or nothing.
 
-import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { derivedKey } from "../crypto/derived.js";
 
 const TTL_MS = 10 * 60 * 1000;
 
-/** Its own key, see `crypto/derived.ts`. */
-const KEY = derivedKey("connector-state");
+/** Its own key, see `crypto/derived.ts`. A new purpose rather than the old
+ *  signing key's, so the HMAC key never doubles as a cipher key. */
+const KEY = derivedKey("connector-state-seal");
+const IV_BYTES = 12;
 
 /** Where somebody lands after connecting.
  *
@@ -38,19 +44,17 @@ const KEY = derivedKey("connector-state");
  *  parameter at the end of an authenticated flow is an open redirect, which is
  *  why `auth.ts` keeps `trustedOrigins` deliberately narrow. The same reasoning
  *  ends this flow. */
-export type Landing = "settings" | "first-run";
+export const LANDINGS = ["settings", "first-run", "first-run-bring"] as const;
 
-export const LANDINGS: readonly Landing[] = ["settings", "first-run"];
+/** 033. `first-run-bring` is Bring it all in, which a connect returns to.
+ *  `first-run` stays for phones on an older build. */
+export type Landing = (typeof LANDINGS)[number];
 
 export interface ConnectState {
   accountId: string;
   verifier: string;
   landing: Landing;
   nonce: string;
-}
-
-function sign(payload: string): string {
-  return createHmac("sha256", KEY).update(payload).digest("base64url");
 }
 
 /** A fresh PKCE verifier and its S256 challenge. */
@@ -60,10 +64,14 @@ export function pkce(): { verifier: string; challenge: string } {
   return { verifier, challenge };
 }
 
+/** `iv.ciphertext.tag`, all base64url. The expiry is inside, so it is as
+ *  sealed as everything else. */
 export function sealState(state: Omit<ConnectState, "nonce">, now: number): string {
-  const body: ConnectState = { ...state, nonce: randomBytes(9).toString("base64url") };
-  const payload = `${Buffer.from(JSON.stringify(body)).toString("base64url")}.${now + TTL_MS}`;
-  return `${payload}.${sign(payload)}`;
+  const body = { ...state, nonce: randomBytes(9).toString("base64url"), expiresAt: now + TTL_MS };
+  const iv = randomBytes(IV_BYTES);
+  const cipher = createCipheriv("aes-256-gcm", KEY, iv);
+  const sealed = Buffer.concat([cipher.update(JSON.stringify(body), "utf8"), cipher.final()]);
+  return [iv, sealed, cipher.getAuthTag()].map((part) => part.toString("base64url")).join(".");
 }
 
 /** Null for anything that is not exactly what we minted, and the reasons are
@@ -72,20 +80,21 @@ export function sealState(state: Omit<ConnectState, "nonce">, now: number): stri
 export function openState(value: string, now: number): ConnectState | null {
   const parts = value.split(".");
   if (parts.length !== 3) return null;
-  const [encoded, expiresAt, mac] = parts as [string, string, string];
-
-  const expected = Buffer.from(sign(`${encoded}.${expiresAt}`));
-  const given = Buffer.from(mac);
-  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
-  if (!Number.isFinite(Number(expiresAt)) || Number(expiresAt) < now) return null;
-
   try {
-    const parsed = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as ConnectState;
+    const [iv, sealed, tag] = parts.map((part) => Buffer.from(part, "base64url")) as [Buffer, Buffer, Buffer];
+    if (iv.length !== IV_BYTES || tag.length !== 16) return null;
+    const decipher = createDecipheriv("aes-256-gcm", KEY, iv);
+    decipher.setAuthTag(tag);
+    const text = Buffer.concat([decipher.update(sealed), decipher.final()]).toString("utf8");
+    const parsed = JSON.parse(text) as ConnectState & { expiresAt: unknown };
+    if (typeof parsed.expiresAt !== "number" || parsed.expiresAt < now) return null;
     if (typeof parsed.accountId !== "string" || !parsed.accountId) return null;
     if (typeof parsed.verifier !== "string" || !parsed.verifier) return null;
     if (!LANDINGS.includes(parsed.landing)) return null;
-    return parsed;
+    const { expiresAt: _expiresAt, ...state } = parsed;
+    return state;
   } catch {
+    // A failed tag, a short buffer and bad JSON all land here, undistinguished.
     return null;
   }
 }

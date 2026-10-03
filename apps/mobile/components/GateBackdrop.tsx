@@ -1,4 +1,6 @@
-// The prism bloom, behind everything before you are in.
+// The prism bloom, behind the sign-in screens. 033 moved first run off it:
+// its intro draws the bloom behind its art alone, and the asking screens sit
+// on the plain page.
 //
 // The second of the field's two allowed surfaces: inside the bottom plate, and
 // here. Radial rather than banded, and **no veil**, because nothing on a gate

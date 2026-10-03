@@ -1,4 +1,6 @@
-// The last screen of first run: bring in your calendar.
+// Bring in your calendar, as Settings draws it before anything is connected.
+// First run used to end on this screen; since 033 it is a card on Bring things
+// in, and the two facts live here alone.
 //
 // From `ConnectScreen` and `M3ConnectScreen` in the kits, which is option A of
 // `explorations/connect-apps.html`. One provider, one screen. The screen makes
@@ -84,66 +86,6 @@ export function ProviderMark({
         borderColor: COLOR.iconOnWell,
       }}
     />
-  );
-}
-
-/** Dots left, the way out top right, in the same place they sit on every
- *  tutorial screen so neither moves under the thumb.
- *
- *  **Four dots, the tutorial plus this**, which is the number both kits draw
- *  and `STEPS = TUTORIAL.length + 1` in each. The name and consent screens are
- *  outside the count: the design system's own note says nothing decides whether
- *  they join it, and the kits answer by not counting them. */
-export function ConnectStepBar({
-  tone,
-  steps,
-  active = steps - 1,
-  onNotNow,
-}: {
-  tone: ConnectTone;
-  steps: number;
-  /** 026. Which dot is the bar: the offer being shown, since an account may
-   *  be shown Mail, the calendar, both or neither. The last by default. */
-  active?: number;
-  onNotNow: () => void;
-}) {
-  const isAndroid = tone === "android";
-  return (
-    <View className="flex-row items-center justify-between px-gutter-screen">
-      <View className="flex-row items-center gap-space-3">
-        {Array.from({ length: steps }).map((_, index) => {
-          const on = index === active;
-          return (
-            <View
-              key={index}
-              className={`h-space-3 rounded-pill ${
-                on
-                  ? isAndroid
-                    ? "bg-a-on"
-                    : "bg-ink-950"
-                  : isAndroid
-                    ? "bg-a-c-high"
-                    : "bg-ink-200"
-              }`}
-              style={{ width: on ? 18 : 6 }}
-            />
-          );
-        })}
-      </View>
-
-      <Pressable
-        onPress={onNotNow}
-        className="min-h-tap-min justify-center px-space-4"
-        accessibilityRole="button"
-      >
-        <Text
-          className={`font-core font-medium ${isAndroid ? "text-blue-700" : "text-text-secondary"}`}
-          style={isAndroid ? { fontSize: 14, lineHeight: 20 } : undefined}
-        >
-          {CONNECT_STEP.notNow}
-        </Text>
-      </Pressable>
-    </View>
   );
 }
 

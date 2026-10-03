@@ -105,6 +105,12 @@ If a change is both, it gets an entry in both.
 
 - Unrelated features run in separate git worktrees and separate sessions: `.claude/scripts/new-worktree.sh <slug>`.
 - `docs/constitution/`, `docs/tech/` and `.claude/skills/offload-design/` are SHARED state. Edit them on `main` only, never inside a feature worktree.
+- **Sessions talk through the board**, `.claude/scripts/board.py`, shared by every worktree. What other sessions post arrives on its own through a hook; nobody polls.
+  - A feature session that runs from the main checkout names itself first, or it posts as `main`: `board.py as <slug>`.
+  - Starting a feature: `board.py plan <impl-spec path> [note]`. Read the other sessions' impl-specs when they touch what you touch.
+  - Anything another session would trip over: `board.py say "..."`. A migration number taken, a port, a shared file being edited, a device in use.
+  - Before an action that cannot overlap: `board.py hold <name> "<reason>"`, and `board.py release <name>` straight after. A refusal means wait and ask again, not find a way round. Holds expire after 30 minutes (`--for N` to change it).
+  - Hold names in use: `suite` for anything that runs a suite on the shared database, **which includes every `git commit`, because the gate runs it**; `sim-<device>` and `pixel` for a device test. Make up others as needed and say so.
 
 ## Status
 

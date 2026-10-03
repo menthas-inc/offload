@@ -2,6 +2,7 @@
 
 **Status:** drafted 2026-09-07, revised after review the same day
 **Surfaces:** web, iOS, Android
+**Amended by 033 (2026-10-03):** the name step joins the consent on Before you start; the name-only path is that screen with the name alone.
 
 ## Why
 

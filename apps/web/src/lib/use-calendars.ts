@@ -52,7 +52,15 @@ export interface Calendars {
   connections: Connection[];
 }
 
-export function useCalendars(): Calendars & { reload: () => void; settle: (change: Settled) => void } {
+export function useCalendars(): Calendars & {
+  /** 033. Whether the first read has answered, either way. A failure leaves
+   *  `status` loading, which Settings draws as nothing; first run has to
+   *  decide whether to offer a calendar and counts a failure as no. */
+  settled: boolean;
+  reload: () => void;
+  settle: (change: Settled) => void;
+} {
+  const [settled, setSettled] = useState(false);
   const [state, setState] = useState<Calendars>({
     status: "loading",
     available: false,
@@ -67,6 +75,7 @@ export function useCalendars(): Calendars & { reload: () => void; settle: (chang
         const body = (await response.json()) as Omit<Calendars, "status">;
         setState({ status: "ready", ...body });
       })
+      .finally(() => setSettled(true))
       .catch(() => {
         // A network failure is not "no calendars". The pane keeps its last
         // answer and a reload retries, rather than drawing an empty state that
@@ -94,14 +103,14 @@ export function useCalendars(): Calendars & { reload: () => void; settle: (chang
     );
   }, []);
 
-  return { ...state, reload, settle };
+  return { ...state, settled, reload, settle };
 }
 
 type Settled = { calendarId: string; selected: boolean } | { askFirst: boolean };
 
 /** Where connecting starts. A full page navigation rather than fetch, because
  *  the next thing that happens is Google's consent screen. */
-export function connectUrl(landing: "settings" | "first-run"): string {
+export function connectUrl(landing: "settings" | "first-run-bring"): string {
   return `${API}/api/connectors/google/start?landing=${landing}`;
 }
 
