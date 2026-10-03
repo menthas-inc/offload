@@ -584,7 +584,7 @@ function Help() {
       <Group label="Learn" icon="compass">
         <Row
           title="See the tutorial again"
-          note="The three screens from your first day."
+          note="The intro from your first day."
           onPress={() => router.push("/tutorial")}
           last
         />

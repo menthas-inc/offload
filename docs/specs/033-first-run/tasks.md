@@ -16,13 +16,13 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ## 2. Phones
 
-- [~] **T2.1** `lib/firstRun.ts` and the copy in `lib/gate.ts`. Tests in `test/first-run.test.ts`. *(AC-1, AC-2, AC-3, AC-7, AC-15)*
-- [ ] **T2.2** Source checks in `test/first-run-screens.test.ts`: no permission request in first run outside the card, no corner Skip or Not now, `landing=first-run-bring` with `/welcome/bring` as the return, no `GateBackdrop` in first run, the removed pieces gone, Help's note. *(AC-6, AC-9, AC-13, AC-16, AC-18, AC-21)*
-- [ ] **T2.3** `RunFooter`, `StoryBars`, `IntroArt`, `Intro`. Device check. *(AC-2, AC-3, AC-4, AC-19)*
-- [ ] **T2.4** `ConsentTicks` and `NameField` at first-run size; `BeforeYouStart`. Device check. *(AC-5)*
-- [ ] **T2.5** `BringThingsIn` with its three cards. Device check. *(AC-7, AC-8, AC-9, AC-11, AC-12)*
-- [ ] **T2.6** `FirstRun` and the two `Welcome` files; the settled-reads rule; Android back; replay; name-only. *(AC-1, AC-14, AC-15)*
-- [ ] **T2.7** Delete `TutorialArt`, `ConnectStepBar`. *(AC-18)*
+- [x] **T2.1** `lib/firstRun.ts` and the copy in `lib/gate.ts`. Tests in `test/first-run.test.ts`. *(AC-1, AC-2, AC-3, AC-7, AC-15)*
+- [x] **T2.2** Source checks in `test/first-run-screens.test.ts`: no permission request in first run outside the card, no corner Skip or Not now, `landing=first-run-bring` with `/welcome/bring` as the return, no `GateBackdrop` in first run, the removed pieces gone, Help's note. *(AC-6, AC-9, AC-13, AC-16, AC-18, AC-21)*
+- [x] **T2.3** `RunFooter`, `StoryBars`, `IntroArt`, `Intro`. Device check. *(AC-2, AC-3, AC-4, AC-19)*
+- [x] **T2.4** `ConsentTicks` and `NameField` at first-run size; `BeforeYouStart`. Device check. *(AC-5)*
+- [x] **T2.5** `BringItIn` with its three cards. Device check. *(AC-7, AC-8, AC-9, AC-11, AC-12)*
+- [x] **T2.6** `FirstRun` and the two `Welcome` files; the settled-reads rule; Android back; replay; name-only. *(AC-1, AC-14, AC-15)*
+- [x] **T2.7** Delete `TutorialArt`, `ConnectStepBar`. *(AC-18)*
 
 ## 3. Web
 

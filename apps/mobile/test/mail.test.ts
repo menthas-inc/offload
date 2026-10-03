@@ -1,4 +1,4 @@
-// 026. Mail on the phones: first run's steps, the Mail page's words, and an
+// 026. Mail on the phones: first run's card (033), the Mail page's words, and an
 // email's Activity row (AC-15, AC-17, AC-18, AC-19, AC-20).
 
 import { describe, expect, it, vi } from "vitest";
@@ -12,24 +12,12 @@ vi.mock("../lib/api", () => ({
 const gate = await import("../lib/gate");
 const activity = await import("../lib/activity");
 
-describe("first run's offers (AC-20)", () => {
-  it("offers Mail before the calendar, and counts the dots from what this account is shown", () => {
-    expect(gate.offersFor({ mailAvailable: true, calendarOffer: true })).toEqual(["mail", "calendar"]);
-    expect(gate.offersFor({ mailAvailable: false, calendarOffer: true })).toEqual(["calendar"]);
-    expect(gate.offersFor({ mailAvailable: true, calendarOffer: false })).toEqual(["mail"]);
-    expect(gate.offersFor({ mailAvailable: false, calendarOffer: false })).toEqual([]);
-    expect(gate.dotsFor(["mail", "calendar"], "calendar")).toEqual({ steps: gate.TUTORIAL.length + 2, active: gate.TUTORIAL.length + 1 });
-    expect(gate.dotsFor(["calendar"], "calendar")).toEqual({ steps: gate.TUTORIAL.length + 1, active: gate.TUTORIAL.length });
-  });
-
-  it("says the Mail step in the calendar step's shape", () => {
-    const step = gate.mailStep("jo@hey.com");
-    expect(step.title).toBe("Forward what matters");
-    expect(step.facts).toEqual([
-      ["mail", "Send it an email.", "Forward anything to over@to.offload.club and it's filed."],
-      ["lock", "Only from your address.", "Mail from jo@hey.com is the only mail it accepts."],
-    ]);
-    expect(step.button).toBe("Add to contacts");
+describe("033 Bring it all in's Mail card (replaces 026 AC-20's step)", () => {
+  it("names the address between the two halves of its line", () => {
+    expect(gate.BRING.mail.title).toBe("Forward emails to offload");
+    expect(gate.BRING.mail.line("jo@hey.com").join("")).toBe(
+      "Send anything to over@to.offload.club from jo@hey.com and it is filed.",
+    );
   });
 });
 
