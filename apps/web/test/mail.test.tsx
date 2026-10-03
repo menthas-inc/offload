@@ -70,29 +70,6 @@ describe("the contact card (AC-19)", () => {
   });
 });
 
-describe("first run's Mail step (AC-20)", () => {
-  it("says what it is in the calendar step's shape, and Add to contacts moves on", async () => {
-    const { MailOffer, MAIL_OFFER_TITLE } = await import("../src/components/MailBlock");
-    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    const done = vi.fn();
-    const host = document.body.appendChild(document.createElement("div"));
-    await act(async () => createRoot(host).render(<MailOffer email="jo@hey.com" />));
-    const text = host.textContent ?? "";
-    expect(MAIL_OFFER_TITLE).toBe("Forward what matters");
-    expect(text).toContain("Send it an email. Forward anything to over@to.offload.club and it's filed.");
-    expect(text).toContain("Only from your address. Mail from jo@hey.com is the only mail it accepts.");
-    expect(host.querySelector("a")).toBeNull();
-    const { MailOfferButton } = await import("../src/components/MailBlock");
-    const foot = document.body.appendChild(document.createElement("div"));
-    await act(async () => createRoot(foot).render(<MailOfferButton onDone={done} />));
-    const add = foot.querySelector("a")!;
-    expect(add.textContent).toBe("Add to contacts");
-    expect(add.getAttribute("href")).toBe("/offload.vcf");
-    await act(async () => add.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(done).toHaveBeenCalled();
-  });
-});
-
 describe("an email in the conversation (AC-5)", () => {
   it("draws the mail glyph, the subject as its first line and Forwarded as its meta", async () => {
     const { SentMail } = await import("../src/components/shell/SentMail");
@@ -134,15 +111,6 @@ describe("an email's row in Activity (AC-15, AC-17)", () => {
     const { doorOf } = await import("../src/lib/notifications");
     expect(doorOf({ ...base, mailOutcome: "refused", messageId: null })).toBe("/settings/apps");
     expect(doorOf({ ...base, mailOutcome: "over_limit", messageId: null })).toBeNull();
-  });
-});
-
-describe("when first run offers Mail (AC-20)", () => {
-  it("offers it in a first run to an address mail can come from, and never on the name-only path", async () => {
-    const { mailOffered } = await import("../src/components/MailBlock");
-    expect(mailOffered({ mailAvailable: true, needsFirstRun: true })).toBe(true);
-    expect(mailOffered({ mailAvailable: true, needsFirstRun: false })).toBe(false);
-    expect(mailOffered({ mailAvailable: false, needsFirstRun: true })).toBe(false);
   });
 });
 

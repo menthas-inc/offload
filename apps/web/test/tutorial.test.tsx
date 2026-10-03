@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 //
-// 031 See the tutorial again (T3.11, AC-15): `/tutorial` replays first run's
-// three screens for an account that finished first run long ago. It is not
-// sent away to Today, Skip and the last screen's Done both go back to Help,
+// 031 See the tutorial again (T3.11, AC-15), and 033 AC-14: `/tutorial`
+// replays first run's intro for an account that finished first run long ago.
+// It is not sent away to Today, its one button is Done and goes back to Help,
 // and nothing is written: no onboarding, no name, no offer.
 
 import { act } from "react";
@@ -62,27 +62,19 @@ async function render() {
 const button = (host: HTMLElement, text: string) =>
   [...host.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === text);
 
-describe("the tutorial, again (AC-15)", () => {
-  it("shows the three screens, ends on Done, and goes back to Help without a write", async () => {
+describe("the tutorial, again (031 AC-15, 033 AC-14)", () => {
+  it("shows the intro alone, with Done back to Help and no write", async () => {
     const host = await render();
-    expect(host.querySelector("h1")?.textContent).toBe("Dump anything");
-    await act(async () => button(host, "Next")!.click());
-    expect(host.querySelector("h1")?.textContent).toBe("offload sorts it");
-    await act(async () => button(host, "Next")!.click());
-    expect(host.querySelector("h1")?.textContent).toBe("It only interrupts when it matters");
+    expect(host.querySelector("h1")?.textContent).toBe("offload keeps track for you");
     expect(button(host, "Next")).toBeUndefined();
+    expect(button(host, "Skip")).toBeUndefined();
+    expect(button(host, "Continue")).toBeUndefined();
 
     await act(async () => button(host, "Done")!.click());
     await settle();
     expect(router.replace.mock.calls).toEqual([["/settings/help"]]);
     expect(calls.filter((c) => c.method !== "GET")).toEqual([]);
     expect(host.textContent).not.toContain("What should we call you?");
-  });
-
-  it("Skip goes back to Help too", async () => {
-    const host = await render();
-    await act(async () => button(host, "Skip")!.click());
-    expect(router.replace.mock.calls).toEqual([["/settings/help"]]);
-    expect(calls.filter((c) => c.method !== "GET")).toEqual([]);
+    expect(host.textContent).not.toContain("Before you start");
   });
 });

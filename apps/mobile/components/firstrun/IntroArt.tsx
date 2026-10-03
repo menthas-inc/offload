@@ -437,9 +437,10 @@ function Ways({ tone, animate }: { tone: Tone; animate: boolean }) {
 }
 
 export function IntroArt({ scene, tone, animate }: { scene: number; tone: Tone; animate: boolean }) {
-  // Keyed by scene, so each one's clock starts when it appears.
+  // Keyed by scene, so each one's clock starts when it appears, and by
+  // whether it moves, since stillness is read after the first render.
   return (
-    <View key={scene} style={{ width: "100%" }}>
+    <View key={`${scene}.${animate}`} style={{ width: "100%" }}>
       {scene === 0 ? (
         <Filing tone={tone} animate={animate} />
       ) : scene === 1 ? (

@@ -26,11 +26,11 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ## 3. Web
 
-- [ ] **T3.1** `lib/first-run.ts`, the phones' cases. *(AC-1, AC-3, AC-7)*
-- [ ] **T3.2** Render tests, red: the intro (titles, Continue, timer, art button, reduced motion, hover and focus pause, live region); Before you start (disabled Continue, one write with name and zone, failure line, routing to `/welcome/bring` or `/today`); Bring it all in (cards per account, Copy, Connected from the calendars read, Skip and Done to Today); `/tutorial` (Done to Help, no write); name-only. *(AC-1 to AC-5, AC-7 to AC-9, AC-12, AC-14, AC-15, AC-19)*
-- [ ] **T3.3** The components, the bloom, `/welcome/bring`, `/tutorial`. *(as T3.2)*
-- [ ] **T3.4** Delete `RunArt`, `MailOffer*`, `mailOffered`, the first-run-only `run*` classes; Help's note. *(AC-18, AC-21)*
-- [ ] **T3.5** The privacy page's two sentences, with a render test. *(AC-17)*
+- [x] **T3.1** `lib/first-run.ts`, the phones' cases. *(AC-1, AC-3, AC-7)*
+- [x] **T3.2** Render tests, red: the intro (titles, Continue, timer, art button, reduced motion, hover and focus pause, live region); Before you start (disabled Continue, one write with name and zone, failure line, routing to `/welcome/bring` or `/today`); Bring it all in (cards per account, Copy, Connected from the calendars read, Skip and Done to Today); `/tutorial` (Done to Help, no write); name-only. *(AC-1 to AC-5, AC-7 to AC-9, AC-12, AC-14, AC-15, AC-19)*
+- [x] **T3.3** The components, the bloom, `/welcome/bring`, `/tutorial`. *(as T3.2)*
+- [x] **T3.4** Delete `RunArt`, `MailOffer*`, `mailOffered`, the first-run-only `run*` classes; Help's note. *(AC-18, AC-21)*
+- [x] **T3.5** The privacy page's two sentences, with a render test. *(AC-17)*
 
 ## 4. Close
 

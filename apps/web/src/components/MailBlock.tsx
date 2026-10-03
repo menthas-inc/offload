@@ -14,7 +14,6 @@
 import { Icon } from "./Icon";
 import { Row, StatusPill } from "./panes/SettingsRows";
 import styles from "../app/(shell)/shell.module.css";
-import run from "../app/(app)/auth.module.css";
 
 export const MAIL_ADDRESS = "over@to.offload.club";
 /** A static card on our own site; the browser hands it to the system's contacts. */
@@ -22,12 +21,6 @@ export const MAIL_CARD_PATH = "/offload.vcf";
 /** Why an Apple hidden email cannot use it. A fact, not a diagnosis. */
 export const MAIL_RELAY_NOTE =
   "You signed in with an address Apple keeps private, so mail you forward can't be matched to you.";
-
-/** First run offers Mail once: in a first run, to an address mail can come
- *  from. Never on the name-only path somebody who finished first run takes. */
-export function mailOffered(me: { mailAvailable: boolean; needsFirstRun: boolean }): boolean {
-  return me.mailAvailable && me.needsFirstRun;
-}
 
 export function MailCard({
   email,
@@ -79,39 +72,5 @@ export function MailCard({
         </div>
       ) : null}
     </div>
-  );
-}
-
-export const MAIL_OFFER_TITLE = "Forward what matters";
-
-/** First run's Mail step: the calendar step's two facts, the page drawing the
- *  mark and the title around them and the button in its own footer, where
- *  the calendar step's Connect sits. */
-export function MailOffer({ email }: { email: string }) {
-  const facts = [
-    ["mail", "Send it an email.", `Forward anything to ${MAIL_ADDRESS} and it's filed.`],
-    ["lock", "Only from your address.", `Mail from ${email} is the only mail it accepts.`],
-  ] as const;
-  return (
-    <div className={run.consent}>
-        {facts.map(([icon, head, rest]) => (
-          <p key={head} className={run.runFact}>
-            <Icon name={icon} size={16} />
-            <span>
-              <b>{head}</b> {rest}
-            </span>
-          </p>
-        ))}
-    </div>
-  );
-}
-
-/** Adding the contact moves on, as Not now does; nothing here can fail in a
- *  way worth a line. */
-export function MailOfferButton({ onDone }: { onDone: () => void }) {
-  return (
-    <a className={run.runButton} href={MAIL_CARD_PATH} download="offload.vcf" onClick={onDone}>
-      Add to contacts
-    </a>
   );
 }
