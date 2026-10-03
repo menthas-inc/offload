@@ -56,6 +56,15 @@ describe("033 the phones' first run", () => {
     expect(source).toMatch(/importantForAccessibility="no-hide-descendants"/);
   });
 
+  it("registers the phone for pushes once first run is written, when the system already allows them", () => {
+    // A phone that granted permission for another account has no card to
+    // press, and the launch registration was refused while this account was
+    // still in first run.
+    const source = code("components/firstrun/FirstRun.tsx");
+    expect(source).toMatch(/import \{ register \} from "..\/..\/lib\/notifications"/);
+    expect(source).toMatch(/completeOnboarding\([\s\S]*?if \(nameOnly\)[\s\S]*?void register\(\)/);
+  });
+
   it("is gone where it was replaced (AC-18)", () => {
     expect(exists("components/TutorialArt.tsx")).toBe(false);
     expect(read("components/ConnectStep.tsx")).not.toMatch(/ConnectStepBar/);

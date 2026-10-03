@@ -73,7 +73,9 @@ function Copy({ index, current, tone }: { index: number; current: number; tone: 
     <Animated.View
       // The current scene is in the flow and sets the height; the others sit
       // over it while they fade, and are not read.
-      style={[on ? undefined : { position: "absolute", top: 4, left: GUTTER, right: GUTTER }, fading]}
+      // Absolute insets on Yoga count from the parent's padding box, which
+      // already carries the gutter and the 4 above.
+      style={[on ? undefined : { position: "absolute", top: 0, left: 0, right: 0 }, fading]}
       importantForAccessibility={on ? "auto" : "no-hide-descendants"}
       accessibilityElementsHidden={!on}
     >

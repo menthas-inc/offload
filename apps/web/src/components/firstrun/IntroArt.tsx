@@ -106,13 +106,15 @@ function Shared() {
           </span>
           <span className={styles.cardTitle}>{INTRO_SHARED.thread}</span>
           <span className={styles.people}>
-            <span className={`${styles.person} ${styles.label1}`}>JM</span>
-            <span className={`${styles.person} ${styles.label2} ${styles.popIn}`} style={at(2000)}>
-              AD
-            </span>
-            <span className={`${styles.person} ${styles.label6} ${styles.popIn}`} style={at(2600)}>
-              TR
-            </span>
+            {INTRO_SHARED.people.map(([name, initials], index) => (
+              <span
+                key={name}
+                className={`${styles.person} ${PEOPLE_TONES[index]} ${index > 0 ? styles.popIn : ""}`}
+                style={index > 0 ? at(2000 + (index - 1) * 600) : undefined}
+              >
+                {initials}
+              </span>
+            ))}
           </span>
         </div>
         {INTRO_SHARED.rows.map(([glyph, text]) => (
@@ -124,7 +126,7 @@ function Shared() {
           </div>
         ))}
         <div className={`${styles.cardRow} ${styles.cardRowNew} ${styles.enter}`} style={at(5000)}>
-          <span className={`${styles.person} ${styles.personSmall} ${styles.label6}`}>TR</span>
+          <span className={`${styles.person} ${styles.personSmall} ${styles.label6}`}>{INTRO_SHARED.people[2][1]}</span>
           <span>
             <b>{INTRO_SHARED.addedBy}</b> {INTRO_SHARED.added}
           </span>
@@ -137,6 +139,8 @@ function Shared() {
     </div>
   );
 }
+
+const PEOPLE_TONES = [styles.label1, styles.label2, styles.label6];
 
 const WAVE = [8, 14, 22, 12, 26, 18, 9, 20, 28, 16, 11, 24, 15, 7, 19, 25, 10, 13];
 

@@ -274,6 +274,30 @@ describe("033 Bring it all in (AC-7, AC-8, AC-9, AC-12)", () => {
     expect(host.textContent).toContain("Connected");
   });
 
+  it("waits for the calendars before drawing, so a card never pops in under the first", async () => {
+    me = ACTIVE;
+    let answer!: (r: Response) => void;
+    const held = new Promise<Response>((resolve) => (answer = resolve));
+    const real = globalThis.fetch;
+    vi.stubGlobal("fetch", (url: string, init?: RequestInit) =>
+      new URL(url).pathname === "/api/connectors/calendars" ? held : real(url, init),
+    );
+    const host = await render(<BringPage />);
+    expect(host.textContent).not.toContain("Forward emails to offload");
+    await act(async () => answer(json(calendars)));
+    await settle();
+    expect(host.textContent).toContain("Forward emails to offload");
+    expect(host.textContent).toContain("Bring in your calendar");
+    vi.stubGlobal("fetch", real);
+  });
+
+  it("goes to Today when nothing on it applies", async () => {
+    me = { ...ACTIVE, mailAvailable: false };
+    calendars = { available: false, askFirst: false, connections: [] };
+    await render(<BringPage />);
+    expect(router.replace.mock.calls).toEqual([["/today"]]);
+  });
+
   it("leaves for Today from Skip for now and from Done, with nothing required", async () => {
     me = ACTIVE;
     let host = await render(<BringPage />);

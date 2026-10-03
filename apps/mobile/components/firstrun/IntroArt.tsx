@@ -22,7 +22,7 @@ import Animated, {
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { INTRO_DUMPS, INTRO_SHARED, INTRO_THREADS, INTRO_WAYS } from "../../lib/gate";
-import { SKIN, type Tone } from "./skin";
+import { SIZE, SKIN, type Tone } from "./skin";
 
 const ENTER = Easing.bezier(0.2, 0.8, 0.2, 1);
 const OVERSHOOT = Easing.bezier(0.3, 1.5, 0.5, 1);
@@ -129,7 +129,7 @@ function Dump({
     >
       <Enter animate={animate} delay={1000 + index * 700}>
         <View
-          className={tone === "android" ? "bg-a-c-low" : "border border-border-hairline bg-surface-raised"}
+          className={SKIN[tone].raised}
           style={{ borderRadius: 20, paddingVertical: 12, paddingHorizontal: 16 }}
         >
           <Text className={`font-core ${SKIN[tone].text}`} style={{ fontSize: 16, lineHeight: 21 }}>
@@ -173,12 +173,12 @@ function ThreadRow({
     >
       <Enter animate={animate} delay={index * 300}>
         <View
-          className={`flex-row items-center ${tone === "android" ? "bg-a-c-low" : "border border-border-hairline bg-surface-raised"}`}
-          style={{ gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: tone === "android" ? 20 : 16 }}
+          className={`flex-row items-center ${SKIN[tone].raised}`}
+          style={{ gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: SIZE[tone].rowRadius }}
         >
           <View
             className={`items-center justify-center ${SKIN[tone].well}`}
-            style={{ width: 34, height: 34, borderRadius: tone === "android" ? 17 : 10 }}
+            style={{ width: 34, height: 34, borderRadius: SIZE[tone].wellRadius }}
           >
             <Glyph name={glyph} size={18} color={COLOR.iconOnWell} />
           </View>
@@ -197,7 +197,7 @@ function ThreadRow({
             pointerEvents="none"
             className={SKIN[tone].ring}
             style={[
-              { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, borderWidth: 1.5, borderRadius: tone === "android" ? 20 : 16 },
+              { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, borderWidth: 1.5, borderRadius: SIZE[tone].rowRadius },
               ring,
             ]}
           />
@@ -261,7 +261,7 @@ function Filing({ tone, animate }: { tone: Tone; animate: boolean }) {
 function Shared({ tone, animate }: { tone: Tone; animate: boolean }) {
   const COLOR = useColors();
   const skin = SKIN[tone];
-  const card = tone === "android" ? "bg-a-c-low" : "border border-border-hairline bg-surface-raised";
+  const card = skin.raised;
   // The ring around each person is the card's own ground, so the stack reads
   // as cut-outs rather than outlines.
   const ring = tone === "android" ? "border-a-c-low" : "border-surface-raised";
@@ -282,7 +282,7 @@ function Shared({ tone, animate }: { tone: Tone; animate: boolean }) {
           }}
         >
           <View className="flex-row items-center border-b border-border-hairline" style={{ gap: 12, paddingTop: 10, paddingBottom: 12, paddingHorizontal: 16 }}>
-            <View className={`items-center justify-center ${skin.well}`} style={{ width: 34, height: 34, borderRadius: tone === "android" ? 17 : 10 }}>
+            <View className={`items-center justify-center ${skin.well}`} style={{ width: 34, height: 34, borderRadius: SIZE[tone].wellRadius }}>
               <Glyph name="lasso" size={18} color={COLOR.iconOnWell} />
             </View>
             <Text className={`flex-1 font-core font-semibold ${skin.text}`} style={{ fontSize: 19 }}>
@@ -368,7 +368,7 @@ function Way({
   return (
     <Enter animate={animate} delay={delay} style={{ flex: 1 }}>
       <View
-        className={tone === "android" ? "bg-a-c-low" : "border border-border-hairline bg-surface-raised"}
+        className={SKIN[tone].raised}
         style={{ borderRadius: 16, padding: 8, gap: 8 }}
       >
         {children}

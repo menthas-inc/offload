@@ -68,7 +68,7 @@ export function NameField({
 
   return (
     <View
-      className={`border ${large ? "" : "px-space-5"} ${skin.radius} ${skin.bg} ${focused ? skin.on : large ? "border-border-strong" : skin.idle}`}
+      className={`border ${large ? "" : `px-space-5 ${skin.radius}`} ${skin.bg} ${focused ? skin.on : large ? "border-border-strong" : skin.idle}`}
       // min-height, never height: this holds text and text scales to 200%.
       style={[sized, { justifyContent: "center" }]}
     >

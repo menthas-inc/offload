@@ -21,6 +21,7 @@ import { deviceZone } from "../../lib/clock";
 import { afterYou, backFrom, bringCards, firstStep, type Card, type NotificationOffer, type Step } from "../../lib/firstRun";
 import { BEFORE, BRING } from "../../lib/gate";
 import { saveName, useMe } from "../../lib/me";
+import { register } from "../../lib/notifications";
 import { ToastHost, useToast } from "../shell/Toast";
 import { BeforeYouStart } from "./BeforeYouStart";
 import { BringItIn } from "./BringItIn";
@@ -103,6 +104,10 @@ export function FirstRun({ tone, replay = false }: { tone: Tone; replay?: boolea
       return;
     }
     if (nameOnly) return today();
+    // The account is active now. A phone that already allows notifications
+    // has no card to press, and its launch registration was refused while
+    // this account was in first run; `register` does nothing without leave.
+    void register();
     setDecided(true);
   }
 

@@ -39,11 +39,11 @@ export function RunFooter({ tone, main, skip }: { tone: Tone; main: FooterAction
         disabled={main.disabled ?? false}
         accessibilityRole="button"
         accessibilityState={{ disabled: main.disabled ?? false }}
-        className={`items-center justify-center rounded-pill active:opacity-90 ${main.disabled ? "bg-ink-100" : skin.main}`}
+        className={`items-center justify-center rounded-pill active:opacity-90 ${main.disabled ? "bg-state-disabled-surface" : skin.main}`}
         style={{ flex: skip ? 1.5 : 1, minHeight: size.button, paddingHorizontal: 12 }}
       >
         <Text
-          className={`font-core font-medium ${main.disabled ? "text-ink-400" : skin.mainText}`}
+          className={`font-core font-medium ${main.disabled ? "text-state-disabled-text" : skin.mainText}`}
           style={text}
           numberOfLines={1}
         >

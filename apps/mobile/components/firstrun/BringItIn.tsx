@@ -94,13 +94,13 @@ function CardButton({
       // 38 or 40 drawn, 44 to the touch.
       hitSlop={(44 - height) / 2}
       className={`flex-1 flex-row items-center justify-center rounded-pill active:opacity-90 ${
-        filled ? skin.main : `border border-border-strong ${tone === "ios" ? "bg-surface-raised" : ""}`
+        filled ? skin.main : skin.outline
       }`}
       style={{ minHeight: height, paddingHorizontal: 10, gap: 6 }}
     >
       {glyph ? <Glyph name={glyph} size={15} color={tone === "android" ? COLOR.sectionGlyph : COLOR.ink} /> : null}
       <Text
-        className={`font-core font-medium ${filled ? skin.mainText : tone === "android" ? "text-blue-700" : "text-text-primary"}`}
+        className={`font-core font-medium ${filled ? skin.mainText : skin.outlineText}`}
         style={{ fontSize: 14 }}
         numberOfLines={1}
       >

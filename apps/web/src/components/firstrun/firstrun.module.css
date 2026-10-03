@@ -30,9 +30,9 @@
   cursor: pointer;
   white-space: nowrap;
 }
-.main { background: var(--ink-950); color: var(--text-inverse); }
+.main { background: var(--surface-inverse); color: var(--text-inverse); }
 .main:hover { background: var(--ink-800); color: var(--text-inverse); }
-.main:disabled { background: var(--ink-100); color: var(--ink-400); cursor: default; }
+.main:disabled { background: var(--state-disabled-surface); color: var(--state-disabled-text); cursor: default; }
 .skip { background: var(--surface-fill-strong); color: var(--text-primary); }
 .skip:hover { background: var(--state-hover); color: var(--text-primary); }
 
@@ -426,7 +426,7 @@
   cursor: pointer;
 }
 .offerButton:hover { background: var(--state-hover); color: var(--text-primary); }
-.offerButtonMain { background: var(--ink-950); color: var(--text-inverse); box-shadow: none; }
+.offerButtonMain { background: var(--surface-inverse); color: var(--text-inverse); box-shadow: none; }
 .offerButtonMain:hover { background: var(--ink-800); color: var(--text-inverse); }
 .connected {
   display: inline-flex;

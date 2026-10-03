@@ -39,6 +39,11 @@ export const INTRO_SHARED = {
     ["tag", "Flights, €214"],
     ["text-quote", "Ana can only travel the 14th to the 17th"],
   ],
+  people: [
+    ["Jo Martins", "JM"],
+    ["Ana Duarte", "AD"],
+    ["Tom Reis", "TR"],
+  ],
   shared: "Shared with Ana and Tom",
   addedBy: "Tom",
   added: "added Pastéis de Belém",
@@ -82,7 +87,12 @@ export const BRING = {
     copied: "Copied",
     contacts: "Add to contacts",
   },
-  calendar: { title: "Bring in your calendar", connected: "Connected" },
+  calendar: {
+    title: "Bring in your calendar",
+    line: "So “before the trip” and “after the dentist” mean something.",
+    connect: "Connect Google Calendar",
+    connected: "Connected",
+  },
   skip: "Skip for now",
   done: "Done",
 } as const;

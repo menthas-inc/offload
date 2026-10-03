@@ -1,5 +1,7 @@
 # 002 Getting in
 
+**Amended by 033 (2026-10-03):** first run is three screens: an intro that plays itself, Before you start (the name and the two consents together), and Bring it all in (optional cards), then Today. No Skip in a corner; the consent is no longer the last screen. Where the two disagree, `docs/specs/033-first-run/` is current.
+
 ## Why
 
 Nothing in offload is reachable without an account, and the product is invite only, so the way in *is* the first feature. It is also the cheapest moment to wire all four surfaces together: a person joins a waitlist on the marketing site, an admin lets them in, they sign in on a phone or a browser, and they land on an empty Today. That path touches every client, the API, the database, the email provider and the deploy pipeline, which means building it stands the whole skeleton up.

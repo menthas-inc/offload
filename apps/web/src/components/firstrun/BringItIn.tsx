@@ -9,7 +9,7 @@
 //
 // *Connected* is what the calendars read says, never what the URL says.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "../Logo";
 import { Icon } from "../Icon";
@@ -29,18 +29,26 @@ export function BringItIn() {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
 
-  if (state.status === "loading") return <main className={styles.page} />;
+  const me = state.status === "ready" ? state.me : null;
+  // Calendar stays drawn once it is connected here, with its pill. First run
+  // only sends somebody here with nothing connected yet.
+  const cards = me
+    ? bringCards({ mailAvailable: me.mailAvailable, calendarOffer: calendars.available, notifications: "unsupported" })
+    : [];
+  const today = () => router.replace("/today");
+  // Nothing to offer, which a page reached by URL can find: Today, rather
+  // than a title over nothing.
+  const empty = me !== null && calendars.settled && cards.length === 0;
+  useEffect(() => {
+    if (empty) router.replace("/today");
+  }, [empty, router]);
+
+  // Drawn once the calendars have answered, so returning from Google does
+  // not paint Mail alone and then push the calendar in under it.
+  if (state.status === "loading" || (me && (!calendars.settled || empty))) return <main className={styles.page} />;
   if (state.status === "unreachable") return <Unanswered retry={state.retry} attempt={state.attempt} retryAfter={state.retryAfter} />;
 
   const connected = calendars.connections.length > 0;
-  // Calendar stays drawn once it is connected here, with its pill. First run
-  // only sends somebody here with nothing connected yet.
-  const cards = bringCards({
-    mailAvailable: state.me.mailAvailable,
-    calendarOffer: calendars.available,
-    notifications: "unsupported",
-  });
-  const today = () => router.replace("/today");
 
   async function copy() {
     try {
@@ -100,7 +108,7 @@ export function BringItIn() {
                   <ProviderMark size={44} />
                   <span className={styles.offerText}>
                     <span className={styles.offerTitle}>{BRING.calendar.title}</span>
-                    <span className={styles.offerLine}>So “before the trip” and “after the dentist” mean something.</span>
+                    <span className={styles.offerLine}>{BRING.calendar.line}</span>
                   </span>
                 </div>
                 <div className={styles.offerButtons}>
@@ -108,7 +116,7 @@ export function BringItIn() {
                     <span className={styles.connected}>{BRING.calendar.connected}</span>
                   ) : (
                     <a className={`${styles.offerButton} ${styles.offerButtonMain}`} href={connectUrl("first-run-bring")}>
-                      Connect Google Calendar
+                      {BRING.calendar.connect}
                     </a>
                   )}
                 </div>
