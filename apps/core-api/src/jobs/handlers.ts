@@ -113,17 +113,45 @@ const invited: Handler = async (_payload, { mailer }, accountId) => {
  *
  *  The address comes from the payload: the account is gone, so there is no row
  *  to read it from, and nothing else about the person is in the job. */
+/** "3 October 2026 at 18:34 UTC", in the account's zone when it had one. A
+ *  zone the runtime does not know falls back to UTC rather than failing the
+ *  one mail that cannot be sent again. */
+function deletedWhen(at: Date, zone: string | null): string {
+  const say = (timeZone: string): string => {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZoneName: "short",
+    }).formatToParts(at);
+    const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+    return `${part("day")} ${part("month")} ${part("year")} at ${part("hour")}:${part("minute")} ${part("timeZoneName")}`;
+  };
+  try {
+    return say(zone ?? "UTC");
+  } catch {
+    return say("UTC");
+  }
+}
+
 const accountDeleted: Handler = async (payload, { mailer }) => {
   const id = typeof payload["id"] === "string" ? payload["id"] : null;
   const sealed = typeof payload["to"] === "string" ? payload["to"] : null;
   if (!id || !sealed) throw new Error("account_deleted job has no address");
   const to = openSecret(Buffer.from(sealed, "base64"), id, "notice_address");
+  const at = typeof payload["at"] === "string" ? new Date(payload["at"]) : new Date();
+  const zone = typeof payload["zone"] === "string" ? payload["zone"] : null;
   await mailer.send({
     to,
     subject: "Your offload account is deleted",
     slots: {
       headline: "Your account is deleted",
       body:
+        `Your account was deleted on ${deletedWhen(at, zone)}. ` +
         "Everything only you could see is gone. What you added to a thread you shared stays with the people in it. " +
         "If this was not you, write to hello@offload.club.",
       footer: `You are receiving this because an offload account at ${new URL(env.WEB_URL).host} used this address.`,

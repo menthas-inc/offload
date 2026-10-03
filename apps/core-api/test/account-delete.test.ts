@@ -452,6 +452,11 @@ describe("DELETE /api/me", () => {
     expect(mailer.sent.map((message) => message.to)).toEqual([me.email]);
     expect((await db.selectFrom("jobs").select("payload").where("kind", "=", "email.account_deleted").executeTakeFirstOrThrow()).payload).toEqual({});
     expect(mailer.sent[0]!.subject).toBe("Your offload account is deleted");
+    // When, so its owner can tell their own delete from somebody else's: the
+    // day and the minute in the account's own zone, which the test account
+    // has none of, so UTC.
+    expect(mailer.sent[0]!.slots.body).toMatch(/^Your account was deleted on \d{1,2} \w+ \d{4} at \d{2}:\d{2} UTC\. /);
+    expect(mailer.sent[0]!.slots.body).not.toMatch(/[\u2013\u2014]/);
     expect(await db.selectFrom("push_tokens").select("id").execute()).toHaveLength(0);
   });
 

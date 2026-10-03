@@ -43,7 +43,7 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
     // Ours to lock: this transaction is the whole delete.
     const account = await trx
       .selectFrom("accounts")
-      .select(["id", "email", "analytics_subject_id"])
+      .select(["id", "email", "analytics_subject_id", "time_zone"])
       .where("id", "=", accountId)
       .forUpdate()
       .executeTakeFirst();
@@ -183,7 +183,15 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
     const notice = uuidv7();
     await enqueue({
       kind: "email.account_deleted",
-      payload: { id: notice, to: seal(account.email, notice, "notice_address").toString("base64") },
+      // When, in the zone the account kept, so the notice can say it: with no
+      // second sign-in, the mail is how its owner tells their own delete from
+      // somebody else's.
+      payload: {
+        id: notice,
+        to: seal(account.email, notice, "notice_address").toString("base64"),
+        at: new Date().toISOString(),
+        zone: account.time_zone,
+      },
       tx: trx,
     });
     await emit({ name: "account_deleted", tx: trx });

@@ -53,13 +53,14 @@ exists (QUAL-1). Part A merges on its own.
 - [x] **T13** The confirmation sheet, per platform chrome, the field, every
   state and its copy, the redirect to `sign-in?deleted=1` and its line.
   *(AC-2, AC-9)*
-- [ ] **T14** Device pass on the Pixel and the iOS simulator: field and button
+- [x] **T14** Device pass on the Pixel and the iOS simulator: field and button
   above the keyboard, back and dismiss while in flight, offline. Holds
   `pixel` and `sim-<device>`. *(AC-2)*
   Done on the iPhone 17 simulator, 2026-10-03, against a local API: the sheet
   on the keyboard and off it, a failed press with the API stopped, and a real
-  delete through to the gate's line. **The Pixel is still to do**, and with it
-  Android's back while in flight.
+  delete through to the gate's line. The same on the Pixel 9 the same day. Back while in
+  flight could not be caught by hand on either: a local delete is over in
+  fifty milliseconds. The lock is `DragSheet`'s and is read from source.
 
 ### Web
 
