@@ -35,7 +35,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 ## 4. Close
 
 - [x] **T4.1** The gates in the worktree: `pnpm test` on the test database, `pnpm lint`, typecheck, the three `dead-*.mjs`, a production web build.
-- [~] **T4.2** Browser (light, dark, phone width) and iOS simulator (intro, Before you start, Bring it all in, Copy, Done, the replay) done 2026-10-03; they found the dark hairline, the phone-width footer and the cross-fade gutter. **The Pixel pass is open**: the phone was not on adb.
+- [x] **T4.2** Browser (light, dark, phone width), iOS simulator and the Pixel, 2026-10-03: the whole flow on each, Android back, Copy, Done to Today, and the phone registering for pushes once first run is written. They found the dark hairline, the phone-width footer and the cross-fade gutter. The simulator and the Pixel end signed out: neither held a session production accepts.
 - [x] **T4.3** Review passes (code, client, security), one commit per pass. Deferred as their own task: content writes from accounts not yet active.
 - [x] **T4.4** The design log's code-wins entry, the amended specs' notes, and the merge by PR.
 - [x] **T4.5** In the same branch, at the owner's ask: the connector state sealed with AES-256-GCM, mail-in matching only active accounts, and the push-token re-bind reviewed and kept (`docs/tech/decisions.md`).
