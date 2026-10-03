@@ -77,6 +77,7 @@ from offload_agent.harness.plan import (
     plan,
     plan_answer,
 )
+from offload_agent.harness.thread_icons import THREAD_ICON_NAMES
 from offload_agent.renditions import make
 from offload_agent.worker import (
     Lookups,
@@ -1065,6 +1066,25 @@ def _call_problems(expect: dict, calls: list[tuple[str, dict]]) -> list[str]:
     return problems
 
 
+def _icon_problems(expect: dict, calls: list[tuple[str, dict]]) -> list[str]:
+    """037. The icon a new thread was given, read off the `create_thread` call.
+
+    `one_of` names the icons that fit; `known` passes any of the seventy or
+    none at all, which the server then picks from the name."""
+    want = expect.get("thread_icon")
+    if not want:
+        return []
+    made = [args for tool, args in calls if tool == "create_thread"]
+    if not made:
+        return ["created no thread, so there is no icon to read"]
+    icon = made[0].get("icon")
+    if "one_of" in want and icon not in want["one_of"]:
+        return [f"the new thread's icon is {icon!r}, not one of {want['one_of']}"]
+    if want.get("known") and icon is not None and icon not in THREAD_ICON_NAMES:
+        return [f"the new thread's icon is {icon!r}, which is not in the list"]
+    return []
+
+
 def _came_back(tool: str, body: dict | None) -> str:
     """What a call came back as, when that changes what may be said."""
     if not isinstance(body, dict):
@@ -1375,6 +1395,7 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         made = any(t == "create_thread" for t, _ in rec.calls)
         if made != expect["creates_thread"]:
             failures.append("created a thread" if made else "did not create a thread")
+    failures.extend(_icon_problems(expect, rec.calls))
 
     if expect.get("look_up") is True and not rec.looked:
         failures.append("should have looked something up and did not")

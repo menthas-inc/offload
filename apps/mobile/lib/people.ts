@@ -125,7 +125,7 @@ export type Relation = "connected" | "asked_you" | "you_asked" | "thread" | "wai
 
 export interface PersonPage extends Person {
   relation: Relation;
-  shared: { id: string; name: string; count: number; lastActivityAt: string }[];
+  shared: { id: string; name: string; icon: string; hue: number; count: number; lastActivityAt: string }[];
   requestId: string | null;
 }
 

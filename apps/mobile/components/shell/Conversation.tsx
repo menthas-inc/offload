@@ -37,7 +37,9 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import { threadLookOf } from "../../lib/threads";
 import { Glyph } from "../Glyph";
+import { ThreadIcon } from "../ThreadIcon";
 import { ThreadPill } from "./ThreadPill";
 import { LabelMark } from "../labels/LabelMark";
 import { AnswerResults } from "./AnswerResult";
@@ -260,14 +262,16 @@ export function Conversation() {
  *  else. An ordinary dump made from a thread may still default there without
  *  being pinned to it, which is a different claim and draws nothing here. */
 function PinnedTarget({ pin }: { pin: Pin }) {
-  const COLOR = useColors();
+  // 037. The thread's own icon. The pin is raised from a thread on screen, so
+  // its look has been read; one that has not draws the default.
+  const look = threadLookOf(pin.threadId);
   return (
     <View className="flex-row items-center px-gutter-screen pb-space-4">
       <View
-        className="flex-row items-center gap-space-2 rounded-pill bg-surface-accent-soft px-space-4"
-        style={{ height: 26 }}
+        className="flex-row items-center rounded-pill bg-surface-accent-soft"
+        style={{ height: 26, gap: 6, paddingLeft: 4, paddingRight: 10 }}
       >
-        <Glyph name="lasso" size={12} color={COLOR.accent} />
+        <ThreadIcon icon={look?.icon ?? ""} hue={look?.hue ?? 1} seed={pin.threadId} size={18} round />
         <Text className="font-core text-text-accent" style={{ fontSize: 12.5 }}>
           In thread {pin.threadName}
         </Text>
@@ -653,7 +657,7 @@ function TurnFooter({ turn }: { turn: Turn }) {
         // sentence about a place rather than a way to it. The conversation is
         // kept: the composer brings it back. 027: Today's pill, at the
         // footer's height.
-        <ThreadPill key={thread.id} id={thread.id} name={thread.name} size={CHIP_H} onOpen={lower} />
+        <ThreadPill key={thread.id} id={thread.id} name={thread.name} icon={thread.icon} hue={thread.hue} size={CHIP_H} onOpen={lower} />
       ))}
 
       {marks.map((label) => (

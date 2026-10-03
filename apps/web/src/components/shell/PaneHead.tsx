@@ -40,6 +40,9 @@ interface Props {
    *  pane gains after that goes in here rather than growing the head every
    *  time a thread learns to do something else. */
   more?: MoreAction[];
+  /** 037. What stands before the title: a thread's icon, and the popover it
+   *  opens, which hangs under it. */
+  lead?: React.ReactNode;
   /** Where Open full returns to. Omitted on a pane that cannot be full. */
   fullHref?: string | undefined;
 }
@@ -50,7 +53,7 @@ export interface MoreAction {
   onSelect: () => void;
 }
 
-export function PaneHead({ title, sub, big, aside, tools, more, fullHref }: Props) {
+export function PaneHead({ title, sub, big, lead, aside, tools, more, fullHref }: Props) {
   const search = useSearchParams();
   const full = search.get(FULL) === "1";
 
@@ -65,6 +68,7 @@ export function PaneHead({ title, sub, big, aside, tools, more, fullHref }: Prop
 
   return (
     <div className={styles.paneHead}>
+      {lead ? <span className={styles.paneLead}>{lead}</span> : null}
       <div style={{ minWidth: 0, flex: 1 }}>
         <h1 className={`${styles.paneTitle} ${big ? styles.paneTitleBig : ""}`}>{title}</h1>
         {sub ? <p className={styles.paneSub}>{sub}</p> : null}

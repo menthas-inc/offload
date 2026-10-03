@@ -6,6 +6,7 @@
 // default thread from the caller's own account row and never takes a thread
 // id from a client, so the only rows it can reach are the caller's own.
 
+import { DEFAULT_THREAD_ICON } from "@offload/widgets";
 import { sql } from "kysely";
 import { db } from "../db.js";
 import { initialsOf } from "../accounts/initials.js";
@@ -50,7 +51,7 @@ export type Suggestion =
   | {
       id: string;
       kind: "move";
-      thread: { id: string; name: string };
+      thread: { id: string; name: string; icon: string; hue: number };
       faces: { accountId: string; initials: string; displayName: string }[];
       more: number;
     }
@@ -188,6 +189,8 @@ export async function suggestionsFor(
       "suggestions.note_id as noteId",
       "suggestions.thread_id as threadId",
       "threads.name as threadName",
+      "threads.icon as threadIcon",
+      "threads.hue as threadHue",
       "suggestions.proposal_id as proposalId",
       "thread_proposals.name as proposalName",
     ])
@@ -231,7 +234,7 @@ export async function suggestionsFor(
       out.set(target, {
         id: row.id,
         kind: "move",
-        thread: { id: row.threadId, name: row.threadName ?? "" },
+        thread: { id: row.threadId, name: row.threadName ?? "", icon: row.threadIcon ?? DEFAULT_THREAD_ICON, hue: row.threadHue ?? 1 },
         faces: people.slice(0, FACES),
         more: Math.max(0, people.length - FACES),
       });

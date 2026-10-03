@@ -15,7 +15,7 @@ import { sql, type Transaction } from "kysely";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
-import { formatRule, parseRule, utcDay } from "@offload/widgets";
+import { DEFAULT_THREAD_ICON, formatRule, isThreadIcon, parseRule, pickThreadIcon, utcDay } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";
 import { Refused } from "../threads/refusals.js";
 import { threadLine } from "../threads/line.js";
@@ -62,6 +62,7 @@ import { LabelRefused, carriesAny, contentLabelsFor, labelsOfThread, setRowLabel
 import { noteAddition } from "../notifications/people.js";
 import { looseSummary } from "../loose/read.js";
 import { shownThreadName } from "../threads/default.js";
+import { shownThreadHue, shownThreadIcon } from "../threads/icons.js";
 import { holdFloor } from "../loose/suggestions.js";
 
 /** 022. The account's default thread cannot be shared or deleted. */
@@ -136,10 +137,24 @@ const memberFace = z.object({
   initials: z.string(),
 });
 
+/** 037. A thread's name and look, as Edit thread writes and returns them. */
+const threadMark = z.object({
+  name: z.string(),
+  icon: z.string(),
+  hue: z.number(),
+  iconSetBy: z.enum(["offload", "person"]),
+});
+
 const threadRow = z.object({
   id: z.string(),
   name: z.string(),
-  icon: z.string().nullable(),
+  /** Always `lasso` since 037. A phone build from before it draws this field
+   *  straight from the list and has no glyph for the seventy, so the thread's
+   *  own icon travels beside it. To go once no such build is in use. */
+  icon: z.string(),
+  /** 037. The thread's icon and its hue, one of the ten label hues. */
+  threadIcon: z.string(),
+  threadHue: z.number(),
   count: z.number(),
   meta: z.string(),
   /** The account's default thread, which cannot be deleted: everything with no
@@ -223,7 +238,11 @@ export const noteSchema = z.object({
 const threadBundle = z.object({
   id: z.string(),
   name: z.string(),
-  icon: z.string().nullable(),
+  icon: z.string(),
+  hue: z.number(),
+  /** 037. Whose pick the icon and hue are: Edit thread previews a rename's
+   *  pick only while it is still offload's. */
+  iconSetBy: z.enum(["offload", "person"]),
   alwaysOn: z.boolean(),
   /** `unlabelled` is 025's No label count: live, unarchived rows carrying no
    *  label. */
@@ -350,7 +369,7 @@ export const suggestionSchema = z.discriminatedUnion("kind", [
   z.object({
     id: z.string(),
     kind: z.literal("move"),
-    thread: z.object({ id: z.string(), name: z.string() }),
+    thread: z.object({ id: z.string(), name: z.string(), icon: z.string(), hue: z.number() }),
     /** Up to two of the thread's other members, then how many more: who will
      *  see it, before the tap. Empty on a thread nobody else is in. */
     faces: z.array(z.object({ accountId: z.string(), initials: z.string(), displayName: z.string() })),
@@ -403,6 +422,8 @@ const contentPage = z.object({
 const contentDetail = contentRow.extend({
   threadId: z.string(),
   threadName: z.string().nullable(),
+  threadIcon: z.string().nullable(),
+  threadHue: z.number().nullable(),
   from: z
     .object({ messageId: z.string(), text: z.string().nullable(), at: z.string() })
     .nullable(),
@@ -1054,38 +1075,73 @@ async function preferenceOf(accountId: string, threadId: string): Promise<Thread
   return { ...readPreference(row.attrs), ...(row.hide_done ? { hideDone: true } : {}) };
 }
 
-/** Rename a thread. Co-owned: a shared thread's name belongs to everybody in
- *  it, and renaming touches no content. */
-export async function renameThread(
+export interface ThreadMark {
+  name: string;
+  icon: string;
+  hue: number;
+  iconSetBy: "offload" | "person";
+}
+
+/** 037. Change a thread's name, icon and hue, any of them, in one write.
+ *  Co-owned: a shared thread's name and look belong to everybody in it, and
+ *  none of this touches content.
+ *
+ *  Whose pick the icon is follows from what changed. An icon or a hue that
+ *  differs from the row's is a person's pick from then on. A name alone, while
+ *  the pick is still offload's, picks the icon again from the word list, and
+ *  keeps what is there when the new name matches nothing: the model may have
+ *  named that icon, and a rename is not a reason to throw it away. The hue is
+ *  never picked again. `iconSetBy` is what Undo sends back, and it counts only
+ *  when the pick itself moves: alone it would hand a person's pick back to
+ *  offload with nothing anybody can see changing.
+ *
+ *  Given a transaction it runs inside it, which is how the model's rename
+ *  calls it: a second connection locking a row the first may hold is a wait
+ *  Postgres cannot see as a deadlock. */
+export async function editThread(
   accountId: string,
   threadId: string,
-  name: string,
-): Promise<{ name: string }> {
-  await requireMember(accountId, threadId);
+  input: Partial<ThreadMark>,
+  within?: import("../threads/access.js").Executor,
+): Promise<{ thread: ThreadMark; previous: ThreadMark }> {
 
   // Read then write, in one transaction. `returning` on an UPDATE gives the NEW
   // value in Postgres, so returning it as `previous` would hand the client an
-  // Undo that restores the name it just set. The kind of bug that looks correct
+  // Undo that restores what it just set. The kind of bug that looks correct
   // and does nothing.
-  const before = await db.transaction().execute(async (trx) => {
+  const write = async (trx: import("../threads/access.js").Executor) => {
+    await requireMember(accountId, threadId, trx);
     const current = await trx
       .selectFrom("threads")
-      .select("name")
+      .select(["name", "icon", "hue", "icon_set_by"])
       .where("id", "=", threadId)
       .where("deleted_at", "is", null)
+      .forUpdate()
       .executeTakeFirst();
     if (!current) return null;
 
+    const previous: ThreadMark = { name: current.name, icon: current.icon, hue: current.hue, iconSetBy: current.icon_set_by };
+    const thread: ThreadMark = {
+      name: input.name ?? previous.name,
+      icon: input.icon ?? previous.icon,
+      hue: input.hue ?? previous.hue,
+      iconSetBy: previous.iconSetBy,
+    };
+    const moved = thread.icon !== previous.icon || thread.hue !== previous.hue;
+    if (moved) thread.iconSetBy = input.iconSetBy ?? "person";
+    else if (previous.iconSetBy === "offload" && thread.name !== previous.name) thread.icon = pickThreadIcon(thread.name) ?? previous.icon;
+
     await trx
       .updateTable("threads")
-      .set({ name, updated_at: sql`now()` })
+      .set({ name: thread.name, icon: thread.icon, hue: thread.hue, icon_set_by: thread.iconSetBy, updated_at: sql`now()` })
       .where("id", "=", threadId)
       .execute();
 
-    return current;
-  });
-  if (!before) throw new NotYours();
-  return { name: before.name };
+    return { thread, previous };
+  };
+  const result = within ? await write(within) : await db.transaction().execute(write);
+  if (!result) throw new NotYours();
+  return result;
 }
 
 /** Leaving a thread, which is also how a thread dies.
@@ -1362,6 +1418,7 @@ export async function threadRoutes(app: App): Promise<void> {
           "threads.id as id",
           "threads.name as name",
           "threads.icon as icon",
+          "threads.hue as hue",
           "threads.content_count as count",
           "threads.last_activity_at as lastActivityAt",
         ])
@@ -1413,7 +1470,9 @@ export async function threadRoutes(app: App): Promise<void> {
         const shaped = {
           id: row.id,
           name: row.name,
-          icon: row.icon,
+          icon: DEFAULT_THREAD_ICON,
+          threadIcon: row.icon,
+          threadHue: row.hue,
           count: row.count,
           meta: threadLine(kinds.get(row.id) ?? {}, others.get(row.id) ?? []),
           isDefault: row.id === account?.default_thread_id,
@@ -1467,7 +1526,7 @@ export async function threadRoutes(app: App): Promise<void> {
         const thread = await db
           .selectFrom("threads")
           .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
-          .select(["threads.id", "threads.name", "threads.icon", "threads.always_on", "threads.attrs", "thread_members.hide_done"])
+          .select(["threads.id", "threads.name", "threads.icon", "threads.hue", "threads.icon_set_by", "threads.always_on", "threads.attrs", "thread_members.hide_done"])
           .where("threads.id", "=", id)
           .where("threads.deleted_at", "is", null)
           .where("thread_members.account_id", "=", accountId)
@@ -1495,6 +1554,8 @@ export async function threadRoutes(app: App): Promise<void> {
           id: thread.id,
           name: thread.name,
           icon: thread.icon,
+          hue: thread.hue,
+          iconSetBy: thread.icon_set_by,
           alwaysOn: thread.always_on,
           counts: { active: Number(counts.active), archived: Number(counts.archived), unlabelled: await unlabelledCount(id) },
           members,
@@ -1847,6 +1908,8 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.thread_id as threadId",
             // 028. A loose row names no thread; the crumb says Not in a thread.
             shownThreadName("threads.id", "threads.name", accountId).as("threadName"),
+            shownThreadIcon("threads.id", "threads.icon", accountId).as("threadIcon"),
+            shownThreadHue("threads.id", "threads.hue", accountId).as("threadHue"),
             "accounts.display_name as authorName",
       sql<boolean>`exists (
         select 1 from thread_members am
@@ -1888,6 +1951,8 @@ export async function threadRoutes(app: App): Promise<void> {
           ...(await withPhotos([toRow(row, accountId)]))[0]!,
           threadId: row.threadId,
           threadName: row.threadName,
+          threadIcon: row.threadIcon,
+          threadHue: row.threadHue,
           from: from
             ? {
                 messageId: from.id,
@@ -2412,19 +2477,27 @@ export async function threadRoutes(app: App): Promise<void> {
     );
   }
 
-  // Rename a thread. Co-owned: a shared thread's name belongs to everybody in
-  // it, and renaming touches no content.
+  // 037. Edit thread: the name, the icon and the hue in one write. Co-owned,
+  // and it touches no content.
   app.patch(
     "/v1/threads/:id",
     {
       schema: {
         params: z.object({ id: z.string().uuid() }),
-        body: z.strictObject({ name: z.string().min(1).max(80) }),
+        body: z
+          .strictObject({
+            name: z.string().min(1).max(80).optional(),
+            icon: z.string().refine(isThreadIcon).optional(),
+            hue: z.number().int().min(1).max(10).optional(),
+            iconSetBy: z.enum(["offload", "person"]).optional(),
+          })
+          .refine((body) => Object.values(body).some((value) => value !== undefined))
+          // Whose pick it is comes back only with the pick itself, which is
+          // what Undo sends. Alone it would hand a person's pick back to
+          // offload without changing anything anybody can see.
+          .refine((body) => body.iconSetBy === undefined || (body.icon !== undefined && body.hue !== undefined)),
         response: {
-          200: z.object({
-            thread: z.object({ id: z.string(), name: z.string() }),
-            previous: z.object({ name: z.string() }),
-          }),
+          200: z.object({ thread: threadMark.extend({ id: z.string() }), previous: threadMark }),
           401: unauthenticated,
           404: notFound,
         },
@@ -2435,11 +2508,14 @@ export async function threadRoutes(app: App): Promise<void> {
         const accountId = await currentAccountId(request);
         if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
-        const previous = await renameThread(accountId, request.params.id, request.body.name);
-        return reply.send({
-          thread: { id: request.params.id, name: request.body.name },
-          previous,
+        const { name, icon, hue, iconSetBy } = request.body;
+        const { thread, previous } = await editThread(accountId, request.params.id, {
+          ...(name !== undefined ? { name } : {}),
+          ...(icon !== undefined ? { icon } : {}),
+          ...(hue !== undefined ? { hue } : {}),
+          ...(iconSetBy !== undefined ? { iconSetBy } : {}),
         });
+        return reply.send({ thread: { id: request.params.id, ...thread }, previous });
       })
   );
 

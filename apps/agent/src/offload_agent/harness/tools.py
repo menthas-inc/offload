@@ -24,6 +24,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from offload_agent.harness.thread_icons import THREAD_ICON_NAMES
+
 # A location's title is the one string that ever reaches a geocoder, so it is
 # held to a tighter shape than any other title. Enforced again server-side,
 # because the agent plane is not the enforcement point for anything.
@@ -81,6 +83,17 @@ class CreateThread(BaseModel):
     """Start a thread."""
 
     name: str = Field(min_length=1, max_length=80)
+    # 037. The icon the thread is drawn with. Never a reason to refuse the
+    # call: anything that is not one of the seventy is dropped, and the server
+    # picks from the name instead.
+    # The names are one plain line and not an enum: quoted and comma separated
+    # they cost half as much again, on every turn.
+    icon: str | None = Field(default=None, description="One of: " + " ".join(THREAD_ICON_NAMES))
+
+    @field_validator("icon", mode="before")
+    @classmethod
+    def one_of_the_seventy(cls, v: object) -> str | None:
+        return v if isinstance(v, str) and v in THREAD_ICON_NAMES else None
 
 
 class AddContent(BaseModel):
@@ -368,7 +381,8 @@ def _schema_for(model: type[BaseModel]) -> dict[str, Any]:
 _DESCRIPTIONS = {
     "create_thread": (
         "Start a new thread with a name. Use this only when nothing in their "
-        "existing threads is a reasonable home. Prefer an existing thread."
+        "existing threads is a reasonable home. Prefer an existing thread. Give it "
+        "the icon that fits what it is for."
     ),
     "add_content": (
         "File one piece of what they dumped into a thread, by thread id. Call it "

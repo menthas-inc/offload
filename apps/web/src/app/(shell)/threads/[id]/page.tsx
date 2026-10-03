@@ -18,6 +18,8 @@ export default function ThreadRoute({ params }: { params: Promise<{ id: string }
   const { id } = use(params);
   const { groups, loose, ready, reload: reloadThreads } = useThreads();
   const [name, setName] = useState<string>("Thread");
+  // 037. The crumb wears the thread's icon once the thread is read.
+  const [mark, setMark] = useState<{ icon: string; hue: number } | null>(null);
   const [nonce, setNonce] = useState(0);
 
   const reload = useCallback(() => {
@@ -32,7 +34,9 @@ export default function ThreadRoute({ params }: { params: Promise<{ id: string }
     void fetchThread(id).then((bundle) => {
       // 028. The default thread's name is never shown; the pane goes to Not
       // in a thread.
-      if (live && bundle && !bundle.isDefault) setName(bundle.name);
+      if (!live || !bundle || bundle.isDefault) return;
+      setName(bundle.name);
+      setMark({ icon: bundle.icon, hue: bundle.hue });
     });
     return () => {
       live = false;
@@ -43,7 +47,7 @@ export default function ThreadRoute({ params }: { params: Promise<{ id: string }
     <Panes
       crumbs={[
         { label: "My threads", href: "/threads", icon: "message-circle" },
-        { label: name, href: `/threads/${id}`, icon: "lasso" },
+        { label: name, href: `/threads/${id}`, ...(mark ? { thread: { id, ...mark } } : {}) },
       ]}
       panes={[
         <MyThreads key="threads" groups={groups} loose={loose} loading={!ready} onChanged={reload} />,

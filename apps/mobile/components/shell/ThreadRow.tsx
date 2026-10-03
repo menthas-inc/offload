@@ -22,6 +22,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
+import { ThreadIcon } from "../ThreadIcon";
 import { useColors } from "../../lib/colors";
 import type { ThreadRow as Row } from "../../lib/threads";
 
@@ -104,18 +105,13 @@ export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
       <GestureDetector gesture={Gesture.Simultaneous(pan, tap)}>
         <Animated.View
           style={sliding}
-          className={`flex-row items-start gap-space-5 px-gutter-screen py-space-4 ${
+          // Centred, not top-aligned: a thread with no line under its name sits
+          // against the middle of its icon, and one with a line is as tall as it.
+          className={`flex-row items-center gap-space-5 px-gutter-screen py-space-4 ${
             isAndroid ? "bg-a-surface" : "bg-surface-page"
           } ${border ? "border-b border-border-hairline" : ""}`}
         >
-          <View
-            className={`items-center justify-center rounded-sm ${
-              isAndroid ? "bg-a-c-low" : "bg-surface-fill"
-            }`}
-            style={{ width: 36, height: 36 }}
-          >
-            <Glyph name={thread.icon ?? "lasso"} size={18} color={COLOR.iconOnWell} />
-          </View>
+          <ThreadIcon icon={thread.icon} hue={thread.hue} seed={thread.id} size={isAndroid ? 44 : 40} />
 
           <View className="flex-1">
             <Text

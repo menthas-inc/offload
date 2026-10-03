@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "../Icon";
 import { QuietEmpty } from "./QuietEmpty";
-import { threadIcon } from "../shell/Sidebar";
+import { ThreadIcon } from "../ThreadIcon";
 import { useToast } from "../shell/Toast";
 import styles from "../../app/(shell)/shell.module.css";
 import { deleteThread, restoreThread, type GroupKey, type ThreadGroup, type ThreadRow } from "../../lib/threads";
@@ -112,9 +112,7 @@ function Row({
             href={`/threads/${thread.id}?from=threads`}
             className={styles.row}
           >
-            <span className={styles.rowIcon}>
-              <Icon name={threadIcon(thread.icon)} size={18} />
-            </span>
+            <ThreadIcon icon={thread.icon} hue={thread.hue} seed={thread.id} size={32} className={styles.rowThreadIcon} />
             <span className={styles.rowText}>
               <span className={styles.rowTitle}>{thread.name}</span>
               {thread.meta ? <span className={styles.rowMeta}>{thread.meta}</span> : null}

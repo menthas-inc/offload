@@ -16,7 +16,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { DEFAULT_THREAD_ICON } from "@offload/widgets";
 import { Icon } from "../Icon";
+import { ThreadIcon } from "../ThreadIcon";
 import { PhotoThumb } from "./PhotoThumb";
 import type { FoundResult, FoundRow } from "../../lib/dump";
 import styles from "../../app/(shell)/answer.module.css";
@@ -99,7 +101,7 @@ function Result({
   return (
     <div className={styles.card}>
       <Link href={href} className={styles.head}>
-        {loose ? null : <Icon name="lasso" size={15} />}
+        {loose ? null : <ThreadIcon icon={result.threadIcon ?? DEFAULT_THREAD_ICON} hue={result.threadHue ?? 1} seed={result.threadId} size={18} round />}
         <b className={styles.headName}>{loose ? "Not in a thread" : result.threadName}</b>
         <span className={styles.headCount}>{result.rows.length}</span>
       </Link>
@@ -160,7 +162,7 @@ function Result({
         </Link>
       ) : result.truncated ? (
         <Link href={href} className={styles.inThread}>
-          <Icon name="lasso" size={15} className={styles.accent} />
+          <ThreadIcon icon={result.threadIcon ?? DEFAULT_THREAD_ICON} hue={result.threadHue ?? 1} seed={result.threadId} size={18} round />
           <em className={styles.inThreadText}>The rest of the answer is in the thread.</em>
           <Icon name="chevron-right" size={15} className={styles.accent} />
         </Link>

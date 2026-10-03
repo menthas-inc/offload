@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "../Icon";
+import { ThreadIcon } from "../ThreadIcon";
 import { fetchThreads, type ThreadRow } from "../../lib/threads";
 import styles from "../../app/(shell)/viewer.module.css";
 import people from "../people/people.module.css";
@@ -86,7 +87,7 @@ export function MoveSheet({
                 <li key={thread.id}>
                   <button type="button" className={styles.sheetRow} onClick={() => onPick(thread)}>
                     <span className={styles.sheetRowLead} aria-hidden="true">
-                      <Icon name="lasso" size={18} />
+                      <ThreadIcon icon={thread.icon} hue={thread.hue} seed={thread.id} size={24} />
                     </span>
                     <span className={styles.sheetRowName}>{thread.name}</span>
                     <span className={styles.sheetRowMeta}>{thread.meta}</span>

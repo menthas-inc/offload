@@ -33,7 +33,9 @@ const json = {
 export interface ThreadRow {
   id: string;
   name: string;
-  icon: string | null;
+  /** 037. One of the seventy thread icons, or lasso, and one of the ten hues. */
+  icon: string;
+  hue: number;
   count: number;
   meta: string;
   /** 028. Always false: the default thread is in no group any more. Kept
@@ -121,7 +123,11 @@ export const NOTE_BODY_CHARS = 4000;
 export interface ThreadBundle {
   id: string;
   name: string;
-  icon: string | null;
+  icon: string;
+  hue: number;
+  /** 037. Whose pick the icon and hue are. Edit thread previews a rename's
+   *  pick only while it is still offload's. */
+  iconSetBy: "offload" | "person";
   alwaysOn: boolean;
   /** 028. The account's default thread, which is never drawn as a thread: the
    *  client goes to Not in a thread instead. */
@@ -289,6 +295,9 @@ export interface ContentDetail extends ContentRow {
   threadId: string;
   /** 028. Null for a row that is not in a thread. */
   threadName: string | null;
+  /** 037. Null with the name. */
+  threadIcon: string | null;
+  threadHue: number | null;
   from: { messageId: string; text: string | null; at: string } | null;
 }
 
@@ -304,9 +313,20 @@ async function get<T>(path: string): Promise<T | null> {
   return (await response.json()) as T;
 }
 
+/** 037. The list sends a thread's icon as `threadIcon` and `threadHue`: its
+ *  `icon` is held at lasso for phone builds from before the icons existed.
+ *  Read here, once, into the row every screen draws. */
+type WireRow = Omit<ThreadRow, "hue"> & { threadIcon?: string; threadHue?: number };
+
+const drawn = (groups: { key: ThreadGroup["key"]; threads: WireRow[] }[]): ThreadGroup[] =>
+  groups.map((group) => ({
+    ...group,
+    threads: group.threads.map(({ threadIcon, threadHue, ...row }) => ({ ...row, icon: threadIcon ?? row.icon, hue: threadHue ?? 1 })),
+  }));
+
 export async function fetchThreads(): Promise<ThreadGroup[]> {
-  const body = await get<{ groups: ThreadGroup[] }>("/v1/threads");
-  return body?.groups ?? [];
+  const body = await get<{ groups: { key: ThreadGroup["key"]; threads: WireRow[] }[] }>("/v1/threads");
+  return body ? drawn(body.groups) : [];
 }
 
 /** What My threads draws, in one read. */
@@ -319,7 +339,10 @@ export interface ThreadsPage {
 }
 
 /** 022. The list and the strips in one read, which is what My threads draws. */
-export const fetchThreadsAndInvitations = (): Promise<ThreadsPage | null> => get<ThreadsPage>("/v1/threads");
+export const fetchThreadsAndInvitations = async (): Promise<ThreadsPage | null> => {
+  const page = await get<Omit<ThreadsPage, "groups"> & { groups: { key: ThreadGroup["key"]; threads: WireRow[] }[] }>("/v1/threads");
+  return page ? { ...page, groups: drawn(page.groups) } : null;
+};
 
 export const fetchThread = (id: string): Promise<ThreadBundle | null> =>
   get<ThreadBundle>(`/v1/threads/${id}`);
@@ -494,19 +517,29 @@ export async function deleteContent(id: string): Promise<boolean> {
   return body.deleted;
 }
 
-export interface Renamed {
-  thread: { id: string; name: string };
-  previous: { name: string };
+/** 037. A thread's name and look, as Edit thread writes them. */
+export interface ThreadMark {
+  name: string;
+  icon: string;
+  hue: number;
+  iconSetBy: "offload" | "person";
 }
 
-export async function renameThread(id: string, name: string): Promise<Renamed | null> {
+export interface ThreadEdited {
+  thread: ThreadMark & { id: string };
+  previous: ThreadMark;
+}
+
+/** Edit thread's one write: the name, the icon and the hue, any of them.
+ *  `previous` sent back whole is the Undo. */
+export async function editThread(id: string, change: Partial<ThreadMark>): Promise<ThreadEdited | null> {
   const response = await fetch(`${API}/v1/threads/${id}`, {
     ...json,
     method: "PATCH",
-    body: JSON.stringify({ name }),
-  });
-  if (!response.ok) return null;
-  return (await response.json()) as Renamed;
+    body: JSON.stringify(change),
+  }).catch(() => null);
+  if (!response?.ok) return null;
+  return (await response.json()) as ThreadEdited;
 }
 
 /** Tick something off, or put it back. Any member; nothing is destroyed. */

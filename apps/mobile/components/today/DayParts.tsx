@@ -168,7 +168,7 @@ export function EventsStrip({
                 </Text>
               ) : null}
               {event.threadId && event.threadName ? (
-                <ThreadPill id={event.threadId} name={event.threadName} size={24} />
+                <ThreadPill id={event.threadId} name={event.threadName} icon={event.threadIcon} hue={event.threadHue} size={24} />
               ) : event.calendarName ? (
                 <Text className="font-core text-text-tertiary" style={{ fontSize: 12 }} numberOfLines={1}>
                   {event.calendarName}

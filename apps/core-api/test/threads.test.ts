@@ -41,7 +41,7 @@ import {
   editContent,
   moveContent,
   quickAdd,
-  renameThread,
+  editThread,
   setArchived,
 } from "../src/routes/threads.js";
 
@@ -452,7 +452,7 @@ describe("the write transactions", () => {
     const t = await thread(me, "Lisbon");
     const row = await content(me, t, "Book the flat");
 
-    const previous = await renameThread(me, t, "Lisbon trip");
+    const { previous } = await editThread(me, t, { name: "Lisbon trip" });
     expect(previous.name).toBe("Lisbon");
 
     // And content is untouched.

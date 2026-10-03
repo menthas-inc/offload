@@ -37,9 +37,11 @@ const SLUG = /^[a-z0-9-]+$/;
 
 // Every place a name can sit. Each pattern yields { index, names }.
 const patterns = [
-  // A JSX prop or an object literal field: `icon="x"`, `iconName: "x"`.
+  // A JSX prop or an object literal field: `icon="x"`, `icon={"x"}`,
+  // `iconName: "x"`. A quoted name only: `icon={icon}` passes a variable on,
+  // which 037's `ThreadIcon` does everywhere, and is not a name.
   {
-    re: /\bicon(?:Name)?\s*[:=]\s*[{"']([a-z0-9-]+)["'}]/g,
+    re: /\bicon(?:Name)?\s*[:=]\s*\{?\s*["']([a-z0-9-]+)["']/g,
     names: (m) => [m[1]],
   },
   // The `name` attribute on an icon element: `<Glyph name="x">` or

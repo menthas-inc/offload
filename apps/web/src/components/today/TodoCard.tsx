@@ -31,7 +31,7 @@ function Row({ row, rows, chip, trail }: { row: AgendaRow; rows: TodayRows; chip
       meta={null}
       handlers={rows.handlers}
       // 028. A row not in a thread draws no pill.
-      thread={row.threadName === null ? undefined : { id: row.threadId, name: row.threadName }}
+      thread={row.threadName === null ? undefined : { id: row.threadId, name: row.threadName, icon: row.threadIcon ?? "lasso", hue: row.threadHue ?? 1 }}
       chip={chip}
       trail={trail}
     />

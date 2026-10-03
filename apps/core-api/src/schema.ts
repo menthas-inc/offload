@@ -248,7 +248,12 @@ export interface ThreadsTable {
   created_by_account_id: string | null;
   name: string;
   always_on: Generated<boolean>;
-  icon: string | null;
+  /** 037. One of the seventy thread icons, or lasso. */
+  icon: Generated<string>;
+  /** 037. One of the ten label hues. */
+  hue: Generated<number>;
+  /** 037. Whose pick the icon and hue are. A person's is never picked again. */
+  icon_set_by: Generated<"offload" | "person">;
   content_count: Generated<number>;
   /** How this thread wants to look: what order the widgets come in. Read
    *  whole with the thread and never in a WHERE clause, which is the test

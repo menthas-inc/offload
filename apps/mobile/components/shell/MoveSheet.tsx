@@ -4,7 +4,7 @@
 // sheet in ui_kits/mobile_app/Sharing.jsx: a list with search on top and a tap
 // to choose. The threads are the person's own, from the same read My threads
 // makes, minus the one the row is already in. Per the 21 September design:
-// a row leads with the thread's own mark, an 18px lasso in secondary, since
+// a row leads with the thread's own icon at 24 (037), since
 // the share sheet's list is people and this one is threads; the footer is
 // Cancel, because a tap on a destination commits; and a one-thread account
 // gets a sentence rather than a search field over an empty list, which is
@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glyph } from "../Glyph";
+import { ThreadIcon } from "../ThreadIcon";
 import { useColors } from "../../lib/colors";
 import { fetchThreads, type ThreadRow } from "../../lib/threads";
 import { DragSheet } from "./DragSheet";
@@ -114,7 +115,7 @@ export function MoveSheet({
                   className="min-h-tap-min flex-row items-center gap-space-3 px-gutter-screen"
                   accessibilityRole="button"
                 >
-                  <Glyph name="lasso" size={18} color={COLOR.secondary} />
+                  <ThreadIcon icon={item.icon} hue={item.hue} seed={item.id} size={24} />
                   <Text className="flex-1 font-core text-text-primary" style={{ fontSize: 15 }} numberOfLines={1}>
                     {item.name}
                   </Text>

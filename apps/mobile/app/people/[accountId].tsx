@@ -14,6 +14,7 @@ import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from "
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Glyph } from "../../components/Glyph";
+import { ThreadIcon } from "../../components/ThreadIcon";
 import { Avatar } from "../../components/Avatar";
 import { RowActionSheet, type RowAction } from "../../components/shell/RowActionSheet";
 import { ConfirmSheet } from "../../components/people/ConfirmSheet";
@@ -119,7 +120,7 @@ export default function Person() {
   }
 
   const first = page && page !== "gone" ? firstNameOf(page) : "";
-  const threadRows = page && page !== "gone" ? page.shared.map((t) => ({ title: t.name, meta: threadMeta(t), icon: "lasso" })) : [];
+  const threadRows = page && page !== "gone" ? page.shared.map((t) => ({ title: t.name, meta: threadMeta(t), thread: { id: t.id, icon: t.icon, hue: t.hue } })) : [];
 
   return (
     <SafeAreaView className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`} edges={["top"]}>
@@ -200,9 +201,7 @@ export default function Person() {
                   }`}
                   style={{ minHeight: 56 }}
                 >
-                  <View className={`items-center justify-center rounded-sm ${isAndroid ? "bg-a-c-high" : "bg-surface-fill"}`} style={{ width: 36, height: 36 }}>
-                    <Glyph name="lasso" size={18} color={COLOR.secondary} />
-                  </View>
+                  <ThreadIcon icon={thread.icon} hue={thread.hue} seed={thread.id} size={32} />
                   <View className="flex-1">
                     <Text className={`font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 15 }} numberOfLines={1}>
                       {thread.name}

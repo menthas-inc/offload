@@ -358,7 +358,7 @@ async function sharedThreads(a: string, b: string, trx: Executor) {
       join.onRef("mb.thread_id", "=", "ma.thread_id").on("mb.account_id", "=", b).on("mb.state", "=", "accepted"),
     )
     .innerJoin("threads", "threads.id", "ma.thread_id")
-    .select(["threads.id as id", "threads.name as name", "threads.content_count as count", "threads.last_activity_at as lastActivityAt"])
+    .select(["threads.id as id", "threads.name as name", "threads.icon as icon", "threads.hue as hue", "threads.content_count as count", "threads.last_activity_at as lastActivityAt"])
     .where("ma.account_id", "=", a)
     .where("ma.state", "=", "accepted")
     .where("threads.deleted_at", "is", null)
@@ -465,7 +465,7 @@ export async function people(accountId: string): Promise<PeoplePage> {
 
 export interface PersonPage extends Person {
   relation: Relation;
-  shared: { id: string; name: string; count: number; lastActivityAt: Date }[];
+  shared: { id: string; name: string; icon: string; hue: number; count: number; lastActivityAt: Date }[];
   /** The open request between you, whichever way, for the card's controls. */
   requestId: string | null;
 }

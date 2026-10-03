@@ -3,7 +3,7 @@
 // 028. Where an entry could go, on its row: one button and a cross.
 //
 // From `LooseSuggestion` in ui_kits/mobile_app/LooseParts.jsx. *Move to* an
-// existing thread on the moss soft ground with `lasso`, or *Create* a new one
+// existing thread on the moss soft ground with the thread's own icon, or *Create* a new one
 // on paper with a dashed moss outline, `plus` and *new thread*. The whole
 // button accepts. The thread's name inside is a label and never a link: the
 // button's accessible name is the action, and the name is hidden from
@@ -15,6 +15,7 @@
 
 import { useId } from "react";
 import { Icon } from "../Icon";
+import { ThreadIcon } from "../ThreadIcon";
 import { Faces } from "./Faces";
 import { sharedHint, suggestionName, type Suggestion as Wire } from "../../lib/loose";
 import styles from "./loose.module.css";
@@ -49,7 +50,7 @@ export function Suggestion({
           <Icon name="sparkles" size={13} className={styles.spark} />
           <span>{move ? "Move to" : "Create"}</span>
           <span className={styles.name} aria-hidden="true">
-            <Icon name={move ? "lasso" : "plus"} size={12} />
+            {move ? <ThreadIcon icon={suggestion.thread.icon} hue={suggestion.thread.hue} seed={suggestion.thread.id} size={16} round /> : <Icon name="plus" size={12} />}
             <span className={styles.nameText}>{name}</span>
           </span>
           {move ? <Faces faces={suggestion.faces} more={suggestion.more} /> : <span>new thread</span>}

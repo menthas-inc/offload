@@ -41,7 +41,7 @@ const badRequest = z.object({ error: z.string() });
 const notFound = z.object({ error: z.literal("not_found") });
 const conflict = z.object({ error: z.enum(["too_late", "changed", "duplicate"]) });
 const ok = z.object({ ok: z.literal(true) });
-const threadRef = z.object({ thread: z.object({ id: z.string(), name: z.string() }) });
+const threadRef = z.object({ thread: z.object({ id: z.string(), name: z.string(), icon: z.string(), hue: z.number() }) });
 const idParams = z.object({ id: z.string().uuid() });
 
 /** One refusal for every reason a thing is not the caller's (404); the shape

@@ -8,6 +8,7 @@
 // row says (SEC-2, OFF-3). Nothing here destroys anything of the person's:
 // moves are moves, and Create's Undo empties the thread before it goes.
 
+import { markFor } from "../threads/icons.js";
 import { sql, type Transaction } from "kysely";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
@@ -152,14 +153,22 @@ async function drawable(trx: Trx, accountId: string, suggestionId: string) {
   return { row, looseThreadId };
 }
 
-export async function acceptSuggestion(accountId: string, suggestionId: string): Promise<{ thread: { id: string; name: string } }> {
+/** 037. A thread as a toast and a pill name it: with its icon and hue. */
+export interface ThreadRef {
+  id: string;
+  name: string;
+  icon: string;
+  hue: number;
+}
+
+export async function acceptSuggestion(accountId: string, suggestionId: string): Promise<{ thread: ThreadRef }> {
   return db.transaction().execute(async (trx) => {
     const { row, looseThreadId } = await drawable(trx, accountId, suggestionId);
     if (row.kind !== "move" || !row.thread_id || row.accepted_at !== null || row.thread_id === looseThreadId) throw new NotYours();
     if (!(await isLoose(trx, looseThreadId, { contentId: row.content_id, noteId: row.note_id }))) throw new NotYours();
     await moveTarget(trx, accountId, { contentId: row.content_id, noteId: row.note_id }, row.thread_id);
     await trx.updateTable("suggestions").set({ accepted_at: sql`now()` }).where("id", "=", row.id).execute();
-    const thread = await trx.selectFrom("threads").select(["id", "name"]).where("id", "=", row.thread_id).executeTakeFirstOrThrow();
+    const thread = await trx.selectFrom("threads").select(["id", "name", "icon", "hue"]).where("id", "=", row.thread_id).executeTakeFirstOrThrow();
     return { thread };
   });
 }
@@ -244,7 +253,7 @@ export async function createFromProposal(
   accountId: string,
   proposalId: string,
   input: { name: string; contentIds: string[]; noteIds: string[] },
-): Promise<{ thread: { id: string; name: string } }> {
+): Promise<{ thread: ThreadRef }> {
   const name = threadName(input.name);
   if (input.contentIds.length + input.noteIds.length === 0) throw new LooseRefused("empty");
   return db.transaction().execute(async (trx) => {
@@ -284,8 +293,8 @@ export async function createFromProposal(
     // alone while its things leave the default thread.
     const thread = await trx
       .insertInto("threads")
-      .values({ created_by_account_id: accountId, name, always_on: false, last_activity_at: sql`now()`, updated_at: sql`now()` })
-      .returning(["id", "name"])
+      .values({ created_by_account_id: accountId, name, ...(await markFor(trx, accountId, name)), always_on: false, last_activity_at: sql`now()`, updated_at: sql`now()` })
+      .returning(["id", "name", "icon", "hue"])
       .executeTakeFirstOrThrow();
     await trx
       .insertInto("thread_members")

@@ -21,11 +21,19 @@ export interface Face {
   displayName: string;
 }
 
+/** 037. A thread as a chip and a toast name it. */
+export interface ThreadRef {
+  id: string;
+  name: string;
+  icon: string;
+  hue: number;
+}
+
 export type Suggestion =
   | {
       id: string;
       kind: "move";
-      thread: { id: string; name: string };
+      thread: ThreadRef;
       /** At most two of the thread's other members, empty when it is not
        *  shared, then how many more. */
       faces: Face[];
@@ -268,10 +276,10 @@ async function errorOf(response: Response): Promise<string | null> {
 }
 
 /** Move to: the thread it went to, or null when refused. */
-export async function acceptSuggestion(id: string): Promise<{ id: string; name: string } | null> {
+export async function acceptSuggestion(id: string): Promise<ThreadRef | null> {
   const response = await post(`/v1/suggestions/${id}/accept`);
   if (!response?.ok) return null;
-  return ((await response.json()) as { thread: { id: string; name: string } }).thread;
+  return ((await response.json()) as { thread: ThreadRef }).thread;
 }
 
 /** Back where it was, with its suggestion. False after the window. */
@@ -286,10 +294,10 @@ export async function dismissSuggestion(id: string): Promise<boolean> {
 export async function createFromProposal(
   id: string,
   body: { name: string; contentIds: string[]; noteIds: string[] },
-): Promise<{ ok: true; thread: { id: string; name: string } } | { ok: false }> {
+): Promise<{ ok: true; thread: ThreadRef } | { ok: false }> {
   const response = await post(`/v1/proposals/${id}/create`, body);
   if (!response?.ok) return { ok: false };
-  return { ok: true, thread: ((await response.json()) as { thread: { id: string; name: string } }).thread };
+  return { ok: true, thread: ((await response.json()) as { thread: ThreadRef }).thread };
 }
 
 /** `changed` once anything else has happened in the new thread. */

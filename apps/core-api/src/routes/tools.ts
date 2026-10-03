@@ -20,6 +20,7 @@
 //   somebody else's return byte-identical bodies. Two reasons would make this
 //   endpoint a membership oracle for any thread id a caller could guess.
 
+import { markFor } from "../threads/icons.js";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { sql, type Transaction } from "kysely";
@@ -59,7 +60,7 @@ import {
 import {
   editContent,
   moveContent,
-  renameThread,
+  editThread,
   setArchived,
   setPreference,
 } from "./threads.js";
@@ -146,6 +147,10 @@ const body = z.discriminatedUnion("tool", [
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
     name: z.string().min(1).max(80),
+    // 037. The icon the model names for it. A string and not the enum: a
+    // name outside the list falls to the word list, and the thread is still
+    // made.
+    icon: z.string().max(40).nullish(),
   }),
   z.strictObject({
     tool: z.literal("add_content"),
@@ -1060,7 +1065,7 @@ async function existing(
 ): Promise<Outcome> {
   if (call.tool === "rename_thread") {
     await requireMember(accountId, call.threadId, trx);
-    await renameThread(accountId, call.threadId, call.name);
+    await editThread(accountId, call.threadId, { name: call.name }, trx);
     return { ok: true, done: true };
   }
 
@@ -1702,6 +1707,7 @@ export async function toolRoutes(app: App): Promise<void> {
             .values({
               created_by_account_id: accountId,
               name: call.name,
+              ...(await markFor(trx, accountId, call.name, call.icon)),
               always_on: false,
               last_activity_at: sql`now()`,
               updated_at: sql`now()`,

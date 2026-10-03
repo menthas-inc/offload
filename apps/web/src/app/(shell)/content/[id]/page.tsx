@@ -6,6 +6,7 @@
 // the detail rather than guessing. A piece of content is a place you can link
 // to, which is the same reason a thread is.
 
+import { DEFAULT_THREAD_ICON } from "@offload/widgets";
 import { use, useEffect, useState } from "react";
 import { Panes } from "../../../../components/shell/Panes";
 import { Thread } from "../../../../components/panes/Thread";
@@ -59,7 +60,11 @@ export default function ContentRoute({ params }: { params: Promise<{ id: string 
         { label: "My threads", href: "/threads", icon: "message-circle" },
         loose
           ? { label: "Not in a thread", href: "/threads/loose" }
-          : { label: detail.threadName ?? "", href: `/threads/${detail.threadId}`, icon: "lasso" },
+          : {
+              label: detail.threadName ?? "",
+              href: `/threads/${detail.threadId}`,
+              thread: { id: detail.threadId, icon: detail.threadIcon ?? DEFAULT_THREAD_ICON, hue: detail.threadHue ?? 1 },
+            },
         { label: detail.title, href: `/content/${id}`, icon: "text-quote" },
       ]}
       panes={[

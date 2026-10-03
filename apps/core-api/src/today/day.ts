@@ -38,6 +38,8 @@ export const todayEvent = z.object({
   link: z.string().nullable(),
   threadId: z.string().nullable(),
   threadName: z.string().nullable(),
+  threadIcon: z.string().nullable(),
+  threadHue: z.number().nullable(),
   authorName: z.string().nullable(),
 });
 export type TodayEvent = z.infer<typeof todayEvent>;
@@ -235,6 +237,8 @@ async function eventsOn(accountId: string, date: string, start: Date, end: Date,
       link: null,
       threadId: row.threadId,
       threadName: row.threadName,
+      threadIcon: row.threadIcon,
+      threadHue: row.threadHue,
       authorName: mine ? null : row.authorName,
     });
   }
@@ -255,6 +259,8 @@ async function eventsOn(accountId: string, date: string, start: Date, end: Date,
       link: row.link,
       threadId: null,
       threadName: null,
+      threadIcon: null,
+      threadHue: null,
       authorName: null,
     });
   }

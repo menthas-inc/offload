@@ -92,6 +92,9 @@ export interface AgendaRow extends ContentRow {
   threadId: string;
   /** 028. Null for a row that is not in a thread, which draws no pill. */
   threadName: string | null;
+  /** 037. Null with the name. */
+  threadIcon: string | null;
+  threadHue: number | null;
 }
 
 export interface TodayEvent {
@@ -107,6 +110,8 @@ export interface TodayEvent {
   link: string | null;
   threadId: string | null;
   threadName: string | null;
+  threadIcon: string | null;
+  threadHue: number | null;
   /** An offload event another member filed. */
   authorName: string | null;
 }
@@ -171,6 +176,8 @@ export type NeedsCard =
       question: QuestionOnWire;
       threadId: string | null;
       threadName: string | null;
+      threadIcon: string | null;
+      threadHue: number | null;
       fromEmail: boolean;
     }
   | { key: string; kind: "tip"; tip: "forwarding"; address: string; from: string };

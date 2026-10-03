@@ -79,18 +79,22 @@ const handlers = {
 
 describe("027 AC-26 the thread pill", () => {
   it("is what the turn footer draws, at 30, opening the thread", async () => {
-    const host = await render(<TurnFooter refs={[{ id: "t1", name: "Flat" }]} />);
+    const host = await render(<TurnFooter refs={[{ id: "t1", name: "Flat", icon: "house", hue: 2 }]} />);
     const pill = host.querySelector('a[href="/threads/t1"]')!;
     expect(pill).not.toBeNull();
     expect(pill.getAttribute("data-size")).toBe("30");
     expect(pill.textContent).toBe("Flat");
+    // 037. The thread's own icon, on its hue, in place of the lasso.
+    const mark = pill.firstElementChild as HTMLElement;
+    expect(mark.style.getPropertyValue("--hue")).toBe("var(--label-2)");
+    expect((mark.firstElementChild as HTMLElement).style.maskImage).toContain("/icons/house.svg");
   });
 
   it("is drawn at 24 for Today, and as plain ink when its card already opens the thread", async () => {
     const host = await render(
       <>
-        <ThreadPill id="t1" name="Flat" size={24} />
-        <ThreadPill id="t2" name="Work" size={24} still />
+        <ThreadPill id="t1" name="Flat" icon="house" hue={2} size={24} />
+        <ThreadPill id="t2" name="Work" icon="briefcase" hue={3} size={24} still />
       </>,
     );
     expect(host.querySelector('a[href="/threads/t1"]')!.getAttribute("data-size")).toBe("24");
@@ -100,7 +104,7 @@ describe("027 AC-26 the thread pill", () => {
 
   it("sits on a row's marks line as its own control, apart from the row's title", async () => {
     const host = await render(
-      <ContentRowView row={row} lead={null} meta={null} handlers={handlers} thread={{ id: "t1", name: "Flat" }} />,
+      <ContentRowView row={row} lead={null} meta={null} handlers={handlers} thread={{ id: "t1", name: "Flat", icon: "house", hue: 2 }} />,
     );
     const pill = host.querySelector('a[href="/threads/t1"]')!;
     expect(pill).not.toBeNull();

@@ -349,6 +349,51 @@
   padding: var(--space-6) var(--space-8) 0;
 }
 
+/* 037. A thread's icon before its name, and the anchor Edit thread hangs
+   from. */
+.paneLead {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-self: center;
+  margin-right: var(--space-2);
+}
+
+.threadHeadIcon {
+  display: flex;
+  padding: 0;
+  border: 0;
+  border-radius: calc(36px * 0.3);
+  background: none;
+  cursor: pointer;
+}
+
+.threadHeadIcon:hover,
+.threadHeadIcon:focus-visible {
+  box-shadow: 0 0 0 2px var(--border-strong);
+  outline: none;
+}
+
+.threadHeadName {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.threadHeadName:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
 .paneTitle {
   margin: 0;
   font-weight: var(--weight-semibold);
@@ -588,6 +633,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 037. A thread's icon where a row's well would be: the same place on the
+   first line, its own ground. */
+.rowThreadIcon {
+  margin-top: calc((15.5px * var(--type-scale) * 1.35 - 32px) / 2);
 }
 
 .rowText {
@@ -3345,10 +3396,11 @@ a.actRow:hover {
 .threadPill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   max-width: 100%;
-  min-height: 24px;
-  padding: 0 9px 0 7px;
+  /* 037. 26, not 24: the thread's icon in it is 18. */
+  min-height: 26px;
+  padding: 0 10px 0 4px;
   border-radius: var(--radius-pill);
   background: var(--surface-accent-soft);
   color: var(--text-accent);
@@ -3360,10 +3412,10 @@ a.actRow:hover {
 
 .threadPill[data-size="30"] {
   min-height: 30px;
-  padding: 0 var(--space-4) 0 var(--space-3);
+  padding: 0 var(--space-4) 0 6px;
 }
 
-/* Drawn 24 or 30, a 44 target by a hit area with no paint, so the marks line
+/* Drawn 26 or 30, a 44 target by a hit area with no paint, so the marks line
    and the turn footer do not grow. */
 a.threadPill {
   position: relative;
@@ -3372,7 +3424,7 @@ a.threadPill {
 a.threadPill::after {
   content: "";
   position: absolute;
-  inset: calc((24px - var(--tap-min)) / 2) 0;
+  inset: calc((26px - var(--tap-min)) / 2) 0;
 }
 
 a.threadPill[data-size="30"]::after {

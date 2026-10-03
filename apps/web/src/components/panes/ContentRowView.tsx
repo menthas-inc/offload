@@ -93,7 +93,7 @@ export function ContentRowView({
   /** 027. The row's thread, drawn as the thread pill on the marks line before
    *  its labels, where the row is shown away from its thread. Its own prop,
    *  never the `meta` slot, as 025 did for labels. */
-  thread?: { id: string; name: string } | undefined;
+  thread?: { id: string; name: string; icon: string; hue: number } | undefined;
   /** 027. What stands in for the date chip: Today's clock chip with the hour,
    *  or `null` for a row whose day the section already says. Left out, the
    *  row draws its own date chip. */
@@ -277,7 +277,7 @@ export function ContentRowView({
               wrapping. A row with neither draws nothing. */}
           <span className={labelStyles.marks}>
             {chip !== undefined ? chip : <DateChip row={row} isReminder={row.isReminder} />}
-            {thread ? <ThreadPill id={thread.id} name={thread.name} size={24} /> : null}
+            {thread ? <ThreadPill id={thread.id} name={thread.name} icon={thread.icon} hue={thread.hue} size={24} /> : null}
             {handlers.labels
               ? row.labels.map((id) => {
                   const label = handlers.labels!.get(id);

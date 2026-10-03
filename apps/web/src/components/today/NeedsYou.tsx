@@ -214,7 +214,7 @@ export function NeedsYou({ cards, load }: { cards: Card[]; load: number }) {
           kind: one.fromEmail ? "About an email" : "offload asked",
           tone: "attention",
           title: one.question.text,
-          why: one.threadId && one.threadName ? <ThreadPill id={one.threadId} name={one.threadName} size={24} /> : null,
+          why: one.threadId && one.threadName ? <ThreadPill id={one.threadId} name={one.threadName} icon={one.threadIcon ?? "lasso"} hue={one.threadHue ?? 1} size={24} /> : null,
           actions: [],
           clock: true,
         };

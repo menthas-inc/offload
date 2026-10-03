@@ -16,6 +16,9 @@ export interface FoundResult {
   threadId: string;
   /** 028. Null for the default thread, which no surface names. */
   threadName: string | null;
+  /** 037. Null with the name. */
+  threadIcon: string | null;
+  threadHue: number | null;
   /** The read hit its page. The tail becomes the thread rather than a Show more
    *  that would expand into rows nobody fetched. */
   truncated: boolean;
@@ -23,6 +26,8 @@ export interface FoundResult {
     contentId: string;
     threadId: string;
     threadName: string | null;
+    threadIcon: string | null;
+    threadHue: number | null;
     type: string;
     title: string;
     body: string | null;
@@ -53,6 +58,8 @@ export async function foundFor(
     id: string;
     thread_id: string;
     thread_name: string | null;
+    thread_icon: string | null;
+    thread_hue: number | null;
     type: string;
     title: string;
     body: string | null;
@@ -66,6 +73,8 @@ export async function foundFor(
            c.id::text as id, c.thread_id::text as thread_id,
            -- 028. The default thread is never named: the card says Not in a thread.
            case when t.id = (select a.default_thread_id from accounts a where a.id = ${accountId}::uuid) then null else t.name end as thread_name,
+           case when t.id = (select a.default_thread_id from accounts a where a.id = ${accountId}::uuid) then null else t.icon end as thread_icon,
+           case when t.id = (select a.default_thread_id from accounts a where a.id = ${accountId}::uuid) then null else t.hue end as thread_hue,
            c.type as type, c.title as title, c.body as body, c.done_at as done_at,
            p.id::text as blob_id, p.width as blob_width, p.height as blob_height,
            (p.renditions_at is not null) as blob_ready
@@ -102,7 +111,7 @@ export async function foundFor(
     if (!result) {
       result = {
         threadId: row.thread_id,
-        threadName: row.thread_name,
+        threadName: row.thread_name, threadIcon: row.thread_icon, threadHue: row.thread_hue,
         truncated: row.truncated,
         rows: [],
       };
@@ -111,7 +120,7 @@ export async function foundFor(
     result.rows.push({
       contentId: row.id,
       threadId: row.thread_id,
-      threadName: row.thread_name,
+      threadName: row.thread_name, threadIcon: row.thread_icon, threadHue: row.thread_hue,
       type: row.type,
       title: row.title,
       body: row.body ? row.body.slice(0, ANSWER_ROW_CHARS) : null,

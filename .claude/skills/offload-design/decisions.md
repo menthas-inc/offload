@@ -11,6 +11,24 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-04 · Thread icons, as built (037)
+**Surface:** iOS, Android, web
+**Raised by:** code, building *Every thread has a mark* (`handoff/APPLY-2026-10-03-thread-marks.md`) as 037, with the owner's answers of 4 October and the client review.
+**Was:** the handoff: offload picks by the word list alone, a rename with no match falls back to `lasso`, the seed is the thread's id, the pill is 26 everywhere, Move suggestions draw the mark at 24, the picker's grid fades out over its last 15%, and the phones' sheet runs from 150px below the top.
+**Is:** built as drawn, with these differences.
+- **The model may name the icon** when it creates a thread, from the same seventy; the word list is the fallback and picks for threads a person makes. Owner, 2026-10-04.
+- **A rename with no match keeps the icon it has.** The icon may be the model's, and *Lisbon* becoming *Lisbon 2027* is no reason to lose it.
+- **The seed is the last eight hex digits of the id.** The ids are v7 and lead with their timestamp, so the head is the same for threads made together.
+- **The pill in a turn's footer stays 30**, where every mark in that row is 30; Today's grows to 26. The icon in both is 18.
+- **A Move to suggestion's chip draws the icon at 16**: the chip is one line of 13px text. The Move picker's rows are 24.
+- **Places the handoff's table did not list:** the web sidebar's thread rows at 20, the web's crumbs at 18 as a circle, the composer's *In thread* chip on the phones at 18, the list in People's remove confirmation at 24.
+- **The phones' grid has no fade**: there is no gradient or mask library in the app. It scrolls on its own inside its well.
+- **The phones' thread row is centred**, not top-aligned, so a name with no line under it sits against the middle of the icon (owner, on a device, 2026-10-04).
+- **The phones' Edit thread sheet is as tall as its contents**, not pinned 150 below the top: the space under the colours was empty (owner, on the Pixel, 2026-10-04).
+- The component is `ThreadIcon` on both clients, as the handoff asks. Picked states use `--text-primary` on the web for the ink ring, which follows the theme.
+**Why:** each is above.
+**Design system impact:** `readme.md` **Thread marks**: the pick rule (the model's pick, keep on no match), the seed, the two pill heights, the 16 in a suggestion chip, and the extra places. `handoff/thread-marks-standalone.html` if it is kept as the reference. No token changes.
+
 ### 2026-10-04 · The 034 answers, pulled
 **Surface:** admin, iOS, Android, web
 **Raised by:** code, pulling *The 034 asks, answered* (`handoff/APPLY-2026-10-03-admin-034.md`).

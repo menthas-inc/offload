@@ -123,7 +123,7 @@ describe("a Move to (T1.14, AC-16, AC-23, AC-26)", () => {
     const cookie = await signIn(me);
     const accepted = await as(app, cookie).post(`/v1/suggestions/${s}/accept`);
     expect(accepted.statusCode).toBe(200);
-    expect(accepted.json()).toEqual({ thread: { id: home, name: "Flat admin" } });
+    expect(accepted.json()).toEqual({ thread: { id: home, name: "Flat admin", icon: "lasso", hue: 1 } });
     expect(await threadOf(r)).toBe(home);
     expect((await suggestion(s))!.accepted_at).not.toBeNull();
 
