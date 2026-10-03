@@ -146,6 +146,7 @@ const minutes = (ms: number) => `${count(Math.round(ms / 60_000))} min`;
 const UNITS: Record<string, { show: (value: number) => string; unit: number; prefix?: string; suffix?: string }> = {
   "cap.spend_micros": { show: dollars, unit: 1_000_000, prefix: "$" },
   "cap.photo_bytes": { show: megabytes, unit: MB, suffix: "MB" },
+  "cap.storage_bytes": { show: megabytes, unit: MB, suffix: "MB" },
   "cap.voice_ms": { show: minutes, unit: 60_000, suffix: "min" },
   "platform.spend_micros": { show: dollars, unit: 1_000_000, prefix: "$" },
 };
@@ -542,6 +543,16 @@ export default function PersonPage() {
         </Stats>
         <Stats>
           <Stat label="Files" value={count(has.files)} note={megabytes(has.fileBytes)} />
+          {/* 036. Everything kept against its cap, here rather than under
+              Today: it is not a day's figure. */}
+          <Stat
+            label={capLabel("cap.storage_bytes")}
+            value={usedOf("cap.storage_bytes")}
+            // Files counts every file kept; this is what the cap counts,
+            // which leaves out what they left in threads they are not in.
+            note={`${limitOf("cap.storage_bytes")}, less what they left in threads`}
+            tone={reached("cap.storage_bytes")}
+          />
           <Stat
             label="Calendars"
             value={count(has.calendars)}

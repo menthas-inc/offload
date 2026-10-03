@@ -1,7 +1,8 @@
 "use client";
 
-// Settings, Privacy: whether offload may reach the web, 016, and the copy of
-// everything a person can take with them, 035 (`YourCopy`).
+// Settings, Privacy: whether offload may reach the web, 016, what the account
+// keeps against its limit, 036 (`Storage`), and the copy of everything a
+// person can take with them, 035 (`YourCopy`).
 //
 // **Two switches rather than one**, because they are two different promises. A
 // search sends words somebody wrote to a search company; opening a link they
@@ -20,6 +21,7 @@ import { useRouter } from "next/navigation";
 import { PaneHead } from "../shell/PaneHead";
 import { Switch } from "../Switch";
 import { Group } from "./SettingsRows";
+import { Storage } from "./Storage";
 import { YourCopy } from "./YourCopy";
 import { useMe, updateWebAccess } from "../../lib/use-me";
 import { useToast } from "../shell/Toast";
@@ -65,6 +67,10 @@ export function PrivacyPane() {
             last
           />
         </Group>
+        <Storage
+          onFailed={(line, retry) => toast.show(line, { label: "Retry", onPress: retry })}
+          onSignedOut={() => router.replace("/sign-in")}
+        />
         <YourCopy
           zone={me?.timeZone ?? null}
           onFailed={(line, retry) => toast.show(line, { label: "Retry", onPress: retry })}

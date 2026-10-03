@@ -24,6 +24,7 @@ import { limitReached, spentToday, turnsToday } from "../../budget.js";
 import { SETTING_KEYS, clearOverrides, limitFor, setting, settingDef, validSetting, type CapKey } from "../../settings.js";
 import { photosToday } from "../../blobs/photos.js";
 import { voiceToday } from "../../blobs/audio.js";
+import { storageUsed } from "../../blobs/storage.js";
 import { mailToday } from "../../mail-in/receive.js";
 import { syncNow } from "../../connectors/sync.js";
 import type { Executor } from "../../threads/access.js";
@@ -176,12 +177,13 @@ async function guardLocked(tx: Executor, caller: Staff, target: Target): Promise
 // refusal read the same statement (AC-18).
 
 async function usedToday(accountId: string): Promise<Record<CapKey, number>> {
-  const [spent, turns, photos, voice, mail] = await Promise.all([
+  const [spent, turns, photos, voice, mail, kept] = await Promise.all([
     spentToday(accountId),
     turnsToday(accountId),
     photosToday(accountId),
     voiceToday(accountId),
     mailToday(accountId),
+    storageUsed(accountId),
   ]);
   return {
     "cap.spend_micros": spent,
@@ -192,6 +194,8 @@ async function usedToday(accountId: string): Promise<Record<CapKey, number>> {
     "cap.voice_ms": voice.ms,
     "cap.mail_day": mail.day,
     "cap.mail_hour": mail.hour,
+    // 036. Not a day's figure: everything kept, against the same cap.
+    "cap.storage_bytes": kept,
   };
 }
 

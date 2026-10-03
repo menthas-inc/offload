@@ -117,7 +117,7 @@ describe("the settings save", () => {
     const res = await app.inject({ method: "GET", url: "/v1/admin/settings", headers: { cookie: owner.cookie } });
     expect(res.statusCode).toBe(200);
     const rows = res.json().settings as Array<Record<string, unknown>>;
-    expect(rows).toHaveLength(17);
+    expect(rows).toHaveLength(18);
     expect(rows.find((row) => row["key"] === "cap.turns")).toEqual({
       key: "cap.turns",
       kind: "int",

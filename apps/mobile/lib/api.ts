@@ -216,7 +216,13 @@ export async function upload<T>(path: string, form: FormData): Promise<Sent<T>> 
   if (!response) return { status: 0, data: null };
   if (!response.ok) {
     refused(response, headers["cookie"] ?? "");
-    return { status: response.status, data: null };
+    // 036. Which refusal a 429 was, everything kept or the day's, is in the
+    // body; read the way `send` reads it.
+    const error = await response
+      .json()
+      .then((body: unknown) => (body && typeof body === "object" && typeof (body as { error?: unknown }).error === "string" ? (body as { error: string }).error : undefined))
+      .catch(() => undefined);
+    return { status: response.status, data: null, ...(error ? { error } : {}) };
   }
   const text = await response.text();
   return { status: response.status, data: text.length > 0 ? (JSON.parse(text) as T) : null };

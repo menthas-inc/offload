@@ -80,12 +80,16 @@ const NUMBERS: Record<string, Unit> = {
   "cap.voice_ms": MINUTES,
   "cap.mail_day": WHOLE,
   "cap.mail_hour": WHOLE,
+  // 036. Everything kept, not a day's.
+  "cap.storage_bytes": MEGABYTES,
   [PLATFORM]: DOLLARS,
   [BUDGET]: DOLLARS,
   [BATCH]: WHOLE,
 };
 
-const PER_PERSON = Object.keys(NUMBERS).filter((key) => key.startsWith("cap."));
+/** 036. The one per-person cap that is not a day's: everything kept. */
+const KEPT = "cap.storage_bytes";
+const PER_PERSON = Object.keys(NUMBERS).filter((key) => key.startsWith("cap.") && key !== KEPT);
 
 /** Each switch, and one plain line saying what off does. `own` marks the two
  *  a person also has a setting for. */
@@ -360,6 +364,11 @@ export default function LimitsPage() {
         <div className={styles.limitsGroup}>
           <h2 className={styles.limitsGroupLabel}>Per person, in any 24 hours</h2>
           <div className={styles.limitsFields}>{PER_PERSON.map((key) => number(key, CAP_LABELS[key] ?? key))}</div>
+        </div>
+
+        <div className={styles.limitsGroup}>
+          <h2 className={styles.limitsGroupLabel}>Per person, everything kept</h2>
+          <div className={styles.limitsFields}>{number(KEPT, CAP_LABELS[KEPT] ?? KEPT)}</div>
         </div>
 
         <div className={styles.limitsGroup}>

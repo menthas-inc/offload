@@ -92,8 +92,9 @@ describe("AC-29 a setting unset", () => {
     expect(await setting("costs.fixed")).toEqual({});
   });
 
-  it("names seventeen keys, each with a default inside its own bounds", () => {
-    expect(SETTING_KEYS).toHaveLength(17);
+  it("names eighteen keys, each with a default inside its own bounds", () => {
+    // 036 added `cap.storage_bytes`.
+    expect(SETTING_KEYS).toHaveLength(18);
     for (const key of SETTING_KEYS) {
       const def = settingDef(key);
       if (typeof def.default === "number") {

@@ -455,3 +455,6 @@ export {
 // 035. The Your copy row.
 export { copyRow, COPY_POLL_MS } from "./copy.js";
 export type { CopyRow, CopyState } from "./copy.js";
+
+// 036. The Storage row's figure.
+export { storageFigure } from "./storage.js";

@@ -14,6 +14,7 @@ import { objectKey, objectStore } from "../blobs/store.js";
 import { recordHit } from "../budget.js";
 import { limitFor, type CapKey } from "../settings.js";
 import { MAX_PHOTO_BYTES, MAX_PIXELS, dimensions, photosToday, sha256, sniff, type PhotoType } from "../blobs/photos.js";
+import { storageUsed } from "../blobs/storage.js";
 import type { ParsedImage } from "./parse.js";
 
 export const MIN_BYTES = 20 * 1024;
@@ -56,6 +57,9 @@ export async function sealCandidates(accountId: string, messageKey: string, cand
   let bytesToday = today.bytes;
   const maxPhotos = await limitFor(accountId, "cap.photos");
   const maxBytes = await limitFor(accountId, "cap.photo_bytes");
+  // 036. And what the account keeps, which this email's pictures add to.
+  let kept = await storageUsed(accountId);
+  const maxKept = await limitFor(accountId, "cap.storage_bytes");
 
   const ids: string[] = [];
   for (const [index, candidate] of candidates.entries()) {
@@ -74,7 +78,14 @@ export async function sealCandidates(accountId: string, messageKey: string, cand
     }
     // 034. The settings' ceilings, and a picture left out by one is a refusal
     // like any other: written down, once for the email.
-    const over: CapKey | null = count >= maxPhotos ? "cap.photos" : bytesToday + candidate.bytes.length > maxBytes ? "cap.photo_bytes" : null;
+    const over: CapKey | null =
+      count >= maxPhotos
+        ? "cap.photos"
+        : bytesToday + candidate.bytes.length > maxBytes
+          ? "cap.photo_bytes"
+          : kept + candidate.bytes.length > maxKept
+            ? "cap.storage_bytes"
+            : null;
     if (over) {
       await recordHit(accountId, over, "account");
       break;
@@ -110,6 +121,7 @@ export async function sealCandidates(accountId: string, messageKey: string, cand
     ids.push(blob.id);
     count += 1;
     bytesToday += candidate.bytes.length;
+    kept += candidate.bytes.length;
   }
   return ids;
 }

@@ -37,6 +37,7 @@ import { recordHit } from "../budget.js";
 import { dailyLimit } from "./dumps.js";
 import { limitFor, type CapKey } from "../settings.js";
 import { MAX_CANDIDATES } from "../mail-in/images.js";
+import { storageUsed } from "../blobs/storage.js";
 import { reverseGeocodingOn } from "../places/reverse.js";
 import {
   audioFilename,
@@ -77,6 +78,18 @@ function bearer(request: FastifyRequest): string | undefined {
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 const refused = z.object({ error: z.string() });
 const uploaded = z.object({ blobId: z.string(), width: z.number(), height: z.number() });
+// 036. Everything the account keeps, as against a day's worth.
+const storageFull = z.object({ error: z.literal("storage_full") });
+const overLimit = z.union([dailyLimit, storageFull]);
+
+/** 036. Would these bytes take the account past what it may keep? Written
+ *  down when they would. Outside the insert's transaction like the daily
+ *  caps: a cost bound, so two uploads racing past it by one file is fine. */
+async function storageRefuses(accountId: string, bytes: number): Promise<boolean> {
+  if ((await storageUsed(accountId)) + bytes <= (await limitFor(accountId, "cap.storage_bytes"))) return false;
+  await recordHit(accountId, "cap.storage_bytes", "account");
+  return true;
+}
 
 /** The multipart fields of an upload, read from the parts as they arrive. */
 interface Upload {
@@ -211,6 +224,21 @@ async function openStored(blobId: string, rendition: Rendition, key: Buffer): Pr
 export async function blobRoutes(app: App): Promise<void> {
   // ------------------------------------------------------------ a person
 
+  // 036. What Settings shows: the account's own figure and its own limit,
+  // read when the page opens rather than carried on every `/v1/me`.
+  app.get(
+    "/api/me/storage",
+    { schema: { response: { 200: z.object({ usedBytes: z.number(), limitBytes: z.number() }), 401: unauthenticated } } },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+      const [usedBytes, limitBytes] = await Promise.all([storageUsed(accountId), limitFor(accountId, "cap.storage_bytes")]);
+      // One account's figure: never held by anything shared on the way.
+      reply.header("cache-control", "no-store");
+      return reply.send({ usedBytes, limitBytes });
+    },
+  );
+
   app.post(
     "/v1/blobs",
     {
@@ -220,7 +248,7 @@ export async function blobRoutes(app: App): Promise<void> {
           401: unauthenticated,
           413: refused,
           415: refused,
-          429: dailyLimit,
+          429: overLimit,
           503: refused,
         },
       },
@@ -274,6 +302,9 @@ export async function blobRoutes(app: App): Promise<void> {
       if (overPhotos) {
         await recordHit(accountId, overPhotos, "account");
         return reply.code(429).send({ error: "daily_limit", scope: "account" });
+      }
+      if (await storageRefuses(accountId, upload.bytes.length)) {
+        return reply.code(429).send({ error: "storage_full" as const });
       }
 
       const bytes = upload.bytes;
@@ -330,7 +361,7 @@ export async function blobRoutes(app: App): Promise<void> {
           401: unauthenticated,
           413: refused,
           415: refused,
-          429: dailyLimit,
+          429: overLimit,
           503: refused,
         },
       },
@@ -383,6 +414,9 @@ export async function blobRoutes(app: App): Promise<void> {
       if (overVoice) {
         await recordHit(accountId, overVoice, "account");
         return reply.code(429).send({ error: "daily_limit", scope: "account" });
+      }
+      if (await storageRefuses(accountId, upload.bytes.length)) {
+        return reply.code(429).send({ error: "storage_full" as const });
       }
 
       const bytes = upload.bytes;
