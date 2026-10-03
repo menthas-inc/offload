@@ -22,10 +22,9 @@ export const GATE = {
     // same thing on one screen, and the link says what it does on its own.
     terms: "",
     termsAccent: "Join the waitlist",
-    // The kits say "Terms · Privacy". There is no terms page yet, and a line
-    // naming a document that does not exist is worse than a shorter line, so
-    // this is Privacy alone until there is a second thing to name.
-    legal: "Privacy",
+    // "Terms · Privacy", as the kits draw it and as the web gate's footer
+    // says it. Two words because each is its own link to its own page.
+    legal: { terms: "Terms", privacy: "Privacy" },
   },
   refused: "That did not go through. Nothing was sent, try again.",
   notInvited: {

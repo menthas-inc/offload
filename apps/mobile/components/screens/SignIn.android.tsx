@@ -19,7 +19,7 @@ import { GateLockup } from "../GateLockup";
 import { AppleGlyph, GoogleGlyph } from "../Glyphs";
 import { GATE } from "../../lib/gate";
 import { takeDeletedNotice } from "../../lib/account";
-import { PRIVACY_URL } from "../../lib/links";
+import { PRIVACY_URL, TERMS_URL } from "../../lib/links";
 import { useColors } from "../../lib/colors";
 import {
   appleAvailable,
@@ -152,21 +152,44 @@ export default function SignIn() {
               {GATE.signIn.termsAccent}
             </Text>
           </Text>
-          {/* 44px of touch around a 12.5px line, per the design system's hit
-            area rule: the text stays the size the kit draws it. */}
-          <Pressable
-            onPress={() => void Linking.openURL(PRIVACY_URL)}
-            className="items-center justify-center"
-            style={{ minHeight: 44 }}
-            accessibilityRole="link"
-          >
-            <Text
-              className="text-center font-core text-a-on-var"
-              style={{ fontSize: 12.5, lineHeight: 18 }}
+          {/* 44px of touch around each word of a 12.5px line, per the design
+            system's hit area rule: the text stays the size the kit draws it. */}
+          <View className="flex-row items-center justify-center">
+            <Pressable
+              onPress={() => void Linking.openURL(TERMS_URL)}
+              className="items-center justify-center px-2"
+              style={{ minHeight: 44 }}
+              accessibilityRole="link"
             >
-              {GATE.signIn.legal}
+              <Text
+                className="font-core text-a-on-var"
+                style={{ fontSize: 12.5, lineHeight: 18 }}
+              >
+                {GATE.signIn.legal.terms}
+              </Text>
+            </Pressable>
+            <Text
+              className="font-core text-a-on-var"
+              style={{ fontSize: 12.5, lineHeight: 18 }}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            >
+              ·
             </Text>
-          </Pressable>
+            <Pressable
+              onPress={() => void Linking.openURL(PRIVACY_URL)}
+              className="items-center justify-center px-2"
+              style={{ minHeight: 44 }}
+              accessibilityRole="link"
+            >
+              <Text
+                className="font-core text-a-on-var"
+                style={{ fontSize: 12.5, lineHeight: 18 }}
+              >
+                {GATE.signIn.legal.privacy}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </GateBackdrop>
     </SafeAreaView>
