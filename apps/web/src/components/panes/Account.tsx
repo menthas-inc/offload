@@ -2,14 +2,13 @@
 
 // My account: who you are.
 //
-// **Four rows the kit draws are not here, for three different reasons.**
+// **Three rows the kit draws are not here, for two different reasons.**
 // `WSettings.jsx` and `SettingsDetail.jsx` both show Phone and Password, which
 // go because this product is OAuth-only: there is no password to change and no
 // phone stored, so both would be controls that do nothing. A Plan group goes
 // because there are no plans, and inventing a tier on a settings screen is a
 // product claim nobody has made. The kit's clay "Delete your account" panel
-// goes because deletion is specified in 001 and not built, and a panel that
-// does nothing is worse than its absence.
+// was the fourth until 035 built deletion; it is the last thing on the page.
 //
 // The kit's "Signed in on" list is here since the security review of
 // 2026-09-22 (M8): the privacy page had promised it since the first draft.
@@ -24,6 +23,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Combobox, EditableRow, Group, Row } from "./SettingsRows";
+import { DeleteAccount } from "./DeleteAccount";
 import { NAME_MAX } from "../../lib/name";
 import { deviceGlyph, emailNote } from "../../lib/settings";
 import { signOut } from "../../lib/sign-out";
@@ -208,6 +208,9 @@ export function AccountPane() {
             </p>
           ) : null}
         </Group>
+
+        {/* 035. Last, and apart from the rest, as the kit draws it. */}
+        <DeleteAccount />
       </div>
     </>
   );

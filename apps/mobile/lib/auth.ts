@@ -304,6 +304,15 @@ export async function signOut(): Promise<void> {
   for (const listener of signedOut) listener();
 }
 
+/** 035. The account behind this session no longer exists: the server has
+ *  already ended every session it had, so there is nothing to ask it. The keys
+ *  go and everything holding a copy of who was signed in hears it, exactly as
+ *  at the end of a sign-out. */
+export async function accountDeleted(): Promise<void> {
+  await Promise.all(SESSION_KEYS.map((key) => forget(key)));
+  for (const listener of signedOut) listener();
+}
+
 const signedOut = new Set<() => void>();
 const signingOut = new Set<() => Promise<void>>();
 

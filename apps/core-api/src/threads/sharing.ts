@@ -18,13 +18,14 @@
 // does the said share's confirm, which is what makes the model's proposal a
 // proposal and not an act.
 
+import { destroyCopiesHolding } from "../exports/copy.js";
 import { sql, type Transaction } from "kysely";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { purgeAbout } from "../notifications/activity.js";
 import type { Database, SharePreview } from "../schema.js";
 import { initialsOf } from "../accounts/initials.js";
-import { threadKey } from "../blobs/keys.js";
+import { passThreadKeyOn, threadKey } from "../blobs/keys.js";
 import { connected, blockedEitherWay, connectionsOf, type Executor } from "../people/access.js";
 import { dropPicksOf } from "./calendars.js";
 import { NotYours, memberOf, requireMember } from "./access.js";
@@ -285,8 +286,12 @@ export async function takeOut(
       .set({ state: "removed", removed_by_account_id: callerId, removed_at: sql`now()`, responded_at: sql`now()` })
       .where("id", "=", target.id)
       .execute();
+    // 035. The members who stay hold a copy before this one is dropped.
+    await passThreadKeyOn(trx, threadId, targetId);
     await trx.deleteFrom("thread_keys").where("thread_id", "=", threadId).where("account_id", "=", targetId).execute();
     await dropPicksOf(targetId, threadId, trx);
+    // 035. And any copy of theirs that holds this thread.
+    await destroyCopiesHolding(trx, threadId, targetId);
     // 024. Their Activity rows that named this thread's words go with their
     // membership, and the other members' rows about them go too.
     await purgeAbout({ viewerId: targetId, threadId }, trx);

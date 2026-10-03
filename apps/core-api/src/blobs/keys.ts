@@ -74,6 +74,17 @@ export async function threadKey(trx: Trx, threadId: string): Promise<Buffer> {
     .executeTakeFirst();
   if (anyRow) throw new NoKey(`thread ${threadId} has keys but no accepted holder`);
 
+  // 035. No copy is left, and photos here are wrapped under the key that is
+  // gone. A fresh key would open none of them and would make the loss look
+  // like a decryption fault on every read, so this is refused the same way.
+  const wrapped = await trx
+    .selectFrom("blob_keys")
+    .select("blob_id")
+    .where("scope", "=", "thread")
+    .where("scope_id", "=", threadId)
+    .executeTakeFirst();
+  if (wrapped) throw new NoKey(`thread ${threadId} has wraps under a key nobody holds`);
+
   const members = await trx
     .selectFrom("thread_members")
     .select("account_id")
@@ -92,6 +103,25 @@ export async function threadKey(trx: Trx, threadId: string): Promise<Buffer> {
       .execute();
   }
   return key;
+}
+
+/** Hand a member's copy of the thread key to every accepted member without
+ *  one, before that member's copy is dropped. 035.
+ *
+ *  Leaving, being taken out and deleting an account all drop one copy. When it
+ *  was the only one, the thread's photos went with it: nothing was destroyed
+ *  and nothing could be opened. Called after the membership has changed, so
+ *  the one going is not handed a copy back. */
+export async function passThreadKeyOn(trx: Trx, threadId: string, fromAccountId: string): Promise<void> {
+  const mine = await trx
+    .selectFrom("thread_keys")
+    .select("wrapped_tk")
+    .where("thread_id", "=", threadId)
+    .where("account_id", "=", fromAccountId)
+    .executeTakeFirst();
+  if (!mine) return;
+  const key = unwrap(Buffer.from(mine.wrapped_tk), await accountKey(trx, fromAccountId));
+  await wrapForMembersWithout(trx, threadId, key);
 }
 
 /** A wrapped copy for every accepted member who holds none. Exported for the

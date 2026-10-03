@@ -34,9 +34,11 @@ import { uuidv7 } from "../src/uuid.js";
 import { promote } from "../src/admin/promote.js";
 import { clearSettingsCache } from "../src/settings.js";
 import { answerQuestion, takeDump, undoTurn, UnknownBlob } from "../src/routes/dumps.js";
-import { moveContent } from "../src/routes/threads.js";
+import { deleteThread, moveContent } from "../src/routes/threads.js";
 import { objectKey, objectStore, resetObjectStore } from "../src/blobs/store.js";
-import { objectKeyOf } from "../src/blobs/keys.js";
+import { NoKey, objectKeyOf, threadKey } from "../src/blobs/keys.js";
+import { takeOut } from "../src/threads/sharing.js";
+import { deleteAccount } from "../src/accounts/delete.js";
 import { unwrap } from "../src/crypto/keys.js";
 import { handlers } from "../src/jobs/handlers.js";
 import { applyAnswer } from "../src/questions.js";
@@ -683,6 +685,73 @@ describe("deletion", () => {
     const cookie = await signIn(bob.id);
     expect((await app.inject({ method: "GET", url: `/v1/blobs/${blobIds[0]}/thumb`, headers: { cookie } })).statusCode).toBe(200);
     expect((await app.inject({ method: "GET", url: `/v1/blobs/${blobIds[1]}/thumb`, headers: { cookie } })).statusCode).toBe(200);
+  });
+
+  // 035 AC-5. A shared thread's photos outlive whoever happened to hold its
+  // key. `addMember` writes no copy, which is the state a restored leave is in
+  // until the next use of the key.
+  async function sharedPhoto(): Promise<{ me: { id: string }; bob: { id: string }; shared: string; blobId: string }> {
+    const me = await person();
+    const bob = await person();
+    const { jobId, blobIds } = await dumped(me, "", { files: ["receipt.jpg"] });
+    const shared = await thread(me.id, "Flat admin");
+    await tool({ tool: "add_content", jobId, toolCallId: "c1", threadId: shared, title: "Receipt", type: "image", photo: 1 });
+    await addMember(bob.id, shared);
+    return { me, bob, shared, blobId: blobIds[0]! };
+  }
+
+  async function opensFor(accountId: string, blobId: string): Promise<number> {
+    // With the dumper's account wrap gone, only the thread's key opens it.
+    await db.deleteFrom("blob_keys").where("scope", "=", "account").execute();
+    const cookie = await signIn(accountId);
+    return (await app.inject({ method: "GET", url: `/v1/blobs/${blobId}/thumb`, headers: { cookie } })).statusCode;
+  }
+
+  it("keeps a shared thread's photos open when the only holder of its key leaves", async () => {
+    const { me, bob, shared, blobId } = await sharedPhoto();
+    expect(await deleteThread(me.id, shared)).toEqual({ left: true, deleted: false });
+    expect(await opensFor(bob.id, blobId)).toBe(200);
+  });
+
+  it("keeps them open when the only holder is taken out", async () => {
+    const { me, bob, shared, blobId } = await sharedPhoto();
+    expect((await takeOut(bob.id, shared, me.id)).removed).toBe(true);
+    expect(await opensFor(bob.id, blobId)).toBe(200);
+  });
+
+  it("never mints a second key over a thread whose photos are wrapped under the first", async () => {
+    const { me, shared } = await sharedPhoto();
+    await db.deleteFrom("thread_keys").where("thread_id", "=", shared).where("account_id", "=", me.id).execute();
+    await db.deleteFrom("thread_members").where("thread_id", "=", shared).where("account_id", "=", me.id).execute();
+    await expect(db.transaction().execute((trx) => threadKey(trx, shared))).rejects.toBeInstanceOf(NoKey);
+    expect(await db.selectFrom("thread_keys").select("account_id").where("thread_id", "=", shared).execute()).toHaveLength(0);
+  });
+
+  it("survives its dumper's account in a shared thread, and goes from storage where nothing carries it", async () => {
+    const me = await person();
+    const bob = await person();
+    const { jobId, blobIds } = await dumped(me, "", { files: ["receipt.jpg", "plain.jpg"] });
+    const shared = await thread(me.id, "Flat admin");
+    await addMember(bob.id, shared);
+    await tool({ tool: "add_content", jobId, toolCallId: "c1", threadId: shared, title: "Receipt", type: "image", photo: 1 });
+    await tool({ tool: "add_content", jobId, toolCallId: "c2", threadId: me.defaultThreadId, title: "Shelf", type: "image", photo: 2 });
+    const [kept, gone] = blobIds as [string, string];
+    const store = objectStore()!;
+    expect(await store.get(objectKey(gone, "original"))).not.toBeNull();
+
+    await deleteAccount(me.id);
+
+    // The shared thread's photo opens for the member who stayed, with no dumper.
+    const cookie = await signIn(bob.id);
+    expect((await app.inject({ method: "GET", url: `/v1/blobs/${kept}/thumb`, headers: { cookie } })).statusCode).toBe(200);
+    expect((await db.selectFrom("blobs").select("account_id").where("id", "=", kept).executeTakeFirstOrThrow()).account_id).toBeNull();
+    // The other was only ever theirs: on the purge clock at once, then gone.
+    expect(await db.selectFrom("jobs").select("id").where("kind", "=", "blob.purge").execute()).not.toHaveLength(0);
+    await handlers["blob.purge"]!({}, { mailer: null as never }, null);
+    expect(await db.selectFrom("blobs").select("id").where("id", "=", gone).execute()).toHaveLength(0);
+    expect(await store.get(objectKey(gone, "original"))).toBeNull();
+    expect(await store.get(objectKey(kept, "original"))).not.toBeNull();
+    expect(await db.selectFrom("blob_keys").select("scope").where("scope", "=", "account").where("scope_id", "=", me.id).execute()).toHaveLength(0);
   });
 
   it("keeps the row when the store refuses the delete", async () => {

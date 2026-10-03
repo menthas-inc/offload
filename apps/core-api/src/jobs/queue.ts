@@ -21,6 +21,17 @@ export type JobKind =
   | "email.waitlist_joined"
   | "email.invited"
   | "email.download_app"
+  // 035. The notice that an account was deleted, to an address that is no
+  // longer an account; and the calendar grants still to revoke at Google.
+  | "email.account_deleted"
+  | "connector.revoke"
+  // 035. A person's copy: the notice that one was asked for, the build, the
+  // removal of its sealed parts from storage, and the hourly pass that ends
+  // a copy at seven days.
+  | "email.export_requested"
+  | "export.build"
+  | "export.destroy"
+  | "export.sweep"
   | "dump.answer"
   | "content.purge"
   | "location.resolve"

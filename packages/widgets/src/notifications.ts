@@ -29,7 +29,7 @@ export const VERBS_CATEGORY = "digest_verbs";
 export const PLAIN_CATEGORY = "digest";
 export const PEOPLE_CATEGORY = "people";
 
-export type ActivityKind = "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted" | "labelled" | "mail";
+export type ActivityKind = "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted" | "labelled" | "mail" | "export";
 export type ActivityReason = "setting" | "permission" | "design";
 
 /** The least a row of the record has to carry to be drawn. */
@@ -55,6 +55,7 @@ export function activityGlyph(row: ActivityShape): string {
   if (row.kind === "expired") return "x";
   if (row.kind === "labelled") return "tag";
   if (row.kind === "mail") return "mail";
+  if (row.kind === "export") return "archive";
   return "users";
 }
 
@@ -66,6 +67,8 @@ export function activityTag(row: ActivityShape): { label: "Not sent" | "Undone";
   // sent would say nothing; its tag slot says Undone once somebody undid it.
   // 026. So does an email's row: offload filed it with nobody watching.
   if (row.kind === "labelled" || row.kind === "mail") return row.undone ? { label: "Undone", tone: "quiet" } : null;
+  // 035. A copy that is ready was never going to be sent: the row is the news.
+  if (row.kind === "export") return null;
   if (row.sent) return null;
   return { label: "Not sent", tone: row.reason === "design" ? "quiet" : "noticed" };
 }

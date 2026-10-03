@@ -43,15 +43,17 @@ the same spec because the delete confirmation offers it.
     account*.
 - **Confirmation.** A sheet on the phones, each in its own platform's chrome
   from its own kit, and a dialog on the web. It says what goes and what stays,
-  offers *Make a copy first* (the export), and holds one field labelled *Type
+  offers *Make a copy first* once the export exists (part B), and holds one field labelled *Type
   delete to confirm*. The word is `delete`, matched trimmed and without regard
   to case; the field does not capitalise, correct or spell-check. The button,
   *Delete account*, is disabled until it matches. The field and the button
   both stay above the keyboard.
-- **States.** In flight: the button reads *Deleting* with the one spinner, and
-  the sheet cannot be dismissed. Failed: *Couldn't delete your account* and
-  *Try again*. Offline: the button is disabled under the launch screen's
-  *You're offline*. The last staff owner: *Hand offload's ownership to someone
+- **States.** In flight: the button reads *Deleting*, with the one spinner on
+  the phones and alone on the web, whose buttons carry none, and
+  the sheet cannot be dismissed. A session that ended under the page goes to
+  sign-in rather than to a retry. Failed: *Couldn't delete your account* and
+  *Try again*, which is also what an offline press gets, since neither client
+  can see why it did not go through. The last staff owner: *Hand offload's ownership to someone
   else first.*, with no retry. None of them says why.
 - **What goes.** Everything only the person could read: threads nobody else is
   in and all they hold, their conversations and dumps, the notes offload keeps
@@ -64,8 +66,8 @@ the same spec because the delete confirmation offers it.
 - **What stays.** What they added to a thread other people are still in, with
   the author shown as gone, exactly as when somebody leaves (OFF-3, 022).
   Photos and voice notes there stay openable by the others. Labels on such a
-  thread stay. An invitation they sent into such a thread stays open. The
-  members list no longer shows them.
+  thread stay. A share they had waiting is withdrawn. The members list no
+  longer shows them.
 - **What is kept without them.** The cost ledger keeps its rows with the
   account removed, since they hold no content. Usage counts already shipped to
   storage stay and can no longer be tied to anyone.
@@ -140,8 +142,8 @@ Deletion:
 - **AC-9** The last staff owner is refused, with the line above.
 - **AC-10** Signing in afterwards with the same identity finds no account.
 - **AC-11** `offload.club/delete-account` renders the same for every visitor,
-  takes no input, and leads through sign-in to the confirmation for an invited
-  or an active account.
+  takes no input, and says how to reach the confirmation from sign-in, for an
+  invited or an active account.
 - **AC-12** Work in flight for the account ends without writing anything back
   and without an error anyone sees.
 - **AC-13** The delete and the export request are refused from another origin

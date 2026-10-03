@@ -19,7 +19,8 @@ import { initialsOf } from "../accounts/initials.js";
 import { requestsWaiting } from "../people/people.js";
 import { cleanName } from "../accounts/name.js";
 import { emit } from "../analytics.js";
-import { env, isProduction } from "../env.js";
+import { env, isProduction, webOrigins } from "../env.js";
+import { deleteAccount, LastOwner } from "../accounts/delete.js";
 import { resolveTimeZone } from "../time-zone.js";
 import { adoptZone } from "../accounts/zone.js";
 import { activityNew } from "../notifications/activity.js";
@@ -480,6 +481,53 @@ export async function sessionRoutes(app: App): Promise<void> {
       },
     },
     async (_request, reply) => reply.send({ countries: COUNTRIES })
+  );
+
+  // 035. Delete the account. Not undoable, so it is confirmed: the body
+  // carries the word the person typed, and the server checks it rather than
+  // trusting a button that was enabled (OFF-6, SEC-2).
+  //
+  // Open to an account still in first run, which is why it lives beside
+  // `/api/me` and outside the prefixes `refuseWritesBeforeConsent` guards.
+  // Refused from any origin but the web app's: the session cookie spans the
+  // registrable domain, so SameSite alone does not make this the app's own
+  // request. The phones send no Origin. JSON only, which a form cannot post.
+  app.delete(
+    "/api/me",
+    {
+      schema: {
+        // The word is checked in the schema, so a wrong one and a missing one
+        // are refused the one way Fastify refuses a body.
+        body: z.object({
+          confirm: z
+            .string()
+            .max(32)
+            .refine((word) => word.trim().toLowerCase() === "delete", "not the word"),
+        }),
+        response: {
+          204: z.null(),
+          401: unauthenticated,
+          403: z.object({ error: z.literal("origin") }),
+          409: z.object({ error: z.literal("last_owner") }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const origin = request.headers.origin;
+      if (origin && !webOrigins.includes(origin)) return reply.status(403).send({ error: "origin" });
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
+      try {
+        await deleteAccount(accountId);
+      } catch (error) {
+        if (error instanceof LastOwner) return reply.status(409).send({ error: "last_owner" });
+        throw error;
+      }
+      // The id and nothing else: it names no row any more, and it is what
+      // somebody asking "was that me?" can be answered from.
+      request.log.info({ accountId }, "account deleted");
+      return reply.status(204).send(null);
+    }
   );
 
   // The address a refused sign-in used, read once and then cleared. No session

@@ -52,6 +52,8 @@ await startDaily("calendar.supervise");
 await startDaily("jobs.purge");
 await startDaily("account.daily");
 await startDaily("blob.daily");
+// 035. The hourly pass over people's copies.
+await startHourly("export.sweep");
 // 030. Google's thirty days on place coordinates, and the Undo records
 // nothing can use any more. SQL only; it asks Google nothing.
 await startDaily("places.age");

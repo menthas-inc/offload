@@ -16,6 +16,8 @@ import { objectKey, objectStore, RENDITIONS } from "../blobs/store.js";
 import type { Mailer } from "../mail/index.js";
 import { env } from "../env.js";
 import { scheduleFullSyncs, scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
+import { buildCopy } from "../exports/build.js";
+import { destroyParts, removeParts } from "../exports/copy.js";
 import { enqueue, PRIORITY, scheduleDaily, scheduleHourly } from "./queue.js";
 import { purgeActivity } from "../notifications/activity.js";
 import { forgetPendingWrites } from "../connectors/tool-calls.js";
@@ -23,6 +25,8 @@ import { purgeLabelRuns, purgeLabels } from "../threads/labels.js";
 import { runDigest, scheduleDigests, readReceipts, type Send } from "../notifications/digest.js";
 import { notifyPerson, notifySharedActivity } from "../notifications/people.js";
 import { emit } from "../analytics.js";
+import { revoke } from "../connectors/google.js";
+import { open as openSecret } from "../connectors/vault.js";
 import { sweepEmbeds } from "../search/sweep.js";
 import { sweepPeople } from "../people/people.js";
 import { sweepPutOffs } from "../today/needs.js";
@@ -110,6 +114,180 @@ const invited: Handler = async (_payload, { mailer }, accountId) => {
       footer: `You are receiving this because you joined the offload waitlist at ${new URL(env.WEB_URL).host}.`,
     },
   });
+};
+
+/** 035. The notice that an account was deleted.
+ *
+ *  The address comes from the payload: the account is gone, so there is no row
+ *  to read it from, and nothing else about the person is in the job. */
+/** "3 October 2026 at 18:34 UTC", in the account's zone when it had one. A
+ *  zone the runtime does not know falls back to UTC rather than failing the
+ *  one mail that cannot be sent again. */
+function deletedWhen(at: Date, zone: string | null): string {
+  const say = (timeZone: string): string => {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZoneName: "short",
+    }).formatToParts(at);
+    const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+    return `${part("day")} ${part("month")} ${part("year")} at ${part("hour")}:${part("minute")} ${part("timeZoneName")}`;
+  };
+  try {
+    return say(zone ?? "UTC");
+  } catch {
+    return say("UTC");
+  }
+}
+
+const accountDeleted: Handler = async (payload, { mailer }) => {
+  const id = typeof payload["id"] === "string" ? payload["id"] : null;
+  const sealed = typeof payload["to"] === "string" ? payload["to"] : null;
+  if (!id || !sealed) throw new Error("account_deleted job has no address");
+  const to = openSecret(Buffer.from(sealed, "base64"), id, "notice_address");
+  const at = typeof payload["at"] === "string" ? new Date(payload["at"]) : new Date();
+  const zone = typeof payload["zone"] === "string" ? payload["zone"] : null;
+  await mailer.send({
+    to,
+    subject: "Your offload account is deleted",
+    slots: {
+      headline: "Your account is deleted",
+      body:
+        `Your account was deleted on ${deletedWhen(at, zone)}. ` +
+        "Everything only you could see is gone. What you added to a thread you shared stays with the people in it. " +
+        "If this was not you, write to hello@offload.club.",
+      footer: `You are receiving this because an offload account at ${new URL(env.WEB_URL).host} used this address.`,
+    },
+  });
+  // Sent: the row keeps its kind and its outcome and loses the address.
+  await db
+    .updateTable("jobs")
+    .set({ payload: sql`'{}'::jsonb` })
+    .where("kind", "=", "email.account_deleted")
+    .where(sql<boolean>`payload->>'id' = ${id}`)
+    .execute();
+};
+
+/** 035. Somebody asked for a copy of everything the account can read. With
+ *  no second sign-in, this mail is how its owner hears of one they did not
+ *  ask for. The address is read here: the job row carries the time only. */
+const exportRequested: Handler = async (payload, { mailer }, accountId) => {
+  if (!accountId) return;
+  const account = await db.selectFrom("accounts").select(["email", "time_zone"]).where("id", "=", accountId).executeTakeFirst();
+  if (!account) return;
+  const at = typeof payload["at"] === "string" ? new Date(payload["at"]) : new Date();
+  await mailer.send({
+    to: account.email,
+    subject: "A copy of your offload was asked for",
+    slots: {
+      headline: "A copy was asked for",
+      body:
+        `A copy of everything in your account was asked for on ${deletedWhen(at, account.time_zone)}. ` +
+        "It is downloaded from Settings while signed in, and it is kept for 7 days. " +
+        "If this was not you, write to hello@offload.club.",
+      footer: `You are receiving this because an offload account at ${new URL(env.WEB_URL).host} uses this address.`,
+    },
+  });
+};
+
+/** 035. Make the copy. The build never throws: a failure is a state on the
+ *  row, which is what the person's screen reads. */
+const exportBuild: Handler = async (payload) => {
+  const exportId = typeof payload["exportId"] === "string" ? payload["exportId"] : null;
+  if (exportId) await buildCopy(exportId);
+};
+
+/** 035. Take a copy's sealed parts out of storage. The payload is an id and
+ *  a count: by the time this runs the row may be gone with its account. */
+const exportDestroy: Handler = async (payload) => {
+  const id = typeof payload["id"] === "string" ? payload["id"] : null;
+  const parts = typeof payload["parts"] === "number" ? payload["parts"] : 0;
+  if (id) await removeParts(id, parts);
+};
+
+/** A build still `making` after this long is not going to finish: the worker
+ *  that held it restarted. The heaviest real one is minutes. */
+const BUILD_HOURS = 2;
+
+/** 035. The hourly pass: a copy past its seven days ends, and a build nobody
+ *  is running is failed so the row stops saying it is being made. Books the
+ *  next hour first. */
+const exportSweep: Handler = async () => {
+  await scheduleHourly("export.sweep");
+  const ended = await db.transaction().execute(async (trx) => {
+    const rows = await trx
+      .updateTable("exports")
+      .set({ state: "gone" })
+      .where("state", "!=", "gone")
+      .where(sql<boolean>`expires_at <= now()`)
+      .returning(["id", "parts"])
+      .execute();
+    for (const row of rows) await destroyParts(trx, row.id, row.parts);
+    return rows.length;
+  });
+  const stuck = await db.transaction().execute(async (trx) => {
+    const rows = await trx
+      .updateTable("exports")
+      // The count stays: it is what the removal below is booked with, and
+      // what any later end of this row books again.
+      .set({ state: "failed", requested_at: null, expires_at: null })
+      .where("state", "=", "making")
+      .where(sql<boolean>`requested_at < now() - make_interval(hours => ${BUILD_HOURS})`)
+      .returning(["id", "parts"])
+      .execute();
+    for (const row of rows) await destroyParts(trx, row.id, row.parts);
+    return rows.length;
+  });
+  if (ended + stuck > 0) console.log(JSON.stringify({ level: "info", msg: "copies swept", ended, stuck }));
+};
+
+/** How long a grant waits for Google before it is dropped unrevoked. Our copy
+ *  is the only thing that could use it, and that goes either way. */
+const REVOCATION_DAYS = 7;
+
+/** 035. Hand back the calendar grants of accounts that no longer exist.
+ *
+ *  One row per grant, sealed, naming nobody. A row goes when Google has taken
+ *  the token back or when it is a week old; while any is left the job books
+ *  itself again in an hour. */
+const connectorRevoke: Handler = async () => {
+  const dropped = await db
+    .deleteFrom("pending_revocations")
+    .where(sql<boolean>`created_at < now() - make_interval(days => ${REVOCATION_DAYS})`)
+    .returning("id")
+    .execute();
+  // A grant given up on is still live at Google. Loud, so somebody looks.
+  if (dropped.length > 0) {
+    console.error(JSON.stringify({ level: "error", msg: "grants dropped unrevoked", dropped: dropped.length }));
+  }
+  const waiting = await db.selectFrom("pending_revocations").select(["id", "sealed_token"]).execute();
+  let left = 0;
+  for (const row of waiting) {
+    // Opened inside the catch: a row that will not open is one failed row,
+    // counted and aged out like any other, not the end of the run.
+    const done = await Promise.resolve()
+      .then(() => revoke(openSecret(Buffer.from(row.sealed_token), row.id, "refresh_token")))
+      .catch(() => false);
+    if (done) {
+      await db.deleteFrom("pending_revocations").where("id", "=", row.id).execute();
+    } else {
+      left += 1;
+      await db
+        .updateTable("pending_revocations")
+        .set((eb) => ({ attempts: eb("attempts", "+", 1) }))
+        .where("id", "=", row.id)
+        .execute();
+    }
+  }
+  console.log(JSON.stringify({ level: "info", msg: "grants revoked", revoked: waiting.length - left, waiting: left }));
+  if (left > 0) {
+    await enqueue({ kind: "connector.revoke", payload: {}, priority: PRIORITY.background, runAfterSeconds: 3600 });
+  }
 };
 
 /** How many rows one run may destroy before it stops and asks for help.
@@ -899,6 +1077,12 @@ export const handlers: Record<string, Handler> = {
   "jobs.purge": jobsPurge,
   "email.waitlist_joined": waitlistJoined,
   "email.invited": invited,
+  "email.account_deleted": accountDeleted,
+  "connector.revoke": connectorRevoke,
+  "email.export_requested": exportRequested,
+  "export.build": exportBuild,
+  "export.destroy": exportDestroy,
+  "export.sweep": exportSweep,
   "content.purge": contentPurge,
   "location.resolve": locationResolve,
   "places.refresh": placesRefresh,

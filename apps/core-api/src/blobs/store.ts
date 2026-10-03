@@ -110,7 +110,10 @@ let current: ObjectStore | null = null;
  *  says so with a 503 rather than pretending. */
 export function objectStore(): ObjectStore | null {
   if (current) return current;
-  if (r2Configured) current = new R2Store();
+  // Never the real bucket from a test run. The suite loads the repo's own
+  // environment file, which on a developer's machine carries the bucket's
+  // keys, and a test that uploads would be writing to it.
+  if (r2Configured && env.NODE_ENV !== "test") current = new R2Store();
   else if (!isProduction) current = new MemoryStore();
   return current;
 }

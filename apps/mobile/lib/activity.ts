@@ -58,7 +58,7 @@ export type Door =
   | { pathname: "/invitations/[memberId]"; params: { memberId: string } }
   | { pathname: "/threads/[id]"; params: { id: string } }
   | { pathname: "/today"; params?: { day: string } }
-  | { pathname: "/settings/[page]"; params: { page: "mail" } };
+  | { pathname: "/settings/[page]"; params: { page: "mail" | "privacy" } };
 
 /** Where a row goes, or null for a row that is the record and nothing more.
  *  A digest's words are what was said, not what is true now; its door is
@@ -90,6 +90,9 @@ export function doorOf(row: ActivityEntry, at?: DoorContext): Door | null {
     }
     case "request":
       return { pathname: "/settings/people" };
+    // 035. A ready copy opens where it is downloaded.
+    case "export":
+      return { pathname: "/settings/[page]", params: { page: "privacy" } };
     case "share":
       return row.memberId ? { pathname: "/invitations/[memberId]", params: { memberId: row.memberId } } : null;
     case "shared_activity":

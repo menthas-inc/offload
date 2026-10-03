@@ -93,7 +93,8 @@ export default function Privacy() {
               otherwise.
             </li>
             <li>
-              <strong>You can take it all with you.</strong> One export, readable without offload.
+              <strong>You can take it all with you.</strong> One export, readable without offload,
+              which you make yourself in Settings.
             </li>
           </ul>
         </section>
@@ -264,8 +265,8 @@ export default function Privacy() {
             <li>
               <strong>When a limit stops you, and what staff do to your account.</strong> A limit
               refusing you is kept for 30 days. A record of staff opening your account&rsquo;s
-              page, disabling it, signing it out or changing its limits is kept for two years, so
-              that access by us can be checked. It holds who did what and when.
+              page, disabling it, signing it out, changing its limits or deleting it is kept for
+              two years, so that access by us can be checked. It holds who did what and when.
             </li>
             <li>
               <strong>Your device&apos;s time zone</strong>, sent with each thing you dump, type
@@ -711,6 +712,10 @@ export default function Privacy() {
               and voice notes.
             </li>
             <li>
+              <strong>A copy you export: 7 days.</strong> It is destroyed 7 days after you ask for
+              it, or sooner as section 13 says.
+            </li>
+            <li>
               <strong>What offload works out about you: for as long as it is still true.</strong>{" "}
               The short notes it keeps on a thread are its picture of that thread, not a record of
               what you said, and it revises them. Once a day it goes over them: it merges two that
@@ -750,8 +755,16 @@ export default function Privacy() {
               too.
             </li>
             <li>
-              <strong>Product events and cost records:</strong> kept, but detached. Deleting your
-              account destroys the identifier that connects them to you.
+              <strong>When you delete your account:</strong> the same, and three things more.
+              Access to a calendar you connected is revoked at Google. Our record of what each
+              request cost to run is kept with your account removed from it, and holds none of your
+              content. And we send one email to your address to say it was done.
+              If you ask us to delete it for you, the account is locked straight away and leaves
+              the live systems a day later.
+            </li>
+            <li>
+              <strong>Product events:</strong> kept, but detached. Deleting your account destroys
+              the identifier that connects them to you.
             </li>
             <li>
               <strong>The record of staff actions: two years.</strong> It names an account by an
@@ -803,6 +816,8 @@ export default function Privacy() {
             rename or delete one. That symmetry is the point: the protection you give up over your own
             contribution is exactly the protection you get over everybody else&rsquo;s, and the
             same is true of the power to take somebody out.{" "}
+            <strong>Any member can take a copy of a shared thread as they see it</strong>, in their
+            own export, including what the others added and who added it.{" "}
             <strong>
               When somebody leaves a thread, is taken out of it, or deletes their account, what
               they left in it becomes the thread&rsquo;s.
@@ -950,9 +965,12 @@ export default function Privacy() {
         <section className={styles.section}>
           <h2 className={styles.h2}>13. What you can change</h2>
           <p className={styles.note}>
-            offload is an invite-only beta as of {UPDATED}, and none of the controls below is
-            built yet. Email us and we will do any of it by hand, usually the same day. Nothing
-            here is on unless the text says so.
+            offload is an invite-only beta as of {UPDATED}. Deleting is built: a single upload, a
+            thread, or your whole account, which you delete yourself in Settings under My account.{" "}
+            <a href="/delete-account">How deleting an account works</a>. Exporting is built too:
+            you make a copy yourself in Settings under Privacy. The first three controls below
+            are not built yet. Email us and we will do any of them by hand, usually the same day.
+            Nothing here is on unless the text says so.
           </p>
           <ul>
             <li>
@@ -967,7 +985,13 @@ export default function Privacy() {
               <strong>Crash and usage reports.</strong> Counts and failures, never content.
             </li>
             <li>
-              <strong>Export everything.</strong> One file, readable without offload.
+              <strong>Export everything.</strong> One file, readable without offload, holding
+              everything you can read: your threads, your conversations, your notes, your people,
+              and your photos and voice notes as ordinary files. We keep the copy for 7 days,
+              encrypted with a key our storage provider never receives, and it is downloaded only
+              while you are signed in. You can make one every 7 days. It is destroyed sooner if
+              you delete it, if you leave or are taken out of a thread it holds, or with your
+              account. We send one email to your address to say a copy was asked for.
             </li>
             <li>
               <strong>Delete.</strong> A single upload, a thread, or your whole account.

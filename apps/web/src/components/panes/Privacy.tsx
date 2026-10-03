@@ -1,6 +1,7 @@
 "use client";
 
-// Settings, Privacy: whether offload may reach the web. 016.
+// Settings, Privacy: whether offload may reach the web, 016, and the copy of
+// everything a person can take with them, 035 (`YourCopy`).
 //
 // **Two switches rather than one**, because they are two different promises. A
 // search sends words somebody wrote to a search company; opening a link they
@@ -15,9 +16,11 @@
 // something is off, and one saying a switch is on reads as an apology for it.
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { PaneHead } from "../shell/PaneHead";
 import { Switch } from "../Switch";
 import { Group } from "./SettingsRows";
+import { YourCopy } from "./YourCopy";
 import { useMe, updateWebAccess } from "../../lib/use-me";
 import { useToast } from "../shell/Toast";
 import styles from "../../app/(shell)/shell.module.css";
@@ -26,6 +29,7 @@ export function PrivacyPane() {
   const state = useMe("shell");
   const me = state.status === "ready" ? state.me : null;
   const toast = useToast();
+  const router = useRouter();
   // Optimistic, and reverted with a word if the write fails: a switch that
   // waits for a round trip to move reads as a switch that did not work, and
   // one that moves back on its own with nothing said reads as haunted.
@@ -61,6 +65,11 @@ export function PrivacyPane() {
             last
           />
         </Group>
+        <YourCopy
+          zone={me?.timeZone ?? null}
+          onFailed={(line, retry) => toast.show(line, { label: "Retry", onPress: retry })}
+          onSignedOut={() => router.replace("/sign-in")}
+        />
       </div>
     </div>
   );

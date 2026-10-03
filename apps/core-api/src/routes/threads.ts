@@ -21,7 +21,7 @@ import { Refused } from "../threads/refusals.js";
 import { threadLine } from "../threads/line.js";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
-import { dropThreadWrapIfUnused, ensureThreadWrap } from "../blobs/keys.js";
+import { dropThreadWrapIfUnused, ensureThreadWrap, passThreadKeyOn } from "../blobs/keys.js";
 import { initialsOf } from "../accounts/initials.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import {
@@ -57,6 +57,7 @@ import {
 } from "../threads/access.js";
 import { OverBudget } from "../budget.js";
 import { purgeAbout } from "../notifications/activity.js";
+import { destroyCopiesHolding } from "../exports/copy.js";
 import { LabelRefused, carriesAny, contentLabelsFor, labelsOfThread, setRowLabels, unlabelledCount, withContentLabels, withNoteLabels } from "../threads/labels.js";
 import { noteAddition } from "../notifications/people.js";
 import { looseSummary } from "../loose/read.js";
@@ -1144,6 +1145,9 @@ export async function deleteThread(
       .where("invited_by", "=", accountId)
       .execute();
 
+    // 035. A copy that holds this thread is a way back in. It goes too.
+    await destroyCopiesHolding(trx, threadId, accountId);
+
     const remaining = await trx
       .selectFrom("thread_members")
       .select(({ fn }) => fn.countAll<string>().as("n"))
@@ -1156,6 +1160,8 @@ export async function deleteThread(
       // second restore puts the membership back and the next read's
       // `threadKey` wraps a fresh copy from another member's. The last
       // member's key stays below, for the purge job and the restore.
+      // 035. Not before every member who stays holds a copy of their own.
+      await passThreadKeyOn(trx, threadId, accountId);
       await trx.deleteFrom("thread_keys").where("thread_id", "=", threadId).where("account_id", "=", accountId).execute();
       return { left: true, deleted: false };
     }

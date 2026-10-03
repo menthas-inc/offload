@@ -36,6 +36,12 @@ describe("the row's glyph and tag, decided once for every surface", () => {
     expect(activityTag({ ...row, sent: false, reason: "design" })).toEqual({ label: "Not sent", tone: "quiet" });
   });
 
+  it("draws a ready copy by its own glyph, as a record with no Not sent (035)", () => {
+    const copy = { kind: "export" as const, sent: false, reason: "design" as const, send: null };
+    expect(activityGlyph(copy)).toBe("archive");
+    expect(activityTag(copy)).toBeNull();
+  });
+
   it("draws a labelled row as a record with no Not sent, and Undone once undone (025)", () => {
     const labelled = { kind: "labelled" as const, sent: false, reason: "design" as const, send: null };
     expect(activityGlyph(labelled)).toBe("tag");
