@@ -893,7 +893,7 @@ Three reviewers over the whole branch. Two findings would have shipped a feature
 
 - **A stored setting, not a variable**: `app_settings` (0073), one row per key, the key list fixed by a check. Read through a 15-second cache, cleared on write, so `/api/me` costs no query and a change reaches every instance within seconds.
 - **`/api/me` gains `webMaps`**, the server's `MAPS` and the setting together; the web reads it instead of `maps`, and the phones keep reading `maps`.
-- **Owner only**, through `GET` and `PUT /v1/admin/settings`, like costs and limits; support does not see it. The admin panel's Limits page will call the same route; until it exists, that route is the switch.
+- **Owner only**, through `GET` and `PATCH /v1/admin/settings`, like costs and limits; support does not see it. The admin panel's Limits page will call the same route; until it exists, that route is the switch.
 - Off draws no switch, no column and no map on the web, and makes no points read; the CSP still names Google's hosts, which is wider than the behaviour and harmless.
 
 **Design system impact:** none yet. The Limits page in the admin kit gains the switch when it is built.

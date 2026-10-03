@@ -111,7 +111,8 @@ export async function adminRoutes(app: App): Promise<void> {
     },
     async (_request, reply) => reply.send({ webMaps: await webMapsSetting() })
   );
-  app.put(
+  // PATCH, as every edit here is: the API's CORS allows no PUT.
+  app.patch(
     "/v1/admin/settings",
     {
       preHandler: requireStaff("owner"),

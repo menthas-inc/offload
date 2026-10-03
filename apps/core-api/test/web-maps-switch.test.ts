@@ -58,7 +58,7 @@ async function account(email: string, role?: "owner" | "support"): Promise<strin
 
 const me = async (cookie: string) => (await app.inject({ method: "GET", url: "/api/me", headers: { cookie } })).json();
 const put = (cookie: string, webMaps: unknown) =>
-  app.inject({ method: "PUT", url: "/v1/admin/settings", headers: { cookie }, payload: { webMaps } });
+  app.inject({ method: "PATCH", url: "/v1/admin/settings", headers: { cookie }, payload: { webMaps } });
 
 describe("the web's map switch", () => {
   it("is on by default while the map is, and off with it", async () => {
@@ -95,7 +95,7 @@ describe("the web's map switch", () => {
     expect((await put(support, false)).statusCode).toBe(404);
     expect((await put(person, false)).statusCode).toBe(404);
     expect((await app.inject({ method: "GET", url: "/v1/admin/settings", headers: { cookie: support } })).statusCode).toBe(404);
-    expect((await app.inject({ method: "PUT", url: "/v1/admin/settings", payload: { webMaps: false } })).statusCode).toBe(404);
+    expect((await app.inject({ method: "PATCH", url: "/v1/admin/settings", payload: { webMaps: false } })).statusCode).toBe(404);
   });
 
   it("refuses anything but a boolean", async () => {
