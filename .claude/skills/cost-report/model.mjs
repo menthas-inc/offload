@@ -11,7 +11,7 @@ export const CATEGORIES = [
   { key: "voice", label: "Voice" },
   { key: "storage", label: "Storage and bandwidth" },
   { key: "platform", label: "Platform" },
-  { key: "other", label: "Embeddings and email" },
+  { key: "other", label: "Embeddings, email and maps" },
 ];
 
 export function promptTokens(chars, turn) {
@@ -196,6 +196,11 @@ export function personMonth(input, u, frequencyKey, behaviourKey) {
       fileTurns: fileTurns * days, answers: b.questions * days, nightlyPasses: nightlyPasses(input, b) * days,
       receipts: receiptsDay * days, voiceSeconds: b.voiceNotes * b.voiceSeconds * days, photos: photos * days,
       emails: b.mailForwards * days, gbAdded: gbMonth, egressGb,
+      // 030. A web map load is a Dynamic Maps load; a new place and a place
+      // shown after its coordinates aged out are each one Place Details call.
+      // Searches by id and phone maps are free and not counted.
+      mapLoads: (b.webMapOpens ?? 0) * days,
+      placeDetails: ((b.placesSaved ?? 0) + (b.placeRefreshes ?? 0)) * days,
     },
   };
 }
@@ -265,6 +270,19 @@ function expo(input, mau) {
   return best;
 }
 
+// 030. A Google Maps SKU's monthly bill: free up to its cap, then each band at
+// its own price per thousand.
+export function tiered(sku, units) {
+  let cost = 0;
+  let from = sku.freePerMonth;
+  for (const t of sku.tiers) {
+    const to = t.upTo ?? Infinity;
+    if (units > from) cost += ((Math.min(units, to) - from) / 1000) * t.per1k;
+    from = to;
+  }
+  return cost;
+}
+
 function resend(input, emails) {
   const tiers = input.prices.resend.tiers;
   for (const t of tiers) if (emails <= t.emails && !t.overPer1k) return { name: t.name, cost: t.monthly };
@@ -281,6 +299,8 @@ export function fleet(input, level, basis) {
   const u = units(input, warm);
   const sum = Object.fromEntries(CATEGORIES.map((c) => [c.key, 0]));
   let emails = 0;
+  let mapLoads = 0;
+  let placeDetails = 0;
   const profiles = [];
   for (const [fk, fShare] of Object.entries(assumptions.fleet.frequencyMix)) {
     for (const [bk, bShare] of Object.entries(assumptions.fleet.behaviourMix)) {
@@ -288,6 +308,8 @@ export function fleet(input, level, basis) {
       const row = personMonth(input, u, fk, bk);
       for (const c of CATEGORIES) sum[c.key] += people * (row[c.key] || 0);
       emails += people * row.counts.emails;
+      mapLoads += people * row.counts.mapLoads;
+      placeDetails += people * row.counts.placeDetails;
       profiles.push({ fk, bk, people, row });
     }
   }
@@ -300,6 +322,13 @@ export function fleet(input, level, basis) {
     const wa = assumptions.whatsapp;
     sum.whatsapp += newUsers * wa.linkingMessagesPerNewUser * u.receipt + wa.strangerRepliesPerDay * MONTH * u.receipt;
   }
+  // 030. The free caps are per billing account, so Google Maps is priced on
+  // the fleet's month, not a person's.
+  const g = prices.googleMaps;
+  const maps = g
+    ? { loads: mapLoads, details: placeDetails, cost: tiered(g.dynamicMaps, mapLoads) + tiered(g.placeDetails, placeDetails) }
+    : { loads: 0, details: 0, cost: 0 };
+  sum.other += maps.cost;
   const rail = railway(input, pop.mau);
   const ex = expo(input, pop.mau);
   const fixed = prices.fixed.items.reduce((s, x) => s + x.monthly, 0);
@@ -308,7 +337,7 @@ export function fleet(input, level, basis) {
   // is the whole cost of having them at this size.
   for (const p of profiles) p.row.platform = sum.platform / pop.mau;
   return { level, basis, pop, warm, units: u, profiles, sum, total: total(sum), perMau: total(sum) / pop.mau,
-    parts: { railway: rail, expo: ex, fixed, resend: mail } };
+    parts: { railway: rail, expo: ex, fixed, resend: mail, googleMaps: maps } };
 }
 
 // The configurations a range sweeps. Every combination is costed, and a range is
