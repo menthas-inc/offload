@@ -33,14 +33,20 @@ export const AUDIT_KINDS = [
 
 export type AuditKind = (typeof AUDIT_KINDS)[number];
 
+/** What an entry may hold as a value: a number, a switch, a role's name, or
+ *  nothing. The one map is the fixed costs setting, vendor to amount, which
+ *  the settings validation bounds in keys, entries and size. */
+export type AuditValue = number | boolean | string | null | Record<string, number>;
+
 export interface AuditEntry {
   staff: { accountId: string };
   kind: AuditKind;
   targetAccountId?: string | null;
   settingKey?: string | null;
-  /** A setting's or an override's value before and after. Never content. */
-  old?: unknown;
-  new?: unknown;
+  /** A setting's, an override's or a role's value before and after. Never
+   *  content, and the type leaves no room for any. */
+  old?: AuditValue;
+  new?: AuditValue;
   jobId?: string | null;
 }
 

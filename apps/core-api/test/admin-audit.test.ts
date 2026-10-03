@@ -9,6 +9,7 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { promote } from "../src/admin/promote.js";
+import { audit } from "../src/admin/audit.js";
 import { auditEntries, staffMember, wipeAdmin } from "./admin-kit.js";
 
 await migrate(() => {});
@@ -23,6 +24,21 @@ afterAll(async () => {
   await closeDb();
 });
 beforeEach(wipeAdmin);
+
+/** Never run: the typecheck is the test. An entry's old and new are a
+ *  setting's value, a number or a role, and nothing with room for content. */
+export function refusedByTheCompiler(): Promise<void>[] {
+  const entry = { staff: { accountId: "" }, kind: "setting.changed" } as const;
+  return [
+    // @ts-expect-error a list is not a value an entry holds
+    audit(db, { ...entry, old: ["anything"] }),
+    // @ts-expect-error nor is a map of anything but amounts
+    audit(db, { ...entry, new: { note: "free text" } }),
+    audit(db, { ...entry, old: 1, new: null }),
+    audit(db, { ...entry, old: "support", new: true }),
+    audit(db, { ...entry, old: {}, new: { railway: 20_000_000 } }),
+  ];
+}
 
 async function waiting(email: string): Promise<string> {
   const row = await db.insertInto("accounts").values({ email, state: "waitlist" }).returning("id").executeTakeFirstOrThrow();

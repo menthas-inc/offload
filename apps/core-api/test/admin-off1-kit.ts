@@ -119,7 +119,7 @@ export async function seedMarked(): Promise<Marked> {
   // A file: its name, where and when it was taken, on what.
   const blobId = await one(sql`
     insert into blobs (account_id, message_id, client_key, name, content_type, byte_size, width, height, sha256, taken_at, latitude, longitude, device, town, provider_ref)
-    values (${accountId}, ${messageId}, ${uuidv7()}, ${MARK}, 'image/jpeg', 4096, 10, 10, ${Buffer.alloc(32)}, ${TAKEN_AT}, ${LATITUDE}, ${LONGITUDE}, ${MARK}, ${MARK}, null) returning id`);
+    values (${accountId}, ${messageId}, ${uuidv7()}, ${MARK}, 'image/jpeg', 4096, 10, 10, ${Buffer.alloc(32)}, ${TAKEN_AT}, ${LATITUDE}, ${LONGITUDE}, ${MARK}, ${MARK}, ${TOKEN}) returning id`);
   await sql`insert into blob_keys (blob_id, scope, scope_id, wrapped_object_key) values (${blobId}, 'account', ${accountId}, ${token})`.execute(db);
 
   // What a turn read, and the domains read by anybody.
@@ -162,6 +162,33 @@ export async function seedMarked(): Promise<Marked> {
     insert into llm_usage (account_id, job_kind, category, model, input_tokens, output_tokens, cost_micros, latency_ms, job_id)
     values (${accountId}, 'dump.answer', 'interactive', 'claude-sonnet-5', 1200, 80, 4200, 900, ${jobId})`.execute(db);
   await sql`insert into lookups (account_id, label, kind, outcome, cost_micros) values (${accountId}, 'search', 'search', 'used', 10000)`.execute(db);
+  await sql`insert into lookups (account_id, label, kind, outcome, cost_micros) values (${accountId}, 'read', 'read', 'failed', 0)`.execute(db);
+  await sql`
+    insert into llm_usage (account_id, job_kind, category, model, input_tokens, output_tokens, cost_micros, latency_ms)
+    values (${accountId}, 'dump.answer', 'interactive', 'assemblyai', 0, 0, 900, 400)`.execute(db);
+
+  // A job that finished, and still carries what an earlier attempt left: a
+  // code, and the free text beside it. Scheduled reads the newest of its
+  // kind, so it is the kind the walk asks about.
+  await sql`
+    insert into jobs (kind, account_id, payload, state, run_after, attempts, max_attempts, last_error, error_code)
+    values ('thread.nightly', ${accountId}, ${JSON.stringify({ threadId, mark: MARK })}::jsonb, 'done', now(), 2, 3, ${MARK}, 'model_error')`.execute(db);
+
+  // What Health reads about the system, so each of its routes answers with
+  // rows: every service up, out for ten minutes, and back; the worker still
+  // out; a backup; and hours of history in every outcome, for the queue and
+  // for each vendor that is counted from it.
+  await sql`
+    insert into heartbeats (service, minute, ok, commit, started_at)
+    select service, date_trunc('minute', now()) - make_interval(mins => ago), service <> 'worker' or ago > 15, 'abc1234', now() - interval '2 hours'
+      from unnest(array['core-api', 'worker', 'web', 'database']) as service, unnest(array[40, 39, 38, 27, 26, 2, 1, 0]) as ago`.execute(db);
+  await sql`insert into backup_runs (finished_at, bytes, ok) values (now() - interval '3 hours', 4096, true)`.execute(db);
+  await sql`
+    insert into job_stats_hourly (hour, kind, outcome, count, wait_ms_sum, wait_ms_p95, run_ms_sum, run_ms_p95)
+    select date_trunc('hour', now()) - make_interval(hours => ago), kind, outcome, 3, 600, 400, 9000, 5000
+      from unnest(array['dump.answer', 'thread.nightly', 'embed.content', 'location.resolve', 'calendar.sync', 'email.alert', 'account.digest', 'blob.purge']) as kind,
+           unnest(array['done', 'failed', 'dead']) as outcome,
+           unnest(array[1, 2, 30]) as ago`.execute(db);
   await sql`insert into limit_hits (account_id, cap, scope, day) values (${accountId}, 'cap.turns', 'account', current_date)`.execute(db);
 
   // Product events are pseudonymous on purpose, and no admin route reads them.

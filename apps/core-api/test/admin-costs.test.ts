@@ -13,7 +13,7 @@ import { buildApp, type App } from "../src/app.js";
 import { clearSettingsCache } from "../src/settings.js";
 import { onPace } from "../src/routes/admin/costs.js";
 import { uuidv7 } from "../src/uuid.js";
-import { activeAccount, staffMember, wipeAdmin } from "./admin-kit.js";
+import { activeAccount, neverSignedIn, staffMember, wipeAdmin } from "./admin-kit.js";
 import { wipeMarked } from "./admin-off1-kit.js";
 
 await migrate(() => {});
@@ -388,6 +388,27 @@ describe("AC-27 heaviest accounts", () => {
       { id: c, name: null, email: "c@example.test", micros: 100 },
     ]);
     expect((await get(owner.cookie, "/heaviest?range=30d")).json().rows[0]).toMatchObject({ id: c, micros: 50_100 });
+  });
+
+  it("lists only people: not an account that never signed in, one still invited, or one removed", async () => {
+    const owner = await staffMember("owner");
+    const here = await activeAccount("here@example.test");
+    const disabled = await activeAccount("disabled@example.test");
+    await db.updateTable("accounts").set({ state: "disabled" }).where("id", "=", disabled).execute();
+    const never = await neverSignedIn("never@example.test");
+    const invited = await activeAccount("invited@example.test");
+    await db.updateTable("accounts").set({ state: "invited" }).where("id", "=", invited).execute();
+    const removed = await activeAccount("removed@example.test");
+    await db.updateTable("accounts").set({ deleted_at: new Date() }).where("id", "=", removed).execute();
+    await call({ account: here, cost: 100 });
+    await call({ account: disabled, cost: 200 });
+    await call({ account: never, cost: 300 });
+    await call({ account: invited, cost: 400 });
+    await call({ account: removed, cost: 500 });
+
+    const body = (await get(owner.cookie, "/heaviest?range=7d")).json();
+    expect(body.rows.map((row: { id: string }) => row.id)).toEqual([disabled, here]);
+    expect(JSON.stringify(body)).not.toContain("removed@example.test");
   });
 
   it("stops at twenty", async () => {

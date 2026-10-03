@@ -3,7 +3,8 @@
 // Health is read from our own Postgres: one row per service per minute in
 // `heartbeats`, and a gap is an outage. The Core API writes its own row and
 // records what it found of the web and the database; the worker posts its own
-// through `/internal/v1/heartbeat`.
+// through `/internal/v1/heartbeat`. The web's row carries no commit and no
+// start: its `/healthz` is public and says only that it is there.
 //
 // **What this cannot see.** The Core API down writes no web or database row
 // either, so all three show the same gap, and the page says those two rows
@@ -50,19 +51,15 @@ export async function beat(service: Service, ok: boolean, about: { commit?: stri
 /** How long the web gets to answer before it counts as not answering. */
 const WEB_TIMEOUT_MS = 5_000;
 
-async function checkWeb(fetcher: typeof fetch): Promise<{ ok: boolean; commit: string | null; startedAt: Date | null }> {
+/** Whether the web answered. Its answer is open to anybody and says nothing
+ *  about the build, so the web's commit and start are recorded as unknown,
+ *  and whatever a body claims is not read. */
+async function checkWeb(fetcher: typeof fetch): Promise<boolean> {
   try {
     const response = await fetcher(`${env.WEB_URL}/healthz`, { signal: AbortSignal.timeout(WEB_TIMEOUT_MS) });
-    if (!response.ok) return { ok: false, commit: null, startedAt: null };
-    const body = (await response.json().catch(() => ({}))) as { commit?: unknown; startedAt?: unknown };
-    const started = typeof body.startedAt === "string" ? new Date(body.startedAt) : null;
-    return {
-      ok: true,
-      commit: typeof body.commit === "string" ? body.commit.slice(0, 64) : null,
-      startedAt: started && !Number.isNaN(started.getTime()) ? started : null,
-    };
+    return response.ok;
   } catch {
-    return { ok: false, commit: null, startedAt: null };
+    return false;
   }
 }
 
@@ -72,8 +69,7 @@ export async function heartbeat(fetcher: typeof fetch = fetch): Promise<void> {
   await sql`select 1`.execute(db);
   await beat("database", true);
   await beat("core-api", true, { commit: commit(), startedAt: BOOTED_AT });
-  const web = await checkWeb(fetcher);
-  await beat("web", web.ok, web);
+  await beat("web", await checkWeb(fetcher));
 }
 
 /** Start the minute timer. Called by `server.ts` and by nothing else, so a

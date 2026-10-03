@@ -45,6 +45,7 @@ TARGET="r2:${R2_BUCKET}/${PREFIX}/${STAMP}.dump.age"
 # outcome: a backup that shipped has shipped whether or not this insert lands,
 # and a run that failed still exits non-zero.
 record() {
+  # The database URL as an argument is accepted, and the same as pg_dump below.
   psql "$DATABASE_URL" -q -v ON_ERROR_STOP=1 \
     -c "insert into backup_runs (bytes, ok) values ($1, $2)" >/dev/null 2>&1 \
     || echo "{\"level\":\"error\",\"msg\":\"backup run not recorded\",\"stamp\":\"${STAMP}\"}"

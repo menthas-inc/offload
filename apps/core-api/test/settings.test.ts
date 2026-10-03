@@ -291,4 +291,15 @@ describe("AC-33 and AC-34 saving", () => {
       code: "out_of_bounds",
     });
   });
+
+  it("takes fifty fixed costs and refuses a fifty-first", async () => {
+    const owner = await account();
+    const vendors = (n: number) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`vendor${i}`, 1_000_000]));
+    await expect(save({ "costs.fixed": vendors(51) }, { "costs.fixed": {} }, owner)).rejects.toMatchObject({ code: "out_of_bounds", key: "costs.fixed" });
+    clearSettingsCache();
+    expect(await setting("costs.fixed")).toEqual({});
+    await save({ "costs.fixed": vendors(50) }, { "costs.fixed": {} }, owner);
+    clearSettingsCache();
+    expect(Object.keys(await setting("costs.fixed"))).toHaveLength(50);
+  });
 });

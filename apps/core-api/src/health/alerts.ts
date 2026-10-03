@@ -26,7 +26,8 @@
 // from `alert_sends`. The tenth says alerts are paused until tomorrow. Past
 // ten, a condition stays open and unsent, and is mailed the next day if it is
 // still true. A service coming back past the limit is not mailed at all.
-// Staff-action alerts never touch the count.
+// Staff-action alerts never touch the count: they have their own, fifty a
+// day, in `mail.ts`.
 
 import { sql } from "kysely";
 import { db } from "../db.js";

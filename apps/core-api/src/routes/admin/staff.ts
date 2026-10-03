@@ -38,14 +38,16 @@ const member = z.object({
 type StaffAlert = "staff.added" | "staff.role_changed" | "staff.removed";
 
 /** The email every owner gets when staff change, queued in the transaction
- *  that changed them. Ids only: the handler looks up who to tell. The key is
- *  unique per write, so two real changes are two emails. */
+ *  that changed them. Ids only: the handler looks up who to tell. The id is
+ *  minted per write and carried in the payload, which is what the handler
+ *  keys its fan-out on, so two real changes are two emails. */
 async function alertOwners(tx: Transaction<Database>, alert: StaffAlert, staff: Staff, targetAccountId: string): Promise<void> {
+  const id = uuidv7();
   await enqueue({
     kind: "email.alert",
-    payload: { alert, actorAccountId: staff.accountId, targetAccountId },
+    payload: { alert, actorAccountId: staff.accountId, targetAccountId, id },
     priority: PRIORITY.interactive,
-    idempotencyKey: `email.alert:${alert}:${targetAccountId}:${uuidv7()}`,
+    idempotencyKey: `email.alert:${alert}:${targetAccountId}:${id}`,
     tx,
   });
 }

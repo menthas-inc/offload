@@ -1,6 +1,7 @@
 // 034 AC-36. The web says it is up, to the Core API, once a minute: a public
-// route that answers with the commit it runs and when it started, and nothing
-// else. No session, no cookie, no cache.
+// route that answers that it is there, and nothing else. No session, no
+// cookie, no cache. Anybody can ask it, so it says nothing about the build:
+// not the commit, and not when the process started.
 
 import { afterEach, describe, expect, it } from "vitest";
 import { GET, dynamic } from "../src/app/healthz/route";
@@ -12,21 +13,18 @@ afterEach(() => {
 });
 
 describe("/healthz", () => {
-  it("answers with the commit and the start, and is never cached", async () => {
-    process.env["RAILWAY_GIT_COMMIT_SHA"] = "web5678";
+  it("answers that it is up, and is never cached", async () => {
     const response = GET();
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    const body = (await response.json()) as { ok: boolean; commit: string | null; startedAt: string };
-    expect(Object.keys(body).sort()).toEqual(["commit", "ok", "startedAt"]);
-    expect(body.ok).toBe(true);
-    expect(body.commit).toBe("web5678");
-    expect(Number.isNaN(new Date(body.startedAt).getTime())).toBe(false);
+    expect(await response.json()).toEqual({ ok: true });
     expect(dynamic).toBe("force-dynamic");
   });
 
-  it("reads the commit as unknown when the platform does not say", async () => {
-    delete process.env["RAILWAY_GIT_COMMIT_SHA"];
-    expect(((await GET().json()) as { commit: string | null }).commit).toBeNull();
+  it("does not say which commit it runs or when it started", async () => {
+    process.env["RAILWAY_GIT_COMMIT_SHA"] = "web5678";
+    const text = await GET().text();
+    expect(text).not.toContain("web5678");
+    expect(text).toBe(JSON.stringify({ ok: true }));
   });
 });

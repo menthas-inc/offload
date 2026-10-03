@@ -19,7 +19,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import structlog
-from sqlalchemy import text
+from sqlalchemy import TextClause, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 log = structlog.get_logger()
@@ -750,20 +750,38 @@ def fit_answer(ctx: "AnswerContext", ceiling: int) -> "AnswerContext":
 # touched; what the turn may do is theirs and the switch together.
 
 
+_SWITCH_KEY = re.compile(r"switch\.[a-z_]+")
+
+
+def _switch_bind(key: str) -> str:
+    """The parameter a switch's key is bound under: `switch.maps` is
+    `:switch_maps`. Anything that is not a switch's key is refused, so the
+    name is never more than letters and underscores."""
+    if not _SWITCH_KEY.fullmatch(key):
+        raise ValueError("not a switch")
+    return key.replace(".", "_")
+
+
 def switch_on(key: str) -> str:
     """SQL for whether an owner's switch is on: anything but a stored `false`.
 
     The registry's rule (`settings.ts` in the Core API): a switch defaults to
     on, and a row that is missing or makes no sense reads as the default.
-    `key` is a constant in this package, never input.
+    The key is a bound parameter, never part of the statement: build the
+    statement with `switched`, which binds it.
     """
     return (
-        f"(coalesce((select s.value from app_settings s where s.key = '{key}'), "
+        f"(coalesce((select s.value from app_settings s where s.key = :{_switch_bind(key)}), "
         "'true'::jsonb) <> 'false'::jsonb)"
     )
 
 
-_MAY_REACH = text(
+def switched(sql: str, *keys: str) -> TextClause:
+    """A statement that reads switches, with each one's key bound."""
+    return text(sql).bindparams(**{_switch_bind(key): key for key in keys})
+
+
+_MAY_REACH = switched(
     f"""
     select web_search_enabled and {switch_on("switch.web_search")} as web_search_enabled,
            web_links_enabled and {switch_on("switch.web_links")} as web_links_enabled,
@@ -771,7 +789,10 @@ _MAY_REACH = text(
            {switch_on("switch.maps")} as maps_on
       from accounts
      where id = :account_id
-    """
+    """,
+    "switch.web_search",
+    "switch.web_links",
+    "switch.maps",
 )
 
 # 019. Any approved calendar on the account. The tools are sent whenever there

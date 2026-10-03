@@ -71,6 +71,27 @@ describe("the fixture", () => {
     expect(job.last_error).toBe(MARK);
     const session = await db.selectFrom("sessions").select("token").where("account_id", "=", marked.accountId).executeTakeFirstOrThrow();
     expect(session.token).toBe(TOKEN);
+    // The transcription vendor's reference for a file is a credential to it.
+    const blob = await db.selectFrom("blobs").select("provider_ref").where("account_id", "=", marked.accountId).executeTakeFirstOrThrow();
+    expect(blob.provider_ref).toBe(TOKEN);
+    // A job that finished, with a code and text left on it from an attempt.
+    const done = await db.selectFrom("jobs").select(["last_error", "error_code", "payload"]).where("state", "=", "done").where("account_id", "=", marked.accountId).executeTakeFirstOrThrow();
+    expect(done).toMatchObject({ last_error: MARK, error_code: "model_error" });
+    expect(JSON.stringify(done.payload)).toContain(MARK);
+  });
+
+  it("gives Health something to answer with: an outage, a backup, an hour of history", async () => {
+    await seedMarked();
+    const owner = await staffMember("owner");
+    const read = async (path: string) => (await app.inject({ method: "GET", url: `/v1/admin/health/${path}`, headers: { cookie: owner.cookie } })).json();
+    expect((await read("incidents?range=24h")).incidents.length).toBeGreaterThan(0);
+    expect((await read("backups")).last).toMatchObject({ ok: true, bytes: 4096 });
+    const queue = await read("queue?range=24h");
+    expect(queue.historyStarts).not.toBeNull();
+    expect(queue.points.some((point: { finished: number; failed: number; dead: number }) => point.finished > 0 && point.failed > 0 && point.dead > 0)).toBe(true);
+    const vendors = (await read("vendors?range=24h")).vendors as Array<{ recorded: boolean; calls: number | null }>;
+    expect(vendors.length).toBeGreaterThan(0);
+    for (const vendor of vendors) expect(vendor, JSON.stringify(vendor)).toMatchObject({ recorded: true });
   });
 
   it("is found by the check when it does leak, in any spelling", async () => {

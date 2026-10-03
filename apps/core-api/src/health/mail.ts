@@ -14,8 +14,11 @@
 // job uses its only attempt before the mailer is called, so a send that fails
 // or a process that dies loses that one email and never repeats it. Losing
 // one is the better of the two failures, as it is for the invite. The
-// fan-out's keys carry the minute, so the first job running twice books
-// nothing new.
+// fan-out's keys carry the id of the staff write, so the first job running
+// twice books nothing new and two real changes are two emails.
+//
+// **Fifty staff actions a UTC day.** Their own ceiling, apart from the ten
+// for conditions. Past it the mail is dropped; the audit entry is not.
 //
 // **What an alert carries.** A condition names a service or a job kind and
 // nothing about anybody. A staff action names the staff member who did it, by
@@ -24,13 +27,20 @@
 // transactional template.
 
 import { z } from "zod";
+import { sql, type Transaction } from "kysely";
 import { db } from "../db.js";
 import { env } from "../env.js";
 import { JobError } from "../jobs/errors.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import type { Handler } from "../jobs/handlers.js";
 import type { EmailSlots } from "../mail/template.js";
+import type { Database } from "../schema.js";
 import type { Executor } from "../threads/access.js";
+
+/** How many staff actions are mailed in a UTC day, to all owners together.
+ *  Their own ceiling, apart from the ten for conditions: an owner session
+ *  looping add and remove is otherwise unbounded mail. */
+export const STAFF_DAILY_ALERTS = 50;
 
 /** Every staff action an owner is mailed about. */
 export const STAFF_ALERTS = ["staff.added", "staff.role_changed", "staff.removed", "deletion.scheduled", "deletion.cancelled"] as const;
@@ -49,6 +59,9 @@ const staffPayload = z.object({
   alert: z.enum(STAFF_ALERTS),
   actorAccountId: z.string().uuid(),
   targetAccountId: z.string().uuid(),
+  /** The write this is about, minted by the route in its transaction. What
+   *  the fan-out is keyed on, so two changes are two emails. */
+  id: z.string().uuid().optional(),
 });
 
 const payloadSchema = z.union([conditionPayload, staffPayload]);
@@ -167,13 +180,46 @@ export async function owners(trx: Executor = db): Promise<Array<{ id: string; em
 export async function bookAlert(trx: Executor, ownerId: string, payload: AlertPayload, key: string): Promise<void> {
   await enqueue({
     kind: "email.alert",
-    payload: { ...payload, addressed: true },
+    payload: { ...payload, addressed: true, batch: key },
     accountId: ownerId,
     priority: PRIORITY.interactive,
     maxAttempts: 1,
     idempotencyKey: `${key}:${ownerId}`,
     tx: trx,
   });
+}
+
+/** What names one fan-out, so the first job running twice books nothing new.
+ *  A staff action is named by the id of its write. Without one, and for a
+ *  condition that reaches here unaddressed, the minute stands in. */
+function fanOutKey(payload: AlertPayload): string {
+  if (payload.alert !== "condition" && payload.id) return `alert:${payload.alert}:${payload.id}`;
+  const about = payload.alert === "condition" ? `${payload.condition}:${payload.state}` : `${payload.actorAccountId}:${payload.targetAccountId}`;
+  return `alert:${payload.alert}:${about}:${Math.floor(Date.now() / 60_000)}`;
+}
+
+/** One arbitrary constant: fan-outs of staff actions are serialised, so two
+ *  at once cannot both read forty-nine. */
+const STAFF_ALERT_LOCK = 4700_0035;
+
+/** Whether today still has room for this staff action's mail.
+ *
+ *  Counted off the queue itself: each owner's copy carries the fan-out it
+ *  came from as `batch`, and a day's distinct batches are the day's staff
+ *  alerts. Past the ceiling the mail is dropped and nothing says so. The
+ *  audit entry was written by the route and is the record. A fan-out that is
+ *  already booked is not counted against itself, so a job running twice is
+ *  still the same answer. Jobs are kept thirty days, so today's are there. */
+async function staffAlertLeft(tx: Transaction<Database>, key: string): Promise<boolean> {
+  await sql`select pg_advisory_xact_lock(${STAFF_ALERT_LOCK})`.execute(tx);
+  const sent = await sql<{ n: string }>`
+    select count(distinct payload->>'batch') as n from jobs
+    where kind = 'email.alert'
+      and created_at >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC'
+      and payload->>'addressed' = 'true'
+      and payload->>'alert' <> 'condition'
+      and payload->>'batch' <> ${key}`.execute(tx);
+  return Number(sent.rows[0]!.n) < STAFF_DAILY_ALERTS;
 }
 
 export const emailAlert: Handler = async (raw, { mailer }, accountId) => {
@@ -183,9 +229,9 @@ export const emailAlert: Handler = async (raw, { mailer }, accountId) => {
 
   // Not yet addressed: one job per owner, together or not at all.
   if (raw["addressed"] !== true) {
-    const about = payload.alert === "condition" ? `${payload.condition}:${payload.state}` : `${payload.actorAccountId}:${payload.targetAccountId}`;
-    const key = `alert:${payload.alert}:${about}:${Math.floor(Date.now() / 60_000)}`;
+    const key = fanOutKey(payload);
     await db.transaction().execute(async (tx) => {
+      if (payload.alert !== "condition" && !(await staffAlertLeft(tx, key))) return;
       for (const owner of await owners(tx)) await bookAlert(tx, owner.id, payload, key);
     });
     return;

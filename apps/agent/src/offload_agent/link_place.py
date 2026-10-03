@@ -17,10 +17,9 @@ from __future__ import annotations
 
 import httpx
 import structlog
-from sqlalchemy import text
 
 from offload_agent.config import Config
-from offload_agent.context import switch_on
+from offload_agent.context import switch_on, switched
 from offload_agent.og import page
 from offload_agent.queue import ClaimedJob, finish
 
@@ -30,7 +29,7 @@ KINDS = ["link.place"]
 
 # 034. And the owner's two switches, in the same statement: the map, and
 # reading links. Either off, nothing is read, for anybody.
-_READABLE = text(
+_READABLE = switched(
     f"""
     select c.url
     from content c
@@ -46,7 +45,9 @@ _READABLE = text(
       and {switch_on("switch.maps")}
       and m.account_id = c.account_id
       and position(c.url in coalesce(m.text, '')) > 0
-    """
+    """,
+    "switch.web_links",
+    "switch.maps",
 )
 
 

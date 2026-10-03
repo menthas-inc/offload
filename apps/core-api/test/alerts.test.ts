@@ -16,7 +16,8 @@ import { MemoryMailer, renderHtml, renderText, type Message } from "../src/mail/
 import { clearSettingsCache } from "../src/settings.js";
 import { clearPlatformSpent } from "../src/budget.js";
 import { checkAlerts, wrongCount, DAILY_ALERTS } from "../src/health/alerts.js";
-import { renderAlert, type AlertPayload } from "../src/health/mail.js";
+import { renderAlert, STAFF_DAILY_ALERTS, type AlertPayload } from "../src/health/mail.js";
+import { uuidv7 } from "../src/uuid.js";
 import { activeAccount, staffMember, wipeAdmin } from "./admin-kit.js";
 
 await migrate(() => {});
@@ -326,6 +327,50 @@ describe("AC-48 a staff-action alert, the handler's half", () => {
     const mailer = new MemoryMailer();
     await handlers["email.alert"]!(payload, { mailer }, null);
     await handlers["email.alert"]!(payload, { mailer }, null);
+    expect(await drain()).toHaveLength(2);
+  });
+
+  it("mails twice for two changes of one kind to one account in the same minute, and once for one change run twice", async () => {
+    const target = await activeAccount();
+    await db.deleteFrom("jobs").execute();
+    const change = (id: string) => ({ alert: "staff.role_changed", actorAccountId: owner.id, targetAccountId: target, id });
+    const [first, next] = [uuidv7(), uuidv7()];
+    const mailer = new MemoryMailer();
+    await handlers["email.alert"]!(change(first), { mailer }, null);
+    await handlers["email.alert"]!(change(next), { mailer }, null);
+    await handlers["email.alert"]!(change(first), { mailer }, null);
+    expect(await drain()).toHaveLength(4);
+  });
+
+  it("is fifty a day", () => {
+    expect(STAFF_DAILY_ALERTS).toBe(50);
+  });
+
+  it("drops the mail past fifty staff actions in a day, and leaves condition alerts their own ten", async () => {
+    const target = await activeAccount();
+    await db.deleteFrom("jobs").execute();
+    const mailer = new MemoryMailer();
+    const action = (id: string) => ({ alert: "staff.added", actorAccountId: owner.id, targetAccountId: target, id });
+    const ids = Array.from({ length: 51 }, () => uuidv7());
+    for (const id of ids) await handlers["email.alert"]!(action(id), { mailer }, null);
+    // One that was already told runs again: still nothing new, and not refused.
+    await handlers["email.alert"]!(action(ids[0]!), { mailer }, null);
+    expect(await drain()).toHaveLength(100);
+    expect(await sentToday()).toBe(0);
+
+    await deadJob();
+    expect(await check()).toHaveLength(2);
+  });
+
+  it("counts yesterday's staff actions for yesterday", async () => {
+    const target = await activeAccount();
+    await db.deleteFrom("jobs").execute();
+    const mailer = new MemoryMailer();
+    const action = () => ({ alert: "staff.removed", actorAccountId: owner.id, targetAccountId: target, id: uuidv7() });
+    for (let i = 0; i < 50; i++) await handlers["email.alert"]!(action(), { mailer }, null);
+    await sql`update jobs set created_at = created_at - interval '1 day' where kind = 'email.alert'`.execute(db);
+    expect(await drain()).toHaveLength(100);
+    await handlers["email.alert"]!(action(), { mailer }, null);
     expect(await drain()).toHaveLength(2);
   });
 

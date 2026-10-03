@@ -349,17 +349,21 @@ export async function internalRoutes(app: App): Promise<void> {
   app.post(
     "/internal/v1/heartbeat",
     {
+      // The token first, before the body is parsed or validated: a caller
+      // without it learns nothing about what the body should be.
+      onRequest: async (request, reply) => {
+        const header = request.headers.authorization;
+        const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+        if (!tokenMatches(presented)) {
+          return reply.code(401).send({ error: "unauthorised" as const });
+        }
+      },
       schema: {
         body: z.strictObject({ commit: z.string().min(1).max(64).nullable().optional(), startedAt: z.string().datetime() }),
         response: { 200: z.object({ ok: z.literal(true) }), 401: refused },
       },
     },
     async (request, reply) => {
-      const header = request.headers.authorization;
-      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
-      if (!tokenMatches(presented)) {
-        return reply.code(401).send({ error: "unauthorised" as const });
-      }
       await beat("worker", true, { commit: request.body.commit ?? null, startedAt: new Date(request.body.startedAt) });
       return reply.send({ ok: true as const });
     }

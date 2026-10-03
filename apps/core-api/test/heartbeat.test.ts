@@ -53,13 +53,15 @@ describe("the Core API's minute", () => {
     expect(rows.map((row) => [row.service, row.ok, row.commit])).toEqual([
       ["core-api", true, "abc1234"],
       ["database", true, null],
-      ["web", true, "web5678"],
+      // The web's answer is open to anybody, so it does not say what it
+      // runs, and whatever a body claims is not recorded.
+      ["web", true, null],
     ]);
     const own = rows.find((row) => row.service === "core-api")!;
     expect(own.started_at?.getTime()).toBe(BOOTED_AT.getTime());
     // The row is the minute, not the moment.
     expect(own.minute.getUTCSeconds()).toBe(0);
-    expect(rows.find((row) => row.service === "web")!.started_at?.toISOString()).toBe("2026-10-03T09:00:00.000Z");
+    expect(rows.find((row) => row.service === "web")!.started_at).toBeNull();
   });
 
   it("records the web as not ok when it does not answer, and still writes the rest", async () => {
@@ -120,6 +122,9 @@ describe("the worker's minute", () => {
     expect((await post(app, {})).statusCode).toBe(401);
     expect((await post(app, { authorization: "Bearer nothing" })).statusCode).toBe(401);
     expect((await post(app, bearer, { startedAt: "2026-10-03T08:00:00.000Z", service: "core-api" })).statusCode).toBe(400);
+    // The token is asked for before the body is read at all.
+    expect((await post(app, {}, { nonsense: true })).statusCode).toBe(401);
+    expect((await post(app, { authorization: "Bearer nothing" }, { startedAt: "never" })).statusCode).toBe(401);
     expect(await beats()).toEqual([]);
   });
 

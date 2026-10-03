@@ -155,12 +155,16 @@ describe("AC-48 each staff write queues one alert for the owners", () => {
     await remove(owner.cookie, id);
 
     const queued = await alerts();
+    // Each carries the id of its own write, which is what the fan-out is keyed
+    // on: two changes of one kind in one minute are two emails.
+    const write = expect.stringMatching(/^[0-9a-f-]{36}$/);
     expect(queued.map((job) => job.payload)).toEqual([
-      { alert: "staff.added", actorAccountId: owner.id, targetAccountId: id },
-      { alert: "staff.role_changed", actorAccountId: owner.id, targetAccountId: id },
-      { alert: "staff.role_changed", actorAccountId: owner.id, targetAccountId: id },
-      { alert: "staff.removed", actorAccountId: owner.id, targetAccountId: id },
+      { alert: "staff.added", actorAccountId: owner.id, targetAccountId: id, id: write },
+      { alert: "staff.role_changed", actorAccountId: owner.id, targetAccountId: id, id: write },
+      { alert: "staff.role_changed", actorAccountId: owner.id, targetAccountId: id, id: write },
+      { alert: "staff.removed", actorAccountId: owner.id, targetAccountId: id, id: write },
     ]);
+    expect(new Set(queued.map((job) => job.payload["id"])).size).toBe(4);
     for (const job of queued) expect(job).toMatchObject({ priority: 10, state: "queued" });
     expect(JSON.stringify(queued)).not.toContain("@");
   });

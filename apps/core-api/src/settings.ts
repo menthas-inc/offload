@@ -134,6 +134,9 @@ export function settingDef(key: SettingKey): SettingDef {
 /** A company's slug in the fixed-cost map. */
 const VENDOR = /^[a-z0-9-]{1,40}$/;
 
+/** How many entries a money map may hold. A page of fixed costs, not a table. */
+const MONEY_MAP_ENTRIES = 50;
+
 function wholeWithin(def: SettingDef, raw: unknown): raw is number {
   return typeof raw === "number" && Number.isSafeInteger(raw) && raw >= def.min! && raw <= def.max!;
 }
@@ -146,7 +149,8 @@ export function validSetting(def: SettingDef, raw: unknown): raw is SettingValue
   if (def.kind === "bool") return typeof raw === "boolean";
   if (def.kind === "money-map") {
     if (typeof raw !== "object" || Array.isArray(raw)) return false;
-    return Object.entries(raw as Record<string, unknown>).every(([vendor, amount]) => VENDOR.test(vendor) && wholeWithin(def, amount));
+    const entries = Object.entries(raw as Record<string, unknown>);
+    return entries.length <= MONEY_MAP_ENTRIES && entries.every(([vendor, amount]) => VENDOR.test(vendor) && wholeWithin(def, amount));
   }
   return wholeWithin(def, raw);
 }

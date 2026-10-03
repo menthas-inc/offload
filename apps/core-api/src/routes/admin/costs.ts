@@ -479,6 +479,7 @@ export async function costsAdminRoutes(app: App): Promise<void> {
         select a.id, a.display_name, a.email, sum(l.cost_micros) as micros
           from l
           join accounts a on a.id = l.account_id
+         where ${signedIn("a")}
          group by a.id, a.display_name, a.email
          order by 4 desc, a.id
          limit 20`.execute(db);
