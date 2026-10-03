@@ -217,7 +217,7 @@ export async function peopleRoutes(app: App): Promise<void> {
           200: personSchema.extend({
             relation: z.enum(["connected", "asked_you", "you_asked", "thread", "waiting", "blocked"]),
             shared: z.array(
-              z.object({ id: z.string(), name: z.string(), count: z.number(), lastActivityAt: z.coerce.date() }),
+              z.object({ id: z.string(), name: z.string(), icon: z.string(), hue: z.number(), count: z.number(), lastActivityAt: z.coerce.date() }),
             ),
             requestId: z.string().nullable(),
           }),

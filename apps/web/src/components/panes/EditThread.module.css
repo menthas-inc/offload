@@ -1,0 +1,169 @@
+/* 037. Edit thread, the web's popover: 360px under the thread's icon. From
+   the standalone handoff page's `.wpop`, `.shh`, `.nfv`, `.pscroll`, `.pgrid`,
+   `.pk` and `.sws`. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + var(--space-3));
+  left: 0;
+  z-index: 41;
+  width: 360px;
+  max-width: calc(100vw - var(--space-8));
+  padding: var(--space-5) var(--space-6) var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-hairline), var(--shadow-3);
+  color: var(--text-primary);
+  outline: none;
+  /* The pane clips what hangs out of it: on a short window the popover
+     scrolls rather than losing its colours. */
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font: var(--weight-semibold) calc(17px * var(--type-scale)) / 1 var(--font-core);
+}
+
+.cancel,
+.save {
+  min-height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--weight-regular) calc(16px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.save {
+  font-weight: var(--weight-semibold);
+  color: var(--text-accent);
+}
+
+.save:disabled {
+  color: var(--text-tertiary);
+  cursor: default;
+}
+
+.cancel:focus-visible,
+.save:focus-visible,
+.cell:focus-visible,
+.hue:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: var(--space-6) 0 var(--space-2);
+}
+
+.nameField {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.label {
+  margin: var(--space-6) 2px var(--space-3);
+  font: var(--weight-medium) calc(13px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.nameField .label {
+  margin: 0;
+  font-size: calc(12.5px * var(--type-scale));
+}
+
+.input {
+  min-height: 44px;
+  width: 100%;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface-page);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  font: var(--weight-medium) calc(17px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.input:focus {
+  box-shadow: inset 0 0 0 2px var(--text-primary);
+}
+
+/* The seventy scroll on their own and fade out over the last of the well. */
+.well {
+  height: 190px;
+  overflow-y: auto;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-fill);
+  -webkit-mask: linear-gradient(black 85%, transparent);
+  mask: linear-gradient(black 85%, transparent);
+  scrollbar-width: thin;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  padding-bottom: var(--space-6);
+}
+
+.cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.cell:hover {
+  background: var(--surface-raised);
+}
+
+.cell[aria-checked="true"] {
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 2px var(--text-primary);
+  color: var(--text-primary);
+}
+
+.hues {
+  display: flex;
+  justify-content: space-between;
+}
+
+.hue {
+  display: flex;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  cursor: pointer;
+}
+
+.hue[aria-checked="true"] {
+  box-shadow: 0 0 0 2px var(--text-primary);
+}

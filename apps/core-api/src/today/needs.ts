@@ -11,6 +11,7 @@ import { z } from "zod";
 import { zoneOf } from "../accounts/zone.js";
 import { db } from "../db.js";
 import { shownThreadName } from "../threads/default.js";
+import { shownThreadHue, shownThreadIcon } from "../threads/icons.js";
 import { ADDRESS } from "../mail-in/sender.js";
 import { requestsFor } from "../people/people.js";
 import { onWire, questionOnWire } from "../questions.js";
@@ -46,6 +47,8 @@ export const needsCard = z.discriminatedUnion("kind", [
     question: questionOnWire.unwrap(),
     threadId: z.string().nullable(),
     threadName: z.string().nullable(),
+    threadIcon: z.string().nullable(),
+    threadHue: z.number().nullable(),
     fromEmail: z.boolean(),
   }),
   z.object({ key: z.string(), kind: z.literal("tip"), tip: z.literal("forwarding"), address: z.string(), from: z.string() }),
@@ -124,6 +127,8 @@ async function questionCards(accountId: string): Promise<NeedsCard[]> {
       "m.source",
       "t.id as threadId",
       shownThreadName("t.id", "t.name", accountId).as("threadName"),
+      shownThreadIcon("t.id", "t.icon", accountId).as("threadIcon"),
+      shownThreadHue("t.id", "t.hue", accountId).as("threadHue"),
     ])
     .where("q.account_id", "=", accountId)
     .where("q.state", "=", "open")
@@ -142,6 +147,8 @@ async function questionCards(accountId: string): Promise<NeedsCard[]> {
       question: onWire(row)!,
       threadId: row.threadId ?? null,
       threadName: row.threadName ?? null,
+      threadIcon: row.threadIcon ?? null,
+      threadHue: row.threadHue ?? null,
       fromEmail: row.source === "mail",
     }));
 }

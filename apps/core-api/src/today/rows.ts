@@ -7,11 +7,18 @@ import { sql } from "kysely";
 import { z } from "zod";
 import { db } from "../db.js";
 import { shownThreadName } from "../threads/default.js";
+import { shownThreadHue, shownThreadIcon } from "../threads/icons.js";
 import { contentRow, toRow, withPhotos, type RawRow } from "../routes/threads.js";
 
-export const agendaRow = contentRow.extend({ threadId: z.string(), threadName: z.string().nullable() });
+export const agendaRow = contentRow.extend({
+  threadId: z.string(),
+  threadName: z.string().nullable(),
+  /** 037. Null with the name, for a row in the default thread. */
+  threadIcon: z.string().nullable(),
+  threadHue: z.number().nullable(),
+});
 export type AgendaRow = z.infer<typeof agendaRow>;
-export type AgendaRaw = RawRow & { threadId: string; threadName: string | null };
+export type AgendaRaw = RawRow & { threadId: string; threadName: string | null; threadIcon: string | null; threadHue: number | null };
 
 /** Open, live content the account reads, in a live thread. Callers add the
  *  date predicate, the order and the limit. */
@@ -46,6 +53,8 @@ export function agendaQuery(accountId: string) {
       "content.thread_id as threadId",
       // 028. Null for a row in the default thread, which no surface names.
       shownThreadName("threads.id", "threads.name", accountId).as("threadName"),
+      shownThreadIcon("threads.id", "threads.icon", accountId).as("threadIcon"),
+      shownThreadHue("threads.id", "threads.hue", accountId).as("threadHue"),
       sql<boolean>`exists (
         select 1 from thread_members am
         where am.thread_id = content.thread_id
@@ -67,7 +76,7 @@ export function agendaQuery(accountId: string) {
 /** The thread page's row, with its thread, its photo and its labels. */
 export async function shapeRows(rows: AgendaRaw[], accountId: string): Promise<AgendaRow[]> {
   return (await withPhotos(
-    rows.map((row) => ({ ...toRow(row, accountId), threadId: row.threadId, threadName: row.threadName })),
+    rows.map((row) => ({ ...toRow(row, accountId), threadId: row.threadId, threadName: row.threadName, threadIcon: row.threadIcon, threadHue: row.threadHue })),
   )) as unknown as AgendaRow[];
 }
 

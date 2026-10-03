@@ -29,7 +29,7 @@ const { ToastProvider } = await import("../src/components/shell/Toast");
 type Summary = import("../src/lib/loose").LooseSummary;
 type Group = import("../src/lib/threads").ThreadGroup;
 
-const thread = (id: string, name: string) => ({ id, name, icon: "lasso", count: 3, meta: "3 to do", isDefault: false });
+const thread = (id: string, name: string) => ({ id, name, icon: "lasso", hue: 1, count: 3, meta: "3 to do", isDefault: false });
 const groups: Group[] = [
   { key: "now", threads: [thread("t1", "Lisbon trip"), thread("t2", "Flat admin")] },
   { key: "older", threads: [thread("t3", "Berlin, March")] },

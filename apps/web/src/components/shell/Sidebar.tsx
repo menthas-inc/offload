@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "../Icon";
+import { ThreadIcon } from "../ThreadIcon";
 import { Logo } from "../Logo";
 import { Preferences } from "./Preferences";
 import styles from "../../app/(shell)/shell.module.css";
@@ -23,12 +24,6 @@ interface Props {
   /** 024. Activity holds a row newer than its last opening. */
   activityNew?: boolean;
 }
-
-/** A thread's icon, from its own `icon` column, falling back to the kit's
- *  default. `lasso` is what offload gives a thread it made, and the kit's own
- *  fixture uses `bookmark` and `house` for threads with a character of their
- *  own. */
-export const threadIcon = (icon: string | null): string => icon ?? "message-circle";
 
 export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityNew = false }: Props) {
   const pathname = usePathname();
@@ -115,7 +110,7 @@ export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityNew
                   data-on={on}
                 >
                   {on ? <span className={styles.marker} /> : null}
-                  <Icon name={threadIcon(thread.icon)} size={17} />
+                  <ThreadIcon icon={thread.icon} hue={thread.hue} seed={thread.id} size={20} />
                   <span className={styles.navLabel}>{thread.name}</span>
                 </Link>
               );

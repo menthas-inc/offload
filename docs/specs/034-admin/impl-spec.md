@@ -235,7 +235,7 @@ None new in `package.json` or `pyproject.toml`. Three optional environment varia
 
 ## Appendix: billing interfaces to try
 
-Written 2026-10-03 by section C. **No interface below has been called.** The session that built the section had no billing key and was not to ask for one, so task C1 is open: nothing here is a recorded answer, every candidate is unverified, and the puller registry in `CA/src/billing/pull.ts` is empty. Today every company is metered or fixed.
+Written 2026-10-03 by section C, and updated the same day once the owner supplied keys. **Railway has been called and has a puller.** Every other candidate is unverified or was refused, as its row says, and stays metered or fixed.
 
 What "today" means in the table:
 
@@ -245,7 +245,7 @@ What "today" means in the table:
 
 | Company | Slug | Today | Candidate interface, unverified | Key the puller would read |
 | --- | --- | --- | --- | --- |
-| Anthropic (the model, and the searches and page reads it runs as server tools) | `anthropic` | metered: `llm_usage` less transcription, plus `lookups` | The organisation cost report in Anthropic's Admin API. Unverified: the path, the grouping, whether amounts are in cents or dollars, and whether web search and fetch charges are in the same report. | `ANTHROPIC_ADMIN_KEY` |
+| Anthropic (the model, and the searches and page reads it runs as server tools) | `anthropic` | metered: `llm_usage` less transcription, plus `lookups` | The organisation cost report in the Admin API. Tried 2026-10-03 with an ordinary key: 403, *Missing permissions*. It needs an admin key, which an individual Console account cannot create; skipped by the owner for now. | `ANTHROPIC_ADMIN_KEY` |
 | Google Cloud, for Maps Platform | `google-maps` | metered, not recorded | None over a plain key. Real cost is only in a BigQuery billing export, which is a new dependency and the owner's call. The Cloud Billing API answers prices and account state, not what was spent; unverified. | none proposed |
 | Google Workspace | `google-workspace` | fixed | None known. Invoices are in the admin console. | none |
 | AssemblyAI | `assemblyai` | metered: `llm_usage` where `model = 'assemblyai'` | None known. If the account API turns out to report spend or balance, try it; unverified that one exists. | `ASSEMBLYAI_BILLING_KEY`, only if an interface is found |
@@ -253,8 +253,8 @@ What "today" means in the table:
 | Web search | none of its own | on Anthropic's row | Not a separate company in this build: search and link reading are Anthropic's server tools (`stack.md`, and the privacy page's section 5), so they are on Anthropic's bill. | none |
 | Resend | `resend` | fixed | None known for billing. | none |
 | Expo (push, and EAS builds) | `expo` | fixed | None known for billing. | none |
-| Railway | `railway` | fixed | The public GraphQL API's usage and estimated usage queries, with an account or team token. Unverified: the query names, the units, and whether it answers a closed month or only the running one. Record the raw answer: `railway variables --json` has already printed something other than what it documents. | `RAILWAY_API_TOKEN` |
-| Cloudflare (R2 and DNS) | `cloudflare` | fixed | The account billing endpoints of the v4 API, with a token scoped to billing read. Unverified: whether a scoped token may read them at all, and whether R2 is itemised. The GraphQL analytics API gives R2 operations and bytes, which is use, not a bill. | `CLOUDFLARE_BILLING_TOKEN` |
+| Railway | `railway` | **billed**, since 2026-10-03 (`CA/src/billing/railway.ts`, fixture `CA/test/fixtures/billing/railway.json`) | Called for real on 2026-10-03 with a workspace token. `workspace(workspaceId).customer` answers `invoices` (period, status, `total` in whole cents), `billingPeriod` and `currentUsage` (dollars so far in the running period). `me` is refused to a workspace token; `projects` gives the workspace id. Periods run from the 30th, so an invoice is filed under the month most of its period is in. The bill is the whole workspace's, which also holds a project that is not offload. `usage` and `estimatedUsage` answer CPU, memory, disk and network in units, per project, and no money. | `RAILWAY_API_TOKEN` |
+| Cloudflare (R2 and DNS) | `cloudflare` | fixed | Tried 2026-10-03 with an account-owned token that verifies as active: `/accounts/{id}/billing/profile`, `/accounts/{id}/subscriptions` and `/user/billing/history` all answer 403, *Authentication error*. Not yet tried with a user token carrying Account, Billing, Read. | `CLOUDFLARE_BILLING_TOKEN` |
 | Apple Developer | `apple-developer` | fixed | None. A yearly fee, typed as a twelfth of it. | none |
 | Google Play | `google-play` | fixed | None. A one-time fee, so nothing a month unless the owner wants it spread. | none |
 

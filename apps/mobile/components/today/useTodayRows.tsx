@@ -239,7 +239,7 @@ export function useTodayRows(
       trailing={options.trailing}
       ground={COLOR.fill}
       dense
-      thread={{ id: item.threadId, name: item.threadName }}
+      thread={{ id: item.threadId, name: item.threadName, icon: item.threadIcon, hue: item.threadHue }}
       // 028. A row not in a thread keeps any old labels stored and draws none.
       metaMarks={
         item.threadName === null

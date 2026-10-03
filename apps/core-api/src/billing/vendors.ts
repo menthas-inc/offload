@@ -4,7 +4,7 @@
 // the three that hold no data and so appear on neither: the Workspace and the
 // two developer programmes.
 //
-// **Nothing here is billed today.** A company becomes billed when a puller for
+// **Only Railway is billed today.** A company becomes billed when a puller for
 // it exists, and a puller exists only once its interface has been called for
 // real (`pull.ts`, and the appendix of the impl-spec). Until then each is one
 // of two things: metered, where the ledger prices its calls, or a subscription

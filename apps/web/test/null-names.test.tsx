@@ -109,8 +109,8 @@ const rows = { handlers, lead: () => null, take: () => undefined } as unknown as
 
 describe("a Today row not in a thread", () => {
   it("draws no thread pill, where a row in one draws its own", async () => {
-    const loose = { ...row("c1", "Renew passport"), threadId: "tdefault", threadName: null } as AgendaRow;
-    const filed = { ...row("c2", "Call the letting agent"), threadId: "t1", threadName: "Flat" } as AgendaRow;
+    const loose = { ...row("c1", "Renew passport"), threadId: "tdefault", threadName: null, threadIcon: null, threadHue: null } as AgendaRow;
+    const filed = { ...row("c2", "Call the letting agent"), threadId: "t1", threadName: "Flat", threadIcon: "house", threadHue: 2 } as AgendaRow;
     await act(async () => root.render(<TodoCard late={[]} lateMore={0} timed={[]} rest={[loose, filed]} notDrawn={0} rows={rows} zone={null} />));
     expect(host.querySelector('a[href="/threads/t1"]')!.textContent).toBe("Flat");
     expect(host.querySelector('a[href="/threads/tdefault"]')).toBeNull();

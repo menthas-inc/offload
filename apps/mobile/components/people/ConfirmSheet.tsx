@@ -12,6 +12,7 @@
 import { Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glyph } from "../Glyph";
+import { ThreadIcon } from "../ThreadIcon";
 import { useColors } from "../../lib/colors";
 import { DragSheet } from "../shell/DragSheet";
 
@@ -20,8 +21,10 @@ const isAndroid = Platform.OS === "android";
 export interface ConfirmRow {
   title: string;
   meta?: string | undefined;
-  /** Lucide slug for the lead: `lasso` for a thread. Absent draws none. */
+  /** Lucide slug for the lead. Absent draws none. */
   icon?: string | undefined;
+  /** 037. A row that is a thread leads with its own icon. */
+  thread?: { id: string; icon: string; hue: number } | undefined;
 }
 
 export function ConfirmSheet({
@@ -94,7 +97,11 @@ export function ConfirmSheet({
                 }`}
                 style={{ minHeight: 44 }}
               >
-                {row.icon ? <Glyph name={row.icon} size={18} color={COLOR.secondary} /> : null}
+                {row.thread ? (
+                  <ThreadIcon icon={row.thread.icon} hue={row.thread.hue} seed={row.thread.id} size={24} />
+                ) : row.icon ? (
+                  <Glyph name={row.icon} size={18} color={COLOR.secondary} />
+                ) : null}
                 <Text
                   className={`flex-1 font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
                   style={{ fontSize: 15 }}
@@ -146,7 +153,7 @@ export function ConfirmSheet({
             disabled={busy}
             accessibilityRole="button"
             className={`flex-1 items-center justify-center rounded-pill ${
-              danger ? "bg-clay-600" : isAndroid ? "bg-blue-600" : "bg-surface-inverse"
+              danger ? "bg-surface-danger" : isAndroid ? "bg-blue-600" : "bg-surface-inverse"
             }`}
             style={{ minHeight: 44, opacity: busy ? 0.55 : 1 }}
           >

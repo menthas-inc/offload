@@ -308,7 +308,7 @@ export function LabelList({
               <Pressable onPress={() => setAsking(false)} className={`${pill} flex-1 border border-border-strong`} style={{ minHeight: 48 }} accessibilityRole="button">
                 <Text className="font-core font-medium text-text-primary" style={{ fontSize: 15 }}>Cancel</Text>
               </Pressable>
-              <Pressable onPress={onDelete} className={`${pill} flex-1 bg-clay-600`} style={{ minHeight: 48 }} accessibilityRole="button">
+              <Pressable onPress={onDelete} className={`${pill} flex-1 bg-surface-danger`} style={{ minHeight: 48 }} accessibilityRole="button">
                 <Text className="font-core font-medium text-text-on-solid" style={{ fontSize: 15 }}>Delete</Text>
               </Pressable>
             </View>

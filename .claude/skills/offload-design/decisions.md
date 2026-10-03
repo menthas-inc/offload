@@ -19,6 +19,56 @@ the new truth, and the design system is updated to match on the next sync.
 **Why:** Privacy is where 031 put what offload keeps and 035 put the copy of it, and *Memory and data* is retired vocabulary. The row names what is counted, says the limit it is measured against, and has nothing behind it to press: the owner chose deleting photos from a thread's Files as the way back for now, so a list is a later spec.
 **Design system impact:** `mobile_app/SettingsDetail.jsx` and `android_app/M3SettingsDetail.jsx`: retire the *Files and photos* row with *Memory and data*, and draw the Storage section on Privacy beside *Your copy*. `web_app/WSettings.jsx`: the same section on Privacy. The composer kits gain the one line at the limit. The conversation kits: a dump whose photos are all deleted is not drawn, and neither is its reply. `ui_kits/admin_web`: a *Storage* cap in megabytes, in its own group on Limits, beside Files on a person's page.
 
+### 2026-10-04 · Thread icons, as built (037)
+**Surface:** iOS, Android, web
+**Raised by:** code, building *Every thread has a mark* (`handoff/APPLY-2026-10-03-thread-marks.md`) as 037, with the owner's answers of 4 October and the client review.
+**Was:** the handoff: offload picks by the word list alone, a rename with no match falls back to `lasso`, the seed is the thread's id, the pill is 26 everywhere, Move suggestions draw the mark at 24, the picker's grid fades out over its last 15%, and the phones' sheet runs from 150px below the top.
+**Is:** built as drawn, with these differences.
+- **The model may name the icon** when it creates a thread, from the same seventy; the word list is the fallback and picks for threads a person makes. Owner, 2026-10-04.
+- **A rename with no match keeps the icon it has.** The icon may be the model's, and *Lisbon* becoming *Lisbon 2027* is no reason to lose it.
+- **The seed is the last eight hex digits of the id.** The ids are v7 and lead with their timestamp, so the head is the same for threads made together.
+- **The pill in a turn's footer stays 30**, where every mark in that row is 30; Today's grows to 26. The icon in both is 18.
+- **A Move to suggestion's chip draws the icon at 16**: the chip is one line of 13px text. The Move picker's rows are 24.
+- **Places the handoff's table did not list:** the web sidebar's thread rows at 20, the web's crumbs at 18 as a circle, the composer's *In thread* chip on the phones at 18, the list in People's remove confirmation at 24.
+- **The phones' grid has no fade**: there is no gradient or mask library in the app. It scrolls on its own inside its well.
+- **The phones' thread row is centred**, not top-aligned, so a name with no line under it sits against the middle of the icon (owner, on a device, 2026-10-04).
+- **The phones' Edit thread sheet is as tall as its contents**, not pinned 150 below the top: the space under the colours was empty (owner, on the Pixel, 2026-10-04).
+- The component is `ThreadIcon` on both clients, as the handoff asks. Picked states use `--text-primary` on the web for the ink ring, which follows the theme.
+**Why:** each is above.
+**Design system impact:** `readme.md` **Thread marks**: the pick rule (the model's pick, keep on no match), the seed, the two pill heights, the 16 in a suggestion chip, and the extra places. `handoff/thread-marks-standalone.html` if it is kept as the reference. No token changes.
+
+### 2026-10-04 · The 034 answers, pulled
+**Surface:** admin, iOS, Android, web
+**Raised by:** code, pulling *The 034 asks, answered* (`handoff/APPLY-2026-10-03-admin-034.md`).
+**Was:** the admin's destructive confirm drew its clay from `--text-danger` with a mixed hover, the plot area was a literal 96px, and the solid destructive fills on the web and the phones named `--clay-600`.
+**Is:** `--surface-danger`, `--surface-danger-hover` and `--plot-height` are in the tokens and in use: the admin's `.dangerSolid` and `.plotArea`, the web's destructive buttons (thread delete, the viewer's delete, People's remove), and on the phones the delete-account button, the confirm sheet's danger button, the label delete pill and the swipe-to-delete ground on rows. The unread dots stay `--clay-600`: they are a mark, not a danger surface. The phones' on-solid scan counts `bg-surface-danger` as a fixed fill.
+**Why:** one alias for one meaning, and the dark value can now move in one place.
+**Design system impact:** none. The 24 entries ending *(034)* are closed by this one. Still the owner's: the dark value of `--surface-danger`.
+
+### 2026-10-03 · The 034 asks, answered
+**Surface:** admin, and the solid danger fill on all three
+**Raised by:** the design system, answering the 24 entries above ending in *(034)*, read from `main` at `963d7a2`. Overview: `explorations/coder-asks-034.html`. Handoff: `handoff/APPLY-2026-10-03-admin-034.md`.
+
+**Was:** the admin kit drew the panel before 034: pounds, five pages, a cap behaviour choice, Warn at, a recipients list, Discard, a grey-until-hover Delete for anyone, moss bars, eight-second toasts with the app's Undo. No solid danger token and no plot height token.
+
+**Is:** every one taken as built. The kit is redrawn: nine pages in two nav blocks, dollars, grouped Limits with switches and an old-to-new confirm, the 24-hour delete hold, a person's page, a deleted account's page, Health, Costs with plots by model and vendor, Audit, ink plots with a range, sideways-scrolling tables, a four-second toast with no Undo. **`--surface-danger`** (clay 600 in both themes, white text at 5.4:1) and **`--surface-danger-hover`** land in every scope; **`--plot-height: 96px`** lands in spacing.
+
+**Open:** the dark value of `--surface-danger`, clay 600 (in) or the salmon `--text-danger` with dark text; the owner's call.
+
+**Design system impact:** `tokens/colors.css`, `tokens/spacing.css`, `ui_kits/admin_web/` (two new files, `APeople.jsx` and `AOps.jsx`).
+
+### 2026-10-03 · Every thread has a mark
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, off `explorations/thread-marks.html` and `explorations/thread-marks-v2.html`. Handoff: `handoff/APPLY-2026-10-03-thread-marks.md`.
+
+**Was:** every thread drawn with the same `lasso`, in My threads, pills, answers and the Move picker; past five threads the only way to find one was to read every title. The app bar had the name and no mark. Renaming was its own sheet.
+
+**Is:** **a Lucide glyph on a wash of one of the ten label hues per thread**, picked by offload from words in the name (no model call), changeable by anyone in the thread. The wash is `oil-ground` in luminosity blend over the hue. **Seventy glyphs**, one scrolling grid, no groups. **Edit thread** joins rename, icon and colour in one sheet, opened from the mark or the name in the bar. The bar is otherwise as built: no heading in the scroll.
+
+**Considered and not taken:** Fluent Emoji Flat (MIT, recognisable, but against the no-emoji and no-colour-icon rules, and loud beside label colours); colour only (fails past ten threads and for colour blindness); OpenMoji (share-alike) and Twemoji (attribution); the phones' own emoji (different on every OS); a suggestions row and glyph groups in the picker; a model call to pick.
+
+**Design system impact:** 59 Lucide glyphs vendored, 154 in all. `readme.md` gains **Thread marks**, and Iconography names the thread mark as the one coloured glyph. No new tokens: the hues are `--label-1` to `--label-10`.
+
 ### 2026-10-03 · The admin panel counts money in dollars (034)
 **Surface:** admin
 **Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.

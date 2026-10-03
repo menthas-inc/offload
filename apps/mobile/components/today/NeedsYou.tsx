@@ -42,7 +42,7 @@ interface Face {
   kind: string;
   title: string;
   line: string | null;
-  thread: { id: string; name: string } | null;
+  thread: { id: string; name: string; icon: string | null; hue: number | null } | null;
 }
 
 function waited(since: string, before: string): string {
@@ -92,7 +92,7 @@ function faceOf(card: Card): Face {
         kind: card.fromEmail ? "About an email" : "offload asked",
         title: card.question.text,
         line: null,
-        thread: card.threadId && card.threadName ? { id: card.threadId, name: card.threadName } : null,
+        thread: card.threadId && card.threadName ? { id: card.threadId, name: card.threadName, icon: card.threadIcon, hue: card.threadHue } : null,
       };
     case "tip":
       return { icon: "mail", tone: "accent", kind: "Tip", title: "Forward emails to offload", line: `Send them to ${card.address} from ${card.from}.`, thread: null };
@@ -361,7 +361,7 @@ export function NeedsYou({
           ) : null}
           {face.thread ? (
             <View className="mt-space-1">
-              <ThreadPill id={face.thread.id} name={face.thread.name} size={24} />
+              <ThreadPill id={face.thread.id} name={face.thread.name} icon={face.thread.icon} hue={face.thread.hue} size={24} />
             </View>
           ) : null}
           {failure ? (

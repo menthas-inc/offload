@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "../Icon";
+import { ThreadIcon } from "../ThreadIcon";
 import { Avatar } from "../Avatar";
 import { PaneHead, type MoreAction } from "../shell/PaneHead";
 import { ConfirmModal } from "../people/Modal";
@@ -139,9 +140,7 @@ export function PersonPane({ id }: { id: string }) {
                 </h2>
                 {page.shared.map((thread) => (
                   <Link key={thread.id} href={`/threads/${thread.id}`} className={pane.row}>
-                    <span className={pane.rowIcon}>
-                      <Icon name="lasso" size={18} />
-                    </span>
+                    <ThreadIcon icon={thread.icon} hue={thread.hue} seed={thread.id} size={32} className={pane.rowThreadIcon} />
                     <span className={pane.rowText}>
                       <span className={pane.rowTitle}>{thread.name}</span>
                       <span className={pane.rowMeta}>{threadMeta(thread)}</span>
@@ -165,7 +164,7 @@ export function PersonPane({ id }: { id: string }) {
                   count > 0 ? ` The ${count} ${threads} you already share ${count === 1 ? "stays as it is" : "stay as they are"}.` : ""
                 }`
           }
-          rows={confirm === "remove" ? page.shared.map((t) => ({ title: t.name, meta: threadMeta(t), icon: <Icon name="lasso" size={16} /> })) : []}
+          rows={confirm === "remove" ? page.shared.map((t) => ({ title: t.name, meta: threadMeta(t), icon: <ThreadIcon icon={t.icon} hue={t.hue} seed={t.id} size={24} /> })) : []}
           rowCount={confirm === "remove" ? count : 0}
           hint={confirm === "remove" && count > 0 ? "Leave a thread from its own More menu if you want out of it." : undefined}
           action={confirm === "block" ? "Block" : "Remove"}

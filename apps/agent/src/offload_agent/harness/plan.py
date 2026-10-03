@@ -136,7 +136,11 @@ MAX_QUESTIONS = 2
 # docs/tech/decisions.md: the 2026-09-17 measurement found `defer_loading` does
 # not pay below about ten thousand tokens, so moving the tail now costs every
 # turn latency for nothing.
-TOOL_DEFINITION_BUDGET = 1_900
+#
+# **037 raised it to 2,100, by the product owner's decision on 2026-10-04**, for
+# the seventy icon names on `create_thread`, logged in the same place. The
+# measurement has not changed: `defer_loading` still does not pay at this size.
+TOOL_DEFINITION_BUDGET = 2_100
 
 #: 028. What the model calls the default thread. Its stored name, Miscellaneous
 #: on every account, is never shown to it, so a reply cannot say it back.

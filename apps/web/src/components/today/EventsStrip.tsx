@@ -36,7 +36,7 @@ function EventCard({ event, next, now, zone }: { event: TodayEvent; next: boolea
         <>
           {event.authorName ? <span className={styles.eventWhose}>{firstNameOf({ displayName: event.authorName })}&apos;s</span> : null}
           <span className={styles.eventPill}>
-            <ThreadPill id={event.threadId} name={event.threadName} size={24} still />
+            <ThreadPill id={event.threadId} name={event.threadName} icon={event.threadIcon ?? "lasso"} hue={event.threadHue ?? 1} size={24} still />
           </span>
         </>
       ) : event.calendarName ? (

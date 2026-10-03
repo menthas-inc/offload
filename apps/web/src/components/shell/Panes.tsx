@@ -13,6 +13,7 @@ import { createContext } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "../Icon";
+import { ThreadIcon } from "../ThreadIcon";
 import { FULL } from "./PaneHead";
 import styles from "../../app/(shell)/shell.module.css";
 
@@ -22,6 +23,9 @@ export interface Crumb {
   /** Lucide slug. The kit draws a crumb as a chip with its own glyph, so a
    *  trail reads as places rather than as a path. */
   icon?: string;
+  /** 037. A crumb that is a particular thread wears its icon in place of a
+   *  glyph. */
+  thread?: { id: string; icon: string; hue: number };
 }
 
 interface Props {
@@ -90,7 +94,11 @@ export function Panes({ crumbs, panes, aside, together = false }: Props) {
                 className={styles.crumb}
                 data-on={index === crumbs.length - 1}
               >
-                {crumb.icon ? <Icon name={crumb.icon} size={13} /> : null}
+                {crumb.thread ? (
+                  <ThreadIcon icon={crumb.thread.icon} hue={crumb.thread.hue} seed={crumb.thread.id} size={18} round />
+                ) : crumb.icon ? (
+                  <Icon name={crumb.icon} size={13} />
+                ) : null}
                 {crumb.label}
               </Link>
             </span>

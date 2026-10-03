@@ -134,7 +134,7 @@
 }
 
 .danger {
-  background: var(--clay-600);
+  background: var(--surface-danger);
   color: var(--text-on-solid);
 }
 

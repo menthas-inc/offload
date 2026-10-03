@@ -178,6 +178,17 @@ type MessageState = "queued" | "seen" | "answered" | "failed" | "partial" | "can
  *  the CHECK constraint cannot reach one endpoint and not another. */
 const messageState = z.enum(["queued", "seen", "answered", "failed", "partial", "cancelled"]);
 
+/** The threads a turn actually wrote to.
+ *
+ *  From the `content` rows it produced, not from parsing the reply. offload
+ *  naming a thread it did not write to is the failure 004 exists to prevent,
+ *  so the composer's links come from the record of what happened rather than
+ *  from the sentence describing it. If the two ever disagree, the links are
+ *  right and the sentence is the bug.
+ *
+ *  037. Each with its icon and hue, read live, as the pill draws it. */
+const touchedThreads = z.array(z.object({ id: z.string(), name: z.string(), icon: z.string(), hue: z.number() }));
+
 const dumpResponse = z.object({
   messageId: z.string(),
   conversationId: z.string(),
@@ -192,20 +203,11 @@ const dumpResponse = z.object({
   /** 018. On an answer's response: the thread the answer changed, so the
    *  tap's own turn wears the Done mark and the pill at once rather than
    *  after a reload. Empty for the way out, which changed nothing. */
-  threads: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
+  threads: touchedThreads.optional(),
   /** 019. On a calendar answer's response: the proposal the tap turned into,
    *  when the calendar needed the person's say-so, drawn on their own turn. */
   waiting: z.object({ id: z.string(), because: z.string(), kind: z.enum(["calendar", "share"]) }).nullable().optional(),
 });
-
-/** The threads a turn actually wrote to.
- *
- *  From the `content` rows it produced, not from parsing the reply. offload
- *  naming a thread it did not write to is the failure 004 exists to prevent,
- *  so the composer's links come from the record of what happened rather than
- *  from the sentence describing it. If the two ever disagree, the links are
- *  right and the sentence is the bug. */
-const touchedThreads = z.array(z.object({ id: z.string(), name: z.string() }));
 
 /** A calendar write this turn proposed and nobody has answered yet.
  *
@@ -233,12 +235,16 @@ const foundResults = z.array(
     threadId: z.string(),
     /** 028. Null for the default thread: the card says Not in a thread. */
     threadName: z.string().nullable(),
+    threadIcon: z.string().nullable(),
+    threadHue: z.number().nullable(),
     truncated: z.boolean(),
     rows: z.array(
       z.object({
         contentId: z.string(),
         threadId: z.string(),
         threadName: z.string().nullable(),
+        threadIcon: z.string().nullable(),
+        threadHue: z.number().nullable(),
         type: z.string(),
         title: z.string(),
         body: z.string().nullable(),
@@ -350,7 +356,7 @@ const currentConversation = z.object({
       found: foundResults,
       /** Where this turn filed, and where a fact in it came from. Empty on an
        *  offload message and on any turn that read nothing. */
-      threads: z.array(z.object({ id: z.string(), name: z.string() })),
+      threads: touchedThreads,
       /** 028. Filed something, loose or not: what draws Done. */
       filed: z.boolean(),
       sources: z.array(z.object({ domain: z.string(), url: z.string() })),
@@ -506,8 +512,8 @@ export async function photosForAll(
 export async function threadsForAll(
   messageIds: string[],
   accountId: string,
-): Promise<Map<string, { id: string; name: string }[]>> {
-  const out = new Map<string, { id: string; name: string }[]>();
+): Promise<Map<string, TouchedThread[]>> {
+  const out = new Map<string, TouchedThread[]>();
   if (messageIds.length === 0) return out;
 
   // **Both halves of `threadsFor`, not just the content one.** A turn that only
@@ -521,6 +527,8 @@ export async function threadsForAll(
         "content.derived_from_message_id as message_id",
         "threads.id as id",
         "threads.name as name",
+        "threads.icon as icon",
+        "threads.hue as hue",
       ])
       .where("content.derived_from_message_id", "in", messageIds)
       .where("content.account_id", "=", accountId)
@@ -539,6 +547,8 @@ export async function threadsForAll(
         "message_threads.message_id as message_id",
         "threads.id as id",
         "threads.name as name",
+        "threads.icon as icon",
+        "threads.hue as hue",
       ])
       .where("message_threads.message_id", "in", messageIds)
       .where("message_threads.landed", "=", true)
@@ -554,7 +564,7 @@ export async function threadsForAll(
   for (const row of [...filed, ...noted]) {
     if (!row.message_id) continue;
     const list = out.get(row.message_id) ?? [];
-    if (row.id !== account?.default_thread_id && !list.some((t) => t.id === row.id)) list.push({ id: row.id, name: row.name });
+    if (row.id !== account?.default_thread_id && !list.some((t) => t.id === row.id)) list.push({ id: row.id, name: row.name, icon: row.icon, hue: row.hue });
     out.set(row.message_id, list);
   }
   return out;
@@ -587,12 +597,12 @@ export async function sourcesForAll(
 export async function threadsFor(
   messageId: string,
   accountId: string,
-): Promise<{ landed: { id: string; name: string }[]; changed: string[]; filed: boolean }> {
+): Promise<{ landed: TouchedThread[]; changed: string[]; filed: boolean }> {
   const [filed, noted] = await Promise.all([
     db
       .selectFrom("content")
       .innerJoin("threads", "threads.id", "content.thread_id")
-      .select(["threads.id as id", "threads.name as name"])
+      .select(["threads.id as id", "threads.name as name", "threads.icon as icon", "threads.hue as hue"])
       .where("content.derived_from_message_id", "=", messageId)
       .where("content.account_id", "=", accountId)
       .where("content.deleted_at", "is", null)
@@ -604,7 +614,7 @@ export async function threadsFor(
       // Membership, not authorship: a turn can act on a shared thread's
       // contents, and the name is only shown to somebody already in it.
       .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
-      .select(["threads.id as id", "threads.name as name", "message_threads.landed as landed"])
+      .select(["threads.id as id", "threads.name as name", "threads.icon as icon", "threads.hue as hue", "message_threads.landed as landed"])
       .where("message_threads.message_id", "=", messageId)
       .where("thread_members.account_id", "=", accountId)
       .where("threads.deleted_at", "is", null)
@@ -612,7 +622,7 @@ export async function threadsFor(
       .execute(),
   ]);
 
-  const landed: { id: string; name: string }[] = [];
+  const landed: TouchedThread[] = [];
   const changed = new Set<string>();
   const seen = new Set<string>();
   // 028. What landed in the default thread draws no pill: the footer's Done is
@@ -625,7 +635,7 @@ export async function threadsFor(
     if (row.landed) any = true;
     if (!row.landed || seen.has(row.id) || row.id === account?.default_thread_id) continue;
     seen.add(row.id);
-    landed.push({ id: row.id, name: row.name });
+    landed.push({ id: row.id, name: row.name, icon: row.icon, hue: row.hue });
   }
 
   // `filed` is what draws Done: a turn that filed only loose has no pill and
@@ -669,6 +679,8 @@ async function replyFor(
 export interface TouchedThread {
   id: string;
   name: string;
+  icon: string;
+  hue: number;
 }
 
 export type StreamStep =
@@ -2188,7 +2200,7 @@ export async function answerQuestion(
     state: MessageState;
     turnId: string;
     question: QuestionOnWire | null;
-    threads: { id: string; name: string }[];
+    threads: TouchedThread[];
   };
   field: string;
   applied: boolean;
@@ -2300,7 +2312,7 @@ export async function answerQuestion(
         threads: await trx
           .selectFrom("message_threads")
           .innerJoin("threads", "threads.id", "message_threads.thread_id")
-          .select(["threads.id as id", "threads.name as name"])
+          .select(["threads.id as id", "threads.name as name", "threads.icon as icon", "threads.hue as hue"])
           .where("message_threads.message_id", "=", message.id)
           .where("message_threads.landed", "=", true)
           .execute(),
@@ -2339,7 +2351,7 @@ export async function answerCalendarQuestion(
     state: MessageState;
     turnId: string;
     question: QuestionOnWire | null;
-    threads: { id: string; name: string }[];
+    threads: TouchedThread[];
     waiting: { id: string; because: string; kind: "calendar" | "share" } | null;
   };
   applied: boolean;
@@ -2474,7 +2486,7 @@ export async function answerCalendarQuestion(
       threads: await trx
         .selectFrom("message_threads")
         .innerJoin("threads", "threads.id", "message_threads.thread_id")
-        .select(["threads.id as id", "threads.name as name"])
+        .select(["threads.id as id", "threads.name as name", "threads.icon as icon", "threads.hue as hue"])
         .where("message_threads.message_id", "=", settled.message.id)
         .where("message_threads.landed", "=", true)
         .execute(),

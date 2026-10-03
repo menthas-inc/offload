@@ -1,7 +1,7 @@
 // 028. One suggestion under a row, from LooseParts.jsx's `LooseSuggestion`.
 //
 // The whole line is one button and a tap accepts. *Move to* an existing
-// thread sits on moss soft ground with the lasso; *Create* a new one is paper
+// thread sits on moss soft ground with the thread's own icon; *Create* a new one is paper
 // with a dashed moss outline, a plus, and *new thread*. **The name inside is a
 // label, never a link**: the button's accessible name is the action and the
 // name is hidden from assistive tech. The cross beside it dismisses for good.
@@ -14,6 +14,7 @@
 
 import { Platform, Pressable, Text, View } from "react-native";
 import { Glyph } from "../Glyph";
+import { ThreadIcon } from "../ThreadIcon";
 import { useColors } from "../../lib/colors";
 import { facesOf, sharedHint, suggestionName, type Suggestion } from "../../lib/loose";
 import { Faces } from "./Faces";
@@ -66,7 +67,7 @@ export function SuggestionLine({
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
         >
-          <Glyph name={move ? "lasso" : "plus"} size={12} color={COLOR.accent} />
+          {move ? <ThreadIcon icon={suggestion.thread.icon} hue={suggestion.thread.hue} seed={suggestion.thread.id} size={16} round /> : <Glyph name="plus" size={12} color={COLOR.accent} />}
           <Text className="font-core font-medium text-moss-700" style={{ fontSize: 13, flexShrink: 1 }} numberOfLines={1}>
             {name}
           </Text>

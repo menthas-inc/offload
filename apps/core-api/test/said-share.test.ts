@@ -185,7 +185,7 @@ describe("the tool (AC-24, AC-25)", () => {
     if (!answered || !("envelope" in answered)) throw new Error("no envelope");
     expect(answered.applied).toBe(true);
     // The answer's turn wears the thread's pill, the way to the sheet.
-    expect(answered.envelope.threads).toEqual([{ id: lisbon, name: "Lisbon trip" }]);
+    expect(answered.envelope.threads).toEqual([{ id: lisbon, name: "Lisbon trip", icon: "lasso", hue: 1 }]);
     expect(await state(lisbon, ibekwe.id)).toBe("pending");
     expect(await state(lisbon, lee.id)).toBeNull();
     expect(await answerQuestion(jo.id, q.id, 0)).toBeNull();

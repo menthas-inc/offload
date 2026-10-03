@@ -14,6 +14,7 @@
 
 import { Platform, Pressable, Text, View } from "react-native";
 import { Glyph } from "../Glyph";
+import { ThreadIcon } from "../ThreadIcon";
 import { PhotoThumb } from "./PhotoThumb";
 import { useColors } from "../../lib/colors";
 import type { FoundResult, FoundRow } from "../../lib/dump";
@@ -113,9 +114,8 @@ function Result({
         accessibilityLabel={`Open ${foundHead(result.threadName)}`}
         className="min-h-tap-min flex-row items-center gap-space-4 border-b border-border-hairline bg-surface-accent-soft px-space-5 py-space-4"
       >
-        {/* 028. The lasso is a thread's mark, and what is not in a thread
-            is not one. */}
-        {result.threadName !== null ? <Glyph name="lasso" size={15} color={colors.accent} /> : null}
+        {/* 028. What is not in a thread wears no thread's icon. */}
+        {result.threadName !== null ? <ThreadIcon icon={result.threadIcon ?? ""} hue={result.threadHue ?? 1} seed={result.threadId} size={18} round /> : null}
         <Text
           className="font-core font-medium text-text-accent"
           style={{ fontSize: 13.5 }}
@@ -208,7 +208,7 @@ function Result({
           accessibilityRole="button"
           className="min-h-tap-min flex-row items-center gap-space-4 border-t border-border-hairline bg-surface-accent-soft px-space-5 py-space-4"
         >
-          {result.threadName !== null ? <Glyph name="lasso" size={15} color={colors.accent} /> : null}
+          {result.threadName !== null ? <ThreadIcon icon={result.threadIcon ?? ""} hue={result.threadHue ?? 1} seed={result.threadId} size={18} round /> : null}
           <Text
             className="flex-1 font-core text-text-secondary"
             style={{ fontSize: 12.5, lineHeight: 17.5 }}

@@ -82,6 +82,10 @@
      consume a ramp. */
   --surface-noticed-soft:var(--amber-100);
   --surface-danger-soft:var(--clay-100);
+  /* The one solid clay: the confirm button of a destructive dialog and the phones' destructive
+     pill (034, 035). Clay 600 in both themes, so --text-on-solid holds at 5.4:1; hover goes darker
+     in both, since dark's --clay-700 is a light tint for text. */
+  --surface-danger:var(--clay-600);--surface-danger-hover:#93261A;
   --surface-scrim:rgba(11,11,11,0.35);
   --surface-scrim-soft:rgba(11,11,11,0.16);
   --surface-chrome:var(--surface-raised);
@@ -141,6 +145,7 @@
   --surface-inverse:var(--ink-950);--surface-accent-soft:var(--moss-50);
   --surface-attention-soft:var(--blue-100);--surface-attention:var(--blue-600);
   --surface-noticed:var(--amber-600);--surface-noticed-soft:var(--amber-100);--surface-danger-soft:var(--clay-100);
+  --surface-danger:var(--clay-600);--surface-danger-hover:#93261A;
   --surface-scrim:rgba(11,11,11,0.35);--surface-scrim-soft:rgba(11,11,11,0.16);
   --surface-chrome:var(--surface-raised);--surface-chrome-strong:var(--surface-raised);
   --surface-input:var(--ink-100);
@@ -183,7 +188,8 @@
   --surface-fill:var(--ink-100);--surface-fill-strong:var(--ink-150);--surface-inverse:var(--ink-950);
   --surface-accent-soft:var(--moss-50);--surface-attention-soft:var(--blue-100);
   --surface-attention:var(--blue-600);--surface-noticed:var(--amber-600);--surface-noticed-soft:var(--amber-100);
-  --surface-danger-soft:var(--clay-100);--surface-scrim:rgba(0,0,0,0.55);
+  --surface-danger-soft:var(--clay-100);--surface-danger:var(--clay-600);--surface-danger-hover:#A3301F;
+  --surface-scrim:rgba(0,0,0,0.55);
   --surface-scrim-soft:rgba(0,0,0,0.50);
   --surface-chrome:var(--surface-raised);--surface-chrome-strong:var(--surface-raised);
   --surface-input:#2E2E2E;

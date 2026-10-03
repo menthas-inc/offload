@@ -105,8 +105,8 @@ describe("a turn's footer (AC-27)", () => {
 
     await task(me, lisbon, "Book the flat", null, { derived_from_message_id: messageId });
     const both = await threadsFor(messageId, me);
-    expect(both.landed).toEqual([{ id: lisbon, name: "Lisbon trip" }]);
-    expect((await threadsForAll([messageId], me)).get(messageId)).toEqual([{ id: lisbon, name: "Lisbon trip" }]);
+    expect(both.landed).toEqual([{ id: lisbon, name: "Lisbon trip", icon: "lasso", hue: 1 }]);
+    expect((await threadsForAll([messageId], me)).get(messageId)).toEqual([{ id: lisbon, name: "Lisbon trip", icon: "lasso", hue: 1 }]);
   });
 });
 

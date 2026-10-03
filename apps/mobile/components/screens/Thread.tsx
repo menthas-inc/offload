@@ -20,6 +20,9 @@
 //     saying offload has not done something is an apology taking up the most
 //     prominent space on the screen.
 
+import { threadLookAfter, type ThreadLook } from "@offload/widgets";
+import { ThreadIcon } from "../ThreadIcon";
+import { EditThreadSheet } from "./EditThreadSheet";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
@@ -65,7 +68,7 @@ import {
   NOTE_CHARS,
   provisionalNote,
   provisionalRow,
-  renameThread,
+  editThread,
   setArchived,
   setPriority,
   startsAs,
@@ -147,7 +150,8 @@ export default function Thread() {
   const [leaving, setLeaving] = useState(false);
   const [leaveBusy, setLeaveBusy] = useState(false);
   const [leaveFailed, setLeaveFailed] = useState(false);
-  const [naming, setNaming] = useState(false);
+  // 037. Edit thread, and whether the icon or the name opened it.
+  const [editingThread, setEditingThread] = useState<"icon" | "name" | null>(null);
   const [calendarsVersion, setCalendarsVersion] = useState(0);
   const toast = useToast();
   // 025. The filter bar's pick, kept per thread on this phone; the label sheet
@@ -498,22 +502,24 @@ export default function Thread() {
     );
   }
 
-  /** The thread's name. Co-owned, so anybody in it may change it, and undone
-   *  the same way a row's rename is. */
-  function renameThreadTo(name: string): void {
+  /** 037. Edit thread's Save: the name, the icon and the hue in one write.
+   *  Co-owned, so anybody in the thread may change them. The bar is drawn at
+   *  the press, and Undo sends back everything that was there, whose pick it
+   *  was included. */
+  function saveThread(change: { name?: string; icon?: string; hue?: number }, shown: { name: string; icon: string; hue: number }): void {
     if (!thread) return;
-    const previous = thread.name;
-    const draw = (value: string) =>
-      setThread((current) => (current ? { ...current, name: value } : current));
+    const before: ThreadLook = { name: thread.name, icon: thread.icon, hue: thread.hue, iconSetBy: thread.iconSetBy };
+    const after = threadLookAfter(before, change, shown);
+    const draw = (look: ThreadLook) => setThread((current) => (current ? { ...current, ...look } : current));
     void perform(
       {
-        apply: () => draw(name),
-        revert: () => draw(previous),
-        write: () => renameThread(id, name).then((result) => result !== null),
-        unwrite: () => renameThread(id, previous).then((result) => result !== null),
-        did: "Renamed",
-        failed: "Couldn't rename that",
-        unfailed: "Couldn't put the name back",
+        apply: () => draw(after),
+        revert: () => draw(before),
+        write: () => editThread(id, change).then((result) => result !== null),
+        unwrite: () => editThread(id, before).then((result) => result !== null),
+        did: "Thread updated",
+        failed: "Couldn't save that",
+        unfailed: "Couldn't put that back",
       },
       toast,
       writes,
@@ -951,6 +957,8 @@ export default function Thread() {
     >
       <Bar
         title={thread.name}
+        look={thread}
+        onEdit={setEditingThread}
         onBack={() => router.back()}
         // 019. The calendar glyph, drawn whenever the account has a connection
         // at all, with no badge or count in any state: the accessible name
@@ -1298,7 +1306,7 @@ export default function Thread() {
         open={moreOpen}
         actions={[
           ...tools.moreFirst.map((tool) => MORE_FIRST[tool]),
-          { label: "Rename thread", icon: "pencil", run: () => setNaming(true) },
+          { label: "Edit thread", icon: "pencil", run: () => setEditingThread("name") },
           {
             label: "Add a note",
             icon: "brain",
@@ -1344,16 +1352,8 @@ export default function Thread() {
         onConfirm={() => void leave()}
         onClose={() => setLeaving(false)}
       />
-      {naming ? (
-        <EditSheet
-          initial={thread.name}
-          placeholder="What is it about?"
-          onClose={() => setNaming(false)}
-          onSave={(name) => {
-            setNaming(false);
-            if (name !== thread.name) renameThreadTo(name);
-          }}
-        />
+      {editingThread ? (
+        <EditThreadSheet thread={thread} from={editingThread} onClose={() => setEditingThread(null)} onSave={saveThread} />
       ) : null}
       <MoveSheet
         open={moving !== null}
@@ -1411,6 +1411,8 @@ export default function Thread() {
 
 function Bar({
   title,
+  look,
+  onEdit,
   onBack,
   calendars,
   onCalendars,
@@ -1423,6 +1425,10 @@ function Bar({
   mapSwitch?: ReactNode;
   /** Neither while the thread loads: the bar is the back chevron alone. */
   title?: string;
+  /** 037. The thread's icon, before its name. Absent while it loads. */
+  look?: { id: string; icon: string; hue: number };
+  /** Opens Edit thread, from the icon or from the name. */
+  onEdit?: (from: "icon" | "name") => void;
   onBack: () => void;
   calendars: { picked: number; total: number } | null;
   onCalendars: () => void;
@@ -1434,17 +1440,34 @@ function Bar({
 }) {
   const COLOR = useColors();
   return (
-    <View className="h-appbar-height flex-row items-center gap-space-4 px-gutter-screen">
+    <View className={`${isAndroid ? "h-a-appbar-height" : "h-appbar-height"} flex-row items-center gap-space-4 px-gutter-screen`}>
       <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back">
         <Glyph name="chevron-left" size={22} color={COLOR.iconOnWell} />
       </Pressable>
-      <Text
-        numberOfLines={1}
-        className={`flex-1 font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
-        style={{ fontSize: 17 }}
+      {/* 037. The icon and the name both open Edit thread. One button to a
+          screen reader; a tap on the name is what opens the keyboard. The
+          name gives way before any tool. */}
+      <Pressable
+        className="flex-1 flex-row items-center"
+        style={{ gap: isAndroid ? 12 : 10 }}
+        onPress={() => onEdit?.("name")}
+        disabled={!onEdit}
+        accessibilityRole="button"
+        accessibilityLabel={title ? `${title}, edit thread` : undefined}
       >
-        {title}
-      </Text>
+        {look ? (
+          <Pressable onPress={() => onEdit?.("icon")} hitSlop={8} disabled={!onEdit} accessible={false}>
+            <ThreadIcon icon={look.icon} hue={look.hue} seed={look.id} size={28} />
+          </Pressable>
+        ) : null}
+        <Text
+          numberOfLines={1}
+          className={`flex-1 font-core ${isAndroid ? "text-a-on" : "font-semibold text-text-primary"}`}
+          style={{ fontSize: isAndroid ? 22 : 17 }}
+        >
+          {title}
+        </Text>
+      </Pressable>
       {/* Bare glyphs, as the back chevron and every bar control on the phones:
           the kit's `IconButton` in a bar is the ghost one, and a filled circle
           here read as a state. Share first, then the calendar, then More: the

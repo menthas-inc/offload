@@ -458,3 +458,24 @@ export type { CopyRow, CopyState } from "./copy.js";
 
 // 036. The Storage row's figure.
 export { storageFigure } from "./storage.js";
+
+// 037. Thread icons.
+export {
+  DEFAULT_THREAD_ICON,
+  HUE_NAMES,
+  THREAD_ICONS,
+  THREAD_ICON_MIX,
+  THREAD_ICON_NAMES,
+  isThreadIcon,
+  leastUsedHue,
+  mixOklch,
+  pickThreadIcon,
+  previewThreadIcon,
+  threadChange,
+  threadIconColors,
+  threadIconLabel,
+  threadLookAfter,
+  threadSeed,
+  threadWash,
+} from "./thread-icons.js";
+export type { ThreadDraft, ThreadIconColors, ThreadIconWords, ThreadLook } from "./thread-icons.js";

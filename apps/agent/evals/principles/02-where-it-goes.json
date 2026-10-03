@@ -164,6 +164,36 @@
       }
     },
     {
+      "id": "new-thread-wears-a-fitting-icon",
+      "why": "037: a new thread is given the icon that fits what it is for, from the meaning and not from a word in its name",
+      "surface": "file",
+      "input": "we are adopting a greyhound next month: need a crate, a bed, pet insurance quotes and a trainer",
+      "context": "behrooz",
+      "expect": {
+        "creates_thread": true,
+        "files_something": true,
+        "thread_icon": {
+          "one_of": [
+            "dog"
+          ]
+        }
+      }
+    },
+    {
+      "id": "new-thread-icon-is-from-the-list",
+      "why": "037: a thread with no obvious icon gets one of the seventy or none, never a name made up",
+      "surface": "file",
+      "input": "starting a thing for the allotment committee: minutes from Tuesday, the water rota, and who owes subs",
+      "context": "behrooz",
+      "expect": {
+        "creates_thread": true,
+        "files_something": true,
+        "thread_icon": {
+          "known": true
+        }
+      }
+    },
+    {
       "id": "move-from-inside",
       "why": "a move is a move, asked about nothing",
       "surface": "file",

@@ -59,7 +59,7 @@ describe("T3.1 the threads read has two groups and the loose summary", () => {
 });
 
 describe("T3.2 My threads", () => {
-  const row = (id: string) => ({ id, name: id, icon: null, count: 0, meta: "", isDefault: false });
+  const row = (id: string) => ({ id, name: id, icon: "lasso", hue: 1, count: 0, meta: "", isDefault: false });
 
   it("counts the two lists, and is empty only with no threads and nothing loose", () => {
     const groups: ThreadGroup[] = [
@@ -158,7 +158,7 @@ describe("T3.3 what left takes its counts with it", () => {
 });
 
 describe("T3.5 suggestions", () => {
-  const move = { id: "s1", kind: "move" as const, thread: { id: "t1", name: "Flat admin" }, faces: [], more: 0 };
+  const move = { id: "s1", kind: "move" as const, thread: { id: "t1", name: "Flat admin", icon: "lasso", hue: 1 }, faces: [], more: 0 };
   const create = { id: "s2", kind: "create" as const, proposal: { id: "p1", name: "Kitchen shelves", count: 3 } };
 
   it("names the action, never the thread as a link", () => {
@@ -174,8 +174,8 @@ describe("T3.5 suggestions", () => {
   });
 
   it("accepts, undoes and dismisses through their own routes", async () => {
-    reply = { status: 200, data: { thread: { id: "t1", name: "Flat admin" } } };
-    expect(await loose.acceptSuggestion("s1")).toEqual({ id: "t1", name: "Flat admin" });
+    reply = { status: 200, data: { thread: { id: "t1", name: "Flat admin", icon: "lasso", hue: 1 } } };
+    expect(await loose.acceptSuggestion("s1")).toEqual({ id: "t1", name: "Flat admin", icon: "lasso", hue: 1 });
     expect(calls[0]).toMatchObject({ path: "/v1/suggestions/s1/accept", init: { method: "POST" } });
     expect(calls[0]?.init.body).toBeUndefined();
 
@@ -230,9 +230,9 @@ describe("T3.6 the create sheet", () => {
     expect(proposal?.entries.map(loose.keyOf)).toEqual(["n:n1"]);
     expect(calls[0]?.path).toBe("/v1/proposals/p1");
 
-    reply = { status: 200, data: { thread: { id: "t9", name: "Kitchen shelves" } } };
+    reply = { status: 200, data: { thread: { id: "t9", name: "Kitchen shelves", icon: "lasso", hue: 1 } } };
     const made = await loose.createFromProposal("p1", "Kitchen shelves", new Set(["c:1", "n:2", "c:3"]));
-    expect(made).toEqual({ ok: true, thread: { id: "t9", name: "Kitchen shelves" } });
+    expect(made).toEqual({ ok: true, thread: { id: "t9", name: "Kitchen shelves", icon: "lasso", hue: 1 } });
     expect(calls.at(-1)?.path).toBe("/v1/proposals/p1/create");
     expect(JSON.parse(String(calls.at(-1)?.init.body))).toEqual({ name: "Kitchen shelves", contentIds: ["1", "3"], noteIds: ["2"] });
 
@@ -345,7 +345,7 @@ describe("T3.4 a note drawn as a row", () => {
 describe("T3.5 who a shared Move to shows it to", () => {
   it("names them for a screen reader, which hears the action and not the marks", () => {
     const face = (name: string) => ({ accountId: name, initials: name[0]!, displayName: name });
-    const move = { id: "s1", kind: "move" as const, thread: { id: "t1", name: "Flat admin" }, faces: [face("Ana"), face("Tom")], more: 3 };
+    const move = { id: "s1", kind: "move" as const, thread: { id: "t1", name: "Flat admin", icon: "lasso", hue: 1 }, faces: [face("Ana"), face("Tom")], more: 3 };
     expect(loose.sharedHint(move)).toBe("Shared with Ana, Tom and 3 more");
     expect(loose.sharedHint({ ...move, faces: [face("Ana")], more: 0 })).toBe("Shared with Ana");
     expect(loose.sharedHint({ ...move, faces: [], more: 0 })).toBeUndefined();

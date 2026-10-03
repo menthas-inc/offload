@@ -44,6 +44,9 @@ export interface Sent {
 export interface TouchedThread {
   id: string;
   name: string;
+  /** 037. As the thread is now, not as it was when the turn ran. */
+  icon: string;
+  hue: number;
 }
 
 /** One read from an answer: a thread, and the rows it holds.
@@ -55,6 +58,9 @@ export interface FoundResult {
   threadId: string;
   /** 028. Null for what is not in a thread, which the result never names. */
   threadName: string | null;
+  /** 037. Null with the name. */
+  threadIcon: string | null;
+  threadHue: number | null;
   /** The read hit its page. The tail becomes the thread rather than a Show more
    *  that would expand into rows nobody fetched. */
   truncated: boolean;

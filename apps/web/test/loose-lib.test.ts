@@ -161,7 +161,7 @@ describe("the words (AC-8, AC-9, AC-20, AC-24)", () => {
       suggestionName("Boiler service receipt", {
         id: "s1",
         kind: "move",
-        thread: { id: "t1", name: "Flat admin" },
+        thread: { id: "t1", name: "Flat admin", icon: "lasso", hue: 1 },
         faces: [],
         more: 0,
       }),
@@ -175,7 +175,7 @@ describe("the words (AC-8, AC-9, AC-20, AC-24)", () => {
     const move = (faces: string[], more = 0) => ({
       id: "s1",
       kind: "move" as const,
-      thread: { id: "t1", name: "Flat admin" },
+      thread: { id: "t1", name: "Flat admin", icon: "lasso", hue: 1 },
       faces: faces.map((displayName, i) => ({ accountId: `p${i}`, initials: displayName.slice(0, 2), displayName })),
       more,
     });
@@ -266,8 +266,8 @@ describe("the calls (AC-12, AC-16, AC-20 to AC-23, AC-32)", () => {
   });
 
   it("accepts, undoes and dismisses a suggestion", async () => {
-    answer = (url) => (url.endsWith("/accept") ? json({ thread: { id: "t1", name: "Flat admin" } }) : json({ ok: true }));
-    expect(await acceptSuggestion("s1")).toEqual({ id: "t1", name: "Flat admin" });
+    answer = (url) => (url.endsWith("/accept") ? json({ thread: { id: "t1", name: "Flat admin", icon: "lasso", hue: 1 } }) : json({ ok: true }));
+    expect(await acceptSuggestion("s1")).toEqual({ id: "t1", name: "Flat admin", icon: "lasso", hue: 1 });
     expect(await undoSuggestion("s1")).toBe(true);
     expect(await dismissSuggestion("s1")).toBe(true);
     expect(calls.map((call) => `${call.method} ${path(call.url)}`)).toEqual([
@@ -286,10 +286,10 @@ describe("the calls (AC-12, AC-16, AC-20 to AC-23, AC-32)", () => {
     const read = await fetchProposal("p1");
     expect(read?.name).toBe("Kitchen shelves");
     expect(read?.entries.map(entryTitle)).toEqual(["Row a"]);
-    answer = () => json({ thread: { id: "t9", name: "Kitchen shelves" } });
+    answer = () => json({ thread: { id: "t9", name: "Kitchen shelves", icon: "lasso", hue: 1 } });
     expect(await createFromProposal("p1", { name: "Kitchen shelves", contentIds: ["a"], noteIds: ["n"] })).toEqual({
       ok: true,
-      thread: { id: "t9", name: "Kitchen shelves" },
+      thread: { id: "t9", name: "Kitchen shelves", icon: "lasso", hue: 1 },
     });
     expect(calls.at(-1)).toMatchObject({ method: "POST", body: { name: "Kitchen shelves", contentIds: ["a"], noteIds: ["n"] } });
     expect(path(calls.at(-1)!.url)).toBe("/v1/proposals/p1/create");
@@ -325,7 +325,7 @@ describe("a turn that filed only where no thread is named (AC-27)", () => {
     // 028: Done is what the server says was filed, loose included; a move's
     // source in `changed` alone is not a filing.
     expect(turnDid({ threads: [], changed: ["tdefault"], filed: true })).toBe(true);
-    expect(turnDid({ threads: [{ id: "t1", name: "Flat" }], changed: ["t1"] })).toBe(true);
+    expect(turnDid({ threads: [{ id: "t1", name: "Flat", icon: "lasso", hue: 1 }], changed: ["t1"] })).toBe(true);
     expect(turnDid({ threads: [], changed: ["tsource"], filed: false })).toBe(false);
     expect(turnDid({ threads: [], changed: [] })).toBe(false);
     expect(turnDid({})).toBe(false);
@@ -337,7 +337,7 @@ describe("a turn that filed only where no thread is named (AC-27)", () => {
     // something a person may want back.
     expect(turnUndoable({ threads: [], changed: ["tsource"], filed: false })).toBe(true);
     expect(turnUndoable({ threads: [], changed: ["tdefault"], filed: true })).toBe(true);
-    expect(turnUndoable({ threads: [{ id: "t1", name: "Flat" }], changed: [] })).toBe(true);
+    expect(turnUndoable({ threads: [{ id: "t1", name: "Flat", icon: "lasso", hue: 1 }], changed: [] })).toBe(true);
     expect(turnUndoable({ threads: [], changed: [], filed: false })).toBe(false);
     expect(turnUndoable({})).toBe(false);
   });

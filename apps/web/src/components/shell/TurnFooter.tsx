@@ -31,6 +31,8 @@ import styles from "../../app/(shell)/composer.module.css";
 export interface TurnRef {
   id: string;
   name: string;
+  icon: string;
+  hue: number;
 }
 
 export interface TurnSource {
@@ -75,7 +77,7 @@ export function TurnFooter({
 
       {/* 027. The shared thread pill, at the footer's own 30. */}
       {refs.map((ref) => (
-        <ThreadPill key={ref.id} id={ref.id} name={ref.name} size={30} />
+        <ThreadPill key={ref.id} id={ref.id} name={ref.name} icon={ref.icon} hue={ref.hue} size={30} />
       ))}
 
       {marks.map((label) => (

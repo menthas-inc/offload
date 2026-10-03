@@ -1,7 +1,7 @@
 // Generated from the design system. Do not edit: run `pnpm icons`.
 // Source: .claude/skills/offload-design/assets/icons
 
-export type IconName = "album" | "archive" | "arrow-up-right" | "arrow-up" | "ban" | "bell" | "blend" | "bookmark" | "brain" | "calendar" | "camera" | "check-check" | "check" | "chevron-down" | "chevron-left" | "chevron-right" | "circle-dashed" | "circle-dot" | "circle" | "clock-fading" | "clock" | "cloud-cog" | "cloud-download" | "cloud-drizzle" | "cloud-lightning" | "cloud-moon" | "cloud-off" | "cloud-rain" | "cloud-sun" | "cloud" | "cloudy" | "coffee" | "compass" | "copy" | "ellipsis" | "eye" | "folder" | "funnel" | "gallery-vertical-end" | "git-branch" | "globe" | "grip-vertical" | "group" | "house" | "image" | "inbox" | "lasso" | "layers" | "library-big" | "link" | "list" | "lock" | "log-out" | "mail" | "map-pin" | "maximize-2" | "message-circle-more" | "message-circle" | "mic" | "monitor" | "moon-star" | "moon" | "newspaper" | "orbit" | "paperclip" | "pause" | "pencil" | "play" | "plus" | "radio" | "rewind" | "rss" | "scan-text" | "search" | "settings" | "share-2" | "sliders-horizontal" | "smartphone" | "snowflake" | "sparkles" | "spline" | "square-check-big" | "sun" | "sunrise" | "tag" | "text-quote" | "thermometer-sun" | "trash-2" | "type" | "umbrella" | "user-plus" | "users" | "waypoints" | "wind" | "x";
+export type IconName = "album" | "apple" | "archive" | "arrow-up-right" | "arrow-up" | "baby" | "ban" | "bed" | "bell" | "bike" | "bird" | "blend" | "book-open" | "bookmark" | "brain" | "briefcase" | "cake" | "calendar-heart" | "calendar" | "camera" | "car" | "cat" | "check-check" | "check" | "chevron-down" | "chevron-left" | "chevron-right" | "circle-dashed" | "circle-dot" | "circle" | "clock-fading" | "clock" | "cloud-cog" | "cloud-download" | "cloud-drizzle" | "cloud-lightning" | "cloud-moon" | "cloud-off" | "cloud-rain" | "cloud-sun" | "cloud" | "cloudy" | "code" | "coffee" | "compass" | "copy" | "dog" | "dumbbell" | "ellipsis" | "eye" | "film" | "fish" | "flower-2" | "folder" | "footprints" | "funnel" | "gallery-vertical-end" | "gamepad-2" | "gift" | "git-branch" | "globe" | "graduation-cap" | "grip-vertical" | "group" | "hammer" | "heart-pulse" | "heart" | "hotel" | "house" | "image" | "inbox" | "key" | "lamp" | "landmark" | "laptop" | "lasso" | "layers" | "leaf" | "library-big" | "link" | "list" | "lock" | "log-out" | "luggage" | "mail" | "map-pin" | "map" | "maximize-2" | "message-circle-more" | "message-circle" | "mic" | "monitor" | "moon-star" | "moon" | "mountain" | "music" | "newspaper" | "orbit" | "paintbrush" | "palette" | "paperclip" | "party-popper" | "pause" | "pen-tool" | "pencil" | "piggy-bank" | "pill" | "plane" | "play" | "plus" | "radio" | "receipt" | "rewind" | "rocket" | "rss" | "scan-text" | "search" | "settings" | "share-2" | "ship" | "shirt" | "shopping-cart" | "sliders-horizontal" | "smartphone" | "snowflake" | "sofa" | "sparkles" | "spline" | "sprout" | "square-check-big" | "stethoscope" | "sun" | "sunrise" | "tag" | "tent" | "text-quote" | "thermometer-sun" | "ticket" | "train-front" | "trash-2" | "tree-pine" | "trophy" | "type" | "umbrella" | "user-plus" | "users" | "utensils" | "wallet" | "waves" | "waypoints" | "wind" | "wine" | "wrench" | "x";
 
 export type Shape =
   | { kind: "path"; d: string }
@@ -22,6 +22,16 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "M11 3L11 11L14 8L17 11L17 3"
+    }
+  ],
+  "apple": [
+    {
+      "kind": "path",
+      "d": "M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"
+    },
+    {
+      "kind": "path",
+      "d": "M10 2c1 .5 2 2 2 5"
     }
   ],
   "archive": [
@@ -62,6 +72,24 @@ export const ICONS: Record<IconName, Shape[]> = {
       "d": "M12 19V5"
     }
   ],
+  "baby": [
+    {
+      "kind": "path",
+      "d": "M9 12h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M15 12h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"
+    },
+    {
+      "kind": "path",
+      "d": "M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"
+    }
+  ],
   "ban": [
     {
       "kind": "path",
@@ -74,6 +102,24 @@ export const ICONS: Record<IconName, Shape[]> = {
       "r": 10
     }
   ],
+  "bed": [
+    {
+      "kind": "path",
+      "d": "M2 4v16"
+    },
+    {
+      "kind": "path",
+      "d": "M2 8h18a2 2 0 0 1 2 2v10"
+    },
+    {
+      "kind": "path",
+      "d": "M2 17h20"
+    },
+    {
+      "kind": "path",
+      "d": "M6 8v9"
+    }
+  ],
   "bell": [
     {
       "kind": "path",
@@ -82,6 +128,56 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"
+    }
+  ],
+  "bike": [
+    {
+      "kind": "path",
+      "d": "M12 17.5V14l-3-3 4-3 2 3h2"
+    },
+    {
+      "kind": "circle",
+      "cx": 18.5,
+      "cy": 17.5,
+      "r": 3.5
+    },
+    {
+      "kind": "circle",
+      "cx": 5.5,
+      "cy": 17.5,
+      "r": 3.5
+    },
+    {
+      "kind": "circle",
+      "cx": 15,
+      "cy": 5,
+      "r": 1
+    }
+  ],
+  "bird": [
+    {
+      "kind": "path",
+      "d": "M16 7h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"
+    },
+    {
+      "kind": "path",
+      "d": "m20 7 2 .5-2 .5"
+    },
+    {
+      "kind": "path",
+      "d": "M10 18v3"
+    },
+    {
+      "kind": "path",
+      "d": "M14 17.75V21"
+    },
+    {
+      "kind": "path",
+      "d": "M7 18a6 6 0 0 0 3.84-10.61"
     }
   ],
   "blend": [
@@ -96,6 +192,16 @@ export const ICONS: Record<IconName, Shape[]> = {
       "cx": 15,
       "cy": 15,
       "r": 7
+    }
+  ],
+  "book-open": [
+    {
+      "kind": "path",
+      "d": "M12 7v14"
+    },
+    {
+      "kind": "path",
+      "d": "M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"
     }
   ],
   "bookmark": [
@@ -138,6 +244,76 @@ export const ICONS: Record<IconName, Shape[]> = {
       "d": "M6.003 5.125a4 4 0 0 0-2.526 5.77"
     }
   ],
+  "briefcase": [
+    {
+      "kind": "path",
+      "d": "M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"
+    },
+    {
+      "kind": "rect",
+      "width": 20,
+      "height": 14,
+      "x": 2,
+      "y": 6,
+      "rx": 2
+    }
+  ],
+  "cake": [
+    {
+      "kind": "path",
+      "d": "M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"
+    },
+    {
+      "kind": "path",
+      "d": "M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"
+    },
+    {
+      "kind": "path",
+      "d": "M2 21h20"
+    },
+    {
+      "kind": "path",
+      "d": "M7 8v3"
+    },
+    {
+      "kind": "path",
+      "d": "M12 8v3"
+    },
+    {
+      "kind": "path",
+      "d": "M17 8v3"
+    },
+    {
+      "kind": "path",
+      "d": "M7 4h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M12 4h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M17 4h.01"
+    }
+  ],
+  "calendar-heart": [
+    {
+      "kind": "path",
+      "d": "M3 10h18V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7"
+    },
+    {
+      "kind": "path",
+      "d": "M8 2v4"
+    },
+    {
+      "kind": "path",
+      "d": "M16 2v4"
+    },
+    {
+      "kind": "path",
+      "d": "M21.29 14.7a2.43 2.43 0 0 0-2.65-.52c-.3.12-.57.3-.8.53l-.34.34-.35-.34a2.43 2.43 0 0 0-2.65-.53c-.3.12-.56.3-.79.53-.95.94-1 2.53.2 3.74L17.5 22l3.6-3.55c1.2-1.21 1.14-2.8.19-3.74Z"
+    }
+  ],
   "calendar": [
     {
       "kind": "path",
@@ -170,6 +346,46 @@ export const ICONS: Record<IconName, Shape[]> = {
       "cx": 12,
       "cy": 13,
       "r": 3
+    }
+  ],
+  "car": [
+    {
+      "kind": "path",
+      "d": "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"
+    },
+    {
+      "kind": "path",
+      "d": "M9 17h6"
+    },
+    {
+      "kind": "circle",
+      "cx": 7,
+      "cy": 17,
+      "r": 2
+    },
+    {
+      "kind": "circle",
+      "cx": 17,
+      "cy": 17,
+      "r": 2
+    }
+  ],
+  "cat": [
+    {
+      "kind": "path",
+      "d": "M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z"
+    },
+    {
+      "kind": "path",
+      "d": "M8 14v.5"
+    },
+    {
+      "kind": "path",
+      "d": "M16 14v.5"
+    },
+    {
+      "kind": "path",
+      "d": "M11.25 16.25h1.5L12 17l-.75-.75Z"
     }
   ],
   "check-check": [
@@ -476,6 +692,16 @@ export const ICONS: Record<IconName, Shape[]> = {
       "d": "M21.832 9A3 3 0 0 0 19 7h-2.207a5.5 5.5 0 0 0-10.72.61"
     }
   ],
+  "code": [
+    {
+      "kind": "path",
+      "d": "M16 18L22 12L16 6"
+    },
+    {
+      "kind": "path",
+      "d": "M8 6L2 12L8 18"
+    }
+  ],
   "coffee": [
     {
       "kind": "path",
@@ -520,6 +746,50 @@ export const ICONS: Record<IconName, Shape[]> = {
       "rx": 2
     }
   ],
+  "dog": [
+    {
+      "kind": "path",
+      "d": "M11.25 16.25h1.5L12 17z"
+    },
+    {
+      "kind": "path",
+      "d": "M16 14v.5"
+    },
+    {
+      "kind": "path",
+      "d": "M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444a11.702 11.702 0 0 0-.493-3.309"
+    },
+    {
+      "kind": "path",
+      "d": "M8 14v.5"
+    },
+    {
+      "kind": "path",
+      "d": "M8.5 8.5c-.384 1.05-1.083 2.028-2.344 2.5-1.931.722-3.576-.297-3.656-1-.113-.994 1.177-6.53 4-7 1.923-.321 3.651.845 3.651 2.235A7.497 7.497 0 0 1 14 5.277c0-1.39 1.844-2.598 3.767-2.277 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.855-1.45-2.239-2.5"
+    }
+  ],
+  "dumbbell": [
+    {
+      "kind": "path",
+      "d": "M14.4 14.4 9.6 9.6"
+    },
+    {
+      "kind": "path",
+      "d": "M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"
+    },
+    {
+      "kind": "path",
+      "d": "m21.5 21.5-1.4-1.4"
+    },
+    {
+      "kind": "path",
+      "d": "M3.9 3.9 2.5 2.5"
+    },
+    {
+      "kind": "path",
+      "d": "M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"
+    }
+  ],
   "ellipsis": [
     {
       "kind": "circle",
@@ -552,10 +822,116 @@ export const ICONS: Record<IconName, Shape[]> = {
       "r": 3
     }
   ],
+  "film": [
+    {
+      "kind": "path",
+      "d": "M7 3v18"
+    },
+    {
+      "kind": "path",
+      "d": "M3 7.5h4"
+    },
+    {
+      "kind": "path",
+      "d": "M3 12h18"
+    },
+    {
+      "kind": "path",
+      "d": "M3 16.5h4"
+    },
+    {
+      "kind": "path",
+      "d": "M17 3v18"
+    },
+    {
+      "kind": "path",
+      "d": "M17 7.5h4"
+    },
+    {
+      "kind": "path",
+      "d": "M17 16.5h4"
+    },
+    {
+      "kind": "rect",
+      "width": 18,
+      "height": 18,
+      "x": 3,
+      "y": 3,
+      "rx": 2
+    }
+  ],
+  "fish": [
+    {
+      "kind": "path",
+      "d": "M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.44 6-7 6s-7.56-2.53-8.5-6Z"
+    },
+    {
+      "kind": "path",
+      "d": "M18 12v.5"
+    },
+    {
+      "kind": "path",
+      "d": "M16 17.93a9.77 9.77 0 0 1 0-11.86"
+    },
+    {
+      "kind": "path",
+      "d": "M7 10.67C7 8 5.58 5.97 2.73 5.5c-1 1.5-1 5 .23 6.5-1.24 1.5-1.24 5-.23 6.5C5.58 18.03 7 16 7 13.33"
+    },
+    {
+      "kind": "path",
+      "d": "M10.46 7.26C10.2 5.88 9.17 4.24 8 3h5.8a2 2 0 0 1 1.98 1.67l.23 1.4"
+    },
+    {
+      "kind": "path",
+      "d": "m16.01 17.93-.23 1.4A2 2 0 0 1 13.8 21H9.5a5.96 5.96 0 0 0 1.49-3.98"
+    }
+  ],
+  "flower-2": [
+    {
+      "kind": "path",
+      "d": "M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1"
+    },
+    {
+      "kind": "path",
+      "d": "M12 10v12"
+    },
+    {
+      "kind": "path",
+      "d": "M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z"
+    },
+    {
+      "kind": "path",
+      "d": "M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z"
+    },
+    {
+      "kind": "circle",
+      "cx": 12,
+      "cy": 8,
+      "r": 2
+    }
+  ],
   "folder": [
     {
       "kind": "path",
       "d": "M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"
+    }
+  ],
+  "footprints": [
+    {
+      "kind": "path",
+      "d": "M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"
+    },
+    {
+      "kind": "path",
+      "d": "M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"
+    },
+    {
+      "kind": "path",
+      "d": "M16 17h4"
+    },
+    {
+      "kind": "path",
+      "d": "M4 13h4"
     }
   ],
   "funnel": [
@@ -580,6 +956,62 @@ export const ICONS: Record<IconName, Shape[]> = {
       "x": 3,
       "y": 10,
       "rx": 2
+    }
+  ],
+  "gamepad-2": [
+    {
+      "kind": "path",
+      "d": "M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"
+    },
+    {
+      "kind": "line",
+      "x1": 6,
+      "y1": 11,
+      "x2": 10,
+      "y2": 11
+    },
+    {
+      "kind": "line",
+      "x1": 8,
+      "y1": 9,
+      "x2": 8,
+      "y2": 13
+    },
+    {
+      "kind": "line",
+      "x1": 15,
+      "y1": 12,
+      "x2": 15.01,
+      "y2": 12
+    },
+    {
+      "kind": "line",
+      "x1": 18,
+      "y1": 10,
+      "x2": 18.01,
+      "y2": 10
+    }
+  ],
+  "gift": [
+    {
+      "kind": "path",
+      "d": "M12 8v13"
+    },
+    {
+      "kind": "path",
+      "d": "M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"
+    },
+    {
+      "kind": "path",
+      "d": "M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"
+    },
+    {
+      "kind": "rect",
+      "width": 18,
+      "height": 4,
+      "x": 3,
+      "y": 8,
+      "rx": 1
     }
   ],
   "git-branch": [
@@ -614,6 +1046,20 @@ export const ICONS: Record<IconName, Shape[]> = {
       "cx": 12,
       "cy": 12,
       "r": 10
+    }
+  ],
+  "graduation-cap": [
+    {
+      "kind": "path",
+      "d": "M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"
+    },
+    {
+      "kind": "path",
+      "d": "M22 10v6"
+    },
+    {
+      "kind": "path",
+      "d": "M6 12.5V16a6 3 0 0 0 12 0v-3.5"
     }
   ],
   "grip-vertical": [
@@ -688,6 +1134,82 @@ export const ICONS: Record<IconName, Shape[]> = {
       "rx": 1
     }
   ],
+  "hammer": [
+    {
+      "kind": "path",
+      "d": "m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"
+    },
+    {
+      "kind": "path",
+      "d": "m18 15 4-4"
+    },
+    {
+      "kind": "path",
+      "d": "m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5"
+    }
+  ],
+  "heart-pulse": [
+    {
+      "kind": "path",
+      "d": "M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+    },
+    {
+      "kind": "path",
+      "d": "M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"
+    }
+  ],
+  "heart": [
+    {
+      "kind": "path",
+      "d": "M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+    }
+  ],
+  "hotel": [
+    {
+      "kind": "path",
+      "d": "M10 22v-6.57"
+    },
+    {
+      "kind": "path",
+      "d": "M12 11h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M12 7h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M14 15.43V22"
+    },
+    {
+      "kind": "path",
+      "d": "M15 16a5 5 0 0 0-6 0"
+    },
+    {
+      "kind": "path",
+      "d": "M16 11h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M16 7h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M8 11h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M8 7h.01"
+    },
+    {
+      "kind": "rect",
+      "width": 16,
+      "height": 20,
+      "x": 4,
+      "y": 2,
+      "rx": 2
+    }
+  ],
   "house": [
     {
       "kind": "path",
@@ -728,6 +1250,83 @@ export const ICONS: Record<IconName, Shape[]> = {
       "d": "M22 12L16 12L14 15L10 15L8 12L2 12"
     }
   ],
+  "key": [
+    {
+      "kind": "path",
+      "d": "m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"
+    },
+    {
+      "kind": "path",
+      "d": "m21 2-9.6 9.6"
+    },
+    {
+      "kind": "circle",
+      "cx": 7.5,
+      "cy": 15.5,
+      "r": 5.5
+    }
+  ],
+  "lamp": [
+    {
+      "kind": "path",
+      "d": "M8 2h8l4 10H4L8 2Z"
+    },
+    {
+      "kind": "path",
+      "d": "M12 12v6"
+    },
+    {
+      "kind": "path",
+      "d": "M8 22v-2c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v2H8Z"
+    }
+  ],
+  "landmark": [
+    {
+      "kind": "line",
+      "x1": 3,
+      "y1": 22,
+      "x2": 21,
+      "y2": 22
+    },
+    {
+      "kind": "line",
+      "x1": 6,
+      "y1": 18,
+      "x2": 6,
+      "y2": 11
+    },
+    {
+      "kind": "line",
+      "x1": 10,
+      "y1": 18,
+      "x2": 10,
+      "y2": 11
+    },
+    {
+      "kind": "line",
+      "x1": 14,
+      "y1": 18,
+      "x2": 14,
+      "y2": 11
+    },
+    {
+      "kind": "line",
+      "x1": 18,
+      "y1": 18,
+      "x2": 18,
+      "y2": 11
+    },
+    {
+      "kind": "path",
+      "d": "M12 2L20 7L4 7Z"
+    }
+  ],
+  "laptop": [
+    {
+      "kind": "path",
+      "d": "M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"
+    }
+  ],
   "lasso": [
     {
       "kind": "path",
@@ -756,6 +1355,16 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"
+    }
+  ],
+  "leaf": [
+    {
+      "kind": "path",
+      "d": "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"
+    },
+    {
+      "kind": "path",
+      "d": "M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"
     }
   ],
   "library-big": [
@@ -840,6 +1449,32 @@ export const ICONS: Record<IconName, Shape[]> = {
       "d": "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
     }
   ],
+  "luggage": [
+    {
+      "kind": "path",
+      "d": "M6 20a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2"
+    },
+    {
+      "kind": "path",
+      "d": "M8 18V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v14"
+    },
+    {
+      "kind": "path",
+      "d": "M10 20h4"
+    },
+    {
+      "kind": "circle",
+      "cx": 16,
+      "cy": 20,
+      "r": 2
+    },
+    {
+      "kind": "circle",
+      "cx": 8,
+      "cy": 20,
+      "r": 2
+    }
+  ],
   "mail": [
     {
       "kind": "path",
@@ -864,6 +1499,20 @@ export const ICONS: Record<IconName, Shape[]> = {
       "cx": 12,
       "cy": 10,
       "r": 3
+    }
+  ],
+  "map": [
+    {
+      "kind": "path",
+      "d": "M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"
+    },
+    {
+      "kind": "path",
+      "d": "M15 5.764v15"
+    },
+    {
+      "kind": "path",
+      "d": "M9 3.236v15"
     }
   ],
   "maximize-2": [
@@ -976,6 +1625,30 @@ export const ICONS: Record<IconName, Shape[]> = {
       "d": "M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"
     }
   ],
+  "mountain": [
+    {
+      "kind": "path",
+      "d": "m8 3 4 8 5-5 5 15H2L8 3z"
+    }
+  ],
+  "music": [
+    {
+      "kind": "path",
+      "d": "M9 18V5l12-2v13"
+    },
+    {
+      "kind": "circle",
+      "cx": 6,
+      "cy": 18,
+      "r": 3
+    },
+    {
+      "kind": "circle",
+      "cx": 18,
+      "cy": 16,
+      "r": 3
+    }
+  ],
   "newspaper": [
     {
       "kind": "path",
@@ -1026,10 +1699,92 @@ export const ICONS: Record<IconName, Shape[]> = {
       "r": 2
     }
   ],
+  "paintbrush": [
+    {
+      "kind": "path",
+      "d": "m14.622 17.897-10.68-2.913"
+    },
+    {
+      "kind": "path",
+      "d": "M18.376 2.622a1 1 0 1 1 3.002 3.002L17.36 9.643a.5.5 0 0 0 0 .707l.944.944a2.41 2.41 0 0 1 0 3.408l-.944.944a.5.5 0 0 1-.707 0L8.354 7.348a.5.5 0 0 1 0-.707l.944-.944a2.41 2.41 0 0 1 3.408 0l.944.944a.5.5 0 0 0 .707 0z"
+    },
+    {
+      "kind": "path",
+      "d": "M9 8c-1.804 2.71-3.97 3.46-6.583 3.948a.507.507 0 0 0-.302.819l7.32 8.883a1 1 0 0 0 1.185.204C12.735 20.405 16 16.792 16 15"
+    }
+  ],
+  "palette": [
+    {
+      "kind": "path",
+      "d": "M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"
+    },
+    {
+      "kind": "circle",
+      "cx": 13.5,
+      "cy": 6.5,
+      "r": 0.5
+    },
+    {
+      "kind": "circle",
+      "cx": 17.5,
+      "cy": 10.5,
+      "r": 0.5
+    },
+    {
+      "kind": "circle",
+      "cx": 8.5,
+      "cy": 7.5,
+      "r": 0.5
+    },
+    {
+      "kind": "circle",
+      "cx": 6.5,
+      "cy": 12.5,
+      "r": 0.5
+    }
+  ],
   "paperclip": [
     {
       "kind": "path",
       "d": "m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"
+    }
+  ],
+  "party-popper": [
+    {
+      "kind": "path",
+      "d": "M5.8 11.3 2 22l10.7-3.79"
+    },
+    {
+      "kind": "path",
+      "d": "M4 3h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M22 8h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M15 2h.01"
+    },
+    {
+      "kind": "path",
+      "d": "M22 20h.01"
+    },
+    {
+      "kind": "path",
+      "d": "m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"
+    },
+    {
+      "kind": "path",
+      "d": "m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"
+    },
+    {
+      "kind": "path",
+      "d": "m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"
+    },
+    {
+      "kind": "path",
+      "d": "M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"
     }
   ],
   "pause": [
@@ -1050,6 +1805,26 @@ export const ICONS: Record<IconName, Shape[]> = {
       "rx": 0
     }
   ],
+  "pen-tool": [
+    {
+      "kind": "path",
+      "d": "M15.707 21.293a1 1 0 0 1-1.414 0l-1.586-1.586a1 1 0 0 1 0-1.414l5.586-5.586a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414z"
+    },
+    {
+      "kind": "path",
+      "d": "m18 13-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18"
+    },
+    {
+      "kind": "path",
+      "d": "m2.3 2.3 7.286 7.286"
+    },
+    {
+      "kind": "circle",
+      "cx": 11,
+      "cy": 11,
+      "r": 2
+    }
+  ],
   "pencil": [
     {
       "kind": "path",
@@ -1058,6 +1833,36 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "m15 5 4 4"
+    }
+  ],
+  "piggy-bank": [
+    {
+      "kind": "path",
+      "d": "M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"
+    },
+    {
+      "kind": "path",
+      "d": "M2 9v1c0 1.1.9 2 2 2h1"
+    },
+    {
+      "kind": "path",
+      "d": "M16 11h.01"
+    }
+  ],
+  "pill": [
+    {
+      "kind": "path",
+      "d": "m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"
+    },
+    {
+      "kind": "path",
+      "d": "m8.5 8.5 7 7"
+    }
+  ],
+  "plane": [
+    {
+      "kind": "path",
+      "d": "M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"
     }
   ],
   "play": [
@@ -1100,6 +1905,20 @@ export const ICONS: Record<IconName, Shape[]> = {
       "r": 2
     }
   ],
+  "receipt": [
+    {
+      "kind": "path",
+      "d": "M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"
+    },
+    {
+      "kind": "path",
+      "d": "M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"
+    },
+    {
+      "kind": "path",
+      "d": "M12 17.5v-11"
+    }
+  ],
   "rewind": [
     {
       "kind": "path",
@@ -1108,6 +1927,24 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "M22 6a2 2 0 0 0-3.414-1.414l-6 6a2 2 0 0 0 0 2.828l6 6A2 2 0 0 0 22 18z"
+    }
+  ],
+  "rocket": [
+    {
+      "kind": "path",
+      "d": "M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"
+    },
+    {
+      "kind": "path",
+      "d": "m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"
+    },
+    {
+      "kind": "path",
+      "d": "M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"
+    },
+    {
+      "kind": "path",
+      "d": "M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"
     }
   ],
   "rss": [
@@ -1212,6 +2049,52 @@ export const ICONS: Record<IconName, Shape[]> = {
       "y1": 6.51,
       "x2": 8.59,
       "y2": 10.49
+    }
+  ],
+  "ship": [
+    {
+      "kind": "path",
+      "d": "M12 10.189V14"
+    },
+    {
+      "kind": "path",
+      "d": "M12 2v3"
+    },
+    {
+      "kind": "path",
+      "d": "M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"
+    },
+    {
+      "kind": "path",
+      "d": "M19.38 20A11.6 11.6 0 0 0 21 14l-8.188-3.639a2 2 0 0 0-1.624 0L3 14a11.6 11.6 0 0 0 2.81 7.76"
+    },
+    {
+      "kind": "path",
+      "d": "M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"
+    }
+  ],
+  "shirt": [
+    {
+      "kind": "path",
+      "d": "M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"
+    }
+  ],
+  "shopping-cart": [
+    {
+      "kind": "path",
+      "d": "M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"
+    },
+    {
+      "kind": "circle",
+      "cx": 8,
+      "cy": 21,
+      "r": 1
+    },
+    {
+      "kind": "circle",
+      "cx": 19,
+      "cy": 21,
+      "r": 1
     }
   ],
   "sliders-horizontal": [
@@ -1343,6 +2226,28 @@ export const ICONS: Record<IconName, Shape[]> = {
       "d": "m7 3 3 6h4"
     }
   ],
+  "sofa": [
+    {
+      "kind": "path",
+      "d": "M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"
+    },
+    {
+      "kind": "path",
+      "d": "M2 16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z"
+    },
+    {
+      "kind": "path",
+      "d": "M4 18v2"
+    },
+    {
+      "kind": "path",
+      "d": "M20 18v2"
+    },
+    {
+      "kind": "path",
+      "d": "M12 4v9"
+    }
+  ],
   "sparkles": [
     {
       "kind": "path",
@@ -1381,6 +2286,24 @@ export const ICONS: Record<IconName, Shape[]> = {
       "r": 2
     }
   ],
+  "sprout": [
+    {
+      "kind": "path",
+      "d": "M7 20h10"
+    },
+    {
+      "kind": "path",
+      "d": "M10 20c5.5-2.5.8-6.4 3-10"
+    },
+    {
+      "kind": "path",
+      "d": "M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"
+    },
+    {
+      "kind": "path",
+      "d": "M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"
+    }
+  ],
   "square-check-big": [
     {
       "kind": "path",
@@ -1389,6 +2312,30 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "m9 11 3 3L22 4"
+    }
+  ],
+  "stethoscope": [
+    {
+      "kind": "path",
+      "d": "M11 2v2"
+    },
+    {
+      "kind": "path",
+      "d": "M5 2v2"
+    },
+    {
+      "kind": "path",
+      "d": "M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"
+    },
+    {
+      "kind": "path",
+      "d": "M8 15a6 6 0 0 0 12 0v-3"
+    },
+    {
+      "kind": "circle",
+      "cx": 20,
+      "cy": 10,
+      "r": 2
     }
   ],
   "sun": [
@@ -1477,6 +2424,24 @@ export const ICONS: Record<IconName, Shape[]> = {
       "r": 0.5
     }
   ],
+  "tent": [
+    {
+      "kind": "path",
+      "d": "M3.5 21 14 3"
+    },
+    {
+      "kind": "path",
+      "d": "M20.5 21 10 3"
+    },
+    {
+      "kind": "path",
+      "d": "M15.5 21 12 15l-3.5 6"
+    },
+    {
+      "kind": "path",
+      "d": "M2 21h20"
+    }
+  ],
   "text-quote": [
     {
       "kind": "path",
@@ -1521,6 +2486,50 @@ export const ICONS: Record<IconName, Shape[]> = {
       "d": "m6.34 17.66-1.41 1.41"
     }
   ],
+  "ticket": [
+    {
+      "kind": "path",
+      "d": "M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"
+    },
+    {
+      "kind": "path",
+      "d": "M13 5v2"
+    },
+    {
+      "kind": "path",
+      "d": "M13 17v2"
+    },
+    {
+      "kind": "path",
+      "d": "M13 11v2"
+    }
+  ],
+  "train-front": [
+    {
+      "kind": "path",
+      "d": "M8 3.1V7a4 4 0 0 0 8 0V3.1"
+    },
+    {
+      "kind": "path",
+      "d": "m9 15-1-1"
+    },
+    {
+      "kind": "path",
+      "d": "m15 15 1-1"
+    },
+    {
+      "kind": "path",
+      "d": "M9 19c-2.8 0-5-2.2-5-5v-4a8 8 0 0 1 16 0v4c0 2.8-2.2 5-5 5Z"
+    },
+    {
+      "kind": "path",
+      "d": "m8 19-2 3"
+    },
+    {
+      "kind": "path",
+      "d": "m16 19 2 3"
+    }
+  ],
   "trash-2": [
     {
       "kind": "path",
@@ -1541,6 +2550,42 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+    }
+  ],
+  "tree-pine": [
+    {
+      "kind": "path",
+      "d": "m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3a1 1 0 0 1-.8 1.7H15l3 3.3a1 1 0 0 1-.7 1.7H17Z"
+    },
+    {
+      "kind": "path",
+      "d": "M12 22v-3"
+    }
+  ],
+  "trophy": [
+    {
+      "kind": "path",
+      "d": "M6 9H4.5a2.5 2.5 0 0 1 0-5H6"
+    },
+    {
+      "kind": "path",
+      "d": "M18 9h1.5a2.5 2.5 0 0 0 0-5H18"
+    },
+    {
+      "kind": "path",
+      "d": "M4 22h16"
+    },
+    {
+      "kind": "path",
+      "d": "M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"
+    },
+    {
+      "kind": "path",
+      "d": "M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"
+    },
+    {
+      "kind": "path",
+      "d": "M18 2H6v7a6 6 0 0 0 12 0V2Z"
     }
   ],
   "type": [
@@ -1623,6 +2668,44 @@ export const ICONS: Record<IconName, Shape[]> = {
       "r": 4
     }
   ],
+  "utensils": [
+    {
+      "kind": "path",
+      "d": "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"
+    },
+    {
+      "kind": "path",
+      "d": "M7 2v20"
+    },
+    {
+      "kind": "path",
+      "d": "M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"
+    }
+  ],
+  "wallet": [
+    {
+      "kind": "path",
+      "d": "M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"
+    },
+    {
+      "kind": "path",
+      "d": "M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"
+    }
+  ],
+  "waves": [
+    {
+      "kind": "path",
+      "d": "M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"
+    },
+    {
+      "kind": "path",
+      "d": "M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"
+    },
+    {
+      "kind": "path",
+      "d": "M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"
+    }
+  ],
   "waypoints": [
     {
       "kind": "path",
@@ -1673,6 +2756,30 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "M9.8 4.4A2 2 0 1 1 11 8H2"
+    }
+  ],
+  "wine": [
+    {
+      "kind": "path",
+      "d": "M8 22h8"
+    },
+    {
+      "kind": "path",
+      "d": "M7 10h10"
+    },
+    {
+      "kind": "path",
+      "d": "M12 15v7"
+    },
+    {
+      "kind": "path",
+      "d": "M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"
+    }
+  ],
+  "wrench": [
+    {
+      "kind": "path",
+      "d": "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
     }
   ],
   "x": [

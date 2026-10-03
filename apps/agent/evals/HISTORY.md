@@ -29,6 +29,8 @@ and is not committed.
 | 2026-10-02 23:10 | all | 1 | 490/515 (95%) | $9.21 | `claude-sonnet-5` | `62272c29` | `e6a184c` |  |
 | 2026-10-02 23:35 | nightly | 1 | 23/26 (88%) | $0.40 | `claude-sonnet-5` | `ee95f80b` | `fd37c23` |  |
 | 2026-10-02 23:35 | nightly | 1 | 26/26 (100%) | $0.46 | `claude-sonnet-5` | `ee95f80b` | `fd37c23` |  |
+| 2026-10-04 01:24 | new-thread-wears-a-fitting-icon | 1 | 1/1 (100%) | $0.06 | `claude-sonnet-5` | `57f72231` | `4d7b43a` | 037: the two thread icon cases |
+| 2026-10-04 01:25 | new-thread-icon-is-from-the-list | 1 | 1/1 (100%) | $0.03 | `claude-sonnet-5` | `57f72231` | `4d7b43a` | 037: the two thread icon cases |
 
 ## Full runs by principle
 

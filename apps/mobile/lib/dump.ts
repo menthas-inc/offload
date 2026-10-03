@@ -46,6 +46,9 @@ export interface Sent {
 export interface TouchedThread {
   id: string;
   name: string;
+  /** 037. As the thread is now, not as it was when the turn ran. */
+  icon: string;
+  hue: number;
 }
 
 /** A calendar write offload proposed and nobody has answered yet.
@@ -71,6 +74,9 @@ export interface FoundResult {
   threadId: string;
   /** 028. Null for what is not in a thread, which no surface names. */
   threadName: string | null;
+  /** 037. Null with the name. */
+  threadIcon: string | null;
+  threadHue: number | null;
   /** The read hit its page. The tail becomes the thread rather than a control
    *  that would expand into rows nobody fetched. */
   truncated: boolean;

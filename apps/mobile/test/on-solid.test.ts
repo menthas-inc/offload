@@ -23,7 +23,7 @@ function sources(dir: string): string[] {
   });
 }
 
-const FIXED_FILL = /bg-(?:blue|moss|clay)-[5-9]00/;
+const FIXED_FILL = /bg-(?:blue|moss|clay)-[5-9]00|bg-surface-danger/;
 const NEAR = 14;
 
 function wrongIn(file: string): string[] {

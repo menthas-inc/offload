@@ -15,12 +15,14 @@ import type { Label } from "./labels";
 import { send } from "./api";
 import type { Invitation } from "./people";
 import type { LooseSummary } from "./loose";
-import type { Sortable } from "@offload/widgets";
+import type { Sortable, ThreadLook } from "@offload/widgets";
 
 export interface ThreadRow {
   id: string;
   name: string;
-  icon: string | null;
+  /** 037. One of the seventy thread icons, or lasso, and one of the ten hues. */
+  icon: string;
+  hue: number;
   count: number;
   meta: string;
   /** Always false since 028, which took the default thread out of the list.
@@ -87,7 +89,11 @@ export const NOTE_BODY_CHARS = 4000;
 export interface ThreadBundle {
   id: string;
   name: string;
-  icon: string | null;
+  icon: string;
+  hue: number;
+  /** 037. Whose pick the icon and hue are. Edit thread previews a rename's
+   *  pick only while it is still offload's. */
+  iconSetBy: "offload" | "person";
   alwaysOn: boolean;
   /** `unlabelled` is 025's No label count. */
   counts: { active: number; archived: number; unlabelled: number };
@@ -256,9 +262,21 @@ export const withPlaceId = (row: ContentRow): ContentRow => ({
 
 // ------------------------------------------------------------------- reads
 
+/** 037. The list sends a thread's icon as `threadIcon` and `threadHue`: its
+ *  `icon` is held at lasso for builds from before the icons existed. Read
+ *  here, once, into the row every screen draws. */
+type WireRow = Omit<ThreadRow, "hue"> & { threadIcon?: string; threadHue?: number };
+type WireGroup = Omit<ThreadGroup, "threads"> & { threads: WireRow[] };
+
+const drawn = (groups: WireGroup[]): ThreadGroup[] =>
+  groups.map((group) => ({
+    ...group,
+    threads: group.threads.map(({ threadIcon, threadHue, ...row }) => ({ ...row, icon: threadIcon ?? row.icon, hue: threadHue ?? 1 })),
+  }));
+
 export async function fetchThreads(): Promise<ThreadGroup[]> {
-  const { data } = await send<{ groups: ThreadGroup[] }>("/v1/threads");
-  return data?.groups ?? [];
+  const { data } = await send<{ groups: WireGroup[] }>("/v1/threads");
+  return data ? drawn(data.groups) : [];
 }
 
 export interface ThreadsPage {
@@ -271,9 +289,9 @@ export interface ThreadsPage {
 /** 022. The list and the strips in one read, which is what My threads draws.
  *  028: and the group of what is not in a thread. */
 export async function fetchThreadsAndInvitations(): Promise<ThreadsPage | null> {
-  const { data } = await send<Partial<ThreadsPage>>("/v1/threads");
+  const { data } = await send<Partial<Omit<ThreadsPage, "groups">> & { groups?: WireGroup[] }>("/v1/threads");
   if (!data) return null;
-  return { groups: data.groups ?? [], invitations: data.invitations ?? [], loose: data.loose ?? null };
+  return { groups: drawn(data.groups ?? []), invitations: data.invitations ?? [], loose: data.loose ?? null };
 }
 
 /** 028. My threads' two lists, and whether there is nothing at all: the
@@ -290,8 +308,16 @@ export function myThreads(
 
 export async function fetchThread(id: string): Promise<ThreadBundle | null> {
   const { data } = await send<ThreadBundle>(`/v1/threads/${id}`);
+  if (data) looks.set(data.id, { icon: data.icon, hue: data.hue });
   return data;
 }
+
+/** 037. The icon and hue of a thread this session has read, for the one place
+ *  that names a thread by id with no read of its own: the composer's *In
+ *  thread* chip, raised from a thread already on screen. */
+const looks = new Map<string, { icon: string; hue: number }>();
+
+export const threadLookOf = (id: string): { icon: string; hue: number } | undefined => looks.get(id);
 
 /** 030. A point on a thread's map, as the server draws it: offload's own
  *  title and address, Google's id only for Directions, nothing Google named. */
@@ -465,14 +491,17 @@ export async function moveContent(
   return data;
 }
 
-export async function renameThread(
+/** 037. Edit thread's one write: the name, the icon and the hue, any of
+ *  them. `previous` sent back whole is the Undo. */
+export async function editThread(
   id: string,
-  name: string
-): Promise<{ previous: { name: string } } | null> {
-  const { data } = await send<{ previous: { name: string } }>(`/v1/threads/${id}`, {
+  change: Partial<ThreadLook>
+): Promise<{ thread: ThreadLook & { id: string }; previous: ThreadLook } | null> {
+  const { data } = await send<{ thread: ThreadLook & { id: string }; previous: ThreadLook }>(`/v1/threads/${id}`, {
     method: "PATCH",
-    ...body({ name }),
+    ...body(change),
   });
+  if (data) looks.set(id, { icon: data.thread.icon, hue: data.thread.hue });
   return data;
 }
 

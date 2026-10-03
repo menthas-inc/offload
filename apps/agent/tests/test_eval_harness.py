@@ -80,3 +80,24 @@ def test_the_evals_price_opus_5_5_when_it_is_tried():
 
 def test_an_opus_5_5_cache_read_is_a_twentieth_of_input():
     assert _run()._cost("claude-opus-5-5", 0, 0, 1_000_000) == pytest.approx(0.20)
+
+
+def test_a_new_threads_icon_is_held_to_the_expectation():
+    """037. `thread_icon` reads the icon off the `create_thread` call."""
+    _icon_problems = _run()._icon_problems
+
+    made = [
+        ("create_thread", {"name": "Lisbon", "icon": "plane"}),
+        ("add_content", {"thread_id": "new"}),
+    ]
+    bare = [("create_thread", {"name": "Lisbon", "icon": None})]
+    assert _icon_problems({"thread_icon": {"one_of": ["plane", "luggage"]}}, made) == []
+    assert _icon_problems({"thread_icon": {"one_of": ["luggage"]}}, made) != []
+    assert _icon_problems({"thread_icon": {"one_of": ["plane"]}}, bare) != []
+    assert _icon_problems({"thread_icon": {"one_of": ["plane"]}}, []) != []
+    # `known` passes an icon from the list or none at all, and nothing made up.
+    assert _icon_problems({"thread_icon": {"known": True}}, made) == []
+    assert _icon_problems({"thread_icon": {"known": True}}, bare) == []
+    made_up = [("create_thread", {"icon": "suitcase"})]
+    assert _icon_problems({"thread_icon": {"known": True}}, made_up) != []
+    assert _icon_problems({}, made) == []

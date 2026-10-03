@@ -25,11 +25,19 @@ export interface Face {
 
 /** One button under a row. The thread's or the proposal's name is the
  *  server's current reading, so a rename since draws the new name. */
+/** 037. A thread as a chip and a toast name it. */
+export interface ThreadRef {
+  id: string;
+  name: string;
+  icon: string;
+  hue: number;
+}
+
 export type Suggestion =
   | {
       id: string;
       kind: "move";
-      thread: { id: string; name: string };
+      thread: ThreadRef;
       /** At most two other members, empty when the thread is not shared. */
       faces: Face[];
       /** How many more beyond the faces. */
@@ -336,8 +344,8 @@ export async function fetchProposal(id: string): Promise<Proposal | null> {
 const body = (value: unknown): RequestInit => ({ body: JSON.stringify(value) });
 
 /** Move to: the thread it went to, or null when it was refused. */
-export async function acceptSuggestion(id: string): Promise<{ id: string; name: string } | null> {
-  const { status, data } = await send<{ thread: { id: string; name: string } }>(`/v1/suggestions/${id}/accept`, { method: "POST" });
+export async function acceptSuggestion(id: string): Promise<ThreadRef | null> {
+  const { status, data } = await send<{ thread: ThreadRef }>(`/v1/suggestions/${id}/accept`, { method: "POST" });
   return status === 200 && data ? data.thread : null;
 }
 
@@ -358,9 +366,9 @@ export async function createFromProposal(
   id: string,
   name: string,
   ticked: ReadonlySet<string>,
-): Promise<{ ok: true; thread: { id: string; name: string } } | { ok: false }> {
+): Promise<{ ok: true; thread: ThreadRef } | { ok: false }> {
   const keys = [...ticked];
-  const { status, data } = await send<{ thread: { id: string; name: string } }>(`/v1/proposals/${id}/create`, {
+  const { status, data } = await send<{ thread: ThreadRef }>(`/v1/proposals/${id}/create`, {
     method: "POST",
     ...body({
       name: name.trim(),

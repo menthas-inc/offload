@@ -126,7 +126,7 @@ interface Props {
   /** 027. Today: the row's thread, drawn as the thread pill on the marks
    *  line after the chip and before `metaMarks`, in place of `meta`. 028: a
    *  row not in a thread has no name, and draws no pill. */
-  thread?: { id: string; name: string | null } | undefined;
+  thread?: { id: string; name: string | null; icon: string | null; hue: number | null } | undefined;
   /** 027. Which chip leads the marks line: the date chip (the default), the
    *  hour with a clock for a row with a time on its day, or none for a row
    *  due that day with no hour. */
@@ -308,7 +308,7 @@ export function ContentRowView({
   return (
     <Animated.View className="relative" style={stacking}>
       <Animated.View
-        className="absolute inset-y-0 right-0 items-center justify-center bg-clay-600"
+        className="absolute inset-y-0 right-0 items-center justify-center bg-surface-danger"
         style={[revealed, { width: REVEAL + 24 }]}
       >
         <Text
@@ -512,7 +512,7 @@ export function ContentRowView({
                 <View className="flex-row flex-wrap items-center gap-space-2">
                   {chip === "date" ? <DateChip row={row} isReminder={row.isReminder} /> : null}
                   {chip === "time" ? <HourChip row={row} /> : null}
-                  {thread.name !== null ? <ThreadPill id={thread.id} name={thread.name} size={24} /> : null}
+                  {thread.name !== null ? <ThreadPill id={thread.id} name={thread.name} icon={thread.icon} hue={thread.hue} size={24} /> : null}
                   {(metaMarks ?? []).map((label) => (
                     <LabelMark key={label.id} color={label.colour}>
                       {label.name}

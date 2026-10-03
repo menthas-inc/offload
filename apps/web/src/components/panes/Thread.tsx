@@ -13,6 +13,9 @@
 // author's alone, and no kit draws an archived state though every kit draws an
 // archive control.
 
+import { threadLookAfter } from "@offload/widgets";
+import { ThreadIcon } from "../ThreadIcon";
+import { EditThread } from "./EditThread";
 import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, type LabelPick } from "@offload/widgets";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -49,7 +52,8 @@ import {
   provisionalNote,
   provisionalRow,
   quickAdd,
-  renameThread,
+  editThread,
+  type ThreadMark,
   setArchived,
   setPriority,
   startsAs,
@@ -136,7 +140,8 @@ export function Thread({ id, onChanged }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<ContentRow | null>(null);
   const [draft, setDraft] = useState("");
-  const [renaming, setRenaming] = useState(false);
+  // 037. Edit thread, and whether it was opened from the icon or the name.
+  const [editingThread, setEditingThread] = useState<"icon" | "name" | null>(null);
   // 019. The calendars popover, and a counter bumped when the picks change so
   // the rail reads the calendars again.
   const [calendarsOpen, setCalendarsOpen] = useState(false);
@@ -144,7 +149,6 @@ export function Thread({ id, onChanged }: Props) {
   // Which row is asking to be deleted. The kit asks in the row's own place
   // rather than in a dialog, so the question never covers what it is about.
   const [asking, setAsking] = useState<string | null>(null);
-  const [nameDraft, setNameDraft] = useState("");
   const input = useRef<HTMLInputElement>(null);
   // What arrived while this screen was open, so it can be marked for a moment
   // rather than appearing silently in the middle of a list.
@@ -748,19 +752,26 @@ export function Thread({ id, onChanged }: Props) {
     });
   }
 
-  async function saveName(): Promise<void> {
-    const name = nameDraft.trim();
-    setRenaming(false);
-    if (!thread || !name || name === thread.name) return;
+  /** 037. Edit thread's Save: the head changes at the press, the write
+   *  follows, and a refusal puts the head back. Undo sends back everything
+   *  that was there, whose pick it was included. */
+  async function saveThread(change: Partial<ThreadMark>, shown: { name: string; icon: string; hue: number }): Promise<void> {
+    if (!thread) return;
+    const before = thread;
+    setThread({ ...thread, ...threadLookAfter(thread, change, shown) });
 
-    const result = await renameThread(id, name);
-    if (!result) return;
+    const result = await editThread(id, change);
+    if (!result) {
+      setThread(before);
+      toast.show("Couldn't save that");
+      return;
+    }
     await load();
     onChanged();
-    toast.show("Renamed", {
+    toast.show("Thread updated", {
       label: "Undo",
       onPress: async () => {
-        await renameThread(id, result.previous.name);
+        await editThread(id, result.previous);
         await load();
         onChanged();
       },
@@ -899,24 +910,23 @@ export function Thread({ id, onChanged }: Props) {
   return (
     <>
       <PaneHead
+        // 037. The icon and the name both open Edit thread, which hangs under
+        // the icon. The icon is the name's twin to a screen reader, so only
+        // the name is announced.
+        lead={
+          <>
+            <button type="button" className={styles.threadHeadIcon} tabIndex={-1} aria-hidden="true" onClick={() => setEditingThread("icon")}>
+              <ThreadIcon icon={thread.icon} hue={thread.hue} seed={thread.id} size={36} />
+            </button>
+            {editingThread ? (
+              <EditThread thread={thread} from={editingThread} onSave={(change, shown) => void saveThread(change, shown)} onClose={() => setEditingThread(null)} />
+            ) : null}
+          </>
+        }
         title={
-          renaming ? (
-            <input
-              ref={input}
-              className={styles.titleInput}
-              value={nameDraft}
-              autoFocus
-              onChange={(event) => setNameDraft(event.target.value)}
-              onBlur={() => void saveName()}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") void saveName();
-                if (event.key === "Escape") setRenaming(false);
-              }}
-              aria-label="Thread name"
-            />
-          ) : (
-            thread.name
-          )
+          <button type="button" className={styles.threadHeadName} title="Edit thread" aria-haspopup="dialog" onClick={() => setEditingThread("name")}>
+            {thread.name}
+          </button>
         }
         // The line My threads draws, from the server (2026-09-29).
         sub={thread.line || undefined}
@@ -989,12 +999,9 @@ export function Thread({ id, onChanged }: Props) {
         }
         more={[
           {
-            label: "Rename thread",
+            label: "Edit thread",
             icon: "pencil",
-            onSelect: () => {
-              setNameDraft(thread.name);
-              setRenaming(true);
-            },
+            onSelect: () => setEditingThread("name"),
           },
           {
             label: "Add a note",

@@ -1029,7 +1029,7 @@ describe("the conversation's footer survives a reload", () => {
     // mark, no thread pill and no source chip: the whole footer, gone on the
     // first reload, on the surface most likely to be reloaded.
     expect((await threadsForAll([messageId], id)).get(messageId)).toEqual([
-      { id: threadId, name: "The tip" },
+      { id: threadId, name: "The tip", icon: "lasso", hue: 1 },
     ]);
     expect((await sourcesForAll([turnId], id)).get(turnId)).toEqual([
       { domain: "timeanddate.com", url: "https://timeanddate.com/x" },

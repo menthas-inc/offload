@@ -13,6 +13,9 @@ import { pullBilling, registerPuller } from "../src/billing/pull.js";
 import { VENDORS } from "../src/billing/vendors.js";
 import { adminRoutesOf, auditEntries, fill, staffMember, wipeAdmin } from "./admin-kit.js";
 
+// The repo's .env may hold the real key, and no test calls Railway.
+delete process.env["RAILWAY_API_TOKEN"];
+
 await migrate(() => {});
 
 let app: App;

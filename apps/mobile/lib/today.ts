@@ -15,6 +15,9 @@ export interface TodayRow extends ContentRow {
   threadId: string;
   /** 028. Null for a row not in a thread, which draws no pill. */
   threadName: string | null;
+  /** 037. Null with the name. */
+  threadIcon: string | null;
+  threadHue: number | null;
 }
 
 export interface TodayEvent {
@@ -29,6 +32,8 @@ export interface TodayEvent {
   link: string | null;
   threadId: string | null;
   threadName: string | null;
+  threadIcon: string | null;
+  threadHue: number | null;
   authorName: string | null;
 }
 
@@ -85,6 +90,8 @@ export type ServerCard =
       question: { id: string; field: string; text: string; options: QuestionOption[]; ordinal: number };
       threadId: string | null;
       threadName: string | null;
+      threadIcon: string | null;
+      threadHue: number | null;
       fromEmail: boolean;
     }
   | { key: string; kind: "tip"; tip: "forwarding"; address: string; from: string };

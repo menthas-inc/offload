@@ -1,0 +1,72 @@
+{
+  "recorded": "2026-10-03",
+  "projects": {
+    "data": {
+      "projects": {
+        "edges": [
+          {
+            "node": {
+              "workspaceId": "00000000-0000-4000-8000-000000000000"
+            }
+          },
+          {
+            "node": {
+              "workspaceId": "00000000-0000-4000-8000-000000000000"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "workspace": {
+    "data": {
+      "workspace": {
+        "customer": {
+          "currentUsage": 1.3116106864403705,
+          "billingPeriod": {
+            "start": "2026-09-30T21:48:04.000Z",
+            "end": "2026-10-30T21:48:04.000Z"
+          },
+          "invoices": [
+            {
+              "periodStart": "2026-08-30T21:48:04.000Z",
+              "periodEnd": "2026-09-30T21:48:04.000Z",
+              "status": "paid",
+              "total": 2000
+            },
+            {
+              "periodStart": "2026-08-30T21:48:04.000Z",
+              "periodEnd": "2026-08-31T23:56:59.000Z",
+              "status": "paid",
+              "total": 1448
+            },
+            {
+              "periodStart": "2026-07-30T21:48:04.000Z",
+              "periodEnd": "2026-08-30T21:48:04.000Z",
+              "status": "paid",
+              "total": 500
+            },
+            {
+              "periodStart": "2026-06-30T21:48:04.000Z",
+              "periodEnd": "2026-07-30T21:48:04.000Z",
+              "status": "paid",
+              "total": 500
+            },
+            {
+              "periodStart": "2026-05-30T21:48:04.000Z",
+              "periodEnd": "2026-06-30T21:48:04.000Z",
+              "status": "paid",
+              "total": 500
+            },
+            {
+              "periodStart": "2026-05-30T21:48:04.000Z",
+              "periodEnd": "2026-05-30T21:48:04.000Z",
+              "status": "paid",
+              "total": 500
+            }
+          ]
+        }
+      }
+    }
+  }
+}
