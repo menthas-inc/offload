@@ -20,6 +20,7 @@ import {
 } from "../connectors/google.js";
 import { calendarName, refreshCalendars } from "../connectors/calendars.js";
 import { openState, pkce, sealState, LANDINGS, type Landing } from "../connectors/state.js";
+import { isActive } from "../accounts/active.js";
 import { connectorsAvailable, seal, VAULT_NAME } from "../connectors/vault.js";
 import { revokeAndForget } from "../connectors/tokens.js";
 import { syncNow } from "../connectors/sync.js";
@@ -49,13 +50,24 @@ export function landingUrl(landing: Landing, outcome: "connected" | "failed"): s
   // A failure from first run goes back to first run's offer.
   // 033. Bring things in gets both outcomes back: which calendars to use is a
   // choice for later, and first run ends on Today.
-  const path =
-    landing === "first-run-bring"
-      ? "/welcome/bring"
-      : landing === "first-run" && outcome === "failed"
-        ? "/welcome"
-        : "/settings/apps";
-  return `${env.WEB_URL}${path}?calendar=${outcome}`;
+  return `${env.WEB_URL}${landingPath(landing, outcome)}?calendar=${outcome}`;
+}
+
+/** Exhaustive, so a new landing cannot compile without a destination. */
+function landingPath(landing: Landing, outcome: "connected" | "failed"): string {
+  switch (landing) {
+    case "first-run-bring":
+      return "/welcome/bring";
+    case "first-run":
+      // Only states minted before 033 shipped, which expire in ten minutes.
+      return outcome === "failed" ? "/welcome" : "/settings/apps";
+    case "settings":
+      return "/settings/apps";
+    default: {
+      const never: never = landing;
+      return never;
+    }
+  }
 }
 
 /** The account behind a calendar, resolved through its connection.
@@ -96,6 +108,8 @@ export async function connectorRoutes(app: App): Promise<void> {
     async (request: FastifyRequest<{ Querystring: { landing: Landing } }>, reply: FastifyReply) => {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
+      // 033. Nothing is brought in before consent, whatever the client draws.
+      if (!(await isActive(accountId))) return reply.status(403).send({ error: "not_active" });
       if (!connectorsAvailable()) return reply.status(503).send({ error: "unavailable" });
 
       const { verifier, challenge } = pkce();

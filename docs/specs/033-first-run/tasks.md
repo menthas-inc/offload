@@ -11,8 +11,8 @@ Every task starts with its failing test, run and seen red for the reason the tas
 ## 1. API
 
 - [x] **T1.1** `first-run-bring` landing: sealed, accepted by start, both outcomes to `/welcome/bring`, older landings unchanged. *(AC-9, AC-10)*
-- [ ] **T1.2** Exhaustive `landingUrl`. *(AC-10; compile-time, no test)*
-- [ ] **T1.3** `requireActive` on connector start and push-token registration. Tests: 403 for `invited`, through for `active`. *(AC-20)*
+- [x] **T1.2** Exhaustive `landingUrl`. *(AC-10; compile-time, no test)*
+- [x] **T1.3** `requireActive` on connector start and push-token registration. Tests: 403 for `invited`, through for `active`. *(AC-20)*
 
 ## 2. Phones
 

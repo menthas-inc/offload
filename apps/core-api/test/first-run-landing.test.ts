@@ -28,12 +28,12 @@ beforeEach(async () => {
   await db.deleteFrom("accounts").execute();
 });
 
-async function signedIn(): Promise<{ accountId: string; cookie: string }> {
+async function signedIn(state: "active" | "invited" = "active"): Promise<{ accountId: string; cookie: string }> {
   const row = await db
     .insertInto("accounts")
     .values({
       email: `${uuidv7()}@example.com`,
-      state: "active",
+      state,
       email_verified: true,
       display_name: "Jo Alves",
       analytics_subject_id: uuidv7(),
@@ -87,5 +87,30 @@ describe("033 the first-run-bring landing", () => {
     });
     expect(response.statusCode).toBe(302);
     expect(response.headers.location).toBe(`${env.WEB_URL}/welcome/bring?calendar=failed`);
+  });
+});
+
+describe("033 AC-20 connecting needs an active account", () => {
+  it("refuses an account still in first run", async () => {
+    const { cookie } = await signedIn("invited");
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/connectors/google/start?landing=first-run-bring",
+      headers: { cookie },
+    });
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "not_active" });
+  });
+
+  it("lets an active account through to the connector", async () => {
+    const { cookie } = await signedIn("active");
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/connectors/google/start?landing=first-run-bring",
+      headers: { cookie },
+    });
+    // 302 to Google where the connector is configured, 503 where it is not;
+    // either way past the account check.
+    expect([302, 503]).toContain(response.statusCode);
   });
 });
