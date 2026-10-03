@@ -195,6 +195,7 @@ export function Row({
       <a
         href={href}
         className={className}
+        aria-label={actionLabel}
         {...(download ? { download } : { target: "_blank", rel: "noreferrer" })}
       >
         {body}

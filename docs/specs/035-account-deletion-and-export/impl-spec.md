@@ -174,14 +174,17 @@ body `{ "confirm": "delete" }`.
 
 ### Flow
 
-1. `POST /v1/me/export`. Same origin rule as the delete. Refused with 409 and
-   `nextAt` while a row exists with `requested_at` inside 7 days, whatever its
-   state (AC-20). Otherwise upsert the row as `making`, enqueue `export.build`
-   (Core kind, payload: export id only), enqueue the notice email, emit
-   `export.requested`.
+1. `POST /api/me/export`, beside the delete (the spec's first draft said
+   `/v1/me`; the routes live with `/api/me`). Same origin rule as the delete.
+   Refused with 409 and `nextAt` while a row exists with `requested_at` inside
+   7 days, whatever its state (AC-20). Otherwise replace the row with a new one
+   as `making`, enqueue `export.build` (Core kind, payload: export id only,
+   one attempt), enqueue the notice email `email.export_requested`, emit
+   `export_requested`. 503 where there is no object store.
 2. `export.build` reads through `readable_content`, `readable_notes` and
    `readable_messages` for the account, never a per-thread role check, and
-   streams a zip (`archiver`, the one new dependency) of:
+   streams a zip (`yazl`, the one new dependency: no dependency tree of its
+   own, zip64, and lazy members, where `archiver` brings forty packages) of:
    - `index.html` and `threads/<n>.html`, plain HTML with no script;
    - `conversations.html`, `notes.html`, `people.html`;
    - `files/<blob id>.<ext>`, each opened with `objectKeyOf`;
@@ -189,34 +192,48 @@ body `{ "confirm": "delete" }`.
    Thread files are numbered, not named, and the builder logs ids and counts
    only (AC-22). The stream is cut every 32 MB; each part is sealed with the
    export's key by the blob sealing routine and put at `exports/<id>/<n>`.
-   On finish: `ready`, `parts`, `byte_size`, `thread_ids`, and one `activity`
-   row of kind `export.ready`, no push. On error: `failed`, parts removed. A
+   The files are written first and the pages after, so a photo that went
+   between the snapshot and its turn is left out of the pages too. On finish:
+   `ready`, `parts`, `byte_size`, `thread_ids`, and one `activity` row of kind
+   `export`, no push. On error: `failed`, parts removed. A
    failed row does not hold the 7 days: `requested_at` is cleared.
-3. `GET /v1/me/export` returns state, `readyAt`, `expiresAt`, `nextAt`.
-4. `GET /v1/me/export/file` checks the session and that the row is the
+3. `GET /api/me/export` returns state, `readyAt`, `expiresAt`, `nextAt`.
+4. `GET /api/me/export/file` checks the session and that the row is the
    caller's and `ready`, then streams the parts in order, decrypting each, as
    `application/zip` with a fixed filename, `offload.zip`. No presigned URL
    exists anywhere (AC-18).
-5. `DELETE /v1/me/export` sets `gone` and enqueues `export.destroy`. The 7
+5. `DELETE /api/me/export` sets `gone` and enqueues `export.destroy`. The 7
    days still count from the request.
 6. `export.destroy` removes `exports/<id>/0..n` from storage. It runs from
    step 5, from the hourly `export.sweep` for rows past `expires_at`, from
    `deleteAccount`, and from leave and take-out when the thread is in
-   `thread_ids` (AC-19).
+   `thread_ids` (AC-19). The sweep also fails a row still `making` after two
+   hours, which is a build whose worker restarted, and gives its clock back.
 
 A build over 8 GB stops and fails. That is above the heavy case and is a guard
-against a runaway, not a product limit anyone should meet.
+against a runaway, not a product limit anyone should meet. It is the one
+failure an account can cause, so it keeps the clock, and the row says *Next
+copy from*; every other failure gives the clock back.
+
+Leave and take-out also end a copy of that account's that is still being
+made: it has not recorded its threads yet and may hold this one. The file
+route answers 404 to a request whose `Sec-Fetch-Site` is `cross-site`. On
+Android the downloaded file stays in the cache until the next visit to the
+page, since the share sheet answers before the receiving app has read it.
 
 ### Clients
 
-- **Row state** comes from `GET /v1/me/export`; polled every 5 s while
+- **Row state** comes from `GET /api/me/export`; polled every 5 s while
   `making`, never otherwise.
-- **Phones:** `FileSystem.downloadAsync` with the session header into the
+- **Phones:** `File.downloadFileAsync` with the session header into the
   cache directory, then `expo-sharing` (new, needs a native build) to hand the
-  file to the system's save or share sheet (AC-21). The Privacy page gains
-  *Your copy*; its glyph is `download`, checked by `dead-icons.mjs`.
-- **Web:** a plain link to `/v1/me/export/file`, which the session cookie
+  file to the system's save or share sheet (AC-21); the cache copy is removed
+  once the sheet closes. The Privacy page gains *Your copy*; its glyph is
+  `archive`, since the set has no `download`, checked by `dead-icons.mjs`.
+- **Web:** a plain link to `/api/me/export/file`, which the session cookie
   authorises.
+- **The row's words** are one rule, `copyRow` in `@offload/widgets`, for all
+  three.
 
 ## Privacy page (AC-24)
 
@@ -236,7 +253,11 @@ Told to the owner before the code, 2026-10-03. Edits to
 
 ## Dependencies
 
-- `archiver` in `core-api`; `expo-sharing` in `mobile`.
+- `yazl` in `core-api` (`yauzl` in its tests, to open what was built);
+  `expo-sharing` in `mobile`.
+- The suite's object store is memory whatever the environment file carries:
+  before this, a local run with the bucket's keys set wrote test uploads to
+  the real bucket.
 - 034 touches `jobs/queue.ts` and `routes/admin.ts`; this adds kinds in
   `jobs/kinds.ts` and `handlers.ts`. Announce on the board before merging.
 - No open decision in `decisions.md` is assumed. The root key moving to a KMS

@@ -82,6 +82,9 @@ export function doorOf(row: ActivityEntry, zone: string | null = null, today: st
     }
     case "request":
       return "/settings/people";
+    // 035. A ready copy opens where it is downloaded.
+    case "export":
+      return "/settings/privacy";
     case "share":
       // The invitation waits at the top of My threads, where its card opens.
       return "/threads";

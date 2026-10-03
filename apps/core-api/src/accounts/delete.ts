@@ -15,6 +15,7 @@
 // One transaction, and nothing in it talks to anybody else: the storage delete
 // and the revoke are jobs.
 
+import { destroyParts } from "../exports/copy.js";
 import { sql } from "kysely";
 import { db } from "../db.js";
 import { emit } from "../analytics.js";
@@ -143,6 +144,11 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
     await trx.deleteFrom("blob_keys").where("scope", "=", "account").where("scope_id", "=", accountId).execute();
     await trx.deleteFrom("analytics_events").where("subject_id", "=", account.analytics_subject_id).execute();
     await trx.deleteFrom("waitlist_attempts").where("email_hmac", "=", attemptHmac(account.email)).execute();
+
+    // Their copy, if there is one: the row goes with the account, and its
+    // sealed parts are booked for removal while the row still says how many.
+    const copy = await trx.selectFrom("exports").select(["id", "parts"]).where("account_id", "=", accountId).executeTakeFirst();
+    if (copy) await destroyParts(trx, copy.id, copy.parts);
 
     // The delete. Everything in the ledger marked cascade or set-null happens here.
     await trx.deleteFrom("accounts").where("id", "=", accountId).execute();

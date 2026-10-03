@@ -1348,7 +1348,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   /* Still says "not finished", without the movement. */
-  .paneSpinner { animation: none; border-top-color: var(--text-accent); opacity: 0.7; }
+  .paneSpinner,
+  .settingsSpinner { animation: none; border-top-color: var(--text-accent); opacity: 0.7; }
 }
 
 /* The same ring, alone in a pane that has not read yet. */
@@ -1358,6 +1359,17 @@
   height: 16px;
   margin: var(--space-7) auto;
   border-radius: 99px;
+  border: 1.5px solid var(--border-hairline);
+  border-top-color: var(--text-accent);
+  animation: spin 700ms linear infinite;
+}
+
+/* And in a settings row that is doing something: 035's copy being made. */
+.settingsSpinner {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-pill);
   border: 1.5px solid var(--border-hairline);
   border-top-color: var(--text-accent);
   animation: spin 700ms linear infinite;

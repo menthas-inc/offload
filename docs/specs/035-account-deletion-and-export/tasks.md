@@ -83,42 +83,46 @@ exists (QUAL-1). Part A merges on its own.
 
 ### API
 
-- [ ] **T20** Migration 0081: `exports`. *(AC-18)*
-- [ ] **T21** `POST`, `GET` and `DELETE /v1/me/export`: states, the 7-day
+- [x] **T20** Migration 0081: `exports`. *(AC-18)*
+- [x] **T21** `POST`, `GET` and `DELETE /api/me/export`: states, the 7-day
   refusal with `nextAt`, a failed build not holding the clock, origin check,
   notice email. *(AC-15, AC-20, AC-23)*
-- [ ] **T22** `export.build`: tests open the produced zip. Every readable
+- [x] **T22** `export.build`: tests open the produced zip. Every readable
   thread, conversations, notes, people, each blob as a file, `data.json`;
   shared rows name their author or say gone; a thread the account cannot read
   is absent; members are numbered; no title or file name in a log line or the
   job row. *(AC-16, AC-17, AC-22)*
-- [ ] **T23** Storage: parts sealed under the export's key, the key wrapped
+- [x] **T23** Storage: parts sealed under the export's key, the key wrapped
   under the account key, nothing readable in the memory store's bytes.
   *(AC-18, OFF-2)*
-- [ ] **T24** `GET /v1/me/export/file`: streams the parts as one zip for the
+- [x] **T24** `GET /api/me/export/file`: streams the parts as one zip for the
   owner, 404 for anyone else and for any state but `ready`. *(AC-18)*
-- [ ] **T25** `export.destroy` and `export.sweep`: at 7 days, on delete copy,
+- [x] **T25** `export.destroy` and `export.sweep`: at 7 days, on delete copy,
   on leave and take-out of a thread in `thread_ids`, and from `deleteAccount`.
   Kinds owned. *(AC-19)*
-- [ ] **T26** The Activity entry on ready, with no push. *(AC-15)*
+- [x] **T26** The Activity entry on ready, with no push. *(AC-15)*
 
 ### Mobile
 
-- [ ] **T27** *Your copy* on the Privacy page, every state, polling only while
+- [x] **T27** *Your copy* on the Privacy page, every state, polling only while
   making. *(AC-15)*
-- [ ] **T28** `expo-sharing`, the download with the session header and the
+- [x] **T28** `expo-sharing`, the download with the session header and the
   hand-off to the system sheet; new native builds. *(AC-21)*
 - [ ] **T29** Device pass on both phones: the file opens from the system's
   files after the app is closed. *(AC-21)*
+  Not done, 2026-10-03. The development builds with the sharing module exist
+  on EAS; the pass needs somebody signed in on each device against a local
+  API.
 
 ### Web
 
-- [ ] **T30** *Your copy* on the Privacy pane, every state, and the download
+- [x] **T30** *Your copy* on the Privacy pane, every state, and the download
   link. *(AC-15)*
 
 ### Close of part B
 
-- [ ] **T31** Privacy page: the export edits and section 10's line. *(AC-24)*
-- [ ] **T32** Design `decisions.md`: the export row's states. *(AC-25)*
-- [ ] **T33** The same gates and reviewers as T19.
+- [x] **T31** Privacy page: the export edits and section 10's line. *(AC-24)*
+- [x] **T32** Design `decisions.md`: the export row's states. *(AC-25)*
+- [x] **T33** The same gates and reviewers as T19.
 - [ ] **T34** `going-public.md` gains this item and is ticked with a date.
+  On main after the merge: `docs/tech` is not edited in a worktree.

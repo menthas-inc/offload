@@ -57,6 +57,7 @@ import {
 } from "../threads/access.js";
 import { OverBudget } from "../budget.js";
 import { purgeAbout } from "../notifications/activity.js";
+import { destroyCopiesHolding } from "../exports/copy.js";
 import { LabelRefused, carriesAny, contentLabelsFor, labelsOfThread, setRowLabels, unlabelledCount, withContentLabels, withNoteLabels } from "../threads/labels.js";
 import { noteAddition } from "../notifications/people.js";
 import { looseSummary } from "../loose/read.js";
@@ -1143,6 +1144,9 @@ export async function deleteThread(
       .where("state", "=", "pending")
       .where("invited_by", "=", accountId)
       .execute();
+
+    // 035. A copy that holds this thread is a way back in. It goes too.
+    await destroyCopiesHolding(trx, threadId, accountId);
 
     const remaining = await trx
       .selectFrom("thread_members")

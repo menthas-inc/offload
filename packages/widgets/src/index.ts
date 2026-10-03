@@ -451,3 +451,7 @@ export {
   type PointLabel,
   type ScreenPoint,
 } from "./map.js";
+
+// 035. The Your copy row.
+export { copyRow, COPY_POLL_MS } from "./copy.js";
+export type { CopyRow, CopyState } from "./copy.js";

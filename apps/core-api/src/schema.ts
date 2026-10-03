@@ -309,7 +309,7 @@ export interface PushTokensTable {
 export interface ActivityTable {
   id: Generated<string>;
   account_id: string;
-  kind: "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted" | "labelled" | "mail";
+  kind: "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted" | "labelled" | "mail" | "export";
   sent: boolean;
   reason: "setting" | "permission" | "design" | null;
   title: string;
@@ -611,6 +611,23 @@ export interface PendingRevocationsTable {
   sealed_token: Buffer;
   attempts: Generated<number>;
   created_at: Generated<Timestamp>;
+}
+
+/** 035. One copy of everything an account can read, for seven days. */
+export interface ExportsTable {
+  id: Generated<string>;
+  account_id: string;
+  state: Generated<"making" | "ready" | "failed" | "gone">;
+  /** The clock for both seven days. Null once a build failed. */
+  requested_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  ready_at: Timestamp | null;
+  expires_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  /** How many parts are in the store, counted up as each one lands. */
+  parts: Generated<number>;
+  byte_size: Generated<string | number>;
+  /** This copy's key, wrapped under the account's. */
+  wrapped_key: Buffer;
+  thread_ids: Generated<string[]>;
 }
 
 export interface LlmUsageTable {
@@ -1140,6 +1157,7 @@ export interface Database {
   analytics_events: AnalyticsEventsTable;
   push_tokens: PushTokensTable;
   activity: ActivityTable;
+  exports: ExportsTable;
   activity_mentions: ActivityMentionsTable;
   labels: LabelsTable;
   content_labels: ContentLabelsTable;

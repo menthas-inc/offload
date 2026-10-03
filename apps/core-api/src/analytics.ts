@@ -48,7 +48,9 @@ export type EventName =
   // 026. The outcome of an email handed in, as an enum, and a count.
   | "mail_received"
   // 035. That one was deleted. No subject: the pseudonym went with it.
-  | "account_deleted";
+  | "account_deleted"
+  // 035. That a copy was asked for. Nothing about what it holds.
+  | "export_requested";
 
 type Source = "core-api" | "agent" | "worker" | "web" | "ios" | "android";
 

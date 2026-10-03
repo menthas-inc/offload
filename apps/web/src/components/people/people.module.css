@@ -647,6 +647,12 @@
   color: var(--text-accent);
 }
 
+/* 035. A text link in a dialog's body, with the room a finger needs. */
+.copyLink {
+  composes: retryLink;
+  min-height: var(--tap-min);
+}
+
 .foundRow {
   composes: pickRow pickRowLast;
   margin: 0;

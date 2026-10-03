@@ -13,6 +13,7 @@
 // press, since pressing again would get the same answer.
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Modal } from "../people/Modal";
 import { deleteAccount } from "../../lib/delete-account";
@@ -68,6 +69,13 @@ function Confirm({ onClose }: { onClose: () => void }) {
       <p className={modal.modalBody}>
         Deleting your account takes away your access and what only you could see, and leaves what you added with the
         others in any thread you share. It can&apos;t be undone.
+      </p>
+      {/* A copy takes a while and lives on another page, so this leaves the
+          dialog rather than starting one under it. */}
+      <p className={modal.modalBody}>
+        <Link href="/settings/privacy" className={modal.copyLink}>
+          Make a copy first
+        </Link>
       </p>
       {state === "last_owner" ? (
         <p className={modal.failed} role="alert">
