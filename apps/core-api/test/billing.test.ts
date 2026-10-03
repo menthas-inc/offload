@@ -21,6 +21,9 @@ import { PULLERS, pullBilling, registerPuller, type Puller } from "../src/billin
 import { startBillingJobs } from "../src/billing/jobs.js";
 import { VENDORS } from "../src/billing/vendors.js";
 
+// The repo's .env may hold the real key, and no test calls Railway.
+delete process.env["RAILWAY_API_TOKEN"];
+
 await migrate(() => {});
 
 /** An environment variable no real puller reads, and a value that is nobody's. */
@@ -75,8 +78,8 @@ async function fixed(map: Record<string, number>): Promise<void> {
 }
 
 describe("the pullers", () => {
-  it("are none today: no interface has been called for real", () => {
-    expect(PULLERS).toEqual([]);
+  it("are only the ones written against a recorded answer: Railway", () => {
+    expect(PULLERS.map((one) => one.puller.vendor)).toEqual(["railway"]);
   });
 
   it("name companies the table knows", () => {

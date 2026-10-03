@@ -54,6 +54,9 @@ const schema = z.object({
   /** 030. Keys the place query cache, so a copy of the table is not a
    *  dictionary of places people mentioned. Lives here, never in the database. */
   PLACE_HASH_PEPPER: z.string().min(32).optional(),
+  /** 034. Reads Railway's own bill, once a day, for Costs. A workspace token:
+   *  Railway has no narrower one. Unset, the puller never runs. */
+  RAILWAY_API_TOKEN: z.string().min(1).optional(),
 
   // Connectors, 012. **A different Google project from sign-in, on purpose.**
   // Calendar scopes are sensitive and pull a whole Cloud project into a heavier

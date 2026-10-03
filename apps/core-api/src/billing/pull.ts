@@ -1,13 +1,12 @@
 // The daily pull (034, section 4.1): each company's own bill for the month,
 // and the subscriptions an owner typed on Limits.
 //
-// **The registry is empty, on purpose.** A puller is written against a
-// response somebody recorded from the real interface, never against its
-// documentation: 016 shipped a field taken from a docs page, the API refused
-// it, and every pasted link failed silently. No billing key exists in any
-// session that has built this, so no interface has been called and no puller
-// has been written. The impl-spec's appendix lists what to try. Until then
-// every company is metered or fixed, and says so.
+// **The registry holds only what has been called for real.** A puller is
+// written against a response somebody recorded from the real interface, never
+// against its documentation: 016 shipped a field taken from a docs page, the
+// API refused it, and every pasted link failed silently. Railway is the first
+// (`railway.ts`). Every other company is metered or fixed, and says so; the
+// impl-spec's appendix lists what was tried.
 //
 // A puller is handed a date range and nothing else (AC-59). It reads its own
 // key from the environment, and runs only when that key is set, so a local
@@ -17,6 +16,7 @@ import { sql } from "kysely";
 import { db } from "../db.js";
 import { JobError } from "../jobs/errors.js";
 import { clearSettingsCache, setting } from "../settings.js";
+import { railwayPuller } from "./railway.js";
 
 export interface Pulled {
   /** A UTC month, `YYYY-MM`. */
@@ -38,7 +38,7 @@ interface Registered {
   puller: Puller;
 }
 
-export const PULLERS: Registered[] = [];
+export const PULLERS: Registered[] = [{ env: "RAILWAY_API_TOKEN", puller: railwayPuller() }];
 
 /** Add a puller. Returns what takes it out again, which is what a test needs. */
 export function registerPuller(env: string, puller: Puller): () => void {
