@@ -90,6 +90,9 @@ describe("AC-39 the scheduled registry", () => {
         "health.rollup",
         "alerts.check",
         "billing.pull",
+        // 035 added two, after the impl-spec was written.
+        "export.sweep",
+        "connector.revoke",
       ].sort()
     );
   });

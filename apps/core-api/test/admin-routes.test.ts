@@ -280,19 +280,9 @@ describe("every route the impl-spec names", () => {
     "GET /v1/admin/audit/facets",
   ];
 
-  it.fails("is registered", () => {
+  it("is registered", () => {
     const names = routes.map(name);
     expect(SPEC.filter((route) => !names.includes(route))).toEqual([]);
-  });
-
-  // Why the one above still fails, held so that it fails for this and for
-  // nothing else: a path that drifts from the list shows here.
-  it("is registered but for deletion, which is not built yet", () => {
-    const names = routes.map(name);
-    expect(SPEC.filter((route) => !names.includes(route))).toEqual([
-      "POST /v1/admin/people/:id/delete",
-      "POST /v1/admin/people/:id/delete/cancel",
-    ]);
   });
 
   it("is the whole admin API: nothing is registered that no list names", () => {

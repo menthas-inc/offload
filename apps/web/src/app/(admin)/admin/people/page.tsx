@@ -8,8 +8,8 @@
 // reversible sits on the row and acts without opening it. Which actions a row
 // carries is the server's answer (`can`): a guarded action is not drawn.
 //
-// Delete is owner only and is built with account destruction (034 section G).
-// Its place is marked below, in the row's actions and in the notes.
+// Delete is owner only: the address typed back, then a day in which the row
+// says when it goes and an owner can cancel (034 section G).
 
 import { useEffect, useState } from "react";
 import { Icon } from "../../../../components/Icon";
@@ -38,6 +38,7 @@ import {
   type Col,
 } from "../../ui";
 import { Choice } from "./choice";
+import { DELETE_BODY, goes } from "./deleting";
 import { usePaged } from "./paged";
 import { refusedLine } from "./refused";
 
@@ -58,7 +59,8 @@ interface Person {
   lastActive: string | null;
   spendMicros: number;
   state: "active" | "disabled";
-  can: { disable: boolean; enable: boolean };
+  deleteAfter: string | null;
+  can: { disable: boolean; enable: boolean; delete: boolean; cancelDelete: boolean };
 }
 
 const FILTERS = [
@@ -83,14 +85,15 @@ const COLS: Col[] = [
   { label: "Last active", w: 110, right: true },
   { label: "Spend, 30d", w: 96, right: true },
   { label: "State", w: 92 },
-  { label: "", w: 110, right: true },
+  { label: "", w: 170, right: true },
 ];
 
-// The kit's notes, without its line about Delete, which is not here yet.
+// The kit's notes, with Delete as 034 has it: a day's hold and a cancel.
 const NOTES = [
   "Disable signs the account out everywhere and refuses new sign-ins. Nothing is deleted and threads shared with other people stay readable for them. Reversible from this row.",
   "While an account is disabled offload does nothing for it in the background: no nightly pass, no digest, no push, no calendar sync, no mail in.",
-  "Nothing here emails the person. If they should be told, support writes to them.",
+  "Delete is for owners. It locks the account the way Disable does and destroys it 24 hours later: its threads, its notes and every conversation. Until then an owner can cancel, which leaves it disabled. What the person put into a thread somebody else is in stays with that thread.",
+  "Disable and Enable do not email the person. If they should be told, support writes to them. When an account is destroyed, its address gets one email saying so.",
 ] as const;
 
 export default function PeoplePage() {
@@ -101,6 +104,7 @@ export default function PeoplePage() {
   // end and not one per keystroke.
   const [q, setQ] = useState("");
   const [asking, setAsking] = useState<Person | null>(null);
+  const [deleting, setDeleting] = useState<Person | null>(null);
   const [busy, setBusy] = useState(false);
   const { toast, say } = useSay();
 
@@ -142,6 +146,30 @@ export default function PeoplePage() {
       return;
     }
     say(`${called(person)} is active again`);
+    reload();
+  }
+
+  async function remove(person: Person) {
+    setBusy(true);
+    const response = await adminWrite(`/people/${person.id}/delete`, "POST", { email: person.email }).catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      say((await refusedLine("delete", response)) ?? "That did not go through. Nobody was deleted");
+      return;
+    }
+    say(`${called(person)} will be deleted in 24 hours`);
+    reload();
+  }
+
+  async function keep(person: Person) {
+    setBusy(true);
+    const response = await adminWrite(`/people/${person.id}/delete/cancel`, "POST").catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      say((await refusedLine("cancel", response)) ?? "That did not go through. Nothing was cancelled");
+      return;
+    }
+    say(`Deletion cancelled. ${called(person)} stays disabled`);
     reload();
   }
 
@@ -208,7 +236,11 @@ export default function PeoplePage() {
                 last={index === rows.length - 1}
                 muted={person.state === "disabled"}
                 cells={[
-                  <Lines key="who" main={called(person)} sub={person.name ? person.email : undefined} />,
+                  <Lines
+                    key="who"
+                    main={called(person)}
+                    sub={[person.name ? person.email : null, person.deleteAfter ? goes(person.deleteAfter) : null].filter(Boolean).join(" · ") || undefined}
+                  />,
                   <span key="with" className={styles.quiet}>
                     {person.providers.map((provider) => PROVIDER[provider] ?? provider).join(", ")}
                   </span>,
@@ -220,7 +252,7 @@ export default function PeoplePage() {
                     {person.lastActive ? moment(person.lastActive) : null}
                   </span>,
                   dollars(person.spendMicros),
-                  <StatusPill key="state" value={person.state} />,
+                  <StatusPill key="state" value={person.state} label={person.deleteAfter ? "deleting" : undefined} />,
                   <span key="actions" className={styles.rowActions}>
                     {person.can.disable ? (
                       <button type="button" className={styles.ghost} onClick={() => setAsking(person)} disabled={busy}>
@@ -232,8 +264,16 @@ export default function PeoplePage() {
                         Enable
                       </button>
                     ) : null}
-                    {/* 034 section G. The owner-only Delete goes here, after
-                        Disable or Enable, with its confirm and its cancel. */}
+                    {person.can.delete ? (
+                      <button type="button" className={styles.danger} onClick={() => setDeleting(person)} disabled={busy}>
+                        Delete
+                      </button>
+                    ) : null}
+                    {person.can.cancelDelete ? (
+                      <button type="button" className={styles.small} onClick={() => void keep(person)} disabled={busy}>
+                        Cancel deletion
+                      </button>
+                    ) : null}
                   </span>,
                 ]}
               />
@@ -256,7 +296,6 @@ export default function PeoplePage() {
       )}
 
       <Section note="and what they do not">What these do</Section>
-      {/* 034 section G. Delete's line goes in these notes when it is built. */}
       <Notes items={NOTES} />
 
       {asking ? (
@@ -267,6 +306,19 @@ export default function PeoplePage() {
           busy={busy}
           onConfirm={() => void disable(asking)}
           onClose={() => setAsking(null)}
+        />
+      ) : null}
+
+      {deleting ? (
+        <Confirm
+          danger
+          title={`Delete ${called(deleting)}?`}
+          body={DELETE_BODY}
+          confirmWord={deleting.email}
+          confirmLabel="Delete account"
+          busy={busy}
+          onConfirm={() => void remove(deleting)}
+          onClose={() => setDeleting(null)}
         />
       ) : null}
 

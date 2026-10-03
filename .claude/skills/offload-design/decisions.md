@@ -11,6 +11,198 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-03 · The admin panel counts money in dollars (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Pounds throughout the admin kit.
+**Is:** Dollars, to the cent, on every page that shows money.
+**Why:** The ledger prices calls in dollars and every vendor bills in them.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx` and `AdminData.js`: the currency sign and the `money` helper.
+
+### 2026-10-03 · The weekly batch is 25 (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** The kit's Waitlist and Limits show a batch of 20.
+**Is:** 25, read from the `waitlist.batch` setting, editable on Limits.
+**Why:** It is what 002 shipped and what the owner uses.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: the batch figure on Waitlist and Limits.
+
+### 2026-10-03 · Caps are a rolling 24 hours (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Limits says caps reset at midnight.
+**Is:** Every per-person cap is measured over the last 24 hours, rolling. The person's page labels its Today section *the last 24 hours, rolling*.
+**Why:** That is how the caps have worked since they were built; midnight would need a time zone per account.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: the Limits section note and any *resets at midnight* line.
+
+### 2026-10-03 · A cap means stop, and nothing else (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Limits offers *When a cap is reached* with a choice of behaviours.
+**Is:** The control is gone. The next turn is refused and what was already dumped is safe.
+**Why:** Owner's decision: one behaviour, so support never has to ask which one an account had.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: remove the *When a cap is reached* block from Limits.
+
+### 2026-10-03 · Warn at is gone (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Limits has a *Warn at* percentage per cap.
+**Is:** No warning threshold. Alerts are conditions on Health, not percentages on Limits.
+**Why:** Nobody was going to act on a warning that a single account was near a cap.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: remove *Warn at* from Limits.
+
+### 2026-10-03 · A monthly budget replaces the per-person monthly cap (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Limits has a per-person monthly spend cap.
+**Is:** One figure for the platform, the monthly budget, which Costs draws spend against. The per-person spend cap is the daily one.
+**Why:** A per-person month is a second window over the same money and the owner wanted one number to watch.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: Limits loses the per-person monthly cap and gains *Monthly budget*; Costs draws against it.
+
+### 2026-10-03 · Alerts go to every owner (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Limits has an editable list of alert recipients and a Slack target.
+**Is:** No list and no Slack. Every owner gets the email. At most ten condition alerts a day; staff and deletion alerts are never counted.
+**Why:** A list is one more thing to keep right, and the people who must know are exactly the owners.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: remove the recipients block and the Slack row from Limits.
+
+### 2026-10-03 · Limits gains switches, photo bytes and voice minutes, in grouped sections (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** One list of numeric caps.
+**Is:** Groups, each under its own label: per person in any 24 hours (spend, turns, photos, photo megabytes, voice notes, voice minutes, mail), the platform in any 24 hours (the cap that refuses everyone), the month (the budget, and what each subscription costs, typed by an owner), the waitlist (the batch), and switches, where off stops a path for everyone within seconds. Bytes are typed in MB and milliseconds in minutes.
+**Why:** The settings that exist are more than the kit drew, and one flat list of fifteen fields hid which ones stop everybody.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: the Limits page regrouped into these sections, with a switch row and an affixed field (`$`, `MB`, `min`) in `A.jsx`.
+
+### 2026-10-03 · Saving Limits shows old to new, and Discard is Cancel (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Save writes at once; the other button is *Discard*.
+**Is:** Save opens the confirm dialog listing each change as *old to new* in words. If somebody else changed a value meanwhile the save is refused, the page reads again and says so. The other button is *Cancel*.
+**Why:** A cap changed by a typo refuses real people, and two owners can be on the page at once.
+**Design system impact:** `A.jsx`: a `Diff` list inside `AConfirm`. `ui_kits/admin_web/AdminApp.jsx`: *Discard* becomes *Cancel*.
+
+### 2026-10-03 · What has been hit: a count and a scope, not What we did (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** The hits table has a *What we did* column.
+**Is:** Day, cap, whose (theirs or the platform's), and how many times. No *What we did*.
+**Why:** There is one behaviour now, so the column would say *stopped* on every row.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: the hits table's columns.
+
+### 2026-10-03 · Delete is owner only, held for 24 hours, and can be cancelled (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Any staff member sees Delete on a People row. The dialog says *their memories* and *inside 24 hours and cannot be undone*, and the row disappears at once.
+**Is:** Only an owner is sent the action, as an outline clay button last in the row and last on a person's page. The dialog is the kit's `AConfirm danger` with the address typed back and *Delete account*; its body says *its threads, its notes and every conversation*, that they are signed out now, that it is destroyed in 24 hours and that until then an owner can cancel. After confirming, the account is disabled, the row stays, its pill reads *deleting*, the line under the name says *To be deleted 4 Oct, 14:05*, and the only action is *Cancel deletion*, a small secondary button with no dialog, which leaves the account disabled. Toasts: *Ana will be deleted in 24 hours*, *Deletion cancelled. Ana stays disabled*. A refusal is one clause: *Not deleted. That account is the last owner*. The notes under the table say what Delete does and that the address gets one email once the account is destroyed.
+**Why:** Owner's decision: the hold is the undo for the one action in the panel that destroys something, and memory was retired as a word on 2026-09-10.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: Delete drawn for owners only, the dialog body, the *deleting* row state with *Cancel deletion*, the two toasts and the notes list. `AdminData.js`: a marked account in the fixture.
+
+### 2026-10-03 · A deleted account's page (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Not drawn.
+**Is:** Under the *People* back link: the title *Deleted account*, one line, *This account was deleted on 12 September 2026.*, and for an owner a three column table of its audit entries (when, who, what). No name, no address, no sections, no actions. An id that was never an account still says *Nobody here.*
+**Why:** A link from the audit log or a bookmark should say what happened and nothing about who it was.
+**Design system impact:** A new state for the person page in the admin kit: head, one line, audit table.
+
+### 2026-10-03 · People rows open a person's page, gain Joined, and can be sorted (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** A People row is not a link and has no Joined column.
+**Is:** The whole row opens the person's page; its buttons act without opening it. Columns gain *Joined*. A *Sort* choice (joined, last active, spend) sits above the table, and a sorted list says when it is only the top 200.
+**Why:** Troubleshooting starts from one account, and the list is the way to it.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: the People table's columns and the row as a link; `A.jsx`: `ARow` with an `href`.
+
+### 2026-10-03 · Waitlist gains invite by address, and Remove (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Waitlist invites from the list only, and a row cannot be removed.
+**Is:** An *Invite somebody* field takes an address that is not on the list. Each waiting row has *Remove*, an outline clay button that is clay at rest, behind the confirm dialog. The stats row the kit draws is there: waiting, invited this week, signed up, weekly batch.
+**Why:** The owner invites people who never joined the list, and a mistyped or unwanted address had no way out. Clay at rest is the owner's ask, so Remove reads as destructive before the pointer is on it.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: the invite field and the Remove action on Waitlist. `A.jsx`: `ADanger` is clay at rest, not grey until hover.
+
+### 2026-10-03 · Staff: any address that has signed in once, no Name field, no email on adding (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** The add dialog asks for a name and an address and implies an email is sent.
+**Is:** The dialog asks for an address and a role. The address must belong to an account that has signed in. Nothing is emailed to the person; every owner is told.
+**Why:** The name comes from the account, and staff is a role on an account, not an invitation.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: the Staff add dialog loses *Name* and its line about an email.
+
+### 2026-10-03 · Costs gains trends, usage, by model and by vendor (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Costs is a stats row and a by-feature table, with the row *Memories*.
+**Is:** Costs adds a cost per day plot, usage per day, a table by model, and a table by vendor that sets what the ledger metered beside what the vendor billed or what an owner typed as a subscription. The sub line says the range. The row *Memories* is *Notes*. *Export CSV* is a plain secondary button with no icon.
+**Why:** Owner's ask: see where the money goes and whether it matches the bill. The icon set has no plain download glyph.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: the Costs page's new sections, the *Notes* row, and Export CSV without an icon.
+
+### 2026-10-03 · A person's page, Health, Audit and overrides are new (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** No mock.
+**Is:** Built from the `A.jsx` vocabulary. A person: who, today against each cap, limits with a per-person override (owner), cost and activity plots, counts of what they have, what happened (jobs, eight columns: the error code sits under the kind and the tokens under the model), limit hits. Health: services with uptime and incidents, the queue, scheduled jobs each with its own page, stuck and dead jobs with Retry and Dismiss, model calls, vendors, backups. Audit: every staff write, newest first, filtered by staff member, kind and person.
+**Why:** Owner's ask; support needs one account's story with nothing the person wrote on it.
+**Design system impact:** Three new pages and the override dialog for the admin kit, drawn from the build.
+
+### 2026-10-03 · The roles are redrawn (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Owner pages are the ones about money.
+**Is:** Support sees Waitlist, People and a person's page. Owners also see Health, Costs, Limits, Staff and Audit, open on Health, and are the only ones sent Delete, overrides and the audit entries of a deleted account. A page a role cannot open is not in the navigation and answers as not found.
+**Why:** Access to people, not only money, is what needs the higher role.
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`: the navigation's owner group and its label.
+
+### 2026-10-03 · Plots are ink, one series each (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** The kit's bars are moss.
+**Is:** Every plot is one series in the text colour on the page surface, with a range picker of 24 hours, 7, 30 and 90 days kept in the address. Small multiples, two across, for a person's activity.
+**Why:** Moss is the navigation and the primary action in the panel; a plot in it read as something to press.
+**Design system impact:** `A.jsx`: the plot colour, and a `--plot-height` token is requested (the build holds the height in the admin stylesheet until it lands).
+
+### 2026-10-03 · The panel is pinned light (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** The kit follows the theme.
+**Is:** The admin panel is light whatever the system says.
+**Why:** It is a work surface read beside spreadsheets and vendor dashboards, and one theme halves what has to be checked.
+**Design system impact:** The admin kit's README: say light only.
+
+### 2026-10-03 · No eight-second Undo in the panel (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** The product's toast carries Undo for eight seconds.
+**Is:** The panel's toast is four seconds and has no Undo. Anything that cannot be quietly reversed asks first in the confirm dialog, which holds the keyboard while open.
+**Why:** Staff act on purpose; the confirmation is the safety net and an Undo on an email already sent would be a lie.
+**Design system impact:** `A.jsx`: the toast's duration and the absence of Undo, stated in the README.
+
+### 2026-10-03 · The confirm pill is for a bulk selection only, and section labels are the kit's (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Built in 002 and unlogged: a floating confirm pill, and section labels of the build's own.
+**Is:** The floating pill appears only while rows are selected on Waitlist. Every other confirmation is the dialog. Section labels are `ASection`'s.
+**Why:** One way to confirm one thing; the pill is right only where the count is the subject.
+**Design system impact:** none.
+
+### 2026-10-03 · An admin table scrolls sideways before it crushes a column (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** Tables shrink with the pane.
+**Is:** A row has a least width: its fixed columns plus 140px for each open one. Below that the table scrolls sideways.
+**Why:** At 1280 the open column of an eight column table went to nothing.
+**Design system impact:** `A.jsx`: `ATable` gains the least width and the sideways scroll.
+
+### 2026-10-03 · A solid danger surface is requested (034)
+**Surface:** admin
+**Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.
+**Was:** There is `--surface-danger-soft` and `--text-danger`, and no solid clay surface.
+**Is:** The confirm button of a destructive dialog is solid clay, the only solid clay anywhere. The build draws it from `--text-danger` in one class, `.dangerSolid`, until a token exists.
+**Why:** The kit's `AConfirm danger` is solid and there was no alias to draw it with.
+**Design system impact:** Add `--surface-danger` (and its hover) to `tokens/colors.css` in every scope; the build then swaps one class.
+
 ### 2026-10-03 · Your copy, as built (035)
 **Surface:** iOS, Android, web
 **Raised by:** code, building the export in 035 part B (`docs/specs/035-account-deletion-and-export/`), with the owner's answers of the same day and the client review.

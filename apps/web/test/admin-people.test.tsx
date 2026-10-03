@@ -37,15 +37,16 @@ const row = (id: string, over: Record<string, unknown> = {}) => ({
   lastActive: "2026-10-02T09:30:00.000Z",
   spendMicros: 4_820_000,
   state: "active",
-  can: { disable: true, enable: false },
+  deleteAfter: null,
+  can: { disable: true, enable: false, delete: false, cancelDelete: false },
   ...over,
 });
 
 const ROWS = [
   row("u1"),
-  row("u2", { name: null, providers: ["google"], state: "disabled", lastActive: null, can: { disable: false, enable: true } }),
+  row("u2", { name: null, providers: ["google"], state: "disabled", lastActive: null, can: { disable: false, enable: true, delete: false, cancelDelete: false } }),
   // Staff, seen by support: neither action is drawn.
-  row("u3", { name: "Hana Ito", can: { disable: false, enable: false } }),
+  row("u3", { name: "Hana Ito", can: { disable: false, enable: false, delete: false, cancelDelete: false } }),
 ];
 
 type Call = { url: string; path: string; init?: RequestInit };
@@ -142,7 +143,8 @@ describe("the People page", () => {
     expect([...rows[0]!.querySelectorAll("button")].map((one) => one.textContent)).toEqual(["Disable"]);
     expect([...rows[1]!.querySelectorAll("button")].map((one) => one.textContent)).toEqual(["Enable"]);
     expect(rows[2]!.querySelectorAll("button")).toHaveLength(0);
-    expect(host.textContent).not.toContain("Delete");
+    expect(buttons(host, "Delete")).toHaveLength(0);
+    expect(buttons(host, "Cancel deletion")).toHaveLength(0);
   });
 
   it("shows one spinner while loading", async () => {
@@ -276,5 +278,89 @@ describe("the People page", () => {
     await settle();
     expect(host.querySelector('[role="status"]')!.textContent).toBe("That did not go through. Nobody was disabled");
     expect(host.textContent).toContain("Ana Duarte");
+  });
+
+  // 034 section G. What an owner is sent: Delete on a free account, and on a
+  // marked one when it goes and the way back.
+  const OWNER_ROWS = [
+    row("u1", { can: { disable: true, enable: false, delete: true, cancelDelete: false } }),
+    row("u4", {
+      name: "Rui Sato",
+      state: "disabled",
+      deleteAfter: "2026-10-04T14:05:00.000Z",
+      can: { disable: false, enable: false, delete: false, cancelDelete: true },
+    }),
+  ];
+  const owner = { page: () => ({ rows: OWNER_ROWS, nextCursor: null, capped: false }) };
+
+  it("draws Delete last for an owner, and on a marked row when it goes and Cancel deletion", async () => {
+    api(owner);
+    const host = await open();
+    const rows = [...host.querySelectorAll('[role="row"]')].slice(1);
+    expect([...rows[0]!.querySelectorAll("button")].map((one) => one.textContent)).toEqual(["Disable", "Delete"]);
+    expect([...rows[1]!.querySelectorAll("button")].map((one) => one.textContent)).toEqual(["Cancel deletion"]);
+    expect(rows[1]!.textContent).toContain("deleting");
+    expect(rows[1]!.textContent).toMatch(/To be deleted 4 Oct, \d\d:05/);
+    expect(rows[0]!.textContent).not.toContain("To be deleted");
+  });
+
+  it("deletes only once the address is typed back, says what goes and when, and posts the address", async () => {
+    api(owner);
+    const host = await open();
+    await click(button(host, "Delete"));
+    const dialog = host.querySelector('[role="dialog"]')!;
+    expect(dialog.textContent).toContain("Delete Ana Duarte?");
+    expect(dialog.textContent).toContain("its threads, its notes and every conversation");
+    expect(dialog.textContent).toContain("24 hours");
+    expect(dialog.textContent).toContain("an owner can cancel");
+    expect(dialog.textContent).not.toMatch(/memor/i);
+    const go = button(dialog, "Delete account") as HTMLButtonElement;
+    expect(go.disabled).toBe(true);
+
+    await act(async () => type(dialog.querySelector("input")!, "u1@example.test"));
+    expect(go.disabled).toBe(false);
+    const before = lists().length;
+    await click(go);
+    await settle();
+    const post = calls.find((call) => call.init?.method === "POST")!;
+    expect(post.path).toBe("/people/u1/delete");
+    expect(JSON.parse(String(post.init!.body))).toEqual({ email: "u1@example.test" });
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("Ana Duarte will be deleted in 24 hours");
+    expect(lists().length).toBe(before + 1);
+  });
+
+  it("cancels a deletion from the row and says the account stays disabled", async () => {
+    api(owner);
+    const host = await open();
+    await click(button(host, "Cancel deletion"));
+    await settle();
+    expect(calls.find((call) => call.init?.method === "POST")!.path).toBe("/people/u4/delete/cancel");
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("Deletion cancelled. Rui Sato stays disabled");
+  });
+
+  it("says why a deletion was refused, and when a cancel found nothing to cancel", async () => {
+    api({ ...owner, refused: "last_owner" });
+    let host = await open();
+    await click(button(host, "Delete"));
+    const dialog = host.querySelector('[role="dialog"]')!;
+    await act(async () => type(dialog.querySelector("input")!, "u1@example.test"));
+    await click(button(dialog, "Delete account"));
+    await settle();
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("Not deleted. That account is the last owner");
+
+    document.body.innerHTML = "";
+    api({ ...owner, refused: "not_marked" });
+    host = await open();
+    await click(button(host, "Cancel deletion"));
+    await settle();
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("Nothing was cancelled. That account is not being deleted");
+  });
+
+  it("says what Delete does in the notes, and that the person hears of it once", async () => {
+    api();
+    const host = await open();
+    expect(host.textContent).toContain("destroys it 24 hours later");
+    expect(host.textContent).toContain("one email");
+    expect(host.textContent).not.toMatch(/memor/i);
   });
 });

@@ -92,7 +92,7 @@ describe("AC-18 a person", () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(Object.keys(body).sort()).toEqual([
-      "can", "consentVersion", "country", "disabledAt", "email", "firstSignedInAt", "has", "id", "invitedBy", "joined",
+      "can", "consentVersion", "country", "deleteAfter", "disabledAt", "email", "firstSignedInAt", "has", "id", "invitedBy", "joined",
       "lastActive", "limits", "name", "providers", "state", "timeZone", "today",
     ]);
     expect(body).toMatchObject({
@@ -118,7 +118,7 @@ describe("AC-18 a person", () => {
     const body = (await get(support.cookie, `/people/${ana}`)).json();
     expect(body.invitedBy).toBeNull();
     expect(body.name).toBeNull();
-    expect(body.can).toEqual({ disable: true, enable: false, limits: false });
+    expect(body.can).toEqual({ disable: true, enable: false, delete: false, cancelDelete: false, limits: false });
   });
 
   it("answers 404 for an account that never signed in, and for nobody", async () => {

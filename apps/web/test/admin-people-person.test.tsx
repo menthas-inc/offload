@@ -46,7 +46,8 @@ const PERSON = {
   timeZone: "Europe/Lisbon",
   consentVersion: "2026-09-20",
   invitedBy: { id: "s1", name: "Hana Ito" },
-  can: { disable: true, enable: false, limits: true },
+  deleteAfter: null,
+  can: { disable: true, enable: false, limits: true, delete: false, cancelDelete: false },
   today: {
     caps: [
       cap("cap.spend_micros", 430_000, 5_000_000),
@@ -107,6 +108,9 @@ let calls: Call[] = [];
 
 interface Answers {
   person?: unknown;
+  /** The 410 a deleted account's page answers with. */
+  gone?: { error: "deleted"; deletedAt: string };
+  audit?: { status?: number; rows?: unknown[] };
   status?: Partial<Record<"person" | "usage" | "timeline" | "hits" | "write", number>>;
   timeline?: (path: string) => unknown;
   hits?: unknown;
@@ -129,7 +133,9 @@ function api(answers: Answers = {}) {
       if (path.startsWith("/people/p1/usage")) return json(USAGE, answers.status?.usage ?? 200);
       if (path.startsWith("/people/p1/timeline")) return json(answers.timeline ? answers.timeline(path) : TIMELINE, answers.status?.timeline ?? 200);
       if (path.startsWith("/people/p1/hits")) return json(answers.hits ?? HITS, answers.status?.hits ?? 200);
+      if (path === "/people/p1" && answers.gone) return json(answers.gone, 410);
       if (path === "/people/p1") return json(answers.person ?? PERSON, answers.status?.person ?? 200);
+      if (path.startsWith("/audit")) return json({ rows: answers.audit?.rows ?? [], nextCursor: null }, answers.audit?.status ?? 200);
       return json({}, 404);
     }),
   );
@@ -505,12 +511,87 @@ describe("a person's page", () => {
     const host = await open();
     expect(buttons(host, "Disable")).toHaveLength(0);
     expect(buttons(host, "Enable")).toHaveLength(0);
-    expect(host.textContent).not.toContain("Delete");
+    expect(buttons(host, "Delete")).toHaveLength(0);
+    expect(buttons(host, "Cancel deletion")).toHaveLength(0);
   });
 
   it("shows nothing a session, a device or a calendar is called", async () => {
     api();
     const host = await open();
     for (const word of ["IP", "User agent", "user agent"]) expect(host.textContent).not.toContain(word);
+  });
+
+  // 034 section G.
+  const OWNED = { ...PERSON, can: { ...PERSON.can, delete: true } };
+  const MARKED = {
+    ...PERSON,
+    state: "disabled",
+    disabledAt: "2026-10-03T14:05:00.000Z",
+    deleteAfter: "2026-10-04T14:05:00.000Z",
+    can: { disable: false, enable: false, limits: true, delete: false, cancelDelete: true },
+  };
+
+  it("deletes once the address is typed back, and posts it", async () => {
+    api({ person: OWNED });
+    const host = await open();
+    const actions = [...host.querySelector('[data-section="actions"]')!.querySelectorAll("button")].map((one) => one.textContent);
+    expect(actions).toEqual(["Sign out everywhere", "Disable", "Delete"]);
+    await click(button(host, "Delete"));
+    const dialog = host.querySelector('[role="dialog"]')!;
+    expect(dialog.textContent).toContain("Delete Ana Duarte?");
+    expect(dialog.textContent).toContain("its threads, its notes and every conversation");
+    expect(dialog.textContent).toContain("24 hours");
+    const go = button(dialog, "Delete account") as HTMLButtonElement;
+    expect(go.disabled).toBe(true);
+    await act(async () => type(dialog.querySelector("input")!, "ana@example.test"));
+    await click(go);
+    await settle();
+    const post = writes().find((call) => call.path === "/people/p1/delete")!;
+    expect(JSON.parse(String(post.init!.body))).toEqual({ email: "ana@example.test" });
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("Ana Duarte will be deleted in 24 hours");
+  });
+
+  it("says when a marked account goes, and cancels", async () => {
+    api({ person: MARKED });
+    const host = await open();
+    expect(host.querySelector('[data-section="who"]')!.textContent).toMatch(/To be deleted 4 Oct, \d\d:05/);
+    expect(buttons(host, "Delete")).toHaveLength(0);
+    await click(button(host, "Cancel deletion"));
+    await settle();
+    expect(writes().some((call) => call.path === "/people/p1/delete/cancel")).toBe(true);
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("Deletion cancelled. Ana Duarte stays disabled");
+  });
+
+  it("draws a deleted account as its head, the day it went and its audit entries, and nothing else", async () => {
+    api({
+      gone: { error: "deleted", deletedAt: "2026-09-12T08:00:00.000Z" },
+      audit: {
+        rows: [
+          { id: "a2", at: "2026-09-12T08:00:00.000Z", kind: "deleted", staff: { id: "s1", name: "Hana Ito", email: "hana@example.test" }, target: { id: "p1", deleted: true }, settingKey: null, old: null, new: null, jobId: null },
+          { id: "a1", at: "2026-09-11T08:00:00.000Z", kind: "deletion.scheduled", staff: { id: "s1", name: "Hana Ito", email: "hana@example.test" }, target: { id: "p1", deleted: true }, settingKey: null, old: null, new: null, jobId: null },
+        ],
+      },
+    });
+    const host = await open();
+    expect(host.querySelector('a[href="/admin/people"]')).not.toBeNull();
+    expect(host.textContent).toContain("This account was deleted on 12 September 2026.");
+    expect(host.textContent).not.toContain("Nobody here.");
+    expect(calls.some((call) => call.path === "/audit?person=p1")).toBe(true);
+    const rows = [...host.querySelectorAll('[role="row"]')].slice(1);
+    expect(rows.map((one) => one.textContent)).toEqual([expect.stringContaining("Deleted the account"), expect.stringContaining("Scheduled deletion")]);
+    expect(rows[0]!.textContent).toContain("Hana Ito");
+    // Nothing of the page it was: no section, no action, no other read.
+    expect(host.querySelectorAll("[data-section]")).toHaveLength(0);
+    expect(host.querySelectorAll("button")).toHaveLength(0);
+    expect(writes()).toHaveLength(0);
+    expect(calls.some((call) => /usage|timeline|hits/.test(call.path))).toBe(false);
+  });
+
+  it("draws the deleted head alone for support, who cannot read the audit log", async () => {
+    api({ gone: { error: "deleted", deletedAt: "2026-09-12T08:00:00.000Z" }, audit: { status: 404 } });
+    const host = await open();
+    expect(host.textContent).toContain("This account was deleted on 12 September 2026.");
+    expect(host.querySelectorAll('[role="row"]')).toHaveLength(0);
+    expect(host.textContent).not.toContain("Couldn't load");
   });
 });

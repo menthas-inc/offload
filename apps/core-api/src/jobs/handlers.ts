@@ -34,6 +34,8 @@ import { inBackground, worksInBackground } from "../accounts/active.js";
 import { platformCapReached } from "../budget.js";
 import { setting } from "../settings.js";
 import { healthHandlers } from "../health/jobs.js";
+import { deleteAccount, LastOwner } from "../accounts/delete.js";
+import { audit } from "../admin/audit.js";
 import { billingHandlers } from "../billing/jobs.js";
 
 export type Handler = (
@@ -1068,7 +1070,38 @@ const mapsBackfill: Handler = async () => {
   console.log(JSON.stringify({ level: "info", msg: "maps backfill booked", ...booked }));
 };
 
+/** 034. An account an owner marked, a day later.
+ *
+ *  The mark is read again here, so a cancel in between is a job that does
+ *  nothing, and so is a mark that was moved. The audit entry is written
+ *  after the delete rather than with it: `deleteAccount` owns its own
+ *  transaction. Staff are named by the id the mark carried. */
+const accountDelete: Handler = async (payload) => {
+  const id = typeof payload.accountId === "string" ? payload.accountId : null;
+  if (!id) throw new Error("account.delete job has no account");
+  const marked = await db
+    .selectFrom("accounts")
+    .select(["delete_requested_by"])
+    .where("id", "=", id)
+    .where("delete_after", "<=", sql<Date>`now()`)
+    .executeTakeFirst();
+  if (!marked?.delete_requested_by) return;
+  try {
+    const { deleted } = await deleteAccount(id);
+    if (!deleted) return;
+  } catch (error) {
+    if (!(error instanceof LastOwner)) throw error;
+    // The routes refuse this; it can only be an owner who became the last
+    // one during the hold. The mark goes and the account stays disabled.
+    await db.updateTable("accounts").set({ delete_after: null, delete_requested_by: null }).where("id", "=", id).execute();
+    console.error(JSON.stringify({ at: "account.delete", outcome: "refused", reason: "last_owner" }));
+    return;
+  }
+  await audit(db, { staff: { accountId: marked.delete_requested_by }, kind: "deleted", targetAccountId: id });
+};
+
 export const handlers: Record<string, Handler> = {
+  "account.delete": accountDelete,
   "account.daily": accountDaily,
   "account.daily.run": accountDailyRun,
   "embed.sweep": embedSweep,

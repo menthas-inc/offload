@@ -27,6 +27,8 @@ import { voiceToday } from "../../blobs/audio.js";
 import { mailToday } from "../../mail-in/receive.js";
 import { syncNow } from "../../connectors/sync.js";
 import type { Executor } from "../../threads/access.js";
+import { enqueue, PRIORITY } from "../../jobs/queue.js";
+import { uuidv7 } from "../../uuid.js";
 
 const PAGE = 50;
 
@@ -35,7 +37,8 @@ const PAGE = 50;
 const TOP = 200;
 
 const notFound = z.object({ error: z.literal("not-found") });
-const refused = z.object({ error: z.literal("refused"), reason: z.enum(["self", "staff", "last_owner", "deleting"]) });
+const refused = z.object({ error: z.literal("refused"), reason: z.enum(["self", "staff", "last_owner", "deleting", "email", "not_marked"]) });
+const gone = z.object({ error: z.literal("deleted"), deletedAt: z.string() });
 const idParams = z.object({ id: z.string().uuid() });
 
 /** The per-person caps, in the registry's order. */
@@ -112,12 +115,38 @@ function guard(caller: Staff, target: Target, owners: readonly string[]): "self"
   return null;
 }
 
-function canOf(caller: Staff, target: Target, owners: readonly string[]): { disable: boolean; enable: boolean } {
+function canOf(
+  caller: Staff,
+  target: Target,
+  owners: readonly string[],
+): { disable: boolean; enable: boolean; delete: boolean; cancelDelete: boolean } {
   const free = guard(caller, target, owners) === null;
+  const owner = atLeast(caller.role, "owner");
   return {
     disable: free && target.state === "active",
     enable: free && target.state === "disabled" && !target.deleting,
+    delete: free && owner && !target.deleting,
+    cancelDelete: owner && target.deleting,
   };
+}
+
+/** How long an account marked for deletion is held before it is destroyed.
+ *  The hold is the undo (OFF-6, as 034 diverges from it). */
+const HOLD_HOURS = 24;
+
+type DeletionAlert = "deletion.scheduled" | "deletion.cancelled";
+
+/** The email every owner gets when a deletion is marked or cancelled, queued
+ *  in the transaction that did it. Ids only, as the staff alerts are. */
+async function alertOwners(tx: Executor, alert: DeletionAlert, staff: Staff, targetAccountId: string): Promise<void> {
+  const id = uuidv7();
+  await enqueue({
+    kind: "email.alert",
+    payload: { alert, actorAccountId: staff.accountId, targetAccountId, id },
+    priority: PRIORITY.interactive,
+    idempotencyKey: `email.alert:${alert}:${targetAccountId}:${id}`,
+    tx,
+  });
 }
 
 /** The account inside a write, locked, with what the guards need. */
@@ -170,7 +199,7 @@ async function usedToday(accountId: string): Promise<Record<CapKey, number>> {
  *  hours is today and yesterday. */
 const RANGE_DAYS = { "24h": 2, "7d": 7, "30d": 30, "90d": 90 } as const;
 
-const can = z.object({ disable: z.boolean(), enable: z.boolean() });
+const can = z.object({ disable: z.boolean(), enable: z.boolean(), delete: z.boolean(), cancelDelete: z.boolean() });
 
 const listRow = z.object({
   id: z.string().uuid(),
@@ -182,6 +211,8 @@ const listRow = z.object({
   lastActive: z.string().nullable(),
   spendMicros: z.number().int(),
   state: z.enum(["active", "disabled"]),
+  /** When it is destroyed, for an account an owner marked. */
+  deleteAfter: z.string().nullable(),
   /** What this staff member may do to this row. A guarded action is not drawn. */
   can,
 });
@@ -197,6 +228,8 @@ const person = z.object({
   firstSignedInAt: z.string(),
   lastActive: z.string().nullable(),
   disabledAt: z.string().nullable(),
+  /** When it is destroyed, for an account an owner marked. */
+  deleteAfter: z.string().nullable(),
   providers: z.array(z.string()),
   country: z.string().nullable(),
   timeZone: z.string().nullable(),
@@ -326,8 +359,7 @@ export async function peopleAdminRoutes(app: App): Promise<void> {
           lastActive: account.last_active?.toISOString() ?? null,
           spendMicros: Number(account.spend),
           state: account.state,
-          // 034 section G. Delete, owner only, goes here: a `delete` flag on
-          // `can`, and the hold's end on the row. Not built in this section.
+          deleteAfter: account.delete_after?.toISOString() ?? null,
           can: canOf(request.staff!, { id: account.id, state: account.state, staffRole: account.staff_role, deleting: account.delete_after !== null }, owners),
         })),
         nextCursor: paged && found.length > limit && last ? encodeCursor(last.id) : null,
@@ -474,8 +506,86 @@ export async function peopleAdminRoutes(app: App): Promise<void> {
     },
   );
 
-  // 034 section G. `POST /people/:id/delete` and `/people/:id/delete/cancel`,
-  // owner only, go here. Built with account destruction, not in this section.
+  // Delete, owner only. Locks the account as disable does and marks it; a
+  // day later `account.delete` destroys it (035's `deleteAccount`). Nothing
+  // is destroyed here, and the address has to be typed back.
+  app.post(
+    "/people/:id/delete",
+    {
+      config: { rank: "owner", audit: "deletion.scheduled" },
+      schema: {
+        params: idParams,
+        body: z.object({ email: z.string().max(320) }).strict(),
+        response: { 200: z.object({ status: z.literal("scheduled"), deleteAfter: z.string() }), 404: notFound, 409: refused },
+      },
+    },
+    async (request, reply) => {
+      const outcome = await db.transaction().execute(async (tx) => {
+        const target = await lockTarget(tx, request.params.id);
+        if (!target) return "not-found" as const;
+        const reason = await guardLocked(tx, request.staff!, target);
+        if (reason) return reason;
+        const account = await tx.selectFrom("accounts").select(["email", "delete_after"]).where("id", "=", target.id).executeTakeFirstOrThrow();
+        if (request.body.email.trim().toLowerCase() !== account.email.toLowerCase()) return "email" as const;
+        // Twice is once: the first mark stands, with its own time.
+        if (account.delete_after) return { deleteAfter: account.delete_after };
+
+        const marked = await tx
+          .updateTable("accounts")
+          .set({
+            state: "disabled",
+            disabled_at: sql`coalesce(disabled_at, now())`,
+            delete_after: sql`now() + make_interval(hours => ${HOLD_HOURS})`,
+            delete_requested_by: request.staff!.accountId,
+            updated_at: sql`now()`,
+          })
+          .where("id", "=", target.id)
+          .returning("delete_after")
+          .executeTakeFirstOrThrow();
+        await tx.deleteFrom("sessions").where("account_id", "=", target.id).execute();
+        await audit(tx, { staff: request.staff!, kind: "deletion.scheduled", targetAccountId: target.id });
+        // Not the job's own account: a job that names one goes with it, and
+        // this one has to outlive the row to record what it did.
+        await enqueue({
+          kind: "account.delete",
+          payload: { accountId: target.id },
+          priority: PRIORITY.scheduled,
+          runAfter: marked.delete_after!,
+          idempotencyKey: `account.delete:${target.id}:${marked.delete_after!.toISOString()}`,
+          tx,
+        });
+        await alertOwners(tx, "deletion.scheduled", request.staff!, target.id);
+        return { deleteAfter: marked.delete_after! };
+      });
+      if (outcome === "not-found") return reply.status(404).send({ error: "not-found" as const });
+      if (typeof outcome === "string") return reply.status(409).send({ error: "refused" as const, reason: outcome });
+      return reply.send({ status: "scheduled" as const, deleteAfter: outcome.deleteAfter.toISOString() });
+    },
+  );
+
+  // Cancel. Clears the mark and leaves the account disabled; enabling it is
+  // its own action. The job booked for the mark finds none and does nothing.
+  app.post(
+    "/people/:id/delete/cancel",
+    {
+      config: { rank: "owner", audit: "deletion.cancelled" },
+      schema: { params: idParams, response: { 200: z.object({ status: z.literal("cancelled") }), 404: notFound, 409: refused } },
+    },
+    async (request, reply) => {
+      const outcome = await db.transaction().execute(async (tx) => {
+        const target = await lockTarget(tx, request.params.id);
+        if (!target) return "not-found" as const;
+        if (!target.deleting) return "not_marked" as const;
+        await tx.updateTable("accounts").set({ delete_after: null, delete_requested_by: null, updated_at: sql`now()` }).where("id", "=", target.id).execute();
+        await audit(tx, { staff: request.staff!, kind: "deletion.cancelled", targetAccountId: target.id });
+        await alertOwners(tx, "deletion.cancelled", request.staff!, target.id);
+        return null;
+      });
+      if (outcome === "not-found") return reply.status(404).send({ error: "not-found" as const });
+      if (outcome) return reply.status(409).send({ error: "refused" as const, reason: outcome });
+      return reply.send({ status: "cancelled" as const });
+    },
+  );
 
   // Opening a person's page, recorded once per staff member, person and day.
   // A write the page makes after it loads, because no read changes anything.
@@ -498,7 +608,7 @@ export async function peopleAdminRoutes(app: App): Promise<void> {
   );
 
   // One account.
-  app.get("/people/:id", { schema: { params: idParams, response: { 200: person, 404: notFound } } }, async (request, reply) => {
+  app.get("/people/:id", { schema: { params: idParams, response: { 200: person, 404: notFound, 410: gone } } }, async (request, reply) => {
     const id = request.params.id;
     const account = (
       await sql<{
@@ -525,7 +635,19 @@ export async function peopleAdminRoutes(app: App): Promise<void> {
         from accounts a
         where a.id = ${id} and ${onPeople("a")}`.execute(db)
     ).rows[0];
-    if (!account) return reply.status(404).send({ error: "not-found" as const });
+    if (!account) {
+      // A deleted account's page is its head only: that it was deleted, and
+      // when. The audit log is all that still names it.
+      const deleted = await db
+        .selectFrom("staff_audit")
+        .select("at")
+        .where("kind", "=", "deleted")
+        .where("target_account_id", "=", id)
+        .orderBy("at", "desc")
+        .executeTakeFirst();
+      if (deleted) return reply.status(410).send({ error: "deleted" as const, deletedAt: deleted.at.toISOString() });
+      return reply.status(404).send({ error: "not-found" as const });
+    }
 
     const [inviter, used, refusedBy, overrides, has, owners] = await Promise.all([
       // The newest invite the audit log holds for them, and who made it.
@@ -618,12 +740,12 @@ export async function peopleAdminRoutes(app: App): Promise<void> {
       firstSignedInAt: account.first_signed_in_at.toISOString(),
       lastActive: account.last_active?.toISOString() ?? null,
       disabledAt: account.disabled_at?.toISOString() ?? null,
+      deleteAfter: account.delete_after?.toISOString() ?? null,
       providers: account.providers,
       country: account.country,
       timeZone: account.time_zone,
       consentVersion: account.consent_version,
       invitedBy: inviter.rows[0] ?? null,
-      // 034 section G. `delete`, owner only, goes on `can`. Not built here.
       can: {
         ...canOf(request.staff!, { id: account.id, state: account.state, staffRole: account.staff_role, deleting: account.delete_after !== null }, owners),
         limits: atLeast(request.staff!.role, "owner"),

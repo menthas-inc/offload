@@ -49,6 +49,9 @@ export const SCHEDULED: readonly Scheduled[] = [
   { kind: "content.purge", does: "Removes what was deleted once its Undo has passed.", ...daily },
   { kind: "voice.forget", does: "Deletes a transcript at the transcription company once it has been read.", cadence: "daily", graceMinutes: 120, runner: "worker", perAccount: false },
   { kind: "blob.locate", does: "Names the town a photo was taken in.", ...daily },
+  // 035's.
+  { kind: "export.sweep", does: "Destroys a copy of an account once its seven days are up.", cadence: "hourly", graceMinutes: 20, runner: "api", perAccount: false },
+  { kind: "connector.revoke", does: "Hands back the calendar grants of deleted accounts, hourly while any is left.", cadence: "hourly", graceMinutes: 60, runner: "api", perAccount: false },
   // 034's own.
   { kind: "health.rollup", does: "Closes the last hour of jobs into the hourly history the plots read.", cadence: "hourly", graceMinutes: 20, runner: "api", perAccount: false },
   // Not a job: it runs from the heartbeat timer, beside the minute's beat.

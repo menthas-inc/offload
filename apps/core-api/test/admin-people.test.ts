@@ -76,7 +76,7 @@ describe("AC-11 the list", () => {
     const rows = rowsOf(res);
     expect(rows.map((row) => row.email).sort()).toEqual(["ana@example.test", "staff@example.test"]);
     const row = rows.find((one) => one.id === ana)!;
-    expect(Object.keys(row).sort()).toEqual(["can", "email", "id", "joined", "lastActive", "name", "providers", "spendMicros", "state", "threads"]);
+    expect(Object.keys(row).sort()).toEqual(["can", "deleteAfter", "email", "id", "joined", "lastActive", "name", "providers", "spendMicros", "state", "threads"]);
     expect(row).toMatchObject({
       name: "Ana Duarte",
       email: "ana@example.test",
@@ -134,7 +134,7 @@ describe("AC-11 the list", () => {
     expect(rowsOf(await get(support.cookie, "/people?state=disabled")).map((row) => row.id)).toEqual([kit]);
     expect(rowsOf(await get(support.cookie, "/people?state=active")).map((row) => row.id).sort()).toEqual([ana, support.id].sort());
     expect(rowsOf(await get(support.cookie, "/people")).length).toBe(3);
-    expect(rowsOf(await get(support.cookie, "/people?state=disabled"))[0]!.can).toEqual({ disable: false, enable: true });
+    expect(rowsOf(await get(support.cookie, "/people?state=disabled"))[0]!.can).toEqual({ disable: false, enable: true, delete: false, cancelDelete: false });
   });
 
   it("sorts by spend and by last active, without a cursor", async () => {
@@ -269,7 +269,7 @@ describe("AC-13 enable", () => {
     expect(res.json()).toEqual({ error: "refused", reason: "deleting" });
     expect((await db.selectFrom("accounts").select("state").where("id", "=", ana).executeTakeFirstOrThrow()).state).toBe("disabled");
     const row = rowsOf(await get(owner.cookie, "/people?state=disabled"))[0]!;
-    expect(row.can).toEqual({ disable: false, enable: false });
+    expect(row.can).toEqual({ disable: false, enable: false, delete: false, cancelDelete: true });
   });
 });
 
@@ -335,7 +335,7 @@ describe("AC-17 the guards, in the route", () => {
     expect(await auditEntries()).toEqual([]);
 
     for (const row of rowsOf(await get(support.cookie, "/people"))) {
-      expect(row.can, row.email).toEqual({ disable: false, enable: false });
+      expect(row.can, row.email).toEqual({ disable: false, enable: false, delete: false, cancelDelete: false });
     }
     // An owner may.
     expect(rowsOf(await get(owner.cookie, "/people")).find((row) => row.id === support.id)!.can.disable).toBe(true);

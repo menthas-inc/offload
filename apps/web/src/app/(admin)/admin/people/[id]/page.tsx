@@ -10,8 +10,9 @@
 // session came from.
 //
 // Which actions are drawn is the server's answer (`can`): a guarded action is
-// not drawn. Delete, and the page of a deleted account, are built with
-// account destruction (034 section G); their places are marked below.
+// not drawn. Delete is owner only, with the address typed back and a day in
+// which it can be cancelled. Once the account is gone this page is its head,
+// the day it went and its audit entries, and nothing else (034 section G).
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
@@ -43,8 +44,10 @@ import {
   useSay,
   type Col,
 } from "../../../ui";
+import { kindLabel } from "../../audit/labels";
 import { capLabel } from "../../limits/labels";
 import { Choice } from "../choice";
+import { DELETE_BODY, goes } from "../deleting";
 import { usePaged } from "../paged";
 import { refusedLine } from "../refused";
 
@@ -80,12 +83,13 @@ interface Person {
   firstSignedInAt: string;
   lastActive: string | null;
   disabledAt: string | null;
+  deleteAfter: string | null;
   providers: string[];
   country: string | null;
   timeZone: string | null;
   consentVersion: string | null;
   invitedBy: Who | null;
-  can: { disable: boolean; enable: boolean; limits: boolean };
+  can: { disable: boolean; enable: boolean; limits: boolean; delete: boolean; cancelDelete: boolean };
   today: { caps: Cap[]; refused: { cap: string; scope: "account" | "platform" } | null };
   limits: Limit[];
   has: {
@@ -186,6 +190,50 @@ const SHOWN = [
   { value: "failed", label: "Failures" },
 ] as const;
 
+const AUDIT_COLS: Col[] = [{ label: "When", w: 120 }, { label: "Who", w: 220 }, { label: "What" }];
+
+const FULL_DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+
+interface Entry {
+  id: string;
+  at: string;
+  kind: string;
+  staff: { id: string; name?: string | null; email?: string };
+}
+
+/** What is left of a deleted account: when it went, and what staff did to
+ *  it. The entries are the owner's to read; for support the log is not there
+ *  and the line stands alone. */
+function Deleted({ id, deletedAt }: { id: string; deletedAt: string }) {
+  const entries = useAdminRead<{ rows: Entry[] }>(`/audit?person=${id}`, { missing: true });
+  return (
+    <>
+      <PaneHead title="Deleted account" />
+      <p className={styles.lineNote}>This account was deleted on {FULL_DAY.format(new Date(deletedAt))}.</p>
+      {entries.state === "failed" && !entries.data ? (
+        <Failed what="its audit entries" onRetry={entries.reload} />
+      ) : entries.data && entries.data.rows.length > 0 ? (
+        <Table cols={AUDIT_COLS}>
+          {entries.data.rows.map((entry, index) => (
+            <Row
+              key={entry.id}
+              cols={AUDIT_COLS}
+              last={index === entries.data!.rows.length - 1}
+              cells={[
+                <span key="at" className={styles.quiet}>
+                  {moment(entry.at)}
+                </span>,
+                entry.staff.name ?? entry.staff.email ?? "deleted account",
+                kindLabel(entry.kind),
+              ]}
+            />
+          ))}
+        </Table>
+      ) : null}
+    </>
+  );
+}
+
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <>
@@ -199,18 +247,21 @@ export default function PersonPage() {
   const { id } = useParams<{ id: string }>();
   const range = useRange();
   const [shown, setShown] = useState<(typeof SHOWN)[number]["value"]>("all");
-  const [asking, setAsking] = useState<"disable" | "sign-out" | null>(null);
+  const [asking, setAsking] = useState<"disable" | "sign-out" | "delete" | null>(null);
   const [retrying, setRetrying] = useState<Job | null>(null);
   const [setting, setSetting] = useState<Limit | null>(null);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   const { toast, say } = useSay();
 
-  // A 404 is its own state here: there is nobody to try again for.
+  // A 404 is its own state here: there is nobody to try again for. So is a
+  // 410, an account that was deleted. The rest is asked for once there is
+  // somebody to ask about, so a page with nobody on it reads nothing more.
   const person = useAdminRead<Person>(`/people/${id}`, { missing: true });
-  const usage = useAdminRead<Usage>(`/people/${id}/usage?range=${range}`);
-  const timeline = usePaged<Job>(`/people/${id}/timeline${shown === "failed" ? "?failed=1" : ""}`);
-  const hits = useAdminRead<{ rows: Hit[] }>(`/people/${id}/hits`);
+  const here = person.data ? id : null;
+  const usage = useAdminRead<Usage>(here && `/people/${here}/usage?range=${range}`);
+  const timeline = usePaged<Job>(here && `/people/${here}/timeline${shown === "failed" ? "?failed=1" : ""}`);
+  const hits = useAdminRead<{ rows: Hit[] }>(here && `/people/${here}/hits`);
 
   // Opening this page is recorded, once per staff member, person and day. A
   // write the page makes after it loads, because no read changes anything.
@@ -233,9 +284,9 @@ export default function PersonPage() {
     return (
       <>
         <Back />
-        {/* 034 section G. A deleted account's page goes here: its head, the
-            day it was deleted and its audit entries, and nothing else. */}
-        {person.state === "missing" ? (
+        {person.gone ? (
+          <Deleted id={id} deletedAt={person.gone.deletedAt} />
+        ) : person.state === "missing" ? (
           <Empty>Nobody here.</Empty>
         ) : person.state === "failed" ? (
           <Failed what="this person" onRetry={person.reload} />
@@ -251,9 +302,9 @@ export default function PersonPage() {
 
   /** One of the row actions. A failed write leaves the page as it was and
    *  says what did not happen. */
-  async function act(path: string, done: string, undone: string) {
+  async function act(path: string, done: string, undone: string, body?: unknown) {
     setBusy(true);
-    const response = await adminWrite(path, "POST").catch(() => null);
+    const response = await adminWrite(path, "POST", body).catch(() => null);
     setBusy(false);
     if (!response?.ok) {
       say((await refusedLine(path.slice(path.lastIndexOf("/") + 1), response)) ?? `That did not go through. ${undone}`);
@@ -325,7 +376,7 @@ export default function PersonPage() {
         }
       />
 
-      <div className={styles.actions}>
+      <div className={styles.actions} data-section="actions">
         <button type="button" className={styles.small} onClick={() => setAsking("sign-out")} disabled={busy}>
           Sign out everywhere
         </button>
@@ -344,8 +395,23 @@ export default function PersonPage() {
             Enable
           </button>
         ) : null}
-        {/* 034 section G. The owner-only Delete goes here, last, with the
-            address typed back and the 24 hour hold; and its cancel. */}
+        {who.can.delete ? (
+          <button type="button" className={styles.danger} onClick={() => setAsking("delete")} disabled={busy}>
+            Delete
+          </button>
+        ) : null}
+        {who.can.cancelDelete ? (
+          <button
+            type="button"
+            className={styles.small}
+            disabled={busy}
+            onClick={() =>
+              void act(`/people/${who.id}/delete/cancel`, `Deletion cancelled. ${called} stays disabled`, "Nothing was cancelled").then((ok) => ok && person.reload())
+            }
+          >
+            Cancel deletion
+          </button>
+        ) : null}
       </div>
 
       <Section>Who</Section>
@@ -353,7 +419,7 @@ export default function PersonPage() {
         <dl className={styles.facts}>
           <Fact label="Name">{who.name ?? "Not set"}</Fact>
           <Fact label="Address">{who.email}</Fact>
-          <Fact label="State">{who.disabledAt ? `Disabled since ${day(who.disabledAt)}` : who.state === "active" ? "Active" : "Disabled"}</Fact>
+          <Fact label="State">{who.deleteAfter ? goes(who.deleteAfter) : who.disabledAt ? `Disabled since ${day(who.disabledAt)}` : who.state === "active" ? "Active" : "Disabled"}</Fact>
           <Fact label="Joined">{day(who.joined)}</Fact>
           {who.invitedBy ? <Fact label="Invited by">{who.invitedBy.name}</Fact> : null}
           <Fact label="First signed in">{day(who.firstSignedInAt)}</Fact>
@@ -582,6 +648,23 @@ export default function PersonPage() {
           confirmLabel="Sign out"
           busy={busy}
           onConfirm={() => void act(`/people/${who.id}/sign-out`, "Signed out everywhere", "Nobody was signed out").then((ok) => ok && person.reload())}
+          onClose={() => setAsking(null)}
+        />
+      ) : null}
+
+      {asking === "delete" ? (
+        <Confirm
+          danger
+          title={`Delete ${called}?`}
+          body={DELETE_BODY}
+          confirmWord={who.email}
+          confirmLabel="Delete account"
+          busy={busy}
+          onConfirm={() =>
+            void act(`/people/${who.id}/delete`, `${called} will be deleted in 24 hours`, "Nobody was deleted", { email: who.email }).then(
+              (ok) => ok && person.reload(),
+            )
+          }
           onClose={() => setAsking(null)}
         />
       ) : null}

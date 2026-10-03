@@ -9,7 +9,9 @@
 // A fourth, for the one page that is about a single record: `missing`, a 404.
 // Trying again cannot bring it back, so it is not a failure with a retry. A
 // caller asks for it by name; to every other caller a 404 is a failed read,
-// which is why no page has a state it does not draw.
+// which is why no page has a state it does not draw. The same caller is told
+// when the record was here and is gone (a 410), with what the server says of
+// it: that is `missing` too, with `gone` filled in.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -20,6 +22,8 @@ export interface AdminRead<T, Also extends string = never> {
   state: "loading" | "failed" | "ready" | Also;
   /** When what is on screen was read. */
   asOf: Date | null;
+  /** What a 410 said, for a caller that asked to be told of `missing`. */
+  gone: { deletedAt: string } | null;
   reload: () => void;
 }
 
@@ -31,6 +35,7 @@ export function useAdminRead<T>(path: string | null, options?: { missing: true }
   const [data, setData] = useState<T | null>(null);
   const [state, setState] = useState<AdminRead<T, "missing">["state"]>("loading");
   const [asOf, setAsOf] = useState<Date | null>(null);
+  const [gone, setGone] = useState<{ deletedAt: string } | null>(null);
   // The newest request wins: a slow answer to an old path never lands on top
   // of a newer one.
   const latest = useRef(0);
@@ -41,8 +46,10 @@ export function useAdminRead<T>(path: string | null, options?: { missing: true }
     setState((current) => (current === "ready" ? "ready" : "loading"));
     fetch(`${API}/v1/admin${path}`, { credentials: "include" })
       .then(async (response) => {
-        if (response.status === 404 && tellMissing) {
+        if ((response.status === 404 || response.status === 410) && tellMissing) {
+          const said = response.status === 410 ? ((await response.json().catch(() => null)) as { deletedAt?: unknown } | null) : null;
           if (mine !== latest.current) return;
+          setGone(typeof said?.deletedAt === "string" ? { deletedAt: said.deletedAt } : null);
           // What was on screen is about something that is no longer there.
           setData(null);
           setState("missing");
@@ -62,7 +69,7 @@ export function useAdminRead<T>(path: string | null, options?: { missing: true }
 
   useEffect(load, [load]);
 
-  return { data, state, asOf, reload: load };
+  return { data, state, asOf, gone, reload: load };
 }
 
 /** A write to `/v1/admin<path>`. The caller reads the status: a failed write

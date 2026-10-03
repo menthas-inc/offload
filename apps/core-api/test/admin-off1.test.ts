@@ -180,6 +180,11 @@ const WRITES: Write[] = [
   { route: "POST /v1/admin/people/:id/sign-out", says: { status: "signed-out", sessions: 1 } },
   { route: "POST /v1/admin/people/:id/disable", says: { status: "disabled" } },
   { route: "POST /v1/admin/people/:id/enable", says: { status: "active" } },
+  // Marked and cancelled inside the hold, which destroys nothing; cancel
+  // leaves it disabled, so it is enabled again for what follows.
+  { route: "POST /v1/admin/people/:id/delete", body: ({ email }) => ({ email }), says: { status: "scheduled" } },
+  { route: "POST /v1/admin/people/:id/delete/cancel", says: { status: "cancelled" } },
+  { route: "POST /v1/admin/people/:id/enable", says: { status: "active" } },
   { route: "PATCH /v1/admin/people/:id/limits", body: () => ({ key: "cap.turns", value: 50 }), says: { key: "cap.turns", value: 50 } },
   { route: "PATCH /v1/admin/people/:id/limits", body: () => ({ key: "cap.turns", value: null }), says: { key: "cap.turns", value: null } },
   { route: "POST /v1/admin/jobs/:id/dismiss", says: { status: "dismissed" } },
@@ -278,7 +283,7 @@ describe("AC-4 and AC-5 every admin write, the CSV, the alerts and the audit log
     }
     // And the ones the writes above really booked: ids and a kind.
     const booked = await db.selectFrom("jobs").select(["payload"]).where("kind", "=", "email.alert").execute();
-    expect(booked.map((job) => (job.payload as { alert: string }).alert).sort()).toEqual(["staff.added", "staff.removed", "staff.role_changed"]);
+    expect(booked.map((job) => (job.payload as { alert: string }).alert).sort()).toEqual(["deletion.cancelled", "deletion.scheduled", "staff.added", "staff.removed", "staff.role_changed"]);
     for (const job of booked) {
       expect(leaks(JSON.stringify(job.payload), marked)).toEqual([]);
       expect(JSON.stringify(job.payload)).not.toContain(email);
@@ -288,7 +293,7 @@ describe("AC-4 and AC-5 every admin write, the CSV, the alerts and the audit log
     // two values. No content, no credential, and no address (AC-53).
     const entries = (await sql<{ row: Record<string, unknown> }>`select to_jsonb(a) as row from staff_audit a order by a.id`.execute(db)).rows.map((one) => one.row);
     const kinds = new Set(entries.map((entry) => entry["kind"]));
-    for (const kind of ["person.viewed", "signed_out", "disabled", "enabled", "override.set", "override.cleared", "job.dismissed", "job.retried", "setting.changed", "staff.added", "staff.role_changed", "staff.removed"]) {
+    for (const kind of ["person.viewed", "signed_out", "disabled", "enabled", "deletion.scheduled", "deletion.cancelled", "override.set", "override.cleared", "job.dismissed", "job.retried", "setting.changed", "staff.added", "staff.role_changed", "staff.removed"]) {
       expect(kinds, kind).toContain(kind);
     }
     for (const entry of entries) {
