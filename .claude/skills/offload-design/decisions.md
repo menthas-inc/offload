@@ -11,6 +11,28 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-03 · A thread's map, as built (030)
+**Surface:** iOS, Android, web
+**Raised by:** code, building *A thread's map* in 030 (`docs/specs/030-maps/`), with the owner's answers, the three reviews, a browser check and a check on an iPhone simulator and a Pixel.
+
+**Was:** the 2026-10-02 entry and `explorations/maps.html` as drawn: MapLibre with MapTiler on all three, a column from a 1200px window, Open as the row's sheet, 16px points.
+
+**Is:** built as drawn, with these differences, code leading:
+- **Google's map on all three**, the owner's call for cost: the Maps JavaScript API on the web with one cloud map id in Google's default style, Google's SDKs through `react-native-maps` on the phones with no map id. Place lookup is Google Places. Attribution is Google's own logo and legal line, never hidden, and every map's padding keeps it above the composer, the keyboard and the place sheet.
+- **Points are 20px, 28px when picked**, up from 16 and 24 (owner, 2026-10-03), with the 2.5px and 3px rings and the 44 target as drawn.
+- **An approximate place draws its point at the circle's centre** as well as the circle (owner, 2026-10-03), and the circle is a 300m radius. The point is the area's named target for a keyboard and a screen reader.
+- **The web column is decided by the pane's width, not the window's**: a top thread pane at 1000px or wider (with 16px of give) splits, the list drops its 700px cap, and the column carries no chips of its own; the list's filter bar filters both. A pane behind draws neither.
+- **Open shows a place sheet**, not the row's sheet: header, the rows present, Directions with Open link or Edit, Directions alone for a calendar's event. On the web a 360px side pane, over the list's side beside the column, and beside a map that narrows in switch mode. On the phones a half sheet on `DragSheet`; Android's ground is `a-c-low` with `rounded-t-a-sheet`, as the calendars sheet, since there is no `--surface-sheet`.
+- **Directions is always Google Maps**, a new tab with no referrer on the web, the app or the browser on the phones; never Apple Maps, since Google's results may not sit beside another map.
+- **The count dot**, which the exploration does not draw: 24px in `--text-primary`, a 2px `--paper` ring, the count at 12px semibold in `--surface-page`, inside a 44 target. Tapping it zooms until its points separate.
+- **The switch is `SegmentedControl`'s icon variant**: `list` and `map-pin`, a pill track with 36 by 30 halves and the picked one raised on iOS and the web; on Android an outlined `--border-strong` pair of 44 by 32 with the picked half on `--surface-accent-soft` and the glyph in `--text-accent` rather than `--moss-700`. Its halves are narrower than 44 across, reached by vertical slop, accepted. Each half carries its name, *List* and *Map*.
+- **The phones' app bar with the switch is back, title, switch, share, More**, with the label tool and the calendars tool moved to the top of More while the switch is drawn.
+- **The chips over the map are raised on `--surface-raised`**, with no counts and no plus; in dark, where `--shadow-1` is none, they and the switch's picked half take an inset `--border-lift` edge.
+- **The map's text follows Larger text**, and the callout closes on Escape and takes the focus on the web.
+- **New tokens** `--shadow-point`, `--shadow-point-picked` and `--shadow-callout`, the same value in both themes since they sit over the map (landed on `main` 2026-10-02).
+
+**Design system impact:** readme **A thread's map**: Google on all three with its logo and legal line as the attribution, the 20 and 28 points, the area's centre point, the pane-width column at 1000px without the list's cap or chips of its own, the place sheet in place of the row's sheet, Directions always Google Maps, the count dot, the switch's icon variant and the phones' bar order, the raised chips and the dark lift. The `SegmentedControl` contract gains an icon variant (each option an icon and a name, a group label); the `AppBar` contract's trailing order gains the switch before share; `ChipFace`'s raised face for chips over a map is a new state the `Chip` contract should describe. `explorations/maps.html`'s stack paragraph and its Open handler (which opens the row's sheet) are what catch up.
+
 ### 2026-10-02 · A typed row is saved as typed (032)
 **Surface:** iOS, Android, web
 **Raised by:** code, building 032 (`docs/specs/032-fewer-better-model-calls/`) from the product owner's decision to stop reading typed rows with a model, and the client review.

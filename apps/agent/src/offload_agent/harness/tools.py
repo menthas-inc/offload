@@ -29,6 +29,20 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 # because the agent plane is not the enforcement point for anything.
 PLACE_NAME_CHARS = 120
 
+def _one_line_place(v: str | None) -> str | None:
+    """030. A place's name is one line, as a location's title is. Corrected
+    here rather than by a 400 the model cannot read."""
+    if v is None:
+        return None
+    if "\n" in v or "\r" in v:
+        raise ValueError("one line: the name of the place and nothing else")
+    # The bound is held here rather than in the schema, as `photo`'s is: it
+    # costs tokens of tool definition on every call, and the prompt says it.
+    if len(v.strip()) > PLACE_NAME_CHARS:
+        raise ValueError(f"at most {PLACE_NAME_CHARS} characters: the place's name alone")
+    return v.strip() or None
+
+
 # A day, or a timestamp with or without a zone. Mirrors what
 # apps/core-api/src/threads/dates.ts accepts, and exists so a model writing
 # "2026-09-28" is corrected here rather than by a 400 it cannot read.
@@ -125,6 +139,12 @@ class AddContent(BaseModel):
     # 0 to 100, higher first. Orders content inside a thread.
     priority: int = Field(default=50, ge=0, le=100)
 
+    # 030. On an event only: the name of the public place it happens at, from
+    # their words or the reader's `place` for a link in this dump. Never a
+    # street address, a person's home or a guess; a refusal means it is not a
+    # place to look up, and the event is filed without one.
+    location: str | None = None
+
     # 020. Which of the message's photos this row is, by its number in the
     # order they were shown, one-based. An index rather than an id, so a
     # photo can only be named on the message it arrived with; the Core API
@@ -138,6 +158,11 @@ class AddContent(BaseModel):
     # sure enough to file into: that thread's id. Offered to them as a
     # suggestion on the row; nothing moves.
     suggest_thread_id: str | None = None
+
+    @field_validator("location")
+    @classmethod
+    def one_line(cls, v: str | None) -> str | None:
+        return _one_line_place(v)
 
     @field_validator("title")
     @classmethod
@@ -198,6 +223,15 @@ class EditContent(BaseModel):
     # 023. The rule, which this tool never took: a recurrence could be created
     # and never changed by anyone. None is not stated, never remove.
     rrule: str | None = None
+    # 030. An event's place, set; or take the row off the map, an event's
+    # location or a link's point. None is not stated, so clearing is said.
+    location: str | None = None
+    clear_location: bool = False
+
+    @field_validator("location")
+    @classmethod
+    def one_line(cls, v: str | None) -> str | None:
+        return _one_line_place(v)
 
     @field_validator("rrule")
     @classmethod
@@ -251,8 +285,17 @@ class SetThreadPreference(BaseModel):
     """Say how a thread should be arranged."""
 
     thread_id: str = Field(min_length=1)
-    # What order the widgets come in, e.g. ["map", "todo"].
+    # What order the widgets come in, e.g. ["todo", "files"].
     widgets: list[str] | None = None
+
+    @field_validator("widgets")
+    @classmethod
+    def no_map(cls, v: list[str] | None) -> list[str] | None:
+        # 030. A thread's map is its own, behind the List | Map switch, and no
+        # longer a widget to order.
+        if v is not None and "map" in v:
+            raise ValueError("map is not a widget; a thread's map has its own switch")
+        return v
 
 
 class RenameThread(BaseModel):

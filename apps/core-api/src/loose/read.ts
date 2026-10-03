@@ -152,10 +152,10 @@ async function contentNewestFirst(
           and am.account_id = content.account_id
           and am.state = 'accepted'
       )`.as("authorIsMember"),
-      "places.name as placeName",
-      "places.formatted_address as placeAddress",
+      "content.location as location",
       "places.lat as placeLat",
       "places.lng as placeLng",
+      "places.approximate as placeApproximate",
     ])
     .orderBy("content.id", "desc")
     .limit(opts.limit);

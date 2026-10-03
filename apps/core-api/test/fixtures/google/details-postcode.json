@@ -1,0 +1,10 @@
+{
+  "types": [
+    "postal_code_prefix",
+    "postal_code"
+  ],
+  "location": {
+    "latitude": 51.5031092,
+    "longitude": -0.1306184
+  }
+}

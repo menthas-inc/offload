@@ -14,6 +14,7 @@
 // destination.
 
 import { PROPOSAL_CANDIDATES, applyProposals } from "../loose/propose.js";
+import { applyPageRead, linkReadable } from "../places/backfill.js";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { sql } from "kysely";
@@ -1021,6 +1022,50 @@ export async function internalRoutes(app: App): Promise<void> {
       });
       request.log.info({ how: "typed", applied }, "question answered");
       return reply.send({ applied });
+    }
+  );
+
+  // 030. What the worker found when it read a link's page again for a place.
+  // The job it ran is checked to be this row's, and everything the job checked
+  // before the fetch is checked again here. The body is never logged.
+  app.post(
+    "/internal/v1/content/:id/page-location",
+    {
+      logLevel: "warn",
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({
+          jobId: z.string().uuid(),
+          found: z
+            .union([
+              z.strictObject({ lat: z.number(), lng: z.number() }),
+              z.strictObject({ name: z.string().min(1).max(400) }),
+            ])
+            .nullable(),
+        }),
+        response: { 200: z.object({ ok: z.literal(true) }), 401: refused, 404: refused },
+      },
+    },
+    async (request, reply) => {
+      const header = request.headers.authorization;
+      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+      if (!tokenMatches(presented)) return reply.code(401).send({ error: "unauthorised" as const });
+      const { id } = request.params;
+      const done = await db.transaction().execute(async (trx) => {
+        const job = await trx
+          .selectFrom("jobs")
+          .select("id")
+          .where("id", "=", request.body.jobId)
+          .where("kind", "=", "link.place")
+          .where("state", "=", "running")
+          .where(sql<boolean>`payload->>'contentId' = ${id}`)
+          .executeTakeFirst();
+        if (!job || !(await linkReadable(id, trx))) return false;
+        await applyPageRead(trx, id, request.body.found);
+        return true;
+      });
+      if (!done) return reply.code(404).send({ error: "unknown_job" as const });
+      return reply.send({ ok: true as const });
     }
   );
 

@@ -8,8 +8,8 @@
 // AC-13 a pinned priority is not overwritten.
 // AC-15 only a validated place name is ever eligible to be geocoded.
 // AC-16 resolution is a job; a slow or dead provider never fails a turn.
-// AC-17 an unresolvable location keeps its name.
-// AC-18 two caches, and a repeat costs no outbound call at either step.
+// AC-17 and AC-18 (the lookup and its caches) moved to places-resolve.test.ts
+// with 030, which rewrote the lookup for Google.
 // AC-19 no place name, address or coordinate in a log, event or payload.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -19,7 +19,6 @@ import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
 import { uuidv7 } from "../src/uuid.js";
-import { queryHash, resolvePlace, type Geocoder } from "../src/places/resolve.js";
 import { isBareDate, parseWhen, plausible } from "../src/threads/dates.js";
 import { LIST_PAGE } from "../src/routes/tools.js";
 import { completeContent, reprioritise, setPreference } from "../src/routes/threads.js";
@@ -244,145 +243,6 @@ describe("what the tool endpoint accepts", () => {
     expect(
       await db.selectFrom("jobs").selectAll().where("kind", "=", "location.resolve").execute()
     ).toHaveLength(0);
-  });
-});
-
-describe("resolving a place", () => {
-  /** A geocoder that records what it was asked and never touches the network. */
-  function stub(result: Place | null) {
-    const asked: string[] = [];
-    const geocode: Geocoder = async (query) => {
-      asked.push(query);
-      return result;
-    };
-    return { asked, geocode };
-  }
-  type Place = NonNullable<Awaited<ReturnType<Geocoder>>>;
-
-  const market: Place = {
-    providerPlaceId: "ChIJ_market",
-    name: "Time Out Market Lisboa",
-    formattedAddress: "Av. 24 de Julho, Lisboa",
-    lat: 38.7071,
-    lng: -9.1459,
-  };
-
-  async function location(title: string): Promise<string> {
-    const me = await account();
-    const t = await thread(me, "Lisbon trip");
-    const row = await db
-      .insertInto("content")
-      .values({
-        account_id: me, thread_id: t, title, type: "location", updated_at: new Date(),
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
-    return row.id;
-  }
-
-  it("sends only the place name (AC-15)", async () => {
-    const id = await location("Time Out Market");
-    const { asked, geocode } = stub(market);
-
-    expect(await resolvePlace(id, geocode)).toBe("resolved");
-    expect(asked).toEqual(["Time Out Market"]);
-  });
-
-  it("caches the phrase, so a repeat makes no call at all (AC-18)", async () => {
-    const first = await location("Time Out Market");
-    const { asked, geocode } = stub(market);
-    await resolvePlace(first, geocode);
-
-    const second = await location("Time Out Market");
-    await resolvePlace(second, geocode);
-
-    expect(asked).toHaveLength(1);
-    expect(await db.selectFrom("places").selectAll().execute()).toHaveLength(1);
-
-    const rows = await db
-      .selectFrom("content").select(["place_id"]).where("type", "=", "location").execute();
-    expect(rows.every((r) => r.place_id !== null)).toBe(true);
-  });
-
-  it("treats two phrasings of one query as one, after normalising (AC-18)", async () => {
-    const a = await location("Time Out Market");
-    const b = await location("  time out   MARKET ");
-    const { asked, geocode } = stub(market);
-
-    await resolvePlace(a, geocode);
-    await resolvePlace(b, geocode);
-
-    expect(asked).toHaveLength(1);
-    expect(queryHash("Time Out Market")).toBe(queryHash("  time out   MARKET "));
-  });
-
-  it("remembers a miss, so an unresolvable name is not retried forever (AC-17, AC-18)", async () => {
-    const first = await location("the place with the blue door");
-    const { asked, geocode } = stub(null);
-
-    expect(await resolvePlace(first, geocode)).toBe("not_found");
-
-    const second = await location("the place with the blue door");
-    expect(await resolvePlace(second, geocode)).toBe("not_found");
-
-    expect(asked).toHaveLength(1);
-
-    // And it is still a location with a name, visible in its thread.
-    const row = await db
-      .selectFrom("content").select(["title", "place_id"]).where("id", "=", second)
-      .executeTakeFirstOrThrow();
-    expect(row.title).toBe("the place with the blue door");
-    expect(row.place_id).toBeNull();
-  });
-
-  it("survives a provider that throws, without losing the location (AC-16, AC-17)", async () => {
-    const id = await location("Time Out Market");
-    const angry: Geocoder = async () => {
-      throw new Error("429 quota exceeded for query 'Time Out Market'");
-    };
-
-    expect(await resolvePlace(id, angry)).toBe("provider_error");
-
-    const row = await db
-      .selectFrom("content").select(["title", "place_id"]).where("id", "=", id)
-      .executeTakeFirstOrThrow();
-    expect(row.title).toBe("Time Out Market");
-    expect(row.place_id).toBeNull();
-    // Not remembered as a miss: the provider failed, the place may well exist.
-    expect(await db.selectFrom("place_lookups").selectAll().execute()).toHaveLength(0);
-  });
-
-  it("does not geocode content somebody has undone (AC-16)", async () => {
-    const id = await location("Time Out Market");
-    await db
-      .updateTable("content")
-      .set({ deleted_at: new Date(), purge_after: new Date(Date.now() + 8000) })
-      .where("id", "=", id)
-      .execute();
-
-    const { asked, geocode } = stub(market);
-    expect(await resolvePlace(id, geocode)).toBe("skipped");
-    // An outbound call on somebody's behalf after they said no.
-    expect(asked).toEqual([]);
-  });
-
-  it("keeps no account link on either cache (AC-19)", async () => {
-    const columns = await db
-      .selectFrom("information_schema.columns" as never)
-      .select(["table_name", "column_name"] as never)
-      .where("table_name" as never, "in", ["places", "place_lookups"] as never)
-      .execute();
-
-    const names = (columns as { table_name: string; column_name: string }[]).map(
-      (c) => `${c.table_name}.${c.column_name}`
-    );
-    // A place row has the sensitivity of a phone book entry, and that is only
-    // true while nothing links one to a person.
-    expect(names.filter((n) => n.includes("account"))).toEqual([]);
-    expect(names.filter((n) => n.includes("thread"))).toEqual([]);
-    // And the query itself is a hash, not the string.
-    expect(names).toContain("place_lookups.query_hash");
-    expect(names.some((n) => n === "place_lookups.query")).toBe(false);
   });
 });
 
@@ -621,7 +481,7 @@ describe("arranging a thread", () => {
     // something.
     const { me, thread: t } = await own();
 
-    await setPreference(me, t, { widgets: ["map", "todo"] });
+    await setPreference(me, t, { widgets: ["files", "todo"] });
     // The fold is the member's: it lands on the membership row and never in
     // the thread's attrs, so a shared list folded by one member is folded for
     // nobody else.
@@ -630,7 +490,7 @@ describe("arranging a thread", () => {
     const row = await db
       .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
     expect(readPreference(row.attrs)).toEqual({
-      widgets: ["map", "todo"],
+      widgets: ["files", "todo"],
     });
     expect((row.attrs as Record<string, unknown>)["hideDone"]).toBeUndefined();
 
@@ -648,9 +508,9 @@ describe("arranging a thread", () => {
 
   it("returns what was there, so Undo is the same call (AC-7a)", async () => {
     const { me, thread: t } = await own();
-    await setPreference(me, t, { widgets: ["map"] });
+    await setPreference(me, t, { widgets: ["files"] });
     const previous = await setPreference(me, t, { widgets: ["todo"] });
-    expect(previous).toEqual({ widgets: ["map"] });
+    expect(previous).toEqual({ widgets: ["files"] });
   });
 
   it("drops a widget kind nobody defined, rather than storing it", async () => {

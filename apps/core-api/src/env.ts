@@ -47,6 +47,13 @@ const schema = z.object({
    *  place names must not start a second egress path the privacy policy has
    *  not described yet. On when the policy's row says so. */
   PHOTO_TOWNS: z.enum(["on", "off"]).default("off"),
+  /** 030. The whole map feature, on every surface, and the one switch that
+   *  turns on everything the privacy page describes for it at once. Needs the
+   *  key and the pepper; boot refuses it without them. */
+  MAPS: z.enum(["on", "off"]).default("off"),
+  /** 030. Keys the place query cache, so a copy of the table is not a
+   *  dictionary of places people mentioned. Lives here, never in the database. */
+  PLACE_HASH_PEPPER: z.string().min(32).optional(),
 
   // Connectors, 012. **A different Google project from sign-in, on purpose.**
   // Calendar scopes are sensitive and pull a whole Cloud project into a heavier
@@ -132,6 +139,21 @@ export const webOrigins: string[] = [
 
 if (isProduction && !env.DATA_ROOT_KEY) {
   throw new Error("DATA_ROOT_KEY is required in production: account keys cannot be wrapped without it.");
+}
+
+/** 030. What is missing for the map to be switched on, or null. A pure
+ *  function of the variables so the rule is tested rather than trusted: a
+ *  missing pepper would otherwise hash with nothing and leave the cache
+ *  unpeppered without a word. */
+export function mapsConfigProblem(vars: Record<string, string | undefined>): string | null {
+  if (vars["MAPS"] !== "on") return null;
+  if (!vars["GOOGLE_MAPS_API_KEY"]) return "MAPS=on needs GOOGLE_MAPS_API_KEY";
+  if (!vars["PLACE_HASH_PEPPER"] || vars["PLACE_HASH_PEPPER"].length < 32) return "MAPS=on needs PLACE_HASH_PEPPER of at least 32 characters";
+  return null;
+}
+{
+  const problem = mapsConfigProblem(process.env);
+  if (problem) throw new Error(problem);
 }
 
 /** Whether R2 is configured. Either every variable or none: two of four is a

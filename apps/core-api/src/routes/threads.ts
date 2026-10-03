@@ -42,6 +42,7 @@ import {
 } from "../threads/notes.js";
 import { WIDGET_KIND_CHARS, readPreference, type ThreadPreference } from "../threads/widgets.js";
 import { calendarCounts, dropPicksOf, setPick, threadEvents, viewerCalendars } from "../threads/calendars.js";
+import { hasPoint, threadPoints } from "../places/points.js";
 import { emit } from "../analytics.js";
 import { isBareDate, parseWhen, plausible } from "../threads/dates.js";
 import { invitationsFor } from "../threads/sharing.js";
@@ -264,6 +265,9 @@ const threadBundle = z.object({
    *  they open Not in a thread in its place. Still served, because search and
    *  answering read it. */
   isDefault: z.boolean(),
+  /** 030. Something in it is on the map, so the switch is drawn. Computed by
+   *  the server so the three surfaces agree; false while the map is off. */
+  hasPoint: z.boolean(),
 });
 
 export const contentRow = z.object({
@@ -315,12 +319,13 @@ export const contentRow = z.object({
   place: z
     .object({
       id: z.string(),
-      name: z.string(),
-      address: z.string().nullable(),
       lat: z.number().nullable(),
       lng: z.number().nullable(),
+      approximate: z.boolean(),
     })
     .nullable(),
+  /** 030. An event's location, in offload's own words. */
+  location: z.string().nullable(),
   author: z.object({
     /** Null once they deleted their account. Their content stays in the
      *  threads they shared; the name comes off it. */
@@ -463,10 +468,11 @@ export interface RawRow {
    *  `unknown` because that is what Kysely gives a jsonb column, and narrowing
    *  it at the boundary would be claiming a shape nothing validates. */
   attrs: unknown;
-  placeName: string | null;
-  placeAddress: string | null;
+  /** 030. An event's location; a link's is a lookup key and never sent. */
+  location: string | null;
   placeLat: number | null;
   placeLng: number | null;
+  placeApproximate: boolean | null;
 }
 
 /** Which repeating series an occurrence belongs to, or null.
@@ -531,15 +537,20 @@ export function toRow(row: RawRow, viewerId: string) {
     // rest of what a calendar sync wrote.
     seriesRef: seriesRefOf(row.attrs),
     allDay: allDayOf(row.attrs),
+    // 030. Where it is and whether it is an area, and nothing Google named:
+    // its name and address are neither kept nor sent. The coordinates are null
+    // once they age past thirty days, until a map asks for them again.
     place: row.place_id
       ? {
           id: row.place_id,
-          name: row.placeName ?? "",
-          address: row.placeAddress,
           lat: row.placeLat,
           lng: row.placeLng,
+          approximate: row.placeApproximate === true,
         }
       : null,
+    // An event's own words for where it is. A link's location is the name its
+    // page gave, a lookup key, and is not shown.
+    location: row.type === "event" ? row.location : null,
     author: {
       accountId: row.account_id,
       displayName: row.authorName ?? "Someone",
@@ -1235,7 +1246,6 @@ export const QUICK_ADD_CHARS = 500;
  *  its own now, on the selected day's heading. */
 const STARTS_AS: Record<string, "task" | "location" | "event"> = {
   todo: "task",
-  map: "location",
   timeline: "event",
 };
 
@@ -1498,7 +1508,45 @@ export async function threadRoutes(app: App): Promise<void> {
           calendars: await calendarCounts(accountId, id),
           shareable: !isDefault,
           isDefault,
+          hasPoint: await hasPoint(id),
         });
+      })
+  );
+
+  // 030. A thread's points, for its map. A member's read, empty while the map
+  // is off; nothing Google named is in it.
+  const pointSchema = z.object({
+    key: z.string(),
+    source: z.enum(["row", "calendar"]),
+    contentId: z.string().nullable(),
+    type: z.string(),
+    title: z.string(),
+    address: z.string().nullable(),
+    approximate: z.boolean(),
+    lat: z.number(),
+    lng: z.number(),
+    googlePlaceId: z.string().nullable(),
+    labelIds: z.array(z.string()),
+    when: z.object({ at: z.string(), endAt: z.string().nullable(), allDay: z.boolean() }).nullable(),
+    url: z.string().nullable(),
+    imageUrl: z.string().nullable(),
+    authorId: z.string().nullable(),
+    calendarName: z.string().nullable(),
+  });
+  app.get(
+    "/v1/threads/:id/points",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: { 200: z.object({ points: z.array(pointSchema), pending: z.number() }), 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+        await requireMember(accountId, request.params.id);
+        return reply.send(await threadPoints(accountId, request.params.id));
       })
   );
 
@@ -1565,7 +1613,8 @@ export async function threadRoutes(app: App): Promise<void> {
   );
 
   // The events on the thread's calendars inside a window, for the rail. A
-  // title and a time, whoever asks: never the guests, never the place.
+  // title, a time and, while the map is on, where it is (030), whoever asks:
+  // never the guests, their answers or the description.
   app.get(
     "/v1/threads/:id/events",
     {
@@ -1590,6 +1639,10 @@ export async function threadRoutes(app: App): Promise<void> {
                 allDay: z.boolean(),
                 untrusted: z.boolean(),
                 involved: z.boolean(),
+                location: z.string().nullable(),
+                place: z
+                  .object({ id: z.string(), lat: z.number().nullable(), lng: z.number().nullable(), approximate: z.boolean() })
+                  .nullable(),
               })
             ),
           }),
@@ -1693,10 +1746,10 @@ export async function threadRoutes(app: App): Promise<void> {
                 and am.account_id = content.account_id
                 and am.state = 'accepted'
             )`.as("authorIsMember"),
-            "places.name as placeName",
-            "places.formatted_address as placeAddress",
+            "content.location as location",
             "places.lat as placeLat",
             "places.lng as placeLng",
+            "places.approximate as placeApproximate",
           ])
           .where("content.thread_id", "=", id)
           .where("content.deleted_at", "is", null)
@@ -1801,10 +1854,10 @@ export async function threadRoutes(app: App): Promise<void> {
                 and am.account_id = content.account_id
                 and am.state = 'accepted'
             )`.as("authorIsMember"),
-            "places.name as placeName",
-            "places.formatted_address as placeAddress",
+            "content.location as location",
             "places.lat as placeLat",
             "places.lng as placeLng",
+            "places.approximate as placeApproximate",
           ])
           .where("content.id", "=", request.params.id)
           .executeTakeFirstOrThrow();
@@ -2515,10 +2568,10 @@ async function rowById(contentId: string, viewerId: string) {
           and am.account_id = content.account_id
           and am.state = 'accepted'
       )`.as("authorIsMember"),
-      "places.name as placeName",
-      "places.formatted_address as placeAddress",
+      "content.location as location",
       "places.lat as placeLat",
       "places.lng as placeLng",
+      "places.approximate as placeApproximate",
     ])
     .where("content.id", "=", contentId)
     .executeTakeFirstOrThrow();

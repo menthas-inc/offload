@@ -4,6 +4,7 @@ import { closeDb } from "./db.js";
 import { createJobRunner } from "./jobs/runner.js";
 import { chooseMailer } from "./mail/index.js";
 import { startDaily, startHourly, enqueue, PRIORITY } from "./jobs/queue.js";
+import { mapsConfig } from "./places/resolve.js";
 
 // Migrate before anything else is even imported. A deploy that starts
 // answering requests against a schema older than its code is the failure this
@@ -48,6 +49,14 @@ await startDaily("calendar.supervise");
 await startDaily("jobs.purge");
 await startDaily("account.daily");
 await startDaily("blob.daily");
+// 030. Google's thirty days on place coordinates, and the Undo records
+// nothing can use any more. SQL only; it asks Google nothing.
+await startDaily("places.age");
+// 030. The one pass over what existed before the map, at the first boot with
+// the map on. Keyed once ever; every row it books is marked as well.
+if (mapsConfig().on) {
+  await enqueue({ kind: "maps.backfill", payload: {}, priority: PRIORITY.background, idempotencyKey: "maps.backfill:030" });
+}
 await startDaily("people.daily");
 // 024. The hourly placer of the two digests.
 await startHourly("digest.schedule");

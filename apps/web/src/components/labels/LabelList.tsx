@@ -23,7 +23,7 @@ import { fetchContent, type ContentRow, type Note } from "../../lib/threads";
 import type { Label, Rows } from "../../lib/labels";
 
 const NAME_CHARS = 24;
-const HEADINGS: Record<WidgetKind, string> = { todo: "To do", map: "Places", files: "Files" };
+const HEADINGS: Record<WidgetKind, string> = { todo: "To do", files: "Files" };
 
 export interface ListSave {
   name: string;

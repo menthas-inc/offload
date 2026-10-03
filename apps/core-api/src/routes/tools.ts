@@ -71,6 +71,8 @@ import { suggestAtFiling } from "../loose/suggestions.js";
 import { proposeShare } from "../threads/proposals.js";
 import type { WriteAction } from "../connectors/write.js";
 import { linkPhoto, photoForRow, withTaken } from "../blobs/rows.js";
+import { placeQuery } from "../places/query.js";
+import { attachPagePoint, mayReadForPlace } from "../places/resolve.js";
 
 /** The only string that ever leaves for a geocoder.
  *
@@ -210,6 +212,27 @@ const body = z.discriminatedUnion("tool", [
     /** 0 to 100, higher first. Orders content inside a thread; it is not
      *  `needs_attention`, which decides what leaves one. */
     priority: z.number().int().min(0).max(100).default(50),
+    /** 030. Where an event happens: the name of a public place, from the
+     *  person's words or the reader's `place`. Checked below with the filter
+     *  that stands in front of Google, and refused by name, so the model hears
+     *  that a street address or a person's home is not a venue. */
+    location: z.string().max(400).nullish(),
+    /** 030. What the worker read from a link's own page, attached by the
+     *  worker and never in the model's schema: the model has no field it could
+     *  set here. Honoured only on a link, only while the map is on, and only
+     *  when the link's author has *Read links I paste* on, which is read here
+     *  rather than taken on the worker's word. */
+    worker: z
+      .strictObject({
+        pageRead: z.literal(true),
+        pageLocation: z
+          .union([
+            z.strictObject({ lat: z.number(), lng: z.number() }),
+            z.strictObject({ name: z.string().min(1).max(400) }),
+          ])
+          .nullish(),
+      })
+      .nullish(),
   }),
   z.strictObject({
     tool: z.literal("list_thread_content"),
@@ -295,6 +318,12 @@ const body = z.discriminatedUnion("tool", [
     /** 023. The rule, which this tool never took: a recurrence could be
      *  created and never changed by anyone. Null is not stated, never remove. */
     rrule: z.string().max(200).nullish(),
+    /** 030. An event's location, through the same filter as on filing. Null
+     *  is not stated, as everywhere in this tool; clearing is said outright. */
+    location: z.string().max(400).nullish(),
+    /** 030. Take the row off the map: an event's location, or a link's point.
+     *  A cleared link is never read again. */
+    clearLocation: z.boolean().nullish(),
   }),
   z.strictObject({
     tool: z.literal("move_content"),
@@ -489,6 +518,8 @@ const result = z.union([
         body: z.string().nullable(),
         done: z.boolean(),
         yours: z.boolean(),
+        /** 030. On the thread's map, and nothing else of its place. */
+        onMap: z.boolean(),
       })
     ),
     truncated: z.boolean(),
@@ -586,6 +617,8 @@ const result = z.union([
       // this turn already filed, or an index on a row that is not a picture.
       "unknown_photo",
       "bad_place_name",
+      // 030. A location on a row that cannot have one.
+      "location_not_here",
       "unknown_content",
       "not_yours",
       "bad_date",
@@ -641,6 +674,7 @@ type Outcome =
         body: string | null;
         done: boolean;
         yours: boolean;
+        onMap: boolean;
       }[];
       truncated: boolean;
     }
@@ -702,6 +736,7 @@ type Outcome =
         | "person_deleted"
         | "unknown_photo"
         | "bad_place_name"
+        | "location_not_here"
         | "unknown_content"
         | "not_yours"
         | "unknown_calendar"
@@ -956,6 +991,52 @@ async function noteThread(
  *  **One refusal shape.** A content id that does not exist and one in a thread
  *  you are not in are the same answer, for the reason the header states.
  */
+/** 030. What an `edit_content` call does to a row's place, decided before the
+ *  write: the columns to set, whether to book a lookup, or a refusal the model
+ *  can read. Null when the call does not touch the place. */
+async function placeEdit(
+  trx: Executor,
+  call: { title?: string | null | undefined; location?: string | null | undefined; clearLocation?: boolean | null | undefined },
+  contentId: string,
+  messageId: string | null,
+): Promise<{ set: Record<string, unknown>; lookUp: boolean } | { error: "location_not_here" | "bad_place_name" } | null> {
+  const wantsPlace = call.location != null || call.clearLocation === true;
+  const row = await trx
+    .selectFrom("content")
+    .select(["type", "title", "location", "place_id", "place_read_at"])
+    .where("id", "=", contentId)
+    .executeTakeFirstOrThrow();
+  const renamed = row.type === "location" && call.title != null && call.title !== row.title;
+  if (!wantsPlace && !renamed) return null;
+
+  // The place as it was, for this turn's Undo. Server-written only.
+  const prior = messageId
+    ? {
+        place_prior: JSON.stringify({
+          messageId,
+          placeId: row.place_id,
+          location: row.location,
+          placeReadAt: row.place_read_at ? row.place_read_at.toISOString() : null,
+        }),
+        place_prior_at: sql`now()`,
+      }
+    : {};
+
+  if (wantsPlace) {
+    if (row.type === "event") {
+      if (call.clearLocation === true) return { set: { ...prior, location: null, place_id: null }, lookUp: false };
+      const location = placeQuery(call.location ?? "");
+      if (location === null) return { error: "bad_place_name" };
+      return { set: { ...prior, location, place_id: null }, lookUp: true };
+    }
+    if (row.type === "link" && call.clearLocation === true && call.location == null) {
+      return { set: { ...prior, place_id: null }, lookUp: false };
+    }
+    return { error: "location_not_here" };
+  }
+  return { set: { ...prior, place_id: null }, lookUp: true };
+}
+
 async function existing(
   call: Extract<z.infer<typeof body>, { tool: Exclude<ToolName, "create_thread" | "add_content" | "label_content"> }>,
   accountId: string,
@@ -1066,11 +1147,20 @@ async function existing(
 
     const rows = await trx
       .selectFrom("content")
-      .select(["id", "type", "title", "body", "done_at", "account_id"])
-      .where("thread_id", "=", call.threadId)
-      .where("deleted_at", "is", null)
-      .where("archived_at", "is", null)
-      .orderBy("id", "desc")
+      .leftJoin("places", "places.id", "content.place_id")
+      .select([
+        "content.id as id",
+        "content.type as type",
+        "content.title as title",
+        "content.body as body",
+        "content.done_at as done_at",
+        "content.account_id as account_id",
+        "places.lat as lat",
+      ])
+      .where("content.thread_id", "=", call.threadId)
+      .where("content.deleted_at", "is", null)
+      .where("content.archived_at", "is", null)
+      .orderBy("content.id", "desc")
       .limit(LIST_PAGE + 1)
       .execute();
 
@@ -1087,6 +1177,11 @@ async function existing(
         // Whether the planner may rewrite it, answered rather than implied, so
         // it does not have to try in order to find out.
         yours: row.account_id === accountId,
+        // 030. Whether it is on the thread's map, so "take that off the map"
+        // finds the row and the model can tell its edit worked. A yes or no
+        // and nothing else of the place: no name, address or coordinate ever
+        // reaches a prompt (Google's content, and OFF-8).
+        onMap: row.lat !== null,
       })),
       truncated: rows.length > LIST_PAGE,
     };
@@ -1395,9 +1490,17 @@ async function existing(
     }
   }
 
+  // 030. A row's place. An event's location is set through the filter or
+  // cleared; a link's point is only cleared; a saved place is renamed instead,
+  // and a rename looks it up again. Whatever changes, the place as it was is
+  // kept for this turn's Undo.
+  const placeChange = await placeEdit(trx, call, ref.id, messageId);
+  if (placeChange && "error" in placeChange) return { ok: false, error: placeChange.error };
+
   await trx
     .updateTable("content")
     .set({
+      ...(placeChange?.set ?? {}),
       ...(call.title == null ? {} : { title: call.title }),
       ...(call.body === undefined ? {} : { body: call.body }),
       ...(call.url === undefined ? {} : { url: call.url }),
@@ -1420,6 +1523,10 @@ async function existing(
       call.priority == null ? eb.val(true) : eb("priority_pinned", "=", false)
     )
     .execute();
+
+  if (placeChange?.lookUp) {
+    await enqueue({ kind: "location.resolve", payload: { contentId: ref.id }, priority: PRIORITY.background, tx: trx });
+  }
 
   await touchThread(ref.threadId, trx);
   await noteThread(messageId, ref.threadId, true, trx);
@@ -1673,6 +1780,25 @@ export async function toolRoutes(app: App): Promise<void> {
           return { ok: false, error: "bad_place_name" };
         }
 
+        // 030. An event's location goes to Google, so it passes the filter
+        // here or is refused by name; a location on anything else is not
+        // somewhere a row can be.
+        let location: string | null = null;
+        if (call.location != null) {
+          if (call.type !== "event") return { ok: false, error: "location_not_here" };
+          location = placeQuery(call.location);
+          if (location === null) return { ok: false, error: "bad_place_name" };
+        }
+        if (call.worker != null && call.type !== "link") return { ok: false, error: "location_not_here" };
+        // The page's read counts only while the map is on and the author's
+        // switch is, read here: the worker is not trusted for an access
+        // decision (routes/internal.ts).
+        const page = call.worker != null && (await mayReadForPlace(accountId, trx)) ? call.worker : null;
+        const pageName =
+          page?.pageLocation && "name" in page.pageLocation && !/[\r\n]/.test(page.pageLocation.name)
+            ? page.pageLocation.name.trim().slice(0, 120) || null
+            : null;
+
         const when = parseDates(call, await zoneOf(accountId, trx));
         if (when === null) return { ok: false, error: "bad_date" };
         // A rule anchors on the type's column: an event repeats when it
@@ -1720,6 +1846,9 @@ export async function toolRoutes(app: App): Promise<void> {
             rrule: contentRule,
             is_reminder: call.isReminder,
             priority: call.priority,
+            // 030. An event's place name, or the name a link's page gave.
+            location: location ?? pageName,
+            place_read_at: page ? sql`now()` : null,
             ...(allDayAttrs(call) ? { attrs: allDayAttrs(call) } : {}),
             updated_at: sql`now()`,
           })
@@ -1776,7 +1905,12 @@ export async function toolRoutes(app: App): Promise<void> {
         // happens in a job. Enqueued in the same transaction as the row, so a
         // rolled back filing cannot leave a job pointing at nothing and a
         // committed one cannot be silently un-geocoded.
-        if (call.type === "location") {
+        // 030. A page's own coordinates are the page's: kept as they are, with
+        // nothing sent to Google.
+        if (page?.pageLocation && "lat" in page.pageLocation) {
+          await attachPagePoint(inserted.id, page.pageLocation.lat, page.pageLocation.lng, trx);
+        }
+        if (call.type === "location" || location !== null || pageName !== null) {
           await enqueue({
             kind: "location.resolve",
             accountId,

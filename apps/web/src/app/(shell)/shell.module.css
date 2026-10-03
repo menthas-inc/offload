@@ -166,6 +166,12 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  /* 030. A thread's map column, read by the frame that draws it and by the
+     composer, which ends where the list does while the column is there. */
+  --map-column: 460px;
+  /* 030. What a closed composer covers at the foot of a pane: a map on Map
+     stops above it. */
+  --map-foot: 104px;
   /* The toast is absolutely positioned inside this, not the viewport, so it
      sits over the panes rather than over the sidebar too. */
   position: relative;
@@ -558,6 +564,11 @@
 
 .row:hover {
   background: var(--state-hover);
+}
+
+/* 030. The row whose point is picked on the map beside it. */
+.row[data-picked] {
+  background: var(--surface-fill);
 }
 
 .row:last-child {
@@ -963,44 +974,6 @@
 .chipOn {
   background: var(--surface-inverse);
   color: var(--text-inverse);
-}
-
-/* Pins on a plain surface, as the kits draw it. No tiles, so nothing about
-   where somebody has been leaves for a map company to render a background. */
-.mapSurface {
-  position: relative;
-  height: 150px;
-  margin: var(--space-4) 0 var(--space-5);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-hairline);
-  background: var(--surface-fill);
-  overflow: hidden;
-}
-
-.mapNote {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(11px * var(--type-scale));
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Fixed 22px circle, so the number inside it does not take --type-scale:
- * growing the text would break the circle rather than fill it. */
-.pin {
-  position: absolute;
-  transform: translate(-50%, -100%);
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-inverse);
-  color: var(--text-inverse);
-  font: var(--weight-semibold) 11px/22px var(--font-core);
-  text-align: center;
-  font-variant-numeric: tabular-nums;
 }
 
 /* A task's tick, as the row's lead element.
@@ -2276,6 +2249,29 @@ a.settingsRow:hover,
   background: var(--surface-raised);
   color: var(--text-primary);
   box-shadow: var(--shadow-1);
+}
+
+/* 030. The icon variant, a thread's List | Map switch in the pane head: a pill
+   track and two 36px segments, from the exploration. */
+.segmented[data-icons] {
+  margin-top: 0;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+}
+
+.segmented[data-icons] .segment {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  min-height: 30px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+}
+
+/* Dark has no drop shadow, so the picked half takes the lift's edge. */
+:global([data-theme="dark"]) .segment[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px var(--border-lift);
 }
 
 /* ---------------------------------------------------------------- notes

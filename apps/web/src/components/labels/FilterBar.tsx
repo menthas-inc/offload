@@ -28,7 +28,10 @@ export function FilterBar({
   onPick,
   onNew,
   onOpen,
+  floating = false,
 }: {
+  /** 030. Over the map on Map: raised chips with no counts and no plus. */
+  floating?: boolean;
   labels: Label[];
   unlabelled: number;
   pick: LabelPick;
@@ -39,7 +42,7 @@ export function FilterBar({
   if (labels.length === 0) return null;
 
   return (
-    <div className={styles.bar} role="group" aria-label="Filter by label">
+    <div className={floating ? styles.barFloating : styles.bar} role="group" aria-label="Filter by label">
       <div className={styles.barScroll}>
         <Chip selected={isAll(pick)} onClick={() => onPick(pickAll())}>
           All
@@ -49,21 +52,25 @@ export function FilterBar({
             key={label.id}
             label={label}
             picked={pick.labels.includes(label.id)}
+            counted={!floating}
             onPress={() => onPick(toggleLabel(pick, label.id))}
             onOpen={() => onOpen(label.id)}
           />
         ))}
         <Chip tone="outline" selected={pick.none} onClick={() => onPick(toggleUnlabelled(pick))}>
-          No label{unlabelled > 0 ? ` ${unlabelled}` : ""}
+          No label{unlabelled > 0 && !floating ? ` ${unlabelled}` : ""}
         </Chip>
       </div>
       {/* The plus is an icon with a name, so it is a button with a label
-          rather than a Chip with words. */}
-      <button type="button" className={`${styles.chipHit} ${styles.barPlus}`} aria-label="New label" onClick={onNew}>
-        <span className={styles.chip}>
-          <Icon name="plus" size={14} />
-        </span>
-      </button>
+          rather than a Chip with words. Not over the map, where a new label
+          has nothing to hold. */}
+      {floating ? null : (
+        <button type="button" className={`${styles.chipHit} ${styles.barPlus}`} aria-label="New label" onClick={onNew}>
+          <span className={styles.chip}>
+            <Icon name="plus" size={14} />
+          </span>
+        </button>
+      )}
     </div>
   );
 }
@@ -71,11 +78,13 @@ export function FilterBar({
 function LabelChip({
   label,
   picked,
+  counted,
   onPress,
   onOpen,
 }: {
   label: Label;
   picked: boolean;
+  counted: boolean;
   onPress: () => void;
   onOpen: () => void;
 }) {
@@ -112,7 +121,7 @@ function LabelChip({
     >
       <Chip label={label.colour} selected={picked} onClick={onPress}>
         {label.name}
-        {label.count > 0 ? ` ${label.count}` : ""}
+        {counted && label.count > 0 ? ` ${label.count}` : ""}
       </Chip>
       {picked ? (
         <button

@@ -53,6 +53,7 @@ const row = {
   priorityPinned: false,
   labels: [],
   place: null,
+  location: null,
   placeId: null,
   seriesRef: null,
   allDay: false,

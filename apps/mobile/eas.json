@@ -17,7 +17,8 @@
       },
       "android": {
         "buildType": "apk"
-      }
+      },
+      "environment": "development"
     },
     "development-simulator": {
       "extends": "development",
@@ -35,7 +36,8 @@
       },
       "android": {
         "buildType": "apk"
-      }
+      },
+      "environment": "preview"
     },
     "production": {
       "channel": "production",
@@ -43,7 +45,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.offload.club",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "174736489489-o97kdgrgo3sh6jho3eqgq0mu1f97fgmj.apps.googleusercontent.com"
-      }
+      },
+      "environment": "production"
     }
   },
   "submit": {

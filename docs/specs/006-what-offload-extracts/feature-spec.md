@@ -1,5 +1,7 @@
 # 006 What offload extracts, feature spec
 
+> **Amended 2026-10-03 by 030:** a place resolves through Google Maps Platform as an id, and coordinates kept at most thirty days; no name, address or category is stored. Events and links carry an optional `location` the model fills on filing, and a link's page can give its point. Every query passes one filter that refuses numbers, addresses and possessives. See `docs/specs/030-maps/`.
+
 > **Amended 2026-09-27 by 025:** tags are retired. `content.tags` is dropped and the model no longer writes them; AC-6 and AC-8 on tags no longer hold. A thread is grouped by labels, `docs/specs/025-labels/`.
 
 > The what and the why. No tech choices; those are in `impl-spec.md`.

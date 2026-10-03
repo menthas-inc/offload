@@ -6,6 +6,8 @@
 **Amends:** 024's Activity contract (a row may carry one action, and *Undone* is rendered from a column rather than written into the words); 007's grouping, retired; 018's tag question, retired; 006's AC-8 on tags, retired
 
 
+*Amended 2026-10-03 by 030: the split pin is built. A point on a thread's map takes its labels' colours, split for two, and the map's points follow the filter bar's pick; the Places section is retired.*
+
 *Amended 2026-10-02 by 032: the nightly sort is deleted, its job, worker, prompt, endpoint and switch. Labels come from people and from live turns. Activity rows it wrote keep their Undo until they age out.*
 
 ## Why

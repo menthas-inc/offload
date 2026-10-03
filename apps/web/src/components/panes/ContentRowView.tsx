@@ -60,6 +60,10 @@ export interface RowHandlers {
    *  label's list. Absent where the page offers neither. */
   onLabel?: (row: ContentRow, anchor: HTMLElement) => void;
   onOpenLabel?: (labelId: string) => void;
+  /** 030. The pointer over a row, so its point on the map scales. */
+  onHover?: (rowId: string | null) => void;
+  /** 030. The row whose point is picked on the map. */
+  picked?: string | null;
 }
 
 export function ContentRowView({
@@ -146,6 +150,12 @@ export function ContentRowView({
       // simply filed needs nothing.
       data-arrived={handlers.arrived.has(row.id) ? true : undefined}
       data-provisional={provisional ? true : undefined}
+      data-picked={handlers.picked === row.id ? true : undefined}
+      onMouseEnter={handlers.onHover ? () => handlers.onHover?.(row.id) : undefined}
+      onMouseLeave={handlers.onHover ? () => handlers.onHover?.(null) : undefined}
+      // A keyboard moving through the list lifts the point the same way.
+      onFocus={handlers.onHover ? () => handlers.onHover?.(row.id) : undefined}
+      onBlur={handlers.onHover ? () => handlers.onHover?.(null) : undefined}
       // A drop target while a row in the same list is being dragged. The line
       // is drawn on whichever edge the dragged row would land on, and the row
       // under the pointer is what the list reads to decide where.

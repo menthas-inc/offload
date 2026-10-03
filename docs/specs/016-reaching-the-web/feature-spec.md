@@ -3,6 +3,7 @@
 **Status:** drafted 2026-09-14
 **Surfaces:** web, iOS, Android, and the agent plane
 **Research and decisions:** `research.md` in this folder
+**Amended 2026-10-03 by 030:** with *Read links I paste* on, a link's page is also read for where it is, and a place name it gives goes to Google, after the same filter as every place lookup; links kept before the map get one more read at switch-on and never again. The setting's note says so. See `docs/specs/030-maps/`.
 
 ## Why
 

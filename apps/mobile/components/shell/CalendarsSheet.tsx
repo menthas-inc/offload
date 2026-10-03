@@ -44,7 +44,7 @@ export function captionFor(
       : others > 0
         ? `offload is not reading any of your calendars for ${threadName}. Tick the ones it should.`
         : `offload is not reading any calendar for ${threadName}. Tick the ones it should.`;
-  return { line, shared: members > 1 ? `Everyone in ${threadName} sees what is on them.` : null };
+  return { line, shared: members > 1 ? `Everyone in ${threadName} sees the events on them, and where they are.` : null };
 }
 
 export function othersLine(others: Array<{ displayName: string; count: number }>): string | null {

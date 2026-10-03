@@ -15,6 +15,7 @@ import { sql } from "kysely";
 import { db } from "../db.js";
 import { calendarName } from "../connectors/calendars.js";
 import { memberOf, NotYours, type Executor } from "./access.js";
+import { bookLocate, mapsConfig } from "../places/resolve.js";
 
 export interface ThreadCalendar {
   id: string;
@@ -136,6 +137,10 @@ export async function setPick(accountId: string, threadId: string, calendarId: s
       .values({ thread_id: threadId, calendar_id: calendarId, account_id: accountId })
       .onConflict((oc) => oc.columns(["thread_id", "calendar_id"]).doNothing())
       .execute();
+    // 030. A calendar picked for a thread has its events' locations looked up
+    // now rather than at the next sync, keyed on the pick so a sync that
+    // already booked this slot does not swallow it.
+    await bookLocate(calendarId, `event.locate:pick:${calendarId}:${threadId}`);
   } else {
     await db
       .deleteFrom("thread_calendars")
@@ -201,11 +206,16 @@ export interface ThreadEvent {
   /** 027. The viewer is in it: on the viewer's own calendar, and created by
    *  them, invited, or not read yet. False for another member's calendar. */
   involved: boolean;
+  /** 030. Where it is, in its owner's calendar's words, and its point once
+   *  looked up, for every member while the map is on. Null while it is off. */
+  location: string | null;
+  place: { id: string; lat: number | null; lng: number | null; approximate: boolean } | null;
 }
 
 /** The events on a thread's calendars inside a window, through every member's
- *  picks, one line per event. A title and a time are what cross to another
- *  member: never the guests, never the place. Another member's event is
+ *  picks, one line per event. A title, a time and, while the map is on, where
+ *  it is cross to another member (030, by the product owner's decision):
+ *  never the guests, their answers, the description, or whether it is theirs. Another member's event is
  *  untrusted in the viewer's hands whoever wrote it, because trust is relative
  *  to the account whose turn it is. An event a row in the thread remembers is
  *  skipped, so a row offload put on the calendar draws once. */
@@ -217,6 +227,7 @@ export async function threadEvents(
   trx: Executor = db
 ): Promise<ThreadEvent[]> {
   if (!(await memberOf(accountId, threadId, trx))) throw new NotYours();
+  const maps = mapsConfig().on;
 
   const rows = await trx
     .selectFrom("thread_calendars as p")
@@ -224,6 +235,7 @@ export async function threadEvents(
     .innerJoin("connector_connections as n", "n.id", "c.connection_id")
     .innerJoin("accounts as owner", "owner.id", "n.account_id")
     .innerJoin("connector_events as e", "e.calendar_id", "c.id")
+    .leftJoin("places as pl", "pl.id", "e.place_id")
     .select([
       "e.id as id",
       "e.source_ref as sourceRef",
@@ -240,6 +252,11 @@ export async function threadEvents(
       "e.invited_me as invitedMe",
       "n.account_id as ownerId",
       "owner.display_name as ownerName",
+      "e.location as location",
+      "e.place_id as placeId",
+      "pl.lat as placeLat",
+      "pl.lng as placeLng",
+      "pl.approximate as placeApproximate",
     ])
     .distinctOn("e.source_ref")
     .where("p.thread_id", "=", threadId)
@@ -285,6 +302,11 @@ export async function threadEvents(
       involved:
         row.ownerId === accountId &&
         (row.createdByMe === true || row.invitedMe === true || (row.createdByMe === null && row.invitedMe === null)),
+      location: maps ? row.location : null,
+      place:
+        maps && row.placeId
+          ? { id: row.placeId, lat: row.placeLat, lng: row.placeLng, approximate: row.placeApproximate === true }
+          : null,
     }));
 }
 

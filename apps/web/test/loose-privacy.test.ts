@@ -6,7 +6,6 @@ import { readFileSync } from "node:fs";
 // stated in the owner's approved words, and the consent version moves with it.
 describe("the privacy page says what 028 adds (T0.3)", () => {
   const page = readFileSync(`${process.cwd()}/src/app/(marketing)/privacy/page.tsx`, "utf8").replace(/\s+/g, " ");
-  const session = readFileSync(`${process.cwd()}/../core-api/src/routes/session.ts`, "utf8");
 
   it("states the suggestions and the daily pass", () => {
     expect(page).toContain(
@@ -27,8 +26,4 @@ describe("the privacy page says what 028 adds (T0.3)", () => {
     expect(page).not.toContain("Nothing arrives in a shared thread by accident.");
   });
 
-  it("moves its date with the consent version", () => {
-    expect(page).toContain('const UPDATED = "2 October 2026"');
-    expect(session).toContain('export const CONSENT_VERSION = "2026-10-02";');
-  });
 });

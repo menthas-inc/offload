@@ -1,0 +1,12 @@
+{
+  "types": [
+    "atm",
+    "finance",
+    "point_of_interest",
+    "establishment"
+  ],
+  "location": {
+    "latitude": 41.0284005,
+    "longitude": 28.974039599999994
+  }
+}
