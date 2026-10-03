@@ -26,6 +26,7 @@ const LABEL: Record<Provider, string> = {
 export default function SignInPage() {
   const [pending, setPending] = useState<Provider | null>(null);
   const [refused, setRefused] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   useEffect(() => {
     // Better Auth bounces a failed callback back here with a code in the query
     // string. Showing the banner is the whole point of being bounced somewhere
@@ -34,7 +35,11 @@ export default function SignInPage() {
     // Read off location rather than through useSearchParams, which wanted a
     // Suspense boundary while this page was prerendered. Every page renders
     // per request now (src/middleware.ts); location is still the simpler read.
-    if (new URLSearchParams(window.location.search).has("error")) setRefused(true);
+    const query = new URLSearchParams(window.location.search);
+    if (query.has("error")) setRefused(true);
+    // 035. Arriving from a deleted account. Said once, plainly, where the
+    // invite line would be, and not as a failure: nothing went wrong.
+    if (query.has("deleted")) setDeleted(true);
   }, []);
 
   async function go(provider: Provider) {
@@ -53,7 +58,13 @@ export default function SignInPage() {
     <GateChrome>
       <GateCard>
         <h1 className={styles.title}>Sign in to offload</h1>
-        <p className={styles.sub}>Use the account your invite was sent to.</p>
+        {deleted ? (
+          <p className={styles.sub} role="status">
+            Your account is deleted.
+          </p>
+        ) : (
+          <p className={styles.sub}>Use the account your invite was sent to.</p>
+        )}
 
         {refused ? (
           <p className={styles.refusal} role="alert">

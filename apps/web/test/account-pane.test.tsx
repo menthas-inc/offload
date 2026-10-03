@@ -60,8 +60,15 @@ vi.mock("better-auth/react", () => ({
 }));
 
 let providers: string[] = ["google"];
-vi.stubGlobal("fetch", async (url: string) => {
+// 035. What DELETE /api/me answers, and what it was sent.
+let deleteStatus = 204;
+const deletes: unknown[] = [];
+vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
   const path = new URL(url).pathname;
+  if (path === "/api/me" && init?.method === "DELETE") {
+    deletes.push(JSON.parse(String(init.body)));
+    return deleteStatus === 204 ? new Response(null, { status: 204 }) : json({ error: "last_owner" }, deleteStatus);
+  }
   if (path === "/api/countries") return json({ countries: [{ code: "PT", name: "Portugal" }] });
   if (path === "/api/me")
     return json({
@@ -97,6 +104,8 @@ beforeEach(() => {
   revokeRefused = false;
   signedOut = 0;
   providers = ["google"];
+  deleteStatus = 204;
+  deletes.length = 0;
   router.replace.mockClear();
 });
 
@@ -217,5 +226,83 @@ describe("Signed in on (AC-5)", () => {
     for (let i = 0; i < 3; i += 1) await act(async () => new Promise((r) => setTimeout(r, 0)));
     expect(revoked).toEqual(["old"]);
     expect(section(host, "Signed in on").textContent).not.toContain("That didn't go through.");
+  });
+});
+
+// 035 AC-1, AC-2. The danger panel, and a confirmation that takes a typed word.
+describe("Delete your account", () => {
+  function type(input: HTMLInputElement, value: string) {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  const dialog = () => document.querySelector<HTMLElement>('[role="dialog"]');
+  const settle = async () => {
+    for (let i = 0; i < 4; i += 1) await act(async () => new Promise((r) => setTimeout(r, 0)));
+  };
+  async function open(host: HTMLElement) {
+    const panel = host.querySelector<HTMLElement>('[aria-label="Delete your account"]')!;
+    await act(async () => button(panel, "Delete account").click());
+    return dialog()!;
+  }
+
+  it("draws the panel with no heading of its own, and says what stays", async () => {
+    const host = await render();
+    const panel = host.querySelector<HTMLElement>('[aria-label="Delete your account"]')!;
+    expect(panel.textContent).toContain("Delete your account");
+    expect(panel.textContent).toContain("Everything only you can see goes with it. There's no undo.");
+    expect(panel.querySelector("h2")).toBeNull();
+    expect(dialog()).toBeNull();
+  });
+
+  it("keeps the button off until the word is typed, and Cancel sends nothing", async () => {
+    const host = await render();
+    const box = await open(host);
+    expect(box.textContent).toContain("leaves what you added with the others");
+    const field = box.querySelector<HTMLInputElement>('input[aria-label="Type delete to confirm"]')!;
+    expect(field.getAttribute("autocapitalize")).toBe("none");
+    expect(field.getAttribute("spellcheck")).toBe("false");
+    expect(button(box, "Delete account").disabled).toBe(true);
+    await act(async () => type(field, "delet"));
+    expect(button(box, "Delete account").disabled).toBe(true);
+    await act(async () => type(field, " Delete "));
+    expect(button(box, "Delete account").disabled).toBe(false);
+    await act(async () => button(box, "Cancel").click());
+    expect(dialog()).toBeNull();
+    expect(deletes).toEqual([]);
+  });
+
+  it("deletes on the word and lands on sign in saying so", async () => {
+    const host = await render();
+    const box = await open(host);
+    await act(async () => type(box.querySelector<HTMLInputElement>("input")!, "delete"));
+    await act(async () => button(box, "Delete account").click());
+    await settle();
+    expect(deletes).toEqual([{ confirm: "delete" }]);
+    expect(router.replace).toHaveBeenCalledWith("/sign-in?deleted=1");
+  });
+
+  it("says a failure and offers Try again, without leaving", async () => {
+    deleteStatus = 500;
+    const host = await render();
+    const box = await open(host);
+    await act(async () => type(box.querySelector<HTMLInputElement>("input")!, "delete"));
+    await act(async () => button(box, "Delete account").click());
+    await settle();
+    expect(box.querySelector('[role="alert"]')?.textContent).toBe("Couldn't delete your account");
+    expect(button(box, "Try again")).toBeTruthy();
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("tells the last staff owner to hand ownership over, with nothing to retry", async () => {
+    deleteStatus = 409;
+    const host = await render();
+    const box = await open(host);
+    await act(async () => type(box.querySelector<HTMLInputElement>("input")!, "delete"));
+    await act(async () => button(box, "Delete account").click());
+    await settle();
+    expect(box.querySelector('[role="alert"]')?.textContent).toBe("Hand offload's ownership to someone else first.");
+    expect(button(box, "Try again")).toBeUndefined();
+    expect(button(box, "Delete account")).toBeUndefined();
+    expect(router.replace).not.toHaveBeenCalled();
   });
 });

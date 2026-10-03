@@ -43,7 +43,7 @@ the same spec because the delete confirmation offers it.
     account*.
 - **Confirmation.** A sheet on the phones, each in its own platform's chrome
   from its own kit, and a dialog on the web. It says what goes and what stays,
-  offers *Make a copy first* (the export), and holds one field labelled *Type
+  offers *Make a copy first* once the export exists (part B), and holds one field labelled *Type
   delete to confirm*. The word is `delete`, matched trimmed and without regard
   to case; the field does not capitalise, correct or spell-check. The button,
   *Delete account*, is disabled until it matches. The field and the button

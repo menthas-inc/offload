@@ -739,6 +739,12 @@ export default function Privacy() {
               too.
             </li>
             <li>
+              <strong>When you delete your account:</strong> the same, and three things more.
+              Access to a calendar you connected is revoked at Google. Our record of what each
+              request cost to run is kept with your account removed from it, and holds none of your
+              content. And we send one email to your address to say it was done.
+            </li>
+            <li>
               <strong>Product events:</strong> kept, but detached. Deleting your account destroys
               the identifier that connects them to you.
             </li>
@@ -932,9 +938,11 @@ export default function Privacy() {
         <section className={styles.section}>
           <h2 className={styles.h2}>13. What you can change</h2>
           <p className={styles.note}>
-            offload is an invite-only beta as of {UPDATED}, and none of the controls below is
-            built yet. Email us and we will do any of it by hand, usually the same day. Nothing
-            here is on unless the text says so.
+            offload is an invite-only beta as of {UPDATED}. Deleting is built: a single upload, a
+            thread, or your whole account, which you delete yourself in Settings under My account.{" "}
+            <a href="/delete-account">How deleting an account works</a>. The other controls below
+            are not built yet. Email us and we will do any of them by hand, usually the same day.
+            Nothing here is on unless the text says so.
           </p>
           <ul>
             <li>

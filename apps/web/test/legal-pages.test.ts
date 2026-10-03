@@ -50,12 +50,47 @@ describe("the public site reads as finished", () => {
     expect(sitemap).toBe("https://offload.club/sitemap.xml");
   });
 
-  it("lists the three public pages in the sitemap", async () => {
+  it("lists the public pages in the sitemap", async () => {
     const { default: sitemap } = await import("../src/app/sitemap");
     expect(sitemap().map((entry) => entry.url)).toEqual([
       "https://offload.club/",
       "https://offload.club/privacy",
       "https://offload.club/terms",
+      "https://offload.club/delete-account",
     ]);
+  });
+
+  // 035 AC-11. Play asks for a web address where deleting an account can be
+  // started without the app. The same page for every visitor, with nothing to
+  // fill in: an address field here would say whether an address has an account.
+  it("has a delete-account page that takes no input and leads to sign in", () => {
+    const page = read("app/(marketing)/delete-account/page.tsx");
+    expect(page).toContain('title: "Delete your account · offload"');
+    expect(page).not.toMatch(/<input|<form|<textarea|"use client"/);
+    expect(page).toContain('href="/sign-in"');
+    expect(page).toContain("hello@offload.club");
+    expect(page).toContain("leaves what you added with the others");
+    expect(page).not.toMatch(/[\u2013\u2014]|&[mn]dash;/);
+  });
+
+  // 035 AC-24. The privacy page is a claim surface: once deleting an account
+  // is built, the page may not say it is done by hand, and it says what a
+  // deleted account leaves with us.
+  it("says on the privacy page that deleting is built, and what is kept without the account", () => {
+    const privacy = read("app/(marketing)/privacy/page.tsx");
+    expect(privacy).not.toContain("none of the controls below is built yet");
+    expect(privacy).toContain(
+      "Deleting is built: a single upload, a thread, or your whole account, which you delete yourself in Settings under My account."
+    );
+    expect(privacy).toContain(
+      "<strong>When you delete your account:</strong> the same, and three things more. Access to a calendar you connected is revoked at Google. Our record of what each request cost to run is kept with your account removed from it, and holds none of your content. And we send one email to your address to say it was done."
+    );
+    expect(privacy).toContain('href="/delete-account"');
+  });
+
+  it("says the account is deleted on sign in, once, in place of the invite line", () => {
+    const page = read("app/(app)/sign-in/page.tsx");
+    expect(page).toContain("Your account is deleted.");
+    expect(page).toContain('.has("deleted")');
   });
 });

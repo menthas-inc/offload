@@ -59,14 +59,14 @@ exists (QUAL-1). Part A merges on its own.
 
 ### Web
 
-- [ ] **T15** Read `WSettings` whole. The danger panel in semantic tokens and
+- [x] **T15** Read `WSettings` whole. The danger panel in semantic tokens and
   the dialog with every state. *(AC-1, AC-2)*
-- [ ] **T16** `/delete-account`, static and inputless, and the `deleted=1`
+- [x] **T16** `/delete-account`, static and inputless, and the `deleted=1`
   line on sign-in. *(AC-11)*
 
 ### Close of part A
 
-- [ ] **T17** Privacy page: the deletion edits, `UPDATED` and
+- [x] **T17** Privacy page: the deletion edits, `UPDATED` and
   `CONSENT_VERSION`. *(AC-24)*
 - [ ] **T18** Design `decisions.md` entry for the confirmation, destructive
   button and danger panel. *(AC-25)*
