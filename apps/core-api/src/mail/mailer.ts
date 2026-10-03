@@ -4,6 +4,7 @@
 // deliverability ever needs one is a class, not a refactor.
 
 import { renderHtml, renderText, type EmailSlots } from "./template.js";
+import { JobError } from "../jobs/errors.js";
 
 export interface Message {
   to: string;
@@ -37,7 +38,9 @@ export class ResendMailer implements Mailer {
     if (!response.ok) {
       // Status only. The body quotes the recipient address, and that must not
       // reach jobs.last_error or a log line (OFF-1).
-      throw new Error(`Resend rejected the send with status ${response.status}`);
+      // 034. With its code, so a dead email job says the mail company refused
+      // it rather than that a handler threw.
+      throw new JobError("mail_failed", `Resend rejected the send with status ${response.status}`);
     }
   }
 }

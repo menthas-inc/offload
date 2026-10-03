@@ -24,6 +24,7 @@
 
 import { sql } from "kysely";
 import { db } from "../db.js";
+import { mapsOn, setting } from "../settings.js";
 import type { Executor } from "../threads/access.js";
 import { env } from "../env.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
@@ -46,7 +47,11 @@ export type Geocoder = (query: string, key: string) => Promise<Found | null>;
 
 /** Whether the map is on, and what it needs. Read from the environment by
  *  default; a test passes its own. Boot refuses `MAPS=on` without the key and
- *  the pepper (`mapsConfigProblem`). */
+ *  the pepper (`mapsConfigProblem`).
+ *
+ *  034. This is the environment's half. An owner can also switch the map off
+ *  while offload runs, and every path here asks both: `mapsOn()` in
+ *  `settings.ts`, or `switch.maps` beside a config a caller passed in. */
 export interface MapsConfig {
   on: boolean;
   key: string;
@@ -94,7 +99,7 @@ export async function resolvePlace(
   geocode: Geocoder = googleGeocoder,
   config: MapsConfig = mapsConfig(),
 ): Promise<ResolveOutcome> {
-  if (!config.on) return "skipped";
+  if (!config.on || !(await setting("switch.maps"))) return "skipped";
 
   const row = await db
     .selectFrom("content")
@@ -250,7 +255,7 @@ export async function refreshPlace(
     details(id, mapsConfig().key),
   config: MapsConfig = mapsConfig(),
 ): Promise<"refreshed" | "skipped" | "not_found" | "provider_error"> {
-  if (!config.on) return "skipped";
+  if (!config.on || !(await setting("switch.maps"))) return "skipped";
   const place = await db
     .selectFrom("places")
     .select(["id", "provider_place_id", "lat"])
@@ -288,7 +293,8 @@ export async function refreshPlace(
  *  and their *Read links I paste* is. Read at the moment of writing, never
  *  taken on the worker's word. */
 export async function mayReadForPlace(accountId: string, trx: Executor = db): Promise<boolean> {
-  if (!mapsConfig().on) return false;
+  // 034. And the owner's two switches: the map, and reading links at all.
+  if (!(await mapsOn()) || !(await setting("switch.web_links"))) return false;
   const row = await trx.selectFrom("accounts").select("web_links_enabled").where("id", "=", accountId).executeTakeFirst();
   return row?.web_links_enabled === true;
 }
@@ -307,7 +313,7 @@ export async function resolveEventPlace(
   geocode: Geocoder = googleGeocoder,
   config: MapsConfig = mapsConfig(),
 ): Promise<ResolveOutcome> {
-  if (!config.on) return "skipped";
+  if (!config.on || !(await setting("switch.maps"))) return "skipped";
   const event = await db
     .selectFrom("connector_events")
     .select(["id", "location", "located_key"])
@@ -349,7 +355,7 @@ export async function locateCalendar(
   geocode: Geocoder = googleGeocoder,
   config: MapsConfig = mapsConfig(),
 ): Promise<{ looked: number; waiting: number }> {
-  if (!config.on) return { looked: 0, waiting: 0 };
+  if (!config.on || !(await setting("switch.maps"))) return { looked: 0, waiting: 0 };
   const candidates = await db
     .selectFrom("connector_events")
     .select(["id", "location", "located_key"])
@@ -367,6 +373,6 @@ export async function locateCalendar(
 
 /** Book a calendar's lookups, while the map is on. */
 export async function bookLocate(calendarId: string, idempotencyKey: string): Promise<void> {
-  if (!mapsConfig().on) return;
+  if (!(await mapsOn())) return;
   await enqueue({ kind: "event.locate", payload: { calendarId }, priority: PRIORITY.background, idempotencyKey });
 }

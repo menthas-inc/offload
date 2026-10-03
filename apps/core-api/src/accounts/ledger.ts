@@ -41,11 +41,12 @@ export const ACCOUNT_LEDGER: Record<string, Entry> = {
   "message_chunks.account_id": cascade,
   "turn_sources.account_id": cascade,
   "questions.account_id": cascade,
-  "lookups.account_id": cascade,
   "people_lookups.account_id": cascade,
   "jobs.account_id": cascade,
   "push_tokens.account_id": cascade,
   "today_put_offs.account_id": cascade,
+  "account_limits.account_id": cascade,
+  "limit_hits.account_id": cascade,
   "thread_proposals.account_id": cascade,
   "suggestions.account_id": cascade,
 
@@ -83,7 +84,11 @@ export const ACCOUNT_LEDGER: Record<string, Entry> = {
 
   // Ours, not theirs.
   "llm_usage.account_id": { fate: "set-null", why: "the cost ledger holds no content and stays without the account" },
+  "lookups.account_id": { fate: "set-null", why: "034: a search fee is a cost row, kept as llm_usage is, with no query on it" },
   "app_settings.updated_by_account_id": setNull,
+  "account_limits.set_by_account_id": setNull,
+  "staff_audit.staff_account_id": { fate: "none", why: "034: no foreign key on purpose; the record of staff actions names an account by an id that points at nothing once it is gone, and goes after two years" },
+  "staff_audit.target_account_id": { fate: "none", why: "as above" },
   "accounts.referred_by_account_id": setNull,
 
   // No foreign key, so nothing removes these unless it is told to.

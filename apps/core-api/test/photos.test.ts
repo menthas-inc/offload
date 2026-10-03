@@ -32,6 +32,7 @@ import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { uuidv7 } from "../src/uuid.js";
 import { promote } from "../src/admin/promote.js";
+import { clearSettingsCache } from "../src/settings.js";
 import { answerQuestion, takeDump, undoTurn, UnknownBlob } from "../src/routes/dumps.js";
 import { deleteThread, moveContent } from "../src/routes/threads.js";
 import { objectKey, objectStore, resetObjectStore } from "../src/blobs/store.js";
@@ -263,6 +264,33 @@ describe("the upload", () => {
     const res = await upload(await signIn(me.id), fixture("plain.jpg"));
     expect(res.statusCode).toBe(429);
     expect(res.json().error).toBe("daily_limit");
+  });
+
+  // 034. The ceiling is its setting, a refusal says whose cap it was, and it
+  // is written down.
+  it("holds the ceiling an owner set, by count and by bytes, and records each refusal", async () => {
+    const me = await person();
+    const cookie = await signIn(me.id);
+    await db.insertInto("app_settings").values({ key: "cap.photos", value: "1", updated_by_account_id: null }).execute();
+    clearSettingsCache();
+    expect((await upload(cookie, fixture("plain.jpg"))).statusCode).toBe(201);
+    const second = await upload(cookie, fixture("plain.jpg"));
+    expect(second.statusCode).toBe(429);
+    expect(second.json()).toEqual({ error: "daily_limit", scope: "account" });
+
+    await db.deleteFrom("app_settings").execute();
+    await db.insertInto("account_limits").values({ account_id: me.id, key: "cap.photo_bytes", value: 1024 * 1024 }).execute();
+    clearSettingsCache();
+    await db.updateTable("blobs").set({ byte_size: 1024 * 1024 }).where("account_id", "=", me.id).execute();
+    expect((await upload(cookie, fixture("plain.jpg"))).statusCode).toBe(429);
+
+    const hits = await db.selectFrom("limit_hits").select(["cap", "scope", "count"]).where("account_id", "=", me.id).orderBy("cap").execute();
+    expect(hits).toEqual([
+      { cap: "cap.photo_bytes", scope: "account", count: 1 },
+      { cap: "cap.photos", scope: "account", count: 1 },
+    ]);
+    await db.deleteFrom("account_limits").execute();
+    clearSettingsCache();
   });
 });
 

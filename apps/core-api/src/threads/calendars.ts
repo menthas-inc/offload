@@ -15,7 +15,8 @@ import { sql } from "kysely";
 import { db } from "../db.js";
 import { calendarName } from "../connectors/calendars.js";
 import { memberOf, NotYours, type Executor } from "./access.js";
-import { bookLocate, mapsConfig } from "../places/resolve.js";
+import { bookLocate } from "../places/resolve.js";
+import { mapsOn } from "../settings.js";
 
 export interface ThreadCalendar {
   id: string;
@@ -227,7 +228,7 @@ export async function threadEvents(
   trx: Executor = db
 ): Promise<ThreadEvent[]> {
   if (!(await memberOf(accountId, threadId, trx))) throw new NotYours();
-  const maps = mapsConfig().on;
+  const maps = await mapsOn();
 
   const rows = await trx
     .selectFrom("thread_calendars as p")

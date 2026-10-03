@@ -12,6 +12,7 @@ import type { Kysely, Transaction } from "kysely";
 import { CHANNEL_REQUESTS, CHANNEL_SHARED, PEOPLE_CATEGORY } from "@offload/widgets";
 import { emit, subjectOf } from "../analytics.js";
 import { db } from "../db.js";
+import { inBackground } from "../accounts/active.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import type { Database } from "../schema.js";
 import { record } from "./activity.js";
@@ -162,6 +163,8 @@ export async function notifySharedActivity(payload: { threadId: string; authorId
     .where("thread_members.thread_id", "=", payload.threadId)
     .where("thread_members.state", "=", "accepted")
     .where("thread_members.account_id", "<>", payload.authorId)
+    // 034. Nothing is sent to, or recorded for, a disabled member.
+    .where(inBackground())
     .execute();
   let sent = 0;
   for (const member of members) {
@@ -177,6 +180,10 @@ export async function notifySharedActivity(payload: { threadId: string; authorId
       .where("content.deleted_at", "is", null)
       .where("content.created_at", ">=", since)
       .where("content.created_at", "<", until)
+      // In the database, where a moment has its microseconds. The sort below
+      // is by a Date, which has milliseconds, and is stable, so two rows made
+      // inside one millisecond keep this order.
+      .orderBy("content.created_at")
       .execute();
     const notes = await db
       .selectFrom("readable_notes as note")
@@ -187,6 +194,7 @@ export async function notifySharedActivity(payload: { threadId: string; authorId
       .where("note.deleted_at", "is", null)
       .where("note.created_at", ">=", since)
       .where("note.created_at", "<", until)
+      .orderBy("note.created_at")
       .execute();
     const added = [...rows, ...notes].sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
     if (added.length === 0) continue;

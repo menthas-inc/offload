@@ -85,6 +85,11 @@ export interface AccountsTable {
   updated_at: Timestamp;
   disabled_at: Timestamp | null;
   deleted_at: Timestamp | null;
+  /** 034. Marked for deletion by an owner: locked now, destroyed at this
+   *  time unless the mark is cleared first. */
+  delete_after: Timestamp | null;
+  /** 034. Who asked. An id with no foreign key, as an audit entry's are. */
+  delete_requested_by: string | null;
 }
 
 export interface AccountIdentitiesTable {
@@ -134,18 +139,108 @@ export interface VerificationsTable {
   updated_at: Timestamp;
 }
 
-/** Settings the owner changes while offload runs (0073). One row per key. */
+/** Settings the owner changes while offload runs (0073). One row per key.
+ *  The closed set of keys is the registry in `settings.ts` (0074). */
 export interface AppSettingsTable {
-  key: "web_maps";
+  key: string;
   value: unknown;
-  updated_at: Generated<Timestamp>;
+  updated_at: Timestamp;
   updated_by_account_id: string | null;
+}
+
+/** 034. One account's own value for a per-person cap. Absent is the global
+ *  setting. */
+export interface AccountLimitsTable {
+  account_id: string;
+  key: string;
+  value: ColumnType<string, number, number>;
+  set_by_account_id: string | null;
+  updated_at: Timestamp;
 }
 
 export interface StaffTable {
   account_id: string;
   role: "support" | "owner";
   created_at: Timestamp;
+}
+
+/** 034. What staff did. No foreign keys, no address, no free text; the
+ *  database refuses an update and a delete inside two years (0075). */
+export interface StaffAuditTable {
+  id: Generated<string>;
+  at: Timestamp;
+  staff_account_id: string;
+  kind: string;
+  target_account_id: string | null;
+  setting_key: string | null;
+  old_value: ColumnType<unknown, string | null | undefined, never>;
+  new_value: ColumnType<unknown, string | null | undefined, never>;
+  job_id: string | null;
+  day: ColumnType<string, never, never>;
+}
+
+/** 034. One row a minute per service (0077). */
+export interface HeartbeatsTable {
+  service: "core-api" | "worker" | "web" | "database";
+  minute: Timestamp;
+  ok: boolean;
+  commit: string | null;
+  started_at: Timestamp | null;
+}
+
+/** 034. Hourly job counts, kept 90 days. No account, by design. */
+export interface JobStatsHourlyTable {
+  hour: Timestamp;
+  kind: string;
+  outcome: string;
+  count: number;
+  wait_ms_sum: Generated<string>;
+  wait_ms_p95: Generated<number>;
+  run_ms_sum: Generated<string>;
+  run_ms_p95: Generated<number>;
+}
+
+/** 034. Written by the backup service at the end of each run. */
+export interface BackupRunsTable {
+  id: Generated<string>;
+  finished_at: Timestamp;
+  bytes: Generated<string>;
+  ok: boolean;
+}
+
+/** 034. One alert condition: open until it clears. */
+export interface AlertStatesTable {
+  condition: string;
+  opened_at: Timestamp;
+  cleared_at: Timestamp | null;
+  last_sent_at: Timestamp | null;
+}
+
+/** 034. Condition alerts sent in a UTC day, for the limit of ten. */
+export interface AlertSendsTable {
+  day: string;
+  count: Generated<number>;
+}
+
+/** 034. Each time a cap refused somebody, counted per UTC day. */
+export interface LimitHitsTable {
+  account_id: string;
+  cap: string;
+  scope: "account" | "platform";
+  day: string;
+  count: Generated<number>;
+  last_at: Timestamp;
+}
+
+/** 034. What a company charged in a month: its own bill, or a fixed amount
+ *  an owner typed. */
+export interface VendorCostsTable {
+  vendor: string;
+  month: string;
+  source: "billed" | "fixed";
+  amount_micros: ColumnType<string, number, number>;
+  final: Generated<boolean>;
+  read_at: Timestamp;
 }
 
 export interface ThreadsTable {
@@ -290,6 +385,13 @@ export interface JobsTable {
   cancelled_at: Date | null;
   idempotency_key: string | null;
   last_error: string | null;
+  /** 034. Why it failed, from the closed set in `jobs/errors.ts`. The admin
+   *  panel reads this and never `last_error`. */
+  error_code: string | null;
+  /** 034. A dead job is retried from the panel once. */
+  retried_at: Timestamp | null;
+  /** 034. Taken off the dead list, and kept. */
+  dismissed_at: Timestamp | null;
   created_at: Timestamp;
   updated_at: Timestamp;
 }
@@ -457,7 +559,9 @@ export interface TurnSourcesTable {
  *  anonymising it does not make it not content. */
 export interface LookupsTable {
   id: Generated<string>;
-  account_id: string;
+  /** Null once the account is gone (0076): read as nullable, never written
+   *  as one, the way `content.account_id` is. */
+  account_id: ColumnType<string | null, string, string>;
   label: string;
   kind: "search" | "read";
   outcome: "used" | "unused" | "empty" | "failed" | "refused_bound";
@@ -632,8 +736,9 @@ export interface ExportsTable {
 
 export interface LlmUsageTable {
   id: Generated<string>;
-  /** Null once the account is deleted. 035: the cost ledger outlives it. */
-  account_id: string | null;
+  /** Null once the account is gone (0076), so a month's total never changes
+   *  when somebody leaves. Read as nullable, never written as one. */
+  account_id: ColumnType<string | null, string, string>;
   /** Draws from the same open set as jobs.kind and must match it, or the Costs
    *  page groups spend under a name no job has. */
   job_kind: string;
@@ -647,6 +752,9 @@ export interface LlmUsageTable {
   /** Priced by core-api from the tokens (src/pricing.ts), never by the caller. */
   cost_micros: Generated<number>;
   latency_ms: Generated<number>;
+  /** 0076. The job the call was made for, where there was one. No foreign
+   *  key: the ledger outlives the job table's 30 days. */
+  job_id: ColumnType<string | null, string | null | undefined, never>;
   created_at: Timestamp;
 }
 
@@ -1137,6 +1245,15 @@ export interface Database {
   verifications: VerificationsTable;
   staff: StaffTable;
   app_settings: AppSettingsTable;
+  account_limits: AccountLimitsTable;
+  staff_audit: StaffAuditTable;
+  heartbeats: HeartbeatsTable;
+  job_stats_hourly: JobStatsHourlyTable;
+  backup_runs: BackupRunsTable;
+  alert_states: AlertStatesTable;
+  alert_sends: AlertSendsTable;
+  limit_hits: LimitHitsTable;
+  vendor_costs: VendorCostsTable;
   threads: ThreadsTable;
   thread_members: ThreadMembersTable;
   account_keys: AccountKeysTable;

@@ -7,6 +7,8 @@
 
 import { createHash } from "node:crypto";
 import { imageSize } from "image-size";
+import { sql } from "kysely";
+import { db } from "../db.js";
 
 /** The most a photo may be. An iPhone's 48 megapixel HEIC is about eight. */
 export const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
@@ -17,6 +19,21 @@ export const MAX_PHOTOS = 10;
 /** Per account per day. A ceiling for an invited alpha, not a product limit. */
 export const DAILY_PHOTOS = 200;
 export const DAILY_BYTES = 500 * 1024 * 1024;
+
+/** The photos an account has stored in the last 24 hours, and their bytes:
+ *  what `cap.photos` and `cap.photo_bytes` are measured against. One
+ *  statement, read by the upload, by mail in, and by the admin panel's page
+ *  for a person, so the page and the cap cannot disagree (034 AC-18). */
+export async function photosToday(accountId: string): Promise<{ n: number; bytes: number }> {
+  const today = await db
+    .selectFrom("blobs")
+    .select(({ fn }) => [fn.countAll<string>().as("n"), fn.sum<string>("byte_size").as("bytes")])
+    .where("account_id", "=", accountId)
+    .where("kind", "=", "image")
+    .where("created_at", ">", sql<Date>`now() - interval '24 hours'`)
+    .executeTakeFirstOrThrow();
+  return { n: Number(today.n), bytes: Number(today.bytes ?? 0) };
+}
 
 export type PhotoType = "image/jpeg" | "image/png" | "image/webp" | "image/heic" | "image/heif";
 

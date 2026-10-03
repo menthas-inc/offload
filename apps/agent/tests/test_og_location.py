@@ -157,7 +157,9 @@ PLACE_PAGE = (
 )
 
 
-async def file_link(args: dict, *, maps_on: bool, may_read_links: bool, dump: str):
+async def file_link(
+    args: dict, *, maps_on: bool, may_read_links: bool, dump: str, switch: bool = True
+):
     from offload_agent.config import Config
     from offload_agent.worker import Lookups, _tool_caller
 
@@ -178,7 +180,7 @@ async def file_link(args: dict, *, maps_on: bool, may_read_links: bool, dump: st
         anthropic_api_key="k",
         maps_on=maps_on,
     )
-    budget = Lookups(dump, may_search=True, may_read_links=may_read_links)
+    budget = Lookups(dump, may_search=True, may_read_links=may_read_links, maps_on=switch)
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         call = _tool_caller(client, cfg, "job-1", lookups=(None, cfg, budget))
         base = {"thread_id": "th", "title": "A page", "type": "link"}
@@ -202,6 +204,13 @@ async def test_no_place_is_read_with_either_switch_off():
         sent, _ = await file_link(LINK, maps_on=maps_on, may_read_links=links, dump=DUMP)
         assert "worker" not in sent[0]
         assert sent[0]["imageUrl"] == "https://example.com/a.jpg"
+
+
+async def test_no_place_is_read_while_an_owner_has_the_map_switched_off():
+    # 034. The worker's own configuration says on; the owner's switch says off.
+    sent, _ = await file_link(LINK, maps_on=True, may_read_links=True, dump=DUMP, switch=False)
+    assert "worker" not in sent[0]
+    assert sent[0]["imageUrl"] == "https://example.com/a.jpg"
 
 
 async def test_a_link_with_the_models_picture_is_still_read_for_its_place():

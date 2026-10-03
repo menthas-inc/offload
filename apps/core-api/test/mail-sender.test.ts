@@ -101,6 +101,12 @@ describe("the sender check (AC-3)", () => {
     expect(await check(await signed(message))).toEqual({ outcome: "no_account", accountId: null });
   });
 
+  // 034 AC-12. Marked for deletion is locked like disabled: no mail in.
+  it("finds no account for one marked for deletion", async () => {
+    await db.updateTable("accounts").set({ delete_after: new Date(Date.now() + 86_400_000) }).execute();
+    expect(await check(await signed(raw()))).toEqual({ outcome: "no_account", accountId: null });
+  });
+
   it("matches only an account that is in: never the waitlist, first run or a disabled one", async () => {
     // A waitlist signup is an `accounts` row with an email, so matching on
     // the address alone accepted mail from somebody never let in.

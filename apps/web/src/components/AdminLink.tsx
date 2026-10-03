@@ -37,7 +37,9 @@ export function AdminLink() {
   if (!isStaff) return null;
 
   return (
-    <Link href="/admin/waitlist" className={styles.adminLink}>
+    // 034. `/admin`, and the shell decides where that is: Health for an
+    // owner, Waitlist for support.
+    <Link href="/admin" className={styles.adminLink}>
       admin
     </Link>
   );

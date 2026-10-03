@@ -1,7 +1,7 @@
 // The Fastify application, built as a factory so tests get an instance without
 // binding a port.
 
-import Fastify, { type FastifyBaseLogger, type FastifyInstance } from "fastify";
+import Fastify, { type FastifyBaseLogger, type FastifyContextConfig, type FastifyInstance } from "fastify";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
@@ -47,6 +47,22 @@ export type App = FastifyInstance<
   ZodTypeProvider
 >;
 
+/** One registered route, as the route-table tests read it. */
+export interface RouteEntry {
+  method: string;
+  url: string;
+  config: FastifyContextConfig;
+}
+
+declare module "fastify" {
+  interface FastifyInstance {
+    /** Every route this app registered, in order. 034's tests walk it so a
+     *  rule about "every admin route" is asserted against what exists and
+     *  not against a list somebody has to keep. */
+    routeTable: RouteEntry[];
+  }
+}
+
 export interface AppOptions {
   /** See `env.INTERNAL_HOST`. An option rather than only the variable so a
    *  test can build an app with it set. */
@@ -82,6 +98,15 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+
+  // Before any route is registered, so it sees every one of them.
+  const routeTable: RouteEntry[] = [];
+  app.decorate("routeTable", routeTable);
+  app.addHook("onRoute", (route) => {
+    for (const method of [route.method].flat()) {
+      routeTable.push({ method, url: route.url, config: (route.config ?? {}) as FastifyContextConfig });
+    }
+  });
 
   // The internal routes on the private name only, decided before the token
   // is read: a request for `/internal/*` by the public name is not found.

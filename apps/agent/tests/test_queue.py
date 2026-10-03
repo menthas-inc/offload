@@ -17,7 +17,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent.config import _asyncpg
-from offload_agent.queue import ClaimedJob, claim, retry_or_die
+from offload_agent.queue import ClaimedJob, claim, reap, release_for_retry, retry_or_die
 
 ADMIN_DB = os.environ.get("DATABASE_URL")
 
@@ -216,3 +216,58 @@ async def test_a_retry_stops_at_max_attempts(db):
         }
     assert states[last] == ("dead", "undeliverable", False)
     assert states[more] == ("queued", "undeliverable", True)
+
+
+async def _job(conn, job_id: str):
+    return (
+        await conn.execute(
+            text("select state, last_error, error_code from jobs where id = :id"), {"id": job_id}
+        )
+    ).first()
+
+
+async def test_a_failure_writes_the_same_code_to_both_columns(db):
+    """034 AC-41. The admin panel reads `error_code` and never `last_error`,
+    so the worker writes its reason to both: on a retry, on a death, and when
+    it reaps a job whose worker is gone."""
+    async with db.begin() as conn:
+        a = await account(conn)
+        retried = await enqueue(conn, a)
+    async with db.begin() as conn:
+        job = await claim(conn, "w", ["dump.answer"], 2)
+        assert job is not None and job.id == retried
+        await release_for_retry(conn, job.id, "model_error")
+        row = await _job(conn, retried)
+        assert (row.state, row.last_error, row.error_code) == (
+            "queued",
+            "model_error",
+            "model_error",
+        )
+
+    async with db.begin() as conn:
+        spent = ClaimedJob(
+            id=retried, kind="dump.answer", payload={}, account_id=a, attempts=5, max_attempts=5
+        )
+        assert await retry_or_die(conn, spent, "nightly_error") is False
+        row = await _job(conn, retried)
+        assert (row.state, row.last_error, row.error_code) == (
+            "dead",
+            "nightly_error",
+            "nightly_error",
+        )
+
+
+async def test_a_reaped_job_is_dead_with_stale_in_both_columns(db):
+    async with db.begin() as conn:
+        a = await account(conn)
+        stuck = await enqueue(conn, a, state="running")
+        await conn.execute(
+            text(
+                "update jobs set locked_at = now() - interval '1 hour', attempts = max_attempts "
+                "where id = :id"
+            ),
+            {"id": stuck},
+        )
+        await reap(conn, ["dump.answer"], 900)
+        row = await _job(conn, stuck)
+        assert (row.state, row.last_error, row.error_code) == ("dead", "stale", "stale")

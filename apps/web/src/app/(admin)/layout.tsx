@@ -2,138 +2,131 @@
 
 // The admin shell, from ui_kits/admin_web/A.jsx (ASideNav).
 //
-// Moss nav, mark plus wordmark plus an `admin` tag, nav items carrying their
+// Moss nav, mark plus wordmark plus an `admin` tag, nav pages carrying their
 // own counts, the signed-in address at the bottom and a way back to the app.
 // An earlier version had only the mark, no count, no address and no way back,
 // which is what the kit is for and what reading it would have prevented.
+//
+// 034. Seven pages in two blocks (`ui/nav.ts`), glyphs from the vendored icon
+// set, and the panel pinned light until a dark one is designed.
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { Icon } from "../../components/Icon";
 import { Logo } from "../../components/Logo";
 import { AdminProvider, type Staff } from "./admin-context";
+import { API, Failed, Loading, landingFor, navFor, ownerOnly } from "./ui";
 import styles from "./admin.module.css";
-
-const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
-
-/** Only the pages that exist. An item leading nowhere is the same lie as a
- *  disabled one, and support does not see owner pages refused, it does not see
- *  them: the `owner` flag is how that stays true when they arrive. */
-const PAGES: Array<{
-  href: string;
-  label: string;
-  icon: string;
-  owner?: boolean;
-  count?: keyof Staff;
-}> = [{ href: "/admin/waitlist", label: "Waitlist", icon: "inbox", count: "waiting" }];
-
-/** The nav glyphs, one per page, at the kit's 17px on a 24 grid.
- *
- *  Drawn here rather than imported: the design system's Icon set lives in its
- *  bundle, which is generated for the kits and not a package this app can
- *  depend on. Same stroke weight and same grid, so they sit with the set. */
-function NavIcon({ name }: { name: string }) {
-  const common = {
-    width: 17,
-    height: 17,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.7,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true,
-  };
-
-  // inbox: a tray whose lid opens in the middle, which is where things land.
-  if (name === "inbox") {
-    return (
-      <svg {...common}>
-        <path d="M4 13h4l1.5 2.5h5L16 13h4" />
-        <path d="M4 13l2.2-6.2A2 2 0 0 1 8.1 5.5h7.8a2 2 0 0 1 1.9 1.3L20 13v3.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
-      </svg>
-    );
-  }
-
-  return null;
-}
-
-function ChevronLeft() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M15 6l-6 6 6 6" />
-    </svg>
-  );
-}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [staff, setStaff] = useState<Staff | null>(null);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(() => {
+    setFailed(false);
     fetch(`${API}/v1/admin/me`, { credentials: "include" })
       .then(async (response) => {
         // 404, not 403. The panel does not confirm its own existence to
         // someone signed in who is not staff, so there is nothing here to
         // distinguish "wrong person" from "wrong URL".
-        if (!response.ok) {
+        if (response.status >= 400 && response.status < 500) {
           router.replace("/");
           return;
         }
+        if (!response.ok) throw new Error(String(response.status));
         setStaff((await response.json()) as Staff);
       })
       .catch(() => {
         // A network blip is not a signed-out state. The nav keeps whatever it
-        // last knew rather than throwing the person out of the panel.
+        // last knew rather than throwing the person out of the panel. With
+        // nothing known yet there is no nav to keep, and the shell says so.
+        setFailed(true);
       });
   }, [router]);
 
   useEffect(load, [load, pathname]);
 
-  if (!staff) return null;
+  // Where the panel opens, and where a role that changed elsewhere lands:
+  // support on an owner page goes to Waitlist, not out of the panel. The API
+  // has already refused the page's reads; this is only where to stand.
+  const elsewhere = !staff
+    ? null
+    : pathname === "/admin"
+      ? landingFor(staff.role)
+      : staff.role !== "owner" && ownerOnly(pathname)
+        ? "/admin/waitlist"
+        : null;
+  useEffect(() => {
+    if (elsewhere) router.replace(elsewhere);
+  }, [elsewhere, router]);
+
+  // Never a white screen: the one spinner while it asks who is here, and a
+  // failed read said as one, beside the way to try again.
+  if (!staff) {
+    return (
+      <main className={styles.pane} data-theme="light">
+        {failed ? <Failed what="the panel" onRetry={load} /> : <Loading />}
+      </main>
+    );
+  }
 
   return (
     <AdminProvider value={{ staff, refresh: load }}>
-      <div className={styles.frame}>
-      <nav className={styles.nav}>
-        <div className={styles.brand}>
-          <Logo variant="mark" size={19} style={{ color: "var(--text-on-solid)" }} />
-          <span className={styles.brandWord}>offload</span>
-          <span className={styles.tag}>admin</span>
-        </div>
+      {/* Pinned light. The tokens follow the nearest data-theme, so this
+          holds whatever the app or the system is set to. */}
+      <div className={styles.frame} data-theme="light">
+        <nav className={styles.nav}>
+          <div className={styles.brand}>
+            {/* The nav is moss, which is neither of the mark's two tones, and
+                the inverse one flips with the theme. */}
+            <Logo variant="mark" size={19} style={{ color: "var(--text-on-solid)" }} />
+            <span className={styles.brandWord}>offload</span>
+            <span className={styles.tag}>admin</span>
+          </div>
 
-        <div className={styles.navList}>
-          {PAGES.filter((page) => !page.owner || staff.role === "owner").map((page) => {
-            const count = page.count ? staff[page.count] : null;
-            return (
-              <Link
-                key={page.href}
-                href={page.href}
-                className={`${styles.navItem} ${pathname === page.href ? styles.navItemOn : ""}`}
-              >
-                <NavIcon name={page.icon} />
-                <span className={styles.navLabel}>{page.label}</span>
-                {/* Only when there is something to do. A zero is not news. */}
-                {typeof count === "number" && count > 0 ? (
-                  <em className={styles.navCount}>{count.toLocaleString("en-GB")}</em>
-                ) : null}
-              </Link>
-            );
-          })}
-        </div>
+          <div className={styles.navList}>
+            {navFor(staff.role).map((block, index) => (
+              <div key={index} className={styles.navBlock}>
+                {block.map((page) => {
+                  const count = page.count ? staff[page.count] : null;
+                  const on = pathname === page.href || pathname.startsWith(`${page.href}/`);
+                  return (
+                    <Link
+                      key={page.href}
+                      href={page.href}
+                      className={`${styles.navItem} ${on ? styles.navItemOn : ""}`}
+                      aria-current={on ? "page" : undefined}
+                    >
+                      <Icon name={page.icon} size={17} />
+                      <span className={styles.navLabel}>{page.label}</span>
+                      {/* Only when there is something to do. A zero is not news. */}
+                      {typeof count === "number" && count > 0 ? (
+                        <em className={styles.navCount}>{count.toLocaleString("en-GB")}</em>
+                      ) : null}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
 
-        <div className={styles.navFoot}>
-          <span className={styles.who}>Signed in as {staff.email}</span>
-          {/* Bidirectional: the app has a way here too, for staff only. */}
-          <Link href="/today" className={styles.back}>
-            <ChevronLeft />
-            Back to the app
-          </Link>
-        </div>
-      </nav>
+          <div className={styles.navFoot}>
+            <span className={styles.who}>Signed in as {staff.email}</span>
+            {/* Bidirectional: the app has a way here too, for staff only. */}
+            <Link href="/today" className={styles.back}>
+              <Icon name="chevron-left" size={15} />
+              Back to the app
+            </Link>
+          </div>
+        </nav>
 
-        <main className={styles.pane}>{children}</main>
+        {/* The one boundary for every page. The range, and Health's view,
+            are read from the address, which can suspend a render; a page
+            does not carry a boundary of its own. */}
+        <main className={styles.pane}>{elsewhere ? null : <Suspense fallback={<Loading />}>{children}</Suspense>}</main>
       </div>
     </AdminProvider>
   );

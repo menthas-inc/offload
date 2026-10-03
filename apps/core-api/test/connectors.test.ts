@@ -11,7 +11,10 @@ import { db, closeDb } from "../src/db.js";
 import { env } from "../src/env.js";
 import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
-import { superviseSyncs, scheduleFullSyncs, syncNow } from "../src/connectors/sync.js";
+import { superviseSyncs, scheduleFullSyncs, scheduleNextSync, syncNow } from "../src/connectors/sync.js";
+import { worksInBackground } from "../src/accounts/active.js";
+import { handlers } from "../src/jobs/handlers.js";
+import { MemoryMailer } from "../src/mail/mailer.js";
 import { grantsAcl } from "../src/connectors/google.js";
 
 await migrate(() => {});
@@ -301,6 +304,60 @@ describe("the sync supervisor actually runs", () => {
     expect(await queued()).toBe(before + 2);
     await scheduleFullSyncs();
     expect(await queued()).toBe(before + 2);
+  });
+});
+
+// 034 AC-12. One rule for every scheduled job: an account that is disabled or
+// marked for deletion gets no work in the background.
+describe("a disabled account's calendar is left alone", () => {
+  const off = async (owner: string, patch: Record<string, unknown>) =>
+    db.updateTable("accounts").set(patch as never).where("id", "=", owner).execute();
+
+  it("says whether an account gets scheduled work", async () => {
+    const owner = await account();
+    expect(await worksInBackground(owner)).toBe(true);
+    await off(owner, { state: "disabled" });
+    expect(await worksInBackground(owner)).toBe(false);
+    await off(owner, { state: "active", deleted_at: new Date() });
+    expect(await worksInBackground(owner)).toBe(false);
+    await off(owner, { deleted_at: null, delete_after: new Date(Date.now() + 86_400_000) });
+    expect(await worksInBackground(owner)).toBe(false);
+    await off(owner, { delete_after: null });
+    expect(await worksInBackground(owner)).toBe(true);
+    expect(await worksInBackground(uuidv7())).toBe(false);
+  });
+
+  for (const [name, patch] of [
+    ["disabled", { state: "disabled" }],
+    ["marked for deletion", { delete_after: new Date(Date.now() + 86_400_000) }],
+  ] as const) {
+    it(`books no sync, no full pass and no next tick while ${name}`, async () => {
+      const owner = await account();
+      const n = await connection(owner);
+      await calendar(n);
+      await off(owner, patch);
+
+      expect(await superviseSyncs()).toBe(0);
+      expect(await scheduleFullSyncs()).toBe(0);
+      await scheduleNextSync(n);
+      expect(await queued()).toBe(0);
+
+      // A tick that was already queued when they were disabled does nothing
+      // and books no successor, so the chain stops with it.
+      await handlers["calendar.sync"]!({ connectionId: n }, { mailer: new MemoryMailer() }, null);
+      expect(await queued()).toBe(0);
+    });
+  }
+
+  it("picks the chain up again once they are enabled", async () => {
+    const owner = await account();
+    const n = await connection(owner);
+    await calendar(n);
+    await off(owner, { state: "disabled" });
+    await superviseSyncs();
+    await off(owner, { state: "active" });
+    expect(await superviseSyncs()).toBe(1);
+    expect(await queued()).toBe(1);
   });
 });
 

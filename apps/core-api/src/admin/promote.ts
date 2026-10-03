@@ -19,6 +19,7 @@ import type { Transaction } from "kysely";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
 import { emit } from "../analytics.js";
+import { audit } from "./audit.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { generateKey, ROOT_NAME, unwrap, wrap } from "../crypto/keys.js";
 
@@ -95,6 +96,12 @@ export async function promote(
       properties: { invited_by_staff: Boolean(options.invitedBy) },
       tx,
     });
+
+    // 034. Who let them in, in the transaction that did it. Only when this
+    // call changed something: inviting twice is inviting once.
+    if (options.invitedBy) {
+      await audit(tx, { staff: { accountId: options.invitedBy }, kind: "invited", targetAccountId: account.id });
+    }
 
     return { status: "invited", accountId: account.id } as const;
   });

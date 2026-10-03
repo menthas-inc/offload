@@ -6,7 +6,8 @@ import { createHash } from "node:crypto";
 import { sql } from "kysely";
 import { db } from "../db.js";
 import { emit, subjectOf } from "../analytics.js";
-import { DAILY_MODEL_BUDGET_MICROS, spentToday } from "../budget.js";
+import { OverBudget, limitReached, recordHit, type Hit } from "../budget.js";
+import { limitFor } from "../settings.js";
 import { takeDump } from "../routes/dumps.js";
 import { checkSender, spendSignature, type Resolver, type SenderOutcome } from "./sender.js";
 import { recordNothing, recordOverLimit, recordRefused } from "./activity.js";
@@ -15,8 +16,9 @@ import { candidatesOf, sealCandidates } from "./images.js";
 import { mailAttrs } from "./attrs.js";
 import { clampTo as clamp } from "../notifications/copy.js";
 
-export const HOURLY_MAIL = 30;
-export const DAILY_MAIL = 100;
+import { DAILY_MAIL, HOURLY_MAIL } from "./caps.js";
+
+export { DAILY_MAIL, HOURLY_MAIL };
 
 export type ReceiveOutcome = SenderOutcome | "over_limit" | "nothing";
 
@@ -25,7 +27,10 @@ export type ReceiveOutcome = SenderOutcome | "over_limit" | "nothing";
  *  be fetched, which is retried. */
 const TOLD: ReadonlySet<SenderOutcome> = new Set(["unsigned", "unaligned", "length_tag", "unsigned_from", "unsigned_recipient", "stale"]);
 
-async function overCap(accountId: string): Promise<boolean> {
+/** The email an account has forwarded in, in the last hour and the last day:
+ *  what `cap.mail_hour` and `cap.mail_day` are measured against, read here
+ *  and by the admin panel's page for a person (034 AC-18). */
+export async function mailToday(accountId: string): Promise<{ hour: number; day: number }> {
   const [counts] = (
     await sql<{ hour: string; day: string }>`
       select count(*) filter (where created_at > now() - interval '1 hour') as hour, count(*) as day
@@ -33,8 +38,16 @@ async function overCap(accountId: string): Promise<boolean> {
       where account_id = ${accountId} and source = 'mail' and created_at > now() - interval '1 day'
     `.execute(db)
   ).rows;
-  if (Number(counts?.hour ?? 0) >= HOURLY_MAIL || Number(counts?.day ?? 0) >= DAILY_MAIL) return true;
-  return (await spentToday(accountId)) >= DAILY_MODEL_BUDGET_MICROS;
+  return { hour: Number(counts?.hour ?? 0), day: Number(counts?.day ?? 0) };
+}
+
+/** The cap that refuses this email, if one does: the two mail caps, then
+ *  whatever would refuse the turn it becomes. Each is its setting (034). */
+async function overCap(accountId: string): Promise<Hit | null> {
+  const counts = await mailToday(accountId);
+  if (counts.hour >= (await limitFor(accountId, "cap.mail_hour"))) return { cap: "cap.mail_hour", scope: "account" };
+  if (counts.day >= (await limitFor(accountId, "cap.mail_day"))) return { cap: "cap.mail_day", scope: "account" };
+  return limitReached(accountId);
 }
 
 async function received(accountId: string | null, outcome: ReceiveOutcome, counts: Record<string, number> = {}) {
@@ -58,11 +71,18 @@ export async function receiveMail(
   const accountId = checked.accountId;
   const signature = checked.signature;
 
-  if (await overCap(accountId)) {
+  // Dropped, told once a day, and not retried: the signature is spent.
+  const overLimit = async (): Promise<ReceiveOutcome> => {
     await recordOverLimit(accountId);
     await spendSignature(signature);
     await received(accountId, "over_limit");
     return "over_limit";
+  };
+
+  const hit = await overCap(accountId);
+  if (hit) {
+    await recordHit(accountId, hit.cap, hit.scope);
+    return overLimit();
   }
 
   const parsed = await parseMail(raw);
@@ -89,7 +109,16 @@ export async function receiveMail(
     leftOut: parsed.leftOut,
     cc: parsed.cc,
   });
-  await takeDump(accountId, parsed.text, `mail:${messageKey}`, undefined, undefined, null, [], [], { attrs, candidates: sealed });
+  try {
+    await takeDump(accountId, parsed.text, `mail:${messageKey}`, undefined, undefined, null, [], [], { attrs, candidates: sealed });
+  } catch (error) {
+    // The dump checks the day again as it starts, and a cap reached between
+    // the check above and here used to leave this handler answering 500 and
+    // the Worker retrying an email that would never be taken. The dump has
+    // already recorded the hit.
+    if (!(error instanceof OverBudget)) throw error;
+    return overLimit();
+  }
   await spendSignature(signature);
   await received(accountId, "accepted", { images_candidates: sealed.length });
   return "accepted";

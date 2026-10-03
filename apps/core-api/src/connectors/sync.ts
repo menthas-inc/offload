@@ -10,6 +10,7 @@
 
 import { sql } from "kysely";
 import { db } from "../db.js";
+import { inBackground, worksInBackground } from "../accounts/active.js";
 import { enqueue } from "../jobs/queue.js";
 import {
   GrantRevoked,
@@ -37,6 +38,18 @@ function windowFor(now: Date): { timeMin: Date; timeMax: Date } {
   return { timeMin, timeMax };
 }
 
+/** Whether a connection's account still gets scheduled work (034). */
+async function connectionWorks(connectionId: string): Promise<boolean> {
+  const row = await db
+    .selectFrom("connector_connections as n")
+    .innerJoin("accounts", "accounts.id", "n.account_id")
+    .select("n.id")
+    .where("n.id", "=", connectionId)
+    .where(inBackground())
+    .executeTakeFirst();
+  return row !== undefined;
+}
+
 /** The next tick, enqueued **before** the work rather than after it.
  *
  *  This is the first self-rescheduling job in the codebase and it has two ways
@@ -49,6 +62,10 @@ function windowFor(now: Date): { timeMin: Date; timeMax: Date } {
  *
  *  So: scheduled first, and the key carries the tick. */
 export async function scheduleNextSync(connectionId: string, now = new Date()): Promise<void> {
+  // 034. No tick for an account that gets no work in the background, so a
+  // disabled account's chain ends with the tick that finds it disabled. The
+  // supervisor starts it again within a day of their being enabled.
+  if (!(await connectionWorks(connectionId))) return;
   const tick = new Date(now.getTime() + SYNC_INTERVAL_SECONDS * 1000);
   const slot = `${tick.getUTCFullYear()}-${tick.getUTCMonth()}-${tick.getUTCDate()}-${tick.getUTCHours()}-${Math.floor(tick.getUTCMinutes() / 15)}`;
   await enqueue({
@@ -109,6 +126,8 @@ export async function syncConnection(connectionId: string, full = false): Promis
     .where("deleted_at", "is", null)
     .executeTakeFirst();
   if (!connection) return outcome;
+  // A tick queued before the account was disabled reads nothing.
+  if (!(await worksInBackground(connection.account_id))) return outcome;
 
   let accessToken: string;
   try {
@@ -305,9 +324,11 @@ async function forgetBehindTheWindow(calendarId: string, timeMin: Date): Promise
 export async function superviseSyncs(): Promise<number> {
   const stalled = await db
     .selectFrom("connector_connections as n")
+    .innerJoin("accounts", "accounts.id", "n.account_id")
     .select("n.id as id")
     .where("n.state", "=", "active")
     .where("n.deleted_at", "is", null)
+    .where(inBackground())
     .where((eb) =>
       eb.not(
         eb.exists(
@@ -357,10 +378,12 @@ export async function scheduleFullSyncs(now = new Date()): Promise<number> {
   for (const calendar of stalled) await forgetBehindTheWindow(calendar.id, timeMin);
 
   const active = await db
-    .selectFrom("connector_connections")
-    .select("id")
-    .where("state", "=", "active")
-    .where("deleted_at", "is", null)
+    .selectFrom("connector_connections as n")
+    .innerJoin("accounts", "accounts.id", "n.account_id")
+    .select("n.id as id")
+    .where("n.state", "=", "active")
+    .where("n.deleted_at", "is", null)
+    .where(inBackground())
     .execute();
   const day = `${now.getUTCFullYear()}-${now.getUTCMonth()}-${now.getUTCDate()}`;
   for (const connection of active) {

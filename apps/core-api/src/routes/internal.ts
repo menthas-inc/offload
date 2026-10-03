@@ -27,6 +27,7 @@ import { recordMailTurn } from "../mail-in/activity.js";
 import { emit } from "../analytics.js";
 import { env } from "../env.js";
 import { ledgerRows } from "../ledger.js";
+import { beat } from "../health/heartbeat.js";
 import { NOTE_TEXT_CHARS, applyCompaction, applyLearned } from "../threads/notes.js";
 import { parseWhen, plausible } from "../threads/dates.js";
 import {
@@ -341,6 +342,33 @@ const nightlyApplied = z.object({
 });
 
 export async function internalRoutes(app: App): Promise<void> {
+  // 034. The worker says it is alive, once a minute, with the commit it runs
+  // and when it started. Behind the private host and the bearer like every
+  // route here; the body is strict, so the worker can report itself and
+  // nothing else.
+  app.post(
+    "/internal/v1/heartbeat",
+    {
+      // The token first, before the body is parsed or validated: a caller
+      // without it learns nothing about what the body should be.
+      onRequest: async (request, reply) => {
+        const header = request.headers.authorization;
+        const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+        if (!tokenMatches(presented)) {
+          return reply.code(401).send({ error: "unauthorised" as const });
+        }
+      },
+      schema: {
+        body: z.strictObject({ commit: z.string().min(1).max(64).nullable().optional(), startedAt: z.string().datetime() }),
+        response: { 200: z.object({ ok: z.literal(true) }), 401: refused },
+      },
+    },
+    async (request, reply) => {
+      await beat("worker", true, { commit: request.body.commit ?? null, startedAt: new Date(request.body.startedAt) });
+      return reply.send({ ok: true as const });
+    }
+  );
+
   // 032. A nightly pass, applied.
   //
   // The worker read one thread for one member, asked a model what that
@@ -388,7 +416,7 @@ export async function internalRoutes(app: App): Promise<void> {
         const close = () =>
           trx
             .updateTable("jobs")
-            .set({ state: "done", locked_at: null, locked_by: null, updated_at: sql`now()` })
+            .set({ state: "done", locked_at: null, locked_by: null, error_code: null, updated_at: sql`now()` })
             .where("id", "=", result.jobId)
             .execute();
 
@@ -447,7 +475,7 @@ export async function internalRoutes(app: App): Promise<void> {
           await trx
             .insertInto("llm_usage")
             // Scheduled, not interactive: nobody is waiting on it.
-            .values(ledgerRows(accountId, "thread.nightly", "scheduled", result.usage))
+            .values(ledgerRows(accountId, "thread.nightly", "scheduled", result.usage, result.jobId))
             .execute();
         }
         // The member's last pass here, after everything this one wrote: the
@@ -842,7 +870,7 @@ export async function internalRoutes(app: App): Promise<void> {
         if (calls.length > 0) {
           await trx
             .insertInto("llm_usage")
-            .values(ledgerRows(accountId, "dump.answer", "interactive", calls))
+            .values(ledgerRows(accountId, "dump.answer", "interactive", calls, result.jobId))
             .execute();
         }
 
@@ -856,9 +884,22 @@ export async function internalRoutes(app: App): Promise<void> {
         // `running` because a second call failed would count against the
         // per-account concurrency cap forever, locking that account out after
         // two dumps. Found by running the loop end to end, not by a test.
+        //
+        // 034. A failed turn closes `done` like any other, so its reason is
+        // written as the job's error code: the enum the body carries, never
+        // an exception. That is what makes a failed dump visible on a
+        // person's timeline; the dead list reads `state = 'dead'` and never
+        // sees it. A turn that answered clears whatever an earlier attempt
+        // left.
         await trx
           .updateTable("jobs")
-          .set({ state: "done", locked_at: null, locked_by: null, updated_at: sql`now()` })
+          .set({
+            state: "done",
+            locked_at: null,
+            locked_by: null,
+            error_code: result.outcome === "failed" ? result.reason : null,
+            updated_at: sql`now()`,
+          })
           .where("id", "=", result.jobId)
           .execute();
 

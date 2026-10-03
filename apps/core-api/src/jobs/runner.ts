@@ -7,6 +7,7 @@
 
 import { claim, complete, fail, type ClaimedJob } from "./queue.js";
 import { handlers } from "./handlers.js";
+import { JobError } from "./errors.js";
 import { createMailer as defaultMailer, type Mailer } from "../mail/index.js";
 
 export interface RunnerOptions {
@@ -39,7 +40,7 @@ export class JobRunner {
     if (!handler) {
       // An unknown kind is a deploy problem, not a transient one, so it does
       // not deserve five retries.
-      await fail({ ...job, attempts: job.max_attempts }, new Error(`No handler for job kind ${job.kind}`));
+      await fail({ ...job, attempts: job.max_attempts }, new JobError("no_handler", `No handler for job kind ${job.kind}`));
       log("error", { jobId: job.id, kind: job.kind }, "job kind has no handler");
       return;
     }

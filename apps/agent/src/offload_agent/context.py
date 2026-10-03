@@ -19,7 +19,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import structlog
-from sqlalchemy import text
+from sqlalchemy import TextClause, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 log = structlog.get_logger()
@@ -188,6 +188,9 @@ class DumpContext:
     # authorization and a flag on a request would be the client deciding.
     may_search: bool = False
     may_read_links: bool = False
+    #: 034. The owner's map switch, read beside the two above. The worker's own
+    #: `cfg.maps_on` still has to agree before a page is read for a place.
+    maps_on: bool = True
     #: Where they said they are, ISO 3166-1 alpha-2, or None when they have not
     #: said. **None is a real answer**: offload tells the model it does not know
     #: rather than letting a search assume, which is how "when is the next bank
@@ -580,6 +583,7 @@ async def load(
         has_connections=has_connections,
         may_search=bool(switches and switches.web_search_enabled),
         may_read_links=bool(switches and switches.web_links_enabled),
+        maps_on=bool(switches and switches.maps_on),
         country=(switches.country if switches else None),
         mentions=[
             Mention(account_id=str(m["accountId"]), name=str(m["name"]))
@@ -659,6 +663,7 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         # to be added here too.
         may_search=ctx.may_search,
         may_read_links=ctx.may_read_links,
+        maps_on=ctx.maps_on,
         country=ctx.country,
         answered=ctx.answered,
         # 022. Bounded by the ten on the message, never trimmed.
@@ -737,12 +742,57 @@ def fit_answer(ctx: "AnswerContext", ceiling: int) -> "AnswerContext":
 # list. The other account queries here filter it for the same reason: a turn
 # whose account has gone is a turn whose message is already gone, and `_DUMP`
 # checks that.
-_MAY_REACH = text(
+#
+# **034. The owner's switches ride on the same read.** Web search, reading
+# links and the map can each be turned off for everyone on Limits, and the path
+# has to stop within seconds here as it does in the Core API. No cache in the
+# worker: this query already runs once a turn. A person's own setting is not
+# touched; what the turn may do is theirs and the switch together.
+
+
+_SWITCH_KEY = re.compile(r"switch\.[a-z_]+")
+
+
+def _switch_bind(key: str) -> str:
+    """The parameter a switch's key is bound under: `switch.maps` is
+    `:switch_maps`. Anything that is not a switch's key is refused, so the
+    name is never more than letters and underscores."""
+    if not _SWITCH_KEY.fullmatch(key):
+        raise ValueError("not a switch")
+    return key.replace(".", "_")
+
+
+def switch_on(key: str) -> str:
+    """SQL for whether an owner's switch is on: anything but a stored `false`.
+
+    The registry's rule (`settings.ts` in the Core API): a switch defaults to
+    on, and a row that is missing or makes no sense reads as the default.
+    The key is a bound parameter, never part of the statement: build the
+    statement with `switched`, which binds it.
     """
-    select web_search_enabled, web_links_enabled, country
+    return (
+        f"(coalesce((select s.value from app_settings s where s.key = :{_switch_bind(key)}), "
+        "'true'::jsonb) <> 'false'::jsonb)"
+    )
+
+
+def switched(sql: str, *keys: str) -> TextClause:
+    """A statement that reads switches, with each one's key bound."""
+    return text(sql).bindparams(**{_switch_bind(key): key for key in keys})
+
+
+_MAY_REACH = switched(
+    f"""
+    select web_search_enabled and {switch_on("switch.web_search")} as web_search_enabled,
+           web_links_enabled and {switch_on("switch.web_links")} as web_links_enabled,
+           country,
+           {switch_on("switch.maps")} as maps_on
       from accounts
      where id = :account_id
-    """
+    """,
+    "switch.web_search",
+    "switch.web_links",
+    "switch.maps",
 )
 
 # 019. Any approved calendar on the account. The tools are sent whenever there

@@ -20,6 +20,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "kysely";
 import { makeSignature } from "better-auth/crypto";
 import { db, closeDb } from "../src/db.js";
+import { clearSettingsCache } from "../src/settings.js";
 import { env } from "../src/env.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
@@ -213,6 +214,31 @@ describe("the sniff", () => {
 });
 
 describe("the upload", () => {
+  // 034. The day's ceiling is its setting, and a refusal is written down.
+  it("holds the ceiling an owner set, by count and by length, and records each refusal", async () => {
+    const me = await person();
+    const cookie = await signIn(me.id);
+    await db.insertInto("app_settings").values({ key: "cap.voice_notes", value: "1", updated_by_account_id: null }).execute();
+    clearSettingsCache();
+    expect((await uploadVoice(cookie, audio("m4a"))).statusCode).toBe(201);
+    const second = await uploadVoice(cookie, audio("m4a"));
+    expect(second.statusCode).toBe(429);
+    expect(second.json()).toEqual({ error: "daily_limit", scope: "account" });
+
+    await db.deleteFrom("app_settings").execute();
+    await db.insertInto("app_settings").values({ key: "cap.voice_ms", value: "60000", updated_by_account_id: null }).execute();
+    clearSettingsCache();
+    expect((await uploadVoice(cookie, audio("m4a"), { durationMs: 50_000 })).statusCode).toBe(429);
+
+    const hits = await db.selectFrom("limit_hits").select(["cap", "scope", "count"]).where("account_id", "=", me.id).orderBy("cap").execute();
+    expect(hits).toEqual([
+      { cap: "cap.voice_ms", scope: "account", count: 1 },
+      { cap: "cap.voice_notes", scope: "account", count: 1 },
+    ]);
+    await db.deleteFrom("app_settings").execute();
+    clearSettingsCache();
+  });
+
   it("stores an M4A encrypted as a voice note with no dimensions, its length and its bars", async () => {
     const me = await person();
     const res = await uploadVoice(await signIn(me.id), audio("m4a"));
@@ -272,7 +298,7 @@ describe("the upload", () => {
     }
     const over = await uploadVoice(cookie, audio("m4a"), { durationMs: 1000 });
     expect(over.statusCode).toBe(429);
-    expect(over.json()).toEqual({ error: "daily_limit" });
+    expect(over.json()).toEqual({ error: "daily_limit", scope: "account" });
 
     // The provider measured them shorter than declared: room again.
     await db.updateTable("blobs").set({ measured_ms: 60_000 }).where("account_id", "=", me.id).execute();
@@ -373,7 +399,8 @@ describe("the transcript", () => {
 
     const ledger = await db.selectFrom("llm_usage").selectAll().where("account_id", "=", me.id).execute();
     expect(ledger).toHaveLength(1);
-    expect(ledger[0]).toMatchObject({ model: "assemblyai", latency_ms: 2100, input_tokens: 0, job_kind: "dump.answer" });
+    // 034. Under the turn it was heard for, beside that turn's model calls.
+    expect(ledger[0]).toMatchObject({ model: "assemblyai", latency_ms: 2100, input_tokens: 0, job_kind: "dump.answer", job_id: jobId });
     expect(Number(ledger[0]!.cost_micros)).toBe(35);
 
     const forgets = await db.selectFrom("jobs").select("payload").where("kind", "=", "voice.forget").execute();

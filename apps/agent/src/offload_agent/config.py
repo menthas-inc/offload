@@ -49,6 +49,9 @@ class Config:
     # 030. The map, switched on in the same change as the privacy page. Off,
     # no page is read for a place, whatever the dumper's switch says.
     maps_on: bool = False
+    # 034. The commit this worker runs, for its heartbeat. Railway's variable;
+    # unset, the panel reads the commit as unknown. To verify on the platform.
+    commit: str | None = None
 
     # The numbers from the impl-spec. Constants, not literals at a call site,
     # because three acceptance criteria are untestable without them.
@@ -106,6 +109,7 @@ class Config:
             voyage_api_key=os.environ.get("VOYAGE_API_KEY") or None,
             assemblyai_api_key=os.environ.get("ASSEMBLYAI_API_KEY") or None,
             maps_on=os.environ.get("MAPS") == "on",
+            commit=os.environ.get("RAILWAY_GIT_COMMIT_SHA") or None,
             assemblyai_micros_per_second=float(
                 os.environ.get("ASSEMBLYAI_MICROS_PER_SECOND") or 41.67
             ),

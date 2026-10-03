@@ -390,6 +390,12 @@ describe("AC-5 a failed answer", () => {
     // The dump itself is untouched. This is the promise the product cannot break.
     expect(person.text).toBe("dentist after the 20th");
 
+    // 034. The turn failed and its job is closed `done`, so the reason is
+    // written as the job's error code: that is how a failed dump shows on a
+    // person's timeline in the admin panel.
+    const job = await db.selectFrom("jobs").select(["state", "error_code"]).where("id", "=", jobId).executeTakeFirstOrThrow();
+    expect(job).toEqual({ state: "done", error_code: "model_error" });
+
     const replies = await db.selectFrom("messages").selectAll().where("role", "=", "offload").execute();
     expect(replies).toHaveLength(0);
   });

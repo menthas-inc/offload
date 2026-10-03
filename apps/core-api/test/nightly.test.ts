@@ -24,6 +24,8 @@ import { buildApp, type App } from "../src/app.js";
 import { NIGHTLY_THREADS, handlers } from "../src/jobs/handlers.js";
 import { MemoryMailer } from "../src/mail/mailer.js";
 import { uuidv7 } from "../src/uuid.js";
+import { clearSettingsCache } from "../src/settings.js";
+import { clearPlatformSpent } from "../src/budget.js";
 import { LEARNED_CAP } from "../src/threads/notes.js";
 import { account, join, note, owner, row, thread, wipe } from "./loose-kit.js";
 
@@ -351,9 +353,10 @@ describe("AC-12 and AC-14 the default thread, and applying once", () => {
     const spy = vi.spyOn(console, "log").mockImplementation((line: unknown) => {
       logs.push(String(line));
     });
+    const passId = await job(ana, trip);
     try {
       await post({
-        jobId: await job(ana, trip),
+        jobId: passId,
         learned: [{ text: "The door code is 4471", from: [from] }],
         usage: [{ model: "claude-haiku-4-5", inputTokens: 100, outputTokens: 10, cacheReadTokens: 0, cacheWriteTokens: 0, latencyMs: 5 }],
       });
@@ -361,8 +364,8 @@ describe("AC-12 and AC-14 the default thread, and applying once", () => {
       spy.mockRestore();
     }
     expect(logs.join("\n")).not.toContain("4471");
-    const ledger = await db.selectFrom("llm_usage").select(["account_id", "job_kind"]).execute();
-    expect(ledger).toEqual([{ account_id: ana, job_kind: "thread.nightly" }]);
+    const ledger = await db.selectFrom("llm_usage").select(["account_id", "job_kind", "job_id"]).execute();
+    expect(ledger).toEqual([{ account_id: ana, job_kind: "thread.nightly", job_id: passId }]);
   });
 });
 
@@ -387,6 +390,54 @@ describe("AC-7 the daily run books one pass per thread and member", () => {
     expect(jobs.map((j) => j.kind)).toEqual(["thread.nightly"]);
     expect(jobs[0]!.payload).toMatchObject({ threadId: trip, propose: false });
     expect(jobs[0]!.idempotency_key).toMatch(new RegExp(`^thread.nightly:${trip}:${ana}:\\d{4}-\\d{2}-\\d{2}$`));
+  });
+
+  // 034. The nightly switch and the platform's cap both stop scheduled model
+  // work being booked. What the pass owes is kept: only a pass stamps it.
+  it("books nothing while the nightly switch is off, and books it again once on", async () => {
+    const ana = await account("Ana");
+    const trip = await thread(ana, "Lisbon in October");
+    await landed(ana, trip, "ferry at 9");
+    await db.insertInto("app_settings").values({ key: "switch.nightly", value: "false", updated_by_account_id: null }).execute();
+    clearSettingsCache();
+    await daily(ana);
+    expect(await booked(ana)).toEqual([]);
+
+    await db.deleteFrom("app_settings").execute();
+    clearSettingsCache();
+    await daily(ana);
+    expect((await booked(ana)).map((j) => j.kind)).toEqual(["thread.nightly"]);
+  });
+
+  it("books nothing while the platform's cap is reached", async () => {
+    const ana = await account("Ana");
+    const trip = await thread(ana, "Lisbon in October");
+    await landed(ana, trip, "ferry at 9");
+    await db
+      .insertInto("llm_usage")
+      .values({ account_id: ana, job_kind: "dump.answer", category: "interactive", model: "claude-sonnet-5", cost_micros: 3_000_000 })
+      .execute();
+    await db.insertInto("app_settings").values({ key: "platform.spend_micros", value: "3000000", updated_by_account_id: null }).execute();
+    clearSettingsCache();
+    clearPlatformSpent();
+    await daily(ana);
+    expect(await booked(ana)).toEqual([]);
+    await db.deleteFrom("app_settings").execute();
+    await db.deleteFrom("llm_usage").execute();
+    clearSettingsCache();
+    clearPlatformSpent();
+  });
+
+  it("books nothing for an account that is disabled or marked for deletion", async () => {
+    const ana = await account("Ana");
+    const trip = await thread(ana, "Lisbon in October");
+    await landed(ana, trip, "ferry at 9");
+    await db.updateTable("accounts").set({ state: "disabled" }).where("id", "=", ana).execute();
+    await daily(ana);
+    expect(await booked(ana)).toEqual([]);
+    await db.updateTable("accounts").set({ state: "active", delete_after: new Date(Date.now() + 86_400_000) }).where("id", "=", ana).execute();
+    await daily(ana);
+    expect(await booked(ana)).toEqual([]);
   });
 
   it("books each member of a shared thread their own pass, on their own activity", async () => {

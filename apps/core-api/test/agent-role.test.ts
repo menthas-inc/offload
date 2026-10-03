@@ -67,6 +67,20 @@ describe("the agent role can do its job", () => {
     });
   }
 
+  // 034. The three switches the worker reads on every turn, and the code it
+  // writes beside the reason when a job fails.
+  it("reads app_settings", async () => {
+    const { allowed, error } = await asAgent(`select key, value from app_settings limit 1`);
+    expect(allowed, error).toBe(true);
+    const write = await asAgent(`delete from app_settings where false`);
+    expect(write.allowed, "it could write app_settings").toBe(false);
+  });
+
+  it("writes a job's error code", async () => {
+    const { allowed, error } = await asAgent(`update jobs set error_code = 'stale' where false`);
+    expect(allowed, error).toBe(true);
+  });
+
   it("claims a job", async () => {
     const { allowed, error } = await asAgent(`update jobs set state = state where false`);
     expect(allowed, error).toBe(true);

@@ -14,7 +14,9 @@ export interface UsageEntry {
   latencyMs: number;
 }
 
-export function ledgerRows(accountId: string, jobKind: string, category: "interactive" | "scheduled", entries: UsageEntry[]) {
+/** `jobId` is the job the calls were made for (034), which is what lets a
+ *  person's timeline say what each of their jobs cost. */
+export function ledgerRows(accountId: string, jobKind: string, category: "interactive" | "scheduled", entries: UsageEntry[], jobId: string | null) {
   return entries.map((entry) => {
     // An enum-free fact for whoever adds the price: the model name is ours,
     // not content.
@@ -30,6 +32,7 @@ export function ledgerRows(accountId: string, jobKind: string, category: "intera
       cache_write_tokens: entry.cacheWriteTokens,
       cost_micros: costMicros(entry),
       latency_ms: entry.latencyMs,
+      job_id: jobId,
     };
   });
 }
