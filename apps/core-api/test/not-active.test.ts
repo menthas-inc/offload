@@ -87,6 +87,27 @@ describe("an account that has not finished first run cannot write", () => {
     expect(await db.selectFrom("messages").select("id").execute()).toEqual([]);
   });
 
+  it("is refused however the path is spelled", async () => {
+    const { cookie } = await signedIn("invited");
+    for (const url of ["/%76%31/dumps", "/v%31/dumps", "/v1/dumps?x=1"]) {
+      const response = await app.inject({ method: "POST", url, headers: { cookie, "content-type": "application/json" }, payload: {} });
+      expect(response.statusCode, url).toBe(403);
+    }
+  });
+
+  it("answers a browser it can read: the refusal carries the CORS headers", async () => {
+    const { cookie } = await signedIn("invited");
+    const origin = env.WEB_URL;
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/dumps",
+      headers: { cookie, origin, "content-type": "application/json" },
+      payload: {},
+    });
+    expect(response.statusCode).toBe(403);
+    expect(response.headers["access-control-allow-origin"]).toBe(origin);
+  });
+
   it("is not refused by the rule once active: the route decides", async () => {
     const { cookie } = await signedIn("active");
     for (const [method, url] of WRITES) {

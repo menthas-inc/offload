@@ -32,8 +32,11 @@ const READS = new Set(["GET", "HEAD", "OPTIONS"]);
 export function refuseWritesBeforeConsent(app: FastifyInstance): void {
   app.addHook("onRequest", async (request, reply) => {
     if (READS.has(request.method)) return;
-    const path = request.url.split("?")[0] ?? "";
-    if (!GUARDED.test(path) || OPEN.has(`${request.method} ${path}`)) return;
+    // The route the router chose, never the raw URL: the router decodes a
+    // segment, so `/%76%31/dumps` reaches `/v1/dumps` while `request.url`
+    // still reads `/%76%31/...`. No route, nothing to guard: it is a 404.
+    const path = request.routeOptions.url;
+    if (!path || !GUARDED.test(path) || OPEN.has(`${request.method} ${path}`)) return;
 
     const headers = new Headers();
     for (const [key, value] of Object.entries(request.headers)) {
@@ -41,9 +44,9 @@ export function refuseWritesBeforeConsent(app: FastifyInstance): void {
     }
     const session = await auth.api.getSession({ headers });
     if (!session) return;
-    // `state` is one of the session user's own fields (auth.ts), so this is
-    // the read the route would make anyway.
-    if ((session.user as { state?: string }).state === "active") return;
+    // The row, not the session user's copy of it: a session cache turned on
+    // later would make that a cookie read, stale both ways across first run.
+    if (await isActive(session.session.userId)) return;
     // A string, so no route's response schema is consulted.
     return reply.code(403).type("application/json; charset=utf-8").send('{"error":"not_active"}');
   });

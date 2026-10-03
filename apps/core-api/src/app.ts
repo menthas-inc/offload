@@ -86,7 +86,9 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
   // is read: a request for `/internal/*` by the public name is not found.
   if (internalHost) {
     app.addHook("onRequest", async (request, reply) => {
-      if (request.url.startsWith("/internal/") && request.hostname !== internalHost) {
+      // The routed path, not the raw URL, which an encoded letter
+      // (`/%69nternal/...`) keeps from matching while the router decodes it.
+      if (request.routeOptions.url?.startsWith("/internal/") && request.hostname !== internalHost) {
         // A string, so the matched route's response schema is not consulted:
         // every internal route declares its own 404 shape and this is none of
         // them, deliberately.
@@ -94,10 +96,6 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
       }
     });
   }
-
-  // Content waits for consent: no write behind a session until the account
-  // has finished first run (033).
-  refuseWritesBeforeConsent(app);
 
   // On every answer, whatever route wrote it (security review 2026-09-22, M4).
   // HSTS so a first visit over http is not a downgrade point; nosniff so a
@@ -133,6 +131,11 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
 
   // 020. One photo per request, bounded before a byte is kept. The limit is
   // the server's own; the client checks it first as a courtesy.
+  // Content waits for consent: no write behind a session until the account
+  // has finished first run (033). After CORS, so a browser can read the
+  // refusal rather than seeing an opaque failure.
+  refuseWritesBeforeConsent(app);
+
   await app.register(multipart, {
     limits: { fileSize: MAX_PHOTO_BYTES, files: 2, fields: 4, parts: 8 },
   });
