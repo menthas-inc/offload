@@ -34,6 +34,7 @@ import { MAX_PHOTO_BYTES } from "./blobs/photos.js";
 import { mailInRoutes } from "./routes/mail-in.js";
 import type { Writable } from "node:stream";
 import type { Resolver } from "./mail-in/sender.js";
+import { refuseWritesBeforeConsent } from "./accounts/active.js";
 
 /** The app carries the Zod type provider, so routes get their schemas inferred
  *  rather than restated. Naming it keeps that off every call site. */
@@ -85,7 +86,9 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
   // is read: a request for `/internal/*` by the public name is not found.
   if (internalHost) {
     app.addHook("onRequest", async (request, reply) => {
-      if (request.url.startsWith("/internal/") && request.hostname !== internalHost) {
+      // The routed path, not the raw URL, which an encoded letter
+      // (`/%69nternal/...`) keeps from matching while the router decodes it.
+      if (request.routeOptions.url?.startsWith("/internal/") && request.hostname !== internalHost) {
         // A string, so the matched route's response schema is not consulted:
         // every internal route declares its own 404 shape and this is none of
         // them, deliberately.
@@ -128,6 +131,11 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
 
   // 020. One photo per request, bounded before a byte is kept. The limit is
   // the server's own; the client checks it first as a courtesy.
+  // Content waits for consent: no write behind a session until the account
+  // has finished first run (033). After CORS, so a browser can read the
+  // refusal rather than seeing an opaque failure.
+  refuseWritesBeforeConsent(app);
+
   await app.register(multipart, {
     limits: { fileSize: MAX_PHOTO_BYTES, files: 2, fields: 4, parts: 8 },
   });

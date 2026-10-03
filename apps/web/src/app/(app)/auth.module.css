@@ -1,18 +1,9 @@
-/* The gate, the refusal, the no-invite screen and first run.
+/* The gate, the refusal, the no-invite screen and Settings' connect block.
    Built from ui_kits/web_app/WFirstRunGate.jsx. Every value is a token. */
 
-/* Web is a centred card, not a full-bleed screen. The gate itself is now
-   framed by components/Screen.tsx, shared with the landing page, so only first
-   run still uses .page: it is the first screen behind the account, where the
-   atmosphere has done its job and stops. */
-.page {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--surface-sunken);
-  padding: 36px 44px;
-  min-height: 100vh;
-}
+/* Web is a centred card, not a full-bleed screen. The gate itself is framed
+   by components/Screen.tsx, shared with the landing page; first run draws its
+   own page since 033, on the plain ground where the atmosphere has stopped. */
 
 .card {
   width: 440px;
@@ -132,32 +123,7 @@
 }
 .captionLink { color: var(--text-accent); font-weight: var(--weight-medium); }
 
-/* ------------------------------------------------------------- first run */
-
-.run { padding: 28px 44px 40px; }
-
-.runTop { display: flex; align-items: center; justify-content: space-between; }
-
-.skip {
-  border: none;
-  background: none;
-  cursor: pointer;
-  font: var(--weight-medium) 14px/1 var(--font-core);
-  color: var(--text-secondary);
-  padding: 15px 12px;
-  margin: -15px -12px;
-}
-.skip:hover { color: var(--text-primary); }
-
-.runMiddle {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 34px;
-}
+/* ------------------------------------- the connect block (Settings, 019) */
 
 .runCopy { width: 520px; max-width: 100%; text-align: center; }
 
@@ -199,74 +165,6 @@
    and drew the calendar's Connect and Mail's Add to contacts in moss on ink. */
 .runButton:hover { background: var(--ink-800); color: var(--text-inverse); }
 
-/* The active step is a pill, not a bigger dot: it reads as progress along a
-   line rather than as one of three equal choices. */
-.dots { display: flex; gap: 6px; align-items: center; }
-.dot {
-  height: 6px;
-  width: 6px;
-  border-radius: var(--radius-pill);
-  background: var(--ink-200);
-  transition: width var(--duration-base) var(--ease-out);
-}
-.dotOn { width: 18px; background: var(--ink-950); }
-
-/* -------------------------------------------------------- first run art */
-
-.art { width: 520px; max-width: 100%; display: flex; flex-direction: column; gap: 12px; }
-
-.bubble {
-  align-self: flex-start;
-  padding: 11px 15px;
-  border-radius: 18px;
-  background: var(--surface-fill);
-  color: var(--text-secondary);
-  font: var(--weight-regular) 15px/1.35 var(--font-core);
-}
-.bubbleRight { align-self: flex-end; }
-
-.thingRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 15px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-hairline);
-  background: var(--surface-raised);
-}
-.thingIcon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-fill);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  flex: none;
-}
-.thingName { flex: 1; font: var(--weight-medium) 15px/1 var(--font-core); color: var(--text-primary); }
-.thingMeta { font: var(--text-body-sm-role); color: var(--text-tertiary); }
-
-.notification {
-  width: 420px;
-  max-width: 100%;
-  display: flex;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: var(--radius-lg);
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-2);
-}
-.notificationApp {
-  font: var(--weight-medium) 12px/1 var(--font-core);
-  color: var(--text-tertiary);
-  display: flex;
-  justify-content: space-between;
-}
-.notificationTitle { font: var(--weight-semibold) 15px/1.3 var(--font-core); color: var(--text-primary); margin-top: 4px; }
-.notificationBody { font: var(--text-body-sm-role); color: var(--text-secondary); margin-top: 2px; }
-
 /* A toast confirms the write and then leaves. */
 .toast {
   padding: 12px 18px;
@@ -295,16 +193,8 @@
 }
 .adminLink:hover { background: var(--moss-600); color: var(--text-on-solid); }
 
-/* ------------------------------------------------------- first run consent */
-
-/* The last screen of first run collects two ticks, which is the one thing the
-   kit says this flow does not do. It is here because the second of them is the
-   only lawful basis we have for the private things people dump in, and the
-   moment before the first dump is the last honest place to ask. Logged in
-   decisions.md, 1 September 2026. */
-/* The column the two screens that ask something share: the consent ticks and,
-   since 011, the name field. Same width and same alignment, because they are
-   the same moment in the same flow. */
+/* The connect block's column of facts. First run's screens moved to
+   components/firstrun/ in 033. */
 .consent {
   width: 520px;
   max-width: 100%;
@@ -312,70 +202,6 @@
   flex-direction: column;
   gap: var(--space-5);
   text-align: left;
-}
-
-/* The design system's Checkbox at 20px with a 6px box, minus the strike-through
-   it gives a ticked label: that behaviour is for a task being crossed off, and
-   a consent line drawn as struck through would read as withdrawn. */
-.tick {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-5);
-  cursor: pointer;
-  /* 44px of target around a 20px box without moving the box. */
-  padding: var(--space-3) 0;
-  margin: calc(var(--space-3) * -1) 0;
-}
-
-.tickInput {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  margin: 0;
-}
-
-.tickBox {
-  width: 20px;
-  min-height: 20px;
-  margin-top: 1px;
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border-strong);
-  background: transparent;
-  transition: background var(--transition-ui), border-color var(--transition-ui);
-}
-
-.tickInput:checked + .tickBox { background: var(--surface-inverse); border-color: transparent; }
-.tickInput:focus-visible + .tickBox { outline: 2px solid var(--border-focus); outline-offset: 2px; }
-
-.tickMark { stroke-dasharray: 22; animation: tickDraw var(--duration-slow) var(--ease-out) both; }
-
-@keyframes tickDraw {
-  from { stroke-dashoffset: 22; }
-  to { stroke-dashoffset: 0; }
-}
-
-.tickLabel {
-  font: var(--text-body-sm-role);
-  line-height: 1.45;
-  color: var(--text-primary);
-}
-
-.tickLink { color: var(--text-accent); font-weight: var(--weight-medium); }
-
-/* Not a consent and not a warning about us. It is the one piece of advice on
-   this screen, and it applies to every assistant, not only this one. */
-.consentNote {
-  margin: var(--space-3) 0 0;
-  padding: var(--space-5) var(--space-6);
-  border-radius: var(--radius-md);
-  background: var(--surface-attention-soft);
-  color: var(--text-on-attention);
-  font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
 }
 
 /* Today on day one.
@@ -469,26 +295,6 @@
 
 /* Announced, not seen. */
 
-/* The name field on first run. 011.
-   Modelled on the marketing waitlist input, which is the only other text field
-   the gate side of this app has, and full width because this one sits in a
-   column rather than beside a button. */
-.nameField {
-  width: 100%;
-  /* min-height, never height: text scales to 200% and nothing holding text may
-     have a fixed one. */
-  min-height: 48px;
-  padding: 0 var(--space-6);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-strong);
-  background: var(--surface-raised);
-  font: var(--text-body-role);
-  letter-spacing: var(--tracking-body);
-  color: var(--text-primary);
-}
-.nameField::placeholder { color: var(--text-tertiary); }
-.nameField:focus { outline: none; border-color: var(--ink-950); box-shadow: var(--shadow-focus); }
-
 /* The connect step's provider mark, 88px as both phone kits draw it.
    A dashed stand-in until the official file is dropped in, so a missing asset
    is visible rather than silent. Never a hand-drawn approximation: a third
@@ -504,16 +310,6 @@
 
 /* 026. The Mail step's mark: our own glyph on the stand-in's tile, since
    there is no provider whose mark it could be. */
-.mailMark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 88px;
-  height: 88px;
-  border-radius: 18px;
-  background: var(--surface-fill);
-  color: var(--text-secondary);
-}
 
 /* One of the two facts under the mark. */
 .runFact {

@@ -207,12 +207,11 @@ marketing page. It names the address it checked, joins the waitlist in one tap r
 address, and offers "Use a different account" as the quiet secondary. Joining replaces the
 buttons with a toast, "Added to the waitlist".
 
-**First run is three screens, once per person.** Dump anything, offload sorts it, it only
-interrupts when it matters. Dots and Skip at the top in the same place on all three, one
-button at the bottom, and Get started lands on Today with nothing in it. The notification
-permission ask fires straight after Get started on mobile, so the third screen is the
-reason it appears. Signing in later on another device shows no tutorial: it runs once per
-person, not once per device.
+**First run is three screens, once per person**, since 3 October 2026: an intro that plays
+itself, Before you start, and Bring it all in, then Today. **First run** below is the whole
+of it; the August design's three still screens, top-right Skip and the notification ask
+after Get started are superseded. Signing in later on another device shows no first run: it
+runs once per person, not once per device.
 
 **Refusals are one line above the buttons**, never a dialog: "That did not go through.
 Nothing was sent, try again." It clears on the next attempt and never replaces the buttons.
@@ -761,7 +760,8 @@ screen having a second home. **Two levels of consent, and they are different que
 account approves which calendars offload may use at all, and a thread picks which of those it uses.
 
 **The connect screen is first run's, verbatim.** Same heading, same two prose lines about reading
-your days and adding to them, same button. One screen entered two ways, with one sentence added
+your days and adding to them, same button. (Since 3 October first run offers it as a card on Bring
+it all in, with the heading and the first line; the full screen is Settings' alone.) One screen entered two ways, with one sentence added
 under the button: **"You choose which calendars after this."** Connecting is not consenting to all
 of them.
 
@@ -1091,6 +1091,46 @@ none shows the whole area with *Nothing under Food on the map.* A thing with no 
 **The stack.** MapLibre on all three, MapTiler Streets and Streets Dark, with *© MapTiler ©
 OpenStreetMap contributors* small at the bottom right. Place lookup is MapTiler Geocoding.
 
+## First run
+
+Decided 3 October 2026 off `explorations/onboarding-v2.html` (the first round, with the two directions
+not taken, is `explorations/onboarding.html`), and built in 033: the decision log's *First run, as
+built (033)* lists where the build leads the exploration. Handoff: `handoff/APPLY-2026-10-03-onboarding.md`.
+
+**Three screens after sign in, then Today.** An intro that plays itself, *Before you start* (the name
+and the two consents, the only things first run has to ask), and *Bring it all in* (Mail, Calendar and
+notifications as optional cards, each also in Settings). First run always ends on Today. A card that
+cannot apply is not drawn, and with none left the screen is skipped.
+
+**The intro shows rather than tells.** One screen, three scenes of 9.6s under story bars: loose dumps
+filed one by one into the two threads they belong to, a thread being shared, a photo, a voice note, an
+email and a link landing in one thread. One button, **Continue**, leaves from any scene; tapping the art
+jumps ahead. With reduced motion, or with a screen reader running on a phone, scenes move only when
+asked and each shows its end state. The web cannot tell whether a screen reader is running, so it holds
+still while the pointer is over the intro or focus is inside it. Help's *See the tutorial again* plays
+the intro alone, its button *Done*.
+
+**No retired words in the copy.** *Dump what you would otherwise forget. offload remembers it and puts
+it in order.* and *What belongs together gathers in one thread.*, and the third screen is *Bring it
+all in*, where the exploration said *things*.
+
+**Skip sits beside the main button.** Every screen with a way past it, other than the intro, has a
+two-button footer: the way past on the left as a tonal button (Android: outlined in `--border-strong`),
+the main action on the right and wider. No first-run screen puts Skip or Not now in a corner. A screen
+that cannot be skipped has one button.
+
+**First-run type is large.** Titles 34px on iOS, 36 on Android, 44 on the web and 52 for the web intro;
+leads 17 to 18px; the consent at 16px with 24px boxes (Android 20). The name field is 54 tall and rings
+on focus, never on having text.
+
+**The prism blooms behind the intro's art and nowhere else**, quieter on a dark page. The asking
+screens are on the plain page, and no text in first run sits on the field. The story bar's track is
+`--ink-950` at 10%, so it flips with the theme.
+
+**Pills are `--text-accent` on `--surface-accent-soft`** (*Connected*, *Allowed*, *All four filed in
+Lisbon trip*). Connecting Calendar from first run returns to *Bring it all in*, on the web at
+`/welcome/bring`, and *Connected* follows the calendars read, never the URL.
+
 ## Settings
 
 Decided 2 October 2026 off `explorations/settings-v2.html` (the first round, with the two directions not
@@ -1129,7 +1169,7 @@ one takes a 2px ink ring and a filled radio, on Android a 2px `--blue-600` ring 
   and **Ask before adding**; Mail's carries **the address with Copy** and *Add to contacts*. **The Mail
   card is always shown**, connected calendar or not. *Not built yet* and *What offload may do* are gone.
 - **Reaching the web**, **Date and time**, **Appearance** as built, in the new sections.
-- **Help and about** gains **See the tutorial again**, replaying first run's three screens.
+- **Help and about** gains **See the tutorial again**, replaying first run's intro.
 
 ## The admin panel
 

@@ -26,10 +26,10 @@ beforeEach(async () => {
   await db.deleteFrom("accounts").execute();
 });
 
-async function account(): Promise<string> {
+async function account(state: "active" | "invited" = "active"): Promise<string> {
   const row = await db
     .insertInto("accounts")
-    .values({ email: `${uuidv7()}@example.com`, state: "active", email_verified: true, analytics_subject_id: uuidv7(), display_name: "Ana" })
+    .values({ email: `${uuidv7()}@example.com`, state, email_verified: true, analytics_subject_id: uuidv7(), display_name: "Ana" })
     .returning("id")
     .executeTakeFirstOrThrow();
   return row.id;
@@ -148,5 +148,19 @@ describe("024 AC-14 the switches and hours on /api/me", () => {
     await enqueue({ kind: "account.digest", accountId: me, payload: { send: "morning", day: "2026-09-24" }, runAfterSeconds: 3600, idempotencyKey: `account.digest:${me}:2026-09-24:morning` });
     await app.inject({ method: "PATCH", url: "/api/me", headers: { cookie, "content-type": "application/json" }, payload: { timeZone: "Asia/Tokyo" } });
     expect((await db.selectFrom("jobs").select("id").where("kind", "=", "account.digest").where("account_id", "=", me).where("run_after", ">", sql<Date>`now()`).execute())).toEqual([]);
+  });
+});
+
+describe("033 AC-20 a phone registers only for an active account", () => {
+  it("refuses an account still in first run", async () => {
+    const id = await account("invited");
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/push-tokens",
+      headers: { cookie: await signIn(id), "content-type": "application/json" },
+      payload: { token: TOKEN, platform: "ios" },
+    });
+    expect(response.statusCode).toBe(403);
+    expect(await tokensOf(id)).toHaveLength(0);
   });
 });

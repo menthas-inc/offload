@@ -329,7 +329,7 @@ export default function Privacy() {
                 <tr>
                   <td>To hold the private material people inevitably upload</td>
                   <td>Health, money, and anything else personal that lands in a thread</td>
-                  <td>Your explicit consent, given on the last screen of first run</td>
+                  <td>Your explicit consent, given in first run</td>
                 </tr>
                 <tr>
                   <td>To improve offload using your own content</td>
@@ -350,7 +350,7 @@ export default function Privacy() {
           </p>
           <p>
             <strong>The consent on the private material row is the one that matters most</strong>,
-            and it is why first run ends with two tick boxes rather than a button. Some of what
+            and it is why first run asks for two tick boxes rather than a button. Some of what
             people upload will be health, money, beliefs or relationships, because those are the
             subjects worth not forgetting, and European law asks for consent that is explicit and
             specific before anyone holds them. That is the tick. It is separate from acknowledging

@@ -4,6 +4,7 @@
 **Surfaces:** iOS, Android, web, and one field on the Core API
 **Depends on:** 010 (the pages), 011 (Name), 016 (Reaching the web), 019 (calendars), 022 (people and connecting), 023 (date and time), 024 (notifications), 026 (mail), first run (002)
 **Amends:** 010's page layouts and its Connected apps rows; 022's rule that connecting starts only from the Share sheet; 019's Connected apps row and the web's inline calendar block; 024's Notifications groups; 026's Mail row; first run, whose tutorial can be seen again
+**Amended by 033 (2026-10-03):** See the tutorial again replays the intro alone, and its row's note is *The intro from your first day.*
 
 ## Why
 

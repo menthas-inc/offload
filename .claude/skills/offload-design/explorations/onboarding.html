@@ -1,0 +1,245 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Onboarding, reimagined</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;background:var(--surface-sunken);color:var(--text-primary);font:var(--text-body-role);padding:24px 40px 120px}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+.wrap{max-width:1480px;margin:0 auto}
+h1.pt{margin:18px 0 8px;font:var(--weight-semibold) 30px/1.15 var(--font-core);letter-spacing:-.02em}
+.lede{max-width:800px;color:var(--text-secondary);font:var(--weight-regular) 15px/1.6 var(--font-core);margin:0 0 8px;text-wrap:pretty}.lede b{color:var(--text-primary);font-weight:500}
+.xs{display:flex;align-items:baseline;gap:12px;margin:64px 0 6px;padding-bottom:10px;border-bottom:1px solid var(--ink-950)}.xs h2{margin:0;font:var(--weight-semibold) 21px/1.2 var(--font-core)}.xs u{text-decoration:none;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);letter-spacing:.04em}
+.xp{max-width:840px;color:var(--text-secondary);font:var(--weight-regular) 14px/1.6 var(--font-core);margin:12px 0 22px;text-wrap:pretty}.xp b{color:var(--text-primary);font-weight:500}
+.notes{max-width:880px;margin:14px 0 0;padding-left:18px;font:var(--weight-regular) 14px/1.6 var(--font-core);color:var(--text-secondary)}.notes li{margin-bottom:6px}.notes b{color:var(--text-primary);font-weight:500}
+.grid{display:flex;flex-wrap:wrap;gap:28px 22px;align-items:flex-start}
+.cell{display:flex;flex-direction:column;gap:10px}
+.lab{display:flex;align-items:center;gap:8px;font:var(--weight-medium) 13px/1 var(--font-core)}.lab b{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:6px;background:var(--ink-950);color:var(--paper);font-weight:600;font-size:12px}.lab span{color:var(--text-tertiary);font-weight:400}
+.rec{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;background:var(--surface-accent-soft);color:var(--moss-700);font:var(--weight-medium) 11px/1 var(--font-core)}
+.plat{position:sticky;top:12px;z-index:1000;display:inline-flex;gap:2px;padding:3px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline),var(--shadow-2)}
+.plat button{height:32px;padding:0 14px;border-radius:99px;border:0;background:transparent;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary);cursor:pointer}.plat button.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.dir{display:flex;align-items:baseline;gap:12px;margin:0 0 4px}.dir h3{margin:0;font:var(--weight-semibold) 18px/1.2 var(--font-core)}.dir .cnt{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-secondary);background:var(--surface-raised);border-radius:99px;padding:5px 9px;box-shadow:inset 0 0 0 1px var(--border-hairline)}
+.flow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 18px;font:var(--weight-regular) 13px/1 var(--font-core);color:var(--text-secondary);align-items:center}.flow span{padding:6px 10px;border-radius:8px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline);color:var(--text-primary)}.flow span.x{background:transparent;box-shadow:inset 0 0 0 1px var(--border-hairline);color:var(--text-tertiary);text-decoration:line-through}.flow i{font-style:normal;color:var(--text-tertiary)}
+.dirblock{margin-top:40px}
+table.mx{border-collapse:collapse;max-width:1100px;width:100%;font:var(--weight-regular) 13.5px/1.5 var(--font-core)}
+table.mx th,table.mx td{text-align:left;padding:10px 18px 10px 0;border-bottom:1px solid var(--border-hairline);vertical-align:top}table.mx th{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary)}table.mx td{color:var(--text-secondary)}table.mx td b{color:var(--text-primary);font-weight:500}
+.g{display:inline-block;width:18px;height:18px;flex:0 0 auto;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+.av{border-radius:99px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:600;flex:0 0 auto;box-shadow:0 0 0 2px var(--paper)}
+
+/* ===== frame ===== */
+.ph{--pri:var(--ink-950);--onpri:var(--paper);--sec:var(--surface-fill-strong);--well:var(--surface-fill);--gut:24px;--tsz:34px;width:390px;height:820px;zoom:.72;flex:0 0 auto;border-radius:24px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);display:flex;flex-direction:column;position:relative;font-family:var(--font-core)}
+.ph.tall{height:auto}
+.stb{display:flex;justify-content:space-between;padding:16px 30px 6px;font:var(--weight-semibold) 15px/1 var(--font-core);flex:0 0 auto;position:relative;z-index:2}
+.hb,.gb{flex:0 0 auto;display:flex;justify-content:center;padding:8px 0 9px}.hb i{width:134px;height:5px;border-radius:99px;background:var(--ink-950)}.gb i{width:108px;height:4px;border-radius:99px;background:var(--ink-400)}
+/* footer */
+.ft{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:10px;padding:14px var(--gut) 18px;flex:0 0 auto}
+.ft.one{grid-template-columns:1fr}.ft.stack{grid-template-columns:1fr;gap:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:54px;border-radius:99px;font:var(--weight-medium) 17px/1 var(--font-core);white-space:nowrap}
+.btn.pri{background:var(--pri);color:var(--onpri)}.btn.sec{background:var(--sec);color:var(--text-primary)}
+.btn.dis{background:var(--ink-100);color:var(--ink-400)}
+.btn.sm{height:38px;padding:0 14px;font-size:14.5px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-strong);color:var(--text-primary)}.btn.sm .g{width:15px;height:15px}.btn.sm.pri{background:var(--pri);color:var(--onpri);box-shadow:none}
+/* story */
+.story{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
+.top{padding:8px var(--gut) 0;position:relative;z-index:2}
+.bars{display:flex;gap:6px}.bar{flex:1;height:4px;border-radius:99px;background:rgb(0 0 0 / .1);overflow:hidden;display:block}.bar u{display:block;height:100%;width:0;background:var(--ink-950);border-radius:99px}
+.artbox{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;padding:0 var(--gut)}
+.bloom{position:absolute;inset:-10% -20% 0;background:url(../assets/prism/bloom.png) center/contain no-repeat;opacity:.75;pointer-events:none}
+.art{position:relative;width:100%;height:100%;z-index:1}
+.copy{position:relative;padding:4px var(--gut) 4px;min-height:190px;background:var(--surface-page);z-index:2}
+.cp{position:absolute;inset:4px var(--gut) auto;opacity:0;transition:opacity .35s,transform .35s;transform:translateY(8px)}
+.cp h2{margin:0;font:var(--weight-semibold) var(--tsz)/1.08 var(--font-core);letter-spacing:-.025em;text-wrap:balance}
+.cp p{margin:14px 0 0;font:var(--weight-regular) 18px/1.45 var(--font-core);color:var(--text-secondary);text-wrap:pretty}
+[data-scene="0"] .c0,[data-scene="1"] .c1,[data-scene="2"] .c2{opacity:1;transform:none}
+.sc{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;gap:10px}
+[data-scene="0"] .sc0,[data-scene="1"] .sc1,[data-scene="2"] .sc2{display:flex}
+.still .bar u{width:0}.still[data-scene="1"] .b0 u,.still[data-scene="2"] .b0 u,.still[data-scene="2"] .b1 u{width:100%}.still[data-scene="0"] .b0 u,.still[data-scene="1"] .b1 u,.still[data-scene="2"] .b2 u{width:55%}
+.go .bar u{animation:none}.go[data-scene="1"] .b0 u,.go[data-scene="2"] .b0 u,.go[data-scene="2"] .b1 u{width:100%}
+.go[data-scene="0"] .b0 u,.go[data-scene="1"] .b1 u,.go[data-scene="2"] .b2 u{animation:fill var(--dur,4800ms) linear both}
+@keyframes fill{from{width:0}to{width:100%}}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes popin{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+@keyframes dim{to{opacity:.45}}
+/* scene 0 */
+.bub{align-self:flex-start;max-width:84%;padding:12px 16px;border-radius:20px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline),var(--shadow-1);font:var(--weight-regular) 16px/1.3 var(--font-core);color:var(--text-primary)}.bub.r{align-self:flex-end}
+.thr{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--surface-raised);box-shadow:inset 0 0 0 1.5px var(--ink-950),var(--shadow-2);margin-top:8px}.thr.t1{box-shadow:inset 0 0 0 1px var(--border-hairline);margin-top:0}
+.thr b{flex:1;font:var(--weight-semibold) 17px/1.2 var(--font-core)}.thr em{font-style:normal;font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-secondary);font-variant-numeric:tabular-nums}
+.tw{width:34px;height:34px;border-radius:10px;background:var(--well);display:flex;align-items:center;justify-content:center;color:var(--icon-on-well)}
+.still .sc0 .bub{opacity:.45}
+.go .sc0 .bub{animation:pop .45s cubic-bezier(.2,.8,.2,1) both,dim .5s 2.3s both}.go .b1{animation-delay:.35s,2.3s}.go .sc0 .b2{animation-delay:.7s,2.3s}.go .sc0 .b3{animation-delay:1.05s,2.3s}
+.go .sc0 .b0{animation-delay:0s,2.3s}
+.go .t0{animation:pop .5s 2.1s cubic-bezier(.2,.8,.2,1) both}.go .t1{animation:pop .5s 2.5s cubic-bezier(.2,.8,.2,1) both}
+/* scene 1 */
+.tc{border-radius:20px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline),var(--shadow-2);padding:6px 0 4px;overflow:hidden}
+.tch{display:flex;align-items:center;gap:12px;padding:10px 16px 12px;border-bottom:1px solid var(--border-hairline)}.tch b{flex:1;font:var(--weight-semibold) 19px/1.2 var(--font-core)}
+.avs{display:flex}.avs i{font-style:normal;margin-left:-8px;display:flex}
+.tci{display:flex;align-items:center;gap:12px;padding:12px 16px;font:var(--weight-regular) 15.5px/1.3 var(--font-core);color:var(--text-primary)}.tci .g{width:16px;height:16px;color:var(--icon-on-well)}.tci+.tci{border-top:1px solid var(--border-hairline)}
+.tci.nw{background:var(--surface-accent-soft)}.tci.nw b{font-weight:600}
+.shr{align-self:center;display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:99px;background:var(--surface-inverse);color:var(--text-inverse);font:var(--weight-medium) 14px/1 var(--font-core);margin-top:6px}.shr .g{width:15px;height:15px}
+.go .tc{animation:pop .5s both}.go .a2{animation:popin .35s 1s cubic-bezier(.3,1.5,.5,1) both}.go .a3{animation:popin .35s 1.3s cubic-bezier(.3,1.5,.5,1) both}.go .shr{animation:pop .4s 1.6s both}.go .tci.nw{animation:pop .45s 2.5s both}
+/* scene 2 */
+.ins{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.in{border-radius:16px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline),var(--shadow-1);padding:8px;display:flex;flex-direction:column;gap:8px}
+.in>span{display:flex;align-items:center;gap:6px;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary);padding:0 4px 4px}.in>span .g{width:14px;height:14px}
+.ph-img{height:88px;border-radius:10px;background:linear-gradient(160deg,#C9D6CF,#9DB3A8);display:flex;align-items:center;justify-content:center;color:#fff}.ph-img .g{width:26px;height:26px}
+.wave{height:88px;border-radius:10px;background:var(--surface-fill);display:flex;align-items:center;justify-content:center;gap:3px}.wave u{display:block;width:3px;border-radius:2px;background:var(--ink-700)}
+.ml{height:88px;overflow:hidden;box-sizing:border-box;border-radius:10px;background:var(--surface-fill);padding:10px;display:flex;flex-direction:column;gap:4px}.ml b{font:var(--weight-semibold) 13.5px/1.25 var(--font-core)}.ml s{text-decoration:none;font:var(--weight-regular) 12.5px/1.3 var(--font-core);color:var(--text-secondary)}
+.filed{align-self:center;display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:99px;background:var(--surface-accent-soft);color:var(--moss-700);font:var(--weight-medium) 15px/1 var(--font-core);margin-top:8px}.filed .g{width:16px;height:16px}
+.go .in{animation:pop .45s both}.go .i1{animation-delay:.4s}.go .i2{animation-delay:.8s}.go .i3{animation-delay:1.2s}.go .filed{animation:pop .45s 2.2s both}
+.go .wave u{animation:wv 1s ease-in-out infinite alternate}.go .wave u:nth-child(3n){animation-delay:.3s}.go .wave u:nth-child(3n+1){animation-delay:.6s}
+@keyframes wv{to{transform:scaleY(.4)}}
+/* asking screens: plain page, never on the prism */
+.scr{flex:1;min-height:0;display:flex;flex-direction:column}
+.pg{flex:1;min-height:0;padding:22px var(--gut) 8px;overflow:hidden}
+.ph.tall .pg{overflow:visible}
+.pg h1{margin:0;font:var(--weight-semibold) var(--tsz)/1.08 var(--font-core);letter-spacing:-.025em;text-wrap:balance}
+.lead{margin:12px 0 0;font:var(--weight-regular) 17px/1.45 var(--font-core);color:var(--text-secondary);text-wrap:pretty}
+.blk{margin-top:28px}.blk h3{margin:0 0 12px;font:var(--weight-semibold) 18px/1.25 var(--font-core)}
+.bh{display:flex;align-items:center;gap:10px;margin-bottom:12px}.bh h3{margin:0;flex:1}
+.num{width:26px;height:26px;border-radius:99px;background:var(--ink-950);color:var(--paper);display:flex;align-items:center;justify-content:center;font:var(--weight-semibold) 13px/1 var(--font-core)}.num.o{background:var(--surface-fill-strong);color:var(--text-primary)}.num .g{width:14px;height:14px}
+.optl{font-style:normal;font:var(--weight-medium) 12.5px/1 var(--font-core);color:var(--text-secondary)}
+.fld{height:54px;border-radius:14px;background:var(--surface-raised);box-shadow:inset 0 0 0 1.5px var(--border-strong);display:flex;align-items:center;padding:0 16px;font:var(--weight-regular) 18px/1 var(--font-core);color:var(--text-tertiary)}.fld.has{color:var(--text-primary);box-shadow:inset 0 0 0 2px var(--ink-950)}
+.hint{margin:8px 2px 0;font:var(--weight-regular) 14px/1.4 var(--font-core);color:var(--text-secondary)}
+.tk{display:flex;gap:14px;align-items:flex-start;padding:12px 0;font:var(--weight-regular) 16px/1.45 var(--font-core);color:var(--text-primary)}.tk+.tk{border-top:1px solid var(--border-hairline)}
+.tk i{width:24px;height:24px;border-radius:7px;box-shadow:inset 0 0 0 1.5px var(--border-strong);flex:0 0 auto;display:flex;align-items:center;justify-content:center;margin-top:1px;color:var(--paper)}.tk.on i{background:var(--pri);box-shadow:none;color:var(--onpri)}.tk i .g{width:15px;height:15px}
+.tk a{color:var(--text-accent);font-weight:500;text-decoration:underline;text-underline-offset:2px}
+.note{display:flex;gap:10px;align-items:flex-start;margin-top:10px;padding:12px 14px;border-radius:12px;background:var(--surface-attention-soft);color:var(--text-on-attention);font:var(--weight-regular) 14.5px/1.4 var(--font-core)}.note .g{width:16px;height:16px;margin-top:2px}
+.ccs{display:flex;flex-direction:column;gap:12px;margin-top:24px}
+.cc{border-radius:18px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline);padding:16px;position:relative}
+.cch{display:flex;gap:14px;align-items:flex-start}.cch .tx{flex:1;min-width:0}.cch b{display:block;font:var(--weight-semibold) 17px/1.25 var(--font-core)}.cch s{display:block;text-decoration:none;margin-top:4px;font:var(--weight-regular) 14.5px/1.4 var(--font-core);color:var(--text-secondary)}
+.addr{color:var(--text-primary);font-weight:500}
+.ccb{display:flex;gap:8px;flex-wrap:nowrap;margin:14px 0 0}.ccb .btn.sm{flex:1;padding:0 10px;font-size:14px;gap:6px}
+.mk{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}.mk .g{width:21px;height:21px}.mk.s{width:38px;height:38px;border-radius:10px}.mk.s .g{width:18px;height:18px}
+.mk.ml{background:var(--surface-accent-soft);color:var(--moss-700)}.mk.nt{background:var(--surface-attention-soft);color:var(--text-on-attention)}.mk.gc{background:var(--surface-fill)}
+.gcs{width:70%;height:70%;border-radius:8px;border:1px dashed var(--icon-on-well);box-sizing:border-box;display:block}
+.pill-on{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:99px;background:var(--surface-accent-soft);color:var(--moss-700);font:var(--weight-medium) 13.5px/1 var(--font-core)}
+.rowsC{border-radius:16px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline)}
+.rC{display:flex;align-items:center;gap:12px;padding:12px 14px}.rC+.rC{border-top:1px solid var(--border-hairline)}.rC .tx{flex:1;min-width:0}.rC b{display:block;font:var(--weight-medium) 15.5px/1.25 var(--font-core)}.rC s{display:block;text-decoration:none;font:var(--weight-regular) 13px/1.35 var(--font-core);color:var(--text-secondary)}.rC .btn.sm{height:34px;font-size:14px}
+.fd{margin-top:26px;display:flex;flex-direction:column;gap:10px}
+.sugl{font:var(--weight-medium) 13.5px/1 var(--font-core);color:var(--text-tertiary);margin-bottom:2px}
+.sug{align-self:flex-start;padding:12px 16px;border-radius:20px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-strong);font:var(--weight-regular) 16px/1.3 var(--font-core)}
+.bub.me{background:var(--surface-inverse);color:var(--text-inverse);box-shadow:none}
+.fdres{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:16px;background:var(--surface-accent-soft);color:var(--moss-700);font:var(--weight-regular) 16px/1.4 var(--font-core)}.fdres b{font-weight:600}.fdres .g{margin-top:2px}
+.cmpwrap{padding:0 var(--gut)}.cmp{display:flex;align-items:center;gap:10px;height:54px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1.5px var(--border-strong);padding:0 8px 0 20px;font:var(--weight-regular) 17px/1 var(--font-core);color:var(--text-tertiary)}.cmp>span:first-child{flex:1}.ci{width:38px;height:38px;border-radius:99px;background:var(--surface-fill);display:flex;align-items:center;justify-content:center;color:var(--text-primary)}
+.tab{display:flex;align-items:center;justify-content:space-between;padding:10px var(--gut) 4px}.tab img{height:22px}
+.td{padding-top:8px}.tdh{font:var(--weight-semibold) 30px/1.1 var(--font-core);letter-spacing:-.02em;margin-bottom:14px}.thr.flat{box-shadow:inset 0 0 0 1px var(--border-hairline);margin-top:0}
+.tdl{margin:26px 2px 0;font:var(--weight-medium) 13.5px/1 var(--font-core);color:var(--text-tertiary)}.td .ccs{margin-top:10px}
+.cc.dsm .xx{position:absolute;top:12px;right:12px;color:var(--text-tertiary)}.cc.dsm .xx .g{width:16px;height:16px}.cc.dsm .ccb{margin-top:10px}.cc.dsm .cch{padding-right:20px}
+.fdemo{width:390px;background:var(--surface-page);border-radius:18px;border:1px solid var(--border-hairline);--pri:var(--ink-950);--onpri:var(--paper);--sec:var(--surface-fill-strong);--gut:20px;font-family:var(--font-core)}
+.fdemo.w{width:520px}.fdemo.w .ft{grid-template-columns:auto auto;justify-content:end}.fdemo.w .btn{height:44px;padding:0 22px;font-size:15px}
+
+/* ===== Android ===== */
+[data-plat=android] .ph:not(.web),[data-plat=android] .fdemo:not(.w){--pri:var(--blue-600);--onpri:#fff;--sec:#E4E1DA;--well:#E4E1DA;--tsz:36px;width:412px}
+[data-plat=android] .ph:not(.web) .stb{padding:12px 22px 6px;font:var(--weight-medium) 13px/1 var(--font-core)}
+[data-plat=android] .ph:not(.web) .btn{height:56px;font-size:16px;letter-spacing:.01em}
+[data-plat=android] .ph:not(.web) .btn.sec,[data-plat=android] .fdemo .btn.sec{background:transparent;box-shadow:inset 0 0 0 1px #79786F;color:var(--blue-700)}
+[data-plat=android] .ph:not(.web) .btn.sm{height:40px;box-shadow:inset 0 0 0 1px #79786F;background:transparent;color:var(--blue-700)}
+[data-plat=android] .ph:not(.web) .btn.sm.pri{background:var(--blue-600);color:#fff;box-shadow:none}
+[data-plat=android] .ph:not(.web) .bar u{background:var(--blue-600)}
+[data-plat=android] .ph:not(.web) .cc,[data-plat=android] .ph:not(.web) .rowsC{background:#F1EFEA;box-shadow:none;border-radius:24px}
+[data-plat=android] .ph:not(.web) .fld{border-radius:4px;background:transparent;box-shadow:inset 0 0 0 1px #79786F}[data-plat=android] .ph:not(.web) .fld.has{box-shadow:inset 0 0 0 2px var(--blue-600)}
+[data-plat=android] .ph:not(.web) .tk i{border-radius:3px;width:20px;height:20px;box-shadow:inset 0 0 0 2px #49454F;margin:3px 2px 0}[data-plat=android] .ph:not(.web) .tk.on i{background:var(--blue-600);box-shadow:none}
+[data-plat=android] .ph:not(.web) .tk a{color:var(--blue-700)}
+[data-plat=android] .ph:not(.web) .num{background:var(--blue-600)}
+[data-plat=android] .ph:not(.web) .tw{border-radius:99px}
+[data-plat=android] .ph:not(.web) .thr{border-radius:20px;box-shadow:inset 0 0 0 1.5px var(--blue-600),var(--shadow-2)}[data-plat=android] .ph:not(.web) .thr.t1,[data-plat=android] .ph:not(.web) .thr.flat{background:#F1EFEA;box-shadow:none}
+
+/* ===== Web ===== */
+.ph.web{width:1180px;height:740px;zoom:.62;border-radius:14px;--gut:0px;--tsz:44px}
+.ph.web.tall{height:auto;padding-bottom:30px}
+.wtop{height:72px;display:flex;align-items:center;padding:0 44px;flex:0 0 auto}.wtop img{height:24px}
+.wstory{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:64px;padding:0 64px 56px;align-items:center}
+.wart{position:relative;height:100%;max-height:580px;display:flex;align-items:center}.wart .art{max-width:440px;margin:0 auto;height:480px}.wart .bloom{inset:-6% -6%}
+.wtx{display:flex;flex-direction:column;gap:28px;max-width:470px}
+.wtx .copy{min-height:250px;padding:0;background:transparent}.wtx .cp{inset:0 0 auto}.wtx .cp h2{font-size:52px}.wtx .cp p{font-size:20px}
+.web .ft{padding:0;grid-template-columns:auto auto;justify-content:start;gap:12px}.web .ft.one{grid-template-columns:auto}
+.web .btn{height:50px;padding:0 28px;font-size:16px}
+.wcol{flex:1;min-height:0;width:560px;margin:0 auto;display:flex;flex-direction:column;padding:12px 0 48px}.wcol.wide{width:640px}
+.wcol .pg{padding:12px 0 24px}.wcol .ft{justify-content:end}
+.web .ccs{display:grid;grid-template-columns:1fr;gap:12px}
+.web .cmpwrap{padding:0}.web .tab{display:none}
+</style></head><body><div class="wrap">
+<div class="plat" id="plat"><button data-p="ios">iOS</button><button data-p="android">Android</button><button data-p="web">Web</button></div>
+
+<h1 class="pt">Onboarding, reimagined</h1>
+<p class="lede">First run as it is on <code>main</code> today, then three shorter ways through it. All three share one new animated intro, a footer where Skip sits beside the main button, titles at 34 to 36px on the phones and 44 to 52px on the web, and asking screens on the plain page with no prism behind any text.</p>
+
+<div class="xs"><h2>What it is now</h2><u>read from Welcome.ios.tsx, Welcome.android.tsx, FirstRun.tsx, gate.ts</u></div>
+<div class="flow"><span>Sign in</span><i>→</i><span>Dump anything</span><i>→</i><span>offload sorts it</span><i>→</i><span>It only interrupts when it matters</span><i>→</i><span>What should we call you?</span><i>→</i><span>Before you start</span><i>→</i><span>notification dialog</span><i>→</i><span>Forward what matters</span><i>→</i><span>Bring in your calendar</span><i>→</i><span>the Calendar settings page</span></div>
+<ul class="notes">
+<li><b>Seven screens after sign in</b>, eight with the system dialog. Connecting a calendar ends first run on the Calendar settings page, not Today.</li>
+<li><b>The tutorial's text is small for the room it has.</b> The illustration takes the flexible space and the copy sits underneath at <code>title-1</code> and 16px body. The illustrations are three static pictures, and nothing on them moves or shows threads being shared or the ways in.</li>
+<li><b>The prism sits under the asking screens.</b> <code>GateBackdrop</code> wraps every step with <code>veil="none"</code>, on the grounds that no gate screen has small text over the field. The name and consent screens do: the consent paragraph is <code>body-sm</code> right where the bloom is strongest.</li>
+<li><b>Skip is a 15px text label top right; Next is a full-width filled button at the bottom.</b> Not now, on Mail and Calendar, is the same top-right label. Moving on is under the thumb and declining is a reach.</li>
+<li><b>Two offers, two screens</b> (Forward what matters, Bring in your calendar), each with a large mark, two facts and one button.</li>
+</ul>
+
+<div class="xs"><h2>The intro, shared by all three</h2><u>replaces the three tutorial screens</u></div>
+<p class="xp"><b>One screen that plays itself.</b> Three scenes of about five seconds, with story-style bars at the top. Tap the art or <b>Next</b> to move on, or <b>Skip intro</b> to leave. Each scene acts out its sentence: four loose dumps fall into a thread; a thread gains Ana and Tom and Tom adds something; a photo, a voice note, an email and a link all land in the same thread. The prism blooms behind the art only, and the copy sits on the page below it. With reduced motion the scenes cut without animating. Help's <b>See the tutorial again</b> plays this screen and nothing else.</p>
+<div class="grid" id="intro"></div>
+
+<div class="xs"><h2>Skip beside the main button</h2><u>every screen with a way past it</u></div>
+<p class="xp"><b>1 Side by side</b>: Skip on the left as a tonal button, the main action on the right and wider. Both are under the thumb, and the colour says which one is primary. <b>2 Stacked</b>: the main action full width, Skip as a full-width tonal button under it. On Android, Skip is Material's outlined button. On the web the pair sits at the end of the column. The name and consent can't be skipped, so that screen has one button.</p>
+<div class="grid" id="foots"></div>
+
+<div class="xs"><h2>Three ways through</h2><u>after sign in</u></div>
+<div class="dirblock"><div class="dir"><h3>A. Intro, you, connect</h3><span class="cnt">3 screens</span><em class="rec">my pick</em></div>
+<div class="flow"><span>Intro</span><i>→</i><span>Before you start: name and consent</span><i>→</i><span>Bring things in: Mail, Calendar, notifications</span><i>→</i><span>Today</span></div>
+<p class="xp">The name joins the consent: both are required, and they are the only things first run has to ask. Mail, Calendar and notifications become three cards on one optional screen, each with its own button, so you can connect one and skip the others. <b>The notification dialog moves here.</b> Its reason used to be the third tutorial screen, which the intro drops, so the card is now the reason. Connecting Calendar returns to this screen with a Connected pill rather than ending on the Calendar page.</p>
+<div class="grid" id="dA"></div></div>
+
+<div class="dirblock"><div class="dir"><h3>B. Intro, then one setup screen</h3><span class="cnt">2 screens</span></div>
+<div class="flow"><span>Intro</span><i>→</i><span>Two things, then you are in: name, consent, optional connections</span><i>→</i><span>Today</span></div>
+<p class="xp">The fastest. Everything after the intro is on one scrolling screen: two numbered required steps, then the connections as three compact rows marked Optional. There is nothing to skip, because the optional part is skipped by not tapping it. The cost is length: the screen scrolls on a small phone, and Get started sits under a consent and three rows.</p>
+<div class="grid" id="dB"></div></div>
+
+<div class="dirblock"><div class="dir"><h3>C. Intro, you, first dump</h3><span class="cnt">3 screens</span></div>
+<div class="flow"><span>Intro</span><i>→</i><span>Before you start</span><i>→</i><span>Dump your first thing</span><i>→</i><span>Today, with ways in offered</span></div>
+<p class="xp">Learn by doing. The last screen is a real composer with the day-one examples as starters. Sending one files it for real, and you watch it land in a thread before going to Today. Connections leave first run entirely and become two dismissible cards on Today, under what you just dumped, where they make sense next to real content. The notification dialog fires the first time something you dump has a date.</p>
+<div class="grid" id="dC"></div></div>
+
+<div class="xs"><h2>Side by side</h2></div>
+<table class="mx"><thead><tr><th></th><th>Now</th><th>A</th><th>B</th><th>C</th></tr></thead><tbody>
+<tr><td><b>Screens after sign in</b></td><td>7</td><td>3</td><td>2</td><td>3</td></tr>
+<tr><td><b>Taps to Today, skipping everything optional</b></td><td>Skip, name, Next, 2 ticks, Next, Not now, Not now: 8</td><td>Skip intro, name, 2 ticks, Continue, Skip for now: 6</td><td>Skip intro, name, 2 ticks, Get started: 5</td><td>Skip intro, name, 2 ticks, Continue, Skip: 6</td></tr>
+<tr><td><b>Where you learn what it does</b></td><td>three still pictures</td><td>the intro</td><td>the intro</td><td>the intro, then doing it</td></tr>
+<tr><td><b>Mail and Calendar</b></td><td>two screens</td><td>one screen, two cards</td><td>two rows on setup</td><td>cards on Today</td></tr>
+<tr><td><b>Notification ask</b></td><td>after consent, reason on tutorial 3</td><td>its own card</td><td>its own row</td><td>first dated dump</td></tr>
+<tr><td><b>Ends on</b></td><td>Calendar page, if connected</td><td>Today</td><td>Today</td><td>Today</td></tr>
+</tbody></table>
+
+<div class="xs"><h2>To decide</h2></div>
+<ul class="notes">
+<li><b>Direction</b>: A, B or C. My read: A. It is short, keeps the legal screen uncluttered, and gives every optional thing its own button and an obvious Skip for now.</li>
+<li><b>Footer</b>: side by side or stacked.</li>
+<li><b>The intro's copy</b> is my draft from your three points; the consent text is verbatim and stays so.</li>
+<li><b>Unchanged in every direction</b>: sign in, the no-invite and waitlist screens, the name-only path for accounts that predate names, and the server writing name, consent and zone in one request.</li>
+</ul>
+</div>
+
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#3F6B4F"/><rect x="26" y="34" width="14" height="4" rx="2" fill="#fff"/><rect x="43" y="34" width="14" height="4" rx="2" fill="#fff" opacity=".5"/><rect x="60" y="34" width="14" height="4" rx="2" fill="#fff" opacity=".5"/><rect x="26" y="50" width="48" height="16" rx="8" fill="#fff"/></svg></template>
+<script src="onboarding-screens.js"></script>
+<script>
+let PLAT=localStorage.getItem('onboarding-platform')||'ios';
+const cell=(lab,sub,html,rec)=>`<div class="cell"><div class="lab">${lab?`<b>${lab}</b>`:''}<span>${sub}</span>${rec?'<em class="rec">my pick</em>':''}</div>${html}</div>`;
+const DUR=4800;
+function startLive(){document.querySelectorAll('[data-live]').forEach(el=>{
+ el.style.setProperty('--dur',DUR+'ms');let s=0;
+ const show=n=>{s=n;el.dataset.scene=n;el.classList.remove('go');void el.offsetWidth;el.classList.add('go');
+  const b=el.closest('.ph').querySelector('.btn.pri');if(b)b.textContent=n===2?'Continue':'Next';};
+ show(0);clearInterval(el._t);el._t=setInterval(()=>show((s+1)%3),DUR);
+ const adv=()=>{clearInterval(el._t);show((s+1)%3);el._t=setInterval(()=>show((s+1)%3),DUR)};
+ el.querySelector('.art').onclick=adv;const b=el.closest('.ph').querySelector('.btn.pri');if(b){b.style.cursor='pointer';b.onclick=adv}
+});}
+function render(){
+ document.body.dataset.plat=PLAT;document.querySelectorAll('#plat button').forEach(x=>x.classList.toggle('on',x.dataset.p===PLAT));
+ document.querySelectorAll('[data-live]').forEach(el=>clearInterval(el._t));
+ const W=PLAT==='web';
+ document.getElementById('intro').innerHTML=cell('','Playing, tap to advance',story(PLAT,'live'))+(W?'':[0,1,2].map(i=>cell('',`Scene ${i+1}, ${SCENES[i].t}`,story(PLAT,i))).join(''));
+ if(W)document.getElementById('intro').innerHTML+=[0,1,2].map(i=>cell('',`Scene ${i+1}`,`<div style="zoom:.5">${story(PLAT,i)}</div>`)).join('');
+ document.getElementById('foots').innerHTML=cell('1','Side by side',footDemo(PLAT,0),1)+cell('2','Stacked',footDemo(PLAT,1));
+ document.getElementById('dA').innerHTML=cell('1','Intro',story(PLAT,0))+cell('2','Before you start, empty',you(PLAT,0))+cell('','Filled',you(PLAT,1))+cell('3','Bring things in',connect(PLAT,0))+cell('','After Calendar connects',connect(PLAT,1));
+ document.getElementById('dB').innerHTML=cell('1','Intro',story(PLAT,0))+cell('2','Setup, the whole scroll',setup(PLAT));
+ document.getElementById('dC').innerHTML=cell('1','Intro',story(PLAT,0))+cell('2','Before you start',you(PLAT,1))+cell('3','Dump your first thing',firstDump(PLAT,''))+cell('','Sent',firstDump(PLAT,'sent'))+cell('','Today, with ways in',todayOffers(PLAT));
+ startLive();
+}
+document.querySelectorAll('#plat button').forEach(b=>b.onclick=()=>{PLAT=b.dataset.p;localStorage.setItem('onboarding-platform',PLAT);render()});
+render();
+</script>
+</body></html>
