@@ -8,7 +8,7 @@ No table, list or feed changes, so there is no volume and access section. Nothin
 
 One landing. `Landing` in `apps/core-api/src/connectors/state.ts` gains `"first-run-bring"`, and `LANDINGS` with it; the start route's `z.enum` in `routes/connectors.ts` reads `LANDINGS` rather than repeating the list. `landingUrl` becomes an exhaustive `switch` over `Landing` with a `never` default, so a new value cannot compile without a destination; `first-run-bring` is `${WEB_URL}/welcome/bring?calendar=${outcome}` for both outcomes.
 
-**Active accounts only.** A `requireActive(accountId)` check (one query on `accounts.state`) answers 403 `{ error: "not_active" }` on `GET /api/connectors/google/start` and `POST /v1/push-tokens` for any account that is not `active`, so the order first run draws is also the order the API allows (SEC-2). `first-run` and `settings` keep their destinations, because a phone on an older build still sends `first-run`. The landing is still an enum sealed into the HMAC'd state and resolved server side, never a URL from the request.
+**Active accounts only.** `refuseWritesBeforeConsent` in `accounts/active.ts`, one `onRequest` hook: a POST, PATCH, PUT or DELETE under `/v1/`, `/api/connectors/` or `/api/calendar/` from a session whose user is not `active` answers 403 `{ error: "not_active" }` before the body is read, reading `state` off the session user the route reads anyway. Open: `POST /v1/waitlist`, `DELETE /v1/push-tokens`; not matched: `/api/auth/`, `/api/onboarding/complete`, `/api/me`, `/internal/`. `isActive` covers the two GETs that write, the connect's start and its callback (SEC-2).
 
 ## Shared shape
 

@@ -93,7 +93,7 @@ Optional, after the account is active. Title *Bring it all in* (the exploration'
 
 ### 6. The server
 
-The screen is not the only thing keeping connections behind consent. Connecting a calendar and registering a phone for pushes are refused (403) for an account that is not active, so an account mid first run cannot connect anything by calling the API directly. Mail-in's sender match is a separate fix, out of this pass.
+The screen is not the only thing keeping content behind consent. **Every write behind a session** (under `/v1/`, `/api/connectors/` and `/api/calendar/`), starting a calendar connect, and the connect's callback are refused (403 `not_active`) for an account that is not active, so an account mid first run cannot dump, upload, connect or register anything by calling the API directly. Joining the waitlist, taking a push token away, and first run's own routes stay open. Mail-in matches only an active account.
 
 ### 7. Type and spacing
 
@@ -124,7 +124,7 @@ The privacy page says consent is *given on the last screen of first run* and tha
 - **AC-17** The privacy page's two sentences read as worded above.
 - **AC-18** No em or en dash, emoji or retired word in any new copy or identifier; `TUTORIAL`, `TutorialArt`, `ConnectStepBar`, `offersFor`, `dotsFor`, `mailStep`, the web `RunArt`, `MailOffer` and the separate Mail and Calendar steps are gone. Settings' connect block and its two facts stay.
 - **AC-19** Each scene's end state, with or without motion: scene 1 counts `4` and `3` with no bubble left; scene 2 three people, the *Shared with Ana and Tom* pill and Tom's row; scene 3 four cards and *All four filed in Lisbon trip*.
-- **AC-20** `/api/connectors/google/start` and push-token registration answer 403 for an account that is not active.
+- **AC-20** Every write behind a session under `/v1/`, `/api/connectors/` and `/api/calendar/`, `/api/connectors/google/start`, and the connect's callback refuse an account that is not active, before reading the body; the waitlist, removing a push token and first run's own routes do not.
 - **AC-21** Help's See the tutorial again row reads *The intro from your first day.*
 
 ## Not in this pass

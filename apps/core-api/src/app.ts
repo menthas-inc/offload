@@ -34,6 +34,7 @@ import { MAX_PHOTO_BYTES } from "./blobs/photos.js";
 import { mailInRoutes } from "./routes/mail-in.js";
 import type { Writable } from "node:stream";
 import type { Resolver } from "./mail-in/sender.js";
+import { refuseWritesBeforeConsent } from "./accounts/active.js";
 
 /** The app carries the Zod type provider, so routes get their schemas inferred
  *  rather than restated. Naming it keeps that off every call site. */
@@ -93,6 +94,10 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
       }
     });
   }
+
+  // Content waits for consent: no write behind a session until the account
+  // has finished first run (033).
+  refuseWritesBeforeConsent(app);
 
   // On every answer, whatever route wrote it (security review 2026-09-22, M4).
   // HSTS so a first visit over http is not a downgrade point; nosniff so a

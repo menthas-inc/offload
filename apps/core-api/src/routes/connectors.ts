@@ -144,6 +144,9 @@ export async function connectorRoutes(app: App): Promise<void> {
       if (!accountId || accountId !== opened.accountId) {
         return reply.redirect(landingUrl(opened.landing, "failed"));
       }
+      // Nothing is brought in before consent, and an account can stop being
+      // active inside the state's ten minutes.
+      if (!(await isActive(accountId))) return reply.redirect(landingUrl(opened.landing, "failed"));
       if (request.query.error || !request.query.code) {
         // They declined, which is an answer rather than a fault.
         return reply.redirect(landingUrl(opened.landing, "failed"));

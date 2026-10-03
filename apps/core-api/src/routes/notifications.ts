@@ -17,7 +17,6 @@ import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
 import { undoMailRow } from "../mail-in/activity.js";
 import { zoneOf } from "../accounts/zone.js";
-import { isActive } from "../accounts/active.js";
 import { agendaQuery, agendaRow, everDumped, labelsOf, shapeRows, type AgendaRaw } from "../today/rows.js";
 import { actedCopy } from "../notifications/copy.js";
 import { ACTIVITY_DAYS, listActivity, markSeen, record } from "../notifications/activity.js";
@@ -102,8 +101,6 @@ export async function notificationRoutes(app: App): Promise<void> {
     async (request, reply) => {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
-      // 033. Pushes are offered after consent, never before.
-      if (!(await isActive(accountId))) return reply.status(403).send({ error: "not_active" });
       const { token, platform } = request.body;
       await db
         .insertInto("push_tokens")

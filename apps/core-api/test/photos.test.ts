@@ -77,6 +77,9 @@ beforeEach(async () => {
 async function person(): Promise<{ id: string; defaultThreadId: string }> {
   const outcome = await promote(`${uuidv7()}@example.test`);
   if (outcome.status !== "invited") throw new Error(outcome.status);
+  // Past first run, as anybody who dumps is: an invited account's writes are
+  // refused (033).
+  await db.updateTable("accounts").set({ state: "active" }).where("id", "=", outcome.accountId).execute();
   const row = await db
     .selectFrom("accounts")
     .select("default_thread_id")
