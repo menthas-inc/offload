@@ -50,8 +50,8 @@ the same spec because the delete confirmation offers it.
   both stay above the keyboard.
 - **States.** In flight: the button reads *Deleting* with the one spinner, and
   the sheet cannot be dismissed. Failed: *Couldn't delete your account* and
-  *Try again*. Offline: the button is disabled under the launch screen's
-  *You're offline*. The last staff owner: *Hand offload's ownership to someone
+  *Try again*, which is also what an offline press gets, since neither client
+  can see why it did not go through. The last staff owner: *Hand offload's ownership to someone
   else first.*, with no retry. None of them says why.
 - **What goes.** Everything only the person could read: threads nobody else is
   in and all they hold, their conversations and dumps, the notes offload keeps

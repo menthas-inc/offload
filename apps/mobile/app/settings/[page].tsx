@@ -18,6 +18,8 @@ import { useColors } from "../../lib/colors";
 import { endOthers, endSignedIn, listSignedIn, thisDevice, type SignedIn } from "../../lib/sessions";
 import { deviceGlyph, emailNote } from "../../lib/settings";
 import { useSignOut } from "../../components/settings/useSignOut";
+import { DeleteAccountSheet } from "../../components/settings/DeleteAccountSheet";
+import { forgetPlayback } from "../../components/shell/SentVoice";
 import { fetchCountries, saveName, setClock, setCountry, setWebAccess, useMe } from "../../lib/me";
 import { NotificationsPage } from "../../components/settings/NotificationsPage";
 import { approveCalendar, disconnect, setAskFirst, useCalendars } from "../../lib/calendars";
@@ -115,12 +117,11 @@ export default function SettingsPage() {
 
 /** Who you are.
  *
- *  The kit also draws Phone, Password, a Plan group and a Delete account panel.
- *  Phone and Password go because this product is OAuth-only: there is no
- *  password to change and no phone stored, so both would be controls that do
- *  nothing. Plan goes because there are no plans, and inventing a tier on a
- *  settings screen is a product claim nobody has made. Deletion is specified in
- *  001 and not built, and a panel that does nothing is worse than its absence.
+ *  The kit also draws Phone, Password and a Plan group. Phone and Password go
+ *  because this product is OAuth-only: there is no password to change and no
+ *  phone stored, so both would be controls that do nothing. Plan goes because
+ *  there are no plans, and inventing a tier on a settings screen is a product
+ *  claim nobody has made. Delete account was the fourth until 035 built it.
  *
  *  The email is not editable here. Changing one is an identity change with a
  *  verification flow behind it, not a text field. The name is, since 011. */
@@ -162,6 +163,7 @@ function Account({ toast }: { toast: ToastState }) {
   }
 
   const listed = Array.isArray(others) ? others : [];
+  const [deleting, setDeleting] = useState(false);
 
   return (
     <>
@@ -244,6 +246,38 @@ function Account({ toast }: { toast: ToastState }) {
           <Row icon="log-out" title="Sign out" action onPress={() => void leave()} last />
         </Group>
       </View>
+
+      {/* 035. The kit's Ending things, last and apart: what a shared thread
+          keeps, said before the row that cannot be undone. No noun in either
+          line; the kits still say "things". */}
+      <View style={{ marginTop: 26 }}>
+        <Group>
+          <Row
+            title="Shared threads"
+            note="A shared thread belongs to everyone in it. Deleting your account takes away your access and what only you could see, and leaves what you added with the others."
+          />
+          <Row
+            title="Delete account"
+            note="Everything only you can see goes with it. There's no undo."
+            danger
+            action
+            onPress={() => setDeleting(true)}
+            last
+          />
+        </Group>
+      </View>
+
+      {deleting ? (
+        <DeleteAccountSheet
+          onClose={() => setDeleting(false)}
+          onDeleted={() => {
+            // The session is already forgotten here. Voice notes being heard
+            // go with it, as at sign-out, and the gate says what happened.
+            forgetPlayback();
+            router.replace("/");
+          }}
+        />
+      ) : null}
     </>
   );
 }

@@ -9,6 +9,9 @@ export const GATE = {
   signIn: {
     title: "One place for everything you would otherwise forget.",
     sub: "Sign in to start.",
+    // 035. In place of the line above, once, for whoever just deleted their
+    // account. Not a refusal: nothing went wrong.
+    deleted: "Your account is deleted.",
     apple: "Continue with Apple",
     google: "Continue with Google",
     // Split because the kits emphasise the second half in the accent colour

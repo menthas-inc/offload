@@ -18,6 +18,7 @@ import { GateBackdrop } from "../GateBackdrop";
 import { GateLockup } from "../GateLockup";
 import { AppleGlyph, GoogleGlyph } from "../Glyphs";
 import { GATE } from "../../lib/gate";
+import { takeDeletedNotice } from "../../lib/account";
 import { PRIVACY_URL } from "../../lib/links";
 import { useColors } from "../../lib/colors";
 import {
@@ -32,6 +33,9 @@ export default function SignIn() {
   const router = useRouter();
   const [pending, setPending] = useState<Provider | null>(null);
   const [refused, setRefused] = useState(false);
+  // 035. Read once, as the screen mounts: the line is for the person who just
+  // deleted their account and for nobody who signs in on this phone after.
+  const [deleted] = useState(() => takeDeletedNotice());
   const [hasApple, setHasApple] = useState(false);
 
   useEffect(() => {
@@ -80,7 +84,7 @@ export default function SignIn() {
             {GATE.signIn.title}
           </Text>
           <Text className="mt-space-6 text-center font-core text-body text-a-on-var">
-            {GATE.signIn.sub}
+            {deleted ? GATE.signIn.deleted : GATE.signIn.sub}
           </Text>
         </View>
 

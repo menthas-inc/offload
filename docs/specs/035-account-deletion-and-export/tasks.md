@@ -48,9 +48,9 @@ exists (QUAL-1). Part A merges on its own.
 
 ### Mobile
 
-- [ ] **T12** Read `SettingsDetail` and `M3SettingsDetail` whole. The account
+- [x] **T12** Read `SettingsDetail` and `M3SettingsDetail` whole. The account
   page gains *Ending things* with the spec's copy. *(AC-1)*
-- [ ] **T13** The confirmation sheet, per platform chrome, the field, every
+- [x] **T13** The confirmation sheet, per platform chrome, the field, every
   state and its copy, the redirect to `sign-in?deleted=1` and its line.
   *(AC-2, AC-9)*
 - [ ] **T14** Device pass on the Pixel and the iOS simulator: field and button
@@ -68,7 +68,7 @@ exists (QUAL-1). Part A merges on its own.
 
 - [x] **T17** Privacy page: the deletion edits, `UPDATED` and
   `CONSENT_VERSION`. *(AC-24)*
-- [ ] **T18** Design `decisions.md` entry for the confirmation, destructive
+- [x] **T18** Design `decisions.md` entry for the confirmation, destructive
   button and danger panel. *(AC-25)*
 - [ ] **T19** `pnpm lint`, typecheck, both suites, `dead-classes.mjs`,
   `dead-css.mjs`, `dead-icons.mjs`; `code-reviewer`, `security-reviewer` and
