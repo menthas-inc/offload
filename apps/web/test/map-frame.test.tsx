@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAPS_KEY", "web-key");
 vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAP_ID", "map-id");
 
-const me = vi.hoisted(() => ({ maps: true }));
+const me = vi.hoisted(() => ({ maps: true, webMaps: true }));
 vi.mock("../src/lib/use-me", () => ({
   currentMe: () => me,
   onMe: (listener: (m: typeof me) => void) => {
@@ -64,6 +64,7 @@ beforeEach(() => {
   reads.wait = null;
   reads.throws = false;
   me.maps = true;
+  me.webMaps = true;
   window.localStorage.clear();
 });
 afterEach(() => {
@@ -141,10 +142,24 @@ describe("the column and the switch (AC-14)", () => {
     expect(column()).toBeNull();
     expect(shown).toBe(false);
 
+    // The server folds its own switch into webMaps, as /api/me does.
     me.maps = false;
+    me.webMaps = false;
     await render(<Pane key="off" onSwitch={(s) => (shown = s)} />);
     await width(900);
     expect(shown).toBe(false);
+  });
+});
+
+describe("the owner's switch for the web's map", () => {
+  it("draws no switch and no column while the web's map is off, with the map on for the phones", async () => {
+    me.webMaps = false;
+    let shown = true;
+    await render(<Pane onSwitch={(s) => (shown = s)} />);
+    await width(1200);
+    expect(column()).toBeNull();
+    expect(shown).toBe(false);
+    expect(reads.count).toBe(0);
   });
 });
 

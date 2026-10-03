@@ -58,8 +58,10 @@ export interface ThreadMapState {
 export function useThreadMap({ threadId, hasPoint, version }: { threadId: string; hasPoint: boolean; version: unknown }): ThreadMapState {
   const top = useContext(PaneTop);
   const { theme, read } = useAppearance();
-  const [serverOn, setServerOn] = useState(currentMe()?.maps === true);
-  useEffect(() => onMe((me) => setServerOn(me.maps === true)), []);
+  // The owner's switch for the web's map, which `/api/me` folds in with the
+  // server's own: off, and the web draws nothing while the phones carry on.
+  const [serverOn, setServerOn] = useState(currentMe()?.webMaps === true);
+  useEffect(() => onMe((me) => setServerOn(me.webMaps === true)), []);
   const ready = top && hasPoint && read && webMapReady(serverOn, MAPS_KEY, MAP_ID);
 
   const [view, setViewState] = useState<MapView>(() => readView(threadId));
