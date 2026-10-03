@@ -191,10 +191,24 @@ if (problems.length) {
 if (c.speechModel?.value === "universal-2") prices.assemblyai.used = "universal2PerHour";
 assumptions.options.budgetEnforced = budgetWorks;
 const input = { prices, code, assumptions, options: { ...assumptions.options, whatsappMarket: "mix" } };
+{
+  const f = model.fleet(input, 1000, "mau");
+  if (!f.parts.googleMaps || !(f.parts.googleMaps.loads > 0)) throw new Error("the fleet has no Google Maps part");
+}
+// 030. Google Maps bills by tier past a free monthly cap; check the tier
+// arithmetic against the price list before trusting a fleet figure.
+{
+  const g = prices.googleMaps;
+  const check = (got, want, what) => { if (Math.abs(got - want) > 0.005) throw new Error(`Google Maps ${what}: ${got}, want ${want}`); };
+  check(model.tiered(g.dynamicMaps, 9_000), 0, "loads under the free cap");
+  check(model.tiered(g.dynamicMaps, 20_000), 70, "10,000 loads past the cap at $7");
+  check(model.tiered(g.placeDetails, 150_000), 90 * 5 + 50 * 4, "details across two tiers");
+}
+
 // Check the model runs, and print what a reader would look for first.
 for (const level of assumptions.fleet.levels) {
   const f = model.fleet(input, level, assumptions.fleet.basis);
-  console.log(`${String(level).padStart(7)} ${assumptions.fleet.basis.toUpperCase()}  ${Math.round(f.pop.mau).toString().padStart(7)} MAU  $${Math.round(f.total).toLocaleString("en-US").padStart(9)}/mo  $${f.perMau.toFixed(2)} per person`);
+  console.log(`${String(level).padStart(7)} ${assumptions.fleet.basis.toUpperCase()}  ${Math.round(f.pop.mau).toString().padStart(7)} MAU  $${Math.round(f.total).toLocaleString("en-US").padStart(9)}/mo  $${f.perMau.toFixed(2)} per person  (Google Maps $${Math.round(f.parts.googleMaps.cost).toLocaleString("en-US")})`);
 }
 
 const data = {

@@ -33,8 +33,12 @@
         "mailForwards": 0.1,
         "whatsappSends": 0.5,
         "threadsTouched": 2,
-        "photoViews": 6
-      }
+        "photoViews": 6,
+        "webMapOpens": 0.3,
+        "placesSaved": 0.2,
+        "placeRefreshes": 0.2
+      },
+      "_mapsWhy": "030: webMapOpens is a thread map loaded on the web (a phone map is free); placesSaved is a new place that costs one Text Search (free) and one Place Details; placeRefreshes is a place a map shows after its coordinates aged out past thirty days, one Place Details, at most once a day per place. The bad actor has no per-account cap on these; the project's daily quotas are the bound."
     },
     "llmHeavy": {
       "label": "LLM heavy",
@@ -51,7 +55,10 @@
         "mailForwards": 1,
         "whatsappSends": 12,
         "threadsTouched": 6,
-        "photoViews": 25
+        "photoViews": 25,
+        "webMapOpens": 2,
+        "placesSaved": 1,
+        "placeRefreshes": 1
       }
     },
     "badActor": {
@@ -69,7 +76,10 @@
         "mailForwards": 100,
         "whatsappSends": 200,
         "threadsTouched": 12,
-        "photoViews": 0
+        "photoViews": 0,
+        "webMapOpens": 100,
+        "placesSaved": 100,
+        "placeRefreshes": 100
       },
       "_why": "Caps from code: 200 photos a day, 100 voice notes and 3,600 seconds a day, 100 emails a day, 3 searches and 3 reads a turn. WhatsApp's 200 a day is 029's planned cap. Dumps and questions have no cap of their own, so 500 and 200 a day stand in for a script running slowly; the daily turn count and budget hold it back where the code has them. A row typed into a section costs nothing."
     }

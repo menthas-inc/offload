@@ -158,6 +158,63 @@
     },
     "notes": "A receipt is a reply inside the 24-hour window. Meta's non-template page says those are charged from 2026-10-01 at the utility rate; its main pricing page still says they are free. The report assumes charged, and the first invoice settles it. Volume discounts start at 80k to 100k a month per market."
   },
+  "googleMaps": {
+    "checked": "2026-10-02",
+    "source": "https://developers.google.com/maps/billing-and-pricing/pricing",
+    "dynamicMaps": {
+      "freePerMonth": 10000,
+      "tiers": [
+        {
+          "upTo": 100000,
+          "per1k": 7.0
+        },
+        {
+          "upTo": 500000,
+          "per1k": 5.6
+        },
+        {
+          "upTo": 1000000,
+          "per1k": 4.2
+        },
+        {
+          "upTo": 5000000,
+          "per1k": 2.1
+        },
+        {
+          "upTo": null,
+          "per1k": 0.53
+        }
+      ]
+    },
+    "placeDetails": {
+      "freePerMonth": 10000,
+      "tiers": [
+        {
+          "upTo": 100000,
+          "per1k": 5.0
+        },
+        {
+          "upTo": 500000,
+          "per1k": 4.0
+        },
+        {
+          "upTo": 1000000,
+          "per1k": 3.0
+        },
+        {
+          "upTo": 5000000,
+          "per1k": 1.5
+        },
+        {
+          "upTo": null,
+          "per1k": 0.38
+        }
+      ]
+    },
+    "textSearchIdsOnly": 0,
+    "mapsSdk": 0,
+    "notes": "Global price list. Dynamic Maps is a web map load; Place Details Essentials asks location and types; Text Search Essentials (IDs Only) and the Maps SDK on the phones are unlimited and free. A free cap is per SKU per billing account per month. The project's daily quotas (web loads 300, details 300, searches 500) hold the fleet inside the free caps until they are raised."
+  },
   "fixed": {
     "checked": "2026-10-02",
     "items": [
