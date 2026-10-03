@@ -11,6 +11,14 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-04 · Storage is a section on Privacy, with its limit (036)
+**Surface:** mobile, web, admin
+**Raised by:** code, building the storage limit in 036 (`docs/specs/036-storage-limit/`), with the owner's answers and the client review.
+**Was:** The phone kits draw a pressable *Files and photos, 128 MB* in *What offload keeps* on a *Memory and data* page that was never built (`mobile_app/SettingsDetail.jsx`, `android_app/M3SettingsDetail.jsx`). The web kit draws nothing.
+**Is:** A *Storage* section on Privacy on all three, after *Reaching the web* and before *Your copy*, in 031's section format: the `image` glyph, heading *Storage*, caption *Deleting a photo makes room.*, one row *Photos and voice notes* with the value *312 MB of 1 GB*. Not pressable. The composer's refusal line at the limit is *Your storage is full.*, where *Enough for today.* goes. Admin: the cap is *Storage*, in megabytes, in its own group on Limits (*Per person, everything kept*) rather than under the 24 hour one, and a person's page shows it beside Files rather than under Today. And in the conversation: deleting a photo deletes its file, so a dump whose only photo is deleted leaves the conversation together with offload's reply under it, rather than drawing an empty bubble above a reply about something gone; a dump that had three photos draws two.
+**Why:** Privacy is where 031 put what offload keeps and 035 put the copy of it, and *Memory and data* is retired vocabulary. The row names what is counted, says the limit it is measured against, and has nothing behind it to press: the owner chose deleting photos from a thread's Files as the way back for now, so a list is a later spec.
+**Design system impact:** `mobile_app/SettingsDetail.jsx` and `android_app/M3SettingsDetail.jsx`: retire the *Files and photos* row with *Memory and data*, and draw the Storage section on Privacy beside *Your copy*. `web_app/WSettings.jsx`: the same section on Privacy. The composer kits gain the one line at the limit. The conversation kits: a dump whose photos are all deleted is not drawn, and neither is its reply. `ui_kits/admin_web`: a *Storage* cap in megabytes, in its own group on Limits, beside Files on a person's page.
+
 ### 2026-10-04 · Thread icons, as built (037)
 **Surface:** iOS, Android, web
 **Raised by:** code, building *Every thread has a mark* (`handoff/APPLY-2026-10-03-thread-marks.md`) as 037, with the owner's answers of 4 October and the client review.

@@ -22,6 +22,7 @@ import { threadLine } from "../threads/line.js";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
 import { dropThreadWrapIfUnused, ensureThreadWrap, passThreadKeyOn } from "../blobs/keys.js";
+import { restorePhotosOfRow, restorePhotosOfThread, takePhotosOfRow, takePhotosOfThread } from "../blobs/storage.js";
 import { initialsOf } from "../accounts/initials.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import {
@@ -805,6 +806,8 @@ export async function setArchived(
       })
       .where("id", "=", ref.id)
       .execute();
+    // 036. The photos the delete took come back with the row.
+    if (!archived && before.deleted_at !== null) await restorePhotosOfRow(trx, ref.id, before.deleted_at);
 
     // Restoring puts the count back. Without this an undo restores the row and
     // leaves the header saying one fewer, which is AC-8 broken by the undo path
@@ -913,10 +916,14 @@ export async function deleteContent(
       })
       .where("id", "=", ref.id)
       .where("deleted_at", "is", null)
-      .returning("archived_at")
+      .returning(["archived_at", "deleted_at", "purge_after"])
       .executeTakeFirst();
 
     if (!result) return false;
+
+    // 036. The photo goes with the row, on the row's clock, when the person
+    // deleting it is the one who dumped it. The purge destroys the file.
+    await takePhotosOfRow(trx, ref.id, accountId, { deletedAt: result.deleted_at!, purgeAfter: result.purge_after! });
 
     // An archived row already left the count when it was archived.
     if (result.archived_at === null) {
@@ -1222,16 +1229,36 @@ export async function deleteThread(
       return { left: true, deleted: false };
     }
 
-    await trx
+    // 036. Held for the whole restore window, not eight seconds: a purge in
+    // between took the thread while its Undo still answered yes, and since
+    // 036 that would destroy its photos too.
+    const dead = await trx
       .updateTable("threads")
       .set({
         deleted_at: sql`now()`,
-        purge_after: sql`now() + interval '8 seconds'`,
+        purge_after: sql`now() + interval '${sql.raw(RESTORE_WINDOW)}'`,
         updated_at: sql`now()`,
       })
       .where("id", "=", threadId)
       .where("deleted_at", "is", null)
-      .execute();
+      .returning(["deleted_at", "purge_after"])
+      .executeTakeFirst();
+
+    // 036. The photos in it go with it, held for as long as Undo
+    // can still bring the thread back, and the purge is asked for rather than
+    // left to the day's run, so the files leave storage once that has passed.
+    if (dead) {
+      const purgeAfter = new Date(dead.deleted_at!.getTime() + RESTORE_WINDOW_MS);
+      await takePhotosOfThread(trx, threadId, { deletedAt: dead.deleted_at!, purgeAfter });
+      await enqueue({
+        kind: "content.purge",
+        accountId,
+        payload: {},
+        priority: PRIORITY.background,
+        runAfterSeconds: RESTORE_WINDOW_MS / 1000 + 2,
+        tx: trx,
+      });
+    }
 
     return { left: true, deleted: true };
   });
@@ -1240,6 +1267,7 @@ export async function deleteThread(
 /** How long after leaving the Undo still works. The toast shows eight
  *  seconds; the rest is the tap at the end of it reaching the server. */
 const RESTORE_WINDOW = "15 seconds";
+const RESTORE_WINDOW_MS = 15_000;
 
 /** Undo. Puts the membership back and, if the thread died with it, revives it.
  *
@@ -1270,12 +1298,21 @@ export async function restoreThread(
       throw new NotYours();
     }
 
-    await trx
-      .updateTable("threads")
-      .set({ deleted_at: null, purge_after: null, updated_at: sql`now()` })
+    const dead = await trx
+      .selectFrom("threads")
+      .select("deleted_at")
       .where("id", "=", threadId)
       .where("deleted_at", "is not", null)
-      .execute();
+      .executeTakeFirst();
+    if (dead) {
+      await trx
+        .updateTable("threads")
+        .set({ deleted_at: null, purge_after: null, updated_at: sql`now()` })
+        .where("id", "=", threadId)
+        .execute();
+      // 036. And the photos that went with it.
+      await restorePhotosOfThread(trx, threadId, dead.deleted_at!);
+    }
 
     return true;
   });

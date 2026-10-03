@@ -16,6 +16,7 @@ import { DAILY_MODEL_BUDGET_MICROS, DAILY_TURNS } from "./budget.js";
 import { DAILY_BYTES, DAILY_PHOTOS } from "./blobs/photos.js";
 import { DAILY_VOICE_MS, DAILY_VOICE_NOTES } from "./blobs/audio.js";
 import { DAILY_MAIL, HOURLY_MAIL } from "./mail-in/caps.js";
+import { STORAGE_BYTES } from "./blobs/storage.js";
 import { audit } from "./admin/audit.js";
 
 /** How long a read is trusted. Another instance sees a change within this
@@ -35,6 +36,7 @@ interface SettingTypes {
   "cap.voice_ms": number;
   "cap.mail_day": number;
   "cap.mail_hour": number;
+  "cap.storage_bytes": number;
   "platform.spend_micros": number | null;
   "budget.month_micros": number | null;
   "waitlist.batch": number;
@@ -85,6 +87,8 @@ function defs(): Map<SettingKey, SettingDef> {
     { key: "cap.voice_ms", kind: "int", default: DAILY_VOICE_MS, min: 60_000, max: 24 * 60 * 60 * 1000 },
     { key: "cap.mail_day", kind: "int", default: DAILY_MAIL, ...count },
     { key: "cap.mail_hour", kind: "int", default: HOURLY_MAIL, ...count },
+    // 036. Not a day's ceiling: everything the account keeps, for good.
+    { key: "cap.storage_bytes", kind: "int", default: STORAGE_BYTES, min: 1024 * 1024, max: 1024 * 1024 * 1024 * 1024 },
     // Off until an owner sets it, and off is not zero.
     { key: "platform.spend_micros", kind: "micros", default: null, nullable: true, min: DOLLAR, max: 100_000 * DOLLAR },
     // A figure Costs measures the month against. Nothing enforces it.
@@ -112,6 +116,7 @@ export const SETTING_KEYS: readonly SettingKey[] = [
   "cap.voice_ms",
   "cap.mail_day",
   "cap.mail_hour",
+  "cap.storage_bytes",
   "platform.spend_micros",
   "budget.month_micros",
   "waitlist.batch",

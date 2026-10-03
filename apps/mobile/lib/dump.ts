@@ -285,7 +285,7 @@ export const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 const PHOTO_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"]);
 const PHOTO_EXTENSIONS = /\.(jpe?g|png|webp|heic|heif)$/i;
 
-export type PhotoRefusal = "too_big" | "not_a_photo" | "daily_limit" | "unavailable";
+export type PhotoRefusal = "too_big" | "not_a_photo" | "daily_limit" | "storage_full" | "unavailable";
 
 export function refusePhoto(file: { type: string | null; name: string; size: number | null }): "too_big" | "not_a_photo" | null {
   const type = (file.type ?? "").toLowerCase();
@@ -293,6 +293,12 @@ export function refusePhoto(file: { type: string | null; name: string; size: num
   if (!looksLikeOne) return "not_a_photo";
   if (file.size !== null && file.size > MAX_PHOTO_BYTES) return "too_big";
   return null;
+}
+
+/** 036. Which ceiling a 429 on an upload was: everything kept, or the day's.
+ *  No code is the day's, as every 429 was before. */
+function overLimit(error: string | undefined): "storage_full" | "daily_limit" {
+  return error === "storage_full" ? "storage_full" : "daily_limit";
 }
 
 export class PhotoRefused extends Error {
@@ -316,10 +322,10 @@ export async function uploadPhoto(
   // from a Pixel got. `File` here is expo-file-system's, a Blob over the
   // uri, read as the request streams.
   form.append("file", new File(file.uri) as unknown as Blob, file.name || "photo");
-  const { status, data } = await upload<{ blobId: string; width: number; height: number }>("/v1/blobs", form);
+  const { status, data, error } = await upload<{ blobId: string; width: number; height: number }>("/v1/blobs", form);
   if (status === 413) throw new PhotoRefused("too_big");
   if (status === 415) throw new PhotoRefused("not_a_photo");
-  if (status === 429) throw new PhotoRefused("daily_limit");
+  if (status === 429) throw new PhotoRefused(overLimit(error));
   if (status === 503) throw new PhotoRefused("unavailable");
   if (!data) throw new Error(`upload failed: ${status}`);
   return data;
@@ -339,7 +345,7 @@ export const MAX_VOICE_MS = 600_000;
 export const WAVEFORM_BARS = 32;
 
 export class VoiceRefused extends Error {
-  constructor(readonly reason: "too_big" | "not_a_voice_note" | "daily_limit" | "unavailable") {
+  constructor(readonly reason: "too_big" | "not_a_voice_note" | "daily_limit" | "storage_full" | "unavailable") {
     super(reason);
   }
 }
@@ -357,10 +363,10 @@ export async function uploadVoice(
   form.append("durationMs", String(durationMs));
   form.append("waveform", JSON.stringify(waveform));
   form.append("file", new File(uri) as unknown as Blob, "voice-note.m4a");
-  const { status, data } = await upload<{ blobId: string }>("/v1/blobs/audio", form);
+  const { status, data, error } = await upload<{ blobId: string }>("/v1/blobs/audio", form);
   if (status === 413) throw new VoiceRefused("too_big");
   if (status === 415 || status === 400) throw new VoiceRefused("not_a_voice_note");
-  if (status === 429) throw new VoiceRefused("daily_limit");
+  if (status === 429) throw new VoiceRefused(overLimit(error));
   if (status === 503) throw new VoiceRefused("unavailable");
   if (!data) throw new Error(`upload failed: ${status}`);
   return data;

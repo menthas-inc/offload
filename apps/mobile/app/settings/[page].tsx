@@ -19,6 +19,7 @@ import { endOthers, endSignedIn, listSignedIn, thisDevice, type SignedIn } from 
 import { deviceGlyph, emailNote } from "../../lib/settings";
 import { useSignOut } from "../../components/settings/useSignOut";
 import { DeleteAccountSheet } from "../../components/settings/DeleteAccountSheet";
+import { StorageSection } from "../../components/settings/StorageSection";
 import { YourCopy } from "../../components/settings/YourCopy";
 import { forgetPlayback } from "../../components/shell/SentVoice";
 import { fetchCountries, saveName, setClock, setCountry, setWebAccess, useMe } from "../../lib/me";
@@ -568,6 +569,7 @@ function Privacy({ toast }: { toast: ToastState }) {
         last
       />
     </Group>
+    <StorageSection toast={toast} />
     <YourCopy zone={me?.timeZone ?? null} toast={toast} />
     </Sections>
   );

@@ -1385,9 +1385,27 @@ export async function dumpRoutes(app: App): Promise<void> {
         ),
       ]);
 
+      // 036. A dump whose only photo its person has since deleted has nothing
+      // left to draw, and the reply under it names what is gone: the whole
+      // turn leaves the conversation rather than leaving an empty bubble. A
+      // dump always arrives with words, a photo or a voice note, so a
+      // person's message with none of the three is exactly that case.
+      const emptied = new Set(
+        rows
+          .filter(
+            (row) =>
+              row.role === "person" &&
+              row.source !== "mail" &&
+              !row.text &&
+              !photos.has(row.id) &&
+              !voices.has(row.id),
+          )
+          .map((row) => row.turn_id),
+      );
+
       return reply.send({
         conversationId: conversation.id,
-        messages: rows.reverse().map((row) => ({
+        messages: rows.filter((row) => !emptied.has(row.turn_id)).reverse().map((row) => ({
           id: row.id,
           role: row.role,
           text: row.text,

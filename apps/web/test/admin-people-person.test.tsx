@@ -58,6 +58,7 @@ const PERSON = {
       cap("cap.voice_ms", 120_000, 3_600_000),
       cap("cap.mail_day", 5, 100),
       cap("cap.mail_hour", 3, 30),
+      cap("cap.storage_bytes", 312 * 1024 * 1024, 1024 * 1024 * 1024),
     ],
     refused: { cap: "cap.turns", scope: "account" },
   },
@@ -326,6 +327,9 @@ describe("a person's page", () => {
     expect(has.textContent).toContain("Notes88");
     expect(has.textContent).toContain("Connections4");
     expect(has.textContent).toContain("Files6112 MB");
+    // 036. Everything kept against its cap, beside the files, not under Today.
+    expect(has.textContent).toContain("Storage312 MBof 1,024 MB, less what they left in threads");
+    expect(host.querySelector('[data-section="today"]')!.textContent).not.toContain("Storage");
     expect(has.textContent).toContain("Calendars1last sync failed");
     expect(has.textContent).toContain("Devices31 iOS, 2 Android");
     expect(has.textContent).toContain("Sessions3last used");
