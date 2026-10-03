@@ -43,3 +43,16 @@ export function introNext(scene: number): number {
 export function autoAdvance({ reduceMotion, screenReader }: { reduceMotion: boolean; screenReader: boolean }): boolean {
   return !reduceMotion && !screenReader;
 }
+
+/** What Android's back does on each step. Held while a write is in flight:
+ *  leaving then could leave an account active with nobody shown what comes
+ *  next. `system` hands it to the navigator. */
+export function backFrom(
+  step: Step,
+  { nameOnly, working }: { nameOnly: boolean; working: boolean },
+): "intro" | "today" | "hold" | "system" {
+  if (working) return "hold";
+  if (step === "you" && !nameOnly) return "intro";
+  if (step === "bring") return "today";
+  return "system";
+}

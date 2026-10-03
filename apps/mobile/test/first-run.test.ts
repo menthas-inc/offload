@@ -2,7 +2,7 @@
 // since these tests render nothing. AC-1, AC-2, AC-3, AC-7, AC-15.
 
 import { describe, expect, it } from "vitest";
-import { afterYou, autoAdvance, bringCards, firstStep, introNext, SCENE_MS } from "../lib/firstRun";
+import { afterYou, autoAdvance, backFrom, bringCards, firstStep, introNext, SCENE_MS } from "../lib/firstRun";
 import { INTRO, INTRO_DUMPS } from "../lib/gate";
 
 describe("033 the flow", () => {
@@ -24,11 +24,26 @@ describe("033 the flow", () => {
     expect(bringCards({ mailAvailable: true, calendarOffer: false, notifications: "unsupported" })).toEqual(["mail"]);
   });
 
-  it("skips Bring things in when nothing on it applies", () => {
+  it("skips Bring it all in when nothing on it applies", () => {
     const none = bringCards({ mailAvailable: false, calendarOffer: false, notifications: "decided" });
     expect(none).toEqual([]);
     expect(afterYou(none)).toBe("today");
     expect(afterYou(["notifications"])).toBe("bring");
+  });
+});
+
+describe("033 Android's back", () => {
+  it("returns to the intro from Before you start, and leaves Bring it all in for Today", () => {
+    expect(backFrom("you", { nameOnly: false, working: false })).toBe("intro");
+    expect(backFrom("bring", { nameOnly: false, working: false })).toBe("today");
+    expect(backFrom("intro", { nameOnly: false, working: false })).toBe("system");
+    expect(backFrom("you", { nameOnly: true, working: false })).toBe("system");
+  });
+
+  it("is held while the write is in flight, so nobody leaves an account half finished", () => {
+    for (const step of ["intro", "you", "bring"] as const) {
+      expect(backFrom(step, { nameOnly: false, working: true }), step).toBe("hold");
+    }
   });
 });
 

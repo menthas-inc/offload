@@ -1,5 +1,6 @@
 // 033. The decisions first run makes, kept out of the screens so they can be
-// tested without rendering one. The phones hold the same in `lib/firstRun.ts`.
+// tested without rendering one. The phones hold the same in `lib/firstRun.ts`,
+// with Android's back beside them.
 
 export type Step = "intro" | "you" | "bring";
 export type Card = "mail" | "calendar" | "notifications";
