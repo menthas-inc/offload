@@ -38,9 +38,11 @@ const KEY = derivedKey("connector-state");
  *  parameter at the end of an authenticated flow is an open redirect, which is
  *  why `auth.ts` keeps `trustedOrigins` deliberately narrow. The same reasoning
  *  ends this flow. */
-export type Landing = "settings" | "first-run";
+export const LANDINGS = ["settings", "first-run", "first-run-bring"] as const;
 
-export const LANDINGS: readonly Landing[] = ["settings", "first-run"];
+/** 033. `first-run-bring` is Bring things in, which a connect returns to.
+ *  `first-run` stays for phones on an older build. */
+export type Landing = (typeof LANDINGS)[number];
 
 export interface ConnectState {
   accountId: string;

@@ -43,11 +43,18 @@ const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 
 /** Where a landing enum actually sends somebody. Never a value from the
  *  request: an open redirect at the end of an authenticated flow. */
-function landingUrl(landing: Landing, outcome: "connected" | "failed"): string {
+export function landingUrl(landing: Landing, outcome: "connected" | "failed"): string {
   // 019. Connected lands on the calendar page from both doors: every calendar
   // comes back unticked, and the page is where the person says which ones.
   // A failure from first run goes back to first run's offer.
-  const path = landing === "first-run" && outcome === "failed" ? "/welcome" : "/settings/apps";
+  // 033. Bring things in gets both outcomes back: which calendars to use is a
+  // choice for later, and first run ends on Today.
+  const path =
+    landing === "first-run-bring"
+      ? "/welcome/bring"
+      : landing === "first-run" && outcome === "failed"
+        ? "/welcome"
+        : "/settings/apps";
   return `${env.WEB_URL}${path}?calendar=${outcome}`;
 }
 
@@ -85,7 +92,7 @@ export async function connectorRoutes(app: App): Promise<void> {
   // anything the caller sent.
   app.get(
     "/api/connectors/google/start",
-    { schema: { querystring: z.object({ landing: z.enum(["settings", "first-run"]).default("settings") }) } },
+    { schema: { querystring: z.object({ landing: z.enum(LANDINGS).default("settings") }) } },
     async (request: FastifyRequest<{ Querystring: { landing: Landing } }>, reply: FastifyReply) => {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
