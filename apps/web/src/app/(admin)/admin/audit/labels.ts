@@ -39,6 +39,7 @@ type Unit = "dollars" | "megabytes" | "minutes";
 const UNITS: Record<string, Unit> = {
   "cap.spend_micros": "dollars",
   "cap.photo_bytes": "megabytes",
+  "cap.storage_bytes": "megabytes",
   "cap.voice_ms": "minutes",
   "platform.spend_micros": "dollars",
   "budget.month_micros": "dollars",

@@ -60,6 +60,7 @@ function settings(over: Record<string, Partial<Setting>> = {}): { settings: Sett
       one("cap.voice_ms", "int", 3_600_000, { min: 60_000, max: 86_400_000 }),
       one("cap.mail_day", "int", 100, count),
       one("cap.mail_hour", "int", 30, count),
+      one("cap.storage_bytes", "int", 1024 * MB, { min: MB, max: 1024 * 1024 * MB }),
       one("platform.spend_micros", "micros", null, { min: 1_000_000, max: 100_000_000_000 }, true),
       one("budget.month_micros", "micros", null, { min: 1_000_000, max: 1_000_000_000_000 }, true),
       one("waitlist.batch", "int", 25, { min: 1, max: 100 }),
@@ -285,6 +286,13 @@ describe("the page as loaded", () => {
     expect(field(host, "Voice minutes").value).toBe("60");
     expect(field(host, "Mail in a day").value).toBe("100");
     expect(field(host, "Mail in an hour").value).toBe("30");
+    expect(field(host, "Storage").value).toBe("1024");
+    // 036. Not a day's figure, so not under the 24 hour heading.
+    const groups = [...host.querySelectorAll("h2")].map((h) => [h.textContent, h.parentElement!.textContent]);
+    const daily = groups.find(([label]) => label === "Per person, in any 24 hours")!;
+    const kept = groups.find(([label]) => label === "Per person, everything kept")!;
+    expect(daily[1]).not.toContain("Storage");
+    expect(kept[1]).toContain("Storage");
     expect(field(host, "Waitlist batch, per week").value).toBe("25");
     expect(field(host, "Monthly budget").value).toBe("");
     expect(host.textContent).toContain("0.1 to 1,000");
@@ -481,7 +489,7 @@ describe("AC-35 what has been hit", () => {
 describe("the words for a cap", () => {
   it("names every per-person cap and the platform's, and falls back to the key", () => {
     expect(Object.keys(CAP_LABELS).sort()).toEqual(
-      ["cap.mail_day", "cap.mail_hour", "cap.photo_bytes", "cap.photos", "cap.spend_micros", "cap.turns", "cap.voice_ms", "cap.voice_notes", "platform.spend_micros"].sort(),
+      ["cap.mail_day", "cap.mail_hour", "cap.photo_bytes", "cap.photos", "cap.spend_micros", "cap.storage_bytes", "cap.turns", "cap.voice_ms", "cap.voice_notes", "platform.spend_micros"].sort(),
     );
     expect(capLabel("cap.voice_ms")).toBe("Voice minutes");
     expect(capLabel("cap.something_new")).toBe("cap.something_new");

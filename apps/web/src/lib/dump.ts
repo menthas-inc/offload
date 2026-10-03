@@ -229,8 +229,15 @@ export function refusePhoto(file: File): "too_big" | "not_a_photo" | null {
   return null;
 }
 
+/** 036. Which ceiling a 429 on an upload was: everything kept, or the day's.
+ *  A body that cannot be read is the day's, as every 429 was before. */
+async function overLimit(response: Response): Promise<"storage_full" | "daily_limit"> {
+  const body = (await response.json().catch(() => null)) as { error?: unknown } | null;
+  return body?.error === "storage_full" ? "storage_full" : "daily_limit";
+}
+
 export class PhotoRefused extends Error {
-  constructor(readonly reason: "too_big" | "not_a_photo" | "daily_limit" | "unavailable") {
+  constructor(readonly reason: "too_big" | "not_a_photo" | "daily_limit" | "storage_full" | "unavailable") {
     super(reason);
   }
 }
@@ -248,7 +255,7 @@ export async function uploadPhoto(
   const response = await fetch(`${API}/v1/blobs`, { method: "POST", credentials: "include", body: form });
   if (response.status === 413) throw new PhotoRefused("too_big");
   if (response.status === 415) throw new PhotoRefused("not_a_photo");
-  if (response.status === 429) throw new PhotoRefused("daily_limit");
+  if (response.status === 429) throw new PhotoRefused(await overLimit(response));
   if (response.status === 503) throw new PhotoRefused("unavailable");
   if (!response.ok) throw new Error(`upload failed: ${response.status}`);
   return (await response.json()) as { blobId: string; width: number; height: number };
@@ -283,7 +290,7 @@ export const MAX_VOICE_MS = 600_000;
 export const WAVEFORM_BARS = 32;
 
 export class VoiceRefused extends Error {
-  constructor(readonly reason: "too_big" | "not_a_voice_note" | "daily_limit" | "unavailable") {
+  constructor(readonly reason: "too_big" | "not_a_voice_note" | "daily_limit" | "storage_full" | "unavailable") {
     super(reason);
   }
 }
@@ -304,7 +311,7 @@ export async function uploadVoice(
   const response = await fetch(`${API}/v1/blobs/audio`, { method: "POST", credentials: "include", body: form });
   if (response.status === 413) throw new VoiceRefused("too_big");
   if (response.status === 415 || response.status === 400) throw new VoiceRefused("not_a_voice_note");
-  if (response.status === 429) throw new VoiceRefused("daily_limit");
+  if (response.status === 429) throw new VoiceRefused(await overLimit(response));
   if (response.status === 503) throw new VoiceRefused("unavailable");
   if (!response.ok) throw new Error(`upload failed: ${response.status}`);
   return (await response.json()) as { blobId: string };

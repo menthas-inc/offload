@@ -5,7 +5,7 @@
 // used, and Audit, where a change to one is written down. A key the panel has
 // no word for shows its key.
 
-/** A cap that can refuse somebody: the eight per-person ones, and the
+/** A cap that can refuse somebody: the nine per-person ones, and the
  *  platform's. The keys `limit_hits.cap` holds. */
 export const CAP_LABELS: Record<string, string> = {
   "cap.spend_micros": "Spend",
@@ -16,6 +16,7 @@ export const CAP_LABELS: Record<string, string> = {
   "cap.voice_ms": "Voice minutes",
   "cap.mail_day": "Mail in a day",
   "cap.mail_hour": "Mail in an hour",
+  "cap.storage_bytes": "Storage",
   "platform.spend_micros": "Platform spend",
 };
 

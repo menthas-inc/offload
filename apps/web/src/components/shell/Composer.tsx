@@ -743,6 +743,11 @@ export function Composer({
       } else if (error instanceof PhotoRefused && error.reason === "daily_limit") {
         takeBack();
         setLine({ text: "Enough for today." });
+      } else if (error instanceof PhotoRefused && error.reason === "storage_full") {
+        // 036. The draft comes back as it was: a chip's remove control is the
+        // way forward, and the words can still go on their own.
+        takeBack();
+        setLine({ text: "Your storage is full." });
       } else if (
         error instanceof PhotoRefused &&
         (error.reason === "too_big" || error.reason === "not_a_photo")
@@ -763,6 +768,10 @@ export function Composer({
       } else if (error instanceof VoiceRefused && error.reason === "daily_limit") {
         takeBack();
         setLine({ text: "Enough for today." });
+      } else if (error instanceof VoiceRefused && error.reason === "storage_full") {
+        // 036. Discard on the note is the way forward.
+        takeBack();
+        setLine({ text: "Your storage is full." });
       } else if (error instanceof VoiceRefused && error.reason === "too_big") {
         // Our own recorder cannot produce this; the line is for a client
         // that is not ours, and Discard is the way forward.

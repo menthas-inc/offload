@@ -3,7 +3,9 @@
 import { randomBytes } from "node:crypto";
 import { PNG } from "pngjs";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { sql } from "kysely";
 import { db, closeDb } from "../src/db.js";
+import { clearSettingsCache } from "../src/settings.js";
 import { migrate } from "../src/migrate.js";
 import { candidatesOf, sealCandidates } from "../src/mail-in/images.js";
 import type { ParsedImage } from "../src/mail-in/parse.js";
@@ -94,6 +96,29 @@ describe("sealing the candidates", () => {
       )
       .execute();
     expect(await sealCandidates(me, "m2", candidates)).toEqual([]);
+  });
+
+  // 036. Kept files, not a day's: a picture that would take the account past
+  // what it may keep is left out, and the refusal is written once.
+  it("leaves out what would pass the storage limit and writes the refusal once", async () => {
+    const me = await person();
+    const candidates = candidatesOf([image(320, 500), image(480, 360)]);
+    const first = candidates[0]!.bytes.length;
+    await db.insertInto("account_limits").values({ account_id: me, key: "cap.storage_bytes", value: 1024 * 1024 }).execute();
+    clearSettingsCache();
+    await db
+      .insertInto("blobs")
+      .values({
+        account_id: me, message_id: null, client_key: "old", name: null, content_type: "image/jpeg",
+        byte_size: 1024 * 1024 - first, width: 1, height: 1, sha256: Buffer.alloc(32),
+        created_at: sql`now() - interval '2 days'`,
+      })
+      .execute();
+    expect(await sealCandidates(me, "m4", candidates)).toHaveLength(1);
+    const hits = await db.selectFrom("limit_hits").select(["cap", "count"]).where("account_id", "=", me).execute();
+    expect(hits).toEqual([{ cap: "cap.storage_bytes", count: 1 }]);
+    await db.deleteFrom("account_limits").execute();
+    clearSettingsCache();
   });
 
   it("seals the same email's images once", async () => {

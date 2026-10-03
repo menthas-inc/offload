@@ -878,7 +878,8 @@ export default function Privacy() {
             <li>
               <strong>A photo you put in a shared thread is theirs to see too</strong>, with what
               offload wrote about it and the day it was taken. The file&rsquo;s own name stays with
-              you.
+              you. If you leave, it stays with the others, and if one of them deletes it, it is
+              deleted for you too.
             </li>
             <li>
               <strong>A calendar you pick for a shared thread is read for the whole thread.</strong>{" "}

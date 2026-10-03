@@ -473,6 +473,23 @@ const blobPurge: Handler = async () => {
       idempotencyKey: `voice.forget:${blob.id}:purge:${new Date().toISOString().slice(0, 13)}`,
     });
   }
+  // 036. A delete decides a photo goes; a live row in a live thread still
+  // carrying it at this moment overrules that, and the photo is put back
+  // rather than destroyed under a row that draws it. A thread's delete leaves
+  // its rows live until the thread itself is purged, so a row in a deleted
+  // thread is not one: putting those back would leave the files for good.
+  await sql`
+    update blobs b
+    set deleted_at = null, purge_after = null
+    where b.deleted_at is not null
+      and b.purge_after < now()
+      and exists (
+        select 1 from content_blobs cb
+        join content c on c.id = cb.content_id
+        join threads t on t.id = c.thread_id
+        where cb.blob_id = b.id and c.deleted_at is null and t.deleted_at is null
+      )
+  `.execute(db);
   const due = await db
     .selectFrom("blobs")
     .select("id")

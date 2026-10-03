@@ -160,6 +160,8 @@ describe("AC-18 a person", () => {
       "cap.voice_ms": 12_000,
       "cap.mail_day": 5,
       "cap.mail_hour": 3,
+      // 036. Everything kept, which is every blob above whatever its age.
+      "cap.storage_bytes": 8096,
     });
     // The same numbers the caps read.
     expect(used["cap.spend_micros"]).toBe(await spentToday(ana));
