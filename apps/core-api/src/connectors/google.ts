@@ -136,12 +136,15 @@ export async function refreshAccess(refreshToken: string): Promise<TokenSet> {
  *
  *  Deleting our copy leaves the grant live on Google's side, so "disconnected"
  *  in offload would mean nothing where it counts. */
-export async function revoke(token: string): Promise<void> {
-  await fetch(REVOKE, {
+export async function revoke(token: string): Promise<boolean> {
+  const response = await fetch(REVOKE, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ token }),
   });
+  // 400 is Google saying the token is already dead, which is the outcome asked
+  // for. Anything else is Google not having done it.
+  return response.ok || response.status === 400;
 }
 
 export interface GoogleCalendar {

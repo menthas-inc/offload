@@ -23,6 +23,8 @@ import { purgeLabelRuns, purgeLabels } from "../threads/labels.js";
 import { runDigest, scheduleDigests, readReceipts, type Send } from "../notifications/digest.js";
 import { notifyPerson, notifySharedActivity } from "../notifications/people.js";
 import { emit } from "../analytics.js";
+import { revoke } from "../connectors/google.js";
+import { open as openSecret } from "../connectors/vault.js";
 import { sweepEmbeds } from "../search/sweep.js";
 import { sweepPeople } from "../people/people.js";
 import { sweepPutOffs } from "../today/needs.js";
@@ -105,6 +107,61 @@ const invited: Handler = async (_payload, { mailer }, accountId) => {
       footer: `You are receiving this because you joined the offload waitlist at ${new URL(env.WEB_URL).host}.`,
     },
   });
+};
+
+/** 035. The notice that an account was deleted.
+ *
+ *  The address comes from the payload: the account is gone, so there is no row
+ *  to read it from, and nothing else about the person is in the job. */
+const accountDeleted: Handler = async (payload, { mailer }) => {
+  const to = typeof payload["to"] === "string" ? payload["to"] : null;
+  if (!to) throw new Error("account_deleted job has no address");
+  await mailer.send({
+    to,
+    subject: "Your offload account is deleted",
+    slots: {
+      headline: "Your account is deleted",
+      body:
+        "Everything only you could see is gone. What you added to a thread you shared stays with the people in it. " +
+        "If this was not you, write to hello@offload.club.",
+      footer: `You are receiving this because an offload account at ${new URL(env.WEB_URL).host} used this address.`,
+    },
+  });
+};
+
+/** How long a grant waits for Google before it is dropped unrevoked. Our copy
+ *  is the only thing that could use it, and that goes either way. */
+const REVOCATION_DAYS = 7;
+
+/** 035. Hand back the calendar grants of accounts that no longer exist.
+ *
+ *  One row per grant, sealed, naming nobody. A row goes when Google has taken
+ *  the token back or when it is a week old; while any is left the job books
+ *  itself again in an hour. */
+const connectorRevoke: Handler = async () => {
+  await db
+    .deleteFrom("pending_revocations")
+    .where(sql<boolean>`created_at < now() - make_interval(days => ${REVOCATION_DAYS})`)
+    .execute();
+  const waiting = await db.selectFrom("pending_revocations").select(["id", "sealed_token"]).execute();
+  let left = 0;
+  for (const row of waiting) {
+    const done = await revoke(openSecret(Buffer.from(row.sealed_token), row.id, "refresh_token")).catch(() => false);
+    if (done) {
+      await db.deleteFrom("pending_revocations").where("id", "=", row.id).execute();
+    } else {
+      left += 1;
+      await db
+        .updateTable("pending_revocations")
+        .set((eb) => ({ attempts: eb("attempts", "+", 1) }))
+        .where("id", "=", row.id)
+        .execute();
+    }
+  }
+  console.log(JSON.stringify({ level: "info", msg: "grants revoked", revoked: waiting.length - left, waiting: left }));
+  if (left > 0) {
+    await enqueue({ kind: "connector.revoke", payload: {}, priority: PRIORITY.background, runAfterSeconds: 3600 });
+  }
 };
 
 /** How many rows one run may destroy before it stops and asks for help.
@@ -872,6 +929,8 @@ export const handlers: Record<string, Handler> = {
   "jobs.purge": jobsPurge,
   "email.waitlist_joined": waitlistJoined,
   "email.invited": invited,
+  "email.account_deleted": accountDeleted,
+  "connector.revoke": connectorRevoke,
   "content.purge": contentPurge,
   "location.resolve": locationResolve,
   "places.refresh": placesRefresh,

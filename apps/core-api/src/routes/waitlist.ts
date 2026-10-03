@@ -84,6 +84,11 @@ function hmac(value: string): Buffer {
   return createHmac("sha256", KEY).update(value).digest();
 }
 
+/** 035. The limiter's record of an address, so deleting an account can remove it. */
+export function attemptHmac(email: string): Buffer {
+  return hmac(email);
+}
+
 /** Record the attempt and answer whether it is over either limit.
  *
  *  Recorded for every submission, including the ones that create nothing, so

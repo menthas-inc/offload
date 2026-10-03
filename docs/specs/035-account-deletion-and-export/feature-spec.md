@@ -64,8 +64,8 @@ the same spec because the delete confirmation offers it.
 - **What stays.** What they added to a thread other people are still in, with
   the author shown as gone, exactly as when somebody leaves (OFF-3, 022).
   Photos and voice notes there stay openable by the others. Labels on such a
-  thread stay. An invitation they sent into such a thread stays open. The
-  members list no longer shows them.
+  thread stay. A share they had waiting is withdrawn. The members list no
+  longer shows them.
 - **What is kept without them.** The cost ledger keeps its rows with the
   account removed, since they hold no content. Usage counts already shipped to
   storage stay and can no longer be tied to anyone.

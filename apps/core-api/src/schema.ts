@@ -603,9 +603,20 @@ export interface PlaceLookupsTable {
   looked_up_at: Timestamp;
 }
 
+/** 035. A calendar grant still to be revoked after its account is gone. Names
+ *  no account on purpose. */
+export interface PendingRevocationsTable {
+  id: Generated<string>;
+  provider: "google";
+  sealed_token: Buffer;
+  attempts: Generated<number>;
+  created_at: Generated<Timestamp>;
+}
+
 export interface LlmUsageTable {
   id: Generated<string>;
-  account_id: string;
+  /** Null once the account is deleted. 035: the cost ledger outlives it. */
+  account_id: string | null;
   /** Draws from the same open set as jobs.kind and must match it, or the Costs
    *  page groups spend under a name no job has. */
   job_kind: string;
@@ -1121,6 +1132,7 @@ export interface Database {
   places: PlacesTable;
   place_lookups: PlaceLookupsTable;
   llm_usage: LlmUsageTable;
+  pending_revocations: PendingRevocationsTable;
   jobs: JobsTable;
   turn_sources: TurnSourcesTable;
   lookups: LookupsTable;

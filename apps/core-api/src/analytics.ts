@@ -46,7 +46,9 @@ export type EventName =
   | "notification_sent"
   | "notification_failed"
   // 026. The outcome of an email handed in, as an enum, and a count.
-  | "mail_received";
+  | "mail_received"
+  // 035. That one was deleted. No subject: the pseudonym went with it.
+  | "account_deleted";
 
 type Source = "core-api" | "agent" | "worker" | "web" | "ios" | "android";
 
