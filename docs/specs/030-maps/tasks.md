@@ -93,3 +93,8 @@ Every task starts with its test, run and seen red for the reason the task exists
 ## Unresolved SHOULD-level flags
 
 None. OFF-7 is satisfied by T0.5 and T5.1. The vendor bar and the reading of Google's personal-data term, which are decisions rather than principles, are the owner's and recorded in T5.2.
+
+## After switch-on
+
+- [x] **T6.1** The owner's switch for the web's map (2026-10-03): `app_settings` (0073), `webMaps` on `/api/me`, owner-only `GET` and `PUT /v1/admin/settings`, the web reading `webMaps`. For the admin panel's Limits page when it is built.
+

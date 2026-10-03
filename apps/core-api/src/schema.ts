@@ -134,6 +134,14 @@ export interface VerificationsTable {
   updated_at: Timestamp;
 }
 
+/** Settings the owner changes while offload runs (0073). One row per key. */
+export interface AppSettingsTable {
+  key: "web_maps";
+  value: unknown;
+  updated_at: Generated<Timestamp>;
+  updated_by_account_id: string | null;
+}
+
 export interface StaffTable {
   account_id: string;
   role: "support" | "owner";
@@ -1100,6 +1108,7 @@ export interface Database {
   sessions: SessionsTable;
   verifications: VerificationsTable;
   staff: StaffTable;
+  app_settings: AppSettingsTable;
   threads: ThreadsTable;
   thread_members: ThreadMembersTable;
   account_keys: AccountKeysTable;

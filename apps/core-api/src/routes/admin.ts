@@ -10,6 +10,7 @@ import type { App } from "../app.js";
 import { db } from "../db.js";
 import { requireStaff } from "../admin/staff.js";
 import { promote } from "../admin/promote.js";
+import { setWebMaps, webMapsSetting } from "../settings.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 
 const MAX_BATCH = 100;
@@ -98,6 +99,27 @@ function noteFor(account: {
 
 
 export async function adminRoutes(app: App): Promise<void> {
+  // The owner's switches. Owner only, like costs and limits: support does not
+  // see them. The admin panel's Limits page will call these; until it exists,
+  // they are the way to flip a setting.
+  const settingsSchema = z.object({ webMaps: z.boolean() });
+  app.get(
+    "/v1/admin/settings",
+    {
+      preHandler: requireStaff("owner"),
+      schema: { response: { 200: settingsSchema, 404: z.object({ error: z.literal("not-found") }) } },
+    },
+    async (_request, reply) => reply.send({ webMaps: await webMapsSetting() })
+  );
+  app.put(
+    "/v1/admin/settings",
+    {
+      preHandler: requireStaff("owner"),
+      schema: { body: settingsSchema, response: { 200: settingsSchema, 404: z.object({ error: z.literal("not-found") }) } },
+    },
+    async (request, reply) => reply.send({ webMaps: await setWebMaps(request.body.webMaps, request.staff!.accountId) })
+  );
+
   // What the panel's own shell asks first: am I staff, and which pages exist
   // for me? The role decides which nav items render at all, because support
   // does not see costs and limits refused, it does not see them.

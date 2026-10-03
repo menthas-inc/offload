@@ -887,6 +887,17 @@ Three reviewers over the whole branch. Two findings would have shipped a feature
 
 **Design system impact:** none. The client findings are logged separately in the design system's own `decisions.md`.
 
+### 2026-10-03 · The web's map has an owner's switch
+
+**The only part of the map that bills is a web map load** (Dynamic Maps, $7 per 1,000 past 10,000 a month); searches by id and the phones' maps are free, and Place Details stays inside its free 10,000 at alpha volumes. So the owner can turn the map off on the web alone, without a deploy, and the phones carry on.
+
+- **A stored setting, not a variable**: `app_settings` (0073), one row per key, the key list fixed by a check. Read through a 15-second cache, cleared on write, so `/api/me` costs no query and a change reaches every instance within seconds.
+- **`/api/me` gains `webMaps`**, the server's `MAPS` and the setting together; the web reads it instead of `maps`, and the phones keep reading `maps`.
+- **Owner only**, through `GET` and `PUT /v1/admin/settings`, like costs and limits; support does not see it. The admin panel's Limits page will call the same route; until it exists, that route is the switch.
+- Off draws no switch, no column and no map on the web, and makes no points read; the CSP still names Google's hosts, which is wider than the behaviour and harmless.
+
+**Design system impact:** none yet. The Limits page in the admin kit gains the switch when it is built.
+
 ### 2026-10-03 · A thread's map is Google's, and Google acts for itself
 
 **030 switches Google Maps Platform on, and it does not meet the bar this file set for it.** The ⏳ entry in *What offload extracts* asked for a no-training term and short provider-side retention before switching on. Google offers neither: its terms let it keep and use what it receives to improve its products, and it receives as an independent controller under its own terms, not as our processor. **The owner waived the bar for this one company on 2026-10-02**, after the MapTiler option priced above the alpha's budget, and the privacy page names Google Maps Platform as the one exception everywhere it promises otherwise: the summary, the no-training sentence, its own row in section 6, the sentence under the table, section 9's transfers and section 15. The terms as read are filed in `docs/tech/vendor-terms/google-maps/`.
