@@ -57,6 +57,8 @@
   flex: none;
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-3);
   padding: var(--space-7) var(--frame-gutter) var(--frame-bottom);
   font: var(--text-caption-role);
   color: var(--text-tertiary);
