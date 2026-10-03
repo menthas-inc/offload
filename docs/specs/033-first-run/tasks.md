@@ -5,7 +5,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 ## 0. Setup
 
 - [x] **T0.1** Worktree `033-first-run`, databases `offload_033` and `offload_033_test`, `env.sh` and `env-test.sh` in the scratchpad. *(process)*
-- [x] **T0.2** The design sync as the branch's first commit: the decisions entry, the two explorations and their script, the handoff and the standalone page. The readme's **First run** hunks are left for the owner (the bundle's readme could not replace main's here). *(OFF-7)*
+- [x] **T0.2** The design sync as the branch's first commit: the decisions entry, the two explorations and their script, the handoff and the standalone page. The readme's **First run** section is written as built (owner, 2026-10-03). *(OFF-7)*
 - [x] **T0.3** Spec, three reviews, gate, impl spec, tasks.
 
 ## 1. API
