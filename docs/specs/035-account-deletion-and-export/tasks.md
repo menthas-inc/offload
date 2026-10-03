@@ -1,0 +1,118 @@
+# 035 · Tasks
+
+Every task starts with its test, run and seen red for the reason the task
+exists (QUAL-1). Part A merges on its own.
+
+## Part A: deletion
+
+### Setup
+
+- [ ] **T1** Isolated databases for this worktree, and a board post naming
+  migrations 0080 and 0081.
+- [ ] **T2** Migration 0080: `llm_usage.account_id` nullable with `ON DELETE
+  SET NULL`; `pending_revocations`. *(AC-3, AC-7)*
+
+### API
+
+- [ ] **T3** `test/account-ledger.test.ts`: every foreign key to `accounts`
+  and every account-like column without one is in the ledger with a fate.
+  *(AC-3)*
+- [ ] **T4** Thread keys survive their holder. Tests first: two members, the
+  key held by one, photos in the thread; the holder leaves, is taken out, and
+  deletes, and the other opens every blob. Then `threadKey` refuses to mint
+  over existing thread wraps, the rewrap helper, its calls in leave and
+  `takeOut`, and `wrapForMembersWithout` on accept. *(AC-5, OFF-3)*
+- [ ] **T5** `deleteAccount`: the transaction in the impl-spec, steps 2 to 9.
+  Tests: no row left for the account outside the ledger's kept set; a thread
+  alone in is gone with its notes; a shared thread keeps content with a null
+  author and loses the member; pending invitation survives with an accepted
+  member and dies without; other people's activity about the account is gone.
+  *(AC-3, AC-4, AC-14)*
+- [ ] **T6** Blobs: one referenced by a shared thread survives and opens, one
+  referenced by nothing reaches the purge and its object is removed from the
+  memory store. *(AC-6)*
+- [ ] **T7** Revocation: tokens sealed into `pending_revocations` before the
+  transaction, `connector.revoke` deletes on success, retries on failure,
+  gives up at 7 days. Kind owned in `jobs/kinds.ts`. *(AC-7)*
+- [ ] **T8** `DELETE /v1/me`: word check, origin check, JSON only, rate limit,
+  last staff owner 409, allowed while `invited`, cookie cleared, every session
+  dead, sign-in afterwards is no-invite. *(AC-2, AC-8, AC-9, AC-10, AC-13)*
+- [ ] **T9** In-flight work: a claimed job completing after the delete is a
+  no-op; internal and tool write-backs return 410; the Python worker treats
+  410 as done; a token refresh in flight writes nothing. *(AC-12)*
+- [ ] **T10** The notice email, enqueued without an account id, through the
+  memory mailer in tests; `account.deleted` carries no subject. No push or
+  other mail follows. *(AC-8, AC-22, AC-23)*
+- [ ] **T11** Correct `0018`'s closing note against OFF-3 as amended. *(DEV-2)*
+
+### Mobile
+
+- [ ] **T12** Read `SettingsDetail` and `M3SettingsDetail` whole. The account
+  page gains *Ending things* with the spec's copy. *(AC-1)*
+- [ ] **T13** The confirmation sheet, per platform chrome, the field, every
+  state and its copy, the redirect to `sign-in?deleted=1` and its line.
+  *(AC-2, AC-9)*
+- [ ] **T14** Device pass on the Pixel and the iOS simulator: field and button
+  above the keyboard, back and dismiss while in flight, offline. Holds
+  `pixel` and `sim-<device>`. *(AC-2)*
+
+### Web
+
+- [ ] **T15** Read `WSettings` whole. The danger panel in semantic tokens and
+  the dialog with every state. *(AC-1, AC-2)*
+- [ ] **T16** `/delete-account`, static and inputless, and the `deleted=1`
+  line on sign-in. *(AC-11)*
+
+### Close of part A
+
+- [ ] **T17** Privacy page: the deletion edits, `UPDATED` and
+  `CONSENT_VERSION`. *(AC-24)*
+- [ ] **T18** Design `decisions.md` entry for the confirmation, destructive
+  button and danger panel. *(AC-25)*
+- [ ] **T19** `pnpm lint`, typecheck, both suites, `dead-classes.mjs`,
+  `dead-css.mjs`, `dead-icons.mjs`; `code-reviewer`, `security-reviewer` and
+  `client-reviewer` on the diff.
+
+## Part B: export
+
+### API
+
+- [ ] **T20** Migration 0081: `exports`. *(AC-18)*
+- [ ] **T21** `POST`, `GET` and `DELETE /v1/me/export`: states, the 7-day
+  refusal with `nextAt`, a failed build not holding the clock, origin check,
+  notice email. *(AC-15, AC-20, AC-23)*
+- [ ] **T22** `export.build`: tests open the produced zip. Every readable
+  thread, conversations, notes, people, each blob as a file, `data.json`;
+  shared rows name their author or say gone; a thread the account cannot read
+  is absent; members are numbered; no title or file name in a log line or the
+  job row. *(AC-16, AC-17, AC-22)*
+- [ ] **T23** Storage: parts sealed under the export's key, the key wrapped
+  under the account key, nothing readable in the memory store's bytes.
+  *(AC-18, OFF-2)*
+- [ ] **T24** `GET /v1/me/export/file`: streams the parts as one zip for the
+  owner, 404 for anyone else and for any state but `ready`. *(AC-18)*
+- [ ] **T25** `export.destroy` and `export.sweep`: at 7 days, on delete copy,
+  on leave and take-out of a thread in `thread_ids`, and from `deleteAccount`.
+  Kinds owned. *(AC-19)*
+- [ ] **T26** The Activity entry on ready, with no push. *(AC-15)*
+
+### Mobile
+
+- [ ] **T27** *Your copy* on the Privacy page, every state, polling only while
+  making. *(AC-15)*
+- [ ] **T28** `expo-sharing`, the download with the session header and the
+  hand-off to the system sheet; new native builds. *(AC-21)*
+- [ ] **T29** Device pass on both phones: the file opens from the system's
+  files after the app is closed. *(AC-21)*
+
+### Web
+
+- [ ] **T30** *Your copy* on the Privacy pane, every state, and the download
+  link. *(AC-15)*
+
+### Close of part B
+
+- [ ] **T31** Privacy page: the export edits and section 10's line. *(AC-24)*
+- [ ] **T32** Design `decisions.md`: the export row's states. *(AC-25)*
+- [ ] **T33** The same gates and reviewers as T19.
+- [ ] **T34** `going-public.md` gains this item and is ticked with a date.
