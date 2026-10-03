@@ -117,6 +117,23 @@ describe("the screens", () => {
     expect(code("app/settings/[page].tsx")).toContain('title="Terms"');
   });
 
+  // The web gate's footer reads "Terms · Privacy", each word its own link.
+  // The phones say the same, in the same order, and each word opens its own
+  // page with a full touch target.
+  it("names the terms and the privacy policy on the gate, each linked", () => {
+    const gate = read("lib/gate.ts");
+    expect(gate).toContain('legal: { terms: "Terms", privacy: "Privacy" }');
+    for (const file of ["components/screens/SignIn.ios.tsx", "components/screens/SignIn.android.tsx"]) {
+      const source = code(file);
+      expect(source).toContain("Linking.openURL(TERMS_URL)");
+      expect(source).toContain("Linking.openURL(PRIVACY_URL)");
+      expect(source).toContain("GATE.signIn.legal.terms");
+      expect(source).toContain("GATE.signIn.legal.privacy");
+      expect(source.indexOf("GATE.signIn.legal.terms")).toBeLessThan(source.indexOf("GATE.signIn.legal.privacy"));
+      expect(source.match(/minHeight: 44/g)?.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
   it("says what happened and never why", () => {
     const sheet = code("components/settings/DeleteAccountSheet.tsx");
     expect(sheet).toContain("Couldn&apos;t delete your account");
