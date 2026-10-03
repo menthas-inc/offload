@@ -11,6 +11,20 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-03 · First run is three screens
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, off `explorations/onboarding.html` and `explorations/onboarding-v2.html`. Handoff: `handoff/APPLY-2026-10-03-onboarding.md`.
+
+**Was:** seven screens after sign in: three still tutorial screens, the name, the consent, the notification dialog, Forward what matters, Bring in your calendar, ending on the Calendar page for anyone who connected. Copy under the illustrations at `title-1` and 16px. `GateBackdrop` behind every step with no veil, including the consent's `body-sm` paragraph. Skip and Not now as 15px labels top right, the main action a full-width button at the bottom.
+
+**Is:** **an animated intro** (three scenes: offload keeps track, threads you share, any way in) with **one button, Continue**, since the scenes advance themselves and Next beside Skip intro read as two ways of doing one thing, **Before you start** (name and consent on one screen), **Bring things in** (Mail, Calendar, notifications as optional cards on one screen), then Today. **Skip beside the main button**, tonal on the left. **Large first-run type.** **The prism behind the intro's art only.** The notification request moves from after consent to its own card. Connecting Calendar returns to Bring things in.
+
+**Why:** the owner's brief: text too small for the room, the consent hard to read on the prism, too many screens with little function, an intro that said little, and a Skip that was out of reach beside an easy Next.
+
+**Considered and not taken:** B, one setup screen after the intro (two screens, but long, with Get started under a consent and three rows); C, a first dump inside first run with connections moved to Today; a stacked footer.
+
+**Design system impact:** `readme.md` gains **First run**; the boundary in `GateBackdrop`'s comment ("nothing on a gate screen is small text over the field") is now enforced by placement. `FirstRun.jsx`, `M3FirstRun.jsx` and `WFirstRunGate.jsx`'s tutorial, step bar and connect screens are superseded by the exploration; their sign-in screens stand. No new tokens or glyphs.
+
 ### 2026-10-03 · A thread's map, as built (030)
 **Surface:** iOS, Android, web
 **Raised by:** code, building *A thread's map* in 030 (`docs/specs/030-maps/`), with the owner's answers, the three reviews, a browser check and a check on an iPhone simulator and a Pixel.
