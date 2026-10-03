@@ -14,7 +14,8 @@ import { GateBackdrop } from "../GateBackdrop";
 import { GateLockup } from "../GateLockup";
 import { AppleGlyph, GoogleGlyph } from "../Glyphs";
 import { GATE } from "../../lib/gate";
-import { PRIVACY_URL } from "../../lib/links";
+import { takeDeletedNotice } from "../../lib/account";
+import { PRIVACY_URL, TERMS_URL } from "../../lib/links";
 import { useColors } from "../../lib/colors";
 import {
   appleAvailable,
@@ -28,6 +29,9 @@ export default function SignIn() {
   const router = useRouter();
   const [pending, setPending] = useState<Provider | null>(null);
   const [refused, setRefused] = useState(false);
+  // 035. Read once, as the screen mounts: the line is for the person who just
+  // deleted their account and for nobody who signs in on this phone after.
+  const [deleted] = useState(() => takeDeletedNotice());
   const [hasApple, setHasApple] = useState(false);
 
   useEffect(() => {
@@ -75,7 +79,7 @@ export default function SignIn() {
             {GATE.signIn.title}
           </Text>
           <Text className="mt-space-5 text-center font-core text-body text-text-secondary">
-            {GATE.signIn.sub}
+            {deleted ? GATE.signIn.deleted : GATE.signIn.sub}
           </Text>
         </View>
 
@@ -127,18 +131,37 @@ export default function SignIn() {
               {GATE.signIn.termsAccent}
             </Text>
           </Text>
-          {/* 44px of touch around a 12.5px line, per the design system's hit
-            area rule: the text stays the size the kit draws it. */}
-          <Pressable
-            onPress={() => void Linking.openURL(PRIVACY_URL)}
-            className="items-center justify-center"
-            style={{ minHeight: 44 }}
-            accessibilityRole="link"
-          >
-            <Text className="text-center font-core text-caption text-text-tertiary">
-              {GATE.signIn.legal}
+          {/* 44px of touch around each word of a 12.5px line, per the design
+            system's hit area rule: the text stays the size the kit draws it. */}
+          <View className="flex-row items-center justify-center">
+            <Pressable
+              onPress={() => void Linking.openURL(TERMS_URL)}
+              className="items-center justify-center px-2"
+              style={{ minHeight: 44 }}
+              accessibilityRole="link"
+            >
+              <Text className="font-core text-caption text-text-tertiary">
+                {GATE.signIn.legal.terms}
+              </Text>
+            </Pressable>
+            <Text
+              className="font-core text-caption text-text-tertiary"
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            >
+              ·
             </Text>
-          </Pressable>
+            <Pressable
+              onPress={() => void Linking.openURL(PRIVACY_URL)}
+              className="items-center justify-center px-2"
+              style={{ minHeight: 44 }}
+              accessibilityRole="link"
+            >
+              <Text className="font-core text-caption text-text-tertiary">
+                {GATE.signIn.legal.privacy}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </GateBackdrop>
     </SafeAreaView>

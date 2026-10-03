@@ -11,6 +11,30 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-03 · Delete your account, as built (035)
+**Surface:** iOS, Android, web
+**Raised by:** code, building account deletion in 035 (`docs/specs/035-account-deletion-and-export/`), with the owner's answers of the same day and the client review.
+
+**Was:** `ui_kits/web_app/WSettings.jsx` draws `SDanger` at the foot of Account: label *Delete your account*, body *Everything offload keeps goes with it, on every device. There is no undo for this one.*, action *Delete everything*, on `--clay-100` with a `--clay-600` button at `--radius-sm`. No confirmation is drawn anywhere.
+
+**Is:**
+- **The panel is in semantic tokens**: `--surface-danger-soft`, `--border-danger`, `--text-danger`, where the kit uses the clay ramps. It carries no heading of its own, as in the kit.
+- **The copy has no noun**: body *Everything only you can see goes with it. There's no undo.*, action *Delete account*. "Everything offload keeps" was untrue: what was added to a shared thread stays.
+- **The action is the people modal's danger pill**, the one Remove, Block and Take out use, not a third button shape at `--radius-sm`.
+- **The confirmation is the people `Modal`** with one addition, a field: title *Delete your account*, a body that says what goes and what stays, the field *Type delete to confirm*, Cancel and *Delete account*. The button is disabled until the word matches, trimmed and whatever its case; the field does not capitalise, correct or spell-check.
+- **States**: in flight the button reads *Deleting* and the dialog cannot be dismissed; a failure is *Couldn't delete your account* in `--text-danger` with the button reading *Try again*; the last staff owner sees *Hand offload's ownership to someone else first.* with Close and no destructive button.
+- **After**: the sign-in card shows *Your account is deleted.* where the invite line is, in `--text-secondary`, not as a refusal.
+- **A public page, `/delete-account`**, in the privacy page's frame: How, What goes, What stays, If you can't sign in. No field of any kind.
+- **The instruction sits above the field, not in it**, on all three: *Type delete to confirm* as a caption in `--text-secondary`. A placeholder is gone at the first keystroke and it was the only line naming the word.
+- **The web panel carries the shared threads sentence too**, ahead of its own line, in the same paragraph. The panel body is at full opacity where the kit's `SDanger` draws it at .85: at .85 `--text-danger` on `--surface-danger-soft` fails contrast.
+- **The phones' sheet cannot be closed while the delete is in flight**: `DragSheet` takes `locked`, which stops the scrim, the grabber, the drag and Android's back. With a screen reader on, the field does not take the focus as the sheet rises, so the sentence is heard first.
+- **About on the phones gains *Terms*** above *Privacy policy*, as the web's Help did.
+- **On the phones the kit's *Ending things* is a last group on My account**, after Sign out, with no heading: *Shared threads* with its note, then *Delete account* with its title in `--text-danger` and no chevron. Sign out stays where 031 put it. Both notes lose the kit's noun: *A shared thread belongs to everyone in it. Deleting your account takes away your access and what only you could see, and leaves what you added with the others.* and *Everything only you can see goes with it. There's no undo.*
+- **The phones' confirmation is a `DragSheet` that lifts with the keyboard**: the same title, body, field and states as the web, Cancel and the destructive pill at the foot in `SheetFoot`'s shape, the pill on `--clay-600` with `--text-on-solid`, as the row's swipe-to-delete ground is. The field takes the focus as the sheet rises. In flight the pill carries the one spinner and reads *Deleting*.
+- **After, the phones' sign-in screen says *Your account is deleted.*** in place of *Sign in to start.*, once.
+
+**Design system impact:** `WSettings.jsx` `SDanger`: semantic tokens, the copy above, the pill. A confirmation with a typed word is a new pattern the kits should draw once, on the web modal and on both phones' sheets, with its in-flight and failed states. `SettingsDetail.jsx` and `M3SettingsDetail.jsx`: *Ending things* moves below Sign out as built, with the two notes above; a danger row is a new state the settings `Row` should describe. Tokens: there is no solid danger fill, so the destructive pill reaches for `--clay-600` as eight other sites do, and in dark it parts from `--text-danger`; a `--surface-danger` alias with a dark value would close that. A field caption above the input is new on the web modal (`.fieldLabel`). Readme: destructive actions that cannot be undone are confirmed by a typed word; everything else keeps Undo. The marketing kit gains `/delete-account` and `/terms` beside Privacy, and its footer reads address, Terms, Privacy.
+
 ### 2026-10-03 · First run, as built (033)
 **Surface:** iOS, Android, web
 **Raised by:** code, building *First run is three screens* in 033 (`docs/specs/033-first-run/`), with the owner's answers of the same day and the project, client and security reviews.

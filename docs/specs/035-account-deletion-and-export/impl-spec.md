@@ -61,34 +61,33 @@ entries about the person leave other people's feeds), `activity_mentions`,
 | --- | --- |
 | `blob_keys.scope_id` where `scope = 'account'` | delete the wraps |
 | `notes` of account scope (and their `note_chunks`, `note_labels`) | delete before the row goes, or `SET NULL` leaves them ownerless and unreadable |
-| `analytics_events.subject_id` | delete unshipped rows for `accounts.analytics_subject_id`; the pseudonym itself goes with the row, which is the shred 001 asks for |
+| `analytics_events.subject_id` | delete every row for `accounts.analytics_subject_id` (the table is the outbox; what has shipped is the privacy page's "kept, but detached"); the pseudonym itself goes with the row, which is the shred 001 asks for |
 | `waitlist_attempts.email_hmac` | delete the rows for the address's HMAC |
-| `verifications` | delete rows whose identifier is the address |
 | `connector_connections.external_account_email` | goes with its row |
-| `mail_signatures` | untouched: a replay guard keyed by signature, no account |
+
+The list is `src/accounts/ledger.ts`, with a fate per column.
 
 `test/account-ledger.test.ts` reads `pg_constraint` and
 `information_schema.columns`, and fails when a foreign key to `accounts`, or a
-column matching `account|subject|scope_id|email|owner`, is not in this ledger
-(AC-3).
+column matching `account|subject|scope_id|email|owner`, is not in the ledger,
+or when the ledger's fate differs from the key's own delete rule (AC-3).
 
 ### `deleteAccount(accountId)`, in `apps/core-api/src/accounts/delete.ts`
 
-Before the transaction:
-
-1. Read the account's connector connections and seal each refresh token into
-   `pending_revocations` (new: `id`, `provider`, `sealed_token` under the root
-   key through `crypto/keys.wrap`, `attempts`, `created_at`). No account id.
-   A `connector.revoke` job (Core kind, hourly and enqueued now) calls
-   `google.revoke`, deletes the row on success, and deletes it regardless
-   after 7 days (AC-7).
-
 One transaction:
 
-2. `select ... for update` on the accounts row. This transaction is ours, so
+1. `select ... for update` on the accounts row. This transaction is ours, so
    the lock holds.
-3. Refuse with 409 `last-owner` if the account is the only `staff` owner
+2. Refuse with 409 `last_owner` if the account is the only `staff` owner
    (AC-9).
+3. Read the account's grants, locked so a refresh in flight finishes first,
+   and seal each refresh token into `pending_revocations` (new: `id`,
+   `provider`, `sealed_token` through the connector vault with the row's own
+   id as its associated data, `attempts`, `created_at`). No account id. A
+   `connector.revoke` job, enqueued in the same transaction, calls
+   `google.revoke`, deletes the row on success or on Google's 400 (already
+   dead), books itself again in an hour while any row is left, and drops a row
+   unrevoked at 7 days (AC-7).
 4. **Thread keys.** For each thread where the account is an accepted member
    and another accepted member exists: `threadKey(trx, id)` to read the key,
    then `wrapForMembersWithout`. If no accepted member holds a copy and the
@@ -97,50 +96,52 @@ One transaction:
 5. **Threads the account is alone in** (no other accepted member):
    `deleteNotesForThread`, then delete the thread; pending invitations into it
    die with it. Cascades take content, labels and the rest.
-6. The named steps in the table above.
-7. If an `exports` row exists, note its id and part count for step 10.
+6. **Shares it had waiting** are withdrawn (`expired`, preview cleared), as
+   leaving does: the preview is the sharer's own titles, and an invitation
+   cannot be accepted once its sharer is gone.
+7. The named steps in the table above.
 8. Delete the `accounts` row.
-9. `sweepBlobs(trx)` from the purge handler, so thread wraps and blobs that
-   nothing references are put on the purge clock in the same transaction; the
-   existing R2 delete job destroys the objects (AC-6).
+9. Thread wraps no row carries any more are dropped, and the account's blobs
+   that nothing carries are put on the purge clock at once, not after the
+   sweep's hour; the existing `blob.purge` job destroys the objects (AC-6).
+10. In the same transaction: the `email.account_deleted` job with a null
+    account id and the address in its payload, since no row is left to read it
+    from (AC-23), and the `account_deleted` event with no subject.
 
-After commit:
-
-10. Enqueue `export.destroy` with the export id and part count, account id
-    null.
-11. Enqueue the notice email with a null account id, the address in the
-    payload as the existing `email.*` jobs carry it (AC-23).
-12. Emit `account.deleted` with no subject and no properties.
+Part B adds one step: an export's parts are handed to `export.destroy`.
 
 `threadKey` changes too: it refuses to mint when a `blob_keys` row of thread
 scope exists for the thread, throwing `NoKey`. Minting there is what turns a
-missing copy into unreadable photos. `takeOut` (`threads/sharing.ts:288`) and
-leave (`routes/threads.ts:1159`) call step 4's helper before dropping a key.
-Accepting an invitation calls `wrapForMembersWithout`, which the comment on it
-has been asking for since 020.
+missing copy into unreadable photos. `takeOut` and leave call
+`passThreadKeyOn` before dropping a key. Accepting an invitation already calls
+`threadKey`, which wraps for every accepted member without a copy, so the
+state this guards is the narrow one a restored leave is in until the key's
+next use; the security review overstated how often a member holds no copy.
 
 ### In-flight work (AC-12)
 
 The cascade removes the account's queued and running `jobs` rows. `complete`
 and `fail` on a missing job are already no-ops; a test pins that. The worker's
-write-backs through `routes/internal.ts` and `routes/tools.ts` resolve the
-account first and return 410 when it is gone; the Python worker treats 410 as
-done, not failed. Mail-in already matches only an active account.
-`connectors/tokens.ts` `accessTokenFor` re-reads the connection inside its own
-write and does nothing when it is gone, so a refresh in flight cannot re-seal a
-secret.
+write-backs resolve the job first and already answer 404 for one that is gone,
+which the worker logs as refused and does not retry, and its own job updates
+are keyed by id. Nothing new was needed. Mail-in matches only an active
+account. A token refresh in flight holds the secret row's lock, so the delete
+waits for it and then reads the token it wrote.
 
 ### Interface
 
-`DELETE /v1/me`, JSON body `{ "confirm": "delete" }`.
+`DELETE /api/me`, beside the `GET` and `PATCH` that already live there, JSON
+body `{ "confirm": "delete" }`.
 
-- Session required. Allowed for `invited` and `active`, so it is on the
-  no-write-before-consent guard's allowlist (033).
-- `Origin` must be the web origin or absent with the phones' session header;
-  anything else is 403 (AC-13). JSON only, so a form post cannot reach it.
-- 204 on success with the session cookie cleared. 409 `last-owner`. 400 when
-  the word does not match.
-- Limited to 5 an hour per account.
+- Session required. Allowed for `invited` and `active`: `/api/me` is outside
+  the prefixes the no-write-before-consent guard covers (033).
+- An `Origin` that is not one of the web app's is 403 (AC-13). The phones send
+  none. JSON only, so a form post cannot reach it.
+- The word is checked in the body schema, trimmed and without regard to case,
+  so a wrong or missing one is Fastify's own 400.
+- 204 on success. Every session row is gone, so the cookie is dead without
+  being cleared. 409 `last_owner`.
+- No rate limit: it needs a valid session and can succeed once.
 
 ### Clients
 
@@ -149,13 +150,17 @@ secret.
   each take their own kit's chrome. The foot rides the keyboard and
   `putKeyboardAway` runs on close. The field: `autoCapitalize="none"`,
   `autoCorrect={false}`, `spellCheck={false}`. On 204: clear the stored
-  session and replace the stack with `sign-in?deleted=1`.
+  session and replace the stack with the gate, which reads a one-shot notice
+  held in memory (`takeDeletedNotice`) rather than a route parameter: the
+  phones' gate is not a route. A reload loses the line and nothing else.
 - **Web:** the Account pane gains the danger panel, in `--surface-danger-soft`,
   `--border-danger` and `--text-danger` rather than the kit's ramps; the
   dialog follows the existing dialog component. On 204: `/sign-in?deleted=1`.
 - **Sign-in screens** show *Your account is deleted.* for `deleted=1`.
-- **`/delete-account`** under `(marketing)`: static, no input, a button to
-  `/sign-in?next=/settings/account`.
+- **`/delete-account`** under `(marketing)`: static, no input, a link to
+  `/sign-in` and the three steps from there in words. Sign-in carries no
+  `next`, and adding one is a redirect parameter on the gate for the sake of
+  one page; the page instructs rather than routes.
 - A 401 on any other device already lands on sign-in; no new handling.
 
 ## Part B: export

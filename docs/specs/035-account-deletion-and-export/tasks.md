@@ -7,69 +7,75 @@ exists (QUAL-1). Part A merges on its own.
 
 ### Setup
 
-- [ ] **T1** Isolated databases for this worktree, and a board post naming
+- [x] **T1** Isolated databases for this worktree, and a board post naming
   migrations 0080 and 0081.
-- [ ] **T2** Migration 0080: `llm_usage.account_id` nullable with `ON DELETE
+- [x] **T2** Migration 0080: `llm_usage.account_id` nullable with `ON DELETE
   SET NULL`; `pending_revocations`. *(AC-3, AC-7)*
 
 ### API
 
-- [ ] **T3** `test/account-ledger.test.ts`: every foreign key to `accounts`
+- [x] **T3** `test/account-ledger.test.ts`: every foreign key to `accounts`
   and every account-like column without one is in the ledger with a fate.
   *(AC-3)*
-- [ ] **T4** Thread keys survive their holder. Tests first: two members, the
+- [x] **T4** Thread keys survive their holder. Tests first: two members, the
   key held by one, photos in the thread; the holder leaves, is taken out, and
   deletes, and the other opens every blob. Then `threadKey` refuses to mint
   over existing thread wraps, the rewrap helper, its calls in leave and
   `takeOut`, and `wrapForMembersWithout` on accept. *(AC-5, OFF-3)*
-- [ ] **T5** `deleteAccount`: the transaction in the impl-spec, steps 2 to 9.
+- [x] **T5** `deleteAccount`: the transaction in the impl-spec, steps 2 to 9.
   Tests: no row left for the account outside the ledger's kept set; a thread
   alone in is gone with its notes; a shared thread keeps content with a null
   author and loses the member; pending invitation survives with an accepted
   member and dies without; other people's activity about the account is gone.
   *(AC-3, AC-4, AC-14)*
-- [ ] **T6** Blobs: one referenced by a shared thread survives and opens, one
+- [x] **T6** Blobs: one referenced by a shared thread survives and opens, one
   referenced by nothing reaches the purge and its object is removed from the
   memory store. *(AC-6)*
-- [ ] **T7** Revocation: tokens sealed into `pending_revocations` before the
+- [x] **T7** Revocation: tokens sealed into `pending_revocations` before the
   transaction, `connector.revoke` deletes on success, retries on failure,
   gives up at 7 days. Kind owned in `jobs/kinds.ts`. *(AC-7)*
-- [ ] **T8** `DELETE /v1/me`: word check, origin check, JSON only, rate limit,
+- [x] **T8** `DELETE /v1/me`: word check, origin check, JSON only, rate limit,
   last staff owner 409, allowed while `invited`, cookie cleared, every session
   dead, sign-in afterwards is no-invite. *(AC-2, AC-8, AC-9, AC-10, AC-13)*
-- [ ] **T9** In-flight work: a claimed job completing after the delete is a
-  no-op; internal and tool write-backs return 410; the Python worker treats
-  410 as done; a token refresh in flight writes nothing. *(AC-12)*
-- [ ] **T10** The notice email, enqueued without an account id, through the
+- [x] **T9** In-flight work: a claimed job completing after the delete is a
+  no-op. The write-backs already answer 404 for a job that is gone and the
+  worker does not retry one, so nothing else changed; the delete locks the
+  grant so a refresh in flight finishes first. *(AC-12)*
+- [x] **T10** The notice email, enqueued without an account id, through the
   memory mailer in tests; `account.deleted` carries no subject. No push or
   other mail follows. *(AC-8, AC-22, AC-23)*
-- [ ] **T11** Correct `0018`'s closing note against OFF-3 as amended. *(DEV-2)*
+- [x] **T11** Correct `0018`'s closing note against OFF-3 as amended. *(DEV-2)*
 
 ### Mobile
 
-- [ ] **T12** Read `SettingsDetail` and `M3SettingsDetail` whole. The account
+- [x] **T12** Read `SettingsDetail` and `M3SettingsDetail` whole. The account
   page gains *Ending things* with the spec's copy. *(AC-1)*
-- [ ] **T13** The confirmation sheet, per platform chrome, the field, every
+- [x] **T13** The confirmation sheet, per platform chrome, the field, every
   state and its copy, the redirect to `sign-in?deleted=1` and its line.
   *(AC-2, AC-9)*
-- [ ] **T14** Device pass on the Pixel and the iOS simulator: field and button
+- [x] **T14** Device pass on the Pixel and the iOS simulator: field and button
   above the keyboard, back and dismiss while in flight, offline. Holds
   `pixel` and `sim-<device>`. *(AC-2)*
+  Done on the iPhone 17 simulator, 2026-10-03, against a local API: the sheet
+  on the keyboard and off it, a failed press with the API stopped, and a real
+  delete through to the gate's line. The same on the Pixel 9 the same day. Back while in
+  flight could not be caught by hand on either: a local delete is over in
+  fifty milliseconds. The lock is `DragSheet`'s and is read from source.
 
 ### Web
 
-- [ ] **T15** Read `WSettings` whole. The danger panel in semantic tokens and
+- [x] **T15** Read `WSettings` whole. The danger panel in semantic tokens and
   the dialog with every state. *(AC-1, AC-2)*
-- [ ] **T16** `/delete-account`, static and inputless, and the `deleted=1`
+- [x] **T16** `/delete-account`, static and inputless, and the `deleted=1`
   line on sign-in. *(AC-11)*
 
 ### Close of part A
 
-- [ ] **T17** Privacy page: the deletion edits, `UPDATED` and
+- [x] **T17** Privacy page: the deletion edits, `UPDATED` and
   `CONSENT_VERSION`. *(AC-24)*
-- [ ] **T18** Design `decisions.md` entry for the confirmation, destructive
+- [x] **T18** Design `decisions.md` entry for the confirmation, destructive
   button and danger panel. *(AC-25)*
-- [ ] **T19** `pnpm lint`, typecheck, both suites, `dead-classes.mjs`,
+- [x] **T19** `pnpm lint`, typecheck, both suites, `dead-classes.mjs`,
   `dead-css.mjs`, `dead-icons.mjs`; `code-reviewer`, `security-reviewer` and
   `client-reviewer` on the diff.
 

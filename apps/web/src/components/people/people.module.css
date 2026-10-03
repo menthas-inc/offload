@@ -435,6 +435,19 @@
   border-color: var(--border-focus);
 }
 
+/* A field's instruction, above it, for the one field whose placeholder
+   cannot carry it (035: the word to type stays on screen while it is typed). */
+.fieldLabel {
+  display: block;
+  margin: var(--space-6) 0 0;
+  font: var(--text-caption-role);
+  color: var(--text-secondary);
+}
+
+.fieldLabel + .field {
+  margin-top: var(--space-3);
+}
+
 /* ------------------------------------------------------------ the strip */
 
 .strip {

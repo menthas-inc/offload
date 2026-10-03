@@ -54,7 +54,8 @@ alter table content
     foreign key (account_id) references accounts (id) on delete set null;
 
 -- One consequence, stated because it is a permission change rather than a
--- storage one: OFF-3 gives delete to the author, so content whose author is
--- gone can no longer be deleted by anybody. That is the promise working rather
--- than a gap. Archive is the co-owned action and still applies, so members can
--- clear it from the active list without destroying what somebody left behind.
+-- storage one: OFF-3 gives delete to the author. When this was written that
+-- meant content whose author is gone could be deleted by nobody. OFF-3 was
+-- amended by 008 and again by 022: once the author has left the thread or
+-- deleted their account, every remaining member may edit and delete what they
+-- left. The code follows the amendment; this note was corrected by 035.

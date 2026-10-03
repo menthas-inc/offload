@@ -21,7 +21,7 @@ import { Refused } from "../threads/refusals.js";
 import { threadLine } from "../threads/line.js";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
-import { dropThreadWrapIfUnused, ensureThreadWrap } from "../blobs/keys.js";
+import { dropThreadWrapIfUnused, ensureThreadWrap, passThreadKeyOn } from "../blobs/keys.js";
 import { initialsOf } from "../accounts/initials.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import {
@@ -1156,6 +1156,8 @@ export async function deleteThread(
       // second restore puts the membership back and the next read's
       // `threadKey` wraps a fresh copy from another member's. The last
       // member's key stays below, for the purge job and the restore.
+      // 035. Not before every member who stays holds a copy of their own.
+      await passThreadKeyOn(trx, threadId, accountId);
       await trx.deleteFrom("thread_keys").where("thread_id", "=", threadId).where("account_id", "=", accountId).execute();
       return { left: true, deleted: false };
     }

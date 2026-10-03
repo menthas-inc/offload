@@ -194,6 +194,9 @@ interface RowProps {
   /** 031. The picker's current row: a check where *Now* was. */
   checked?: boolean;
   busy?: boolean;
+  /** 035. The one row that cannot be undone, Delete account: its title in
+   *  `--text-danger`, as the kits draw it. */
+  danger?: boolean;
 }
 
 /** 031. The outline pill on a row that acts in place. */
@@ -254,6 +257,7 @@ export function Row({
   action,
   checked,
   busy,
+  danger,
 }: RowProps) {
   const COLOR = useColors();
   const edge = useRowEdge(last);
@@ -291,7 +295,9 @@ export function Row({
             one-row card stood 350dp tall. */}
         <View className="flex-row flex-wrap items-center justify-between gap-x-space-4 gap-y-space-1">
           <Text
-            className={`font-core ${action ? "font-medium" : ""} ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+            className={`font-core ${action ? "font-medium" : ""} ${
+              danger ? "text-text-danger" : isAndroid ? "text-a-on" : "text-text-primary"
+            }`}
             style={{ fontSize: 15, lineHeight: 20 }}
           >
             {title}
