@@ -13,7 +13,8 @@
 // the last staff owner is told what to do first and given nothing to press.
 
 import { useRef, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { AccessibilityInfo, ActivityIndicator, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "../../lib/colors";
 import { deleteAccount, wordMatches } from "../../lib/account";
 import { putKeyboardAway } from "../../lib/keyboard";
@@ -25,6 +26,7 @@ const SLOP = { top: 8, bottom: 8, left: 4, right: 4 };
 
 export function DeleteAccountSheet({ onClose, onDeleted }: { onClose: () => void; onDeleted: () => void }) {
   const COLOR = useColors();
+  const insets = useSafeAreaInsets();
   const field = useRef<TextInput>(null);
   const [word, setWord] = useState("");
   const [state, setState] = useState<"idle" | "deleting" | "failed" | "last_owner">("idle");
@@ -34,7 +36,8 @@ export function DeleteAccountSheet({ onClose, onDeleted }: { onClose: () => void
 
   function close(): void {
     // Not while the delete is in flight: the sheet would leave a screen that
-    // looks signed in over an account that may be gone.
+    // looks signed in over an account that may be gone. The sheet is locked
+    // for the same moment, since its own exits run before this is asked.
     if (busy) return;
     putKeyboardAway();
     onClose();
@@ -56,9 +59,17 @@ export function DeleteAccountSheet({ onClose, onDeleted }: { onClose: () => void
     <DragSheet
       onClose={close}
       keyboard="lift"
+      locked={busy}
       className="px-gutter-screen pb-space-6 pt-space-2"
+      // The pills clear the home indicator once the keyboard is down.
+      sheetStyle={{ paddingBottom: insets.bottom }}
       accessibilityLabel="Delete your account"
-      onOpen={() => field.current?.focus()}
+      // A screen reader hears what deleting does before it is put in a field.
+      onOpen={() => {
+        void AccessibilityInfo.isScreenReaderEnabled().then((reading) => {
+          if (!reading) field.current?.focus();
+        });
+      }}
     >
       <Text
         className={`font-core font-semibold text-title-2 ${isAndroid ? "text-a-on" : "text-text-primary"}`}
@@ -81,8 +92,11 @@ export function DeleteAccountSheet({ onClose, onDeleted }: { onClose: () => void
         </Text>
       ) : (
         <>
+          {/* Above the field, not in it: a placeholder is gone at the first
+              keystroke, and with it the only line that names the word. */}
+          <Text className={`mt-space-6 font-core text-body-sm ${quiet}`}>Type delete to confirm</Text>
           <View
-            className={`mt-space-6 flex-row items-center border px-space-6 ${
+            className={`mt-space-3 flex-row items-center border px-space-6 ${
               isAndroid ? "rounded-a-xs border-a-on-var" : "rounded-sm border-border-strong"
             }`}
             style={{ minHeight: 48 }}
@@ -91,12 +105,12 @@ export function DeleteAccountSheet({ onClose, onDeleted }: { onClose: () => void
               ref={field}
               value={word}
               onChangeText={(text) => {
+                // The field stays editable in flight so the keyboard, and the
+                // sheet on it, hold still; the word just stops changing.
+                if (busy) return;
                 setWord(text);
                 if (state === "failed") setState("idle");
               }}
-              editable={!busy}
-              placeholder="Type delete to confirm"
-              placeholderTextColor={COLOR.quiet}
               autoCapitalize="none"
               autoCorrect={false}
               spellCheck={false}

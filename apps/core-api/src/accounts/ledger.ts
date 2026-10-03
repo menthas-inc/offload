@@ -87,7 +87,7 @@ export const ACCOUNT_LEDGER: Record<string, Entry> = {
 
   // No foreign key, so nothing removes these unless it is told to.
   "blob_keys.scope_id": { fate: "step", why: "account-scope wraps of an object key" },
-  "notes.subject_id": { fate: "step", why: "account-scope notes, which set-null would leave ownerless" },
+  "notes.subject_id": { fate: "step", why: "account and person scope notes go by notes.account_id, and an account-scope note by its subject too; set-null would leave them ownerless" },
   "note_chunks.subject_id": { fate: "row", why: "goes with its note" },
   "analytics_events.subject_id": { fate: "step", why: "unshipped events under the account's pseudonym" },
   "waitlist_attempts.email_hmac": { fate: "step", why: "the limiter's record of the address" },

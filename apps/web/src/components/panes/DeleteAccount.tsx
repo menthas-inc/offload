@@ -26,7 +26,10 @@ export function DeleteAccount() {
   return (
     <div className={pane.dangerPanel} role="group" aria-label="Delete your account">
       <p className={pane.dangerLabel}>Delete your account</p>
-      <p className={pane.dangerBody}>Everything only you can see goes with it. There&apos;s no undo.</p>
+      <p className={pane.dangerBody}>
+        A shared thread belongs to everyone in it. Deleting your account takes away your access and what only you could
+        see, and leaves what you added with the others. Everything only you can see goes with it. There&apos;s no undo.
+      </p>
       <button type="button" className={modal.danger} onClick={() => setOpen(true)}>
         Delete account
       </button>
@@ -50,6 +53,10 @@ function Confirm({ onClose }: { onClose: () => void }) {
       router.replace("/sign-in?deleted=1");
       return;
     }
+    if (outcome === "signed_out") {
+      router.replace("/sign-in");
+      return;
+    }
     setState(outcome);
   }
 
@@ -68,10 +75,15 @@ function Confirm({ onClose }: { onClose: () => void }) {
         </p>
       ) : (
         <>
+          {/* Above the field, not in it: a placeholder is gone at the first
+              keystroke, and with it the only line that names the word. */}
+          <label className={modal.fieldLabel} htmlFor="delete-word">
+            Type delete to confirm
+          </label>
           <input
+            id="delete-word"
             className={modal.field}
             aria-label="Type delete to confirm"
-            placeholder="Type delete to confirm"
             value={word}
             autoCapitalize="none"
             autoCorrect="off"

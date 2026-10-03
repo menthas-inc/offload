@@ -12,6 +12,7 @@ export const WEB_URL =
   "https://offload.club";
 
 export const PRIVACY_URL = `${WEB_URL}/privacy`;
+export const TERMS_URL = `${WEB_URL}/terms`;
 
 
 /** Open a web page in the system browser, and nothing that is not one.

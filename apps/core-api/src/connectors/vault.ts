@@ -32,7 +32,7 @@ const NONCE_BYTES = 12;
 const TAG_BYTES = 16;
 const KEY_BYTES = 32;
 
-export type SecretField = "access_token" | "refresh_token";
+export type SecretField = "access_token" | "refresh_token" | "notice_address";
 
 function vaultKey(): Buffer {
   if (env.CONNECTOR_VAULT_KEY) {

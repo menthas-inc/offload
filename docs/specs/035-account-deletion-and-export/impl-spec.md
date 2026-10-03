@@ -61,7 +61,7 @@ entries about the person leave other people's feeds), `activity_mentions`,
 | --- | --- |
 | `blob_keys.scope_id` where `scope = 'account'` | delete the wraps |
 | `notes` of account scope (and their `note_chunks`, `note_labels`) | delete before the row goes, or `SET NULL` leaves them ownerless and unreadable |
-| `analytics_events.subject_id` | delete unshipped rows for `accounts.analytics_subject_id`; the pseudonym itself goes with the row, which is the shred 001 asks for |
+| `analytics_events.subject_id` | delete every row for `accounts.analytics_subject_id` (the table is the outbox; what has shipped is the privacy page's "kept, but detached"); the pseudonym itself goes with the row, which is the shred 001 asks for |
 | `waitlist_attempts.email_hmac` | delete the rows for the address's HMAC |
 | `connector_connections.external_account_email` | goes with its row |
 
@@ -150,13 +150,17 @@ body `{ "confirm": "delete" }`.
   each take their own kit's chrome. The foot rides the keyboard and
   `putKeyboardAway` runs on close. The field: `autoCapitalize="none"`,
   `autoCorrect={false}`, `spellCheck={false}`. On 204: clear the stored
-  session and replace the stack with `sign-in?deleted=1`.
+  session and replace the stack with the gate, which reads a one-shot notice
+  held in memory (`takeDeletedNotice`) rather than a route parameter: the
+  phones' gate is not a route. A reload loses the line and nothing else.
 - **Web:** the Account pane gains the danger panel, in `--surface-danger-soft`,
   `--border-danger` and `--text-danger` rather than the kit's ramps; the
   dialog follows the existing dialog component. On 204: `/sign-in?deleted=1`.
 - **Sign-in screens** show *Your account is deleted.* for `deleted=1`.
-- **`/delete-account`** under `(marketing)`: static, no input, a button to
-  `/sign-in?next=/settings/account`.
+- **`/delete-account`** under `(marketing)`: static, no input, a link to
+  `/sign-in` and the three steps from there in words. Sign-in carries no
+  `next`, and adding one is a redirect parameter on the gate for the sake of
+  one page; the page instructs rather than routes.
 - A 401 on any other device already lands on sign-in; no new handling.
 
 ## Part B: export

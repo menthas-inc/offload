@@ -226,6 +226,69 @@ describe("deleting an account", () => {
     expect(await db.selectFrom("accounts").select("id").where("id", "=", me.id).execute()).toHaveLength(0);
   });
 
+  // The decision "nobody else is in it" is only good while the thread is
+  // locked: accepting a share locks the thread row, so the delete has to as
+  // well, or it deletes a thread somebody joined while it was deciding.
+  it("keeps a thread somebody joins while the delete is running", async () => {
+    const me = await person("Jo");
+    const sam = await person("Sam");
+    const mine = await thread("Lisbon", me.id);
+    await row(me.id, mine, "Book the flat");
+
+    let joined!: () => void;
+    const hold = new Promise<void>((resolve) => (joined = resolve));
+    const accepting = db.transaction().execute(async (trx) => {
+      await trx.selectFrom("threads").select("id").where("id", "=", mine).forUpdate().execute();
+      await trx.insertInto("thread_members").values({ thread_id: mine, account_id: sam.id, state: "accepted" }).execute();
+      await hold;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const deleting = deleteAccount(me.id);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    joined();
+    await accepting;
+    await deleting;
+
+    expect(await db.selectFrom("threads").select("id").where("id", "=", mine).execute()).toHaveLength(1);
+    expect(await db.selectFrom("content").select("id").where("thread_id", "=", mine).execute()).toHaveLength(1);
+    expect(await db.selectFrom("accounts").select("id").where("id", "=", me.id).execute()).toHaveLength(0);
+  });
+
+  // Key state the person cannot see or mend may not make their account
+  // undeletable. A copy that will not open hands nothing on, and the rest goes.
+  it("still deletes when a thread key it holds will not open", async () => {
+    const me = await person("Jo");
+    const sam = await person("Sam");
+    const shared = await thread("Lisbon", me.id, sam.id);
+    await db.insertInto("thread_keys").values({ thread_id: shared, account_id: me.id, wrapped_tk: Buffer.from("not a wrapped key") }).execute();
+    await expect(deleteAccount(me.id)).resolves.toMatchObject({ deleted: true });
+    expect(await db.selectFrom("accounts").select("id").where("id", "=", me.id).execute()).toHaveLength(0);
+  });
+
+  it("leaves every other thread's wraps alone", async () => {
+    const me = await person("Jo");
+    const sam = await person("Sam");
+    const blob = await db
+      .insertInto("blobs")
+      .values({ account_id: sam.id, message_id: null, client_key: uuidv7(), name: null, content_type: "image/jpeg", byte_size: 1, width: 1, height: 1, sha256: Buffer.alloc(32) } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    // A wrap written ahead of the row that will carry it, in a thread that is not mine.
+    await db.insertInto("blob_keys").values({ blob_id: blob.id, scope: "thread", scope_id: sam.defaultThreadId, wrapped_object_key: Buffer.alloc(60) }).execute();
+    await deleteAccount(me.id);
+    expect(await db.selectFrom("blob_keys").select("blob_id").where("scope_id", "=", sam.defaultThreadId).execute()).toHaveLength(1);
+  });
+
+  it("never lets two owners both go at once", async () => {
+    const me = await person("Jo");
+    const sam = await person("Sam");
+    await db.insertInto("staff").values({ account_id: me.id, role: "owner", created_at: new Date() }).execute();
+    await db.insertInto("staff").values({ account_id: sam.id, role: "owner", created_at: new Date() }).execute();
+    const outcomes = await Promise.allSettled([deleteAccount(me.id), deleteAccount(sam.id)]);
+    expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
+    expect(await db.selectFrom("staff").select("account_id").where("role", "=", "owner").execute()).toHaveLength(1);
+  });
+
   it("is nothing for an account that is not there", async () => {
     await expect(deleteAccount(uuidv7())).resolves.toEqual({ deleted: false, email: null });
   });
@@ -285,6 +348,22 @@ describe("the calendar grant", () => {
     await handlers["connector.revoke"]!({}, { mailer: null as never }, null);
     expect(await db.selectFrom("pending_revocations").select("id").execute()).toHaveLength(0);
     expect(await db.selectFrom("jobs").select("id").where("kind", "=", "connector.revoke").execute()).toHaveLength(0);
+  });
+
+  it("does not let one token it cannot open hold up the rest", async () => {
+    const bad = uuidv7();
+    const good = uuidv7();
+    await db.insertInto("pending_revocations").values({ id: bad, provider: "google", sealed_token: Buffer.from("not a sealed token") }).execute();
+    await db.insertInto("pending_revocations").values({ id: good, provider: "google", sealed_token: seal("fine", good, "refresh_token") }).execute();
+    const asked: string[] = [];
+    vi.stubGlobal("fetch", async (_url: string, init: { body: URLSearchParams }) => {
+      asked.push(init.body.get("token")!);
+      return new Response("", { status: 200 });
+    });
+    await handlers["connector.revoke"]!({}, { mailer: null as never }, null);
+    expect(asked).toEqual(["fine"]);
+    const left = await db.selectFrom("pending_revocations").select(["id", "attempts"]).execute();
+    expect(left).toEqual([{ id: bad, attempts: 1 }]);
   });
 
   it("is given up on after seven days", async () => {
@@ -365,9 +444,13 @@ describe("DELETE /api/me", () => {
     const jobs = await db.selectFrom("jobs").select(["kind", "account_id", "payload"]).execute();
     expect(jobs.map((job) => job.kind)).toEqual(["email.account_deleted"]);
     expect(jobs[0]!.account_id).toBeNull();
+    // The address is sealed while the job waits, and gone once it has sent:
+    // a job row outlives its work by thirty days, and an address may not.
+    expect(JSON.stringify(jobs[0]!.payload)).not.toContain(me.email);
     const mailer = new MemoryMailer();
     await handlers["email.account_deleted"]!(jobs[0]!.payload as Record<string, unknown>, { mailer }, null);
     expect(mailer.sent.map((message) => message.to)).toEqual([me.email]);
+    expect((await db.selectFrom("jobs").select("payload").where("kind", "=", "email.account_deleted").executeTakeFirstOrThrow()).payload).toEqual({});
     expect(mailer.sent[0]!.subject).toBe("Your offload account is deleted");
     expect(await db.selectFrom("push_tokens").select("id").execute()).toHaveLength(0);
   });

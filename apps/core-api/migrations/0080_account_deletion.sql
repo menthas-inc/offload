@@ -9,9 +9,10 @@ alter table llm_usage
   add constraint llm_usage_account_id_fkey foreign key (account_id) references accounts(id) on delete set null;
 
 -- A calendar grant still to be revoked at Google after its account is gone.
--- The token is sealed with the root key and the row names no account: once the
--- account row is deleted nothing here says whose it was. A job revokes and
--- deletes; a row older than seven days is deleted unrevoked.
+-- The token is sealed with the connector vault's key and the row names no
+-- account. It is still that person's grant to whoever holds the vault key,
+-- which is why it does not wait long: a job revokes and deletes, and a row
+-- older than seven days is deleted unrevoked, with an error logged.
 create table pending_revocations (
   id uuid primary key default gen_random_uuid(),
   provider text not null check (provider in ('google')),

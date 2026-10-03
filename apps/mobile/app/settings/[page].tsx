@@ -625,6 +625,7 @@ function Help() {
       </Group>
       <Group label="About" icon="text-quote">
         <Row title="Version" value={Constants.expoConfig?.version ?? "?"} />
+        <Row title="Terms" external onPress={() => void WebBrowser.openBrowserAsync(`${WEB}/terms`)} />
         <Row
           title="Privacy policy"
           external

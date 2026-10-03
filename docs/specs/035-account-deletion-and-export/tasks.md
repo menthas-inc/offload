@@ -56,6 +56,10 @@ exists (QUAL-1). Part A merges on its own.
 - [ ] **T14** Device pass on the Pixel and the iOS simulator: field and button
   above the keyboard, back and dismiss while in flight, offline. Holds
   `pixel` and `sim-<device>`. *(AC-2)*
+  Done on the iPhone 17 simulator, 2026-10-03, against a local API: the sheet
+  on the keyboard and off it, a failed press with the API stopped, and a real
+  delete through to the gate's line. **The Pixel is still to do**, and with it
+  Android's back while in flight.
 
 ### Web
 
@@ -70,7 +74,7 @@ exists (QUAL-1). Part A merges on its own.
   `CONSENT_VERSION`. *(AC-24)*
 - [x] **T18** Design `decisions.md` entry for the confirmation, destructive
   button and danger panel. *(AC-25)*
-- [ ] **T19** `pnpm lint`, typecheck, both suites, `dead-classes.mjs`,
+- [x] **T19** `pnpm lint`, typecheck, both suites, `dead-classes.mjs`,
   `dead-css.mjs`, `dead-icons.mjs`; `code-reviewer`, `security-reviewer` and
   `client-reviewer` on the diff.
 

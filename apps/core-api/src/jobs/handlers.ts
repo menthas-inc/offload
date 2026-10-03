@@ -114,8 +114,10 @@ const invited: Handler = async (_payload, { mailer }, accountId) => {
  *  The address comes from the payload: the account is gone, so there is no row
  *  to read it from, and nothing else about the person is in the job. */
 const accountDeleted: Handler = async (payload, { mailer }) => {
-  const to = typeof payload["to"] === "string" ? payload["to"] : null;
-  if (!to) throw new Error("account_deleted job has no address");
+  const id = typeof payload["id"] === "string" ? payload["id"] : null;
+  const sealed = typeof payload["to"] === "string" ? payload["to"] : null;
+  if (!id || !sealed) throw new Error("account_deleted job has no address");
+  const to = openSecret(Buffer.from(sealed, "base64"), id, "notice_address");
   await mailer.send({
     to,
     subject: "Your offload account is deleted",
@@ -127,6 +129,13 @@ const accountDeleted: Handler = async (payload, { mailer }) => {
       footer: `You are receiving this because an offload account at ${new URL(env.WEB_URL).host} used this address.`,
     },
   });
+  // Sent: the row keeps its kind and its outcome and loses the address.
+  await db
+    .updateTable("jobs")
+    .set({ payload: sql`'{}'::jsonb` })
+    .where("kind", "=", "email.account_deleted")
+    .where(sql<boolean>`payload->>'id' = ${id}`)
+    .execute();
 };
 
 /** How long a grant waits for Google before it is dropped unrevoked. Our copy
@@ -139,14 +148,23 @@ const REVOCATION_DAYS = 7;
  *  the token back or when it is a week old; while any is left the job books
  *  itself again in an hour. */
 const connectorRevoke: Handler = async () => {
-  await db
+  const dropped = await db
     .deleteFrom("pending_revocations")
     .where(sql<boolean>`created_at < now() - make_interval(days => ${REVOCATION_DAYS})`)
+    .returning("id")
     .execute();
+  // A grant given up on is still live at Google. Loud, so somebody looks.
+  if (dropped.length > 0) {
+    console.error(JSON.stringify({ level: "error", msg: "grants dropped unrevoked", dropped: dropped.length }));
+  }
   const waiting = await db.selectFrom("pending_revocations").select(["id", "sealed_token"]).execute();
   let left = 0;
   for (const row of waiting) {
-    const done = await revoke(openSecret(Buffer.from(row.sealed_token), row.id, "refresh_token")).catch(() => false);
+    // Opened inside the catch: a row that will not open is one failed row,
+    // counted and aged out like any other, not the end of the run.
+    const done = await Promise.resolve()
+      .then(() => revoke(openSecret(Buffer.from(row.sealed_token), row.id, "refresh_token")))
+      .catch(() => false);
     if (done) {
       await db.deleteFrom("pending_revocations").where("id", "=", row.id).execute();
     } else {

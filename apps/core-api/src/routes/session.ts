@@ -524,8 +524,9 @@ export async function sessionRoutes(app: App): Promise<void> {
         if (error instanceof LastOwner) return reply.status(409).send({ error: "last_owner" });
         throw error;
       }
-      // Ids only, and not the one that no longer exists.
-      request.log.info("account deleted");
+      // The id and nothing else: it names no row any more, and it is what
+      // somebody asking "was that me?" can be answered from.
+      request.log.info({ accountId }, "account deleted");
       return reply.status(204).send(null);
     }
   );

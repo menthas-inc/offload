@@ -95,6 +95,28 @@ describe("the screens", () => {
     expect(sheet).toContain('keyboard="lift"');
   });
 
+  // What the simulator and the review found. The sheet's own exits run
+  // before the caller hears of them, so "not while deleting" has to be the
+  // sheet's; the pills clear the home indicator once the keyboard is down;
+  // the instruction stays on screen after the first keystroke; and a screen
+  // reader hears what deleting does before it lands in the field.
+  it("cannot be swiped away in flight, clears the inset, and keeps its instruction", () => {
+    const sheet = code("components/settings/DeleteAccountSheet.tsx");
+    expect(sheet).toContain("locked={busy}");
+    expect(sheet).toContain("paddingBottom: insets.bottom");
+    expect(sheet).not.toContain("placeholder=");
+    expect(sheet).toMatch(/>\s*Type delete to confirm\s*<\/Text>/);
+    expect(sheet).toContain("isScreenReaderEnabled");
+    const drag = code("components/shell/DragSheet.tsx");
+    expect(drag).toContain("locked");
+    expect(drag).toContain("useSheetBack(!closing && !locked");
+  });
+
+  it("links the terms from About, beside the privacy policy", () => {
+    expect(read("lib/links.ts")).toContain("export const TERMS_URL = `${WEB_URL}/terms`;");
+    expect(code("app/settings/[page].tsx")).toContain('title="Terms"');
+  });
+
   it("says what happened and never why", () => {
     const sheet = code("components/settings/DeleteAccountSheet.tsx");
     expect(sheet).toContain("Couldn&apos;t delete your account");

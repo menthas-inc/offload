@@ -48,8 +48,10 @@ the same spec because the delete confirmation offers it.
   to case; the field does not capitalise, correct or spell-check. The button,
   *Delete account*, is disabled until it matches. The field and the button
   both stay above the keyboard.
-- **States.** In flight: the button reads *Deleting* with the one spinner, and
-  the sheet cannot be dismissed. Failed: *Couldn't delete your account* and
+- **States.** In flight: the button reads *Deleting*, with the one spinner on
+  the phones and alone on the web, whose buttons carry none, and
+  the sheet cannot be dismissed. A session that ended under the page goes to
+  sign-in rather than to a retry. Failed: *Couldn't delete your account* and
   *Try again*, which is also what an offline press gets, since neither client
   can see why it did not go through. The last staff owner: *Hand offload's ownership to someone
   else first.*, with no retry. None of them says why.
@@ -140,8 +142,8 @@ Deletion:
 - **AC-9** The last staff owner is refused, with the line above.
 - **AC-10** Signing in afterwards with the same identity finds no account.
 - **AC-11** `offload.club/delete-account` renders the same for every visitor,
-  takes no input, and leads through sign-in to the confirmation for an invited
-  or an active account.
+  takes no input, and says how to reach the confirmation from sign-in, for an
+  invited or an active account.
 - **AC-12** Work in flight for the account ends without writing anything back
   and without an error anyone sees.
 - **AC-13** The delete and the export request are refused from another origin

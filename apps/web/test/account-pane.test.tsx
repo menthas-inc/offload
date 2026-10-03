@@ -281,6 +281,30 @@ describe("Delete your account", () => {
     expect(router.replace).toHaveBeenCalledWith("/sign-in?deleted=1");
   });
 
+  // AC-1 names the shared threads line on all three surfaces, and the
+  // instruction has to outlast the first keystroke.
+  it("says what happens to shared threads on the panel, and keeps the instruction above the field", async () => {
+    const host = await render();
+    const panel = host.querySelector<HTMLElement>('[aria-label="Delete your account"]')!;
+    expect(panel.textContent).toContain(
+      "A shared thread belongs to everyone in it. Deleting your account takes away your access and what only you could see, and leaves what you added with the others.",
+    );
+    const box = await open(host);
+    const field = box.querySelector<HTMLInputElement>("input")!;
+    expect(field.getAttribute("placeholder")).toBeNull();
+    expect(box.querySelector("label")?.textContent).toContain("Type delete to confirm");
+  });
+
+  it("goes to sign in when the session has ended, rather than offering a retry that cannot work", async () => {
+    deleteStatus = 401;
+    const host = await render();
+    const box = await open(host);
+    await act(async () => type(box.querySelector<HTMLInputElement>("input")!, "delete"));
+    await act(async () => button(box, "Delete account").click());
+    await settle();
+    expect(router.replace).toHaveBeenCalledWith("/sign-in");
+  });
+
   it("says a failure and offers Try again, without leaving", async () => {
     deleteStatus = 500;
     const host = await render();

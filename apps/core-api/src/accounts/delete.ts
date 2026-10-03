@@ -51,12 +51,10 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
 
     const staff = await trx.selectFrom("staff").select("role").where("account_id", "=", accountId).executeTakeFirst();
     if (staff?.role === "owner") {
-      const owners = await trx
-        .selectFrom("staff")
-        .select(({ fn }) => fn.countAll<string>().as("n"))
-        .where("role", "=", "owner")
-        .executeTakeFirstOrThrow();
-      if (Number(owners.n) <= 1) throw new LastOwner();
+      // Locked, so two owners leaving at once are counted one after the other
+      // and the second finds itself the last.
+      const owners = await trx.selectFrom("staff").select("account_id").where("role", "=", "owner").forUpdate().execute();
+      if (owners.length <= 1) throw new LastOwner();
     }
 
     // The grants, before the cascade takes the only copy of each token.
@@ -81,6 +79,18 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
     }
 
     // Threads: hand the key on where somebody stays, delete where nobody does.
+    // Each thread row is locked first, as accepting a share and taking
+    // somebody out lock it, so who is in it cannot change under the count.
+    // In id order, so two deletes that share threads cannot deadlock.
+    await trx
+      .selectFrom("threads")
+      .select("threads.id")
+      .where("threads.id", "in", (eb) =>
+        eb.selectFrom("thread_members").select("thread_id").where("account_id", "=", accountId).where("state", "=", "accepted"),
+      )
+      .orderBy("threads.id")
+      .forUpdate()
+      .execute();
     const memberships = await trx
       .selectFrom("thread_members as mine")
       .select((eb) => [
@@ -96,11 +106,19 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
       .where("mine.account_id", "=", accountId)
       .where("mine.state", "=", "accepted")
       .execute();
+    const gone: string[] = [];
+    let unopened = 0;
     for (const membership of memberships) {
       if (Number(membership.others) > 0) {
-        await passThreadKeyOn(trx, membership.threadId, accountId);
+        // A copy that will not open hands nothing on, and the delete goes
+        // ahead: key state the person cannot see may not keep their account.
+        // What it could have opened was already closed to everyone.
+        await passThreadKeyOn(trx, membership.threadId, accountId).catch(() => {
+          unopened += 1;
+        });
         continue;
       }
+      gone.push(membership.threadId);
       await deleteNotesForThread(membership.threadId, trx);
       await trx.deleteFrom("threads").where("id", "=", membership.threadId).execute();
     }
@@ -117,7 +135,11 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
     const blobs = await trx.selectFrom("blobs").select("id").where("account_id", "=", accountId).execute();
 
     // What no foreign key reaches.
-    await trx.deleteFrom("notes").where("account_id", "=", accountId).where("scope", "in", ["account", "person"]).execute();
+    await trx
+      .deleteFrom("notes")
+      .where("scope", "in", ["account", "person"])
+      .where((eb) => eb.or([eb("account_id", "=", accountId), eb.and([eb("scope", "=", "account"), eb("subject_id", "=", accountId)])]))
+      .execute();
     await trx.deleteFrom("blob_keys").where("scope", "=", "account").where("scope_id", "=", accountId).execute();
     await trx.deleteFrom("analytics_events").where("subject_id", "=", account.analytics_subject_id).execute();
     await trx.deleteFrom("waitlist_attempts").where("email_hmac", "=", attemptHmac(account.email)).execute();
@@ -127,15 +149,14 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
 
     // A thread wrap with no row left carrying the photo, then the photos
     // nothing carries at all. The object itself is the purge job's.
-    await sql`
-      delete from blob_keys bk
-      where bk.scope = 'thread'
-        and not exists (
-          select 1 from content_blobs cb
-          join content c on c.id = cb.content_id
-          where cb.blob_id = bk.blob_id and c.thread_id = bk.scope_id
-        )
-    `.execute(trx);
+    // Only the threads this delete removed: every other thread's wraps are
+    // somebody else's key material.
+    if (gone.length > 0) {
+      await trx.deleteFrom("blob_keys").where("scope", "=", "thread").where("scope_id", "in", gone).execute();
+    }
+    if (unopened > 0) {
+      console.error(JSON.stringify({ level: "error", msg: "thread keys not handed on", threads: unopened }));
+    }
     const unreferenced =
       blobs.length === 0
         ? []
@@ -157,8 +178,14 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
       await enqueue({ kind: "connector.revoke", payload: {}, priority: PRIORITY.background, tx: trx });
     }
     // The address rides in the payload because the account it belonged to no
-    // longer exists to look it up from.
-    await enqueue({ kind: "email.account_deleted", payload: { to: account.email }, tx: trx });
+    // longer exists to look it up from. Sealed, and the handler empties the
+    // payload once it has sent: a job row outlives its work by thirty days.
+    const notice = uuidv7();
+    await enqueue({
+      kind: "email.account_deleted",
+      payload: { id: notice, to: seal(account.email, notice, "notice_address").toString("base64") },
+      tx: trx,
+    });
     await emit({ name: "account_deleted", tx: trx });
 
     return { deleted: true, email: account.email };

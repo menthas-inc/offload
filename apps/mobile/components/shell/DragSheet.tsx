@@ -203,6 +203,7 @@ export function DragSheet({
   scrim,
   accessibilityLabel,
   onOpen,
+  locked = false,
 }: {
   /** The scrim, the grabber, and Android's back. Cancel, never Save. */
   onClose: () => void;
@@ -222,6 +223,11 @@ export function DragSheet({
    *  waits on JS for its first frame, so an autofocused keyboard beat a
    *  sheet opened from another sheet by a quarter of a second. */
   onOpen?: (() => void) | undefined;
+  /** Nothing closes it: not the scrim, the grabber, a drag or Android's back.
+   *  For the moment a write that cannot be taken back is in flight. It has to
+   *  be the sheet's, since every one of those exits has moved the sheet
+   *  before the caller's `onClose` is asked. */
+  locked?: boolean;
 }) {
   const COLOR = useColors();
   const insets = useSafeAreaInsets();
@@ -264,18 +270,19 @@ export function DragSheet({
     setClosing(true);
   }, []);
   const dismiss = useCallback(() => {
+    if (locked) return;
     leave();
     y.value = withSpring(travel.value + PAST, closeSpring, (done) => {
       if (done) runOnJS(onClose)();
     });
-  }, [leave, onClose, travel, y]);
+  }, [leave, locked, onClose, travel, y]);
 
   // Caught on its way out and let go short: it is open again, and the plate,
   // the scrim and back belong to it again.
   const regrab = useCallback(() => setClosing(false), []);
-  const pan = useSheetDrag({ y, travel, held, onCloseStart: leave, onClosed: onClose, onGrab: regrab });
+  const pan = useSheetDrag({ y, travel, held, onCloseStart: leave, onClosed: onClose, onGrab: regrab }).enabled(!locked);
 
-  useSheetBack(!closing, {
+  useSheetBack(!closing && !locked, {
     start: () => cancelAnimation(y),
     progress: (swipe) => {
       y.value = backPull(swipe, travel.value);
