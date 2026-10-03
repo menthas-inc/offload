@@ -261,6 +261,17 @@ export default function Privacy() {
               Never what was in it.
             </li>
             <li>
+              <strong>What each account costs to run.</strong> Every time offload calls an AI
+              model or looks something up, we record which model, how much it read and wrote, how
+              long it took and what it cost. Never what was in it.
+            </li>
+            <li>
+              <strong>When a limit stops you, and what staff do to your account.</strong> A limit
+              refusing you is kept for 30 days. A record of staff opening your account&rsquo;s
+              page, disabling it, signing it out or changing its limits is kept for two years, so
+              that access by us can be checked. It holds who did what and when.
+            </li>
+            <li>
               <strong>Your device&apos;s time zone</strong>, sent with each thing you dump, type
               into a thread or answer, and kept with it, so that &quot;tomorrow&quot; and
               &quot;3pm&quot; mean what they meant where you were. The first one offload hears
@@ -743,8 +754,12 @@ export default function Privacy() {
               too.
             </li>
             <li>
-              <strong>Product events:</strong> kept, but detached. Deleting your account destroys
-              the identifier that connects them to you.
+              <strong>Product events and cost records:</strong> kept, but detached. Deleting your
+              account destroys the identifier that connects them to you.
+            </li>
+            <li>
+              <strong>The record of staff actions: two years.</strong> It names an account by an
+              internal number that points at nothing once the account is gone.
             </li>
             <li>
               <strong>Activity, the record of what offload sent you: 30 days.</strong> A row that
@@ -925,6 +940,9 @@ export default function Privacy() {
             <li>
               Only a small number of people can reach production, and they read your content when
               you have asked for help or when a specific fault requires it. Not to look around.
+              Staff who help with accounts use a panel that shows no content: your name and
+              address, when you were last active, counts of what you have, what ran and what it
+              cost. Opening your page there is recorded.
             </li>
             <li>
               Backups run nightly and are encrypted. We can restore to a point in time if something
