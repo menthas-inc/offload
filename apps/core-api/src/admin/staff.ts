@@ -71,7 +71,17 @@ export function requireStaff(minimum: StaffRole = "support") {
     const floor = declared && atLeast(declared, minimum) ? declared : minimum;
     // The prefix's hook has already resolved the session by the time the
     // owner scope's runs; one lookup a request.
-    const staff = request.staff ?? (await currentStaff(request));
+    //
+    // A lookup that throws is nobody: the session row went between the cookie
+    // being read and the row being used, or the database did. Answered as any
+    // request the panel cannot place, never as a 401 or a 500, which would say
+    // there is something here. Logged by its name alone.
+    const staff =
+      request.staff ??
+      (await currentStaff(request).catch((error: unknown) => {
+        request.log.warn({ reason: error instanceof Error ? error.name : "unknown" }, "staff lookup failed");
+        return null;
+      }));
     if (!staff || !atLeast(staff.role, floor)) {
       return reply.status(404).send({ error: "not-found" });
     }

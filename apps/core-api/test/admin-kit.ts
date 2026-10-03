@@ -49,8 +49,18 @@ export async function signIn(accountId: string): Promise<string> {
  *  thread and an accepted membership, as promotion makes them. */
 export async function activeAccount(email = `${uuidv7()}@example.test`): Promise<string> {
   const promoted = await promote(email);
-  await db.updateTable("accounts").set({ state: "active" }).where("id", "=", promoted.accountId).execute();
+  // Signed in, which is what makes it a person to the panel: People lists it
+  // and Costs counts it (`signedIn`, in `accounts/active.ts`).
+  await db.updateTable("accounts").set({ state: "active", first_signed_in_at: new Date() }).where("id", "=", promoted.accountId).execute();
   return promoted.accountId;
+}
+
+/** An account that was let in and never came: active on paper, and not a
+ *  person to the panel. */
+export async function neverSignedIn(email = `${uuidv7()}@example.test`): Promise<string> {
+  const id = await activeAccount(email);
+  await db.updateTable("accounts").set({ first_signed_in_at: null }).where("id", "=", id).execute();
+  return id;
 }
 
 /** A signed-in staff member. */

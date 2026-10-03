@@ -14,6 +14,7 @@ import { uuidv7 } from "../src/uuid.js";
 import {
   SETTING_KEYS,
   SettingsRefused,
+  clearOverrides,
   clearSettingsCache,
   limitFor,
   listSettings,
@@ -176,6 +177,26 @@ describe("AC-30 a person's override", () => {
     await db.insertInto("account_limits").values({ account_id: me, key: "cap.spend_micros", value: 9_000_000 }).execute();
     await store("cap.spend_micros", 1_000_000);
     expect(await limitFor(me, "cap.spend_micros")).toBe(9_000_000);
+  });
+
+  it("forgets one account's overrides without forgetting anybody else's, or the settings", async () => {
+    const me = await account();
+    const other = await account();
+    await store("cap.turns", 40);
+    clearSettingsCache();
+    expect(await limitFor(me, "cap.turns")).toBe(40);
+    expect(await limitFor(other, "cap.turns")).toBe(40);
+
+    // All three move underneath; only what was asked for is read again.
+    await db.insertInto("account_limits").values({ account_id: me, key: "cap.turns", value: 7 }).execute();
+    await db.insertInto("account_limits").values({ account_id: other, key: "cap.turns", value: 9 }).execute();
+    // Written straight to the table: `store` forgets the settings itself.
+    await db.insertInto("app_settings").values({ key: "cap.photos", value: "3", updated_by_account_id: null }).execute();
+    expect(await setting("cap.photos")).toBe(DAILY_PHOTOS);
+    clearOverrides(me);
+    expect(await limitFor(me, "cap.turns")).toBe(7);
+    expect(await limitFor(other, "cap.turns")).toBe(40);
+    expect(await setting("cap.photos")).toBe(DAILY_PHOTOS);
   });
 
   it("outside the setting's bounds reads as the global value", async () => {

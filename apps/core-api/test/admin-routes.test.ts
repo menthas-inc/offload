@@ -9,7 +9,9 @@
 // one `onRequest` hook on the prefix, so a route nobody remembered to guard
 // is refused anyway; this is the test that says so for each one.
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { APIError } from "better-auth/api";
+import { auth } from "../src/auth/auth.js";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App, type RouteEntry } from "../src/app.js";
@@ -41,6 +43,9 @@ afterAll(async () => {
 });
 
 beforeEach(wipeAdmin);
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 /** Owner pages, by where they live. Health, Costs, Limits, Staff and Audit:
  *  support does not see them refused, it does not see them. */
@@ -70,21 +75,24 @@ const call = (route: RouteEntry, cookie?: string) =>
     ...(route.method === "GET" || route.method === "DELETE" ? {} : { payload: {} }),
   });
 
+/** The admin API as it was before 034 added a page. */
+const BEFORE = [
+  "GET /v1/admin/me",
+  "GET /v1/admin/waitlist",
+  "POST /v1/admin/waitlist/:id/invite",
+  "POST /v1/admin/waitlist/invite",
+  "POST /v1/admin/waitlist/:id/resend",
+  "DELETE /v1/admin/waitlist/:id",
+  "POST /v1/admin/waitlist/remove",
+  "POST /v1/admin/waitlist/invite-next",
+  "GET /v1/admin/settings",
+  "PATCH /v1/admin/settings",
+];
+
 describe("the route table", () => {
   it("holds the admin API, including the routes that existed before 034", () => {
     const names = routes.map(name);
-    for (const expected of [
-      "GET /v1/admin/me",
-      "GET /v1/admin/waitlist",
-      "POST /v1/admin/waitlist/:id/invite",
-      "POST /v1/admin/waitlist/invite",
-      "POST /v1/admin/waitlist/:id/resend",
-      "DELETE /v1/admin/waitlist/:id",
-      "POST /v1/admin/waitlist/remove",
-      "POST /v1/admin/waitlist/invite-next",
-      "GET /v1/admin/settings",
-      "PATCH /v1/admin/settings",
-    ]) {
+    for (const expected of BEFORE) {
       expect(names, expected).toContain(expected);
     }
   });
@@ -156,6 +164,36 @@ describe("AC-3 every admin route carries the staff check at the right rank", () 
     }
   });
 
+  // The session row can go between the cookie being read and the row being
+  // used, and the lookup can fail outright. Neither is a different answer:
+  // the panel does not say why it will not place a request.
+  it("answers 404 when the session cannot be looked up, as it does to anybody it cannot place", async () => {
+    const owner = await staffMember("owner");
+    const settings = routes.find((route) => name(route) === "GET /v1/admin/settings")!;
+    const disable = routes.find((route) => name(route) === "POST /v1/admin/people/:id/disable")!;
+
+    for (const failure of [new APIError("UNAUTHORIZED", { message: "Failed to get session" }), new Error("Connection terminated unexpectedly")]) {
+      for (const route of [settings, disable]) {
+        vi.spyOn(auth.api, "getSession").mockRejectedValueOnce(failure);
+        const response = await call(route, owner.cookie);
+        expect(response.statusCode, `${name(route)}: ${failure.message}`).toBe(404);
+        expect(response.json(), name(route)).toEqual({ error: "not-found" });
+      }
+    }
+    // And the same cookie is good again once the lookup is.
+    expect((await call(settings, owner.cookie)).statusCode).toBe(200);
+
+    // The admin API is left out of the rule that holds writes until consent
+    // (`accounts/active.ts`), because this guard is that rule and more: staff
+    // whose account is not active are not found, on a write as on a read.
+    await db.updateTable("accounts").set({ state: "invited" }).where("id", "=", owner.id).execute();
+    for (const route of [settings, disable]) {
+      const response = await call(route, owner.cookie);
+      expect(response.statusCode, name(route)).toBe(404);
+      expect(response.json(), name(route)).toEqual({ error: "not-found" });
+    }
+  });
+
   it("closes for staff the moment the role goes", async () => {
     const owner = await staffMember("owner");
     const settings = routes.find((route) => name(route) === "GET /v1/admin/settings")!;
@@ -189,11 +227,16 @@ describe("AC-52 every write declares its audit entry", () => {
   });
 });
 
-// Red until the merge. Groundwork registers each section's file empty; the
-// six sections and deletion fill them. This is the list from the impl-spec,
-// and the marker comes off when every one of them is registered.
+// Red until deletion lands. Groundwork registered each section's file empty
+// and the six sections filled them; the two delete routes are stage 2. This
+// is the list from the impl-spec, reconciled at the merge with what the
+// sections registered beyond it (invite by address, the two stats rows'
+// reads, the audit filters' choices), and the marker comes off when every
+// one of them is registered.
 describe("every route the impl-spec names", () => {
   const SPEC = [
+    "POST /v1/admin/waitlist/invite-address",
+    "GET /v1/admin/waitlist/stats",
     "GET /v1/admin/people",
     "GET /v1/admin/people/stats",
     "POST /v1/admin/people/:id/disable",
@@ -234,10 +277,26 @@ describe("every route the impl-spec names", () => {
     "PATCH /v1/admin/staff/:id",
     "DELETE /v1/admin/staff/:id",
     "GET /v1/admin/audit",
+    "GET /v1/admin/audit/facets",
   ];
 
   it.fails("is registered", () => {
     const names = routes.map(name);
     expect(SPEC.filter((route) => !names.includes(route))).toEqual([]);
+  });
+
+  // Why the one above still fails, held so that it fails for this and for
+  // nothing else: a path that drifts from the list shows here.
+  it("is registered but for deletion, which is not built yet", () => {
+    const names = routes.map(name);
+    expect(SPEC.filter((route) => !names.includes(route))).toEqual([
+      "POST /v1/admin/people/:id/delete",
+      "POST /v1/admin/people/:id/delete/cancel",
+    ]);
+  });
+
+  it("is the whole admin API: nothing is registered that no list names", () => {
+    const listed = new Set([...BEFORE, ...SPEC]);
+    expect(routes.map(name).filter((route) => !listed.has(route))).toEqual([]);
   });
 });

@@ -1,0 +1,603 @@
+"use client";
+
+// A person: one account, for troubleshooting, with nothing they wrote on it.
+//
+// No kit draws this page. It is built from the kit's vocabulary (`../../ui`)
+// in the order 034 section 3 gives: who they are, today against each cap,
+// their limits, cost and activity per day, what they have, what happened and
+// what refused them. Counts, kinds, times, costs and codes. No name of a
+// thread, a file or a calendar, no second address, and nothing about where a
+// session came from.
+//
+// Which actions are drawn is the server's answer (`can`): a guarded action is
+// not drawn. Delete, and the page of a deleted account, are built with
+// account destruction (034 section G); their places are marked below.
+
+import { useEffect, useRef, useState } from "react";
+import { useParams } from "next/navigation";
+import styles from "../../../admin.module.css";
+import {
+  Back,
+  Confirm,
+  Empty,
+  Failed,
+  Field,
+  Loading,
+  PaneHead,
+  Plot,
+  RangePicker,
+  Row,
+  Section,
+  Stat,
+  Stats,
+  StatusPill,
+  Table,
+  adminWrite,
+  count,
+  day,
+  dollars,
+  moment,
+  outOfBounds,
+  useAdminRead,
+  useRange,
+  useSay,
+  type Col,
+} from "../../../ui";
+import { capLabel } from "../../limits/labels";
+import { Choice } from "../choice";
+import { usePaged } from "../paged";
+
+interface Who {
+  id: string;
+  name: string;
+}
+
+interface Cap {
+  key: string;
+  used: number;
+  limit: number;
+  reached: boolean;
+}
+
+interface Limit {
+  key: string;
+  kind: "int" | "micros";
+  global: number;
+  override: number | null;
+  min: number;
+  max: number;
+  setBy: Who | null;
+  setAt: string | null;
+}
+
+interface Person {
+  id: string;
+  name: string | null;
+  email: string;
+  state: "active" | "disabled";
+  joined: string;
+  firstSignedInAt: string;
+  lastActive: string | null;
+  disabledAt: string | null;
+  providers: string[];
+  country: string | null;
+  timeZone: string | null;
+  consentVersion: string | null;
+  invitedBy: Who | null;
+  can: { disable: boolean; enable: boolean; limits: boolean };
+  today: { caps: Cap[]; refused: { cap: string; scope: "account" | "platform" } | null };
+  limits: Limit[];
+  has: {
+    threadsAlone: number;
+    threadsShared: number;
+    dumped: number;
+    notes: number;
+    connections: number;
+    files: number;
+    fileBytes: number;
+    calendars: number;
+    calendarSync: "ok" | "failed" | null;
+    devices: { ios: number; android: number };
+    sessions: number;
+    sessionLastUsed: string | null;
+  };
+}
+
+interface Usage {
+  days: Array<{ day: string; costMicros: number; turns: number; photos: number; voiceNotes: number; mail: number }>;
+}
+
+interface Job {
+  id: string;
+  kind: string;
+  state: string;
+  attempts: number;
+  at: string;
+  durationMs: number | null;
+  errorCode: string | null;
+  /** From the ledger rows that name the job. Null when it called no model. */
+  model: string | null;
+  tokensIn: number | null;
+  tokensOut: number | null;
+  costMicros: number | null;
+  canRetry: boolean;
+}
+
+interface Hit {
+  cap: string;
+  scope: "account" | "platform";
+  day: string;
+  count: number;
+  lastAt: string;
+}
+
+const MB = 1024 * 1024;
+const megabytes = (bytes: number) => `${count(Math.round(bytes / MB))} MB`;
+const minutes = (ms: number) => `${count(Math.round(ms / 60_000))} min`;
+
+/** How each cap's value reads, and the unit an owner types an override in.
+ *  What a cap is called is Limits' to say (`limits/labels.ts`): one set of
+ *  words for a cap wherever the panel names it. */
+const UNITS: Record<string, { show: (value: number) => string; unit: number; prefix?: string; suffix?: string }> = {
+  "cap.spend_micros": { show: dollars, unit: 1_000_000, prefix: "$" },
+  "cap.photo_bytes": { show: megabytes, unit: MB, suffix: "MB" },
+  "cap.voice_ms": { show: minutes, unit: 60_000, suffix: "min" },
+  "platform.spend_micros": { show: dollars, unit: 1_000_000, prefix: "$" },
+};
+
+/** A cap the panel has no name for shows its key, and one with no unit of
+ *  its own is a count. */
+const capOf = (key: string) => ({ label: capLabel(key), ...(UNITS[key] ?? { show: count, unit: 1 }) });
+
+const PROVIDER: Record<string, string> = { apple: "Apple", google: "Google" };
+
+const LIMIT_COLS: Col[] = [
+  { label: "Cap" },
+  { label: "Global", w: 110, right: true },
+  { label: "Override", w: 110, right: true },
+  { label: "Set by", w: 170 },
+  { label: "When", w: 80 },
+  { label: "", w: 130, right: true },
+];
+
+const JOB_COLS: Col[] = [
+  { label: "When", w: 130 },
+  { label: "Kind" },
+  { label: "State", w: 92 },
+  { label: "Attempts", w: 76, right: true },
+  { label: "Took", w: 80, right: true },
+  { label: "Model", w: 170 },
+  { label: "Tokens", w: 150, right: true },
+  { label: "Cost", w: 80, right: true },
+  { label: "Code", w: 150 },
+  { label: "", w: 96, right: true },
+];
+
+const HIT_COLS: Col[] = [
+  { label: "Day", w: 100 },
+  { label: "Cap" },
+  { label: "Whose", w: 140 },
+  { label: "Times", w: 76, right: true },
+];
+
+const SHOWN = [
+  { value: "all", label: "Everything" },
+  { value: "failed", label: "Failures" },
+] as const;
+
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <>
+      <dt className={styles.factLabel}>{label}</dt>
+      <dd className={styles.factValue}>{children}</dd>
+    </>
+  );
+}
+
+export default function PersonPage() {
+  const { id } = useParams<{ id: string }>();
+  const range = useRange();
+  const [shown, setShown] = useState<(typeof SHOWN)[number]["value"]>("all");
+  const [asking, setAsking] = useState<"disable" | "sign-out" | null>(null);
+  const [setting, setSetting] = useState<Limit | null>(null);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const { toast, say } = useSay();
+
+  const person = useAdminRead<Person>(`/people/${id}`);
+  const usage = useAdminRead<Usage>(`/people/${id}/usage?range=${range}`);
+  const timeline = usePaged<Job>(`/people/${id}/timeline${shown === "failed" ? "?failed=1" : ""}`);
+  const hits = useAdminRead<{ rows: Hit[] }>(`/people/${id}/hits`);
+
+  // Opening this page is recorded, once per staff member, person and day. A
+  // write the page makes after it loads, because no read changes anything.
+  const loaded = person.data?.id ?? null;
+  const recorded = useRef<string | null>(null);
+  useEffect(() => {
+    if (!loaded || recorded.current === loaded) return;
+    recorded.current = loaded;
+    void adminWrite(`/people/${loaded}/viewed`, "POST").catch(() => null);
+  }, [loaded]);
+
+  const reload = () => {
+    person.reload();
+    usage.reload();
+    timeline.reload();
+    hits.reload();
+  };
+
+  if (!person.data) {
+    return (
+      <>
+        <Back />
+        {/* 034 section G. A deleted account's page goes here: its head, the
+            day it was deleted and its audit entries, and nothing else. */}
+        {person.state === "failed" ? <Failed what="this person" onRetry={person.reload} /> : <Loading />}
+      </>
+    );
+  }
+
+  const who = person.data;
+  const called = who.name ?? who.email;
+
+  /** One of the row actions. A failed write leaves the page as it was and
+   *  says what did not happen. */
+  async function act(path: string, done: string, undone: string) {
+    setBusy(true);
+    const response = await adminWrite(path, "POST").catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      say(`That did not go through. ${undone}`);
+      return false;
+    }
+    say(done);
+    return true;
+  }
+
+  async function override(limit: Limit, value: number | null) {
+    setBusy(true);
+    const response = await adminWrite(`/people/${who.id}/limits`, "PATCH", { key: limit.key, value }).catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      say("That did not go through. The override was not changed.");
+      return;
+    }
+    say(value === null ? "Override cleared" : "Override set");
+    person.reload();
+  }
+
+  async function retry(job: Job) {
+    // Health's route. It gives a dead job one more attempt, once, and refuses
+    // one for an account that is disabled or over its cap.
+    if (await act(`/jobs/${job.id}/retry`, "Retrying", "Nothing was retried.")) timeline.reload();
+  }
+
+  const used = new Map(who.today.caps.map((cap) => [cap.key, cap]));
+  /** A cap's figure for Today: what was used, of what. */
+  const of = (key: string) => {
+    const cap = used.get(key);
+    return cap ? `${capOf(key).show(cap.used)} of ${capOf(key).show(cap.limit)}` : "";
+  };
+  const reached = (...keys: string[]) => (keys.some((key) => used.get(key)?.reached) ? ("attention" as const) : undefined);
+  const usedOf = (key: string) => {
+    const cap = used.get(key);
+    return cap ? capOf(key).show(cap.used) : "";
+  };
+  const limitOf = (key: string) => {
+    const cap = used.get(key);
+    return cap ? `of ${capOf(key).show(cap.limit)}` : "";
+  };
+
+  const settingCap = setting ? capOf(setting.key) : null;
+  const typedValue = settingCap ? Math.round(Number(typed) * settingCap.unit) : 0;
+  const typedOk =
+    setting !== null && settingCap !== null && typed.trim() !== "" && !outOfBounds(typed, setting.min / settingCap.unit, setting.max / settingCap.unit);
+
+  const days = usage.data?.days ?? [];
+  const series = (pick: (one: Usage["days"][number]) => number) => days.map((one) => ({ label: day(one.day), value: pick(one) }));
+  const plots = usage.state === "failed" && !usage.data ? <Failed what="the plots" onRetry={usage.reload} /> : null;
+
+  const has = who.has;
+  const devices = has.devices.ios + has.devices.android;
+
+  return (
+    <>
+      <Back />
+      <PaneHead
+        title={called}
+        sub={who.name ? who.email : undefined}
+        asOf={person.asOf}
+        onRefresh={reload}
+        tools={
+          <>
+            <StatusPill value={who.state} />
+            <RangePicker />
+          </>
+        }
+      />
+
+      <div className={styles.actions}>
+        <button type="button" className={styles.small} onClick={() => setAsking("sign-out")} disabled={busy}>
+          Sign out everywhere
+        </button>
+        {who.can.disable ? (
+          <button type="button" className={styles.ghost} onClick={() => setAsking("disable")} disabled={busy}>
+            Disable
+          </button>
+        ) : null}
+        {who.can.enable ? (
+          <button
+            type="button"
+            className={styles.small}
+            disabled={busy}
+            onClick={() => void act(`/people/${who.id}/enable`, `${called} is active again`, "Nobody was enabled.").then((ok) => ok && person.reload())}
+          >
+            Enable
+          </button>
+        ) : null}
+        {/* 034 section G. The owner-only Delete goes here, last, with the
+            address typed back and the 24 hour hold; and its cancel. */}
+      </div>
+
+      <Section>Who</Section>
+      <div data-section="who">
+        <dl className={styles.facts}>
+          <Fact label="Name">{who.name ?? "Not set"}</Fact>
+          <Fact label="Address">{who.email}</Fact>
+          <Fact label="State">{who.disabledAt ? `Disabled since ${day(who.disabledAt)}` : who.state === "active" ? "Active" : "Disabled"}</Fact>
+          <Fact label="Joined">{day(who.joined)}</Fact>
+          {who.invitedBy ? <Fact label="Invited by">{who.invitedBy.name}</Fact> : null}
+          <Fact label="First signed in">{day(who.firstSignedInAt)}</Fact>
+          <Fact label="Last active">{who.lastActive ? moment(who.lastActive) : "Not yet"}</Fact>
+          <Fact label="Signs in with">{who.providers.map((provider) => PROVIDER[provider] ?? provider).join(", ") || "Nothing linked"}</Fact>
+          <Fact label="Country">{who.country ?? "Not set"}</Fact>
+          <Fact label="Time zone">{who.timeZone ?? "Not set"}</Fact>
+          <Fact label="Consent">{who.consentVersion ?? "Not given"}</Fact>
+        </dl>
+      </div>
+
+      <Section note="the last 24 hours, rolling">Today</Section>
+      {who.today.refused ? (
+        <p className={styles.lineNote} data-tone="attention">
+          {who.today.refused.scope === "platform"
+            ? "The platform's cap is refusing everybody now."
+            : `At a limit now: ${capOf(who.today.refused.cap).label.toLowerCase()}.`}
+        </p>
+      ) : null}
+      <div data-section="today">
+        <Stats>
+          <Stat label={capLabel("cap.spend_micros")} value={usedOf("cap.spend_micros")} note={limitOf("cap.spend_micros")} tone={reached("cap.spend_micros")} />
+          <Stat label={capLabel("cap.turns")} value={usedOf("cap.turns")} note={limitOf("cap.turns")} tone={reached("cap.turns")} />
+          <Stat
+            label={capLabel("cap.photos")}
+            value={usedOf("cap.photos")}
+            note={`${limitOf("cap.photos")} · ${of("cap.photo_bytes")}`}
+            tone={reached("cap.photos", "cap.photo_bytes")}
+          />
+          <Stat
+            label={capLabel("cap.voice_notes")}
+            value={usedOf("cap.voice_notes")}
+            note={`${limitOf("cap.voice_notes")} · ${of("cap.voice_ms")}`}
+            tone={reached("cap.voice_notes", "cap.voice_ms")}
+          />
+          <Stat
+            label="Mail in"
+            value={usedOf("cap.mail_day")}
+            note={`${limitOf("cap.mail_day")} · ${of("cap.mail_hour")} this hour`}
+            tone={reached("cap.mail_day", "cap.mail_hour")}
+          />
+        </Stats>
+      </div>
+
+      <Section note="per person, in any 24 hours">Limits</Section>
+      <div data-section="limits">
+        <Table cols={LIMIT_COLS}>
+          {who.limits.map((limit, index) => (
+            <Row
+              key={limit.key}
+              cols={LIMIT_COLS}
+              last={index === who.limits.length - 1}
+              cells={[
+                capOf(limit.key).label,
+                capOf(limit.key).show(limit.global),
+                limit.override === null ? null : <b key="own">{capOf(limit.key).show(limit.override)}</b>,
+                <span key="by" className={styles.quiet}>
+                  {limit.setBy?.name}
+                </span>,
+                <span key="when" className={styles.quiet}>
+                  {limit.setAt ? day(limit.setAt) : null}
+                </span>,
+                who.can.limits ? (
+                  <span key="actions" className={styles.rowActions}>
+                    {limit.override !== null ? (
+                      <button type="button" className={styles.ghost} onClick={() => void override(limit, null)} disabled={busy}>
+                        Clear
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className={styles.small}
+                      disabled={busy}
+                      onClick={() => {
+                        setTyped("");
+                        setSetting(limit);
+                      }}
+                    >
+                      Set
+                    </button>
+                  </span>
+                ) : null,
+              ]}
+            />
+          ))}
+        </Table>
+      </div>
+
+      <Section note="UTC days">Cost per day</Section>
+      {plots ?? (usage.data ? <Plot label="Cost per day" points={series((one) => one.costMicros)} format={dollars} /> : null)}
+
+      <Section note="UTC days">Activity per day</Section>
+      {plots ??
+        (usage.data ? (
+          <div className={styles.plots}>
+            <Plot
+              label="Turns per day"
+              caption="Turns"
+              points={series((one) => one.turns)}
+              format={count}
+              startsAt={range === "90d" ? "Turns are kept for 30 days." : undefined}
+            />
+            <Plot label="Photos per day" caption="Photos" points={series((one) => one.photos)} format={count} />
+            <Plot label="Voice notes per day" caption="Voice notes" points={series((one) => one.voiceNotes)} format={count} />
+            <Plot label="Mail in per day" caption="Mail in" points={series((one) => one.mail)} format={count} />
+          </div>
+        ) : null)}
+
+      <Section note="counts only">What they have</Section>
+      <div data-section="has">
+        <Stats>
+          <Stat
+            label="Threads"
+            value={count(has.threadsAlone + has.threadsShared)}
+            note={`${count(has.threadsAlone)} alone, ${count(has.threadsShared)} shared`}
+          />
+          <Stat label="Dumped" value={count(has.dumped)} />
+          <Stat label="Notes" value={count(has.notes)} />
+          <Stat label="Connections" value={count(has.connections)} />
+        </Stats>
+        <Stats>
+          <Stat label="Files" value={count(has.files)} note={megabytes(has.fileBytes)} />
+          <Stat
+            label="Calendars"
+            value={count(has.calendars)}
+            note={has.calendarSync === "failed" ? "last sync failed" : has.calendarSync === "ok" ? "last sync worked" : undefined}
+            tone={has.calendarSync === "failed" ? "attention" : undefined}
+          />
+          <Stat label="Devices" value={count(devices)} note={devices ? `${has.devices.ios} iOS, ${has.devices.android} Android` : undefined} />
+          <Stat label="Sessions" value={count(has.sessions)} note={has.sessionLastUsed ? `last used ${moment(has.sessionLastUsed)}` : undefined} />
+        </Stats>
+      </div>
+
+      <Section note="the last 30 days, which is how long jobs are kept">What happened</Section>
+      <div data-section="happened">
+        {timeline.state === "failed" && !timeline.data ? (
+          <Failed what="what happened" onRetry={timeline.reload} />
+        ) : timeline.data ? (
+          <>
+            <div className={styles.tableTools}>
+              <Choice label="Show" options={SHOWN} value={shown} onChange={setShown} />
+            </div>
+            <Table cols={JOB_COLS}>
+              {timeline.rows.map((job, index) => (
+                <Row
+                  key={job.id}
+                  cols={JOB_COLS}
+                  last={index === timeline.rows.length - 1}
+                  cells={[
+                    <span key="at" className={styles.quiet}>
+                      {moment(job.at)}
+                    </span>,
+                    job.kind,
+                    <StatusPill key="state" value={job.state} />,
+                    job.attempts,
+                    job.durationMs === null ? null : `${(job.durationMs / 1000).toFixed(1)}s`,
+                    <span key="model" className={styles.quiet}>
+                      {job.model}
+                    </span>,
+                    job.tokensIn === null || job.tokensOut === null ? null : `${count(job.tokensIn)} in, ${count(job.tokensOut)} out`,
+                    job.costMicros === null ? null : dollars(job.costMicros),
+                    job.errorCode,
+                    job.canRetry ? (
+                      <button key="retry" type="button" className={styles.small} onClick={() => void retry(job)} disabled={busy}>
+                        Retry
+                      </button>
+                    ) : null,
+                  ]}
+                />
+              ))}
+            </Table>
+            {timeline.rows.length === 0 ? (
+              <Empty>{shown === "failed" ? "Nothing of theirs has failed in 30 days." : "Nothing has run for them in 30 days."}</Empty>
+            ) : null}
+            {timeline.state === "failed" ? <Failed what="what happened" onRetry={timeline.reload} /> : null}
+            {timeline.loadMore ? (
+              <div className={styles.more}>
+                <button type="button" className={styles.ghost} onClick={timeline.loadMore}>
+                  Load more
+                </button>
+              </div>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+
+      <Section note="each time a cap refused them, for 30 days">Limit hits</Section>
+      <div data-section="hits">
+        {hits.state === "failed" && !hits.data ? (
+          <Failed what="the limit hits" onRetry={hits.reload} />
+        ) : hits.data && hits.data.rows.length === 0 ? (
+          <Empty>No cap has refused them in 30 days.</Empty>
+        ) : hits.data ? (
+          <Table cols={HIT_COLS}>
+            {hits.data.rows.map((hit, index) => (
+              <Row
+                key={`${hit.day} ${hit.cap} ${hit.scope}`}
+                cols={HIT_COLS}
+                last={index === hits.data!.rows.length - 1}
+                cells={[day(hit.day), capOf(hit.cap).label, hit.scope === "platform" ? "the platform's" : "theirs", count(hit.count)]}
+              />
+            ))}
+          </Table>
+        ) : null}
+      </div>
+
+      {asking === "disable" ? (
+        <Confirm
+          title={`Disable ${called}?`}
+          body="They are signed out everywhere and cannot sign in again until you enable them. Nothing is deleted."
+          confirmLabel="Disable"
+          busy={busy}
+          onConfirm={() => void act(`/people/${who.id}/disable`, `${called} is disabled`, "Nobody was disabled.").then((ok) => ok && person.reload())}
+          onClose={() => setAsking(null)}
+        />
+      ) : null}
+
+      {asking === "sign-out" ? (
+        <Confirm
+          title={`Sign ${called} out everywhere?`}
+          body="Every session of theirs ends now. The account stays active and they can sign in again."
+          confirmLabel="Sign out"
+          busy={busy}
+          onConfirm={() => void act(`/people/${who.id}/sign-out`, "Signed out everywhere", "Nobody was signed out.").then((ok) => ok && person.reload())}
+          onClose={() => setAsking(null)}
+        />
+      ) : null}
+
+      {setting && settingCap ? (
+        <Confirm
+          title={`${settingCap.label} for ${called}`}
+          body="Their own value, in place of the global one, until it is cleared."
+          confirmLabel="Set"
+          ready={typedOk}
+          busy={busy}
+          onConfirm={() => void override(setting, typedValue)}
+          onClose={() => setSetting(null)}
+        >
+          <Field
+            label="Override"
+            value={typed}
+            onChange={setTyped}
+            prefix={settingCap.prefix}
+            suffix={settingCap.suffix}
+            min={setting.min / settingCap.unit}
+            max={setting.max / settingCap.unit}
+            hint={`The global value is ${settingCap.show(setting.global)}.`}
+            width="100%"
+          />
+        </Confirm>
+      ) : null}
+
+      {toast}
+    </>
+  );
+}

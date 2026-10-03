@@ -180,6 +180,10 @@ export async function notifySharedActivity(payload: { threadId: string; authorId
       .where("content.deleted_at", "is", null)
       .where("content.created_at", ">=", since)
       .where("content.created_at", "<", until)
+      // In the database, where a moment has its microseconds. The sort below
+      // is by a Date, which has milliseconds, and is stable, so two rows made
+      // inside one millisecond keep this order.
+      .orderBy("content.created_at")
       .execute();
     const notes = await db
       .selectFrom("readable_notes as note")
@@ -190,6 +194,7 @@ export async function notifySharedActivity(payload: { threadId: string; authorId
       .where("note.deleted_at", "is", null)
       .where("note.created_at", ">=", since)
       .where("note.created_at", "<", until)
+      .orderBy("note.created_at")
       .execute();
     const added = [...rows, ...notes].sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
     if (added.length === 0) continue;

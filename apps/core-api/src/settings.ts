@@ -165,6 +165,12 @@ export function clearSettingsCache(): void {
   overrides.clear();
 }
 
+/** Forget one account's own values, and nothing else. Called after an
+ *  override is set or cleared, so this instance's next check reads it. */
+export function clearOverrides(accountId: string): void {
+  overrides.delete(accountId);
+}
+
 async function stored(): Promise<Map<string, Stored>> {
   if (cached && Date.now() - cached.at < CACHE_MS) return cached.rows;
   const rows = await db.selectFrom("app_settings").select(["key", "value", "updated_at"]).execute();

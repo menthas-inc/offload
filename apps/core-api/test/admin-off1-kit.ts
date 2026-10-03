@@ -159,8 +159,8 @@ export async function seedMarked(): Promise<Marked> {
     insert into jobs (kind, account_id, payload, state, run_after, attempts, max_attempts, last_error, error_code, idempotency_key)
     values ('dump.answer', ${accountId}, ${JSON.stringify({ messageId, mark: MARK })}::jsonb, 'dead', now(), 2, 2, ${MARK}, 'model_error', ${MARK}) returning id`);
   await sql`
-    insert into llm_usage (account_id, job_kind, category, model, input_tokens, output_tokens, cost_micros, latency_ms)
-    values (${accountId}, 'dump.answer', 'interactive', 'claude-sonnet-5', 1200, 80, 4200, 900)`.execute(db);
+    insert into llm_usage (account_id, job_kind, category, model, input_tokens, output_tokens, cost_micros, latency_ms, job_id)
+    values (${accountId}, 'dump.answer', 'interactive', 'claude-sonnet-5', 1200, 80, 4200, 900, ${jobId})`.execute(db);
   await sql`insert into lookups (account_id, label, kind, outcome, cost_micros) values (${accountId}, 'search', 'search', 'used', 10000)`.execute(db);
   await sql`insert into limit_hits (account_id, cap, scope, day) values (${accountId}, 'cap.turns', 'account', current_date)`.execute(db);
 

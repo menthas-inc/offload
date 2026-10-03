@@ -159,6 +159,32 @@ describe("024 AC-7 a share, and additions to a shared thread", () => {
   });
 });
 
+describe("034 merge: the order additions are named in", () => {
+  // A row's moment has microseconds and a JavaScript Date has milliseconds.
+  // Two rows made inside one millisecond tied in the sort, and the order was
+  // whatever the table handed back.
+  it("names two additions made in the same millisecond in the order they were made", async () => {
+    const ana = await account({ display_name: "Ana" });
+    const sam = await account({ display_name: "Sam" });
+    await token(sam);
+    const thread = await db.insertInto("threads").values({ name: "Lisbon trip" } as never).returning("id").executeTakeFirstOrThrow();
+    for (const member of [ana, sam]) {
+      await db.insertInto("thread_members").values({ thread_id: thread.id, account_id: member, state: "accepted" } as never).execute();
+    }
+    await noteAddition(thread.id, ana, new Date());
+    const job = await db.selectFrom("jobs").select("payload").where("kind", "=", "shared.activity").executeTakeFirstOrThrow();
+    const since = (job.payload as { since: string }).since;
+    // The later one is written first, so the table's own order is the wrong one.
+    for (const [title, micros] of [["a place in Alfama", 700], ["Ferry times", 200]] as const) {
+      await sql`
+        insert into content (account_id, thread_id, title, type, created_at)
+        values (${ana}, ${thread.id}, ${title}, 'task', ${since}::timestamptz + make_interval(secs => ${micros / 1_000_000}))`.execute(db);
+    }
+    expect(await notifySharedActivity({ threadId: thread.id, authorId: ana, since })).toBe(1);
+    expect(memory.sent.map((m) => m.body)).toEqual(["Ferry times, and a place in Alfama."]);
+  });
+});
+
 describe("024 review of 2026-09-22: what the send is composed from, and what fails it", () => {
   it("a note typed into a shared thread reaches the others too, as its text", async () => {
     const ana = await account({ display_name: "Ana" });

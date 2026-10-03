@@ -619,3 +619,219 @@
   .table { overflow-x: auto; }
   .thead, .row { min-width: 640px; }
 }
+
+/* ------------------------------------------- 034 section A, People */
+
+/* A line of tools above a table: the sort, and what the list is. */
+.tableTools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+/* A row's buttons, at its right edge. */
+.rowActions { display: inline-flex; justify-content: flex-end; gap: var(--space-2); }
+
+/* What can be done to a person, under the pane head. */
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); }
+
+/* Who somebody is: a label and a value to a line, in the table's frame. */
+.facts {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  font: var(--text-body-sm-role);
+}
+.factLabel { color: var(--text-secondary); }
+.factValue { margin: 0; color: var(--text-primary); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+/* One line that says a state in words, above the figures it is about. */
+.lineNote { margin: 0 0 var(--space-4); font: var(--text-body-sm-role); color: var(--text-secondary); }
+.lineNote[data-tone="attention"] { color: var(--text-attention); }
+
+/* Small multiples: one plot a measure, two across. */
+.plots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+
+@media (max-width: 760px) {
+  .plots { grid-template-columns: minmax(0, 1fr); }
+  .facts { grid-template-columns: 120px minmax(0, 1fr); padding: var(--space-4) var(--space-5); }
+}
+
+/* 034, section B. Costs: small multiples. Each plot sits under its own
+   label, and a row of them shares one scale. */
+.costsSplit { margin-bottom: var(--space-4); }
+.costsMetric {
+  margin: var(--space-6) 0 var(--space-3);
+  font: var(--weight-medium) 14px/1 var(--font-core);
+  color: var(--text-primary);
+}
+.costsGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-4); }
+.costsCell { min-width: 0; }
+.costsKey {
+  margin-bottom: var(--space-3);
+  font: var(--weight-medium) 12px/1.3 var(--font-core);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Section C. What offload really costs, and the subscriptions on Limits. */
+.billingFields { display: flex; flex-wrap: wrap; gap: var(--space-5) var(--space-6); }
+.billingSave { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-6); }
+.billingLine { margin: 0; font: var(--text-body-sm-role); color: var(--text-primary); }
+.billingPlot { margin: var(--space-6) 0; }
+
+/* ------------------------------------------------- 034, section D: Limits */
+
+/* The raised card the kit's Limits page puts its fields in. Here it holds
+   them in groups, and a second one holds the switches. */
+.limitsCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+.limitsGroup { display: flex; flex-direction: column; gap: var(--space-4); }
+.limitsGroupLabel { margin: 0; font: var(--text-label-role); color: var(--text-primary); }
+.limitsFields { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-6); }
+
+/* One switch: what it is and what off does, with the control at the end.
+   The whole row is the label, so the whole row is the hit area. */
+.limitsSwitches { gap: 0; padding-block: var(--space-3); }
+.limitsSwitch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  min-height: 44px;
+  padding: var(--space-4) 0;
+  cursor: pointer;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+}
+.limitsSwitch:last-child { box-shadow: none; }
+.limitsSwitchName { display: block; font: var(--weight-medium) 15px/1.3 var(--font-core); color: var(--text-primary); }
+.limitsSwitchLine { display: block; margin-top: 4px; font: var(--text-body-sm-role); line-height: 1.5; color: var(--text-secondary); }
+/* The platform cap's own switch sits beside its field, not across a card. */
+.limitsToggle { box-shadow: none; padding: 0; flex: 1 1 280px; max-width: 420px; }
+
+/* Another owner saved first. Said above the form it replaced. */
+.limitsNotice {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface-attention-soft);
+  color: var(--text-on-attention);
+  font: var(--text-body-sm-role);
+}
+
+/* Who was refused, as a way to their page. Drawn as text, hit at 44. */
+.limitsLink { position: relative; color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.limitsLink::after { content: ""; position: absolute; inset: -12px 0; }
+
+/* ------------------------------------------------- 034, section E: Health */
+
+/* All is well: one line at the top of Now, in the tone of a state that is as
+   it should be. */
+.healthWell {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface-accent-soft);
+  color: var(--text-accent);
+  font: var(--text-body-sm-role);
+  font-weight: var(--weight-medium);
+}
+
+/* What an opened row of the Background jobs table holds, inside the table. */
+.healthExpand {
+  padding: var(--space-5);
+  background: var(--surface-page);
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+}
+
+/* Plots one under another, and whatever sits with them. */
+.healthPlots { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-4); }
+.healthExpand .healthPlots { margin-top: 0; }
+
+/* A cell's controls and pills, side by side. */
+.healthActions { display: inline-flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
+
+/* The person a job belongs to, as a link out of the table. */
+.healthLink { color: var(--text-primary); text-decoration: underline; text-underline-offset: 3px; }
+.healthLink:hover { color: var(--text-accent); }
+/* A line of text is not 44 tall. The same rule as the buttons above. */
+.healthLink { position: relative; }
+.healthLink::after { content: ""; position: absolute; inset: -13px -6px; }
+
+/* ------------------------------------------- 034 section F: Staff and Audit */
+
+/* A role, as the kit's Staff page draws it: two pills, the one in force in
+   ink. Drawn at 28, hit at 44. Your own is one pill that is not a button. */
+.rolePills { display: inline-flex; align-items: center; gap: 6px; }
+.rolePill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 11px;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: var(--weight-medium) 12.5px/1 var(--font-core);
+}
+.rolePill::after { content: ""; position: absolute; inset: -8px 0; }
+.rolePill:hover { color: var(--text-primary); }
+.rolePill[aria-pressed="true"], .rolePillFixed {
+  border-color: var(--surface-inverse);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  cursor: default;
+}
+.rolePillFixed::after { content: none; }
+.rolePill:disabled { cursor: default; }
+
+/* A quiet aside in a cell: "fixed", "you cannot remove yourself". */
+.aside { font-size: 12.5px; color: var(--text-secondary); }
+
+/* A button with a glyph before its word. */
+.withIcon { display: inline-flex; align-items: center; gap: 6px; }
+
+/* A filter in the pane head. Drawn at 44 because a select cannot carry the
+   ::after the other controls reach 44 with. */
+.select {
+  min-height: 44px;
+  max-width: 220px;
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-primary);
+  cursor: pointer;
+  font: var(--text-body-sm-role);
+}
+.select:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+
+/* A link in a table cell, to the page of the person the row is about. */
+.textLink {
+  position: relative;
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+}
+.textLink::after { content: ""; position: absolute; inset: -12px 0; }
+.textLink:hover { text-decoration-color: var(--text-primary); }

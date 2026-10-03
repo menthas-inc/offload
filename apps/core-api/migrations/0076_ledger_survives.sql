@@ -23,3 +23,12 @@ alter table lookups
 -- hour spend is read on every dump.
 create index llm_usage_created_idx on llm_usage (created_at);
 create index lookups_created_idx on lookups (created_at);
+
+-- Which job a ledger row was for, so a person's timeline can say what each of
+-- their jobs cost: its models, its tokens, its spend. Nullable, because rows
+-- written before this have none and a call made outside a job never will.
+-- **No foreign key, on purpose**: the job table is purged at 30 days and the
+-- ledger is never purged, so the id outlives the row it names, as an audit
+-- entry's does. Nothing but that timeline reads it.
+alter table llm_usage add column job_id uuid;
+create index llm_usage_job_idx on llm_usage (job_id) where job_id is not null;

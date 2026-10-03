@@ -13,7 +13,7 @@ import { mintObjectKey } from "../blobs/keys.js";
 import { objectKey, objectStore } from "../blobs/store.js";
 import { recordHit } from "../budget.js";
 import { limitFor, type CapKey } from "../settings.js";
-import { MAX_PHOTO_BYTES, MAX_PIXELS, dimensions, sha256, sniff, type PhotoType } from "../blobs/photos.js";
+import { MAX_PHOTO_BYTES, MAX_PIXELS, dimensions, photosToday, sha256, sniff, type PhotoType } from "../blobs/photos.js";
 import type { ParsedImage } from "./parse.js";
 
 export const MIN_BYTES = 20 * 1024;
@@ -51,15 +51,9 @@ export function candidatesOf(images: ParsedImage[]): Candidate[] {
 export async function sealCandidates(accountId: string, messageKey: string, candidates: Candidate[]): Promise<string[]> {
   const store = objectStore();
   if (!store || candidates.length === 0) return [];
-  const today = await db
-    .selectFrom("blobs")
-    .select(({ fn }) => [fn.countAll<string>().as("n"), fn.sum<string>("byte_size").as("bytes")])
-    .where("account_id", "=", accountId)
-    .where("kind", "=", "image")
-    .where("created_at", ">", sql<Date>`now() - interval '24 hours'`)
-    .executeTakeFirstOrThrow();
-  let count = Number(today.n);
-  let bytesToday = Number(today.bytes ?? 0);
+  const today = await photosToday(accountId);
+  let count = today.n;
+  let bytesToday = today.bytes;
   const maxPhotos = await limitFor(accountId, "cap.photos");
   const maxBytes = await limitFor(accountId, "cap.photo_bytes");
 

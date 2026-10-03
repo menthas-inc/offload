@@ -10,13 +10,13 @@
 // 034. Seven pages in two blocks (`ui/nav.ts`), glyphs from the vendored icon
 // set, and the panel pinned light until a dark one is designed.
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "../../components/Icon";
 import { Logo } from "../../components/Logo";
 import { AdminProvider, type Staff } from "./admin-context";
-import { API, landingFor, navFor, ownerOnly } from "./ui";
+import { API, Loading, landingFor, navFor, ownerOnly } from "./ui";
 import styles from "./admin.module.css";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -110,7 +110,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </nav>
 
-        <main className={styles.pane}>{elsewhere ? null : children}</main>
+        {/* The one boundary for every page. The range, and Health's view,
+            are read from the address, which can suspend a render; a page
+            does not carry a boundary of its own. */}
+        <main className={styles.pane}>{elsewhere ? null : <Suspense fallback={<Loading />}>{children}</Suspense>}</main>
       </div>
     </AdminProvider>
   );

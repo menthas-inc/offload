@@ -471,7 +471,7 @@ export async function internalRoutes(app: App): Promise<void> {
           await trx
             .insertInto("llm_usage")
             // Scheduled, not interactive: nobody is waiting on it.
-            .values(ledgerRows(accountId, "thread.nightly", "scheduled", result.usage))
+            .values(ledgerRows(accountId, "thread.nightly", "scheduled", result.usage, result.jobId))
             .execute();
         }
         // The member's last pass here, after everything this one wrote: the
@@ -866,7 +866,7 @@ export async function internalRoutes(app: App): Promise<void> {
         if (calls.length > 0) {
           await trx
             .insertInto("llm_usage")
-            .values(ledgerRows(accountId, "dump.answer", "interactive", calls))
+            .values(ledgerRows(accountId, "dump.answer", "interactive", calls, result.jobId))
             .execute();
         }
 

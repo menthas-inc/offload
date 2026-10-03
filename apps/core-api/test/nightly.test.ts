@@ -353,9 +353,10 @@ describe("AC-12 and AC-14 the default thread, and applying once", () => {
     const spy = vi.spyOn(console, "log").mockImplementation((line: unknown) => {
       logs.push(String(line));
     });
+    const passId = await job(ana, trip);
     try {
       await post({
-        jobId: await job(ana, trip),
+        jobId: passId,
         learned: [{ text: "The door code is 4471", from: [from] }],
         usage: [{ model: "claude-haiku-4-5", inputTokens: 100, outputTokens: 10, cacheReadTokens: 0, cacheWriteTokens: 0, latencyMs: 5 }],
       });
@@ -363,8 +364,8 @@ describe("AC-12 and AC-14 the default thread, and applying once", () => {
       spy.mockRestore();
     }
     expect(logs.join("\n")).not.toContain("4471");
-    const ledger = await db.selectFrom("llm_usage").select(["account_id", "job_kind"]).execute();
-    expect(ledger).toEqual([{ account_id: ana, job_kind: "thread.nightly" }]);
+    const ledger = await db.selectFrom("llm_usage").select(["account_id", "job_kind", "job_id"]).execute();
+    expect(ledger).toEqual([{ account_id: ana, job_kind: "thread.nightly", job_id: passId }]);
   });
 });
 

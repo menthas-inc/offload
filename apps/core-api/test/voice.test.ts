@@ -399,7 +399,8 @@ describe("the transcript", () => {
 
     const ledger = await db.selectFrom("llm_usage").selectAll().where("account_id", "=", me.id).execute();
     expect(ledger).toHaveLength(1);
-    expect(ledger[0]).toMatchObject({ model: "assemblyai", latency_ms: 2100, input_tokens: 0, job_kind: "dump.answer" });
+    // 034. Under the turn it was heard for, beside that turn's model calls.
+    expect(ledger[0]).toMatchObject({ model: "assemblyai", latency_ms: 2100, input_tokens: 0, job_kind: "dump.answer", job_id: jobId });
     expect(Number(ledger[0]!.cost_micros)).toBe(35);
 
     const forgets = await db.selectFrom("jobs").select("payload").where("kind", "=", "voice.forget").execute();

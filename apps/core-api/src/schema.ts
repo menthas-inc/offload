@@ -725,6 +725,9 @@ export interface LlmUsageTable {
   /** Priced by core-api from the tokens (src/pricing.ts), never by the caller. */
   cost_micros: Generated<number>;
   latency_ms: Generated<number>;
+  /** 0076. The job the call was made for, where there was one. No foreign
+   *  key: the ledger outlives the job table's 30 days. */
+  job_id: ColumnType<string | null, string | null | undefined, never>;
   created_at: Timestamp;
 }
 

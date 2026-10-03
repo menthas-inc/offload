@@ -30,6 +30,7 @@ import {
   dimensions,
   sha256,
   sniff,
+  photosToday,
 } from "../blobs/photos.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { recordHit } from "../budget.js";
@@ -43,6 +44,7 @@ import {
   parseDurationMs,
   parseWaveform,
   sniffAudio,
+  voiceToday,
 } from "../blobs/audio.js";
 
 function fetchHeaders(request: FastifyRequest): Headers {
@@ -261,18 +263,12 @@ export async function blobRoutes(app: App): Promise<void> {
         await db.deleteFrom("blobs").where("id", "=", existing.id).where("deleted_at", "is not", null).execute();
       }
 
-      const today = await db
-        .selectFrom("blobs")
-        .select(({ fn }) => [fn.countAll<string>().as("n"), fn.sum<string>("byte_size").as("bytes")])
-        .where("account_id", "=", accountId)
-        .where("kind", "=", "image")
-        .where("created_at", ">", sql<Date>`now() - interval '24 hours'`)
-        .executeTakeFirstOrThrow();
+      const today = await photosToday(accountId);
       // 034. Each ceiling is its setting, or this account's own value for it.
       const overPhotos: CapKey | null =
-        Number(today.n) >= (await limitFor(accountId, "cap.photos"))
+        today.n >= (await limitFor(accountId, "cap.photos"))
           ? "cap.photos"
-          : Number(today.bytes ?? 0) + upload.bytes.length > (await limitFor(accountId, "cap.photo_bytes"))
+          : today.bytes + upload.bytes.length > (await limitFor(accountId, "cap.photo_bytes"))
             ? "cap.photo_bytes"
             : null;
       if (overPhotos) {
@@ -377,20 +373,11 @@ export async function blobRoutes(app: App): Promise<void> {
       // The day's ceiling, by count and by length: the provider's measurement
       // where it exists, the device's count where it does not yet. Outside
       // the insert's transaction, as 020's is: a cost bound, not a bill.
-      const today = await db
-        .selectFrom("blobs")
-        .select(({ fn }) => [
-          fn.countAll<string>().as("n"),
-          fn.sum<string>(sql`coalesce(measured_ms, duration_ms)`).as("ms"),
-        ])
-        .where("account_id", "=", accountId)
-        .where("kind", "=", "audio")
-        .where("created_at", ">", sql<Date>`now() - interval '24 hours'`)
-        .executeTakeFirstOrThrow();
+      const today = await voiceToday(accountId);
       const overVoice: CapKey | null =
-        Number(today.n) >= (await limitFor(accountId, "cap.voice_notes"))
+        today.n >= (await limitFor(accountId, "cap.voice_notes"))
           ? "cap.voice_notes"
-          : Number(today.ms ?? 0) + durationMs > (await limitFor(accountId, "cap.voice_ms"))
+          : today.ms + durationMs > (await limitFor(accountId, "cap.voice_ms"))
             ? "cap.voice_ms"
             : null;
       if (overVoice) {
@@ -744,6 +731,8 @@ export async function blobRoutes(app: App): Promise<void> {
             cache_read_tokens: 0,
             cost_micros: costMicros,
             latency_ms: latencyMs,
+            // 034. The turn the note was heard for, beside its model calls.
+            job_id: jobId,
           })
           .execute();
         await enqueue({

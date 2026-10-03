@@ -367,4 +367,30 @@ describe("the stylesheet and the pages", () => {
   it("pins the panel to light", () => {
     expect(readFileSync(join(ADMIN, "layout.tsx"), "utf8")).toContain('data-theme="light"');
   });
+
+  // The range and Health's view are read from the address, and reading the
+  // address can suspend a render. One boundary holds every page, in the
+  // shell, so a page that forgot its own is still inside one.
+  it("holds every page inside one boundary, in the shell, and no page carries its own", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ role: "owner", email: "boss@example.test", waiting: 0, wrong: 0 }))));
+    const { default: AdminLayout } = await import("../src/app/(admin)/layout");
+    const { use } = await import("react");
+    const never = new Promise<never>(() => {});
+    function Waiting(): React.ReactNode {
+      return use(never);
+    }
+    const host = await render(
+      <AdminLayout>
+        <Waiting />
+      </AdminLayout>,
+    );
+    await act(async () => {});
+    // The shell stays while the page waits, with the one spinner in the pane.
+    expect(host.querySelector("nav")).not.toBeNull();
+    expect(host.querySelectorAll('main [role="status"]')).toHaveLength(1);
+
+    for (const path of pages(join(ADMIN, "admin"))) {
+      expect(readFileSync(path, "utf8"), path).not.toContain("Suspense");
+    }
+  });
 });

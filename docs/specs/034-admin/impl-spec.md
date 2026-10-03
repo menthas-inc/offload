@@ -86,6 +86,7 @@ Six migrations, all written in groundwork so no section adds one. Numbers start 
 - `llm_usage.account_id` and `lookups.account_id`: drop not null, `on delete set null`. 0018's reasoning, one table over.
 - `turn_sources` keeps its cascade: an address a person's turn read is theirs.
 - The two `created_at` indexes.
+- `llm_usage.job_id uuid`, nullable, **no foreign key**, with an index where it is set. Added at the merge for AC-20: the job a call was made for, written by `turn-result`, `nightly-result` and the transcript route, and read only by a person's timeline. No key because the job table is purged at 30 days and the ledger never is. Rows written before it have none.
 
 **0077_health.sql**
 - `jobs`: `error_code text`, `retried_at timestamptz`, `dismissed_at timestamptz`; index `(state, updated_at)`; `grant update (error_code) on jobs to offload_agent`.
@@ -121,6 +122,8 @@ Six migrations, all written in groundwork so no section adds one. Numbers start 
 
 **Audit, `CA/src/admin/audit.ts`.** `audit(tx, {staff, kind, targetAccountId?, settingKey?, old?, new?, jobId?})`. Kinds are a union. Routes declare `config: {audit: kind}`; AC-52 walks the route table and fails on a non-GET admin route without one.
 
+**The guard, when it cannot look.** A session lookup that throws, or a session row that went mid-request, is answered 404 like anybody else the panel cannot place. The admin prefix is left out of 033's consent hook (`refuseWritesBeforeConsent`), whose own lookup would otherwise answer first: the staff guard already requires an active account.
+
 **The guard.** `adminRoutes` becomes a plugin with `addHook('onRequest', requireStaff())`, and registers one file per section: `routes/admin/{waitlist,people,costs,billing,limits,health,staff,audit}.ts`. Owner sections register inside a nested scope with `requireStaff('owner')`. Owner-only routes inside support sections (override set and clear, delete and cancel) carry `config: {rank: 'owner'}` and their own check. `requireStaff` compares ranks from `['support', 'owner']`.
 
 **Heartbeats, `CA/src/health/heartbeat.ts`.** A timer in `server.ts`, every 60 seconds: upsert `core-api` for this minute with `process.env.RAILWAY_GIT_COMMIT_SHA` and the boot time; `select 1` for `database`; `fetch(WEB_URL + '/healthz')` with a 5 second timeout for `web`. The worker posts `/internal/v1/heartbeat` each minute from its loop, behind the private host and the bearer that exist. The web gains `app/healthz/route.ts` returning its commit. **To verify on the platform, not from documentation:** that Railway sets `RAILWAY_GIT_COMMIT_SHA` at runtime on all three services; if not, the commit reads as unknown.
@@ -147,6 +150,10 @@ Each section owns one route file, one page directory, one test file, and nothing
 - Disable: `state = 'disabled'`, `disabled_at = now()`, delete every `sessions` row, in one transaction. A live stream closes itself (`dumps.ts:712`). Enable: `state = 'active'`, `disabled_at = null`.
 - Last active is the newest of `sessions.updated_at` and the account's newest job. Threads is a count of `thread_members`. Spend is the ledger plus lookups over 30 days.
 - Who invited them: the newest `invited` audit entry for the account, else absent.
+- The timeline's model, tokens and cost are the ledger rows whose `job_id` is the job: the distinct models, tokens in and out summed, cost summed. A job that called no model has none of them. Search fees are in `lookups`, which names no job, so they are not in a job's cost.
+- Usage against each cap is the cap's own function: `spentToday` and `turnsToday` (`budget.ts`), `photosToday` (`blobs/photos.ts`), `voiceToday` (`blobs/audio.ts`), `mailToday` (`mail-in/receive.ts`). The page and the refusal run one statement.
+- A signed-in account is one definition, `signedIn` in `accounts/active.ts`: signed in at least once, active or disabled, not removed. People, a person's page and Costs' per-account figure all count it.
+- Sign out everywhere carries disable's staff guard: support may not sign out staff, answered 409. Signing yourself out is allowed.
 
 ### B. Costs (`routes/admin/costs.ts`, `WEB/admin/costs/`)
 
@@ -183,7 +190,7 @@ Each section owns one route file, one page directory, one test file, and nothing
 
 - `GET /v1/admin/staff`, `POST /v1/admin/staff` `{email, role}`, `PATCH /v1/admin/staff/:id` `{role}`, `DELETE /v1/admin/staff/:id`.
 - The last-owner check locks the owner rows `for update` inside the transaction that changes them; here the route owns the transaction, so the lock holds.
-- `GET /v1/admin/audit?staff&kind&person&cursor`, 30 days by default.
+- `GET /v1/admin/audit?staff&kind&person&cursor`, 30 days by default. `GET /v1/admin/audit/facets` answers what the filters offer: the staff and the kinds the log holds.
 
 ### G. Deletion (after the sections; `CA/src/accounts/delete.ts`, People's route file and page)
 
@@ -225,3 +232,36 @@ Section G's change edits `privacy/page.tsx` with the owner's approved wording, m
 ## Dependencies
 
 None new in `package.json` or `pyproject.toml`. Three optional environment variables for billing, one Railway-provided variable for the commit.
+
+## Appendix: billing interfaces to try
+
+Written 2026-10-03 by section C. **No interface below has been called.** The session that built the section had no billing key and was not to ask for one, so task C1 is open: nothing here is a recorded answer, every candidate is unverified, and the puller registry in `CA/src/billing/pull.ts` is empty. Today every company is metered or fixed.
+
+What "today" means in the table:
+
+- **metered**: the ledger prices its calls and the figure is summed at read time.
+- **metered, not recorded**: the company charges by use and offload writes no ledger row for it, so the row reads *not recorded* until an owner types an amount.
+- **fixed**: a subscription. An owner types the monthly amount under Subscriptions on Limits.
+
+| Company | Slug | Today | Candidate interface, unverified | Key the puller would read |
+| --- | --- | --- | --- | --- |
+| Anthropic (the model, and the searches and page reads it runs as server tools) | `anthropic` | metered: `llm_usage` less transcription, plus `lookups` | The organisation cost report in Anthropic's Admin API. Unverified: the path, the grouping, whether amounts are in cents or dollars, and whether web search and fetch charges are in the same report. | `ANTHROPIC_ADMIN_KEY` |
+| Google Cloud, for Maps Platform | `google-maps` | metered, not recorded | None over a plain key. Real cost is only in a BigQuery billing export, which is a new dependency and the owner's call. The Cloud Billing API answers prices and account state, not what was spent; unverified. | none proposed |
+| Google Workspace | `google-workspace` | fixed | None known. Invoices are in the admin console. | none |
+| AssemblyAI | `assemblyai` | metered: `llm_usage` where `model = 'assemblyai'` | None known. If the account API turns out to report spend or balance, try it; unverified that one exists. | `ASSEMBLYAI_BILLING_KEY`, only if an interface is found |
+| Voyage AI | `voyage` | metered, not recorded | None known. Usage is on the dashboard. Cheaper to fix first: write a ledger row per embed call so it becomes metered. | none |
+| Web search | none of its own | on Anthropic's row | Not a separate company in this build: search and link reading are Anthropic's server tools (`stack.md`, and the privacy page's section 5), so they are on Anthropic's bill. | none |
+| Resend | `resend` | fixed | None known for billing. | none |
+| Expo (push, and EAS builds) | `expo` | fixed | None known for billing. | none |
+| Railway | `railway` | fixed | The public GraphQL API's usage and estimated usage queries, with an account or team token. Unverified: the query names, the units, and whether it answers a closed month or only the running one. Record the raw answer: `railway variables --json` has already printed something other than what it documents. | `RAILWAY_API_TOKEN` |
+| Cloudflare (R2 and DNS) | `cloudflare` | fixed | The account billing endpoints of the v4 API, with a token scoped to billing read. Unverified: whether a scoped token may read them at all, and whether R2 is itemised. The GraphQL analytics API gives R2 operations and bytes, which is use, not a bill. | `CLOUDFLARE_BILLING_TOKEN` |
+| Apple Developer | `apple-developer` | fixed | None. A yearly fee, typed as a twelfth of it. | none |
+| Google Play | `google-play` | fixed | None. A one-time fee, so nothing a month unless the owner wants it spread. | none |
+
+How a puller is added, once a key exists:
+
+1. Call the interface by hand with the billing-read key and save the raw response under `CA/test/fixtures/billing/<slug>.json`, with the key and any account id removed.
+2. Write the test first: it loads the fixture, asserts every key the puller reads is a key the fixture has, and asserts the month and amount it produces. See it red.
+3. Write the puller in `CA/src/billing/<slug>.ts` behind `Puller`, reading its key from the environment and sending the key and the date range only. Register it in `pull.ts` with its variable's name.
+4. Add the variable to `env.ts` as optional. Unset, the puller never runs, so a local server never calls out.
+5. Replace that company's row here with what the interface answered, and the date.

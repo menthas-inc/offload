@@ -83,7 +83,7 @@ const post = (payload: unknown) =>
 const ledger = (accountId: string) =>
   db
     .selectFrom("llm_usage")
-    .select(["model", "cost_micros", "cache_write_tokens"])
+    .select(["model", "cost_micros", "cache_write_tokens", "job_id"])
     .where("account_id", "=", accountId)
     .orderBy("created_at")
     .execute();
@@ -105,6 +105,12 @@ describe("the ledger prices what it is told was used", () => {
     expect(rows).toHaveLength(1);
     expect(Number(rows[0]!.cost_micros)).toBe(1_000 * 2 + 500 * 10 + 8_000 * 0.2 + 2_000 * 2.5);
     expect(rows[0]!.cache_write_tokens).toBe(2_000);
+    // 034. The row names the turn it was for, so a person's timeline can say
+    // what each job cost. No foreign key: the ledger outlives the job table's
+    // 30 days, and a purged job leaves its rows as they are.
+    expect(rows[0]!.job_id).toBe(jobId);
+    await db.deleteFrom("jobs").where("id", "=", jobId).execute();
+    expect((await ledger(me.id))[0]!.job_id).toBe(jobId);
   });
 
   it("ignores a price the worker sends and prices the tokens", async () => {

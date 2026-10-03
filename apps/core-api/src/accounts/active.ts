@@ -36,6 +36,17 @@ export async function worksInBackground(accountId: string, trx: Executor = db): 
   return row !== undefined;
 }
 
+/** 034. An account the panel counts as a person: it has signed in at least
+ *  once, it is active or disabled, and it has not been removed. People's list
+ *  and stats, a person's page and Costs' per-account figure all count this
+ *  set, so no two of them can disagree about how many there are.
+ *
+ *  As a fragment, for a query that reads `accounts` under `alias`. */
+export function signedIn(alias = "accounts"): RawBuilder<boolean> {
+  const column = (name: string) => sql.ref(`${alias}.${name}`);
+  return sql<boolean>`(${column("first_signed_in_at")} is not null and ${column("state")} in ('active', 'disabled') and ${column("deleted_at")} is null)`;
+}
+
 /** Every write behind a session, under these prefixes. A new route there is
  *  covered by being there, which is the point of one rule over per-route
  *  calls. `/internal/` is the agent's, `/api/auth/` is Better Auth's, and
@@ -59,6 +70,12 @@ export function refuseWritesBeforeConsent(app: FastifyInstance): void {
     // still reads `/%76%31/...`. No route, nothing to guard: it is a 404.
     const path = request.routeOptions.url;
     if (!path || !GUARDED.test(path) || OPEN.has(`${request.method} ${path}`)) return;
+    // 034. The admin API answers for itself: its guard lets in only staff
+    // whose account is active (`admin/staff.ts`), which is this rule and
+    // more, and it answers 404 to everything else. A second lookup here
+    // would answer first, and in its own words, when the session cannot be
+    // read.
+    if (path.startsWith("/v1/admin/")) return;
 
     const headers = new Headers();
     for (const [key, value] of Object.entries(request.headers)) {

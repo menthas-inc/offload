@@ -27,9 +27,10 @@ export type ReceiveOutcome = SenderOutcome | "over_limit" | "nothing";
  *  be fetched, which is retried. */
 const TOLD: ReadonlySet<SenderOutcome> = new Set(["unsigned", "unaligned", "length_tag", "unsigned_from", "unsigned_recipient", "stale"]);
 
-/** The cap that refuses this email, if one does: the two mail caps, then
- *  whatever would refuse the turn it becomes. Each is its setting (034). */
-async function overCap(accountId: string): Promise<Hit | null> {
+/** The email an account has forwarded in, in the last hour and the last day:
+ *  what `cap.mail_hour` and `cap.mail_day` are measured against, read here
+ *  and by the admin panel's page for a person (034 AC-18). */
+export async function mailToday(accountId: string): Promise<{ hour: number; day: number }> {
   const [counts] = (
     await sql<{ hour: string; day: string }>`
       select count(*) filter (where created_at > now() - interval '1 hour') as hour, count(*) as day
@@ -37,8 +38,15 @@ async function overCap(accountId: string): Promise<Hit | null> {
       where account_id = ${accountId} and source = 'mail' and created_at > now() - interval '1 day'
     `.execute(db)
   ).rows;
-  if (Number(counts?.hour ?? 0) >= (await limitFor(accountId, "cap.mail_hour"))) return { cap: "cap.mail_hour", scope: "account" };
-  if (Number(counts?.day ?? 0) >= (await limitFor(accountId, "cap.mail_day"))) return { cap: "cap.mail_day", scope: "account" };
+  return { hour: Number(counts?.hour ?? 0), day: Number(counts?.day ?? 0) };
+}
+
+/** The cap that refuses this email, if one does: the two mail caps, then
+ *  whatever would refuse the turn it becomes. Each is its setting (034). */
+async function overCap(accountId: string): Promise<Hit | null> {
+  const counts = await mailToday(accountId);
+  if (counts.hour >= (await limitFor(accountId, "cap.mail_hour"))) return { cap: "cap.mail_hour", scope: "account" };
+  if (counts.day >= (await limitFor(accountId, "cap.mail_day"))) return { cap: "cap.mail_day", scope: "account" };
   return limitReached(accountId);
 }
 

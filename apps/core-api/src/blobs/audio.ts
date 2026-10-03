@@ -7,6 +7,9 @@
 // The kind is the route's, never a shared sniff: `ftyp` is also how HEIF
 // begins, and a HEIC sent to the audio route is refused here regardless.
 
+import { sql } from "kysely";
+import { db } from "../db.js";
+
 /** Ten minutes at our own 64 kbps is about five megabytes. This is for a
  *  client that is not ours. */
 export const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
@@ -19,6 +22,22 @@ export const WAVEFORM_BARS = 32;
  *  the note, and by the measurement after. */
 export const DAILY_VOICE_NOTES = 100;
 export const DAILY_VOICE_MS = 60 * 60 * 1000;
+
+/** The voice notes an account has stored in the last 24 hours, and their
+ *  length: the provider's measurement where it exists, the device's count
+ *  where it does not yet. What `cap.voice_notes` and `cap.voice_ms` are
+ *  measured against, read by the upload and by the admin panel's page for a
+ *  person (034 AC-18). */
+export async function voiceToday(accountId: string): Promise<{ n: number; ms: number }> {
+  const today = await db
+    .selectFrom("blobs")
+    .select(({ fn }) => [fn.countAll<string>().as("n"), fn.sum<string>(sql`coalesce(measured_ms, duration_ms)`).as("ms")])
+    .where("account_id", "=", accountId)
+    .where("kind", "=", "audio")
+    .where("created_at", ">", sql<Date>`now() - interval '24 hours'`)
+    .executeTakeFirstOrThrow();
+  return { n: Number(today.n), ms: Number(today.ms ?? 0) };
+}
 
 export type AudioType = "audio/mp4" | "audio/webm" | "audio/ogg";
 
