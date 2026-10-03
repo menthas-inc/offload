@@ -34,6 +34,7 @@ export const ACCOUNT_LEDGER: Record<string, Entry> = {
   "account_identities.account_id": cascade,
   "account_keys.account_id": cascade,
   "sessions.account_id": cascade,
+  "exports.account_id": cascade,
   "staff.account_id": cascade,
   "conversations.account_id": cascade,
   "messages.account_id": cascade,

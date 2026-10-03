@@ -18,6 +18,7 @@
 // does the said share's confirm, which is what makes the model's proposal a
 // proposal and not an act.
 
+import { destroyCopiesHolding } from "../exports/copy.js";
 import { sql, type Transaction } from "kysely";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
@@ -289,6 +290,8 @@ export async function takeOut(
     await passThreadKeyOn(trx, threadId, targetId);
     await trx.deleteFrom("thread_keys").where("thread_id", "=", threadId).where("account_id", "=", targetId).execute();
     await dropPicksOf(targetId, threadId, trx);
+    // 035. And any copy of theirs that holds this thread.
+    await destroyCopiesHolding(trx, threadId, targetId);
     // 024. Their Activity rows that named this thread's words go with their
     // membership, and the other members' rows about them go too.
     await purgeAbout({ viewerId: targetId, threadId }, trx);

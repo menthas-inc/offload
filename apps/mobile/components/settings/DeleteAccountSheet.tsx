@@ -24,7 +24,16 @@ const isAndroid = Platform.OS === "android";
 /** The pills sit 8 apart, as in `SheetFoot`. */
 const SLOP = { top: 8, bottom: 8, left: 4, right: 4 };
 
-export function DeleteAccountSheet({ onClose, onDeleted }: { onClose: () => void; onDeleted: () => void }) {
+export function DeleteAccountSheet({
+  onClose,
+  onDeleted,
+  onMakeCopy,
+}: {
+  onClose: () => void;
+  onDeleted: () => void;
+  /** Leaves for the Privacy page, where a copy is made and downloaded. */
+  onMakeCopy: () => void;
+}) {
   const COLOR = useColors();
   const insets = useSafeAreaInsets();
   const field = useRef<TextInput>(null);
@@ -81,6 +90,22 @@ export function DeleteAccountSheet({ onClose, onDeleted }: { onClose: () => void
         Deleting your account takes away your access and what only you could see, and leaves what you added with the
         others in any thread you share. It can&apos;t be undone.
       </Text>
+      <Pressable
+        onPress={() => {
+          if (busy) return;
+          putKeyboardAway();
+          onMakeCopy();
+        }}
+        disabled={busy}
+        hitSlop={SLOP}
+        accessibilityRole="link"
+        className="mt-space-3 self-start"
+        style={{ minHeight: 30, justifyContent: "center" }}
+      >
+        <Text className={`font-core font-medium text-body-sm ${isAndroid ? "text-blue-700" : "text-text-accent"}`}>
+          Make a copy first
+        </Text>
+      </Pressable>
 
       {state === "last_owner" ? (
         <Text

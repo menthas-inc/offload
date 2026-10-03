@@ -19,6 +19,7 @@ import { endOthers, endSignedIn, listSignedIn, thisDevice, type SignedIn } from 
 import { deviceGlyph, emailNote } from "../../lib/settings";
 import { useSignOut } from "../../components/settings/useSignOut";
 import { DeleteAccountSheet } from "../../components/settings/DeleteAccountSheet";
+import { YourCopy } from "../../components/settings/YourCopy";
 import { forgetPlayback } from "../../components/shell/SentVoice";
 import { fetchCountries, saveName, setClock, setCountry, setWebAccess, useMe } from "../../lib/me";
 import { NotificationsPage } from "../../components/settings/NotificationsPage";
@@ -270,6 +271,12 @@ function Account({ toast }: { toast: ToastState }) {
       {deleting ? (
         <DeleteAccountSheet
           onClose={() => setDeleting(false)}
+          // The copy is made on the Privacy page and takes a while, so this
+          // leaves the sheet rather than starting one under it.
+          onMakeCopy={() => {
+            setDeleting(false);
+            router.push({ pathname: "/settings/[page]", params: { page: "privacy" } });
+          }}
           onDeleted={() => {
             // The session is already forgotten here. Voice notes being heard
             // go with it, as at sign-out, and the gate says what happened.
@@ -561,6 +568,7 @@ function Privacy({ toast }: { toast: ToastState }) {
         last
       />
     </Group>
+    <YourCopy zone={me?.timeZone ?? null} toast={toast} />
     </Sections>
   );
 }

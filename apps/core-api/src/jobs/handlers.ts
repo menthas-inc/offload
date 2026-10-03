@@ -16,6 +16,8 @@ import { objectKey, objectStore, RENDITIONS } from "../blobs/store.js";
 import type { Mailer } from "../mail/index.js";
 import { env } from "../env.js";
 import { scheduleFullSyncs, scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
+import { buildCopy } from "../exports/build.js";
+import { destroyParts, removeParts } from "../exports/copy.js";
 import { enqueue, PRIORITY, scheduleDaily, scheduleHourly } from "./queue.js";
 import { purgeActivity } from "../notifications/activity.js";
 import { forgetPendingWrites } from "../connectors/tool-calls.js";
@@ -164,6 +166,79 @@ const accountDeleted: Handler = async (payload, { mailer }) => {
     .where("kind", "=", "email.account_deleted")
     .where(sql<boolean>`payload->>'id' = ${id}`)
     .execute();
+};
+
+/** 035. Somebody asked for a copy of everything the account can read. With
+ *  no second sign-in, this mail is how its owner hears of one they did not
+ *  ask for. The address is read here: the job row carries the time only. */
+const exportRequested: Handler = async (payload, { mailer }, accountId) => {
+  if (!accountId) return;
+  const account = await db.selectFrom("accounts").select(["email", "time_zone"]).where("id", "=", accountId).executeTakeFirst();
+  if (!account) return;
+  const at = typeof payload["at"] === "string" ? new Date(payload["at"]) : new Date();
+  await mailer.send({
+    to: account.email,
+    subject: "A copy of your offload was asked for",
+    slots: {
+      headline: "A copy was asked for",
+      body:
+        `A copy of everything in your account was asked for on ${deletedWhen(at, account.time_zone)}. ` +
+        "It is downloaded from Settings while signed in, and it is kept for 7 days. " +
+        "If this was not you, write to hello@offload.club.",
+      footer: `You are receiving this because an offload account at ${new URL(env.WEB_URL).host} uses this address.`,
+    },
+  });
+};
+
+/** 035. Make the copy. The build never throws: a failure is a state on the
+ *  row, which is what the person's screen reads. */
+const exportBuild: Handler = async (payload) => {
+  const exportId = typeof payload["exportId"] === "string" ? payload["exportId"] : null;
+  if (exportId) await buildCopy(exportId);
+};
+
+/** 035. Take a copy's sealed parts out of storage. The payload is an id and
+ *  a count: by the time this runs the row may be gone with its account. */
+const exportDestroy: Handler = async (payload) => {
+  const id = typeof payload["id"] === "string" ? payload["id"] : null;
+  const parts = typeof payload["parts"] === "number" ? payload["parts"] : 0;
+  if (id) await removeParts(id, parts);
+};
+
+/** A build still `making` after this long is not going to finish: the worker
+ *  that held it restarted. The heaviest real one is minutes. */
+const BUILD_HOURS = 2;
+
+/** 035. The hourly pass: a copy past its seven days ends, and a build nobody
+ *  is running is failed so the row stops saying it is being made. Books the
+ *  next hour first. */
+const exportSweep: Handler = async () => {
+  await scheduleHourly("export.sweep");
+  const ended = await db.transaction().execute(async (trx) => {
+    const rows = await trx
+      .updateTable("exports")
+      .set({ state: "gone" })
+      .where("state", "!=", "gone")
+      .where(sql<boolean>`expires_at <= now()`)
+      .returning(["id", "parts"])
+      .execute();
+    for (const row of rows) await destroyParts(trx, row.id, row.parts);
+    return rows.length;
+  });
+  const stuck = await db.transaction().execute(async (trx) => {
+    const rows = await trx
+      .updateTable("exports")
+      // The count stays: it is what the removal below is booked with, and
+      // what any later end of this row books again.
+      .set({ state: "failed", requested_at: null, expires_at: null })
+      .where("state", "=", "making")
+      .where(sql<boolean>`requested_at < now() - make_interval(hours => ${BUILD_HOURS})`)
+      .returning(["id", "parts"])
+      .execute();
+    for (const row of rows) await destroyParts(trx, row.id, row.parts);
+    return rows.length;
+  });
+  if (ended + stuck > 0) console.log(JSON.stringify({ level: "info", msg: "copies swept", ended, stuck }));
 };
 
 /** How long a grant waits for Google before it is dropped unrevoked. Our copy
@@ -977,6 +1052,10 @@ export const handlers: Record<string, Handler> = {
   "email.invited": invited,
   "email.account_deleted": accountDeleted,
   "connector.revoke": connectorRevoke,
+  "email.export_requested": exportRequested,
+  "export.build": exportBuild,
+  "export.destroy": exportDestroy,
+  "export.sweep": exportSweep,
   "content.purge": contentPurge,
   "location.resolve": locationResolve,
   "places.refresh": placesRefresh,

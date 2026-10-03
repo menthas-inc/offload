@@ -11,6 +11,30 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-03 · Your copy, as built (035)
+**Surface:** iOS, Android, web
+**Raised by:** code, building the export in 035 part B (`docs/specs/035-account-deletion-and-export/`), with the owner's answers of the same day and the client review.
+
+**Was:** one row, *Export everything*, note *A single file, readable without offload.* On the phones it sits on a page that was never built (`SettingsDetail.jsx`, `M3SettingsDetail.jsx`); the web kit already has it on Privacy, as a plain `SBlock` titled *Your copy* (`WSettings.jsx`). No state after the tap is drawn anywhere.
+
+**Is:**
+- **A section on the Privacy page, under *Reaching the web***, in 031's format: glyph tile, heading *Your copy*, caption *Kept for 7 days. One every 7 days.* The glyph is `archive`: the set has no plain `download`, and `cloud-download` says the wrong thing about where the file comes from.
+- **One row whose words change with the copy's state**, the same words on all three, from one shared rule (`copyRow` in `@offload/widgets`):
+  - none: *Export everything*, note *One file, readable without offload.*, outline pill *Export*;
+  - being made: *Making your copy* and the one spinner where the pill was, nothing to press, no skeleton;
+  - ready: *Ready, 3 Oct*, note *Kept until 10 Oct*, pill *Download*, and under it a second row, *Delete copy*, medium weight with no pill and no chevron;
+  - failed: *Couldn't make your copy*, pill *Try again*, no reason;
+  - deleted inside the 7 days: *Next copy from 10 Oct*, nothing to press.
+- **The pill is 031's outline pill for a row that acts in place**, not the kit's chevron: nothing opens.
+- **A press that did not go through is the page's toast with Retry**: *Couldn't start your copy*, *Couldn't download your copy*, *Couldn't delete your copy*.
+- **The web's Download is a plain link in a new tab**, since the file is on the API's origin, and the row is read again when the window is come back to; the phones download and hand the file to the system's share or save sheet, with the spinner on the row meanwhile.
+- **The web's spinner in a row** is the pane spinner's ring at the row's trailing edge (`.settingsSpinner`), while a copy is being made and while a press is in flight; the row's words are its status.
+- **A session that ended under the page goes to sign in**, with no retry.
+- **The delete confirmation gains *Make a copy first***, a text link under the body on all three, `--text-accent` on iOS and the web and the Android scope's blue on Android, at the tap floor, which leaves the confirmation for the Privacy page.
+- **Activity gains a kind**, *Your copy is ready*, with the `archive` glyph and no *Not sent* tag; it opens the Privacy page.
+
+**Design system impact:** `SettingsDetail.jsx`, `M3SettingsDetail.jsx`: the *Export everything* row moves to Privacy as the *Your copy* section. `WSettings.jsx`: the existing *Your copy* block gains the glyph tile and the caption. All three draw the five states. A row with a trailing spinner in place of its pill is a state the settings `Row` should describe on the web as it does on the phones. The delete confirmation's mock gains the *Make a copy first* link. The Activity kit gains the row. Icons: `archive` for the section and the Activity row; a plain `download` would be the better glyph and is not in the set.
+
 ### 2026-10-03 · Delete your account, as built (035)
 **Surface:** iOS, Android, web
 **Raised by:** code, building account deletion in 035 (`docs/specs/035-account-deletion-and-export/`), with the owner's answers of the same day and the client review.
