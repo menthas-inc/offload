@@ -58,6 +58,9 @@
   opacity: 0.75;
   pointer-events: none;
 }
+/* The bloom was drawn for paper. On a dark page it reads as a stain at the
+   same strength, so it steps back. */
+:global([data-theme="dark"]) .bloom { opacity: 0.3; }
 
 .art {
   position: relative;
@@ -136,7 +139,10 @@
   padding: 12px 16px;
   border-radius: 20px;
   background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--border-hairline), var(--shadow-1);
+  /* A border, not an inset shadow: `--shadow-1` is none in dark, and none
+     inside a shadow list drops the whole declaration. */
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-1);
   font: var(--weight-regular) 16px/1.3 var(--font-core);
   color: var(--text-primary);
 }
@@ -148,11 +154,14 @@
   padding: 12px 14px;
   border-radius: 16px;
   background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--border-hairline), var(--shadow-1);
+  /* A border, not an inset shadow: `--shadow-1` is none in dark, and none
+     inside a shadow list drops the whole declaration. */
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-1);
   transition: box-shadow 400ms, transform 400ms;
 }
 .threadFirst { margin-top: 14px; }
-.hit { box-shadow: inset 0 0 0 1.5px var(--ink-950), var(--shadow-2); transform: scale(1.03); }
+.hit { border-color: var(--ink-950); box-shadow: inset 0 0 0 0.5px var(--ink-950), var(--shadow-2); transform: scale(1.03); }
 .threadName { flex: 1; font: var(--weight-semibold) 17px/1.2 var(--font-core); color: var(--text-primary); }
 .count {
   font: var(--weight-medium) 14px/1 var(--font-core);
@@ -247,7 +256,10 @@
 .way {
   border-radius: 16px;
   background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--border-hairline), var(--shadow-1);
+  /* A border, not an inset shadow: `--shadow-1` is none in dark, and none
+     inside a shadow list drops the whole declaration. */
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-1);
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -431,15 +443,21 @@
 
 /* ------------------------------------------------------------- narrow */
 
+/* A phone-width browser takes the phones' shape: art over words, and the
+   footer's buttons full width, the main one wider. */
 @media (max-width: 900px) {
-  .top { padding: 0 16px; }
-  .story { grid-template-columns: 1fr; gap: 24px; padding: 0 16px 24px; }
+  .top { height: 56px; padding: 0 16px; }
+  .story { grid-template-columns: 1fr; gap: 16px; padding: 0 16px 16px; align-items: start; }
   .artSide { max-height: none; }
-  .art { height: 420px; }
+  .art { height: 340px; }
+  .words { gap: 16px; max-width: none; }
   .introTitle { font-size: 34px; }
   .introLine { font-size: 18px; }
-  .copy { min-height: 190px; }
+  .copy { min-height: 160px; }
   .title { font-size: 34px; }
+  .foot { flex-wrap: nowrap; }
+  .foot .button { flex: 1.5; padding: 0 12px; }
+  .foot .skip { flex: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
