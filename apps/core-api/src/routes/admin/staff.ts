@@ -1,0 +1,10 @@
+// 034, section F. Staff.
+//
+// Registered by the admin plugin in the owner scope, so every path here is relative to
+// `/v1/admin` and already behind the staff check. Each route that is not a GET
+// declares `config: { audit: <kind> }` and writes that entry in its own
+// transaction.
+
+import type { App } from "../../app.js";
+
+export async function staffAdminRoutes(_app: App): Promise<void> {}

@@ -43,6 +43,7 @@ from offload_agent.harness.plan import (
     plan,
     plan_answer,
 )
+from offload_agent.heartbeat import heartbeats
 from offload_agent.link_place import KINDS as LINK_PLACE_KINDS
 from offload_agent.link_place import handle_link_place
 from offload_agent.nightly import KINDS as NIGHTLY_KINDS
@@ -140,6 +141,7 @@ class Lookups:
         *,
         may_search: bool,
         may_read_links: bool,
+        maps_on: bool = True,
         country: str | None = None,
         today: str | None = None,
         links: str | None = None,
@@ -159,6 +161,8 @@ class Lookups:
         self.today = today
         self.may_search = may_search
         self.may_read_links = may_read_links
+        #: 034. The owner's map switch, as the turn's context read it.
+        self.maps_on = maps_on
         self.searches = 0
         self.reads = 0
         self.sources: list[dict] = []
@@ -669,7 +673,9 @@ def _tool_caller(
             and lookups is not None
             and _in_the_dump(str(args["url"]), lookups[2].links)
         ):
-            read_location = cfg.maps_on and lookups[2].may_read_links
+            read_location = (
+                cfg.maps_on and lookups[2].maps_on and lookups[2].may_read_links
+            )
             if read_location or not args.get("image_url"):
                 meta = await page(http, str(args["url"]), read_location=read_location)
                 if meta.image and not args.get("image_url"):
@@ -1284,6 +1290,7 @@ async def _handle(
             links=fitted.mail.links if fitted.mail else None,
             may_search=fitted.may_search,
             may_read_links=fitted.may_read_links,
+            maps_on=fitted.maps_on,
             country=fitted.country,
             today=fitted.today,
         )
@@ -1863,6 +1870,8 @@ async def run(cfg: Config, stop: asyncio.Event) -> None:
     listener = asyncio.create_task(listen(engine, cancels, stop))
 
     async with httpx.AsyncClient() as http:
+        # 034. One beat a minute, beside the loop rather than inside it.
+        beats = asyncio.create_task(heartbeats(http, cfg, stop))
         while not stop.is_set():
             try:
                 async with engine.begin() as conn:
@@ -1916,6 +1925,10 @@ async def run(cfg: Config, stop: asyncio.Event) -> None:
                 # transient database blip stops answering everybody.
                 log.error("worker loop error", error_type=type(exc).__name__)
                 await asyncio.sleep(cfg.poll_seconds)
+
+        beats.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await beats
 
     listener.cancel()
     with contextlib.suppress(asyncio.CancelledError):

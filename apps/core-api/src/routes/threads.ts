@@ -110,7 +110,7 @@ function guard<T>(
       return reply.code(error.code === "on_calendar" ? 409 : 400).send({ error: error.code });
     }
     if (error instanceof OverBudget) {
-      return reply.code(429).send({ error: "daily_limit" as const });
+      return reply.code(429).send({ error: "daily_limit" as const, scope: error.scope });
     }
     throw error;
   });

@@ -14,6 +14,9 @@ export interface Staff {
   role: "support" | "owner";
   email: string;
   waiting: number;
+  /** 034. What is wrong on Health: dead jobs, services down, a late backup.
+   *  Zero for support, who does not see Health. */
+  wrong: number;
 }
 
 export interface AdminState {

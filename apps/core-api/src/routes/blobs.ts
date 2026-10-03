@@ -24,8 +24,6 @@ import { unwrap, wrap } from "../crypto/keys.js";
 import { mintObjectKey, objectKeyOf } from "../blobs/keys.js";
 import { objectKey, objectStore, RENDITIONS, type Rendition } from "../blobs/store.js";
 import {
-  DAILY_BYTES,
-  DAILY_PHOTOS,
   MAX_PHOTO_BYTES,
   MAX_PHOTOS,
   MAX_PIXELS,
@@ -34,12 +32,13 @@ import {
   sniff,
 } from "../blobs/photos.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
+import { recordHit } from "../budget.js";
+import { dailyLimit } from "./dumps.js";
+import { limitFor, type CapKey } from "../settings.js";
 import { MAX_CANDIDATES } from "../mail-in/images.js";
 import { reverseGeocodingOn } from "../places/reverse.js";
 import {
   audioFilename,
-  DAILY_VOICE_MS,
-  DAILY_VOICE_NOTES,
   MAX_AUDIO_BYTES,
   parseDurationMs,
   parseWaveform,
@@ -219,7 +218,7 @@ export async function blobRoutes(app: App): Promise<void> {
           401: unauthenticated,
           413: refused,
           415: refused,
-          429: refused,
+          429: dailyLimit,
           503: refused,
         },
       },
@@ -269,8 +268,16 @@ export async function blobRoutes(app: App): Promise<void> {
         .where("kind", "=", "image")
         .where("created_at", ">", sql<Date>`now() - interval '24 hours'`)
         .executeTakeFirstOrThrow();
-      if (Number(today.n) >= DAILY_PHOTOS || Number(today.bytes ?? 0) + upload.bytes.length > DAILY_BYTES) {
-        return reply.code(429).send({ error: "daily_limit" });
+      // 034. Each ceiling is its setting, or this account's own value for it.
+      const overPhotos: CapKey | null =
+        Number(today.n) >= (await limitFor(accountId, "cap.photos"))
+          ? "cap.photos"
+          : Number(today.bytes ?? 0) + upload.bytes.length > (await limitFor(accountId, "cap.photo_bytes"))
+            ? "cap.photo_bytes"
+            : null;
+      if (overPhotos) {
+        await recordHit(accountId, overPhotos, "account");
+        return reply.code(429).send({ error: "daily_limit", scope: "account" });
       }
 
       const bytes = upload.bytes;
@@ -327,7 +334,7 @@ export async function blobRoutes(app: App): Promise<void> {
           401: unauthenticated,
           413: refused,
           415: refused,
-          429: refused,
+          429: dailyLimit,
           503: refused,
         },
       },
@@ -380,8 +387,15 @@ export async function blobRoutes(app: App): Promise<void> {
         .where("kind", "=", "audio")
         .where("created_at", ">", sql<Date>`now() - interval '24 hours'`)
         .executeTakeFirstOrThrow();
-      if (Number(today.n) >= DAILY_VOICE_NOTES || Number(today.ms ?? 0) + durationMs > DAILY_VOICE_MS) {
-        return reply.code(429).send({ error: "daily_limit" });
+      const overVoice: CapKey | null =
+        Number(today.n) >= (await limitFor(accountId, "cap.voice_notes"))
+          ? "cap.voice_notes"
+          : Number(today.ms ?? 0) + durationMs > (await limitFor(accountId, "cap.voice_ms"))
+            ? "cap.voice_ms"
+            : null;
+      if (overVoice) {
+        await recordHit(accountId, overVoice, "account");
+        return reply.code(429).send({ error: "daily_limit", scope: "account" });
       }
 
       const bytes = upload.bytes;

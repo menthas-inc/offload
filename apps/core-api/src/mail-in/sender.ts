@@ -19,6 +19,7 @@ import { dkimVerify } from "mailauth/lib/dkim/verify.js";
 import addressparser from "nodemailer/lib/addressparser/index.js";
 import libmime from "libmime";
 import { db } from "../db.js";
+import { inBackground } from "../accounts/active.js";
 
 export const ADDRESS = "over@to.offload.club";
 const STALE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -97,8 +98,9 @@ async function accountFor(address: string): Promise<string | null> {
     .where(sql<boolean>`lower(email) = ${address}`)
     // Only an account that is in. A waitlist signup is an accounts row with an
     // email too, and an invited one has not consented to anything being held.
-    .where("state", "=", "active")
-    .where("deleted_at", "is", null)
+    // 034. And one that is not marked for deletion: the one rule for whether
+    // offload works for an account with nobody asking.
+    .where(inBackground())
     .executeTakeFirst();
   return row?.id ?? null;
 }

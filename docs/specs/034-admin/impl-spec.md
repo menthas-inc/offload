@@ -79,7 +79,7 @@ Six migrations, all written in groundwork so no section adds one. Numbers start 
 - `staff_audit (id uuid pk, at timestamptz default now(), staff_account_id uuid not null, kind text not null, target_account_id uuid, setting_key text, old_value jsonb, new_value jsonb, job_id uuid, day date generated)`. **No foreign keys**: an entry outlives both accounts. No address, no free text.
 - Unique `(staff_account_id, target_account_id, day) where kind = 'person.viewed'`.
 - A `before update or delete` trigger that raises, except a delete of a row older than two years.
-- `staff.last_seen_at timestamptz`, stamped by `/v1/admin/me` at most once an hour.
+- No last-seen column on `staff`: a stamp on `/v1/admin/me` would be a read that writes. Staff's *last here* is the newest audit entry by that person.
 - A trigger on `insert into staff` that raises when the account has more than one `account_identities` row, the mirror of 0007.
 
 **0076_ledger_survives.sql**

@@ -11,7 +11,9 @@
 }
 
 /* Moss, not ink. Support keeps this window and the app open side by side and
-   the two must never be confused at a glance. Nothing else changes colour. */
+   the two must never be confused at a glance. Nothing else changes colour.
+   The one ramp in this file, as the kit has it: no alias means "the admin
+   nav", and everything on it is mixed from --text-on-solid. */
 .nav {
   background: var(--moss-700);
   color: var(--text-on-solid);
@@ -19,6 +21,9 @@
   display: flex;
   flex-direction: column;
   gap: 28px;
+  --nav-quiet: color-mix(in srgb, var(--text-on-solid) 78%, transparent);
+  --nav-wash: color-mix(in srgb, var(--text-on-solid) 10%, transparent);
+  --nav-wash-strong: color-mix(in srgb, var(--text-on-solid) 16%, transparent);
 }
 
 .brand {
@@ -35,7 +40,7 @@
   font: var(--weight-medium) 10.5px/1 var(--font-core);
   padding: 4px 6px;
   border-radius: var(--radius-xs);
-  background: rgb(255 255 255 / 0.16);
+  background: var(--nav-wash-strong);
   color: var(--text-on-solid);
 }
 
@@ -45,16 +50,20 @@
   color: var(--text-on-solid);
 }
 
-.navList { display: flex; flex-direction: column; gap: 2px; margin-top: var(--space-5); }
+/* Two blocks with a gap and no labels: what support sees, then what only an
+   owner does. */
+.navList { display: flex; flex-direction: column; gap: var(--space-6); margin-top: var(--space-5); }
+.navBlock { display: flex; flex-direction: column; gap: 2px; }
 
 .navItem {
   display: flex;
   align-items: center;
   gap: 11px;
   padding: 9px 12px;
-  min-height: 40px;
+  min-height: 44px;
   border-radius: var(--radius-md);
-  color: rgb(255 255 255 / 0.78);
+  text-decoration: none;
+  color: var(--nav-quiet);
   font: var(--weight-medium) 14px/1.5 var(--font-core);
 }
 .navLabel { flex: 1; }
@@ -67,8 +76,8 @@
   opacity: 0.9;
 }
 
-.navItem:hover { background: rgb(255 255 255 / 0.1); color: var(--text-on-solid); }
-.navItemOn { background: rgb(255 255 255 / 0.16); color: var(--text-on-solid); }
+.navItem:hover { background: var(--nav-wash); color: var(--text-on-solid); }
+.navItemOn { background: var(--nav-wash-strong); color: var(--text-on-solid); }
 
 .navFoot {
   margin-top: auto;
@@ -81,19 +90,19 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  min-height: 34px;
+  min-height: 44px;
   padding: 0 12px;
   border-radius: var(--radius-sm);
   text-decoration: none;
   font: var(--weight-medium) 13.5px/1 var(--font-core);
-  color: rgb(255 255 255 / 0.78);
+  color: var(--nav-quiet);
 }
-.back:hover { background: rgb(255 255 255 / 0.1); color: var(--text-on-solid); }
+.back:hover { background: var(--nav-wash); color: var(--text-on-solid); }
 
 .who {
   padding: 0 12px;
   font: var(--text-body-sm-role);
-  color: rgb(255 255 255 / 0.7);
+  color: var(--nav-quiet);
   word-break: break-all;
 }
 
@@ -130,9 +139,11 @@
 /* Search sits in the pane head, not above the table: it is a tool for the
    page, like the batch button beside it. */
 .search {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  color: var(--text-tertiary);
   height: 38px;
   width: 280px;
   padding: 0 var(--space-5);
@@ -187,7 +198,8 @@
 }
 
 /* Drawn at 32, hit at 44. The design system's Button compensates the same way,
-   and a staff-only surface is not an excuse to skip it. */
+   and a staff-only surface is not an excuse to skip it: one rule, below, gives
+   every control drawn short of 44 the rest as a ::after. */
 .ghost {
   border: none;
   background: none;
@@ -220,12 +232,12 @@
   padding: 0 var(--space-4);
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--ink-950);
+  background: var(--surface-inverse);
   color: var(--text-inverse);
   cursor: pointer;
   font: var(--weight-medium) var(--size-label)/1 var(--font-core);
 }
-.smallPrimary:hover { background: var(--ink-800); }
+.smallPrimary:hover { background: color-mix(in srgb, var(--surface-inverse) 86%, var(--surface-page)); }
 .smallPrimary:disabled { background: var(--state-disabled-surface); color: var(--state-disabled-text); cursor: default; }
 
 /* Badges carry the state. Attention for invited, accent for signed up, plain
@@ -240,8 +252,10 @@
   color: var(--text-secondary);
   white-space: nowrap;
 }
-.badgeAttention { background: var(--surface-attention-soft); color: var(--text-on-attention); }
-.badgeAccent { background: var(--surface-accent-soft); color: var(--text-accent); }
+.badgeAttention, .badge[data-tone="attention"] { background: var(--surface-attention-soft); color: var(--text-on-attention); }
+.badgeAccent, .badge[data-tone="accent"] { background: var(--surface-accent-soft); color: var(--text-accent); }
+/* Failed, down, dead: the one state that is neither fine nor waiting. */
+.badge[data-tone="danger"] { background: var(--surface-danger-soft); color: var(--text-danger); }
 
 /* One table shape for every admin page: hairlines only, no zebra, numbers
    right and tabular. */
@@ -284,16 +298,24 @@
 
 .quiet { color: var(--text-secondary); }
 
-.notes { margin: var(--space-8) 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; max-width: 78ch; }
+.notes { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; max-width: 78ch; }
 .noteItem { display: flex; gap: 10px; font: var(--text-body-sm-role); line-height: 1.55; color: var(--text-secondary); }
 .noteBullet { color: var(--text-tertiary); }
 
-.sectionLabel {
-  display: block;
-  margin: var(--space-8) 0 var(--space-4);
-  font: var(--weight-medium) 12px/1 var(--font-core);
-  color: var(--text-secondary);
+/* A section's label, from the kit's ASection: a title and a quiet note
+   beside it on one baseline. */
+.section {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-7) 0 var(--space-4);
 }
+.sectionTitle {
+  margin: 0;
+  font: var(--weight-semibold) 17px/1.2 var(--font-core);
+  color: var(--text-primary);
+}
+.sectionNote { font: var(--text-body-sm-role); color: var(--text-tertiary); }
 
 .chip {
   display: inline-block;
@@ -314,12 +336,6 @@
 
 .more { margin-top: 20px; }
 
-.note {
-  font: var(--text-body-sm-role);
-  color: var(--text-secondary);
-  margin: 12px 0 0;
-}
-
 /* Confirmation of a write, bottom right, gone in a few seconds. */
 .toast {
   position: fixed;
@@ -328,7 +344,8 @@
   margin: 0;
   padding: 12px 18px;
   border-radius: var(--radius-pill);
-  background: var(--ink-950);
+  z-index: 50;
+  background: var(--surface-inverse);
   color: var(--text-inverse);
   font: var(--weight-medium) 14px/1 var(--font-core);
   box-shadow: var(--shadow-2);
@@ -341,7 +358,7 @@
 .danger {
   min-height: 32px;
   padding: 6px var(--space-4);
-  border: 1px solid var(--clay-600);
+  border: 1px solid var(--text-danger);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-danger);
@@ -349,19 +366,256 @@
   font: var(--weight-medium) var(--size-label)/1 var(--font-core);
   transition: background var(--transition-ui), color var(--transition-ui);
 }
-.danger:hover { background: var(--clay-100); }
+.danger:hover { background: var(--surface-danger-soft); }
 
-/* The confirmation itself: solid clay, and the only solid clay anywhere. */
+/* The confirmation itself: solid clay, and the only solid clay anywhere.
+   There is no solid danger surface among the tokens yet. One is requested
+   with 034 (--surface-danger); until it lands on main this class is the one
+   place that stands in for it, with the nearest alias. */
 .dangerSolid {
   min-height: 40px;
   padding: 8px var(--space-6);
   border: none;
   border-radius: var(--radius-pill);
-  background: var(--clay-600);
+  background: var(--text-danger);
   color: var(--text-on-solid);
   cursor: pointer;
   font: var(--weight-medium) 15px/1 var(--font-core);
   transition: background var(--transition-ui);
 }
-.dangerSolid:hover { background: var(--clay-700); }
+.dangerSolid:hover { background: color-mix(in srgb, var(--text-danger) 82%, var(--surface-inverse)); }
 .dangerSolid:disabled { background: var(--state-disabled-surface); color: var(--state-disabled-text); cursor: default; }
+
+/* ------------------------------------------------------------------ 034 */
+
+/* One hit-area rule. A control drawn at 32 or 38 is still 44 to the finger:
+   the box it draws stays the kit's and the ::after carries the difference. */
+.ghost, .small, .smallPrimary, .danger, .reset, .segOption, .search { position: relative; }
+.ghost::after, .small::after, .smallPrimary::after, .danger::after, .segOption::after, .search::after {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+.reset::after { content: ""; position: absolute; inset: -14px -6px; }
+
+/* The dialog's own buttons are drawn at the size they are hit at. */
+.primary {
+  min-height: 44px;
+  padding: 8px var(--space-6);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  cursor: pointer;
+  font: var(--weight-medium) 15px/1 var(--font-core);
+}
+.primary:disabled { background: var(--state-disabled-surface); color: var(--state-disabled-text); cursor: default; }
+.dangerSolid { min-height: 44px; }
+
+.asOf { font: var(--text-caption-role); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-bottom: var(--space-3);
+  text-decoration: none;
+  font: var(--weight-medium) 13.5px/1 var(--font-core);
+  color: var(--text-secondary);
+}
+.backLink:hover { color: var(--text-primary); }
+
+/* A row that opens a page: the first cell's link stretches over the row, and
+   anything else in it that can be pressed sits above the link. */
+.cell { font-variant-numeric: tabular-nums; }
+.rowLink { position: relative; }
+.rowLink:hover { background: var(--state-hover); }
+.rowAnchor { color: inherit; text-decoration: none; }
+.rowAnchor::after { content: ""; position: absolute; inset: 0; }
+.rowLink button, .rowLink a:not(.rowAnchor), .rowLink label { position: relative; z-index: 1; }
+
+/* Numbers that matter, three or four across. */
+.stats { display: flex; gap: var(--space-4); margin-bottom: var(--space-6); flex-wrap: wrap; }
+.stat {
+  flex: 1;
+  min-width: 160px;
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+.statLabel { font: var(--text-body-sm-role); color: var(--text-secondary); }
+.statValue {
+  margin-top: 6px;
+  font: var(--weight-semibold) 28px/1.1 var(--font-core);
+  letter-spacing: -0.018em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.statValue[data-tone="attention"] { color: var(--text-attention); }
+.statNote { margin-top: 6px; font: var(--text-caption-role); line-height: 1.45; color: var(--text-tertiary); }
+
+/* The three states every page has. */
+.loading { display: flex; justify-content: center; padding: 96px 0; }
+.spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--border-hairline);
+  border-top-color: var(--text-primary);
+  animation: admin-spin 800ms linear infinite;
+}
+@keyframes admin-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.failed {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 48px 12px;
+  font: var(--text-body-role);
+  color: var(--text-primary);
+}
+
+/* A field, from the kit's AField. */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.fieldTop { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.fieldLabel { font: var(--text-label-role); color: var(--text-secondary); }
+.fieldBox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+}
+.fieldBox:focus-within { box-shadow: var(--shadow-focus); }
+.fieldBox[data-invalid] { border-color: var(--text-danger); }
+.fieldAffix { color: var(--text-tertiary); }
+.fieldInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: var(--text-body-role);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.fieldHint { font: var(--text-caption-role); line-height: 1.45; color: var(--text-tertiary); }
+.fieldError { font: var(--text-caption-role); line-height: 1.45; color: var(--text-danger); }
+.reset {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font: var(--text-caption-role);
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+.reset:hover { color: var(--text-primary); }
+
+/* A change, old to new. */
+.diff { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.diffRow { display: flex; align-items: baseline; gap: var(--space-3); font: var(--text-body-sm-role); color: var(--text-primary); }
+.diffLabel { flex: 1; min-width: 0; color: var(--text-secondary); }
+.diffFrom { font-variant-numeric: tabular-nums; color: var(--text-secondary); text-decoration: line-through; }
+.diffTo { font-weight: var(--weight-medium); font-variant-numeric: tabular-nums; }
+
+/* The confirm dialog, from the kit's AConfirm. */
+/* max-width: the pane caps its children, and this is not in its flow. */
+.scrim { position: fixed; inset: 0; z-index: 40; max-width: none; background: var(--surface-scrim); }
+.dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 41;
+  box-sizing: border-box;
+  width: min(460px, calc(100vw - var(--space-8)));
+  max-width: none;
+  padding: var(--space-7);
+  border-radius: var(--radius-xl);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sheet);
+}
+.dialogTitle { font: var(--weight-semibold) 21px/1.2 var(--font-core); letter-spacing: -0.012em; color: var(--text-primary); }
+.dialogBody { margin-top: var(--space-3); font: var(--text-body-role); line-height: 1.5; color: var(--text-secondary); }
+.dialogForm { margin-top: var(--space-6); }
+.dialogActions { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-3); margin-top: var(--space-6); }
+
+/* The range a plot covers: one segmented control, four choices. */
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--radius-pill); background: var(--surface-fill); }
+.segOption {
+  min-height: 32px;
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+  font: var(--weight-medium) var(--size-label)/1 var(--font-core);
+  color: var(--text-secondary);
+}
+.segOption[aria-checked="true"] { background: var(--surface-raised); color: var(--text-primary); box-shadow: var(--shadow-1); }
+
+/* A plot: one series, in ink, with the attention colour for the one state
+   that needs somebody. The height is the kit's daily bars. A token for it is
+   requested with 034 (--plot-height); until it lands on main this class is
+   the one place that carries the figure. */
+.plot {
+  margin: 0;
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+.plotArea { display: block; width: 100%; height: 96px; overflow: visible; }
+.plotHit { fill: transparent; }
+.plotMark { fill: var(--text-primary); }
+.plotPoint[data-tone="attention"] .plotMark { fill: var(--surface-attention); }
+.plotPoint { outline: none; }
+.plotPoint:hover .plotHit, .plotPoint:focus-visible .plotHit { fill: var(--state-hover); }
+.plotPoint:focus-visible .plotMark { stroke: var(--border-focus); stroke-width: 2; }
+.plotLine { fill: none; stroke: var(--text-primary); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.plotFoot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: 8px;
+  font: var(--text-caption-role);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+.plotNote { margin: 8px 0 0; font: var(--text-caption-role); color: var(--text-tertiary); }
+
+/* A share of a total, drawn as one bar. No axes, no legend. */
+.share { display: block; height: 6px; border-radius: var(--radius-pill); background: var(--surface-fill); overflow: hidden; }
+.shareFill { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--text-primary); }
+.shareFill[data-tone="attention"] { background: var(--surface-attention); }
+
+/* The panel at phone width: the nav goes on top and its blocks run across. */
+@media (max-width: 760px) {
+  .frame { grid-template-columns: 1fr; }
+  .nav { gap: var(--space-4); padding: var(--space-4); }
+  .navList { flex-direction: row; flex-wrap: wrap; gap: var(--space-3); margin-top: 0; }
+  .navBlock { flex-direction: row; flex-wrap: wrap; }
+  .navFoot { margin-top: 0; flex-direction: row; align-items: center; justify-content: space-between; }
+  .pane { padding: var(--space-6) var(--space-5) var(--space-9); }
+  .paneHead { flex-direction: column; align-items: stretch; }
+  .headTools { flex-wrap: wrap; }
+  .search { width: auto; flex: 1; }
+  .table { overflow-x: auto; }
+  .thead, .row { min-width: 640px; }
+}

@@ -4,14 +4,36 @@
 // consented to nothing. First run only offers connecting a calendar and
 // notifications after consent, and this is what makes the API agree: a route
 // that brings anything in checks it rather than trusting the screen (SEC-2).
+//
+// 034 added the rule for the other direction: whether offload does anything
+// for an account in the background.
 
 import type { FastifyInstance } from "fastify";
 import { auth } from "../auth/auth.js";
+import { sql, type RawBuilder } from "kysely";
 import { db } from "../db.js";
+import type { Executor } from "../threads/access.js";
 
 export async function isActive(accountId: string): Promise<boolean> {
   const row = await db.selectFrom("accounts").select("state").where("id", "=", accountId).executeTakeFirst();
   return row?.state === "active";
+}
+
+/** 034. Whether offload works for an account when nobody is asking: the
+ *  nightly pass, a digest, a push, a calendar sync, mail in. **One rule for
+ *  every scheduled job**, so disabling somebody, or marking them for
+ *  deletion, stops all of it without one check per job to forget.
+ *
+ *  As a fragment, for a query that joins `accounts` under `alias`. */
+export function inBackground(alias = "accounts"): RawBuilder<boolean> {
+  const column = (name: string) => sql.ref(`${alias}.${name}`);
+  return sql<boolean>`(${column("state")} = 'active' and ${column("deleted_at")} is null and ${column("delete_after")} is null)`;
+}
+
+/** The same rule for one account. */
+export async function worksInBackground(accountId: string, trx: Executor = db): Promise<boolean> {
+  const row = await trx.selectFrom("accounts").select("id").where("id", "=", accountId).where(inBackground()).executeTakeFirst();
+  return row !== undefined;
 }
 
 /** Every write behind a session, under these prefixes. A new route there is

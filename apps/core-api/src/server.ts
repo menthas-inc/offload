@@ -5,6 +5,9 @@ import { createJobRunner } from "./jobs/runner.js";
 import { chooseMailer } from "./mail/index.js";
 import { startDaily, startHourly, enqueue, PRIORITY } from "./jobs/queue.js";
 import { mapsConfig } from "./places/resolve.js";
+import { startHeartbeat } from "./health/heartbeat.js";
+import { startHealthJobs } from "./health/jobs.js";
+import { startBillingJobs } from "./billing/jobs.js";
 
 // Migrate before anything else is even imported. A deploy that starts
 // answering requests against a schema older than its code is the failure this
@@ -61,6 +64,10 @@ await startDaily("people.daily");
 // 024. The hourly placer of the two digests.
 await startHourly("digest.schedule");
 await startDaily("analytics.ship");
+// 034. The hourly rollup behind Health's plots, and the daily read of each
+// company's bill. Each section owns its own chain.
+await startHealthJobs();
+await startBillingJobs();
 
 // 013's sweep books its own successor, so this only has to start the chain.
 // Enqueued rather than run inline: boot should not wait on three index scans.
@@ -72,8 +79,15 @@ await enqueue({
   maxAttempts: 3,
 });
 
+// 034. One row a minute for this service, the database and the web. Started
+// here and nowhere else, so no test runs under a timer; unref'd, so it never
+// holds the process open on its own.
+const heartbeats = startHeartbeat((fields, msg) => app.log.error(fields, msg));
+heartbeats.unref();
+
 const shutdown = async (signal: string): Promise<void> => {
   app.log.info({ signal }, "shutting down");
+  clearInterval(heartbeats);
   // The runner first: it holds claimed rows, and stopping it before the pool
   // closes lets the job in flight finish against a live connection.
   runner.stop();

@@ -20,6 +20,7 @@ import structlog
 from sqlalchemy import text
 
 from offload_agent.config import Config
+from offload_agent.context import switch_on
 from offload_agent.og import page
 from offload_agent.queue import ClaimedJob, finish
 
@@ -27,8 +28,10 @@ log = structlog.get_logger()
 
 KINDS = ["link.place"]
 
+# 034. And the owner's two switches, in the same statement: the map, and
+# reading links. Either off, nothing is read, for anybody.
 _READABLE = text(
-    """
+    f"""
     select c.url
     from content c
     join accounts a on a.id = c.account_id
@@ -39,6 +42,8 @@ _READABLE = text(
       and c.place_read_at is null
       and c.url is not null
       and a.web_links_enabled = true
+      and {switch_on("switch.web_links")}
+      and {switch_on("switch.maps")}
       and m.account_id = c.account_id
       and position(c.url in coalesce(m.text, '')) > 0
     """

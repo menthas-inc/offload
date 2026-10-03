@@ -9,7 +9,8 @@ import { sql } from "kysely";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import type { Executor } from "../threads/access.js";
-import { attachPagePoint, mapsConfig } from "./resolve.js";
+import { attachPagePoint } from "./resolve.js";
+import { mapsOn, setting } from "../settings.js";
 
 /** Forget every remembered miss (each was written with no key set), look up
  *  every saved place with no point, and book each link to be read once more,
@@ -17,7 +18,9 @@ import { attachPagePoint, mapsConfig } from "./resolve.js";
  *  is in the words of the message it came from, so nothing the model chose is
  *  ever opened. */
 export async function backfillMaps(): Promise<{ places: number; links: number }> {
-  if (!mapsConfig().on) return { places: 0, links: 0 };
+  // 034. Both of the owner's switches: this pass looks places up and books
+  // pages to be read.
+  if (!(await mapsOn()) || !(await setting("switch.web_links"))) return { places: 0, links: 0 };
 
   await db.deleteFrom("place_lookups").where("place_id", "is", null).execute();
 
@@ -72,7 +75,7 @@ function readableLinks(trx: Executor) {
  *  worker posts to, after the fetch: the worker is not trusted for an access
  *  decision. */
 export async function linkReadable(contentId: string, trx: Executor = db): Promise<boolean> {
-  if (!mapsConfig().on) return false;
+  if (!(await mapsOn()) || !(await setting("switch.web_links"))) return false;
   const row = await readableLinks(trx).where("content.id", "=", contentId).executeTakeFirst();
   return row !== undefined;
 }

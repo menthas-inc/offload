@@ -12,6 +12,7 @@ import type { Kysely, Transaction } from "kysely";
 import { CHANNEL_REQUESTS, CHANNEL_SHARED, PEOPLE_CATEGORY } from "@offload/widgets";
 import { emit, subjectOf } from "../analytics.js";
 import { db } from "../db.js";
+import { inBackground } from "../accounts/active.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import type { Database } from "../schema.js";
 import { record } from "./activity.js";
@@ -162,6 +163,8 @@ export async function notifySharedActivity(payload: { threadId: string; authorId
     .where("thread_members.thread_id", "=", payload.threadId)
     .where("thread_members.state", "=", "accepted")
     .where("thread_members.account_id", "<>", payload.authorId)
+    // 034. Nothing is sent to, or recorded for, a disabled member.
+    .where(inBackground())
     .execute();
   let sent = 0;
   for (const member of members) {

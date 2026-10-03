@@ -192,6 +192,7 @@ def test_fitting_a_context_keeps_every_field_it_was_given():
         has_calendar=True,
         may_search=True,
         may_read_links=True,
+        maps_on=False,
         country="NL",
         answered={"field": "when", "value": "Friday"},
         has_connections=True,

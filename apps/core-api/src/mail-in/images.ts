@@ -11,7 +11,9 @@ import { db } from "../db.js";
 import { wrap } from "../crypto/keys.js";
 import { mintObjectKey } from "../blobs/keys.js";
 import { objectKey, objectStore } from "../blobs/store.js";
-import { DAILY_BYTES, DAILY_PHOTOS, MAX_PHOTO_BYTES, MAX_PIXELS, dimensions, sha256, sniff, type PhotoType } from "../blobs/photos.js";
+import { recordHit } from "../budget.js";
+import { limitFor, type CapKey } from "../settings.js";
+import { MAX_PHOTO_BYTES, MAX_PIXELS, dimensions, sha256, sniff, type PhotoType } from "../blobs/photos.js";
 import type { ParsedImage } from "./parse.js";
 
 export const MIN_BYTES = 20 * 1024;
@@ -58,6 +60,8 @@ export async function sealCandidates(accountId: string, messageKey: string, cand
     .executeTakeFirstOrThrow();
   let count = Number(today.n);
   let bytesToday = Number(today.bytes ?? 0);
+  const maxPhotos = await limitFor(accountId, "cap.photos");
+  const maxBytes = await limitFor(accountId, "cap.photo_bytes");
 
   const ids: string[] = [];
   for (const [index, candidate] of candidates.entries()) {
@@ -74,7 +78,13 @@ export async function sealCandidates(accountId: string, messageKey: string, cand
       ids.push(existing.id);
       continue;
     }
-    if (count >= DAILY_PHOTOS || bytesToday + candidate.bytes.length > DAILY_BYTES) break;
+    // 034. The settings' ceilings, and a picture left out by one is a refusal
+    // like any other: written down, once for the email.
+    const over: CapKey | null = count >= maxPhotos ? "cap.photos" : bytesToday + candidate.bytes.length > maxBytes ? "cap.photo_bytes" : null;
+    if (over) {
+      await recordHit(accountId, over, "account");
+      break;
+    }
     let put: string | null = null;
     const blob = await db
       .transaction()

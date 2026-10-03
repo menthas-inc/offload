@@ -363,7 +363,9 @@ const currentConversation = z.object({
 const undoResponse = z.object({ undone: z.boolean() });
 const notFinishable = z.object({ error: z.literal("not_finishable") });
 
-const dailyLimit = z.object({ error: z.literal("daily_limit") });
+/** 034. `scope` says whose cap it was. Optional, and both clients branch on
+ *  the status alone, so a phone built before it reads the same refusal. */
+export const dailyLimit = z.object({ error: z.literal("daily_limit"), scope: z.enum(["account", "platform"]).optional() });
 
 const tooLong = z.object({
   error: z.literal("too_long"),
@@ -1199,7 +1201,7 @@ export async function dumpRoutes(app: App): Promise<void> {
         }
         if (error instanceof OverBudget) {
           timed();
-          return reply.code(429).send({ error: "daily_limit" as const });
+          return reply.code(429).send({ error: "daily_limit" as const, scope: error.scope });
         }
         throw error;
       }

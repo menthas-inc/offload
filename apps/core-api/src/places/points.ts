@@ -11,7 +11,8 @@ import { sql } from "kysely";
 import { db } from "../db.js";
 import { contentLabelsFor } from "../threads/labels.js";
 import { threadEvents } from "../threads/calendars.js";
-import { bookRefresh, mapsConfig } from "./resolve.js";
+import { bookRefresh } from "./resolve.js";
+import { mapsOn } from "../settings.js";
 
 /** The heavy case is a few dozen; this is a guard, not a page. */
 export const POINTS_MAX = 500;
@@ -49,7 +50,7 @@ export interface Point {
 /** Whether a thread has anything to draw. Two flat EXISTS on their own partial
  *  indexes, read on every thread open, so never `threadEvents` for a yes or no. */
 export async function hasPoint(threadId: string): Promise<boolean> {
-  if (!mapsConfig().on) return false;
+  if (!(await mapsOn())) return false;
   const row = await db
     .selectFrom("content")
     .innerJoin("places", "places.id", "content.place_id")
@@ -85,7 +86,7 @@ export async function hasPoint(threadId: string): Promise<boolean> {
  *  coordinates past thirty days is left out, booked to be fetched again, and
  *  counted in `pending` so the client reads once more and draws it. */
 export async function threadPoints(accountId: string, threadId: string): Promise<{ points: Point[]; pending: number }> {
-  if (!mapsConfig().on) return { points: [], pending: 0 };
+  if (!(await mapsOn())) return { points: [], pending: 0 };
 
   const rows = await db
     .selectFrom("content")

@@ -4,8 +4,7 @@
 // render anything: the current account, the address a refused sign-in used,
 // and the write that ends onboarding.
 
-import { webMapsOn } from "../settings.js";
-import { mapsConfig } from "../places/resolve.js";
+import { mapsOn, webMapsOn } from "../settings.js";
 import { atDailyLimit } from "../budget.js";
 import { layoutShape, resolveLayout, todayLayout } from "../today/layout.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -293,7 +292,7 @@ export async function meFor(accountId: string): Promise<z.infer<typeof meRespons
     // link they pasted opens something they already chose.
     webSearch: account.web_search_enabled,
     webLinks: account.web_links_enabled,
-    maps: mapsConfig().on,
+    maps: await mapsOn(),
     webMaps: await webMapsOn(),
     calendarAskFirst: account.calendar_ask_first,
     country: account.country,

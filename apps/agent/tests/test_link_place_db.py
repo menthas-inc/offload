@@ -151,3 +151,27 @@ async def test_nothing_is_fetched_while_the_map_is_off():
     fetched, posted, _ = await _run(content_id, maps_on=False)
     assert fetched == []
     assert posted == []
+
+
+@pytest.mark.parametrize("switch", ["switch.maps", "switch.web_links"])
+async def test_nothing_is_fetched_while_an_owner_has_the_switch_off(switch: str):
+    """034 AC-32. The owner's switch stops the read for everyone, whatever the
+    worker's own configuration and the author's own setting say."""
+    admin = create_async_engine(_asyncpg(ADMIN_DB))
+    async with admin.begin() as conn:
+        content_id = await _link(conn)
+        await conn.execute(
+            text("insert into app_settings (key, value) values (:key, 'false'::jsonb)"),
+            {"key": switch},
+        )
+    try:
+        fetched, posted, _ = await _run(content_id)
+        assert fetched == []
+        assert posted == []
+    finally:
+        async with admin.begin() as conn:
+            await conn.execute(text("delete from app_settings where key = :key"), {"key": switch})
+        await admin.dispose()
+    # On again, and the same link is read.
+    fetched, _, _ = await _run(content_id)
+    assert len(fetched) == 1

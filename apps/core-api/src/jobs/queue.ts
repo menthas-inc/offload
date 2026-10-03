@@ -9,6 +9,7 @@ import { sql } from "kysely";
 import { db } from "./../db.js";
 import type { Database } from "./../schema.js";
 import type { Kysely, Transaction } from "kysely";
+import { codeOf } from "./errors.js";
 
 /** Every kind anything enqueues, across both runners.
  *
@@ -75,7 +76,14 @@ export type JobKind =
   | "places.age"
   | "event.locate"
   | "maps.backfill"
-  | "link.place";
+  | "link.place"
+  // 034. The admin panel's own: the hourly close of job history, an alert to
+  // every owner, the daily read of each company's bill, and an account's
+  // destruction a day after an owner asked for it.
+  | "health.rollup"
+  | "email.alert"
+  | "billing.pull"
+  | "account.delete";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
  *  a nightly sweep is stopped from starving something a person is waiting on. */
@@ -165,7 +173,31 @@ export interface ClaimedJob {
  *  **The per-account cap is the other runner's concern and deliberately absent
  *  here.** Email jobs are not interactive and nobody is waiting on one.
  */
+/** How long a runner may hold a job before another may take it for gone.
+ *  The worker's figure (`queue.py`), so the two runners agree on what an
+ *  abandoned lock is. Longer than anything a handler here legitimately does. */
+export const STALE_AFTER_SECONDS = 900;
+
 export async function claim(workerId: string, kinds: string[]): Promise<ClaimedJob | undefined> {
+  // 034. A `running` row whose runner died: the claim below takes it again
+  // while it has attempts left, and this parks it dead once it has none, so a
+  // job that kills its process every time stops at `max_attempts` like one
+  // that fails politely. The worker has done both since the security review
+  // of 2026-09-22 (M10); this runner left such a row `running` for good.
+  await sql`
+    update jobs set
+      state = 'dead',
+      locked_at = null,
+      locked_by = null,
+      last_error = 'stale',
+      error_code = 'stale',
+      updated_at = now()
+    where state = 'running'
+      and locked_at < now() - make_interval(secs => ${STALE_AFTER_SECONDS})
+      and attempts >= max_attempts
+      and kind = any(${sql.val(kinds)})
+  `.execute(db);
+
   const result = await sql<ClaimedJob>`
     update jobs set
       state = 'running',
@@ -175,7 +207,14 @@ export async function claim(workerId: string, kinds: string[]): Promise<ClaimedJ
       updated_at = now()
     where id = (
       select id from jobs
-      where state = 'queued' and run_after <= now()
+      where (
+          (state = 'queued' and run_after <= now())
+          or (
+            state = 'running'
+            and locked_at < now() - make_interval(secs => ${STALE_AFTER_SECONDS})
+            and attempts < max_attempts
+          )
+        )
         and kind = any(${sql.val(kinds)})
       order by priority, run_after
       for update skip locked
@@ -189,7 +228,9 @@ export async function claim(workerId: string, kinds: string[]): Promise<ClaimedJ
 
 export async function complete(id: string): Promise<void> {
   await db.updateTable("jobs")
-    .set({ state: "done", locked_at: null, locked_by: null, updated_at: new Date() })
+    // The code goes with a success: it says why a job failed, and a job that
+    // got there on a later attempt did not.
+    .set({ state: "done", locked_at: null, locked_by: null, error_code: null, updated_at: new Date() })
     .where("id", "=", id).execute();
 }
 
@@ -197,7 +238,11 @@ export async function complete(id: string): Promise<void> {
  *
  *  The error text is truncated and never carries the payload. An email
  *  provider's rejection quotes the recipient address, and a recipient address
- *  in a log is an OFF-1 violation. */
+ *  in a log is an OFF-1 violation.
+ *
+ *  034. Beside the text goes a code from the closed set in `errors.ts`: the
+ *  one a `JobError` carries, else `handler_error`. The admin panel reads the
+ *  code and never the text. */
 export async function fail(job: ClaimedJob, error: unknown): Promise<void> {
   const terminal = job.attempts >= job.max_attempts;
   const message = scrub(error);
@@ -207,6 +252,7 @@ export async function fail(job: ClaimedJob, error: unknown): Promise<void> {
     .set({
       state: terminal ? "dead" : "queued",
       last_error: message,
+      error_code: codeOf(error),
       locked_at: null,
       locked_by: null,
       run_after: new Date(Date.now() + backoffSeconds * 1000),

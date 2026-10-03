@@ -11,6 +11,8 @@ import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
 import { uuidv7 } from "../src/uuid.js";
 import { promote } from "../src/admin/promote.js";
+import { clearSettingsCache } from "../src/settings.js";
+import { sql } from "kysely";
 
 await migrate(() => {});
 
@@ -37,7 +39,9 @@ afterEach(() => {
 });
 
 beforeEach(async () => {
+  await sql`truncate staff_audit`.execute(db);
   await db.deleteFrom("app_settings").execute();
+  clearSettingsCache();
   await db.deleteFrom("sessions").execute();
   await db.deleteFrom("staff").execute();
   await db.updateTable("accounts").set({ default_thread_id: null }).execute();
@@ -57,8 +61,18 @@ async function account(email: string, role?: "owner" | "support"): Promise<strin
 }
 
 const me = async (cookie: string) => (await app.inject({ method: "GET", url: "/api/me", headers: { cookie } })).json();
-const put = (cookie: string, webMaps: unknown) =>
-  app.inject({ method: "PATCH", url: "/v1/admin/settings", headers: { cookie }, payload: { webMaps } });
+// 034. One save for the Limits page: the changes, and what the page showed
+// for each, so a save made against stale values is refused.
+const put = (cookie: string, webMaps: unknown, was: unknown = webMaps === false) =>
+  app.inject({
+    method: "PATCH",
+    url: "/v1/admin/settings",
+    headers: { cookie },
+    payload: { changes: { "switch.web_maps": webMaps }, expected: { "switch.web_maps": was } },
+  });
+
+const webMapsOf = (body: { settings: Array<{ key: string; value: unknown }> }) =>
+  body.settings.find((row) => row.key === "switch.web_maps")?.value;
 
 describe("the web's map switch", () => {
   it("is on by default while the map is, and off with it", async () => {
@@ -74,11 +88,11 @@ describe("the web's map switch", () => {
     const person = await account("jo@example.test");
     const res = await put(owner, false);
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ webMaps: false });
+    expect(webMapsOf(res.json())).toBe(false);
     const seen = await me(person);
     expect(seen.webMaps).toBe(false);
     expect(seen.maps).toBe(true);
-    expect((await put(owner, true)).json()).toEqual({ webMaps: true });
+    expect(webMapsOf((await put(owner, true)).json())).toBe(true);
     expect((await me(person)).webMaps).toBe(true);
   });
 
@@ -86,7 +100,7 @@ describe("the web's map switch", () => {
     const owner = await account("owner@example.test", "owner");
     await put(owner, false);
     const res = await app.inject({ method: "GET", url: "/v1/admin/settings", headers: { cookie: owner } });
-    expect(res.json()).toEqual({ webMaps: false });
+    expect(webMapsOf(res.json())).toBe(false);
   });
 
   it("is the owner's alone: support and everyone else get nothing", async () => {
@@ -95,11 +109,23 @@ describe("the web's map switch", () => {
     expect((await put(support, false)).statusCode).toBe(404);
     expect((await put(person, false)).statusCode).toBe(404);
     expect((await app.inject({ method: "GET", url: "/v1/admin/settings", headers: { cookie: support } })).statusCode).toBe(404);
-    expect((await app.inject({ method: "PATCH", url: "/v1/admin/settings", payload: { webMaps: false } })).statusCode).toBe(404);
+    expect((await put("", false)).statusCode).toBe(404);
   });
 
   it("refuses anything but a boolean", async () => {
     const owner = await account("owner@example.test", "owner");
-    expect((await put(owner, "off")).statusCode).toBe(400);
+    const res = await put(owner, "off", true);
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({ error: "out_of_bounds", key: "switch.web_maps" });
+  });
+
+  it("keeps the row 0073 wrote, under the key it wrote it with", async () => {
+    const owner = await account("owner@example.test", "owner");
+    await db.insertInto("app_settings").values({ key: "web_maps", value: "false", updated_by_account_id: null }).execute();
+    clearSettingsCache();
+    const res = await app.inject({ method: "GET", url: "/v1/admin/settings", headers: { cookie: owner } });
+    expect(webMapsOf(res.json())).toBe(false);
+    await put(owner, true, false);
+    expect(await db.selectFrom("app_settings").select(["key", "value"]).execute()).toEqual([{ key: "web_maps", value: true }]);
   });
 });

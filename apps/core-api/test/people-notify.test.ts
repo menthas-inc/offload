@@ -105,6 +105,27 @@ describe("024 AC-7 a share, and additions to a shared thread", () => {
     expect(await activityOf(sam)).toEqual([{ kind: "share", sent: true, reason: null, title: "Ana shared Lisbon trip", body: "Waiting in My threads." }]);
   });
 
+  // 034 AC-12. A disabled member gets no push and no record of one.
+  it("sends an addition to nobody who is disabled or marked for deletion", async () => {
+    const ana = await account({ display_name: "Ana" });
+    const sam = await account({ display_name: "Sam", state: "disabled" });
+    const tom = await account({ display_name: "Tom", delete_after: new Date(Date.now() + 86_400_000) });
+    await token(sam);
+    await token(tom);
+    const thread = await db.insertInto("threads").values({ name: "Lisbon trip" } as never).returning("id").executeTakeFirstOrThrow();
+    for (const member of [ana, sam, tom]) {
+      await db.insertInto("thread_members").values({ thread_id: thread.id, account_id: member, state: "accepted" } as never).execute();
+    }
+    const now = new Date();
+    await noteAddition(thread.id, ana, now);
+    const [job] = await db.selectFrom("jobs").select("payload").where("kind", "=", "shared.activity").execute();
+    await db.insertInto("content").values({ account_id: ana, thread_id: thread.id, title: "Ferry times", type: "task" } as never).execute();
+    expect(await notifySharedActivity({ threadId: thread.id, authorId: ana, since: (job!.payload as { since: string }).since })).toBe(0);
+    expect(memory.sent).toEqual([]);
+    expect(await activityOf(sam)).toEqual([]);
+    expect(await activityOf(tom)).toEqual([]);
+  });
+
   it("additions coalesce per thread, author and ten minutes, and are composed at send time from what each member may still read", async () => {
     const ana = await account({ display_name: "Ana" });
     const sam = await account({ display_name: "Sam" });

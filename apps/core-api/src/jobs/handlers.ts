@@ -26,6 +26,11 @@ import { emit } from "../analytics.js";
 import { sweepEmbeds } from "../search/sweep.js";
 import { sweepPeople } from "../people/people.js";
 import { sweepPutOffs } from "../today/needs.js";
+import { inBackground, worksInBackground } from "../accounts/active.js";
+import { platformCapReached } from "../budget.js";
+import { setting } from "../settings.js";
+import { healthHandlers } from "../health/jobs.js";
+import { billingHandlers } from "../billing/jobs.js";
 
 export type Handler = (
   payload: Record<string, unknown>,
@@ -430,6 +435,14 @@ const jobsPurge: Handler = async () => {
     .where(sql<boolean>`expires_at < now() - interval '1 day'`)
     .executeTakeFirst();
 
+  // 034. The admin panel's own tables, each to its window: a heartbeat and
+  // an hour of history for ninety days, a refusal for thirty, and an audit
+  // entry for two years, which is the one delete its table allows (0075).
+  const heartbeats = await db.deleteFrom("heartbeats").where(sql<boolean>`minute < now() - interval '90 days'`).executeTakeFirst();
+  const history = await db.deleteFrom("job_stats_hourly").where(sql<boolean>`hour < now() - interval '90 days'`).executeTakeFirst();
+  const hits = await db.deleteFrom("limit_hits").where(sql<boolean>`day < (now() - interval '30 days')::date`).executeTakeFirst();
+  const audits = await db.deleteFrom("staff_audit").where(sql<boolean>`at < now() - interval '2 years'`).executeTakeFirst();
+
   console.log(
     JSON.stringify({
       level: "info",
@@ -440,6 +453,10 @@ const jobsPurge: Handler = async () => {
       sessions: Number(sessions.numDeletedRows ?? 0),
       verifications: Number(verifications.numDeletedRows ?? 0),
       proposals,
+      heartbeats: Number(heartbeats.numDeletedRows ?? 0),
+      history: Number(history.numDeletedRows ?? 0),
+      hits: Number(hits.numDeletedRows ?? 0),
+      audits: Number(audits.numDeletedRows ?? 0),
     })
   );
 };
@@ -533,7 +550,7 @@ const accountDaily: Handler = async () => {
   const accounts = await db
     .selectFrom("accounts")
     .select("id")
-    .where("state", "=", "active")
+    .where(inBackground())
     .where((eb) =>
       eb.exists(
         eb
@@ -622,6 +639,9 @@ export const NIGHTLY_THREADS = 10;
 const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
   if (!accountId) throw new Error("account.daily.run has no account");
 
+  // 034. Disabled or marked for deletion since the fan-out booked this.
+  if (!(await worksInBackground(accountId))) return;
+
   const account = await db.selectFrom("accounts").select("default_thread_id").where("id", "=", accountId).executeTakeFirst();
   const defaultThread = account?.default_thread_id ?? null;
 
@@ -697,14 +717,21 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
       maxAttempts: 2,
     });
 
+  // 034. Scheduled model work is not booked while the nightly switch is off or
+  // the platform's cap is reached. Nothing is lost: a thread keeps what it is
+  // owed until a pass stamps it, so the next night that may book does.
+  const mayBook = (await setting("switch.nightly")) && !(await platformCapReached());
+
   let booked = 0;
-  for (const thread of threads) {
-    await book(thread.id, false);
-    booked += 1;
-  }
-  if (defaultThread && (propose || defaultOwed)) {
-    await book(defaultThread, propose);
-    booked += 1;
+  if (mayBook) {
+    for (const thread of threads) {
+      await book(thread.id, false);
+      booked += 1;
+    }
+    if (defaultThread && (propose || defaultOwed)) {
+      await book(defaultThread, propose);
+      booked += 1;
+    }
   }
 
   // Counts, never text.
@@ -888,5 +915,9 @@ export const handlers: Record<string, Handler> = {
   "push.receipts": pushReceipts,
   "people.notify": peopleNotify,
   "shared.activity": sharedActivity,
+  // 034. Each section's own jobs, from the directory it owns, so adding one
+  // does not mean editing this file.
+  ...healthHandlers,
+  ...billingHandlers,
 };
 

@@ -86,6 +86,7 @@ _REAP = text(
       locked_at = null,
       locked_by = null,
       last_error = 'stale',
+      error_code = 'stale',
       updated_at = now()
     where state = 'running'
       and locked_at < now() - (:stale_seconds * interval '1 second')
@@ -150,6 +151,7 @@ _RELEASE = text(
       locked_by = null,
       run_after = now() + (:delay_seconds * interval '1 second'),
       last_error = :reason,
+      error_code = :reason,
       updated_at = now()
     where id = :job_id
     """
@@ -164,6 +166,10 @@ async def release_for_retry(
     `reason` is an enum-shaped string, never an exception message: jobs.last_error
     is a column a person reads while debugging and an SDK error can embed the
     request body, which is somebody's dump (OFF-1).
+
+    034. The same string goes to `jobs.error_code`, the column the admin panel
+    reads: the Core API keeps the closed set (`src/jobs/errors.ts`), and a new
+    reason here is a new entry there.
     """
     await conn.execute(
         _RELEASE, {"job_id": job_id, "reason": reason, "delay_seconds": delay_seconds}
@@ -177,6 +183,7 @@ _DIE = text(
       locked_at = null,
       locked_by = null,
       last_error = :reason,
+      error_code = :reason,
       updated_at = now()
     where id = :job_id
     """
@@ -218,6 +225,7 @@ _FINISH = text(
       state = 'done',
       locked_at = null,
       locked_by = null,
+      error_code = null,
       updated_at = now()
     where id = :job_id
     """

@@ -39,6 +39,17 @@ export RCLONE_CONFIG_R2_NO_CHECK_BUCKET="true"
 STAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
 TARGET="r2:${R2_BUCKET}/${PREFIX}/${STAMP}.dump.age"
 
+# 034. Each run is written down, in the database it just read, so Health can
+# say when the last backup finished and how big it was, and notice a late one.
+# A size and a yes or no, nothing else. The record never decides the run's
+# outcome: a backup that shipped has shipped whether or not this insert lands,
+# and a run that failed still exits non-zero.
+record() {
+  psql "$DATABASE_URL" -q -v ON_ERROR_STOP=1 \
+    -c "insert into backup_runs (bytes, ok) values ($1, $2)" >/dev/null 2>&1 \
+    || echo "{\"level\":\"error\",\"msg\":\"backup run not recorded\",\"stamp\":\"${STAMP}\"}"
+}
+
 # Streamed end to end: nothing plaintext touches a disk, here or there. A
 # failure anywhere in the pipe removes what rclone had already written, so
 # the bucket never holds a dump that is not whole.
@@ -47,12 +58,14 @@ if ! pg_dump --format=custom --no-owner --no-privileges "$DATABASE_URL" \
   | rclone rcat "$TARGET"; then
   rclone deletefile "$TARGET" >/dev/null 2>&1 || true
   echo "{\"level\":\"error\",\"msg\":\"backup failed, nothing kept\",\"stamp\":\"${STAMP}\"}"
+  record 0 false
   exit 1
 fi
 
 # Sizes and counts only, never a name that could carry anything.
 SIZE="$(rclone size "$TARGET" --json | sed -n 's/.*"bytes":\([0-9]*\).*/\1/p')"
 echo "{\"level\":\"info\",\"msg\":\"backup shipped\",\"bytes\":${SIZE:-0},\"stamp\":\"${STAMP}\"}"
+record "${SIZE:-0}" true
 
 rclone delete "r2:${R2_BUCKET}/${PREFIX}" --min-age "${KEEP_DAYS}d"
 echo "{\"level\":\"info\",\"msg\":\"backups older than the window dropped\",\"days\":${KEEP_DAYS}}"

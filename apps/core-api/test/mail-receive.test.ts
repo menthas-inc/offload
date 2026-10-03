@@ -8,7 +8,8 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { receiveMail } from "../src/mail-in/receive.js";
 import { resetObjectStore } from "../src/blobs/store.js";
-import { DAILY_MODEL_BUDGET_MICROS } from "../src/budget.js";
+import { DAILY_MODEL_BUDGET_MICROS, DAILY_TURNS } from "../src/budget.js";
+import { clearSettingsCache } from "../src/settings.js";
 import { wipe } from "./labels-kit.js";
 import { DOMAIN, person, raw, resolver, signed } from "./mail-kit.js";
 
@@ -145,6 +146,30 @@ describe("the caps (AC-8)", () => {
     expect(await messages()).toEqual([]);
     const rows = await db.selectFrom("activity").select("mail_outcome").where("account_id", "=", jo).execute();
     expect(rows).toEqual([{ mail_outcome: "over_limit" }]);
+  });
+
+  // 034. The turns cap refused inside the dump and the handler answered 500.
+  it("drops an email for an account that has used its turns, with the same row, and records the hit", async () => {
+    await db
+      .insertInto("jobs")
+      .values(Array.from({ length: DAILY_TURNS }, () => ({ kind: "dump.answer", account_id: jo, payload: JSON.stringify({}), state: "done" as const, run_after: new Date() })))
+      .execute();
+    expect(await receive(await signed(raw({ body: "note" })))).toBe("over_limit");
+    expect(await messages()).toEqual([]);
+    const rows = await db.selectFrom("activity").select("mail_outcome").where("account_id", "=", jo).execute();
+    expect(rows).toEqual([{ mail_outcome: "over_limit" }]);
+    const hits = await db.selectFrom("limit_hits").select(["cap", "scope", "count"]).where("account_id", "=", jo).execute();
+    expect(hits).toEqual([{ cap: "cap.turns", scope: "account", count: 1 }]);
+  });
+
+  it("reads the hourly cap from its setting and records the hit", async () => {
+    await db.insertInto("app_settings").values({ key: "cap.mail_hour", value: "1", updated_by_account_id: null }).execute();
+    clearSettingsCache();
+
+    expect(await receive(await signed(raw({ body: "one" })))).toBe("accepted");
+    expect(await receive(await signed(raw({ body: "two" })))).toBe("over_limit");
+    const hits = await db.selectFrom("limit_hits").select(["cap", "scope", "count"]).where("account_id", "=", jo).execute();
+    expect(hits).toEqual([{ cap: "cap.mail_hour", scope: "account", count: 1 }]);
   });
 });
 

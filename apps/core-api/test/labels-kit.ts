@@ -2,6 +2,8 @@
 // session, a dump turn the tool endpoint will accept, and the two injectors.
 // One copy rather than one per file, because five files hold 025's tests.
 
+import { clearSettingsCache } from "../src/settings.js";
+import { clearPlatformSpent } from "../src/budget.js";
 import { sql } from "kysely";
 import { makeSignature } from "better-auth/crypto";
 import { db } from "../src/db.js";
@@ -119,6 +121,11 @@ export const as = (app: App, cookie: string) => ({
 /** Every table 025 writes to, and the ones they hang off, emptied in an order
  *  the foreign keys accept. */
 export async function wipe(): Promise<void> {
+  // 034. Settings are global, so one a failed test left behind would be read
+  // by every test after it. Rows and both caches.
+  await db.deleteFrom("app_settings").execute();
+  clearSettingsCache();
+  clearPlatformSpent();
   await db.deleteFrom("sessions").execute();
   await db.deleteFrom("activity").execute();
   await db.deleteFrom("analytics_events").execute();
