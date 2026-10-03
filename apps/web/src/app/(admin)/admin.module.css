@@ -121,8 +121,11 @@
   max-width: 1144px;
 }
 
+/* Both wrap: the tools drop under the title when the two do not fit on a
+   line, and then wrap among themselves when one line is not enough. */
 .paneHead {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: 16px;
@@ -144,7 +147,7 @@
   align-items: center;
   gap: var(--space-3);
   color: var(--text-tertiary);
-  height: 38px;
+  min-height: 38px;
   width: 280px;
   padding: 0 var(--space-5);
   border-radius: var(--radius-pill);
@@ -162,7 +165,7 @@
 }
 .searchInput::placeholder { color: var(--text-tertiary); }
 
-.headTools { display: flex; align-items: center; gap: var(--space-3); flex: 0 0 auto; }
+.headTools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); flex: 0 1 auto; min-width: 0; }
 
 .paneSub {
   display: block;
@@ -252,8 +255,8 @@
   color: var(--text-secondary);
   white-space: nowrap;
 }
-.badgeAttention, .badge[data-tone="attention"] { background: var(--surface-attention-soft); color: var(--text-on-attention); }
-.badgeAccent, .badge[data-tone="accent"] { background: var(--surface-accent-soft); color: var(--text-accent); }
+.badge[data-tone="attention"] { background: var(--surface-attention-soft); color: var(--text-on-attention); }
+.badge[data-tone="accent"] { background: var(--surface-accent-soft); color: var(--text-accent); }
 /* Failed, down, dead: the one state that is neither fine nor waiting. */
 .badge[data-tone="danger"] { background: var(--surface-danger-soft); color: var(--text-danger); }
 
@@ -292,7 +295,6 @@
    rather than disappear. */
 .rowMuted { opacity: 0.55; }
 
-.cellEmail { flex: 1; min-width: 0; }
 .email { display: block; font-weight: var(--weight-medium); overflow-wrap: anywhere; }
 .note { display: block; font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
 
@@ -316,16 +318,6 @@
   color: var(--text-primary);
 }
 .sectionNote { font: var(--text-body-sm-role); color: var(--text-tertiary); }
-
-.chip {
-  display: inline-block;
-  font: var(--weight-medium) 12px/1 var(--font-core);
-  padding: 5px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-attention-soft);
-  color: var(--text-attention);
-  white-space: nowrap;
-}
 
 .empty {
   padding: 48px 12px;
@@ -614,10 +606,7 @@
   .navFoot { margin-top: 0; flex-direction: row; align-items: center; justify-content: space-between; }
   .pane { padding: var(--space-6) var(--space-5) var(--space-9); }
   .paneHead { flex-direction: column; align-items: stretch; }
-  .headTools { flex-wrap: wrap; }
   .search { width: auto; flex: 1; }
-  /* The waitlist draws its own rows; a Table states its own least width. */
-  .thead, .row { min-width: 760px; }
 }
 
 /* ------------------------------------------- 034 section A, People */

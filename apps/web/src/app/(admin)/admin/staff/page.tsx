@@ -143,7 +143,7 @@ export default function StaffPage() {
       return;
     }
     const code = await codeOf(response);
-    say(code === "last_owner" ? "There has to be an owner. The role is unchanged." : "That did not go through. The role is unchanged.");
+    say(code === "last_owner" ? "There has to be an owner. The role is unchanged" : "That did not go through. The role is unchanged");
     list.reload();
   }
 
@@ -158,7 +158,7 @@ export default function StaffPage() {
       return;
     }
     const code = await codeOf(response);
-    say(code === "last_owner" ? "There has to be an owner. Nobody was removed." : "That did not go through. Nobody was removed.");
+    say(code === "last_owner" ? "There has to be an owner. Nobody was removed" : "That did not go through. Nobody was removed");
     list.reload();
   }
 
@@ -173,6 +173,8 @@ export default function StaffPage() {
             ? `${count(data.staff.length)} ${data.staff.length === 1 ? "person" : "people"} can open this panel · ${count(data.owners)} ${data.owners === 1 ? "owner" : "owners"}`
             : undefined
         }
+        asOf={list.asOf}
+        onRefresh={list.reload}
         tools={
           <button type="button" className={`${styles.smallPrimary} ${styles.withIcon}`} onClick={() => setAdding(true)} disabled={busy}>
             <Icon name="plus" size={15} />

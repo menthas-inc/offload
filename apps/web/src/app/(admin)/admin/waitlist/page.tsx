@@ -16,7 +16,29 @@ import { Checkbox } from "../../../../components/Checkbox";
 import { Icon } from "../../../../components/Icon";
 import { useAdmin } from "../../admin-context";
 import styles from "../../admin.module.css";
-import { API, Confirm, Empty, Failed, Field, Loading, Notes, PaneHead, Section, Stat, Stats, StatusPill, adminWrite, count, day, useAdminRead, useSay } from "../../ui";
+import {
+  API,
+  Confirm,
+  Empty,
+  Failed,
+  Field,
+  Lines,
+  Loading,
+  Notes,
+  PaneHead,
+  Row as TableRow,
+  Section,
+  Stat,
+  Stats,
+  StatusPill,
+  Table,
+  adminWrite,
+  count,
+  day,
+  useAdminRead,
+  useSay,
+  type Col,
+} from "../../ui";
 
 const PAGE = 50;
 
@@ -38,6 +60,28 @@ const LOOKS_LIKE_AN_ADDRESS = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/;
  *  carry two, so it is wider here; the alternative is Remove hanging off the
  *  edge of the table, which is what it did. */
 const ACTION_W = 156;
+
+// The first column is the tick box. Its header is the box that ticks every
+// row, which the page puts in, since it holds the selection.
+const COLS: Col[] = [
+  { label: "", w: 24 },
+  { label: "Email" },
+  { label: "Joined", w: 80 },
+  { label: "Came from", w: 130 },
+  { label: "State", w: 110 },
+  { label: "", w: ACTION_W, right: true },
+];
+
+/** A tick box, named by the label around it. The label is also what makes
+ *  the drawn box clickable: the input under it is the control. */
+function Pick({ checked, onChange, children }: { checked: boolean; onChange: () => void; children: string }) {
+  return (
+    <label>
+      <Checkbox checked={checked} onChange={onChange} />
+      <span className={styles.srOnly}>{children}</span>
+    </label>
+  );
+}
 
 interface Row {
   id: string;
@@ -73,6 +117,7 @@ export default function WaitlistPage() {
   const [loading, setLoading] = useState(true);
   // A failed read is never drawn as an empty list.
   const [failed, setFailed] = useState(false);
+  const [asOf, setAsOf] = useState<Date | null>(null);
   const [busy, setBusy] = useState(false);
   const { toast, say } = useSay();
   const stats = useAdminRead<WaitlistStats>("/waitlist/stats");
@@ -102,6 +147,7 @@ export default function WaitlistPage() {
     const page = (await response.json()) as { rows: Row[]; nextCursor: string | null };
     setRows((existing) => (after ? [...existing, ...page.rows] : page.rows));
     setCursor(page.nextCursor);
+    setAsOf(new Date());
     setFailed(false);
     setLoading(false);
   }, []);
@@ -135,7 +181,7 @@ export default function WaitlistPage() {
     setBusy(false);
 
     if (!response.ok) {
-      say("That did not go through. Nobody was invited.");
+      say("That did not go through. Nobody was invited");
       return;
     }
     const { results } = (await response.json()) as { results: Array<{ status: string }> };
@@ -161,11 +207,11 @@ export default function WaitlistPage() {
     setAddress("");
 
     if (!response?.ok) {
-      say(response?.status === 400 ? "That address was refused. Nobody was invited." : "That did not go through. Nobody was invited.");
+      say(response?.status === 400 ? "That address was refused. Nobody was invited" : "That did not go through. Nobody was invited");
       return;
     }
     const { status } = (await response.json()) as { status: "invited" | "already-in" | "refused" };
-    say(status === "invited" ? "Invite sent" : status === "already-in" ? "They are already in." : "That account is disabled. Nobody was invited.");
+    say(status === "invited" ? "Invite sent" : status === "already-in" ? "They are already in" : "That account is disabled. Nobody was invited");
     moved();
   }
 
@@ -181,7 +227,7 @@ export default function WaitlistPage() {
     setBusy(false);
 
     if (!response.ok) {
-      say("That did not go through. Nobody was invited.");
+      say("That did not go through. Nobody was invited");
       return;
     }
     const { results } = (await response.json()) as { results: Array<{ status: string }> };
@@ -196,13 +242,13 @@ export default function WaitlistPage() {
     });
 
     if (!response.ok) {
-      say("That did not go through.");
+      say("That did not go through");
       return;
     }
     // 200 does not mean it sent. The row's state can have changed since this
     // page loaded, and reporting success then would be a lie the admin acts on.
     const { status } = (await response.json()) as { status: "queued" | "not-invited" };
-    say(status === "queued" ? "Invite sent again" : "Nothing to resend, that account has moved on.");
+    say(status === "queued" ? "Invite sent again" : "Nothing to resend. That account has moved on");
     void load(query, null);
   }
 
@@ -219,7 +265,7 @@ export default function WaitlistPage() {
     setBusy(false);
 
     if (!response.ok) {
-      say("That did not go through. Nobody was removed.");
+      say("That did not go through. Nobody was removed");
       return;
     }
     const { removed, skipped } = (await response.json()) as { removed: number; skipped: number };
@@ -238,11 +284,11 @@ export default function WaitlistPage() {
     });
 
     if (!response.ok) {
-      say("That did not go through.");
+      say("That did not go through");
       return;
     }
     const { status } = (await response.json()) as { status: "removed" | "not-waiting" };
-    say(status === "removed" ? "Removed from the waitlist" : "That account has already been invited.");
+    say(status === "removed" ? "Removed from the waitlist" : "That account has already been invited");
     moved();
   }
 
@@ -260,15 +306,32 @@ export default function WaitlistPage() {
    *  of the selection it would actually touch rather than the selection size. */
   const pickedWaiting = rows.filter((row) => picked.has(row.id) && row.state === "waiting").length;
 
+  const cols: Col[] = [
+    {
+      ...COLS[0]!,
+      label: (
+        <Pick checked={allPicked} onChange={() => setPicked(allPicked ? new Set() : new Set(rows.map((r) => r.id)))}>
+          {allPicked ? "Clear the selection" : "Select every row on this page"}
+        </Pick>
+      ),
+    },
+    ...COLS.slice(1),
+  ];
+
   return (
     <>
       <PaneHead
         title="Waitlist"
         sub={
           stats.data
-            ? `${count(stats.data.waiting)} waiting · letting ${stats.data.batch} in a week, set on Limits`
+            ? `${count(stats.data.waiting)} waiting · letting ${count(stats.data.batch)} in a week, set on Limits`
             : undefined
         }
+        asOf={asOf}
+        onRefresh={() => {
+          stats.reload();
+          void load(query, null);
+        }}
         tools={
           <>
             <label className={styles.search}>
@@ -285,7 +348,7 @@ export default function WaitlistPage() {
               Invite by address
             </button>
             <button type="button" className={styles.small} onClick={() => setConfirming(true)} disabled={busy}>
-              {batch === null ? "Invite the next batch" : `Invite the next ${batch}`}
+              {batch === null ? "Invite the next batch" : `Invite the next ${count(batch)}`}
             </button>
           </>
         }
@@ -308,7 +371,7 @@ export default function WaitlistPage() {
             value={count(stats.data.signedUp)}
             note={stats.data.invitedNotSignedUp ? `${count(stats.data.invitedNotSignedUp)} invited have not signed in` : undefined}
           />
-          <Stat label="Weekly batch" value={stats.data.batch} note="set on the Limits page" />
+          <Stat label="Weekly batch" value={count(stats.data.batch)} note="set on the Limits page" />
         </Stats>
       ) : null}
 
@@ -332,22 +395,17 @@ export default function WaitlistPage() {
           one leaves in bulk. A single row's Invite is its own confirmation,
           because the click names the person. This click names nobody and
           emails everybody in the batch, and no part of it is reversible once
-          the mail is out. */}
+          the mail is out. It asks in the dialog, as everything that asks
+          does; the floating bar is only for a selection. */}
       {confirming ? (
-        <div className={styles.selection}>
-          <b className={styles.selectionCount}>
-            {batch === null
-              ? "Invite the next batch of the oldest still waiting?"
-              : `Invite the oldest ${batch} still waiting?`}{" "}
-            They each get one email, and it cannot be taken back.
-          </b>
-          <button type="button" className={styles.ghost} onClick={() => setConfirming(false)}>
-            Cancel
-          </button>
-          <button type="button" className={styles.smallPrimary} onClick={() => void inviteNext()} disabled={busy}>
-            {batch === null ? "Invite the batch" : `Invite ${batch}`}
-          </button>
-        </div>
+        <Confirm
+          title={batch === null ? "Invite the next batch of the oldest still waiting?" : `Invite the oldest ${count(batch)} still waiting?`}
+          body="They each get one email, and it cannot be taken back."
+          confirmLabel={batch === null ? "Invite the batch" : `Invite ${count(batch)}`}
+          busy={busy}
+          onConfirm={() => void inviteNext()}
+          onClose={() => setConfirming(false)}
+        />
       ) : null}
 
       {/* Destructive and not undoable from here, so it names the address
@@ -355,17 +413,14 @@ export default function WaitlistPage() {
           still waiting: an invited account has keys, a thread and a membership
           that this would orphan, and the server refuses it anyway. */}
       {removing ? (
-        <div className={styles.selection}>
-          <b className={styles.selectionCount}>
-            Remove {removing.email} from the waitlist? They are not told, and they can join again.
-          </b>
-          <button type="button" className={styles.ghost} onClick={() => setRemoving(null)}>
-            Cancel
-          </button>
-          <button type="button" className={styles.dangerSolid} onClick={() => void remove(removing)}>
-            Remove
-          </button>
-        </div>
+        <Confirm
+          danger
+          title={`Remove ${removing.email}?`}
+          body="They come off the waitlist. They are not told, and they can join again."
+          confirmLabel="Remove"
+          onConfirm={() => void remove(removing)}
+          onClose={() => setRemoving(null)}
+        />
       ) : null}
 
       {invitingMany ? (
@@ -433,89 +488,70 @@ export default function WaitlistPage() {
         </div>
       ) : null}
 
-      <div className={styles.table}>
-        <div className={styles.thead}>
-          {/* A label, because the box is drawn and the input under it is the
-              control: the label is what makes the drawing clickable. */}
-          <label style={{ width: 24, flex: "0 0 auto" }}>
-            <Checkbox
-              checked={allPicked}
-              onChange={() => setPicked(allPicked ? new Set() : new Set(rows.map((r) => r.id)))}
-              label={allPicked ? "Clear the selection" : "Select every row on this page"}
-            />
-          </label>
-          <span style={{ flex: 1, minWidth: 0 }}>Email</span>
-          <span style={{ width: 80, flex: "0 0 auto" }}>Joined</span>
-          <span style={{ width: 130, flex: "0 0 auto" }}>Came from</span>
-          <span style={{ width: 110, flex: "0 0 auto" }}>State</span>
-          <span style={{ width: ACTION_W, flex: "0 0 auto", textAlign: "right" }} />
-        </div>
-
-        {rows.map((row, index) => (
-          <div
-            key={row.id}
-            className={`${styles.row} ${index === rows.length - 1 ? styles.rowLast : ""} ${row.state === "accepted" ? styles.rowMuted : ""}`}
-          >
-            <label style={{ width: 24, flex: "0 0 auto" }}>
-              <Checkbox checked={picked.has(row.id)} onChange={() => toggle(row.id)} label={`Select ${row.email}`} />
-            </label>
-
-            <span className={styles.cellEmail}>
-              <b className={styles.email}>{row.email}</b>
-              {row.note ? <span className={styles.note}>{row.note}</span> : null}
-            </span>
-
-            <span className={`${styles.quiet}`} style={{ width: 80, flex: "0 0 auto", fontVariantNumeric: "tabular-nums" }}>
-              {row.joined}
-            </span>
-
-            <span className={styles.quiet} style={{ width: 130, flex: "0 0 auto" }}>
-              {row.source === "thread" ? "A shared thread" : "Waitlist"}
-            </span>
-
-            <span style={{ width: 110, flex: "0 0 auto" }}>
-              <StatusPill value={row.state} label={STATE_LABEL[row.state]} />
-            </span>
-
-            <span style={{ width: ACTION_W, flex: "0 0 auto", textAlign: "right" }}>
-              {row.state === "waiting" ? (
-                <span style={{ display: "inline-flex", gap: 4 }}>
-                  <button type="button" className={styles.small} onClick={() => void invite([row.id])} disabled={busy}>
-                    Invite
-                  </button>
-                  <button type="button" className={styles.danger} onClick={() => setRemoving(row)}>
-                    Remove
-                  </button>
-                </span>
-              ) : row.state === "invited" ? (
-                <button type="button" className={styles.ghost} onClick={() => void resend(row.id)}>
-                  Resend
-                </button>
-              ) : (
-                <span className={styles.quiet} style={{ fontSize: 12.5 }}>
-                  in the app
-                </span>
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {failed ? (
+      {/* A failed read is never an empty table: the table is drawn only once
+          there is a list to put in it. */}
+      {failed && rows.length === 0 ? (
         <Failed what="the waitlist" onRetry={() => void load(query, null)} />
       ) : loading && rows.length === 0 ? (
         <Loading />
-      ) : rows.length === 0 ? (
-        <Empty>{query ? "No address matches that." : "Nobody is waiting."}</Empty>
-      ) : null}
+      ) : (
+        <>
+          <Table cols={cols}>
+            {rows.map((row, index) => (
+              <TableRow
+                key={row.id}
+                cols={COLS}
+                last={index === rows.length - 1}
+                muted={row.state === "accepted"}
+                cells={[
+                  <Pick key="pick" checked={picked.has(row.id)} onChange={() => toggle(row.id)}>
+                    {`Select ${row.email}`}
+                  </Pick>,
+                  <Lines key="who" main={row.email} sub={row.note ?? undefined} />,
+                  <span key="joined" className={styles.quiet}>
+                    {row.joined}
+                  </span>,
+                  <span key="from" className={styles.quiet}>
+                    {row.source === "thread" ? "A shared thread" : "Waitlist"}
+                  </span>,
+                  <StatusPill key="state" value={row.state} label={STATE_LABEL[row.state]} />,
+                  row.state === "waiting" ? (
+                    <span key="actions" className={styles.rowActions}>
+                      <button type="button" className={styles.small} onClick={() => void invite([row.id])} disabled={busy}>
+                        Invite
+                      </button>
+                      <button type="button" className={styles.danger} onClick={() => setRemoving(row)}>
+                        Remove
+                      </button>
+                    </span>
+                  ) : row.state === "invited" ? (
+                    <button key="actions" type="button" className={styles.ghost} onClick={() => void resend(row.id)}>
+                      Resend
+                    </button>
+                  ) : (
+                    <span key="actions" className={styles.aside}>
+                      in the app
+                    </span>
+                  ),
+                ]}
+              />
+            ))}
+          </Table>
 
-      {cursor ? (
-        <div className={styles.more}>
-          <button type="button" className={styles.ghost} onClick={() => void load(query, cursor)} disabled={loading}>
-            Load more
-          </button>
-        </div>
-      ) : null}
+          {rows.length === 0 ? <Empty>{query ? "No address matches that." : "Nobody is waiting."}</Empty> : null}
+
+          {/* A read that failed over a list already drawn leaves it there. */}
+          {failed ? <Failed what="the waitlist" onRetry={() => void load(query, null)} /> : null}
+
+          {cursor ? (
+            <div className={styles.more}>
+              <button type="button" className={styles.ghost} onClick={() => void load(query, cursor)} disabled={loading}>
+                Load more
+              </button>
+            </div>
+          ) : null}
+        </>
+      )}
 
       <Section note="what an invite does">Notes</Section>
       <Notes items={NOTES} />

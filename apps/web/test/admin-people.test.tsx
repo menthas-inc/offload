@@ -51,14 +51,17 @@ const ROWS = [
 type Call = { url: string; path: string; init?: RequestInit };
 let calls: Call[] = [];
 
-function api(answers: { list?: number; stats?: number; write?: number; page?: (path: string) => unknown } = {}) {
+function api(answers: { list?: number; stats?: number; write?: number; refused?: string; page?: (path: string) => unknown } = {}) {
   calls = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       const path = String(url).replace(/^.*\/v1\/admin/, "");
       calls.push({ url: String(url), path, init });
-      if (init?.method && init.method !== "GET") return new Response(JSON.stringify({ status: "ok" }), { status: answers.write ?? 200 });
+      if (init?.method && init.method !== "GET") {
+        if (answers.refused) return new Response(JSON.stringify({ error: "refused", reason: answers.refused }), { status: 409 });
+        return new Response(JSON.stringify({ status: "ok" }), { status: answers.write ?? 200 });
+      }
       if (path.startsWith("/people/stats")) return new Response(JSON.stringify(STATS), { status: answers.stats ?? 200 });
       if (path.startsWith("/people")) {
         const body = answers.page ? answers.page(path) : { rows: ROWS, nextCursor: null, capped: false };
@@ -257,13 +260,21 @@ describe("the People page", () => {
     expect(host.querySelector('[role="status"]')!.textContent).toBe("u2@example.test is active again");
   });
 
+  it("says an account being deleted cannot be enabled, in its own line", async () => {
+    api({ refused: "deleting" });
+    const host = await open();
+    await click(button(host, "Enable"));
+    await settle();
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("Not enabled. That account is being deleted");
+  });
+
   it("says what did not happen when a write fails, in one clause", async () => {
     api({ write: 409 });
     const host = await open();
     await click(button(host, "Disable"));
     await click(button(host.querySelector('[role="dialog"]')!, "Disable"));
     await settle();
-    expect(host.querySelector('[role="status"]')!.textContent).toBe("That did not go through. Nobody was disabled.");
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("That did not go through. Nobody was disabled");
     expect(host.textContent).toContain("Ana Duarte");
   });
 });

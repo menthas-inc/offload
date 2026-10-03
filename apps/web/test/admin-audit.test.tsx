@@ -138,6 +138,16 @@ describe("AC-7 the states", () => {
     expect(rows(host)).toHaveLength(ROWS.length);
   });
 
+  it("keeps the log it had when a refresh fails, and says so beside it", async () => {
+    api();
+    const host = await open();
+    api({ list: 500 });
+    await act(async () => button(host, "Refresh").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    expect(rows(host)).toHaveLength(ROWS.length);
+    expect(host.textContent).toContain("Couldn't load the audit log.");
+  });
+
   it("says when it was read and offers a refresh", async () => {
     api();
     const host = await open();

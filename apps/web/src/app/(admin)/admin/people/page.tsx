@@ -39,6 +39,7 @@ import {
 } from "../../ui";
 import { Choice } from "./choice";
 import { usePaged } from "./paged";
+import { refusedLine } from "./refused";
 
 interface PeopleStats {
   accounts: number;
@@ -125,7 +126,7 @@ export default function PeoplePage() {
     const response = await adminWrite(`/people/${person.id}/disable`, "POST").catch(() => null);
     setBusy(false);
     if (!response?.ok) {
-      say("That did not go through. Nobody was disabled.");
+      say("That did not go through. Nobody was disabled");
       return;
     }
     say(`${called(person)} is disabled`);
@@ -137,7 +138,7 @@ export default function PeoplePage() {
     const response = await adminWrite(`/people/${person.id}/enable`, "POST").catch(() => null);
     setBusy(false);
     if (!response?.ok) {
-      say("That did not go through. Nobody was enabled.");
+      say((await refusedLine("enable", response)) ?? "That did not go through. Nobody was enabled");
       return;
     }
     say(`${called(person)} is active again`);

@@ -2,7 +2,7 @@
 
 // The admin shell, from ui_kits/admin_web/A.jsx (ASideNav).
 //
-// Moss nav, mark plus wordmark plus an `admin` tag, nav items carrying their
+// Moss nav, mark plus wordmark plus an `admin` tag, nav pages carrying their
 // own counts, the signed-in address at the bottom and a way back to the app.
 // An earlier version had only the mark, no count, no address and no way back,
 // which is what the kit is for and what reading it would have prevented.
@@ -16,29 +16,34 @@ import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "../../components/Icon";
 import { Logo } from "../../components/Logo";
 import { AdminProvider, type Staff } from "./admin-context";
-import { API, Loading, landingFor, navFor, ownerOnly } from "./ui";
+import { API, Failed, Loading, landingFor, navFor, ownerOnly } from "./ui";
 import styles from "./admin.module.css";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [staff, setStaff] = useState<Staff | null>(null);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(() => {
+    setFailed(false);
     fetch(`${API}/v1/admin/me`, { credentials: "include" })
       .then(async (response) => {
         // 404, not 403. The panel does not confirm its own existence to
         // someone signed in who is not staff, so there is nothing here to
         // distinguish "wrong person" from "wrong URL".
-        if (!response.ok) {
+        if (response.status >= 400 && response.status < 500) {
           router.replace("/");
           return;
         }
+        if (!response.ok) throw new Error(String(response.status));
         setStaff((await response.json()) as Staff);
       })
       .catch(() => {
         // A network blip is not a signed-out state. The nav keeps whatever it
-        // last knew rather than throwing the person out of the panel.
+        // last knew rather than throwing the person out of the panel. With
+        // nothing known yet there is no nav to keep, and the shell says so.
+        setFailed(true);
       });
   }, [router]);
 
@@ -58,7 +63,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (elsewhere) router.replace(elsewhere);
   }, [elsewhere, router]);
 
-  if (!staff) return null;
+  // Never a white screen: the one spinner while it asks who is here, and a
+  // failed read said as one, beside the way to try again.
+  if (!staff) {
+    return (
+      <main className={styles.pane} data-theme="light">
+        {failed ? <Failed what="the panel" onRetry={load} /> : <Loading />}
+      </main>
+    );
+  }
 
   return (
     <AdminProvider value={{ staff, refresh: load }}>

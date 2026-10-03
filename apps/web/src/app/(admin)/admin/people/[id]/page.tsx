@@ -46,6 +46,7 @@ import {
 import { capLabel } from "../../limits/labels";
 import { Choice } from "../choice";
 import { usePaged } from "../paged";
+import { refusedLine } from "../refused";
 
 interface Who {
   id: string;
@@ -199,12 +200,14 @@ export default function PersonPage() {
   const range = useRange();
   const [shown, setShown] = useState<(typeof SHOWN)[number]["value"]>("all");
   const [asking, setAsking] = useState<"disable" | "sign-out" | null>(null);
+  const [retrying, setRetrying] = useState<Job | null>(null);
   const [setting, setSetting] = useState<Limit | null>(null);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   const { toast, say } = useSay();
 
-  const person = useAdminRead<Person>(`/people/${id}`);
+  // A 404 is its own state here: there is nobody to try again for.
+  const person = useAdminRead<Person>(`/people/${id}`, { missing: true });
   const usage = useAdminRead<Usage>(`/people/${id}/usage?range=${range}`);
   const timeline = usePaged<Job>(`/people/${id}/timeline${shown === "failed" ? "?failed=1" : ""}`);
   const hits = useAdminRead<{ rows: Hit[] }>(`/people/${id}/hits`);
@@ -232,7 +235,13 @@ export default function PersonPage() {
         <Back />
         {/* 034 section G. A deleted account's page goes here: its head, the
             day it was deleted and its audit entries, and nothing else. */}
-        {person.state === "failed" ? <Failed what="this person" onRetry={person.reload} /> : <Loading />}
+        {person.state === "missing" ? (
+          <Empty>Nobody here.</Empty>
+        ) : person.state === "failed" ? (
+          <Failed what="this person" onRetry={person.reload} />
+        ) : (
+          <Loading />
+        )}
       </>
     );
   }
@@ -247,7 +256,7 @@ export default function PersonPage() {
     const response = await adminWrite(path, "POST").catch(() => null);
     setBusy(false);
     if (!response?.ok) {
-      say(`That did not go through. ${undone}`);
+      say((await refusedLine(path.slice(path.lastIndexOf("/") + 1), response)) ?? `That did not go through. ${undone}`);
       return false;
     }
     say(done);
@@ -259,7 +268,7 @@ export default function PersonPage() {
     const response = await adminWrite(`/people/${who.id}/limits`, "PATCH", { key: limit.key, value }).catch(() => null);
     setBusy(false);
     if (!response?.ok) {
-      say("That did not go through. The override was not changed.");
+      say("That did not go through. The override was not changed");
       return;
     }
     say(value === null ? "Override cleared" : "Override set");
@@ -269,7 +278,7 @@ export default function PersonPage() {
   async function retry(job: Job) {
     // Health's route. It gives a dead job one more attempt, once, and refuses
     // one for an account that is disabled or over its cap.
-    if (await act(`/jobs/${job.id}/retry`, "Retrying", "Nothing was retried.")) timeline.reload();
+    if (await act(`/jobs/${job.id}/retry`, "Retrying", "Nothing was retried")) timeline.reload();
   }
 
   const used = new Map(who.today.caps.map((cap) => [cap.key, cap]));
@@ -330,7 +339,7 @@ export default function PersonPage() {
             type="button"
             className={styles.small}
             disabled={busy}
-            onClick={() => void act(`/people/${who.id}/enable`, `${called} is active again`, "Nobody was enabled.").then((ok) => ok && person.reload())}
+            onClick={() => void act(`/people/${who.id}/enable`, `${called} is active again`, "Nobody was enabled").then((ok) => ok && person.reload())}
           >
             Enable
           </button>
@@ -512,7 +521,7 @@ export default function PersonPage() {
                     </span>,
                     job.costMicros === null ? null : dollars(job.costMicros),
                     job.canRetry ? (
-                      <button key="retry" type="button" className={styles.small} onClick={() => void retry(job)} disabled={busy}>
+                      <button key="retry" type="button" className={styles.small} onClick={() => setRetrying(job)} disabled={busy}>
                         Retry
                       </button>
                     ) : null,
@@ -561,7 +570,7 @@ export default function PersonPage() {
           body="They are signed out everywhere and cannot sign in again until you enable them. Nothing is deleted."
           confirmLabel="Disable"
           busy={busy}
-          onConfirm={() => void act(`/people/${who.id}/disable`, `${called} is disabled`, "Nobody was disabled.").then((ok) => ok && person.reload())}
+          onConfirm={() => void act(`/people/${who.id}/disable`, `${called} is disabled`, "Nobody was disabled").then((ok) => ok && person.reload())}
           onClose={() => setAsking(null)}
         />
       ) : null}
@@ -572,8 +581,20 @@ export default function PersonPage() {
           body="Every session of theirs ends now. The account stays active and they can sign in again."
           confirmLabel="Sign out"
           busy={busy}
-          onConfirm={() => void act(`/people/${who.id}/sign-out`, "Signed out everywhere", "Nobody was signed out.").then((ok) => ok && person.reload())}
+          onConfirm={() => void act(`/people/${who.id}/sign-out`, "Signed out everywhere", "Nobody was signed out").then((ok) => ok && person.reload())}
           onClose={() => setAsking(null)}
+        />
+      ) : null}
+
+      {/* One click would be one more email or push to a real person. */}
+      {retrying ? (
+        <Confirm
+          title="Retry this job?"
+          body={`${retrying.kind}, died ${moment(retrying.at)}. It gets one more attempt, and may send again what it sends.`}
+          confirmLabel="Retry"
+          busy={busy}
+          onConfirm={() => void retry(retrying)}
+          onClose={() => setRetrying(null)}
         />
       ) : null}
 

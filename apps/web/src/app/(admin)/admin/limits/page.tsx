@@ -177,11 +177,21 @@ export default function LimitsPage() {
   }
 
   // A read that landed becomes the form, once: state adjusted while
-  // rendering, which is what React asks for in place of an effect.
+  // rendering, which is what React asks for in place of an effect. A later
+  // one, which a subscription's save asks for, lands under whatever is being
+  // typed and leaves it there: only what nobody touched takes the new value.
   const [seen, setSeen] = useState<{ settings: Setting[] } | null>(null);
   if (settingsRead.data && settingsRead.data !== seen) {
     setSeen(settingsRead.data);
-    take(settingsRead.data.settings);
+    const fresh = formOf(settingsRead.data.settings);
+    if (loaded) {
+      const was = formOf(loaded);
+      for (const key of Object.keys(form.text)) if (form.text[key] !== was.text[key]) fresh.text[key] = form.text[key]!;
+      for (const key of Object.keys(form.on)) if (form.on[key] !== was.on[key]) fresh.on[key] = form.on[key]!;
+    }
+    setLoaded(settingsRead.data.settings);
+    setForm(fresh);
+    setRefused({});
   }
 
   if (!loaded) {
@@ -248,7 +258,7 @@ export default function LimitsPage() {
         return;
       }
     }
-    say("That did not go through. Nothing was saved.");
+    say("That did not go through. Nothing was saved");
   }
 
   /** One number's field: its unit, its bounds as the hint, its refusal, and
@@ -403,10 +413,11 @@ export default function LimitsPage() {
         })}
       </div>
 
-      {/* 034 section 4.1. Saves itself, as one setting of its own. A save
-          here compares only the keys it changes, as the page's does, so
-          neither is a conflict for the other. */}
-      <FixedCosts />
+      {/* 034 section 4.1. Saves itself, as one setting of its own, from the
+          page's read and into the page's toast. A save here compares only the
+          keys it changes, as the page's does, so neither is a conflict for
+          the other. */}
+      <FixedCosts settings={loaded} reload={settingsRead.reload} say={say} />
 
       <Section note="last 30 days">What has been hit</Section>
       <Hits hits={hits} />

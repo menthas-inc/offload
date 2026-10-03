@@ -3,7 +3,8 @@
 // A plot, drawn here and by no library: one series, in ink, with the
 // attention colour for the one state that needs somebody. Bars or a line. No
 // legend, no entry animation, and every figure is reachable as text and by
-// keyboard: each point takes focus and says its label and its value.
+// keyboard: the plot is one tab stop, the arrow keys move between its points,
+// and the point in focus says its label and its value.
 //
 // A split is small multiples of this on one scale, or a table with a share
 // bar; it is never a second series in here.
@@ -46,6 +47,9 @@ export function Plot({
   empty?: string;
 }) {
   const [at, setAt] = useState<number | null>(null);
+  // The point Tab lands on: the last one the keyboard was on, the first until
+  // then. Ninety days of bars is one stop, not ninety.
+  const [stop, setStop] = useState(0);
   if (points.length === 0) return <p className={styles.empty}>{empty}</p>;
 
   const top = Math.max(max ?? 0, ...points.map((point) => point.value), 0) || 1;
@@ -54,6 +58,24 @@ export function Plot({
   const y = (value: number) => HEIGHT - (Math.max(0, value) / top) * HEIGHT;
   const said = (point: Point) => `${point.label}: ${format(point.value)}`;
   const focused = at === null ? null : points[at];
+  const current = Math.min(stop, points.length - 1);
+
+  const onKey = (event: React.KeyboardEvent<SVGGElement>, index: number) => {
+    const to =
+      event.key === "ArrowRight"
+        ? Math.min(index + 1, points.length - 1)
+        : event.key === "ArrowLeft"
+          ? Math.max(index - 1, 0)
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? points.length - 1
+              : null;
+    if (to === null) return;
+    event.preventDefault();
+    setStop(to);
+    event.currentTarget.parentElement?.querySelectorAll<SVGGElement>("[data-point]")[to]?.focus();
+  };
 
   return (
     <figure className={styles.plot}>
@@ -70,10 +92,14 @@ export function Plot({
             data-point
             data-tone={point.tone}
             className={styles.plotPoint}
-            tabIndex={0}
+            tabIndex={index === current ? 0 : -1}
             role="img"
             aria-label={said(point)}
-            onFocus={() => setAt(index)}
+            onKeyDown={(event) => onKey(event, index)}
+            onFocus={() => {
+              setAt(index);
+              setStop(index);
+            }}
             onBlur={() => setAt(null)}
             onMouseEnter={() => setAt(index)}
             onMouseLeave={() => setAt(null)}
@@ -97,7 +123,13 @@ export function Plot({
       </svg>
       <figcaption className={styles.plotFoot}>
         <span>{points[0]!.label}</span>
-        <span aria-hidden={focused ? undefined : true}>{focused ? said(focused) : caption}</span>
+        {/* The caption is always there to be read. The point under the pointer
+            or in focus takes its place on screen, in a line of its own that
+            is announced as it changes. */}
+        <span>
+          <span className={focused ? styles.srOnly : undefined}>{caption}</span>
+          <span aria-live="polite">{focused ? said(focused) : ""}</span>
+        </span>
         <span>{points[points.length - 1]!.label}</span>
       </figcaption>
       {startsAt ? <p className={styles.plotNote}>{startsAt}</p> : null}

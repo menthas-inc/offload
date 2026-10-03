@@ -38,6 +38,7 @@ import {
   useAdminRead,
   useRange,
   useSay,
+  type AdminRead,
   type Col,
   type Point,
 } from "../../ui";
@@ -142,6 +143,12 @@ function monthLabel(at: Date): string {
 /** A bucket's name: a UTC day, or an hour in the reader's own clock. */
 const labelOf = (unit: Unit, at: string) => (unit === "hour" ? moment(at) : day(at));
 
+/** A section's own failure line. A refresh that failed leaves the section it
+ *  had on screen, and this goes beside it. */
+function Stale({ read, what }: { read: AdminRead<unknown>; what: string }) {
+  return read.state === "failed" ? <Failed what={what} onRetry={read.reload} /> : null;
+}
+
 /** One split of the range's spend: by job, by model or by vendor. A job is
  *  named for what it does, with its kind under the name. */
 function SplitTable({ first, split, kinds }: { first: string; split: Split; kinds?: boolean }) {
@@ -209,7 +216,7 @@ export default function CostsPage() {
     const response = await fetch(`${API}/v1/admin/costs/export.csv?range=${range}`, { credentials: "include" }).catch(() => null);
     setExporting(false);
     if (!response?.ok) {
-      say("That did not go through. Nothing was exported.");
+      say("That did not go through. Nothing was exported");
       return;
     }
     const url = URL.createObjectURL(await response.blob());
@@ -220,9 +227,11 @@ export default function CostsPage() {
     URL.revokeObjectURL(url);
   }
 
-  const loading = reads.some((read) => read.state === "loading");
-  const ready = !loading && summary.state === "ready" && summary.data !== null;
+  // Loading is having nothing yet. A read that is on its way again over what
+  // it had is not: the page stays.
+  const loading = reads.some((read) => read.state === "loading" && !read.data);
   const s = summary.data;
+  const ready = !loading && s !== null;
   const rangeLabel = `last ${RANGES.find((one) => one.value === range)!.label}`;
   const over = s !== null && s.budgetMicros !== null && s.onPaceMicros !== null && s.onPaceMicros > s.budgetMicros;
 
@@ -245,13 +254,15 @@ export default function CostsPage() {
 
       {loading ? (
         <Loading />
-      ) : !ready || !s ? (
+      ) : !s ? (
         <Failed what="costs" onRetry={reloadAll} />
       ) : (
         <>
           {/* 034 section 4.1. The bill, above the ledger's figures. It makes
               its own read and says its own failure. */}
           <RealCosts />
+
+          <Stale read={summary} what="the summary" />
 
           <Stats>
             <Stat label="Spent this month" value={dollars(s.monthMicros)} note={s.budgetMicros === null ? undefined : `budget ${dollars(s.budgetMicros)}`} />
@@ -275,10 +286,10 @@ export default function CostsPage() {
             <Stat label="Last month" value={dollars(s.lastMonthMicros)} />
           </Stats>
 
-          {daily.state === "failed" || !daily.data ? (
+          {!daily.data ? (
             <>
               <Section>Daily spend</Section>
-              <Failed what="daily spend" onRetry={daily.reload} />
+              <Stale read={daily} what="daily spend" />
             </>
           ) : (
             <>
@@ -299,29 +310,21 @@ export default function CostsPage() {
                     : `Marked days reached the platform cap of ${dollars(s.platformCapMicros)} in any 24 hours`
                 }
               />
+              <Stale read={daily} what="daily spend" />
             </>
           )}
 
           <Section note={`${rangeLabel}, by the job being paid for`}>Where it goes</Section>
-          {byJob.state === "failed" || !byJob.data ? (
-            <Failed what="spend by job" onRetry={byJob.reload} />
-          ) : (
-            <SplitTable first="What it pays for" split={byJob.data} kinds />
-          )}
+          {byJob.data ? <SplitTable first="What it pays for" split={byJob.data} kinds /> : null}
+          <Stale read={byJob} what="spend by job" />
 
           <Section note={rangeLabel}>By model</Section>
-          {byModel.state === "failed" || !byModel.data ? (
-            <Failed what="spend by model" onRetry={byModel.reload} />
-          ) : (
-            <SplitTable first="Model" split={byModel.data} />
-          )}
+          {byModel.data ? <SplitTable first="Model" split={byModel.data} /> : null}
+          <Stale read={byModel} what="spend by model" />
 
           <Section note={`${rangeLabel}, from the ledger`}>By vendor</Section>
-          {byVendor.state === "failed" || !byVendor.data ? (
-            <Failed what="spend by vendor" onRetry={byVendor.reload} />
-          ) : (
-            <SplitTable first="Vendor" split={byVendor.data} />
-          )}
+          {byVendor.data ? <SplitTable first="Vendor" split={byVendor.data} /> : null}
+          <Stale read={byVendor} what="spend by vendor" />
 
           <Section note={`${rangeLabel}, one scale per figure`}>Trends</Section>
           <div className={styles.costsSplit}>
@@ -340,10 +343,9 @@ export default function CostsPage() {
               ))}
             </span>
           </div>
-          {trends.state === "failed" || !trends.data ? (
-            <Failed what="trends" onRetry={trends.reload} />
-          ) : (
-            METRICS.map((metric) => {
+          {!trends.data
+            ? null
+            : METRICS.map((metric) => {
               const all = [trends.data!.total, ...trends.data!.series];
               // One scale across the row, so a small multiple can be compared
               // with its neighbour.
@@ -366,13 +368,11 @@ export default function CostsPage() {
                   </div>
                 </div>
               );
-            })
-          )}
+            })}
+          <Stale read={trends} what="trends" />
 
           <Section note={`${rangeLabel}, each on its own scale`}>Usage</Section>
-          {usage.state === "failed" || !usage.data ? (
-            <Failed what="usage" onRetry={usage.reload} />
-          ) : (
+          {!usage.data ? null : (
             <div className={styles.costsGrid}>
               {USAGE.map((figure) => (
                 <div key={figure.label} className={styles.costsCell}>
@@ -387,11 +387,10 @@ export default function CostsPage() {
               ))}
             </div>
           )}
+          <Stale read={usage} what="usage" />
 
           <Section note={rangeLabel}>Heaviest accounts</Section>
-          {heaviest.state === "failed" || !heaviest.data ? (
-            <Failed what="the heaviest accounts" onRetry={heaviest.reload} />
-          ) : heaviest.data.rows.length === 0 ? (
+          {!heaviest.data ? null : heaviest.data.rows.length === 0 ? (
             <Empty>Nobody spent anything in this range.</Empty>
           ) : (
             <Table cols={HEAVY_COLS}>
@@ -411,6 +410,7 @@ export default function CostsPage() {
               ))}
             </Table>
           )}
+          <Stale read={heaviest} what="the heaviest accounts" />
         </>
       )}
       {toast}

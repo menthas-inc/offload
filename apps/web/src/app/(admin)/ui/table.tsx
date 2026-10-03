@@ -6,7 +6,8 @@ import Link from "next/link";
 import styles from "../admin.module.css";
 
 export interface Col {
-  label: string;
+  /** Words, or a control for a column that selects. */
+  label: React.ReactNode;
   /** A fixed width in px. The one column without one takes the rest. */
   w?: number;
   right?: boolean;

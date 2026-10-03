@@ -4,6 +4,9 @@
 // come from the API, a failed read says so and is never an empty list, and
 // invite by address is a one-field dialog that posts the address.
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -25,15 +28,22 @@ const ROWS = { rows: [{ id: "a1", email: "w1@example.test", state: "waiting", jo
 type Call = { url: string; init?: RequestInit };
 let calls: Call[] = [];
 
-function api(answers: { list?: number; stats?: number; invite?: unknown } = {}) {
+const INVITED = { id: "a2", email: "i1@example.test", state: "invited", joined: "1 Jun", source: "thread", note: "invited by Jo" };
+
+function api(answers: { list?: number; stats?: number; invite?: unknown; rows?: unknown[]; batch?: number; resend?: unknown } = {}) {
   calls = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       calls.push({ url: String(url), init });
       const path = String(url).replace(/^.*\/v1\/admin/, "");
-      if (path.startsWith("/waitlist/stats")) return new Response(JSON.stringify(STATS), { status: answers.stats ?? 200 });
+      const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+      if (path.startsWith("/waitlist/stats")) return json({ ...STATS, batch: answers.batch ?? STATS.batch }, answers.stats ?? 200);
       if (path.startsWith("/waitlist/invite-address")) return new Response(JSON.stringify(answers.invite ?? { accountId: "x", status: "invited" }), { status: 200 });
+      if (path.startsWith("/waitlist/invite-next")) return json({ results: [{ status: "invited" }, { status: "invited" }] });
+      if (path.endsWith("/resend")) return json(answers.resend ?? { status: "queued" });
+      if (init?.method === "DELETE") return json({ status: "removed" });
+      if (answers.rows) return json({ rows: answers.rows, nextCursor: null }, answers.list ?? 200);
       if (path.startsWith("/waitlist")) return new Response(JSON.stringify(ROWS), { status: answers.list ?? 200 });
       return new Response("{}", { status: 404 });
     }),
@@ -120,6 +130,100 @@ describe("the waitlist page", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10);
     });
-    expect(host.querySelector('[role="status"]')!.textContent).toBe("They are already in.");
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("They are already in");
+  });
+
+  // Seen in review: the header row sat above "Couldn't load", which reads as
+  // a list with nobody on it.
+  it("draws no table at all when the read failed", async () => {
+    api({ list: 500 });
+    const host = await open();
+    expect(host.textContent).not.toContain("Came from");
+    expect(host.querySelector('[role="table"]')).toBeNull();
+  });
+
+  it("is the one table every page draws, with a column to select by", async () => {
+    api({ rows: [...ROWS.rows, INVITED] });
+    const host = await open();
+    const table = host.querySelector('[role="table"]')!;
+    expect([...table.querySelectorAll('[role="columnheader"]')].map((one) => one.textContent)).toEqual(["Select every row on this page", "Email", "Joined", "Came from", "State", ""]);
+    const rows = [...table.querySelectorAll('[role="row"]')].slice(1);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.querySelectorAll('[role="cell"]')).toHaveLength(6);
+    expect(rows[1]!.textContent).toBe("Select i1@example.testi1@example.testinvited by Jo1 JunA shared threadinvitedResend");
+    // The page carries no measure of its own: widths are the columns'.
+    const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../src/app/(admin)/admin/waitlist/page.tsx"), "utf8");
+    expect(source).not.toContain("style={{");
+  });
+
+  it("names each tick box by the label around it, and by nothing else", async () => {
+    api();
+    const host = await open();
+    const box = host.querySelectorAll<HTMLInputElement>('[role="row"] input[type="checkbox"]')[1]!;
+    expect(box.closest("label")!.textContent).toBe("Select w1@example.test");
+    expect(box.getAttribute("aria-label")).toBeNull();
+  });
+
+  it("asks in the dialog before it removes one address, and names it", async () => {
+    api();
+    const host = await open();
+    await click(button(host, "Remove"));
+    const dialog = host.querySelector('[role="dialog"]')!;
+    expect(dialog.textContent).toContain("Remove w1@example.test?");
+    expect(dialog.textContent).toContain("They are not told, and they can join again.");
+    expect(calls.some((call) => call.init?.method === "DELETE")).toBe(false);
+    await click(button(dialog, "Remove"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    expect(calls.find((call) => call.init?.method === "DELETE")!.url).toMatch(/\/v1\/admin\/waitlist\/a1$/);
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("Removed from the waitlist");
+  });
+
+  it("asks in the dialog before it invites the next batch, and says it cannot be taken back", async () => {
+    api();
+    const host = await open();
+    await click(button(host, "Invite the next 40"));
+    const dialog = host.querySelector('[role="dialog"]')!;
+    expect(dialog.textContent).toContain("Invite the oldest 40 still waiting?");
+    expect(dialog.textContent).toContain("They each get one email, and it cannot be taken back.");
+    expect(calls.some((call) => call.url.endsWith("/invite-next"))).toBe(false);
+    await click(button(dialog, "Invite 40"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    expect(calls.find((call) => call.url.endsWith("/invite-next"))!.init).toMatchObject({ method: "POST" });
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("Invited 2");
+  });
+
+  it("says when it was read, and reads the list and the figures again on Refresh", async () => {
+    api();
+    const host = await open();
+    expect(host.textContent).toMatch(/As of \d\d:\d\d/);
+    const reads = () => calls.filter((call) => !call.init?.method).length;
+    const before = reads();
+    await click(button(host, "Refresh"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    expect(reads()).toBe(before + 2);
+  });
+
+  it("writes the batch as every other count is written", async () => {
+    api({ batch: 1200 });
+    const host = await open();
+    expect(host.textContent).toContain("letting 1,200 in a week");
+    expect(host.textContent).toContain("Weekly batch1,200set on the Limits page");
+    expect(button(host, "Invite the next 1,200")).toBeDefined();
+  });
+
+  it("says there is nothing to resend in two sentences", async () => {
+    api({ rows: [INVITED], resend: { status: "not-invited" } });
+    const host = await open();
+    await click(button(host, "Resend"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("Nothing to resend. That account has moved on");
   });
 });

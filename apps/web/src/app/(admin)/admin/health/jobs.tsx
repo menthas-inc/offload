@@ -2,7 +2,8 @@
 
 // Health, Jobs: everything that runs on a schedule, what is stuck, and what
 // died. A dead job gets one more attempt from Retry, once, and an owner can
-// take it off the list with Dismiss, which asks first.
+// take it off the list with Dismiss. Both ask first: a retry can send a
+// person the same email or push again.
 
 import { Fragment, useState } from "react";
 import Link from "next/link";
@@ -89,11 +90,22 @@ function PersonLink({ account }: { account: Person | null }) {
 }
 
 const REFUSED: Record<string, string> = {
-  account_off: "Not retried. That account is disabled.",
-  at_limit: "Not retried. That account is at its limit.",
-  already_retried: "Not retried. It has had its one retry.",
-  not_dead: "Not retried. That job is no longer dead.",
+  account_off: "Not retried. That account is disabled",
+  at_limit: "Not retried. That account is at its limit",
+  already_retried: "Not retried. It has had its one retry",
+  not_dead: "Not retried. That job is no longer dead",
 };
+
+const DISMISS_REFUSED: Record<string, string> = {
+  not_dead: "Not dismissed. That job is no longer dead",
+  already_dismissed: "Not dismissed. It was dismissed already",
+};
+
+/** The code a 409 carries, when it carries one. */
+async function refusalOf(response: Response | null): Promise<string | undefined> {
+  if (response?.status !== 409) return undefined;
+  return ((await response.json().catch(() => ({}))) as { error?: string }).error;
+}
 
 export function JobsView() {
   const range = useRange();
@@ -103,6 +115,7 @@ export function JobsView() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [earlier, setEarlier] = useState<DeadJob[]>([]);
   const [dismissing, setDismissing] = useState<DeadJob | null>(null);
+  const [retrying, setRetrying] = useState<DeadJob | null>(null);
   const [busy, setBusy] = useState(false);
 
   const scheduled = useAdminRead<Scheduled>(`/health/scheduled?range=${range}`);
@@ -146,11 +159,11 @@ export function JobsView() {
     const response = await adminWrite(`/jobs/${job.id}/retry`, "POST").catch(() => null);
     setBusy(false);
     if (!response?.ok) {
-      const refusal = response?.status === 409 ? ((await response.json().catch(() => ({}))) as { error?: string }).error : undefined;
-      say((refusal && REFUSED[refusal]) || "That did not go through. The job was not retried.");
+      const refusal = await refusalOf(response);
+      say((refusal && REFUSED[refusal]) || "That did not go through. The job was not retried");
       return;
     }
-    say("Retrying.");
+    say("Retrying");
     refresh();
     rereadDead();
   }
@@ -160,10 +173,11 @@ export function JobsView() {
     const response = await adminWrite(`/jobs/${job.id}/dismiss`, "POST").catch(() => null);
     setBusy(false);
     if (!response?.ok) {
-      say("That did not go through. The job was not dismissed.");
+      const refusal = await refusalOf(response);
+      say((refusal && DISMISS_REFUSED[refusal]) || "That did not go through. The job was not dismissed");
       return;
     }
-    say("Dismissed.");
+    say("Dismissed");
     refresh();
     rereadDead();
   }
@@ -207,14 +221,25 @@ export function JobsView() {
                   </span>,
                   count(job.runs),
                   count(job.failures),
-                  <button key="open" type="button" className={styles.small} aria-expanded={open.has(job.kind)} onClick={() => toggle(job.kind)}>
+                  <button
+                    key="open"
+                    type="button"
+                    className={styles.small}
+                    aria-expanded={open.has(job.kind)}
+                    aria-controls={open.has(job.kind) ? `volume-${job.kind}` : undefined}
+                    onClick={() => toggle(job.kind)}
+                  >
                     {open.has(job.kind) ? "Hide" : "Volume"}
                   </button>,
                 ]}
               />
               {open.has(job.kind) ? (
-                <div className={styles.healthExpand}>
-                  <JobVolume kind={job.kind} />
+                // A row of the table, with one cell across it, so the table
+                // still reads as rows of cells with this open.
+                <div id={`volume-${job.kind}`} className={styles.healthExpand} role="row">
+                  <div role="cell">
+                    <JobVolume kind={job.kind} />
+                  </div>
                 </div>
               ) : null}
             </Fragment>
@@ -270,7 +295,7 @@ export function JobsView() {
                   {job.retried ? (
                     <span className={styles.quiet}>retried once</span>
                   ) : (
-                    <button type="button" className={styles.small} disabled={busy} onClick={() => void retry(job)}>
+                    <button type="button" className={styles.small} disabled={busy} onClick={() => setRetrying(job)}>
                       Retry
                     </button>
                   )}
@@ -298,6 +323,18 @@ export function JobsView() {
             Load more
           </button>
         </div>
+      ) : null}
+
+      {/* One click would be one more email or push to a real person. */}
+      {retrying ? (
+        <Confirm
+          title="Retry this job?"
+          body={`${jobName(retrying.kind)}, died ${moment(retrying.at)}. It gets one more attempt, and may send again what it sends.`}
+          confirmLabel="Retry"
+          busy={busy}
+          onConfirm={() => void retry(retrying)}
+          onClose={() => setRetrying(null)}
+        />
       ) : null}
 
       {dismissing ? (

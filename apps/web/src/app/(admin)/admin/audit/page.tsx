@@ -177,10 +177,12 @@ export default function AuditPage() {
       {/* A section that failed says so in its own place and the rest stays. */}
       {facets.state === "failed" && !facets.data ? <Failed what="the filters" onRetry={facets.reload} /> : null}
 
-      {first.state === "failed" ? (
-        <Failed what="the audit log" onRetry={first.reload} />
-      ) : !first.data || first.state === "loading" ? (
-        <Loading />
+      {!first.data ? (
+        first.state === "failed" ? (
+          <Failed what="the audit log" onRetry={first.reload} />
+        ) : (
+          <Loading />
+        )
       ) : rows.length === 0 ? (
         <Empty>{filtered ? "Nothing matches that." : "Nothing recorded yet."}</Empty>
       ) : (
@@ -221,6 +223,9 @@ export default function AuditPage() {
           ) : null}
         </>
       )}
+
+      {/* A refresh that failed leaves the log it had, and says so under it. */}
+      {first.data && first.state === "failed" ? <Failed what="the audit log" onRetry={first.reload} /> : null}
     </>
   );
 }

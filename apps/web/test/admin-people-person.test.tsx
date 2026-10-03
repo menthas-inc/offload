@@ -110,6 +110,8 @@ interface Answers {
   status?: Partial<Record<"person" | "usage" | "timeline" | "hits" | "write", number>>;
   timeline?: (path: string) => unknown;
   hits?: unknown;
+  /** A 409 with this reason, for every write. */
+  refused?: string;
 }
 
 function api(answers: Answers = {}) {
@@ -120,7 +122,10 @@ function api(answers: Answers = {}) {
     vi.fn(async (url: string, init?: RequestInit) => {
       const path = String(url).replace(/^.*\/v1\/admin/, "");
       calls.push({ path, init });
-      if (init?.method && init.method !== "GET") return json({ status: "ok" }, answers.status?.write ?? 200);
+      if (init?.method && init.method !== "GET") {
+        if (answers.refused) return json({ error: "refused", reason: answers.refused }, 409);
+        return json({ status: "ok" }, answers.status?.write ?? 200);
+      }
       if (path.startsWith("/people/p1/usage")) return json(USAGE, answers.status?.usage ?? 200);
       if (path.startsWith("/people/p1/timeline")) return json(answers.timeline ? answers.timeline(path) : TIMELINE, answers.status?.timeline ?? 200);
       if (path.startsWith("/people/p1/hits")) return json(answers.hits ?? HITS, answers.status?.hits ?? 200);
@@ -283,7 +288,7 @@ describe("a person's page", () => {
     const host = await open();
     await click(button(host, "Clear"));
     await settle();
-    expect(host.querySelector('[role="status"]')!.textContent).toBe("That did not go through. The override was not changed.");
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("That did not go through. The override was not changed");
   });
 
   it("plots cost and each kind of activity per UTC day, one series each, over the range in the address", async () => {
@@ -355,6 +360,12 @@ describe("a person's page", () => {
     const host = await open();
     const before = calls.filter((call) => call.path.startsWith("/people/p1/timeline")).length;
     await click(button(host, "Retry"));
+    // It can send mail or a push to a real person again, so it asks first.
+    const dialog = host.querySelector('[role="dialog"]')!;
+    expect(writes().some((call) => call.path === "/jobs/j2/retry")).toBe(false);
+    expect(dialog.textContent).toContain("dump.answer, died 2 Oct");
+    expect(dialog.textContent).toContain("It gets one more attempt, and may send again what it sends.");
+    await click(button(dialog, "Retry"));
     await settle();
     const post = writes().find((call) => call.path === "/jobs/j2/retry")!;
     expect(post.init).toMatchObject({ method: "POST", credentials: "include" });
@@ -366,8 +377,9 @@ describe("a person's page", () => {
     api({ status: { write: 409 } });
     const host = await open();
     await click(button(host, "Retry"));
+    await click(button(host.querySelector('[role="dialog"]')!, "Retry"));
     await settle();
-    expect(host.querySelector('[role="status"]')!.textContent).toBe("That did not go through. Nothing was retried.");
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("That did not go through. Nothing was retried");
   });
 
   it("lists each time a cap refused them, and whose cap it was", async () => {
@@ -419,6 +431,34 @@ describe("a person's page", () => {
     expect(button(host, "Try again")).toBeDefined();
     expect(host.querySelector('a[href="/admin/people"]')).not.toBeNull();
     expect(host.querySelectorAll("h2")).toHaveLength(0);
+  });
+
+  // A 404 is nobody, not a fault: trying again cannot bring them back.
+  it("says nobody is here for an id with no account, under the back link, with no retry", async () => {
+    api({ status: { person: 404 } });
+    const host = await open();
+    expect(host.textContent).toContain("Nobody here.");
+    expect(host.textContent).not.toContain("Couldn't load");
+    expect(buttons(host, "Try again")).toHaveLength(0);
+    expect(host.querySelector('[role="status"]')).toBeNull();
+    expect(host.querySelector('a[href="/admin/people"]')).not.toBeNull();
+  });
+
+  it("says why a sign out was refused", async () => {
+    api({ refused: "staff" });
+    const host = await open();
+    await click(button(host, "Sign out everywhere"));
+    await click(button(host.querySelector('[role="dialog"]')!, "Sign out"));
+    await settle();
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("Not signed out. That account is staff");
+  });
+
+  it("says an account being deleted cannot be enabled", async () => {
+    api({ refused: "deleting", person: { ...PERSON, state: "disabled", can: { disable: false, enable: true, limits: true } } });
+    const host = await open();
+    await click(button(host, "Enable"));
+    await settle();
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("Not enabled. That account is being deleted");
   });
 
   it("says a section that failed in its own place, and keeps the rest", async () => {

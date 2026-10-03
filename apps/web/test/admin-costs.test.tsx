@@ -230,6 +230,42 @@ describe("AC-7 the states", () => {
   });
 });
 
+describe("a refresh that fails", () => {
+  const refresh = async (host: Element) => {
+    await click(button(host, "Refresh"));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  };
+
+  it("keeps each section it had, and says in that section's place what did not load", async () => {
+    api();
+    const host = await open();
+    api({ "/heaviest": { status: 500 }, "/by": { status: 500 }, "/daily": { status: 500 }, "/trends": { status: 500 }, "/usage": { status: 500 } });
+    await refresh(host);
+    for (const what of ["the heaviest accounts", "spend by job", "spend by model", "spend by vendor", "daily spend", "trends", "usage"]) {
+      expect(host.textContent, what).toContain(`Couldn't load ${what}.`);
+    }
+    // What was there is still there.
+    expect(host.querySelector('a[href="/admin/people/u8"]')).not.toBeNull();
+    expect(host.textContent).toContain("Filing and answering");
+    expect(plot(host, "Daily spend")).not.toBeNull();
+    expect(plot(host, "Turns")).not.toBeNull();
+    expect(plot(host, "Spend, Everything")).not.toBeNull();
+  });
+
+  it("keeps the whole page when it is the summary that failed", async () => {
+    api();
+    const host = await open();
+    api({ "/summary": { status: 500 } });
+    await refresh(host);
+    expect(host.textContent).toContain("Spent this month$1,842.60");
+    expect(host.textContent).toContain("Couldn't load the summary.");
+    expect(host.textContent).not.toContain("Couldn't load costs.");
+    expect(host.textContent).toContain("Filing and answering");
+  });
+});
+
 describe("what offload really costs, at the top", () => {
   it("draws the bill above the stats row, from its own read", async () => {
     api();
@@ -435,6 +471,6 @@ describe("the range and the export", () => {
     });
     expect(click_).not.toHaveBeenCalled();
     const said = [...host.querySelectorAll('[role="status"]')].map((node) => node.textContent);
-    expect(said).toContain("That did not go through. Nothing was exported.");
+    expect(said).toContain("That did not go through. Nothing was exported");
   });
 });

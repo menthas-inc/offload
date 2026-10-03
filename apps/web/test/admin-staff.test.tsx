@@ -92,6 +92,17 @@ describe("AC-7 the states", () => {
   });
 });
 
+describe("the page of figures", () => {
+  it("says when it was read, and reads again on Refresh", async () => {
+    api();
+    const host = await open();
+    expect(host.textContent).toMatch(/As of \d\d:\d\d/);
+    const before = calls.length;
+    await click(button(host, "Refresh"));
+    expect(calls.length).toBe(before + 1);
+  });
+});
+
 describe("the list", () => {
   it("says how many people can open the panel, and how many are owners", async () => {
     api();
@@ -163,7 +174,7 @@ describe("a role, switched in place", () => {
     api({ write: { status: 409, body: { error: "last_owner" } } });
     const host = await open();
     await click(button(rows(host)[1]!, "Owner"));
-    expect(host.querySelector('[role="status"]')!.textContent).toBe("There has to be an owner. The role is unchanged.");
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("There has to be an owner. The role is unchanged");
   });
 });
 
@@ -260,6 +271,6 @@ describe("remove", () => {
     const host = await open();
     await click(button(rows(host)[1]!, "Remove"));
     await click(button(host.querySelector('[role="dialog"]')!, "Remove"));
-    expect(host.querySelector('[role="status"]')!.textContent).toBe("That did not go through. Nobody was removed.");
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("That did not go through. Nobody was removed");
   });
 });

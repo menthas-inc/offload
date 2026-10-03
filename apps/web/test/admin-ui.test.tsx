@@ -12,7 +12,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { act } from "react";
+import { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -142,6 +142,23 @@ describe("AC-7 the states every page has", () => {
   });
 });
 
+describe("a read of something that is not there", () => {
+  it("is missing to a caller that asked to be told, and a failed read to every other", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: "not-found" }), { status: 404 })));
+    const seen: Record<string, { state: string; data: unknown }> = {};
+    function Probe() {
+      seen.asked = ui.useAdminRead<{ n: number }>("/people/gone", { missing: true });
+      seen.plain = ui.useAdminRead<{ n: number }>("/people/gone");
+      return null;
+    }
+    await render(<Probe />);
+    await act(async () => {});
+    expect(seen.asked!.state).toBe("missing");
+    expect(seen.asked!.data).toBeNull();
+    expect(seen.plain!.state).toBe("failed");
+  });
+});
+
 describe("the table", () => {
   const cols = [{ label: "Person" }, { label: "Spend, 30d", w: 96, right: true }];
 
@@ -169,6 +186,16 @@ describe("the table", () => {
     const rows = host.querySelectorAll('[role="row"]');
     expect(rows).toHaveLength(2);
     for (const row of rows) expect(parseInt((row as HTMLElement).style.minWidth, 10)).toBeGreaterThanOrEqual(96 + 140);
+  });
+
+  it("takes a control as a column's label, for a column that selects", async () => {
+    const picking = [{ label: <input type="checkbox" aria-label="Select every row" />, w: 24 }, ...cols];
+    const host = await render(
+      <ui.Table cols={picking}>
+        <ui.Row cols={picking} cells={[null, "Jo Alves", "$4.20"]} last />
+      </ui.Table>,
+    );
+    expect(host.querySelector('[role="columnheader"] input')).not.toBeNull();
   });
 
   it("makes a row a link without wrapping its buttons in one", async () => {
@@ -275,6 +302,66 @@ describe("the confirm dialog", () => {
   });
 });
 
+describe("the confirm dialog and the keyboard", () => {
+  const press = (key: string, shiftKey = false) =>
+    act(async () => {
+      document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true, cancelable: true }));
+    });
+  const named = (host: Element, text: string) => [...host.querySelectorAll("button")].find((one) => one.textContent === text)!;
+
+  function Opener({ children }: { children?: React.ReactNode }) {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>
+          Open
+        </button>
+        {open ? (
+          <ui.Confirm title="Disable Jo Alves?" body="Nothing is deleted." confirmLabel="Disable" onConfirm={() => {}} onClose={() => setOpen(false)}>
+            {children}
+          </ui.Confirm>
+        ) : null}
+      </>
+    );
+  }
+
+  it("takes focus when it opens: the confirm button when it has no field", async () => {
+    const host = await render(<Opener />);
+    named(host, "Open").focus();
+    await click(named(host, "Open"));
+    expect(document.activeElement).toBe(named(host, "Disable"));
+  });
+
+  it("takes focus to its first field when it has one", async () => {
+    const host = await render(
+      <Opener>
+        <ui.Field label="Email" value="" onChange={() => {}} />
+      </Opener>,
+    );
+    await click(named(host, "Open"));
+    expect(document.activeElement).toBe(host.querySelector('[role="dialog"] input'));
+  });
+
+  it("keeps Tab inside it, both ways round", async () => {
+    const host = await render(<Opener />);
+    await click(named(host, "Open"));
+    // Cancel, then Disable. Tab from the last goes to the first.
+    await press("Tab");
+    expect(document.activeElement).toBe(named(host, "Cancel"));
+    await press("Tab", true);
+    expect(document.activeElement).toBe(named(host, "Disable"));
+  });
+
+  it("gives focus back to what opened it", async () => {
+    const host = await render(<Opener />);
+    named(host, "Open").focus();
+    await click(named(host, "Open"));
+    await click(named(host, "Cancel"));
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(named(host, "Open"));
+  });
+});
+
 describe("a plot", () => {
   const points = [
     { label: "1 Oct", value: 2 },
@@ -289,11 +376,49 @@ describe("a plot", () => {
     expect(svg.getAttribute("aria-label")).toBe("Daily spend");
     const marks = [...host.querySelectorAll("[data-point]")];
     expect(marks).toHaveLength(3);
-    expect(marks.map((mark) => mark.getAttribute("tabindex"))).toEqual(["0", "0", "0"]);
+    // One tab stop for the plot, not one per point.
+    expect(marks.map((mark) => mark.getAttribute("tabindex"))).toEqual(["0", "-1", "-1"]);
     expect(marks.map((mark) => mark.getAttribute("aria-label"))).toEqual(["1 Oct: $2", "2 Oct: $0", "3 Oct: $5"]);
     expect(host.querySelectorAll("[data-tone='attention']")).toHaveLength(1);
     // No legend and no second series.
     expect(host.querySelectorAll("svg")).toHaveLength(1);
+  });
+
+  it("moves between its points with the arrow keys, Home and End", async () => {
+    const host = await render(<ui.Plot label="Daily spend" points={points} />);
+    const marks = [...host.querySelectorAll<SVGGElement>("[data-point]")];
+    const stops = () => marks.map((mark) => mark.getAttribute("tabindex"));
+    const press = (key: string) =>
+      act(async () => {
+        document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+      });
+    await act(async () => marks[0]!.focus());
+    await press("ArrowRight");
+    expect(document.activeElement).toBe(marks[1]);
+    expect(stops()).toEqual(["-1", "0", "-1"]);
+    await press("End");
+    expect(document.activeElement).toBe(marks[2]);
+    await press("ArrowRight");
+    expect(document.activeElement).toBe(marks[2]);
+    await press("Home");
+    expect(document.activeElement).toBe(marks[0]);
+    await press("ArrowLeft");
+    expect(document.activeElement).toBe(marks[0]);
+    expect(stops()).toEqual(["0", "-1", "-1"]);
+  });
+
+  it("keeps its caption for a screen reader, and says the point in focus in a live line of its own", async () => {
+    const host = await render(<ui.Plot label="Daily spend" points={points} format={(n) => `$${n}`} caption="marked where the cap was reached" />);
+    const caption = host.querySelector("figcaption")!;
+    const live = host.querySelector('[aria-live="polite"]')!;
+    expect(live.textContent).toBe("");
+    expect(caption.textContent).toContain("marked where the cap was reached");
+    expect(caption.querySelector("[aria-hidden]")).toBeNull();
+
+    await act(async () => host.querySelectorAll<SVGGElement>("[data-point]")[2]!.focus());
+    expect(live.textContent).toBe("3 Oct: $5");
+    expect(caption.textContent).toContain("marked where the cap was reached");
+    expect(caption.querySelector("[aria-hidden]")).toBeNull();
   });
 
   it("draws a line when asked, on the same points", async () => {
@@ -360,6 +485,21 @@ describe("the stylesheet and the pages", () => {
     expect(css).toMatch(/\.ghost::after[^{]*\{[^}]*inset:\s*-\d/);
   });
 
+  it("wraps the pane head's tools at every width, not only on a phone", () => {
+    const base = css.slice(0, css.indexOf("@media (max-width"));
+    expect(base).toMatch(/\.headTools\s*\{[^}]*flex-wrap:\s*wrap/);
+  });
+
+  it("leaves a table's least width to the table, which states its own", () => {
+    expect(css).not.toMatch(/min-width:\s*760px/);
+  });
+
+  it("lets the search grow with its text, and carries no class nothing uses", () => {
+    expect(css).toMatch(/\.search\s*\{[^}]*min-height:/);
+    expect(css).not.toMatch(/\.search\s*\{[^}]*[^-]height:/);
+    for (const dead of [".badgeAttention", ".badgeAccent", ".chip"]) expect(css, dead).not.toContain(dead);
+  });
+
   it("names colours by what they are for, with the nav's moss the one ramp", () => {
     const ramps = css.match(/var\(--(?:ink|moss|clay|blue|amber)-\d+\)/g) ?? [];
     expect(ramps).toEqual(["var(--moss-700)"]);
@@ -374,6 +514,40 @@ describe("the stylesheet and the pages", () => {
       const text = readFileSync(path, "utf8");
       expect(text, path).not.toMatch(/var\(--(?!space-|radius-)/);
       expect(text, path).not.toMatch(/#[0-9a-fA-F]{6}\b|rgba?\(/);
+    }
+  });
+
+  function sources(dir: string): string[] {
+    return readdirSync(dir).flatMap((name) => {
+      const path = join(dir, name);
+      return statSync(path).isDirectory() ? sources(path) : /\.tsx?$/.test(name) ? [path] : [];
+    });
+  }
+
+  // A toast is a line, not a paragraph: whatever it says, it ends with no
+  // full stop. Every `say(...)`, and every map of lines one reads from.
+  it("ends no toast line with a full stop", () => {
+    for (const path of sources(ADMIN)) {
+      const text = readFileSync(path, "utf8");
+      const said: string[] = [];
+      for (let at = text.indexOf("say("); at !== -1; at = text.indexOf("say(", at + 1)) {
+        let depth = 0;
+        let end = at + 3;
+        do {
+          if (text[end] === "(") depth += 1;
+          if (text[end] === ")") depth -= 1;
+          end += 1;
+        } while (depth > 0 && end < text.length);
+        said.push(text.slice(at, end));
+      }
+      // A map of lines a `say` reads from is said too.
+      for (const call of [...said]) {
+        for (const [, name] of call.matchAll(/\b([A-Z][A-Z_]+)\[/g)) {
+          const map = text.match(new RegExp(`const ${name}[^=]*=\\s*\\{[^}]*\\}`));
+          if (map) said.push(map[0]);
+        }
+      }
+      for (const call of said) expect(call, path).not.toMatch(/\.["`]/);
     }
   });
 
@@ -405,5 +579,63 @@ describe("the stylesheet and the pages", () => {
     for (const path of pages(join(ADMIN, "admin"))) {
       expect(readFileSync(path, "utf8"), path).not.toContain("Suspense");
     }
+  });
+});
+
+describe("the shell, before it knows who is here", () => {
+  const ME = { role: "owner", email: "boss@example.test", waiting: 0, wrong: 0 };
+
+  async function shell() {
+    const { default: AdminLayout } = await import("../src/app/(admin)/layout");
+    const host = await render(
+      <AdminLayout>
+        <p>the page</p>
+      </AdminLayout>,
+    );
+    await act(async () => {});
+    return host;
+  }
+
+  it("shows the one spinner while it asks, and no page", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+    const host = await shell();
+    expect(host.querySelectorAll('[role="status"]')).toHaveLength(1);
+    expect(host.textContent).not.toContain("the page");
+  });
+
+  it("says the panel did not load, beside a way to try again, and never a white screen", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new Error("offline"))));
+    const host = await shell();
+    expect(host.textContent).toContain("Couldn't load the panel.");
+    expect(host.querySelector("nav")).toBeNull();
+    expect(router.replace).not.toHaveBeenCalled();
+
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(ME))));
+    await click([...host.querySelectorAll("button")].find((one) => one.textContent === "Try again")!);
+    await act(async () => {});
+    expect(host.querySelector("nav")).not.toBeNull();
+    expect(host.textContent).toContain("the page");
+  });
+
+  it("says the same when the server answers with a fault", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("no", { status: 500 })));
+    const host = await shell();
+    expect(host.textContent).toContain("Couldn't load the panel.");
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("sends somebody who is not staff to the app, as it always has", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: "not-found" }), { status: 404 })));
+    const host = await shell();
+    expect(router.replace).toHaveBeenCalledWith("/");
+    expect(host.textContent).not.toContain("Couldn't load");
+  });
+
+  it("draws the nav once it knows, and calls what it holds pages", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify(ME)));
+    vi.stubGlobal("fetch", fetcher);
+    const host = await shell();
+    expect(host.querySelector("nav")).not.toBeNull();
+    expect(readFileSync(join(ADMIN, "layout.tsx"), "utf8")).toContain("nav pages");
   });
 });

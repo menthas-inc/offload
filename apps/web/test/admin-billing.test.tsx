@@ -19,7 +19,22 @@ vi.mock("next/link", () => ({
 }));
 
 const { RealCosts } = await import("../src/app/(admin)/admin/costs/RealCosts");
-const { FixedCosts } = await import("../src/app/(admin)/admin/limits/FixedCosts");
+const { FixedCosts: Subscriptions } = await import("../src/app/(admin)/admin/limits/FixedCosts");
+const { useAdminRead, useSay } = await import("../src/app/(admin)/ui");
+
+/** The section as Limits mounts it: on the page's read of the settings, with
+ *  the page's reload and the page's one toast. */
+function FixedCosts() {
+  const read = useAdminRead<{ settings: Array<{ key: string; value: unknown; min: number | null; max: number | null }> }>("/settings");
+  const { toast, say } = useSay();
+  if (!read.data) return null;
+  return (
+    <>
+      <Subscriptions settings={read.data.settings} reload={read.reload} say={say} />
+      {toast}
+    </>
+  );
+}
 
 const NOT_RECORDED = (vendor: string, name: string, final: boolean) => ({ vendor, name, source: "metered", micros: 0, final, recorded: false });
 
@@ -268,14 +283,8 @@ describe("subscriptions, on Limits", () => {
     await act(async () => type(field(host, "Resend"), "35"));
     await click(button(host, "Save subscriptions"));
     await settle();
-    expect(host.textContent).toContain("Couldn't save.");
+    expect(host.querySelector('[role="alert"]')!.textContent).toBe("That did not go through. Nothing was saved.");
     expect(field(host, "Resend").value).toBe("35");
   });
 
-  it("says a failed read failed, and draws no fields", async () => {
-    api({ settingsStatus: 500 });
-    const host = await open(<FixedCosts />);
-    expect(host.querySelector('[role="alert"]')!.textContent).toContain("Couldn't load subscriptions.");
-    expect(host.querySelectorAll("input")).toHaveLength(0);
-  });
 });

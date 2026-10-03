@@ -4,7 +4,7 @@
 // a change written as old to new, and the range a plot covers. From the kit's
 // `AField` and `AConfirm`.
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import styles from "../admin.module.css";
 import { count, outOfBounds } from "./format";
@@ -97,9 +97,16 @@ export function Diff({ changes }: { changes: Array<{ label: string; from: string
   );
 }
 
+const FIELDS = "input:not([disabled]), select:not([disabled]), textarea:not([disabled])";
+const STOPS = `${FIELDS}, button:not([disabled]), a[href]`;
+
 /** Anything that cannot be quietly undone asks first, and says what happens.
  *  With `confirmWord` the word has to be typed back: somebody doing ten of
- *  these in a row will otherwise do the eleventh out of habit. */
+ *  these in a row will otherwise do the eleventh out of habit.
+ *
+ *  It holds the keyboard while it is open: focus goes to its first field, or
+ *  to the confirm button when it has none, Tab stays inside, and closing it
+ *  puts focus back on whatever opened it. */
 export function Confirm({
   title,
   body,
@@ -128,10 +135,34 @@ export function Confirm({
   const [typed, setTyped] = useState("");
   const titleId = useId();
   const canAct = ready && !busy && (!confirmWord || typed.trim() === confirmWord);
+  const dialog = useRef<HTMLDivElement>(null);
+  const confirm = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const box = dialog.current;
+    const first = box?.querySelector<HTMLElement>(FIELDS) ?? (confirm.current && !confirm.current.disabled ? confirm.current : box);
+    first?.focus();
+    return () => {
+      if (opener?.isConnected) opener.focus();
+    };
+  }, []);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
+      if (event.key !== "Tab" || !dialog.current) return;
+      const stops = [...dialog.current.querySelectorAll<HTMLElement>(STOPS)];
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      if (!first || !last) return;
+      const at = document.activeElement;
+      // Off the end goes round to the other end, and so does anything that
+      // has ended up outside.
+      const leaving = !dialog.current.contains(at) || at === dialog.current || at === (event.shiftKey ? first : last);
+      if (!leaving) return;
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -140,7 +171,7 @@ export function Confirm({
   return (
     <>
       <div className={styles.scrim} onClick={onClose} />
-      <div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div ref={dialog} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <div id={titleId} className={styles.dialogTitle}>
           {title}
         </div>
@@ -156,6 +187,7 @@ export function Confirm({
             Cancel
           </button>
           <button
+            ref={confirm}
             type="button"
             className={danger ? styles.dangerSolid : styles.primary}
             disabled={!canAct}

@@ -169,6 +169,24 @@ describe("subscriptions, mounted on the page", () => {
     expect(field(host, "Resend").value).toBe("0");
   });
 
+  it("draws them from the page's own read, not a second one", async () => {
+    api();
+    await open();
+    expect(calls.filter((call) => call.url.endsWith("/settings") && !call.init?.method)).toHaveLength(1);
+  });
+
+  it("says Saved in the page's one toast, and keeps what was typed above it", async () => {
+    api();
+    const host = await open();
+    await type(field(host, "Turns"), "150");
+    await type(field(host, "Resend"), "20");
+    await click(button(host, "Save subscriptions")!);
+    await settle();
+    expect([...host.querySelectorAll('p[role="status"]')].map((one) => one.textContent)).toEqual(["Saved"]);
+    // The read that followed the save did not take the page's edit with it.
+    expect(field(host, "Turns").value).toBe("150");
+  });
+
   it("leaves the page's next save about its own keys after a subscription is saved", async () => {
     api();
     const host = await open();
@@ -404,7 +422,7 @@ describe("the save", () => {
     const host = await open();
     await type(field(host, "Turns"), "80");
     await saveAndConfirm(host);
-    expect(host.querySelector('[role="status"]')!.textContent).toBe("That did not go through. Nothing was saved.");
+    expect(host.querySelector('[role="status"]')!.textContent).toBe("That did not go through. Nothing was saved");
     expect(field(host, "Turns").value).toBe("80");
   });
 

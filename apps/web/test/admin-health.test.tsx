@@ -427,6 +427,12 @@ describe("Jobs", () => {
     const plot = host.querySelector('svg[aria-label="Runs per day, The daily purge"]')!;
     expect([...plot.querySelectorAll("[data-point]")].map((mark) => mark.getAttribute("aria-label"))).toEqual(["2 Oct: 1", "3 Oct: 2"]);
     expect(button(host, "Hide").getAttribute("aria-expanded")).toBe("true");
+    // What opened is a row of the table with one cell, and the button says
+    // which it controls.
+    const opened = host.querySelector(`[id="${button(host, "Hide").getAttribute("aria-controls")}"]`)!;
+    expect(opened.getAttribute("role")).toBe("row");
+    expect(opened.querySelectorAll(':scope > [role="cell"]')).toHaveLength(1);
+    expect(opened.querySelector("svg")).toBe(plot);
     await click(button(host, "Hide"));
     expect(host.querySelector("svg")).toBeNull();
   });
@@ -438,8 +444,11 @@ describe("Jobs", () => {
     await click(buttons(host, "Volume")[1]!);
     const night = rows(host).find((row) => row.startsWith("3 Oct") && row.includes("14"))!;
     expect(night).toBe("3 Oct14122");
-    // A night with nothing booked is not a row.
-    expect(rows(host).some((row) => row.startsWith("2 Oct"))).toBe(false);
+    // A night with nothing booked is not a row of the nights table, which
+    // sits inside the opened row's one cell.
+    const nights = [...host.querySelectorAll('[role="cell"] [role="table"] [role="row"]')].map((row) => row.textContent ?? "");
+    expect(nights).toContain("3 Oct14122");
+    expect(nights.some((row) => row.startsWith("2 Oct"))).toBe(false);
   });
 
   it("lists what is stuck, with the person as a link", async () => {
@@ -470,8 +479,15 @@ describe("Jobs", () => {
     api();
     const host = await open();
     await click(button(host, "Retry"));
+    // It can send mail or a push to a real person again, so it asks first.
+    expect(paths("POST")).toEqual([]);
+    const dialog = host.querySelector('[role="dialog"]')!;
+    expect(dialog.textContent).toContain("Answering a dump, died 3 Oct");
+    expect(dialog.textContent).toContain("It gets one more attempt, and may send again what it sends.");
+    await click(button(dialog, "Retry"));
     expect(paths("POST")).toEqual(["/jobs/d1/retry"]);
-    expect(host.querySelector('p[role="status"]')!.textContent).toBe("Retrying.");
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    expect(host.querySelector('p[role="status"]')!.textContent).toBe("Retrying");
     // The list is read again.
     expect(paths().filter((path) => path.startsWith("/health/dead"))).toHaveLength(2);
   });
@@ -479,19 +495,23 @@ describe("Jobs", () => {
   it("says what did not happen when a retry is refused", async () => {
     search = "view=jobs";
     api({ "/jobs/": { status: 409, body: { error: "at_limit" } } });
+    const retry = async (page: Element) => {
+      await click(button(page, "Retry"));
+      await click(button(page.querySelector('[role="dialog"]')!, "Retry"));
+    };
     let host = await open();
-    await click(button(host, "Retry"));
-    expect(host.querySelector('p[role="status"]')!.textContent).toBe("Not retried. That account is at its limit.");
+    await retry(host);
+    expect(host.querySelector('p[role="status"]')!.textContent).toBe("Not retried. That account is at its limit");
 
     api({ "/jobs/": { status: 409, body: { error: "account_off" } } });
     host = await open();
-    await click(button(host, "Retry"));
-    expect(host.querySelector('p[role="status"]')!.textContent).toBe("Not retried. That account is disabled.");
+    await retry(host);
+    expect(host.querySelector('p[role="status"]')!.textContent).toBe("Not retried. That account is disabled");
 
     api({ "/jobs/": { status: 500 } });
     host = await open();
-    await click(button(host, "Retry"));
-    expect(host.querySelector('p[role="status"]')!.textContent).toBe("That did not go through. The job was not retried.");
+    await retry(host);
+    expect(host.querySelector('p[role="status"]')!.textContent).toBe("That did not go through. The job was not retried");
   });
 
   it("asks before it dismisses, and says what dismissing does", async () => {
@@ -505,7 +525,29 @@ describe("Jobs", () => {
     await click(button(dialog, "Dismiss"));
     expect(paths("POST")).toEqual(["/jobs/d1/dismiss"]);
     expect(host.querySelector('[role="dialog"]')).toBeNull();
-    expect(host.querySelector('p[role="status"]')!.textContent).toBe("Dismissed.");
+    expect(host.querySelector('p[role="status"]')!.textContent).toBe("Dismissed");
+  });
+
+  it("says why a dismiss was refused, one line a reason", async () => {
+    const dismiss = async (page: Element) => {
+      await click(buttons(page, "Dismiss")[0]!);
+      await click(button(page.querySelector('[role="dialog"]')!, "Dismiss"));
+    };
+    search = "view=jobs";
+    api({ "/jobs/": { status: 409, body: { error: "not_dead" } } });
+    let host = await open();
+    await dismiss(host);
+    expect(host.querySelector('p[role="status"]')!.textContent).toBe("Not dismissed. That job is no longer dead");
+
+    api({ "/jobs/": { status: 409, body: { error: "already_dismissed" } } });
+    host = await open();
+    await dismiss(host);
+    expect(host.querySelector('p[role="status"]')!.textContent).toBe("Not dismissed. It was dismissed already");
+
+    api({ "/jobs/": { status: 500 } });
+    host = await open();
+    await dismiss(host);
+    expect(host.querySelector('p[role="status"]')!.textContent).toBe("That did not go through. The job was not dismissed");
   });
 
   it("does not draw Dismiss for anybody but an owner", async () => {

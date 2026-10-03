@@ -4,13 +4,16 @@
 // ledger meters: an owner types what each charges a month, once, and it
 // stands until changed. Costs reads them as its fixed rows.
 //
-// Self-contained, and it saves itself: the amounts are one setting,
-// `costs.fixed`, a map of company to millionths of a dollar. The save goes
-// through the same route as the rest of Limits, with what this section showed
-// as `expected`, so another owner's change is never overwritten unseen.
+// It saves itself: the amounts are one setting, `costs.fixed`, a map of
+// company to millionths of a dollar. The save goes through the same route as
+// the rest of Limits, with what this section showed as `expected`, so another
+// owner's change is never overwritten unseen.
+//
+// It draws from the page's read of the settings and says Saved in the page's
+// toast: one read and one toast for the page, not two.
 
 import { useState } from "react";
-import { Failed, Field, Section, adminWrite, outOfBounds, useAdminRead, useSay } from "../../ui";
+import { Field, Section, adminWrite, outOfBounds } from "../../ui";
 import styles from "../../admin.module.css";
 
 const KEY = "costs.fixed";
@@ -44,20 +47,31 @@ function spelled(map: Amounts): string {
   return JSON.stringify(Object.entries(map).sort(([a], [b]) => a.localeCompare(b)));
 }
 
-export function FixedCosts() {
-  const read = useAdminRead<{ settings: SettingRow[] }>("/settings");
-  const { toast, say } = useSay();
-  // What has been typed, against the read it was typed over. A newer read
-  // drops it, which is how a save and a conflict both show what is there now.
-  const [typed, setTyped] = useState<{ over: unknown; values: Record<string, string> }>({ over: null, values: {} });
+export function FixedCosts({
+  settings,
+  reload,
+  say,
+}: {
+  /** The settings as the page read them. */
+  settings: readonly SettingRow[];
+  /** Read them again: after a save, and after a conflict. */
+  reload: () => void;
+  /** The page's toast. */
+  say: (message: string) => void;
+}) {
+  // What has been typed, against the amounts it was typed over. Stored
+  // amounts that moved drop it, which is how a save and a conflict both show
+  // what is there now.
+  const [typed, setTyped] = useState<{ over: string | null; values: Record<string, string> }>({ over: null, values: {} });
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
-  const row = read.data?.settings.find((one) => one.key === KEY);
+  const row = settings.find((one) => one.key === KEY);
   const stored = (row?.value ?? {}) as Amounts;
   const min = (row?.min ?? 0) / DOLLAR;
   const max = (row?.max ?? 0) / DOLLAR;
-  const values = typed.over === read.data ? typed.values : {};
+  const over = spelled(stored);
+  const values = typed.over === over ? typed.values : {};
 
   const known = new Set(SUBSCRIPTIONS.map((one) => one.slug));
   const fields = [...SUBSCRIPTIONS, ...Object.keys(stored).filter((slug) => !known.has(slug)).sort().map((slug) => ({ slug, name: slug }))];
@@ -80,15 +94,15 @@ export function FixedCosts() {
       const response = await adminWrite("/settings", "PATCH", { changes: { [KEY]: next }, expected: { [KEY]: stored } });
       if (response.ok) {
         say("Saved");
-        read.reload();
+        reload();
       } else if (response.status === 409) {
         setProblem("Someone else changed this. These are the amounts now.");
-        read.reload();
+        reload();
       } else {
-        setProblem("Couldn't save.");
+        setProblem("That did not go through. Nothing was saved.");
       }
     } catch {
-      setProblem("Couldn't save.");
+      setProblem("That did not go through. Nothing was saved.");
     } finally {
       setBusy(false);
     }
@@ -97,13 +111,6 @@ export function FixedCosts() {
   return (
     <section>
       <Section note="Dollars a month. Used from the month an amount is set in.">Subscriptions</Section>
-
-      {read.state === "loading" && !read.data ? (
-        <p className={styles.srOnly} role="status">
-          Loading
-        </p>
-      ) : null}
-      {read.state === "failed" ? <Failed what="subscriptions" onRetry={read.reload} /> : null}
 
       {row ? (
         <>
@@ -118,7 +125,7 @@ export function FixedCosts() {
                 max={max}
                 onChange={(value) => {
                   setProblem(null);
-                  setTyped({ over: read.data, values: { ...values, [one.slug]: value } });
+                  setTyped({ over, values: { ...values, [one.slug]: value } });
                 }}
               />
             ))}
@@ -135,7 +142,6 @@ export function FixedCosts() {
           </div>
         </>
       ) : null}
-      {toast}
     </section>
   );
 }
