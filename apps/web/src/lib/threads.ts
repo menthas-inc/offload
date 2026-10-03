@@ -126,6 +126,8 @@ export interface ThreadBundle {
   /** 028. The account's default thread, which is never drawn as a thread: the
    *  client goes to Not in a thread instead. */
   isDefault: boolean;
+  /** 030. Something in it is on the map, so the switch or the column is drawn. */
+  hasPoint: boolean;
   /** `unlabelled` is 025's No label count. */
   counts: { active: number; archived: number; unlabelled: number };
   members: Member[];
@@ -173,8 +175,9 @@ export interface ThreadCalendars {
   others: Array<{ displayName: string; count: number }>;
 }
 
-/** 019. An event on one of the thread's calendars, for the rail. A title and
- *  a time: never the guests, never the place. */
+/** 019. An event on one of the thread's calendars, for the rail. A title, a
+ *  time and, while the map is on, where it is (030): never the guests, their
+ *  answers or the description. */
 export interface ThreadEvent {
   id: string;
   sourceRef: string;
@@ -188,14 +191,19 @@ export interface ThreadEvent {
   untrusted: boolean;
   /** 027. False when the viewer neither made it nor was invited to it. */
   involved?: boolean;
+  /** 030. Where it is, in the calendar's words, and its point. */
+  location: string | null;
+  place: { id: string; lat: number | null; lng: number | null; approximate: boolean } | null;
 }
 
+/** 030. Where a row is, and nothing Google named: its name and address are
+ *  neither kept nor sent. The coordinates are null once they age past thirty
+ *  days, until a map asks for them again. */
 export interface Place {
   id: string;
-  name: string;
-  address: string | null;
   lat: number | null;
   lng: number | null;
+  approximate: boolean;
 }
 
 /** The registrable domain of a URL, for a row that is a link.
@@ -253,6 +261,8 @@ export interface ContentRow {
   /** 025. The row's live labels, by id, in the thread's label order. */
   labels: string[];
   place: Place | null;
+  /** 030. An event's location, in offload's own words. */
+  location: string | null;
   /** The same place, as the id the shared widget rule takes. Derived in
    *  `fetchContent` rather than sent twice, so nothing above has to know that
    *  the server holds a key where this holds an object. */
@@ -313,6 +323,32 @@ export const fetchThreadsAndInvitations = (): Promise<ThreadsPage | null> => get
 
 export const fetchThread = (id: string): Promise<ThreadBundle | null> =>
   get<ThreadBundle>(`/v1/threads/${id}`);
+
+/** 030. A point on a thread's map, as the server draws it: offload's own
+ *  title and address, Google's id only for Directions, nothing Google named. */
+export interface Point {
+  key: string;
+  source: "row" | "calendar";
+  contentId: string | null;
+  type: string;
+  title: string;
+  address: string | null;
+  approximate: boolean;
+  lat: number;
+  lng: number;
+  googlePlaceId: string | null;
+  labelIds: string[];
+  when: { at: string; endAt: string | null; allDay: boolean } | null;
+  url: string | null;
+  imageUrl: string | null;
+  authorId: string | null;
+  calendarName: string | null;
+}
+
+/** 030. A thread's points. `pending` counts places being fetched again, and
+ *  a reader that gets more than none reads once more a moment later. */
+export const fetchPoints = (id: string): Promise<{ points: Point[]; pending: number } | null> =>
+  get<{ points: Point[]; pending: number }>(`/v1/threads/${id}/points`);
 
 export const fetchThreadCalendars = (id: string): Promise<ThreadCalendars | null> =>
   get<ThreadCalendars>(`/v1/threads/${id}/calendars`);
@@ -555,8 +591,6 @@ export function startsAs(section: string): "task" | "location" | "event" | null 
   switch (section) {
     case "todo":
       return "task";
-    case "map":
-      return "location";
     case "timeline":
       return "event";
     default:
@@ -595,6 +629,7 @@ export function provisionalRow(
     priorityPinned: false,
     labels: [],
     place: null,
+    location: null,
     placeId: null,
     seriesRef: null,
     allDay: day !== undefined,

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
 };
 
-const UPDATED = "2 October 2026";
+const UPDATED = "3 October 2026";
 
 function Todo({ children }: { children: ReactNode }) {
   return <span className={styles.todo}>{children}</span>;
@@ -64,7 +64,9 @@ export default function Privacy() {
             <li>
               <strong>We do not train AI on what you upload.</strong> That stays off unless you
               explicitly allow us to improve the product with your content, and you can withdraw
-              that at any time.
+              that at any time. One company in section 6, Google Maps Platform, which draws the map
+              in a thread, may use what it receives to improve its own products: the name of a
+              place being looked up, and what your device sends it while a map is on screen.
             </li>
             <li>
               <strong>Delete anything, whenever you want.</strong> A single upload, a thread, or the
@@ -79,12 +81,13 @@ export default function Privacy() {
             </li>
             <li>
               <strong>No ad trackers and no cookie banner.</strong> Nothing on our site follows you
-              anywhere else.
+              anywhere else. A thread&rsquo;s map is drawn by Google, and section 6 says what Google
+              receives when it is on screen.
             </li>
             <li>
               <strong>A few companies help us run offload.</strong> All of them are named below,
-              none of them may use what you upload for their own purposes, and we do not add one
-              quietly. Three of them carry a notification to your phone: Expo, then Apple or
+              none of them may use what you upload for their own purposes except Google Maps
+              Platform, as section 6 says, and we do not add one quietly. Three of them carry a notification to your phone: Expo, then Apple or
               Google, and the words of a notification pass through them on the way. We may also be obliged by a court to hand over your content, and section 7
               describes how we handle that.
             </li>
@@ -172,6 +175,16 @@ export default function Privacy() {
               and when it does, this page names who does that before it starts.
             </li>
             <li>
+              <strong>Places.</strong> When something you keep has a place (a place you saved, the
+              venue of an event, a place a page you pasted names, or where an event is in a
+              calendar a thread picks) offload asks Google where it is, so it can go on the
+              thread&rsquo;s map, as section 5 says. It keeps Google&rsquo;s id for the place
+              while something points at it, and the place&rsquo;s coordinates for up to thirty
+              days; after that it asks Google again when a map shows it. Neither is tied to your
+              account, and neither is a name or an address: what is shown beside a point is what
+              you, or the calendar, wrote.
+            </li>
+            <li>
               <strong>Notes</strong>, which are short sentences about a thread: something that is
               true about it, or how you want it handled. You write some of them and offload writes
               others from what you dumped, and they are what lets it be useful without your whole
@@ -216,8 +229,10 @@ export default function Privacy() {
             <strong>Which calendars offload reads is two decisions, not one.</strong> Connecting an
             account lets you tick the calendars offload may use at all. A thread then picks which of
             those it reads, starting from none. If you pick a calendar for a thread you share, the
-            events on it become visible to everyone in that thread, as a title and a time, for as
-            long as the calendar is picked. Who is invited to an event stays with you. Un-ticking a
+            events on it become visible to everyone in that thread, as a title, a time and where it is,
+            for as long as the calendar is picked. Where an event is gets looked up as section 5
+            says, and what offload remembers of that goes with our copy of the calendar. Who is
+            invited to an event stays with you. Un-ticking a
             calendar in Settings takes it out of every thread at once.
           </p>
           <p>
@@ -302,6 +317,11 @@ export default function Privacy() {
                   <td>Performance of our contract with you</td>
                 </tr>
                 <tr>
+                  <td>To put places on a map</td>
+                  <td>The name of a place you keep, sent to Google alone</td>
+                  <td>Performance of our contract with you</td>
+                </tr>
+                <tr>
                   <td>To find out whether offload works</td>
                   <td>Pseudonymous product events and server logs, never content</td>
                   <td>Our legitimate interest in improving the product</td>
@@ -352,7 +372,8 @@ export default function Privacy() {
             <li>
               <strong>They do not train on it.</strong> Every company in the table below publishes
               terms that rule out using what an API sends them to train or improve their own models,
-              and not publishing such a term disqualifies a company from this list. We rely on those
+              except Google Maps Platform, which does not; section 6 says what it receives. Not
+              publishing such a term disqualifies any other company from this list. We rely on those
               published terms rather than on separately negotiated ones, which is worth knowing
               because a published term can be changed by the company that published it. We check
               them, and section 17 says what happens when something material moves.
@@ -405,7 +426,8 @@ export default function Privacy() {
             <li>
               <strong>A link you paste is opened.</strong> The site you linked to receives a request
               from us. It is not a company you picked, and it can see that somebody asked for that
-              page, along with anything already in the address you pasted.
+              page, along with anything already in the address you pasted. The page is also read
+              for where it is, when it says.
             </li>
             <li>
               <strong>offload only opens links you gave it.</strong> Not one it thought of, not one
@@ -432,15 +454,28 @@ export default function Privacy() {
               it publishes about itself, so the row shows the photo instead of a symbol. That one
               request happens for every link kept, whatever the switches below say: it is part of
               filing a link, not of reading one, and the page sees a request from us, not from
-              you. We do not store the image. Your device loads it from that site each time the
+              you. A link kept before the map arrived has its page asked one more time, for where
+              it is, when Read links I paste is on, and never again. We do not store the image. Your device loads it from that site each time the
               row is on screen, which means the site can see your IP address and when you looked,
               the same as if you had opened the page. In a thread you share, that applies to each
               person who sees the row.
             </li>
             <li>
+              <strong>A place goes to Google to be put on a map.</strong> A place you save, the
+              venue of an event offload files for you, a place a page you pasted names (when Read
+              links I paste is on) and where an event is in a calendar a thread picks are sent to
+              Google Maps Platform as a search, alone, with nothing about who asked. Before
+              anything goes, offload refuses anything with a number in it, an email or web address,
+              a possessive, or a street word, because that is what a street address, a phone number
+              and somebody&rsquo;s home usually look like. Directions opens Google Maps with the
+              destination, which Google then receives.
+            </li>
+            <li>
               <strong>Both of these are switches, in Settings, and either can be off.</strong> With
-              both off, nothing you dump is searched for and no page is read for an answer. The
-              one request above, for a kept link&apos;s picture, still happens.
+              both off, nothing you dump is searched for on the web and no page is read. The one
+              request above, for a kept link&apos;s picture, still happens, and a place you keep
+              still goes to Google to be put on the map, because that is what keeping a place is
+              for. For a calendar, the control is which calendars a thread picks.
             </li>
             <li>
               <strong>We record that a lookup happened, and not what it was.</strong> What kind of
@@ -545,6 +580,23 @@ export default function Privacy() {
                   </td>
                 </tr>
                 <tr>
+                  {/* 030. The one company here that acts for itself: the owner
+                      waived the no-training bar for it, recorded in
+                      docs/tech/decisions.md. */}
+                  <td>Google Maps Platform</td>
+                  <td>Draws the map in a thread and turns the name of a place into a point on it</td>
+                  <td>
+                    The name of a place being looked up, alone, with nothing about who asked. And
+                    from your device, whenever a map is on screen, your IP address, the area being
+                    drawn and, on the phones, the device details Google&rsquo;s map collects; if you
+                    are signed in to Google there, it may recognise you. In a thread you share, that
+                    applies to each person who opens its map. Google decides for itself how it uses
+                    this, under its own terms, and those say it may keep it and use it to improve its
+                    products. Its map runs inside offload&rsquo;s page, so what it could see there
+                    rests on those terms, not on anything offload enforces
+                  </td>
+                </tr>
+                <tr>
                   <td>Expo</td>
                   <td>Sends notifications to your phone</td>
                   <td>
@@ -564,8 +616,8 @@ export default function Privacy() {
             </table>
           </div>
           <p>
-            Each of them is under a contract that lets them process this only to provide their
-            service to us, and never for themselves. We do not add a company that will hold your
+            Each of them, except Google Maps Platform as its row says, is under a contract that
+            lets them process this only to provide their service to us, and never for themselves. We do not add a company that will hold your
             content without updating this page and telling account holders before the change takes
             effect.
           </p>
@@ -635,7 +687,9 @@ export default function Privacy() {
             offload runs in the United States, in <Todo>[region]</Todo>. If you are in the UK or the
             European Economic Area, that means your information is transferred out of it. We rely on
             the European Commission's standard contractual clauses, and the UK addendum to them, for
-            those transfers, and we hold the same terms with each company in section 6.
+            those transfers, and we hold the same terms with each company in section 6. Google Maps
+            Platform is the exception: what reaches it is not under those terms, because it receives
+            it as a controller, under its own.
           </p>
         </section>
 
@@ -674,6 +728,13 @@ export default function Privacy() {
               <strong>A dismissed suggestion.</strong> When you dismiss one, offload keeps a record
               that you did, with no words in it, so it never suggests anything for that thing again.
               It goes when the thing does. A proposal it no longer makes is removed.
+            </li>
+            <li>
+              <strong>Places: thirty days for where they are.</strong> A place&rsquo;s coordinates
+              are deleted thirty days after offload fetched them, whatever else happens, and
+              fetched again if a map shows the place after that. Google&rsquo;s id for a place is
+              kept while something points at it and deleted when nothing does. Neither is tied to
+              an account, so neither goes with one.
             </li>
             <li>
               <strong>Anything else you delete: immediately, then 30 days.</strong> It goes from the live
@@ -795,8 +856,8 @@ export default function Privacy() {
             </li>
             <li>
               <strong>A calendar you pick for a shared thread is read for the whole thread.</strong>{" "}
-              Everyone in it sees the events on that calendar, as a title and a time, for as long as
-              it is picked. Nobody but you can write to it, and un-picking it takes it back out.
+              Everyone in it sees the events on that calendar, as a title, a time and where it is,
+              for as long as it is picked. Nobody but you can write to it, and un-picking it takes it back out.
             </li>
             <li>
               <strong>There are no public links.</strong> Nothing in offload can be handed to
@@ -967,7 +1028,9 @@ export default function Privacy() {
             offload sets what it needs to keep you signed in and to stop the sign-in and waitlist
             being abused. That is the entire list. There is no advertising cookie, no third-party
             analytics running in your browser and nothing that follows you to another site, which is
-            why this page is not interrupted by a banner asking you to accept something.
+            why this page is not interrupted by a banner asking you to accept something. A
+            thread&rsquo;s map is drawn by Google&rsquo;s own code in your browser; offload sets
+            no cookie for it, and what Google receives is in section 6.
           </p>
         </section>
 

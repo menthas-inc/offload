@@ -35,7 +35,11 @@
  *  widget when it stopped being a list: it is a rail of weeks at the top of the
  *  thread, drawn whether or not the thread has a single date on it, which is the
  *  opposite of what a widget is. The rule below is untouched by that. */
-export const WIDGET_KINDS = ["map", "todo", "files"] as const;
+/** **Nor is the map, which was until 030.** A located row earned a Places
+ *  section of rows with no map; 030 gives a thread with a point a map of its
+ *  own behind a List | Map switch, and located rows stay in Everything in here.
+ *  A stored order that still names `map` reads as though it did not. */
+export const WIDGET_KINDS = ["todo", "files"] as const;
 export type WidgetKind = (typeof WIDGET_KINDS)[number];
 
 /** The least a row has to be for any of this to work.
@@ -201,7 +205,6 @@ export function cadenceLabel(everyDays: number | null): string | null {
  *  draws the same way.
  */
 const EARNS: Record<WidgetKind, (row: Sortable) => boolean> = {
-  map: (row) => row.placeId !== null,
   // Done tasks included. A ticked item does not leave the list, it sinks to the
   // bottom of it: something you finished this morning disappearing is how you
   // end up wondering whether you did it, and the tick is the reward for doing
@@ -241,7 +244,7 @@ export function sinkDone<T extends Sortable>(rows: readonly T[]): T[] {
 /** Which widgets these rows justify, in the order they should appear.
  *
  *  Default order is by how much of the thread each widget accounts for, so a
- *  trip full of places leads with the map. A stated preference overrides it,
+ *  thread full of photos leads with its files. A stated preference overrides it,
  *  and a preference naming a kind the thread no longer earns is ignored rather
  *  than treated as an error: a thread whose contents changed under a preference
  *  is the normal case, not an edge one.
@@ -297,9 +300,9 @@ export function splitDone<T extends Sortable>(
  *
  *  A finished task is still in the list, sunk below what is left, and the
  *  heading does not count it: "To do 3" is how many there are to do, which is
- *  what the kit draws and what the number was read as. A map or a files
- *  section never holds a done row, so for them this is every row drawn, and one
- *  rule covers all three rather than To do being a special case. Archived rows
+ *  what the kit draws and what the number was read as. A files
+ *  section never holds a done row, so for it this is every row drawn, and one
+ *  rule covers both rather than To do being a special case. Archived rows
  *  are not here at all: the page fetches them as their own view.
  */
 export function liveCount(rows: readonly Sortable[]): number {
@@ -419,3 +422,32 @@ export {
 } from "./labels.js";
 export type { LabelPick } from "./labels.js";
 export { GOOGLE_EVENT_LINK, afterWrite, dayName, eventMeta, eventPast, eventRange, nextLine, nothingLine, retryDelay, stackView, type LineEvent, type WeekStart } from "./today.js";
+// 030. A thread's map: point colours and shapes, count dots, the opening fit,
+// and the hand-off to Google Maps.
+export {
+  CLUSTER_PX,
+  FIT_MAX_ZOOM,
+  CIRCLE_METRES,
+  calloutPan,
+  calloutPadding,
+  cluster,
+  directionsUrl,
+  fitBounds,
+  hitCircle,
+  kindWord,
+  metresPerPixel,
+  panned,
+  pointFill,
+  pointPasses,
+  pointShape,
+  screenOf,
+  splitZoom,
+  worldPixel,
+  zoomOf,
+  type Camera,
+  type Cluster,
+  type LatLng,
+  type Padding,
+  type PointLabel,
+  type ScreenPoint,
+} from "./map.js";

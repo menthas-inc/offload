@@ -58,6 +58,7 @@ const row = (id: string, title: string, type = "link") => ({
     priorityPinned: false,
     labels: [],
     place: null,
+    location: null,
     placeId: null,
     seriesRef: null,
     allDay: false,

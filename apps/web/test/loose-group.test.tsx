@@ -63,6 +63,7 @@ const row = (id: string, title: string, type = "link", extra: Record<string, unk
   priorityPinned: false,
   labels: ["lb1"],
   place: null,
+  location: null,
   placeId: null,
   seriesRef: null,
   allDay: false,

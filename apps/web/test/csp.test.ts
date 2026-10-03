@@ -61,6 +61,45 @@ describe("the policy", () => {
   });
 });
 
+describe("the map's hosts (030, SEC-1)", () => {
+  const off = contentSecurityPolicy({ nonce: "bm9uY2U=", api: API, dev: false, maps: false });
+  const on = contentSecurityPolicy({ nonce: "bm9uY2U=", api: API, dev: false, maps: true });
+
+  it("names Google only in a build made with a map key", () => {
+    expect(off).not.toContain("googleapis");
+    expect(off).not.toContain("gstatic");
+    // The map's style comes from www.gstatic.com and its sprites are fetched as
+    // data: URLs, both seen refused in the browser check (T4.8).
+    expect(directive(on, "connect-src")).toBe(`connect-src 'self' ${API} https://maps.googleapis.com https://www.gstatic.com data:`);
+    // No font host: the map asks for Google's font stylesheet, which style-src
+    // refuses, and draws its own labels without it (seen in T4.8), so a font
+    // host would name a company that never receives a request.
+    expect(directive(on, "font-src")).toBe("font-src 'self' data:");
+    expect(on).not.toContain("fonts.g");
+  });
+
+  it("adds nothing to what may run, and no wildcard host", () => {
+    expect(directive(on, "script-src")).toBe("script-src 'self' 'nonce-bm9uY2U=' 'strict-dynamic'");
+    expect(on).not.toContain("'unsafe-eval'");
+    expect(directive(on, "script-src")).not.toContain("blob:");
+    expect(directive(on, "script-src")).not.toContain("'unsafe-inline'");
+    expect(on).not.toMatch(/https:\/\/\*/);
+  });
+
+  it("is on in the middleware when the build has the key and the map id", () => {
+    const served = () => middleware(new NextRequest("http://localhost/")).headers.get("content-security-policy") ?? "";
+    try {
+      vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAPS_KEY", "k");
+      vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAP_ID", "m");
+      expect(served()).toContain("https://maps.googleapis.com");
+      vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAP_ID", "");
+      expect(served()).not.toContain("googleapis");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
 describe("the middleware", () => {
   function serve(path: string) {
     return middleware(new NextRequest(`http://localhost${path}`));

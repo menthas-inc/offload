@@ -8,7 +8,9 @@ import { sql, type ExpressionBuilder, type Transaction } from "kysely";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
 import { NOTE_PROMPT_BUDGET, deleteNotesForThread } from "../threads/notes.js";
-import { resolvePlace } from "../places/resolve.js";
+import { locateCalendar, refreshPlace, resolvePlace } from "../places/resolve.js";
+import { agePlaces } from "../places/age.js";
+import { backfillMaps } from "../places/backfill.js";
 import { locateBlob, reverseGeocodingOn } from "../places/reverse.js";
 import { objectKey, objectStore, RENDITIONS } from "../blobs/store.js";
 import type { Mailer } from "../mail/index.js";
@@ -828,6 +830,39 @@ const blobDaily: Handler = async () => {
   console.log(JSON.stringify({ level: "info", msg: "blob locate backfill", enqueued: due.length }));
 };
 
+/** 030. A place's coordinates fetched again, because a map wants a place
+ *  whose thirty days had passed. The payload is the place's id and nothing
+ *  else; the log line is the id and the outcome. */
+const placesRefresh: Handler = async (payload) => {
+  const placeId = String(payload["placeId"] ?? "");
+  if (!placeId) throw new Error("places.refresh job has no placeId");
+  const outcome = await refreshPlace(placeId);
+  console.log(JSON.stringify({ level: "info", msg: "place refreshed", place_id: placeId, outcome }));
+};
+
+/** 030. Google's thirty days, by SQL alone, once a day. Tomorrow's run is
+ *  armed first, so one failure does not stop the chain. Counts only. */
+const placesAge: Handler = async () => {
+  await scheduleDaily("places.age");
+  const swept = await agePlaces();
+  console.log(JSON.stringify({ level: "info", msg: "places aged", ...swept }));
+};
+
+/** 030. A calendar's event locations looked up, a batch at a time. Ids and
+ *  counts in the log, never a location. */
+const eventLocate: Handler = async (payload) => {
+  const calendarId = String(payload["calendarId"] ?? "");
+  if (!calendarId) throw new Error("event.locate job has no calendarId");
+  const done = await locateCalendar(calendarId);
+  console.log(JSON.stringify({ level: "info", msg: "calendar located", calendar_id: calendarId, ...done }));
+};
+
+/** 030. The one pass over what existed before the map. Counts only. */
+const mapsBackfill: Handler = async () => {
+  const booked = await backfillMaps();
+  console.log(JSON.stringify({ level: "info", msg: "maps backfill booked", ...booked }));
+};
+
 export const handlers: Record<string, Handler> = {
   "account.daily": accountDaily,
   "account.daily.run": accountDailyRun,
@@ -839,6 +874,10 @@ export const handlers: Record<string, Handler> = {
   "email.invited": invited,
   "content.purge": contentPurge,
   "location.resolve": locationResolve,
+  "places.refresh": placesRefresh,
+  "places.age": placesAge,
+  "event.locate": eventLocate,
+  "maps.backfill": mapsBackfill,
   "blob.purge": blobPurge,
   "blob.locate": blobLocate,
   "blob.daily": blobDaily,

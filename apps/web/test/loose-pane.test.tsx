@@ -54,6 +54,7 @@ const row = (id: string, title: string, type = "link", extra: Record<string, unk
   priorityPinned: false,
   labels: [],
   place: null,
+  location: null,
   placeId: null,
   seriesRef: null,
   allDay: false,

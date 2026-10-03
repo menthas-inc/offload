@@ -5,7 +5,8 @@
 // From ui_kits/android_app/M3ThreadWidgets.jsx, whose own comment is the rule
 // this implements: "widgets a thread earns from its own contents: a map when it
 // has places, a file grid when it has assets." *The timeline was one of these
-// and is 015's rail now, above this.*
+// and is 015's rail now, above this; the map was, and is 030's own map behind
+// the List | Map switch.*
 //
 // **A widget is a view, never a store.** Every row here is a row in "Everything
 // in here", filtered. Nothing is fetched per widget: the page has one content
@@ -37,7 +38,6 @@ import { QUICK_ADD_CHARS, TYPED_ROW_PLACEHOLDER } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
 
 const HEADINGS: Record<string, string> = {
-  map: "Places",
   todo: "To do",
   files: "Files",
 };
@@ -109,8 +109,8 @@ function WidgetBlock({
 }) {
   const [allDone, setAllDone] = useState(false);
   const [adding, setAdding] = useState(false);
-  // Only To do earns the fold: `doneAt` is only ever set on a task, so a map
-  // or a files section has nothing to hide and never draws the control.
+  // Only To do earns the fold: `doneAt` is only ever set on a task, so a
+  // files section has nothing to hide and never draws the control.
   //
   // **A preference of the thread, not a state of the screen**, so it arrives
   // as a prop and leaves through `onFold`. It was local state seeded from the
@@ -119,8 +119,7 @@ function WidgetBlock({
   const { left, done } = splitDone(widget.rows);
 
   // **Dragging, on To do and nowhere else.** It is the one list a person
-  // arranges: a map is ordered by the map and a file grid by nothing anybody
-  // reaches for. Only the rows still to do move; a finished one has sunk and
+  // arranges: a file grid is ordered by nothing anybody reaches for. Only the rows still to do move; a finished one has sunk and
   // sits by when it was ticked, which is not a place somebody chooses.
   //
   // The neighbours are the rows on screen. A filter or the fold hides rows,
@@ -227,8 +226,6 @@ function WidgetBlock({
         />
       ) : null}
 
-      {widget.kind === "map" ? <Pins rows={[...left, ...done]} /> : null}
-
       {/* 020. Files is the kit's grid, three columns of square tiles, each
           the photo itself with no treatment, or the type glyph until the
           renditions exist. A tap opens the viewer, which is where the row's
@@ -328,45 +325,6 @@ function QuickAdd({ onAdd, onCancel }: { onAdd: (text: string) => void; onCancel
 
 /** A chip from the contract: 30px pill, selection inverts to ink, and the count
  *  rides inside the label rather than in a second element. */
-/** Pins on a plain surface, exactly as the kit draws it: "map surface, drawn
- *  from real coordinates". No tiles and no provider, so nothing about where
- *  somebody has been leaves for a map company to render a background. */
-function Pins({ rows }: { rows: ContentRow[] }) {
-  const placed = rows.filter((row) => row.place?.lat != null && row.place?.lng != null);
-  if (placed.length === 0) return null;
-
-  const lats = placed.map((row) => row.place!.lat!);
-  const lngs = placed.map((row) => row.place!.lng!);
-  const span = (values: number[]) => {
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    // A single pin, or several in one spot, would divide by zero. Give it a
-    // small box so it lands in the middle rather than nowhere.
-    return max - min < 0.0005 ? { min: min - 0.01, size: 0.02 } : { min, size: max - min };
-  };
-  const y = span(lats);
-  const x = span(lngs);
-
-  return (
-    <div className={styles.mapSurface} aria-hidden="true">
-      <span className={styles.mapNote}>drawn from real coordinates</span>
-      {placed.map((row, index) => (
-        <span
-          key={row.id}
-          className={styles.pin}
-          style={{
-            left: `${((row.place!.lng! - x.min) / x.size) * 80 + 10}%`,
-            // Latitude runs the other way from a screen's y axis.
-            top: `${(1 - (row.place!.lat! - y.min) / y.size) * 70 + 15}%`,
-          }}
-        >
-          {index + 1}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 /** One square in Files. From ui_kits/mobile_app/ThreadWidgets.jsx's FileTile:
  *  a hairline, `--radius-sm`, the picture cropped to the square, a glyph where
  *  there is no picture yet. */
@@ -439,28 +397,12 @@ function Row({
           />
         ) : (
           <span className={styles.rowIcon}>
-            <Icon name={widget === "map" ? "map-pin" : "paperclip"} size={18} />
+            <Icon name="paperclip" size={18} />
           </span>
         )
       }
-      meta={note ? <span className={styles.rowMeta}>{note}</span> : <Meta row={row} />}
+      meta={note ? <span className={styles.rowMeta}>{note}</span> : null}
     />
   );
 }
 
-/** One line under a title, built from whatever the row actually has.
- *
- *  Every date label is derived from the date rather than written down, which is
- *  the kit's own rule and the reason a weekday can never disagree with the
- *  calendar. */
-function Meta({ row }: { row: ContentRow }) {
-  const parts: string[] = [];
-
-  // 023. The date and the reminder are the chip's and the bell's now, on the
-  // title line; saying them here again would be two marks for one fact.
-  if (row.place?.address) parts.push(row.place.address);
-
-  // 2026-09-29. No details line: offload is for short things.
-  if (parts.length === 0) return null;
-  return <span className={styles.rowMeta}>{parts.join(" · ")}</span>;
-}

@@ -53,3 +53,20 @@ describe("the fill", () => {
     expect(paletteFor(true).fill).toBe(resolved.dark["surface-fill"]);
   });
 });
+
+describe("the map's values (030)", () => {
+  it("are the label tokens, ink for none, the paper ring and the point shadows", () => {
+    const light = paletteFor(false);
+    expect(light.labels[5]).toBe(resolved.light["label-5"]);
+    expect(light.labels[10]).toBe(resolved.light["label-10"]);
+    expect(light.labels[0]).toBe(resolved.light["text-primary"]);
+    expect(paletteFor(true).paper).toBe(resolved.dark["paper"]);
+    expect(light.shadowPoint).toBe(resolved.light["shadow-point"]);
+    expect(light.shadowPointPicked).toBe(resolved.light["shadow-point-picked"]);
+    expect(light.shadowCallout).toBe(resolved.light["shadow-callout"]);
+    // A chip floating over the map: --shadow-1, which is no shadow in dark.
+    expect(light.shadowRaised).toBe(resolved.light["shadow-1"]);
+    // Dark has no drop shadow, so a raised chip takes the lift's edge.
+    expect(paletteFor(true).shadowRaised).toBe(`inset 0 0 0 1px ${resolved.dark["border-lift"]}`);
+  });
+});

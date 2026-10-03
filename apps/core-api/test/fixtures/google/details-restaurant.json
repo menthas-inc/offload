@@ -1,0 +1,13 @@
+{
+  "types": [
+    "seafood_restaurant",
+    "restaurant",
+    "food",
+    "point_of_interest",
+    "establishment"
+  ],
+  "location": {
+    "latitude": 38.720257,
+    "longitude": -9.1357429
+  }
+}

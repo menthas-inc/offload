@@ -588,6 +588,125 @@
         ],
         "rubric": "Names the dentist and lunch with Maya with their times. Says nothing about whose they are or which calendar they are on."
       }
+    },
+    {
+      "id": "venue-from-words",
+      "why": "030: an event takes the public place it happens at, from their words, on the one row",
+      "surface": "file",
+      "input": "dinner at Time Out Market on Friday at 8",
+      "context": "behrooz",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "add_content",
+            "args": {
+              "type": "event",
+              "location": "Time Out Market"
+            }
+          }
+        ],
+        "calls_with_none": [
+          {
+            "tool": "add_content",
+            "args": {
+              "type": "location"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-is-not-a-venue",
+      "why": "030: somebody's home is never a place to look up",
+      "surface": "file",
+      "input": "dinner at Ana's on Friday at 8",
+      "context": "behrooz",
+      "expect": {
+        "called": [
+          "add_content"
+        ],
+        "calls_with_none": [
+          {
+            "tool": "add_content",
+            "args": {
+              "type": "location"
+            }
+          }
+        ],
+        "rubric": "Files the dinner on Friday at 8 as one event. It carries no location, or it tried one, was refused, and filed the event without it. Says nothing about a location or a map."
+      }
+    },
+    {
+      "id": "no-venue-no-location",
+      "why": "030: an event whose dump names no place is filed with none",
+      "surface": "file",
+      "input": "dentist tuesday 3pm",
+      "context": "behrooz",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "add_content",
+            "args": {
+              "type": "event",
+              "location": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "venue-changed",
+      "why": "030: a new venue for an event is an edit of its location",
+      "surface": "file",
+      "input": "actually the dinner with Ana is at Cervejaria Ramiro",
+      "context": "behrooz",
+      "rows": [
+        {
+          "contentId": "e1",
+          "threadId": "00000015-0000-0000-0000-000000000000",
+          "title": "Dinner with Ana",
+          "type": "event",
+          "onMap": true
+        }
+      ],
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "edit_content",
+            "args": {
+              "content_id": "e1",
+              "location": "Cervejaria Ramiro"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "off-the-map",
+      "why": "030: taking a row off the map is clear_location on that row",
+      "surface": "file",
+      "input": "the Casa Alfama airbnb isn't where we're staying, take it off the map",
+      "context": "behrooz",
+      "rows": [
+        {
+          "contentId": "l1",
+          "threadId": "00000015-0000-0000-0000-000000000000",
+          "title": "Casa Alfama on Airbnb",
+          "type": "link",
+          "onMap": true
+        }
+      ],
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "edit_content",
+            "args": {
+              "content_id": "l1",
+              "clear_location": true
+            }
+          }
+        ]
+      }
     }
   ]
 }

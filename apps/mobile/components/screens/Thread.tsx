@@ -75,6 +75,8 @@ import {
   setPreference,
   type ContentPatch,
   type ContentSnapshot,
+  fetchOne,
+  type Point,
 } from "../../lib/threads";
 import { perform, useWrites } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
@@ -102,9 +104,19 @@ import {
   type Label,
 } from "../../lib/labels";
 import { DragSheet } from "../shell/DragSheet";
+import { Segmented } from "../Segmented";
+import { ThreadMap } from "../map/ThreadMap";
+import { PlaceSheet } from "../map/PlaceSheet";
+import { useThreadMap } from "../map/use-thread-map";
+import { barTools, type BarTool } from "../../lib/map-view";
+import { useSheetBack } from "../../lib/sheet-back";
+import { usePlateInset } from "../shell/plate-inset";
 import { movedCopy, redirectFor } from "../../lib/loose";
 
 const isAndroid = Platform.OS === "android";
+
+/** 030. The place sheet's grabber and padding, above what its body measures. */
+const SHEET_CHROME = 48;
 
 export default function Thread() {
   const COLOR = useColors();
@@ -226,6 +238,25 @@ export default function Thread() {
   // still is gets dropped, or it would undo the change on screen for the
   // length of a round trip.
   const writes = useWrites(load);
+  // 030. The map behind the switch. `thread` is the version: the points follow
+  // every read of the bundle while the map shows.
+  const map = useThreadMap({ threadId: id, hasPoint: thread?.hasPoint === true, version: thread });
+  const plateInset = usePlateInset();
+  // Back from Map returns to List on Android, while this screen is the one in
+  // front; a sheet open over the map takes back first.
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+  useSheetBack(focused && map.layout === "map", {
+    start: () => undefined,
+    progress: () => undefined,
+    cancel: () => undefined,
+    invoke: () => map.setView("list"),
+  });
 
   useFocusEffect(
     useCallback(() => {
@@ -887,6 +918,32 @@ export default function Thread() {
     : [];
 
 
+  // 030. With the switch in the bar, the label and calendar tools go to the
+  // top of More.
+  const openNewLabel = (): void => {
+    setListLine(null);
+    setListing({ label: null });
+  };
+  const onMap = map.layout === "map";
+  const tools = barTools({
+    switchShown: map.ready,
+    labels: !showArchived && thread.labels.length === 0,
+    calendars: thread.calendars !== null,
+  });
+  const MORE_FIRST: Record<BarTool, RowAction> = {
+    labels: { label: "Group with labels", icon: "tag", run: openNewLabel },
+    calendars: { label: "Calendars in this thread", icon: "calendar", run: () => setCalendarsOpen(true) },
+  };
+
+  /** 030. Edit from the place sheet opens the row's own edit sheet, reading
+   *  the row when it is not on the page yet. */
+  async function editFromMap(point: Point): Promise<void> {
+    if (!point.contentId) return;
+    map.setOpen(null);
+    const row = rows.find((one) => one.id === point.contentId) ?? (await fetchOne(point.contentId));
+    if (row) setRenaming(row);
+  }
+
   return (
     <SafeAreaView
       className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`}
@@ -897,40 +954,54 @@ export default function Thread() {
         onBack={() => router.back()}
         // 019. The calendar glyph, drawn whenever the account has a connection
         // at all, with no badge or count in any state: the accessible name
-        // carries the state.
-        calendars={thread.calendars}
+        // carries the state. 030: in More instead while the switch is drawn.
+        calendars={tools.inBar.includes("calendars") ? thread.calendars : null}
         onCalendars={() => setCalendarsOpen(true)}
         onMore={() => setMoreOpen(true)}
         onShare={thread.shareable ? () => setShareOpen(true) : undefined}
         // Labels' way in while the thread has none; the filter bar's plus
         // takes over once it has one.
-        onLabels={
-          showArchived || thread.labels.length > 0
-            ? undefined
-            : () => {
-                setListLine(null);
-                setListing({ label: null });
-              }
+        onLabels={tools.inBar.includes("labels") ? openNewLabel : undefined}
+        // 030. List or Map, while the thread has a point: before share.
+        mapSwitch={
+          map.ready ? (
+            <Segmented
+              label="Show as"
+              options={[
+                { value: "list", label: "List", icon: "list" },
+                { value: "map", label: "Map", icon: "map-pin" },
+              ]}
+              value={map.view}
+              onChange={(value) => map.setView(value === "map" ? "map" : "list")}
+            />
+          ) : null
         }
       />
 
       {/* 025. The filter bar, under the app bar and outside the scroll, so it
           stays while the page moves under it. Not on the archived view. */}
-      {showArchived ? null : (
+      {showArchived || onMap ? null : (
         <FilterBar
           labels={thread.labels}
           unlabelled={thread.counts.unlabelled}
           pick={pick}
           onPick={setPick}
-          onNew={() => {
-            setListLine(null);
-            setListing({ label: null });
-          }}
+          onNew={openNewLabel}
           onOpen={(labelId) => rowLabels.onOpenLabel(labelId)}
         />
       )}
       <RowLabelsContext.Provider value={rowLabels}>
-      <ScrollView contentContainerClassName="pb-space-9">
+      {/* 030. The body and the map in one box. Map replaces the list, which
+          stays mounted, out of sight and reach, so its scroll is where it was
+          on the way back. */}
+      <View className="flex-1">
+      <ScrollView
+        contentContainerClassName="pb-space-9"
+        pointerEvents={onMap ? "none" : "auto"}
+        accessibilityElementsHidden={onMap}
+        importantForAccessibility={onMap ? "no-hide-descendants" : "auto"}
+        style={onMap ? { opacity: 0 } : undefined}
+      >
         {filtering && !showArchived && rows.length === 0 && shownNotes.length === 0 ? (
           <Text className="px-gutter-screen py-space-6 font-core text-text-secondary" style={{ fontSize: 15 }}>
             {pickedNames.length > 0 ? `Nothing under ${nameList(pickedNames)} yet.` : "Nothing without a label yet."}
@@ -1106,7 +1177,55 @@ export default function Thread() {
         ) : null}
         <PlateSpace />
       </ScrollView>
+      {map.made ? (
+        <ThreadMap
+          points={map.points}
+          labels={thread.labels}
+          pick={pick}
+          pickedNames={pickedNames}
+          hidden={!onMap}
+          // What covers the foot: the place sheet, or the plate and the
+          // keyboard under it. Google's logo and legal line sit above.
+          bottom={map.open ? map.sheetHeight + SHEET_CHROME : plateInset + map.keyboard}
+          selected={map.selected}
+          onSelect={map.setSelected}
+          onOpen={map.setOpen}
+          failed={map.failed}
+          onRetry={map.retry}
+        />
+      ) : null}
+      {onMap && !map.made ? (
+        // The one spinner, in the map's place, until the points arrive.
+        <View className="absolute inset-0 items-center justify-center">
+          <ActivityIndicator />
+        </View>
+      ) : null}
+      {onMap && !showArchived ? (
+        <View pointerEvents="box-none" className="absolute inset-x-0 top-0">
+          <FilterBar
+            floating
+            labels={thread.labels}
+            unlabelled={thread.counts.unlabelled}
+            pick={pick}
+            onPick={setPick}
+            onNew={openNewLabel}
+            onOpen={(labelId) => rowLabels.onOpenLabel(labelId)}
+          />
+        </View>
+      ) : null}
+      </View>
       </RowLabelsContext.Provider>
+      {map.open ? (
+        <PlaceSheet
+          point={map.open}
+          threadName={thread.name}
+          labels={thread.labels}
+          members={thread.members}
+          onClose={() => map.setOpen(null)}
+          onEdit={(point) => void editFromMap(point)}
+          onHeight={map.setSheetHeight}
+        />
+      ) : null}
 
       {/* 020. The viewer, over the screen, and the row's tools on the same
           sheet a row opens from its list. The set is every photo row on the
@@ -1178,6 +1297,7 @@ export default function Thread() {
       <RowActionSheet
         open={moreOpen}
         actions={[
+          ...tools.moreFirst.map((tool) => MORE_FIRST[tool]),
           { label: "Rename thread", icon: "pencil", run: () => setNaming(true) },
           {
             label: "Add a note",
@@ -1193,7 +1313,7 @@ export default function Thread() {
                 showCounter: true,
               }),
           },
-          ...(thread.calendars
+          ...(thread.calendars && !tools.moreFirst.includes("calendars")
             ? [{ label: "Calendars in this thread", icon: "calendar", run: () => setCalendarsOpen(true) }]
             : []),
           // 022. Leave, on a thread with more than one member, confirmed. It
@@ -1297,7 +1417,10 @@ function Bar({
   onMore,
   onShare,
   onLabels,
+  mapSwitch,
 }: {
+  /** 030. The List | Map switch, after the title and before share. */
+  mapSwitch?: ReactNode;
   /** Neither while the thread loads: the bar is the back chevron alone. */
   title?: string;
   onBack: () => void;
@@ -1328,6 +1451,7 @@ function Bar({
           web's aside, tools and ellipsis, in that order. */}
       {onMore ? (
       <View className="flex-row items-center gap-space-5">
+        {mapSwitch}
         {onLabels ? (
           <Pressable onPress={onLabels} hitSlop={10} accessibilityRole="button" accessibilityLabel="Group with labels">
             <Glyph name="tag" size={21} color={COLOR.iconOnWell} />

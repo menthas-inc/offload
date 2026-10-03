@@ -4,6 +4,7 @@
 // render anything: the current account, the address a refused sign-in used,
 // and the write that ends onboarding.
 
+import { mapsConfig } from "../places/resolve.js";
 import { atDailyLimit } from "../budget.js";
 import { layoutShape, resolveLayout, todayLayout } from "../today/layout.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -85,6 +86,9 @@ const meResponse = z.object({
    *  state comes from the account rather than from anything a client kept. */
   webSearch: z.boolean(),
   webLinks: z.boolean(),
+  /** 030. Whether the map is on, on every surface. The server's switch; a
+   *  request never sets it. */
+  maps: z.boolean(),
   /** 019. Every calendar write is put to them first. */
   calendarAskFirst: z.boolean(),
   /** Where they are, ISO 3166-1 alpha-2, theirs to set. Null until they do, and
@@ -146,7 +150,7 @@ const HOUR = /^([01]\d|2[0-3]):[0-5]\d$/;
  *  When the policy changes materially this changes with it, and the gap between
  *  a stored version and this one is the query that finds who has to be asked
  *  again. Must match UPDATED in apps/web/src/app/(marketing)/privacy/page.tsx. */
-export const CONSENT_VERSION = "2026-10-02";
+export const CONSENT_VERSION = "2026-10-03";
 
 /** invited -> active, plus the consent record and the event, in one transaction.
  *
@@ -286,6 +290,7 @@ export async function meFor(accountId: string): Promise<z.infer<typeof meRespons
     // link they pasted opens something they already chose.
     webSearch: account.web_search_enabled,
     webLinks: account.web_links_enabled,
+    maps: mapsConfig().on,
     calendarAskFirst: account.calendar_ask_first,
     country: account.country,
     // 023. The clock, and the two facts the strip on Today reads beside it.

@@ -46,6 +46,9 @@ class Config:
     # 2026-09-20, $0.15 an hour.
     assemblyai_api_key: str | None = None
     assemblyai_micros_per_second: float = 41.67
+    # 030. The map, switched on in the same change as the privacy page. Off,
+    # no page is read for a place, whatever the dumper's switch says.
+    maps_on: bool = False
 
     # The numbers from the impl-spec. Constants, not literals at a call site,
     # because three acceptance criteria are untestable without them.
@@ -102,6 +105,7 @@ class Config:
             anthropic_api_key=_required("ANTHROPIC_API_KEY"),
             voyage_api_key=os.environ.get("VOYAGE_API_KEY") or None,
             assemblyai_api_key=os.environ.get("ASSEMBLYAI_API_KEY") or None,
+            maps_on=os.environ.get("MAPS") == "on",
             assemblyai_micros_per_second=float(
                 os.environ.get("ASSEMBLYAI_MICROS_PER_SECOND") or 41.67
             ),

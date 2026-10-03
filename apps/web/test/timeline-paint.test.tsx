@@ -48,6 +48,8 @@ function event(day: string): ThreadEvent {
     occursEndAt: null,
     allDay: true,
     untrusted: false,
+    location: null,
+    place: null,
   };
 }
 

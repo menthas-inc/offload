@@ -30,3 +30,9 @@ const ENTRANCE = Easing.bezier(0.16, 1, 0.3, 1);
  *  mounted, so its field never hands focus to anything on the way out. */
 export const plateAway: WithTimingConfig = { duration: SHEET_MS, easing: ENTRANCE, reduceMotion: ReduceMotion.System };
 export const plateBack: WithTimingConfig = { duration: LEAVE_MS, easing: ENTRANCE, reduceMotion: ReduceMotion.System };
+
+/** 030. A map camera's move for a pick or a count dot, at --duration-slow;
+ *  a cut under reduced motion. The map takes a duration, not a curve. */
+export function cameraMs(reduced: boolean): number {
+  return reduced ? 0 : LEAVE_MS;
+}

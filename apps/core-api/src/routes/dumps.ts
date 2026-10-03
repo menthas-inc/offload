@@ -2034,6 +2034,25 @@ export async function undoTurn(
     await closeQuestionsOfTurn(trx, accountId, turnId);
     await restoreAnswers(trx, accountId, turnId);
 
+    // 030. A row whose place this turn changed gets the place back: the
+    // location, the point and the page-read mark as they were, from the record
+    // the edit kept. No lookup is booked; the old place is still there,
+    // because the daily sweep keeps a place an Undo record points at.
+    await trx
+      .updateTable("content")
+      .set({
+        place_id: sql`(place_prior->>'placeId')::uuid`,
+        location: sql`place_prior->>'location'`,
+        place_read_at: sql`(place_prior->>'placeReadAt')::timestamptz`,
+        place_prior: null,
+        place_prior_at: null,
+        updated_at: sql`now()`,
+      })
+      .where(sql<string>`place_prior->>'messageId'`, "in", owned.length > 0 ? owned.map((m) => m.id) : [""])
+      .where("account_id", "=", accountId)
+      .where("deleted_at", "is", null)
+      .execute();
+
     await trx
       .updateTable("messages")
       .set({ deleted_at: stamp, purge_after: purge })

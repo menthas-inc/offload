@@ -96,6 +96,9 @@ export interface Appearance {
   setTheme: (theme: Theme) => void;
   setSize: (size: TypeSize) => void;
   setWeekStart: (start: "monday" | "sunday") => void;
+  /** 030. The stored choice has been read. Before it, `theme` is the light
+   *  default, and a map made from that would be made again a moment later. */
+  read: boolean;
 }
 
 export function useAppearance(): Appearance {
@@ -157,5 +160,5 @@ export function useAppearance(): Appearance {
     window.dispatchEvent(new Event(CHANGED));
   }, []);
 
-  return { theme, size, weekStart, setTheme, setSize, setWeekStart };
+  return { theme, size, weekStart, setTheme, setSize, setWeekStart, read };
 }

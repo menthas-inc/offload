@@ -20,6 +20,7 @@ import {
 import { mapEvent, sourceRefFor, upsertEvent } from "./events.js";
 import { accessTokenFor, markNeedsReauth } from "./tokens.js";
 import { refreshCalendars } from "./calendars.js";
+import { bookLocate } from "../places/resolve.js";
 
 const DAYS_BACK = 60;
 const MONTHS_FORWARD = 12;
@@ -233,6 +234,19 @@ export async function syncConnection(connectionId: string, full = false): Promis
       .set({ sync_token: page.nextSyncToken, synced_at: new Date(), updated_at: new Date() })
       .where("id", "=", calendar.id)
       .execute();
+
+    // 030. A calendar some thread picks has its new or changed locations
+    // looked up, a batch per fifteen-minute slot. Only while the map is on;
+    // a calendar no thread picks is never looked up.
+    const picked = await db
+      .selectFrom("thread_calendars")
+      .select("calendar_id")
+      .where("calendar_id", "=", calendar.id)
+      .executeTakeFirst();
+    if (picked) {
+      const slot = Math.floor(Date.now() / 900_000);
+      await bookLocate(calendar.id, `event.locate:${calendar.id}:${slot}`);
+    }
   }
 
   await db

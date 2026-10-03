@@ -28,6 +28,8 @@ export interface Me {
    *  they pasted. Two different promises, so two switches. */
   webSearch: boolean;
   webLinks: boolean;
+  /** 030. The server's switch for the map, on every surface. */
+  maps?: boolean;
   /** 019. Every calendar write is put to them first. */
   calendarAskFirst: boolean;
   /** Where they said they are, ISO 3166-1 alpha-2. Null until they say, and

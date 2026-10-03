@@ -1,0 +1,10 @@
+{
+  "types": [
+    "neighborhood",
+    "political"
+  ],
+  "location": {
+    "latitude": 38.7124976,
+    "longitude": -9.1303235
+  }
+}

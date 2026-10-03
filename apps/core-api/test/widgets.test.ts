@@ -46,11 +46,10 @@ describe("widgets are earned", () => {
 
   it("earns each one from its own predicate (AC-1)", () => {
     const rows = [
-      row({ placeId: "p1" }),
       row({ type: "task" }),
       row({ type: "image" }),
     ];
-    expect(widgetsFor(rows).map((w) => w.kind).sort()).toEqual(["files", "map", "todo"]);
+    expect(widgetsFor(rows).map((w) => w.kind).sort()).toEqual(["files", "todo"]);
   });
 
   it("earns Files from a picture and never from a link (020 AC-29)", () => {
@@ -63,15 +62,21 @@ describe("widgets are earned", () => {
   });
 
   it("loses a widget when the content that earned it goes (AC-1)", () => {
-    // A thread that loses its last place loses its map. That is the system
-    // working, not state going missing.
+    // A thread that loses its last picture loses its files. That is the
+    // system working, not state going missing.
     //
-    // *This asserted the same thing about a dated row and the timeline until
-    // 015, which took the timeline out of the earned set: it is a rail at the
-    // top of every thread now, drawn whether or not a date exists.*
-    const placed = row({ placeId: "p1" });
-    expect(widgetsFor([placed]).map((w) => w.kind)).toEqual(["map"]);
-    expect(widgetsFor([{ ...placed, placeId: null }])).toEqual([]);
+    // *This asserted it about a place and the map until 030, which retired the
+    // map widget for a thread's map, and about a dated row and the timeline
+    // until 015.*
+    const picture = row({ type: "image" });
+    expect(widgetsFor([picture]).map((w) => w.kind)).toEqual(["files"]);
+    expect(widgetsFor([{ ...picture, type: "voice" }])).toEqual([]);
+  });
+
+  it("never earns a map, whatever the thread holds (030 AC-26)", () => {
+    // 030. The Places section is retired: a thread with a point earns the map
+    // switch instead, and located rows stay in Everything in here.
+    expect(widgetsFor([row({ placeId: "p1" }), row({ type: "location", placeId: "p2" })])).toEqual([]);
   });
 
   it("never earns a timeline, whatever the thread holds (AC-1)", () => {
@@ -93,32 +98,29 @@ describe("widgets are earned", () => {
   });
 
   it("leads with whatever the thread is mostly made of", () => {
-    // A trip full of places leads with the map, without anybody choosing.
+    // A thread full of photos leads with its files, without anybody choosing.
     const rows = [
-      ...Array.from({ length: 5 }, () => row({ placeId: "p" })),
+      ...Array.from({ length: 5 }, () => row({ type: "image" })),
       row({ type: "task" }),
     ];
-    expect(widgetsFor(rows).map((w) => w.kind)).toEqual(["map", "todo"]);
+    expect(widgetsFor(rows).map((w) => w.kind)).toEqual(["files", "todo"]);
   });
 
   it("breaks a tie the same way every time", () => {
-    const rows = [row({ type: "task" }), row({ placeId: "p" })];
-    expect(widgetsFor(rows).map((w) => w.kind)).toEqual(["map", "todo"]);
-    expect(widgetsFor([...rows].reverse()).map((w) => w.kind)).toEqual(["map", "todo"]);
+    const rows = [row({ type: "image" }), row({ type: "task" })];
+    expect(widgetsFor(rows).map((w) => w.kind)).toEqual(["todo", "files"]);
+    expect(widgetsFor([...rows].reverse()).map((w) => w.kind)).toEqual(["todo", "files"]);
   });
 });
 
 describe("a stated order", () => {
-  const rows = [row({ type: "task" }), row({ placeId: "p" }), row({ type: "image" })];
+  const rows = [row({ type: "task" }), row({ type: "image" }), row({ type: "image" })];
 
   it("overrides the derived one (AC-3)", () => {
-    expect(widgetsFor(rows, ["todo", "map"]).map((w) => w.kind)).toEqual([
-      "todo",
-      "map",
-      // Earned but unnamed, so it follows rather than disappearing: a widget
-      // that appeared after the preference was set should be visible.
-      "files",
-    ]);
+    expect(widgetsFor(rows, ["todo", "files"]).map((w) => w.kind)).toEqual(["todo", "files"]);
+    // Earned but unnamed, so it follows rather than disappearing: a widget
+    // that appeared after the preference was set should be visible.
+    expect(widgetsFor(rows, ["todo"]).map((w) => w.kind)).toEqual(["todo", "files"]);
   });
 
   it("ignores a kind the thread no longer earns (AC-3)", () => {
@@ -129,11 +131,9 @@ describe("a stated order", () => {
   });
 
   it("ignores a kind that does not exist", () => {
-    expect(widgetsFor(rows, ["nonsense", "map"]).map((w) => w.kind)).toEqual([
-      "map",
-      "todo",
-      "files",
-    ]);
+    expect(widgetsFor(rows, ["nonsense", "todo"]).map((w) => w.kind)).toEqual(["todo", "files"]);
+    // A stored order from before 030 still names the map; it reads as absent.
+    expect(widgetsFor(rows, ["map", "todo"]).map((w) => w.kind)).toEqual(["todo", "files"]);
   });
 });
 
@@ -172,8 +172,14 @@ describe("reading a stored preference", () => {
 
   it("keeps what it recognises", () => {
     expect(
-      readPreference({ widgets: ["todo", "nonsense", "map"] })
-    ).toEqual({ widgets: ["todo", "map"] });
+      readPreference({ widgets: ["todo", "nonsense", "files"] })
+    ).toEqual({ widgets: ["todo", "files"] });
+  });
+
+  it("reads a stored map out without rewriting it (030 AC-26)", () => {
+    const stored = { widgets: ["map", "todo"] };
+    expect(readPreference(stored)).toEqual({ widgets: ["todo"] });
+    expect(stored).toEqual({ widgets: ["map", "todo"] });
   });
 });
 
@@ -255,8 +261,8 @@ describe("the thread read does not grow with what a thread holds (AC-9)", () => 
     const place = await db
       .insertInto("places")
       .values({
-        provider: "google", provider_place_id: `p-${uuidv7()}`, name: "Time Out Market",
-        lat: 38.7, lng: -9.1,
+        provider: "google", provider_place_id: `p-${uuidv7()}`,
+        lat: 38.7, lng: -9.1, coords_at: new Date(),
       })
       .returning("id").executeTakeFirstOrThrow();
 

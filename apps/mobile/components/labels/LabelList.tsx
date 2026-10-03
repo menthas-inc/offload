@@ -21,7 +21,7 @@ import { DragSheet } from "../shell/DragSheet";
 
 const isAndroid = Platform.OS === "android";
 const NAME_CHARS = 24;
-const HEADINGS: Record<WidgetKind, string> = { todo: "To do", map: "Places", files: "Files" };
+const HEADINGS: Record<WidgetKind, string> = { todo: "To do", files: "Files" };
 
 export interface ListSave {
   name: string;

@@ -109,6 +109,7 @@ const row = (id: string, title: string, extra: Record<string, unknown> = {}) => 
   priorityPinned: false,
   labels: [],
   place: null,
+  location: null,
   placeId: null,
   seriesRef: null,
   allDay: false,

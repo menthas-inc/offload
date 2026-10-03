@@ -122,6 +122,19 @@ export interface Colors {
   waveRemainder: string;
   /** `surface-inverse`: the bar over the viewer on iOS, translucent. */
   inverse: string;
+  /** 030. A point's ring on the map. */
+  paper: string;
+  /** 030. The ten label colours as values, for the map's circles and points:
+   *  index 1 to 10, and 0 the ink of a point with no label. */
+  labels: string[];
+  /** 030. A point's shadow, a picked point's, and the callout's, as the
+   *  box-shadow strings React Native draws on both platforms. */
+  shadowPoint: string;
+  shadowPointPicked: string;
+  shadowCallout: string;
+  /** 030. A chip floating over the map: `--shadow-1`, and in dark, where
+   *  that is none, the `--border-lift` edge. */
+  shadowRaised: string;
 }
 
 export function paletteFor(dark: boolean): Colors {
@@ -202,6 +215,16 @@ export function paletteFor(dark: boolean): Colors {
       : { color: "rgba(11,11,11,0.08)", offsetY: 4, radius: 8 },
     plateShadow: base["shadow-sheet"] ?? light["shadow-sheet"]!,
     inverse: base["surface-inverse"] ?? light["surface-inverse"]!,
+    paper: base["paper"] ?? light["paper"]!,
+    shadowPoint: base["shadow-point"] ?? light["shadow-point"]!,
+    shadowPointPicked: base["shadow-point-picked"] ?? light["shadow-point-picked"]!,
+    shadowCallout: base["shadow-callout"] ?? light["shadow-callout"]!,
+    // Dark has no drop shadow (`--shadow-1` is `none`), so a raised chip
+    // takes the lift's edge instead.
+    shadowRaised: dark ? `inset 0 0 0 1px ${base["border-lift"] ?? light["border-lift"]!}` : (base["shadow-1"] ?? light["shadow-1"]!),
+    labels: Array.from({ length: 11 }, (_, n) =>
+      n === 0 ? (base["text-primary"] ?? light["text-primary"]!) : (base[`label-${n}` as keyof typeof base] ?? light[`label-${n}` as keyof typeof light]!),
+    ),
     viewerPlane: dark
       ? (base["surface-plate"] ?? light["surface-plate"]!)
       : atOpacity(base["surface-inverse"] ?? light["surface-inverse"]!, 0.9),
