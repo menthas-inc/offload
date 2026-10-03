@@ -5,7 +5,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 ## 0. Setup
 
 - [x] **T0.1** Worktree `033-first-run`, databases `offload_033` and `offload_033_test`, `env.sh` and `env-test.sh` in the scratchpad. *(process)*
-- [~] **T0.2** The design sync as the branch's first commit: the decisions entry, the two explorations and their script, the handoff and the standalone page. The readme's **First run** hunks are left for the owner (the bundle's readme could not replace main's here). *(OFF-7)*
+- [x] **T0.2** The design sync as the branch's first commit: the decisions entry, the two explorations and their script, the handoff and the standalone page. The readme's **First run** hunks are left for the owner (the bundle's readme could not replace main's here). *(OFF-7)*
 - [x] **T0.3** Spec, three reviews, gate, impl spec, tasks.
 
 ## 1. API
@@ -34,7 +34,8 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ## 4. Close
 
-- [ ] **T4.1** The gates in the worktree: `pnpm test` on the test database, `pnpm lint`, typecheck, the three `dead-*.mjs`.
-- [ ] **T4.2** Browser, iOS simulator and Pixel passes, light and dark, with motion and reduced motion.
-- [ ] **T4.3** Review passes (code, client, security), one commit per pass.
-- [ ] **T4.4** The design log's code-wins entry, the amended specs' notes, and the merge by PR.
+- [x] **T4.1** The gates in the worktree: `pnpm test` on the test database, `pnpm lint`, typecheck, the three `dead-*.mjs`, a production web build.
+- [~] **T4.2** Browser (light, dark, phone width) and iOS simulator (intro, Before you start, Bring it all in, Copy, Done, the replay) done 2026-10-03; they found the dark hairline, the phone-width footer and the cross-fade gutter. **The Pixel pass is open**: the phone was not on adb.
+- [x] **T4.3** Review passes (code, client, security), one commit per pass. Deferred as their own task: content writes from accounts not yet active.
+- [x] **T4.4** The design log's code-wins entry, the amended specs' notes, and the merge by PR.
+- [x] **T4.5** In the same branch, at the owner's ask: the connector state sealed with AES-256-GCM, mail-in matching only active accounts, and the push-token re-bind reviewed and kept (`docs/tech/decisions.md`).
