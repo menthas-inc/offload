@@ -1066,7 +1066,7 @@
   border-radius: var(--radius-sm);
   font: var(--weight-medium) var(--size-label)/1 var(--font-core);
   color: var(--text-on-solid);
-  background: var(--clay-600);
+  background: var(--surface-danger);
   cursor: pointer;
   transition: background var(--transition-ui);
 }

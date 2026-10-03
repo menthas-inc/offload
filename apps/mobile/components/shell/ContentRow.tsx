@@ -308,7 +308,7 @@ export function ContentRowView({
   return (
     <Animated.View className="relative" style={stacking}>
       <Animated.View
-        className="absolute inset-y-0 right-0 items-center justify-center bg-clay-600"
+        className="absolute inset-y-0 right-0 items-center justify-center bg-surface-danger"
         style={[revealed, { width: REVEAL + 24 }]}
       >
         <Text

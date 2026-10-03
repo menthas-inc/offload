@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"SentVoice","sourcePath":"components/conversation/SentVoice.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Avatar","sourcePath":"components/core/Avatar.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"LabelMark","sourcePath":"components/core/LabelMark.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/SentVoice.jsx":"08bb27934031","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Avatar.jsx":"1c8eef696ff5","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"fcac9a7cce5d","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/core/LabelMark.jsx":"f7c78223c974","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"7f6290747633","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"d58108f37e4d","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","explorations/settings-pages-v2.js":"24a2e3c27320","explorations/settings-pages.js":"478a7f384452","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"c5d8ae19a52c","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"fafa6cd83dc4","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"815b631d6e6d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"fd0b5edce6dd","ui_kits/android_app/M3SettingsScreen.jsx":"dade732e7925","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"d4e7d87079cb","ui_kits/android_app/M3TodayScreen.jsx":"0bc87b953e81","ui_kits/mobile_app/App.jsx":"98207e3ef49a","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"828eecc1f7ca","ui_kits/mobile_app/LooseParts.jsx":"d39791d4afdd","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"4ef26e230ccd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"269d6f059c17","ui_kits/mobile_app/SettingsScreen.jsx":"8bbffe11f5d4","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"b1d227129152","ui_kits/mobile_app/TodayParts.jsx":"66adfacb1077","ui_kits/mobile_app/TodayScreen.jsx":"ba3c48281d49","ui_kits/mobile_app/data.js":"9cbe9c7e1010","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"d32465d6f729","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"SentVoice","sourcePath":"components/conversation/SentVoice.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Avatar","sourcePath":"components/core/Avatar.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"LabelMark","sourcePath":"components/core/LabelMark.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/SentVoice.jsx":"08bb27934031","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Avatar.jsx":"1c8eef696ff5","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"fcac9a7cce5d","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/core/LabelMark.jsx":"f7c78223c974","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"7f6290747633","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"d58108f37e4d","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","explorations/onboarding-screens.js":"4b514292623c","explorations/settings-pages-v2.js":"24a2e3c27320","explorations/settings-pages.js":"478a7f384452","explorations/thread-marks-v2.js":"d56f48769191","explorations/thread-marks.js":"1cc87f13c484","ui_kits/admin_web/A.jsx":"14c3017336ab","ui_kits/admin_web/AOps.jsx":"b78ac3169b9f","ui_kits/admin_web/APeople.jsx":"7f2571db7e1d","ui_kits/admin_web/AdminApp.jsx":"ef5fb96309c2","ui_kits/admin_web/AdminData.js":"3f12c5e639db","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"c5d8ae19a52c","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"fafa6cd83dc4","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"815b631d6e6d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"fd0b5edce6dd","ui_kits/android_app/M3SettingsScreen.jsx":"dade732e7925","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"d4e7d87079cb","ui_kits/android_app/M3TodayScreen.jsx":"0bc87b953e81","ui_kits/mobile_app/App.jsx":"98207e3ef49a","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"828eecc1f7ca","ui_kits/mobile_app/LooseParts.jsx":"d39791d4afdd","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"4ef26e230ccd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"269d6f059c17","ui_kits/mobile_app/SettingsScreen.jsx":"8bbffe11f5d4","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"b1d227129152","ui_kits/mobile_app/TodayParts.jsx":"66adfacb1077","ui_kits/mobile_app/TodayScreen.jsx":"ba3c48281d49","ui_kits/mobile_app/data.js":"9cbe9c7e1010","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"d32465d6f729","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -4514,6 +4514,151 @@ try { (() => {
 })();
 })(); } catch (e) { __ds_ns.__errors.push({ path: "explorations/image-slot.js", error: String((e && e.message) || e) }); }
 
+// explorations/onboarding-screens.js
+try { (() => {
+/* Onboarding exploration: screens. Copy marked in the page as verbatim comes from apps/mobile/lib/gate.ts on main. */
+const gi = (n, c = '') => `<span class="g ${c}" style="--ic:url(../assets/icons/${n}.svg)"></span>`;
+const AVC = {
+  JM: 'var(--label-1)',
+  AD: 'var(--label-2)',
+  TR: 'var(--label-6)'
+};
+const avi = (i, s = 28) => `<span class="av" style="width:${s}px;height:${s}px;background:${AVC[i]};font-size:${Math.round(s * .38)}px">${i}</span>`;
+const SCENES = [{
+  t: 'offload keeps track for you',
+  s: 'Dump the things you would otherwise forget. offload remembers them and puts them in order.'
+}, {
+  t: 'Everything lands in threads',
+  s: 'Related things gather in one thread. Share it, and plan it with the people in it.'
+}, {
+  t: 'Send it any way',
+  s: 'Type it, say it, snap a photo, or forward the email.'
+}];
+const DUMPS = [['Ana can only travel the 14th to the 17th', 't0'], ['matte black, 30cm', 't1'], ['€214 for the flights', 't0'], ['4 more shelf brackets', 't1']];
+const CONSENT = {
+  policyBefore: 'I have read the ',
+  policyLink: 'privacy policy',
+  policyAfter: '.',
+  processing: 'I understand offload will hold whatever I dump in, which can include health, money and other private matters, and I agree to it being processed to run offload.',
+  note: 'We do not recommend sharing passwords, card numbers or government IDs in any AI tool.'
+};
+const EXAMPLES = ['Book the Alfama flat for the 14th', 'Ana can only travel the 14th to the 17th', 'Oak brackets, 30cm, matte black'];
+function art() {
+  return `<div class="art">
+<div class="sc sc0">${DUMPS.map(([d, to], i) => `<div class="bw w${i}${i % 2 ? ' r' : ''}" data-to="${to}"><div class="bub b${i}">${d}</div></div>`).join('')}
+ <div class="thr t0" data-n0="2" data-n1="4"><span class="tw">${gi('lasso')}</span><b>Lisbon trip</b><em>2</em></div>
+ <div class="thr t1" data-n0="1" data-n1="3"><span class="tw">${gi('bookmark')}</span><b>Bookshelf build</b><em>1</em></div></div>
+<div class="sc sc1"><div class="tc"><div class="tch"><span class="tw">${gi('lasso')}</span><b>Lisbon trip</b><span class="avs">${avi('JM')}<i class="a2">${avi('AD')}</i><i class="a3">${avi('TR')}</i></span></div>
+ <div class="tci">${gi('calendar')}<span>Alfama flat, 14 to 17 Oct</span></div>
+ <div class="tci">${gi('tag')}<span>Flights, €214</span></div>
+ <div class="tci">${gi('text-quote')}<span>Ana can only travel the 14th to the 17th</span></div>
+ <div class="tci nw">${avi('TR', 20)}<span><b>Tom</b> added Pastéis de Belém</span></div></div>
+ <div class="shr">${gi('users')}Shared with Ana and Tom</div></div>
+<div class="sc sc2"><div class="ins">
+ <div class="in i0"><div class="ph-img">${gi('image')}</div><span>${gi('camera')}Photo</span></div>
+ <div class="in i1"><div class="wave">${Array.from({
+    length: 18
+  }, (_, k) => `<u style="height:${[8, 14, 22, 12, 26, 18, 9, 20, 28, 16, 11, 24, 15, 7, 19, 25, 10, 13][k]}px"></u>`).join('')}</div><span>${gi('mic')}Voice note, 0:12</span></div>
+ <div class="in i2"><div class="ml"><b>Fwd: Your booking is confirmed</b><s>Alfama, 14 to 17 Oct</s></div><span>${gi('mail')}Email</span></div>
+ <div class="in i3"><div class="ml"><b>airbnb.com/rooms/4471</b><s>Read and filed</s></div><span>${gi('link')}Link</span></div></div>
+ <div class="filed">${gi('check')}All four filed in Lisbon trip</div></div>
+</div>`;
+}
+const bars = () => `<div class="bars">${SCENES.map((_, i) => `<i class="bar b${i}"><u></u></i>`).join('')}</div>`;
+const copy = () => `<div class="copy">${SCENES.map((x, i) => `<div class="cp c${i}"><h2>${x.t}</h2><p>${x.s}</p></div>`).join('')}</div>`;
+function foot(pri, sec, {
+  dis = 0,
+  stack = 0
+} = {}) {
+  const p = `<span class="btn pri${dis ? ' dis' : ''}">${pri}</span>`,
+    s = sec ? `<span class="btn sec">${sec}</span>` : '';
+  return `<div class="ft${stack ? ' stack' : ''}${sec ? '' : ' one'}">${stack ? p + s : s + p}</div>`;
+}
+const stb = plat => plat === 'android' ? '<div class="stb"><span>9:41</span><span>▾ ▴ ▮</span></div>' : '<div class="stb"><span>9:41</span><span>●●● ▮</span></div>';
+const home = plat => plat === 'ios' ? '<div class="hb"><i></i></div>' : '<div class="gb"><i></i></div>';
+function phoneWrap(plat, inner, cls = '') {
+  return `<div class="ph ${cls}">${stb(plat)}${inner}${home(plat)}</div>`;
+}
+function webWrap(inner, cls = '') {
+  return `<div class="ph web ${cls}"><div class="wtop"><img src="../logos/svg/offload-lockup-black.svg" alt="offload"></div>${inner}</div>`;
+}
+
+/* The intro. scene: 'live' or 0..2 (a still at its end state). */
+function story(plat, scene = 'live', opt = {}) {
+  const live = scene === 'live';
+  const attrs = live ? 'data-live data-scene="0"' : `data-scene="${scene}"`;
+  const f = foot('Continue', '', opt);
+  if (plat === 'web') return webWrap(`<div class="wstory story${live ? '' : ' still'}" ${attrs}><div class="wart"><div class="bloom"></div>${art()}</div><div class="wtx">${bars()}${copy()}${f}</div></div>`);
+  return phoneWrap(plat, `<div class="story${live ? '' : ' still'}" ${attrs}><div class="top">${bars()}</div><div class="artbox"><div class="bloom"></div>${art()}</div>${copy()}${f}</div>`);
+}
+const tick = (on, html) => `<div class="tk${on ? ' on' : ''}"><i>${on ? gi('check') : ''}</i><span>${html}</span></div>`;
+function consentBlock(on) {
+  return `${tick(on, `${CONSENT.policyBefore}<a>${CONSENT.policyLink}</a>${CONSENT.policyAfter}`)}${tick(on, CONSENT.processing)}<div class="note">${gi('lock')}<span>${CONSENT.note}</span></div>`;
+}
+const nameField = v => `<div class="fld${v ? ' has' : ''}"><span>${v || 'Your name'}</span></div>`;
+
+/* A and C: name and consent on one screen. */
+function you(plat, filled) {
+  const body = `<div class="pg"><h1>Before you start</h1>
+ <div class="blk"><h3>What should we call you?</h3>${nameField(filled ? 'Jo Martins' : '')}<p class="hint">This is the name people you share a thread with will see.</p></div>
+ <div class="blk"><h3>What you are agreeing to</h3>${consentBlock(filled)}</div></div>${foot('Continue', '', {
+    dis: !filled
+  })}`;
+  return plat === 'web' ? webWrap(`<div class="wcol">${body}</div>`) : phoneWrap(plat, `<div class="scr">${body}</div>`);
+}
+const mailCard = cmp => `<div class="cc"><div class="cch"><span class="mk ml">${gi('mail')}</span><div class="tx"><b>Forward emails to offload</b><s>Send anything to <span class="addr">over@to.offload.club</span> from jo@hey.com and it is filed.</s></div></div><div class="ccb">${cmp ? '' : '<span class="btn sm">' + gi('copy') + 'Copy address</span>'}<span class="btn sm">${cmp ? 'Copy' : 'Add to contacts'}</span></div></div>`;
+const calCard = (cmp, done) => `<div class="cc"><div class="cch"><span class="mk gc"><span class="gcs"></span></span><div class="tx"><b>Bring in your calendar</b><s>So “before the trip” and “after the dentist” mean something.</s></div></div><div class="ccb">${done ? '<span class="pill-on">Connected</span>' : `<span class="btn sm${cmp ? '' : ' pri'}">${cmp ? 'Connect' : 'Connect Google Calendar'}</span>`}</div></div>`;
+const notCard = cmp => `<div class="cc"><div class="cch"><span class="mk nt">${gi('bell')}</span><div class="tx"><b>Hear about what is due</b><s>We will reach you at the right time with the right reminders and information</s></div></div><div class="ccb"><span class="btn sm">${cmp ? 'Allow' : 'Allow notifications'}</span></div></div>`;
+/* A: one optional screen for everything that connects. */
+function connect(plat, done) {
+  const body = `<div class="pg"><h1>Bring things in</h1><p class="lead">All optional. Each one is in Settings if you would rather wait.</p><div class="ccs">${mailCard()}${calCard(0, done)}${notCard()}</div></div>${foot('Done', 'Skip for now')}`;
+  return plat === 'web' ? webWrap(`<div class="wcol wide">${body}</div>`) : phoneWrap(plat, `<div class="scr">${body}</div>`);
+}
+/* B: everything after the intro on one scrolling screen. */
+function setup(plat) {
+  const body = `<div class="pg"><h1>Two things, then you are in</h1>
+ <div class="blk"><div class="bh"><span class="num">1</span><h3>What should we call you?</h3></div>${nameField('Jo Martins')}<p class="hint">This is the name people you share a thread with will see.</p></div>
+ <div class="blk"><div class="bh"><span class="num">2</span><h3>What you are agreeing to</h3></div>${consentBlock(true)}</div>
+ <div class="blk opt"><div class="bh"><span class="num o">${gi('plus')}</span><h3>Bring things in</h3><em class="optl">Optional</em></div><div class="rowsC">
+  <div class="rC"><span class="mk ml s">${gi('mail')}</span><div class="tx"><b>Forward emails</b><s>over@to.offload.club</s></div><span class="btn sm">Copy</span></div>
+  <div class="rC"><span class="mk gc s"><span class="gcs"></span></span><div class="tx"><b>Google Calendar</b><s>Before the trip, after the dentist</s></div><span class="btn sm">Connect</span></div>
+  <div class="rC"><span class="mk nt s">${gi('bell')}</span><div class="tx"><b>Notifications</b><s>Mornings and evenings</s></div><span class="btn sm">Allow</span></div></div></div></div>${foot('Get started', '')}`;
+  return plat === 'web' ? webWrap(`<div class="wcol">${body}</div>`, 'tall') : phoneWrap(plat, `<div class="scr">${body}</div>`, 'tall');
+}
+/* C: the first dump, done for real, then connections offered on Today. */
+function firstDump(plat, state) {
+  const sent = state === 'sent';
+  const body = `<div class="pg"><h1>Dump your first thing</h1><p class="lead">Anything on your mind. offload files it, and it is waiting on Today.</p>
+ <div class="fd">${sent ? `<div class="bub r me">Book the Alfama flat for the 14th</div><div class="fdres">${gi('check')}<span>Filed in a new thread, <b>Lisbon trip</b>, with the 14th as its date.</span></div>` : `<div class="sugl">Or start from one of these</div>${EXAMPLES.map(e => `<span class="sug">${e}</span>`).join('')}`}</div></div>
+ <div class="cmpwrap"><div class="cmp"><span>${sent ? 'Dump anything' : 'Dump anything'}</span><span class="ci">${gi('camera')}</span><span class="ci">${gi('mic')}</span></div></div>${foot(sent ? 'Go to Today' : 'Skip', sent ? '' : '', {})}`;
+  return plat === 'web' ? webWrap(`<div class="wcol">${body}</div>`) : phoneWrap(plat, `<div class="scr">${body}</div>`);
+}
+function todayOffers(plat) {
+  const body = `<div class="tab"><img src="../logos/svg/offload-lockup-black.svg" alt="offload"><span>${gi('bell')}</span></div><div class="pg td"><div class="tdh">Today</div>
+ <div class="thr flat"><span class="tw">${gi('lasso')}</span><b>Lisbon trip</b><em>1</em></div>
+ <div class="tdl">Ways in, when you want them</div>
+ <div class="ccs">${mailCard(1).replace('<div class="cc">', '<div class="cc dsm"><span class="xx">' + gi('x') + '</span>')}${calCard(1).replace('<div class="cc">', '<div class="cc dsm"><span class="xx">' + gi('x') + '</span>')}</div></div>
+ <div class="cmpwrap"><div class="cmp"><span>Dump anything</span><span class="ci">${gi('camera')}</span><span class="ci">${gi('mic')}</span></div></div>`;
+  return plat === 'web' ? webWrap(`<div class="wcol">${body}</div>`) : phoneWrap(plat, `<div class="scr">${body}</div>`);
+}
+/* Footer patterns, isolated. */
+function footDemo(plat, stack) {
+  return `<div class="fdemo ${plat === 'web' ? 'w' : ''}">${foot('Next', 'Skip intro', {
+    stack
+  })}</div>`;
+}
+Object.assign(window, {
+  story,
+  you,
+  connect,
+  setup,
+  firstDump,
+  todayOffers,
+  footDemo,
+  SCENES
+});
+})(); } catch (e) { __ds_ns.__errors.push({ path: "explorations/onboarding-screens.js", error: String((e && e.message) || e) }); }
+
 // explorations/settings-pages-v2.js
 try { (() => {
 /* Settings exploration: data and renderers. Copy is the app's as built (apps/mobile/app/settings,
@@ -5465,6 +5610,314 @@ Object.assign(window, {
 });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "explorations/settings-pages.js", error: String((e && e.message) || e) }); }
 
+// explorations/thread-marks-v2.js
+try { (() => {
+/* Thread marks v2: direction A (Lucide glyph + one hue, washed with the prism texture). */
+const gi = (n, c = '') => `<span class="g ${c}" style="--ic:url(../assets/icons/${n}.svg)"></span>`;
+/* The 70, in no groups: one scroll. Each carries the words that pick it. */
+const ICONS = [['luggage', 'trip travel holiday vacation packing'], ['plane', 'flight flights airport'], ['car', 'car service mot garage'], ['bike', 'bike cycling ride'], ['tent', 'camping festival'], ['map', 'route itinerary city'], ['globe', 'abroad visa world'], ['house', 'flat home house apartment rent'], ['sofa', 'furniture living move moving'], ['key', 'keys landlord lease'], ['wrench', 'repair fix plumber'], ['hammer', 'build diy shelf bookshelf'], ['paintbrush', 'paint decorate'], ['sprout', 'garden balcony plants'], ['flower-2', 'flowers wedding'], ['tree-pine', 'christmas hike forest'], ['stethoscope', 'dentist doctor health insurance clinic'], ['pill', 'meds pharmacy prescription'], ['heart-pulse', 'fitness heart'], ['dumbbell', 'gym workout'], ['footprints', 'run running marathon walk'], ['apple', 'diet groceries'], ['utensils', 'dinner recipes restaurant food'], ['coffee', 'coffee cafe'], ['wine', 'wine drinks bar'], ['cake', 'birthday cake party'], ['gift', 'gift gifts present presents'], ['party-popper', 'celebration party'], ['baby', 'baby kids nursery'], ['dog', 'dog puppy vet'], ['cat', 'cat'], ['graduation-cap', 'school course study university'], ['book-open', 'books reading read'], ['briefcase', 'work job office'], ['laptop', 'computer tech'], ['receipt', 'taxes tax receipts expenses'], ['piggy-bank', 'savings budget'], ['wallet', 'money spending'], ['landmark', 'bank mortgage council'], ['shopping-cart', 'shopping buy'], ['shirt', 'clothes wardrobe'], ['music', 'music concert band'], ['camera', 'photos photography'], ['gamepad-2', 'games gaming'], ['film', 'movies films watch'], ['palette', 'art design'], ['newspaper', 'later articles news'], ['mountain', 'ski climbing mountains'], ['waves', 'beach surf swim'], ['sparkles', 'ideas'], ['train-front', 'train rail'], ['ship', 'ferry cruise boat'], ['hotel', 'hotel stay'], ['bed', 'bedroom sleep'], ['lamp', 'lighting lamps'], ['fish', 'fishing aquarium'], ['bird', 'birds birding'], ['leaf', 'compost nature'], ['sun', 'summer'], ['snowflake', 'winter'], ['umbrella', 'rain'], ['heart', 'dating love'], ['users', 'family friends club'], ['mic', 'podcast talk'], ['pen-tool', 'writing blog novel'], ['code', 'code dev app'], ['rocket', 'launch startup project'], ['trophy', 'league competition'], ['ticket', 'tickets show event'], ['calendar-heart', 'anniversary']];
+const THREADS = [{
+  n: 'Lisbon trip',
+  m: '4 open · Ana, Tom',
+  ic: 'luggage',
+  h: 1,
+  sh: 1
+}, {
+  n: 'Bookshelf build',
+  m: '2 open',
+  ic: 'hammer',
+  h: 5
+}, {
+  n: 'Dentist and insurance',
+  m: '1 open',
+  ic: 'stethoscope',
+  h: 6
+}, {
+  n: 'Flat admin',
+  m: '6 open · Sam',
+  ic: 'house',
+  h: 3,
+  sh: 1
+}, {
+  n: 'Books to read',
+  m: '31 kept',
+  ic: 'book-open',
+  h: 4
+}, {
+  n: "Ana's birthday",
+  m: '3 open · Tom',
+  ic: 'gift',
+  h: 2,
+  sh: 1
+}, {
+  n: 'Half marathon',
+  m: 'Plan, 12 weeks',
+  ic: 'footprints',
+  h: 10
+}, {
+  n: 'Balcony garden',
+  m: '5 kept',
+  ic: 'sprout',
+  h: 8
+}, {
+  n: 'Car service',
+  m: 'Due 20 Oct',
+  ic: 'car',
+  h: 9
+}, {
+  n: 'Taxes 2026',
+  m: '2 open',
+  ic: 'receipt',
+  h: 7
+}, {
+  n: 'Read later',
+  m: '23 kept',
+  ic: 'newspaper',
+  h: 1
+}];
+/* The wash: the thread's one hue, with the prism texture's light and shade on it.
+   Placement of the texture is seeded from the name so no two tiles wash alike. */
+const seed = s => [...s].reduce((a, c) => a * 31 + c.charCodeAt(0) >>> 0, 7);
+function mark(t, size = 40, {
+  wash = true
+} = {}) {
+  const k = seed(t.n),
+    px = k % 100,
+    py = (k >> 7) % 100,
+    r = (k >> 3) % 360;
+  return `<span class="mk${wash ? ' wash' : ''}" style="width:${size}px;height:${size}px;--k:${size}px;--h:var(--label-${t.h});--px:${px}%;--py:${py}%;--r:${r}deg">${t.ic ? gi(t.ic) : ''}</span>`;
+}
+const pill = t => `<span class="tp">${mark(t, 18)}${t.n}</span>`;
+const stb = plat => plat === 'android' ? '<div class="stb"><span>9:41</span><span>▾ ▴ ▮</span></div>' : '<div class="stb"><span>9:41</span><span>●●● ▮</span></div>';
+const home = plat => plat === 'ios' ? '<div class="hb"><i></i></div>' : '<div class="gb"><i></i></div>';
+const tabs = on => `<div class="tabs">${[['sun', 'Today'], ['lasso', 'My threads'], ['brain', 'Memories']].map(([i, l], k) => `<span class="${k === on ? 'on' : ''}">${gi(i)}<b>${l}</b></span>`).join('')}</div>`;
+const ph = (plat, inner, cls = '') => `<div class="ph ${cls}">${stb(plat)}${inner}${home(plat)}</div>`;
+const seg = () => `<span class="seg"><i class="on">${gi('list')}</i><i>${gi('map-pin')}</i></span>`;
+/* The thread's app bar, as Thread.tsx's Bar draws it: back, name, then the tools.
+   With the List | Map switch drawn, labels and calendars move into More. */
+function bar(t, tools) {
+  const T = {
+    map: seg(),
+    labels: `<span class="tb">${gi('tag')}</span>`,
+    share: `<span class="tb">${gi('share-2')}</span>`,
+    cal: `<span class="tb">${gi('calendar')}</span>`,
+    more: `<span class="tb">${gi('ellipsis')}</span>`
+  };
+  return `<div class="ab"><span class="bk">${gi('chevron-left')}</span><span class="abm">${mark(t, 28)}</span><b class="abt">${t.n}</b><span class="tools">${tools.map(x => T[x]).join('')}</span></div>`;
+}
+const filter = labels => `<div class="fb"><span class="fc on">All</span>${labels.map(([n, h]) => `<span class="fc"><i style="background:var(--label-${h})"></i>${n}</span>`).join('')}<span class="fp">${gi('plus')}</span></div>`;
+function list(plat) {
+  return ph(plat, `<div class="lt"><h1>My threads</h1><span class="ib">${gi('search')}</span><span class="ib">${gi('plus')}</span></div><div class="body">${THREADS.slice(0, 9).map(t => `<div class="rw">${mark(t, plat === 'android' ? 44 : 40)}<div class="tx"><b>${t.n}</b><s>${t.m}</s></div>${t.sh ? `<span class="shd">${gi('users')}</span>` : ''}</div>`).join('')}</div>${tabs(1)}`);
+}
+function thread(plat, t = THREADS[0]) {
+  const days = [['M', 12], ['T', 13], ['W', 14, 1], ['T', 15, 1], ['F', 16, 1], ['S', 17, 1], ['S', 18]];
+  return ph(plat, `${bar(t, ['map', 'share', 'more'])}${filter([['Bookings', 2], ['Food', 6], ['To pack', 9]])}
+ <div class="body"><div class="rail"><div class="rh"><b>October</b><span>${gi('chevron-left')}${gi('chevron-right')}</span></div><div class="days">${days.map(([d, n, on]) => `<span class="${on ? 'on' : ''}${n === 14 ? ' t' : ''}"><s>${d}</s><b>${n}</b><i></i></span>`).join('')}</div>
+ <div class="ev"><span class="evb"></span><div><b>Alfama flat</b><s>14 to 17 Oct</s></div></div></div>
+ <div class="wh">To do<em>3</em></div>
+ ${['Book the Alfama flat for the 14th', 'Ask Ana about the ferry', 'Pack the adaptor'].map((x, i) => `<div class="it"><i class="ck"></i><span>${x}</span>${i === 0 ? '<span class="lc" style="--h:var(--label-2)">Bookings</span>' : ''}</div>`).join('')}
+ <div class="wh">Everything in here<em>9</em></div><div class="it">${gi('link')}<span>airbnb.com/rooms/4471</span></div></div>
+ <div class="cmp"><span>Dump anything</span></div>`);
+}
+function bars(plat) {
+  const a = THREADS[0],
+    b = THREADS[1],
+    c = {
+      ...THREADS[2],
+      n: 'Dentist and insurance claims for the crown'
+    };
+  return `<div class="ph bars">${[['Lisbon trip: places, so List | Map is in the bar', bar(a, ['map', 'share', 'more'])], ['Bookshelf build: no labels yet, a calendar connected', bar(b, ['labels', 'share', 'cal', 'more'])], ['A long name: the name gives way, never the tools', bar(c, ['share', 'cal', 'more'])]].map(([l, h]) => `<div class="bl">${l}</div>${h}`).join('')}</div>`;
+}
+function today(plat) {
+  const rows = [[THREADS[0], 'Book the Alfama flat', 'Today'], [THREADS[2], 'Call the insurer about the crown', 'Today'], [THREADS[8], 'Car service at 9:00', 'Tomorrow'], [THREADS[5], 'Order the cake', 'Thu']];
+  return ph(plat, `<div class="lt"><h1>Today</h1><span class="ib">${gi('bell')}</span></div><div class="body">${rows.map(([t, x, d]) => `<div class="trw"><i class="ck"></i><div class="tx"><b>${x}</b><div class="mks">${pill(t)}<span class="dc">${gi('calendar')}${d}</span></div></div></div>`).join('')}
+ <div class="ans"><div class="q">Where did I put the shelf measurements?</div><div class="a">In ${pill(THREADS[1])}: <b>matte black, 30cm</b>, and 4 more brackets.</div></div></div>${tabs(0)}`);
+}
+function pickerBody(t) {
+  return `<div class="prev">${mark(t, 56)}<div class="nf"><span class="nfl">Name</span><span class="nfv">${t.n}<i></i></span></div></div>
+ <div class="pl">Icon</div><div class="pscroll"><div class="pgrid">${ICONS.map(([n]) => `<span class="pk${n === t.ic ? ' on' : ''}">${gi(n)}</span>`).join('')}</div></div>
+ <div class="pl">Colour</div><div class="sws">${Array.from({
+    length: 10
+  }, (_, i) => `<i class="${i + 1 === t.h ? 'on' : ''}">${mark({
+    ...t,
+    ic: '',
+    h: i + 1,
+    n: t.n + i
+  }, 26)}</i>`).join('')}</div>`;
+}
+function picker(plat) {
+  const t = THREADS[0];
+  return ph(plat, `${bar(t, ['map', 'share', 'more'])}<div class="dim"></div><div class="sheet"><i class="grab"></i><div class="shh"><span class="cx">Cancel</span><b>Edit thread</b><span class="done">Save</span></div>${pickerBody(t)}</div>`, 'sheetph');
+}
+function web(view) {
+  const t = THREADS[0];
+  const side = `<div class="wsb"><b class="wl">offload</b><span>${gi('sun')}Today</span><span class="on">${gi('lasso')}My threads</span><span>${gi('brain')}Memories</span><span style="margin-top:auto">${gi('settings')}Settings</span></div>`;
+  const col = `<div class="wls"><div class="wlh"><h3>My threads</h3><span class="ib">${gi('plus')}</span></div>${THREADS.map((x, i) => `<div class="wrw${i === 0 ? ' on' : ''}">${mark(x, 32)}<div class="tx"><b>${x.n}</b><s>${x.m}</s></div></div>`).join('')}</div>`;
+  const head = `<div class="wth"><span class="wmk">${mark(t, 36)}</span><h2>${t.n}</h2><span class="wsp"></span><span class="wsh">${gi('share-2')}Share</span>${seg()}<span class="tb">${gi('ellipsis')}</span></div>${filter([['Bookings', 2], ['Food', 6], ['To pack', 9]])}`;
+  const body = `<div class="wh">To do<em>3</em></div>${['Book the Alfama flat for the 14th', 'Ask Ana about the ferry', 'Pack the adaptor'].map(x => `<div class="it"><i class="ck"></i><span>${x}</span></div>`).join('')}`;
+  const pop = view === 'picker' ? `<div class="wpop"><div class="shh"><span class="cx">Cancel</span><b>Edit thread</b><span class="done">Save</span></div>${pickerBody(t)}</div>` : '';
+  const today_ = `<div class="wpn"><h2 class="wtt">Today</h2>${[[THREADS[0], 'Book the Alfama flat', 'Today'], [THREADS[2], 'Call the insurer about the crown', 'Today'], [THREADS[8], 'Car service at 9:00', 'Tomorrow'], [THREADS[5], 'Order the cake', 'Thu']].map(([tt, x, d]) => `<div class="trw"><i class="ck"></i><div class="tx"><b>${x}</b><div class="mks">${pill(tt)}<span class="dc">${gi('calendar')}${d}</span></div></div></div>`).join('')}</div>`;
+  return `<div class="ph web">${side}${col}${view === 'today' ? today_ : `<div class="wpn">${head}${body}${pop}</div>`}</div>`;
+}
+Object.assign(window, {
+  list,
+  thread,
+  bars,
+  today,
+  picker,
+  web,
+  THREADS,
+  ICONS,
+  mark,
+  gi
+});
+})(); } catch (e) { __ds_ns.__errors.push({ path: "explorations/thread-marks-v2.js", error: String((e && e.message) || e) }); }
+
+// explorations/thread-marks.js
+try { (() => {
+/* Thread marks exploration: data and renderers. */
+const LU = 'https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/';
+const LOCAL = new Set(['lasso', 'bookmark', 'house', 'newspaper', 'users', 'sun', 'brain', 'search', 'plus', 'x', 'chevron-left', 'chevron-right', 'ellipsis', 'calendar', 'tag', 'map-pin', 'check', 'bell', 'settings', 'list', 'sparkles', 'pencil', 'share-2', 'clock', 'link', 'text-quote', 'camera', 'mic', 'image']);
+const gi = (n, c = '') => `<span class="g ${c}" style="--ic:url(${LOCAL.has(n) ? '../assets/icons/' + n + '.svg' : LU + n + '.svg'})"></span>`;
+const FE = cp => `https://cdn.jsdelivr.net/gh/shuding/fluentui-emoji-unicode/assets/${cp}_flat.svg`;
+const emo = (cp, ch) => `<img class="emo" src="${FE(cp)}" alt="" onerror="this.outerHTML='<span class=&quot;emo t&quot;>${ch}</span>'">`;
+const THREADS = [{
+  n: 'Lisbon trip',
+  m: '4 open · Ana, Tom',
+  ic: 'luggage',
+  e: ['1f9f3', '🧳'],
+  h: 1,
+  sh: 1
+}, {
+  n: 'Bookshelf build',
+  m: '2 open',
+  ic: 'hammer',
+  e: ['1f528', '🔨'],
+  h: 5
+}, {
+  n: 'Dentist and insurance',
+  m: '1 open',
+  ic: 'stethoscope',
+  e: ['1f9b7', '🦷'],
+  h: 6
+}, {
+  n: 'Flat admin',
+  m: '6 open · Sam',
+  ic: 'house',
+  e: ['1f3e0', '🏠'],
+  h: 3,
+  sh: 1
+}, {
+  n: 'Books to read',
+  m: '31 kept',
+  ic: 'book-open',
+  e: ['1f4da', '📚'],
+  h: 4
+}, {
+  n: "Ana's birthday",
+  m: '3 open · Tom',
+  ic: 'gift',
+  e: ['1f381', '🎁'],
+  h: 2,
+  sh: 1
+}, {
+  n: 'Half marathon',
+  m: 'Plan, 12 weeks',
+  ic: 'footprints',
+  e: ['1f3c3', '🏃'],
+  h: 10
+}, {
+  n: 'Balcony garden',
+  m: '5 kept',
+  ic: 'sprout',
+  e: ['1f331', '🌱'],
+  h: 8
+}, {
+  n: 'Car service',
+  m: 'Due 20 Oct',
+  ic: 'car',
+  e: ['1f697', '🚗'],
+  h: 9
+}, {
+  n: 'Taxes 2026',
+  m: '2 open',
+  ic: 'receipt',
+  e: ['1f9fe', '🧾'],
+  h: 7
+}, {
+  n: 'Read later',
+  m: '23 kept',
+  ic: 'newspaper',
+  e: ['1f4f0', '📰'],
+  h: 1
+}];
+/* mode: now | A (glyph+colour) | Am (glyph only) | B (flat emoji) | C (colour only) */
+function mark(t, mode, size = 40) {
+  const s = `width:${size}px;height:${size}px;--k:${size}px`;
+  if (mode === 'A') return `<span class="mk tint" style="${s};--h:var(--label-${t.h})">${gi(t.ic)}</span>`;
+  if (mode === 'Am') return `<span class="mk" style="${s}">${gi(t.ic)}</span>`;
+  if (mode === 'B') return `<span class="mk em" style="${s}">${emo(t.e[0], t.e[1])}</span>`;
+  if (mode === 'C') return `<span class="mk tint" style="${s};--h:var(--label-${t.h})">${gi('lasso')}</span>`;
+  return `<span class="mk" style="${s}">${gi('lasso')}</span>`;
+}
+function pill(t, mode) {
+  const lead = mode === 'B' ? emo(t.e[0], t.e[1]) : mode === 'A' || mode === 'Am' ? gi(t.ic) : mode === 'C' ? `<span class="dotc" style="--h:var(--label-${t.h})"></span>` : gi('lasso');
+  return `<span class="tp${mode === 'B' ? ' e' : ''}">${lead}${t.n}</span>`;
+}
+const stb = plat => plat === 'android' ? '<div class="stb"><span>9:41</span><span>▾ ▴ ▮</span></div>' : '<div class="stb"><span>9:41</span><span>●●● ▮</span></div>';
+const home = plat => plat === 'ios' ? '<div class="hb"><i></i></div>' : '<div class="gb"><i></i></div>';
+const tabs = on => `<div class="tabs">${[['sun', 'Today'], ['lasso', 'My threads'], ['brain', 'Memories']].map(([i, l], k) => `<span class="${k === on ? 'on' : ''}">${gi(i)}<b>${l}</b></span>`).join('')}</div>`;
+const ph = (plat, inner, cls = '') => `<div class="ph ${cls}">${stb(plat)}${inner}${home(plat)}</div>`;
+function list(plat, mode, n = 9) {
+  return ph(plat, `<div class="lt"><h1>My threads</h1><span class="ib">${gi('search')}</span><span class="ib">${gi('plus')}</span></div><div class="body">${THREADS.slice(0, n).map(t => `<div class="rw">${mark(t, mode, plat === 'android' ? 44 : 40)}<div class="tx"><b>${t.n}</b><s>${t.m}</s></div>${t.sh ? `<span class="shd">${gi('users')}</span>` : ''}</div>`).join('')}</div>${tabs(1)}`);
+}
+function thread(plat, mode, t = THREADS[0]) {
+  const tile = mode === 'now' ? '' : mark(t, mode, 30);
+  return ph(plat, `<div class="ab"><span class="bk">${gi('chevron-left')}</span><div class="abt">${tile}<b>${t.n}</b></div><span class="bk">${gi('ellipsis')}</span></div>
+ <div class="body"><div class="hd">${mode === 'now' ? '' : mark(t, mode, 64)}<div><h2>${t.n}</h2><p>Ana, Tom and you · 14 Oct</p></div></div>
+ <div class="sec">Before the trip</div>
+ ${['Book the Alfama flat for the 14th', 'Flights, €214', 'Ana can only travel the 14th to the 17th'].map((x, i) => `<div class="it"><i class="ck${i === 1 ? ' on' : ''}">${i === 1 ? gi('check') : ''}</i><span>${x}</span></div>`).join('')}
+ <div class="sec">Places</div><div class="it">${gi('map-pin')}<span>Pastéis de Belém</span></div></div>
+ <div class="cmp"><span>Add to Lisbon trip</span></div>`);
+}
+function today(plat, mode) {
+  const rows = [[THREADS[0], 'Book the Alfama flat', 'Today'], [THREADS[2], 'Call the insurer about the crown', 'Today'], [THREADS[8], 'Car service at 9:00', 'Tomorrow'], [THREADS[5], 'Order the cake', 'Thu']];
+  return ph(plat, `<div class="lt"><h1>Today</h1><span class="ib">${gi('bell')}</span></div><div class="body">${rows.map(([t, x, d]) => `<div class="trw"><i class="ck"></i><div class="tx"><b>${x}</b><div class="mks">${pill(t, mode)}<span class="dc">${gi('calendar')}${d}</span></div></div></div>`).join('')}
+ <div class="ans"><div class="q">Where did I put the shelf measurements?</div><div class="a">In ${pill(THREADS[1], mode)}: <b>matte black, 30cm</b>, and 4 more brackets.</div></div></div>${tabs(0)}`);
+}
+function picker(plat, mode) {
+  const t = THREADS[0];
+  const sug = mode === 'B' ? [['1f9f3', '🧳'], ['1f6eb', '🛫'], ['1f30d', '🌍'], ['1f3e8', '🏨'], ['1f305', '🌅'], ['1f68c', '🚌']] : ['luggage', 'plane', 'globe', 'palmtree', 'map', 'hotel'];
+  const cats = mode === 'B' ? [['Travel', ['1f9f3', '1f30d', '1f697', '1f6b2', '26fa', '1f3e8']], ['Home', ['1f3e0', '1fa91', '1f9f9', '1f511', '1fab4', '1f6c1']], ['Health', ['1f9b7', '1f48a', '1f3c3', '1f9d8', '1fa7a', '1f34e']], ['Money', ['1f9fe', '1f4b6', '1f3e6', '1f4b3', '1f4c8', '1f45b']]] : [['Travel', ['luggage', 'plane', 'car', 'bike', 'tent', 'palmtree']], ['Home', ['house', 'sofa', 'key', 'wrench', 'lamp', 'bath']], ['Health', ['stethoscope', 'pill', 'footprints', 'heart-pulse', 'dumbbell', 'apple']], ['Money', ['receipt', 'piggy-bank', 'landmark', 'credit-card', 'wallet', 'chart-line']]];
+  const cell = x => mode === 'B' ? `<span class="pk">${emo(Array.isArray(x) ? x[0] : x, '')}</span>` : `<span class="pk">${gi(x)}</span>`;
+  const sw = mode === 'A' ? `<div class="pl">Colour</div><div class="sws">${Array.from({
+    length: 10
+  }, (_, i) => `<i class="${i === 0 ? 'on' : ''}" style="background:var(--label-${i + 1})"></i>`).join('')}</div>` : '';
+  return ph(plat, `<div class="dim"></div><div class="sheet"><i class="grab"></i><div class="shh"><b>Thread icon</b><span class="done">Done</span></div>
+ <div class="prev">${mark(t, mode, 56)}<div><b>${t.n}</b><s>offload picked this from the name</s></div></div>
+ <div class="fs">${gi('search')}<span>${mode === 'B' ? 'Search emoji' : 'Search icons'}</span></div>
+ <div class="pl">Suggested for Lisbon trip</div><div class="pgrid">${sug.map((x, i) => cell(x).replace('class="pk"', i === 0 ? 'class="pk on"' : 'class="pk"')).join('')}</div>
+ ${sw}${cats.slice(0, mode === 'A' ? 2 : 3).map(([c, a]) => `<div class="pl">${c}</div><div class="pgrid">${a.map(cell).join('')}</div>`).join('')}</div>`, 'sheetph');
+}
+function web(mode, view) {
+  const side = `<div class="wsb"><b class="wl">offload</b><span>${gi('sun')}Today</span><span class="on">${gi('lasso')}My threads</span><span>${gi('brain')}Memories</span><span style="margin-top:auto">${gi('settings')}Settings</span></div>`;
+  const col = `<div class="wls"><div class="wlh"><h3>My threads</h3><span class="ib">${gi('plus')}</span></div>${THREADS.map((t, i) => `<div class="wrw${i === 0 ? ' on' : ''}">${mark(t, mode, 32)}<div class="tx"><b>${t.n}</b><s>${t.m}</s></div></div>`).join('')}</div>`;
+  const t = THREADS[0];
+  const pane = view === 'today' ? `<div class="wpn"><h2 class="wtt">Today</h2>${[[THREADS[0], 'Book the Alfama flat', 'Today'], [THREADS[2], 'Call the insurer about the crown', 'Today'], [THREADS[8], 'Car service at 9:00', 'Tomorrow'], [THREADS[5], 'Order the cake', 'Thu']].map(([tt, x, d]) => `<div class="trw"><i class="ck"></i><div class="tx"><b>${x}</b><div class="mks">${pill(tt, mode)}<span class="dc">${gi('calendar')}${d}</span></div></div></div>`).join('')}</div>` : `<div class="wpn"><div class="wth">${mode === 'now' ? '' : mark(t, mode, 48)}<div><h2>${t.n}</h2><p>Ana, Tom and you · 14 Oct</p></div>${mode === 'now' ? '' : '<span class="chg">Change icon</span>'}</div><div class="sec">Before the trip</div>${['Book the Alfama flat for the 14th', 'Flights, €214', 'Ana can only travel the 14th to the 17th'].map((x, i) => `<div class="it"><i class="ck${i === 1 ? ' on' : ''}">${i === 1 ? gi('check') : ''}</i><span>${x}</span></div>`).join('')}</div>`;
+  return `<div class="ph web">${side}${col}${pane}</div>`;
+}
+Object.assign(window, {
+  list,
+  thread,
+  today,
+  picker,
+  web,
+  THREADS,
+  mark,
+  gi
+});
+})(); } catch (e) { __ds_ns.__errors.push({ path: "explorations/thread-marks.js", error: String((e && e.message) || e) }); }
+
 // ui_kits/admin_web/A.jsx
 try { (() => {
 const OFFLOAD_DS = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
@@ -5488,11 +5941,22 @@ const AD = typeof window !== "undefined" && window.ADMIN_DATA || {};
 const NAV_BG = "var(--moss-700)";
 const NAV_FG = "var(--paper)";
 const NAV_QUIET = "var(--moss-200)";
+
+/* Two blocks (034), with a gap and no labels: what support does, then what only an owner sees.
+   Owners open on Health, which carries a count only when something is wrong.
+   A page a role cannot open is not in the nav at all, and answers as not found. */
+const NAV_SUPPORT = [["inbox", "Waitlist", "waitlist", "waiting"], ["users", "People", "people", null]];
+const NAV_OWNER = [["monitor", "Health", "health", "wrong"], ["blend", "Costs", "costs", null], ["lock", "Limits", "limits", null], ["group", "Staff", "staff", null], ["list", "Audit", "audit", null]];
 function ASideNav({
   page,
-  onPage
+  onPage,
+  role = "owner"
 }) {
-  const items = [["inbox", "Waitlist", "waitlist", (AD.waitlist || {}).waiting], ["users", "People", "people", null], ["group", "Staff", "staff", null], ["blend", "Costs", "costs", null], ["lock", "Limits", "limits", null]];
+  const blocks = role === "owner" ? [NAV_SUPPORT, NAV_OWNER] : [NAV_SUPPORT];
+  const counts = {
+    waiting: (AD.waitlist || {}).waiting,
+    wrong: (AD.health || {}).stuck ? AD.health.stuck.length : 0
+  };
   return /*#__PURE__*/React.createElement("div", {
     style: {
       width: 232,
@@ -5527,15 +5991,17 @@ function ASideNav({
       background: "rgba(255,255,255,0.16)",
       color: NAV_FG
     }
-  }, "admin")), /*#__PURE__*/React.createElement("div", {
+  }, "admin")), blocks.map((items, bi) => /*#__PURE__*/React.createElement("div", {
+    key: bi,
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 2,
-      marginTop: "var(--space-5)"
+      marginTop: bi ? "var(--space-7)" : "var(--space-5)"
     }
-  }, items.map(([icon, label, id, count]) => {
-    const on = page === id;
+  }, items.map(([icon, label, id, ck]) => {
+    const count = ck ? counts[ck] : null;
+    const on = page === id || id === "people" && (page === "person" || page === "deleted");
     return /*#__PURE__*/React.createElement("button", {
       key: id,
       type: "button",
@@ -5569,7 +6035,7 @@ function ASideNav({
         opacity: .9
       }
     }, count) : null);
-  })), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: "auto",
       display: "flex",
@@ -5583,7 +6049,7 @@ function ASideNav({
       padding: "0 var(--space-4)",
       lineHeight: 1.5
     }
-  }, "Signed in as admin@offload.app"), /*#__PURE__*/React.createElement("a", {
+  }, "Signed in as ", (AD.me || {}).email), /*#__PURE__*/React.createElement("a", {
     href: "../web_app/index.html",
     style: {
       display: "flex",
@@ -5604,7 +6070,9 @@ function ASideNav({
 function APaneHead({
   title,
   sub,
-  tools
+  tools,
+  back,
+  onBack
 }) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5615,7 +6083,25 @@ function APaneHead({
       gap: "var(--space-6)",
       padding: "var(--space-7) var(--space-8) var(--space-5)"
     }
-  }, /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", null, back ? /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onBack,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      border: "none",
+      background: "none",
+      padding: 0,
+      marginBottom: "var(--space-3)",
+      cursor: "pointer",
+      font: "var(--weight-medium) 13.5px/1 var(--font-core)",
+      color: "var(--text-secondary)"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "chevron-left",
+    size: 15
+  }), back) : null, /*#__PURE__*/React.createElement("span", {
     style: {
       display: "block",
       font: "var(--weight-semibold) 30px/1.1 var(--font-core)",
@@ -5651,7 +6137,12 @@ function ABody({
   }, children);
 }
 
-/* One table shape for every page: hairlines only, no zebra, numbers right and tabular. */
+/* One table shape for every page: hairlines only, no zebra, numbers right and tabular.
+   A row has a least width, its fixed columns plus 140px for each open one; below that the
+   table scrolls sideways rather than crushing the open column (034). */
+const A_OPEN = 140,
+  A_GAP = 16;
+const aLeast = cols => cols.reduce((s, c) => s + (c.w || A_OPEN), 0) + A_GAP * (cols.length + 1);
 function ATable({
   cols,
   children
@@ -5660,7 +6151,7 @@ function ATable({
     style: {
       border: "1px solid var(--border-hairline)",
       borderRadius: "var(--radius-md)",
-      overflow: "hidden",
+      overflowX: "auto",
       background: "var(--surface-raised)"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -5669,6 +6160,7 @@ function ATable({
       alignItems: "center",
       gap: "var(--space-5)",
       padding: "var(--space-4) var(--space-5)",
+      minWidth: aLeast(cols),
       boxShadow: "inset 0 -1px 0 var(--border-hairline)",
       background: "var(--surface-page)"
     }
@@ -5684,16 +6176,22 @@ function ATable({
     }
   }, c.label))), children);
 }
+/* href: the whole row opens a page; its buttons act without opening it. */
 function ARow({
   cols,
   cells,
   last,
   onClick,
+  href,
   muted
 }) {
   const [h, setH] = React.useState(false);
+  const go = href || onClick;
   return /*#__PURE__*/React.createElement("div", {
-    onClick: onClick,
+    onClick: e => {
+      if (e.target.closest("button")) return;
+      go && go();
+    },
     onMouseEnter: () => setH(true),
     onMouseLeave: () => setH(false),
     style: {
@@ -5702,9 +6200,10 @@ function ARow({
       gap: "var(--space-5)",
       padding: "var(--space-4) var(--space-5)",
       minHeight: 52,
+      minWidth: aLeast(cols),
       boxShadow: last ? "none" : "inset 0 -1px 0 var(--border-hairline)",
-      cursor: onClick ? "pointer" : "default",
-      background: h && onClick ? "var(--state-hover)" : "transparent",
+      cursor: go ? "pointer" : "default",
+      background: h && go ? "var(--state-hover)" : "transparent",
       opacity: muted ? 0.55 : 1
     }
   }, cells.map((cell, i) => /*#__PURE__*/React.createElement("span", {
@@ -5812,6 +6311,121 @@ function ASection({
     }
   }, note) : null);
 }
+/* A plot (034): one series in the text colour on the page surface, bars or a line, at
+   --plot-height. The attention colour only for the state that needs somebody. No legend. */
+function APlot({
+  title,
+  points,
+  labels,
+  kind = "bars",
+  caption,
+  format = v => String(v),
+  max,
+  tones
+}) {
+  const [at, setAt] = React.useState(null);
+  const top = Math.max(max || 0, ...points) || 1,
+    W = 600,
+    H = 96,
+    step = W / points.length,
+    gap = Math.min(4, step * .2);
+  const y = v => H - v / top * H;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "var(--space-5) var(--space-6)",
+      border: "1px solid var(--border-hairline)",
+      borderRadius: "var(--radius-md)",
+      background: "var(--surface-page)"
+    }
+  }, title ? /*#__PURE__*/React.createElement("b", {
+    style: {
+      display: "block",
+      font: "var(--weight-medium) 14px/1 var(--font-core)",
+      marginBottom: "var(--space-5)"
+    }
+  }, title) : null, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 " + W + " " + H,
+    preserveAspectRatio: "none",
+    style: {
+      display: "block",
+      width: "100%",
+      height: "var(--plot-height)",
+      overflow: "visible"
+    }
+  }, kind === "line" ? /*#__PURE__*/React.createElement("polyline", {
+    points: points.map((v, i) => i * step + step / 2 + "," + y(v)).join(" "),
+    style: {
+      fill: "none",
+      stroke: "var(--text-primary)",
+      strokeWidth: 1.5,
+      vectorEffect: "non-scaling-stroke"
+    }
+  }) : null, points.map((v, i) => /*#__PURE__*/React.createElement("g", {
+    key: i,
+    onMouseEnter: () => setAt(i),
+    onMouseLeave: () => setAt(null)
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: i * step,
+    y: 0,
+    width: step,
+    height: H,
+    style: {
+      fill: at === i ? "var(--state-hover)" : "transparent"
+    }
+  }), kind === "line" ? /*#__PURE__*/React.createElement("circle", {
+    cx: i * step + step / 2,
+    cy: y(v),
+    r: 3,
+    style: {
+      fill: "var(--text-primary)"
+    }
+  }) : /*#__PURE__*/React.createElement("rect", {
+    x: i * step + gap / 2,
+    y: y(v),
+    width: Math.max(1, step - gap),
+    height: H - y(v),
+    style: {
+      fill: tones && tones[i] ? "var(--surface-attention)" : "var(--text-primary)"
+    }
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      gap: 12,
+      marginTop: 8,
+      font: "var(--text-caption-role)",
+      color: "var(--text-tertiary)",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, labels[0]), /*#__PURE__*/React.createElement("span", null, at === null ? caption : (labels[2] ? labels[2](at) : "") + ": " + format(points[at])), /*#__PURE__*/React.createElement("span", null, labels[1])));
+}
+function APlots({
+  children
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+      gap: "var(--space-4)"
+    }
+  }, children);
+}
+/* The range picker. 24 hours, 7, 30 and 90 days, kept in the address. */
+function ARange({
+  value,
+  onChange
+}) {
+  return /*#__PURE__*/React.createElement(SegmentedControlA, {
+    options: ["24 hours", "7 days", "30 days", "90 days"],
+    value: value,
+    onChange: onChange
+  });
+}
+function SegmentedControlA(p) {
+  const S = OFFLOAD_DS.SegmentedControl;
+  return S ? /*#__PURE__*/React.createElement(S, p) : null;
+}
+
 /* A share of a total, drawn as one bar. No axes, no legend, no chart library. */
 function ABar({
   value,
@@ -5833,7 +6447,7 @@ function ABar({
       width: pct + "%",
       height: "100%",
       borderRadius: "var(--radius-pill)",
-      background: tone === "attention" ? "var(--blue-600)" : "var(--moss-600)"
+      background: tone === "attention" ? "var(--surface-attention)" : "var(--text-primary)"
     }
   }));
 }
@@ -5850,15 +6464,28 @@ function AStatus({
     variant: "soft"
   }, "signed up");
   if (value === "waiting") return /*#__PURE__*/React.createElement(Badge, null, "waiting");
+  if (value === "deleting" || value === "late" || value === "stuck" || value === "running") return /*#__PURE__*/React.createElement(Badge, {
+    tone: "attention",
+    variant: "soft"
+  }, value);
+  if (value === "down" || value === "dead" || value === "failed") return /*#__PURE__*/React.createElement(Badge, {
+    tone: "danger",
+    variant: "soft"
+  }, value);
+  if (value === "up" || value === "done" || value === "billed") return /*#__PURE__*/React.createElement(Badge, {
+    tone: "accent",
+    variant: "soft"
+  }, value);
+  if (value === "typed") return /*#__PURE__*/React.createElement(Badge, null, "typed");
   return /*#__PURE__*/React.createElement(Badge, {
     tone: "accent",
     variant: "soft"
   }, "active");
 }
 
-/* Clay is only ever on a destructive control, and on the phones and the web app it only
-   turns red once the pointer is on it. Same here: a quiet row action that colours on hover,
-   and a solid clay button for the confirmation itself. */
+/* Clay is only ever on a destructive control. In the panel it is clay at rest (034, the
+   owner's ask): an outline clay button for the row's action, and --surface-danger, the one
+   solid clay, for the confirmation itself. */
 function ADanger({
   onClick,
   children,
@@ -5882,7 +6509,7 @@ function ADanger({
     style: {
       ...base,
       color: "var(--text-on-solid)",
-      background: h ? "var(--clay-700)" : "var(--clay-600)"
+      background: h ? "var(--surface-danger-hover)" : "var(--surface-danger)"
     }
   }, children) : /*#__PURE__*/React.createElement("button", {
     type: "button",
@@ -5891,18 +6518,24 @@ function ADanger({
     onMouseLeave: () => setH(false),
     style: {
       ...base,
-      background: h ? "var(--clay-100)" : "transparent",
-      color: h ? "var(--text-danger)" : "var(--text-secondary)"
+      borderRadius: "var(--radius-pill)",
+      boxShadow: "inset 0 0 0 1px var(--border-danger)",
+      background: h ? "var(--surface-danger-soft)" : "transparent",
+      color: "var(--text-danger)"
     }
   }, children);
 }
+
+/* prefix or suffix: the affix a field is typed in ($, MB, min). */
 function AField({
   label,
   value,
   onChange,
   prefix,
+  suffix,
   hint,
-  width = 140
+  width = 140,
+  placeholder
 }) {
   return /*#__PURE__*/React.createElement("label", {
     style: {
@@ -5933,6 +6566,7 @@ function AField({
     }
   }, prefix) : null, /*#__PURE__*/React.createElement("input", {
     value: value,
+    placeholder: placeholder,
     onChange: e => onChange(e.target.value),
     style: {
       flex: 1,
@@ -5944,7 +6578,11 @@ function AField({
       font: "var(--text-body-role)",
       color: "var(--text-primary)"
     }
-  })), hint ? /*#__PURE__*/React.createElement("span", {
+  }), suffix ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--text-tertiary)"
+    }
+  }, suffix) : null), hint ? /*#__PURE__*/React.createElement("span", {
     style: {
       font: "var(--text-caption-role)",
       color: "var(--text-tertiary)",
@@ -5991,9 +6629,92 @@ function ASearch({
   }));
 }
 
-/* Anything irreversible asks in a dialog and says what it takes with it. Deleting an
-   account needs the email typed, because a support person doing ten of these in a row will
-   otherwise delete the eleventh by muscle memory. */
+/* A switch row: off stops a path for everyone within seconds. */
+function ASwitchRow({
+  label,
+  note,
+  on,
+  onChange,
+  last
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: "var(--space-5)",
+      padding: "var(--space-4) var(--space-5)",
+      minHeight: 56,
+      boxShadow: last ? "none" : "inset 0 -1px 0 var(--border-hairline)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("b", {
+    style: {
+      display: "block",
+      font: "var(--weight-medium) 14.5px/1.3 var(--font-core)"
+    }
+  }, label), note ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      font: "var(--text-caption-role)",
+      color: "var(--text-secondary)",
+      marginTop: 3
+    }
+  }, note) : null), Switch ? /*#__PURE__*/React.createElement(Switch, {
+    checked: on,
+    onChange: onChange
+  }) : null);
+}
+/* Old to new, in words, inside the confirm dialog (034). */
+function ADiff({
+  rows
+}) {
+  return /*#__PURE__*/React.createElement("ul", {
+    style: {
+      margin: "var(--space-5) 0 0",
+      padding: 0,
+      listStyle: "none",
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, rows.map(([label, from, to]) => /*#__PURE__*/React.createElement("li", {
+    key: label,
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: "var(--space-3)",
+      font: "var(--text-body-sm-role)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      color: "var(--text-secondary)"
+    }
+  }, label), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontVariantNumeric: "tabular-nums",
+      color: "var(--text-secondary)",
+      textDecoration: "line-through"
+    }
+  }, from), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--text-tertiary)"
+    }
+  }, "to"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 500,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, to))));
+}
+
+/* Anything that cannot be quietly reversed asks in a dialog and says what it takes with it.
+   The panel has no Undo, so this is the safety net; it holds the keyboard while open. Deleting
+   an account needs the address typed back. */
 function AConfirm({
   title,
   body,
@@ -6001,7 +6722,8 @@ function AConfirm({
   danger,
   confirmLabel = "Confirm",
   onConfirm,
-  onClose
+  onClose,
+  children
 }) {
   const [typed, setTyped] = React.useState("");
   const ok = !confirmWord || typed.trim() === confirmWord;
@@ -6039,7 +6761,7 @@ function AConfirm({
       marginTop: "var(--space-3)",
       lineHeight: 1.5
     }
-  }, body), confirmWord ? /*#__PURE__*/React.createElement("div", {
+  }, body), children, confirmWord ? /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: "var(--space-6)"
     }
@@ -6080,6 +6802,46 @@ function AConfirm({
     }
   }, confirmLabel))));
 }
+function ANotes({
+  items
+}) {
+  return /*#__PURE__*/React.createElement("ul", {
+    style: {
+      margin: 0,
+      padding: 0,
+      listStyle: "none",
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      maxWidth: "78ch"
+    }
+  }, items.map(t => /*#__PURE__*/React.createElement("li", {
+    key: t,
+    style: {
+      display: "flex",
+      gap: 10,
+      font: "var(--text-body-sm-role)",
+      lineHeight: 1.55,
+      color: "var(--text-secondary)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--text-tertiary)"
+    }
+  }, "\xB7"), t)));
+}
+function ACard({
+  children
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid var(--border-hairline)",
+      borderRadius: "var(--radius-md)",
+      background: "var(--surface-raised)",
+      overflow: "hidden"
+    }
+  }, children);
+}
 Object.assign(window, {
   ASideNav,
   APaneHead,
@@ -6097,358 +6859,157 @@ Object.assign(window, {
   ASearch,
   AConfirm,
   ADanger,
+  APlot,
+  APlots,
+  ARange,
+  ASwitchRow,
+  ADiff,
+  ANotes,
+  ACard,
   AD
 });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/admin_web/A.jsx", error: String((e && e.message) || e) }); }
 
-// ui_kits/admin_web/AdminApp.jsx
+// ui_kits/admin_web/AOps.jsx
 try { (() => {
-const OFFLOAD_DS_A = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
+const OFFLOAD_DS_O = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
 const {
-  Button,
-  Chip,
-  Badge,
-  Toast,
-  Switch,
-  Checkbox,
-  Icon,
-  IconButton,
-  SegmentedControl
-} = OFFLOAD_DS_A;
-const money = n => "£" + n.toFixed(2);
-const money0 = n => "£" + Math.round(n).toLocaleString("en-GB");
+  Button: OButton
+} = OFFLOAD_DS_O;
 
-/* 1 · Waitlist. The only queue in the product: who is waiting, who has been invited and has
-   not signed in yet, and who came in through someone else's shared thread. Inviting is one
-   click per row, or one for a selection, because the weekly batch is the actual job. */
-function WaitlistPage({
+/* Health, where an owner opens. Services, the queue, scheduled jobs, what is stuck. */
+function HealthPage({
   say
 }) {
-  const W = AD.waitlist;
-  const [rows, setRows] = React.useState(W.rows);
-  const [q, setQ] = React.useState("");
-  const [picked, setPicked] = React.useState([]);
-  const list = q ? rows.filter(r => r.email.toLowerCase().indexOf(q.toLowerCase()) > -1) : rows;
-  const waiting = rows.filter(r => r.status === "waiting");
-  const cols = [{
-    label: "",
-    w: 24
-  }, {
-    label: "Email"
-  }, {
-    label: "Joined",
-    w: 80
-  }, {
-    label: "Came from",
-    w: 130
+  const H = AD.health;
+  const [stuck, setStuck] = React.useState(H.stuck);
+  const sCols = [{
+    label: "Service"
   }, {
     label: "State",
-    w: 110
+    w: 90
   }, {
-    label: "",
-    w: 96,
+    label: "Uptime, 30 days",
+    w: 140,
     right: true
   }];
-  function invite(ids) {
-    setRows(rs => rs.map(r => ids.indexOf(r.id) > -1 ? {
-      ...r,
-      status: "invited",
-      note: "invited today, not accepted"
-    } : r));
-    setPicked([]);
-    say(ids.length === 1 ? "Invite sent" : "Invited " + ids.length + " people");
-  }
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(APaneHead, {
-    title: "Waitlist",
-    sub: W.waiting.toLocaleString("en-GB") + " waiting · letting " + W.weekly + " in a week",
-    tools: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(ASearch, {
-      value: q,
-      onChange: setQ,
-      placeholder: "Search by email"
-    }), /*#__PURE__*/React.createElement(Button, {
-      variant: "secondary",
-      size: "sm",
-      icon: "inbox",
-      onClick: () => invite(waiting.slice(0, W.weekly).map(r => r.id))
-    }, "Invite the next " + W.weekly))
-  }), /*#__PURE__*/React.createElement(ABody, null, /*#__PURE__*/React.createElement(AStats, null, /*#__PURE__*/React.createElement(AStat, {
-    label: "Waiting",
-    value: W.waiting.toLocaleString("en-GB"),
-    note: "oldest joined 3 June"
-  }), /*#__PURE__*/React.createElement(AStat, {
-    label: "Invited this week",
-    value: W.invitedThisWeek
-  }), /*#__PURE__*/React.createElement(AStat, {
-    label: "Signed up",
-    value: W.accepted,
-    note: "of 40 invited, 9 have not opened it"
-  }), /*#__PURE__*/React.createElement(AStat, {
-    label: "Weekly batch",
-    value: W.weekly,
-    note: "set on the Limits page"
-  })), picked.length ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: "var(--space-4)",
-      padding: "var(--space-4) var(--space-5)",
-      marginBottom: "var(--space-4)",
-      borderRadius: "var(--radius-md)",
-      background: "var(--surface-accent-soft)"
-    }
-  }, /*#__PURE__*/React.createElement("b", {
-    style: {
-      flex: 1,
-      font: "var(--weight-medium) 14px/1 var(--font-core)"
-    }
-  }, picked.length + " selected"), /*#__PURE__*/React.createElement(Button, {
-    variant: "ghost",
-    size: "sm",
-    onClick: () => setPicked([])
-  }, "Clear"), /*#__PURE__*/React.createElement(Button, {
-    variant: "primary",
-    size: "sm",
-    onClick: () => invite(picked)
-  }, "Invite " + picked.length)) : null, /*#__PURE__*/React.createElement(ATable, {
-    cols: cols
-  }, list.map((r, i) => {
-    const on = picked.indexOf(r.id) > -1;
-    return /*#__PURE__*/React.createElement(ARow, {
-      key: r.id,
-      cols: cols,
-      last: i === list.length - 1,
-      muted: r.status === "accepted",
-      cells: [/*#__PURE__*/React.createElement(Checkbox, {
-        checked: on,
-        onChange: () => setPicked(v => on ? v.filter(x => x !== r.id) : v.concat(r.id))
-      }), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
-        style: {
-          display: "block",
-          fontWeight: 500
-        }
-      }, r.email), r.note ? /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
-        style: {
-          display: "block",
-          fontSize: 12.5,
-          marginTop: 2
-        }
-      }, r.note)) : null), /*#__PURE__*/React.createElement(AQuiet, null, r.joined), /*#__PURE__*/React.createElement(AQuiet, null, r.source), /*#__PURE__*/React.createElement(AStatus, {
-        value: r.status
-      }), r.status === "waiting" ? /*#__PURE__*/React.createElement(Button, {
-        variant: "secondary",
-        size: "sm",
-        onClick: () => invite([r.id])
-      }, "Invite") : r.status === "invited" ? /*#__PURE__*/React.createElement(Button, {
-        variant: "ghost",
-        size: "sm",
-        onClick: () => say("Invite sent again")
-      }, "Resend") : /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 12.5
-        }
-      }, "in the app"))]
-    });
-  })), /*#__PURE__*/React.createElement(ASection, {
-    note: "what an invite does"
-  }, "Notes"), /*#__PURE__*/React.createElement("ul", {
-    style: {
-      margin: 0,
-      padding: 0,
-      listStyle: "none",
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      maxWidth: "78ch"
-    }
-  }, ["Inviting sends the one transactional email and creates nothing: the account exists when they sign in with Apple or Google on that address.", "An invite is single use and expires in 14 days. Resend issues a new link and voids the old one.", "Someone who came from a shared thread is already vouched for by a member, so those usually go in the next batch.", "Removing an address from the waitlist is not here on purpose. Support does it from People once the account exists."].map(t => /*#__PURE__*/React.createElement("li", {
-    key: t,
-    style: {
-      display: "flex",
-      gap: 10,
-      font: "var(--text-body-sm-role)",
-      lineHeight: 1.55,
-      color: "var(--text-secondary)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--text-tertiary)"
-    }
-  }, "\xB7"), t)))));
-}
-
-/* 2 · People. Support's page. Everything reversible sits on the row; the two irreversible
-   things ask first, and deleting needs the email typed. */
-function PeoplePage({
-  say
-}) {
-  const [users, setUsers] = React.useState(AD.users);
-  const [q, setQ] = React.useState("");
-  const [filter, setFilter] = React.useState("Everyone");
-  const [ask, setAsk] = React.useState(null);
-  const list = users.filter(u => filter === "Everyone" || (filter === "Active" ? u.status === "active" : u.status === "disabled")).filter(u => !q || (u.name + " " + u.email).toLowerCase().indexOf(q.toLowerCase()) > -1);
-  const cols = [{
-    label: "Person"
+  const jCols = [{
+    label: "Job"
   }, {
-    label: "Signed in with",
-    w: 120
+    label: "Account",
+    w: 160
   }, {
-    label: "Threads",
-    w: 76,
-    right: true
-  }, {
-    label: "Last active",
-    w: 100,
-    right: true
-  }, {
-    label: "Spend, 30d",
-    w: 96,
-    right: true
+    label: "Since",
+    w: 100
   }, {
     label: "State",
-    w: 92
+    w: 90
   }, {
     label: "",
-    w: 170,
+    w: 180,
     right: true
   }];
-  const set = (id, patch) => setUsers(us => us.map(u => u.id === id ? {
-    ...u,
-    ...patch
-  } : u));
+  const kCols = [{
+    label: "Scheduled"
+  }, {
+    label: "When",
+    w: 160
+  }, {
+    label: "Last run",
+    w: 100
+  }];
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(APaneHead, {
-    title: "People",
-    sub: users.length.toLocaleString("en-GB") + " accounts · " + users.filter(u => u.status === "disabled").length + " disabled",
-    tools: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SegmentedControl, {
-      options: ["Everyone", "Active", "Disabled"],
-      value: filter,
-      onChange: setFilter
-    }), /*#__PURE__*/React.createElement(ASearch, {
-      value: q,
-      onChange: setQ,
-      placeholder: "Search name or email"
-    }))
+    title: "Health",
+    sub: "As of 20:45",
+    tools: /*#__PURE__*/React.createElement(OButton, {
+      variant: "ghost",
+      size: "sm"
+    }, "Refresh")
   }), /*#__PURE__*/React.createElement(ABody, null, /*#__PURE__*/React.createElement(AStats, null, /*#__PURE__*/React.createElement(AStat, {
-    label: "Accounts",
-    value: AD.costs.accounts.toLocaleString("en-GB")
+    label: "Waiting in the queue",
+    value: H.queue.waiting
   }), /*#__PURE__*/React.createElement(AStat, {
-    label: "Used it this week",
-    value: AD.costs.activeAccounts.toLocaleString("en-GB"),
-    note: "69% of accounts"
+    label: "Running",
+    value: H.queue.running
   }), /*#__PURE__*/React.createElement(AStat, {
-    label: "Disabled",
-    value: users.filter(u => u.status === "disabled").length
+    label: "Oldest waiting",
+    value: H.queue.oldest
   }), /*#__PURE__*/React.createElement(AStat, {
-    label: "Average spend",
-    value: money(AD.costs.perUserAvg),
-    note: "per account, last 30 days"
-  })), /*#__PURE__*/React.createElement(ATable, {
-    cols: cols
-  }, list.map((u, i) => /*#__PURE__*/React.createElement(ARow, {
-    key: u.id,
-    cols: cols,
-    last: i === list.length - 1,
-    muted: u.status === "disabled",
-    cells: [/*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
+    label: "Stuck or dead",
+    value: stuck.length,
+    tone: stuck.length ? "attention" : undefined
+  })), /*#__PURE__*/React.createElement(ASection, null, "Services"), /*#__PURE__*/React.createElement(ATable, {
+    cols: sCols
+  }, H.services.map(([n, s, u], i) => /*#__PURE__*/React.createElement(ARow, {
+    key: n,
+    cols: sCols,
+    last: i === H.services.length - 1,
+    cells: [/*#__PURE__*/React.createElement("span", {
       style: {
-        display: "block",
         fontWeight: 500
       }
-    }, u.name), /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
+    }, n), /*#__PURE__*/React.createElement(AStatus, {
+      value: s
+    }), /*#__PURE__*/React.createElement(AMono, null, u)]
+  }))), /*#__PURE__*/React.createElement(ASection, {
+    note: "retry puts it back on the queue"
+  }, "Stuck and dead"), stuck.length ? /*#__PURE__*/React.createElement(ATable, {
+    cols: jCols
+  }, stuck.map((j, i) => /*#__PURE__*/React.createElement(ARow, {
+    key: j.id,
+    cols: jCols,
+    last: i === stuck.length - 1,
+    cells: [/*#__PURE__*/React.createElement("span", {
       style: {
-        display: "block",
-        fontSize: 12.5,
-        marginTop: 2
+        fontWeight: 500
       }
-    }, u.email))), /*#__PURE__*/React.createElement(AQuiet, null, u.provider), /*#__PURE__*/React.createElement(AMono, null, u.threads), /*#__PURE__*/React.createElement(AQuiet, null, u.active), /*#__PURE__*/React.createElement(AMono, {
-      bold: u.spend > 10
-    }, money(u.spend)), /*#__PURE__*/React.createElement(AStatus, {
-      value: u.status
+    }, j.kind), /*#__PURE__*/React.createElement(AQuiet, null, j.who), /*#__PURE__*/React.createElement(AQuiet, null, j.since), /*#__PURE__*/React.createElement(AStatus, {
+      value: j.state
     }), /*#__PURE__*/React.createElement("span", {
       style: {
         display: "flex",
         gap: "var(--space-2)",
         justifyContent: "flex-end"
       }
-    }, u.status === "active" ? /*#__PURE__*/React.createElement(Button, {
-      variant: "ghost",
-      size: "sm",
-      onClick: () => setAsk({
-        kind: "disable",
-        u
-      })
-    }, "Disable") : /*#__PURE__*/React.createElement(Button, {
+    }, /*#__PURE__*/React.createElement(OButton, {
       variant: "secondary",
       size: "sm",
       onClick: () => {
-        set(u.id, {
-          status: "active"
-        });
-        say(u.name + " is active again");
+        setStuck(v => v.filter(x => x.id !== j.id));
+        say("Back on the queue");
       }
-    }, "Enable"), /*#__PURE__*/React.createElement(ADanger, {
-      onClick: () => setAsk({
-        kind: "delete",
-        u
-      })
-    }, "Delete"))]
-  }))), /*#__PURE__*/React.createElement(ASection, {
-    note: "the two that cannot be undone from here"
-  }, "What these do"), /*#__PURE__*/React.createElement("ul", {
-    style: {
-      margin: 0,
-      padding: 0,
-      listStyle: "none",
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      maxWidth: "78ch"
-    }
-  }, ["Disable signs the account out everywhere and refuses new sign-ins. Nothing is deleted and threads shared with other people stay readable for them. Reversible from this row.", "Delete removes the account, its threads, its memories and its conversations inside 24 hours, and cannot be undone. Anything the person shared into someone else's thread stays with that thread.", "Neither action emails the person. If they should be told, support writes to them."].map(t => /*#__PURE__*/React.createElement("li", {
-    key: t,
-    style: {
-      display: "flex",
-      gap: 10,
-      font: "var(--text-body-sm-role)",
-      lineHeight: 1.55,
-      color: "var(--text-secondary)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--text-tertiary)"
-    }
-  }, "\xB7"), t)))), ask && ask.kind === "disable" ? /*#__PURE__*/React.createElement(AConfirm, {
-    title: "Disable " + ask.u.name + "?",
-    body: "They are signed out everywhere and cannot sign in again until you enable them. Nothing is deleted.",
-    confirmLabel: "Disable",
-    onClose: () => setAsk(null),
-    onConfirm: () => {
-      set(ask.u.id, {
-        status: "disabled"
-      });
-      say(ask.u.name + " is disabled");
-    }
-  }) : null, ask && ask.kind === "delete" ? /*#__PURE__*/React.createElement(AConfirm, {
-    danger: true,
-    title: "Delete " + ask.u.name + "?",
-    confirmWord: ask.u.email,
-    confirmLabel: "Delete account",
-    body: "This removes the account and everything in it: " + ask.u.threads + " threads, their memories and every conversation. It happens inside 24 hours and cannot be undone.",
-    onClose: () => setAsk(null),
-    onConfirm: () => {
-      setUsers(us => us.filter(x => x.id !== ask.u.id));
-      say(ask.u.name + " will be deleted within 24 hours");
-    }
-  }) : null);
+    }, "Retry"), /*#__PURE__*/React.createElement(OButton, {
+      variant: "ghost",
+      size: "sm",
+      onClick: () => {
+        setStuck(v => v.filter(x => x.id !== j.id));
+        say("Dismissed");
+      }
+    }, "Dismiss"))]
+  }))) : /*#__PURE__*/React.createElement(AQuiet, null, "Nothing stuck."), /*#__PURE__*/React.createElement(ASection, null, "Scheduled jobs"), /*#__PURE__*/React.createElement(ATable, {
+    cols: kCols
+  }, H.scheduled.map(([n, w, s], i) => /*#__PURE__*/React.createElement(ARow, {
+    key: n,
+    cols: kCols,
+    last: i === H.scheduled.length - 1,
+    href: () => {},
+    cells: [/*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 500
+      }
+    }, n), /*#__PURE__*/React.createElement(AQuiet, null, w), /*#__PURE__*/React.createElement(AStatus, {
+      value: s
+    })]
+  })))));
 }
 
-/* 3 · Costs. What the platform spends, by the job offload is doing rather than by model
-   name, because the question is always "which feature is expensive". */
+/* Costs. Trends, usage, by feature, by model, and by vendor against the bill. */
 function CostsPage() {
   const C = AD.costs;
-  const max = Math.max(...C.byJob.map(j => j.spend));
-  const dayMax = Math.max(...C.days);
+  const [range, setRange] = React.useState("30 days");
   const pace = C.spend / 25 * 31;
-  const cols = [{
+  const label = i => i + 4 + (i + 4 > 30 ? " Oct" : " Sep");
+  const fCols = [{
     label: "What it pays for"
   }, {
     label: "Calls",
@@ -6462,14 +7023,46 @@ function CostsPage() {
     label: "Share",
     w: 180
   }];
+  const mCols = [{
+    label: "Model"
+  }, {
+    label: "Calls",
+    w: 90,
+    right: true
+  }, {
+    label: "Tokens",
+    w: 100,
+    right: true
+  }, {
+    label: "Spend",
+    w: 100,
+    right: true
+  }];
+  const vCols = [{
+    label: "Vendor"
+  }, {
+    label: "Metered",
+    w: 110,
+    right: true
+  }, {
+    label: "Billed",
+    w: 110,
+    right: true
+  }, {
+    label: "",
+    w: 90
+  }];
+  const max = Math.max(...C.byFeature.map(j => j.spend));
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(APaneHead, {
     title: "Costs",
-    sub: C.monthLabel + " · every figure is inference, not hosting",
-    tools: /*#__PURE__*/React.createElement(Button, {
+    sub: C.range,
+    tools: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(ARange, {
+      value: range,
+      onChange: setRange
+    }), /*#__PURE__*/React.createElement(OButton, {
       variant: "secondary",
-      size: "sm",
-      icon: "archive"
-    }, "Export CSV")
+      size: "sm"
+    }, "Export CSV"))
   }), /*#__PURE__*/React.createElement(ABody, null, /*#__PURE__*/React.createElement(AStats, null, /*#__PURE__*/React.createElement(AStat, {
     label: "Spent this month",
     value: money0(C.spend),
@@ -6478,346 +7071,878 @@ function CostsPage() {
     label: "On pace for",
     value: money0(pace),
     tone: pace > C.budget ? "attention" : undefined,
-    note: pace > C.budget ? "over budget by " + money0(pace - C.budget) : "inside budget"
+    note: pace > C.budget ? "over budget" : "inside budget"
   }), /*#__PURE__*/React.createElement(AStat, {
     label: "Per account",
-    value: money(C.perUserAvg),
-    note: "all accounts, not just active"
+    value: money(C.perUserAvg)
   }), /*#__PURE__*/React.createElement(AStat, {
     label: "Last month",
-    value: money0(C.lastMonth),
-    note: "+14% month on month"
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "var(--space-5) var(--space-6)",
-      border: "1px solid var(--border-hairline)",
-      borderRadius: "var(--radius-md)",
-      background: "var(--surface-raised)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "baseline",
-      justifyContent: "space-between"
-    }
-  }, /*#__PURE__*/React.createElement("b", {
-    style: {
-      font: "var(--weight-medium) 14px/1 var(--font-core)"
-    }
-  }, "Daily spend"), /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12.5
-    }
-  }, "1 to 25 August \xB7 cap \xA3120 a day"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "flex-end",
-      gap: 4,
-      height: 96,
-      marginTop: "var(--space-5)"
-    }
-  }, C.days.map((d, i) => /*#__PURE__*/React.createElement("span", {
-    key: i,
-    title: "Day " + (i + 1) + ": £" + d,
-    style: {
-      flex: 1,
-      height: Math.round(d / dayMax * 96),
-      borderRadius: "var(--radius-xs) var(--radius-xs) 0 0",
-      background: d >= 100 ? "var(--blue-600)" : "var(--moss-500)"
-    }
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginTop: 8,
-      font: "var(--text-caption-role)",
-      color: "var(--text-tertiary)",
-      fontVariantNumeric: "tabular-nums"
-    }
-  }, /*#__PURE__*/React.createElement("span", null, "1 Aug"), /*#__PURE__*/React.createElement("span", null, "Blue days went over \xA3100"), /*#__PURE__*/React.createElement("span", null, "25 Aug"))), /*#__PURE__*/React.createElement(ASection, {
-    note: "by the job, not the model"
-  }, "Where it goes"), /*#__PURE__*/React.createElement(ATable, {
-    cols: cols
-  }, C.byJob.map((j, i) => /*#__PURE__*/React.createElement(ARow, {
+    value: money0(C.lastMonth)
+  })), /*#__PURE__*/React.createElement(APlots, null, /*#__PURE__*/React.createElement(APlot, {
+    title: "Cost per day",
+    points: C.days,
+    labels: ["4 Sep", "3 Oct", label],
+    format: money,
+    caption: "Dollars"
+  }), /*#__PURE__*/React.createElement(APlot, {
+    title: "Turns per day, thousands",
+    points: C.usage,
+    labels: ["4 Sep", "3 Oct", label],
+    caption: "Thousands of turns",
+    kind: "line"
+  })), /*#__PURE__*/React.createElement(ASection, null, "By feature"), /*#__PURE__*/React.createElement(ATable, {
+    cols: fCols
+  }, C.byFeature.map((j, i) => /*#__PURE__*/React.createElement(ARow, {
     key: j.name,
-    cols: cols,
-    last: i === C.byJob.length - 1,
-    cells: [/*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
+    cols: fCols,
+    last: i === C.byFeature.length - 1,
+    cells: [/*#__PURE__*/React.createElement("span", {
       style: {
-        display: "block",
         fontWeight: 500
       }
-    }, j.name), /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 12.5,
-        marginTop: 2
-      }
-    }, j.note))), /*#__PURE__*/React.createElement(AQuiet, null, j.calls), /*#__PURE__*/React.createElement(AMono, {
+    }, j.name), /*#__PURE__*/React.createElement(AQuiet, null, j.calls), /*#__PURE__*/React.createElement(AMono, {
       bold: true
     }, money0(j.spend)), /*#__PURE__*/React.createElement("span", {
       style: {
         display: "block",
-        paddingRight: "var(--space-4)"
+        paddingRight: 12
       }
     }, /*#__PURE__*/React.createElement(ABar, {
       value: j.spend,
       total: max
     }))]
-  }))), /*#__PURE__*/React.createElement(ASection, {
-    note: "last 30 days"
-  }, "Heaviest accounts"), /*#__PURE__*/React.createElement(ATable, {
-    cols: [{
-      label: "Person"
-    }, {
-      label: "Spend",
-      w: 100,
-      right: true
-    }, {
-      label: "Share of the top four",
-      w: 180
-    }]
-  }, C.topSpenders.map((t, i) => /*#__PURE__*/React.createElement(ARow, {
-    key: t.id,
-    cols: [{}, {
-      w: 100,
-      right: true
-    }, {
-      w: 180
-    }],
-    last: i === C.topSpenders.length - 1,
-    cells: [/*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
+  }))), /*#__PURE__*/React.createElement(ASection, null, "By model"), /*#__PURE__*/React.createElement(ATable, {
+    cols: mCols
+  }, C.byModel.map((m, i) => /*#__PURE__*/React.createElement(ARow, {
+    key: m.name,
+    cols: mCols,
+    last: i === C.byModel.length - 1,
+    cells: [/*#__PURE__*/React.createElement("span", {
       style: {
-        display: "block",
         fontWeight: 500
       }
-    }, t.name), /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 12.5,
-        marginTop: 2
-      }
-    }, t.note))), /*#__PURE__*/React.createElement(AMono, {
+    }, m.name), /*#__PURE__*/React.createElement(AQuiet, null, m.calls), /*#__PURE__*/React.createElement(AQuiet, null, m.tokens), /*#__PURE__*/React.createElement(AMono, {
       bold: true
-    }, money(t.spend)), /*#__PURE__*/React.createElement("span", {
+    }, money(m.spend))]
+  }))), /*#__PURE__*/React.createElement(ASection, {
+    note: "what the ledger metered beside what the vendor billed, or what an owner typed"
+  }, "By vendor"), /*#__PURE__*/React.createElement(ATable, {
+    cols: vCols
+  }, C.byVendor.map((v, i) => /*#__PURE__*/React.createElement(ARow, {
+    key: v.name,
+    cols: vCols,
+    last: i === C.byVendor.length - 1,
+    cells: [/*#__PURE__*/React.createElement("span", {
       style: {
-        display: "block",
-        paddingRight: "var(--space-4)"
+        fontWeight: 500
       }
-    }, /*#__PURE__*/React.createElement(ABar, {
-      value: t.spend,
-      total: C.topSpenders[0].spend,
-      tone: t.spend > 25 ? "attention" : undefined
-    }))]
+    }, v.name), v.metered == null ? /*#__PURE__*/React.createElement(AQuiet, null, "not metered") : /*#__PURE__*/React.createElement(AMono, null, money(v.metered)), /*#__PURE__*/React.createElement(AMono, {
+      bold: true
+    }, money(v.billed)), /*#__PURE__*/React.createElement(AStatus, {
+      value: v.how
+    })]
   })))));
 }
 
-/* 4 · Limits. Two caps and one decision about what happens when they are hit. */
-const AT_CAP = [["Slow down", "Requests queue and answers get slower. Nothing fails, nothing is lost."], ["Cheaper model", "Keep answering, on the small model, until the day resets."], ["Stop", "Refuse new calls and tell the person offload is resting. Dumps are still saved."]];
+/* Limits, in groups. Save opens the confirm with each change old to new; the other button is Cancel. */
 function LimitsPage({
   say
 }) {
   const L = AD.limits;
-  const [platform, setPlatform] = React.useState(String(L.platformDaily));
-  const [userDay, setUserDay] = React.useState(String(L.userDaily));
-  const [userMonth, setUserMonth] = React.useState(String(L.userMonthly));
-  const [batch, setBatch] = React.useState(String(AD.waitlist.weekly));
-  const [atCap, setAtCap] = React.useState(L.atCap);
-  const [alertAt, setAlertAt] = React.useState(String(L.alertAt));
-  const [dirty, setDirty] = React.useState(false);
-  const touch = fn => v => {
-    fn(v);
-    setDirty(true);
-  };
-  const used = Math.round(L.platformUsed / Number(platform || 1) * 100);
-  const cols = [{
-    label: "What happened"
-  }, {
-    label: "Who",
-    w: 120
-  }, {
-    label: "When",
-    w: 80
-  }, {
-    label: "What we did",
-    w: 170
-  }];
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(APaneHead, {
-    title: "Limits",
-    sub: "Caps are per day and reset at midnight UTC",
-    tools: dirty ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Button, {
-      variant: "ghost",
-      size: "sm",
-      onClick: () => {
-        setDirty(false);
-        say("Changes discarded");
-      }
-    }, "Discard"), /*#__PURE__*/React.createElement(Button, {
-      variant: "primary",
-      size: "sm",
-      onClick: () => {
-        setDirty(false);
-        say("Limits saved");
-      }
-    }, "Save changes")) : /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12.5
-      }
-    }, "Saved"))
-  }), /*#__PURE__*/React.createElement(ABody, null, /*#__PURE__*/React.createElement(AStats, null, /*#__PURE__*/React.createElement(AStat, {
-    label: "Spent today",
-    value: money(L.platformUsed),
-    tone: used >= L.alertAt ? "attention" : undefined,
-    note: used + "% of the daily cap"
-  }), /*#__PURE__*/React.createElement(AStat, {
-    label: "Daily cap",
-    value: money0(Number(platform || 0))
-  }), /*#__PURE__*/React.createElement(AStat, {
-    label: "Per person, per day",
-    value: money(Number(userDay || 0))
-  }), /*#__PURE__*/React.createElement(AStat, {
-    label: "Per person, per month",
-    value: money0(Number(userMonth || 0))
-  })), /*#__PURE__*/React.createElement("div", {
+  const init = () => ({
+    person: L.person.map(r => r[1]),
+    platform: L.platform.map(r => r[1]),
+    month: L.month.map(r => r[1]),
+    batch: L.batch,
+    sw: L.switches.map(r => r[1])
+  });
+  const [v, setV] = React.useState(init);
+  const [saved, setSaved] = React.useState(init);
+  const [ask, setAsk] = React.useState(false);
+  const fmt = (x, aff) => aff === "$" ? "$" + x : aff ? x + " " + aff : x;
+  const diff = [];
+  L.person.forEach((r, i) => {
+    if (v.person[i] !== saved.person[i]) diff.push([r[0] + ", per 24 hours", fmt(saved.person[i], r[2]), fmt(v.person[i], r[2])]);
+  });
+  L.platform.forEach((r, i) => {
+    if (v.platform[i] !== saved.platform[i]) diff.push([r[0] + ", per 24 hours", fmt(saved.platform[i], r[2]), fmt(v.platform[i], r[2])]);
+  });
+  L.month.forEach((r, i) => {
+    if (v.month[i] !== saved.month[i]) diff.push([r[0], fmt(saved.month[i], r[2]), fmt(v.month[i], r[2])]);
+  });
+  if (v.batch !== saved.batch) diff.push(["Weekly batch", saved.batch, v.batch]);
+  L.switches.forEach((r, i) => {
+    if (v.sw[i] !== saved.sw[i]) diff.push([r[0], saved.sw[i] ? "on" : "off", v.sw[i] ? "on" : "off"]);
+  });
+  const set = (k, i) => x => setV(s => {
+    const n = {
+      ...s
+    };
+    if (i == null) n[k] = x;else {
+      n[k] = s[k].slice();
+      n[k][i] = x;
+    }
+    return n;
+  });
+  const fields = (rows, k) => /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "var(--space-6)",
+      flexWrap: "wrap"
+    }
+  }, rows.map((r, i) => /*#__PURE__*/React.createElement(AField, {
+    key: r[0],
+    label: r[0],
+    value: v[k][i],
+    onChange: set(k, i),
+    prefix: r[2] === "$" ? "$" : null,
+    suffix: r[2] && r[2] !== "$" ? r[2] : null
+  })));
+  const box = c => /*#__PURE__*/React.createElement("div", {
     style: {
       border: "1px solid var(--border-hairline)",
       borderRadius: "var(--radius-md)",
       background: "var(--surface-raised)",
       padding: "var(--space-6)"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: "var(--space-6)",
-      flexWrap: "wrap"
-    }
-  }, /*#__PURE__*/React.createElement(AField, {
-    label: "Platform, per day",
-    prefix: "\xA3",
-    value: platform,
-    onChange: touch(setPlatform),
-    hint: "Everything offload spends on inference in a day"
-  }), /*#__PURE__*/React.createElement(AField, {
-    label: "One person, per day",
-    prefix: "\xA3",
-    value: userDay,
-    onChange: touch(setUserDay),
-    hint: "Roughly 40 answers, or 900 dumps"
-  }), /*#__PURE__*/React.createElement(AField, {
-    label: "One person, per month",
-    prefix: "\xA3",
-    value: userMonth,
-    onChange: touch(setUserMonth),
-    hint: "Whichever cap is reached first applies"
-  }), /*#__PURE__*/React.createElement(AField, {
-    label: "Waitlist batch, per week",
-    value: batch,
-    onChange: touch(setBatch),
-    hint: "How many invites go out on Mondays"
-  }), /*#__PURE__*/React.createElement(AField, {
-    label: "Warn at",
-    prefix: "%",
-    value: alertAt,
-    onChange: touch(setAlertAt),
-    width: 110,
-    hint: "Of any cap"
-  }))), /*#__PURE__*/React.createElement(ASection, {
-    note: "the same choice for both caps"
-  }, "When a cap is reached"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: "var(--space-3)",
-      maxWidth: "72ch"
-    }
-  }, AT_CAP.map(([name, note]) => {
-    const on = atCap === name;
-    return /*#__PURE__*/React.createElement("button", {
-      key: name,
-      type: "button",
-      onClick: () => {
-        setAtCap(name);
-        setDirty(true);
-      },
+  }, c);
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(APaneHead, {
+    title: "Limits",
+    sub: "A cap refuses the next turn. What was already dumped is safe.",
+    tools: diff.length ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(OButton, {
+      variant: "ghost",
+      size: "sm",
+      onClick: () => setV(saved)
+    }, "Cancel"), /*#__PURE__*/React.createElement(OButton, {
+      variant: "primary",
+      size: "sm",
+      onClick: () => setAsk(true)
+    }, "Save changes")) : /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
       style: {
-        display: "flex",
-        gap: "var(--space-4)",
-        alignItems: "flex-start",
-        textAlign: "left",
-        cursor: "pointer",
-        padding: "var(--space-5)",
-        borderRadius: "var(--radius-md)",
-        background: "var(--surface-raised)",
-        border: "1px solid " + (on ? "var(--ink-950)" : "var(--border-hairline)")
+        fontSize: 12.5
       }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 18,
-        height: 18,
-        flex: "0 0 auto",
-        marginTop: 1,
-        borderRadius: "var(--radius-pill)",
-        border: "1.5px solid " + (on ? "var(--ink-950)" : "var(--border-strong)"),
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center"
-      }
-    }, on ? /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 9,
-        height: 9,
-        borderRadius: "var(--radius-pill)",
-        background: "var(--ink-950)"
-      }
-    }) : null), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
-      style: {
-        display: "block",
-        font: "var(--weight-medium) 15px/1.3 var(--font-core)"
-      }
-    }, name), /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "block",
-        font: "var(--text-body-sm-role)",
-        color: "var(--text-secondary)",
-        marginTop: 4,
-        lineHeight: 1.5
-      }
-    }, note)));
+    }, "Saved"))
+  }), /*#__PURE__*/React.createElement(ABody, null, /*#__PURE__*/React.createElement(ASection, {
+    note: "any 24 hours, rolling"
+  }, "Per person"), box(fields(L.person, "person")), /*#__PURE__*/React.createElement(ASection, {
+    note: "any 24 hours, rolling; refuses everyone"
+  }, "The platform"), box(fields(L.platform, "platform")), /*#__PURE__*/React.createElement(ASection, {
+    note: "what Costs draws against, and what each subscription costs"
+  }, "The month"), box(fields(L.month, "month")), /*#__PURE__*/React.createElement(ASection, null, "The waitlist"), box(/*#__PURE__*/React.createElement(AField, {
+    label: "Weekly batch",
+    value: v.batch,
+    onChange: set("batch")
   })), /*#__PURE__*/React.createElement(ASection, {
-    note: "ops gets an email and a Slack line"
-  }, "Who hears about it"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: "var(--space-2)",
-      flexWrap: "wrap"
-    }
-  }, L.alertWho.map(a => /*#__PURE__*/React.createElement(Chip, {
-    key: a,
-    tone: "outline",
-    icon: "bell"
-  }, a)), /*#__PURE__*/React.createElement(Chip, {
-    tone: "outline",
-    icon: "plus",
-    onClick: () => say("Not wired in this prototype")
-  }, "Add someone")), /*#__PURE__*/React.createElement(ASection, {
+    note: "off stops a path for everyone within seconds"
+  }, "Switches"), /*#__PURE__*/React.createElement(ACard, null, L.switches.map((r, i) => /*#__PURE__*/React.createElement(ASwitchRow, {
+    key: r[0],
+    label: r[0],
+    on: v.sw[i],
+    onChange: set("sw", i),
+    last: i === L.switches.length - 1
+  }))), /*#__PURE__*/React.createElement(ASection, {
     note: "last 30 days"
-  }, "What has been hit"), /*#__PURE__*/React.createElement(ATable, {
+  }, "What has been hit"), /*#__PURE__*/React.createElement(HitsTable, {
+    rows: L.hits
+  })), ask ? /*#__PURE__*/React.createElement(AConfirm, {
+    title: "Save these changes?",
+    confirmLabel: "Save",
+    onClose: () => setAsk(false),
+    body: "They apply within seconds. If somebody else changed a value meanwhile, the save is refused and the page reads again.",
+    onConfirm: () => {
+      setSaved(v);
+      say("Limits saved");
+    }
+  }, /*#__PURE__*/React.createElement(ADiff, {
+    rows: diff
+  })) : null);
+}
+
+/* Audit. Every staff write, newest first. */
+function AuditPage() {
+  const cols = [{
+    label: "When",
+    w: 80
+  }, {
+    label: "Who",
+    w: 140
+  }, {
+    label: "What"
+  }, {
+    label: "About",
+    w: 160
+  }];
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(APaneHead, {
+    title: "Audit",
+    sub: "Every staff write, newest first"
+  }), /*#__PURE__*/React.createElement(ABody, null, /*#__PURE__*/React.createElement(ATable, {
     cols: cols
-  }, L.breaches.map((b, i) => /*#__PURE__*/React.createElement(ARow, {
+  }, AD.audit.map((r, i) => /*#__PURE__*/React.createElement(ARow, {
     key: i,
     cols: cols,
-    last: i === L.breaches.length - 1,
+    last: i === AD.audit.length - 1,
+    cells: [/*#__PURE__*/React.createElement(AQuiet, null, r.when), /*#__PURE__*/React.createElement(AQuiet, null, r.who), /*#__PURE__*/React.createElement("span", null, r.what), /*#__PURE__*/React.createElement(AQuiet, null, r.about)]
+  })))));
+}
+Object.assign(window, {
+  HealthPage,
+  CostsPage,
+  LimitsPage,
+  AuditPage
+});
+})(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/admin_web/AOps.jsx", error: String((e && e.message) || e) }); }
+
+// ui_kits/admin_web/APeople.jsx
+try { (() => {
+const OFFLOAD_DS_P = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
+const {
+  Button: PButton,
+  SegmentedControl: PSeg,
+  Checkbox: PCheck
+} = OFFLOAD_DS_P;
+const money = n => "$" + n.toFixed(2);
+const money0 = n => "$" + Math.round(n).toLocaleString("en-US");
+
+/* Waitlist. Invite one, a selection (the floating pill, the only place it appears), the
+   weekly batch, or an address that never joined the list. Remove is clay at rest. */
+function WaitlistPage({
+  say
+}) {
+  const W = AD.waitlist;
+  const [rows, setRows] = React.useState(W.rows);
+  const [q, setQ] = React.useState("");
+  const [addr, setAddr] = React.useState("");
+  const [picked, setPicked] = React.useState([]);
+  const [ask, setAsk] = React.useState(null);
+  const list = q ? rows.filter(r => r.email.toLowerCase().indexOf(q.toLowerCase()) > -1) : rows;
+  const waiting = rows.filter(r => r.status === "waiting");
+  const cols = [{
+    label: "",
+    w: 24
+  }, {
+    label: "Email"
+  }, {
+    label: "Joined",
+    w: 80
+  }, {
+    label: "Came from",
+    w: 140
+  }, {
+    label: "State",
+    w: 100
+  }, {
+    label: "",
+    w: 180,
+    right: true
+  }];
+  function invite(ids) {
+    setRows(rs => rs.map(r => ids.indexOf(r.id) > -1 ? {
+      ...r,
+      status: "invited",
+      note: "invited today, not accepted"
+    } : r));
+    setPicked([]);
+    say(ids.length === 1 ? "Invite sent" : "Invited " + ids.length + " people");
+  }
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(APaneHead, {
+    title: "Waitlist",
+    sub: W.waiting.toLocaleString("en-US") + " waiting · letting " + W.batch + " in a week",
+    tools: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(ASearch, {
+      value: q,
+      onChange: setQ,
+      placeholder: "Search by email"
+    }), /*#__PURE__*/React.createElement(PButton, {
+      variant: "secondary",
+      size: "sm",
+      onClick: () => invite(waiting.slice(0, W.batch).map(r => r.id))
+    }, "Invite the next " + W.batch))
+  }), /*#__PURE__*/React.createElement(ABody, null, /*#__PURE__*/React.createElement(AStats, null, /*#__PURE__*/React.createElement(AStat, {
+    label: "Waiting",
+    value: W.waiting.toLocaleString("en-US")
+  }), /*#__PURE__*/React.createElement(AStat, {
+    label: "Invited this week",
+    value: W.invitedThisWeek
+  }), /*#__PURE__*/React.createElement(AStat, {
+    label: "Signed up",
+    value: W.accepted
+  }), /*#__PURE__*/React.createElement(AStat, {
+    label: "Weekly batch",
+    value: W.batch,
+    note: "set on Limits"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-end",
+      gap: "var(--space-3)",
+      marginBottom: "var(--space-6)"
+    }
+  }, /*#__PURE__*/React.createElement(AField, {
+    label: "Invite somebody",
+    value: addr,
+    onChange: setAddr,
+    width: 340,
+    placeholder: "name@example.com",
+    hint: "For an address that is not on the list"
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement(PButton, {
+    variant: "primary",
+    size: "sm",
+    onClick: () => {
+      if (addr.indexOf("@") < 1) {
+        say("That address does not look right");
+        return;
+      }
+      setRows(rs => [{
+        id: "n" + Date.now(),
+        email: addr,
+        joined: "today",
+        source: "invited by address",
+        status: "invited",
+        note: "invited today, not accepted"
+      }].concat(rs));
+      setAddr("");
+      say("Invite sent");
+    }
+  }, "Invite"))), /*#__PURE__*/React.createElement(ATable, {
+    cols: cols
+  }, list.map((r, i) => {
+    const on = picked.indexOf(r.id) > -1;
+    return /*#__PURE__*/React.createElement(ARow, {
+      key: r.id,
+      cols: cols,
+      last: i === list.length - 1,
+      muted: r.status === "accepted",
+      cells: [r.status === "waiting" ? /*#__PURE__*/React.createElement(PCheck, {
+        checked: on,
+        onChange: () => setPicked(v => on ? v.filter(x => x !== r.id) : v.concat(r.id))
+      }) : null, /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
+        style: {
+          display: "block",
+          fontWeight: 500
+        }
+      }, r.email), r.note ? /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 12.5,
+          marginTop: 2
+        }
+      }, r.note)) : null), /*#__PURE__*/React.createElement(AQuiet, null, r.joined), /*#__PURE__*/React.createElement(AQuiet, null, r.source), /*#__PURE__*/React.createElement(AStatus, {
+        value: r.status
+      }), /*#__PURE__*/React.createElement("span", {
+        style: {
+          display: "flex",
+          gap: "var(--space-2)",
+          justifyContent: "flex-end"
+        }
+      }, r.status === "waiting" ? /*#__PURE__*/React.createElement(PButton, {
+        variant: "secondary",
+        size: "sm",
+        onClick: () => invite([r.id])
+      }, "Invite") : r.status === "invited" ? /*#__PURE__*/React.createElement(PButton, {
+        variant: "ghost",
+        size: "sm",
+        onClick: () => say("Invite sent again")
+      }, "Resend") : /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 12.5
+        }
+      }, "in the app")), r.status === "waiting" ? /*#__PURE__*/React.createElement(ADanger, {
+        onClick: () => setAsk(r)
+      }, "Remove") : null)]
+    });
+  })), /*#__PURE__*/React.createElement(ASection, null, "Notes"), /*#__PURE__*/React.createElement(ANotes, {
+    items: ["Inviting sends the one transactional email and creates nothing: the account exists when they sign in on that address.", "An invite is single use and expires in 14 days. Resend issues a new link and voids the old one.", "Someone who came from a shared thread is already vouched for by a member.", "Remove takes the address off the list. Nothing is sent to it."]
+  })), picked.length ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: "calc(50% + 116px)",
+      bottom: 28,
+      transform: "translateX(-50%)",
+      zIndex: 20,
+      display: "flex",
+      alignItems: "center",
+      gap: "var(--space-4)",
+      padding: "8px 8px 8px 20px",
+      borderRadius: "var(--radius-pill)",
+      background: "var(--surface-inverse)",
+      color: "var(--text-inverse)",
+      boxShadow: "var(--shadow-3)"
+    }
+  }, /*#__PURE__*/React.createElement("b", {
+    style: {
+      font: "var(--weight-medium) 14px/1 var(--font-core)"
+    }
+  }, picked.length + " selected"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => setPicked([]),
+    style: {
+      border: "none",
+      background: "none",
+      color: "inherit",
+      cursor: "pointer",
+      font: "var(--weight-medium) 14px/1 var(--font-core)",
+      opacity: .75
+    }
+  }, "Clear"), /*#__PURE__*/React.createElement(PButton, {
+    variant: "primary",
+    size: "sm",
+    onClick: () => invite(picked)
+  }, "Invite " + picked.length)) : null, ask ? /*#__PURE__*/React.createElement(AConfirm, {
+    danger: true,
+    title: "Remove " + ask.email + "?",
+    confirmLabel: "Remove",
+    body: "It comes off the waitlist. Nothing is sent to the address, and it can join again.",
+    onClose: () => setAsk(null),
+    onConfirm: () => {
+      setRows(rs => rs.filter(x => x.id !== ask.id));
+      say("Removed from the waitlist");
+    }
+  }) : null);
+}
+
+/* People. Rows open a person's page; their buttons act without opening it. Delete is an
+   owner's, held for 24 hours, and can be cancelled. */
+function PeoplePage({
+  say,
+  open,
+  role
+}) {
+  const [users, setUsers] = React.useState(AD.users);
+  const [q, setQ] = React.useState("");
+  const [filter, setFilter] = React.useState("Everyone");
+  const [sort, setSort] = React.useState("Joined");
+  const [ask, setAsk] = React.useState(null);
+  const owner = role === "owner";
+  let list = users.filter(u => filter === "Everyone" || (filter === "Active" ? u.status === "active" : u.status !== "active")).filter(u => !q || (u.name + " " + u.email).toLowerCase().indexOf(q.toLowerCase()) > -1);
+  if (sort === "Spend") list = list.slice().sort((a, b) => b.spend - a.spend);
+  const cols = [{
+    label: "Person"
+  }, {
+    label: "Joined",
+    w: 76
+  }, {
+    label: "Signed in with",
+    w: 110
+  }, {
+    label: "Threads",
+    w: 70,
+    right: true
+  }, {
+    label: "Last active",
+    w: 96,
+    right: true
+  }, {
+    label: "Spend, 30d",
+    w: 92,
+    right: true
+  }, {
+    label: "State",
+    w: 92
+  }, {
+    label: "",
+    w: owner ? 190 : 100,
+    right: true
+  }];
+  const set = (id, patch) => setUsers(us => us.map(u => u.id === id ? {
+    ...u,
+    ...patch
+  } : u));
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(APaneHead, {
+    title: "People",
+    sub: users.length.toLocaleString("en-US") + " accounts",
+    tools: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PSeg, {
+      options: ["Everyone", "Active", "Disabled"],
+      value: filter,
+      onChange: setFilter
+    }), /*#__PURE__*/React.createElement(ASearch, {
+      value: q,
+      onChange: setQ,
+      placeholder: "Search name or email"
+    }))
+  }), /*#__PURE__*/React.createElement(ABody, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: "var(--space-4)",
+      marginBottom: "var(--space-4)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      font: "var(--text-label-role)",
+      color: "var(--text-secondary)"
+    }
+  }, "Sort"), /*#__PURE__*/React.createElement(PSeg, {
+    options: ["Joined", "Last active", "Spend"],
+    value: sort,
+    onChange: setSort
+  }), sort !== "Joined" ? /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13
+    }
+  }, "The top 200")) : null), /*#__PURE__*/React.createElement(ATable, {
+    cols: cols
+  }, list.map((u, i) => /*#__PURE__*/React.createElement(ARow, {
+    key: u.id,
+    cols: cols,
+    last: i === list.length - 1,
+    muted: u.status === "disabled",
+    href: () => open(u),
+    cells: [/*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
+      style: {
+        display: "block",
+        fontWeight: 500
+      }
+    }, u.name), /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12.5,
+        marginTop: 2
+      }
+    }, u.status === "deleting" ? "To be deleted " + u.deleteAt : u.email))), /*#__PURE__*/React.createElement(AQuiet, null, u.joined), /*#__PURE__*/React.createElement(AQuiet, null, u.provider), /*#__PURE__*/React.createElement(AMono, null, u.threads), /*#__PURE__*/React.createElement(AQuiet, null, u.active), /*#__PURE__*/React.createElement(AMono, {
+      bold: u.spend > 10
+    }, money(u.spend)), /*#__PURE__*/React.createElement(AStatus, {
+      value: u.status
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "flex",
+        gap: "var(--space-2)",
+        justifyContent: "flex-end"
+      }
+    }, u.status === "deleting" ? owner ? /*#__PURE__*/React.createElement(PButton, {
+      variant: "secondary",
+      size: "sm",
+      onClick: () => {
+        set(u.id, {
+          status: "disabled"
+        });
+        say("Deletion cancelled. " + u.name.split(" ")[0] + " stays disabled");
+      }
+    }, "Cancel deletion") : null : /*#__PURE__*/React.createElement(React.Fragment, null, u.status === "active" ? /*#__PURE__*/React.createElement(PButton, {
+      variant: "ghost",
+      size: "sm",
+      onClick: () => setAsk({
+        kind: "disable",
+        u
+      })
+    }, "Disable") : /*#__PURE__*/React.createElement(PButton, {
+      variant: "secondary",
+      size: "sm",
+      onClick: () => {
+        set(u.id, {
+          status: "active"
+        });
+        say(u.name + " is active again");
+      }
+    }, "Enable"), owner ? /*#__PURE__*/React.createElement(ADanger, {
+      onClick: () => setAsk({
+        kind: "delete",
+        u
+      })
+    }, "Delete") : null))]
+  }))), /*#__PURE__*/React.createElement(ASection, null, "What these do"), /*#__PURE__*/React.createElement(ANotes, {
+    items: ["Disable signs the account out everywhere and refuses new sign-ins. Nothing is deleted. Reversible from the row.", "Delete, an owner's only, signs them out now and destroys the account, its threads, its notes and every conversation in 24 hours. Until then an owner can cancel it, which leaves the account disabled.", "What the person added to someone else's shared thread stays with that thread.", "The address gets one email, once the account is destroyed."]
+  })), ask && ask.kind === "disable" ? /*#__PURE__*/React.createElement(AConfirm, {
+    title: "Disable " + ask.u.name + "?",
+    confirmLabel: "Disable",
+    body: "They are signed out everywhere and cannot sign in again until you enable them. Nothing is deleted.",
+    onClose: () => setAsk(null),
+    onConfirm: () => {
+      set(ask.u.id, {
+        status: "disabled"
+      });
+      say(ask.u.name + " is disabled");
+    }
+  }) : null, ask && ask.kind === "delete" ? /*#__PURE__*/React.createElement(DeleteConfirm, {
+    u: ask.u,
+    onClose: () => setAsk(null),
+    onConfirm: () => {
+      set(ask.u.id, {
+        status: "deleting",
+        deleteAt: "4 Oct, 21:05"
+      });
+      say(ask.u.name.split(" ")[0] + " will be deleted in 24 hours");
+    }
+  }) : null);
+}
+function DeleteConfirm({
+  u,
+  onClose,
+  onConfirm
+}) {
+  return /*#__PURE__*/React.createElement(AConfirm, {
+    danger: true,
+    title: "Delete " + u.name + "?",
+    confirmWord: u.email,
+    confirmLabel: "Delete account",
+    onClose: onClose,
+    onConfirm: onConfirm,
+    body: "Its threads, its notes and every conversation. They are signed out now, and the account is destroyed in 24 hours. Until then an owner can cancel."
+  });
+}
+
+/* A person's page. One account's story, with nothing the person wrote on it. */
+function PersonPage({
+  u,
+  say,
+  back,
+  role
+}) {
+  const P = AD.person;
+  const owner = role === "owner";
+  const [range, setRange] = React.useState("30 days");
+  const [ask, setAsk] = React.useState(null);
+  const capCols = [{
+    label: "Cap"
+  }, {
+    label: "Used",
+    w: 90,
+    right: true
+  }, {
+    label: "Of",
+    w: 90,
+    right: true
+  }, {
+    label: "",
+    w: 200
+  }];
+  const jobCols = [{
+    label: "When",
+    w: 64
+  }, {
+    label: "Kind"
+  }, {
+    label: "Model",
+    w: 170
+  }, {
+    label: "Took",
+    w: 64,
+    right: true
+  }, {
+    label: "Cost",
+    w: 72,
+    right: true
+  }, {
+    label: "State",
+    w: 84
+  }];
+  const days = i => i + 20 + " Sep";
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(APaneHead, {
+    back: "People",
+    onBack: back,
+    title: u.name,
+    sub: u.email + " · joined " + u.joined + " · " + u.provider,
+    tools: owner ? /*#__PURE__*/React.createElement(ADanger, {
+      onClick: () => setAsk("delete")
+    }, "Delete") : null
+  }), /*#__PURE__*/React.createElement(ABody, null, /*#__PURE__*/React.createElement(AStats, null, /*#__PURE__*/React.createElement(AStat, {
+    label: "State",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 22
+      }
+    }, u.status)
+  }), /*#__PURE__*/React.createElement(AStat, {
+    label: "Threads",
+    value: u.threads
+  }), /*#__PURE__*/React.createElement(AStat, {
+    label: "Spend, 30 days",
+    value: money(u.spend)
+  }), /*#__PURE__*/React.createElement(AStat, {
+    label: "Last active",
+    value: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 22
+      }
+    }, u.active)
+  })), /*#__PURE__*/React.createElement(ASection, {
+    note: "the last 24 hours, rolling"
+  }, "Today"), /*#__PURE__*/React.createElement(ATable, {
+    cols: capCols
+  }, P.caps.map(([c, used, of], i) => /*#__PURE__*/React.createElement(ARow, {
+    key: c,
+    cols: capCols,
+    last: i === P.caps.length - 1,
     cells: [/*#__PURE__*/React.createElement("span", {
       style: {
         fontWeight: 500
       }
-    }, b.what), /*#__PURE__*/React.createElement(AQuiet, null, b.who), /*#__PURE__*/React.createElement(AQuiet, null, b.when), /*#__PURE__*/React.createElement(AQuiet, null, b.action)]
-  })))));
+    }, c), /*#__PURE__*/React.createElement(AMono, null, used), /*#__PURE__*/React.createElement(AQuiet, null, of), /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        paddingRight: 12
+      }
+    }, /*#__PURE__*/React.createElement(ABar, {
+      value: parseFloat(used.replace("$", "")),
+      total: parseFloat(of.replace("$", ""))
+    }))]
+  }))), owner ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: "var(--space-4)"
+    }
+  }, /*#__PURE__*/React.createElement(PButton, {
+    variant: "secondary",
+    size: "sm",
+    onClick: () => setAsk("override")
+  }, "Override a limit")) : null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      padding: "var(--space-7) 0 var(--space-4)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      font: "var(--weight-semibold) 17px/1.2 var(--font-core)"
+    }
+  }, "Activity"), /*#__PURE__*/React.createElement(ARange, {
+    value: range,
+    onChange: setRange
+  })), /*#__PURE__*/React.createElement(APlots, null, /*#__PURE__*/React.createElement(APlot, {
+    title: "Cost per day",
+    points: P.spend,
+    labels: ["20 Sep", "3 Oct", days],
+    format: money,
+    caption: "Dollars"
+  }), /*#__PURE__*/React.createElement(APlot, {
+    title: "Turns per day",
+    points: P.turns,
+    labels: ["20 Sep", "3 Oct", days],
+    caption: "Turns",
+    kind: "line"
+  })), /*#__PURE__*/React.createElement(ASection, null, "What they have"), /*#__PURE__*/React.createElement(AStats, null, P.has.map(([l, v]) => /*#__PURE__*/React.createElement(AStat, {
+    key: l,
+    label: l,
+    value: v
+  }))), /*#__PURE__*/React.createElement(ASection, {
+    note: "newest first"
+  }, "What happened"), /*#__PURE__*/React.createElement(ATable, {
+    cols: jobCols
+  }, P.jobs.map((j, i) => /*#__PURE__*/React.createElement(ARow, {
+    key: i,
+    cols: jobCols,
+    last: i === P.jobs.length - 1,
+    cells: [/*#__PURE__*/React.createElement(AQuiet, null, j.when), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("b", {
+      style: {
+        display: "block",
+        fontWeight: 500
+      }
+    }, j.kind), j.code ? /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12.5,
+        marginTop: 2
+      }
+    }, j.code)) : null), /*#__PURE__*/React.createElement("span", null, j.model ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block"
+      }
+    }, j.model), /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12.5,
+        marginTop: 2
+      }
+    }, j.tokens, " tokens"))) : /*#__PURE__*/React.createElement(AQuiet, null, "none")), /*#__PURE__*/React.createElement(AQuiet, null, j.ms), /*#__PURE__*/React.createElement(AMono, null, j.cost), /*#__PURE__*/React.createElement(AStatus, {
+      value: j.state
+    })]
+  }))), /*#__PURE__*/React.createElement(ASection, {
+    note: "last 30 days"
+  }, "Limits hit"), /*#__PURE__*/React.createElement(HitsTable, {
+    rows: P.hits
+  })), ask === "delete" ? /*#__PURE__*/React.createElement(DeleteConfirm, {
+    u: u,
+    onClose: () => setAsk(null),
+    onConfirm: () => say(u.name.split(" ")[0] + " will be deleted in 24 hours")
+  }) : null, ask === "override" ? /*#__PURE__*/React.createElement(AConfirm, {
+    title: "Override a limit for " + u.name.split(" ")[0],
+    confirmLabel: "Save override",
+    onClose: () => setAsk(null),
+    onConfirm: () => say("Override saved"),
+    body: "Replaces the cap for this account only, until you clear it."
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: "var(--space-4)",
+      marginTop: "var(--space-5)"
+    }
+  }, /*#__PURE__*/React.createElement(AField, {
+    label: "Cap",
+    value: "Turns",
+    onChange: () => {},
+    width: 180
+  }), /*#__PURE__*/React.createElement(AField, {
+    label: "Per 24 hours",
+    value: "200",
+    onChange: () => {},
+    width: 140
+  })), /*#__PURE__*/React.createElement(ADiff, {
+    rows: [["Turns, per 24 hours", "100", "200"]]
+  })) : null);
+}
+function HitsTable({
+  rows
+}) {
+  const cols = [{
+    label: "Day",
+    w: 80
+  }, {
+    label: "Cap"
+  }, {
+    label: "Whose",
+    w: 160
+  }, {
+    label: "Times",
+    w: 70,
+    right: true
+  }];
+  return /*#__PURE__*/React.createElement(ATable, {
+    cols: cols
+  }, rows.map((h, i) => /*#__PURE__*/React.createElement(ARow, {
+    key: i,
+    cols: cols,
+    last: i === rows.length - 1,
+    cells: [/*#__PURE__*/React.createElement(AQuiet, null, h.day), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 500
+      }
+    }, h.cap), /*#__PURE__*/React.createElement(AQuiet, null, h.whose), /*#__PURE__*/React.createElement(AMono, null, h.n)]
+  })));
 }
 
-/* 5 · Staff. Who can get in here. Two roles, and the only difference between them is money:
-   support does the day job, an owner can also see costs and change limits. Every guard is
-   the same one, stated once: there has to be an owner, and you cannot edit yourself out. */
+/* A deleted account. Says what happened and nothing about who it was. */
+function DeletedPage({
+  back,
+  role
+}) {
+  const cols = [{
+    label: "When",
+    w: 150
+  }, {
+    label: "Who",
+    w: 150
+  }, {
+    label: "What"
+  }];
+  const rows = [["12 Sep, 09:14", "Hana Ito", "Marked for deletion"], ["13 Sep, 09:14", "offload", "Destroyed"]];
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(APaneHead, {
+    back: "People",
+    onBack: back,
+    title: "Deleted account",
+    sub: "This account was deleted on 12 September 2026."
+  }), /*#__PURE__*/React.createElement(ABody, null, role === "owner" ? /*#__PURE__*/React.createElement(ATable, {
+    cols: cols
+  }, rows.map((r, i) => /*#__PURE__*/React.createElement(ARow, {
+    key: i,
+    cols: cols,
+    last: i === rows.length - 1,
+    cells: [/*#__PURE__*/React.createElement(AQuiet, null, r[0]), /*#__PURE__*/React.createElement(AQuiet, null, r[1]), /*#__PURE__*/React.createElement("span", null, r[2])]
+  }))) : null));
+}
+
+/* Staff. Any address that has signed in once; no name field; nothing is emailed to them. */
 function StaffPage({
   say
 }) {
@@ -6825,7 +7950,6 @@ function StaffPage({
   const [ask, setAsk] = React.useState(null);
   const [adding, setAdding] = React.useState(false);
   const [form, setForm] = React.useState({
-    name: "",
     email: "",
     role: "Support"
   });
@@ -6848,10 +7972,6 @@ function StaffPage({
     right: true
   }];
   function setRole(s, role) {
-    if (s.you) {
-      say("Ask the other owner to change your role");
-      return;
-    }
     if (s.role === "Owner" && role === "Support" && owners < 2) {
       say("Keep at least one owner");
       return;
@@ -6860,38 +7980,12 @@ function StaffPage({
       ...x,
       role
     } : x));
-    say(s.you ? "You are now " + role.toLowerCase() : s.name.split(" ")[0] + " is now " + role.toLowerCase());
-  }
-  function add() {
-    const email = form.email.trim();
-    if (!email || email.indexOf("@") < 1) {
-      say("That email does not look right");
-      return;
-    }
-    if (staff.some(s => s.email === email)) {
-      say("They are already staff");
-      return;
-    }
-    setStaff(v => v.concat({
-      id: "a" + Date.now(),
-      name: form.name.trim() || email.split("@")[0],
-      email,
-      role: form.role,
-      added: AD.today.replace("Tue ", ""),
-      active: "never"
-    }));
-    setAdding(false);
-    setForm({
-      name: "",
-      email: "",
-      role: "Support"
-    });
-    say("Added, and told them by email");
+    say(s.name.split(" ")[0] + " is now " + role.toLowerCase());
   }
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(APaneHead, {
     title: "Staff",
-    sub: staff.length + " people can open this panel · " + owners + " owner" + (owners === 1 ? "" : "s"),
-    tools: /*#__PURE__*/React.createElement(Button, {
+    sub: staff.length + " people can open this panel · " + owners + " owners",
+    tools: /*#__PURE__*/React.createElement(PButton, {
       variant: "primary",
       size: "sm",
       icon: "plus",
@@ -6918,59 +8012,14 @@ function StaffPage({
         fontSize: 12.5,
         marginTop: 2
       }
-    }, s.email))), s.you ? /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 8
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        height: 28,
-        padding: "0 11px",
-        borderRadius: "var(--radius-pill)",
-        display: "inline-flex",
-        alignItems: "center",
-        background: "var(--ink-950)",
-        color: "var(--text-inverse)",
-        font: "var(--weight-medium) 12.5px/1 var(--font-core)"
-      }
-    }, s.role), /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12
-      }
-    }, "fixed"))) : /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: "flex",
-        gap: 6
-      }
-    }, ["Owner", "Support"].map(r => {
-      const on = s.role === r;
-      return /*#__PURE__*/React.createElement("button", {
-        key: r,
-        type: "button",
-        onClick: () => on ? null : setRole(s, r),
-        style: {
-          height: 28,
-          padding: "0 11px",
-          borderRadius: "var(--radius-pill)",
-          cursor: on ? "default" : "pointer",
-          border: "1px solid " + (on ? "var(--ink-950)" : "var(--border-hairline)"),
-          background: on ? "var(--ink-950)" : "transparent",
-          color: on ? "var(--text-inverse)" : "var(--text-secondary)",
-          font: "var(--weight-medium) 12.5px/1 var(--font-core)"
-        }
-      }, r);
-    })), /*#__PURE__*/React.createElement(AQuiet, null, s.added), /*#__PURE__*/React.createElement(AQuiet, null, s.active), s.you ? /*#__PURE__*/React.createElement(AQuiet, null, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12.5
-      }
-    }, "you cannot remove yourself")) : /*#__PURE__*/React.createElement(ADanger, {
+    }, s.email))), s.you ? /*#__PURE__*/React.createElement(AQuiet, null, s.role, ", fixed") : /*#__PURE__*/React.createElement(PSeg, {
+      options: ["Owner", "Support"],
+      value: s.role,
+      onChange: r => setRole(s, r)
+    }), /*#__PURE__*/React.createElement(AQuiet, null, s.added), /*#__PURE__*/React.createElement(AQuiet, null, s.active), s.you ? null : /*#__PURE__*/React.createElement(ADanger, {
       onClick: () => setAsk(s)
     }, "Remove")]
-  }))), /*#__PURE__*/React.createElement(ASection, {
-    note: "the difference is money"
-  }, "What the two roles can do"), /*#__PURE__*/React.createElement(ATable, {
+  }))), /*#__PURE__*/React.createElement(ASection, null, "What the two roles can do"), /*#__PURE__*/React.createElement(ATable, {
     cols: [{
       label: "Role",
       w: 120
@@ -6988,69 +8037,39 @@ function StaffPage({
         fontWeight: 500
       }
     }, r.name), /*#__PURE__*/React.createElement(AQuiet, null, r.can)]
-  }))), /*#__PURE__*/React.createElement(ASection, null, "Rules"), /*#__PURE__*/React.createElement("ul", {
-    style: {
-      margin: 0,
-      padding: 0,
-      listStyle: "none",
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      maxWidth: "78ch"
-    }
-  }, ["Staff sign in with Apple or Google on an offload.app address, like everyone else. Adding someone here does not create a password.", "There is always at least one owner. The last one cannot be demoted or removed.", "You cannot remove or demote yourself: your own role is fixed here and the remove is not offered. Ask the other owner.", "Removing someone signs them out of this panel immediately. Their own offload account, if they have one, is untouched.", "Support never sees Costs or Limits: those two pages are not in their nav at all, rather than shown and refused."].map(t => /*#__PURE__*/React.createElement("li", {
-    key: t,
-    style: {
-      display: "flex",
-      gap: 10,
-      font: "var(--text-body-sm-role)",
-      lineHeight: 1.55,
-      color: "var(--text-secondary)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--text-tertiary)"
-    }
-  }, "\xB7"), t)))), adding ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    onClick: () => setAdding(false),
-    style: {
-      position: "absolute",
-      inset: 0,
-      zIndex: 40,
-      background: "var(--surface-scrim)"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      left: "50%",
-      top: "50%",
-      transform: "translate(-50%,-50%)",
-      width: 460,
-      zIndex: 41,
-      boxSizing: "border-box",
-      padding: "var(--space-7)",
-      borderRadius: "var(--radius-xl)",
-      background: "var(--surface-raised)",
-      boxShadow: "var(--shadow-sheet)"
+  }))), /*#__PURE__*/React.createElement(ASection, null, "Rules"), /*#__PURE__*/React.createElement(ANotes, {
+    items: ["Staff is a role on an account. The address must belong to an account that has signed in at least once.", "Nothing is emailed to the person added. Every owner is told.", "There is always at least one owner. You cannot remove or demote yourself.", "A page a role cannot open is not in its nav, and answers as not found."]
+  })), adding ? /*#__PURE__*/React.createElement(AConfirm, {
+    title: "Add someone to staff",
+    confirmLabel: "Add to staff",
+    onClose: () => setAdding(false),
+    body: "Any address that has signed in to offload once.",
+    onConfirm: () => {
+      const e = form.email.trim();
+      if (e.indexOf("@") < 1) {
+        say("That address does not look right");
+        return;
+      }
+      setStaff(v => v.concat({
+        id: "a" + Date.now(),
+        name: e.split("@")[0],
+        email: e,
+        role: form.role,
+        added: "today",
+        active: "never"
+      }));
+      setForm({
+        email: "",
+        role: "Support"
+      });
+      say("Added. Every owner has been told");
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      font: "var(--weight-semibold) 21px/1.2 var(--font-core)",
-      letterSpacing: "-0.012em"
-    }
-  }, "Add someone to staff"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      font: "var(--text-body-role)",
-      color: "var(--text-secondary)",
-      marginTop: "var(--space-3)",
-      lineHeight: 1.5
-    }
-  }, "They sign in with the provider on this address. We email them a note saying they have access."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: "var(--space-4)",
-      marginTop: "var(--space-6)"
+      marginTop: "var(--space-5)"
     }
   }, /*#__PURE__*/React.createElement(AField, {
     label: "Email",
@@ -7059,17 +8078,7 @@ function StaffPage({
       ...f,
       email: v
     })),
-    width: "100%",
-    hint: "An offload.app address"
-  }), /*#__PURE__*/React.createElement(AField, {
-    label: "Name",
-    value: form.name,
-    onChange: v => setForm(f => ({
-      ...f,
-      name: v
-    })),
-    width: "100%",
-    hint: "Optional, we use the address if you leave it"
+    width: "100%"
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       display: "flex",
@@ -7081,34 +8090,19 @@ function StaffPage({
       font: "var(--text-label-role)",
       color: "var(--text-secondary)"
     }
-  }, "Role"), /*#__PURE__*/React.createElement(SegmentedControl, {
+  }, "Role"), /*#__PURE__*/React.createElement(PSeg, {
     options: ["Support", "Owner"],
     value: form.role,
     onChange: v => setForm(f => ({
       ...f,
       role: v
     }))
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "flex-end",
-      gap: "var(--space-3)",
-      marginTop: "var(--space-6)"
-    }
-  }, /*#__PURE__*/React.createElement(Button, {
-    variant: "ghost",
-    size: "md",
-    onClick: () => setAdding(false)
-  }, "Cancel"), /*#__PURE__*/React.createElement(Button, {
-    variant: "primary",
-    size: "md",
-    onClick: add
-  }, "Add to staff")))) : null, ask ? /*#__PURE__*/React.createElement(AConfirm, {
+  })))) : null, ask ? /*#__PURE__*/React.createElement(AConfirm, {
     danger: true,
     title: "Remove " + ask.name + "?",
     confirmLabel: "Remove",
-    body: "They lose this panel straight away. Their own offload account is untouched, and nothing they did here is undone.",
     onClose: () => setAsk(null),
+    body: "They lose this panel straight away. Their own offload account is untouched.",
     onConfirm: () => {
       if (ask.role === "Owner" && owners < 2) {
         say("Keep at least one owner");
@@ -7119,23 +8113,81 @@ function StaffPage({
     }
   }) : null);
 }
-function AdminApp() {
-  const [page, setPage] = React.useState("waitlist");
+Object.assign(window, {
+  WaitlistPage,
+  PeoplePage,
+  PersonPage,
+  DeletedPage,
+  StaffPage,
+  HitsTable,
+  money,
+  money0
+});
+})(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/admin_web/APeople.jsx", error: String((e && e.message) || e) }); }
+
+// ui_kits/admin_web/AdminApp.jsx
+try { (() => {
+const OFFLOAD_DS_A = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
+const {
+  Toast
+} = OFFLOAD_DS_A;
+
+/* The shell. Pinned light whatever the system says. The toast is four seconds and never
+   carries Undo: anything that cannot be quietly reversed asks first (034). */
+function AdminApp({
+  role: initialRole = "owner"
+}) {
+  const [role, setRole] = React.useState(initialRole);
+  const [page, setPage] = React.useState(initialRole === "owner" ? "health" : "waitlist");
+  const [person, setPerson] = React.useState(null);
   const [toast, setToast] = React.useState(null);
   const timer = React.useRef(null);
   function say(message) {
     clearTimeout(timer.current);
     setToast(message);
-    timer.current = setTimeout(() => setToast(null), 8000);
+    timer.current = setTimeout(() => setToast(null), 4000);
   }
+  const go = p => {
+    setPage(p);
+    setToast(null);
+  };
+  const back = () => go("people");
   const body = page === "waitlist" ? /*#__PURE__*/React.createElement(WaitlistPage, {
     say: say
   }) : page === "people" ? /*#__PURE__*/React.createElement(PeoplePage, {
+    say: say,
+    role: role,
+    open: u => {
+      setPerson(u);
+      go("person");
+    }
+  }) : page === "person" ? /*#__PURE__*/React.createElement(PersonPage, {
+    u: person || AD.users[0],
+    say: say,
+    back: back,
+    role: role
+  }) : page === "deleted" ? /*#__PURE__*/React.createElement(DeletedPage, {
+    back: back,
+    role: role
+  }) : page === "health" ? /*#__PURE__*/React.createElement(HealthPage, {
+    say: say
+  }) : page === "costs" ? /*#__PURE__*/React.createElement(CostsPage, null) : page === "limits" ? /*#__PURE__*/React.createElement(LimitsPage, {
     say: say
   }) : page === "staff" ? /*#__PURE__*/React.createElement(StaffPage, {
     say: say
-  }) : page === "costs" ? /*#__PURE__*/React.createElement(CostsPage, null) : /*#__PURE__*/React.createElement(LimitsPage, {
-    say: say
+  }) : /*#__PURE__*/React.createElement(AuditPage, null);
+  React.useEffect(() => {
+    window.__admin = {
+      go,
+      setRole: r => {
+        setRole(r);
+        go(r === "owner" ? "health" : "waitlist");
+      },
+      open: u => {
+        setPerson(u);
+        go("person");
+      }
+    };
   });
   return /*#__PURE__*/React.createElement("div", {
     "data-theme": "light",
@@ -7153,10 +8205,8 @@ function AdminApp() {
     }
   }, /*#__PURE__*/React.createElement(ASideNav, {
     page: page,
-    onPage: p => {
-      setPage(p);
-      setToast(null);
-    }
+    onPage: go,
+    role: role
   }), /*#__PURE__*/React.createElement("div", {
     key: page,
     style: {
@@ -7169,11 +8219,8 @@ function AdminApp() {
   }, body), toast ? /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
-      left: 232,
-      right: 0,
+      right: 28,
       bottom: 26,
-      display: "flex",
-      justifyContent: "center",
       zIndex: 30
     }
   }, /*#__PURE__*/React.createElement(Toast, {
@@ -7181,97 +8228,88 @@ function AdminApp() {
   })) : null);
 }
 Object.assign(window, {
-  AdminApp,
-  WaitlistPage,
-  PeoplePage,
-  StaffPage,
-  CostsPage,
-  LimitsPage
+  AdminApp
 });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/admin_web/AdminApp.jsx", error: String((e && e.message) || e) }); }
 
 // ui_kits/admin_web/AdminData.js
 try { (() => {
-/* Mock data for the admin panel. Same people and threads as the app's `data.js` where they
-   overlap, so a support person reading both sees one product. Money is in GBP, tokens are
-   rounded, and every number is invented but plausible for a few thousand accounts. */
+/* Mock data for the admin panel, as built in 034. Same people as the app's `data.js` where they
+   overlap. Money is in dollars to the cent; caps are over the last 24 hours, rolling. */
 window.ADMIN_DATA = {
-  today: "Tue 25 Aug",
+  today: "Sat 3 Oct",
+  me: {
+    email: "hana@offload.app",
+    role: "owner"
+  },
   waitlist: {
     waiting: 1284,
-    invitedThisWeek: 40,
-    accepted: 31,
-    weekly: 40,
+    invitedThisWeek: 25,
+    accepted: 19,
+    batch: 25,
     rows: [{
       id: "w1",
       email: "priya.raman@gmail.com",
-      joined: "24 Aug",
+      joined: "2 Oct",
       source: "offload.app",
       status: "waiting",
       note: ""
     }, {
       id: "w2",
       email: "j.okonkwo@hey.com",
-      joined: "24 Aug",
+      joined: "2 Oct",
       source: "offload.app",
       status: "waiting",
       note: ""
     }, {
       id: "w3",
       email: "m.lindqvist@fastmail.com",
-      joined: "23 Aug",
+      joined: "1 Oct",
       source: "offload.app",
       status: "waiting",
       note: ""
     }, {
       id: "w4",
       email: "tomas@duarte.pt",
-      joined: "23 Aug",
+      joined: "1 Oct",
       source: "shared thread",
       status: "waiting",
       note: "Ana Duarte asked for him"
     }, {
       id: "w5",
       email: "h.mbeki@outlook.com",
-      joined: "22 Aug",
+      joined: "30 Sep",
       source: "offload.app",
       status: "waiting",
       note: ""
     }, {
       id: "w6",
       email: "clara.ferreira@gmail.com",
-      joined: "21 Aug",
+      joined: "29 Sep",
       source: "offload.app",
       status: "invited",
-      note: "invited 22 Aug, not accepted"
+      note: "invited 30 Sep, not accepted"
     }, {
       id: "w7",
       email: "d.whitfield@me.com",
-      joined: "20 Aug",
-      source: "offload.app",
+      joined: "28 Sep",
+      source: "invited by address",
       status: "invited",
-      note: "invited 21 Aug, not accepted"
+      note: "invited 29 Sep, not accepted"
     }, {
       id: "w8",
       email: "s.nakamura@gmail.com",
-      joined: "19 Aug",
+      joined: "27 Sep",
       source: "offload.app",
       status: "accepted",
-      note: "signed in 20 Aug"
+      note: "signed in 28 Sep"
     }, {
       id: "w9",
       email: "noreply@bot-farm.xyz",
-      joined: "18 Aug",
+      joined: "26 Sep",
       source: "offload.app",
       status: "waiting",
       note: "looks automated"
-    }, {
-      id: "w10",
-      email: "r.oyelaran@proton.me",
-      joined: "18 Aug",
-      source: "offload.app",
-      status: "waiting",
-      note: ""
     }]
   },
   users: [{
@@ -7323,7 +8361,8 @@ window.ADMIN_DATA = {
     threads: 6,
     active: "3d ago",
     spend: 3.05,
-    status: "active"
+    status: "deleting",
+    deleteAt: "4 Oct, 14:05"
   }, {
     id: "u6",
     name: "Kit Marlow",
@@ -7364,101 +8403,203 @@ window.ADMIN_DATA = {
     active: "6d ago",
     spend: 2.20,
     status: "active"
-  }, {
-    id: "u10",
-    name: "Marcus Bell",
-    email: "marcus@bell.io",
-    provider: "Google",
-    joined: "29 Jul",
-    threads: 1,
-    active: "3w ago",
-    spend: 0.18,
-    status: "disabled"
   }],
+  person: {
+    caps: [["Spend", "$1.84", "$2.50"], ["Turns", "61", "100"], ["Photos", "12", "40"], ["Photo MB", "38", "200"], ["Voice notes", "4", "30"], ["Voice minutes", "9", "60"], ["Mail", "2", "20"]],
+    has: [["Threads", "31"], ["Rows", "1,412"], ["Notes", "88"], ["Photos", "206"], ["Shared threads", "3"]],
+    spend: [1.1, 2.4, 1.9, 3.2, 2.1, 2.8, 1.6, 2.9, 3.4, 2.2, 1.8, 2.6, 3.1, 2.5],
+    turns: [40, 72, 61, 90, 58, 81, 44, 77, 96, 63, 52, 70, 88, 61],
+    jobs: [{
+      when: "20:41",
+      kind: "turn",
+      code: "",
+      model: "claude-haiku-4-5",
+      tokens: "3.1k",
+      ms: "1.9s",
+      cost: "$0.004",
+      state: "done"
+    }, {
+      when: "20:38",
+      kind: "photo",
+      code: "",
+      model: "claude-sonnet-4-5",
+      tokens: "6.8k",
+      ms: "4.2s",
+      cost: "$0.031",
+      state: "done"
+    }, {
+      when: "19:10",
+      kind: "turn",
+      code: "cap.turns",
+      model: "",
+      tokens: "",
+      ms: "",
+      cost: "",
+      state: "failed"
+    }, {
+      when: "18:02",
+      kind: "mail",
+      code: "",
+      model: "claude-haiku-4-5",
+      tokens: "2.4k",
+      ms: "2.2s",
+      cost: "$0.003",
+      state: "done"
+    }],
+    hits: [{
+      day: "2 Oct",
+      cap: "Turns",
+      whose: "theirs",
+      n: 3
+    }, {
+      day: "28 Sep",
+      cap: "Spend",
+      whose: "theirs",
+      n: 1
+    }]
+  },
   costs: {
-    monthLabel: "1 to 25 August",
+    range: "Last 30 days",
     spend: 1842.60,
     budget: 2500,
     lastMonth: 1613.20,
     perUserAvg: 1.42,
     accounts: 1297,
-    activeAccounts: 892,
-    byJob: [{
+    days: [52, 61, 58, 74, 66, 71, 88, 79, 64, 60, 73, 81, 92, 86, 70, 68, 77, 84, 90, 83, 75, 79, 86, 94, 88, 72, 69, 80, 91, 85],
+    usage: [31, 34, 33, 40, 37, 39, 45, 43, 36, 35, 40, 44, 48, 46, 39, 38, 42, 45, 47, 44, 41, 43, 46, 49, 47, 40, 39, 44, 48, 46],
+    byFeature: [{
       name: "Sorting what people dump",
       spend: 812.40,
-      calls: "1.9M",
-      note: "every dump, one small call"
+      calls: "1.9M"
     }, {
       name: "Answers in the composer",
       spend: 521.10,
-      calls: "148k",
-      note: "the expensive one, long context"
+      calls: "148k"
     }, {
-      name: "Memories",
+      name: "Notes",
       spend: 298.70,
-      calls: "62k",
-      note: "runs nightly per account"
+      calls: "62k"
     }, {
       name: "Standing blurbs on threads",
       spend: 141.30,
-      calls: "39k",
-      note: "rewritten when a thread moves"
+      calls: "39k"
     }, {
       name: "Notification wording",
       spend: 69.10,
-      calls: "210k",
-      note: "cheapest model"
+      calls: "210k"
     }],
-    days: [52, 61, 58, 74, 66, 71, 88, 79, 64, 60, 73, 81, 92, 86, 70, 68, 77, 84, 90, 83, 75, 79, 86, 94, 88],
-    topSpenders: [{
-      id: "u8",
-      name: "Owen Pryce",
-      spend: 38.17,
-      note: "31 threads, dumps all day"
+    byModel: [{
+      name: "claude-haiku-4-5",
+      calls: "2.2M",
+      tokens: "4.1B",
+      spend: 1021.30
     }, {
-      id: "u4",
-      name: "Jo Bailey",
-      spend: 11.40,
-      note: "21 threads"
+      name: "claude-sonnet-4-5",
+      calls: "171k",
+      tokens: "0.9B",
+      spend: 788.40
     }, {
-      id: "u7",
-      name: "Bea Lindqvist",
-      spend: 9.88,
-      note: "14 threads"
+      name: "whisper-1",
+      calls: "38k",
+      tokens: "6.1k min",
+      spend: 32.90
+    }],
+    byVendor: [{
+      name: "Anthropic",
+      metered: 1809.70,
+      billed: 1812.04,
+      how: "billed"
     }, {
-      id: "u1",
-      name: "Ana Duarte",
-      spend: 4.82,
-      note: "12 threads, 3 shared"
+      name: "OpenAI",
+      metered: 32.90,
+      billed: 32.90,
+      how: "billed"
+    }, {
+      name: "Google Maps",
+      metered: null,
+      billed: 200.00,
+      how: "typed"
+    }, {
+      name: "Resend",
+      metered: null,
+      billed: 20.00,
+      how: "typed"
     }]
   },
   limits: {
-    platformDaily: 120,
-    platformUsed: 94.20,
-    userDaily: 2.50,
-    userMonthly: 25,
-    atCap: "Slow down",
-    alertAt: 80,
-    alertWho: ["ops@offload.app", "hana@offload.app"],
-    breaches: [{
-      who: "Owen Pryce",
-      when: "24 Aug",
-      what: "hit the daily user cap at 19:10",
-      action: "slowed for 3 hours"
+    person: [["Spend", "2.50", "$"], ["Turns", "100", ""], ["Photos", "40", ""], ["Photo megabytes", "200", "MB"], ["Voice notes", "30", ""], ["Voice minutes", "60", "min"], ["Mail", "20", ""]],
+    platform: [["Spend, everyone", "120.00", "$"]],
+    month: [["Monthly budget", "2500", "$"], ["Google Maps", "200.00", "$"], ["Resend", "20.00", "$"]],
+    batch: "25",
+    switches: [["Answers", true], ["Photos", true], ["Voice notes", true], ["Mail in", true], ["Reaching the web", false]],
+    hits: [{
+      day: "2 Oct",
+      cap: "Turns",
+      whose: "Owen Pryce",
+      n: 3
     }, {
-      who: "Platform",
-      when: "18 Aug",
-      what: "reached 80% of the daily cap",
-      action: "alerted ops"
+      day: "28 Sep",
+      cap: "Spend",
+      whose: "Owen Pryce",
+      n: 1
+    }, {
+      day: "18 Sep",
+      cap: "Spend, everyone",
+      whose: "the platform",
+      n: 1
     }]
   },
+  health: {
+    services: [["API", "up", "99.98%"], ["Workers", "up", "99.95%"], ["Database", "up", "100%"], ["Mail in", "late", "99.41%"]],
+    queue: {
+      waiting: 14,
+      running: 6,
+      oldest: "38s"
+    },
+    stuck: [{
+      id: "j91",
+      kind: "mail",
+      who: "Jo Bailey",
+      since: "19:02",
+      state: "stuck"
+    }, {
+      id: "j77",
+      kind: "photo",
+      who: "Bea Lindqvist",
+      since: "yesterday",
+      state: "dead"
+    }],
+    scheduled: [["Morning message", "07:00 local", "done"], ["Evening message", "19:30 local", "done"], ["Calendar sync", "every 10 min", "running"], ["Backup", "03:00 UTC", "done"]]
+  },
+  audit: [{
+    when: "20:12",
+    who: "Hana Ito",
+    what: "Changed Turns from 80 to 100",
+    about: "Limits"
+  }, {
+    when: "14:05",
+    who: "Hana Ito",
+    what: "Marked for deletion",
+    about: "Nadia Haddad"
+  }, {
+    when: "11:30",
+    who: "Ruth Adeyemi",
+    what: "Invited 25 from the list",
+    about: "Waitlist"
+  }, {
+    when: "Fri",
+    who: "Femi Balogun",
+    what: "Disabled",
+    about: "Kit Marlow"
+  }],
   admins: [{
     id: "a1",
     name: "Hana Ito",
     email: "hana@offload.app",
     role: "Owner",
     added: "4 Mar",
-    active: "20m ago"
+    active: "now",
+    you: true
   }, {
     id: "a2",
     name: "Ruth Adeyemi",
@@ -7475,21 +8616,18 @@ window.ADMIN_DATA = {
     active: "3d ago"
   }, {
     id: "a4",
-    name: "You",
-    email: "admin@offload.app",
+    name: "Dev Mistry",
+    email: "dev@offload.app",
     role: "Owner",
     added: "4 Mar",
-    active: "now",
-    you: true
+    active: "2h ago"
   }],
-  /* Two roles, and the difference is money. Support does the day job; an owner can also see
-     what the platform costs and change what it is allowed to spend. */
   roles: [{
-    name: "Owner",
-    can: "Everything, including costs, limits and who else is staff"
-  }, {
     name: "Support",
-    can: "Waitlist and people. Cannot see costs or change limits"
+    can: "Waitlist, People and a person's page"
+  }, {
+    name: "Owner",
+    can: "Also Health, Costs, Limits, Staff and Audit; the only role sent Delete, overrides and a deleted account's audit entries"
   }]
 };
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/admin_web/AdminData.js", error: String((e && e.message) || e) }); }

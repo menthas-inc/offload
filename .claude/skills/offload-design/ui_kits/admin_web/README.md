@@ -1,62 +1,63 @@
 # offload admin
 
-The staff panel. A handful of people use it: two owners and support. It is built from the
-same tokens, type and hairlines as the app, with one deliberate difference.
+The staff panel, redrawn on 3 October 2026 to match what 034 built (`docs/specs/034-admin/`).
+Same tokens, type and hairlines as the app, with three deliberate differences.
 
-**The nav is moss, not ink.** `--moss-700` with paper text, and an `admin` tag beside the
-wordmark, so nobody doing support with both windows open mistakes one for the other. It is
-the only colour change: everything to the right of the nav is the app's own palette.
+- **The nav is moss, not ink**, with an `admin` tag beside the wordmark, so nobody doing
+  support with both windows open mistakes one for the other.
+- **Pinned light**, whatever the system says. It is read beside spreadsheets and vendor
+  dashboards, and one theme halves what has to be checked.
+- **No Undo.** The toast is four seconds, bottom right, and never carries one. Anything that
+  cannot be quietly reversed asks first in the confirm dialog, which holds the keyboard.
 
-Open `index.html`. Nothing is wired to a backend; actions change local state and raise the
-app's own toast.
+Open `index.html`. Nothing is wired to a backend.
 
-## Pages
+## Roles and pages
+
+Two blocks in the nav, a gap and no labels. **Support**: Waitlist, People and a person's page.
+**Owner** also: Health (where an owner opens, with a count only when something is wrong),
+Costs, Limits, Staff and Audit, and is the only role sent Delete, overrides and a deleted
+account's audit entries. A page a role cannot open is not in the nav and answers as not found.
 
 | Page | What it does |
 | --- | --- |
-| Waitlist | Who is waiting, who has been invited and not signed in, who came from a shared thread. Invite one, invite a selection, or invite the weekly batch. |
-| People | Every account, searchable, filterable by state. Disable and enable inline; delete asks for the email typed back. |
-| Staff | Who can open this panel. Add someone by email, switch a role in place, remove with a confirmation. |
-| Costs | Spend for the month against budget, on-pace figure, daily bars, spend by the job offload is doing, and the heaviest accounts. |
-| Limits | The platform daily cap, the per-person daily and monthly caps, the weekly invite batch, the warning threshold, what happens when a cap is reached, and what has been hit lately. |
-
-## Staff and roles
-
-Two roles, and the only difference between them is money: **Support** gets Waitlist and
-People, **Owner** also gets Costs, Limits and Staff. Support does not see those pages at all
-rather than seeing them and being refused.
-
-Four guards, each stated on the page: staff sign in with Apple or Google on an offload.app
-address so adding someone creates no password; there is always at least one owner, and the
-last one cannot be demoted or removed; you cannot remove or demote yourself; and removing
-someone ends their access here without touching their own offload account.
+| Health | Services with uptime, the queue, stuck and dead jobs with Retry and Dismiss, scheduled jobs each with its own page. |
+| Waitlist | Waiting, invited this week, signed up, weekly batch (25). Invite one, the batch, a selection (the floating pill, the only place it appears), or an address not on the list. Remove, behind the dialog. |
+| People | Rows open a person's page. Joined column; Sort by joined, last active or spend, saying when it is only the top 200. Disable inline; Delete for owners. |
+| A person | Today against each cap (the last 24 hours, rolling), Override a limit (owner), cost and activity plots, what they have, what happened (jobs), limits hit. Nothing the person wrote. |
+| Deleted account | *Deleted account*, one line with the date, and for an owner its audit entries. No name, no address. |
+| Costs | Stats, cost per day and usage per day, by feature (*Notes*, not *Memories*), by model, by vendor (metered beside billed or typed). Export CSV, no icon. |
+| Limits | Grouped: per person in any 24 hours, the platform, the month (budget and subscriptions), the waitlist, switches. Save shows each change old to new; the other button is Cancel. |
+| Staff | Any address that has signed in once, a role, no name field, nothing emailed to them; every owner is told. |
+| Audit | Every staff write, newest first. |
 
 ## Shape
 
-Sidebar plus one pane, no pane stack: admin work is one table at a time, and the app's
-stack exists for following a thought, which is not what this is. Tables use hairlines only,
-no zebra striping, numbers right-aligned and tabular.
-
-Two irreversible actions live here and both ask first. Disable is reversible and says so.
-Delete names what goes with it and needs the account's email typed, because someone doing
-ten in a row will otherwise delete the eleventh by muscle memory.
-
-Costs are grouped by the job being paid for (sorting, answers, memories, blurbs,
-notification wording) rather than by model, because the question is always which feature is
-expensive. The daily bars turn blue on days over £100, which is the same "this needs you"
-blue the app uses.
+- **Money is in dollars**, to the cent.
+- **A cap means stop.** The next turn is refused and what was dumped is safe. No warning
+  threshold, no choice of behaviour; alerts go to every owner.
+- **Tables** use hairlines only, no zebra, numbers right and tabular. A row has a least
+  width, its fixed columns plus 140px per open one; below it the table scrolls sideways.
+- **Plots** are one series in `--text-primary` on `--surface-page`, `--plot-height` tall,
+  with `--surface-attention` only for the state that needs somebody. Small multiples, two
+  across. A range of 24 hours, 7, 30 or 90 days, kept in the address.
+- **Clay is at rest** on a destructive row action: an outline pill in `--text-danger` on a
+  `--border-danger` ring. The confirm button of a destructive dialog is `--surface-danger`,
+  the one solid clay.
+- **Delete** is held for 24 hours: the row stays, its pill reads *deleting*, the line under the
+  name says when, and *Cancel deletion* leaves the account disabled.
 
 ## Files
 
 | File | What is in it |
 | --- | --- |
 | `index.html` | Loads the bundle, the mock data, then the kit |
-| `AdminData.js` | Mock waitlist, accounts, costs and limits. Same people as the app's `data.js` where they overlap |
-| `A.jsx` | The admin vocabulary: `ASideNav`, `APaneHead`, `ATable`, `ARow`, `AStat`, `ABar`, `AStatus`, `AField`, `ASearch`, `AConfirm` |
-| `AdminApp.jsx` | The four pages and the shell |
+| `AdminData.js` | Mock data, in dollars |
+| `A.jsx` | The vocabulary: `ASideNav`, `APaneHead`, `ATable`, `ARow` (with `href`), `AStat`, `APlot`, `ARange`, `ABar`, `AStatus`, `AField` (with an affix), `ASwitchRow`, `ADiff`, `AConfirm`, `ADanger` |
+| `APeople.jsx` | Waitlist, People, a person, a deleted account, Staff |
+| `AOps.jsx` | Health, Costs, Limits, Audit |
+| `AdminApp.jsx` | The shell and the toast |
 
 ## Not designed
 
-No audit log, no impersonation, no refunds or billing, no per-account cap override, no admin
-roles beyond the two named in the data, and no email composer: support writes to people from
-their own inbox.
+No impersonation, no refunds or billing, no email composer, no dark theme.

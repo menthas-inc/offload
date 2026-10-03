@@ -1,0 +1,159 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Telling threads apart</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;background:var(--surface-sunken);color:var(--text-primary);font:var(--text-body-role);padding:24px 40px 120px}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+.wrap{max-width:1480px;margin:0 auto}
+h1.pt{margin:18px 0 8px;font:var(--weight-semibold) 30px/1.15 var(--font-core);letter-spacing:-.02em}
+.lede{max-width:820px;color:var(--text-secondary);font:var(--weight-regular) 15px/1.6 var(--font-core);margin:0 0 8px;text-wrap:pretty}.lede b{color:var(--text-primary);font-weight:500}
+.xs{display:flex;align-items:baseline;gap:12px;margin:64px 0 6px;padding-bottom:10px;border-bottom:1px solid var(--ink-950)}.xs h2{margin:0;font:var(--weight-semibold) 21px/1.2 var(--font-core)}.xs u{text-decoration:none;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);letter-spacing:.04em}
+.xp{max-width:860px;color:var(--text-secondary);font:var(--weight-regular) 14px/1.6 var(--font-core);margin:12px 0 22px;text-wrap:pretty}.xp b{color:var(--text-primary);font-weight:500}
+.notes{max-width:880px;margin:14px 0 0;padding-left:18px;font:var(--weight-regular) 14px/1.6 var(--font-core);color:var(--text-secondary)}.notes li{margin-bottom:6px}.notes b{color:var(--text-primary);font-weight:500}
+.grid{display:flex;flex-wrap:wrap;gap:28px 22px;align-items:flex-start}
+.cell{display:flex;flex-direction:column;gap:10px}
+.lab{display:flex;align-items:center;gap:8px;font:var(--weight-medium) 13px/1 var(--font-core)}.lab span{color:var(--text-tertiary);font-weight:400}
+.rec{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;background:var(--surface-accent-soft);color:var(--moss-700);font:var(--weight-medium) 11px/1 var(--font-core)}
+.plat{position:sticky;top:12px;z-index:1000;display:inline-flex;gap:2px;padding:3px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline),var(--shadow-2)}
+.plat button{height:32px;padding:0 14px;border-radius:99px;border:0;background:transparent;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary);cursor:pointer}.plat button.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.dir{display:flex;align-items:baseline;gap:12px;margin:48px 0 4px}.dir h3{margin:0;font:var(--weight-semibold) 19px/1.2 var(--font-core)}.dir .lic{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-secondary);background:var(--surface-raised);border-radius:99px;padding:5px 9px;box-shadow:inset 0 0 0 1px var(--border-hairline)}
+table.mx{border-collapse:collapse;max-width:1180px;width:100%;font:var(--weight-regular) 13.5px/1.5 var(--font-core)}
+table.mx th,table.mx td{text-align:left;padding:10px 18px 10px 0;border-bottom:1px solid var(--border-hairline);vertical-align:top}table.mx th{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary)}table.mx td{color:var(--text-secondary)}table.mx td b{color:var(--text-primary);font-weight:500}
+.ok{color:var(--moss-700);font-weight:500}.no{color:var(--text-on-attention);font-weight:500}
+.g{display:inline-block;width:18px;height:18px;flex:0 0 auto;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+/* marks */
+.mk{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;border-radius:calc(var(--k)*.28);background:var(--surface-fill);color:var(--icon-on-well)}
+.mk .g{width:calc(var(--k)*.48);height:calc(var(--k)*.48)}
+.mk.tint{background:color-mix(in oklch,var(--h) 14%,var(--surface-raised));color:var(--h)}
+.mk.em{background:var(--surface-fill)}
+.emo{width:62%;height:62%;display:block}.emo.t{display:flex;align-items:center;justify-content:center;font-size:calc(var(--k,40px)*.5);line-height:1}
+/* frame */
+.ph{width:390px;height:780px;zoom:.66;flex:0 0 auto;border-radius:24px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);display:flex;flex-direction:column;position:relative;font-family:var(--font-core);--gut:16px}
+.stb{display:flex;justify-content:space-between;padding:16px 30px 6px;font:var(--weight-semibold) 15px/1 var(--font-core);flex:0 0 auto}
+.hb,.gb{flex:0 0 auto;display:flex;justify-content:center;padding:8px 0 9px}.hb i{width:134px;height:5px;border-radius:99px;background:var(--ink-950)}.gb i{width:108px;height:4px;border-radius:99px;background:var(--ink-400)}
+.lt{display:flex;align-items:center;gap:6px;padding:10px var(--gut) 8px}.lt h1{flex:1;margin:0;font:var(--weight-semibold) 30px/1.1 var(--font-core);letter-spacing:-.02em}
+.ib{width:38px;height:38px;border-radius:99px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}.ib .g{width:20px;height:20px}
+.body{flex:1;min-height:0;overflow:hidden;padding:0 var(--gut)}
+.rw{display:flex;align-items:center;gap:12px;padding:9px 2px;position:relative}.rw+.rw:before{content:"";position:absolute;top:0;left:54px;right:0;height:1px;background:var(--border-hairline)}
+.tx{flex:1;min-width:0}.tx>b{display:block;font:var(--weight-medium) 16px/1.25 var(--font-core)}.tx>s{display:block;text-decoration:none;font:var(--weight-regular) 13px/1.35 var(--font-core);color:var(--text-secondary);margin-top:2px}
+.shd{color:var(--text-tertiary);display:flex}.shd .g{width:16px;height:16px}
+.tabs{display:flex;justify-content:space-around;padding:8px 0 2px;border-top:1px solid var(--border-hairline);background:var(--surface-raised)}.tabs span{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-tertiary);font:var(--weight-medium) 11px/1 var(--font-core)}.tabs span .g{width:22px;height:22px}.tabs span.on{color:var(--text-primary)}.tabs b{font-weight:500}
+.ab{display:flex;align-items:center;gap:8px;height:48px;padding:0 10px;flex:0 0 auto}.bk{width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}.bk .g{width:22px;height:22px}
+.abt{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;min-width:0}.abt b{font:var(--weight-semibold) 17px/1 var(--font-core);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hd{display:flex;align-items:center;gap:14px;padding:8px 2px 6px}.hd h2{margin:0;font:var(--weight-semibold) 26px/1.15 var(--font-core);letter-spacing:-.02em}.hd p{margin:3px 0 0;font:var(--weight-regular) 14px/1.3 var(--font-core);color:var(--text-secondary)}
+.sec{margin:20px 2px 6px;font:var(--weight-semibold) 15px/1 var(--font-core)}
+.it{display:flex;align-items:center;gap:12px;padding:11px 2px;font:var(--weight-regular) 15.5px/1.3 var(--font-core);border-bottom:1px solid var(--border-hairline)}.it>.g{width:18px;height:18px;color:var(--icon-on-well)}
+.ck{width:20px;height:20px;border-radius:6px;box-shadow:inset 0 0 0 1.5px var(--border-strong);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-style:normal}.ck.on{background:var(--ink-950);color:var(--paper);box-shadow:none}.ck .g{width:13px;height:13px}
+.cmp{margin:8px var(--gut) 6px;height:48px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-strong);display:flex;align-items:center;padding:0 18px;font:var(--weight-regular) 16px/1 var(--font-core);color:var(--text-tertiary)}
+.trw{display:flex;gap:12px;padding:12px 2px;border-bottom:1px solid var(--border-hairline)}.trw .ck{margin-top:1px}
+.mks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tp{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px 0 7px;border-radius:99px;background:var(--surface-accent-soft);color:var(--moss-700);font:var(--weight-medium) 12.5px/1 var(--font-core);white-space:nowrap}.tp .g{width:14px;height:14px}.tp .emo{width:15px;height:15px}.tp .emo.t{font-size:13px;--k:24px}
+.dotc{width:9px;height:9px;border-radius:99px;background:var(--h)}
+.dc{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px 0 7px;border-radius:99px;background:var(--surface-fill);color:var(--text-secondary);font:var(--weight-medium) 12.5px/1 var(--font-core)}.dc .g{width:13px;height:13px}
+.ans{margin-top:18px;padding:14px;border-radius:16px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline)}.ans .q{font:var(--weight-medium) 14px/1.35 var(--font-core);color:var(--text-secondary)}.ans .a{margin-top:8px;font:var(--weight-regular) 15.5px/1.7 var(--font-core)}.ans .a .tp{vertical-align:1px}
+/* picker */
+.sheetph .dim{position:absolute;inset:0;background:rgb(0 0 0 / .32)}
+.sheet{position:absolute;left:0;right:0;bottom:0;top:110px;background:var(--surface-raised);border-radius:22px 22px 0 0;padding:8px 18px 24px;overflow:hidden}
+.grab{display:block;width:38px;height:5px;border-radius:99px;background:var(--ink-200);margin:0 auto 10px}
+.shh{display:flex;align-items:center;justify-content:space-between}.shh b{font:var(--weight-semibold) 17px/1 var(--font-core)}.done{font:var(--weight-semibold) 16px/1 var(--font-core);color:var(--text-accent)}
+.prev{display:flex;align-items:center;gap:14px;margin:18px 0 14px}.prev b{display:block;font:var(--weight-semibold) 18px/1.2 var(--font-core)}.prev s{display:block;text-decoration:none;margin-top:3px;font:var(--weight-regular) 13px/1.3 var(--font-core);color:var(--text-secondary)}
+.fs{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:12px;background:var(--surface-fill);color:var(--text-tertiary);font:var(--weight-regular) 15px/1 var(--font-core)}.fs .g{width:16px;height:16px}
+.pl{margin:16px 2px 8px;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary)}
+.pgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.pk{aspect-ratio:1;border-radius:12px;background:var(--surface-fill);display:flex;align-items:center;justify-content:center;color:var(--icon-on-well);--k:46px}.pk .g{width:22px;height:22px}.pk .emo{width:60%;height:60%}
+.pk.on{box-shadow:inset 0 0 0 2px var(--ink-950);background:var(--surface-raised)}
+.sws{display:flex;justify-content:space-between}.sws i{width:26px;height:26px;border-radius:99px;display:block}.sws i.on{box-shadow:0 0 0 2px var(--surface-raised),0 0 0 4px var(--ink-950)}
+/* Android */
+[data-plat=android] .ph:not(.web){width:412px}
+[data-plat=android] .ph:not(.web) .stb{padding:12px 22px 6px;font:var(--weight-medium) 13px/1 var(--font-core)}
+[data-plat=android] .ph:not(.web) .lt h1{font:var(--weight-regular) 28px/1.1 var(--font-core)}
+[data-plat=android] .ph:not(.web) .mk{border-radius:99px}
+[data-plat=android] .ph:not(.web) .mk.em,[data-plat=android] .ph:not(.web) .mk:not(.tint){background:#E4E1DA}
+[data-plat=android] .ph:not(.web) .rw{padding:10px 2px}[data-plat=android] .ph:not(.web) .rw+.rw:before{display:none}
+[data-plat=android] .ph:not(.web) .abt{justify-content:flex-start}[data-plat=android] .ph:not(.web) .abt b{font:var(--weight-regular) 22px/1 var(--font-core)}
+[data-plat=android] .ph:not(.web) .tabs{background:#F1EFEA;border-top:0;padding:12px 0 6px}[data-plat=android] .ph:not(.web) .tabs span.on .g{background:currentColor}
+[data-plat=android] .ph:not(.web) .sheet{border-radius:28px 28px 0 0;background:#F7F5F0}
+[data-plat=android] .ph:not(.web) .pk{border-radius:99px;background:#E4E1DA}[data-plat=android] .ph:not(.web) .pk.on{box-shadow:inset 0 0 0 2px var(--blue-600);background:var(--surface-attention-soft)}
+[data-plat=android] .ph:not(.web) .done{color:var(--blue-700)}
+[data-plat=android] .ph:not(.web) .fs{border-radius:99px;background:#E4E1DA}
+/* Web */
+.ph.web{width:1180px;height:720px;zoom:.6;border-radius:14px;display:grid;grid-template-columns:200px 320px minmax(0,1fr)}
+.wsb{display:flex;flex-direction:column;gap:2px;padding:18px 10px;background:#161614;color:#EDEDED}.wl{font:var(--weight-semibold) 17px/1 var(--font-core);padding:0 10px 18px}
+.wsb span{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;font:var(--weight-medium) 13.5px/1 var(--font-core);color:#B3B3B3}.wsb span .g{width:16px;height:16px}.wsb span.on{background:#262624;color:#fff}
+.wls{border-right:1px solid var(--border-hairline);padding:0 10px;overflow:hidden}.wlh{display:flex;align-items:center;padding:22px 8px 12px}.wlh h3{flex:1;margin:0;font:var(--weight-semibold) 20px/1 var(--font-core)}
+.wrw{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:10px}.wrw.on{background:var(--surface-fill-strong)}.wrw .tx>b{font-size:14.5px}.wrw .tx>s{font-size:12.5px}
+.wpn{padding:26px 48px;overflow:hidden}.wth{display:flex;align-items:center;gap:14px;margin-bottom:10px}.wth h2{margin:0;font:var(--weight-semibold) 28px/1.15 var(--font-core);letter-spacing:-.02em}.wth p{margin:3px 0 0;font:var(--weight-regular) 14px/1.3 var(--font-core);color:var(--text-secondary)}.wth>div{flex:1}
+.chg{font:var(--weight-medium) 13.5px/1 var(--font-core);color:var(--text-accent)}
+.wtt{margin:0 0 10px;font:var(--weight-semibold) 28px/1.15 var(--font-core)}
+.web .trw{max-width:560px}.web .it{max-width:620px}
+</style></head><body><div class="wrap">
+<div class="plat" id="plat"><button data-p="ios">iOS</button><button data-p="android">Android</button><button data-p="web">Web</button></div>
+
+<h1 class="pt">Telling threads apart</h1>
+<p class="lede">Every thread on <code>main</code> wears the same <code>lasso</code>: in My threads, in a row's thread pill, in an answer's thread chip, in the Move picker. Past five threads the only way to find one is to read every title. Three ways to give each thread its own mark, all drawn over the same eleven threads, with the licence behind each. The mark sits wherever the thread is named, including the thread's own title, which today has none.</p>
+
+<div class="xs"><h2>Now</h2><u>one glyph for every thread</u></div>
+<div class="grid" id="now"></div>
+
+<div class="dir"><h3>A. A glyph and a colour per thread</h3><span class="lic">Lucide, ISC, already ours</span><em class="rec">my pick</em></div>
+<p class="xp">offload picks a Lucide glyph from the thread's name when it makes the thread, and one of the ten label hues; you can change either. The mark is the glyph in the hue on a soft tile of the same hue. <b>It keeps every rule the system has</b>: same library, same 2px outline, same mask, no new licence. Lucide has about 1,600 glyphs; the picker offers a curated set of around 200 in eight groups, plus search. Shape does the recognising and colour does the finding, so it still works for somebody who cannot tell two hues apart. Second frame: glyph only, no colour, for comparison.</p>
+<div class="grid" id="dA"></div>
+
+<div class="dir"><h3>B. A flat emoji per thread</h3><span class="lic">Fluent Emoji Flat, MIT</span></div>
+<p class="xp">The idea as you put it: Microsoft's Fluent Emoji in its Flat style, about 3,100 drawings under MIT, bundled with the app so a thread looks the same on an iPhone, a Pixel and Windows. The most recognisable of the three, and the warmest. <b>It breaks two lines of the readme</b> (no emoji, no colour in icons), so it would have to be a written exception: the thread mark is the one place an emoji appears, always on a neutral tile, never in running text or as a reaction. Its full colour also competes a little with the label colours inside a thread.</p>
+<div class="grid" id="dB"></div>
+
+<div class="dir"><h3>C. Colour only</h3><span class="lic">no library</span></div>
+<p class="xp">The cheapest change: every thread keeps the <code>lasso</code> and takes a hue, on the tile and as a dot in its pill. No picker beyond ten swatches. It helps when you already know a thread's colour, and stops helping past ten threads, when two share a hue, or for anyone with colour blindness. Shown for completeness.</p>
+<div class="grid" id="dC"></div>
+
+<div class="xs"><h2>Which library</h2><u>for a set offload ships inside the app</u></div>
+<table class="mx"><thead><tr><th>Set</th><th>Licence</th><th>What it asks of us</th><th>Fit</th></tr></thead><tbody>
+<tr><td><b>Lucide</b></td><td>ISC</td><td>Keep the licence text. Already done.</td><td class="ok">Already the system's icons; direction A</td></tr>
+<tr><td><b>Phosphor</b>, <b>Tabler</b></td><td>MIT</td><td>Keep the licence text.</td><td>Fine, but a second outline set beside Lucide, slightly different stroke and corners</td></tr>
+<tr><td><b>Fluent Emoji (Flat)</b></td><td>MIT</td><td>Keep the licence text. Bundle the SVGs.</td><td class="ok">Best emoji option; direction B</td></tr>
+<tr><td><b>Noto Emoji</b></td><td>Apache 2.0 (images), OFL (font)</td><td>Keep the notice.</td><td>Fine, rounder and glossier than Fluent Flat</td></tr>
+<tr><td><b>Twemoji</b></td><td>CC BY 4.0 (graphics)</td><td>Visible attribution wherever it is used</td><td>Usable, but attribution in a consumer app is a chore</td></tr>
+<tr><td><b>OpenMoji</b></td><td>CC BY-SA 4.0</td><td>Attribution, and adaptations must be shared under the same licence</td><td class="no">Avoid: share-alike limits what we can change</td></tr>
+<tr><td><b>The phone's own emoji</b></td><td>Not ours to ship</td><td>Nothing, but each OS draws its own: Apple, Google and Windows all differ</td><td class="no">Avoid: one thread looks different to Ana on Android and to you on iPhone</td></tr>
+</tbody></table>
+
+<div class="xs"><h2>The same in every direction</h2></div>
+<ul class="notes">
+<li><b>offload picks, you change.</b> The mark is set when the thread is made, from its name, the way the name is. Tap the mark in the thread's header (or Change icon on the web, and in the thread menu) for the picker: offload's six suggestions first, then search, then groups.</li>
+<li><b>One mark per thread, for everyone in it.</b> A shared thread looks the same to Ana and Tom. Changing it is a thread edit, like renaming.</li>
+<li><b>Where it shows:</b> My threads (40px), the thread's app bar beside the title (30px) and its header (64px), the thread pill on Today rows and answers (14px, replacing <code>lasso</code>), the Move picker and Move suggestions, People's shared threads, the web's thread list (32px). The tab glyph stays <code>lasso</code>.</li>
+<li><b>Not drawn here, could pair with any of them:</b> pinning threads to the top of My threads, and type-to-filter in its search. Both shorten the list rather than mark it.</li>
+</ul>
+
+<div class="xs"><h2>To decide</h2></div>
+<ul class="notes">
+<li><b>Direction</b>: A, B or C. My read: A, glyph and colour. It does what the emoji would, stays inside the design system, and costs no new licence.</li>
+<li>If A: <b>colour on or off</b>.</li>
+<li>Whether to pair it with <b>pinning</b> or <b>type-to-filter</b>.</li>
+</ul>
+</div>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#3F6B4F"/><rect x="24" y="26" width="22" height="22" rx="6" fill="#fff"/><rect x="54" y="26" width="22" height="22" rx="6" fill="#fff" opacity=".7"/><rect x="24" y="54" width="22" height="22" rx="6" fill="#fff" opacity=".7"/><rect x="54" y="54" width="22" height="22" rx="6" fill="#fff" opacity=".45"/></svg></template>
+<script src="thread-marks.js"></script>
+<script>
+let PLAT=localStorage.getItem('thread-marks-platform')||'ios';
+const cell=(sub,html,rec)=>`<div class="cell"><div class="lab"><span>${sub}</span>${rec?'<em class="rec">'+rec+'</em>':''}</div>${html}</div>`;
+function render(){
+ document.body.dataset.plat=PLAT;document.querySelectorAll('#plat button').forEach(x=>x.classList.toggle('on',x.dataset.p===PLAT));
+ const W=PLAT==='web';
+ const set=(id,h)=>document.getElementById(id).innerHTML=h;
+ if(W){
+  set('now',cell('My threads and a thread',web('now','thread'))+cell('Today',web('now','today')));
+  set('dA',cell('Glyph and colour',web('A','thread'))+cell('Today, thread pills',web('A','today'))+cell('Glyph only',web('Am','thread')));
+  set('dB',cell('Flat emoji',web('B','thread'))+cell('Today, thread pills',web('B','today')));
+  set('dC',cell('Colour only',web('C','thread'))+cell('Today, thread pills',web('C','today')));
+  return;
+ }
+ set('now',cell('My threads',list(PLAT,'now'))+cell('A thread',thread(PLAT,'now'))+cell('Today',today(PLAT,'now')));
+ set('dA',cell('My threads',list(PLAT,'A'))+cell('A thread',thread(PLAT,'A'))+cell('Today, pills and answers',today(PLAT,'A'))+cell('The picker',picker(PLAT,'A'))+cell('Glyph only, for comparison',list(PLAT,'Am')));
+ set('dB',cell('My threads',list(PLAT,'B'))+cell('A thread',thread(PLAT,'B'))+cell('Today, pills and answers',today(PLAT,'B'))+cell('The picker',picker(PLAT,'B')));
+ set('dC',cell('My threads',list(PLAT,'C'))+cell('A thread',thread(PLAT,'C'))+cell('Today, pills and answers',today(PLAT,'C')));
+}
+document.querySelectorAll('#plat button').forEach(b=>b.onclick=()=>{PLAT=b.dataset.p;localStorage.setItem('thread-marks-platform',PLAT);render()});
+render();
+</script>
+</body></html>

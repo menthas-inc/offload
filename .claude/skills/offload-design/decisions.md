@@ -11,6 +11,38 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-04 · The 034 answers, pulled
+**Surface:** admin, iOS, Android, web
+**Raised by:** code, pulling *The 034 asks, answered* (`handoff/APPLY-2026-10-03-admin-034.md`).
+**Was:** the admin's destructive confirm drew its clay from `--text-danger` with a mixed hover, the plot area was a literal 96px, and the solid destructive fills on the web and the phones named `--clay-600`.
+**Is:** `--surface-danger`, `--surface-danger-hover` and `--plot-height` are in the tokens and in use: the admin's `.dangerSolid` and `.plotArea`, the web's destructive buttons (thread delete, the viewer's delete, People's remove), and on the phones the delete-account button, the confirm sheet's danger button, the label delete pill and the swipe-to-delete ground on rows. The unread dots stay `--clay-600`: they are a mark, not a danger surface. The phones' on-solid scan counts `bg-surface-danger` as a fixed fill.
+**Why:** one alias for one meaning, and the dark value can now move in one place.
+**Design system impact:** none. The 24 entries ending *(034)* are closed by this one. Still the owner's: the dark value of `--surface-danger`.
+
+### 2026-10-03 · The 034 asks, answered
+**Surface:** admin, and the solid danger fill on all three
+**Raised by:** the design system, answering the 24 entries above ending in *(034)*, read from `main` at `963d7a2`. Overview: `explorations/coder-asks-034.html`. Handoff: `handoff/APPLY-2026-10-03-admin-034.md`.
+
+**Was:** the admin kit drew the panel before 034: pounds, five pages, a cap behaviour choice, Warn at, a recipients list, Discard, a grey-until-hover Delete for anyone, moss bars, eight-second toasts with the app's Undo. No solid danger token and no plot height token.
+
+**Is:** every one taken as built. The kit is redrawn: nine pages in two nav blocks, dollars, grouped Limits with switches and an old-to-new confirm, the 24-hour delete hold, a person's page, a deleted account's page, Health, Costs with plots by model and vendor, Audit, ink plots with a range, sideways-scrolling tables, a four-second toast with no Undo. **`--surface-danger`** (clay 600 in both themes, white text at 5.4:1) and **`--surface-danger-hover`** land in every scope; **`--plot-height: 96px`** lands in spacing.
+
+**Open:** the dark value of `--surface-danger`, clay 600 (in) or the salmon `--text-danger` with dark text; the owner's call.
+
+**Design system impact:** `tokens/colors.css`, `tokens/spacing.css`, `ui_kits/admin_web/` (two new files, `APeople.jsx` and `AOps.jsx`).
+
+### 2026-10-03 · Every thread has a mark
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, off `explorations/thread-marks.html` and `explorations/thread-marks-v2.html`. Handoff: `handoff/APPLY-2026-10-03-thread-marks.md`.
+
+**Was:** every thread drawn with the same `lasso`, in My threads, pills, answers and the Move picker; past five threads the only way to find one was to read every title. The app bar had the name and no mark. Renaming was its own sheet.
+
+**Is:** **a Lucide glyph on a wash of one of the ten label hues per thread**, picked by offload from words in the name (no model call), changeable by anyone in the thread. The wash is `oil-ground` in luminosity blend over the hue. **Seventy glyphs**, one scrolling grid, no groups. **Edit thread** joins rename, icon and colour in one sheet, opened from the mark or the name in the bar. The bar is otherwise as built: no heading in the scroll.
+
+**Considered and not taken:** Fluent Emoji Flat (MIT, recognisable, but against the no-emoji and no-colour-icon rules, and loud beside label colours); colour only (fails past ten threads and for colour blindness); OpenMoji (share-alike) and Twemoji (attribution); the phones' own emoji (different on every OS); a suggestions row and glyph groups in the picker; a model call to pick.
+
+**Design system impact:** 59 Lucide glyphs vendored, 154 in all. `readme.md` gains **Thread marks**, and Iconography names the thread mark as the one coloured glyph. No new tokens: the hues are `--label-1` to `--label-10`.
+
 ### 2026-10-03 · The admin panel counts money in dollars (034)
 **Surface:** admin
 **Raised by:** code, building the admin panel in 034 (`docs/specs/034-admin/`), with the owner's answers and the client review.

@@ -1,0 +1,169 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Thread marks, A</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;background:var(--surface-sunken);color:var(--text-primary);font:var(--text-body-role);padding:24px 40px 120px}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+.wrap{max-width:1480px;margin:0 auto}
+h1.pt{margin:18px 0 8px;font:var(--weight-semibold) 30px/1.15 var(--font-core);letter-spacing:-.02em}
+.lede{max-width:840px;color:var(--text-secondary);font:var(--weight-regular) 15px/1.6 var(--font-core);margin:0 0 8px;text-wrap:pretty}.lede b{color:var(--text-primary);font-weight:500}
+.xs{display:flex;align-items:baseline;gap:12px;margin:60px 0 6px;padding-bottom:10px;border-bottom:1px solid var(--ink-950)}.xs h2{margin:0;font:var(--weight-semibold) 21px/1.2 var(--font-core)}.xs u{text-decoration:none;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);letter-spacing:.04em}
+.xp{max-width:860px;color:var(--text-secondary);font:var(--weight-regular) 14px/1.6 var(--font-core);margin:12px 0 22px;text-wrap:pretty}.xp b{color:var(--text-primary);font-weight:500}
+.notes{max-width:880px;margin:14px 0 0;padding-left:18px;font:var(--weight-regular) 14px/1.6 var(--font-core);color:var(--text-secondary)}.notes li{margin-bottom:6px}.notes b{color:var(--text-primary);font-weight:500}
+.grid{display:flex;flex-wrap:wrap;gap:28px 22px;align-items:flex-start}
+.cell{display:flex;flex-direction:column;gap:10px}
+.lab{font:var(--weight-regular) 13px/1 var(--font-core);color:var(--text-tertiary)}
+.bar{position:sticky;top:12px;z-index:1000;display:flex;gap:10px}.plat{display:inline-flex;gap:2px;padding:3px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline),var(--shadow-2)}
+.plat button{height:32px;padding:0 14px;border-radius:99px;border:0;background:transparent;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary);cursor:pointer}.plat button.on{background:var(--surface-inverse);color:var(--text-inverse)}
+table.mx{border-collapse:collapse;max-width:980px;width:100%;font:var(--weight-regular) 13.5px/1.5 var(--font-core)}
+table.mx th,table.mx td{text-align:left;padding:9px 18px 9px 0;border-bottom:1px solid var(--border-hairline);vertical-align:middle}table.mx th{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary)}table.mx td{color:var(--text-secondary)}table.mx td b{color:var(--text-primary);font-weight:500}
+.g{display:inline-block;width:18px;height:18px;flex:0 0 auto;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+/* the mark: one hue, washed with the prism texture's light and shade */
+:root{--mk-base:#fff;--mk-mix:20%;--mk-ink:#000;--mk-inkmix:88%;--mk-tex:grayscale(1) contrast(2.2) brightness(1.02)}
+[data-theme=dark]{--mk-base:#1C1B19;--mk-mix:34%;--mk-ink:#fff;--mk-inkmix:62%;--mk-tex:grayscale(1) invert(1) contrast(2.4) brightness(.42)}
+.mk{position:relative;isolation:isolate;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;border-radius:calc(var(--k)*.3);background:color-mix(in oklch,var(--h) var(--mk-mix),var(--mk-base));color:color-mix(in oklch,var(--h) var(--mk-inkmix),var(--mk-ink))}
+.mk.wash:before{content:"";position:absolute;inset:-30%;background:url(../assets/prism/oil-ground.png) var(--px) var(--py)/220% 220%;transform:rotate(var(--r));filter:var(--mk-tex);mix-blend-mode:luminosity;opacity:.9;z-index:-1}
+.mk.wash:after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px color-mix(in oklch,var(--h) 18%,transparent);z-index:-1}
+.mk .g{width:calc(var(--k)*.5);height:calc(var(--k)*.5);position:relative}
+/* frame */
+.ph{width:390px;height:780px;zoom:.66;flex:0 0 auto;border-radius:24px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);display:flex;flex-direction:column;position:relative;font-family:var(--font-core);--gut:16px}
+.stb{display:flex;justify-content:space-between;padding:16px 30px 6px;font:var(--weight-semibold) 15px/1 var(--font-core);flex:0 0 auto}
+.hb,.gb{flex:0 0 auto;display:flex;justify-content:center;padding:8px 0 9px;margin-top:auto}.hb i{width:134px;height:5px;border-radius:99px;background:var(--ink-950)}.gb i{width:108px;height:4px;border-radius:99px;background:var(--ink-400)}
+.lt{display:flex;align-items:center;gap:6px;padding:10px var(--gut) 8px}.lt h1{flex:1;margin:0;font:var(--weight-semibold) 30px/1.1 var(--font-core);letter-spacing:-.02em}
+.ib{width:38px;height:38px;border-radius:99px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}.ib .g{width:20px;height:20px}
+.body{flex:1;min-height:0;overflow:hidden;padding:0 var(--gut)}
+.rw{display:flex;align-items:center;gap:12px;padding:9px 2px;position:relative}.rw+.rw:before{content:"";position:absolute;top:0;left:54px;right:0;height:1px;background:var(--border-hairline)}
+.tx{flex:1;min-width:0}.tx>b{display:block;font:var(--weight-medium) 16px/1.25 var(--font-core)}.tx>s{display:block;text-decoration:none;font:var(--weight-regular) 13px/1.35 var(--font-core);color:var(--text-secondary);margin-top:2px}
+.shd{color:var(--text-tertiary);display:flex}.shd .g{width:16px;height:16px}
+.tabs{display:flex;justify-content:space-around;padding:8px 0 2px;border-top:1px solid var(--border-hairline);background:var(--surface-raised)}.tabs span{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-tertiary);font:var(--weight-medium) 11px/1 var(--font-core)}.tabs span .g{width:22px;height:22px}.tabs span.on{color:var(--text-primary)}.tabs b{font-weight:500}
+/* app bar, as Bar in Thread.tsx: back, name, tools */
+.ab{display:flex;align-items:center;gap:10px;height:52px;padding:0 var(--gut) 0 8px;flex:0 0 auto;color:var(--icon-on-well)}
+.bk{display:flex;width:28px;justify-content:center}.bk .g{width:22px;height:22px}
+.abm{display:flex}
+.abt{flex:1;min-width:0;font:var(--weight-semibold) 17px/1.2 var(--font-core);color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:16px;flex:0 0 auto}.tb{display:flex}.tb .g{width:21px;height:21px}
+.seg{display:inline-flex;padding:2px;border-radius:9px;background:var(--surface-fill-strong)}.seg i{width:34px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}.seg i.on{background:var(--surface-raised);color:var(--text-primary);box-shadow:var(--shadow-1)}.seg .g{width:16px;height:16px}
+/* filter bar */
+.fb{display:flex;align-items:center;gap:6px;padding:4px var(--gut) 10px;flex:0 0 auto}
+.fc{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--border-strong);font:var(--weight-medium) 13.5px/1 var(--font-core);color:var(--text-primary);white-space:nowrap}.fc i{width:8px;height:8px;border-radius:99px}.fc.on{background:var(--surface-inverse);color:var(--text-inverse);box-shadow:none}
+.fp{margin-left:auto;width:30px;height:30px;border-radius:99px;display:flex;align-items:center;justify-content:center;background:var(--surface-fill);color:var(--text-secondary)}.fp .g{width:16px;height:16px}
+.rail{margin:2px 0 6px;padding:12px;border-radius:16px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline)}
+.rh{display:flex;justify-content:space-between;align-items:center;font:var(--weight-semibold) 15px/1 var(--font-core)}.rh span{display:flex;gap:10px;color:var(--text-tertiary)}.rh .g{width:16px;height:16px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);margin-top:10px}.days span{display:flex;flex-direction:column;align-items:center;gap:4px}.days s{text-decoration:none;font:var(--weight-medium) 11px/1 var(--font-core);color:var(--text-tertiary)}.days b{width:30px;height:30px;border-radius:99px;display:flex;align-items:center;justify-content:center;font:var(--weight-medium) 14px/1 var(--font-core)}.days .t b{background:var(--ink-950);color:var(--paper)}.days i{width:5px;height:5px;border-radius:99px}.days .on i{background:var(--label-2)}
+.ev{display:flex;gap:10px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-hairline)}.evb{width:3px;align-self:stretch;border-radius:2px;background:var(--label-2)}.ev b{display:block;font:var(--weight-medium) 14.5px/1.25 var(--font-core)}.ev s{display:block;text-decoration:none;font:var(--weight-regular) 12.5px/1.3 var(--font-core);color:var(--text-secondary)}
+.wh{display:flex;align-items:center;gap:8px;margin:20px 2px 4px;font:var(--weight-semibold) 21px/1.1 var(--font-core)}.wh em{font-style:normal;font:var(--weight-regular) 12px/1 var(--font-core);color:var(--text-secondary);background:var(--surface-fill);border-radius:99px;padding:4px 7px}
+.it{display:flex;align-items:center;gap:12px;padding:11px 2px;font:var(--weight-regular) 15.5px/1.3 var(--font-core);border-bottom:1px solid var(--border-hairline)}.it>span:nth-child(2){flex:1;min-width:0}.it>.g{width:18px;height:18px;color:var(--icon-on-well)}
+.lc{flex:0 0 auto!important;display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:99px;background:color-mix(in oklch,var(--h) var(--mk-mix),var(--mk-base));color:color-mix(in oklch,var(--h) var(--mk-inkmix),var(--mk-ink));font:var(--weight-medium) 12px/1 var(--font-core)}
+.ck{width:20px;height:20px;border-radius:6px;box-shadow:inset 0 0 0 1.5px var(--border-strong);flex:0 0 auto;display:block;font-style:normal}
+.cmp{margin:8px var(--gut) 6px;height:48px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-strong);display:flex;align-items:center;padding:0 18px;font:var(--weight-regular) 16px/1 var(--font-core);color:var(--text-tertiary);flex:0 0 auto}
+.ph.bars{height:auto;padding:6px 0 10px}.bl{padding:14px 16px 2px;font:var(--weight-medium) 12.5px/1.3 var(--font-core);color:var(--text-tertiary)}.bars .ab{border-bottom:1px solid var(--border-hairline)}
+.trw{display:flex;gap:12px;padding:12px 2px;border-bottom:1px solid var(--border-hairline)}.trw .ck{margin-top:1px}
+.mks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tp{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 4px;border-radius:99px;background:var(--surface-accent-soft);color:var(--moss-700);font:var(--weight-medium) 12.5px/1 var(--font-core);white-space:nowrap}.tp .mk{border-radius:99px}
+.dc{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px 0 7px;border-radius:99px;background:var(--surface-fill);color:var(--text-secondary);font:var(--weight-medium) 12.5px/1 var(--font-core)}.dc .g{width:13px;height:13px}
+.ans{margin-top:18px;padding:14px;border-radius:16px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline)}.ans .q{font:var(--weight-medium) 14px/1.35 var(--font-core);color:var(--text-secondary)}.ans .a{margin-top:8px;font:var(--weight-regular) 15.5px/1.75 var(--font-core)}.ans .a .tp{vertical-align:-6px}
+/* picker */
+.sheetph .dim{position:absolute;inset:0;background:rgb(0 0 0 / .32)}
+.sheet{position:absolute;left:0;right:0;bottom:0;top:150px;background:var(--surface-raised);border-radius:22px 22px 0 0;padding:8px 18px 28px;display:flex;flex-direction:column}
+.grab{display:block;width:38px;height:5px;border-radius:99px;background:var(--ink-200);margin:0 auto 10px}
+.shh{display:flex;align-items:center;justify-content:space-between}.shh b{font:var(--weight-semibold) 17px/1 var(--font-core)}.done{font:var(--weight-semibold) 16px/1 var(--font-core);color:var(--text-accent)}
+.cx{font:var(--weight-regular) 16px/1 var(--font-core);color:var(--text-secondary)}
+.nf{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}.nfl{font:var(--weight-medium) 12.5px/1 var(--font-core);color:var(--text-secondary)}.nfv{display:flex;align-items:center;height:44px;padding:0 12px;border-radius:12px;background:var(--surface-page);box-shadow:inset 0 0 0 2px var(--ink-950);font:var(--weight-medium) 17px/1 var(--font-core);color:var(--text-primary)}.nfv i{width:2px;height:20px;margin-left:2px;background:var(--text-accent);animation:blink 1s steps(1) infinite}@keyframes blink{50%{opacity:0}}
+[data-plat=android] .ph:not(.web) .nfv{border-radius:4px;background:transparent;box-shadow:inset 0 0 0 2px var(--blue-600)}[data-plat=android] .ph:not(.web) .cx{color:var(--blue-700)}
+.wpop .shh{margin-top:10px}
+.prev{display:flex;align-items:center;gap:14px;margin:16px 0 4px}.prev b{display:block;font:var(--weight-semibold) 18px/1.2 var(--font-core)}.prev s{display:block;text-decoration:none;margin-top:3px;font:var(--weight-regular) 13px/1.35 var(--font-core);color:var(--text-secondary)}
+.pl{margin:16px 2px 8px;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary)}
+.pscroll{height:222px;overflow-y:auto;border-radius:14px;background:var(--surface-fill);padding:8px;-webkit-mask:linear-gradient(#000 85%,transparent);mask:linear-gradient(#000 85%,transparent);scrollbar-width:thin}
+.pgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.pk{aspect-ratio:1;border-radius:11px;display:flex;align-items:center;justify-content:center;color:var(--icon-on-well);cursor:pointer}.pk .g{width:22px;height:22px}.pk:hover{background:var(--surface-raised)}
+.pk.on{background:var(--surface-raised);box-shadow:inset 0 0 0 2px var(--ink-950);color:var(--text-primary)}
+.sws{display:flex;justify-content:space-between}.sws i{display:flex;border-radius:99px;padding:2px}.sws i .mk{border-radius:99px}.sws i.on{box-shadow:0 0 0 2px var(--ink-950)}
+/* Android */
+:root{--a-c0:#F7F5F0;--a-c1:#F1EFEA;--a-c2:#ECE9E2;--a-ol:#79786F}[data-theme=dark]{--a-c0:#22211F;--a-c1:#2A2926;--a-c2:#33322F;--a-ol:#938F86}
+[data-theme=dark] body{background:#0B0B0A}
+[data-theme=dark] .wsb{background:#0E0E0D}
+[data-plat=android] .ph:not(.web){width:412px}
+[data-plat=android] .ph:not(.web) .stb{padding:12px 22px 6px;font:var(--weight-medium) 13px/1 var(--font-core)}
+[data-plat=android] .ph:not(.web) .lt h1{font:var(--weight-regular) 28px/1.1 var(--font-core)}
+[data-plat=android] .ph:not(.web) .mk{border-radius:99px}
+[data-plat=android] .ph:not(.web) .rw{padding:10px 2px}[data-plat=android] .ph:not(.web) .rw+.rw:before{display:none}
+[data-plat=android] .ph:not(.web) .ab{height:64px;gap:12px}[data-plat=android] .ph:not(.web) .abt{font:var(--weight-regular) 22px/1.2 var(--font-core)}
+[data-plat=android] .ph:not(.web) .seg{border-radius:99px;background:transparent;box-shadow:inset 0 0 0 1px var(--a-ol);padding:0}[data-plat=android] .ph:not(.web) .seg i{border-radius:0;height:32px;width:40px}[data-plat=android] .ph:not(.web) .seg i.on{background:var(--surface-attention-soft);color:var(--blue-700);box-shadow:none;border-radius:99px 0 0 99px}
+[data-plat=android] .ph:not(.web) .fc{border-radius:8px;box-shadow:inset 0 0 0 1px var(--a-ol)}[data-plat=android] .ph:not(.web) .fc.on{background:var(--surface-attention-soft);color:var(--blue-700);box-shadow:none}
+[data-plat=android] .ph:not(.web) .tabs{background:var(--a-c1);border-top:0;padding:12px 0 6px}
+[data-plat=android] .ph:not(.web) .sheet{border-radius:28px 28px 0 0;background:var(--a-c0)}
+[data-plat=android] .ph:not(.web) .pscroll{background:var(--a-c2)}[data-plat=android] .ph:not(.web) .pk{border-radius:99px}[data-plat=android] .ph:not(.web) .pk.on{box-shadow:inset 0 0 0 2px var(--blue-600);background:var(--surface-attention-soft);color:var(--blue-700)}
+[data-plat=android] .ph:not(.web) .done{color:var(--blue-700)}[data-plat=android] .ph:not(.web) .sws i.on{box-shadow:0 0 0 2px var(--blue-600)}
+[data-plat=android] .ph:not(.web) .rail{background:var(--a-c1);box-shadow:none;border-radius:24px}
+/* Web */
+.ph.web{width:1180px;height:720px;zoom:.6;border-radius:14px;display:grid;grid-template-columns:200px 320px minmax(0,1fr)}
+.wsb{display:flex;flex-direction:column;gap:2px;padding:18px 10px;background:#161614;color:#EDEDED}.wl{font:var(--weight-semibold) 17px/1 var(--font-core);padding:0 10px 18px}
+.wsb span{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;font:var(--weight-medium) 13.5px/1 var(--font-core);color:#B3B3B3}.wsb span .g{width:16px;height:16px}.wsb span.on{background:#262624;color:#fff}
+.wls{border-right:1px solid var(--border-hairline);padding:0 10px;overflow:hidden}.wlh{display:flex;align-items:center;padding:22px 8px 12px}.wlh h3{flex:1;margin:0;font:var(--weight-semibold) 20px/1 var(--font-core)}
+.wrw{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:10px}.wrw.on{background:var(--surface-fill-strong)}.wrw .tx>b{font-size:14.5px}.wrw .tx>s{font-size:12.5px}
+.wpn{padding:22px 40px;overflow:hidden;position:relative;--gut:0px}
+.wth{display:flex;align-items:center;gap:12px;margin-bottom:10px;color:var(--icon-on-well)}.wth h2{margin:0;font:var(--weight-semibold) 26px/1.15 var(--font-core);letter-spacing:-.02em;color:var(--text-primary)}.wsp{flex:1}.wmk{display:flex;cursor:pointer;border-radius:12px;box-shadow:0 0 0 2px transparent}.wmk:hover{box-shadow:0 0 0 2px var(--border-strong)}
+.wsh{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--border-strong);font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-primary)}.wsh .g{width:15px;height:15px}
+.web .fb{padding:6px 0 4px}.web .it{max-width:640px}.web .wh{margin-top:16px}
+.wpop{position:absolute;left:30px;top:72px;width:360px;padding:6px 16px 18px;border-radius:16px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline),0 16px 40px rgb(0 0 0 / .18)}.wpop .pscroll{height:190px}.wpop .pgrid{grid-template-columns:repeat(7,1fr)}
+.wtt{margin:0 0 10px;font:var(--weight-semibold) 28px/1.15 var(--font-core)}.web .trw{max-width:560px}
+.mono{display:inline-flex;gap:8px;flex-wrap:wrap}.mono span{display:inline-flex;align-items:center;gap:6px;color:var(--text-primary)}
+</style></head><body><div class="wrap">
+<div class="bar"><div class="plat" id="plat"><button data-p="ios">iOS</button><button data-p="android">Android</button><button data-p="web">Web</button></div><div class="plat" id="theme"><button data-t="light">Light</button><button data-t="dark">Dark</button></div></div>
+
+<h1 class="pt">Thread marks <span class="lab" style="vertical-align:6px">decided 3 October</span></h1>
+<p class="lede">Each thread gets a Lucide glyph and one of the ten label hues. The tile is that one hue washed with the prism texture's light and shade, placed differently for every thread, so the marks read as part of the same family as the plate and the gate. offload picks the glyph by matching words in the name, with no model call, and you change it from the mark itself. The first round, with emoji and colour-only, is <code>explorations/thread-marks.html</code>.</p>
+
+<div class="xs"><h2>The mark</h2><u>a wash of one hue</u></div>
+<p class="xp">The hue at 20% on white, then the prism's <code>oil-ground</code> texture laid over it in luminosity mode, so it adds only light and shade and never a second colour. Where the texture sits, how large and at what angle, are seeded from the thread's name. The glyph is the hue taken darker. Same treatment at every size, from the 18px tile in a pill to 56px in the picker.</p>
+<div class="grid" id="sw"></div>
+
+<div class="xs"><h2>The thread's title row</h2><u>as Thread.tsx's Bar draws it</u></div>
+<p class="xp">The name is in the app bar and nowhere else. There is no heading in the scroll: <code>main</code> took it out on 20 September, so the mark joins the name in the bar rather than adding a header. Back, the mark, the name, then the tools the bar already carries: <b>List | Map</b> when the thread has a place, <b>Group with labels</b> while it has no labels, <b>Share</b> when it can be shared, <b>Calendars</b> when an account is connected, and <b>More</b>. With List | Map in the bar, labels and calendars go to the top of More, as now. The filter bar sits under it. <b>Tapping the mark or the name opens Edit thread.</b></p>
+<div class="grid" id="tr"></div>
+
+<div class="xs"><h2>Everywhere a thread is named</h2></div>
+<div class="grid" id="ev"></div>
+
+<div class="xs"><h2>Edit thread</h2><u>name, icon and colour in one sheet</u></div>
+<p class="xp"><b>Rename thread and the icon picker are one sheet.</b> It opens from the mark or the name in the bar, and from More, where <b>Edit thread</b> replaces Rename thread. The mark beside the name field previews every change; under it the seventy glyphs in one grid that scrolls inside the sheet, so the sheet keeps its height, then the ten hues. <b>Save</b> writes the name, glyph and hue as one edit with one Undo (<i>Thread updated</i>); Cancel drops all three. The name field is focused only when the sheet is opened from the name. On the web the same body opens as a popover from the mark or the name.</p>
+<div class="grid" id="pk"></div>
+
+<div class="xs"><h2>How offload picks, without a model</h2></div>
+<p class="xp">Each of the seventy glyphs carries a short list of words. When a thread is made or renamed by offload, the name's words are matched against them and the first hit wins; the hue is the one least used among your threads, ties broken by order. <b>No match keeps <code>lasso</code></b>, in its own hue, so the colour still tells it apart. Once you have picked one by hand, a rename never changes it.</p>
+<table class="mx" id="kw"><thead><tr><th>Thread name</th><th>Word matched</th><th>Mark</th></tr></thead><tbody></tbody></table>
+
+<div class="xs"><h2>Decided</h2></div>
+<ul class="notes">
+<li><b>The seventy</b> as drawn, all vendored in <code>assets/icons/</code>. Handoff: <code>handoff/APPLY-2026-10-03-thread-marks.md</code>.</li>
+<li><b>The wash</b> at the strength drawn, light and dark.</li>
+</ul>
+</div>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#3F6B4F"/><rect x="24" y="26" width="22" height="22" rx="6" fill="#fff"/><rect x="54" y="26" width="22" height="22" rx="6" fill="#fff" opacity=".7"/><rect x="24" y="54" width="22" height="22" rx="6" fill="#fff" opacity=".7"/><rect x="54" y="54" width="22" height="22" rx="6" fill="#fff" opacity=".45"/></svg></template>
+<script src="thread-marks-v2.js"></script>
+<script>
+let PLAT=localStorage.getItem('thread-marks-platform')||'ios';
+let THEME=localStorage.getItem('thread-marks-theme')||'light';
+function applyTheme(){document.documentElement.dataset.theme=THEME;document.querySelectorAll('#theme button').forEach(x=>x.classList.toggle('on',x.dataset.t===THEME))}
+document.querySelectorAll('#theme button').forEach(b=>b.onclick=()=>{THEME=b.dataset.t;localStorage.setItem('thread-marks-theme',THEME);applyTheme()});
+applyTheme();
+const cell=(sub,html)=>`<div class="cell"><div class="lab">${sub}</div>${html}</div>`;
+function render(){
+ document.body.dataset.plat=PLAT;document.querySelectorAll('#plat button').forEach(x=>x.classList.toggle('on',x.dataset.p===PLAT));
+ const set=(id,h)=>document.getElementById(id).innerHTML=h;
+ set('sw',`<div class="grid" style="gap:14px">${THREADS.map(t=>`<div class="cell" style="align-items:center;width:84px">${mark(t,56)}<div class="lab" style="text-align:center;line-height:1.3">${t.n}</div></div>`).join('')}</div>`);
+ if(PLAT==='web'){
+  set('tr',cell('A thread, the head with the mark beside the name',web('thread')));
+  set('ev',cell('Today, thread pills',web('today')));
+  set('pk',cell('Edit thread, a popover from the mark or the name',web('picker')));
+ }else{
+  set('tr',cell('Lisbon trip',thread(PLAT))+cell('The bar in three states',bars(PLAT)));
+  set('ev',cell('My threads',list(PLAT))+cell('Today: thread pills and an answer',today(PLAT)));
+  set('pk',cell('Edit thread, from the mark or the name',picker(PLAT)));
+ }
+ const ex=[['Lisbon trip','trip','luggage',1],['Bookshelf build','bookshelf','hammer',5],['Dentist and insurance','dentist','stethoscope',6],["Ana's birthday",'birthday','cake',2],['Taxes 2026','taxes','receipt',7],['Things for Mum','none','lasso',4]];
+ document.querySelector('#kw tbody').innerHTML=ex.map(([n,w,ic,h])=>`<tr><td><b>${n}</b></td><td>${w==='none'?'nothing, keeps <code>lasso</code>':w}</td><td><span class="mono"><span>${mark({n,ic,h},28)}<code>${ic}</code></span></span></td></tr>`).join('');
+}
+document.querySelectorAll('#plat button').forEach(b=>b.onclick=()=>{PLAT=b.dataset.p;localStorage.setItem('thread-marks-platform',PLAT);render()});
+render();
+</script>
+</body></html>

@@ -86,7 +86,7 @@ export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
     <View className="relative">
       {/* The action sits behind the row and the row paints over it. */}
       <Animated.View
-        className="absolute inset-y-0 right-0 items-center justify-center bg-clay-600"
+        className="absolute inset-y-0 right-0 items-center justify-center bg-surface-danger"
         style={[revealed, { width: REVEAL + 24 }]}
       >
         <Text

@@ -181,7 +181,7 @@ export function DeleteAccountSheet({
             accessibilityRole="button"
             accessibilityState={{ disabled: !ready, busy }}
             className={`flex-row items-center gap-space-3 rounded-pill px-space-5 ${
-              ready || busy ? "bg-clay-600" : "bg-state-disabled-surface"
+              ready || busy ? "bg-surface-danger" : "bg-state-disabled-surface"
             }`}
             style={{ minHeight: 30, justifyContent: "center" }}
           >

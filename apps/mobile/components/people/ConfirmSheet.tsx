@@ -146,7 +146,7 @@ export function ConfirmSheet({
             disabled={busy}
             accessibilityRole="button"
             className={`flex-1 items-center justify-center rounded-pill ${
-              danger ? "bg-clay-600" : isAndroid ? "bg-blue-600" : "bg-surface-inverse"
+              danger ? "bg-surface-danger" : isAndroid ? "bg-blue-600" : "bg-surface-inverse"
             }`}
             style={{ minHeight: 44, opacity: busy ? 0.55 : 1 }}
           >

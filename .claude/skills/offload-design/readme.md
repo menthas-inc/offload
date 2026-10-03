@@ -131,15 +131,15 @@ Roles: display 34, title-1 26, title-2 21, title-3 17, body 16, body-sm 14, labe
 
 ## Iconography
 
-**Lucide, and only Lucide.** Outline, 2px stroke, 24px grid, no fills, no duotone, no colour. 95 glyphs are vendored in `assets/icons/` as SVG so this system works offline; `Icon` reads from the jsDelivr copy of `lucide-static` by default and accepts `basePath="./assets/icons/"` to use the local set.
+**Lucide, and only Lucide.** Outline, 2px stroke, 24px grid, no fills, no duotone, no colour. 154 glyphs are vendored in `assets/icons/` as SVG so this system works offline; `Icon` reads from the jsDelivr copy of `lucide-static` by default and accepts `basePath="./assets/icons/"` to use the local set.
 
 Icons are rendered as a **`currentColor` mask**, so a glyph always inherits the colour of the text it sits beside, that is why there is no coloured-icon rule to remember. Sizes: 14 (inside chips), 16 (metadata, small buttons), 18 (list rows, fields), 20 (bars, buttons), 22 (tab bar), 28 (empty states, in `--ink-300`).
 
 Tab glyphs: `sun` / `moon` (Today and Tonight, on real sunset), `lasso` (My threads, a loop drawn round related things), `cloudy` (Notes). Then `sparkles` (anything offload did for you), `map-pin` `link` `image` `mic` `camera` `paperclip` `scan-text` (kinds of dumped thing), `square-check-big` / `check` / `check-check` (tasks and done states), `users` (shared threads and people), `arrow-up` (send), `plus` (new), `ellipsis` (more), `chevron-*` and `maximize-2` (navigation), `bell` `settings` `search` `clock` `calendar` `bookmark` `archive` `trash-2` `pencil` `share-2` `funnel` `lock` `house` `message-circle` `circle` `list`.
 
-All 95 vendored glyphs: `album` `archive` `arrow-up` `arrow-up-right` `ban` `bell` `blend` `bookmark` `brain` `calendar` `camera` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `coffee` `compass` `copy` `ellipsis` `eye` `folder` `funnel` `gallery-vertical-end` `git-branch` `globe` `grip-vertical` `group` `house` `image` `inbox` `lasso` `layers` `library-big` `link` `list` `lock` `log-out` `mail` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `monitor` `moon` `moon-star` `newspaper` `orbit` `paperclip` `pause` `pencil` `play` `plus` `radio` `rewind` `rss` `scan-text` `search` `settings` `share-2` `sliders-horizontal` `smartphone` `snowflake` `sparkles` `spline` `square-check-big` `sun` `sunrise` `tag` `text-quote` `thermometer-sun` `trash-2` `type` `umbrella` `user-plus` `users` `waypoints` `wind` `x`.
+All 154 vendored glyphs: `album` `apple` `archive` `arrow-up` `arrow-up-right` `baby` `ban` `bed` `bell` `bike` `bird` `blend` `book-open` `bookmark` `brain` `briefcase` `cake` `calendar` `calendar-heart` `camera` `car` `cat` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `code` `coffee` `compass` `copy` `dog` `dumbbell` `ellipsis` `eye` `film` `fish` `flower-2` `folder` `footprints` `funnel` `gallery-vertical-end` `gamepad-2` `gift` `git-branch` `globe` `graduation-cap` `grip-vertical` `group` `hammer` `heart` `heart-pulse` `hotel` `house` `image` `inbox` `key` `lamp` `landmark` `laptop` `lasso` `layers` `leaf` `library-big` `link` `list` `lock` `log-out` `luggage` `mail` `map` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `monitor` `moon` `moon-star` `mountain` `music` `newspaper` `orbit` `paintbrush` `palette` `paperclip` `party-popper` `pause` `pen-tool` `pencil` `piggy-bank` `pill` `plane` `play` `plus` `radio` `receipt` `rewind` `rocket` `rss` `scan-text` `search` `settings` `share-2` `ship` `shirt` `shopping-cart` `sliders-horizontal` `smartphone` `snowflake` `sofa` `sparkles` `spline` `sprout` `square-check-big` `stethoscope` `sun` `sunrise` `tag` `tent` `text-quote` `thermometer-sun` `ticket` `train-front` `trash-2` `tree-pine` `trophy` `type` `umbrella` `user-plus` `users` `utensils` `wallet` `waves` `waypoints` `wind` `wine` `wrench` `x`.
 
-No icon font. No PNG icons. No emoji. No hand-drawn or bespoke SVG illustration, if a screen needs a picture, it uses a real image the user provided, or nothing.
+No icon font. No PNG icons. No emoji. The one coloured glyph is a thread mark (see **Thread marks**). No hand-drawn or bespoke SVG illustration, if a screen needs a picture, it uses a real image the user provided, or nothing.
 
 **Substitution flagged:** Lucide is a choice, not an inherited asset. It was picked because its 2px outline set is the closest widely available match to a black-on-white minimal interface. Swap it if a bespoke set exists.
 
@@ -1090,6 +1090,34 @@ none shows the whole area with *Nothing under Food on the map.* A thing with no 
 
 **The stack.** MapLibre on all three, MapTiler Streets and Streets Dark, with *© MapTiler ©
 OpenStreetMap contributors* small at the bottom right. Place lookup is MapTiler Geocoding.
+
+## Thread marks
+
+Decided 3 October 2026 off `explorations/thread-marks-v2.html` (first round `explorations/thread-marks.html`).
+Handoff: `handoff/APPLY-2026-10-03-thread-marks.md`.
+
+**Every thread has a mark: a Lucide glyph on a wash of one label hue.** It stands wherever a particular thread
+is named: My threads, the thread's app bar beside its name, the thread pill, the Move picker, People's shared
+threads. The tab glyph stays `lasso`, which is also the mark of a thread offload found no word for.
+
+**The wash is the prism in one colour.** The hue mixed into the page, with `oil-ground` laid over it in
+luminosity blend so it adds light and shade and never a second hue, placed and turned from the thread's id.
+The glyph is the same hue, darker in light and lighter in dark. Rounded square on iOS and the web, circle on
+Android, a circle inside a pill. **This is the one place a glyph is drawn in colour**; everywhere else icons
+stay `currentColor`.
+
+**Seventy glyphs, no groups.** `luggage` `plane` `car` `bike` `tent` `map` `globe` `house` `sofa` `key`
+`wrench` `hammer` `paintbrush` `sprout` `flower-2` `tree-pine` `stethoscope` `pill` `heart-pulse` `dumbbell`
+`footprints` `apple` `utensils` `coffee` `wine` `cake` `gift` `party-popper` `baby` `dog` `cat`
+`graduation-cap` `book-open` `briefcase` `laptop` `receipt` `piggy-bank` `wallet` `landmark` `shopping-cart`
+`shirt` `music` `camera` `gamepad-2` `film` `palette` `newspaper` `mountain` `waves` `sparkles`
+`train-front` `ship` `hotel` `bed` `lamp` `fish` `bird` `leaf` `sun` `snowflake` `umbrella` `heart` `users`
+`mic` `pen-tool` `code` `rocket` `trophy` `ticket` `calendar-heart`. Each carries a few words; offload
+picks the first glyph whose word is in the name, with no model call, and the least-used hue. A person's pick
+is never changed by a rename.
+
+**Edit thread is one sheet**: name, the seventy in a grid that scrolls inside the sheet, the ten hues, Save
+and Cancel. It opens from the mark or the name in the bar, and from More.
 
 ## First run
 
