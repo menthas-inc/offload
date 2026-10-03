@@ -4,6 +4,7 @@
 // render anything: the current account, the address a refused sign-in used,
 // and the write that ends onboarding.
 
+import { webMapsOn } from "../settings.js";
 import { mapsConfig } from "../places/resolve.js";
 import { atDailyLimit } from "../budget.js";
 import { layoutShape, resolveLayout, todayLayout } from "../today/layout.js";
@@ -89,6 +90,8 @@ const meResponse = z.object({
   /** 030. Whether the map is on, on every surface. The server's switch; a
    *  request never sets it. */
   maps: z.boolean(),
+  /** The web's map, which the owner can turn off on its own (0073). */
+  webMaps: z.boolean(),
   /** 019. Every calendar write is put to them first. */
   calendarAskFirst: z.boolean(),
   /** Where they are, ISO 3166-1 alpha-2, theirs to set. Null until they do, and
@@ -291,6 +294,7 @@ export async function meFor(accountId: string): Promise<z.infer<typeof meRespons
     webSearch: account.web_search_enabled,
     webLinks: account.web_links_enabled,
     maps: mapsConfig().on,
+    webMaps: await webMapsOn(),
     calendarAskFirst: account.calendar_ask_first,
     country: account.country,
     // 023. The clock, and the two facts the strip on Today reads beside it.

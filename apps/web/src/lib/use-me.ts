@@ -34,6 +34,8 @@ export interface Me {
   webLinks: boolean;
   /** 030. Whether the map is on, on every surface: the server's switch. */
   maps?: boolean;
+  /** The web's map, which the owner can turn off on its own; the phones do not read it. */
+  webMaps?: boolean;
   /** Where they said they are, ISO 3166-1 alpha-2. Null until they say, and
    *  offload then tells the model it does not know rather than assuming. */
   country: string | null;

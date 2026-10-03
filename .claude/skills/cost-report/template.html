@@ -225,7 +225,7 @@ code { font-size: 12.5px; background: var(--fill); padding: 1px 5px; border-radi
     textDumps: "Typed dumps", photoDumps: "Dumps with photos", photosPerPhotoDump: "Photos in each", voiceNotes: "Voice notes",
     voiceSeconds: "Seconds per voice note", questions: "Questions asked", searches: "Web searches",
     reads: "Pages read", mailForwards: "Emails forwarded", whatsappSends: "WhatsApp sends", threadsTouched: "Threads touched",
-    photoViews: "Photos opened",
+    photoViews: "Photos opened", webMapOpens: "Maps opened on the web", placesSaved: "Places saved", placeRefreshes: "Places refetched",
   };
   const S = { A: structuredClone(A0), level: A0.fleet.levels[1], basis: A0.fleet.basis, options: { ...A0.options, whatsappMarket: "mix" } };
   const $ = (id) => document.getElementById(id);
@@ -382,7 +382,7 @@ code { font-size: 12.5px; background: var(--fill); padding: 1px 5px; border-radi
   function tables(f, inp) {
     const levels = S.A.fleet.levels.map((l) => fleet(inp, l, S.basis));
     $("fleet-table").innerHTML = `<table><thead><tr><th>${S.basis === "dau" ? "Daily active" : "Monthly active"}</th><th class="n">Monthly people</th>${CATEGORIES.map((c) => `<th class="n">${c.label}</th>`).join("")}<th class="n">Total</th><th class="n">Per person</th></tr></thead><tbody>${levels.map((x) => `<tr><td class="num">${people(x.level)}</td><td class="n">${people(x.pop.mau)}</td>${CATEGORIES.map((c) => `<td class="n">${money(x.sum[c.key])}</td>`).join("")}<td class="n"><b>${money(x.total)}</b></td><td class="n">${money(x.perMau)}</td></tr>`).join("")}</tbody></table>`;
-    $("fleet-parts").textContent = `At ${people(S.level)}: Railway ${money(f.parts.railway)}, Expo ${money(f.parts.expo)}, Resend ${f.parts.resend.name} ${money(f.parts.resend.cost)}, fixed fees ${money(f.parts.fixed)}. The cached prompt prefix is warm ${Object.entries(f.warm).map(([k, v]) => `${Math.round(v * 100)}% of the time for ${k === "nightly" ? "nightly passes" : k === "file" ? "filing" : "answers"}`).join(", ")}.`;
+    $("fleet-parts").textContent = `At ${people(S.level)}: Railway ${money(f.parts.railway)}, Expo ${money(f.parts.expo)}, Resend ${f.parts.resend.name} ${money(f.parts.resend.cost)}, Google Maps ${money(f.parts.googleMaps.cost)} for ${people(f.parts.googleMaps.loads)} web map loads and ${people(f.parts.googleMaps.details)} place details, fixed fees ${money(f.parts.fixed)}. The cached prompt prefix is warm ${Object.entries(f.warm).map(([k, v]) => `${Math.round(v * 100)}% of the time for ${k === "nightly" ? "nightly passes" : k === "file" ? "filing" : "answers"}`).join(", ")}.`;
 
     const u = f.units;
     const T = S.A.turn;
@@ -427,6 +427,7 @@ code { font-size: 12.5px; background: var(--fill); padding: 1px 5px; border-radi
       ["Cloudflare R2", `$${P.r2.storagePerGbMonth} per GB a month, $${P.r2.classAPerMillion} per million writes, $${P.r2.classBPerMillion} per million reads, no egress`, P.r2],
       ["Railway", `$${P.railway.proMonthly} a month floor, $${P.railway.vcpuMonth} per vCPU, $${P.railway.gbRamMonth} per GB of memory, $${P.railway.egressPerGb} per GB out, $${P.railway.volumeGbMonth} per GB of volume`, P.railway],
       ["Resend", P.resend.tiers.map((t) => `${t.name} $${t.monthly}`).join(", "), P.resend],
+      ["Google Maps", `web map loads ${P.googleMaps.dynamicMaps.freePerMonth.toLocaleString("en-US")} free, then $${P.googleMaps.dynamicMaps.tiers[0].per1k} per 1,000; place details ${P.googleMaps.placeDetails.freePerMonth.toLocaleString("en-US")} free, then $${P.googleMaps.placeDetails.tiers[0].per1k} per 1,000; searches by id and phone maps free`, P.googleMaps],
       ["Expo", P.expo.plans.map((t) => `${t.name} $${t.monthly}`).join(", ") + "; push free", P.expo],
       ...P.fixed.items.map((x) => [x.name, `$${x.monthly} a month, ${x.note}`, { checked: P.fixed.checked, source: x.source }]),
     ];
