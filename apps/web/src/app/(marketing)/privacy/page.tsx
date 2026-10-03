@@ -6,14 +6,14 @@
 // what is *not* covered: "your data is encrypted" is a sentence this product
 // may never print, anywhere, including here.
 //
-// Not reviewed by a lawyer. Everything still to be decided is wrapped in
-// <Todo>, which draws in amber, so an unfilled value cannot be missed.
+// Not reviewed by a lawyer. The placeholders this page was published with
+// went on 2026-10-03: offload is not incorporated, so the page says so rather
+// than leaving a bracket where a name would be.
 //
 // Copy on this page says "upload" where the rest of the product says "dump".
 // That is deliberate and, for now, local to this page. See decisions.md.
 
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import { Screen, ScreenFooter, ScreenHeader, screenStyles } from "@/components/Screen";
 import styles from "./privacy.module.css";
 
@@ -24,10 +24,6 @@ export const metadata: Metadata = {
 };
 
 const UPDATED = "3 October 2026";
-
-function Todo({ children }: { children: ReactNode }) {
-  return <span className={styles.todo}>{children}</span>;
-}
 
 export default function Privacy() {
   return (
@@ -105,18 +101,18 @@ export default function Privacy() {
         <section className={styles.section}>
           <h2 className={styles.h2}>1. Who we are</h2>
           <p>
-            offload is run by <Todo>[legal name]</Todo>, a <Todo>[state]</Todo> corporation at{" "}
-            <Todo>[registered address]</Todo>. We decide what happens to the information described
-            here, which makes us the controller of it under European and UK data protection law,
-            and a business under the California Consumer Privacy Act.
+            offload is not a company yet. It is run by its founder, as an individual in the United
+            States, and this page will name the company when there is one. We decide what happens
+            to the information described here, which makes us the controller of it under European
+            and UK data protection law.
           </p>
           <p>
             Write to us about anything on this page at{" "}
             <a href="mailto:hello@offload.club">hello@offload.club</a>. A person reads it.
           </p>
           <p className={styles.note}>
-            To fill in before this is published: our EU and UK representative under Article 27, once
-            we have users in either place. <Todo>[representative, or a note that we have none yet]</Todo>
+            We have no representative in the EU or the UK under Article 27 yet. Until we do, the
+            address above is where a request from either place goes.
           </p>
         </section>
 
@@ -684,7 +680,7 @@ export default function Privacy() {
         <section className={styles.section}>
           <h2 className={styles.h2}>9. Where it is kept</h2>
           <p>
-            offload runs in the United States, in <Todo>[region]</Todo>. If you are in the UK or the
+            offload runs in the United States, in California. If you are in the UK or the
             European Economic Area, that means your information is transferred out of it. We rely on
             the European Commission's standard contractual clauses, and the UK addendum to them, for
             those transfers, and we hold the same terms with each company in section 6. Google Maps
@@ -1056,8 +1052,8 @@ export default function Privacy() {
         <section className={styles.section}>
           <h2 className={styles.h2}>18. Contact</h2>
           <p>
-            <a href="mailto:hello@offload.club">hello@offload.club</a>, or{" "}
-            <Todo>[postal address]</Todo>.
+            <a href="mailto:hello@offload.club">hello@offload.club</a>. We have no postal address to
+            give yet.
           </p>
         </section>
       </article>

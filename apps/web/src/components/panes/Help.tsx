@@ -31,7 +31,8 @@ export function HelpPane() {
           <Row title="See the tutorial again" note="The intro from your first day." href="/tutorial" last />
         </Group>
         <Group label="About" icon="text-quote">
-          <Row title="Privacy policy" href="/privacy" external last />
+          <Row title="Privacy policy" href="/privacy" external />
+          <Row title="Terms" href="/terms" external last />
         </Group>
       </div>
     </>

@@ -49,6 +49,14 @@ export function ScreenHeader({ action }: { action?: ReactNode }) {
 export function ScreenFooter() {
   return (
     <footer className={styles.footer}>
+      <a className={styles.footerLink} href="mailto:hello@offload.club">
+        hello@offload.club
+      </a>
+      <span aria-hidden="true">·</span>
+      <a className={styles.footerLink} href="/terms">
+        Terms
+      </a>
+      <span aria-hidden="true">·</span>
       <a className={styles.footerLink} href="/privacy">
         Privacy
       </a>
