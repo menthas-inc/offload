@@ -63,6 +63,8 @@ export interface WaitingOn {
   /** 019 a calendar write, 022 a share. The control's label and the line
    *  under it are drawn by kind. */
   kind: "calendar" | "share";
+  /** What a calendar proposal would do, so the control can say it. */
+  action?: "create" | "edit" | "delete";
 }
 
 /** One read from an answer: a thread, and the rows it holds.

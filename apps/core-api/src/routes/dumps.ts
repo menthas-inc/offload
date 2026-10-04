@@ -32,10 +32,12 @@ import { connectionsOf } from "../people/access.js";
 /** 019's calendar proposals and 022's share proposals, one map. A message
  *  carries at most one control; a share on a message that also proposed a
  *  calendar write is drawn, since it is the later of the two. */
+type Waiting = { id: string; because: string; kind: "calendar" | "share"; action?: "create" | "edit" | "delete" };
+
 async function anyWaitingFor(
   messageIds: string[],
-): Promise<Map<string, { id: string; because: string; kind: "calendar" | "share" }>> {
-  const found = new Map<string, { id: string; because: string; kind: "calendar" | "share" }>();
+): Promise<Map<string, Waiting>> {
+  const found = new Map<string, Waiting>();
   for (const [id, waiting] of await waitingFor(messageIds)) found.set(id, { ...waiting, kind: "calendar" });
   for (const [id, waiting] of await waitingSharesFor(messageIds)) found.set(id, waiting);
   return found;
@@ -206,7 +208,15 @@ const dumpResponse = z.object({
   threads: touchedThreads.optional(),
   /** 019. On a calendar answer's response: the proposal the tap turned into,
    *  when the calendar needed the person's say-so, drawn on their own turn. */
-  waiting: z.object({ id: z.string(), because: z.string(), kind: z.enum(["calendar", "share"]) }).nullable().optional(),
+  waiting: z
+    .object({
+      id: z.string(),
+      because: z.string(),
+      kind: z.enum(["calendar", "share"]),
+      action: z.enum(["create", "edit", "delete"]).optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 /** A calendar write this turn proposed and nobody has answered yet.
@@ -222,6 +232,8 @@ const waitingOn = z
     /** 019 a calendar write, 022 a share. The control's label and the line
      *  under it are the client's, by kind. */
     kind: z.enum(["calendar", "share"]),
+    /** What a calendar proposal would do, so the control says it. */
+    action: z.enum(["create", "edit", "delete"]).optional(),
   })
   .nullable()
   .optional();
@@ -2352,7 +2364,7 @@ export async function answerCalendarQuestion(
     turnId: string;
     question: QuestionOnWire | null;
     threads: TouchedThread[];
-    waiting: { id: string; because: string; kind: "calendar" | "share" } | null;
+    waiting: Waiting | null;
   };
   applied: boolean;
   failed: boolean;
@@ -2476,7 +2488,7 @@ export async function answerCalendarQuestion(
   });
   if (!settled) return null;
 
-  const envelopeFor = async (waiting: { id: string; because: string; kind: "calendar" | "share" } | null) =>
+  const envelopeFor = async (waiting: Waiting | null) =>
     db.transaction().execute(async (trx) => ({
       messageId: settled.message.id,
       conversationId: settled.question.conversation_id,
