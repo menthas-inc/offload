@@ -28,7 +28,19 @@ vi.mock("../lib/auth", () => ({ API_URL: "https://api.example.test" }));
 const downloads: { url: string; headers: unknown; idempotent: unknown }[] = [];
 const deleted: string[] = [];
 let downloadFails = false;
+const created: { name: string; type: string | null }[] = [];
+let piped = 0;
+let pickFails = false;
 vi.mock("expo-file-system", () => {
+  class Directory {
+    static pickDirectoryAsync() {
+      return pickFails ? Promise.reject(new Error("cancelled")) : Promise.resolve(new Directory());
+    }
+    createFile(name: string, type: string | null) {
+      created.push({ name, type });
+      return { writableStream: () => ({}) };
+    }
+  }
   class File {
     uri: string;
     exists = true;
@@ -38,12 +50,20 @@ vi.mock("expo-file-system", () => {
     delete() {
       deleted.push(this.uri);
     }
+    readableStream() {
+      return {
+        pipeTo: () => {
+          piped += 1;
+          return Promise.resolve();
+        },
+      };
+    }
     static downloadFileAsync(url: string, destination: File, options: { headers?: unknown; idempotent?: unknown }) {
       downloads.push({ url, headers: options.headers, idempotent: options.idempotent });
       return downloadFails ? Promise.reject(new Error("offline")) : Promise.resolve(destination);
     }
   }
-  return { File, Paths: { cache: "cache" } };
+  return { Directory, File, Paths: { cache: "cache" } };
 });
 
 let os = "ios";
@@ -77,6 +97,9 @@ beforeEach(() => {
   downloadFails = false;
   canShare = true;
   os = "ios";
+  created.length = 0;
+  piped = 0;
+  pickFails = false;
 });
 
 describe("the row", () => {
@@ -128,11 +151,20 @@ describe("the file (AC-21)", () => {
     expect(deleted).toEqual(["file:///cache/offload.zip"]);
   });
 
-  it("leaves the file for the app it was handed to on Android, and clears it on the next visit", async () => {
+  it("on Android asks the system where to save, writes the file there, and takes it out of the cache", async () => {
     os = "android";
     expect(await saveCopy()).toBe(true);
-    expect(deleted).toEqual([]);
-    clearSavedCopy();
+    expect(shared).toEqual([]);
+    expect(created).toEqual([{ name: "offload.zip", type: "application/zip" }]);
+    expect(piped).toBe(1);
+    expect(deleted).toEqual(["file:///cache/offload.zip"]);
+  });
+
+  it("on Android says nothing when the person backs out of choosing a place", async () => {
+    os = "android";
+    pickFails = true;
+    expect(await saveCopy()).toBe(true);
+    expect(created).toEqual([]);
     expect(deleted).toEqual(["file:///cache/offload.zip"]);
   });
 
@@ -143,7 +175,7 @@ describe("the file (AC-21)", () => {
     expect(deleted).toEqual(["file:///cache/offload.zip"]);
   });
 
-  it("says no on a device with nowhere to hand a file to", async () => {
+  it("says no on an iPhone with nowhere to hand a file to", async () => {
     canShare = false;
     expect(await saveCopy()).toBe(false);
     expect(downloads).toEqual([]);

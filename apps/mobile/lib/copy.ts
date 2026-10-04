@@ -2,15 +2,14 @@
 //
 // The row's state is the server's. The file is the one thing a phone does
 // that the web does not: a browser saves a download itself, and here it is
-// fetched with the session into the cache and handed to the system's own
-// share or save sheet, which is what puts it where the person can find it
-// after the app is closed. The cache copy is removed afterwards: it is the
-// whole account in one unsealed file. On iOS that is when the sheet closes.
-// Android answers as soon as the other app has been started, while it may
-// still be reading, so there the file is left and cleared on the next visit.
+// fetched with the session into the cache and then put where the person can
+// find it after the app is closed. On iOS that is the system's share sheet,
+// which has Save to Files. On Android it is the system's folder picker. The
+// cache copy is removed afterwards: it is the whole account in one unsealed
+// file.
 
 import { Platform } from "react-native";
-import { File, Paths } from "expo-file-system";
+import { Directory, File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import type { CopyState } from "@offload/widgets";
 import { authHeaders, request, send } from "./api";
@@ -58,27 +57,40 @@ export function clearSavedCopy(): void {
   }
 }
 
-/** Download the copy and hand it to the system's sheet. True once the sheet
- *  has been shown; what the person did in it is theirs. */
+/** Download the copy and put it where the person can find it. True unless
+ *  it could not be done; backing out of the system's own sheet is not that. */
 export async function saveCopy(): Promise<boolean> {
-  if (!(await Sharing.isAvailableAsync().catch(() => false))) return false;
+  const android = Platform.OS === "android";
+  if (!android && !(await Sharing.isAvailableAsync().catch(() => false))) return false;
   const file = cached();
-  let handed = false;
   try {
     await File.downloadFileAsync(`${API_URL}/api/me/export/file`, file, {
       headers: await authHeaders(),
       idempotent: true,
     });
-    await Sharing.shareAsync(file.uri, {
-      mimeType: "application/zip",
-      UTI: "public.zip-archive",
-      dialogTitle: "Save your copy",
-    });
-    handed = true;
+    if (!android) {
+      await Sharing.shareAsync(file.uri, {
+        mimeType: "application/zip",
+        UTI: "public.zip-archive",
+        dialogTitle: "Save your copy",
+      });
+      return true;
+    }
+    // Android's share sheet offers people and apps to send to, and no plain
+    // "keep it on this phone" unless a file manager adds one. The system's own
+    // folder picker is the save: the file is written where the person chose.
+    let folder: Directory;
+    try {
+      folder = await Directory.pickDirectoryAsync();
+    } catch {
+      return true;
+    }
+    // Streamed, so a large copy is never held in memory whole.
+    await file.readableStream().pipeTo(folder.createFile("offload.zip", "application/zip").writableStream());
     return true;
   } catch {
     return false;
   } finally {
-    if (!handed || Platform.OS !== "android") clearSavedCopy();
+    clearSavedCopy();
   }
 }

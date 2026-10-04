@@ -22,8 +22,7 @@ export function YourCopy({ zone, toast }: { zone: string | null; toast: ToastSta
 
   useEffect(() => {
     let live = true;
-    // Android keeps a downloaded copy in the cache until the app it was
-    // handed to has read it. By the next visit it has.
+    // A copy the app was closed over, mid-save, is still in the cache.
     clearSavedCopy();
     void loadCopy().then((read) => {
       if (live && read) setCopy(read);
