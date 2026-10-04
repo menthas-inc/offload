@@ -540,8 +540,12 @@ export async function raiseCalendarQuestion(
     contentId: string;
     title: string;
     calendars: Array<{ id: string; name: string; owned: boolean }>;
-    /** The thread had no calendar: the tap picks the one chosen for it. */
-    picksOnAnswer: boolean;
+    /** What the tap does beyond writing. `pick`: the thread had no calendar,
+     *  so the one chosen is picked for it. `write`: they named a calendar
+     *  that did not settle on one, so the tap is about this event alone and
+     *  the thread's picks stay as they are. Null: the thread's own picks were
+     *  offered, and the tap has to be one of them. */
+    onAnswer: "pick" | "write" | null;
     /** The turn has read a connected app, so the title it quotes may have a
      *  stranger's words in it. The taint is per turn, as 008 has it. */
     sawApps: boolean;
@@ -576,10 +580,10 @@ export async function raiseCalendarQuestion(
       derivedFromUntrusted: input.sawApps || input.calendars.some((calendar) => !calendar.owned),
     },
   );
-  if (input.picksOnAnswer) {
+  if (input.onAnswer) {
     await trx
       .updateTable("questions")
-      .set({ previous_value: JSON.stringify({ picks: true }) })
+      .set({ previous_value: JSON.stringify(input.onAnswer === "pick" ? { picks: true } : { named: true }) })
       .where("turn_id", "=", message.turn_id)
       .where("field", "=", "calendar")
       .execute();

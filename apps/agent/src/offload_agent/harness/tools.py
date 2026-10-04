@@ -494,6 +494,12 @@ CHANGING_TOOLS = frozenset(
 # the thread's scope, resolved on the server from the thread the dump was made
 # in; where a row goes is decided by the thread the row landed in. The model
 # names the row and the moment, never the calendar.
+#
+# One exception, and it is their words rather than a choice: when they named a
+# calendar, `create_event` carries the name as they said it. The server matches
+# it against their own approved calendars and asks when it does not settle on
+# one. Without it "add it to my shared calendar" went on the personal one,
+# because the tool had nowhere to put what they said.
 
 
 class ListCalendars(BaseModel):
@@ -516,6 +522,10 @@ class CreateEvent(BaseModel):
     # Addresses, because that is what an invitation needs. Adding one is what
     # makes a write reach somebody else, which the server notices.
     guests: list[str] | None = None
+    # The calendar's name in their words, only when they named one. Never an
+    # id, never a guess, and nothing here decides whether the write is
+    # confirmed.
+    calendar: str | None = Field(default=None, max_length=120)
 
 
 class EditEvent(BaseModel):
@@ -574,7 +584,9 @@ _DESCRIPTIONS.update(
             "which calendar from the thread the row is in: with one it is "
             "written, with several or none yet they are asked in the "
             "conversation, with nothing approved nothing happens. Say nothing "
-            "about any of that. If it needs guests, add them: offload will ask "
+            "about any of that. Only when they named a calendar, give "
+            "`calendar` the name as they said it; 'my calendar' names none. "
+            "If it needs guests, add them: offload will ask "
             "them to confirm before anybody is emailed. Refused `no_time`: set "
             "the time on that row with `edit_content` and call this again with "
             "the same id. Never file the row twice."

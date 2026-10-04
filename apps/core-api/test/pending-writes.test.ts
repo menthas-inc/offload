@@ -292,9 +292,11 @@ describe("a proposal is reachable from the reply that mentions it", () => {
 });
 
 describe("027 a settled proposal is forgotten", () => {
-  it("deletes what was confirmed, declined or let expire, and keeps what is still waiting", async () => {
+  it("deletes what was declined or let expire, empties what was confirmed, and keeps what is still waiting", async () => {
     // The payload holds the guests' addresses, the title and the place. Once
     // nobody can answer it nothing reads it, so it goes on the daily purge.
+    // A confirmed one keeps its row and nothing in it: that it happened is
+    // what draws Done on the turn, and what it said is not needed for that.
     const accountId = await account();
     const calendarId = await calendar(accountId);
     const base = {
@@ -302,6 +304,7 @@ describe("027 a settled proposal is forgotten", () => {
       calendar_id: calendarId,
       action: "create" as const,
       scope: null,
+      source_ref: "cal:evt",
       payload: JSON.stringify({
         action: "create",
         draft: { title: "Dinner", startsAt: STARTS, endsAt: ENDS, attendees: ["ana@example.com"] },
@@ -309,16 +312,24 @@ describe("027 a settled proposal is forgotten", () => {
     };
     const later = new Date(Date.now() + 3600_000);
     const waiting = await message(accountId);
+    const confirmed = await message(accountId);
 
     await db.insertInto("connector_pending_writes").values([
       { ...base, message_id: await message(accountId), expires_at: new Date(Date.now() - 1000) },
-      { ...base, message_id: await message(accountId), expires_at: later, confirmed_at: new Date() },
+      { ...base, message_id: confirmed, expires_at: later, confirmed_at: new Date() },
       { ...base, message_id: await message(accountId), expires_at: later, declined_at: new Date() },
       { ...base, message_id: waiting, expires_at: later },
     ]).execute();
 
     expect(await forgetPendingWrites()).toBe(3);
-    const left = await db.selectFrom("connector_pending_writes").select("message_id").execute();
-    expect(left).toEqual([{ message_id: waiting }]);
+    const left = await db
+      .selectFrom("connector_pending_writes")
+      .select(["message_id", "payload", "source_ref", "confirmed_at"])
+      .execute();
+    const kept = left.find((row) => row.message_id === confirmed);
+    expect(left.map((row) => row.message_id).sort()).toEqual([confirmed, waiting].sort());
+    expect(kept).toMatchObject({ payload: {}, source_ref: null });
+    // Counted once: a second pass finds nothing left to forget.
+    expect(await forgetPendingWrites()).toBe(0);
   });
 });

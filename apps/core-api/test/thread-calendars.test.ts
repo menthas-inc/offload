@@ -240,6 +240,9 @@ const tool = (payload: unknown) =>
 
 const get = (url: string, cookie: string) => app.inject({ method: "GET", url, headers: { cookie } });
 
+/** The calendar a `createEvent` call went to, as Google names it. */
+const calledWith = (call: number): unknown => (google.createEvent.mock.calls[call] as unknown[] | undefined)?.[1];
+
 describe("AC-7, AC-9 the picks", () => {
   it("a non-member is 404 on the list, the pick and the events", async () => {
     const me = await account();
@@ -630,6 +633,33 @@ describe("AC-11 where a write goes", () => {
     expect(waiting?.action).toBe("delete");
   });
 
+  it("an add to their own calendar is written with no control, even in a turn that read the calendar", async () => {
+    // What the turn's Undo can take back is not put to them first. An add is
+    // the one calendar write Undo covers: it deletes the event the turn made.
+    // A change or a removal has no Undo, so after a read those still wait,
+    // which the test above holds.
+    const me = await account();
+    const t = await thread(me);
+    const id = await calendar(await connection(me), { externalId: "cal-mine" });
+    await pick(t, id, me);
+    const { jobId, messageId, turnId } = await dump(me, t);
+    await tool({ tool: "find_events", jobId, toolCallId: "u1", fromIso: "2026-09-21T00:00:00Z", toIso: "2026-09-28T00:00:00Z" });
+    const contentId = await row(me, t, "Dentist", messageId);
+    google.createEvent.mockClear();
+
+    const result = (await tool({ tool: "create_event", jobId, toolCallId: "u2", contentId })).json() as Record<string, unknown>;
+    expect(result["written"]).toBe(true);
+    expect(google.createEvent).toHaveBeenCalledTimes(1);
+    expect(await db.selectFrom("connector_pending_writes").select("id").execute()).toEqual([]);
+
+    // And Undo on the turn takes the event back off the calendar.
+    await db.updateTable("messages").set({ state: "answered" }).where("id", "=", messageId).execute();
+    google.deleteEvent.mockClear();
+    const undone = await app.inject({ method: "POST", url: `/v1/turns/${turnId}/undo`, headers: { cookie: await signIn(me) } });
+    expect(undone.statusCode).toBe(200);
+    expect(google.deleteEvent).toHaveBeenCalledTimes(1);
+  });
+
   it("two writable picks: a question, and nothing written", async () => {
     const me = await account();
     const t = await thread(me);
@@ -681,6 +711,192 @@ describe("AC-11 where a write goes", () => {
     const other = await row(me, t, "Dentist again", messageId);
     const none = (await tool({ tool: "create_event", jobId, toolCallId: "w2", contentId: other })).json() as Record<string, unknown>;
     expect(none).toEqual({ ok: true, noCalendar: true });
+  });
+
+  it("no picks and one approved writable calendar: written without a question, and the thread gets no pick", async () => {
+    // One candidate is not a question. The owner was asked "which calendar"
+    // with their only calendar as the only chip, and had to tap it.
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "Home", externalId: "cal-only" });
+    await calendar(n, { summary: "Holidays", accessRole: "reader" });
+    const { jobId, messageId } = await dump(me, t);
+    const contentId = await row(me, t, "Dentist", messageId);
+
+    const result = (await tool({ tool: "create_event", jobId, toolCallId: "o1", contentId })).json() as Record<string, unknown>;
+    expect(result["written"]).toBe(true);
+    expect(calledWith(0)).toBe("cal-only");
+    expect(await db.selectFrom("questions").select("id").execute()).toEqual([]);
+    // A pick is what a thread reads through, and in a shared thread everyone
+    // sees it. Only a tap makes one.
+    expect(await db.selectFrom("thread_calendars").select("calendar_id").where("thread_id", "=", t).execute()).toEqual([]);
+  });
+
+  it("a calendar they named is the one written to, over the thread's own pick", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    const home = await calendar(n, { summary: "Home", externalId: "cal-home" });
+    await calendar(n, { summary: "P and B", externalId: "cal-pb" });
+    await pick(t, home, me);
+    const { jobId, messageId } = await dump(me, t);
+    const contentId = await row(me, t, "Dentist", messageId);
+
+    const result = (
+      await tool({ tool: "create_event", jobId, toolCallId: "n1", contentId, calendar: "my shared calendar P and B" })
+    ).json() as Record<string, unknown>;
+    expect(result["written"]).toBe(true);
+    expect(google.createEvent).toHaveBeenCalledTimes(1);
+    expect(calledWith(0)).toBe("cal-pb");
+    const picks = await db.selectFrom("thread_calendars").select("calendar_id").where("thread_id", "=", t).execute();
+    expect(picks.map((p) => p.calendar_id)).toEqual([home]);
+  });
+
+  it("a named calendar other people can see waits, on that calendar", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await pick(t, await calendar(n, { summary: "Home" }), me);
+    const shared = await calendar(n, { summary: "P and B", accessRole: "writer", participants: null });
+    const { jobId, messageId } = await dump(me, t);
+    const contentId = await row(me, t, "Dentist", messageId);
+
+    const result = (await tool({ tool: "create_event", jobId, toolCallId: "n2", contentId, calendar: "P and B" })).json() as Record<string, unknown>;
+    expect(result).toMatchObject({ ok: true, waitingForThem: true, because: "Everyone on this calendar will see it." });
+    expect(google.createEvent).not.toHaveBeenCalled();
+    const pending = await db.selectFrom("connector_pending_writes").select("calendar_id").executeTakeFirstOrThrow();
+    expect(pending.calendar_id).toBe(shared);
+  });
+
+  it("a named calendar that is none of theirs is asked about, never swapped for the one they have", async () => {
+    // The fault exactly: "add it to my shared calendar P and B" went on the
+    // personal calendar without a word. One candidate is a default only when
+    // nothing was named.
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    const home = await calendar(n, { summary: "Home" });
+    await calendar(n, { summary: "P and B", selected: false });
+    await pick(t, home, me);
+    const { jobId, messageId } = await dump(me, t);
+    const contentId = await row(me, t, "Dentist", messageId);
+
+    const result = (await tool({ tool: "create_event", jobId, toolCallId: "n3", contentId, calendar: "P and B" })).json() as Record<string, unknown>;
+    expect(result).toEqual({ ok: true, asked: true });
+    expect(google.createEvent).not.toHaveBeenCalled();
+    const q = await db.selectFrom("questions").selectAll().where("target_content_id", "=", contentId).executeTakeFirstOrThrow();
+    expect((q.options as Array<{ label: string }>).map((o) => o.label)).toEqual(["Home", "Not that"]);
+  });
+
+  it("a name that fits two of theirs is asked about with those two, and the tap writes without picking", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    const home = await calendar(n, { summary: "Home" });
+    await calendar(n, { summary: "Family", externalId: "cal-family" });
+    await calendar(n, { summary: "Family trips" });
+    await pick(t, home, me);
+    const { jobId, messageId } = await dump(me, t);
+    const contentId = await row(me, t, "Dentist", messageId);
+
+    const result = (await tool({ tool: "create_event", jobId, toolCallId: "n4", contentId, calendar: "fam" })).json() as Record<string, unknown>;
+    expect(result).toEqual({ ok: true, asked: true });
+    const q = await db.selectFrom("questions").selectAll().where("target_content_id", "=", contentId).executeTakeFirstOrThrow();
+    expect((q.options as Array<{ label: string }>).map((o) => o.label)).toEqual(["Family", "Family trips", "Not that"]);
+
+    // Neither is picked in the thread. The tap is an answer about this one
+    // event, so it writes there and the thread keeps the pick it had.
+    const response = await app.inject({ method: "POST", url: `/v1/questions/${q.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 0 } });
+    expect(response.statusCode).toBe(200);
+    expect(calledWith(0)).toBe("cal-family");
+    const picks = await db.selectFrom("thread_calendars").select("calendar_id").where("thread_id", "=", t).execute();
+    expect(picks.map((p) => p.calendar_id)).toEqual([home]);
+  });
+
+  it("the whole name beats a longer one that starts the same way, and 'my calendar' names nothing", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "Family", externalId: "cal-family" });
+    await calendar(n, { summary: "Family trips" });
+    const first = await dump(me, t);
+    const one = await row(me, t, "Dentist", first.messageId);
+    const exact = (await tool({ tool: "create_event", jobId: first.jobId, toolCallId: "n5", contentId: one, calendar: "Family" })).json() as Record<string, unknown>;
+    expect(exact["written"]).toBe(true);
+    expect(calledWith(0)).toBe("cal-family");
+
+    const other = await account("Sam Ibekwe");
+    const mine = await thread(other);
+    await calendar(await connection(other), { summary: "Home", externalId: "cal-sam" });
+    const next = await dump(other, mine);
+    const two = await row(other, mine, "Dentist", next.messageId);
+    const plain = (await tool({ tool: "create_event", jobId: next.jobId, toolCallId: "n6", contentId: two, calendar: "my calendar" })).json() as Record<string, unknown>;
+    expect(plain["written"]).toBe(true);
+    expect(calledWith(1)).toBe("cal-sam");
+  });
+
+  it("a confirmed write is something the turn did: Done on the single read and in the tail, and after the purge", async () => {
+    // Pressing the control made it vanish and drew nothing, live or after a
+    // reload: a removal files no row, so nothing said the turn did anything.
+    const me = await account();
+    const t = await thread(me);
+    const id = await calendar(await connection(me));
+    await pick(t, id, me);
+    const first = await dump(me, t);
+    const contentId = await row(me, t, "Dentist appointment", first.messageId);
+    await tool({ tool: "create_event", jobId: first.jobId, toolCallId: "c1", contentId });
+
+    const next = await dump(me, t, first.conversationId);
+    const found = (
+      await tool({ tool: "find_events", jobId: next.jobId, toolCallId: "c2", fromIso: "2026-09-21T00:00:00Z", toIso: "2026-09-28T00:00:00Z" })
+    ).json() as { events: Array<{ sourceRef: string }> };
+    await tool({ tool: "delete_event", jobId: next.jobId, toolCallId: "c3", sourceRef: found.events[0]!.sourceRef, scope: "one" });
+    await db.updateTable("messages").set({ state: "answered" }).where("id", "=", next.messageId).execute();
+    await db.updateTable("conversations").set({ last_message_at: new Date() }).where("id", "=", first.conversationId).execute();
+
+    const cookie = await signIn(me);
+    type One = { filed: boolean; waiting: { id: string } | null };
+    const before = (await get(`/v1/messages/${next.messageId}`, cookie)).json() as One;
+    expect(before.filed).toBe(false);
+    expect(before.waiting).not.toBeNull();
+
+    const pressed = await app.inject({ method: "POST", url: `/api/calendar/pending/${before.waiting!.id}/confirm`, headers: { cookie } });
+    expect(pressed.statusCode).toBe(200);
+
+    const after = (await get(`/v1/messages/${next.messageId}`, cookie)).json() as One;
+    expect(after.waiting).toBeNull();
+    expect(after.filed).toBe(true);
+    const tailOf = async () =>
+      ((await get("/v1/conversations/current", cookie)).json() as { messages: Array<{ id: string; filed: boolean }> }).messages.find(
+        (m) => m.id === next.messageId,
+      );
+    expect((await tailOf())?.filed).toBe(true);
+
+    // The purge forgets what the proposal said and keeps that it happened.
+    const { forgetPendingWrites } = await import("../src/connectors/tool-calls.js");
+    await forgetPendingWrites();
+    expect((await tailOf())?.filed).toBe(true);
+  });
+
+  it("a declined write is not something the turn did", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const id = await calendar(await connection(me));
+    await pick(t, id, me);
+    await db.updateTable("accounts").set({ calendar_ask_first: true }).where("id", "=", me).execute();
+    const { jobId, messageId } = await dump(me, t);
+    const contentId = await row(me, t, "Dentist", messageId);
+    await tool({ tool: "create_event", jobId, toolCallId: "x1", contentId });
+    // As if an earlier message had filed the row, so the only thing this turn
+    // could have done is the write it proposed.
+    await db.updateTable("content").set({ derived_from_message_id: null }).where("id", "=", contentId).execute();
+    await db.updateTable("messages").set({ state: "answered" }).where("id", "=", messageId).execute();
+    const cookie = await signIn(me);
+    const pending = await db.selectFrom("connector_pending_writes").select("id").executeTakeFirstOrThrow();
+    await app.inject({ method: "POST", url: `/api/calendar/pending/${pending.id}/decline`, headers: { cookie } });
+    const after = (await get(`/v1/messages/${messageId}`, cookie)).json() as { filed: boolean };
+    expect(after.filed).toBe(false);
   });
 
   it("another member's calendar is never a write target", async () => {

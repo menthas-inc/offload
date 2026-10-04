@@ -25,7 +25,7 @@ import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { onAnswer } from "../dumps/answers.js";
 import { emit } from "../analytics.js";
 import { targetFor, undoWrite, type WriteAction } from "../connectors/write.js";
-import { waitingFor, writeThroughTool } from "../connectors/tool-calls.js";
+import { confirmedFor, waitingFor, writeThroughTool } from "../connectors/tool-calls.js";
 import { waitingSharesFor } from "../threads/proposals.js";
 import { connectionsOf } from "../people/access.js";
 
@@ -579,6 +579,11 @@ export async function threadsForAll(
     if (row.id !== account?.default_thread_id && !list.some((t) => t.id === row.id)) list.push({ id: row.id, name: row.name, icon: row.icon, hue: row.hue });
     out.set(row.message_id, list);
   }
+  // A calendar write they agreed to is something the turn did, with no thread
+  // to name: the key with no pill, as for a turn that filed only loose.
+  for (const id of await confirmedFor(messageIds, accountId)) {
+    if (!out.has(id)) out.set(id, []);
+  }
   return out;
 }
 
@@ -651,7 +656,10 @@ export async function threadsFor(
   }
 
   // `filed` is what draws Done: a turn that filed only loose has no pill and
-  // still did something.
+  // still did something. So did one whose calendar write they agreed to: a
+  // removal files no row, and without this the control went and nothing said
+  // the thing had happened, on the press or after a reload.
+  if (!any) any = (await confirmedFor([messageId], accountId)).has(messageId);
   return { landed, changed: [...changed], filed: any };
 }
 
@@ -1619,6 +1627,11 @@ export async function dumpRoutes(app: App): Promise<void> {
               reply: step.reply,
               threads: step.threads,
               changed: step.changed,
+              // 028. What draws Done when nothing has a pill. `streamStep`
+              // always worked it out and this dropped it, so a turn that
+              // filed only where no thread is named wore no Done mark until
+              // a reload, which reads the tail and gets it.
+              filed: step.filed,
               sources: step.sources,
               // 025. The labels the turn applied, for the footer's marks.
               labels: step.labels,
@@ -2385,6 +2398,9 @@ export async function answerCalendarQuestion(
     if (!picked || picked.value === null) return null;
     const calendarId = picked.value;
     const picksOnAnswer = (question.previous_value as { picks?: boolean } | null)?.picks === true;
+    // They named a calendar and the name did not settle on one: the tap is
+    // about this event, so it needs no pick in the thread and makes none.
+    const named = (question.previous_value as { named?: boolean } | null)?.named === true;
 
     // Still theirs, approved, writable, and picked in the row's thread unless
     // the tap is the pick. A calendar un-approved since the question was asked
@@ -2412,7 +2428,7 @@ export async function answerCalendarQuestion(
       .where("n.deleted_at", "is", null)
         .executeTakeFirst();
     const stillPicked =
-      row && calendar && !picksOnAnswer
+      row && calendar && !picksOnAnswer && !named
         ? await trx
             .selectFrom("thread_calendars")
             .select("calendar_id")
@@ -2467,7 +2483,7 @@ export async function answerCalendarQuestion(
         answered_option: input.option,
         answered_message_id: message.id,
         answer_turn_id: turnId,
-        previous_value: JSON.stringify({ picks: picksOnAnswer, calendar: calendarId }),
+        previous_value: JSON.stringify({ picks: picksOnAnswer, named, calendar: calendarId }),
       })
       .where("id", "=", question.id)
       .execute();

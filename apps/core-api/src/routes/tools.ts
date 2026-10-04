@@ -65,7 +65,7 @@ import {
   setPreference,
 } from "./threads.js";
 import { calendarOfEvent, findEvents, summarise, writeThroughTool } from "../connectors/tool-calls.js";
-import { approvedWritable, turnScope, writablePicks } from "../threads/calendars.js";
+import { approvedWritable, namedCalendars, turnScope, writablePicks } from "../threads/calendars.js";
 import { raiseCalendarQuestion } from "../questions.js";
 import { shownToModel } from "../threads/default.js";
 import { suggestAtFiling } from "../loose/suggestions.js";
@@ -420,6 +420,11 @@ const body = z.discriminatedUnion("tool", [
     contentId: z.string().uuid(),
     location: z.string().max(200).nullish(),
     guests: z.array(z.string().max(320)).max(50).nullish(),
+    /** A calendar's name as they said it, only when they named one. Matched
+     *  here against their own approved writable calendars; it selects among
+     *  those and decides nothing else. Whether the write is put to them
+     *  first is still the server's test on the calendar it lands on. */
+    calendar: z.string().max(120).nullish(),
   }),
   z.strictObject({
     tool: z.literal("share_thread"),
@@ -1336,18 +1341,42 @@ async function existing(
       },
     };
 
+    // Where it goes, decided here and never by the model.
+    //
+    // **A calendar they named is the one, or it is a question.** The name is
+    // matched against their own approved writable calendars; one match is
+    // written to whatever the thread picked, and anything else is asked,
+    // because writing to a different calendar from the one somebody named is
+    // the one outcome nobody asked for. With nothing named the thread's one
+    // pick decides, and a thread with no pick on an account with one approved
+    // calendar has one candidate, which is not a question either. That last
+    // write makes no pick: a pick is what a thread reads through, everyone in
+    // a shared thread sees it, and only a tap makes one.
     const picks = await writablePicks(accountId, row.threadId, trx);
-    if (picks.length === 1) {
-      const outcome = await writeThroughTool(accountId, picks[0]!.id, write, messageId, row.id);
+    const approved = await approvedWritable(accountId, trx);
+    const said = namedCalendars(call.calendar ?? null, approved);
+    const target = said.named
+      ? said.matches.length === 1
+        ? said.matches[0]
+        : undefined
+      : picks.length === 1
+        ? picks[0]
+        : picks.length === 0 && approved.length === 1
+          ? approved[0]
+          : undefined;
+    if (target) {
+      const outcome = await writeThroughTool(accountId, target.id, write, messageId, row.id);
       if (outcome.kind === "refused") return { ok: false, error: outcome.reason };
       if (outcome.kind === "written") return { ok: true, written: true, sourceRef: outcome.sourceRef };
       return { ok: true, waitingForThem: true, because: outcome.line };
     }
 
-    // Several, or none yet while the account has approved a writable calendar:
-    // offload asks which, in the conversation, and the model says nothing.
-    // The tap picks the calendar for the thread when the thread had none.
-    const offered = picks.length > 1 ? picks : await approvedWritable(accountId, trx);
+    // Several, none yet while the account has approved more than one, or a
+    // name that did not settle on one: offload asks which, in the
+    // conversation, and the model says nothing. The tap picks the calendar
+    // for the thread when the thread had none; after a name it writes this
+    // one event and leaves the thread's picks alone.
+    const offered = said.named ? (said.matches.length > 1 ? said.matches : approved) : picks.length > 1 ? picks : approved;
     if (offered.length === 0) return { ok: true, noCalendar: true };
     if (!messageId) return { ok: true, noCalendar: true };
     const raised = await raiseCalendarQuestion(trx, {
@@ -1356,7 +1385,7 @@ async function existing(
       contentId: row.id,
       title: detail.title,
       calendars: offered.slice(0, 4),
-      picksOnAnswer: picks.length === 0,
+      onAnswer: said.named ? "write" : picks.length === 0 ? "pick" : null,
       sawApps,
     });
     return raised ? { ok: true, asked: true } : { ok: true, noCalendar: true };

@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { answeredWaiting } from "../src/lib/dump";
 
 const source = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), "../src/components/shell/Composer.tsx"),
@@ -24,5 +25,33 @@ describe("a proposed calendar write, under the reply", () => {
     expect(source).toMatch(/waiting\.action === "delete"\s*\?\s*"Remove it"/);
     expect(source).toMatch(/waiting\.action === "edit"\s*\?\s*"Change it"/);
     expect(source).toContain('"Add it"');
+  });
+});
+
+describe("a proposed calendar write, once it is answered", () => {
+  const waiting = { id: "p1", because: "You asked to check first.", kind: "calendar" as const, action: "delete" as const };
+  const turns = [
+    { id: "m0", from: "you" as const, turnId: "t0", did: false },
+    { id: "m1", from: "you" as const, turnId: "t1", state: "answered" as const, waiting, did: false },
+    { id: "m1-reply", from: "offload" as const, turnId: "t1" },
+  ];
+
+  it("agreed to: the control goes and the message that was sent wears Done", () => {
+    // The press made the control vanish and drew nothing else. The write
+    // happened; the turn has to say so now, as it does after a reload.
+    const next = answeredWaiting(turns, turns[2]!, true);
+    expect(next[1]).toMatchObject({ waiting: null, did: true });
+    expect(next[0]).toEqual(turns[0]);
+    expect(next[2]?.did).toBeUndefined();
+  });
+
+  it("turned down: the control goes and nothing says Done", () => {
+    const next = answeredWaiting(turns, turns[1]!, false);
+    expect(next[1]).toMatchObject({ waiting: null, did: false });
+  });
+
+  it("is what the composer does on an answer, with a share never counting as done", () => {
+    expect(source).toContain('onAnswered(choice === "confirm" && !share)');
+    expect(source.match(/answeredWaiting\(current, turn, agreed\)/g)?.length).toBe(2);
   });
 });

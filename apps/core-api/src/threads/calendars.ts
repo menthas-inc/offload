@@ -381,6 +381,53 @@ export async function approvedWritable(accountId: string, trx: Executor = db): P
   return scope.filter((calendar) => calendar.writable);
 }
 
+/** Which of their calendars a name they said means.
+ *
+ *  `named` is false when nothing was said, or when what was said names
+ *  nothing: "my calendar" is the calendar, not a name. Then the thread
+ *  decides, as it does for a write with no name on it.
+ *
+ *  Otherwise the whole name wins over a longer one that contains it, so
+ *  "Family" is not ambiguous beside "Family trips"; failing that, every
+ *  calendar whose name holds what was said, or is held by it. Zero or several
+ *  is a question for the person. Matched in code against their own approved
+ *  writable calendars: a calendar shared with them has a name somebody else
+ *  wrote, and it only ever selects among calendars they approved. */
+export function namedCalendars<C extends { name: string }>(said: string | null, candidates: C[]): { named: boolean; matches: C[] } {
+  const flat = (text: string): string =>
+    text
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim();
+  const whole = flat(said ?? "");
+  if (!whole) return { named: false, matches: [] };
+
+  const exact = candidates.filter((calendar) => flat(calendar.name) === whole);
+  if (exact.length > 0) return { named: true, matches: exact };
+
+  // The words around a name, and the words that mean "mine" with no name in
+  // them. "Shared" is neither: with nothing else said it still asks for a
+  // calendar other people see, so it stays a name that matched nothing.
+  const words = whole.split(" ").filter((word) => !AROUND_A_NAME.has(word));
+  if (words.every((word) => MEANS_MINE.has(word))) return { named: false, matches: [] };
+  const core = words.filter((word) => word !== "shared").join(" ");
+  if (!core) return { named: true, matches: [] };
+
+  const same = candidates.filter((calendar) => flat(calendar.name) === core);
+  if (same.length > 0) return { named: true, matches: same };
+  return {
+    named: true,
+    matches: candidates.filter((calendar) => {
+      const name = flat(calendar.name);
+      return name.length > 0 && (name.includes(core) || (name.length >= 3 && core.includes(name)));
+    }),
+  };
+}
+
+const AROUND_A_NAME = new Set(["my", "our", "the", "calendar", "calendars"]);
+const MEANS_MINE = new Set(["own", "personal", "main", "primary", "default"]);
+
 /** A member leaving takes their picks with them. */
 export async function dropPicksOf(accountId: string, threadId: string, trx: Executor = db): Promise<void> {
   await trx

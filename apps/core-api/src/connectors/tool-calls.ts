@@ -327,20 +327,46 @@ export async function declinePending(accountId: string, pendingId: string): Prom
   return Number(result.numUpdatedRows ?? 0) > 0;
 }
 
-/** 027. A proposal nobody can answer any more, gone.
+/** 027. A proposal nobody can answer any more, forgotten.
  *
  *  The payload holds the guests' addresses, the title and the place, and once
- *  a proposal is confirmed, declined or past its hour nothing reads it: every
- *  reader asks for open ones. So the daily purge deletes it rather than letting
- *  the addresses of people offload invited sit here for good. */
+ *  a proposal is confirmed, declined or past its hour nothing reads what it
+ *  said. So the daily purge deletes a declined or expired one, rather than
+ *  letting the addresses of people offload invited sit here for good.
+ *
+ *  **A confirmed one keeps its row and nothing in it.** That it happened is
+ *  the turn's record of having done something, which is what draws Done after
+ *  a reload (`confirmedFor`); the payload and the event's reference are
+ *  emptied, so what stays is an id, a message and two times. */
 export async function forgetPendingWrites(): Promise<number> {
-  const result = await db
+  const gone = await db
     .deleteFrom("connector_pending_writes")
-    .where((eb) =>
-      eb.or([eb("confirmed_at", "is not", null), eb("declined_at", "is not", null), eb("expires_at", "<", new Date())])
-    )
+    .where("confirmed_at", "is", null)
+    .where((eb) => eb.or([eb("declined_at", "is not", null), eb("expires_at", "<", new Date())]))
     .executeTakeFirst();
-  return Number(result.numDeletedRows ?? 0);
+  const emptied = await db
+    .updateTable("connector_pending_writes")
+    .set({ payload: JSON.stringify({}), source_ref: null })
+    .where("confirmed_at", "is not", null)
+    .where(sql<boolean>`payload <> '{}'::jsonb`)
+    .executeTakeFirst();
+  return Number(gone.numDeletedRows ?? 0) + Number(emptied.numUpdatedRows ?? 0);
+}
+
+/** Which of these messages carry a calendar write the person agreed to.
+ *
+ *  Scoped to the account as well as the messages: the caller holds message
+ *  ids it has already checked, and this does not lean on that. */
+export async function confirmedFor(messageIds: string[], accountId: string): Promise<Set<string>> {
+  if (messageIds.length === 0) return new Set();
+  const rows = await db
+    .selectFrom("connector_pending_writes")
+    .select("message_id")
+    .where("message_id", "in", messageIds)
+    .where("account_id", "=", accountId)
+    .where("confirmed_at", "is not", null)
+    .execute();
+  return new Set(rows.flatMap((row) => (row.message_id ? [row.message_id] : [])));
 }
 
 /** The proposal a turn is waiting on, if it has one.

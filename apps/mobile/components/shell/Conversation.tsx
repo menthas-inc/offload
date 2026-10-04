@@ -984,7 +984,8 @@ function Waiting({ turn }: { turn: Turn }) {
     setBusy(false);
     if (ok) {
       setGone(true);
-      resolveWaiting(turn.id);
+      // A calendar write they agreed to is the turn having done something.
+      resolveWaiting(turn, choice === "confirm" && !share);
     } else {
       // What happened and the way forward, never why. This cannot see whether
       // the proposal expired or the network did.
