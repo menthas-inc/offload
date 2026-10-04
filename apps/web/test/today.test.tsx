@@ -373,6 +373,20 @@ describe("027 AC-1 the page", () => {
     expect(text()).toContain("Tuesday 29 September");
   });
 
+  it("moves the crumb bar's date on with the day at midnight", async () => {
+    // The pane moved to the new day and the crumb bar went on naming the old
+    // one, so Monday's events sat under Sunday's date.
+    await open();
+    later(15 * 60 * 60 * 1000); // 01:30 on Wednesday in Lisbon
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await settle();
+    expect(dayReads()).toContain("2026-09-30");
+    expect(text()).toContain("Wednesday 30 September");
+    expect(text()).not.toContain("Tuesday 29 September");
+  });
+
   it("reads the new routes and never 024's agenda", async () => {
     await open();
     expect(calls.some((one) => one.path === "/v1/today")).toBe(false);

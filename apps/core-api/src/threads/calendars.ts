@@ -272,7 +272,14 @@ export async function threadEvents(
           eb
             .selectFrom("content")
             .select("content.id")
-            .whereRef("content.source_ref", "=", "e.source_ref")
+            // The event itself, or the series it is an occurrence of: a
+            // repeating row remembers the series and draws on each of its days.
+            .where((or) =>
+              or.or([
+                or("content.source_ref", "=", or.ref("e.source_ref")),
+                or("content.source_ref", "=", sql<string>`c.external_id || ':' || e.series_ref`),
+              ]),
+            )
             .where("content.thread_id", "=", threadId)
             .where("content.deleted_at", "is", null)
         )

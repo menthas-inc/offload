@@ -18,6 +18,7 @@ import { outwardLine, readCalendarVerdict, type OutwardVerdict } from "./outward
 import { accessTokenFor, markNeedsReauth } from "./tokens.js";
 import { performWrite, targetFor, verdictFor, writable, type WriteAction } from "./write.js";
 import type { ScopedCalendar } from "../threads/calendars.js";
+import { deleteContent, setArchived } from "../routes/threads.js";
 
 /** How long a proposal is worth confirming. An unconfirmed one changed nothing
  *  anywhere, so expiry is an ordinary ending rather than a failure. */
@@ -182,6 +183,7 @@ export async function writeThroughTool(
       throw error;
     }
     if (done.sourceRef && write.action === "create") await remember(contentId, target.externalId, done.sourceRef);
+    const rows = await follow(accountId, write, messageId);
     // A change or a removal files no row, so this is the turn's record of
     // having done it, and what its Undo reads. Kept the way an agreed proposal
     // is, as one that needed no asking.
@@ -194,7 +196,7 @@ export async function writeThroughTool(
           content_id: null,
           action: write.action,
           scope: write.scope,
-          payload: JSON.stringify({ before: kept(was, write, verdict) }),
+          payload: JSON.stringify({ before: kept(was, write, verdict, rows) }),
           source_ref: write.sourceRef,
           message_id: messageId,
           confirmed_at: new Date(),
@@ -257,6 +259,7 @@ export async function confirmPending(accountId: string, pendingId: string): Prom
 
   const was = await before(target, write);
   const done = await performWrite(target, write, verdict);
+  const rows = await follow(accountId, write, pending.message_id);
 
   // What it said is not needed again. What the event was is, for the Undo,
   // until that is pressed or the daily purge empties it.
@@ -264,7 +267,7 @@ export async function confirmPending(accountId: string, pendingId: string): Prom
     .updateTable("connector_pending_writes")
     .set({
       confirmed_at: new Date(),
-      payload: JSON.stringify(was ? { before: kept(was, write, verdict) } : {}),
+      payload: JSON.stringify(was ? { before: kept(was, write, verdict, rows) } : {}),
     })
     .where("id", "=", pendingId)
     .execute();
@@ -296,12 +299,86 @@ interface Before {
   attendees?: string[];
   /** A change keeps only whether there were guests to tell, never who. */
   notify?: boolean;
+  /** The rows a removal took with the event, for Undo to put back. */
+  rows?: string[];
 }
 
 /** What is stored: a removal needs its guests' addresses to invite them
  *  again, a change needs only to know whether anybody is told. */
-function kept(was: Before, write: WriteAction, verdict: OutwardVerdict): Before {
-  return write.action === "delete" ? { ...was, attendees: verdict.audience } : { ...was, notify: verdict.audience.length > 0 };
+function kept(was: Before, write: WriteAction, verdict: OutwardVerdict, rows: string[]): Before {
+  return write.action === "delete" ? { ...was, attendees: verdict.audience, rows } : { ...was, notify: verdict.audience.length > 0 };
+}
+
+/** The row an event was filed as goes where the event goes.
+ *
+ *  An add files a row that remembers its event, and Today and the rail draw
+ *  the row in the event's place. So a removal that left the row left the
+ *  appointment on Today, and a change left it on its old day. One event only:
+ *  a series is one row for many events. The account's own rows only, as the
+ *  write is its own. Returns the rows a removal took.
+ *
+ *  The turn is told which thread it changed, so a screen that is open reads
+ *  again: a removal files nothing, and Today went on drawing what was gone.
+ *
+ *  After the write, and never failing it: Google has it by now. */
+async function follow(accountId: string, write: WriteAction, messageId: string | null): Promise<string[]> {
+  if (write.action === "create" || write.scope !== "one") return [];
+  try {
+    const rows = await db
+      .selectFrom("content")
+      .select(["id", "thread_id"])
+      .where("account_id", "=", accountId)
+      .where("source_ref", "=", write.sourceRef)
+      .where("deleted_at", "is", null)
+      .execute();
+    const ids = rows.map((row) => row.id);
+    if (messageId && rows.length > 0) {
+      await db
+        .insertInto("message_threads")
+        .values([...new Set(rows.map((row) => row.thread_id))].map((threadId) => ({ message_id: messageId, thread_id: threadId, landed: false })))
+        .onConflict((oc) => oc.columns(["message_id", "thread_id"]).doNothing())
+        .execute();
+    }
+    if (write.action === "delete") {
+      for (const id of ids) await deleteContent(accountId, id);
+      return ids;
+    }
+    const patch = write.patch;
+    if (ids.length === 0 || (patch.title === undefined && patch.startsAt === undefined && patch.endsAt === undefined)) return [];
+    await db
+      .updateTable("content")
+      .set({
+        ...(patch.title === undefined ? {} : { title: patch.title }),
+        ...(patch.startsAt === undefined ? {} : { occurs_at: patch.startsAt, attrs: sql`attrs || '{"all_day": false}'::jsonb` }),
+        ...(patch.endsAt === undefined ? {} : { occurs_end_at: patch.endsAt }),
+        updated_at: new Date(),
+      })
+      .where("id", "in", ids)
+      .execute();
+  } catch (error) {
+    console.error(JSON.stringify({ at: "calendar.follow", outcome: "failed", error_type: error instanceof Error ? error.name : "unknown" }));
+  }
+  return [];
+}
+
+/** Undo of a removal: its rows come back, remembering the event Undo made.
+ *  A row past its eight seconds is gone, and the event is then drawn as the
+ *  calendar's. */
+async function putBack(accountId: string, rows: string[], calendarExternalId: string, sourceRef: string | null): Promise<void> {
+  for (const id of rows) {
+    try {
+      await setArchived(accountId, id, false);
+      if (!sourceRef) continue;
+      await db
+        .updateTable("content")
+        .set({ source_ref: sourceRef, attrs: sql`attrs || ${JSON.stringify({ calendar: calendarExternalId })}::jsonb` })
+        .where("id", "=", id)
+        .where("account_id", "=", accountId)
+        .execute();
+    } catch {
+      // Purged, or no longer theirs to read: the event still came back.
+    }
+  }
 }
 
 async function before(target: { calendarId: string }, write: WriteAction): Promise<Before | null> {
@@ -365,7 +442,7 @@ export async function undoToolWrites(accountId: string, turnId: string, since?: 
       const endsAt = at(was.endsAt);
       if (row.action === "delete") {
         if (!was.title || !startsAt || !endsAt) continue;
-        await performWrite(
+        const readded = await performWrite(
           target,
           {
             action: "create",
@@ -373,22 +450,21 @@ export async function undoToolWrites(accountId: string, turnId: string, since?: 
           },
           verdict,
         );
+        await putBack(accountId, was.rows ?? [], target.externalId, readded.sourceRef);
       } else if (row.action === "edit" && row.sourceRef) {
-        await performWrite(
-          target,
-          {
-            action: "edit",
-            sourceRef: row.sourceRef,
-            scope: "one",
-            patch: {
-              ...(was.title === undefined ? {} : { title: was.title }),
-              ...(startsAt ? { startsAt } : {}),
-              ...(endsAt ? { endsAt } : {}),
-              ...(was.location === undefined ? {} : { location: was.location }),
-            },
+        const back: WriteAction = {
+          action: "edit",
+          sourceRef: row.sourceRef,
+          scope: "one",
+          patch: {
+            ...(was.title === undefined ? {} : { title: was.title }),
+            ...(startsAt ? { startsAt } : {}),
+            ...(endsAt ? { endsAt } : {}),
+            ...(was.location === undefined ? {} : { location: was.location }),
           },
-          verdict,
-        );
+        };
+        await performWrite(target, back, verdict);
+        await follow(accountId, back, null);
       } else continue;
       await db.updateTable("connector_pending_writes").set({ payload: JSON.stringify({}) }).where("id", "=", row.id).execute();
     } catch {
