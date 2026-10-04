@@ -340,7 +340,7 @@ the new truth, and the design system is updated to match on the next sync.
   - deleted inside the 7 days: *Next copy from 10 Oct*, nothing to press.
 - **The pill is 031's outline pill for a row that acts in place**, not the kit's chevron: nothing opens.
 - **A press that did not go through is the page's toast with Retry**: *Couldn't start your copy*, *Couldn't download your copy*, *Couldn't delete your copy*.
-- **The web's Download is a plain link in a new tab**, since the file is on the API's origin, and the row is read again when the window is come back to; the phones download and hand the file to the system's share or save sheet, with the spinner on the row meanwhile.
+- **The web's Download is a plain link in a new tab**, since the file is on the API's origin, and the row is read again when the window is come back to. The phones download with the spinner on the row, then iOS raises the system's share sheet, which has Save to Files, and Android raises the system's folder picker: its share sheet offers people and apps and nowhere on the phone.
 - **The web's spinner in a row** is the pane spinner's ring at the row's trailing edge (`.settingsSpinner`), while a copy is being made and while a press is in flight; the row's words are its status.
 - **A session that ended under the page goes to sign in**, with no retry.
 - **The delete confirmation gains *Make a copy first***, a text link under the body on all three, `--text-accent` on iOS and the web and the Android scope's blue on Android, at the tap floor, which leaves the confirmation for the Privacy page.

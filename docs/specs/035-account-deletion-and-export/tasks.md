@@ -108,11 +108,14 @@ exists (QUAL-1). Part A merges on its own.
   making. *(AC-15)*
 - [x] **T28** `expo-sharing`, the download with the session header and the
   hand-off to the system sheet; new native builds. *(AC-21)*
-- [ ] **T29** Device pass on both phones: the file opens from the system's
+- [x] **T29** Device pass on both phones: the file opens from the system's
   files after the app is closed. *(AC-21)*
-  Not done, 2026-10-03. The development builds with the sharing module exist
-  on EAS; the pass needs somebody signed in on each device against a local
-  API.
+  Done 2026-10-03 against a local API, the owner signed in. iPhone 17
+  simulator: Download, the share sheet, Save to Files, and the zip in On My
+  iPhone with the app closed. Pixel 9: the share sheet offered people and
+  apps and nowhere on the phone, so Android saves through the system's folder
+  picker instead; the zip in Documents with the app closed. On both, the
+  delete sheet's link and its field and buttons above the keyboard.
 
 ### Web
 
