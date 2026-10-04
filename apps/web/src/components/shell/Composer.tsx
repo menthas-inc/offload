@@ -1170,13 +1170,22 @@ export function Composer({
                 <Reply text={turn.text} />
                 {/* A calendar write offload has not made yet. Without this the
                     proposal is announced and expires an hour later having done
-                    nothing, which is the dead end this closes. */}
-                {turn.waiting ? (
+                    nothing, which is the dead end this closes.
+
+                    **From the turn this reply answers, as the question is.**
+                    The proposal is stored against the person's message, and
+                    that turn hides its own control once it has a reply, so a
+                    reply that read only itself drew nothing: "Waiting for your
+                    go-ahead" with no way to give it, and typing "go ahead"
+                    proposed the same write again. */}
+                {(answered.get(turn.id)?.waiting ?? turn.waiting) ? (
                   <Waiting
-                    waiting={turn.waiting}
+                    waiting={(answered.get(turn.id)?.waiting ?? turn.waiting)!}
                     onAnswered={() =>
                       setTurns((current) =>
-                        current.map((t) => (t.id === turn.id ? { ...t, waiting: null } : t))
+                        current.map((t) =>
+                          t.id === turn.id || t.id === answered.get(turn.id)?.id ? { ...t, waiting: null } : t
+                        )
                       )
                     }
                   />
@@ -1588,7 +1597,13 @@ function Waiting({
           onClick={() => void answer("confirm")}
           disabled={busy}
         >
-          {share ? "Share" : "Add it"}
+          {share
+            ? "Share"
+            : waiting.action === "delete"
+              ? "Remove it"
+              : waiting.action === "edit"
+                ? "Change it"
+                : "Add it"}
         </button>
         <button
           type="button"

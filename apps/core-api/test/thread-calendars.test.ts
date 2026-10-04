@@ -604,6 +604,32 @@ describe("AC-11 where a write goes", () => {
     expect(after.events).toEqual([]);
   });
 
+  it("a delete in a turn that read the calendar waits on a control the turn carries, and says why in its own words", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const id = await calendar(await connection(me));
+    await pick(t, id, me);
+    const first = await dump(me, t);
+    const contentId = await row(me, t, "Dentist appointment", first.messageId);
+    await tool({ tool: "create_event", jobId: first.jobId, toolCallId: "d1", contentId });
+
+    const next = await dump(me, t);
+    const found = (
+      await tool({ tool: "find_events", jobId: next.jobId, toolCallId: "d2", fromIso: "2026-09-21T00:00:00Z", toIso: "2026-09-28T00:00:00Z" })
+    ).json() as { events: Array<{ sourceRef: string }> };
+    google.deleteEvent.mockClear();
+    const asked = (
+      await tool({ tool: "delete_event", jobId: next.jobId, toolCallId: "d3", sourceRef: found.events[0]!.sourceRef, scope: "one" })
+    ).json() as Record<string, unknown>;
+    expect(asked).toMatchObject({ ok: true, waitingForThem: true, because: "offload read a calendar this turn." });
+    expect(google.deleteEvent).not.toHaveBeenCalled();
+
+    const { waitingFor } = await import("../src/connectors/tool-calls.js");
+    const waiting = (await waitingFor([next.messageId])).get(next.messageId);
+    expect(waiting?.because).toBe("offload read a calendar this turn.");
+    expect(waiting?.action).toBe("delete");
+  });
+
   it("two writable picks: a question, and nothing written", async () => {
     const me = await account();
     const t = await thread(me);

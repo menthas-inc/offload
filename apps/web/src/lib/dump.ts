@@ -154,6 +154,8 @@ export interface WaitingOn {
   id: string;
   because: string;
   kind: "calendar" | "share";
+  /** What a calendar proposal would do, so the control can say it. */
+  action?: "create" | "edit" | "delete";
 }
 
 /** @param mentions 022. Who an @ picked; the server keeps only accepted connections.

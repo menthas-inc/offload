@@ -712,6 +712,9 @@ function Theirs({ turn, sent }: { turn: Turn; sent: Turn | null }) {
   const COLOR = useColors();
   const router = useRouter();
   const { lower, tickFound } = useConversation();
+  // The proposal rides the reply while the turn is live and the person's own
+  // message after a reload, where a reply hides it. Either is this reply's.
+  const waitingTurn = turn.waiting ? turn : sent?.waiting ? sent : null;
   return (
     <View className="self-stretch">
     <View
@@ -741,7 +744,7 @@ function Theirs({ turn, sent }: { turn: Turn; sent: Turn | null }) {
           rule the failure line follows: a sentence cannot be clicked, so the
           thing that acts on it sits next to it. Without this the proposal is
           announced and then expires an hour later having done nothing. */}
-      {turn.waiting ? <Waiting turn={turn} /> : null}
+      {waitingTurn ? <Waiting turn={waitingTurn} /> : null}
 
       {/* 018. The question, under the sentence and after any proposal, which
           keeps its own life. On the message that was sent, because that is the
@@ -1032,7 +1035,13 @@ function Waiting({ turn }: { turn: Turn }) {
             className={`font-core font-medium ${isAndroid ? "text-text-on-solid" : "text-text-inverse"}`}
             style={{ fontSize: 15 }}
           >
-            {share ? "Share" : "Add it"}
+            {share
+              ? "Share"
+              : turn.waiting.action === "delete"
+                ? "Remove it"
+                : turn.waiting.action === "edit"
+                  ? "Change it"
+                  : "Add it"}
           </Text>
         </Pressable>
 

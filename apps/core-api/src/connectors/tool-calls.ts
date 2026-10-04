@@ -349,13 +349,13 @@ export async function forgetPendingWrites(): Promise<number> {
  *  proposed twice: the person answers what they were last told about. */
 export async function waitingFor(
   messageIds: string[]
-): Promise<Map<string, { id: string; because: string }>> {
-  const found = new Map<string, { id: string; because: string }>();
+): Promise<Map<string, { id: string; because: string; action: WriteAction["action"] }>> {
+  const found = new Map<string, { id: string; because: string; action: WriteAction["action"] }>();
   if (messageIds.length === 0) return found;
 
   const rows = await db
     .selectFrom("connector_pending_writes")
-    .select(["id", "message_id", "payload", "calendar_id"])
+    .select(["id", "message_id", "payload", "calendar_id", "action"])
     .where("message_id", "in", messageIds)
     .where("confirmed_at", "is", null)
     .where("declined_at", "is", null)
@@ -365,7 +365,10 @@ export async function waitingFor(
 
   for (const row of rows) {
     if (!row.message_id || found.has(row.message_id)) continue;
-    found.set(row.message_id, { id: row.id, because: becauseOf(row.payload) });
+    // The action travels so the control can say what the tap does: "Add it"
+    // under a proposal to remove an event was the label for every one of them.
+    const action = row.action === "edit" || row.action === "delete" ? row.action : "create";
+    found.set(row.message_id, { id: row.id, because: becauseOf(row.payload), action });
   }
   return found;
 }
@@ -390,7 +393,16 @@ function becauseOf(payload: unknown): string {
     outward: true,
     notify: guests.length > 0,
     audience: guests,
-    reason: guests.length > 0 ? "guests" : reason === "asked_for" ? "asked_for" : "shared_calendar",
+    // **The stored reason, not a guess at it.** A turn that read a calendar
+    // confirms a change to an event nobody else can see, and anything that was
+    // not "asked_for" used to read as a shared calendar here: the control said
+    // everyone on the calendar would see it, about a calendar with one person.
+    reason:
+      guests.length > 0
+        ? "guests"
+        : reason === "asked_for" || reason === "read_calendar"
+          ? reason
+          : "shared_calendar",
   };
   return outwardLine(verdict, cadenceOf(write)) ?? "Everyone on this calendar will see it.";
 }
