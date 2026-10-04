@@ -32,6 +32,7 @@ const google = vi.hoisted(() => ({
   createEvent: vi.fn(async () => `evt-${Math.random().toString(36).slice(2, 8)}`),
   getEvent: vi.fn(async () => null),
   deleteEvent: vi.fn(async () => undefined),
+  patchEvent: vi.fn(async () => undefined),
   countParticipants: vi.fn(async () => 1),
 }));
 
@@ -607,30 +608,215 @@ describe("AC-11 where a write goes", () => {
     expect(after.events).toEqual([]);
   });
 
-  it("a delete in a turn that read the calendar waits on a control the turn carries, and says why in its own words", async () => {
+  /** An event on their own calendar, put there by an earlier turn, and a new
+   *  turn that has read the calendar and so holds the event's reference. */
+  async function readTurn(me: string, t: string, title = "Dentist appointment") {
+    const first = await dump(me, t);
+    const contentId = await row(me, t, title, first.messageId);
+    await tool({ tool: "create_event", jobId: first.jobId, toolCallId: "r1", contentId });
+    const next = await dump(me, t, first.conversationId);
+    const found = (
+      await tool({ tool: "find_events", jobId: next.jobId, toolCallId: "r2", fromIso: "2026-09-21T00:00:00Z", toIso: "2026-09-28T00:00:00Z" })
+    ).json() as { events: Array<{ sourceRef: string }> };
+    google.createEvent.mockClear();
+    google.deleteEvent.mockClear();
+    google.patchEvent.mockClear();
+    return { ...next, sourceRef: found.events[0]!.sourceRef };
+  }
+  const settle = async (messageId: string, conversationId: string) => {
+    await db.updateTable("messages").set({ state: "answered" }).where("id", "=", messageId).execute();
+    await db.updateTable("conversations").set({ last_message_at: new Date() }).where("id", "=", conversationId).execute();
+  };
+  const window = { fromIso: "2026-09-21T00:00:00Z", toIso: "2026-09-28T00:00:00Z" };
+  /** When `row` puts an event, and the hour a create gives it. */
+  const STARTS = "2026-09-22T15:00:00Z";
+  const ENDS = "2026-09-22T16:00:00Z";
+
+  it("a removal that reaches nobody else is done with no control, the turn wears Done, and Undo puts the event back", async () => {
+    // "Remove this from my calendar" was put to them first, because the turn
+    // had read the calendar to find it. What Undo can take back is not asked
+    // about: the event is kept for the Undo and re-added by it.
     const me = await account();
     const t = await thread(me);
-    const id = await calendar(await connection(me));
-    await pick(t, id, me);
-    const first = await dump(me, t);
-    const contentId = await row(me, t, "Dentist appointment", first.messageId);
-    await tool({ tool: "create_event", jobId: first.jobId, toolCallId: "d1", contentId });
+    await pick(t, await calendar(await connection(me), { externalId: "cal-mine" }), me);
+    const turn = await readTurn(me, t);
 
-    const next = await dump(me, t);
-    const found = (
-      await tool({ tool: "find_events", jobId: next.jobId, toolCallId: "d2", fromIso: "2026-09-21T00:00:00Z", toIso: "2026-09-28T00:00:00Z" })
-    ).json() as { events: Array<{ sourceRef: string }> };
-    google.deleteEvent.mockClear();
+    const gone = (
+      await tool({ tool: "delete_event", jobId: turn.jobId, toolCallId: "d3", sourceRef: turn.sourceRef, scope: "one" })
+    ).json() as Record<string, unknown>;
+    expect(gone["written"]).toBe(true);
+    expect(google.deleteEvent).toHaveBeenCalledTimes(1);
+    const { waitingFor } = await import("../src/connectors/tool-calls.js");
+    expect((await waitingFor([turn.messageId])).get(turn.messageId)).toBeUndefined();
+
+    // A removal files no row, and the turn still did something.
+    await settle(turn.messageId, turn.conversationId);
+    const cookie = await signIn(me);
+    const one = (await get(`/v1/messages/${turn.messageId}`, cookie)).json() as { filed: boolean; waiting: unknown };
+    expect(one).toMatchObject({ filed: true, waiting: null });
+
+    const undone = await app.inject({ method: "POST", url: `/v1/turns/${turn.turnId}/undo`, headers: { cookie } });
+    expect(undone.statusCode).toBe(200);
+    expect(google.createEvent).toHaveBeenCalledTimes(1);
+    const [, calendarId, draft, notify] = google.createEvent.mock.calls[0] as unknown as [string, string, { title: string; startsAt: Date; endsAt: Date; attendees?: string[] }, boolean];
+    expect(calendarId).toBe("cal-mine");
+    expect(draft.title).toBe("Dentist appointment");
+    expect(draft.startsAt.toISOString()).toBe(new Date(STARTS).toISOString());
+    expect(draft.endsAt.toISOString()).toBe(new Date(ENDS).toISOString());
+    expect(notify).toBe(false);
+
+    // It is on the calendar again as far as a turn can see, and what was kept
+    // for the Undo is gone with it.
+    const again = await dump(me, t);
+    const found = (await tool({ tool: "find_events", jobId: again.jobId, toolCallId: "d4", ...window })).json() as { events: Array<{ title: string }> };
+    expect(found.events.map((e) => e.title)).toEqual(["Dentist appointment"]);
+    const kept = await db.selectFrom("connector_pending_writes").select("payload").execute();
+    expect(kept.every((k) => JSON.stringify(k.payload) === "{}")).toBe(true);
+
+    // Pressed twice, it is re-added once.
+    await app.inject({ method: "POST", url: `/v1/turns/${turn.turnId}/undo`, headers: { cookie } });
+    expect(google.createEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("a change that reaches nobody else is done with no control, the turn wears Done, and Undo restores what it was", async () => {
+    const me = await account();
+    const t = await thread(me);
+    await pick(t, await calendar(await connection(me), { externalId: "cal-mine" }), me);
+    const turn = await readTurn(me, t);
+    const eventId = turn.sourceRef.split(":").slice(1).join(":");
+
+    const moved = (
+      await tool({
+        tool: "edit_event",
+        jobId: turn.jobId,
+        toolCallId: "e3",
+        sourceRef: turn.sourceRef,
+        scope: "one",
+        title: "Dentist, moved",
+        startsAt: "2026-09-23T10:00:00Z",
+        endsAt: "2026-09-23T11:00:00Z",
+      })
+    ).json() as Record<string, unknown>;
+    expect(moved["written"]).toBe(true);
+    expect(google.patchEvent).toHaveBeenCalledTimes(1);
+
+    await settle(turn.messageId, turn.conversationId);
+    const cookie = await signIn(me);
+    const one = (await get(`/v1/messages/${turn.messageId}`, cookie)).json() as { filed: boolean; waiting: unknown };
+    expect(one).toMatchObject({ filed: true, waiting: null });
+
+    const undone = await app.inject({ method: "POST", url: `/v1/turns/${turn.turnId}/undo`, headers: { cookie } });
+    expect(undone.statusCode).toBe(200);
+    expect(google.patchEvent).toHaveBeenCalledTimes(2);
+    const [, calendarId, id, patch] = google.patchEvent.mock.calls[1] as unknown as [string, string, string, Record<string, { dateTime?: string }> & { summary?: string }];
+    expect([calendarId, id]).toEqual(["cal-mine", eventId]);
+    expect(patch.summary).toBe("Dentist appointment");
+    expect(patch["start"]?.dateTime).toBe(new Date(STARTS).toISOString());
+    expect(patch["end"]?.dateTime).toBe(new Date(ENDS).toISOString());
+    // A field the change left alone is not written back.
+    expect("location" in patch).toBe(false);
+
+    const again = await dump(me, t);
+    const found = (await tool({ tool: "find_events", jobId: again.jobId, toolCallId: "e4", ...window })).json() as { events: Array<{ title: string; startsAt: string }> };
+    expect(found.events.map((e) => [e.title, e.startsAt])).toEqual([["Dentist appointment", new Date(STARTS).toISOString()]]);
+  });
+
+  it("after a read, a removal Undo cannot take back still waits, and says why in its own words", async () => {
+    // "This and all following" ends a series. Nothing is kept that could put
+    // a year of it back, so a turn that read a calendar puts it to them.
+    const me = await account();
+    const t = await thread(me);
+    await pick(t, await calendar(await connection(me)), me);
+    const turn = await readTurn(me, t);
+
     const asked = (
-      await tool({ tool: "delete_event", jobId: next.jobId, toolCallId: "d3", sourceRef: found.events[0]!.sourceRef, scope: "one" })
+      await tool({ tool: "delete_event", jobId: turn.jobId, toolCallId: "f3", sourceRef: turn.sourceRef, scope: "following" })
     ).json() as Record<string, unknown>;
     expect(asked).toMatchObject({ ok: true, waitingForThem: true, because: "offload read a calendar this turn." });
     expect(google.deleteEvent).not.toHaveBeenCalled();
 
     const { waitingFor } = await import("../src/connectors/tool-calls.js");
-    const waiting = (await waitingFor([next.messageId])).get(next.messageId);
+    const waiting = (await waitingFor([turn.messageId])).get(turn.messageId);
     expect(waiting?.because).toBe("offload read a calendar this turn.");
     expect(waiting?.action).toBe("delete");
+
+    const changed = (
+      await tool({ tool: "edit_event", jobId: turn.jobId, toolCallId: "f4", sourceRef: turn.sourceRef, scope: "following", title: "Later" })
+    ).json() as Record<string, unknown>;
+    expect(changed).toMatchObject({ ok: true, waitingForThem: true, because: "offload read a calendar this turn." });
+    expect(google.patchEvent).not.toHaveBeenCalled();
+  });
+
+  it("a removal other people would see, or one they asked to check, still waits; agreed to, Undo re-adds it with its guests", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const id = await calendar(await connection(me), { externalId: "cal-mine" });
+    await pick(t, id, me);
+    const turn = await readTurn(me, t);
+
+    await db.updateTable("connector_calendars").set({ participants: 3 }).where("id", "=", id).execute();
+    google.countParticipants.mockResolvedValue(3);
+    const shared = (
+      await tool({ tool: "delete_event", jobId: turn.jobId, toolCallId: "g1", sourceRef: turn.sourceRef, scope: "one" })
+    ).json() as Record<string, unknown>;
+    expect(shared).toMatchObject({ waitingForThem: true, because: "Everyone on this calendar will see it." });
+    const moved = (
+      await tool({ tool: "edit_event", jobId: turn.jobId, toolCallId: "g2", sourceRef: turn.sourceRef, scope: "one", title: "Later" })
+    ).json() as Record<string, unknown>;
+    expect(moved).toMatchObject({ waitingForThem: true, because: "Everyone on this calendar will see it." });
+    await db.deleteFrom("connector_pending_writes").execute();
+
+    google.countParticipants.mockResolvedValue(1);
+    await db.updateTable("accounts").set({ calendar_ask_first: true }).where("id", "=", me).execute();
+    const checked = (
+      await tool({ tool: "delete_event", jobId: turn.jobId, toolCallId: "g3", sourceRef: turn.sourceRef, scope: "one" })
+    ).json() as Record<string, unknown>;
+    expect(checked).toMatchObject({ waitingForThem: true, because: "You asked to check first." });
+    await db.deleteFrom("connector_pending_writes").execute();
+    await db.updateTable("accounts").set({ calendar_ask_first: false }).where("id", "=", me).execute();
+
+    google.getEvent.mockResolvedValue({ attendees: ["ana@example.com"], seriesId: null, startsAt: new Date(STARTS), recurrence: [] } as never);
+    try {
+      const guests = (
+        await tool({ tool: "delete_event", jobId: turn.jobId, toolCallId: "g4", sourceRef: turn.sourceRef, scope: "one" })
+      ).json() as Record<string, unknown>;
+      expect(guests).toMatchObject({ waitingForThem: true, because: "ana@example.com will be told." });
+      expect(google.deleteEvent).not.toHaveBeenCalled();
+
+      const cookie = await signIn(me);
+      const pending = await db.selectFrom("connector_pending_writes").select("id").executeTakeFirstOrThrow();
+      const pressed = await app.inject({ method: "POST", url: `/api/calendar/pending/${pending.id}/confirm`, headers: { cookie } });
+      expect(pressed.statusCode).toBe(200);
+      expect(google.deleteEvent).toHaveBeenCalledTimes(1);
+
+      const undone = await app.inject({ method: "POST", url: `/v1/turns/${turn.turnId}/undo`, headers: { cookie } });
+      expect(undone.statusCode).toBe(200);
+      const [, , draft, notify] = google.createEvent.mock.calls[0] as unknown as [string, string, { title: string; attendees?: string[] }, boolean];
+      expect(draft).toMatchObject({ title: "Dentist appointment", attendees: ["ana@example.com"] });
+      expect(notify).toBe(true);
+    } finally {
+      google.getEvent.mockResolvedValue(null as never);
+    }
+  });
+
+  it("what is kept for an Undo goes on the daily purge, and the turn still wears Done", async () => {
+    const me = await account();
+    const t = await thread(me);
+    await pick(t, await calendar(await connection(me)), me);
+    const turn = await readTurn(me, t);
+    await tool({ tool: "delete_event", jobId: turn.jobId, toolCallId: "p1", sourceRef: turn.sourceRef, scope: "one" });
+    await settle(turn.messageId, turn.conversationId);
+
+    const { forgetPendingWrites } = await import("../src/connectors/tool-calls.js");
+    await forgetPendingWrites();
+    const kept = await db.selectFrom("connector_pending_writes").select(["payload", "source_ref"]).execute();
+    expect(kept).toEqual([{ payload: {}, source_ref: null }]);
+
+    const cookie = await signIn(me);
+    expect(((await get(`/v1/messages/${turn.messageId}`, cookie)).json() as { filed: boolean }).filed).toBe(true);
+    // Nothing left to re-add, so Undo re-adds nothing.
+    await app.inject({ method: "POST", url: `/v1/turns/${turn.turnId}/undo`, headers: { cookie } });
+    expect(google.createEvent).not.toHaveBeenCalled();
   });
 
   it("an add to their own calendar is written with no control, even in a turn that read the calendar", async () => {
@@ -789,6 +975,53 @@ describe("AC-11 where a write goes", () => {
     expect((q.options as Array<{ label: string }>).map((o) => o.label)).toEqual(["Home", "Not that"]);
   });
 
+  it("a tapped calendar for a row where no thread is named says the turn did something, with no pill", async () => {
+    // From Today the row lands in the default thread, which has no pill. The
+    // tap's own reply is all the client has until a reload, so it has to say
+    // the write happened, and it must not name the thread nothing else names.
+    const me = await account();
+    const loose = await thread(me);
+    await db.updateTable("accounts").set({ default_thread_id: loose }).where("id", "=", me).execute();
+    const n = await connection(me);
+    await calendar(n, { summary: "Home", externalId: "cal-home" });
+    await calendar(n, { summary: "Work" });
+    const { jobId, messageId } = await dump(me);
+    const contentId = await row(me, loose, "Dentist", messageId);
+    const asked = (await tool({ tool: "create_event", jobId, toolCallId: "t1", contentId })).json() as Record<string, unknown>;
+    expect(asked).toEqual({ ok: true, asked: true });
+    const q = await db.selectFrom("questions").select("id").where("target_content_id", "=", contentId).executeTakeFirstOrThrow();
+
+    const cookie = await signIn(me);
+    const response = await app.inject({ method: "POST", url: `/v1/questions/${q.id}/answer`, headers: { cookie }, payload: { option: 0 } });
+    expect(response.statusCode).toBe(200);
+    expect(calledWith(0)).toBe("cal-home");
+    const sent = response.json() as { messageId: string; threads: unknown[]; filed?: boolean };
+    expect(sent.threads).toEqual([]);
+    expect(sent.filed).toBe(true);
+
+    // And the reload agrees with the tap.
+    await db.updateTable("conversations").set({ last_message_at: new Date() }).execute();
+    const tail = (await get("/v1/conversations/current", cookie)).json() as { messages: Array<{ id: string; filed: boolean; threads?: unknown[] }> };
+    expect(tail.messages.find((m) => m.id === sent.messageId)).toMatchObject({ filed: true });
+  });
+
+  it("a tapped calendar that then waits for their go-ahead has not done anything yet", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "Home" });
+    await calendar(n, { summary: "Work" });
+    await db.updateTable("accounts").set({ calendar_ask_first: true }).where("id", "=", me).execute();
+    const { jobId, messageId } = await dump(me, t);
+    const contentId = await row(me, t, "Dentist", messageId);
+    await tool({ tool: "create_event", jobId, toolCallId: "w1", contentId });
+    const q = await db.selectFrom("questions").select("id").where("target_content_id", "=", contentId).executeTakeFirstOrThrow();
+    const response = await app.inject({ method: "POST", url: `/v1/questions/${q.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 0 } });
+    const sent = response.json() as { filed?: boolean; waiting: unknown };
+    expect(sent.waiting).not.toBeNull();
+    expect(sent.filed).toBe(false);
+  });
+
   it("a name that fits two of theirs is asked about with those two, and the tap writes without picking", async () => {
     const me = await account();
     const t = await thread(me);
@@ -846,6 +1079,7 @@ describe("AC-11 where a write goes", () => {
     const first = await dump(me, t);
     const contentId = await row(me, t, "Dentist appointment", first.messageId);
     await tool({ tool: "create_event", jobId: first.jobId, toolCallId: "c1", contentId });
+    await db.updateTable("accounts").set({ calendar_ask_first: true }).where("id", "=", me).execute();
 
     const next = await dump(me, t, first.conversationId);
     const found = (

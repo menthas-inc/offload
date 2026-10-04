@@ -148,13 +148,16 @@ export async function writeThroughTool(
   // connection and never marked it. It is a refusal the model can relay.
   let token: string;
   let verdict;
+  // Read before the write, since the write is what changes it.
+  const was = await before(target, write);
   try {
     token = await accessTokenFor(target.connectionId);
     verdict = await verdictFor(target, write, token);
     // The outward reasons win when they apply, since their sentence names who
-    // finds out; a write nobody else would notice is still put to the person
-    // when the turn read a calendar first.
-    if (options.confirm && !verdict.outward) verdict = readCalendarVerdict();
+    // finds out. A write nobody else would notice, in a turn that read a
+    // calendar first, is put to the person only when Undo could not take it
+    // back: what Undo covers is done, as an add always was.
+    if (options.confirm && !verdict.outward && !was) verdict = readCalendarVerdict();
   } catch (error) {
     if (error instanceof GrantRevoked) {
       await markNeedsReauth(target.connectionId);
@@ -179,6 +182,26 @@ export async function writeThroughTool(
       throw error;
     }
     if (done.sourceRef && write.action === "create") await remember(contentId, target.externalId, done.sourceRef);
+    // A change or a removal files no row, so this is the turn's record of
+    // having done it, and what its Undo reads. Kept the way an agreed proposal
+    // is, as one that needed no asking.
+    if (was && messageId && write.action !== "create") {
+      await db
+        .insertInto("connector_pending_writes")
+        .values({
+          account_id: accountId,
+          calendar_id: calendarId,
+          content_id: null,
+          action: write.action,
+          scope: write.scope,
+          payload: JSON.stringify({ before: kept(was, write, verdict) }),
+          source_ref: write.sourceRef,
+          message_id: messageId,
+          confirmed_at: new Date(),
+          expires_at: new Date(),
+        })
+        .execute();
+    }
     return { kind: "written", sourceRef: done.sourceRef };
   }
 
@@ -232,11 +255,17 @@ export async function confirmPending(accountId: string, pendingId: string): Prom
   const token = await accessTokenFor(target.connectionId);
   const verdict = await verdictFor(target, write, token);
 
+  const was = await before(target, write);
   const done = await performWrite(target, write, verdict);
 
+  // What it said is not needed again. What the event was is, for the Undo,
+  // until that is pressed or the daily purge empties it.
   await db
     .updateTable("connector_pending_writes")
-    .set({ confirmed_at: new Date() })
+    .set({
+      confirmed_at: new Date(),
+      payload: JSON.stringify(was ? { before: kept(was, write, verdict) } : {}),
+    })
     .where("id", "=", pendingId)
     .execute();
 
@@ -247,6 +276,125 @@ export async function confirmPending(accountId: string, pendingId: string): Prom
   }
 
   return true;
+}
+
+/** What a change or a removal of one event would need to be taken back.
+ *
+ *  Read from the copy, before the write. A removal keeps the whole event, to
+ *  re-add it; a change keeps the old value of each field it touches and no
+ *  other. Null when there is no taking it back: "this and all following"
+ *  rewrites a series, and an event with no time in the copy cannot be put
+ *  anywhere. The guests are not in the copy (027), so the caller adds them
+ *  from what Google said at the moment of the write. */
+interface Before {
+  title?: string;
+  startsAt?: string;
+  endsAt?: string;
+  allDay?: boolean;
+  timezone?: string | null;
+  location?: string | null;
+  attendees?: string[];
+  /** A change keeps only whether there were guests to tell, never who. */
+  notify?: boolean;
+}
+
+/** What is stored: a removal needs its guests' addresses to invite them
+ *  again, a change needs only to know whether anybody is told. */
+function kept(was: Before, write: WriteAction, verdict: OutwardVerdict): Before {
+  return write.action === "delete" ? { ...was, attendees: verdict.audience } : { ...was, notify: verdict.audience.length > 0 };
+}
+
+async function before(target: { calendarId: string }, write: WriteAction): Promise<Before | null> {
+  if (write.action === "create" || write.scope !== "one") return null;
+  const row = await db
+    .selectFrom("connector_events")
+    .select(["title", "occurs_at", "occurs_end_at", "all_day", "timezone", "location"])
+    .where("calendar_id", "=", target.calendarId)
+    .where("source_ref", "=", write.sourceRef)
+    .where("deleted_at", "is", null)
+    .executeTakeFirst();
+  if (!row?.occurs_at) return null;
+  const startsAt = row.occurs_at.toISOString();
+  const endsAt = (row.occurs_end_at ?? new Date(row.occurs_at.getTime() + 60 * 60 * 1000)).toISOString();
+
+  if (write.action === "delete") {
+    return { title: row.title, startsAt, endsAt, allDay: row.all_day, timezone: row.timezone, location: row.location };
+  }
+  return {
+    ...(write.patch.title === undefined ? {} : { title: row.title }),
+    ...(write.patch.startsAt === undefined ? {} : { startsAt }),
+    ...(write.patch.endsAt === undefined ? {} : { endsAt }),
+    ...(write.patch.location === undefined ? {} : { location: row.location }),
+  };
+}
+
+/** Take back what a turn changed on or removed from a calendar.
+ *
+ *  A removal is re-added from what was kept, guests included, so they are
+ *  told again; a change gets its old values back. Newest first, so two
+ *  changes to one event in one turn unwind in order. Each is emptied as it
+ *  is taken back, so a second press re-adds nothing.
+ *
+ *  Best effort, as the add's Undo is: Google refusing leaves the event as it
+ *  is and what was kept in place, and the rest of the turn still undoes. */
+export async function undoToolWrites(accountId: string, turnId: string, since?: string): Promise<void> {
+  const rows = await db
+    .selectFrom("connector_pending_writes as p")
+    .innerJoin("messages as m", "m.id", "p.message_id")
+    .select(["p.id as id", "p.calendar_id as calendarId", "p.action as action", "p.source_ref as sourceRef", "p.payload as payload"])
+    .where("m.turn_id", "=", turnId)
+    .where("p.account_id", "=", accountId)
+    .where("p.confirmed_at", "is not", null)
+    .where(sql<boolean>`p.payload ? 'before'`)
+    .$if(since !== undefined, (qb) => qb.where("p.confirmed_at", "<=", sql<Date>`${since}::timestamptz`))
+    .orderBy("p.confirmed_at", "desc")
+    .execute();
+
+  for (const row of rows) {
+    const was = (row.payload as { before?: Before }).before;
+    if (!was) continue;
+    const at = (value: string | undefined): Date | undefined => (value ? new Date(value) : undefined);
+    try {
+      const target = await targetFor(row.calendarId, accountId);
+      if (!target || !writable(target)) continue;
+      const attendees = was.attendees ?? [];
+      // Nobody is asked: it is their own Undo. Guests are told, since the
+      // removal told them.
+      const verdict: OutwardVerdict = { outward: false, notify: was.notify ?? attendees.length > 0, audience: attendees, reason: "none" };
+      const startsAt = at(was.startsAt);
+      const endsAt = at(was.endsAt);
+      if (row.action === "delete") {
+        if (!was.title || !startsAt || !endsAt) continue;
+        await performWrite(
+          target,
+          {
+            action: "create",
+            draft: { title: was.title, startsAt, endsAt, allDay: was.allDay ?? false, timezone: was.timezone ?? null, location: was.location ?? null, attendees },
+          },
+          verdict,
+        );
+      } else if (row.action === "edit" && row.sourceRef) {
+        await performWrite(
+          target,
+          {
+            action: "edit",
+            sourceRef: row.sourceRef,
+            scope: "one",
+            patch: {
+              ...(was.title === undefined ? {} : { title: was.title }),
+              ...(startsAt ? { startsAt } : {}),
+              ...(endsAt ? { endsAt } : {}),
+              ...(was.location === undefined ? {} : { location: was.location }),
+            },
+          },
+          verdict,
+        );
+      } else continue;
+      await db.updateTable("connector_pending_writes").set({ payload: JSON.stringify({}) }).where("id", "=", row.id).execute();
+    } catch {
+      // Left as it is, with what was kept still there for another press.
+    }
+  }
 }
 
 /** A row that went on the calendar remembers which event it became, so it is
@@ -334,7 +482,9 @@ export async function declinePending(accountId: string, pendingId: string): Prom
  *  said. So the daily purge deletes a declined or expired one, rather than
  *  letting the addresses of people offload invited sit here for good.
  *
- *  **A confirmed one keeps its row and nothing in it.** That it happened is
+ *  **A confirmed one keeps its row and nothing in it.** That includes what
+ *  was kept of a changed or removed event for its Undo, guests' addresses
+ *  among it: a day at most, then gone. That it happened is
  *  the turn's record of having done something, which is what draws Done after
  *  a reload (`confirmedFor`); the payload and the event's reference are
  *  emptied, so what stays is an id, a message and two times. */
@@ -353,7 +503,8 @@ export async function forgetPendingWrites(): Promise<number> {
   return Number(gone.numDeletedRows ?? 0) + Number(emptied.numUpdatedRows ?? 0);
 }
 
-/** Which of these messages carry a calendar write the person agreed to.
+/** Which of these messages carry a calendar write that happened: one the
+ *  person agreed to, or a change or removal that needed no asking.
  *
  *  Scoped to the account as well as the messages: the caller holds message
  *  ids it has already checked, and this does not lean on that. */

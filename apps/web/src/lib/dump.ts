@@ -33,6 +33,9 @@ export interface Sent {
   question?: QuestionOnWire | null;
   /** 018. On an answer's response: the thread the answer changed. */
   threads?: TouchedThread[];
+  /** On a calendar answer's response: the tap put the event on a calendar,
+   *  which is Done even when the row's thread has no pill. */
+  filed?: boolean;
   /** 019. On a calendar answer's response: the proposal the tap turned into,
    *  when the calendar needed the person's say-so, drawn on their own turn. */
   waiting?: WaitingOn | null;

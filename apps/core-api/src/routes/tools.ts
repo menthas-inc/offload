@@ -1409,10 +1409,12 @@ async function existing(
           }
         : { action: "delete", sourceRef: call.sourceRef, scope: call.scope };
 
-    // A turn that has read a calendar confirms every change or removal, since
-    // what it read is text other people wrote and an invitation is such a
-    // title. `sawApps` is the same fact that taints a note written after a
-    // read; here it is the fact that turns a write into a proposal.
+    // What a turn that has read a calendar read is text other people wrote,
+    // and an invitation is such a title. `sawApps` is the same fact that
+    // taints a note written after a read. Here it turns a change or a removal
+    // into a proposal when Undo could not take it back, which is "this and
+    // all following"; one event is kept for the Undo and done, as an add is.
+    // The outward test is untouched by any of this.
     const outcome = await writeThroughTool(accountId, calendarId, write, messageId, null, {
       confirm: sawApps,
     });

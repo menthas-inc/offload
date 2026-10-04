@@ -51,3 +51,13 @@ describe("a proposed calendar write, once it is answered", () => {
     expect(context).toContain("setTurns((current) => answeredWaiting(current, turn, agreed))");
   });
 });
+
+describe("a tapped calendar, for a row where no thread is named", () => {
+  it("wears Done from what the server says the tap did, not from a pill", () => {
+    // The default thread has no pill, so `threads` is empty on a tap that
+    // wrote. Done was drawn from the pills alone and waited for a reload.
+    const context = readFileSync(new URL("../components/shell/conversation-context.tsx", import.meta.url), "utf8");
+    expect(context).not.toContain("did: (sent.threads?.length ?? 0) > 0");
+    expect(context).toContain("did: turnDid(sent)");
+  });
+});

@@ -25,7 +25,7 @@ import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { onAnswer } from "../dumps/answers.js";
 import { emit } from "../analytics.js";
 import { targetFor, undoWrite, type WriteAction } from "../connectors/write.js";
-import { confirmedFor, waitingFor, writeThroughTool } from "../connectors/tool-calls.js";
+import { confirmedFor, undoToolWrites, waitingFor, writeThroughTool } from "../connectors/tool-calls.js";
 import { waitingSharesFor } from "../threads/proposals.js";
 import { connectionsOf } from "../people/access.js";
 
@@ -206,6 +206,9 @@ const dumpResponse = z.object({
    *  tap's own turn wears the Done mark and the pill at once rather than
    *  after a reload. Empty for the way out, which changed nothing. */
   threads: touchedThreads.optional(),
+  /** On a calendar answer's response: the tap put the event on a calendar.
+   *  What draws Done when the row's thread has no pill to name. */
+  filed: z.boolean().optional(),
   /** 019. On a calendar answer's response: the proposal the tap turned into,
    *  when the calendar needed the person's say-so, drawn on their own turn. */
   waiting: z
@@ -2161,6 +2164,10 @@ export async function undoTurn(
  *  its row exactly where they are, and the rest of the turn still undoes. The
  *  alternative is refusing to undo a dump because Google is down. */
 async function undoCalendarWrites(accountId: string, turnId: string, since?: string): Promise<void> {
+  // What the turn changed or removed first: an event it added and then moved
+  // is moved back before the add is taken off.
+  await undoToolWrites(accountId, turnId, since);
+
   // Rows this turn filed and then put on a calendar, and rows a tapped answer
   // in this turn put on one: both remember their event in `source_ref`.
   const filed = await db
@@ -2504,7 +2511,11 @@ export async function answerCalendarQuestion(
   });
   if (!settled) return null;
 
-  const envelopeFor = async (waiting: Waiting | null) =>
+  // `wrote` is what draws Done on the tap: the event is on the calendar now.
+  // The thread is named only when it has a pill, which the default one never
+  // does (028), so a row filed from Today says Done and names nothing, as
+  // the tail will after a reload.
+  const envelopeFor = async (waiting: Waiting | null, wrote = false) =>
     db.transaction().execute(async (trx) => ({
       messageId: settled.message.id,
       conversationId: settled.question.conversation_id,
@@ -2517,7 +2528,19 @@ export async function answerCalendarQuestion(
         .select(["threads.id as id", "threads.name as name", "threads.icon as icon", "threads.hue as hue"])
         .where("message_threads.message_id", "=", settled.message.id)
         .where("message_threads.landed", "=", true)
+        .where((eb) =>
+          eb.not(
+            eb.exists(
+              eb
+                .selectFrom("accounts")
+                .select("accounts.id")
+                .where("accounts.id", "=", accountId)
+                .whereRef("accounts.default_thread_id", "=", "threads.id"),
+            ),
+          ),
+        )
         .execute(),
+      filed: wrote,
       waiting,
     }));
 
@@ -2590,7 +2613,7 @@ export async function answerCalendarQuestion(
     await db.transaction().execute(async (trx) => {
       await landedIn(trx, settled.message.id, row.thread_id);
     });
-    return { envelope: await envelopeFor(null), applied: true, failed: false };
+    return { envelope: await envelopeFor(null, true), applied: true, failed: false };
   }
 
   return {

@@ -55,3 +55,12 @@ describe("a proposed calendar write, once it is answered", () => {
     expect(source.match(/answeredWaiting\(current, turn, agreed\)/g)?.length).toBe(2);
   });
 });
+
+describe("a tapped calendar, for a row where no thread is named", () => {
+  it("wears Done from what the server says the tap did, not from a pill", () => {
+    // The default thread has no pill, so `threads` is empty on a tap that
+    // wrote. Done was drawn from the pills alone and waited for a reload.
+    expect(source).not.toContain("did: (sent.threads?.length ?? 0) > 0");
+    expect(source).toContain("did: turnDid(sent)");
+  });
+});

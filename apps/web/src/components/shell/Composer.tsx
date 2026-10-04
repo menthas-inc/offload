@@ -969,7 +969,7 @@ export function Composer({
           // The thread the answer changed: the Done mark and the pill, now
           // rather than after a reload.
           threads: sent.threads ?? [],
-          did: (sent.threads?.length ?? 0) > 0,
+          did: turnDid(sent),
           // 019. A tapped calendar answer that needs their say-so: the
           // proposal sits on their own turn.
           waiting: sent.waiting ?? null,
