@@ -4,19 +4,35 @@ path:
 
 ## Last sync
 
-date: 2026-10-02T13:40:00Z
+date: 2026-10-04T14:22:22Z
 
-Read `main` for the settings work: every settings page on both clients, `PeoplePage.tsx`,
-`NotificationsPage.tsx`, `Rows.tsx`, `sessions.ts`, `people.ts` and the web panes. No files were
-taken from the repository in this pass. Found while reading: Signed in on draws *Nothing else* when
-its read fails, and the web's Country and Time zone are native selects with no dark scheme.
+Read `main` for the landing page: `apps/web/src/app/(marketing)/page.tsx`, `page.module.css`, `components/Screen.tsx`,
+`screen.module.css`, `Atmosphere.tsx`, `atmosphere.module.css`, `Logo.tsx`, and the privacy page's calendar lines. No
+files were taken from the repository in this pass.
 
 ### Updated in this project
 
-- **Settings, tightened**: `explorations/settings-v2.html` (and the first round, `settings.html`), `handoff/APPLY-2026-10-02-settings.md` and `handoff/settings-standalone.html`
-- Direction B section headings and preview tiles on all three; Connected apps as cards with Mail always shown; Connect with someone; See the tutorial again
-- Eight Lucide glyphs vendored, 95 in all
-- `readme.md` gains **Settings**; `decisions.md` gains one entry
+- **Landing page, one scroll (direction C)**: `explorations/landing-scroll.html`, `handoff/APPLY-2026-10-04-landing.md`, `handoff/landing-standalone.html`
+- `ui_kits/marketing_site/` rebuilt with `landing.js` and `landing.css`
+- `readme.md` gains **The landing page**; `decisions.md` gains one entry
+
+## Sync history
+
+### 2026-10-03T20:48:00Z
+
+date: 2026-10-03T20:48:00Z
+commit: 963d7a25aab7
+
+Pulled `main` for the coder's 034 asks: `.claude/skills/offload-design/decisions.md` (taken whole, as the
+shared log, with this project's thread marks entry kept), and read `apps/web/src/app/(admin)/` (`layout.tsx`,
+`ui/nav.ts`, `ui/chrome.tsx`, `ui/table.tsx`, `ui/plot.tsx`, `admin.module.css`).
+
+### Updated in this project
+
+- **Admin kit redrawn as built in 034**: `ui_kits/admin_web/`, with `APeople.jsx` and `AOps.jsx` new
+- Tokens `--surface-danger`, `--surface-danger-hover`, `--plot-height`
+- `explorations/coder-asks-034.html`, `handoff/APPLY-2026-10-03-admin-034.md`
+- Thread marks handoff renames the component `ThreadIcon`, clear of the phones' avatar marks
 
 ## Screen map
 
@@ -36,9 +52,12 @@ its read fails, and the web's Country and Time zone are native selects with no d
 | Dates and notifications | `explorations/due-dates-and-notifications.html`, `handoff/APPLY-2026-09-22-dates.md` | `DateChip.tsx`, `WhenSheet.tsx`, `CustomRepeatSheet.tsx`, `ZoneStrip.tsx`, `Activity.tsx`, `NotificationsPage.tsx`, `packages/widgets/src/rrule.ts` |
 | A thread's map | `explorations/maps.html`, `handoff/APPLY-2026-10-02-maps.md` | `apps/mobile/components/screens/Thread.tsx`, `apps/mobile/components/shell/Widgets.tsx`, `apps/web/src/components/panes/Thread.tsx`, `apps/web/src/components/panes/Widgets.tsx`, `packages/widgets/src/index.ts`, `apps/core-api/src/places/resolve.ts`, `apps/agent/src/offload_agent/og.py` |
 | Things without a thread | `explorations/loose-items.html`, `handoff/APPLY-2026-10-01-loose.md`, `ui_kits/mobile_app/LooseParts.jsx` | `apps/mobile/components/screens/MyThreads.tsx`, `shell/ThreadRow.tsx`, `apps/web/src/components/panes/MyThreads.tsx`, `apps/core-api/src/admin/promote.ts`, `apps/agent/src/offload_agent/harness/plan.py` |
+| Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/layout.tsx`, `ui/nav.ts`, `ui/chrome.tsx`, `ui/table.tsx`, `ui/plot.tsx`, `admin.module.css` |
+| Thread marks | `explorations/thread-marks-v2.html`, `handoff/APPLY-2026-10-03-thread-marks.md` | `apps/mobile/components/screens/Thread.tsx`, `MyThreads.tsx`, `apps/mobile/components/Glyph.tsx`, `apps/web/src/components/panes/Thread.tsx`, `MyThreads.tsx`, `ContentRowView.tsx` |
+| First run | `explorations/onboarding-v2.html`, `handoff/APPLY-2026-10-03-onboarding.md` | `apps/mobile/components/screens/Welcome.ios.tsx`, `Welcome.android.tsx`, `apps/mobile/lib/gate.ts`, `apps/mobile/components/TutorialArt.tsx`, `ConsentTicks.tsx`, `ConnectStep.tsx`, `GateBackdrop.tsx`, `apps/web/src/components/FirstRun.tsx` |
 | Settings | `explorations/settings-v2.html`, `handoff/APPLY-2026-10-02-settings.md` | `apps/mobile/app/settings/`, `apps/mobile/components/settings/`, `apps/mobile/components/people/PeoplePage.tsx`, `apps/mobile/lib/sessions.ts`, `apps/web/src/components/panes/Settings.tsx`, `SettingsRows.tsx`, `Account.tsx`, `DateTime.tsx`, `Appearance.tsx` |
 | Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/` |
-| Landing page, invite email | `ui_kits/marketing_site/` | `apps/web/src/app/(marketing)/` |
+| Landing page, invite email | `ui_kits/marketing_site/`, `explorations/landing-scroll.html`, `handoff/APPLY-2026-10-04-landing.md` | `apps/web/src/app/(marketing)/`, `apps/web/src/components/Screen.tsx`, `Atmosphere.tsx` |
 | Design tokens | `styles.css`, `tokens/` | `packages/tokens/`, generated from `.claude/skills/offload-design/tokens` |
 | Components | `components/` | `packages/widgets/`, `apps/mobile/components/` |
 | Decision log | `decisions.md` | `.claude/skills/offload-design/decisions.md` (shared, append-only both ways) |
@@ -46,6 +65,50 @@ its read fails, and the web's Country and Time zone are native selects with no d
 | Atmosphere tokens | not carried, the marketing site's | `packages/tokens/atmosphere.css` (keep from the repository) |
 
 ## Sync history
+
+### 2026-10-03T08:57:42Z
+
+date: 2026-10-03T08:57:42Z
+
+Read `main` for thread marks: `apps/mobile/components/screens/Thread.tsx` in full (its `Bar` and the tools it
+carries), `MyThreads.tsx`, the web's `panes/Thread.tsx` head and `ContentRowView.tsx`'s `ThreadPill`, and
+confirmed Skia in the app. No files were taken from the repository in this pass.
+
+### Updated in this project
+
+- **Thread marks**: `explorations/thread-marks-v2.html` (first round `thread-marks.html`), `handoff/APPLY-2026-10-03-thread-marks.md`, `handoff/thread-marks-standalone.html`
+- Lucide glyph on a one-hue prism wash per thread; Edit thread joins rename, icon and colour
+- 59 Lucide glyphs vendored, 154 in all; `readme.md` gains **Thread marks**; `decisions.md` gains one entry
+
+### 2026-10-03T08:01:09Z
+
+date: 2026-10-03T08:01:09Z
+
+Read `main` for first run: `Welcome.ios.tsx`, `Welcome.android.tsx`, `lib/gate.ts`, `TutorialArt.tsx`,
+`ConsentTicks.tsx`, `ConnectStep.tsx`, `GateBackdrop.tsx`, `tutorial.tsx`, the web's `FirstRun.tsx` and
+the onboarding test and event schema. No files were taken from the repository in this pass.
+
+### Updated in this project
+
+- **Onboarding**: `explorations/onboarding-v2.html` (first round `onboarding.html`), `handoff/APPLY-2026-10-03-onboarding.md`, `handoff/onboarding-standalone.html`
+- Three screens: animated intro, Before you start, Bring things in; Skip beside the main button
+- `readme.md` gains **First run**; `decisions.md` gains one entry
+
+### 2026-10-02T13:40:00Z
+
+date: 2026-10-02T13:40:00Z
+
+Read `main` for the settings work: every settings page on both clients, `PeoplePage.tsx`,
+`NotificationsPage.tsx`, `Rows.tsx`, `sessions.ts`, `people.ts` and the web panes. No files were
+taken from the repository in this pass. Found while reading: Signed in on draws *Nothing else* when
+its read fails, and the web's Country and Time zone are native selects with no dark scheme.
+
+### Updated in this project
+
+- **Settings, tightened**: `explorations/settings-v2.html` (and the first round, `settings.html`), `handoff/APPLY-2026-10-02-settings.md` and `handoff/settings-standalone.html`
+- Direction B section headings and preview tiles on all three; Connected apps as cards with Mail always shown; Connect with someone; See the tutorial again
+- Eight Lucide glyphs vendored, 95 in all
+- `readme.md` gains **Settings**; `decisions.md` gains one entry
 
 ### 2026-10-01T23:30:00Z
 

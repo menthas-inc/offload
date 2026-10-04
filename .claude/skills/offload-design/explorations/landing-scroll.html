@@ -1,0 +1,94 @@
+<!doctype html><html data-theme="light" lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Landing page, one scroll</title>
+<link rel="stylesheet" href="../styles.css?v=20261004-landing">
+<link rel="stylesheet" href="frames.css?v=20261004-landing">
+<link rel="stylesheet" href="landing-scroll.css?v=20261004e">
+<style>
+.plat{position:sticky;top:12px;z-index:50;display:inline-flex;gap:2px;padding:3px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline),var(--shadow-2);margin-bottom:6px}
+.plat button{height:32px;padding:0 16px;border-radius:99px;border:0;background:transparent;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary);cursor:pointer}
+.plat button.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.dir{display:flex;gap:36px;align-items:flex-start;flex-wrap:wrap}
+.dir .notes{flex:1 1 340px;min-width:0;max-width:560px}
+.dir .notes .spec{margin-top:0}
+.lvl{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:99px;font:var(--weight-semibold) 11px/1 var(--font-core);letter-spacing:.02em}
+.lvl.l1{background:var(--surface-fill);color:var(--text-secondary)}.lvl.l2{background:var(--blue-50);color:var(--blue-700)}.lvl.l3{background:var(--surface-accent-soft);color:var(--moss-700)}.lvl.l4{background:var(--ink-950);color:var(--paper)}
+.open{display:inline-flex;align-items:center;gap:6px;margin-top:16px;height:34px;padding:0 14px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--border-strong);font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-primary)}
+.open:hover{background:var(--surface-fill);color:var(--text-primary)}
+.hint{font:var(--text-body-sm-role);color:var(--text-tertiary);margin:10px 0 0}
+.lf{position:relative;overflow:hidden;border-radius:14px;border:1px solid var(--border-hairline);background:var(--surface-page);flex:0 0 auto;box-shadow:var(--shadow-2)}
+.lf>.in{position:absolute;top:0;left:0;transform-origin:top left;display:flex;flex-direction:column;background:var(--surface-page)}
+.lf.web{width:922px;height:576px}.lf.web>.in{width:1280px;height:800px;transform:scale(.72)}
+.lf.ios{width:281px;height:608px;border-radius:30px}.lf.ios>.in{width:390px;height:844px;transform:scale(.72)}
+.lf.and{width:274px;height:608px;border-radius:24px}.lf.and>.in{width:412px;height:915px;transform:scale(.665)}
+.lh{flex:1;min-height:0;position:relative}
+.cb{flex:0 0 auto;display:flex;align-items:center;gap:14px;height:44px;padding:0 16px;background:var(--ink-100);border-bottom:1px solid var(--border-hairline)}
+.cb .dots{display:flex;gap:7px}.cb .dots s{width:11px;height:11px;border-radius:99px;background:var(--ink-300);display:block}
+.url{display:flex;align-items:center;gap:6px;height:28px;border-radius:99px;background:var(--paper);border:1px solid var(--border-hairline);padding:0 12px;font:var(--weight-regular) 13px/1 var(--font-core);color:var(--text-secondary)}
+.url .g{width:12px;height:12px;color:var(--text-tertiary)}
+.cb .url{flex:0 1 420px}
+.ist{flex:0 0 auto;height:47px;display:flex;justify-content:space-between;align-items:center;padding:4px 30px 0;font:var(--weight-semibold) 15px/1 var(--font-core)}
+.ist i{font-style:normal;font-size:11px;letter-spacing:1px}
+.isf{flex:0 0 auto;height:82px;background:color-mix(in srgb,var(--ink-100) 92%,transparent);border-top:1px solid var(--border-hairline);display:flex;flex-direction:column;align-items:center;padding-top:10px;box-sizing:border-box;gap:14px}
+.isf .url{width:300px;justify-content:center;height:40px;border-radius:12px;font-size:15px;color:var(--text-primary)}
+.isf b{width:134px;height:5px;border-radius:3px;background:var(--ink-950);opacity:.85}
+.ast{flex:0 0 auto;height:34px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font:var(--weight-medium) 13px/1 var(--font-core);background:var(--ink-100)}
+.acb{flex:0 0 auto;height:58px;display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--ink-100);border-bottom:1px solid var(--border-hairline)}
+.acb .url{flex:1;height:40px;font-size:15px;color:var(--text-primary)}
+.acb s{width:20px;height:20px;border:2px solid var(--ink-400);border-radius:5px;display:block}
+.agb{flex:0 0 auto;height:24px;display:flex;justify-content:center;align-items:center;background:var(--surface-page)}
+.agb b{width:108px;height:4px;border-radius:2px;background:var(--ink-400)}
+body.full{padding:0;background:var(--surface-page)}
+body.full .fullhost{position:fixed;inset:0}
+</style></head><body>
+<div class="wrap" id="page">
+<h1>Landing page, one scroll</h1>
+<p class="lede">The hero stays as it is, with a scroll mark under it. Below it, the onboarding story: what offload is, how things get in, threads, and Google Calendar, then the waitlist again. Two directions, B and C, on the same copy. A thin bar along the bottom of the window shows how much of the page is left. Scroll inside each frame; the background is driven by the scroll in every one of them, and <b>Open full size</b> shows it at your window.</p>
+<div class="plat" id="plat"><button data-p="ios">iOS</button><button data-p="android">Android</button><button data-p="web">Web</button></div>
+
+<div class="sechead"><h2>What Google checks</h2><u>offload.club, signed out</u></div>
+<table class="mx"><tr><th>Check</th><th>Where it lands</th><th>Today</th></tr>
+<tr><td><b>What offload is, in plain words</b></td><td>Section 01, <i>Send it. offload files it.</i> Two sentences naming notes, links, photos and voice notes, and threads.</td><td>Missing, added</td></tr>
+<tr><td><b>Google Calendar, and why</b></td><td>Section 04, the coder's sentence as written, plus one line on choosing calendars and disconnecting, and a link to the privacy page.</td><td>Missing, added</td></tr>
+<tr><td><b>The name, matching the consent screen</b></td><td>The headline and the mark, lowercase <i>offload</i>.</td><td>There</td></tr>
+<tr><td><b>Privacy on the same domain</b></td><td>The footer beside Terms, and again under the calendar section.</td><td>There</td></tr></table>
+<ul class="spec">
+<li><b>Real HTML, nothing behind sign-in.</b> Every line is live text in the page in all four. In both, the four sections are pinned and shown one step at a time, but all of it is in the document and readable at its scroll position.</li>
+<li><b>Nothing the privacy page does not say.</b> The privacy page says offload reads the calendars you tick and writes the changes you ask for, including adding, changing and deleting events. The homepage claims less than that: show what is on it, and add or change events when you ask.</li>
+</ul>
+
+<div class="sechead"><h2>The copy</h2><u>same in all four</u></div>
+<ul class="spec" id="copy"></ul>
+
+<div id="dirs"></div>
+</div>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#2F5A3D"/><circle cx="50" cy="34" r="7" fill="#fff"/><path d="M33 48v10a8 8 0 0 0 8 8h18a8 8 0 0 0 8-8V48" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg></template>
+<script src="landing-core.js?v=20261004d"></script>
+<script src="landing-dirs.js?v=20261004e"></script>
+<script>
+const NOTES={
+b:{n:'B. The filing',l:'l2',lv:'Bolder',li:[
+'<b>The background.</b> The mark slides over to sit behind the stage, and the shader leaves the mark and spreads across the page at low strength. Scrolling is its clock, so the film moves when you move and stops when you stop.',
+'<b>The content.</b> Onboarding as a scroll. One pinned stage, four steps: the four dumps falling into Lisbon trip and Bookshelf build as you scroll, the four ways in, a thread filling with people, and an event written to the calendar.',
+'<b>Risk.</b> The four sections share one pinned box, so each heading is visible for one stretch of scroll rather than sitting on the page.']},
+c:{n:'C. Through the prism',l:'l3',lv:'Bold',li:[
+'<b>The background.</b> Scrolling off the hero drives into the mark. It grows about the vessel\'s base until the prism fills the window, and the whole page then sits inside the film, stronger and turning with scroll. At the waitlist it pulls back out and becomes the mark again, above the form.',
+'<b>The content.</b> One frosted paper panel, held still in the middle of the window. It fades in as the hero leaves, the four steps swap inside it as you scroll, each drawing assembling piece by piece, and it fades out before the waitlist. Nothing scrolls past.',
+'<b>Contrast.</b> The panel is paper at 86% over the film, so text keeps its contrast whatever colour is behind.',
+'<b>Build.</b> The film has to be full-bleed with the mark as a mask that grows, not the mark scaled up, or the shader blurs to flat colour. One canvas, one moving mask.']}
+};
+const P=new URLSearchParams(location.search);
+const full=P.get('full');
+const C=LD.C;
+document.getElementById('copy').innerHTML=['what','any','threads','cal','end'].map(k=>`<li><b>${C[k].h}.</b> ${C[k].p}${k==='cal'?' You select which calendars offload may use, and you can disconnect in Settings at any time.':''}</li>`).join('');
+const frame=(plat,id)=>plat==='web'?`<div class="lf web"><div class="in"><div class="cb"><span class="dots"><s></s><s></s><s></s></span><span class="url">${LD.g('lock')}offload.club</span></div><div class="lh" id="${id}"></div></div></div>`
+:plat==='ios'?`<div class="lf ios"><div class="in"><div class="ist"><span>9:41</span><i>●●● ▮</i></div><div class="lh" id="${id}"></div><div class="isf"><span class="url">${LD.g('lock')}offload.club</span><b></b></div></div></div>`
+:`<div class="lf and"><div class="in"><div class="ast"><span>9:41</span><span>▾ ▴ ▮</span></div><div class="acb"><span class="url">${LD.g('lock')}offload.club</span><s></s></div><div class="lh" id="${id}"></div><div class="agb"><b></b></div></div></div>`;
+let PLAT=localStorage.getItem('landing-platform')||'web';
+function render(){
+ document.querySelectorAll('#plat button').forEach(b=>b.classList.toggle('on',b.dataset.p===PLAT));
+ document.getElementById('dirs').innerHTML=Object.entries(NOTES).map(([k,o])=>`<div class="sechead"><h2>${o.n}</h2><span class="lvl ${o.l}">${o.lv}</span></div>
+<div class="dir">${frame(PLAT,'h-'+k)}<div class="notes"><ul class="spec">${o.li.map(x=>`<li>${x}</li>`).join('')}</ul><a class="open" href="?full=${k}" target="_blank">Open full size</a><p class="hint">Scroll inside the frame. Reduced motion holds the field still and keeps the sections.</p></div></div>`).join('');
+ Object.keys(NOTES).forEach(k=>LD.mount(document.getElementById('h-'+k),k));
+}
+if(full&&LD_DIRS[full]){document.body.className='full';document.body.innerHTML='<div class="fullhost" id="fh"></div>';LD.mount(document.getElementById('fh'),full)}
+else{document.querySelectorAll('#plat button').forEach(b=>b.onclick=()=>{PLAT=b.dataset.p;localStorage.setItem('landing-platform',PLAT);render()});render()}
+</script></body></html>
