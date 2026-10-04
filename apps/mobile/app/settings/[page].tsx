@@ -16,6 +16,7 @@ import { Switch } from "../../components/settings/Switch";
 import { ToastHost, useToast, type ToastState } from "../../components/shell/Toast";
 import { useColors } from "../../lib/colors";
 import { endOthers, endSignedIn, listSignedIn, thisDevice, type SignedIn } from "../../lib/sessions";
+import type { DeviceSessions } from "@offload/markup";
 import { deviceGlyph, emailNote } from "../../lib/settings";
 import { useSignOut } from "../../components/settings/useSignOut";
 import { DeleteAccountSheet } from "../../components/settings/DeleteAccountSheet";
@@ -144,7 +145,7 @@ function Account({ toast }: { toast: ToastState }) {
   // list does; and every other session, or the fact that they could not be
   // read. Read on mount and after every End.
   const [device, setDevice] = useState<SignedIn | null>(null);
-  const [others, setOthers] = useState<SignedIn[] | "failed" | null>(null);
+  const [others, setOthers] = useState<DeviceSessions[] | "failed" | null>(null);
   const [ending, setEnding] = useState<string | null>(null);
   const load = useCallback(() => {
     void thisDevice()
@@ -156,12 +157,13 @@ function Account({ toast }: { toast: ToastState }) {
   }, []);
   useEffect(load, [load]);
 
-  async function end(token: string | "others") {
-    setEnding(token);
-    const ok = token === "others" ? await endOthers() : await endSignedIn(token);
+  // A device's every session at once, keyed by the device while it runs.
+  async function end(row: DeviceSessions | "others") {
+    setEnding(row === "others" ? row : row.device);
+    const ok = row === "others" ? await endOthers() : await endSignedIn(row.tokens);
     setEnding(null);
     if (ok) load();
-    else toast.show("That didn't go through.", { label: "Try again", onPress: () => void end(token) });
+    else toast.show("That didn't go through.", { label: "Try again", onPress: () => void end(row) });
   }
 
   const listed = Array.isArray(others) ? others : [];
@@ -210,13 +212,17 @@ function Account({ toast }: { toast: ToastState }) {
           />
           {listed.map((row) => (
             <Row
-              key={row.token}
+              key={row.device}
               icon={deviceGlyph(row.device)}
               title={row.device}
-              note={`Since ${since.format(row.since)}`}
+              note={
+                row.tokens.length === 1
+                  ? `Since ${since.format(row.since)}`
+                  : `${row.tokens.length} sessions since ${since.format(row.since)}`
+              }
               pill="End"
-              busy={ending === row.token}
-              onPress={() => void end(row.token)}
+              busy={ending === row.device}
+              onPress={() => void end(row)}
             />
           ))}
           {listed.length > 0 ? (
@@ -685,35 +691,35 @@ function Apps({ toast }: { toast: ToastState }) {
   return (
     <>
       <Sections>
-        <Group label="Connected" icon="link" bare>
-          <View style={{ gap: 12 }}>
-            {/* Not drawn while loading, and not at all where the connector is
-                not configured: a Connect that cannot work is worse than none. */}
-            {!loading && available ? (
-              <CalendarCard
-                connections={connections}
-                askFirst={askFirst}
-                onAsk={(next) => void ask(next)}
-                onOpen={() => router.push("/settings/calendar")}
-                onConnect={connect}
-                onDisconnect={setDisconnecting}
-              />
-            ) : null}
-            {me ? (
-              <MailCard
-                email={me.email}
-                available={me.mailAvailable}
-                onCopy={() =>
-                  void Clipboard.setStringAsync(MAIL_ADDRESS)
-                    .then(() => toast.show("Copied"))
-                    // The address stays on screen to select; nothing else to offer.
-                    .catch(() => undefined)
-                }
-                onContacts={() => void WebBrowser.openBrowserAsync(MAIL_CARD_URL)}
-              />
-            ) : null}
-          </View>
-        </Group>
+        {/* The cards alone, with no heading over them (2026-10-05): a
+            "Connected" section said what the two cards already say. */}
+        <View style={{ gap: 12 }}>
+          {/* Not drawn while loading, and not at all where the connector is
+              not configured: a Connect that cannot work is worse than none. */}
+          {!loading && available ? (
+            <CalendarCard
+              connections={connections}
+              askFirst={askFirst}
+              onAsk={(next) => void ask(next)}
+              onOpen={() => router.push("/settings/calendar")}
+              onConnect={connect}
+              onDisconnect={setDisconnecting}
+            />
+          ) : null}
+          {me ? (
+            <MailCard
+              email={me.email}
+              available={me.mailAvailable}
+              onCopy={() =>
+                void Clipboard.setStringAsync(MAIL_ADDRESS)
+                  .then(() => toast.show("Copied"))
+                  // The address stays on screen to select; nothing else to offer.
+                  .catch(() => undefined)
+              }
+              onContacts={() => void WebBrowser.openBrowserAsync(MAIL_CARD_URL)}
+            />
+          ) : null}
+        </View>
       </Sections>
 
       {/* Disconnecting asks once, then revokes at Google and deletes the copy

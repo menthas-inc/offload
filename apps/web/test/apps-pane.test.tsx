@@ -110,9 +110,11 @@ const link = (host: HTMLElement, text: string) => [...host.querySelectorAll("a")
 describe("the Connected apps cards (AC-12)", () => {
   it("connected: the account, Connected, the calendars count and Ask before adding; Mail beside it", async () => {
     const host = await render(<AppsPane />);
-    expect([...host.querySelectorAll("section h2")].map((h) => h.textContent)).toEqual(["Connected"]);
+    // The cards are the page: no summary under the title, no section heading.
+    expect(host.querySelectorAll("section h2")).toHaveLength(0);
+    expect(host.querySelector("h1")?.nextElementSibling).toBeNull();
     const text = host.textContent ?? "";
-    expect(text).toContain("Calendar and Mail");
+    expect(text).not.toContain("Calendar and Mail");
     expect(text).toMatch(/Google Calendarjo@hey\.com, connected 14 Sept?Connected/);
     expect(link(host, "Calendars offload can use")?.getAttribute("href")).toBe("/settings/apps/calendar");
     expect(link(host, "Calendars offload can use")?.textContent).toContain("4 of 7");

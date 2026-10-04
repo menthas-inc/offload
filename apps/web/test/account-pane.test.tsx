@@ -191,6 +191,22 @@ describe("Signed in on (AC-5)", () => {
     expect(section(host, "Signed in on").textContent).toContain("Nowhere else");
   });
 
+  it("one row per device: the sign-ins there counted, and End ends them all", async () => {
+    const AGAIN = { ...OLD, token: "old-2", createdAt: "2026-09-30T10:00:00Z" };
+    sessions = [OLD, HERE, AGAIN, PHONE];
+    const host = await render();
+    const signedIn = section(host, "Signed in on");
+    const text = signedIn.textContent ?? "";
+    expect(text.match(/Chrome on Windows/g)).toHaveLength(1);
+    expect(text).toMatch(/Chrome on Windows2 sessions since 14 Sept?End/);
+
+    await act(async () => signedIn.querySelector<HTMLButtonElement>('[aria-label="End the 2 sessions on Chrome on Windows"]')!.click());
+    for (let i = 0; i < 3; i += 1) await act(async () => new Promise((r) => setTimeout(r, 0)));
+    expect(revoked.sort()).toEqual(["old", "old-2"]);
+    expect(section(host, "Signed in on").textContent).not.toContain("Chrome on Windows");
+    expect(section(host, "Signed in on").textContent).toContain("The app on iPhoneSince 2 Aug");
+  });
+
   it("a failed list: this device, then the line and Try again, never Nothing else", async () => {
     listFails = true;
     const host = await render();

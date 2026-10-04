@@ -1,6 +1,13 @@
 /* forms/Switch.jsx, as a stylesheet. Every value is the kit's: a 44 by 26
-   track with 3px of padding, a 20px knob, ink when on, --surface-fill-strong
-   when off, the disabled surface when disabled, and the toggle duration. */
+   track with 3px of padding, a 20px knob, ink when on, the disabled surface
+   when disabled, and the toggle duration.
+
+   Off is --border-lift rather than the kit's --surface-fill-strong
+   (2026-10-05). In dark, fill-strong is #2C2C2C under a #191919 knob on a
+   #212121 row, so an off switch was a dark circle on a dark pill on a dark
+   page and could not be seen. The lift is dark's one step up for an edge that
+   has no shadow to lean on; in light it is the same value as fill-strong, so
+   nothing moves there. */
 
 .switch {
   position: relative;
@@ -43,7 +50,7 @@
   flex: 0 0 auto;
   padding: 3px;
   border-radius: var(--radius-pill);
-  background: var(--surface-fill-strong);
+  background: var(--border-lift);
   display: flex;
   transition: background var(--duration-base) var(--ease-out);
 }

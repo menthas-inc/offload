@@ -11,6 +11,14 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-05 · Connected apps is the cards alone, and dark settings lift their edges
+**Surface:** iOS, Android, web
+**Raised by:** code, from the owner looking at settings in dark on the web.
+**Was:** Connected apps had a summary under the title (*Calendar and Mail*) and a *Connected* section heading with the link tile over the two cards. The app cards and the Appearance tiles were ringed with `--border-hairline`; the Switch's off track was `--surface-fill-strong`. Signed in on listed every live session, so one phone that had signed in five times was five rows.
+**Is:** the title, then the cards, no summary and no heading. Card and tile rings are `--border-lift`; the Switch's off track is `--border-lift` (the phones' `trackColor.false` and `ios_backgroundColor` too). Signed in on is one row per device description: *Since 4 Oct* for one session, *3 sessions since 5 Sept* for several, and End ends them all.
+**Why:** the heading and summary repeated what the cards say. In dark the settings pane is `--surface-raised`, the same as the cards on it, so a hairline edge measured 1.15:1 and the cards dissolved; an off switch was a `#191919` knob on a `#2C2C2C` track on a `#212121` row and could not be seen. The lift is 1.82:1 there, and in light it is the hairline's own value, so light does not move. Sessions: there is no device id, every sign-in is a session, and nobody thinks in sessions.
+**Design system impact:** `forms/Switch.jsx`: off track `--border-lift` in place of `--surface-fill-strong` (identical in light). `web_app/WSettings.jsx`, `mobile_app/SettingsDetail.jsx`, `android_app/M3SettingsDetail.jsx`: Connected apps drops its sub line and the *Connected* section head; app cards and choice tiles ring with `--border-lift`; the Signed in on rows are per device with the count in the note.
+
 ### 2026-10-04 · The landing page says what offload is
 **Surface:** web, the landing page
 **Raised by:** code, for Google's OAuth review of the Calendar scopes; decided with the product owner off `explorations/landing-scroll.html`. Handoff: `handoff/APPLY-2026-10-04-landing.md`.
