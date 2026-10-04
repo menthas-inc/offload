@@ -40,6 +40,27 @@ case "$commits" in
       echo "The brand uses a comma, a colon or a full stop instead, and a middle dot for metadata (OFF-7)." >&2
       exit 2
     fi
+    # Every step writes to a log and only a summary comes back. The gate's stderr
+    # is the tool result of the commit call, and on 2026-10-05 a failing suite
+    # returned 5.6 MB of turbo output that way and filled the context window of
+    # three sessions in a row. Tested by .claude/hooks/tests/pre-commit-gate.test.sh.
+    logdir="${TMPDIR:-/tmp}/offload-gate"; mkdir -p "$logdir"
+    log="$logdir/$(date +%Y%m%d-%H%M%S)-$$.log"
+    step() { # step <blocked message> <command...>
+      local msg="$1"; shift
+      echo "== $*" >> "$log"
+      if ! eval "$@" >> "$log" 2>&1; then
+        {
+          echo "$msg"
+          echo "failing lines (first 40):"
+          grep -E '(FAIL|✗|×|[Ee]rror|ERR!|AssertionError|Expected|Received)' "$log" | grep -vE '^\s*$' | cut -c1-200 | head -40
+          echo "last 30 lines:"
+          tail -30 "$log" | cut -c1-200
+          echo "full output: $log"
+        } >&2
+        exit 2
+      fi
+    }
     # Set these once the toolchain exists (see docs/tech/stack.md). Skips gracefully while absent.
     TEST_CMD="${PROJECT_TEST_CMD:-}"
     LINT_CMD="${PROJECT_LINT_CMD:-}"
@@ -50,26 +71,16 @@ case "$commits" in
       if [ -z "$LINT_CMD" ] && [ -f package.json ] && grep -q '"lint"' package.json; then LINT_CMD="pnpm lint"; fi
     fi
     if [ -n "$TEST_CMD" ]; then
-      echo "pre-commit gate: running $TEST_CMD" >&2
-      if ! eval "$TEST_CMD" >&2; then
-        echo "BLOCKED by pre-commit gate: tests failed (QUAL-1). Fix before committing." >&2
-        exit 2
-      fi
+      step "BLOCKED by pre-commit gate: tests failed (QUAL-1). Fix before committing." "$TEST_CMD"
     fi
     if [ -n "$LINT_CMD" ]; then
-      if ! eval "$LINT_CMD" >&2; then
-        echo "BLOCKED by pre-commit gate: lint failed." >&2
-        exit 2
-      fi
+      step "BLOCKED by pre-commit gate: lint failed." "$LINT_CMD"
     fi
     # What lint cannot see and CI checks: a class, a CSS module class or an icon
     # name that exists nowhere. Each renders as nothing and fails nothing else.
     if [ -d node_modules ] && [ -f .claude/scripts/dead-classes.mjs ]; then
       for check in dead-classes dead-css dead-icons; do
-        if ! node ".claude/scripts/$check.mjs" >&2; then
-          echo "BLOCKED by pre-commit gate: $check found something." >&2
-          exit 2
-        fi
+        step "BLOCKED by pre-commit gate: $check found something." node ".claude/scripts/$check.mjs"
       done
     fi
     # The agent plane has no package.json, so `pnpm lint` never sees it and CI's
@@ -77,11 +88,9 @@ case "$commits" in
     # alone before this line existed. Skipped while the venv is absent so a fresh
     # clone can still make its first commit.
     if [ -d apps/agent/.venv ]; then
-      if ! (cd apps/agent && uv run ruff check . >&2); then
-        echo "BLOCKED by pre-commit gate: ruff failed in apps/agent." >&2
-        exit 2
-      fi
+      step "BLOCKED by pre-commit gate: ruff failed in apps/agent." "(cd apps/agent && uv run ruff check .)"
     fi
+    echo "pre-commit gate: passed, full output: $log" >&2
     ;;
 esac
 exit 0
