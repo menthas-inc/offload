@@ -48,14 +48,14 @@ Needs `ANTHROPIC_API_KEY` in the environment. Every run writes
 directory is not committed.
 
 **Cost.** A filing or answering case is one to four model calls plus one judge
-call when it has a rubric. Classify, judge and compaction cases are one small
+call when it has a rubric. Classify, judge and nightly cases are one small
 call each. The whole set is about 450 cases and takes around ten minutes at
 ten in parallel. Say what a run will cost before starting a full one; prefer
 `--principle` while iterating.
 
-**Models are production's**, read from `Config` in the agent: filing and quick
-add on the sort tier's bigger sibling, answering on the reasoning tier, classify
-and judge and compaction on the sort tier. `--model surface=id` overrides one
+**Models are production's**, read from `Config` in the agent: filing and the
+nightly pass on the sort tier's bigger sibling, answering on the reasoning tier,
+classify and judge on the sort tier. `--model surface=id` overrides one
 surface for a comparison and the record names what ran.
 
 ## Six surfaces
@@ -69,9 +69,8 @@ the code path a real turn takes up to the Core API boundary.
 | `file` | `plan` with the filing prompt | a dump | `filed` matchers, `say`, `asks`, `look_up`, `called`, `not_called`, `creates_thread`, `rubric` |
 | `answer` | `plan_answer` | a question | `reply`, `contains`, `must_not_contain`, `max_words`, `asks`, `look_up`, `rubric` |
 | `classify` | `classify` | a message | `routes`: `answer` or `file` |
-| `quick_add` | `plan_quick_add` | typed text | `untouched`, `edit`, `adds`, `title_keeps`, `rubric` |
 | `judge` | `judge_answer` | a typed reply to an open question | `answers`, `whole`, `value` |
-| `compact` | the compaction call | a list of notes | `no_change`, `folds`, `supersedes`, `never_touches`, `adds`, `rubric` |
+| `nightly` | the nightly pass (032), which took over compaction | a thread's notes and the day's dumps | `no_change`, `folds`, `supersedes`, `never_touches`, `adds`, `learns`, `learned_has`, `learned_lacks`, `rubric` |
 
 Every surface also gets the checks that hold everywhere: no dash in anything
 offload writes, no emoji, no capitalised offload, no self diagnosis, and on a

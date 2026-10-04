@@ -200,11 +200,12 @@ export default function Settings() {
         </Group>
 
         <Group label="What offload does with it" icon="lock">
-          {/* The kit's Privacy group holds "Let offload notice patterns" too.
-              That row is not built, so this group holds the two that are. */}
+          {/* The kit's own row. It said "Reaching the web" while the page
+              held only those switches; it holds Storage and Your copy too
+              now, and the privacy policy sends people here by this name. */}
           <Row
-            icon="orbit"
-            title="Reaching the web"
+            icon="lock"
+            title="Privacy"
             onPress={() => router.push("/settings/privacy")}
             last
           />

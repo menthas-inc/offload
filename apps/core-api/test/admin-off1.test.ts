@@ -176,6 +176,7 @@ interface Write {
  *  All of it against the marked account, and none of it destroys anything:
  *  the waitlist's removals only ever touch somebody still waiting. */
 const WRITES: Write[] = [
+  { route: "POST /v1/admin/session", says: { status: "open" } },
   { route: "POST /v1/admin/people/:id/viewed", says: { status: "recorded" } },
   { route: "POST /v1/admin/people/:id/sign-out", says: { status: "signed-out", sessions: 1 } },
   { route: "POST /v1/admin/people/:id/disable", says: { status: "disabled" } },

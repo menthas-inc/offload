@@ -249,6 +249,57 @@ describe("the archive", () => {
     expect(files.get("conversations.html")!.toString()).toContain(`files/${w.voice}.m4a`);
   });
 
+  it("gives somebody else's photo as the picture the thread shows, never their file or its name", async () => {
+    const w = await world();
+    const original = Buffer.concat([JPEG, Buffer.from(" with where it was taken")]);
+    const large = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.from("the large rendition")]);
+    const theirs = await db
+      .insertInto("blobs")
+      .values({
+        account_id: w.sam.id,
+        client_key: uuidv7(),
+        name: "Sam at 14 Rua Nova.heic",
+        content_type: "image/heic",
+        kind: "image",
+        byte_size: original.length,
+        width: 4,
+        height: 3,
+        sha256: Buffer.alloc(32),
+        renditions_at: sql`now()`,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const key = await db.transaction().execute((trx) => mintObjectKey(trx, theirs.id, w.sam.id));
+    await objectStore()!.put(objectKey(theirs.id, "original"), wrap(original, key));
+    await objectStore()!.put(objectKey(theirs.id, "large"), wrap(large, key));
+    await db.insertInto("content_blobs").values({ content_id: w.boiler, blob_id: theirs.id }).execute();
+    await db.transaction().execute((trx) => ensureThreadWrap(trx, theirs.id, w.shared));
+
+    await buildCopy(await asked(w.ana));
+    const files = await unzip(w.ana.id);
+    expect(files.get(`files/${theirs.id}.jpg`)).toEqual(large);
+    expect(files.has(`files/${theirs.id}.heic`)).toBe(false);
+    const everything = [...files.entries()].filter(([name]) => !name.startsWith("files/")).map(([, bytes]) => bytes.toString()).join("\n");
+    expect(everything).not.toContain("Rua Nova");
+    // Her own still comes back as the file it was, under its own name.
+    expect(files.get(`files/${w.picture}.jpg`)).toEqual(JPEG);
+    expect(everything).toContain("IMG_4821 at home.jpg");
+
+    // Sam's own copy holds the file Sam put in.
+    await buildCopy(await asked(w.sam));
+    const sams = await unzip(w.sam.id);
+    expect(sams.get(`files/${theirs.id}.heic`)).toEqual(original);
+  });
+
+  it("leaves out somebody else's photo that has no rendition yet", async () => {
+    const w = await world();
+    const waiting = await photo(w.sam, JPEG, { contentId: w.boiler, threadId: w.shared });
+    await buildCopy(await asked(w.ana));
+    const files = await unzip(w.ana.id);
+    expect([...files.keys()].some((name) => name.includes(waiting))).toBe(false);
+    expect((await copyState(w.ana.id)).state).toBe("ready");
+  });
+
   it("is plain pages: nothing runs, and what was typed is text", async () => {
     const w = await world();
     await buildCopy(await asked(w.ana));

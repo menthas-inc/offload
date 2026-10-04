@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/export_requested.v1.json",
+  "title": "export_requested",
+  "description": "A copy was asked for. Nothing about what it holds.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {}
+}

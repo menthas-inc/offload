@@ -107,7 +107,9 @@ describe("027 questions (AC-9)", () => {
     const [card] = await needs(await signIn(me));
     expect(card).toMatchObject({ key: `question:${id}`, kind: "question", threadId: trip, threadName: "Europe, October", fromEmail: false });
     expect((card!["question"] as { text: string; options: { label: string }[] }).options.map((o) => o.label)).toEqual(["Saturday", "Sunday", "Not that"]);
-    expect(JSON.stringify(card)).not.toContain("2026-10-04");
+    // The option's value never travels. Asked of the question alone: the card
+    // carries `since`, and on 2026-10-04 that was the same string.
+    expect(JSON.stringify(card!["question"])).not.toContain("2026-10-04");
   });
 
   it("leaves out questions that leave offload or start a turn, closed ones, and a stranger's words unless they came by email", async () => {

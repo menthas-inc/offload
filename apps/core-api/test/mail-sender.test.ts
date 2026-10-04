@@ -169,3 +169,14 @@ describe("the sender check (AC-3)", () => {
   });
 });
 
+describe("the replay guard's hash", () => {
+  it("is the same for the same signature, and is nothing without one", async () => {
+    const { signatureHash } = await import("../src/mail-in/sender.js");
+    expect(signatureHash("Example.com", "abc")).toEqual(signatureHash("example.com", "abc"));
+    expect(signatureHash("example.com", "abc")).not.toEqual(signatureHash("example.com", "abd"));
+    // A random stand-in made every redelivery look new, to this table and to
+    // the dump's own dedupe, which is keyed off the same hash.
+    expect(signatureHash("example.com", undefined)).toBeNull();
+    expect(signatureHash("example.com", "")).toBeNull();
+  });
+});

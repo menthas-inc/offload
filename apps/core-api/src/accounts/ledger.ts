@@ -90,6 +90,7 @@ export const ACCOUNT_LEDGER: Record<string, Entry> = {
   "staff_audit.staff_account_id": { fate: "none", why: "034: no foreign key on purpose; the record of staff actions names an account by an id that points at nothing once it is gone, and goes after two years" },
   "staff_audit.target_account_id": { fate: "none", why: "as above" },
   "accounts.referred_by_account_id": setNull,
+  "accounts.delete_requested_by": { fate: "none", why: "034: the owner who marked the account, with no foreign key on purpose, so the mark reads the same once that owner is gone; it goes with the marked account's own row a day later" },
 
   // No foreign key, so nothing removes these unless it is told to.
   "blob_keys.scope_id": { fate: "step", why: "account-scope wraps of an object key" },

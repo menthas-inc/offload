@@ -235,6 +235,8 @@ describe("AC-52 every write declares its audit entry", () => {
 // one of them is registered.
 describe("every route the impl-spec names", () => {
   const SPEC = [
+    // 2026-10-04, going-public 17b: the panel's own session.
+    "POST /v1/admin/session",
     "POST /v1/admin/waitlist/invite-address",
     "GET /v1/admin/waitlist/stats",
     "GET /v1/admin/people",

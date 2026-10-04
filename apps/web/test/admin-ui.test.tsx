@@ -631,6 +631,63 @@ describe("the shell, before it knows who is here", () => {
     expect(host.textContent).not.toContain("Couldn't load");
   });
 
+  // 2026-10-04, going-public 17b. The panel has a session of its own, opened
+  // by a sign-in made a few minutes ago.
+  it("opens the panel for a fresh sign-in, and then draws it", async () => {
+    const calls: string[] = [];
+    let open = false;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const path = `${init?.method ?? "GET"} ${new URL(url).pathname}`;
+        calls.push(path);
+        if (path === "POST /v1/admin/session") {
+          open = true;
+          return new Response(JSON.stringify({ status: "open", until: "2026-10-04T12:00:00.000Z" }));
+        }
+        return open ? new Response(JSON.stringify(ME)) : new Response(JSON.stringify({ error: "locked" }), { status: 401 });
+      }),
+    );
+    router.replace.mockClear();
+    const host = await shell();
+    await act(async () => {});
+    expect(calls).toEqual(["GET /v1/admin/me", "POST /v1/admin/session", "GET /v1/admin/me"]);
+    expect(host.querySelector("nav")).not.toBeNull();
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("says the panel did not load when it was opened and is still locked", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) =>
+        init?.method === "POST"
+          ? new Response(JSON.stringify({ status: "open", until: "2026-10-04T12:00:00.000Z" }))
+          : new Response(JSON.stringify({ error: "locked" }), { status: 401 }),
+      ),
+    );
+    router.replace.mockClear();
+    const host = await shell();
+    await act(async () => {});
+    expect(host.textContent).toContain("Couldn't load the panel.");
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("sends staff whose sign-in is not fresh to sign in again, and back here after", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) =>
+        init?.method === "POST"
+          ? new Response(JSON.stringify({ error: "sign-in-again" }), { status: 401 })
+          : new Response(JSON.stringify({ error: "locked" }), { status: 401 }),
+      ),
+    );
+    router.replace.mockClear();
+    const host = await shell();
+    await act(async () => {});
+    expect(router.replace).toHaveBeenCalledWith("/sign-in?to=admin");
+    expect(host.querySelector("nav")).toBeNull();
+  });
+
   it("draws the nav once it knows, and calls what it holds pages", async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify(ME)));
     vi.stubGlobal("fetch", fetcher);

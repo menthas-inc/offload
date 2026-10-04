@@ -108,7 +108,7 @@ const JOB_KINDS: Partial<Record<Vendor, string[]>> = {
   embeddings: ["embed.content", "embed.note", "embed.message"],
   maps: ["location.resolve", "blob.locate"],
   calendar: ["calendar.sync"],
-  mail: ["email.waitlist_joined", "email.invited", "email.download_app", "email.alert"],
+  mail: ["email.waitlist_joined", "email.invited", "email.alert"],
   push: ["account.digest", "push.receipts"],
   storage: ["blob.purge"],
 };

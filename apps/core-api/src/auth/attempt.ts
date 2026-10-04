@@ -30,6 +30,12 @@ const TTL_MS = 10 * 60 * 1000;
 // AsyncLocalStorage with a second wrapper would be this mechanism twice.
 interface AttemptStore {
   email: string | null;
+  /** Set when the account exists and is disabled, by a staff member or for
+   *  the day before a deletion. The screen then says that, where it would
+   *  have said there is no invite and offered a waitlist the person is not
+   *  waiting on. Nothing else is ever named: the person authenticated with
+   *  this address a moment ago, so its state tells nobody else anything. */
+  reason: AttemptReason | null;
   /** The name the provider handed over, recorded by `mapProfileToUser` and read
    *  by the account hook a few frames later. It is the only point at which
    *  Google and Apple agree: Google's name is a claim on the ID token, Apple's
@@ -38,19 +44,23 @@ interface AttemptStore {
   providerName: string | null;
 }
 
+export type AttemptReason = "disabled";
+
 const storage = new AsyncLocalStorage<AttemptStore>();
 
 /** Run a request with a slot the gate hooks can write a refused address into. */
 export function withAttempt<T>(fn: (store: AttemptStore) => Promise<T>): Promise<T> {
-  const store: AttemptStore = { email: null, providerName: null };
+  const store: AttemptStore = { email: null, reason: null, providerName: null };
   return storage.run(store, () => fn(store));
 }
 
 /** Called from inside the gate when it turns someone away. No-op outside a
  *  request, which is what tests calling the gate directly do. */
-export function recordAttempt(email: string | null | undefined): void {
+export function recordAttempt(email: string | null | undefined, reason: AttemptReason | null = null): void {
   const store = storage.getStore();
-  if (store && email) store.email = email;
+  if (!store || !email) return;
+  store.email = email;
+  store.reason = reason;
 }
 
 /** Called from `mapProfileToUser` on both providers. No-op outside a request,
@@ -74,24 +84,34 @@ function sign(payload: string): string {
   return createHmac("sha256", KEY).update(payload).digest("base64url");
 }
 
-export function seal(email: string, now: number): string {
-  const payload = `${Buffer.from(email).toString("base64url")}.${now + TTL_MS}`;
+/** `address.expiry.mac`, or `address.expiry.reason.mac` when there is a
+ *  reason. The signature covers whichever it is, so a reason can be neither
+ *  added to a cookie nor taken off one. */
+export function seal(email: string, now: number, reason: AttemptReason | null = null): string {
+  const payload = `${Buffer.from(email).toString("base64url")}.${now + TTL_MS}${reason ? `.${reason}` : ""}`;
   return `${payload}.${sign(payload)}`;
 }
 
-export function unseal(value: string, now: number): string | null {
+export function unsealAttempt(value: string, now: number): { email: string; reason: AttemptReason | null } | null {
   const parts = value.split(".");
-  if (parts.length !== 3) return null;
-  const [encoded, expiresAt, mac] = parts as [string, string, string];
+  if (parts.length !== 3 && parts.length !== 4) return null;
+  const mac = parts[parts.length - 1]!;
+  const [encoded, expiresAt, reason] = parts.slice(0, -1) as [string, string, string | undefined];
+  if (reason !== undefined && reason !== "disabled") return null;
 
-  const expected = Buffer.from(sign(`${encoded}.${expiresAt}`));
+  const expected = Buffer.from(sign(parts.slice(0, -1).join(".")));
   const actual = Buffer.from(mac);
   // Compare lengths first: timingSafeEqual throws rather than returning false
   // when they differ, and a thrown error here would be a 500 on a cold path.
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
 
   if (!Number.isFinite(Number(expiresAt)) || Number(expiresAt) < now) return null;
-  return Buffer.from(encoded, "base64url").toString("utf8");
+  return { email: Buffer.from(encoded, "base64url").toString("utf8"), reason: reason ?? null };
+}
+
+/** The address alone. */
+export function unseal(value: string, now: number): string | null {
+  return unsealAttempt(value, now)?.email ?? null;
 }
 
 export function readCookie(header: string | undefined, name: string): string | null {

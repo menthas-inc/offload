@@ -9,7 +9,7 @@ import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
-import { webOrigins } from "../env.js";
+import { env, webOrigins } from "../env.js";
 import { objectStore } from "../blobs/store.js";
 import { Readable } from "node:stream";
 import { copyState, deleteCopy, requestCopy } from "../exports/copy.js";
@@ -97,7 +97,8 @@ export async function exportRoutes(app: App): Promise<void> {
 
   // The copy itself. The session is the only way to it: there is no link to
   // hand on, and the parts are opened here, one at a time, on their way out.
-  // Anything but the caller's own ready copy is the one 404.
+  // Anything but the caller's own ready copy is the one 404, or for a browser
+  // tab the way back to the page.
   app.get(
     "/api/me/export/file",
     { schema: { response: { 401: unauthenticated, 404: z.object({ error: z.literal("not_found") }) } } },
@@ -110,7 +111,13 @@ export async function exportRoutes(app: App): Promise<void> {
       // phones send no such header.
       if (request.headers["sec-fetch-site"] === "cross-site") return reply.status(404).send({ error: "not_found" as const });
       const copy = await openCopy(accountId);
-      if (!copy) return reply.status(404).send({ error: "not_found" as const });
+      if (!copy) {
+        // A browser tab that asked for a copy which has gone since the row
+        // was drawn goes back to the page that says so, rather than drawing
+        // this answer as text. Anything else gets the answer.
+        if (request.headers["sec-fetch-dest"] === "document") return reply.redirect(`${env.WEB_URL}/settings/privacy`, 303);
+        return reply.status(404).send({ error: "not_found" as const });
+      }
       request.log.info({ accountId }, "copy downloaded");
       return reply
         .header("content-type", "application/zip")

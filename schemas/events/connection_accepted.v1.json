@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/connection_accepted.v1.json",
+  "title": "connection_accepted",
+  "description": "Somebody accepted a request to connect. The actor's pseudonym and nothing about the other person.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {}
+}

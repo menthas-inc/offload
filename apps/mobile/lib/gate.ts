@@ -35,6 +35,14 @@ export const GATE = {
     switch: "Use a different account",
     terms: "Invited on another address? Sign in with that one.",
   },
+  // The account exists and is disabled: by staff, or for the day before it is
+  // deleted. No invite to look for and no waitlist to join.
+  disabled: {
+    title: "Your account is disabled",
+    sub: (email: string) => `${email} cannot sign in. Write to hello@offload.club about it.`,
+    subNoEmail: "This account cannot sign in. Write to hello@offload.club about it.",
+    switch: "Use a different account",
+  },
   // Reaching the waitlist without a refused sign-in, which the kits do not
   // draw: their no-invite screen always knows the address, because the only
   // way in was an OAuth attempt that failed. Tapping "Join the waitlist" on

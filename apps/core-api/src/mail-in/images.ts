@@ -116,9 +116,27 @@ export async function sealCandidates(accountId: string, messageKey: string, cand
       })
       .catch(async (error: unknown) => {
         if (put) await store.remove([objectKey(put, "original")]).catch(() => undefined);
+        // The same email, delivered twice at the same moment: the other
+        // delivery sealed this picture between the look above and the insert.
+        // The dump's own lock is taken after this, so it is settled here, and
+        // the picture is the one already kept.
+        if ((error as { code?: string }).code === "23505") {
+          const theirs = await db
+            .selectFrom("blobs")
+            .select("id")
+            .where("account_id", "=", accountId)
+            .where("client_key", "=", clientKey)
+            // The same look as above. The index is not partial, so a deleted
+            // picture still holds its key, and that one is never handed back.
+            .where("kind", "=", "image")
+            .where("deleted_at", "is", null)
+            .executeTakeFirst();
+          if (theirs) return { id: theirs.id, theirs: true as const };
+        }
         throw error;
       });
     ids.push(blob.id);
+    if ("theirs" in blob) continue;
     count += 1;
     bytesToday += candidate.bytes.length;
     kept += candidate.bytes.length;

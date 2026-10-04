@@ -57,9 +57,10 @@ const EXAMPLES = [
   "Oak brackets, 30cm, matte black",
 ] as const;
 
-// The kit's line, verbatim, from WFirstRun.
+// The kit's line from WFirstRun, without the noun the vocabulary retired on
+// 2026-09-02: the phones' wording, word for word (`apps/mobile/lib/gate.ts`).
 const DAY_ONE_INVITATION =
-  "Dump the first thing and offload will sort it. You do not need to pick a place for it, or name it, or come back and tidy it up.";
+  "Dump anything and offload will sort it. You do not need to pick a place for it, or name it, or come back and tidy it up.";
 
 /** How an example reaches a composer that is nobody's child. */
 export const FILL_COMPOSER = "offload:fill-composer";

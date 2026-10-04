@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/member_removed.v1.json",
+  "title": "member_removed",
+  "description": "Somebody took a member out of a thread, or withdrew a waiting share. No thread, no name.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {}
+}

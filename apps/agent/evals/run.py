@@ -82,10 +82,10 @@ from offload_agent.renditions import make
 from offload_agent.worker import (
     Lookups,
     _author_the_answer_line,
-    _author_the_failure_line,
     _declined_if_argument,
     _from_the_dump,
     _in_the_dump,
+    _reply_as_sent,
     parse_answer,
 )
 
@@ -1316,10 +1316,11 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         outcome = await plan(client, ctx, model, rec)
     except Exception as exc:  # noqa: BLE001
         return Result(case, "", "", [f"raised {type(exc).__name__}: {exc}"], False, "")
-    # What the worker does to the outcome before anyone sees it.
-    _author_the_failure_line(outcome, rec.budget)
+    # What the worker does to the outcome before anyone sees it, by the
+    # worker's own function: the reply judged is the reply sent.
+    _partial, sent = _reply_as_sent(outcome, ctx, rec.budget)
 
-    reply = outcome.reply or ""
+    reply = sent or ""
     expect = case.expect
     failures: list[str] = []
     failures.extend(_asked_problems(expect, outcome.questions))

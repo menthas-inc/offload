@@ -180,3 +180,25 @@ describe("what an event may never contain", () => {
     ).rejects.toThrow(/OFF-1/);
   });
 });
+
+describe("every event has a schema", () => {
+  // `assertNoContent` is a heuristic that lets a short title through, and
+  // says so. The schema is the gate, and nine names had none: a property
+  // added to one of them would have had nothing to refuse it. The names are
+  // read from the union itself, so a new one fails here until its file exists.
+  const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../src/analytics.ts"), "utf8");
+  const union = source.slice(source.indexOf("export type EventName ="), source.indexOf("type Source ="));
+  const names = [...union.matchAll(/\| "([a-z_]+)"/g)].map((match) => match[1]!);
+
+  it("reads the names", () => {
+    expect(names.length).toBeGreaterThan(20);
+    expect(names).toContain("export_requested");
+  });
+
+  it.each(names)("%s", (name) => {
+    const schema = JSON.parse(readFileSync(join(SCHEMAS, `${name}.v1.json`), "utf8")) as { title: string; additionalProperties: boolean };
+    expect(schema.title).toBe(name);
+    // Closed: a property nobody declared is refused, not waved through.
+    expect(schema.additionalProperties).toBe(false);
+  });
+});

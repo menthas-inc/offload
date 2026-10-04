@@ -15,7 +15,7 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { completeFirstRun, CONSENT_VERSION } from "../src/routes/session.js";
-import { readCookie, seal, unseal } from "../src/auth/attempt.js";
+import { readCookie, seal, unseal, unsealAttempt } from "../src/auth/attempt.js";
 import { uuidv7 } from "../src/uuid.js";
 
 await migrate(() => {});
@@ -171,6 +171,27 @@ describe("the refused address a no-invite screen shows", () => {
   it("reads a cookie that is not valid percent-encoding as no cookie, not as a 500", () => {
     expect(readCookie("offload_attempt=%E0%A4%A", "offload_attempt")).toBeNull();
     expect(readCookie("other=1; offload_attempt=a%2Eb", "offload_attempt")).toBe("a.b");
+  });
+
+  it("carries that the account is disabled, under the same signature", () => {
+    expect(unsealAttempt(seal("ana@example.com", now), now)).toEqual({ email: "ana@example.com", reason: null });
+    const sealed = seal("ana@example.com", now, "disabled");
+    expect(unsealAttempt(sealed, now)).toEqual({ email: "ana@example.com", reason: "disabled" });
+    // The address alone still reads, for whoever asks for that.
+    expect(unseal(sealed, now)).toBe("ana@example.com");
+    // The reason cannot be added to, or taken off, a cookie that was not sealed with it.
+    const [encoded, expiresAt, , mac] = sealed.split(".");
+    expect(unsealAttempt(`${encoded}.${expiresAt}.${mac}`, now)).toBeNull();
+    const [e2, x2, m2] = seal("ana@example.com", now).split(".");
+    expect(unsealAttempt(`${e2}.${x2}.disabled.${m2}`, now)).toBeNull();
+  });
+
+  it("tells the screen the account is disabled, and clears the cookie", async () => {
+    const answer = async (cookie: string) =>
+      (await app.inject({ method: "GET", url: "/api/sign-in/attempt", headers: { cookie: `offload_attempt=${cookie}` } })).json();
+    expect(await answer(seal("ana@example.com", Date.now(), "disabled"))).toEqual({ email: "ana@example.com", reason: "disabled" });
+    expect(await answer(seal("ana@example.com", Date.now()))).toEqual({ email: "ana@example.com", reason: null });
+    expect((await app.inject({ method: "GET", url: "/api/sign-in/attempt" })).json()).toEqual({ email: null, reason: null });
   });
 
   it("refuses malformed input rather than throwing", () => {

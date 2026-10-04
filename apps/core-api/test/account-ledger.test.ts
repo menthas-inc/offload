@@ -36,13 +36,17 @@ describe("the account ledger", () => {
     expect(wrong).toEqual([]);
   });
 
+  // `accounts.delete_requested_by` holds an owner's account id with no foreign
+  // key and none of the first five words in its name, and sat unnamed until
+  // 2026-10-04. A column that says who did something is named `_by`.
   it("names every other column that could hold an account, a pseudonym or an address", async () => {
     const columns = await sql<{ col: string }>`
       select c.table_name || '.' || c.column_name as col
       from information_schema.columns c
       join pg_tables t on t.tablename = c.table_name and t.schemaname = 'public'
       where c.table_schema = 'public'
-        and c.column_name ~ 'account|subject|scope_id|email|owner'
+        and (c.column_name ~ 'account|subject|scope_id|email|owner'
+             or (c.data_type = 'uuid' and c.column_name ~ '(^|_)by($|_)|staff|person|member|author|actor'))
         and not exists (
           select 1 from pg_constraint k
           join pg_attribute a on a.attrelid = k.conrelid and a.attnum = any (k.conkey)

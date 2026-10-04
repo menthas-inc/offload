@@ -28,7 +28,7 @@ fi
 
 # 2. Vocabulary, in identifiers as well as copy.
 if printf '%s' "$content" | grep -qiE '(const|let|var|function|class|interface|type|enum|def|CREATE TABLE|REFERENCES)[[:space:]]+[A-Za-z_]*(space|folder|workspace|board)'; then
-  warn "an identifier says space, folder, workspace or board. A collection is a thread and one item inside it is a thing."
+  warn "an identifier says space, folder, workspace or board. A collection is a thread, and what it holds is content in code and has no noun in anything a person reads."
 fi
 if printf '%s' "$content" | grep -qiE '(capture|ingest|classif(y|ied|ication)|auto-?tag)'; then
   warn "vocabulary: offload dumps and sorts. Not captures, ingests, classifies or auto-tags."
@@ -36,7 +36,7 @@ fi
 
 # 3. Token fidelity. A literal value in client code is a bug, reference the custom property.
 case "$path" in
-  */apps/mobile/*|*/apps/web/*|*/packages/ui/*)
+  */apps/mobile/*|*/apps/web/*|*/packages/widgets/*|*/packages/markup/*)
     if printf '%s' "$content" | grep -qE '#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?\b'; then
       warn "a literal hex colour in client code. Reference the token, and the semantic alias rather than the ramp."
     fi

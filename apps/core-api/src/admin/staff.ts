@@ -15,12 +15,17 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
 import type { AuditKind } from "./audit.js";
+import { panelOpen } from "./panel.js";
 
 export type StaffRole = "support" | "owner";
 
 export interface Staff {
   accountId: string;
   role: StaffRole;
+  /** The session this request came in on, and when it signed in: what the
+   *  panel's own pass is bound to (`panel.ts`). */
+  sessionId: string;
+  signedInAt: Date;
 }
 
 export async function currentStaff(request: FastifyRequest): Promise<Staff | null> {
@@ -45,7 +50,9 @@ export async function currentStaff(request: FastifyRequest): Promise<Staff | nul
     .where("accounts.deleted_at", "is", null)
     .executeTakeFirst();
 
-  return row ? { accountId: row.accountId, role: row.role } : null;
+  return row
+    ? { accountId: row.accountId, role: row.role, sessionId: session.session.id, signedInAt: new Date(session.session.createdAt) }
+    : null;
 }
 
 /** The roles in order, least first. A check is a comparison of ranks, so a
@@ -86,6 +93,12 @@ export function requireStaff(minimum: StaffRole = "support") {
       return reply.status(404).send({ error: "not-found" });
     }
     request.staff = staff;
+    // Staff, and the panel is not open for this session: said to staff alone,
+    // since everybody else was answered above. The one route that opens it is
+    // the one route let through.
+    if (!request.routeOptions?.config?.opensPanel && !panelOpen(request.headers.cookie, staff.sessionId, staff.accountId, Date.now())) {
+      return reply.status(401).send({ error: "locked" });
+    }
   };
 }
 
@@ -100,5 +113,8 @@ declare module "fastify" {
     /** 034. The audit entry this route writes. Every admin route that is not
      *  a GET declares one, and a test walks the route table to hold that. */
     audit?: AuditKind;
+    /** The route that opens the panel for a fresh sign-in, and so the only
+     *  one reachable while it is locked. */
+    opensPanel?: boolean;
   }
 }

@@ -21,7 +21,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 let answer: () => Promise<Response>;
 vi.stubGlobal("fetch", vi.fn(() => answer()));
 
-const { useMe } = await import("../src/lib/use-me");
+const { useMe, currentMe } = await import("../src/lib/use-me");
 type MeState = ReturnType<typeof useMe>;
 
 const ME = { accountId: "a1", state: "active", displayName: "Ana", email: "ana@example.com", needsFirstRun: false, needsName: false };
@@ -65,6 +65,21 @@ describe("the shell's first question", () => {
     answer = () => Promise.resolve(new Response('{"error":"unauthenticated"}', { status: 401 }));
     await mount();
     expect(replace).toHaveBeenCalledWith("/sign-in");
+  });
+
+  it("forgets who was here when the session ends without a sign out", async () => {
+    // A staff disable, or a deletion mark: the one way out of a session that
+    // did not clear the cache, so the next person in this browser could be
+    // drawn the last one's zone until the first answer came.
+    answer = () => Promise.resolve(new Response(JSON.stringify(ME), { status: 200 }));
+    await mount();
+    expect(currentMe()).toEqual(ME);
+    act(() => root.unmount());
+    root = createRoot(document.body.appendChild(document.createElement("div")));
+    answer = () => Promise.resolve(new Response('{"error":"unauthenticated"}', { status: 401 }));
+    await mount();
+    expect(replace).toHaveBeenCalledWith("/sign-in");
+    expect(currentMe()).toBeNull();
   });
 
   it("holds on the edge's 404 rather than going to the gate", async () => {

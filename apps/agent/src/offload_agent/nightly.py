@@ -96,7 +96,8 @@ def mode_for(*, on_default: bool, candidates: list | None) -> str:
 
 _MEMBER = text(
     """
-    select t.name as name, (a.default_thread_id = t.id) as is_default
+    select t.name as name, (a.default_thread_id = t.id) as is_default,
+           a.time_zone as time_zone
       from thread_members m
       join threads t on t.id = m.thread_id
       join accounts a on a.id = m.account_id
@@ -515,7 +516,9 @@ async def handle_nightly(
             if on_default and propose
             else None
         )
-        today = await today_line(conn)
+        # In the member's own zone: the prompt reads each date against today,
+        # and UTC's today is a day off for part of every day somewhere.
+        today = await today_line(conn, member["time_zone"])
 
     mode = mode_for(on_default=on_default, candidates=candidates)
     owns_notes = any(row["theirs"] for row in notes)

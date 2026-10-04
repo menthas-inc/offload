@@ -3,6 +3,7 @@
 // the phones' maps carry on. A stored setting rather than a variable, so the
 // admin panel can flip it later; until then, through the owner-only route.
 
+import { PANEL_COOKIE, sealPanel } from "../src/admin/panel.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { makeSignature } from "better-auth/crypto";
 import { db, closeDb } from "../src/db.js";
@@ -56,8 +57,15 @@ async function account(email: string, role?: "owner" | "support"): Promise<strin
   await db.updateTable("accounts").set({ state: "active", display_name: "Jo" }).where("id", "=", accountId).execute();
   if (role) await db.insertInto("staff").values({ account_id: accountId, role }).execute();
   const token = uuidv7();
-  await db.insertInto("sessions").values({ account_id: accountId, token, expires_at: new Date(Date.now() + 3_600_000) }).execute();
-  return `better-auth.session_token=${token}.${await makeSignature(token, env.BETTER_AUTH_SECRET)}`;
+  const session = await db
+    .insertInto("sessions")
+    .values({ account_id: accountId, token, expires_at: new Date(Date.now() + 3_600_000) })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  // With the panel open on it, as a fresh sign-in has it. It opens nothing
+  // for an account that is not staff.
+  const pass = `${PANEL_COOKIE}=${encodeURIComponent(sealPanel(session.id, accountId, Date.now()))}`;
+  return `better-auth.session_token=${token}.${await makeSignature(token, env.BETTER_AUTH_SECRET)}; ${pass}`;
 }
 
 const me = async (cookie: string) => (await app.inject({ method: "GET", url: "/api/me", headers: { cookie } })).json();

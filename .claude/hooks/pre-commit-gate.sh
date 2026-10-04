@@ -62,6 +62,16 @@ case "$commits" in
         exit 2
       fi
     fi
+    # What lint cannot see and CI checks: a class, a CSS module class or an icon
+    # name that exists nowhere. Each renders as nothing and fails nothing else.
+    if [ -d node_modules ] && [ -f .claude/scripts/dead-classes.mjs ]; then
+      for check in dead-classes dead-css dead-icons; do
+        if ! node ".claude/scripts/$check.mjs" >&2; then
+          echo "BLOCKED by pre-commit gate: $check found something." >&2
+          exit 2
+        fi
+      done
+    fi
     # The agent plane has no package.json, so `pnpm lint` never sees it and CI's
     # `ruff check` was the first gate to. Six pushes in a row went red on ruff
     # alone before this line existed. Skipped while the venv is absent so a fresh

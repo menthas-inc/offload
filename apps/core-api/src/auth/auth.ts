@@ -35,7 +35,7 @@ import { betterAuth } from "better-auth";
 import { expo } from "@better-auth/expo";
 import { db } from "../db.js";
 import { env, isProduction, webOrigins } from "../env.js";
-import { decideLink } from "./gate.js";
+import { decideLink, maySignIn } from "./gate.js";
 import { providerName, recordAttempt, recordProviderName } from "./attempt.js";
 import { emit } from "../analytics.js";
 import { uuidv7 } from "../uuid.js";
@@ -47,18 +47,6 @@ import { cleanNameLossy } from "../accounts/name.js";
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 
 const cookieDomain = env.COOKIE_DOMAIN === "localhost" ? undefined : env.COOKIE_DOMAIN;
-
-/** Is this account allowed to hold a session right now? Layer three, and the
- *  one that catches a hook that did not fire. */
-async function accountMaySignIn(accountId: string): Promise<boolean> {
-  const account = await db
-    .selectFrom("accounts")
-    .select(["state"])
-    .where("id", "=", accountId)
-    .where("deleted_at", "is", null)
-    .executeTakeFirst();
-  return account?.state === "invited" || account?.state === "active";
-}
 
 /** Emit first_sign_in exactly once per account, ever.
  *
@@ -340,7 +328,7 @@ export const auth = betterAuth({
             // screen fell back to "we found no invite for that account" with
             // the join button disabled, which is exactly the dead end AC-5 is
             // written against, and it is the likelier route onto that screen.
-            recordAttempt(verdict.email);
+            recordAttempt(verdict.email, verdict.reason === "disabled" ? "disabled" : null);
             return false;
           }
 
@@ -396,7 +384,7 @@ export const auth = betterAuth({
     session: {
       create: {
         before: async (session) => {
-          const allowed = await accountMaySignIn(session.userId);
+          const allowed = await maySignIn(session.userId);
           return allowed ? { data: session } : false;
         },
         after: async (session) => {
@@ -447,7 +435,7 @@ export const auth = betterAuth({
         before: async (session) => {
           const accountId = session.userId;
           if (!accountId) return { data: session };
-          return (await accountMaySignIn(accountId)) ? { data: session } : false;
+          return (await maySignIn(accountId)) ? { data: session } : false;
         },
       },
     },

@@ -151,7 +151,7 @@ describe("the Connected apps cards (AC-12)", () => {
     calendars.connections = [];
     const host = await render(<AppsPane />);
     const text = host.textContent ?? "";
-    expect(text).toContain("See your week in offload, and let it add things for you.");
+    expect(text).toContain("See your week in offload, and let it add to your calendar.");
     expect(link(host, "Connect")?.getAttribute("href")).toBe(connectUrl("settings"));
     expect(text).not.toContain("Calendars offload can use");
     expect(text).not.toContain("Ask before adding");

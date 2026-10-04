@@ -27,6 +27,9 @@ export default function SignInPage() {
   const [pending, setPending] = useState<Provider | null>(null);
   const [refused, setRefused] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  // Sent here by the admin panel, which opens only for a sign-in made a few
+  // minutes ago. The one value read; anything else in its place is ignored.
+  const [toAdmin, setToAdmin] = useState(false);
   useEffect(() => {
     // Better Auth bounces a failed callback back here with a code in the query
     // string. Showing the banner is the whole point of being bounced somewhere
@@ -40,12 +43,13 @@ export default function SignInPage() {
     // 035. Arriving from a deleted account. Said once, plainly, where the
     // invite line would be, and not as a failure: nothing went wrong.
     if (query.has("deleted")) setDeleted(true);
+    if (query.get("to") === "admin") setToAdmin(true);
   }, []);
 
   async function go(provider: Provider) {
     setRefused(false);
     setPending(provider);
-    const { error } = await signIn(provider);
+    const { error } = await signIn(provider, toAdmin ? "admin" : null);
     // On success the browser has already left for the provider, so reaching
     // here at all means it did not.
     if (error) {
@@ -62,6 +66,8 @@ export default function SignInPage() {
           <p className={styles.sub} role="status">
             Your account is deleted.
           </p>
+        ) : toAdmin ? (
+          <p className={styles.sub}>Sign in again to open the admin panel.</p>
         ) : (
           <p className={styles.sub}>Use the account your invite was sent to.</p>
         )}

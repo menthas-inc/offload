@@ -526,10 +526,15 @@ export interface EditNote {
   byModel?: boolean;
 }
 
-/** Edit the text, and the body with it. Any member.
+/** Edit the text, and the body with it. Its author alone, on the terms delete
+ *  has: what somebody typed is theirs, and overwriting it destroys it as
+ *  surely as deleting it would. A note whose author has gone from the thread
+ *  is whoever is left's to correct.
  *
- *  `account_id` is not touched. A note belongs to whoever put it there, and
- *  John editing Ana's note does not make it John's. */
+ *  offload's own edit is held by the rule below instead, and reaches any note
+ *  it wrote in the thread.
+ *
+ *  `account_id` is not touched: an edit never moves a note to its editor. */
 export async function editNote(
   { noteId, accountId, text, body, byModel = false }: EditNote,
   trx: Executor = db,
@@ -541,7 +546,7 @@ export async function editNote(
     throw new NoteTooLong(NOTE_BODY_CHARS);
   }
 
-  const current = await requireReadableNote(accountId, noteId, trx);
+  const current = byModel ? await requireReadableNote(accountId, noteId, trx) : await requireNoteAuthor(accountId, noteId, trx);
 
   // Corrections beat inference. offload may rewrite what it worked out, and
   // never what somebody said.

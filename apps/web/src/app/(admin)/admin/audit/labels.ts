@@ -26,6 +26,7 @@ export const KIND_LABELS: Record<string, string> = {
   "staff.role_changed": "Changed a role",
   "staff.removed": "Removed from staff",
   "person.viewed": "Opened their page",
+  "panel.opened": "Opened the panel",
 };
 
 export function kindLabel(kind: string): string {

@@ -2,7 +2,7 @@
 
 > High-level flow that grounds release and review work. Keep current.
 
-- **Platform:** GitHub Actions. Per-component workflows, path-filtered, so each service has its own checks.
+- **Platform:** GitHub Actions. One workflow, `.github/workflows/ci.yml`, with no path filter: every push and pull request runs lint, the dead class, CSS and icon checks, typecheck, the migrations, the suite, the agent's tests and the build.
 - **On a pull request:** lint, typecheck, test and build the affected components. Migrations run against an ephemeral Postgres container seeded by the `seed` script to realistic shape and volume, so a migration is reviewed by having already run against something that resembles real data. *Railway has no database branching, so the seed script is what stands in for it and it has to be kept honest as the model grows.*
 - **Before a risky migration on production:** restore a PITR copy into a scratch Railway service and run it there first. Manual, and good enough while volumes are small.
 - **Build and start commands live in the environment, not in the repository.** Railway deprecated Config as Code; the root `railway.json` is deleted and every service's build and start is set with `railway environment edit`, which reads the whole environment config on stdin. `railway environment config --json` prints it. *The CLI's `--service-config` flag looks like it edits in place and does not: it prints a header, changes nothing, and exits zero. The config has to be piped in.*
@@ -11,7 +11,7 @@
 - **`railway up` still works** and is what to reach for when deploying something that is not on a branch yet. It uploads the working tree, so it will happily deploy uncommitted work; the branch connection is the reproducible path.
 - **Order still matters when a server contract tightens:** ship the client first when the new client tolerates the old server, and the server first when it does not. Connecting the services to one branch means a push moves both at once, which is convenient and removes the ordering control, so a tightening change wants its two halves in separate pushes.
 - **Staging** is `staging.offload.club`, permanent hostname, service sleeps when idle and wakes on request. Deployed on demand rather than on every merge, because its job is giving mobile builds a stable URL to point at, not mirroring production continuously.
-- **Pipeline stages:** lint → typecheck → test → build → prompt eval gate → deploy. Prompts are versioned in git and a prompt change that regresses the eval set fails the gate.
+- **Pipeline stages:** lint → typecheck → test → build → deploy. Prompts are versioned in git. There is no eval gate in the pipeline: the evals cost money and run only when the owner asks (`/run-llm-tests`), so a prompt change is checked by hand before it merges.
 - **Mobile:** EAS build and submit, run manually per release. A mobile build points at production or at staging, never at a per-PR environment.
 - **Rollback:** Railway keeps prior deployments, so rolling back is redeploying the last good one. Prompt versions roll back by pinning the prior version. Migrations are forward-only and reversible where feasible.
 - **Release process:** not formalised yet. Document branch, tag and version conventions here once there is something to release.

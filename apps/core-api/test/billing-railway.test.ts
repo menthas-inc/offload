@@ -88,3 +88,18 @@ describe("the Railway puller", () => {
     expect(String(refused)).not.toContain("t0ken");
   });
 });
+
+describe("a Railway that does not answer", () => {
+  it("is given up on, so the job ends and does not hold a worker until it goes stale", async () => {
+    let signal: AbortSignal | null | undefined;
+    const fetcher = (async (_url: string, init: RequestInit) => {
+      signal = init.signal;
+      return new Promise<Response>((_resolve, reject) => {
+        init.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+      });
+    }) as unknown as typeof fetch;
+    const puller = railwayPuller({ fetcher, token: "t0ken", timeoutMs: 20 });
+    await expect(puller.pull(new Date("2026-09-01"), new Date("2026-10-01"))).rejects.toThrow();
+    expect(signal?.aborted).toBe(true);
+  });
+});

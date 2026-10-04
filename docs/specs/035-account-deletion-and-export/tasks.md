@@ -124,5 +124,5 @@ exists (QUAL-1). Part A merges on its own.
 - [x] **T31** Privacy page: the export edits and section 10's line. *(AC-24)*
 - [x] **T32** Design `decisions.md`: the export row's states. *(AC-25)*
 - [x] **T33** The same gates and reviewers as T19.
-- [ ] **T34** `going-public.md` gains this item and is ticked with a date.
+- [x] **T34** `going-public.md` gains this item and is ticked with a date. Ticked 2026-10-04; item 20 says done 2026-10-03.
   On main after the merge: `docs/tech` is not edited in a worktree.

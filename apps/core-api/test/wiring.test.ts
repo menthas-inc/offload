@@ -90,13 +90,38 @@ describe("the job runner the server builds", () => {
     expect(job.attempts).toBe(0);
   });
 
-  it("has an owner for every kind anything enqueues", async () => {
+  it("has an owner for every kind the queue can hold", async () => {
     // What the previous version of this test was really guarding, kept now that
     // an unowned kind is skipped quietly rather than failed loudly: a kind
     // nobody drains would sit queued forever and nothing would say so.
-    const enqueued = ["email.waitlist_joined", "email.invited", "dump.answer", "thread.nightly"];
+    //
+    // It read a list of four typed out here, so a handler lost in a merge
+    // passed for the forty others. The kinds are read from the queue's own
+    // union now, and the worker's from the worker.
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const file = (path: string) => readFileSync(fileURLToPath(new URL(path, import.meta.url)), "utf8");
+
+    const queue = file("../src/jobs/queue.ts");
+    const union = queue.slice(queue.indexOf("export type JobKind ="));
+    // To the line that ends the union: a comment inside it may hold a semicolon.
+    const kinds = [...union.slice(0, union.search(/";\n/)).concat('"').matchAll(/\| "([a-z_.]+)"/g)].map((match) => match[1]!);
+    expect(kinds.length).toBeGreaterThan(30);
+
+    const listIn = (path: string): string[] => {
+      const source = file(path);
+      const list = source.slice(source.indexOf("\nKINDS = ["));
+      return [...list.slice(0, list.indexOf("]")).matchAll(/"([a-z_.]+)"/g)].map((match) => match[1]!);
+    };
+    const agent = "../../agent/src/offload_agent";
+    const worker = [`${agent}/worker.py`, `${agent}/embed_jobs.py`, `${agent}/nightly.py`, `${agent}/link_place.py`].flatMap(listIn);
+    // The mirror is the worker's list, whole.
+    expect([...MODEL_KINDS].sort()).toEqual([...new Set(worker)].sort());
+
     const owned = new Set<string>([...Object.keys(handlers), ...MODEL_KINDS]);
-    expect(enqueued.filter((k) => !owned.has(k))).toEqual([]);
+    expect(kinds.filter((kind) => !owned.has(kind))).toEqual([]);
+    // And nothing is claimed by both: two runners racing for one kind.
+    expect(Object.keys(handlers).filter((kind) => (MODEL_KINDS as readonly string[]).includes(kind))).toEqual([]);
   });
 });
 
