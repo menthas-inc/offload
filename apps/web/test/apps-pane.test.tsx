@@ -6,7 +6,8 @@
 // connected, and not available, which draws nothing; the Mail card always,
 // and Unavailable for an Apple hidden email; Ask before adding and Copy
 // working from the cards; Not built yet and What offload may do gone (AC-12).
-// The per-account list and Disconnect at `/settings/apps/calendar` (AC-13).
+// The per-account list at `/settings/apps/calendar`, and Disconnect on the
+// card itself, one per account (AC-13, as tweaked 2026-10-04).
 
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -52,6 +53,7 @@ vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
   sent.push({ path, method, body: init?.body ? JSON.parse(String(init.body)) : null });
   if (path === "/api/connectors/calendars") return json(calendars);
   if (path === "/api/me" && method === "PATCH") return json({});
+  if (path.endsWith("/disconnect") && method === "POST") return json({});
   if (path === "/api/me")
     return json({
       accountId: "a1",
@@ -117,7 +119,6 @@ describe("the Connected apps cards (AC-12)", () => {
     expect(text).toContain("Off means offload adds it without asking, unless somebody else would see it.");
     expect(text).not.toContain("Not built yet");
     expect(text).not.toContain("What offload may do");
-    expect(text).not.toContain("Disconnect");
 
     const ask = host.querySelector<HTMLInputElement>('input[role="switch"]')!;
     await act(async () => ask.click());
@@ -133,6 +134,28 @@ describe("the Connected apps cards (AC-12)", () => {
     const host = await render(<AppsPane />);
     expect(host.textContent).toContain("2 Google accounts");
     expect(link(host, "Calendars offload can use")?.textContent).toContain("4 of 7");
+  });
+
+  it("Disconnect is on the card: it asks once, then disconnects that account", async () => {
+    const host = await render(<AppsPane />);
+    const button = (text: string) => [...host.querySelectorAll("button")].find((b) => b.textContent?.includes(text));
+    expect(host.textContent).toContain("Notes offload made from your days stay.");
+    await act(async () => button("Disconnect Google Calendar")!.click());
+    expect(host.textContent).toContain("Disconnect Google Calendar?");
+    expect(sent.some((c) => c.path.endsWith("/disconnect"))).toBe(false);
+
+    calendars.connections = [];
+    await act(async () => [...host.querySelectorAll("button")].find((b) => b.textContent === "Disconnect")!.click());
+    await settle();
+    expect(sent.find((c) => c.path === "/api/connectors/k1/disconnect")?.method).toBe("POST");
+    expect(link(host, "Connect")?.getAttribute("href")).toBe(connectUrl("settings"));
+  });
+
+  it("several accounts each get their own Disconnect, named by address", async () => {
+    calendars.connections = [connection("k1", "jo@hey.com", [true]), connection("k2", "jo@work.com", [true])];
+    const host = await render(<AppsPane />);
+    const labels = [...host.querySelectorAll("button")].map((b) => b.textContent ?? "").filter((t) => t.startsWith("Disconnect"));
+    expect(labels.map((t) => t.split("Notes")[0])).toEqual(["Disconnect jo@hey.com", "Disconnect jo@work.com"]);
   });
 
   it("a connection needing sign-in swaps the pill for Sign in again", async () => {
@@ -194,12 +217,12 @@ describe("the Connected apps cards (AC-12)", () => {
 });
 
 describe("the calendar page (AC-13)", () => {
-  it("lists each account's calendars with Disconnect, and Ask before adding", async () => {
+  it("lists each account's calendars and Ask before adding, and leaves Disconnect to the card", async () => {
     const host = await render(<AppsCalendarPane />);
     const text = host.textContent ?? "";
     expect(text).toContain("4 of 7 in use");
     expect(text).toContain("Calendar k1-0");
-    expect(text).toContain("Disconnect Google Calendar");
+    expect(text).not.toContain("Disconnect");
     expect(text).toContain("Ask before adding");
   });
 

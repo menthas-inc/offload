@@ -1916,17 +1916,17 @@ a.settingsRow:hover,
 }
 
 /* ------------------------------------------------------- the app cards
-   031. Connected apps, one card per app, side by side at 280px or more. */
+   031. Connected apps, one card per app, each on its own line: side by side
+   at 280px wrapped the account line under the pill and broke the rows. */
 
 .appCards {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-5);
   margin-top: 14px;
 }
 
 .appCard {
-  flex: 1 1 280px;
   min-width: 0;
   overflow: hidden;
   border-radius: 16px;
@@ -1997,6 +1997,16 @@ a.settingsRow:hover,
 .appRows > .settingsRow {
   padding-left: 14px;
   padding-right: 14px;
+}
+
+/* The confirm bleeds past a settings block's edges; a card has none to bleed
+   into, so here it fills the card's width with the rows' own inset. */
+.appRows > .confirmRow {
+  width: 100%;
+  margin: 0;
+  padding-left: 14px;
+  padding-right: 14px;
+  border-radius: 0;
 }
 
 /* ---------------------------------------------------------- the combobox */

@@ -141,7 +141,7 @@ Nothing here moves a claim on the privacy page. No new data is stored or sent: t
 - **AC-10** A 429 from the lookup draws *Too many lookups. Try again in a few minutes.* with no retry, in both places.
 - **AC-11** Notifications draws Dates, People and On this phone (web: On your phones) with their captions; hour rows are indented under their switch with the hour in a pill.
 - **AC-12** Connected apps draws a Calendar card in each of its four states (connected, needs sign-in, not connected, not available, which draws nothing) and a Mail card in its two (available, Apple hidden email), with Ask before adding and Copy working from the cards; Not built yet and What offload may do are gone.
-- **AC-13** The web's calendar list and Disconnect live at `/settings/apps/calendar`.
+- **AC-13** The web's calendar list lives at `/settings/apps/calendar`. Disconnect is on the Calendar card itself, on the web and both phones, one row per connected account, named by its address when there is more than one; it asks once before it disconnects. *(Tweaked 2026-10-04: Disconnect was on the calendar page, behind a row named for the list.)* The cards are one to a line on the web.
 - **AC-14** The index's Connected apps row carries the connected value.
 - **AC-15** See the tutorial again shows the three screens and returns to Help without any write.
 - **AC-16** No em or en dash, emoji or retired word in any new copy.
