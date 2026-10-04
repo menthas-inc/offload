@@ -61,3 +61,23 @@ describe("a tapped calendar, for a row where no thread is named", () => {
     expect(context).toContain("did: turnDid(sent)");
   });
 });
+
+describe("a turn that changed a calendar and filed nothing", () => {
+  // A removal of an event names no thread, so `changed` is empty, and Today
+  // went on drawing the event until the screen was opened again.
+  const context = readFileSync(new URL("../components/shell/conversation-context.tsx", import.meta.url), "utf8");
+
+  it("tells the open screens to read again when it settles", () => {
+    expect(context).toContain("if (acted) setFiled({ threadIds: answer.changed, at: Date.now() });");
+  });
+
+  it("and when a proposal is agreed to", () => {
+    expect(context).toContain("if (agreed) setFiled({ threadIds: [], at: Date.now() });");
+  });
+
+  it("and Today is one of those screens, as a thread is", () => {
+    const today = readFileSync(new URL("../components/today/TodayScreen.tsx", import.meta.url), "utf8");
+    expect(today).toContain("const { setDraft, filed } = useConversation();");
+    expect(today).toMatch(/if \(!filed \|\| filed\.at === lastFiled\.current\) return;\s*lastFiled\.current = filed\.at;\s*loadDay\(date\);/);
+  });
+});

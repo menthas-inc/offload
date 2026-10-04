@@ -176,7 +176,7 @@ async function eventsOn(accountId: string, date: string, start: Date, end: Date,
       .selectFrom("connector_events as e")
       .innerJoin("connector_calendars as c", "c.id", "e.calendar_id")
       .innerJoin("connector_connections as n", "n.id", "c.connection_id")
-      .select(["e.id", "e.title", "e.occurs_at", "e.occurs_end_at", "e.all_day", "e.link", "e.source_ref", "c.summary", "c.is_primary"])
+      .select(["e.id", "e.title", "e.occurs_at", "e.occurs_end_at", "e.all_day", "e.link", "e.source_ref", "e.series_ref", "c.external_id", "c.summary", "c.is_primary"])
       .where("e.account_id", "=", accountId)
       .where("n.account_id", "=", accountId)
       .where("c.selected", "=", true)
@@ -245,6 +245,8 @@ async function eventsOn(accountId: string, date: string, start: Date, end: Date,
 
   for (const row of calendarRows) {
     if (!row.occurs_at || written.has(row.source_ref)) continue;
+    // A repeating row remembers the series; the copy holds its occurrences.
+    if (row.series_ref && written.has(`${row.external_id}:${row.series_ref}`)) continue;
     if (!covers(row.all_day ? utcDay(row.occurs_at) : dayIn(row.occurs_at, zone), lastDay(row.occurs_at, row.occurs_end_at, row.all_day, zone, true))) continue;
     out.push({
       id: row.id,

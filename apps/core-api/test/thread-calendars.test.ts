@@ -429,6 +429,21 @@ describe("AC-10, AC-12 what a thread reads", () => {
     const body = (await get(`/v1/threads/${t}/events?from=2026-09-21&to=2026-09-27`, await signIn(me))).json() as { events: unknown[] };
     expect(body.events).toEqual([]);
   });
+
+  it("an occurrence of a series a row in the thread remembers is skipped too", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const id = await calendar(await connection(me), { externalId: "cal-1" });
+    await pick(t, id, me);
+    await event(me, id, "Standup", "2026-09-23T09:00:00Z", { sourceRef: "cal-1:series1_20260923" });
+    await db.updateTable("connector_events").set({ series_ref: "series1" }).where("source_ref", "=", "cal-1:series1_20260923").execute();
+    await db
+      .insertInto("content")
+      .values({ account_id: me, thread_id: t, type: "event", title: "Standup", occurs_at: new Date("2026-09-22T09:00:00Z"), rrule: "FREQ=DAILY", source_ref: "cal-1:series1" })
+      .execute();
+    const body = (await get(`/v1/threads/${t}/events?from=2026-09-21&to=2026-09-27`, await signIn(me))).json() as { events: unknown[] };
+    expect(body.events).toEqual([]);
+  });
 });
 
 describe("027 tweak: whether the viewer is in an event", () => {
@@ -817,6 +832,111 @@ describe("AC-11 where a write goes", () => {
     // Nothing left to re-add, so Undo re-adds nothing.
     await app.inject({ method: "POST", url: `/v1/turns/${turn.turnId}/undo`, headers: { cookie } });
     expect(google.createEvent).not.toHaveBeenCalled();
+  });
+
+  // Today draws a day from today on, so these are dated from the clock.
+  const SOON = new Date(Date.now() + 2 * 86400_000).toISOString().slice(0, 10);
+  const LATER = new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10);
+  const soonWindow = { fromIso: `${SOON}T00:00:00Z`, toIso: `${LATER}T23:59:00Z` };
+  type Drawn = { title: string; source: string; startsAt: string | null };
+  const todayOn = async (cookie: string, date: string): Promise<Drawn[]> =>
+    ((await get(`/v1/today/day?date=${date}`, cookie)).json() as { events: Drawn[] }).events;
+  /** "Add a dentist appointment", then a later turn that found it. */
+  async function added(me: string, t: string) {
+    const first = await dump(me, t);
+    const contentId = await row(me, t, "Dentist appointment", first.messageId, `${SOON}T15:00:00Z`);
+    await tool({ tool: "create_event", jobId: first.jobId, toolCallId: "t1", contentId });
+    const next = await dump(me, t, first.conversationId);
+    const found = (await tool({ tool: "find_events", jobId: next.jobId, toolCallId: "t2", ...soonWindow })).json() as { events: Array<{ sourceRef: string }> };
+    return { ...next, contentId, sourceRef: found.events[0]!.sourceRef };
+  }
+
+  it("a removal takes the row the add filed, so Today stops drawing it, and Undo brings both back, drawn once", async () => {
+    // "Delete my dentist appointment" took the event off the calendar and
+    // left the row the add had filed, which Today went on drawing.
+    const me = await account();
+    const t = await thread(me);
+    await pick(t, await calendar(await connection(me), { externalId: "cal-mine" }), me);
+    const turn = await added(me, t);
+    const cookie = await signIn(me);
+    expect((await todayOn(cookie, SOON)).map((e) => [e.title, e.source])).toEqual([["Dentist appointment", "offload"]]);
+
+    const gone = (
+      await tool({ tool: "delete_event", jobId: turn.jobId, toolCallId: "t3", sourceRef: turn.sourceRef, scope: "one" })
+    ).json() as Record<string, unknown>;
+    expect(gone["written"]).toBe(true);
+    expect(await todayOn(cookie, SOON)).toEqual([]);
+    const taken = await db.selectFrom("content").select(["deleted_at", "purge_after"]).where("id", "=", turn.contentId).executeTakeFirstOrThrow();
+    expect(taken.deleted_at).not.toBeNull();
+    expect(taken.purge_after).not.toBeNull();
+
+    await settle(turn.messageId, turn.conversationId);
+    // The turn names the thread it changed, so a screen that is open reads again.
+    expect(((await get(`/v1/messages/${turn.messageId}`, cookie)).json() as { changed: string[] }).changed).toEqual([t]);
+    const undone = await app.inject({ method: "POST", url: `/v1/turns/${turn.turnId}/undo`, headers: { cookie } });
+    expect(undone.statusCode).toBe(200);
+    // One card, the row, which remembers the event Undo made of it.
+    expect((await todayOn(cookie, SOON)).map((e) => [e.title, e.source])).toEqual([["Dentist appointment", "offload"]]);
+    const back = await db.selectFrom("content").select(["deleted_at", "source_ref"]).where("id", "=", turn.contentId).executeTakeFirstOrThrow();
+    expect(back.deleted_at).toBeNull();
+    expect(back.source_ref).not.toBe(turn.sourceRef);
+    const copy = await db.selectFrom("connector_events").select("source_ref").where("deleted_at", "is", null).execute();
+    expect(copy.map((e) => e.source_ref)).toEqual([back.source_ref]);
+  });
+
+  it("a removal they agreed to takes the row as well", async () => {
+    const me = await account();
+    const t = await thread(me);
+    await pick(t, await calendar(await connection(me)), me);
+    const turn = await added(me, t);
+    await db.updateTable("accounts").set({ calendar_ask_first: true }).where("id", "=", me).execute();
+
+    const asked = (
+      await tool({ tool: "delete_event", jobId: turn.jobId, toolCallId: "t3", sourceRef: turn.sourceRef, scope: "one" })
+    ).json() as Record<string, unknown>;
+    expect(asked["waitingForThem"]).toBe(true);
+    const cookie = await signIn(me);
+    // Nothing has happened yet, so it is still there.
+    expect((await todayOn(cookie, SOON)).length).toBe(1);
+
+    const pending = await db.selectFrom("connector_pending_writes").select("id").executeTakeFirstOrThrow();
+    const pressed = await app.inject({ method: "POST", url: `/api/calendar/pending/${pending.id}/confirm`, headers: { cookie } });
+    expect(pressed.statusCode).toBe(200);
+    expect(await todayOn(cookie, SOON)).toEqual([]);
+  });
+
+  it("a change moves the row with the event, so Today draws it on its new day, and Undo moves it back", async () => {
+    const me = await account();
+    const t = await thread(me);
+    await pick(t, await calendar(await connection(me)), me);
+    const turn = await added(me, t);
+    const cookie = await signIn(me);
+
+    const moved = (
+      await tool({
+        tool: "edit_event",
+        jobId: turn.jobId,
+        toolCallId: "t3",
+        sourceRef: turn.sourceRef,
+        scope: "one",
+        title: "Dentist, moved",
+        startsAt: `${LATER}T10:00:00Z`,
+        endsAt: `${LATER}T11:00:00Z`,
+      })
+    ).json() as Record<string, unknown>;
+    expect(moved["written"]).toBe(true);
+    expect(await todayOn(cookie, SOON)).toEqual([]);
+    expect((await todayOn(cookie, LATER)).map((e) => [e.title, e.source, e.startsAt])).toEqual([
+      ["Dentist, moved", "offload", new Date(`${LATER}T10:00:00Z`).toISOString()],
+    ]);
+
+    await settle(turn.messageId, turn.conversationId);
+    expect(((await get(`/v1/messages/${turn.messageId}`, cookie)).json() as { changed: string[] }).changed).toEqual([t]);
+    await app.inject({ method: "POST", url: `/v1/turns/${turn.turnId}/undo`, headers: { cookie } });
+    expect(await todayOn(cookie, LATER)).toEqual([]);
+    expect((await todayOn(cookie, SOON)).map((e) => [e.title, e.source, e.startsAt])).toEqual([
+      ["Dentist appointment", "offload", new Date(`${SOON}T15:00:00Z`).toISOString()],
+    ]);
   });
 
   it("an add to their own calendar is written with no control, even in a turn that read the calendar", async () => {

@@ -444,7 +444,10 @@ export function Composer({
         // the thread you are looking at changed it without filing anything into
         // it, and `threads` is only where things went. That gap is why a move
         // left the page showing a row that was not in it any more.
-        if (answer.changed && answer.changed.length > 0) onFiled(answer.changed);
+        //
+        // And a turn that only changed a calendar names no thread at all: a
+        // removed event stayed on Today until the page was loaded again.
+        if (turnUndoable(answer)) onFiled(answer.changed ?? []);
         // **A turn offers a way back only when it changed something.**
         // Undo reverses writes, and an answer writes nothing: offering it after
         // "I could not find that" is a control that would do nothing, sitting
@@ -1151,7 +1154,11 @@ export function Composer({
                   <div className={styles.turnOffload}>
                     <Waiting
                       waiting={turn.waiting}
-                      onAnswered={(agreed) => setTurns((current) => answeredWaiting(current, turn, agreed))}
+                      onAnswered={(agreed) => {
+                        setTurns((current) => answeredWaiting(current, turn, agreed));
+                        // The write happened on the press, so Today reads again.
+                        if (agreed) onFiled([]);
+                      }}
                     />
                   </div>
                 </div>
@@ -1178,7 +1185,11 @@ export function Composer({
                 {(answered.get(turn.id)?.waiting ?? turn.waiting) ? (
                   <Waiting
                     waiting={(answered.get(turn.id)?.waiting ?? turn.waiting)!}
-                    onAnswered={(agreed) => setTurns((current) => answeredWaiting(current, turn, agreed))}
+                    onAnswered={(agreed) => {
+                      setTurns((current) => answeredWaiting(current, turn, agreed));
+                      // The write happened on the press, so Today reads again.
+                      if (agreed) onFiled([]);
+                    }}
                   />
                 ) : null}
                 {/* 018. The question, under the sentence and after any

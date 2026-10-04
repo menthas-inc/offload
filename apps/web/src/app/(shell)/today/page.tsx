@@ -12,7 +12,7 @@
 import { useSearchParams } from "next/navigation";
 import { noonUtc } from "@offload/widgets";
 import { Panes } from "../../../components/shell/Panes";
-import { TodayPane } from "../../../components/panes/Today";
+import { TodayPane, useNow } from "../../../components/panes/Today";
 import { CustomizePane, useTodayLayout } from "../../../components/today/Customize";
 import { useClock } from "../../../lib/clock";
 import styles from "../today.module.css";
@@ -22,6 +22,8 @@ const DATE_LINE = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "nume
 export default function TodayRoute() {
   const search = useSearchParams();
   const customizing = search.get("customize") === "1";
+  // Each minute, so the date here moves at midnight with the pane under it.
+  useNow();
   const { today } = useClock();
   const state = useTodayLayout();
 
