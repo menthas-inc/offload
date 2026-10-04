@@ -23,7 +23,8 @@ import { logParticipantsFailed } from "./calendars.js";
 import { outwardTest, type OutwardVerdict } from "./outward.js";
 import { truncate, type Scope } from "./recurrence.js";
 import { accessTokenFor, markNeedsReauth } from "./tokens.js";
-import { sourceRefFor } from "./events.js";
+import { sourceRefFor, upsertEvent } from "./events.js";
+import { syncNow } from "./sync.js";
 
 export interface CalendarTarget {
   calendarId: string;
@@ -153,6 +154,76 @@ export interface WriteResult {
 /** Do it. The caller has already decided it is allowed to happen now: either it
  *  was not outward facing, or somebody tapped. */
 export async function performWrite(
+  target: CalendarTarget,
+  write: WriteAction,
+  verdict: OutwardVerdict
+): Promise<WriteResult> {
+  const done = await writeToGoogle(target, write, verdict);
+  // Google has it by now, so nothing below may fail the write.
+  try {
+    await mirror(target, write, done.sourceRef);
+    await syncNow(target.connectionId);
+  } catch (error) {
+    console.error(
+      JSON.stringify({ at: "calendar.mirror", outcome: "failed", error_type: error instanceof Error ? error.name : "unknown" })
+    );
+  }
+  return done;
+}
+
+/** The copy, kept in step with a write offload made itself.
+ *
+ *  Every read a turn makes is of the copy, and the copy only moved on the
+ *  quarter-hour sync. So an event added a minute ago was not there to find:
+ *  "delete it" answered that there was no such event, on a calendar showing
+ *  it. One event is written here as it was sent. A series and "this and all
+ *  following" are left to the sync asked for beside this, which reads the
+ *  occurrences Google made of them. */
+async function mirror(target: CalendarTarget, write: WriteAction, sourceRef: string | null): Promise<void> {
+  if (write.action === "create") {
+    const draft = write.draft;
+    if (!sourceRef || draft.recurrence?.length) return;
+    await upsertEvent(db, target.accountId, target.calendarId, {
+      sourceRef,
+      title: draft.title,
+      occursAt: draft.startsAt,
+      occursEndAt: draft.endsAt,
+      allDay: draft.allDay ?? false,
+      timezone: draft.timezone ?? target.timezone,
+      location: draft.location ?? null,
+      seriesRef: null,
+      organizerIsMe: true,
+      untrusted: false,
+      link: null,
+      createdByMe: true,
+      invitedMe: false,
+    });
+    return;
+  }
+  if (write.scope !== "one") return;
+
+  const now = new Date();
+  const patch = write.action === "delete" ? null : write.patch;
+  await db
+    .updateTable("connector_events")
+    .set(
+      patch === null
+        ? { deleted_at: now, updated_at: now }
+        : {
+            ...(patch.title === undefined ? {} : { title: patch.title }),
+            ...(patch.startsAt === undefined ? {} : { occurs_at: patch.startsAt }),
+            ...(patch.endsAt === undefined ? {} : { occurs_end_at: patch.endsAt }),
+            ...(patch.location === undefined ? {} : { location: patch.location }),
+            updated_at: now,
+          }
+    )
+    .where("calendar_id", "=", target.calendarId)
+    .where("source_ref", "=", write.sourceRef)
+    .where("deleted_at", "is", null)
+    .execute();
+}
+
+async function writeToGoogle(
   target: CalendarTarget,
   write: WriteAction,
   verdict: OutwardVerdict
