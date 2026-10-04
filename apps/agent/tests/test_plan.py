@@ -1054,6 +1054,30 @@ async def test_a_known_tool_that_was_not_offered_is_declined_not_failed():
     }
 
 
+def test_create_event_carries_the_calendar_they_named_and_nothing_else_about_where():
+    # "Add it to my shared calendar P**B" went on the personal calendar: the
+    # tool had nowhere to put the name, so the thread's one calendar decided.
+    # The name travels as they said it and the server matches it against their
+    # own calendars. Still no id, and still nothing that decides confirmation.
+    from offload_agent.harness.tools import SCHEMAS
+    from offload_agent.worker import _camel
+
+    schema = SCHEMAS["create_event"]
+    args = schema.model_validate({"content_id": "c1", "calendar": "P**B"})
+    assert _camel(args.model_dump(exclude_none=True)) == {"contentId": "c1", "calendar": "P**B"}
+    assert schema.model_validate({"content_id": "c1"}).calendar is None
+    assert set(schema.model_fields) == {"content_id", "location", "guests", "calendar"}
+
+    described = next(t for t in CALENDAR_TOOL_DEFS if t["name"] == "create_event")
+    assert "named" in described["description"]
+    assert "calendar" in described["input_schema"]["properties"]
+    assert "calendar" not in described["input_schema"].get("required", [])
+
+    prompt = filing_prompt(True)
+    assert "`calendar`" in prompt
+    assert "You never choose the calendar" in prompt
+
+
 def test_the_prompt_without_a_calendar_has_no_calendar_paragraphs():
     with_it, without = filing_prompt(True), filing_prompt(False)
     assert "With them:" in with_it

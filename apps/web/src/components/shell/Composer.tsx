@@ -42,6 +42,7 @@ import {
   type Sent,
   type WaitingOn,
   type TouchedThread,
+  answeredWaiting,
   turnDid,
   turnUndoable,
   uploadVoice,
@@ -968,7 +969,7 @@ export function Composer({
           // The thread the answer changed: the Done mark and the pill, now
           // rather than after a reload.
           threads: sent.threads ?? [],
-          did: (sent.threads?.length ?? 0) > 0,
+          did: turnDid(sent),
           // 019. A tapped calendar answer that needs their say-so: the
           // proposal sits on their own turn.
           waiting: sent.waiting ?? null,
@@ -1150,11 +1151,7 @@ export function Composer({
                   <div className={styles.turnOffload}>
                     <Waiting
                       waiting={turn.waiting}
-                      onAnswered={() =>
-                        setTurns((current) =>
-                          current.map((t) => (t.id === turn.id ? { ...t, waiting: null } : t))
-                        )
-                      }
+                      onAnswered={(agreed) => setTurns((current) => answeredWaiting(current, turn, agreed))}
                     />
                   </div>
                 </div>
@@ -1181,13 +1178,7 @@ export function Composer({
                 {(answered.get(turn.id)?.waiting ?? turn.waiting) ? (
                   <Waiting
                     waiting={(answered.get(turn.id)?.waiting ?? turn.waiting)!}
-                    onAnswered={() =>
-                      setTurns((current) =>
-                        current.map((t) =>
-                          t.id === turn.id || t.id === answered.get(turn.id)?.id ? { ...t, waiting: null } : t
-                        )
-                      )
-                    }
+                    onAnswered={(agreed) => setTurns((current) => answeredWaiting(current, turn, agreed))}
                   />
                 ) : null}
                 {/* 018. The question, under the sentence and after any
@@ -1561,7 +1552,9 @@ function Waiting({
   onAnswered,
 }: {
   waiting: WaitingOn;
-  onAnswered: () => void;
+  /** Whether a calendar write was agreed to, which is the turn having done
+   *  something. A share and a decline are not. */
+  onAnswered: (agreed: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -1573,7 +1566,7 @@ function Waiting({
     setBusy(true);
     const ok = share ? await answerShare(waiting.id, choice) : await answerPending(waiting.id, choice);
     setBusy(false);
-    if (ok) onAnswered();
+    if (ok) onAnswered(choice === "confirm" && !share);
     // What happened, next to the control that retries it. Never why: this
     // cannot tell an expired proposal from a dropped connection.
     else setFailed(true);

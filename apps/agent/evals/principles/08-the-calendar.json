@@ -1,12 +1,13 @@
 {
-  "statement": "With a calendar in reach, offload reads before it writes, takes the scope of a recurring change from their words with one occurrence as the default, puts a filed row on the calendar by its id and never picks the calendar itself, files one appointment as one row and fixes that row when the server refuses it, says nothing when a write came back written, asked or found no calendar, and reports a write that is waiting on somebody else as waiting rather than done. Without one, an appointment is a row and nothing is said about calendars unless they asked for one.",
+  "statement": "With a calendar in reach, offload reads before it writes, takes the scope of a recurring change from their words with one occurrence as the default, puts a filed row on the calendar by its id and never picks the calendar itself, passing on only a calendar name they said, files one appointment as one row and fixes that row when the server refuses it, says nothing when a write came back written, asked or found no calendar, and reports a write that is waiting on somebody else as waiting rather than done. Without one, an appointment is a row and nothing is said about calendars unless they asked for one.",
   "why": "The irreversible thing is somebody else finding out, and the model does not decide whether a write is confirmed: the server tells it, and the reply has to say what the server said. Moving the wrong event is the other cost, and reading first is what prevents it.",
   "sources": [
     "012 AC-4, AC-7, AC-9",
     "019 AC-10, AC-11, AC-13",
     "plan_v2.md: Their calendar",
     "answer.md: the calendar lines",
-    "harness/tools.py: create_event takes content_id; edit_content takes a time; scope is one or following"
+    "harness/tools.py: create_event takes content_id; edit_content takes a time; scope is one or following",
+    "harness/tools.py: create_event takes calendar, the name they said, only when they named one"
   ],
   "cases": [
     {
@@ -248,8 +249,8 @@
       }
     },
     {
-      "id": "never-names-a-calendar-to-write",
-      "why": "there is no calendar argument to give; the thread decides",
+      "id": "named-calendar-is-passed-as-said",
+      "why": "they named the Studio calendar: the name goes along for offload to find among theirs, and nothing is said",
       "surface": "file",
       "input": "put friday's 4pm review on the Studio calendar",
       "context": "calendar",
@@ -259,6 +260,109 @@
             "tool": "create_event",
             "args": {
               "content_id": "c1"
+            }
+          }
+        ],
+        "calls_with_none": [
+          {
+            "tool": "create_event",
+            "args": {
+              "calendar": null
+            }
+          }
+        ],
+        "say": null,
+        "call_count": {
+          "add_content": 1
+        }
+      }
+    },
+    {
+      "id": "named-shared-calendar-goes-by-name",
+      "why": "the owner's report: 'my shared calendar P**B' went on the personal calendar because the name had nowhere to go",
+      "surface": "file",
+      "input": "Add a dentist appointment for tomorrow at 3pm to my shared calendar P**B",
+      "context": "calendar",
+      "expect": {
+        "called": [
+          "add_content",
+          "create_event"
+        ],
+        "calls_with_none": [
+          {
+            "tool": "create_event",
+            "args": {
+              "calendar": null
+            }
+          }
+        ],
+        "say": null,
+        "call_count": {
+          "add_content": 1
+        }
+      }
+    },
+    {
+      "id": "my-calendar-names-no-calendar",
+      "why": "'my calendar' is the calendar, not a name: nothing is passed and the thread decides",
+      "surface": "file",
+      "input": "add the dentist to my calendar, thursday 10am",
+      "context": "calendar",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "create_event",
+            "args": {
+              "content_id": "c1",
+              "calendar": null
+            }
+          }
+        ],
+        "say": null,
+        "call_count": {
+          "add_content": 1
+        }
+      }
+    },
+    {
+      "id": "unnamed-appointment-carries-no-calendar",
+      "why": "no calendar was named, so none is guessed from the ones in reach",
+      "surface": "file",
+      "input": "physio friday 9am",
+      "context": "calendar",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "create_event",
+            "args": {
+              "content_id": "c1",
+              "calendar": null
+            }
+          }
+        ],
+        "say": null,
+        "call_count": {
+          "add_content": 1
+        }
+      }
+    },
+    {
+      "id": "named-calendar-asked-about-is-silent",
+      "why": "the name did not settle on one of theirs and offload asked which in the conversation; the model adds nothing",
+      "surface": "file",
+      "input": "put lunch with Maya on the Famly calendar, friday 1pm",
+      "context": "calendar",
+      "calendar_write": "asked",
+      "expect": {
+        "called": [
+          "add_content",
+          "create_event"
+        ],
+        "calls_with_none": [
+          {
+            "tool": "create_event",
+            "args": {
+              "calendar": null
             }
           }
         ],

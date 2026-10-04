@@ -219,8 +219,11 @@ export default function Privacy() {
             calendar you own, offload reads its sharing list from Google and keeps only a count of
             the people on it, never their names or addresses; when it cannot tell, it asks first
             rather than guessing. When a change reaches nobody but you, it just does it and you have
-            a few seconds to undo. In Settings you can ask offload to check with you before every
-            change instead.
+            a few seconds to undo. So that undo can put an event back as it was, offload keeps
+            what the event said before the change, until you undo or for a day at most. The one
+            change it cannot take back is one to a repeating event and every one after it, so it
+            asks you before that too. In Settings you can ask offload to check with you before
+            every change instead.
           </p>
           <p>
             <strong>Which calendars offload reads is two decisions, not one.</strong> Connecting an
@@ -234,9 +237,11 @@ export default function Privacy() {
           </p>
           <p>
             <strong>An event brings other people with it.</strong> offload keeps nothing about
-            the guests on an event: not their names, not their answers, not their addresses. When
-            it changes an event that has guests, it asks Google who they are at that moment and
-            tells you before anyone hears about it. When you ask it to invite somebody, their
+            the guests on an event: not their names, not their answers, not their addresses, with
+            one exception. When it changes an event that has guests, it asks Google who they are
+            at that moment and tells you before anyone hears about it. When you have it delete
+            one, the guests' addresses are kept with what the event said, so that undo can invite
+            them again, and are deleted when you undo or within a day. When you ask it to invite somebody, their
             address waits with that request until you say yes or no, an hour at most, and is
             deleted within a day after. offload does note whether you made an event or were
             invited to it, so it can show you your own day apart from what other people put on a

@@ -55,7 +55,7 @@ import {
   type TouchedThread,
   type WaitingOn,
 } from "../../lib/dump";
-import { turnDid } from "../../lib/turn-did";
+import { answeredWaiting, turnDid } from "../../lib/turn-did";
 import type { ChipError } from "./AttachChip";
 import { addNote, completeContent, fetchThread, provisionalId, quickAdd } from "../../lib/threads";
 import { labelQuery } from "@offload/widgets";
@@ -352,7 +352,7 @@ export interface Conversation {
    *
    *  Local only: the server already knows, and re-fetching the conversation to
    *  learn something this client just decided is a round trip for nothing. */
-  resolveWaiting: (turnId: string) => void;
+  resolveWaiting: (turn: { id: string; turnId?: string }, agreed: boolean) => void;
   /** 018. The one open question in the conversation, which owns the
    *  composer's placeholder while it is open. */
   openQuestion: QuestionOnWire | null;
@@ -467,12 +467,8 @@ export function ConversationProvider({
     setNotice({ at: Date.now(), message, ...(action ? { action } : {}) });
   }, []);
 
-  const resolveWaiting = useCallback((turnId: string) => {
-    setTurns((current) =>
-      current.map((turn) =>
-        turn.id === turnId ? { ...turn, waiting: null } : turn,
-      ),
-    );
+  const resolveWaiting = useCallback((turn: { id: string; turnId?: string }, agreed: boolean) => {
+    setTurns((current) => answeredWaiting(current, turn, agreed));
   }, []);
   /** Tick a row an answer showed.
    *
@@ -1432,7 +1428,7 @@ export function ConversationProvider({
             // The thread the answer changed: the Done mark and the pill, now
             // rather than after a reload.
             threads: sent.threads ?? [],
-            did: (sent.threads?.length ?? 0) > 0,
+            did: turnDid(sent),
             // 019. A tapped calendar that needs the person's say-so: the
             // proposal sits on their own turn, since nothing replied to it.
             waiting: sent.waiting ?? null,

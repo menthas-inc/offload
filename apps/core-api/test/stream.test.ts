@@ -271,6 +271,48 @@ describe("the stream, over a real socket", () => {
     stream.close();
   });
 
+  it("says a turn filed something when what it filed draws no pill", async () => {
+    // What lands where no thread is named has no pill, so `threads` is empty
+    // and `filed` is the only thing that draws Done. The settlement dropped
+    // it: an appointment added from Today wore no Done mark until a reload,
+    // because the tail and the single read both carried it and this did not.
+    const { accountId, cookie } = await signedIn();
+    const { messageId, conversationId, turnId } = await dump(accountId);
+    const loose = await db
+      .insertInto("threads")
+      .values({ created_by_account_id: accountId, name: "Loose", last_activity_at: new Date(), updated_at: new Date() })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await db.insertInto("thread_members").values({ thread_id: loose.id, account_id: accountId, state: "accepted" }).execute();
+    await db.updateTable("accounts").set({ default_thread_id: loose.id }).where("id", "=", accountId).execute();
+    await db
+      .insertInto("content")
+      .values({ account_id: accountId, thread_id: loose.id, type: "event", title: "Dentist", derived_from_message_id: messageId })
+      .execute();
+
+    const stream = openStream(`${origin}/v1/messages/${messageId}/stream`, cookie);
+    await new Promise((r) => setTimeout(r, 300));
+    const job = await db
+      .insertInto("jobs")
+      .values({
+        kind: "dump.answer",
+        account_id: accountId,
+        payload: JSON.stringify({ messageId, conversationId, turnId }),
+        run_after: new Date(),
+        state: "running",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await post({ outcome: "answered", jobId: job.id, usage: [usage] });
+
+    const frame = await stream.waitForFrame(/event: done/, 2_000);
+    const data = JSON.parse(frame.split("data: ")[1]!) as { threads: unknown[]; filed?: boolean };
+    expect(data.threads).toEqual([]);
+    expect(data.filed).toBe(true);
+
+    stream.close();
+  });
+
   it("delivers a partial turn too, so the composer can offer to finish it", async () => {
     const { accountId, cookie } = await signedIn();
     const { messageId, conversationId, turnId } = await dump(accountId);
