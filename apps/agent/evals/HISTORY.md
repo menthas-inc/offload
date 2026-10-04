@@ -31,6 +31,14 @@ and is not committed.
 | 2026-10-02 23:35 | nightly | 1 | 26/26 (100%) | $0.46 | `claude-sonnet-5` | `ee95f80b` | `fd37c23` |  |
 | 2026-10-04 01:24 | new-thread-wears-a-fitting-icon | 1 | 1/1 (100%) | $0.06 | `claude-sonnet-5` | `57f72231` | `4d7b43a` | 037: the two thread icon cases |
 | 2026-10-04 01:25 | new-thread-icon-is-from-the-list | 1 | 1/1 (100%) | $0.03 | `claude-sonnet-5` | `57f72231` | `4d7b43a` | 037: the two thread icon cases |
+| 2026-10-04 23:13 | named-calendar-is-passed-as-said | 1 | 1/1 (100%) | $0.06 | `claude-sonnet-5` | `e7495b42` | `4475d72` |  |
+| 2026-10-04 23:13 | named-shared-calendar-goes-by-name | 1 | 1/1 (100%) | $0.02 | `claude-sonnet-5` | `e7495b42` | `4475d72` |  |
+| 2026-10-04 23:13 | my-calendar-names-no-calendar | 1 | 1/1 (100%) | $0.02 | `claude-sonnet-5` | `e7495b42` | `4475d72` |  |
+| 2026-10-04 23:13 | unnamed-appointment-carries-no-calendar | 1 | 1/1 (100%) | $0.02 | `claude-sonnet-5` | `e7495b42` | `4475d72` |  |
+| 2026-10-04 23:14 | named-calendar-asked-about-is-silent | 1 | 1/1 (100%) | $0.02 | `claude-sonnet-5` | `e7495b42` | `4475d72` |  |
+| 2026-10-04 23:14 | cancel-one | 1 | 1/1 (100%) | $0.02 | `claude-sonnet-5` | `e7495b42` | `4475d72` |  |
+| 2026-10-04 23:14 | cancel-for-good | 1 | 1/1 (100%) | $0.02 | `claude-sonnet-5` | `e7495b42` | `4475d72` |  |
+| 2026-10-04 23:15 | cancel-many-by-description | 1 | 1/1 (100%) | $0.03 | `claude-sonnet-5` | `e7495b42` | `4475d72` |  |
 
 ## Full runs by principle
 
