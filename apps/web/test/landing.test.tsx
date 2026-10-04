@@ -124,4 +124,20 @@ describe("the frame's scroll mode", () => {
     const scroll = css.slice(css.indexOf(".atmosphere.scroll"));
     expect(scroll).not.toContain("url(#atmo");
   });
+  // A custom property on the frame is inherited by every element of the page,
+  // so writing one per scroll frame restyles and repaints the whole document:
+  // 500ms of style and 240ms of paint in a six second scroll, measured. The
+  // numbers go on the elements that read them.
+  it("writes the scroll position on the elements that read it, never on the frame", () => {
+    const progress = source("components/ScrollProgress.tsx");
+    expect(progress).not.toContain("frame.style.setProperty");
+    expect(progress).toContain("[data-scroll-cue]");
+    expect(html).toContain("data-scroll-cue");
+  });
+
+  it("draws the film at most thirty times a second however fast the scroll", () => {
+    const atmosphere = source("components/Atmosphere.tsx");
+    expect(atmosphere).toContain("SCROLL_FILM_INTERVAL_MS = 33");
+    expect(atmosphere).toContain("now - lastDraw >= SCROLL_FILM_INTERVAL_MS");
+  });
 });

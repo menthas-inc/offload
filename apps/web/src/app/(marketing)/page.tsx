@@ -282,7 +282,7 @@ export default function Landing() {
             {waitlist("top")}
           </div>
 
-          <button type="button" className={styles.cue} onClick={toStory}>
+          <button type="button" className={styles.cue} onClick={toStory} data-scroll-cue>
             <span className={styles.cueMark} aria-hidden="true">
               <i className={styles.cueDot} />
               <b className={styles.cueVessel} />

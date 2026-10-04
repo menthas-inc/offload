@@ -37,6 +37,7 @@ the new truth, and the design system is updated to match on the next sync.
 - **The agenda's new row is `--surface-attention-soft` with the check in `--text-attention`,** the semantic names for the blue the reference took from the ramp. The faces are label hues 9, 5 and 10. The photo is the sand and blue washes.
 - **The header's transition is `--duration-slow`,** 280ms where the handoff says 300.
 - **A link in a step that is not showing brings its step in when it takes keyboard focus.**
+- **The film draws at most thirty times a second while the page scrolls,** and ten at rest as before. The mark and its mask still move on every frame. The scroll position is written on the bar and the scroll mark, not the frame, where it restyled the whole page on every frame.
 
 **Why:** each is either the product's own rule applied to the drawing (the seventy icons, semantic tokens over ramps), or something the reference could not show: a window that is not a frame, a reader with no JavaScript, a keyboard, a short phone.
 **Design system impact:** `ui_kits/marketing_site/landing.js`: `THR` takes `luggage` and `hammer`; the cue's target is `0.95 * vh`. `landing.css`: `.ld.m .ld-cstep` gains `align-content: start`, and a short-phone rule hides `.ld-fv .arw` and the third and fourth `.ld-bub`. `handoff/APPLY-2026-10-04-landing.md` item 6 should say where the scroll mark goes.

@@ -82,6 +82,12 @@ const FLARES = [styles.flare1, styles.flare2, styles.flare3, styles.flare4, styl
 /** The prism redraws ten times a second. See the note in `draw`. */
 const SHADER_INTERVAL_MS = 100;
 
+/** And at most thirty times a second while the page scrolls. The mark and its
+ *  mask move on every frame, which is what reads as smooth; the film inside is
+ *  a slow field, and a draw of it on each of a phone's 60 or 120 frames is the
+ *  fragment shader competing with the story's text for nothing anyone sees. */
+const SCROLL_FILM_INTERVAL_MS = 33;
+
 /** The shader's ground has to be the page's own colour or the mark sits on a
  *  slightly different white than the paper around it. Read from the token
  *  rather than restated, so it follows --surface-page wherever that goes. */
@@ -312,7 +318,8 @@ export function Atmosphere({ mode = "drift" }: { mode?: "drift" | "pinned" | "sc
       frame = 0;
       const y = window.scrollY;
       const moved = dirty || y !== lastY;
-      if (moved || now - lastDraw >= SHADER_INTERVAL_MS) {
+      const stir = moved ? now - lastDraw >= SCROLL_FILM_INTERVAL_MS : now - lastDraw >= SHADER_INTERVAL_MS;
+      if (moved || stir) {
         const k = clamp(y / height);
         const page = clamp(y / Math.max(1, document.documentElement.scrollHeight - height));
         // In: through the first screen, about the vessel's base.
@@ -349,8 +356,10 @@ export function Atmosphere({ mode = "drift" }: { mode?: "drift" | "pinned" | "sc
         }
 
         // The film stirs as the page scrolls: the scroll is added to its clock.
-        film?.draw(40 + (now - start) / 1000 + y * 0.006, mix(0.25, 0.62, inside), page * 1.1, 1 + inside * 0.8);
-        lastDraw = now;
+        if (stir) {
+          film?.draw(40 + (now - start) / 1000 + y * 0.006, mix(0.25, 0.62, inside), page * 1.1, 1 + inside * 0.8);
+          lastDraw = now;
+        }
       }
       lastY = y;
       dirty = false;
