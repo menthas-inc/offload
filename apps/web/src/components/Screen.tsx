@@ -10,21 +10,36 @@ import type { ReactNode } from "react";
 import { Atmosphere } from "./Atmosphere";
 import Link from "next/link";
 import { Logo } from "./Logo";
+import { ScrollProgress } from "./ScrollProgress";
 import styles from "./screen.module.css";
 
 export function Screen({
   children,
   atmosphere = true,
+  scroll = false,
 }: {
   children: ReactNode;
   /** `"pinned"` for a document: the same background, held to the window rather
    *  than to the page, because a page of running text is many screens tall and
    *  an atmosphere centred on it would sit halfway down the article. */
   atmosphere?: boolean | "pinned";
+  /** The landing page alone: the window scrolls, the header sticks, the
+   *  atmosphere follows the scroll and a progress bar sits along the bottom.
+   *  The gate never asks for it, so nothing about the gate moves. */
+  scroll?: boolean;
 }) {
+  if (scroll) {
+    return (
+      <div className={`${styles.screen} ${styles.scroll}`}>
+        <Atmosphere mode="scroll" />
+        {children}
+        <ScrollProgress />
+      </div>
+    );
+  }
   return (
     <div className={styles.screen}>
-      {atmosphere ? <Atmosphere pinned={atmosphere === "pinned"} /> : null}
+      {atmosphere ? <Atmosphere mode={atmosphere === "pinned" ? "pinned" : "drift"} /> : null}
       {children}
     </div>
   );

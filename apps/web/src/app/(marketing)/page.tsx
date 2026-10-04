@@ -1,15 +1,18 @@
 "use client";
 
-// The landing page. One screen, one action, and the claim is the whole of it:
+// The landing page. One scroll, one action. The first screen is the claim,
 // "offload <verb> for you", with the verb cycling through the six things it
-// actually does rather than a list of features nobody reads.
+// actually does. Under it, the story says in plain words what offload is and
+// that it works with Google Calendar and why, which is what Google's OAuth
+// review opens this page to read; then the waitlist again.
 //
-// The frame, the mark, the header row, the Privacy line and the moving
-// background, is components/Screen.tsx and is shared verbatim with the gate, so
-// clicking Sign in moves a card in over a page that does not change.
+// The frame, the mark, the header row, the Privacy line and the background, is
+// components/Screen.tsx and is shared with the gate. This page alone asks for
+// its scroll mode (handoff/APPLY-2026-10-04-landing.md).
 
 import { useEffect, useRef, useState } from "react";
-import { Screen, ScreenFooter, ScreenHeader, ScreenMain, screenStyles } from "@/components/Screen";
+import { LandingStory } from "../../components/LandingStory";
+import { Screen, ScreenFooter, ScreenHeader, screenStyles } from "../../components/Screen";
 import styles from "./page.module.css";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
@@ -162,8 +165,64 @@ export default function Landing() {
 
   const word = WORDS[index];
 
+  /** The waitlist, which the page shows twice: under the claim and again at
+   *  the end. One state behind both, so joining from either answers both, and
+   *  `at` keeps their ids apart. */
+  const waitlist = (at: "top" | "end") => {
+    const id = (name: string) => (at === "top" ? name : `${name}-end`);
+    return state === "sent" ? (
+      <p className={styles.done} role="status">
+        You are on the list. We will email <span className={styles.doneAddress}>{sentTo}</span> when your account is
+        ready to use.
+      </p>
+    ) : (
+      <>
+        <form id={id("waitlist")} className={styles.form} onSubmit={submit} noValidate>
+          <label htmlFor={id("email")} className={styles.srOnly}>
+            Email address
+          </label>
+          <input
+            id={id("email")}
+            className={styles.input}
+            type="email"
+            name="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            aria-invalid={error !== ""}
+            aria-describedby={id("waitlist-error")}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              if (error) setError("");
+            }}
+          />
+          <input
+            className={styles.trap}
+            type="text"
+            name="company"
+            value={company}
+            onChange={(event) => setCompany(event.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+          />
+          <button className={styles.button} type="submit" disabled={state === "sending"}>
+            Join the waitlist
+          </button>
+        </form>
+        <p id={id("waitlist-error")} className={styles.error} role="alert">
+          {error}
+        </p>
+      </>
+    );
+  };
+
+  /** The scroll mark goes to where the panel has arrived with its first step
+   *  in it, which is most of one window down. */
+  const toStory = () => window.scrollTo({ top: window.innerHeight * 0.95, behavior: "smooth" });
+
   return (
-    <Screen>
+    <Screen scroll>
       <ScreenHeader
         action={
           <a className={screenStyles.action} href="/sign-in">
@@ -172,101 +231,76 @@ export default function Landing() {
         }
       />
 
-      <ScreenMain>
-        <div className={styles.hero}>
-          <svg className={styles.defs} focusable="false" aria-hidden="true">
-            <defs>
-              <filter id="wordBleed" x="-40%" y="-50%" width="180%" height="200%">
-                <feTurbulence
-                  type="fractalNoise"
-                  baseFrequency="0.018 0.026"
-                  numOctaves="3"
-                  seed="5"
-                  result="n"
-                />
-                <feDisplacementMap
-                  ref={bleedRef}
-                  in="SourceGraphic"
-                  in2="n"
-                  scale="0"
-                  xChannelSelector="R"
-                  yChannelSelector="G"
-                />
-              </filter>
-            </defs>
-          </svg>
+      <main className={styles.main}>
+        <section className={styles.first}>
+          <div className={styles.hero}>
+            <svg className={styles.defs} focusable="false" aria-hidden="true">
+              <defs>
+                <filter id="wordBleed" x="-40%" y="-50%" width="180%" height="200%">
+                  <feTurbulence
+                    type="fractalNoise"
+                    baseFrequency="0.018 0.026"
+                    numOctaves="3"
+                    seed="5"
+                    result="n"
+                  />
+                  <feDisplacementMap
+                    ref={bleedRef}
+                    in="SourceGraphic"
+                    in2="n"
+                    scale="0"
+                    xChannelSelector="R"
+                    yChannelSelector="G"
+                  />
+                </filter>
+              </defs>
+            </svg>
 
-          <h1 ref={titleRef} className={styles.title}>
-            <span className={styles.line}>offload</span>
-            <span className={styles.line}>
-              <span className={styles.cycle} data-state={out ? "out" : "in"}>
-                <span className={styles.word}>{word}</span>
-                <span className={`${styles.ghost} ${styles.ghostViolet}`} aria-hidden="true">
-                  {word}
-                </span>
-                <span className={`${styles.ghost} ${styles.ghostAmber}`} aria-hidden="true">
-                  {word}
-                </span>
-                <span className={`${styles.ghost} ${styles.ghostBlue}`} aria-hidden="true">
-                  {word}
+            <h1 ref={titleRef} className={styles.title}>
+              <span className={styles.line}>offload</span>
+              <span className={styles.line}>
+                <span className={styles.cycle} data-state={out ? "out" : "in"}>
+                  <span className={styles.word}>{word}</span>
+                  <span className={`${styles.ghost} ${styles.ghostViolet}`} aria-hidden="true">
+                    {word}
+                  </span>
+                  <span className={`${styles.ghost} ${styles.ghostAmber}`} aria-hidden="true">
+                    {word}
+                  </span>
+                  <span className={`${styles.ghost} ${styles.ghostBlue}`} aria-hidden="true">
+                    {word}
+                  </span>
                 </span>
               </span>
-            </span>
-            <span className={styles.line}>for you</span>
-          </h1>
+              <span className={styles.line}>for you</span>
+            </h1>
 
-          <p className={styles.sub}>
-            Dump whatever is cluttering your mind, and offload sorts it for you.
-          </p>
-
-          {state === "sent" ? (
-            <p className={styles.done} role="status">
-              You are on the list. We will email{" "}
-              <span className={styles.doneAddress}>{sentTo}</span> when your account is ready to
-              use.
+            <p className={styles.sub}>
+              Dump whatever is cluttering your mind, and offload sorts it for you.
             </p>
-          ) : (
-            <>
-              <form id="waitlist" className={styles.form} onSubmit={submit} noValidate>
-                <label htmlFor="email" className={styles.srOnly}>
-                  Email address
-                </label>
-                <input
-                  id="email"
-                  className={styles.input}
-                  type="email"
-                  name="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  aria-invalid={error !== ""}
-                  aria-describedby="waitlist-error"
-                  onChange={(event) => {
-                    setEmail(event.target.value);
-                    if (error) setError("");
-                  }}
-                />
-                <input
-                  className={styles.trap}
-                  type="text"
-                  name="company"
-                  value={company}
-                  onChange={(event) => setCompany(event.target.value)}
-                  tabIndex={-1}
-                  autoComplete="off"
-                  aria-hidden="true"
-                />
-                <button className={styles.button} type="submit" disabled={state === "sending"}>
-                  Join the waitlist
-                </button>
-              </form>
-              <p id="waitlist-error" className={styles.error} role="alert">
-                {error}
-              </p>
-            </>
-          )}
-        </div>
-      </ScreenMain>
+
+            {waitlist("top")}
+          </div>
+
+          <button type="button" className={styles.cue} onClick={toStory}>
+            <span className={styles.cueMark} aria-hidden="true">
+              <i className={styles.cueDot} />
+              <b className={styles.cueVessel} />
+            </span>
+            <span>See how it works</span>
+          </button>
+        </section>
+
+        <LandingStory />
+
+        <section className={styles.closing} data-landing-end>
+          <h2 className={styles.closingTitle}>offload keeps track for you</h2>
+          <p className={styles.closingBody}>
+            offload is invite only for now. Join the waitlist and we will email you when your account is ready to use.
+          </p>
+          {waitlist("end")}
+        </section>
+      </main>
 
       <ScreenFooter />
     </Screen>

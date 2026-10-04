@@ -28,6 +28,15 @@
 // thread and it is free. On a document it competes with the text tiles, which
 // cost 2.7ms and lose, and the text arrives a second or two after the scroll.
 // Frozen, the same picture is painted once and never again.
+//
+// `scroll` is the landing page, which is long *and* moves. The mark is driven
+// by the scroll: it grows until the window is inside the vessel, and shrinks
+// to sit over the closing heading. The same measurement decides how. There is
+// no turbulence at all: the washes take a plain blur, which a compositor can
+// scale as a texture. The prism is one canvas the size of the window with the
+// mark as its mask, and the mask moves, because scaling the canvas itself
+// would magnify a 0.6x buffer eighteen times and blur the film to flat colour.
+// No parallax. Under reduced motion it is the pinned picture, exactly.
 
 import { useEffect, useRef } from "react";
 import styles from "./atmosphere.module.css";
@@ -43,17 +52,20 @@ const VERTEX_SHADER = "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}"
 const FRAGMENT_SHADER = [
   "precision highp float;",
   "uniform vec2 res;uniform float t;uniform float amt;uniform vec3 paper;",
+  // `hue` turns the band and `zm` magnifies the field about its centre. At 0
+  // and 1 they are not there.
+  "uniform float hue;uniform float zm;",
   "vec2 h2(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return -1.+2.*fract(sin(p)*43758.5453);}",
   "float noise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);",
   "return mix(mix(dot(h2(i),f),dot(h2(i+vec2(1,0)),f-vec2(1,0)),u.x),mix(dot(h2(i+vec2(0,1)),f-vec2(0,1)),dot(h2(i+vec2(1,1)),f-vec2(1,1)),u.x),u.y);}",
   "float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*noise(p);p*=2.03;a*=.5;}return s;}",
   "void main(){",
-  "vec2 uv=gl_FragCoord.xy/res.xy;vec2 q=uv*vec2(res.x/res.y,1.);",
+  "vec2 uv=gl_FragCoord.xy/res.xy;vec2 q=((uv-.5)*vec2(res.x/res.y,1.))/zm+.5;",
   "float T=t*0.03;",
   "vec2 w1=vec2(fbm(q*1.1+vec2(0.,T)),fbm(q*1.1+vec2(4.2,-T)));",
   "vec2 w2=vec2(fbm(q*1.7+w1*1.5+vec2(T*1.1,1.7)),fbm(q*1.7+w1*1.5+vec2(-1.1,T)));",
   "float film=fbm(q*1.4+w2*1.8)*1.3+0.5;",
-  "float band=film*2.6+T*1.4;",
+  "float band=film*2.6+T*1.4+hue;",
   "vec3 col=0.5+0.5*cos(6.28318*(band+vec3(0.0,0.30,0.60)));",
   "col=mix(vec3(dot(col,vec3(0.299,0.587,0.114))),col,0.66);",
   "float shade=smoothstep(0.05,1.0,fbm(q*0.8+w2*0.7)+0.5);",
@@ -64,6 +76,8 @@ const FRAGMENT_SHADER = [
 /** How far each layer lags the pointer, in px at the edge of the screen. The
  *  order is front to back: the widest, softest wash moves most. */
 const DEPTHS = [46, 35, 25, 16, 9, 0];
+
+const FLARES = [styles.flare1, styles.flare2, styles.flare3, styles.flare4, styles.flare5];
 
 /** The prism redraws ten times a second. See the note in `draw`. */
 const SHADER_INTERVAL_MS = 100;
@@ -83,9 +97,82 @@ function reducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
+/** The film in scroll mode is drawn at 0.6 of a CSS pixel whatever the
+ *  device's ratio: it fills the window, sits behind a blurred panel for most of
+ *  the page, and is the first thing to give up if a phone drops frames in the
+ *  zoom (to 0.45, per the handoff). */
+const SCROLL_FILM_SCALE = 0.6;
+
+const clamp = (value: number) => Math.min(1, Math.max(0, value));
+const mix = (from: number, to: number, t: number) => from + (to - from) * t;
+const smooth = (t: number) => t * t * (3 - 2 * t);
+
+interface Prism {
+  /** Fit the buffer to the canvas's box at `scale` buffer pixels per CSS one. */
+  size(scale: number): void;
+  draw(t: number, amount: number, hue: number, zoom: number): void;
+}
+
+function prism(canvas: HTMLCanvasElement): Prism | null {
+  const gl = canvas.getContext("webgl", { antialias: false, alpha: false });
+  // No WebGL is not a failure state. Five watercolour layers still sit over
+  // this one, so the mark loses a shimmer and keeps its shape.
+  if (!gl) return null;
+
+  const compile = (type: number, source: string) => {
+    const shader = gl.createShader(type)!;
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    return shader;
+  };
+  const program = gl.createProgram()!;
+  gl.attachShader(program, compile(gl.VERTEX_SHADER, VERTEX_SHADER));
+  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAGMENT_SHADER));
+  gl.linkProgram(program);
+  gl.useProgram(program);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const position = gl.getAttribLocation(program, "p");
+  gl.enableVertexAttribArray(position);
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+
+  const uRes = gl.getUniformLocation(program, "res");
+  const uTime = gl.getUniformLocation(program, "t");
+  const uAmount = gl.getUniformLocation(program, "amt");
+  const uHue = gl.getUniformLocation(program, "hue");
+  const uZoom = gl.getUniformLocation(program, "zm");
+  gl.uniform3fv(gl.getUniformLocation(program, "paper"), pageColour());
+
+  return {
+    size(scale) {
+      const box = canvas.getBoundingClientRect();
+      const width = Math.max(1, Math.round(box.width * scale));
+      const height = Math.max(1, Math.round(box.height * scale));
+      if (canvas.width === width && canvas.height === height) return;
+      canvas.width = width;
+      canvas.height = height;
+      gl.viewport(0, 0, width, height);
+      gl.uniform2f(uRes, width, height);
+    },
+    draw(t, amount, hue, zoom) {
+      gl.uniform1f(uTime, t);
+      gl.uniform1f(uAmount, amount);
+      gl.uniform1f(uHue, hue);
+      gl.uniform1f(uZoom, zoom);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    },
+  };
+}
+
+export function Atmosphere({ mode = "drift" }: { mode?: "drift" | "pinned" | "scroll" }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const markRef = useRef<HTMLDivElement | null>(null);
+  const filmRef = useRef<HTMLDivElement | null>(null);
+  const cloudsRef = useRef<HTMLDivElement | null>(null);
+  const pinned = mode === "pinned";
+  const scroll = mode === "scroll";
   /** A pinned atmosphere is a still one, for the same reason reduced motion is:
    *  both want the picture without anything that repaints it. */
   const still = pinned;
@@ -95,7 +182,7 @@ export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
   // rather than teleporting it.
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || still || reducedMotion()) return;
+    if (!root || still || scroll || reducedMotion()) return;
 
     const flares = [...root.querySelectorAll<HTMLElement>("[data-flare]")];
     const target = { x: 0, y: 0 };
@@ -133,52 +220,18 @@ export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
       window.removeEventListener("pointermove", wake);
       cancelAnimationFrame(frame);
     };
-  }, [still]);
+  }, [still, scroll]);
 
   // The prism shader.
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const gl = canvas.getContext("webgl", { antialias: false, alpha: false });
-    // No WebGL is not a failure state. Five watercolour layers still sit over
-    // this one, so the mark loses a shimmer and keeps its shape.
-    if (!gl) return;
+    if (!canvas || scroll) return;
+    const film = prism(canvas);
+    if (!film) return;
 
-    const compile = (type: number, source: string) => {
-      const shader = gl.createShader(type)!;
-      gl.shaderSource(shader, source);
-      gl.compileShader(shader);
-      return shader;
-    };
-    const program = gl.createProgram()!;
-    gl.attachShader(program, compile(gl.VERTEX_SHADER, VERTEX_SHADER));
-    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAGMENT_SHADER));
-    gl.linkProgram(program);
-    gl.useProgram(program);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    const position = gl.getAttribLocation(program, "p");
-    gl.enableVertexAttribArray(position);
-    gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-
-    const uRes = gl.getUniformLocation(program, "res");
-    const uTime = gl.getUniformLocation(program, "t");
-    const uAmount = gl.getUniformLocation(program, "amt");
-    const uPaper = gl.getUniformLocation(program, "paper");
-    gl.uniform3fv(uPaper, pageColour());
-    gl.uniform1f(uAmount, 0.25);
-
-    const resize = () => {
-      const box = canvas.getBoundingClientRect();
-      // Capped at 1.5, not the device ratio: this is a blurred field behind a
-      // mask, and a 3x buffer of it costs real frames for nothing visible.
-      const ratio = Math.min(1.5, window.devicePixelRatio || 1);
-      canvas.width = Math.max(1, Math.round(box.width * ratio));
-      canvas.height = Math.max(1, Math.round(box.height * ratio));
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.uniform2f(uRes, canvas.width, canvas.height);
-    };
+    // Capped at 1.5, not the device ratio: this is a blurred field behind a
+    // mask, and a 3x buffer of it costs real frames for nothing visible.
+    const resize = () => film.size(Math.min(1.5, window.devicePixelRatio || 1));
     resize();
     window.addEventListener("resize", resize);
 
@@ -196,8 +249,7 @@ export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
     let frame = 0;
     let timer = 0;
     const draw = (now: number) => {
-      gl.uniform1f(uTime, reduced ? 40 : (now - start) / 1000);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      film.draw(reduced ? 40 : (now - start) / 1000, 0.25, 0, 1);
       if (!reduced) timer = window.setTimeout(() => (frame = requestAnimationFrame(draw)), SHADER_INTERVAL_MS);
     };
     frame = requestAnimationFrame(draw);
@@ -207,7 +259,152 @@ export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
       window.clearTimeout(timer);
       cancelAnimationFrame(frame);
     };
-  }, [still]);
+  }, [still, scroll]);
+
+  // Scroll mode: the mark, its film and the clouds, placed by how far the
+  // window has scrolled. One loop, woken by the scroll and by a ten-a-second
+  // timer for the film's own clock, and writing only transforms, opacities and
+  // the mask, so nothing here lays the page out again.
+  useEffect(() => {
+    if (mode !== "scroll") return;
+    const root = rootRef.current;
+    const canvas = canvasRef.current;
+    const mark = markRef.current;
+    const filmBox = filmRef.current;
+    const clouds = cloudsRef.current;
+    if (!root || !canvas || !mark || !filmBox || !clouds) return;
+
+    const film = prism(canvas);
+    const reduced = reducedMotion();
+
+    // Reduced motion is the pinned picture: no zoom and no clock. The styles
+    // already draw the mark where pinned does, so one draw is all there is.
+    if (reduced) {
+      const once = () => {
+        film?.size(SCROLL_FILM_SCALE);
+        film?.draw(40, 0.25, 0, 1);
+      };
+      once();
+      window.addEventListener("resize", once);
+      return () => window.removeEventListener("resize", once);
+    }
+
+    const end = document.querySelector<HTMLElement>("[data-landing-end]");
+    const start = performance.now();
+    let frame = 0;
+    let timer = 0;
+    let lastY = -1;
+    let lastDraw = 0;
+    let dirty = true;
+    let width = 1;
+    let height = 1;
+    let box = 1;
+
+    const measure = () => {
+      width = root.clientWidth || 1;
+      height = root.clientHeight || 1;
+      box = mark.offsetWidth || 1;
+      film?.size(SCROLL_FILM_SCALE);
+      dirty = true;
+    };
+
+    const tick = (now: number) => {
+      frame = 0;
+      const y = window.scrollY;
+      const moved = dirty || y !== lastY;
+      if (moved || now - lastDraw >= SHADER_INTERVAL_MS) {
+        const k = clamp(y / height);
+        const page = clamp(y / Math.max(1, document.documentElement.scrollHeight - height));
+        // In: through the first screen, about the vessel's base.
+        const zin = smooth(clamp(k / 1.05));
+        // Out: as the closing section comes through the window.
+        let zout = 0;
+        if (end) {
+          const rect = end.getBoundingClientRect();
+          zout = smooth(clamp((clamp((height - rect.top) / (rect.height + height)) - 0.08) / 0.42));
+        }
+        const inside = zin * (1 - zout);
+
+        if (moved) {
+          const scale = mix(1 + Math.pow(zin, 2.4) * 17, 0.36, zout);
+          // The origin: 92.6% down the mark's box going in, its centre going out.
+          const origin = mix(0.426, 0, zout) * box;
+          const centre = height / 2 + origin - origin * scale - zout * height * 0.2;
+          const opacity = mix(0.75, 1, inside).toFixed(3);
+
+          mark.style.transform = `translate(-50%, calc(-50% + ${(centre - height / 2).toFixed(1)}px)) scale(${scale.toFixed(4)})`;
+          mark.style.opacity = opacity;
+
+          const maskWidth = ((box * 62) / 68) * scale;
+          const maskHeight = box * scale;
+          const size = `${maskWidth.toFixed(1)}px ${maskHeight.toFixed(1)}px`;
+          const at = `${(width / 2 - maskWidth / 2).toFixed(1)}px ${(centre - maskHeight / 2).toFixed(1)}px`;
+          filmBox.style.setProperty("-webkit-mask-size", size);
+          filmBox.style.setProperty("mask-size", size);
+          filmBox.style.setProperty("-webkit-mask-position", at);
+          filmBox.style.setProperty("mask-position", at);
+          filmBox.style.opacity = opacity;
+
+          clouds.style.opacity = (0.72 * (1 - 0.6 * inside)).toFixed(3);
+        }
+
+        // The film stirs as the page scrolls: the scroll is added to its clock.
+        film?.draw(40 + (now - start) / 1000 + y * 0.006, mix(0.25, 0.62, inside), page * 1.1, 1 + inside * 0.8);
+        lastDraw = now;
+      }
+      lastY = y;
+      dirty = false;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(wake, SHADER_INTERVAL_MS);
+    };
+    const wake = () => {
+      if (!frame) frame = requestAnimationFrame(tick);
+    };
+
+    measure();
+    wake();
+    const onResize = () => {
+      measure();
+      wake();
+    };
+    window.addEventListener("scroll", wake, { passive: true });
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", wake);
+      window.removeEventListener("resize", onResize);
+      window.clearTimeout(timer);
+      cancelAnimationFrame(frame);
+    };
+  }, [mode]);
+
+  if (scroll) {
+    return (
+      <div ref={rootRef} className={`${styles.atmosphere} ${styles.scroll}`} aria-hidden="true">
+        <div ref={cloudsRef} className={styles.clouds}>
+          <div className={`${styles.cloud} ${styles.cloud1}`} />
+          <div className={`${styles.cloud} ${styles.cloud2}`} />
+          <div className={`${styles.cloud} ${styles.cloud3}`} />
+          <div className={`${styles.cloud} ${styles.cloud4}`} />
+        </div>
+
+        <div className={styles.glow} />
+
+        {/* The five washes, with no filter definitions: each takes a plain blur
+            from the stylesheet. The sixth layer is the film below. */}
+        <div ref={markRef} className={styles.mark}>
+          {[styles.wash1, styles.wash2, styles.wash3, styles.wash4, styles.wash5].map((wash, index) => (
+            <div key={wash} className={`${styles.flare} ${FLARES[index]}`}>
+              <div className={`${styles.wash} ${wash}`} />
+            </div>
+          ))}
+        </div>
+
+        <div ref={filmRef} className={styles.film}>
+          <canvas ref={canvasRef} className={styles.canvas} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

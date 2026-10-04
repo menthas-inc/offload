@@ -295,3 +295,55 @@
 /* The filter definitions are drawn into a zero-sized svg, which is the only
    way to reference an SVG filter from CSS. */
 .defs { position: absolute; width: 0; height: 0; }
+
+/* ------------------------------------------------------------ scroll mode */
+
+/* The landing page: held to the window like `pinned`, but sticky rather than
+   fixed so it is one more row of the frame, and driven by the scroll rather
+   than still. Atmosphere.tsx writes the mark's transform, the film's mask and
+   the clouds' opacity; everything below is what the picture is before it does,
+   which is also what reduced motion keeps: the mark where `pinned` draws it.
+
+   No turbulence anywhere in this mode. A wash under a displacement filter is
+   re-filtered whenever it moves, and here it moves on every scroll frame while
+   the story's text is waiting for the same raster thread. A plain blur is
+   rastered once and scaled as a texture. */
+.atmosphere.scroll {
+  --atmosphere-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='17 11 62 68'%3E%3Ccircle cx='48' cy='21' r='10' fill='black'/%3E%3Cpath d='M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46' fill='none' stroke='black' stroke-width='10' stroke-linecap='round'/%3E%3C/svg%3E");
+  --atmosphere-box: min(74vh, 82vw);
+
+  position: sticky;
+  inset: auto;
+  top: 0;
+  z-index: 0;
+  flex: none;
+  block-size: 100vh;
+  margin-bottom: -100vh;
+}
+
+.atmosphere.scroll .mark { will-change: transform, opacity; }
+
+.atmosphere.scroll .flare { filter: none; }
+.atmosphere.scroll .flare1 { filter: blur(10px); }
+.atmosphere.scroll .flare2 { filter: blur(6px); }
+.atmosphere.scroll .flare3 { filter: blur(4px); }
+
+.atmosphere.scroll .wash { animation: none; }
+
+/* The film fills the window and the mark is its mask. The mask's size and
+   position are the mark's, kept in step by the same loop, so the shader stays
+   sharp however far in the window goes. */
+.film {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: multiply;
+  opacity: 0.75;
+  -webkit-mask-image: var(--atmosphere-mark);
+  mask-image: var(--atmosphere-mark);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: calc(var(--atmosphere-box) * 62 / 68) var(--atmosphere-box);
+  mask-size: calc(var(--atmosphere-box) * 62 / 68) var(--atmosphere-box);
+  -webkit-mask-position: center;
+  mask-position: center;
+}
