@@ -18,10 +18,12 @@ import {
   listInstances,
   type GoogleEvent,
 } from "./google.js";
-import { mapEvent, sourceRefFor, upsertEvent } from "./events.js";
+import { mapEvent, sourceRefFor, upsertEvent, type MappedEvent } from "./events.js";
 import { accessTokenFor, markNeedsReauth } from "./tokens.js";
 import { refreshCalendars } from "./calendars.js";
 import { bookLocate } from "../places/resolve.js";
+import { deleteContent, moveContentIn } from "../routes/threads.js";
+import { defaultThreadOf } from "../loose/read.js";
 
 const DAYS_BACK = 60;
 const MONTHS_FORWARD = 12;
@@ -189,6 +191,8 @@ export async function syncConnection(connectionId: string, full = false): Promis
     const seen: string[] = [];
     const touchedSeries = new Set<string>();
     const cancelledSeries = new Set<string>();
+    const gone: Gone = { refs: [], series: new Set() };
+    const remembered = await rememberedOn(connection.account_id, calendar.external_id);
     for (const event of page.events) {
       const sourceRef = sourceRefFor(calendar.external_id, event.externalId);
       seen.push(sourceRef);
@@ -199,6 +203,8 @@ export async function syncConnection(connectionId: string, full = false): Promis
       // row carries as its own, only as its `series_ref`.
       if (event.status === "cancelled") {
         if (!event.seriesId) cancelledSeries.add(event.externalId);
+        gone.refs.push(sourceRef);
+        gone.series.add(event.seriesId ?? event.externalId);
         const result = await db
           .updateTable("connector_events")
           .set({ deleted_at: new Date(), updated_at: new Date() })
@@ -215,12 +221,9 @@ export async function syncConnection(connectionId: string, full = false): Promis
       }
       if (!event.startsAt) continue;
 
-      await upsertEvent(
-        db,
-        connection.account_id,
-        calendar.id,
-        mapEvent(event, calendar.external_id, { accountEmail: connection.external_account_email, primary: calendar.is_primary }),
-      );
+      const mapped = mapEvent(event, calendar.external_id, { accountEmail: connection.external_account_email, primary: calendar.is_primary });
+      if (remembered.has(sourceRef)) await followChange(connection.account_id, calendar.id, mapped);
+      await upsertEvent(db, connection.account_id, calendar.id, mapped);
       outcome.written += 1;
     }
 
@@ -230,7 +233,7 @@ export async function syncConnection(connectionId: string, full = false): Promis
     // is a cache of somebody else's system and not a record of what anybody
     // dumped.
     if (reread) {
-      outcome.retired += await retireMissing(calendar.id, seen, timeMin, timeMax);
+      outcome.retired += await retireMissing(calendar.id, seen, timeMin, timeMax, undefined, gone);
       await forgetBehindTheWindow(calendar.id, timeMin);
     } else {
       // "Delete this and following" cancels nothing: Google moves the series'
@@ -244,9 +247,11 @@ export async function syncConnection(connectionId: string, full = false): Promis
         const kept = held === "gone"
           ? []
           : held.filter((e) => e.status !== "cancelled").map((e) => sourceRefFor(calendar.external_id, e.externalId));
-        outcome.retired += await retireMissing(calendar.id, kept, timeMin, timeMax, seriesId);
+        outcome.retired += await retireMissing(calendar.id, kept, timeMin, timeMax, seriesId, gone);
       }
     }
+
+    if (remembered.size > 0) await letGo(connection.account_id, calendar.id, calendar.external_id, gone);
 
     await db
       .updateTable("connector_calendars")
@@ -287,7 +292,8 @@ async function retireMissing(
   seen: string[],
   timeMin: Date,
   timeMax: Date,
-  seriesId?: string
+  seriesId: string | undefined,
+  gone: Gone
 ): Promise<number> {
   let query = db
     .updateTable("connector_events")
@@ -300,8 +306,120 @@ async function retireMissing(
   if (seriesId) query = query.where("series_ref", "=", seriesId);
   if (seen.length) query = query.where("source_ref", "not in", seen);
 
-  const result = await query.executeTakeFirst();
-  return Number(result.numUpdatedRows ?? 0);
+  const retired = await query.returning(["source_ref", "series_ref"]).execute();
+  for (const row of retired) {
+    gone.refs.push(row.source_ref);
+    if (row.series_ref) gone.series.add(row.series_ref);
+  }
+  return retired.length;
+}
+
+/** What Google no longer has, from one calendar's pass: events by their own
+ *  ref, and the series any of them belonged to. */
+interface Gone {
+  refs: string[];
+  series: Set<string>;
+}
+
+/** The refs this account's rows remember on one calendar, so a pass that
+ *  touches none of them costs one query. */
+async function rememberedOn(accountId: string, calendarExternalId: string): Promise<Set<string>> {
+  const prefix = sourceRefFor(calendarExternalId, "");
+  const rows = await db
+    .selectFrom("content")
+    .select("source_ref")
+    .where("account_id", "=", accountId)
+    .where("deleted_at", "is", null)
+    .where(sql<boolean>`left(source_ref, ${prefix.length}) = ${prefix}`)
+    .execute();
+  return new Set(rows.map((row) => row.source_ref!));
+}
+
+/** A row filed as an event goes where Google moved it, and by its new name.
+ *
+ *  Judged against the copy, not the row: the daily pass reads every event, and
+ *  one that is as the copy has it says nothing about the row, which keeps its
+ *  own words and its own end. The fields PR 75's change path sets. */
+async function followChange(accountId: string, calendarId: string, mapped: MappedEvent): Promise<void> {
+  const was = await db
+    .selectFrom("connector_events")
+    .select(["title", "occurs_at", "occurs_end_at"])
+    .where("calendar_id", "=", calendarId)
+    .where("source_ref", "=", mapped.sourceRef)
+    .executeTakeFirst();
+  if (!was) return;
+  const same = (a: Date | null, b: Date | null) => (a?.getTime() ?? null) === (b?.getTime() ?? null);
+  const retitled = was.title !== mapped.title;
+  const moved = !same(was.occurs_at, mapped.occursAt);
+  // Google's all-day end is the day after; a row's is the last day.
+  const end = mapped.allDay && mapped.occursEndAt ? new Date(mapped.occursEndAt.getTime() - 86_400_000) : mapped.occursEndAt;
+  const stretched = !same(was.occurs_end_at, mapped.occursEndAt);
+  if (!retitled && !moved && !stretched) return;
+  await db
+    .updateTable("content")
+    .set({
+      ...(retitled ? { title: mapped.title } : {}),
+      ...(moved ? { occurs_at: mapped.occursAt, attrs: sql`attrs || ${JSON.stringify({ all_day: mapped.allDay })}::jsonb` } : {}),
+      ...(stretched ? { occurs_end_at: end } : {}),
+      updated_at: new Date(),
+    })
+    .where("account_id", "=", accountId)
+    .where("source_ref", "=", mapped.sourceRef)
+    .where("deleted_at", "is", null)
+    .execute();
+}
+
+/** The rows filed as events Google no longer has go, as a removal asked of
+ *  offload takes them, with no Undo since offload was not asked.
+ *
+ *  A row remembering a series goes only once the copy holds none of the
+ *  series. A row carrying a photo is not destroyed with an appointment: it
+ *  stops being an event and goes loose, photo and all. The account's own rows
+ *  only, as the calendar is. Never failing the pass: the copy is right by now. */
+async function letGo(accountId: string, calendarId: string, calendarExternalId: string, gone: Gone): Promise<void> {
+  const refs = [...gone.refs];
+  for (const series of gone.series) {
+    const left = await db
+      .selectFrom("connector_events")
+      .select("id")
+      .where("calendar_id", "=", calendarId)
+      .where("series_ref", "=", series)
+      .where("deleted_at", "is", null)
+      .executeTakeFirst();
+    if (!left) refs.push(sourceRefFor(calendarExternalId, series));
+  }
+  if (refs.length === 0) return;
+  const rows = await db
+    .selectFrom("content")
+    .select("id")
+    .select((eb) =>
+      eb
+        .exists(eb.selectFrom("content_blobs").select("blob_id").whereRef("content_blobs.content_id", "=", "content.id"))
+        .as("photo")
+    )
+    .where("account_id", "=", accountId)
+    .where("source_ref", "in", refs)
+    .where("deleted_at", "is", null)
+    .execute();
+  for (const row of rows) {
+    try {
+      if (!row.photo) {
+        await deleteContent(accountId, row.id);
+        continue;
+      }
+      await db.transaction().execute(async (trx) => {
+        await trx
+          .updateTable("content")
+          .set({ occurs_at: null, occurs_end_at: null, rrule: null, source_ref: null, attrs: sql`attrs - 'calendar' - 'all_day'`, updated_at: new Date() })
+          .where("id", "=", row.id)
+          .execute();
+        const loose = await defaultThreadOf(accountId, trx);
+        if (loose) await moveContentIn(trx, accountId, row.id, loose);
+      });
+    } catch (error) {
+      console.error(JSON.stringify({ at: "calendar.let_go", outcome: "failed", error_type: error instanceof Error ? error.name : "unknown" }));
+    }
+  }
 }
 
 /** Rows whose occurrence has fallen behind the window go, deleted rather than
