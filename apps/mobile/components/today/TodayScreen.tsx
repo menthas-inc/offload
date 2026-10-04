@@ -71,7 +71,7 @@ export default function TodayScreen() {
   const me = useMe();
   const { zone, today } = useClock();
   const weekStart = useWeekStart();
-  const { setDraft } = useConversation();
+  const { setDraft, filed } = useConversation();
   const toast = useToast();
   const params = useLocalSearchParams<{ day?: string }>();
 
@@ -110,6 +110,15 @@ export default function TodayScreen() {
     },
     [loadDay],
   );
+
+  // A turn that filed, changed or removed something may have done it to this
+  // day, and the conversation sits over Today without taking its focus.
+  const lastFiled = useRef(0);
+  useEffect(() => {
+    if (!filed || filed.at === lastFiled.current) return;
+    lastFiled.current = filed.at;
+    loadDay(date);
+  }, [filed, loadDay, date]);
 
   // ---------------------------------------------------------------- Needs you
   const [needs, setNeeds] = useState<ServerCard[] | null>(null);

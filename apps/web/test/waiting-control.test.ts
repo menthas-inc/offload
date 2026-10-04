@@ -64,3 +64,15 @@ describe("a tapped calendar, for a row where no thread is named", () => {
     expect(source).toContain("did: turnDid(sent)");
   });
 });
+
+describe("a turn that changed a calendar and filed nothing", () => {
+  // A removal of an event names no thread, so `changed` is empty, and Today
+  // went on drawing the event until the page was loaded again.
+  it("tells the open screens to read again when it settles", () => {
+    expect(source).toContain("if (turnUndoable(answer)) onFiled(answer.changed ?? []);");
+  });
+
+  it("and when a proposal is agreed to, wherever its control sits", () => {
+    expect(source.match(/if \(agreed\) onFiled\(\[\]\);/g)).toHaveLength(2);
+  });
+});

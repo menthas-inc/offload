@@ -74,7 +74,7 @@ const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 /** The clock, moving each minute while the tab is in front and caught up the
  *  moment it comes back. Today's countdown and its midnight both read it. */
-function useNow(): Date {
+export function useNow(): Date {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | null = null;

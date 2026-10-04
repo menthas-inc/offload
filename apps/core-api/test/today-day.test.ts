@@ -115,6 +115,19 @@ describe("027 the day's events (AC-16, AC-17, AC-18)", () => {
     expect(body.events.map((e) => [e.title, e.source])).toEqual([["Viewing", "offload"]]);
   });
 
+  it("draws a repeating event offload wrote to a calendar once, as the row, on a day of the series", async () => {
+    // The row remembers the series; the copy holds one event per occurrence,
+    // each under its own reference and naming the series it belongs to.
+    const me = await account();
+    const flat = await thread([me], "Flat");
+    const work = await calendar(await connection(me));
+    await offloadEvent(me, flat, "Standup", `${TODAY}T09:00:00Z`, { source_ref: `${work.external}:series-1`, rrule: "FREQ=DAILY" });
+    const copy = await calendarEvent(me, work, "Standup", `${TOMORROW}T09:00:00Z`, { sourceRef: `${work.external}:series-1_tomorrow` });
+    await db.updateTable("connector_events").set({ series_ref: "series-1" }).where("id", "=", copy).execute();
+    const body = await day(await signIn(me), TOMORROW);
+    expect(body.events.map((e) => [e.title, e.source])).toEqual([["Standup", "offload"]]);
+  });
+
   it("carries the event's link only when it is a Google one", async () => {
     const me = await account();
     const work = await calendar(await connection(me));
