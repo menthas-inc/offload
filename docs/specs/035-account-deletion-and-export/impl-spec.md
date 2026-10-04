@@ -220,15 +220,20 @@ made: it has not recorded its threads yet and may hold this one. The file
 route answers 404 to a request whose `Sec-Fetch-Site` is `cross-site`. On
 Android the downloaded file stays in the cache until the next visit to the
 page, since the share sheet answers before the receiving app has read it.
+(Superseded the same day: Android no longer uses the share sheet at all.)
 
 ### Clients
 
 - **Row state** comes from `GET /api/me/export`; polled every 5 s while
   `making`, never otherwise.
 - **Phones:** `File.downloadFileAsync` with the session header into the
-  cache directory, then `expo-sharing` (new, needs a native build) to hand the
-  file to the system's save or share sheet (AC-21); the cache copy is removed
-  once the sheet closes. The Privacy page gains *Your copy*; its glyph is
+  cache directory. On iOS, `expo-sharing` (new, needs a native build) hands
+  the file to the system's share sheet, which has Save to Files. On Android
+  the share sheet offers people and apps and no place on the phone, as the
+  device pass showed, so the file is streamed into a folder the person picks
+  in the system's own picker (`Directory.pickDirectoryAsync`) (AC-21). The
+  cache copy is removed afterwards, and again on the next visit to the page
+  in case the app was closed mid-save. The Privacy page gains *Your copy*; its glyph is
   `archive`, since the set has no `download`, checked by `dead-icons.mjs`.
 - **Web:** a plain link to `/api/me/export/file`, which the session cookie
   authorises.
