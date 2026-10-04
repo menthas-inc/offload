@@ -577,6 +577,33 @@ describe("AC-11 where a write goes", () => {
     expect(again).toEqual({ ok: false, error: "already_on_calendar" });
   });
 
+  it("an event offload just wrote is in the copy at once, so the next turn can find it and remove it", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const id = await calendar(await connection(me));
+    await pick(t, id, me);
+    const { jobId, messageId } = await dump(me, t);
+    const contentId = await row(me, t, "Pick up car", messageId);
+    await tool({ tool: "create_event", jobId, toolCallId: "m1", contentId });
+
+    // No sync has run. The quarter-hour chain is what brought a written event
+    // back before, so "delete it" a minute later found nothing to delete.
+    const window = { fromIso: "2026-09-21T00:00:00Z", toIso: "2026-09-28T00:00:00Z" };
+    const next = await dump(me, t);
+    const found = (await tool({ tool: "find_events", jobId: next.jobId, toolCallId: "m2", ...window })).json() as {
+      events: Array<{ title: string; sourceRef: string; yours: boolean; untrusted: boolean }>;
+    };
+    expect(found.events.map((e) => [e.title, e.yours, e.untrusted])).toEqual([["Pick up car", true, false]]);
+
+    const later = await dump(me, t);
+    const gone = (
+      await tool({ tool: "delete_event", jobId: later.jobId, toolCallId: "m3", sourceRef: found.events[0]!.sourceRef, scope: "one" })
+    ).json() as Record<string, unknown>;
+    expect(gone["written"]).toBe(true);
+    const after = (await tool({ tool: "find_events", jobId: later.jobId, toolCallId: "m4", ...window })).json() as { events: unknown[] };
+    expect(after.events).toEqual([]);
+  });
+
   it("two writable picks: a question, and nothing written", async () => {
     const me = await account();
     const t = await thread(me);
