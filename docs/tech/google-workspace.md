@@ -130,16 +130,19 @@ Made in the organisation from the start, so none of the above ever applies to it
    App name `offload`, support email `hello@offload.club`, developer email
    `admin@offload.club`. App domain `offload.club`, privacy policy
    `https://offload.club/privacy`.
-5. **Scopes → Add or remove scopes → Manually add**, exactly these two:
+5. **Scopes → Add or remove scopes → Manually add**, exactly these three:
 
    ```
    https://www.googleapis.com/auth/calendar.calendarlist.readonly
    https://www.googleapis.com/auth/calendar.events
+   https://www.googleapis.com/auth/calendar.acls.readonly
    ```
 
-   Not `.../auth/calendar`, which also grants access-list and calendar
-   management this feature never calls. offload asks *you* whether a calendar is
-   shared rather than reading Google's access list, so no ACL scope belongs here.
+   Not `.../auth/calendar`, which also grants calendar management this feature
+   never calls. The third was added after this was first written: offload reads
+   a calendar's sharing list to count who will see a change before it writes,
+   and keeps only the count. The code, the console and the scope justification
+   sent to Google on 2026-10-05 all name these three.
 6. **Test users**: yourself. **Leave the app in Testing**: 100 users, each seeing
    an unverified-app screen before consent, which is the right state for an
    invite-only alpha.
