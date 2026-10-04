@@ -112,7 +112,7 @@ export function CalendarCard({
         <Head
           mark={mark}
           name="Google Calendar"
-          line="See your week in offload, and let it add things for you."
+          line="See your week in offload, and let it add to your calendar."
           end={<Primary label="Connect" onPress={onConnect} />}
         />
       </Card>

@@ -29,6 +29,7 @@ export const AUDIT_KINDS = [
   "staff.role_changed",
   "staff.removed",
   "person.viewed",
+  "panel.opened",
 ] as const;
 
 export type AuditKind = (typeof AUDIT_KINDS)[number];

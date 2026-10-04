@@ -410,6 +410,7 @@ async def test_no_dynamic_dispatch_on_a_model_supplied_name():
         # one tool that writes nothing and never leaves the loop. It reads the
         # name and resolves nothing with it.
         'if block.name == "say":',
+        "outcome.failed.append(block.name)",
         "body = await call_tool(block.name, block.id, args.model_dump())",
         # Recorded on a list of what the server declined, with its reason: a
         # tool name and an error code, never a value. A string appended to a
@@ -596,6 +597,30 @@ async def test_the_tool_call_bound_holds_within_a_turn():
     await plan(model, ctx(), "claude-sonnet-5", tools)
 
     assert len(tools.calls) == MAX_TOOL_CALLS
+
+
+async def test_a_filing_the_bound_dropped_leaves_the_turn_unfinished():
+    """The one refusal in the loop that was written nowhere on the outcome: the
+    turn could end `finished` with a filing dropped and no record of it."""
+    calls = [
+        ToolUse(
+            id=f"t{i}",
+            name="add_content",
+            input={"thread_id": "t1", "title": f"p{i}", "type": "task"},
+        )
+        for i in range(MAX_TOOL_CALLS + 1)
+    ]
+    model = StubModel(
+        [
+            Response(content=calls, stop_reason="tool_use"),
+            Response(content=[TextBlock("All of it is in.")], stop_reason="end_turn"),
+        ]
+    )
+
+    outcome = await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert outcome.failed == ["add_content"]
+    assert not outcome.finished
 
 
 async def test_the_bound_counts_what_a_resume_already_filed():

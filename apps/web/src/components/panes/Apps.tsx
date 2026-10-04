@@ -128,7 +128,7 @@ function CalendarCard({
   const calendars = connections.flatMap((c) => c.calendars);
   const inUse = calendars.filter((c) => c.selected).length;
   const line = !connected
-    ? "See your week in offload, and let it add things for you."
+    ? "See your week in offload, and let it add to your calendar."
     : connections.length === 1
       ? `${connections[0]!.email}, connected ${connectedOn(connections[0]!.connectedAt)}`
       : `${connections.length} Google accounts`;

@@ -153,7 +153,10 @@ export async function threadPoints(accountId: string, threadId: string): Promise
     const events = (await threadEvents(accountId, threadId, from, to))
       .filter((e) => e.place && e.place.lat !== null && e.place.lng !== null)
       .sort((a, b) => Math.abs(Date.parse(a.occursAt ?? "") - now) - Math.abs(Date.parse(b.occursAt ?? "") - now));
-    for (const e of events.slice(0, POINTS_MAX - points.length)) {
+    const shown = events.slice(0, POINTS_MAX - points.length);
+    // One read for every event drawn, not one each.
+    const googleIds = await googleIdsOf(shown.map((e) => e.place!.id));
+    for (const e of shown) {
       points.push({
         key: `e:${e.id}`,
         source: "calendar",
@@ -164,7 +167,7 @@ export async function threadPoints(accountId: string, threadId: string): Promise
         approximate: e.place!.approximate,
         lat: e.place!.lat!,
         lng: e.place!.lng!,
-        googlePlaceId: await googleIdOf(e.place!.id),
+        googlePlaceId: googleIds.get(e.place!.id) ?? null,
         labelIds: [],
         when: e.occursAt ? { at: e.occursAt, endAt: e.occursEndAt, allDay: e.allDay } : null,
         url: null,
@@ -178,7 +181,13 @@ export async function threadPoints(accountId: string, threadId: string): Promise
   return { points, pending: aged.length };
 }
 
-async function googleIdOf(placeId: string): Promise<string | null> {
-  const place = await db.selectFrom("places").select(["provider", "provider_place_id"]).where("id", "=", placeId).executeTakeFirst();
-  return place?.provider === "google" ? place.provider_place_id : null;
+async function googleIdsOf(placeIds: string[]): Promise<Map<string, string>> {
+  if (placeIds.length === 0) return new Map();
+  const places = await db
+    .selectFrom("places")
+    .select(["id", "provider_place_id"])
+    .where("id", "in", placeIds)
+    .where("provider", "=", "google")
+    .execute();
+  return new Map(places.flatMap((place) => (place.provider_place_id ? [[place.id, place.provider_place_id] as const] : [])));
 }

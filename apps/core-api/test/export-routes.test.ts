@@ -236,3 +236,29 @@ describe("the notice", () => {
     expect(mailer.sent[0]!.slots.body).toContain("hello@offload.club");
   });
 });
+
+describe("a download of a copy that has gone", () => {
+  it("takes a browser back to the page that says so, and answers the phones as before", async () => {
+    // The row can still read Download after the copy expired or was deleted
+    // on another device, and the new tab then drew `{"error":"not_found"}`.
+    const cookie = await signIn(await account());
+    const tab = await app.inject({
+      method: "GET",
+      url: "/api/me/export/file",
+      headers: { cookie, "sec-fetch-dest": "document", "sec-fetch-site": "same-site" },
+    });
+    expect(tab.statusCode).toBe(303);
+    expect(tab.headers.location).toBe(`${env.WEB_URL}/settings/privacy`);
+
+    const phone = await app.inject({ method: "GET", url: "/api/me/export/file", headers: { cookie } });
+    expect([phone.statusCode, phone.json()]).toEqual([404, { error: "not_found" }]);
+
+    // Somebody else's page gets nothing to follow.
+    const crossed = await app.inject({
+      method: "GET",
+      url: "/api/me/export/file",
+      headers: { cookie, "sec-fetch-dest": "document", "sec-fetch-site": "cross-site" },
+    });
+    expect(crossed.statusCode).toBe(404);
+  });
+});

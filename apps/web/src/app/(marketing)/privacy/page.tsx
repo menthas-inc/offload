@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
 };
 
-const UPDATED = "3 October 2026";
+const UPDATED = "4 October 2026";
 
 export default function Privacy() {
   return (
@@ -723,8 +723,8 @@ export default function Privacy() {
               being true, and it adds what it learned from your conversations that day. Notes it
               wrote itself it can also remove. A note you typed it can set aside, so it stops acting
               on it, and it cannot delete your words. Every note is on the thread, in front of you,
-              yours to correct, and yours to delete where you wrote it: in a thread you share, the
-              rule below holds here too, and nobody deletes what somebody else wrote. A note can
+              yours to correct and to delete where you wrote it: in a thread you share, the rule
+              below holds here too, and nobody changes or deletes what somebody else wrote. A note can
               carry a longer text from what you dumped; that is kept with it without being shown,
               and goes when the note does.
             </li>

@@ -10,6 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "kysely";
 import { Webhook } from "svix";
 import { buildApp, type App } from "../src/app.js";
+import { MAX_IN_FLIGHT } from "../src/routes/mail-in.js";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { wipe } from "./labels-kit.js";
@@ -32,9 +33,12 @@ const sink = new Writable({
 let stored: { id: string; to: string[]; bytes: Buffer } | null = null;
 let apiDown = false;
 const calls: string[] = [];
+/** Set to hold every fetch until released, so deliveries pile up in flight. */
+let gate: Promise<void> | null = null;
 const fakeFetch = (async (input: string | URL | Request, init?: RequestInit) => {
   const url = String(input);
   calls.push(url);
+  if (gate) await gate;
   if (apiDown) return new Response("{}", { status: 500 });
   if (url.startsWith("https://api.resend.com/emails/receiving/")) {
     expect((init?.headers as Record<string, string>)["Authorization"]).toMatch(/^Bearer /);
@@ -156,5 +160,30 @@ describe("POST /v1/mail/resend (AC-1, AC-2)", () => {
     await post(event("e6"), { signature: "v1,AAAA" });
     expect(logs.length).toBeGreaterThan(0);
     for (const needle of ["Zebra", "quokka", DOMAIN, "offload.club", "e6"]) expect(logs).not.toContain(needle);
+  });
+});
+
+describe("many at once", () => {
+  it("holds a few and asks Resend to bring the rest back, before fetching anything for them", async () => {
+    // Anybody can cause a delivery by emailing the address, and each one is a
+    // download of up to 26 MB and a parse, before any account or cap is known.
+    let release!: () => void;
+    gate = new Promise<void>((resolve) => (release = resolve));
+    try {
+      const held = Array.from({ length: MAX_IN_FLIGHT }, (_, at) => post(event(`held-${at}`)));
+      while (calls.length < MAX_IN_FLIGHT) await new Promise((resolve) => setTimeout(resolve, 5));
+      const over = await post(event("one-too-many"));
+      expect(over.statusCode).toBe(503);
+      expect(calls.some((url) => url.endsWith("one-too-many"))).toBe(false);
+      expect(logs).toContain('"outcome":"busy"');
+      release();
+      for (const response of await Promise.all(held)) expect(response.statusCode).toBe(503);
+    } finally {
+      release();
+      gate = null;
+    }
+    // And the room comes back: the next one is fetched.
+    await post(event("after"));
+    expect(calls.some((url) => url.endsWith("after"))).toBe(true);
   });
 });

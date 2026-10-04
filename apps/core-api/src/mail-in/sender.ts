@@ -12,7 +12,7 @@
  *  DMARC's, which leaves the To header and the body length tag to the domain's
  *  published policy, and for gmail.com that policy is lenient. */
 
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { domainToASCII } from "node:url";
 import { sql } from "kysely";
 import { dkimVerify } from "mailauth/lib/dkim/verify.js";
@@ -105,6 +105,14 @@ async function accountFor(address: string): Promise<string | null> {
   return row?.id ?? null;
 }
 
+/** What a signature is remembered by. Nothing when the verifier handed back a
+ *  pass with no signature value: the email is refused, since a made-up value
+ *  would let the same email in again every time it was redelivered. */
+export function signatureHash(signingDomain: string, signature: string | null | undefined): Buffer | null {
+  if (!signature) return null;
+  return createHash("sha256").update(`${signingDomain.toLowerCase()}\n${signature}`).digest();
+}
+
 export async function checkSender(
   raw: Buffer,
   opts: { resolver?: Resolver | undefined; now?: Date | undefined } = {},
@@ -175,9 +183,8 @@ export async function checkSender(
   // Read here and spent by the caller once the email is handled: a refusal
   // must not burn the signature for the real delivery behind it.
   const chosen = fresh[0]!;
-  const hash = createHash("sha256")
-    .update(`${String(chosen.signingDomain).toLowerCase()}\n${chosen.signature ?? randomUUID()}`)
-    .digest();
+  const hash = signatureHash(String(chosen.signingDomain), chosen.signature);
+  if (!hash) return refuse("unsigned");
   const seen = await db.selectFrom("mail_signatures").select("hash").where("hash", "=", hash).executeTakeFirst();
   if (seen) return refuse("replayed");
 

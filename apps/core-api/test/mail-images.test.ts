@@ -121,6 +121,49 @@ describe("sealing the candidates", () => {
     clearSettingsCache();
   });
 
+  it("seals the same email's images once when it is delivered twice at the same moment", async () => {
+    // The dump's own lock is taken after the pictures are sealed, so two
+    // deliveries of one email both got here; the second insert met the unique
+    // index and the whole delivery failed where it should have collapsed.
+    const me = await person();
+    const candidates = candidatesOf([image(320, 500)]);
+    // Hold the first delivery inside its insert, where its row exists and is
+    // not yet committed, and let the second one arrive.
+    const store = objectStore()!;
+    const put = store.put.bind(store);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let puts = 0;
+    store.put = async (key, bytes) => {
+      puts += 1;
+      if (puts === 1) await held;
+      return put(key, bytes);
+    };
+    try {
+      const first = sealCandidates(me, "m9", candidates);
+      while (puts === 0) await new Promise((resolve) => setTimeout(resolve, 5));
+      const second = sealCandidates(me, "m9", candidates);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      release();
+      expect(await second).toEqual(await first);
+    } finally {
+      store.put = put;
+    }
+    const kept = await db.selectFrom("blobs").select("id").where("client_key", "like", "mail:m9:%").execute();
+    expect(kept).toHaveLength(1);
+  });
+
+  it("never hands back a picture that was deleted, when the email comes again", async () => {
+    // The unique index is not partial: a deleted picture still holds its key,
+    // so the look misses it, the insert meets it, and the recovery must not
+    // return it as though it were kept.
+    const me = await person();
+    const candidates = candidatesOf([image(320, 500)]);
+    const [first] = await sealCandidates(me, "m10", candidates);
+    await db.updateTable("blobs").set({ deleted_at: new Date() }).where("id", "=", first!).execute();
+    await expect(sealCandidates(me, "m10", candidates)).rejects.toThrow();
+  });
+
   it("seals the same email's images once", async () => {
     const me = await person();
     const candidates = candidatesOf([image(320, 500)]);

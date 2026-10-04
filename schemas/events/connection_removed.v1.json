@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/connection_removed.v1.json",
+  "title": "connection_removed",
+  "description": "Somebody removed a connection. The actor's pseudonym and nothing about the other person.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {}
+}

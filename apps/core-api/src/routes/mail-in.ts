@@ -9,8 +9,9 @@
  *  DKIM signature itself rather than trusting Resend's verdict.
  *
  *  Accepted and refused are answered identically. 503 is the one other
- *  answer, for an email whose check could not be run or whose bytes could
- *  not be fetched, so Resend delivers the webhook again later.
+ *  answer, for an email whose check could not be run, whose bytes could not
+ *  be fetched, or that arrived while `MAX_IN_FLIGHT` others were being
+ *  handled, so Resend delivers the webhook again later.
  *
  *  Nothing from the email is logged: not the body, which the request
  *  serialiser never reads, not the email's id, and not an error's message,
@@ -22,6 +23,11 @@ import { ADDRESS, type Resolver } from "../mail-in/sender.js";
 import { receiveMail } from "../mail-in/receive.js";
 
 export const MAX_MAIL_BYTES = 26 * 1024 * 1024;
+/** How many deliveries this process fetches and parses at once. Anybody can
+ *  cause one by emailing the address, and each is a download of up to
+ *  `MAX_MAIL_BYTES` and a parse, before any account or cap is known. Past
+ *  this, Resend is asked to bring it back later, which it does. */
+export const MAX_IN_FLIGHT = 4;
 const RESEND_API = "https://api.resend.com";
 
 type Fetch = typeof fetch;
@@ -71,6 +77,8 @@ export async function mailInRoutes(
     return answer(reply, statusCode ?? 500);
   });
 
+  let inFlight = 0;
+
   app.post("/v1/mail/resend", async (request, reply) => {
     const body = typeof request.body === "string" ? request.body : "";
     if (!opts.secret || !opts.apiKey) {
@@ -98,17 +106,26 @@ export async function mailInRoutes(
       return answer(reply, 200);
     }
 
-    const raw = await rawEmail(event.data.email_id, opts.apiKey, opts.fetch ?? fetch);
-    if (raw === null) {
-      request.log.warn({ outcome: "resend_unreachable" }, "mail webhook");
+    if (inFlight >= MAX_IN_FLIGHT) {
+      request.log.warn({ outcome: "busy" }, "mail webhook");
       return answer(reply, 503);
     }
-    if (raw === "too_big") {
-      request.log.info({ outcome: "too_big" }, "mail received");
-      return answer(reply, 200);
+    inFlight += 1;
+    try {
+      const raw = await rawEmail(event.data.email_id, opts.apiKey, opts.fetch ?? fetch);
+      if (raw === null) {
+        request.log.warn({ outcome: "resend_unreachable" }, "mail webhook");
+        return answer(reply, 503);
+      }
+      if (raw === "too_big") {
+        request.log.info({ outcome: "too_big" }, "mail received");
+        return answer(reply, 200);
+      }
+      const outcome = await receiveMail(raw, { resolver: opts.resolver });
+      request.log.info({ outcome }, "mail received");
+      return answer(reply, outcome === "key_unavailable" ? 503 : 200);
+    } finally {
+      inFlight -= 1;
     }
-    const outcome = await receiveMail(raw, { resolver: opts.resolver });
-    request.log.info({ outcome }, "mail received");
-    return answer(reply, outcome === "key_unavailable" ? 503 : 200);
   });
 }

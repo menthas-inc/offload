@@ -789,6 +789,17 @@ ARGUMENT_REFUSALS = frozenset(
         "unknown_content",
         "not_yours",
         "bad_date",
+        # 023. A rule outside the grammar, on the same three tools as a bad
+        # date and for the same reason: the model reads it and files without.
+        "bad_rule",
+        # 022. share_thread's, each a sentence the person should get once:
+        # nobody by that name, the default thread, somebody already in.
+        "unknown_person",
+        "default_thread",
+        "not_connected",
+        "already_in",
+        "waiting",
+        "too_many",
         "unknown_calendar",
         "read_only",
         "already_on_calendar",
@@ -797,6 +808,12 @@ ARGUMENT_REFUSALS = frozenset(
         "invalid_arguments",
     }
 )
+
+
+# The refusals that stay failures, by name, so that a code the tool routes add
+# later is in one set or the other and never in neither: the test reads the
+# routes' own enum. The server could not, and the worker answers for it.
+SERVER_REFUSALS = frozenset({"limit_reached", "needs_reconnect", "thread_memory_full"})
 
 
 def _declined_if_argument(body: dict) -> dict:
@@ -1307,14 +1324,12 @@ async def _handle(
             ),
         )
 
-        nothing_left = _nothing_left(outcome, fitted) or _photos_land_anyway(outcome, fitted)
-        _author_the_failure_line(outcome, budget)
-        _author_the_photo_line(outcome, fitted)
+        partial, reply_text = _reply_as_sent(outcome, fitted, budget)
 
         # Not finished means either the loop ran out of round trips or a tool
         # failed. Both are partial, and in both the reply is ours: a model that
         # could not do something is not a reliable narrator of what it did.
-        if not outcome.finished and not nothing_left:
+        if partial:
             # The loop ran out of round trips. Everything in `landed` is
             # committed, so this is partial rather than failed, and the person
             # is offered a way to finish it rather than a way to start again.
@@ -1328,7 +1343,7 @@ async def _handle(
                 {
                     "outcome": "partial",
                     "jobId": job.id,
-                    "replyText": _partial_reply(outcome),
+                    "replyText": reply_text,
                     "usage": _usage_wire(outcome),
                     # A turn cut off partway still read what it read, and the
                     # chip is a record of that rather than of the turn finishing.
@@ -1385,7 +1400,7 @@ async def _handle(
             # or a resume that found the work already done. They read the same
             # in a log otherwise, and telling them apart is what turned "the
             # retry fails every time" into one line of code.
-            nothing_left=nothing_left,
+            nothing_left=not outcome.finished,
             # A tool call the schema refused never reaches the Core API, so it
             # is in neither `filed` nor `failed`, and a turn that spent every
             # round trip on rejected arguments logged as though it had done
@@ -1688,6 +1703,24 @@ def _photos_land_anyway(outcome: Outcome, ctx: DumpContext) -> bool:
     if outcome.landed or outcome.reply is not None:
         return False
     return any(p.large is not None for p in ctx.photos)
+
+
+def _reply_as_sent(
+    outcome: Outcome, ctx: DumpContext, budget: "Lookups"
+) -> tuple[bool, str | None]:
+    """What the person is sent, and whether the turn is partial.
+
+    One function because the evals have to judge this and not the model's own
+    sentence. They read `outcome.reply` before the partial rewrite, so a case
+    about a refused share was green while production answered "Nothing saved.".
+    Authors the lines on `outcome` as it goes, as the turn always did.
+    """
+    nothing_left = _nothing_left(outcome, ctx) or _photos_land_anyway(outcome, ctx)
+    _author_the_failure_line(outcome, budget)
+    _author_the_photo_line(outcome, ctx)
+    if not outcome.finished and not nothing_left:
+        return True, _partial_reply(outcome)
+    return False, outcome.reply
 
 
 def _author_the_photo_line(outcome: Outcome, ctx: DumpContext) -> None:

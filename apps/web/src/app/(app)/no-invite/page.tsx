@@ -18,13 +18,20 @@ export default function NoInvitePage() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
+  // The account exists and is disabled: by staff, or for the day before it is
+  // deleted. There is no invite to look for and no waitlist to join, so the
+  // screen says what is true and where to write.
+  const [disabled, setDisabled] = useState(false);
 
   useEffect(() => {
     // Read once; the server clears the cookie as it answers, so a reload shows
     // the screen without the address rather than a stale one.
     fetch(`${API}/api/sign-in/attempt`, { credentials: "include" })
       .then((response) => (response.ok ? response.json() : { email: null }))
-      .then((data: { email: string | null }) => setEmail(data.email))
+      .then((data: { email: string | null; reason?: "disabled" | null }) => {
+        setEmail(data.email);
+        setDisabled(data.reason === "disabled");
+      })
       .catch(() => setEmail(null));
   }, []);
 
@@ -55,6 +62,26 @@ export default function NoInvitePage() {
             Added to the waitlist
           </p>
         </div>
+      </GateChrome>
+    );
+  }
+
+  if (disabled) {
+    return (
+      <GateChrome>
+        <GateCard>
+          <h1 className={styles.title}>Your account is disabled</h1>
+          <p className={styles.sub}>
+            <span className={styles.subStrong}>{email}</span> cannot sign in. Write to{" "}
+            <a href="mailto:hello@offload.club">hello@offload.club</a> about it.
+          </p>
+
+          <div className={styles.actions}>
+            <button type="button" className={styles.secondary} onClick={() => router.replace("/sign-in")}>
+              Use a different account
+            </button>
+          </div>
+        </GateCard>
       </GateChrome>
     );
   }

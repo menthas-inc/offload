@@ -6,9 +6,9 @@ Invite only. Personal accounts, with sharing per thread to people you are connec
 
 ## Repository
 
-Greenfield. There is no application code yet, only the working harness, the technical decisions, and the design-adherence lint, which is wired first on purpose: a retyped hex value is the one failure mode that is annoying to unwind later.
+In alpha, invite only, deployed. The Core API, the web app and the Python worker run on Railway from `main`; the phones build through EAS. `docs/local-dev.md` is how to run it, and `.env.example` names every variable.
 
-Run `pnpm install` then `pnpm lint`.
+Run `pnpm install`, then `pnpm lint`, `pnpm typecheck` and `pnpm test`.
 
 | Path | What |
 | --- | --- |
@@ -19,16 +19,17 @@ Run `pnpm install` then `pnpm lint`.
 | `.claude/skills/offload-design/` | The design system. Tokens, components, five UI kits, brand decisions. |
 | `eslint.config.mjs` | Design-system adherence, reading the design system's generated rule file at run time. |
 
-## Planned shape
+## Shape
 
-Four services in one monorepo. Full detail in `docs/tech/architecture.md`.
+Four services and a backup job in one monorepo. Full detail in `docs/tech/architecture.md`.
 
 | Path | What | Stack |
 | --- | --- | --- |
 | `apps/mobile` | iOS and Android | Expo (React Native) |
 | `apps/web` | marketing site, web app, admin panel | Next.js, three route groups |
 | `apps/core-api` | data, authorization, schema, blobs, crypto boundary | Fastify (TypeScript) |
-| `apps/agent` | the only thing that talks to Claude, plus the worker | FastAPI (Python) |
+| `apps/agent` | the only thing that talks to Claude: a worker that drains the jobs table | Python |
+| `apps/backup` | the nightly sealed dump to R2 | a container on a schedule |
 | `packages/` | shared TypeScript types and generated design tokens | TypeScript |
 | `schemas/events` | the analytics event contract | JSON Schema |
 

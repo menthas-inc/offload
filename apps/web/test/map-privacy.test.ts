@@ -45,8 +45,8 @@ describe("the privacy page says what the map adds (T5.3)", () => {
   });
 
   it("moves its date with the consent version", () => {
-    expect(page).toContain('const UPDATED = "3 October 2026"');
-    expect(session).toContain('export const CONSENT_VERSION = "2026-10-03";');
+    expect(page).toContain('const UPDATED = "4 October 2026"');
+    expect(session).toContain('export const CONSENT_VERSION = "2026-10-04";');
   });
 });
 

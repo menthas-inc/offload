@@ -132,7 +132,7 @@ It has one cost and it is paid rather than hidden: **the model has already writt
 
 **Sharing**
 
-- **AC-9** Every member of a thread reads and edits every memory on it, whoever wrote it.
+- **AC-9** Every member of a thread reads every memory on it, whoever wrote it. *Changed 2026-10-04 by the owner: only its author edits its words, on the terms AC-9a gives delete, including the exception for an author who has gone from the thread. What somebody typed is theirs, and overwriting it destroys it as surely as deleting it. Labels on it and Mute stay every member's. offload's own edit of a note it wrote is unchanged.*
 - **AC-9a** Only the account that created a memory can delete it. Enforced server-side, per row, by author, per OFF-3.
 - **AC-9b** Any member can mute and unmute any memory. A muted memory stays on the thread with its author, still counts against the ten, and does not reach the model. Muting is thread-wide, not per person.
 - **AC-10** A memory carries the account that created it, and editing never moves it. In a shared thread, who it belongs to is visible without opening it.

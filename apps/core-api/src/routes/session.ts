@@ -13,7 +13,7 @@ import { sql } from "kysely";
 import type { App } from "../app.js";
 import { COUNTRIES, isCountry } from "../countries.js";
 import { auth } from "../auth/auth.js";
-import { ATTEMPT_COOKIE, readCookie, unseal } from "../auth/attempt.js";
+import { ATTEMPT_COOKIE, readCookie, unsealAttempt } from "../auth/attempt.js";
 import { db } from "../db.js";
 import { initialsOf } from "../accounts/initials.js";
 import { requestsWaiting } from "../people/people.js";
@@ -153,7 +153,7 @@ const HOUR = /^([01]\d|2[0-3]):[0-5]\d$/;
  *  When the policy changes materially this changes with it, and the gap between
  *  a stored version and this one is the query that finds who has to be asked
  *  again. Must match UPDATED in apps/web/src/app/(marketing)/privacy/page.tsx. */
-export const CONSENT_VERSION = "2026-10-03";
+export const CONSENT_VERSION = "2026-10-04";
 
 /** invited -> active, plus the consent record and the event, in one transaction.
  *
@@ -536,10 +536,10 @@ export async function sessionRoutes(app: App): Promise<void> {
   // an address they authenticated with a minute ago.
   app.get(
     "/api/sign-in/attempt",
-    { schema: { response: { 200: z.object({ email: z.string().nullable() }) } } },
+    { schema: { response: { 200: z.object({ email: z.string().nullable(), reason: z.literal("disabled").nullable() }) } } },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const raw = readCookie(request.headers.cookie, ATTEMPT_COOKIE);
-      const email = raw ? unseal(raw, Date.now()) : null;
+      const attempt = raw ? unsealAttempt(raw, Date.now()) : null;
 
       const cleared = [
         `${ATTEMPT_COOKIE}=`,
@@ -552,7 +552,7 @@ export async function sessionRoutes(app: App): Promise<void> {
       ].join("; ");
       reply.header("set-cookie", cleared);
 
-      return reply.send({ email });
+      return reply.send({ email: attempt?.email ?? null, reason: attempt?.reason ?? null });
     }
   );
 

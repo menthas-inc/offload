@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/share_accepted.v1.json",
+  "title": "share_accepted",
+  "description": "Somebody accepted a share of a thread. No thread, no name.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {}
+}

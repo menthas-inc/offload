@@ -44,7 +44,7 @@ import {
   useSay,
   type Col,
 } from "../../../ui";
-import { kindLabel } from "../../audit/labels";
+import { kindLabel, shortId } from "../../audit/labels";
 import { capLabel } from "../../limits/labels";
 import { Choice } from "../choice";
 import { DELETE_BODY, goes } from "../deleting";
@@ -88,7 +88,8 @@ interface Person {
   country: string | null;
   timeZone: string | null;
   consentVersion: string | null;
-  invitedBy: Who | null;
+  /** The name is empty once the staff account that invited them is gone. */
+  invitedBy: { id: string; name: string | null } | null;
   can: { disable: boolean; enable: boolean; limits: boolean; delete: boolean; cancelDelete: boolean };
   today: { caps: Cap[]; refused: { cap: string; scope: "account" | "platform" } | null };
   limits: Limit[];
@@ -137,7 +138,9 @@ interface Hit {
 }
 
 const MB = 1024 * 1024;
-const megabytes = (bytes: number) => `${count(Math.round(bytes / MB))} MB`;
+// Rounded down, as the person's own Storage row is: the two read the same
+// bytes and have to say the same figure.
+const megabytes = (bytes: number) => `${count(Math.floor(bytes / MB))} MB`;
 const minutes = (ms: number) => `${count(Math.round(ms / 60_000))} min`;
 
 /** How each cap's value reads, and the unit an owner types an override in.
@@ -422,7 +425,7 @@ export default function PersonPage() {
           <Fact label="Address">{who.email}</Fact>
           <Fact label="State">{who.deleteAfter ? goes(who.deleteAfter) : who.disabledAt ? `Disabled since ${day(who.disabledAt)}` : who.state === "active" ? "Active" : "Disabled"}</Fact>
           <Fact label="Joined">{day(who.joined)}</Fact>
-          {who.invitedBy ? <Fact label="Invited by">{who.invitedBy.name}</Fact> : null}
+          {who.invitedBy ? <Fact label="Invited by">{who.invitedBy.name ?? `deleted account ${shortId(who.invitedBy.id)}`}</Fact> : null}
           <Fact label="First signed in">{day(who.firstSignedInAt)}</Fact>
           <Fact label="Last active">{who.lastActive ? moment(who.lastActive) : "Not yet"}</Fact>
           <Fact label="Signs in with">{who.providers.map((provider) => PROVIDER[provider] ?? provider).join(", ") || "Nothing linked"}</Fact>

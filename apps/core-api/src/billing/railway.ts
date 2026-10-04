@@ -52,13 +52,18 @@ function monthOf(start: string, end: string): string {
   return new Date((Date.parse(start) + Date.parse(end)) / 2).toISOString().slice(0, 7);
 }
 
-export function railwayPuller(options: { fetcher?: typeof fetch; token?: string } = {}): Puller {
+/** Long enough for a slow day, short enough that a Railway which never
+ *  answers ends this job rather than holding a worker until it goes stale. */
+const TIMEOUT_MS = 20_000;
+
+export function railwayPuller(options: { fetcher?: typeof fetch; token?: string; timeoutMs?: number } = {}): Puller {
   const ask = async (query: string): Promise<unknown> => {
     const token = options.token ?? process.env["RAILWAY_API_TOKEN"] ?? "";
     const response = await (options.fetcher ?? fetch)(URL, {
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
       body: JSON.stringify({ query }),
+      signal: AbortSignal.timeout(options.timeoutMs ?? TIMEOUT_MS),
     });
     // The status and nothing the response or the request said.
     if (!response.ok) throw new Error(`railway ${response.status}`);

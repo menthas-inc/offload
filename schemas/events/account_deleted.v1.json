@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/account_deleted.v1.json",
+  "title": "account_deleted",
+  "description": "An account was deleted. No subject: the pseudonym went with it.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {}
+}

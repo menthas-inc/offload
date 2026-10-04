@@ -7,14 +7,14 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
-import { ATTEMPT_COOKIE, seal, withAttempt } from "../auth/attempt.js";
+import { ATTEMPT_COOKIE, seal, withAttempt, type AttemptReason } from "../auth/attempt.js";
 import { env, isProduction } from "../env.js";
 
 const ATTEMPT_MAX_AGE = 10 * 60;
 
-function attemptCookie(email: string): string {
+function attemptCookie(email: string, reason: AttemptReason | null): string {
   const parts = [
-    `${ATTEMPT_COOKIE}=${encodeURIComponent(seal(email, Date.now()))}`,
+    `${ATTEMPT_COOKIE}=${encodeURIComponent(seal(email, Date.now(), reason))}`,
     "Path=/",
     `Max-Age=${ATTEMPT_MAX_AGE}`,
     "HttpOnly",
@@ -52,7 +52,7 @@ export async function authRoutes(app: App): Promise<void> {
 
       // The store is opened here so the gate's refusal, several layers down
       // inside Better Auth, can hand the attempted address back out.
-      const { response, attempt } = await withAttempt(async (store) => ({
+      const { response, attempt, reason } = await withAttempt(async (store) => ({
         response: await auth.handler(
           new Request(url, {
             method: request.method,
@@ -63,6 +63,7 @@ export async function authRoutes(app: App): Promise<void> {
           })
         ),
         attempt: store.email,
+        reason: store.reason,
       }));
 
       reply.status(response.status);
@@ -75,7 +76,7 @@ export async function authRoutes(app: App): Promise<void> {
 
       // Only ever set on a refusal, and only on the redirect that carries the
       // browser to the no-invite screen.
-      if (attempt) reply.header("set-cookie", attemptCookie(attempt));
+      if (attempt) reply.header("set-cookie", attemptCookie(attempt, reason));
 
       return reply.send(response.body ? await response.text() : null);
     },

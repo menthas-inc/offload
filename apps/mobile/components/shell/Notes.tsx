@@ -648,6 +648,10 @@ export function NoteEditor({
   // its words.
   const [draft, onDraft] = useState(note?.text ?? "");
   const field = useRef<TextInput>(null);
+  // Somebody else's note: words to read, with Mute and no Save. Its words are
+  // its author's to change, on the terms delete has, and the server refuses
+  // anybody else, so the sheet never offers the edit.
+  const readOnly = note !== null && !canDelete;
   // Anchored to the bottom of a screen, and the plate is mounted above the
   // router. Without this it opens underneath the composer and the tabs.
 
@@ -657,11 +661,12 @@ export function NoteEditor({
         onClose={onClose}
         keyboard="lift"
         className="px-gutter-screen pb-space-8 pt-space-2"
-        onOpen={() => field.current?.focus()}
+        onOpen={() => (readOnly ? undefined : field.current?.focus())}
       >
           <TextInput
             ref={field}
             value={draft}
+            editable={!readOnly}
             onChangeText={onDraft}
             maxLength={NOTE_CHARS}
             multiline
@@ -690,8 +695,10 @@ export function NoteEditor({
           ) : null}
 
           <View className="mt-space-4 flex-row items-center gap-space-4">
+            {/* Kept when there is nothing to count: it is what holds the
+                controls to the right. */}
             <Text className="mr-auto font-core text-text-tertiary" style={{ fontSize: 12.5 }}>
-              {draft.length}/{NOTE_CHARS}
+              {readOnly ? "" : `${draft.length}/${NOTE_CHARS}`}
             </Text>
 
             {/* One control, never two. Muted wins over both, whoever is asking:
@@ -705,22 +712,24 @@ export function NoteEditor({
               <Action label="Mute" onPress={onMute} />
             ) : null}
 
-            <Action label="Cancel" onPress={onClose} />
-            <Pressable
-              onPress={() => onSave(draft)}
-              disabled={draft.trim().length === 0}
-              className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`}
-              style={{ height: 30, justifyContent: "center", opacity: draft.trim() ? 1 : 0.55 }}
-            >
-              <Text
-                className={`font-core font-medium ${
-                  isAndroid ? "text-a-surface" : "text-text-inverse"
-                }`}
-                style={{ fontSize: 13 }}
+            <Action label={readOnly ? "Close" : "Cancel"} onPress={onClose} />
+            {readOnly ? null : (
+              <Pressable
+                onPress={() => onSave(draft)}
+                disabled={draft.trim().length === 0}
+                className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`}
+                style={{ height: 30, justifyContent: "center", opacity: draft.trim() ? 1 : 0.55 }}
               >
-                Save
-              </Text>
-            </Pressable>
+                <Text
+                  className={`font-core font-medium ${
+                    isAndroid ? "text-a-surface" : "text-text-inverse"
+                  }`}
+                  style={{ fontSize: 13 }}
+                >
+                  Save
+                </Text>
+              </Pressable>
+            )}
           </View>
       </DragSheet>
     </>

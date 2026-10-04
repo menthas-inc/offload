@@ -27,8 +27,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const load = useCallback(() => {
     setFailed(false);
-    fetch(`${API}/v1/admin/me`, { credentials: "include" })
-      .then(async (response) => {
+    const me = () => fetch(`${API}/v1/admin/me`, { credentials: "include" });
+    me()
+      .then(async (first) => {
+        let response = first;
+        // The panel has a session of its own, opened by a sign-in made a few
+        // minutes ago and good for twelve hours. Locked means staff without
+        // it: ask for it, and if this sign-in is too old to be given one, go
+        // and sign in again, to come back here.
+        if (response.status === 401) {
+          const opened = await fetch(`${API}/v1/admin/session`, { method: "POST", credentials: "include" });
+          if (opened.status === 401) {
+            router.replace("/sign-in?to=admin");
+            return;
+          }
+          if (!opened.ok) throw new Error(String(opened.status));
+          response = await me();
+          // Opened, and still locked: the pass did not come back with the
+          // request. Said as a failure with a way to try again, not answered
+          // as though this were somebody who is not staff.
+          if (response.status === 401) throw new Error("locked");
+        }
         // 404, not 403. The panel does not confirm its own existence to
         // someone signed in who is not staff, so there is nothing here to
         // distinguish "wrong person" from "wrong URL".

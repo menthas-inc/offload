@@ -17,7 +17,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent.config import _asyncpg
-from offload_agent.nightly import _CANDIDATES, _MESSAGES, _NOTES
+from offload_agent.nightly import _CANDIDATES, _MEMBER, _MESSAGES, _NOTES
 
 ADMIN_DB = os.environ.get("DATABASE_URL")
 AGENT_DB = os.environ.get("AGENT_DATABASE_URL")
@@ -226,3 +226,42 @@ async def test_a_pass_reads_only_its_members_own_dumps_that_landed_in_the_thread
     assert [m["id"] for m in missed] == [kept, old]
     assert messages[0]["text"] == "staying in Alfama"
     assert [(n["text"], n["theirs"]) for n in notes] == [("Sam books the ferry", False)]
+
+
+async def test_a_pass_reads_today_in_its_members_own_zone():
+    """The prompt has the model read each date against today, and today was
+    UTC's for everybody: a day wrong, for part of every day, for anyone some
+    hours from it. The member's zone rides out with the member."""
+    admin = create_async_engine(_asyncpg(ADMIN_DB))
+    async with admin.begin() as conn:
+        ana = await _id(
+            conn,
+            "insert into accounts (email, state, email_verified, analytics_subject_id, time_zone) "
+            "values (:email, 'active', true, gen_random_uuid(), 'Pacific/Auckland') returning id",
+            email=f"{uuid.uuid4()}@example.invalid",
+        )
+        trip = await _id(conn, "insert into threads (name) values ('Lisbon') returning id")
+        await conn.execute(
+            text(
+                "insert into thread_members (thread_id, account_id, state) "
+                "values (:t, :a, 'accepted')"
+            ),
+            {"t": trip, "a": ana},
+        )
+    await admin.dispose()
+
+    agent = create_async_engine(_asyncpg(AGENT_DB))
+    async with agent.connect() as conn:
+        member = (
+            (await conn.execute(_MEMBER, {"thread_id": trip, "account_id": ana})).mappings().first()
+        )
+    await agent.dispose()
+    assert member["time_zone"] == "Pacific/Auckland"
+
+
+def test_the_pass_hands_that_zone_to_today():
+    import inspect
+
+    from offload_agent import nightly
+
+    assert 'today_line(conn, member["time_zone"])' in inspect.getsource(nightly.handle_nightly)

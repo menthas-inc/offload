@@ -11,6 +11,30 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-04 · The row that opens Privacy says Privacy
+**Surface:** iOS, Android, web
+**Raised by:** code, from the review before going public, with the owner's answer.
+**Was:** the Settings index row was *Reaching the web* with the `orbit` glyph, named by 016 when the page held two switches. 031 considered renaming it to Privacy and did not. 035 then put *Your copy* on that page and 036 put *Storage* there, so the only way to an export or to what is kept was a row about the web, and the privacy policy sends people to *Settings under Privacy*.
+**Is:** the row is *Privacy* with the `lock` glyph, on all three. The page behind it is unchanged: titled *Privacy*, holding *Reaching the web*, *Storage* and *Your copy* as sections.
+**Why:** the row has to name what is behind it, and three things are. This overturns 031's "not taken", which was right for the page as it stood that day.
+**Design system impact:** none to draw: `web_app/WSettings.jsx` and both phone kits already have a *Privacy* row with `lock`. Readme **Settings**: the index row is *Privacy*; *Reaching the web* is a section on its page.
+
+### 2026-10-04 · Somebody else's note opens to be read
+**Surface:** iOS, Android, web
+**Raised by:** code, from the security review before going public, with the owner's answer.
+**Was:** any member of a thread could open any note and change its words. Delete and Move were already its author's alone.
+**Is:** a note opens as before. Its author gets the editor. Anybody else gets the words in a field that cannot be typed in, no character count, no *Save*, *Mute* (or *Unmute*), and *Close* where *Cancel* was. On the phones the keyboard does not come up. A note whose author has gone from the thread is everybody's to edit, as it is to delete.
+**Why:** what somebody typed is theirs, and overwriting it destroys it as surely as deleting it. The server refuses the edit, so the screen never offers one it would refuse.
+**Design system impact:** the note editor in `web_app` and the note sheet in both phone kits gain a read state: field not editable, no count, no *Save*, the one way out is *Mute*, and the dismiss is *Close*. Readme **Notes**: editing is the author's.
+
+### 2026-10-04 · The gate tells a disabled account it is disabled, and staff why they are signing in again
+**Surface:** iOS, Android, web, admin
+**Raised by:** code, from the review before going public, with the owner's answers.
+**Was:** an account staff had disabled, or one in the day before its deletion, signed in and read *You are not on the list yet* with *Join the waitlist*, about an account that exists. And the admin panel opened on the app's own session.
+**Is:** the no-invite screen has a third state: title *Your account is disabled*, line *jo@hey.com cannot sign in. Write to hello@offload.club about it.* (the address a mail link on the web), one button, *Use a different account*, and no waitlist, no invite caption. The admin panel asks for a sign-in made in the last ten minutes: staff without one land on the gate, which reads *Sign in again to open the admin panel.* where the invite line goes, and come back to the panel after. Two lines lose the retired noun: day-one Today on the web is *Dump anything and offload will sort it.*, the phones' wording, and the calendar card's line is *See your week in offload, and let it add to your calendar.* The audit page gains the phrase *Opened the panel*.
+**Why:** the screen says what is true and where to go, next to the control that goes there. The first refusal was two false sentences and a button that did nothing.
+**Design system impact:** `web_app/WFirstRunGate.jsx`, `mobile_app/FirstRun.jsx` and `android_app/M3FirstRun.jsx`: a disabled state on the no-invite screen, as above, and *Dump the first thing* becomes *Dump anything* in all three. The web gate's sub line has the admin variant. `admin_web`: nothing to draw; the panel has no locked screen of its own.
+
 ### 2026-10-04 · Storage is a section on Privacy, with its limit (036)
 **Surface:** mobile, web, admin
 **Raised by:** code, building the storage limit in 036 (`docs/specs/036-storage-limit/`), with the owner's answers and the client review.

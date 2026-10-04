@@ -1818,8 +1818,6 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.type as type",
             "content.title as title",
             "content.body as body",
-      "content.url as url",
-            "content.image_url as image_url",
             "content.url as url",
             "content.image_url as image_url",
             "content.created_at as created_at",
@@ -1838,12 +1836,6 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.place_id as place_id",
             "content.attrs as attrs",
             "accounts.display_name as authorName",
-      sql<boolean>`exists (
-        select 1 from thread_members am
-        where am.thread_id = content.thread_id
-          and am.account_id = content.account_id
-          and am.state = 'accepted'
-      )`.as("authorIsMember"),
             sql<boolean>`exists (
               select 1 from thread_members am
               where am.thread_id = content.thread_id
@@ -1948,12 +1940,6 @@ export async function threadRoutes(app: App): Promise<void> {
             shownThreadIcon("threads.id", "threads.icon", accountId).as("threadIcon"),
             shownThreadHue("threads.id", "threads.hue", accountId).as("threadHue"),
             "accounts.display_name as authorName",
-      sql<boolean>`exists (
-        select 1 from thread_members am
-        where am.thread_id = content.thread_id
-          and am.account_id = content.account_id
-          and am.state = 'accepted'
-      )`.as("authorIsMember"),
             sql<boolean>`exists (
               select 1 from thread_members am
               where am.thread_id = content.thread_id
@@ -2336,7 +2322,9 @@ export async function threadRoutes(app: App): Promise<void> {
       })
   );
 
-  // Edit. Any member, and the full text rather than anything a row shortened.
+  // Edit. The words are the author's alone (`editNote`); the labels are any
+  // member's, as a thread's labels are. The full text rather than anything a
+  // row shortened.
   // Returns `previous` so Undo has something to write back.
   for (const path of notePaths("/:id")) {
     app.patch(

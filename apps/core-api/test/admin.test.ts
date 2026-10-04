@@ -5,6 +5,7 @@
 // check would be testing the stub, and this route set is the one place where
 // getting authorization wrong exposes every account's address at once.
 
+import { PANEL_COOKIE, sealPanel } from "../src/admin/panel.js";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { makeSignature } from "better-auth/crypto";
 import { db, closeDb } from "../src/db.js";
@@ -55,8 +56,12 @@ async function signIn(accountId: string): Promise<string> {
     .execute();
 
   // The same name and the same HMAC Better Auth uses, so this cookie is
-  // indistinguishable from one it issued itself.
-  return `better-auth.session_token=${token}.${await makeSignature(token, env.BETTER_AUTH_SECRET)}`;
+  // indistinguishable from one it issued itself. And the panel's own pass for
+  // this session, which a fresh sign-in is handed: it lets nobody in who is
+  // not staff, and `admin-panel-session.test.ts` is where it is tested.
+  const session = await db.selectFrom("sessions").select("id").where("token", "=", token).executeTakeFirstOrThrow();
+  const pass = `${PANEL_COOKIE}=${encodeURIComponent(sealPanel(session.id, accountId, Date.now()))}`;
+  return `better-auth.session_token=${token}.${await makeSignature(token, env.BETTER_AUTH_SECRET)}; ${pass}`;
 }
 
 async function activeAccount(email: string): Promise<string> {

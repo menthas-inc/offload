@@ -9,6 +9,7 @@ import { db } from "../src/db.js";
 import { env } from "../src/env.js";
 import { uuidv7 } from "../src/uuid.js";
 import { promote } from "../src/admin/promote.js";
+import { PANEL_COOKIE, sealPanel } from "../src/admin/panel.js";
 import { clearSettingsCache } from "../src/settings.js";
 import { clearPlatformSpent } from "../src/budget.js";
 import type { App, RouteEntry } from "../src/app.js";
@@ -63,11 +64,26 @@ export async function neverSignedIn(email = `${uuidv7()}@example.test`): Promise
   return id;
 }
 
-/** A signed-in staff member. */
+/** A session with the panel open on it: the app's cookie and the panel's own
+ *  pass, sealed for that session as `POST /v1/admin/session` seals it.
+ *  `admin-panel-session.test.ts` is where the pass itself is tested. */
+export async function panelSession(accountId: string): Promise<string> {
+  const cookie = await signIn(accountId);
+  const session = await db
+    .selectFrom("sessions")
+    .select("id")
+    .where("account_id", "=", accountId)
+    .orderBy("created_at", "desc")
+    .orderBy("id", "desc")
+    .executeTakeFirstOrThrow();
+  return `${cookie}; ${PANEL_COOKIE}=${encodeURIComponent(sealPanel(session.id, accountId, Date.now()))}`;
+}
+
+/** A signed-in staff member, with the panel open. */
 export async function staffMember(role: "support" | "owner" = "owner", email?: string): Promise<{ id: string; cookie: string }> {
   const id = await activeAccount(email);
   await db.insertInto("staff").values({ account_id: id, role }).execute();
-  return { id, cookie: await signIn(id) };
+  return { id, cookie: await panelSession(id) };
 }
 
 /** Every `/v1/admin` route the app registered, without the HEAD twin Fastify

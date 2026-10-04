@@ -112,6 +112,15 @@ describe("AC-18 a person", () => {
     expect(Date.parse(body.lastActive)).toBeGreaterThan(Date.now() - 60_000);
   });
 
+  it("still says somebody invited them once that staff account is gone", async () => {
+    const owner = await staffMember("owner");
+    const ana = await person("ana@example.test");
+    const gone = uuidv7();
+    await db.insertInto("staff_audit").values({ staff_account_id: gone, kind: "invited", target_account_id: ana }).execute();
+    const body = (await get(owner.cookie, `/people/${ana}`)).json();
+    expect(body.invitedBy).toEqual({ id: gone, name: null });
+  });
+
   it("leaves the inviter out when nobody in the log invited them, and tells support it cannot set a limit", async () => {
     const support = await staffMember("support");
     const ana = await person("ana@example.test");
@@ -314,7 +323,8 @@ describe("AC-19 an override", () => {
 
     // Clearing what is not set changes nothing and records nothing.
     await limits(owner.cookie, ana, { key: "cap.turns", value: null });
-    expect(await auditEntries()).toEqual([
+    // The page was read along the way, and a read is an entry of its own.
+    expect((await auditEntries()).filter((entry) => entry.kind !== "person.viewed")).toEqual([
       { kind: "override.set", staff_account_id: owner.id, target_account_id: ana, setting_key: "cap.turns", old_value: null, new_value: 7, job_id: null },
       { kind: "override.set", staff_account_id: owner.id, target_account_id: ana, setting_key: "cap.turns", old_value: 7, new_value: 9, job_id: null },
       { kind: "override.cleared", staff_account_id: owner.id, target_account_id: ana, setting_key: "cap.turns", old_value: 9, new_value: null, job_id: null },
@@ -442,16 +452,38 @@ describe("AC-20 the timeline", () => {
 });
 
 describe("AC-22 opening the page", () => {
+  it("is recorded by the read itself, with nothing asked of the page", async () => {
+    const support = await staffMember("support");
+    const ana = await person("ana@example.test");
+    const tom = await person("tom@example.test");
+
+    // The record cannot depend on the client reporting itself: a staff
+    // session that asks for the page and never posts has still opened it.
+    for (const [at, read] of ["", "/usage", "/timeline", "/hits"].entries()) {
+      const one = await person(`read${at}@example.test`);
+      expect((await get(support.cookie, `/people/${one}${read}`)).statusCode, read).toBe(200);
+      const entries = (await auditEntries()).filter((entry) => entry.target_account_id === one);
+      expect(entries.map((entry) => `${entry.kind} ${entry.staff_account_id}`), read).toEqual([`person.viewed ${support.id}`]);
+    }
+    // A HEAD runs the same handler and answers whether somebody is there.
+    const headed = await person("headed@example.test");
+    await app.inject({ method: "HEAD", url: `/v1/admin/people/${headed}`, headers: { cookie: support.cookie } });
+    expect((await auditEntries()).filter((entry) => entry.target_account_id === headed)).toHaveLength(1);
+    // Once a day, however many reads; and a page that is not there is no entry.
+    const before = (await auditEntries()).length;
+    await get(support.cookie, `/people/${ana}`);
+    await get(support.cookie, `/people/${ana}`);
+    await get(support.cookie, `/people/${uuidv7()}`);
+    expect(await auditEntries()).toHaveLength(before + 1);
+    await get(support.cookie, `/people/${tom}`);
+    expect(await auditEntries()).toHaveLength(before + 2);
+  });
+
   it("is recorded once per staff member, person and day, by a POST", async () => {
     const support = await staffMember("support");
     const owner = await staffMember("owner");
     const ana = await person("ana@example.test");
     const tom = await person("tom@example.test");
-
-    // The reads record nothing.
-    await get(support.cookie, `/people/${ana}`);
-    await get(support.cookie, `/people/${ana}/timeline`);
-    expect(await auditEntries()).toEqual([]);
 
     expect((await post(support.cookie, `/people/${ana}/viewed`)).statusCode).toBe(200);
     await post(support.cookie, `/people/${ana}/viewed`);

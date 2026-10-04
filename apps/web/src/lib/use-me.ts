@@ -175,6 +175,10 @@ export function useMe(expect: "first-run" | "shell"): MeState {
       .then(async (response) => {
         if (!live) return;
         if (response.status === 401) {
+          // The session ended somewhere else: a staff disable, a deletion
+          // mark, a sign out on another device. The cache goes with it, as it
+          // does on a sign out from here.
+          forgetMe();
           router.replace("/sign-in");
           return;
         }

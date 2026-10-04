@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/thread_shared.v1.json",
+  "title": "thread_shared",
+  "description": "A thread was shared. How many people it was put to, and whether it came from a said share. Never a thread, never a name.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "count"
+  ],
+  "properties": {
+    "count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "said": {
+      "type": "boolean"
+    }
+  }
+}

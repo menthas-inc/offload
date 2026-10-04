@@ -16,7 +16,7 @@ import { ZipFile } from "yazl";
 import { db } from "../db.js";
 import { unwrap, wrap } from "../crypto/keys.js";
 import { accountKey, NoKey, objectKeyOf } from "../blobs/keys.js";
-import { objectKey, objectStore } from "../blobs/store.js";
+import { objectKey, objectStore, type Rendition } from "../blobs/store.js";
 import { record } from "../notifications/activity.js";
 import { partKey, removeParts } from "./copy.js";
 import {
@@ -56,6 +56,7 @@ const EXTENSION: Record<string, string> = {
 
 interface Blob extends CopyFile {
   id: string;
+  rendition: Rendition;
 }
 
 const iso = (at: Date | null): string | null => (at ? at.toISOString() : null);
@@ -187,13 +188,22 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
 
       // Blobs by the two ways one is readable: on a readable row, or on the
       // account's own message. Never by the blob's own account column alone.
+      // That column decides one thing: whose file it is.
       const onRows =
         rowIds.length === 0
           ? []
           : await trx
               .selectFrom("content_blobs")
               .innerJoin("blobs", "blobs.id", "content_blobs.blob_id")
-              .select(["content_blobs.content_id", "blobs.id", "blobs.kind", "blobs.name", "blobs.content_type"])
+              .select([
+                "content_blobs.content_id",
+                "blobs.id",
+                "blobs.kind",
+                "blobs.name",
+                "blobs.content_type",
+                "blobs.account_id",
+                "blobs.renditions_at",
+              ])
               .where("content_blobs.content_id", "in", rowIds)
               // A voice note is its dumper's alone, as the audio route has it;
               // only a photo is the thread's through a row.
@@ -207,7 +217,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
           ? []
           : await trx
               .selectFrom("blobs")
-              .select(["message_id", "id", "kind", "name", "content_type"])
+              .select(["message_id", "id", "kind", "name", "content_type", "account_id", "renditions_at"])
               .where("message_id", "in", messageIds)
               .where("deleted_at", "is", null)
               .where("unreadable_at", "is", null)
@@ -227,12 +237,27 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
         .execute();
 
       const blobs = new Map<string, Blob>();
-      const fileOf = (blob: { id: string; kind: "image" | "audio"; name: string | null; content_type: string }): Blob => {
+      // The file as it was put in goes to the person who put it in and to
+      // nobody else: it carries what the camera wrote and the name it had.
+      // Anybody else in the thread gets the picture the thread shows them, our
+      // own JPEG, or nothing while that has not been made.
+      const fileOf = (blob: {
+        id: string;
+        kind: "image" | "audio";
+        name: string | null;
+        content_type: string;
+        account_id: string | null;
+        renditions_at: Date | null;
+      }): Blob[] => {
         const known = blobs.get(blob.id);
-        if (known) return known;
-        const file = { id: blob.id, path: `files/${blob.id}.${EXTENSION[blob.content_type] ?? "bin"}`, kind: blob.kind, name: blob.name };
+        if (known) return [known];
+        const own = blob.account_id === accountId;
+        if (!own && !(blob.kind === "image" && blob.renditions_at)) return [];
+        const file: Blob = own
+          ? { id: blob.id, rendition: "original", path: `files/${blob.id}.${EXTENSION[blob.content_type] ?? "bin"}`, kind: blob.kind, name: blob.name }
+          : { id: blob.id, rendition: "large", path: `files/${blob.id}.jpg`, kind: blob.kind, name: null };
         blobs.set(blob.id, file);
-        return file;
+        return [file];
       };
       const strip = ({ path, kind, name }: Blob): CopyFile => ({ path, kind, name });
       const group = <T, K>(list: T[], key: (one: T) => K): Map<K, T[]> => {
@@ -286,7 +311,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
               addedAt: row.created_at.toISOString(),
               author: author(row),
               labels: (rowLabelsOf.get(row.id) ?? []).flatMap((pair) => labelName.get(pair.label_id) ?? []),
-              files: (rowFilesOf.get(row.id) ?? []).map((blob) => strip(fileOf(blob))),
+              files: (rowFilesOf.get(row.id) ?? []).flatMap(fileOf).map(strip),
             })),
           };
         }),
@@ -298,7 +323,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
               text: message.text,
               transcript: message.transcript,
               at: message.created_at.toISOString(),
-              files: (messageFilesOf.get(message.id) ?? []).map((blob) => strip(fileOf(blob))),
+              files: (messageFilesOf.get(message.id) ?? []).flatMap(fileOf).map(strip),
             })),
           }))
           .filter((conversation) => conversation.messages.length > 0),
@@ -321,8 +346,8 @@ async function copyKey(accountId: string, wrapped: Buffer): Promise<Buffer> {
 }
 
 /** One blob's bytes, or nothing when it has gone since the snapshot. */
-async function open(blobId: string): Promise<Buffer | null> {
-  const sealed = await objectStore()!.get(objectKey(blobId, "original"));
+async function open(blobId: string, rendition: Rendition): Promise<Buffer | null> {
+  const sealed = await objectStore()!.get(objectKey(blobId, rendition));
   if (!sealed) return null;
   try {
     return unwrap(sealed, await db.transaction().execute((trx) => objectKeyOf(trx, blobId)));
@@ -382,7 +407,7 @@ export async function buildCopy(exportId: string, options: { partBytes?: number;
       lazy(
         blob.path,
         async function* () {
-          const plain = await open(blob.id);
+          const plain = await open(blob.id, blob.rendition);
           if (plain) yield plain;
           else missing.add(blob.path);
         },

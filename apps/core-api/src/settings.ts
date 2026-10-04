@@ -104,6 +104,12 @@ function defs(): Map<SettingKey, SettingDef> {
     { key: "costs.fixed", kind: "money-map", default: {}, min: 0, max: 100_000 * DOLLAR },
   ];
   registry = new Map(list.map((def) => [def.key, def]));
+  // The two lists are one list written twice. A key in one and not the other
+  // would work everywhere and be missing from the Limits page, or be listed
+  // there with nothing behind it, so the first read refuses to go on.
+  if (registry.size !== SETTING_KEYS.length || !SETTING_KEYS.every((key) => registry!.has(key))) {
+    throw new Error("settings: SETTING_KEYS and the definitions disagree");
+  }
   return registry;
 }
 

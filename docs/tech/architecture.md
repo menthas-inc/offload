@@ -8,7 +8,7 @@ Four deployable services in one monorepo, talking over a typed API and a queue.
 
 - **Mobile (Expo)** and **Web (Next.js)**, the clients. The Next.js app serves the marketing site, the web app and the admin panel as three route groups.
 - **Core API (Fastify, TypeScript)**, user-facing data and authorization. Owns the schema, the migrations, the encryption boundary, and the blob path. Stateless.
-- **Agent plane (FastAPI, Python)**, the only thing that talks to Claude. Owns prompts, the harness, structured schemas, retrieval, transcription.
+- **Agent plane (Python, a worker)**, the only thing that talks to Claude. Owns prompts, the harness, structured schemas, retrieval, transcription.
 - **Worker (Python, same image as the agent plane, different entrypoint)**, queue consumer and scheduled jobs: sorting a dump, ingesting a connected app, nightly maintenance.
 
 ```
@@ -25,7 +25,7 @@ Four deployable services in one monorepo, talking over a typed API and a queue.
              │             ▼
              │        Worker (Python) ──► connected apps: mail, calendar, browser
              ▼             │
-      Agent plane (FastAPI)◄┘ ──► Claude, Voyage, AssemblyAI, Langfuse
+      Agent plane (worker)◄─┘ ──► Claude, Voyage, AssemblyAI
 ```
 
 ## The path a dump takes
@@ -92,11 +92,11 @@ The composer is a tool surface, not a chat. The design system puts it plainly: a
 - **Authorization (SEC-2, OFF-3).** Every access resolves to an owning account or an explicit thread grant, server-side. A grant permits adding to a thread and never permits deleting another person's things, which is a per-row check by author, not a per-thread one.
 - **Encryption (OFF-2).** Cold storage only. Blobs in R2 are sealed by the Core API with a key R2 never sees; database content is plaintext. The Core API owns the key path and is the only thing that unwraps. A grantee reads a shared blob because the server checked the grant and unwrapped the key chain, never because they hold a key themselves.
 - **Key layout.** Four layers, one primitive. The root wraps each account key; an account key wraps that account's copy of a thread key; the thread key wraps a per-object key; the object key encrypts the blob. A thread key exists once and every member holds their own wrapped copy, which is what makes a shared thread co-owned rather than borrowed.
-- **What each layer buys.** Sharing a thread rewraps one small key for the new member. Deleting an account destroys its account key and its wrapped thread-key copies, so private content goes and shared threads survive untouched, with no departed key retained and no blob rewritten. Moving a thing between threads rewraps the object key, 60 bytes, so the eight-second Undo is free. Through alpha and beta the root sits in the database; moving it is a rewrap over `account_keys` alone. Losing the root loses every blob, including for Cloudflare, so backing it up is an operational requirement.
+- **What each layer buys.** Sharing a thread rewraps one small key for the new member. Deleting an account destroys its account key and its wrapped thread-key copies, so private content goes and shared threads survive untouched, with no departed key retained and no blob rewritten. Moving a thing between threads rewraps the object key, 60 bytes, so the eight-second Undo is free. Through alpha and beta the root sits in the Core API's environment (`DATA_ROOT_KEY`); moving it to a KMS is a rewrap over `account_keys` alone. Losing the root loses every blob, including for Cloudflare, so backing it up is an operational requirement.
 - **Privacy (OFF-1, OFF-4).** Dumped content is durable. Connected-app content is derived and discarded with a source reference kept for re-fetch. Neither ever reaches analytics, LLM traces or logs.
 - **Retention.** Nothing a person put in is purged on a clock: content, media, conversations and memories are kept until deleted. Retention applies only to data that exists for us, meaning analytics events, logs, traces and LLM metadata, which are minimised on a short clock. Deletion, when a person asks for it, is real, immediate and cascading. *This diverges from the design, which states a 60-day conversation rule; logged in the design system's own decisions file.*
 - **Undo.** Deletes are a flag flip plus a purge after the window, never an immediate destroy, because nothing may be destroyed while the toast is up (OFF-6).
-- **Observability.** OpenTelemetry for application traces, structured JSON logs carrying ids and outcomes only, Langfuse Cloud for LLM metadata.
+- **Observability.** Structured JSON logs carrying ids and outcomes only, and the `llm_usage` ledger in Postgres for LLM metadata, read by the admin panel. OpenTelemetry and Langfuse were planned and are not wired.
 
 ## Scale posture
 

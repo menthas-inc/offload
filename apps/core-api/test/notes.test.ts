@@ -5,7 +5,7 @@
 // AC-3b  a person's repeat lands; offload's does not.
 // AC-4   offload's are marked as inferred.
 // AC-6   offload may not overwrite what a person stated.
-// AC-9   any member reads and edits.
+// AC-9   any member reads; only the author edits (changed 2026-10-04).
 // AC-9a  only the author deletes.
 // AC-9b  any member mutes, thread-wide.
 // AC-10  authorship never moves on an edit.
@@ -210,7 +210,9 @@ describe("AC-3b the same sentence twice", () => {
 });
 
 describe("AC-9 and AC-9a sharing", () => {
-  it("lets every member read and edit, whoever wrote it", async () => {
+  it("lets every member read, and only the author change the words", async () => {
+    // 2026-10-04. A stated note is what somebody typed, and overwriting it
+    // destroys it as surely as deleting it would: the same rule as AC-9a.
     const ana = await account("Ana");
     const john = await account("John");
     const flat = await thread(ana);
@@ -219,29 +221,34 @@ describe("AC-9 and AC-9a sharing", () => {
     const note = await add(flat, ana, "Ana handles the electrician");
     expect(await readableNotes(john, flat)).toHaveLength(1);
 
+    await expect(
+      db.transaction().execute((trx) => editNote({ noteId: note.id, accountId: john, text: "John handles the electrician" }, trx)),
+    ).rejects.toBeInstanceOf(NotYours);
+    expect((await readableNote(john, note.id))?.text).toBe("Ana handles the electrician");
+
     const edited = await db
       .transaction()
-      .execute((trx) =>
-        editNote({ noteId: note.id, accountId: john, text: "John handles the electrician" }, trx)
-      );
-    expect(edited?.note.text).toBe("John handles the electrician");
+      .execute((trx) => editNote({ noteId: note.id, accountId: ana, text: "Ana handles the plumber" }, trx));
+    expect(edited?.note.text).toBe("Ana handles the plumber");
     expect(edited?.previous).toBe("Ana handles the electrician");
   });
 
-  it("keeps the note with whoever created it, however often it is edited", async () => {
-    // AC-10. John editing Ana's rule does not make it John's.
+  it("hands a note to whoever is left once its author has gone from the thread", async () => {
+    // The exception delete already has: a rule nobody owns, still steering
+    // the model, that no member could correct was the alternative.
     const ana = await account("Ana");
     const john = await account("John");
     const flat = await thread(ana);
     await join(flat, john);
-
     const note = await add(flat, ana, "Ana handles the electrician");
-    await db
-      .transaction()
-      .execute((trx) => editNote({ noteId: note.id, accountId: john, text: "changed" }, trx));
+    await db.updateTable("thread_members").set({ state: "left" }).where("thread_id", "=", flat).where("account_id", "=", ana).execute();
 
-    const after = await readableNote(john, note.id);
-    expect(after?.authorId).toBe(ana);
+    const edited = await db
+      .transaction()
+      .execute((trx) => editNote({ noteId: note.id, accountId: john, text: "John handles the electrician" }, trx));
+    expect(edited?.note.text).toBe("John handles the electrician");
+    // AC-10. Editing it does not make it John's.
+    expect((await readableNote(john, note.id))?.authorId).toBe(ana);
   });
 
   it("lets only the author delete, per OFF-3", async () => {

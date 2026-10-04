@@ -10,7 +10,7 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { uuidv7 } from "../src/uuid.js";
-import { activeAccount, auditEntries, signIn, staffMember, wipeAdmin } from "./admin-kit.js";
+import { activeAccount, auditEntries, panelSession, signIn, staffMember, wipeAdmin } from "./admin-kit.js";
 
 await migrate(() => {});
 
@@ -86,7 +86,7 @@ describe("AC-50 add, switch and remove, each on the person's next request", () =
     const owner = await staffMember("owner");
     const id = await activeAccount("new@example.test");
     await identity(id, "google");
-    const cookie = await signIn(id);
+    const cookie = await panelSession(id);
     expect((await get(cookie, "/v1/admin/me")).statusCode).toBe(404);
 
     const added = await add(owner.cookie, { email: "  New@Example.test ", role: "support" });

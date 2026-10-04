@@ -203,6 +203,18 @@ describe("a person's page", () => {
     expect(who).toContain("Last active");
   });
 
+  it("says somebody invited them when that staff account is gone", async () => {
+    api({ person: { ...PERSON, invitedBy: { id: "0199aaaa-bbbb-7ccc-8ddd-eeeeffff0000", name: null } } });
+    const host = await open();
+    expect(host.querySelector('[data-section="who"]')!.textContent).toContain("Invited bydeleted account");
+  });
+
+  it("rounds what is kept down, as the person's own Settings does", async () => {
+    api({ person: { ...PERSON, has: { ...PERSON.has, fileBytes: 12 * 1024 * 1024 + 900 * 1024 } } });
+    const host = await open();
+    expect(host.querySelector('[data-section="has"]')!.textContent).toContain("Files6112 MB");
+  });
+
   it("leaves the inviter out when the log does not know", async () => {
     api({ person: { ...PERSON, invitedBy: null } });
     const host = await open();

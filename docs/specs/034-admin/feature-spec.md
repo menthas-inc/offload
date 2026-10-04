@@ -258,7 +258,8 @@ Two tokens are requested with them: a solid danger surface, and a plot height.
 - **AC-19** An owner sets an override and the account's next check uses it within 20 seconds; clearing returns it to the global value. A value outside the setting's bounds is refused.
 - **AC-20** The timeline lists the account's jobs with kind, state, attempts, duration, model, tokens, cost and error code, pages by cursor, and filters to failures.
 - **AC-21** Sign out everywhere ends every session and leaves the state active.
-- **AC-22** Opening the page writes one audit entry per staff member, person and day, through a POST.
+- **AC-22** Opening the page writes one audit entry per staff member, person and day. *Changed 2026-10-04: written by the reads themselves, every `GET /v1/admin/people/:id` and the reads under it, and no longer left to a POST the page makes. An entry the client chooses to send is one a staff session can skip by asking for the JSON directly, and the privacy page says opening a page is recorded. The POST stays for a page that still sends it.*
+- **AC-22a** *Added 2026-10-04, going-public 17b.* The panel has a session of its own. Every route under `/v1/admin` asks for a pass bound to the staff session it came in on; `POST /v1/admin/session` hands one, good for twelve hours, to a staff session that signed in within the last ten minutes, and tells an older one to sign in again. Staff without the pass are answered 401 `locked`; anybody else is still answered 404.
 - **AC-23** A deleted account's page returns its head and its audit entries and nothing else.
 
 **Costs**

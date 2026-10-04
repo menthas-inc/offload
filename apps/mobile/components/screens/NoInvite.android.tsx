@@ -15,11 +15,15 @@ export default function NoInvite() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
+  const [disabled, setDisabled] = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/api/sign-in/attempt`)
       .then((response) => (response.ok ? response.json() : { email: null }))
-      .then((data: { email: string | null }) => setEmail(data.email))
+      .then((data: { email: string | null; reason?: "disabled" | null }) => {
+        setEmail(data.email);
+        setDisabled(data.reason === "disabled");
+      })
       .catch(() => setEmail(null));
   }, []);
 
@@ -35,7 +39,7 @@ export default function NoInvite() {
     }).catch(() => {});
   }
 
-  const copy = joined ? GATE.joined : GATE.notInvited;
+  const copy = disabled ? GATE.disabled : joined ? GATE.joined : GATE.notInvited;
 
   return (
     <SafeAreaView className="flex-1 bg-a-surface">
@@ -67,15 +71,17 @@ export default function NoInvite() {
             </View>
           ) : (
             <>
-              <Pressable
-                onPress={join}
-                disabled={!email}
-                className="min-h-a-row-height w-full items-center justify-center rounded-pill bg-blue-600 active:opacity-90"
-              >
-                <Text className="font-core text-body font-medium text-text-on-solid">
-                  {GATE.notInvited.join}
-                </Text>
-              </Pressable>
+              {disabled ? null : (
+                <Pressable
+                  onPress={join}
+                  disabled={!email}
+                  className="min-h-a-row-height w-full items-center justify-center rounded-pill bg-blue-600 active:opacity-90"
+                >
+                  <Text className="font-core text-body font-medium text-text-on-solid">
+                    {GATE.notInvited.join}
+                  </Text>
+                </Pressable>
+              )}
 
               <Pressable
                 onPress={() => router.replace("/sign-in")}
@@ -90,7 +96,7 @@ export default function NoInvite() {
                 className="text-center font-core text-a-on-var"
                 style={{ fontSize: 12.5, lineHeight: 18 }}
               >
-                {GATE.notInvited.terms}
+                {disabled ? "" : GATE.notInvited.terms}
               </Text>
             </>
           )}

@@ -239,7 +239,9 @@ const person = z.object({
   timeZone: z.string().nullable(),
   consentVersion: z.string().nullable(),
   /** The staff member behind the newest invite in the audit log. */
-  invitedBy: who.nullable(),
+  /** Named by id alone once the staff account that invited them is gone: the
+   *  log keeps the entry, and the page still says somebody did. */
+  invitedBy: z.object({ id: z.string().uuid(), name: z.string().nullable() }).nullable(),
   can: can.extend({ limits: z.boolean() }),
   today: z.object({
     caps: z.array(z.object({ key: z.string(), used: z.number(), limit: z.number(), reached: z.boolean() })),
@@ -282,6 +284,24 @@ async function onList(id: string): Promise<boolean> {
 }
 
 export async function peopleAdminRoutes(app: App): Promise<void> {
+  // Every read of one person records that their page was opened, here and
+  // not by the page: an entry the client chooses to send is one a staff
+  // session can skip by asking for the JSON directly. Once per staff member,
+  // person and day, by the table's own index, so a page of four reads is one.
+  //
+  // A HEAD runs the same handler and answers whether somebody is there, so it
+  // is a read. And it fails closed: a read that could not be recorded is not
+  // served.
+  app.addHook("preHandler", async (request) => {
+    if ((request.method !== "GET" && request.method !== "HEAD") || !request.routeOptions.url?.includes("/people/:id")) return;
+    const id = (request.params as { id?: string }).id;
+    if (!id || !idParams.safeParse({ id }).success || !request.staff) return;
+    await db.transaction().execute(async (tx) => {
+      const target = await tx.selectFrom("accounts").select("id").where("id", "=", id).where(onPeople("accounts")).executeTakeFirst();
+      if (target) await audit(tx, { staff: request.staff!, kind: "person.viewed", targetAccountId: target.id });
+    });
+  });
+
   // The list. Sorted by joined it pages by cursor; sorted by last active or
   // by spend it is the top 200 and says when there were more.
   app.get(
@@ -592,7 +612,7 @@ export async function peopleAdminRoutes(app: App): Promise<void> {
   );
 
   // Opening a person's page, recorded once per staff member, person and day.
-  // A write the page makes after it loads, because no read changes anything.
+  // The reads record it themselves now; this stays for a page that still posts.
   app.post(
     "/people/:id/viewed",
     {
@@ -655,9 +675,9 @@ export async function peopleAdminRoutes(app: App): Promise<void> {
 
     const [inviter, used, refusedBy, overrides, has, owners] = await Promise.all([
       // The newest invite the audit log holds for them, and who made it.
-      sql<{ id: string; name: string }>`
-        select s.id, coalesce(s.display_name, s.email) as name
-        from staff_audit e join accounts s on s.id = e.staff_account_id
+      sql<{ id: string; name: string | null }>`
+        select e.staff_account_id as id, coalesce(s.display_name, s.email) as name
+        from staff_audit e left join accounts s on s.id = e.staff_account_id
         where e.kind = 'invited' and e.target_account_id = ${id}
         order by e.at desc, e.id desc
         limit 1`.execute(db),

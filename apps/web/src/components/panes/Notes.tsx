@@ -388,6 +388,8 @@ export function Notes({
       // 028. A note moves between threads as a row does: its author's, or
       // anybody's once its author has gone, the same rule as delete.
       onMove={note && canDelete(note) && !isProvisional(note.id) ? () => setMoving(note) : undefined}
+      // Its words are its author's to change, on the terms delete has.
+      readOnly={note !== null && !canDelete(note)}
     />
   );
 
@@ -560,8 +562,12 @@ export function NoteEditor({
   onDelete,
   onMute,
   onMove,
+  readOnly = false,
   placeholder = "What is true about this thread?",
 }: {
+  /** Somebody else's note: words to read, with Mute and no Save. The server
+   *  refuses the edit, so the field never offers one. */
+  readOnly?: boolean;
   draft: string;
   onDraft: (text: string) => void;
   onSave: () => void;
@@ -583,6 +589,7 @@ export function NoteEditor({
         maxLength={NOTE_CHARS}
         rows={2}
         autoFocus
+        readOnly={readOnly}
         placeholder={placeholder}
         onChange={(event) => onDraft(event.target.value)}
         onKeyDown={(event) => {
@@ -590,15 +597,19 @@ export function NoteEditor({
           // Enter saves, shift-Enter is a new line. A note is one sentence.
           if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
-            onSave();
+            if (!readOnly) onSave();
           }
         }}
       />
 
       <span className={styles.noteActions}>
-        <span className={styles.noteCount}>
-          {draft.length}/{NOTE_CHARS}
-        </span>
+        {readOnly ? (
+          <span className={styles.noteCount} />
+        ) : (
+          <span className={styles.noteCount}>
+            {draft.length}/{NOTE_CHARS}
+          </span>
+        )}
 
         {/* One control, never two. Delete and mute are the same intent at
             different strengths, and offering both makes somebody choose
@@ -632,11 +643,13 @@ export function NoteEditor({
         ) : null}
 
         <button type="button" className={styles.noteAction} onClick={onCancel}>
-          Cancel
+          {readOnly ? "Close" : "Cancel"}
         </button>
-        <button type="button" className={styles.noteSave} disabled={draft.trim().length === 0} onClick={onSave}>
-          Save
-        </button>
+        {readOnly ? null : (
+          <button type="button" className={styles.noteSave} disabled={draft.trim().length === 0} onClick={onSave}>
+            Save
+          </button>
+        )}
       </span>
     </span>
   );

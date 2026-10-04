@@ -99,7 +99,7 @@ One section, **Connected**, holding **one card per app**: `--surface-raised`, ra
 
 - **Card head:** a 42px mark at radius 11, the name at 16px semibold, one 13px line, and a status pill or a button.
 - **Google Calendar, connected:** the Google Calendar mark; *jo@hey.com, connected 14 Sep* (several accounts: *2 Google accounts*); a *Connected* pill. Under a hairline: **Calendars offload can use**, *4 of 7*, chevron to the calendar page; then **Ask before adding** with its switch and note, the same write the calendar page makes. A connection needing sign-in again swaps the pill for a **Sign in again** button that runs the connect flow.
-- **Not connected:** the head only, line *See your week in offload, and let it add things for you.*, a primary **Connect** that runs the same flow as the calendar page.
+- **Not connected:** the head only, line *See your week in offload, and let it add to your calendar.*, a primary **Connect** that runs the same flow as the calendar page.
 - **Calendar not available:** no card.
 - **Mail, always shown:** a `mail` mark on `--surface-accent-soft` in `--moss-700`; *Forward an email and it's filed like anything you dump*; a *Ready* pill (neutral). Under a hairline: the address as the title, tabular, with the note *Only mail from jo@hey.com is accepted. Forward by hand.* and a **Copy** pill with `copy` (toast *Copied*); then **Add to contacts** with `arrow-up-right`. An Apple hidden email: the head with the relay note as its line and an *Unavailable* pill, nothing under it. **The phones' Mail page stays**, for How it works, reached from a refused email in Activity; the card itself has no third row (owner, 2026-10-02).
 - **Removed:** *Not built yet* (Browser, Photos) and *What offload may do*.

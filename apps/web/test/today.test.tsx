@@ -768,7 +768,7 @@ describe("027 AC-24 and AC-25 the empty, failed and slow days", () => {
   it("draws the day-one invitation for an account that has never dumped", async () => {
     days["2026-09-29"] = { ...emptyDay("2026-09-29"), everDumped: false };
     await open();
-    expect(text()).toContain("Dump the first thing and offload will sort it.");
+    expect(text()).toContain("Dump anything and offload will sort it.");
     expect(button("Previous day")).toBeUndefined();
   });
 

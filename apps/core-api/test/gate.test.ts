@@ -10,7 +10,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import type { BetterAuthOptions } from "better-auth";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
-import { decideLink } from "../src/auth/gate.js";
+import { decideLink, maySignIn } from "../src/auth/gate.js";
+import { withAttempt } from "../src/auth/attempt.js";
 import { auth } from "../src/auth/auth.js";
 import { uuidv7 } from "../src/uuid.js";
 
@@ -81,6 +82,31 @@ describe("AC-5 attaching a first identity to an existing account", () => {
       reason: "disabled",
       email: "gone@example.com",
     });
+  });
+
+  it("says a disabled account is disabled when it signs in again, and says nothing of any other", async () => {
+    // A staff disable, or the day before a deletion. The person authenticated
+    // with this address a moment ago, so naming its state tells nobody else
+    // anything; reading "you are not on the list" about an account that
+    // exists was the alternative.
+    const disabled = await account("held@example.com", "disabled");
+    const active = await account("fine@example.com", "active");
+    const waiting = await account("queue@example.com", "waitlist");
+
+    const seen = async (id: string) => withAttempt(async (store) => ({ may: await maySignIn(id), ...store }));
+    expect(await seen(disabled)).toMatchObject({ may: false, email: "held@example.com", reason: "disabled" });
+    expect(await seen(active)).toMatchObject({ may: true, email: null, reason: null });
+    expect(await seen(waiting)).toMatchObject({ may: false, email: null, reason: null });
+  });
+
+  it("asks one question at sign-in and at every refresh of a session", async () => {
+    // Two copies of "may this account hold a session" is how a state added to
+    // one keeps a disabled account's session refreshing through the other.
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const source = readFileSync(fileURLToPath(new URL("../src/auth/auth.ts", import.meta.url)), "utf8");
+    expect(source).not.toContain("accountMaySignIn");
+    expect(source.match(/await maySignIn\(/g)).toHaveLength(2);
   });
 
   it("refuses a soft-deleted account", async () => {

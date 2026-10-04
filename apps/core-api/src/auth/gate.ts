@@ -11,6 +11,7 @@
 // of the same decision is the two-sources-of-truth problem auth.ts opens by
 // warning about, and its tests were reading as coverage of a live path.
 
+import { recordAttempt } from "./attempt.js";
 import { db } from "../db.js";
 
 export type GateVerdict =
@@ -76,4 +77,22 @@ export async function decideLink(accountId: string): Promise<GateVerdict> {
     return { allow: false, reason: "staff-linking", email: account.email };
 
   return { allow: true, accountId: account.id, link: true };
+}
+
+/** Whether an account may hold a session, asked at every sign-in.
+ *
+ *  A disabled account is told so: the refusal rides out with its address, and
+ *  the screen says the account is disabled. Without it the person read "you
+ *  are not on the list yet" about an account that exists, beside a button for
+ *  a waitlist they are not on. A soft-deleted account and one still waiting
+ *  are refused in silence, as before. */
+export async function maySignIn(accountId: string): Promise<boolean> {
+  const account = await db
+    .selectFrom("accounts")
+    .select(["state", "email"])
+    .where("id", "=", accountId)
+    .where("deleted_at", "is", null)
+    .executeTakeFirst();
+  if (account?.state === "disabled") recordAttempt(account.email, "disabled");
+  return account?.state === "invited" || account?.state === "active";
 }

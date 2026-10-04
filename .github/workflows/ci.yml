@@ -83,6 +83,14 @@ jobs:
 
       - run: pnpm lint
 
+      # What lint and the compiler both wave through: a utility class the
+      # theme has no rule for, a CSS module class defined nowhere, and an icon
+      # name that is not in the set. Each renders as nothing and fails nothing.
+      # They read the generated preset, so they run after `pnpm tokens`.
+      - run: node .claude/scripts/dead-classes.mjs
+      - run: node .claude/scripts/dead-css.mjs
+      - run: node .claude/scripts/dead-icons.mjs
+
       - run: pnpm typecheck
 
       # Migrations first and on their own, so a broken migration fails as a

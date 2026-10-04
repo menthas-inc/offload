@@ -39,12 +39,14 @@ export const WEB_PROVIDER_ORDER = ["google", "apple"] as const;
 
 export type Provider = (typeof WEB_PROVIDER_ORDER)[number];
 
-export async function signIn(provider: Provider): Promise<{ error?: string }> {
+/** `to` is the one other place a sign-in may land: the admin panel, which
+ *  asks staff for a fresh one. A closed choice, never a path from the address. */
+export async function signIn(provider: Provider, to: "admin" | null = null): Promise<{ error?: string }> {
   const { error } = await authClient.signIn.social({
     provider,
     // Land on first run. The server decides whether that person has already
     // done it, so this is a destination rather than a claim.
-    callbackURL: `${origin()}/welcome`,
+    callbackURL: `${origin()}${to === "admin" ? "/admin" : "/welcome"}`,
     errorCallbackURL: `${origin()}/no-invite`,
   });
   return error ? { error: error.message ?? "unknown" } : {};

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/person_blocked.v1.json",
+  "title": "person_blocked",
+  "description": "Somebody blocked a person. The actor's pseudonym and nothing about who was blocked.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {}
+}

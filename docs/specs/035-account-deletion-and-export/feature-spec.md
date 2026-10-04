@@ -158,6 +158,14 @@ Export:
 - **AC-16** The archive holds every thread the person can read at the moment
   it is made, their conversations, notes and people, and each blob as an
   ordinary file, readable with an archive tool and a browser.
+- **AC-16a** *Added 2026-10-04.* A photo somebody else put in a shared thread
+  is in the archive as the picture the thread shows, offload's own JPEG, and
+  never as their file: no original, nothing the camera wrote, no file name.
+  The person's own photos and voice notes come back as the files they were.
+  A photo of somebody else's with no picture made yet is left out. This is
+  what the privacy page already says of a shared photo, that its place stays
+  with the file and its name stays with whoever put it in; the first build
+  shipped every member's original.
 - **AC-17** A row from a shared thread names who added it, and a row whose
   author is gone says so.
 - **AC-18** The copy is readable only by the account that asked, through a

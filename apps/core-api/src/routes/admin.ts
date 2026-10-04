@@ -14,6 +14,8 @@ import { z } from "zod";
 import type { App } from "../app.js";
 import { db } from "../db.js";
 import { requireStaff } from "../admin/staff.js";
+import { audit } from "../admin/audit.js";
+import { PANEL_FRESH_MS, PANEL_TTL_MS, panelCookie, sealPanel } from "../admin/panel.js";
 import { wrongCount } from "../health/alerts.js";
 import { waitlistAdminRoutes } from "./admin/waitlist.js";
 import { peopleAdminRoutes } from "./admin/people.js";
@@ -77,6 +79,31 @@ export async function adminRoutes(app: App): Promise<void> {
             wrong: request.staff!.role === "owner" ? await wrongCount() : 0,
           });
         }
+      );
+
+      // Opening the panel. A staff session that signed in within the last few
+      // minutes is handed the pass every other route here asks for; an older
+      // one is told to sign in again. Recorded, as every write here is.
+      admin.post(
+        "/session",
+        {
+          config: { opensPanel: true, audit: "panel.opened" },
+          schema: {
+            response: {
+              200: z.object({ status: z.literal("open"), until: z.string() }),
+              401: z.object({ error: z.literal("sign-in-again") }),
+              404: z.object({ error: z.literal("not-found") }),
+            },
+          },
+        },
+        async (request, reply) => {
+          const staff = request.staff!;
+          const now = Date.now();
+          if (now - staff.signedInAt.getTime() > PANEL_FRESH_MS) return reply.status(401).send({ error: "sign-in-again" as const });
+          await db.transaction().execute((tx) => audit(tx, { staff, kind: "panel.opened" }));
+          reply.header("set-cookie", panelCookie(sealPanel(staff.sessionId, staff.accountId, now)));
+          return reply.send({ status: "open" as const, until: new Date(now + PANEL_TTL_MS).toISOString() });
+        },
       );
 
       // What support sees: Waitlist, People and a person's page.

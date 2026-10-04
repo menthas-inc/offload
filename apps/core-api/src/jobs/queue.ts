@@ -20,7 +20,6 @@ import { codeOf } from "./errors.js";
 export type JobKind =
   | "email.waitlist_joined"
   | "email.invited"
-  | "email.download_app"
   // 035. The notice that an account was deleted, to an address that is no
   // longer an account; and the calendar grants still to revoke at Google.
   | "email.account_deleted"
