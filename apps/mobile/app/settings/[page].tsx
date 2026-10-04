@@ -650,8 +650,9 @@ function Help() {
 /** Connected apps. 031: one card per app, and Mail always.
  *
  *  019. The calendar card leads one level down, to the calendar page with its
- *  list and Disconnect; Connect runs the same sign in that page does. Approving
- *  a calendar adds it to no thread; threads pick from inside. */
+ *  list; Connect runs the same sign in that page does. Approving a calendar
+ *  adds it to no thread; threads pick from inside. Disconnect is on the card,
+ *  and asks once in the sheet a row's own actions use. */
 function Apps({ toast }: { toast: ToastState }) {
   const router = useRouter();
   const me = useMe();
@@ -660,6 +661,7 @@ function Apps({ toast }: { toast: ToastState }) {
   // and disconnects, and coming back to a card that still says Connected
   // after a disconnect is the version of that bug somebody notices.
   useFocusEffect(useCallback(reload, [reload]));
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
 
   async function ask(next: boolean) {
     settle({ askFirst: next });
@@ -669,6 +671,11 @@ function Apps({ toast }: { toast: ToastState }) {
     }
   }
 
+  async function drop(id: string) {
+    if (await disconnect(id)) reload();
+    else toast.show("Couldn't disconnect", { label: "Retry", onPress: () => void drop(id) });
+  }
+
   const connect = () =>
     void WebBrowser.openAuthSessionAsync(
       `${API_URL}/api/connectors/google/start?landing=settings`,
@@ -676,36 +683,59 @@ function Apps({ toast }: { toast: ToastState }) {
     ).then(reload);
 
   return (
-    <Sections>
-      <Group label="Connected" icon="link" bare>
-        <View style={{ gap: 12 }}>
-          {/* Not drawn while loading, and not at all where the connector is
-              not configured: a Connect that cannot work is worse than none. */}
-          {!loading && available ? (
-            <CalendarCard
-              connections={connections}
-              askFirst={askFirst}
-              onAsk={(next) => void ask(next)}
-              onOpen={() => router.push("/settings/calendar")}
-              onConnect={connect}
-            />
-          ) : null}
-          {me ? (
-            <MailCard
-              email={me.email}
-              available={me.mailAvailable}
-              onCopy={() =>
-                void Clipboard.setStringAsync(MAIL_ADDRESS)
-                  .then(() => toast.show("Copied"))
-                  // The address stays on screen to select; nothing else to offer.
-                  .catch(() => undefined)
-              }
-              onContacts={() => void WebBrowser.openBrowserAsync(MAIL_CARD_URL)}
-            />
-          ) : null}
-        </View>
-      </Group>
-    </Sections>
+    <>
+      <Sections>
+        <Group label="Connected" icon="link" bare>
+          <View style={{ gap: 12 }}>
+            {/* Not drawn while loading, and not at all where the connector is
+                not configured: a Connect that cannot work is worse than none. */}
+            {!loading && available ? (
+              <CalendarCard
+                connections={connections}
+                askFirst={askFirst}
+                onAsk={(next) => void ask(next)}
+                onOpen={() => router.push("/settings/calendar")}
+                onConnect={connect}
+                onDisconnect={setDisconnecting}
+              />
+            ) : null}
+            {me ? (
+              <MailCard
+                email={me.email}
+                available={me.mailAvailable}
+                onCopy={() =>
+                  void Clipboard.setStringAsync(MAIL_ADDRESS)
+                    .then(() => toast.show("Copied"))
+                    // The address stays on screen to select; nothing else to offer.
+                    .catch(() => undefined)
+                }
+                onContacts={() => void WebBrowser.openBrowserAsync(MAIL_CARD_URL)}
+              />
+            ) : null}
+          </View>
+        </Group>
+      </Sections>
+
+      {/* Disconnecting asks once, then revokes at Google and deletes the copy
+          and every pick. */}
+      <RowActionSheet
+        open={disconnecting !== null}
+        subject="Disconnect Google Calendar?"
+        actions={[
+          {
+            label: "Disconnect",
+            icon: "cloud-off",
+            danger: true,
+            run: async () => {
+              const id = disconnecting;
+              setDisconnecting(null);
+              if (id) await drop(id);
+            },
+          },
+        ]}
+        onClose={() => setDisconnecting(null)}
+      />
+    </>
   );
 }
 
@@ -768,11 +798,9 @@ function MailPage({ toast }: { toast: ToastState }) {
  *  offload account. A calendar is a checkbox, never a switch: the capability
  *  is the connection one level up, and this is a selection among peers. */
 function CalendarPage() {
-  const router = useRouter();
   const { loading, available, askFirst, connections, reload, settle } = useCalendars();
   const [busy, setBusy] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const [disconnecting, setDisconnecting] = useState<string | null>(null);
 
   async function approve(id: string, selected: boolean) {
     setBusy(id);
@@ -882,26 +910,6 @@ function CalendarPage() {
               ))}
             </Group>
 
-            <Group>
-              <Pressable
-                className="flex-row items-center gap-space-4 py-space-4"
-                style={{ minHeight: isAndroid ? 56 : 48 }}
-                accessibilityRole="button"
-                onPress={() => setDisconnecting(connection.id)}
-              >
-                <View className="flex-1">
-                  <Text className="font-core text-text-danger" style={{ fontSize: 15, lineHeight: 20 }}>
-                    Disconnect Google Calendar
-                  </Text>
-                  <Text
-                    className={`mt-space-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
-                    style={{ fontSize: 12.5, lineHeight: 17.5 }}
-                  >
-                    Notes offload made from your days stay. offload stops reading your calendars and cannot add to them.
-                  </Text>
-                </View>
-              </Pressable>
-            </Group>
           </View>
         );
       })}
@@ -922,31 +930,6 @@ function CalendarPage() {
           <Switch checked={askFirst} onChange={(next) => void ask(next)} label="Ask before adding" />
         </View>
       </Group>
-
-      {/* Disconnecting asks once, in the sheet the row's own actions use, then
-          revokes at Google and deletes the copy and every pick. */}
-      <RowActionSheet
-        open={disconnecting !== null}
-        subject="Disconnect Google Calendar?"
-        actions={[
-          {
-            label: "Disconnect",
-            icon: "cloud-off",
-            danger: true,
-            run: async () => {
-              const id = disconnecting;
-              setDisconnecting(null);
-              if (!id) return;
-              setFailed(false);
-              if (await disconnect(id)) {
-                reload();
-                router.back();
-              } else setFailed(true);
-            },
-          },
-        ]}
-        onClose={() => setDisconnecting(null)}
-      />
     </>
   );
 }

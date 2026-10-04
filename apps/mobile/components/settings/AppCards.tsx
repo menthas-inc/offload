@@ -3,8 +3,12 @@
 // *Settings, tightened*: the page was four labelled groups of one row each, two
 // of them not built and one a paragraph. A card is the app: its mark, its name,
 // one line and its state, and under a hairline the two or three things about it
-// worth reaching from here. The calendar's list and Disconnect stay one level
-// down; Ask before adding is on both, the same write.
+// worth reaching from here. The calendar's list stays one level down; Ask
+// before adding is on both, the same write.
+//
+// **Disconnect is on the card** (2026-10-04), one row per account. It sat with
+// the list, behind a row named for what that page is for, which is not where
+// anybody looks to disconnect.
 //
 // **Mail is always drawn**, whatever the calendar is doing, because it needs no
 // connecting: the address works the moment the account exists.
@@ -97,12 +101,14 @@ export function CalendarCard({
   onAsk,
   onOpen,
   onConnect,
+  onDisconnect,
 }: {
   connections: Connection[];
   askFirst: boolean;
   onAsk: (next: boolean) => void;
   onOpen: () => void;
   onConnect: () => void;
+  onDisconnect: (connectionId: string) => void;
 }) {
   const mark = <ProviderMark tone={isAndroid ? "android" : "ios"} source={googleCalendarMark} size={42} radius={11} />;
 
@@ -153,6 +159,25 @@ export function CalendarCard({
           </View>
           <Switch checked={askFirst} onChange={onAsk} label="Ask before adding" />
         </View>
+        {connections.map((connection) => (
+          <Pressable
+            key={connection.id}
+            className="border-t border-border-hairline py-space-4"
+            style={{ minHeight: isAndroid ? 58 : 50 }}
+            accessibilityRole="button"
+            onPress={() => onDisconnect(connection.id)}
+          >
+            <Text className="font-core text-text-danger" style={{ fontSize: 15, lineHeight: 20 }}>
+              {connections.length === 1 ? "Disconnect Google Calendar" : `Disconnect ${connection.email}`}
+            </Text>
+            <Text
+              className={`mt-space-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+              style={{ fontSize: 12.5, lineHeight: 17.5 }}
+            >
+              Notes offload made from your days stay. offload stops reading your calendars and cannot add to them.
+            </Text>
+          </Pressable>
+        ))}
       </View>
     </Card>
   );

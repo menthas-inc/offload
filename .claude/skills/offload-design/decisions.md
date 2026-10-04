@@ -11,6 +11,14 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-04 · Disconnect is on the calendar card, and the cards are one to a line
+**Surface:** iOS, Android, web
+**Raised by:** code, from the owner using Connected apps on the web.
+**Was:** the Google Calendar card held *Calendars offload can use* and *Ask before adding*, and *Disconnect Google Calendar* was one level down, on the calendar page under the list. On the web the Calendar and Mail cards sat side by side from 280px each.
+**Is:** the card carries *Disconnect Google Calendar* as its last row, in the danger colour, with the same note under it: *Notes offload made from your days stay. offload stops reading your calendars and cannot add to them.* With more than one account there is a row each, *Disconnect jo@hey.com*. It asks once: the row's own confirm on the web, the row action sheet on the phones. The calendar page keeps the list and *Ask before adding* and has no Disconnect. On the web each card takes a full line.
+**Why:** the row that led to it is named for the list, which says what that page is for, and nobody looks behind it to disconnect. Side by side, the account line wrapped under the *Connected* pill and the rows broke into three lines each at the pane's usual width.
+**Design system impact:** `web_app/WSettings.jsx`: the *Connected* block drops `cols`, so its cards stack, and the calendar card gains the Disconnect row. `mobile_app/SettingsDetail.jsx` and `android_app/M3SettingsDetail.jsx`: the same row on the card, and the calendar page loses it.
+
 ### 2026-10-04 · The row that opens Privacy says Privacy
 **Surface:** iOS, Android, web
 **Raised by:** code, from the review before going public, with the owner's answer.

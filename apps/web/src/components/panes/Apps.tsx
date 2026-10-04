@@ -14,8 +14,13 @@
 // **The per-account list is one level down.** 019 put the calendar page inline
 // here, because this was already the second pane; the cards made room for
 // what a person changes often, the count and Ask before adding, and the list
-// with its Disconnect moved to `/settings/apps/calendar`, as the phones have
-// it. Approving a calendar adds it to no thread; threads pick from inside.
+// moved to `/settings/apps/calendar`, as the phones have it. Approving a
+// calendar adds it to no thread; threads pick from inside.
+//
+// **Disconnect is on the card** (2026-10-04). It went down with the list in
+// 031, behind a row named "Calendars offload can use", which says what that
+// page is for and is not where anybody looks to disconnect. One row per
+// account, since each is disconnected on its own.
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../Icon";
@@ -47,9 +52,17 @@ function connectedOn(iso: string): string {
 
 /** Ask before adding, as a row. A label, as the Privacy pane's rows are, so
  *  the whole row is the switch's target and the hidden input has a name. */
-function AskRow({ checked, onChange }: { checked: boolean; onChange: (next: boolean) => void }) {
+function AskRow({
+  checked,
+  onChange,
+  last = true,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  last?: boolean;
+}) {
   return (
-    <label className={`${pane.settingsRow} ${pane.settingsRowLast}`}>
+    <label className={`${pane.settingsRow} ${last ? pane.settingsRowLast : ""}`}>
       <span className={pane.settingsText}>
         <span className={pane.settingsTitle}>Ask before adding</span>
         <span className={pane.settingsNote}>
@@ -64,7 +77,7 @@ function AskRow({ checked, onChange }: { checked: boolean; onChange: (next: bool
 }
 
 export function AppsPane() {
-  const { status, available, askFirst, connections, settle } = useCalendars();
+  const { status, available, askFirst, connections, reload, settle } = useCalendars();
   const me = useMe("shell");
   const toast = useToast();
   const [failed, setFailed] = useState(false);
@@ -97,7 +110,13 @@ export function AppsPane() {
         <Group label="Connected" icon="link">
           <div className={pane.appCards}>
             {status === "ready" && available ? (
-              <CalendarCard connections={connections} askFirst={askFirst} onAsk={(next) => void ask(next)} />
+              <CalendarCard
+                connections={connections}
+                askFirst={askFirst}
+                onAsk={(next) => void ask(next)}
+                onDisconnected={reload}
+                onFailed={() => setFailed(true)}
+              />
             ) : null}
             {account ? (
               <MailCard email={account.email} mailAvailable={account.mailAvailable} onCopied={() => toast.show("Copied")} />
@@ -111,15 +130,19 @@ export function AppsPane() {
 
 /** Google Calendar's card: connected, needing sign-in again, or not
  *  connected. Every account it holds is counted together; the calendar page
- *  lists them one by one. */
+ *  lists them one by one, and each has its own Disconnect here. */
 function CalendarCard({
   connections,
   askFirst,
   onAsk,
+  onDisconnected,
+  onFailed,
 }: {
   connections: Connection[];
   askFirst: boolean;
   onAsk: (next: boolean) => void;
+  onDisconnected: () => void;
+  onFailed: () => void;
 }) {
   const connected = connections.length > 0;
   // A lost grant, or one without the sharing scope: either way the connect
@@ -158,15 +181,87 @@ function CalendarCard({
       {connected ? (
         <div className={pane.appRows}>
           <Row title="Calendars offload can use" value={`${inUse} of ${calendars.length}`} href="/settings/apps/calendar" />
-          <AskRow checked={askFirst} onChange={onAsk} />
+          <AskRow checked={askFirst} onChange={onAsk} last={false} />
+          {connections.map((connection, index) => (
+            <DisconnectRow
+              key={connection.id}
+              connection={connection}
+              title={connections.length === 1 ? "Disconnect Google Calendar" : `Disconnect ${connection.email}`}
+              last={index === connections.length - 1}
+              onDisconnected={onDisconnected}
+              onFailed={onFailed}
+            />
+          ))}
         </div>
       ) : null}
     </div>
   );
 }
 
+/** Disconnect one account. It asks once, in the row's own place, and clicking
+ *  anywhere else is a cancel, as the thread's own delete does it. */
+function DisconnectRow({
+  connection,
+  title,
+  last,
+  onDisconnected,
+  onFailed,
+}: {
+  connection: Connection;
+  title: string;
+  last: boolean;
+  onDisconnected: () => void;
+  onFailed: () => void;
+}) {
+  const [asking, setAsking] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!asking) return;
+    const away = (event: MouseEvent): void => {
+      if (box.current && !box.current.contains(event.target as Node)) setAsking(false);
+    };
+    document.addEventListener("mousedown", away, true);
+    return () => document.removeEventListener("mousedown", away, true);
+  }, [asking]);
+
+  async function confirm() {
+    setAsking(false);
+    if (await disconnect(connection.id)) onDisconnected();
+    else onFailed();
+  }
+
+  if (asking) {
+    return (
+      <div ref={box} className={pane.confirmRow}>
+        <span className={pane.confirmText}>{title}?</span>
+        <button type="button" className={pane.sectionAction} onClick={() => setAsking(false)}>
+          Cancel
+        </button>
+        <button type="button" className={pane.danger} onClick={() => void confirm()}>
+          Disconnect
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className={`${pane.settingsRowButton} ${last ? pane.settingsRowLast : ""}`}
+      onClick={() => setAsking(true)}
+    >
+      <span className={pane.settingsText}>
+        <span className={`${pane.settingsTitle} ${styles.dangerTitle}`}>{title}</span>
+        <span className={pane.settingsNote}>
+          Notes offload made from your days stay. offload stops reading your calendars and cannot add to them.
+        </span>
+      </span>
+    </button>
+  );
+}
+
 /** The calendar page, one level under Connected apps: each account with its
- *  calendars and Disconnect, then Ask before adding, which is the same switch
+ *  calendars, then Ask before adding, which is the same switch
  *  the card carries. Before anything is connected it is first run's connect
  *  screen, verbatim, plus one sentence. */
 export function AppsCalendarPane() {
@@ -221,8 +316,6 @@ export function AppsCalendarPane() {
                 connection={connection}
                 busy={busy}
                 onApprove={approve}
-                onDisconnected={reload}
-                onFailed={() => setFailed(true)}
               />
             ))}
 
@@ -236,41 +329,19 @@ export function AppsCalendarPane() {
   );
 }
 
-/** One Google account: the provider block, the list with its count, and
- *  Disconnect. A second account is a second block. */
+/** One Google account: the provider block and the list with its count. A
+ *  second account is a second block. */
 function ConnectionBlock({
   connection,
   busy,
   onApprove,
-  onDisconnected,
-  onFailed,
 }: {
   connection: Connection;
   busy: string | null;
   onApprove: (id: string, selected: boolean) => Promise<void>;
-  onDisconnected: () => void;
-  onFailed: () => void;
 }) {
-  const [asking, setAsking] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
   const inUse = connection.calendars.filter((c) => c.selected).length;
   const count = inUse === 0 ? "None in use" : `${inUse} of ${connection.calendars.length} in use`;
-
-  // Clicking anywhere else is a cancel, as the thread's own delete does it.
-  useEffect(() => {
-    if (!asking) return;
-    const away = (event: MouseEvent): void => {
-      if (box.current && !box.current.contains(event.target as Node)) setAsking(false);
-    };
-    document.addEventListener("mousedown", away, true);
-    return () => document.removeEventListener("mousedown", away, true);
-  }, [asking]);
-
-  async function confirm() {
-    setAsking(false);
-    if (await disconnect(connection.id)) onDisconnected();
-    else onFailed();
-  }
 
   return (
     <>
@@ -310,37 +381,6 @@ function ConnectionBlock({
           />
         ))}
       </Group>
-
-      <section className={pane.settingsBlock}>
-        {asking ? (
-          <div ref={box} className={pane.confirmRow}>
-            <span className={pane.confirmText}>Disconnect Google Calendar?</span>
-            <button type="button" className={pane.sectionAction} onClick={() => setAsking(false)}>
-              Cancel
-            </button>
-            <button type="button" className={pane.danger} onClick={() => void confirm()}>
-              Disconnect
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className={`${pane.settingsRowButton} ${pane.settingsRowLast}`}
-            onClick={() => setAsking(true)}
-          >
-            <span className={pane.settingsText}>
-              <span className={`${pane.settingsTitle} ${styles.dangerTitle}`}>Disconnect Google Calendar</span>
-              <span className={pane.settingsNote}>
-                Notes offload made from your days stay. offload stops reading your calendars and cannot add to
-                them.
-              </span>
-            </span>
-            <span className={pane.settingsChevron} aria-hidden="true">
-              <Icon name="chevron-right" size={15} />
-            </span>
-          </button>
-        )}
-      </section>
     </>
   );
 }
