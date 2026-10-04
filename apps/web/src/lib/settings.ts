@@ -32,12 +32,6 @@ export function appsValue(connected: Connected): string | undefined {
   return names.length > 0 ? names.join(", ") : undefined;
 }
 
-/** The same, as the Connected apps pane head says it. */
-export function appsSummary(connected: Connected): string | undefined {
-  const names = connectedNames(connected);
-  return names.length > 0 ? names.join(" and ") : undefined;
-}
-
 const WEEK_DAY: Record<"monday" | "sunday", string> = { monday: "Monday", sunday: "Sunday" };
 
 /** Date and time's head: the clock's city and the week's first day. */

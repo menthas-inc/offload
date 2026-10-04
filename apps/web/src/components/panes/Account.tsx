@@ -63,12 +63,12 @@ export function AccountPane() {
 
   // A refused End keeps its row and says so, with the same End beside it: a
   // security control that did not run must not look like one that did.
-  const [endFailed, setEndFailed] = useState<string | null>(null);
-  async function end(token: string | "others") {
+  const [endFailed, setEndFailed] = useState<SignedIn | "others" | null>(null);
+  async function end(row: SignedIn | "others") {
     setEndFailed(null);
-    const ok = token === "others" ? await endOthers() : await endSignedIn(token);
+    const ok = row === "others" ? await endOthers() : await endSignedIn(row.tokens);
     if (ok) loadOthers();
-    else setEndFailed(token);
+    else setEndFailed(row);
   }
 
   const [leaving, setLeaving] = useState(false);
@@ -142,7 +142,7 @@ export function AccountPane() {
           </div>
         </Group>
 
-        {/* This device first, then every other live session. Ending one signs
+        {/* This device first, then every other device. Ending one signs
             that device out on its next request; this device leaves through
             Sign out. */}
         <Group label="Signed in on" icon="monitor" caption="Ending a session signs that device out on its next request.">
@@ -154,15 +154,24 @@ export function AccountPane() {
               last={!Array.isArray(others)}
             />
           ) : null}
+          {/* One row per device, however many times it has signed in. */}
           {listed.map((row) => (
             <Row
-              key={row.token}
+              key={row.device}
               icon={deviceGlyph(row.device)}
               title={row.device}
-              note={`Since ${since.format(row.since)}`}
+              note={
+                row.tokens.length === 1
+                  ? `Since ${since.format(row.since)}`
+                  : `${row.tokens.length} sessions since ${since.format(row.since)}`
+              }
               pill="End"
-              actionLabel={`End the session on ${row.device}`}
-              onClick={() => void end(row.token)}
+              actionLabel={
+                row.tokens.length === 1
+                  ? `End the session on ${row.device}`
+                  : `End the ${row.tokens.length} sessions on ${row.device}`
+              }
+              onClick={() => void end(row)}
             />
           ))}
           {listed.length > 0 ? (

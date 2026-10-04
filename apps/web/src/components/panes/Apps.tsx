@@ -21,6 +21,10 @@
 // 031, behind a row named "Calendars offload can use", which says what that
 // page is for and is not where anybody looks to disconnect. One row per
 // account, since each is disconnected on its own.
+//
+// **No heading over the cards, and no summary under the title** (2026-10-05).
+// "Calendar and Mail" and a "Connected" section said what the two cards
+// below them already say, and Mail is always there whatever is connected.
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../Icon";
@@ -30,7 +34,6 @@ import { ConnectBlock, ProviderMark } from "../ConnectBlock";
 import { Group, Row, StatusPill } from "./SettingsRows";
 import { MailCard } from "../MailBlock";
 import { useMe } from "../../lib/use-me";
-import { appsSummary } from "../../lib/settings";
 import { useToast } from "../shell/Toast";
 import {
   approveCalendar,
@@ -89,14 +92,11 @@ export function AppsPane() {
     else setFailed(true);
   }
 
-  const summary = account ? appsSummary({ calendar: connections.length > 0, mail: account.mailAvailable }) : undefined;
-
   return (
     <>
       <div className={pane.paneHead}>
         <div style={{ minWidth: 0 }}>
           <h1 className={`${pane.paneTitle} ${pane.paneTitleBig}`}>Connected apps</h1>
-          {summary ? <p className={pane.paneSub}>{summary}</p> : null}
         </div>
       </div>
 
@@ -107,22 +107,20 @@ export function AppsPane() {
           </p>
         ) : null}
 
-        <Group label="Connected" icon="link">
-          <div className={pane.appCards}>
-            {status === "ready" && available ? (
-              <CalendarCard
-                connections={connections}
-                askFirst={askFirst}
-                onAsk={(next) => void ask(next)}
-                onDisconnected={reload}
-                onFailed={() => setFailed(true)}
-              />
-            ) : null}
-            {account ? (
-              <MailCard email={account.email} mailAvailable={account.mailAvailable} onCopied={() => toast.show("Copied")} />
-            ) : null}
-          </div>
-        </Group>
+        <div className={pane.appCards}>
+          {status === "ready" && available ? (
+            <CalendarCard
+              connections={connections}
+              askFirst={askFirst}
+              onAsk={(next) => void ask(next)}
+              onDisconnected={reload}
+              onFailed={() => setFailed(true)}
+            />
+          ) : null}
+          {account ? (
+            <MailCard email={account.email} mailAvailable={account.mailAvailable} onCopied={() => toast.show("Copied")} />
+          ) : null}
+        </div>
       </div>
     </>
   );

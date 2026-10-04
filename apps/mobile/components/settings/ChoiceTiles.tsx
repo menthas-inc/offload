@@ -42,7 +42,7 @@ export function ChoiceTiles({
             accessibilityState={{ checked: on }}
             accessibilityLabel={option.label}
             className={`flex-1 ${
-              on && isAndroid ? "border-blue-600 bg-surface-attention-soft" : on ? "border-ink-950 bg-surface-raised" : "border-border-hairline bg-surface-raised"
+              on && isAndroid ? "border-blue-600 bg-surface-attention-soft" : on ? "border-ink-950 bg-surface-raised" : "border-border-lift bg-surface-raised"
             }`}
             style={{ borderRadius: isAndroid ? 18 : 14, borderWidth: on ? 2 : 1, padding: on ? 7 : 8, paddingBottom: on ? 10 : 11, gap: 9 }}
           >

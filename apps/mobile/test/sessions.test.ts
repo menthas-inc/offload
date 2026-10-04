@@ -74,6 +74,17 @@ describe("the list", () => {
     expect(rows.map((row) => row.device)).toEqual(["Chrome on Windows"]);
   });
 
+  it("is one row per device, every sign-in there counted since the first", async () => {
+    sessions.push(
+      { token: "old-2", userAgent: "Mozilla/5.0 (Windows NT 10.0) Chrome/129.0 Safari/537.36", createdAt: "2026-09-12T10:00:00Z" },
+      { token: "ipad", userAgent: "offload/1 CFNetwork/1498 Darwin/23.5.0", createdAt: "2026-09-02T10:00:00Z" },
+    );
+    const rows = await listSignedIn();
+    expect(rows.map((row) => row.device)).toEqual(["Chrome on Windows", "The app on iPhone"]);
+    expect(rows[0]!.tokens.sort()).toEqual(["old", "old-2"]);
+    expect(rows[0]!.since).toEqual(new Date("2026-09-01T10:00:00Z"));
+  });
+
   it("throws when the read fails, so nobody is told there is nothing", async () => {
     listFails = true;
     await expect(listSignedIn()).rejects.toThrow();
@@ -89,8 +100,8 @@ describe("the list", () => {
     expect(revokedOthers).toBe(1);
   });
 
-  it("ends the one asked for", async () => {
-    expect(await endSignedIn("old")).toBe(true);
-    expect(revoked).toEqual(["old"]);
+  it("ends every session on the device asked for", async () => {
+    expect(await endSignedIn(["old", "old-2"])).toBe(true);
+    expect(revoked).toEqual(["old", "old-2"]);
   });
 });

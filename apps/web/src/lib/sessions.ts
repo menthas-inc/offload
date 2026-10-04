@@ -13,17 +13,13 @@
 // "Nothing else" and the page told somebody there was nothing when it could
 // not see.
 
-import { describeDevice } from "@offload/markup";
+import { byDevice, describeDevice, type DeviceSessions } from "@offload/markup";
 import { authClient } from "./auth-client";
 
 export { describeDevice };
 
-export interface SignedIn {
-  token: string;
-  /** "Chrome on Mac", "The app on iPhone". */
-  device: string;
-  since: Date;
-}
+/** A device and every session on it: "Chrome on Mac", "The app on iPhone". */
+export type SignedIn = DeviceSessions;
 
 /** The session this browser holds, in words. Never fails: with no answer
  *  from the server it is still this browser, and the browser can say what it
@@ -38,27 +34,20 @@ export async function thisDevice(): Promise<{ device: string }> {
   }
 }
 
-/** Every other live session, newest first. Throws when the list cannot be
+/** Every other live session, one entry per device, newest first. Throws when the list cannot be
  *  read, and when this session cannot be told apart from the rest, since
  *  listing it with an End beside it would be wrong. */
 export async function listSignedIn(): Promise<SignedIn[]> {
   const [listed, current] = await Promise.all([authClient.listSessions(), authClient.getSession()]);
   const mine = current.data?.session?.token;
   if (listed.error || !listed.data || !mine) throw new Error("signed-in list unavailable");
-  return listed.data
-    .filter((session) => session.token !== mine)
-    .map((session) => ({
-      token: session.token,
-      device: describeDevice(session.userAgent),
-      since: new Date(session.createdAt),
-    }))
-    .sort((a, b) => b.since.getTime() - a.since.getTime());
+  return byDevice(listed.data.filter((session) => session.token !== mine));
 }
 
-/** End one session. The device it was on is signed out on its next request. */
-export async function endSignedIn(token: string): Promise<boolean> {
-  const { error } = await authClient.revokeSession({ token });
-  return !error;
+/** End every session on a device. It is signed out on its next request. */
+export async function endSignedIn(tokens: string[]): Promise<boolean> {
+  const answers = await Promise.all(tokens.map((token) => authClient.revokeSession({ token })));
+  return answers.every(({ error }) => !error);
 }
 
 /** End every session but this one. */

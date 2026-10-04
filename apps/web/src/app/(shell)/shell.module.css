@@ -1926,12 +1926,16 @@ a.settingsRow:hover,
   margin-top: 14px;
 }
 
+/* The lift, not the hairline, as the edge (2026-10-05). The settings pane is
+   itself --surface-raised, so in dark the card and the page behind it are one
+   colour and the hairline measures 1.2:1: the cards dissolved. In light the
+   two tokens are the same value and nothing moves. */
 .appCard {
   min-width: 0;
   overflow: hidden;
   border-radius: 16px;
   background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  box-shadow: inset 0 0 0 1px var(--border-lift);
 }
 
 .appHead {
@@ -2158,7 +2162,8 @@ a.settingsRow:hover,
   border: 0;
   border-radius: 14px;
   background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  /* The lift, for the reason the app cards have it. */
+  box-shadow: inset 0 0 0 1px var(--border-lift);
   text-align: left;
   color: var(--text-primary);
   cursor: pointer;

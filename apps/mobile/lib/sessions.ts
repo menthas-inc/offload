@@ -9,7 +9,7 @@
 // list was caught as an empty one, which drew "Nothing else": the one answer
 // that could never be true, since a list that worked always held this phone.
 
-import { describeDevice } from "@offload/markup";
+import { byDevice, describeDevice, type DeviceSessions } from "@offload/markup";
 import { authClient } from "./auth";
 
 export interface SignedIn {
@@ -27,27 +27,21 @@ export async function thisDevice(): Promise<SignedIn | null> {
   return { token: session.token, device: describeDevice(session.userAgent), since: new Date(session.createdAt) };
 }
 
-/** Every other session, newest first. Throws when the read fails, so a
+/** Every other session, one entry per device, newest first. Throws when the read fails, so a
  *  failure is never drawn as an empty list. */
-export async function listSignedIn(): Promise<SignedIn[]> {
+export async function listSignedIn(): Promise<DeviceSessions[]> {
   const [listed, current] = await Promise.all([authClient.listSessions(), authClient.getSession()]);
   const mine = current.data?.session?.token ?? null;
   // Also when this phone's own session cannot be told apart from the rest:
   // listed among the others it would carry an End that signs this phone out.
   if (listed.error || !listed.data || !mine) throw new Error("sessions unread");
-  return listed.data
-    .filter((session) => session.token !== mine)
-    .map((session) => ({
-      token: session.token,
-      device: describeDevice(session.userAgent),
-      since: new Date(session.createdAt),
-    }))
-    .sort((a, b) => b.since.getTime() - a.since.getTime());
+  return byDevice(listed.data.filter((session) => session.token !== mine));
 }
 
-export async function endSignedIn(token: string): Promise<boolean> {
-  const { error } = await authClient.revokeSession({ token });
-  return !error;
+/** Every session on one device. */
+export async function endSignedIn(tokens: string[]): Promise<boolean> {
+  const answers = await Promise.all(tokens.map((token) => authClient.revokeSession({ token })));
+  return answers.every(({ error }) => !error);
 }
 
 /** Every session but this one. */
