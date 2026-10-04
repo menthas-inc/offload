@@ -23,7 +23,7 @@ If a Figma file, repo or design doc does exist, attach it and this system should
 | Mobile app, iOS (390×844) | Designed here as a proposal | `ui_kits/mobile_app/` |
 | Mobile app, Android (360×800, Material 3) | Same product, platform chrome only | `ui_kits/android_app/` |
 | Web app (1440, two panes) | Designed here: sidebar, a stack of panes, one composer | `ui_kits/web_app/` |
-| Marketing site | Landing page and the one transactional email shell | `ui_kits/marketing_site/` |
+| Marketing site | The one-scroll landing page and the one transactional email shell | `ui_kits/marketing_site/` |
 | Admin panel (1440) | Staff-only: waitlist, accounts, staff, costs, limits. Moss nav so it is never mistaken for the app | `ui_kits/admin_web/` |
 
 ---
@@ -1118,6 +1118,36 @@ is never changed by a rename.
 
 **Edit thread is one sheet**: name, the seventy in a grid that scrolls inside the sheet, the ten hues, Save
 and Cancel. It opens from the mark or the name in the bar, and from More.
+
+## The landing page
+
+Decided 4 October 2026 off `explorations/landing-scroll.html`, direction C, *Through the prism*. Build:
+`handoff/APPLY-2026-10-04-landing.md`. Kit: `ui_kits/marketing_site/`.
+
+**The page says what offload is, in live text, signed out.** Google's OAuth review checks that the
+homepage describes the product in plain words and says why it connects to Google Calendar. The
+cycling verb is a claim, not a description, so the page gained a story under the hero rather than a
+longer hero.
+
+**One scroll, one still panel.** The hero is as built, with a scroll mark under it: the logo's dot
+dropping into its vessel. Scrolling drives into the mark until the prism fills the window. A frosted
+paper panel then holds still in the middle and its four steps swap inside it: *Send it. offload
+files it.*, *Send it as is*, *Everything lands in threads*, *Works with your Google Calendar*. Text
+never scrolls past; it fades and blurs out, and the next step's drawing assembles in its place. At
+the waitlist the field pulls back out into the mark, above the form.
+
+**The calendar sentence claims less than the privacy page.** Show what is on it, and add or change
+events when you ask; `/privacy` also says delete. Anything this page says, `/privacy` must say first.
+
+**Every step is in the document from first paint.** Out of view means `opacity: 0`, never hidden,
+never `aria-hidden`, never rendered late.
+
+**The film is full-bleed and the mark is its mask.** Growing a mask keeps the shader sharp; growing
+the mark would blur it to flat colour. Scroll mode drops the per-wash turbulence, which is the paint
+cost the pinned atmosphere exists to avoid.
+
+**A 3px progress bar** sits along the bottom of the window once the hero leaves, so a visitor can
+see how much page is left. The header goes solid once scrolled, logo and Sign in centred in the band.
 
 ## First run
 

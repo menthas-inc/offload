@@ -6,22 +6,32 @@ appear at web scale.
 
 | File | What it is |
 | --- | --- |
-| `index.html` | The landing page at offload.app. Wordmark, one claim, one sentence, one email field, footer. Responsive down to 375. |
+| `index.html` | The landing page at offload.club: the hero, the story in one still panel over the prism, the waitlist again. Responsive down to 375. Runs `landing.js` and `landing.css`. |
+| `landing.js` | The scroll engine, the site's prism shader with two added uniforms, the copy, the drawings, and the one direction taken (C, Through the prism). |
+| `landing.css` | Every landing rule. Local `--wash-*` stand-ins: the real ones live in the web app's globals. |
 | `invite-email.html` | The one transactional email shell: the invite, and every other message offload sends. |
 
 ## Landing page
 
-Invite only, so the page has exactly two actions: join the waitlist, or sign in if you
-already have an invite. There is no feature grid, no screenshots and no pricing, because
-there is nothing to buy yet.
+Decided 4 October 2026 off `explorations/landing-scroll.html`. The readme's **The landing page**
+is the lasting statement; `handoff/APPLY-2026-10-04-landing.md` is the build.
 
-- One field, email only. A longer form buys nothing while invites go out by hand.
-- Submitting swaps the field and button for one line in their place ("You are on the list,
-  we will email you when your account is ready to use"). Same page, no redirect, no
-  separate thank-you route.
-- `Sign in` sits quietly top right and is the only other link.
-- Below 820px the hero drops to 34px, the form stacks, and the controls go full width at
-  52px so they clear the 44px minimum.
+Invite only, so the page still has exactly two actions: join the waitlist, or sign in. What
+changed is that it now says what offload is and that it connects to Google Calendar, in live
+text on the page, because Google's reviewer checks both signed out.
+
+- **The hero is as built**: *offload [verb] for you*, the sentence, the field. A scroll mark
+  under it, the logo's dot dropping into its vessel, scrolls to the story.
+- **Scrolling drives into the mark.** It grows about the vessel's base until the prism fills
+  the window, and the page sits inside the film. At the waitlist it pulls back out and is the
+  mark again, above the form.
+- **One frosted panel, held still.** It fades in as the hero leaves; the four steps swap inside
+  it, each drawing assembling piece by piece; it fades out before the waitlist. Nothing in it
+  scrolls past.
+- **The header goes solid once scrolled**: paper at 72% with a 14px blur and a hairline, the
+  logo and Sign in centred in the band.
+- **A 3px progress bar** along the bottom of the window, from the moment the hero leaves.
+- Submitting the field swaps it for one line in place. Same page, no redirect.
 
 ## Email
 
