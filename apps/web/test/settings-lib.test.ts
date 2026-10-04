@@ -6,7 +6,6 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  appsSummary,
   appsValue,
   clockSummary,
   deviceGlyph,
@@ -31,12 +30,6 @@ describe("what is connected (AC-14)", () => {
     expect(appsValue({ calendar: false, mail: true })).toBe("Mail");
     expect(appsValue({ calendar: true, mail: false })).toBe("Calendar");
     expect(appsValue({ calendar: false, mail: false })).toBeUndefined();
-  });
-
-  it("reads with and in the pane head", () => {
-    expect(appsSummary({ calendar: true, mail: true })).toBe("Calendar and Mail");
-    expect(appsSummary({ calendar: false, mail: true })).toBe("Mail");
-    expect(appsSummary({ calendar: false, mail: false })).toBeUndefined();
   });
 });
 

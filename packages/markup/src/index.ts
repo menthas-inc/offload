@@ -357,4 +357,4 @@ export function plainText(text: string): string {
 }
 
 // A session's device in words, for the "Signed in on" list on both surfaces.
-export { describeDevice } from "./device.js";
+export { byDevice, describeDevice, type DeviceSessions } from "./device.js";

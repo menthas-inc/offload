@@ -77,8 +77,19 @@ describe("this device", () => {
 describe("the others", () => {
   it("leaves this device out and lists the rest newest first", async () => {
     const rows = await listSignedIn();
-    expect(rows.map((row) => row.token)).toEqual(["phone", "old"]);
+    expect(rows.map((row) => row.tokens)).toEqual([["phone"], ["old"]]);
     expect(rows[1]!.device).toBe("Chrome on Windows");
+  });
+
+  it("is one row per device: every sign-in there is counted, since the first", async () => {
+    sessions.push(
+      { token: "phone-2", userAgent: "okhttp/4.12.0", createdAt: "2026-09-25T10:00:00Z" },
+      { token: "phone-3", userAgent: "okhttp/4.12.0", createdAt: "2026-09-05T10:00:00Z" },
+    );
+    const rows = await listSignedIn();
+    expect(rows.map((row) => row.device)).toEqual(["The app on Android", "Chrome on Windows"]);
+    expect(rows[0]!.tokens.sort()).toEqual(["phone", "phone-2", "phone-3"]);
+    expect(rows[0]!.since).toEqual(new Date("2026-09-05T10:00:00Z"));
   });
 
   it("throws when the read is refused or fails, rather than coming back empty", async () => {
@@ -88,9 +99,9 @@ describe("the others", () => {
     await expect(listSignedIn()).rejects.toThrow();
   });
 
-  it("ends the one asked for and no other", async () => {
-    expect(await endSignedIn("old")).toBe(true);
-    expect(revoked).toEqual(["old"]);
+  it("ends every session on the device asked for and no other", async () => {
+    expect(await endSignedIn(["phone", "phone-2"])).toBe(true);
+    expect(revoked).toEqual(["phone", "phone-2"]);
   });
 
   it("ends every other session through the revoke-others endpoint", async () => {

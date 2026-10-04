@@ -28,7 +28,10 @@ const isAndroid = Platform.OS === "android";
 function Card({ children }: { children: React.ReactNode }) {
   return (
     <View
-      className="overflow-hidden border border-border-hairline bg-surface-raised"
+      // The lift, not the hairline (2026-10-05): in dark a raised card on the
+      // page kept a 1.2:1 edge and dissolved into it. Light is unchanged,
+      // the two tokens are one value there.
+      className="overflow-hidden border border-border-lift bg-surface-raised"
       style={{ borderRadius: isAndroid ? 22 : 16 }}
     >
       <Plain>{children}</Plain>

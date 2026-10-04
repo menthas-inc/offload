@@ -43,11 +43,16 @@ export function Switch({
       // came out teal on a screen whose contract says the on state is the
       // inverse surface. Seen on a device; both phones take the same two
       // props, so this is one rule rather than a platform branch.
-      trackColor={{ true: COLOR.ink, false: COLOR.hairline }}
+      //
+      // **Off is the lift, not the hairline** (2026-10-05). In dark the
+      // hairline track under a raised thumb was a dark circle on a dark pill
+      // and an off switch could not be seen. The lift is dark's step up for
+      // an edge; in light it is the hairline's own value.
+      trackColor={{ true: COLOR.ink, false: COLOR.lift }}
       thumbColor={COLOR.raised}
-      // The hairline track needs an edge of its own in the off state, which is
-      // the one place iOS and Android agree by default and Android does not.
-      ios_backgroundColor={COLOR.hairline}
+      // The off track needs an edge of its own, which is the one place iOS
+      // and Android agree by default and Android does not.
+      ios_backgroundColor={COLOR.lift}
       style={style}
     />
   );
