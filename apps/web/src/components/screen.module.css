@@ -112,3 +112,58 @@
   outline: 2px solid var(--text-primary);
   outline-offset: 3px;
 }
+
+/* ------------------------------------------------------------ scroll mode */
+
+/* The landing page is many screens tall and scrolls the window, not a box, so
+   the frame stops clipping. `clip` and not `hidden`: a hidden axis makes this
+   the scroll container and everything sticky inside it stops sticking. */
+.screen.scroll {
+  /* The header band. Its padding-top is the band less the row, so at rest the
+     mark sits exactly where it does on the gate. */
+  --frame-band: calc(var(--frame-top) + var(--frame-row));
+  overflow: visible;
+  overflow-x: clip;
+}
+
+.screen.scroll .header {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  min-height: var(--frame-band);
+  transition:
+    background var(--duration-slow) var(--ease-out),
+    box-shadow var(--duration-slow) var(--ease-out),
+    padding var(--duration-slow) var(--ease-out);
+}
+
+/* Past 8px the band takes the page's colour and the row centres in it. */
+.screen.scroll[data-scrolled] .header {
+  background: color-mix(in srgb, var(--surface-page) 72%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 var(--border-hairline);
+  padding-top: 0;
+}
+
+/* How far down the page, along the bottom of the window. It arrives as the
+   hero leaves. */
+.progress {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 7;
+  min-height: 3px;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+  opacity: calc(var(--scroll-k, 0) * 3);
+}
+
+.progressFill {
+  position: absolute;
+  inset: 0;
+  background: var(--text-primary);
+  transform-origin: left;
+  transform: scaleX(var(--scroll-p, 0));
+}

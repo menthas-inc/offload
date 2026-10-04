@@ -11,6 +11,37 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-04 · The landing page says what offload is
+**Surface:** web, the landing page
+**Raised by:** code, for Google's OAuth review of the Calendar scopes; decided with the product owner off `explorations/landing-scroll.html`. Handoff: `handoff/APPLY-2026-10-04-landing.md`.
+
+**Was:** one screen: the cycling headline, one sentence, the field. No plain description of the product and no mention of Google Calendar, which is two of the four things the reviewer checks.
+
+**Is:** **one scroll, direction C.** The hero as built plus a scroll mark; scrolling zooms into the mark until the prism fills the window; one frosted panel held still while four steps swap inside it (what offload is, the ways in, threads, Google Calendar with a link to `/privacy`); the waitlist again under the mark. Sticky header that goes solid, centred, once scrolled. A 3px progress bar along the bottom of the window. Copy verbatim in the handoff.
+
+**Considered and not taken:** A, the pinned atmosphere behind plain rows (too close to a generic marketing page); B, a scroll-scrubbed onboarding on a pinned stage (kept for the drawings, which C reuses); D, the dot falling into the vessel with velocity colour split (long, and costly on a cheap phone). A step progress indicator inside the story, replaced by the page-wide bar.
+
+**Design system impact:** `ui_kits/marketing_site/` rebuilt (`index.html`, new `landing.js`, `landing.css`); `readme.md` gains **The landing page**. No new tokens; the shader gains `hue` and `zm` uniforms.
+
+
+### 2026-10-04 · The landing page, as built
+**Surface:** web, the landing page
+**Raised by:** code, building `handoff/APPLY-2026-10-04-landing.md`.
+**Was:** the reference build in `ui_kits/marketing_site/`.
+**Is:** the handoff, with these differences.
+- **The two threads carry the glyphs the product picks from their names:** luggage for *Lisbon trip*, hammer for *Bookshelf build*. The kit drew lasso and bookmark, and bookmark is not one of the seventy.
+- **The scroll mark goes to 95% of a window down,** where the panel has arrived with its first step. In the reference the story starts under the hero, so scrolling to its top goes nowhere.
+- **Without JavaScript the story is a plain column:** the panel in the page's flow with its four steps one under another, every word showing. The pinned layout is switched on by the script that drives it.
+- **On a phone a step packs to the top of the panel,** so a short step's drawing sits under its words and not at the bottom of a cell sized by the tallest step.
+- **On a phone under 740px tall, step 01 draws two of the four dumps and no line between them and the threads,** so the panel fits one window. A panel taller than its window runs off the bottom, never up under the header.
+- **The agenda's new row is `--surface-attention-soft` with the check in `--text-attention`,** the semantic names for the blue the reference took from the ramp. The faces are label hues 9, 5 and 10. The photo is the sand and blue washes.
+- **The header's transition is `--duration-slow`,** 280ms where the handoff says 300.
+- **A link in a step that is not showing brings its step in when it takes keyboard focus.**
+- **The film draws at most thirty times a second while the page scrolls,** and ten at rest as before. The mark and its mask still move on every frame. The scroll position is written on the bar and the scroll mark, not the frame, where it restyled the whole page on every frame.
+
+**Why:** each is either the product's own rule applied to the drawing (the seventy icons, semantic tokens over ramps), or something the reference could not show: a window that is not a frame, a reader with no JavaScript, a keyboard, a short phone.
+**Design system impact:** `ui_kits/marketing_site/landing.js`: `THR` takes `luggage` and `hammer`; the cue's target is `0.95 * vh`. `landing.css`: `.ld.m .ld-cstep` gains `align-content: start`, and a short-phone rule hides `.ld-fv .arw` and the third and fourth `.ld-bub`. `handoff/APPLY-2026-10-04-landing.md` item 6 should say where the scroll mark goes.
+
 ### 2026-10-04 · Disconnect is on the calendar card, and the cards are one to a line
 **Surface:** iOS, Android, web
 **Raised by:** code, from the owner using Connected apps on the web.
