@@ -306,7 +306,7 @@ Empty on a first attempt, which is the common case and costs one indexed lookup 
 | Tool-definition budget | 1,500 tokens | AC-19's second half. Two tools use ~300. At 1,500, which is roughly ten tools, they move behind `defer_loading`. |
 | `UNDO_WINDOW_MS` | 8,000 | OFF-6 and the readme. Client-side. |
 | `purge_after` | `deleted_at + 8 seconds` | 001. |
-| `PURGE_CEILING` | 500 rows | AC-12. See below. |
+| `PURGE_BATCH` | 500 rows | AC-12. See below. `PURGE_CEILING` until 2026-10-05. |
 | Model | `claude-sonnet-5` | Unchanged from 003. |
 
 ## The purge job
@@ -325,7 +325,7 @@ AC-12's four properties:
 - **Both predicates, always.** `purge_after < now()` alone would delete rows that were never soft-deleted, since `purge_after` is nullable and null compares false, but a future column default or a partial write makes that a one-character distance from a mass delete. Both conditions are stated even though either implies the other today.
 - **A whole turn's rows in one transaction**, so a crash mid-purge cannot leave a message whose content is gone.
 - **The only holder of hard-delete rights on these tables.** `offload_agent` has none. The Core API's runtime role has `delete` on `content` and `messages`; a follow-up narrows that to the purge path, and until then the fact that this is the only `delete` in the codebase is what a test asserts.
-- **It halts rather than continues past the ceiling.** It counts first; if the count exceeds `PURGE_CEILING` it logs the count and deletes nothing. 500 is far above any real run, which is a handful of rows a day, and far below what a bad predicate would produce. A purge job that suddenly wants to delete 40,000 rows is a bug, and the right response to a bug in a delete is to stop.
+- **It halts rather than continues past the ceiling.** It counts first; if the count exceeds `PURGE_CEILING` it logs the count and deletes nothing. 500 is far above any real run, which is a handful of rows a day, and far below what a bad predicate would produce. A purge job that suddenly wants to delete 40,000 rows is a bug, and the right response to a bug in a delete is to stop. *Amended 2026-10-05: it is a batch, not a halt. Each run deletes up to `PURGE_BATCH` from each table in one transaction and books another run when a batch was full; messages go only in a run that left no due content or note. Deleting a thread now takes the messages its rows came from, and a thread or an account can legitimately hold thousands, so the count could not tell a big delete from a bug, and the halt stopped every purge for everyone. What guards the delete is the predicate and that only a delete or an Undo writes `purge_after`.*
 
 Scheduling: the runner ticks every second already. `content.purge` is enqueued with `run_after = now() + 10 seconds` by the undo endpoint itself, in the same transaction as the soft delete, and the job is idempotent so overlapping enqueues are free. No cron, no new process. *This is deliberately a consequence of a delete rather than a timer: a timer that stops running leaves content the person believes is gone, and nothing notices.*
 

@@ -34,18 +34,49 @@ rows for their own reasons, are untouched (026 keeps an email's pictures).
 | `deleteContent` | `takePhotosOfRow` with the row's returned `deleted_at`/`purge_after` | `setArchived(false)` calls `restorePhotosOfRow` with the row's `deleted_at` before clearing |
 | `deleteThread`, last member | `takePhotosOfThread` with the thread's `deleted_at` and `purge_after = deleted_at + 15s` (the restore window), then enqueues `content.purge` 17 s out | `restoreThread` reads the thread's `deleted_at`, revives it, calls `restorePhotosOfThread` |
 
-Both takes require `kind = 'image'`, a link from the row or thread's live
-rows, and no live row elsewhere. The row take also requires the deleter to be
+Both takes require a link from the row or thread's live rows and no live
+row elsewhere. *They required `kind = 'image'` until 2026-10-05; a row now
+takes every file it carries, of any kind.* The row take also requires the deleter to be
 the uploader or the uploader to hold no accepted membership in the row's
 thread; `requireAuthor` has already refused anybody else (OFF-3). Restores
 match on the exact stamp the take wrote, read back through the same JS `Date`,
 so they can never revive a blob another path condemned.
 
+**The message a row came from** (2026-10-05, the owner: what you delete is
+deleted). All of it lives in `src/threads/takes.ts`, beside the file takes.
+
+| Path | Takes | Undo |
+| --- | --- | --- |
+| `deleteContent` | `takeSourceOfRow` with the row's `derived_from_message_id` and clock, after the row's own update | `setArchived(false)` calls `restoreSourceOfRow` |
+| `deleteNote` (now one transaction, and enqueues `content.purge` 10 s out) | `takeSourceOfRow` with the note's message, its thread when `scope = 'thread'` | `restoreNote` calls `restoreSourceOfRow` |
+| `deleteThread`, last member | `takeSourcesOfThread`: every message a live row or note in the thread came from | `restoreThread` calls `restoreSourcesOfThread` after reviving the thread |
+
+A message is taken when nothing alive came from it: no live `content` row in
+a live thread, and no note that is not deleted, not folded and not in a
+deleted thread. The row take also requires the deleter to be the message's
+author or the author to hold no accepted membership in the row's thread, the
+file rule. Taking a message also takes, on the same stamp, every blob with
+its `message_id` that no live row in a live thread carries (the voice note
+among them), and the `offload` messages of its turn once the turn has no live
+`person` message left. One statement with data-modifying CTEs; the reply's
+check names the taken ids, since a CTE reads the snapshot from before it.
+
+The restore brings back any deleted message that the restored row, note or
+thread came from, whatever its stamp, and the blobs and reply that match that
+message's own stamp. The stamp rule holds for the files and reply; the
+message itself is alive whenever something alive came from it.
+
 `photosOf` already filters `blobs.deleted_at is null`, so the settle's
 `fileUnfiled` cannot file a condemned photo again (AC-10).
 
 `blobPurge` first puts back any due blob a live row in a live thread still
-carries (AC-11), then destroys the rest as before. A thread's delete leaves its
+carries (AC-11), then destroys the rest, up to 500 a run, and books another
+run when the batch was full. *Until 2026-10-05 it threw at 500 due and
+purged nothing for anybody, so an account deletion with thousands of photos
+never completed.* `content.purge` works the same way: up to 500 from each
+table a run, content and notes first, messages and threads only in a run that
+left no due content or note behind, another run booked when any batch was
+full. A thread's delete leaves its
 rows live until the thread is purged, so the live-thread condition is what
 stops a thread's condemned photos being put back for good.
 

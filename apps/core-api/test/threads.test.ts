@@ -1043,6 +1043,10 @@ describe("the answer says where it filed things (005 links)", () => {
       })
       .returning("id").executeTakeFirstOrThrow();
     const row = await content(me, t, "Boiler service", message.id);
+    // A second row from the same dump, elsewhere, so the message itself stays:
+    // the last row's delete takes the message too (036, 2026-10-05).
+    const elsewhere = await thread(me, "Bookshelf build");
+    await content(me, elsewhere, "Brackets", message.id);
 
     await deleteContent(me, row);
 
@@ -1052,7 +1056,7 @@ describe("the answer says where it filed things (005 links)", () => {
       headers: { cookie: await signIn(me) },
     });
     // A link to a thread the content no longer sits in is a link to nothing.
-    expect((response.json() as { threads: unknown[] }).threads).toEqual([]);
+    expect((response.json() as { threads: { id: string }[] }).threads.map((x) => x.id)).toEqual([elsewhere]);
   });
 });
 

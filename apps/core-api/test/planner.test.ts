@@ -26,7 +26,7 @@ import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
 import { streamStep } from "../src/routes/dumps.js";
-import { handlers, PURGE_CEILING } from "../src/jobs/handlers.js";
+import { handlers, PURGE_BATCH } from "../src/jobs/handlers.js";
 import { answerQuestion, takeDump, undoTurn } from "../src/routes/dumps.js";
 import { questionsFor } from "../src/questions.js";
 import { MAX_TOOL_CALLS } from "../src/routes/tools.js";
@@ -820,13 +820,15 @@ describe("the purge job", () => {
     expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(1);
   });
 
-  it("halts rather than deleting past its ceiling (AC-12)", async () => {
+  // The owner, 2026-10-05: a batch a run, not a halt, so a delete of any size
+  // completes. The run that fills a batch books the next one.
+  it("deletes past a batch over more than one run (AC-12)", async () => {
     const accountId = await account();
     const threadId = await thread(accountId, "Flat admin");
     const { messageId } = await dump(accountId);
 
     const past = new Date(Date.now() - 60_000);
-    const rows = Array.from({ length: PURGE_CEILING + 1 }, (_, i) => ({
+    const rows = Array.from({ length: PURGE_BATCH + 1 }, (_, i) => ({
       account_id: accountId,
       thread_id: threadId,
       derived_from_message_id: messageId,
@@ -837,14 +839,15 @@ describe("the purge job", () => {
       purge_after: past,
     }));
     await db.insertInto("content").values(rows).execute();
+    await db.deleteFrom("jobs").execute();
 
-    await expect(purge({}, deps, null)).rejects.toThrow(/ceiling/);
+    await purge({}, deps, null);
+    expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(1);
+    const next = await db.selectFrom("jobs").select("id").where("kind", "=", "content.purge").execute();
+    expect(next).toHaveLength(1);
 
-    // Nothing deleted. A run that wants to destroy an absurd number of rows is
-    // a bug, and the right response to a bug in a delete is to stop.
-    expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(
-      PURGE_CEILING + 1
-    );
+    await purge({}, deps, null);
+    expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(0);
   });
 });
 

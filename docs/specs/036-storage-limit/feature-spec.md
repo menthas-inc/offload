@@ -77,8 +77,32 @@ This spec makes it true; the page's words do not change.
   Archiving, a forwarded email's Undo (whose pictures stay with the email,
   026), account deletion and leaving a thread others are still in do to the
   file what they do today.
-- **Voice notes** have no row and no delete of their own; Undo of the dump is
-  the only way one goes, and that is unchanged.
+- **Voice notes** have no row and no delete of their own. Since 2026-10-05 one
+  goes with the last row or note that came from its dump, below, as well as
+  with Undo of the dump.
+
+### What you delete is deleted
+
+*Added 2026-10-05, the owner's decision after an audit found a deleted row
+left its dump behind: the words, a voice note's audio and its transcript.*
+
+- **A row or a note deleted takes the message it came from** once nothing
+  else alive came from that message: its words, every file on it of any kind,
+  a voice note's audio and the transcript, which is part of the message, and
+  offload's reply under it, which names what is gone. One dump can make several
+  rows and notes, so the message stays while any of them is alive, archived
+  ones included. The same rule as a photo decides whose: the deleter dumped it,
+  or its author has left the row's thread.
+- **A row takes every file it carries**, of any kind, not only photos.
+- **Deleting a thread you are the last one in** takes the messages its rows
+  and notes came from, the same way, keeping any that a live row or note in
+  another thread also came from.
+- **All of it rides the delete's clock** and Undo brings all of it back. A row
+  put back brings its message back whichever delete took it, so two rows from
+  one dump deleted in turn and the first undone leave nothing missing.
+- **The purge works through in batches** of 500 a run, booking the next run
+  itself, so a delete of any size, thousands of photos with an account,
+  completes. It no longer halts at a count (004 AC-12 is amended to match).
 - **The room comes back at once.** What Settings shows and what the limit
   counts drop the moment the delete lands, not when storage catches up.
 
@@ -163,11 +187,26 @@ This spec makes it true; the page's words do not change.
   format the new cap, and a person's page shows it as everything kept.
 - **AC-16** A dump left with no text, no photo and no voice note leaves the
   conversation with its reply, since the reply names what is gone.
+- **AC-17** *(2026-10-05)* Deleting the last live row or note derived from a
+  message marks the message, every blob on it no live row carries, and the
+  reply in its turn deleted on the row's clock; while another row or note
+  from it is alive, the message is untouched. The purge removes the message,
+  and with it the transcript, and destroys the audio in R2.
+- **AC-18** *(2026-10-05)* Deleting a thread as its last member does the same
+  for every message its live rows and notes came from that nothing alive
+  outside it came from; its Undo restores them.
+- **AC-19** *(2026-10-05)* Undo of a row or a note restores the message it
+  came from, with the files and reply that delete took, whichever delete took
+  the message.
+- **AC-20** *(2026-10-05)* `content.purge` and `blob.purge` each remove up to
+  500 a run per table and book another run when a batch was full; more than
+  500 due is removed across runs rather than refused.
 
 ## Out of scope
 
 - **Deleting a voice note, or a message, on its own.** Neither has a control
-  today. Voice notes are small: 1 GB is roughly thirty hours of them.
+  today; each goes with the last row or note that came from it. Voice notes
+  are small: 1 GB is roughly thirty hours of them.
 - **A list of what takes the room, and a warning before the limit.** The way
   back is deleting photos from a thread's Files. The owner chose this on
   2026-10-04; logged as a known gap.
