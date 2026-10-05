@@ -28,6 +28,8 @@ import { db } from "../db.js";
 import type { Database, NotesTable } from "../schema.js";
 import { NotYours, type Executor } from "./access.js";
 import { holdFloor } from "../loose/suggestions.js";
+import { restoreSourceOfRow, takeSourceOfRow } from "./takes.js";
+import { enqueue, PRIORITY } from "../jobs/queue.js";
 
 /** How many of a thread's notes reach a prompt.
  *
@@ -679,11 +681,23 @@ export async function deleteNote(
     })
     .where("id", "=", noteId)
     .where("deleted_at", "is", null)
-    .returning("id")
+    .returning(["id", "deleted_at", "purge_after", "derived_from_message_id", "scope", "subject_id"])
     .executeTakeFirst();
+  if (!row) return false;
+  // The owner, 2026-10-05. The message the note came from goes with it, on
+  // its clock, once nothing else alive came from that message (takes.ts).
+  await takeSourceOfRow(
+    trx,
+    { messageId: row.derived_from_message_id, threadId: row.scope === "thread" ? row.subject_id : null },
+    accountId,
+    { deletedAt: row.deleted_at!, purgeAfter: row.purge_after! },
+  );
   // 028. A proposal that just lost a note may be below two.
-  if (row) await holdFloor(trx, { noteId });
-  return row !== undefined;
+  await holdFloor(trx, { noteId });
+  // Asked for by the delete, as a row's delete does, so what went with it
+  // leaves once the window has passed rather than at the day's run.
+  await enqueue({ kind: "content.purge", accountId, payload: {}, priority: PRIORITY.background, runAfterSeconds: 10, tx: trx });
+  return true;
 }
 
 /** Undo the delete.
@@ -701,8 +715,10 @@ export async function restoreNote(
     .updateTable("notes")
     .set({ deleted_at: null, purge_after: null, updated_at: sql`now()` })
     .where("id", "=", noteId)
-    .returning((eb) => [...COLUMNS, authorIsMember(eb)])
+    .returning((eb) => [...COLUMNS, authorIsMember(eb), "notes.derived_from_message_id as fromMessageId"])
     .executeTakeFirstOrThrow();
+  // And the message it came from, if the delete took it.
+  await restoreSourceOfRow(trx, row.fromMessageId);
   return toNote(row);
 }
 
