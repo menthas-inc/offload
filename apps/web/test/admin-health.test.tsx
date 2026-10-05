@@ -61,7 +61,8 @@ const QUEUE = {
   ],
   historyStarts: "2026-10-02T05:00:00.000Z",
 };
-const BACKUPS = { last: { finishedAt: "2026-10-03T03:00:00.000Z", bytes: 1288490189, ok: true }, late: false };
+// Midday UTC, so it is 3 October wherever the suite runs.
+const BACKUPS = { last: { finishedAt: "2026-10-03T12:00:00.000Z", bytes: 1288490189, ok: true }, late: false };
 
 const SCHEDULED = {
   jobs: [
