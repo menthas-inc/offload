@@ -58,7 +58,8 @@ await startHourly("export.sweep");
 // nothing can use any more. SQL only; it asks Google nothing.
 await startDaily("places.age");
 // 030. The one pass over what existed before the map, at the first boot with
-// the map on. Keyed once ever; every row it books is marked as well.
+// the map on. The pass marks itself as run (backfill.ts), since this key
+// lasts only as long as the job row; every row it books is marked as well.
 if (mapsConfig().on) {
   await enqueue({ kind: "maps.backfill", payload: {}, priority: PRIORITY.background, idempotencyKey: "maps.backfill:030" });
 }
