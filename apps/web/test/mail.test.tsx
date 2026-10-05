@@ -139,13 +139,12 @@ describe("the privacy page says what happens to an email you forward (T6.1)", ()
     const { readFileSync } = await import("node:fs");
     const page = readFileSync(`${process.cwd()}/src/app/(marketing)/privacy/page.tsx`, "utf8").replace(/\s+/g, " ");
     const session = readFileSync(`${process.cwd()}/../core-api/src/routes/session.ts`, "utf8");
-    expect(page).toContain("<strong>Email you forward to offload.</strong> Its text, and the pictures in it worth keeping. We never keep the raw email, its headers or its other attachments. Resend, which receives it for us, keeps the email for 30 days and then deletes it.");
-    expect(page).toContain("<strong>An email you forward</strong> goes to Anthropic like anything else you upload, and so do small copies of its pictures, so offload can tell a ticket from a logo.");
-    expect(page).toContain("<td>Sends the handful of emails we send, and receives email you forward to offload</td>");
-    expect(page).toContain("<td> Your email address and the email itself; an email you forward is kept by them for 30 days, in the United States, encrypted, and then deleted </td>");
-    expect(page).toContain("Your photos, screenshots, voice notes and the pictures from email you forward, encrypted, and never a key");
-    expect(page).toContain("<strong>An email you forward into a shared thread</strong> shows the others what it says, including who sent it.");
-    expect(page).toContain("An email you forward travels to us the way email does, which is not encrypted end to end.");
+    // Generalised on 2026-10-05: the policy says what is kept of a forwarded
+    // email, and the companies page names Resend as the receiver.
+    const companies = readFileSync(`${process.cwd()}/src/app/(marketing)/privacy/companies/page.tsx`, "utf8").replace(/\s+/g, " ");
+    expect(page).toContain("its subject, who sent it and when, but not the raw email or its other attachments");
+    expect(companies).toContain(`name: "Resend"`);
+    expect(companies).toContain("receives email you forward to offload");
     expect(page).not.toContain("Cloudflare Email Routing");
     // The pairing is what this checks: the page's date and the consent version
     // name the same day, whichever day a later change moves them to.

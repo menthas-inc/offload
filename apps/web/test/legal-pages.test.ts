@@ -55,6 +55,7 @@ describe("the public site reads as finished", () => {
     expect(sitemap().map((entry) => entry.url)).toEqual([
       "https://offload.club/",
       "https://offload.club/privacy",
+      "https://offload.club/privacy/companies",
       "https://offload.club/terms",
       "https://offload.club/delete-account",
     ]);
@@ -74,40 +75,13 @@ describe("the public site reads as finished", () => {
   });
 
   // 035 AC-24. The privacy page is a claim surface: once deleting an account
-  // is built, the page may not say it is done by hand, and it says what a
-  // deleted account leaves with us.
-  it("says on the privacy page that deleting is built, and what is kept without the account", () => {
+  // and exporting are built, the page may not say they are done by hand. Since
+  // 2026-10-05 it says so generally, and the mechanics live in the product.
+  it("says on the privacy page that deleting and exporting are yours to do in Settings", () => {
     const privacy = read("app/(marketing)/privacy/page.tsx");
     expect(privacy).not.toContain("none of the controls below is built yet");
-    expect(privacy).toContain(
-      "Deleting is built: a single upload, a thread, or your whole account, which you delete yourself in Settings under My account."
-    );
-    expect(privacy).toContain(
-      "<strong>When you delete your account:</strong> the same, and three things more. Access to a calendar you connected is revoked at Google. Our record of what each request cost to run is kept with your account removed from it, and holds none of your content. And we send one email to your address to say it was done."
-    );
+    expect(privacy).toContain("In Settings you can export everything, delete your account");
     expect(privacy).toContain('href="/delete-account"');
-  });
-
-  // 035 AC-24, part B. The export is built, so the dated note stops covering
-  // it, and the page says how long a copy is kept, how it is kept, how often
-  // one can be made, and that a member's copy holds a shared thread whole.
-  it("says on the privacy page that exporting is built, and exactly how a copy is kept", () => {
-    const privacy = read("app/(marketing)/privacy/page.tsx");
-    expect(privacy).toContain(
-      "Exporting is built too: you make a copy yourself in Settings under Privacy."
-    );
-    expect(privacy).toContain(
-      "<strong>Export everything.</strong> One file, readable without offload, holding everything you can read: your threads, your conversations, your notes, your people, and your photos and voice notes as ordinary files. We keep the copy for 7 days, encrypted with a key our storage provider never receives, and it is downloaded only while you are signed in. You can make one every 7 days. It is destroyed sooner if you delete it, if you leave or are taken out of a thread it holds, or with your account. We send one email to your address to say a copy was asked for."
-    );
-    expect(privacy).toContain(
-      "<strong>You can take it all with you.</strong> One export, readable without offload, which you make yourself in Settings."
-    );
-    expect(privacy).toContain(
-      "<strong>Any member can take a copy of a shared thread as they see it</strong>, in their own export, including what the others added and who added it."
-    );
-    expect(privacy).toContain(
-      "<strong>A copy you export: 7 days.</strong> It is destroyed 7 days after you ask for it, or sooner as section 13 says."
-    );
   });
 
   it("says the account is deleted on sign in, once, in place of the invite line", () => {

@@ -539,7 +539,7 @@ export function toRow(row: RawRow, viewerId: string) {
     // missing from two thirds of the link rows in production.
     url: row.url,
     // An address, never bytes. The client loads it from the site, which is the
-    // thing section 9 of the privacy policy now says out loud.
+    // thing the privacy policy says out loud (section 5, looking things up).
     imageUrl: row.image_url,
     // 020. Filled in by `withPhotos` after the page is read, one query for
     // the page rather than a join on every select that shapes a row.

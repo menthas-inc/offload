@@ -153,7 +153,7 @@ const HOUR = /^([01]\d|2[0-3]):[0-5]\d$/;
  *  When the policy changes materially this changes with it, and the gap between
  *  a stored version and this one is the query that finds who has to be asked
  *  again. Must match UPDATED in apps/web/src/app/(marketing)/privacy/page.tsx. */
-export const CONSENT_VERSION = "2026-10-04";
+export const CONSENT_VERSION = "2026-10-05";
 
 /** invited -> active, plus the consent record and the event, in one transaction.
  *
@@ -216,7 +216,7 @@ export async function completeFirstRun(
  *  Two rather than one, and specific rather than "I agree to the policy",
  *  because a bundled acknowledgement is treated as no consent at all, and the
  *  second of these is the only lawful basis we have for the private things
- *  people will inevitably dump in. See the privacy policy, section 4.
+ *  people will inevitably dump in. See the privacy policy.
  *
  *  A boolean the client asserts is all a server can ever receive here. What it
  *  buys is that a client which does not present the ticks cannot complete

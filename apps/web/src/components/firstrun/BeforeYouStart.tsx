@@ -85,6 +85,10 @@ export function BeforeYouStart({
                 />
                 <span className={styles.tickBox}>{readPolicy ? <Tick /> : null}</span>
                 <span>
+                  {CONSENT.termsBefore}
+                  <a className={styles.tickLink} href="/terms" target="_blank" rel="noreferrer">
+                    {CONSENT.termsLink}
+                  </a>
                   {CONSENT.policyBefore}
                   <a className={styles.tickLink} href="/privacy" target="_blank" rel="noreferrer">
                     {CONSENT.policyLink}

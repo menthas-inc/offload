@@ -11,6 +11,14 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-05 · The consent ticks accept the terms and name AI services from other companies
+**Surface:** iOS, Android, web, first run's Before you start
+**Raised by:** code, from the legal review of 2026-10-05 (Apple 5.1.2(i), and terms accepted by use rather than by a tick).
+**Was:** *I have read the privacy policy.* and *I understand offload will hold whatever I dump in, which can include health, money and other private matters, and I agree to it being processed to run offload.*
+**Is:** *I agree to the terms and have read the privacy policy.*, with both words linked, and the second tick ends *...processed to run offload, including by AI services from other companies.* Same two ticks, same layout, same server contract.
+**Why:** Apple asks for explicit permission before personal data goes to third-party AI, and the old line did not say anyone outside offload received it. A tick is also what makes the terms bind; using the app alone often does not.
+**Design system impact:** `explorations/onboarding-screens.js`: `CONSENT` gains `termsBefore` and `termsLink` before the policy link, `policyBefore` becomes " and have read the ", and `processing` gains the closing clause. No layout, token or component change.
+
 ### 2026-10-05 · Connected apps is the cards alone, and dark settings lift their edges
 **Surface:** iOS, Android, web
 **Raised by:** code, from the owner looking at settings in dark on the web.

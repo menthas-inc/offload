@@ -142,11 +142,13 @@ export const NAME_STEP = {
  *  Kept here with the rest of the gate copy so the two platforms cannot drift.
  *  The web app repeats it in its own welcome screen; the three have to match. */
 export const CONSENT = {
-  policyBefore: "I have read the ",
+  termsBefore: "I agree to the ",
+  termsLink: "terms",
+  policyBefore: " and have read the ",
   policyLink: "privacy policy",
   policyAfter: ".",
   processing:
-    "I understand offload will hold whatever I dump in, which can include health, money and other private matters, and I agree to it being processed to run offload.",
+    "I understand offload will hold whatever I dump in, which can include health, money and other private matters, and I agree to it being processed to run offload, including by AI services from other companies.",
   // Not a consent and not a warning about us. It is the one piece of advice on
   // the screen and it applies to every assistant, not only this one.
   note: "We do not recommend sharing passwords, card numbers or government IDs in any AI tool.",

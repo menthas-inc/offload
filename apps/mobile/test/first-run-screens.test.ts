@@ -71,6 +71,21 @@ describe("033 the phones' first run", () => {
     expect(read("lib/gate.ts")).not.toMatch(/\bTUTORIAL\b|offersFor|dotsFor|mailStep/);
   });
 
+  // Apple 5.1.2(i): the consent names AI services from other companies, and
+  // the first tick links the terms beside the privacy policy. The copy is the
+  // web's, word for word.
+  it("asks consent in the web's words, linking the terms and the policy", () => {
+    const pick = (source: string) => /export const CONSENT = (\{[\s\S]*?\}) as const;/.exec(source)![1]!.replace(/\/\/.*$/gm, "").replace(/\s+/g, " ");
+    const phones = read("lib/gate.ts");
+    const web = readFileSync(new URL("../../web/src/components/firstrun/copy.ts", import.meta.url), "utf8");
+    expect(pick(phones)).toBe(pick(web));
+    expect(phones).toContain('termsLink: "terms"');
+    expect(phones).toContain("including by AI services from other companies.");
+    const ticks = code("components/ConsentTicks.tsx");
+    expect(ticks).toMatch(/Linking\.openURL\(TERMS_URL\)/);
+    expect(ticks).toMatch(/Linking\.openURL\(PRIVACY_URL\)/);
+  });
+
   it("says what Help's row now replays (AC-21)", () => {
     expect(read("app/settings/[page].tsx")).toMatch(/note="The intro from your first day\."/);
   });

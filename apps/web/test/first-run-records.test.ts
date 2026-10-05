@@ -11,8 +11,7 @@ const flat = (text: string) => text.replace(/\s+/g, " ");
 describe("033 records", () => {
   it("says where consent is given without naming a screen (AC-17, owner 2026-10-03)", () => {
     const page = flat(read("src/app/(marketing)/privacy/page.tsx"));
-    expect(page).toContain("Your explicit consent, given in first run");
-    expect(page).toContain("it is why first run asks for two tick boxes rather than a button");
+    expect(page).toContain("First run asks you to agree");
     expect(page).not.toContain("given on the last screen of first run");
     expect(page).not.toContain("first run ends with two tick boxes");
   });
