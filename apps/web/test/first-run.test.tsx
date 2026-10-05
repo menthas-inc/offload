@@ -205,6 +205,18 @@ describe("033 Before you start (AC-5, AC-6)", () => {
     expect(host.textContent).not.toContain("so it is worth knowing what that means");
   });
 
+  // Apple 5.1.2(i): explicit permission before anything goes to another
+  // company's AI, and the terms accepted with a tick rather than by use.
+  it("links the terms and the privacy policy, and names AI services from other companies", async () => {
+    const host = await atYou();
+    const [first, second] = [...host.querySelectorAll("label")].filter((label) => label.querySelector('input[type="checkbox"]'));
+    expect(first!.textContent).toBe("I agree to the terms and have read the privacy policy.");
+    expect([...first!.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(["/terms", "/privacy"]);
+    expect(second!.textContent).toBe(
+      "I understand offload will hold whatever I dump in, which can include health, money and other private matters, and I agree to it being processed to run offload, including by AI services from other companies.",
+    );
+  });
+
   it("writes once with the name and the zone, then opens Bring it all in", async () => {
     const host = await atYou();
     await click(checkboxes(host)[0]);

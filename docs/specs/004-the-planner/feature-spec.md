@@ -96,7 +96,7 @@ Short. "Done" is enough, "Added to Flat admin" is better. It states the outcome 
 - **AC-9** Undo reverses a whole turn: the person's message, every piece of content derived from it, and offload's reply, in one transaction under one `purge_after`.
 - **AC-10** Nothing is destroyed while Undo is available. A hard delete happens only after `purge_after`, by a scheduled job.
 - **AC-11** Undo is available for eight seconds and is idempotent: pressing it twice removes nothing extra and errors nothing.
-- **AC-12** The purge job deletes only rows that are both soft-deleted and past `purge_after`, takes a whole turn's rows in one transaction, is the only thing in the system holding hard-delete rights on these tables, and halts rather than continues if a single run would delete more than a stated ceiling.
+- **AC-12** The purge job deletes only rows that are both soft-deleted and past `purge_after`, takes a whole turn's rows in one transaction, is the only thing in the system holding hard-delete rights on these tables, and halts rather than continues if a single run would delete more than a stated ceiling. *Amended 2026-10-05 (036 AC-20): the ceiling is a batch. A run deletes up to 500 from each table and books the next run, so a large delete completes; a count could not tell a thread or an account with thousands of rows from a bad predicate, and the halt stopped the purge for everyone. Messages are deleted only in a run that left no due content behind.*
 
 **The loop**
 

@@ -27,8 +27,9 @@ import { takeDump } from "../src/routes/dumps.js";
 import { deleteContent, deleteThread, restoreThread, setArchived } from "../src/routes/threads.js";
 import { objectKey, objectStore, resetObjectStore } from "../src/blobs/store.js";
 import { storageUsed } from "../src/blobs/storage.js";
-import { handlers } from "../src/jobs/handlers.js";
+import { handlers, PURGE_BATCH } from "../src/jobs/handlers.js";
 import { takeOut } from "../src/threads/sharing.js";
+import { deleteNote, restoreNote } from "../src/threads/notes.js";
 
 await migrate(() => {});
 
@@ -190,6 +191,8 @@ const blobRow = (id: string) => db.selectFrom("blobs").select(["deleted_at", "pu
 /** Past the eight seconds, the way the purge sees them. */
 async function pastTheWindow(): Promise<void> {
   await db.updateTable("content").set({ purge_after: sql`now() - interval '1 second'` }).where("deleted_at", "is not", null).execute();
+  await db.updateTable("notes").set({ purge_after: sql`now() - interval '1 second'` }).where("deleted_at", "is not", null).execute();
+  await db.updateTable("messages").set({ purge_after: sql`now() - interval '1 second'` }).where("deleted_at", "is not", null).execute();
   await db.updateTable("threads").set({ purge_after: sql`now() - interval '1 second'` }).where("deleted_at", "is not", null).execute();
   await db.updateTable("blobs").set({ purge_after: sql`now() - interval '1 second'` }).where("deleted_at", "is not", null).execute();
   await handlers["content.purge"]!({}, { mailer: null as never }, null);
@@ -508,5 +511,200 @@ describe("deleting a thread you are alone in", () => {
     const { blobId } = await filed(me, shared);
     expect(await deleteThread(me.id, shared)).toEqual({ left: true, deleted: false });
     expect((await blobRow(blobId))!.deleted_at).toBeNull();
+  });
+});
+
+// The owner, 2026-10-05: what you delete is deleted. A row takes every file it
+// carries of any kind, and the message it came from once nothing else alive
+// came from that message: the words, a voice note's audio and its transcript,
+// and the reply under it. A thread takes the same for everything in it.
+
+/** A dump of words and blobs, and the job its turn runs under. */
+async function dumped(me: { id: string }, text: string, blobIds: string[] = []) {
+  const sent = await takeDump(me.id, text, uuidv7(), undefined, { blobIds, viaShare: false });
+  return { messageId: sent.messageId, jobId: await jobOf(sent.messageId) };
+}
+
+/** One row the turn filed. */
+async function fileRow(jobId: string, threadId: string, title: string): Promise<string> {
+  const added = await tool({ tool: "add_content", jobId, toolCallId: uuidv7(), threadId, title, type: "task" });
+  expect(added.json().ok).toBe(true);
+  return added.json().contentId as string;
+}
+
+/** A voice note dumped, heard, and filed as one row. */
+async function voiceFiled(me: { id: string }, threadId: string) {
+  const res = await uploadVoice(await signIn(me.id));
+  expect(res.statusCode).toBe(201);
+  const voiceId = res.json().blobId as string;
+  const { messageId, jobId } = await dumped(me, "", [voiceId]);
+  await db.updateTable("messages").set({ transcript: "call the dentist on tuesday", transcribed_at: sql`now()` }).where("id", "=", messageId).execute();
+  const contentId = await fileRow(jobId, threadId, "Call the dentist");
+  return { voiceId, messageId, jobId, contentId };
+}
+
+const messageRow = (id: string) =>
+  db.selectFrom("messages").select(["deleted_at", "purge_after", "transcript"]).where("id", "=", id).executeTakeFirst();
+
+describe("deleting a row takes what it came from", () => {
+  it("takes a voice note's audio and transcript on the row's clock, and the purge destroys both", async () => {
+    const me = await person();
+    const { voiceId, messageId, jobId, contentId } = await voiceFiled(me, me.defaultThreadId);
+    expect((await turnResult({ outcome: "answered", jobId, replyText: "Added the dentist.", usage: goodUsage })).statusCode).toBe(200);
+    const reply = await db.selectFrom("messages").select("id").where("role", "=", "offload").executeTakeFirstOrThrow();
+
+    await deleteContent(me.id, contentId);
+    const content = await db.selectFrom("content").select("purge_after").where("id", "=", contentId).executeTakeFirstOrThrow();
+    expect((await messageRow(messageId))!.purge_after!.getTime()).toBe(content.purge_after!.getTime());
+    expect((await blobRow(voiceId))!.purge_after!.getTime()).toBe(content.purge_after!.getTime());
+    // The reply under it names what is going.
+    expect((await messageRow(reply.id))!.deleted_at).not.toBeNull();
+    expect(await storageUsed(me.id)).toBe(0);
+
+    await pastTheWindow();
+    expect(await messageRow(messageId)).toBeUndefined();
+    expect(await messageRow(reply.id)).toBeUndefined();
+    expect(await blobRow(voiceId)).toBeUndefined();
+  });
+
+  it("keeps the message while another row from it is alive, and takes it with the last", async () => {
+    const me = await person();
+    const { messageId, jobId } = await dumped(me, "dentist tuesday, and buy milk");
+    const dentist = await fileRow(jobId, me.defaultThreadId, "Dentist");
+    const milk = await fileRow(jobId, me.defaultThreadId, "Buy milk");
+
+    await deleteContent(me.id, dentist);
+    expect((await messageRow(messageId))!.deleted_at).toBeNull();
+    await deleteContent(me.id, milk);
+    expect((await messageRow(messageId))!.deleted_at).not.toBeNull();
+  });
+
+  it("keeps the message while a note from it is alive", async () => {
+    const me = await person();
+    const { messageId, jobId } = await dumped(me, "dentist tuesday, I prefer mornings");
+    const dentist = await fileRow(jobId, me.defaultThreadId, "Dentist");
+    const note = await db
+      .insertInto("notes")
+      .values({ account_id: me.id, scope: "thread", subject_id: me.defaultThreadId, kind: "standing", text: "Prefers mornings", origin: "stated", derived_from_message_id: messageId })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    await deleteContent(me.id, dentist);
+    expect((await messageRow(messageId))!.deleted_at).toBeNull();
+    expect(await deleteNote(note.id, me.id)).toBe(true);
+    expect((await messageRow(messageId))!.deleted_at).not.toBeNull();
+    await restoreNote(note.id, me.id);
+    expect((await messageRow(messageId))!.deleted_at).toBeNull();
+  });
+
+  it("is all put back by Undo", async () => {
+    const me = await person();
+    const { voiceId, messageId, contentId } = await voiceFiled(me, me.defaultThreadId);
+    await deleteContent(me.id, contentId);
+    await setArchived(me.id, contentId, false);
+    expect(await messageRow(messageId)).toEqual({ deleted_at: null, purge_after: null, transcript: "call the dentist on tuesday" });
+    expect(await blobRow(voiceId)).toEqual({ deleted_at: null, purge_after: null });
+  });
+
+  it("puts the message back when a row is undone after its sibling's delete took it", async () => {
+    const me = await person();
+    const { messageId, jobId } = await dumped(me, "dentist tuesday, and buy milk");
+    const dentist = await fileRow(jobId, me.defaultThreadId, "Dentist");
+    const milk = await fileRow(jobId, me.defaultThreadId, "Buy milk");
+    await deleteContent(me.id, dentist);
+    await deleteContent(me.id, milk);
+    await setArchived(me.id, dentist, false);
+    expect((await messageRow(messageId))!.deleted_at).toBeNull();
+  });
+
+  it("takes the message of a row its author left behind when a member deletes it", async () => {
+    const me = await person();
+    const bob = await person();
+    const shared = await thread(me.id, "Flat admin");
+    await addMember(bob.id, shared);
+    const { messageId, jobId } = await dumped(me, "boiler service in march");
+    const contentId = await fileRow(jobId, shared, "Boiler service");
+    await deleteThread(me.id, shared);
+    await db.updateTable("thread_members").set({ left_at: sql`now() - interval '1 hour'` }).where("account_id", "=", me.id).execute();
+    expect(await deleteContent(bob.id, contentId)).toBe(true);
+    expect((await messageRow(messageId))!.deleted_at).not.toBeNull();
+  });
+});
+
+describe("deleting a thread takes what its rows came from", () => {
+  it("takes their messages, keeps one a row elsewhere came from, and Undo brings them back", async () => {
+    const me = await person();
+    const build = await thread(me.id, "Bookshelf build");
+    const { voiceId, messageId } = await voiceFiled(me, build);
+    const both = await dumped(me, "brackets, and the dentist");
+    await fileRow(both.jobId, build, "Brackets");
+    await fileRow(both.jobId, me.defaultThreadId, "Dentist");
+
+    expect(await deleteThread(me.id, build)).toEqual({ left: true, deleted: true });
+    const dead = await db.selectFrom("threads").select("purge_after").where("id", "=", build).executeTakeFirstOrThrow();
+    expect((await messageRow(messageId))!.purge_after!.getTime()).toBe(dead.purge_after!.getTime());
+    expect((await blobRow(voiceId))!.deleted_at).not.toBeNull();
+    expect((await messageRow(both.messageId))!.deleted_at).toBeNull();
+
+    expect(await restoreThread(me.id, build)).toBe(true);
+    expect((await messageRow(messageId))!.deleted_at).toBeNull();
+    expect(await blobRow(voiceId)).toEqual({ deleted_at: null, purge_after: null });
+  });
+
+  it("destroys them once the thread is purged", async () => {
+    const me = await person();
+    const build = await thread(me.id, "Bookshelf build");
+    const { voiceId, messageId } = await voiceFiled(me, build);
+    await deleteThread(me.id, build);
+    await pastTheWindow();
+    expect(await messageRow(messageId)).toBeUndefined();
+    expect(await blobRow(voiceId)).toBeUndefined();
+  });
+});
+
+describe("the purge in batches", () => {
+  const run = (kind: string) => handlers[kind]!({}, { mailer: null as never }, null);
+  const queued = (kind: string) =>
+    db.selectFrom("jobs").select("id").where("kind", "=", kind).where("state", "=", "queued").execute();
+
+  it("destroys more files than one run takes, a batch a run, and books the next run itself", async () => {
+    const me = await person();
+    for (let i = 0; i < PURGE_BATCH + 20; i += 1) await kept(me.id, 10, { deleted: true });
+    await db.deleteFrom("jobs").execute();
+
+    await run("blob.purge");
+    expect(await db.selectFrom("blobs").select("id").execute()).toHaveLength(20);
+    expect(await queued("blob.purge")).toHaveLength(1);
+
+    await run("blob.purge");
+    expect(await db.selectFrom("blobs").select("id").execute()).toHaveLength(0);
+  });
+
+  it("removes more deleted messages than one run takes, a batch a run", async () => {
+    const me = await person();
+    const { messageId } = await dumped(me, "seed");
+    const conversation = await db.selectFrom("messages").select("conversation_id").where("id", "=", messageId).executeTakeFirstOrThrow();
+    await db
+      .insertInto("messages")
+      .values(
+        Array.from({ length: PURGE_BATCH + 20 }, () => ({
+          conversation_id: conversation.conversation_id,
+          account_id: me.id,
+          role: "person" as const,
+          turn_id: uuidv7(),
+          text: "gone",
+          deleted_at: sql<Date>`now() - interval '1 minute'`,
+          purge_after: sql<Date>`now() - interval '1 second'`,
+        })),
+      )
+      .execute();
+    await db.deleteFrom("jobs").execute();
+
+    await run("content.purge");
+    expect(await db.selectFrom("messages").select("id").where("deleted_at", "is not", null).execute()).toHaveLength(20);
+    expect(await queued("content.purge")).toHaveLength(1);
+
+    await run("content.purge");
+    expect(await db.selectFrom("messages").select("id").where("deleted_at", "is not", null).execute()).toHaveLength(0);
   });
 });

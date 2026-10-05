@@ -183,39 +183,18 @@ describe("a refused label says why, beside the control", () => {
   });
 });
 
-describe("the privacy page says labels (AC-34)", () => {
-  it("names the labels, drops the tags, and moves its date with the consent version", async () => {
+describe("the privacy page moves its date with the consent version (AC-34)", () => {
+  // 2026-10-05: the policy became general by the owner's call, so it no longer
+  // names labels or what is kept of a photo's words line by line. What stays is
+  // that the page's date and the consent version move together.
+  it("carries the consent version's date", async () => {
     const { readFileSync } = await import("node:fs");
     const page = readFileSync(new URL("../src/app/(marketing)/privacy/page.tsx", import.meta.url), "utf8");
     const session = readFileSync(new URL("../../core-api/src/routes/session.ts", import.meta.url), "utf8");
-    expect(page).toMatch(/the <strong>labels<\/strong> it is grouped under/);
-    expect(page).not.toMatch(/the tags, dates and/);
-    // A deleted label is kept hidden for its Undo, and taking one off leaves
-    // a record with no name in it; the page says both, and the plain delete
-    // line no longer claims everything.
-    expect(page).toMatch(/<strong>Labels: a deleted one for 30 days/);
-    expect(page).toMatch(/Anything else you delete: immediately, then 30 days\./);
-    // A label is the thread's: the page's rule about what somebody else wrote
-    // says so rather than being quietly untrue for a label's name. Undo is the
-    // moment of the delete; the thirty days are the keeping.
-    const said = page.replace(/\s+/g, " ");
-    expect(said).toMatch(/a label belongs to the thread, so any member can rename or delete one/);
-    expect(said).toMatch(/Undo brings it back in the moment you delete it/);
-    expect(said).toMatch(/is gone for good, inside the 30 days above/);
-    // The two move together, whatever the month: 025 moved them to the 28th,
-    // 2026-09-29's details to the 29th, and 026 to 1 October.
     const updated = /const UPDATED = "(\d+ \w+ 2026)"/.exec(page)?.[1];
     const version = /CONSENT_VERSION = "(2026-\d\d-\d\d)"/.exec(session)?.[1];
     expect(updated).toBeDefined();
     expect(new Date(`${updated} UTC`).toISOString().slice(0, 10)).toBe(version);
-  });
-
-  it("says what is kept of a photo's words and a note's longer text without being shown (2026-09-29)", async () => {
-    const { readFileSync } = await import("node:fs");
-    const page = readFileSync(new URL("../src/app/(marketing)/privacy/page.tsx", import.meta.url), "utf8").replace(/\s+/g, " ");
-    expect(page).toMatch(/The description is shown under the photo; the words read out of it are kept so search and answers can find them, and are not shown anywhere\./);
-    expect(page).toMatch(/that is kept with it without being shown, and goes when the note does\./);
-    expect(page).not.toMatch(/All of it is on the thread/);
   });
 });
 

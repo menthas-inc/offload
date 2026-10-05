@@ -15,7 +15,7 @@
 import { Linking, Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { CONSENT } from "../lib/gate";
-import { PRIVACY_URL } from "../lib/links";
+import { PRIVACY_URL, TERMS_URL } from "../lib/links";
 import { useColors } from "../lib/colors";
 import { Glyph } from "./Glyph";
 
@@ -89,6 +89,13 @@ export function ConsentTicks({
       >
         <Box tone={tone} on={readPolicy} />
         <Text className={`flex-1 font-core ${skin.text}`} style={label}>
+          {CONSENT.termsBefore}
+          <Text
+            className={`font-medium ${skin.link}`}
+            onPress={() => void Linking.openURL(TERMS_URL)}
+          >
+            {CONSENT.termsLink}
+          </Text>
           {CONSENT.policyBefore}
           <Text
             className={`font-medium ${skin.link}`}

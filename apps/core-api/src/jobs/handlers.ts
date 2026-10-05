@@ -292,12 +292,18 @@ const connectorRevoke: Handler = async () => {
   }
 };
 
-/** How many rows one run may destroy before it stops and asks for help.
+/** How much one run of a purge destroys before it books the next run.
  *
- *  A real run is a handful. This is far above anything normal and far below
- *  what a bad predicate would produce, which is the only useful place for a
- *  number like this to sit. */
-export const PURGE_CEILING = 500;
+ *  A batch, not a brake (the owner, 2026-10-05). It used to be a ceiling: a
+ *  run with more due than this deleted nothing and failed, on the grounds that
+ *  a delete wanting that much was a bug. Deleting a thread now takes the
+ *  messages its rows came from, and an account with thousands of photos is a
+ *  real delete, so the count could not tell a big delete from a bad predicate
+ *  and the halt stopped the purge for everyone. What guards the delete is the
+ *  predicate, both conditions always, that only a delete or an Undo writes a
+ *  `purge_after`, and the put back of any file a live row carries. A run that
+ *  fails, R2 refusing say, retries and then dies, which is the dead-job alert. */
+export const PURGE_BATCH = 500;
 
 /** The hard delete, and the only one in the codebase.
  *
@@ -313,11 +319,11 @@ export const PURGE_CEILING = 500;
  *    false today and a future column default is one character away from
  *    changing that. Either condition implies the other right now. They are both
  *    stated anyway.
- *  - **Count before deleting, and stop if the count is absurd.** A run that
- *    suddenly wants 40,000 rows is a bug, and the right response to a bug in a
- *    delete is to do nothing and say so.
- *  - **One transaction**, content before messages, so a crash mid-purge cannot
- *    leave a message whose content is already gone. */
+ *  - **A batch a run.** Up to `PURGE_BATCH` from each table, and a run that
+ *    filled a batch books the next one, so a delete of any size completes.
+ *  - **One transaction a run**, content and notes before messages, and
+ *    messages only in a run that left no due content or note behind, so a
+ *    crash mid-purge cannot leave a message whose content is already gone. */
 const contentPurge: Handler = async () => {
   await db.transaction().execute(async (trx) => {
     const due = sql<boolean>`deleted_at is not null and purge_after is not null and purge_after < now()`;
@@ -329,75 +335,51 @@ const contentPurge: Handler = async () => {
     const folded = sql<boolean>`deleted_at is null and superseded_at is not null
       and purge_after is not null and purge_after < now()`;
 
-    const counts = await Promise.all([
-      trx
-        .selectFrom("content")
-        .select(({ fn }) => fn.countAll<string>().as("n"))
-        .where(due)
-        .executeTakeFirstOrThrow(),
-      trx
-        .selectFrom("messages")
-        .select(({ fn }) => fn.countAll<string>().as("n"))
-        .where(due)
-        .executeTakeFirstOrThrow(),
-      trx
-        .selectFrom("notes")
-        .select(({ fn }) => fn.countAll<string>().as("n"))
-        .where(due)
-        .executeTakeFirstOrThrow(),
-      trx
-        .selectFrom("threads")
-        .select(({ fn }) => fn.countAll<string>().as("n"))
-        .where(due)
-        .executeTakeFirstOrThrow(),
-      trx
-        .selectFrom("notes")
-        .select(({ fn }) => fn.countAll<string>().as("n"))
-        .where(folded)
-        .executeTakeFirstOrThrow(),
-    ]);
-
-    const total = counts.reduce((sum, row) => sum + Number(row.n), 0);
-    // 020. Nothing due on the four tables still leaves the photo sweep at the
-    // bottom of this function to run, so an upload nobody sent is not kept
-    // until something else happens to be deleted.
-    if (total === 0) return sweepBlobs(trx, due);
-
-    if (total > PURGE_CEILING) {
-      // Counts only, and it throws rather than returning, so the job is
-      // recorded as failed and shows up rather than passing quietly.
-      throw new Error(`purge ceiling exceeded: ${total} rows due, ceiling ${PURGE_CEILING}`);
-    }
+    /** One batch from one table. True when it was full, so more may be due. */
+    const batch = async (table: "content" | "notes" | "messages", when: typeof due): Promise<boolean> => {
+      const result = await sql`
+        delete from ${sql.table(table)}
+        where id in (select id from ${sql.table(table)} where ${when} limit ${PURGE_BATCH})
+      `.execute(trx);
+      return Number(result.numAffectedRows ?? 0) >= PURGE_BATCH;
+    };
 
     // Content first. `derived_from_message_id` is on delete set null, so the
     // other order would silently orphan a row from the message it came from
-    // in the moment before it was deleted itself.
-    await trx.deleteFrom("content").where(due).execute();
-    // Notes before messages for the same reason content is: a note's
-    // `derived_from_message_id` is on delete set null, so the other order
-    // orphans it from its source in the moment before it goes itself.
-    await trx.deleteFrom("notes").where(due).execute();
-    // And the folded history that has run out its thirty days.
-    await trx.deleteFrom("notes").where(folded).execute();
-    await trx.deleteFrom("messages").where(due).execute();
+    // in the moment before it was deleted itself. Notes before messages for
+    // the same reason, and the folded history that has run out its thirty days.
+    let more = await batch("content", due);
+    more = (await batch("notes", due)) || more;
+    more = (await batch("notes", folded)) || more;
 
-    // A thread nobody is left in. Everything that points at it cascades,
-    // `content`, `thread_members` and `thread_keys`, with one exception that
-    // does not: `notes.subject_id` is polymorphic so it carries no foreign
-    // key, and nothing removes those unless it is told to. This is the caller
-    // 008 wrote `deleteNotesForThread` for and could not wire, because
-    // until now no path in the product deleted a thread.
-    const deadThreads = await trx
-      .selectFrom("threads")
-      .select("id")
-      .where(due)
-      .execute();
-    for (const thread of deadThreads) {
-      await deleteNotesForThread(thread.id, trx);
+    if (!more) {
+      more = await batch("messages", due);
+
+      // A thread nobody is left in. Everything that points at it cascades,
+      // `content`, `thread_members` and `thread_keys`, with one exception that
+      // does not: `notes.subject_id` is polymorphic so it carries no foreign
+      // key, and nothing removes those unless it is told to. This is the caller
+      // 008 wrote `deleteNotesForThread` for and could not wire, because
+      // until now no path in the product deleted a thread.
+      const deadThreads = await trx
+        .selectFrom("threads")
+        .select("id")
+        .where(due)
+        .limit(PURGE_BATCH)
+        .execute();
+      for (const thread of deadThreads) {
+        await deleteNotesForThread(thread.id, trx);
+      }
+      if (deadThreads.length > 0) {
+        await trx.deleteFrom("threads").where("id", "in", deadThreads.map((thread) => thread.id)).execute();
+      }
+      more = more || deadThreads.length >= PURGE_BATCH;
     }
-    await trx.deleteFrom("threads").where(due).execute();
 
+    // 020. Run whatever was due, so an upload nobody sent is not kept until
+    // something else happens to be deleted.
     await sweepBlobs(trx, due);
+    if (more) await enqueue({ kind: "content.purge", payload: {}, priority: PRIORITY.background, tx: trx });
   });
 };
 
@@ -447,7 +429,7 @@ async function sweepBlobs(trx: Transaction<Database>, due: ReturnType<typeof sql
  *  Outside any transaction, one blob at a time, the object first: a row that
  *  outlives a failed delete is retried next run, while an object that outlives
  *  a deleted row is ciphertext nobody can open and nothing will ever remove.
- *  Same ceiling discipline as `contentPurge`. */
+ *  A batch a run, as `contentPurge`. */
 const blobPurge: Handler = async () => {
   const store = objectStore();
   if (!store) return;
@@ -463,7 +445,7 @@ const blobPurge: Handler = async () => {
     .where("deleted_at", "is not", null)
     .where("purge_after", "<", sql<Date>`now()`)
     .where("provider_ref", "is not", null)
-    .limit(PURGE_CEILING)
+    .limit(PURGE_BATCH)
     .execute();
   for (const blob of held) {
     await enqueue({
@@ -497,17 +479,18 @@ const blobPurge: Handler = async () => {
     .where("purge_after", "is not", null)
     .where("purge_after", "<", sql<Date>`now()`)
     .where("provider_ref", "is", null)
-    .limit(PURGE_CEILING)
+    .limit(PURGE_BATCH)
     .execute();
   if (due.length === 0) return;
-  if (due.length >= PURGE_CEILING) {
-    throw new Error(`blob purge ceiling reached: ${due.length} due, ceiling ${PURGE_CEILING}`);
-  }
   for (const blob of due) {
     await store.remove(RENDITIONS.map((rendition) => objectKey(blob.id, rendition)));
     await db.deleteFrom("blobs").where("id", "=", blob.id).execute();
   }
   console.log(JSON.stringify({ level: "info", msg: "blobs purged", removed: due.length }));
+  // A full batch books the next run, so a delete of thousands of files
+  // completes a batch at a time. After the work: a run that dies before this
+  // line leaves the rest to the day's run.
+  if (due.length >= PURGE_BATCH) await enqueue({ kind: "blob.purge", payload: {}, priority: PRIORITY.background });
 };
 
 /** Turn a place name into a point on a map, out of band.
@@ -1009,7 +992,7 @@ const blobDaily: Handler = async () => {
     .select("id")
     .where("provider_ref", "is not", null)
     .where("created_at", "<", sql<Date>`now() - interval '1 hour'`)
-    .limit(PURGE_CEILING)
+    .limit(PURGE_BATCH)
     .execute();
   for (const blob of held) {
     await enqueue({

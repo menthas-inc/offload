@@ -1,29 +1,35 @@
 // The privacy policy.
 //
-// A first draft, written from docs/constitution/principles.md and
-// docs/tech/stack.md rather than from a template, so every claim on it is one
-// the code actually supports. OFF-2 is the reason the security section says
-// what is *not* covered: "your data is encrypted" is a sentence this product
-// may never print, anywhere, including here.
+// Rewritten general on 2026-10-05 (owner: "generalize when it helps"), from a
+// legal review and a claim by claim audit of the page before it. It states
+// what the law and the stores ask for (who, what, why, who else, how long,
+// rights, changes) and promises outcomes, not mechanisms, so ordinary product
+// work does not make a line of it untrue. The companies are on their own page,
+// /privacy/companies, with their own date.
 //
-// Not reviewed by a lawyer. The placeholders this page was published with
-// went on 2026-10-03: offload is not incorporated, so the page says so rather
-// than leaving a bracket where a name would be.
+// OFF-2 is the reason the security section says what is *not* covered: "your
+// data is encrypted" is a sentence this product may never print, anywhere,
+// including here. Not reviewed by a lawyer.
 //
-// Copy on this page says "upload" where the rest of the product says "dump".
-// That is deliberate and, for now, local to this page. See decisions.md.
+// Copy on this page says "put in" and "upload" where the rest of the product
+// says "dump". That is deliberate and local to this page. See decisions.md.
+//
+// UPDATED must name the same day as CONSENT_VERSION in
+// apps/core-api/src/routes/session.ts.
 
 import type { Metadata } from "next";
-import { Screen, ScreenFooter, ScreenHeader, screenStyles } from "@/components/Screen";
+import { Screen, ScreenFooter, ScreenHeader, screenStyles } from "../../../components/Screen";
 import styles from "./privacy.module.css";
 
 export const metadata: Metadata = {
-  title: "Privacy · offload",
+  title: "Privacy policy · offload",
   description:
-    "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
+    "What offload collects, why, who else handles it, how long it is kept and how to get rid of it. Plus a short version at the top.",
 };
 
-const UPDATED = "4 October 2026";
+const UPDATED = "5 October 2026";
+
+const MAIL = <a href="mailto:hello@offload.club">hello@offload.club</a>;
 
 export default function Privacy() {
   return (
@@ -38,7 +44,7 @@ export default function Privacy() {
 
       <article className={styles.document}>
         <p className={styles.updated}>Last updated {UPDATED}</p>
-        <h1 className={styles.title}>Privacy</h1>
+        <h1 className={styles.title}>Privacy policy</h1>
         <p className={styles.standfirst}>
           offload only works if you put real material into it, and you should only do that if you
           know where it goes. This page says where it goes.
@@ -47,54 +53,37 @@ export default function Privacy() {
         <section className={styles.summary}>
           <h2 className={styles.summaryTitle}>The short version</h2>
           <p className={styles.disclaimer}>
-            This section is not a legal document. It is our attempt to summarise this page to make
-            it more readable. Where the two disagree, the sections below are the ones that count.
+            This summary is not the policy. Where the two differ, the sections below count.
           </p>
 
           <ul className={styles.bullets}>
             <li>
-              <strong>What you upload is yours.</strong> We do not sell it, rent it, trade it or
-              hand it to advertisers. If offload is ever bought, the buyer is bound by this page as
-              it stands, and section 8 says what that means.
+              <strong>What you put in is yours.</strong> We do not sell it, rent it or use it for
+              advertising.
             </li>
             <li>
-              <strong>We do not train AI on what you upload.</strong> That stays off unless you
-              explicitly allow us to improve the product with your content, and you can withdraw
-              that at any time. One company in section 6, Google Maps Platform, which draws the map
-              in a thread, may use what it receives to improve its own products: the name of a
-              place being looked up, and what your device sends it while a map is on screen.
+              <strong>We do not use your content to train models,</strong> and the companies that
+              process it for us are bound not to either, except Google Maps Platform, as section 6
+              says.
             </li>
             <li>
-              <strong>Delete anything, whenever you want.</strong> A single upload, a thread, or the
-              whole account. It leaves our live systems immediately and our backups within 30 days.
-              One exception: what you put into a thread you share stops being yours alone. Section
-              10 explains why.
+              <strong>Only what a task needs goes to the companies that help run offload.</strong>{" "}
+              They are listed on <a href="/privacy/companies">their own page</a>.
             </li>
             <li>
-              <strong>Your photos, screenshots, voice notes and the pictures from email you forward are encrypted</strong> before we
-              store them, with a key our storage provider never receives. The text in offload is
-              not. We plan to encrypt that too.
+              <strong>Delete anything, or your whole account, whenever you want.</strong> What you
+              put in a shared thread stays with the people in it. Section 9 says why.
             </li>
             <li>
-              <strong>No ad trackers and no cookie banner.</strong> Nothing on our site follows you
-              anywhere else. A thread&rsquo;s map is drawn by Google, and section 6 says what Google
-              receives when it is on screen.
+              <strong>Take it all with you.</strong> You can export everything yourself, in
+              Settings.
             </li>
             <li>
-              <strong>A few companies help us run offload.</strong> All of them are named below,
-              none of them may use what you upload for their own purposes except Google Maps
-              Platform, as section 6 says, and we do not add one quietly. Three of them carry a notification to your phone: Expo, then Apple or
-              Google, and the words of a notification pass through them on the way. We may also be obliged by a court to hand over your content, and section 7
-              describes how we handle that.
+              <strong>Your photos, screenshots and voice notes are encrypted by us.</strong> Your
+              text is not. Section 14 is exact about it.
             </li>
             <li>
-              <strong>We only look at your content to fix problems.</strong> Someone here may read
-              it when you ask us for help, or when we are chasing a bug that needs it. Not
-              otherwise.
-            </li>
-            <li>
-              <strong>You can take it all with you.</strong> One export, readable without offload,
-              which you make yourself in Settings.
+              <strong>offload is for adults in the United States.</strong>
             </li>
           </ul>
         </section>
@@ -102,1007 +91,418 @@ export default function Privacy() {
         <section className={styles.section}>
           <h2 className={styles.h2}>1. Who we are</h2>
           <p>
-            offload is not a company yet. It is run by its founder, as an individual in the United
-            States, and this page will name the company when there is one. We decide what happens
-            to the information described here, which makes us the controller of it under European
-            and UK data protection law.
+            offload is not a company yet. It is run by Behrooz Afghahi, an individual in the United
+            States. This page will name the company when there is one. &ldquo;We&rdquo; on this page
+            means him and anyone who helps him run offload.
           </p>
           <p>
-            Write to us about anything on this page at{" "}
-            <a href="mailto:hello@offload.club">hello@offload.club</a>. A person reads it.
-          </p>
-          <p className={styles.note}>
-            We have no representative in the EU or the UK under Article 27 yet. Until we do, the
-            address above is where a request from either place goes.
+            offload is only offered in the United States, to people aged 18 and over. Write to us
+            about anything on this page at {MAIL}.
           </p>
         </section>
 
         <section className={styles.section}>
           <h2 className={styles.h2}>2. What this covers</h2>
           <p>
-            The offload apps for iOS and Android, the offload web app, and this website. It does not
-            cover anything a link from here takes you to, including the companies listed in section
-            6, who each have their own policy.
+            The offload apps for iOS and Android, the web app, and this website. Sites and services
+            a link takes you to have their own policies.
           </p>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>3. What we hold</h2>
+          <h2 className={styles.h2}>3. What we collect</h2>
 
           <h3 className={styles.h3}>What you give us</h3>
           <ul>
             <li>
-              <strong>Your email address</strong>, which comes from Apple or Google when you sign
-              in. There is no password, so we never hold one.
+              Your email address and name, from Apple or Google when you sign in. You can change
+              your name in Settings.
             </li>
             <li>
-              <strong>Your name.</strong> Either the one Apple or Google passes along when you
-              first sign in, or the one you type, and you can change it at any time in Settings.
+              If you join the waitlist, the email address you give it, which we keep until you are
+              invited or ask us to remove it.
             </li>
             <li>
-              <strong>Everything you upload.</strong> Notes, links, screenshots, photos, voice
-              notes, and what you say to offload in the composer. This is the product, so we keep
-              it.
+              Everything you put in: notes, links, photos, screenshots, voice notes, what you type
+              to offload, and email you forward to it. Photos can carry details the camera wrote
+              into them, such as when and where they were taken; we keep those with the photo.
             </li>
             <li>
-              <strong>Email you forward to offload.</strong> Its text, and the pictures in it worth
-              keeping. We never keep the raw email, its headers or its other attachments. Resend,
-              which receives it for us, keeps the email for 30 days and then deletes it.
+              From an email you forward, its text and pictures, its subject, who sent it and when,
+              but not the raw email or its other attachments.
             </li>
           </ul>
 
           <h3 className={styles.h3}>What offload makes from it</h3>
           <ul>
             <li>
-              The <strong>threads</strong> what you upload is sorted into, the <strong>labels</strong> it is grouped under,
-              and the dates and amounts pulled out of it.
+              The threads and labels it sorts what you put in into, and the dates, places and other
+              details it pulls out.
             </li>
             <li>
-              <strong>Transcripts</strong> of your voice notes, and <strong>what a photo or a
-              screenshot shows</strong>: a few sentences describing it, and the words in it.
-              The description is shown under the photo; the words read out of it are kept so
-              search and answers can find them, and are not shown anywhere. offload is told to leave card numbers and ID numbers out of what it writes down,
-              and that is an instruction to a model rather than a guarantee.
+              Transcripts of voice notes, and descriptions of what photos and screenshots show,
+              including any words in them.
             </li>
+            <li>Notes about a thread, written by you or by offload.</li>
             <li>
-              <strong>What a photo says about itself.</strong> A camera writes the day, the device
-              and sometimes the place into the file, and we keep those with the photo. The day
-              goes on the row, so a photo can be found by when it was taken. The place stays with
-              the file and reaches nobody: offload does not yet turn it into the name of a town,
-              and when it does, this page names who does that before it starts.
+              Its replies to you, with the addresses of the pages it read or searched to answer.
             </li>
-            <li>
-              <strong>Places.</strong> When something you keep has a place (a place you saved, the
-              venue of an event, a place a page you pasted names, or where an event is in a
-              calendar a thread picks) offload asks Google where it is, so it can go on the
-              thread&rsquo;s map, as section 5 says. It keeps Google&rsquo;s id for the place
-              while something points at it, and the place&rsquo;s coordinates for up to thirty
-              days; after that it asks Google again when a map shows it. Neither is tied to your
-              account, and neither is a name or an address: what is shown beside a point is what
-              you, or the calendar, wrote.
-            </li>
-            <li>
-              <strong>Notes</strong>, which are short sentences about a thread: something that is
-              true about it, or how you want it handled. You write some of them and offload writes
-              others from what you dumped, and they are what lets it be useful without your whole
-              history in front of it. Plus the numeric representations that make search work.
-            </li>
-            <li>
-              <strong>Suggestions.</strong> When offload puts something down without a thread, it
-              may suggest a thread it could go in, and once a day it looks over those things and
-              may propose a new thread for two or more that belong together. Nothing moves until
-              you tap the suggestion.
-            </li>
+            <li>Suggestions, and search indexes that make all of this findable.</li>
           </ul>
-
-          <p className={styles.note}>
-            The same advice first run gives you: we do not recommend sharing passwords, card
-            numbers or government IDs in any AI tool. Nothing in offload is built to handle them,
-            and no assistant is the right place to keep them.
+          <p>
+            We advise against putting passwords, card numbers or government IDs into offload, or
+            into any AI tool. offload is asked to leave those out of what it writes down, but that
+            is an instruction to a model, not a guarantee.
           </p>
 
           <h3 className={styles.h3}>What comes from an app you connect</h3>
           <p>
-            If you connect an email account, a calendar or a browser, offload reads what is there,
-            keeps what it describes, and throws the rest away. We store that plus a reference we can
-            use to fetch the original again on demand. We do not keep the raw message, the raw event
-            or the raw page. What you upload is something you chose to hand us. A connected inbox is
-            not, and we treat the two differently on purpose.
-          </p>
-          <p>
-            <strong>A connected calendar is the one that also goes the other way.</strong> You can
-            ask offload to add, change or delete an event, and it writes to your calendar to do it.
-            It never writes anywhere else: not your mail, not your files. When a change would reach
-            somebody else, because the event has guests or because more than one person can see the
-            calendar, offload asks you first and tells you how many people will find out, naming
-            them when it is one. To know who can see a
-            calendar you own, offload reads its sharing list from Google and keeps only a count of
-            the people on it, never their names or addresses; when it cannot tell, it asks first
-            rather than guessing. When a change reaches nobody but you, it just does it and you have
-            a few seconds to undo. So that undo can put an event back as it was, offload keeps
-            what the event said before the change, until you undo or for a day at most. The one
-            change it cannot take back is one to a repeating event and every one after it, so it
-            asks you before that too. In Settings you can ask offload to check with you before
-            every change instead.
-          </p>
-          <p>
-            <strong>Which calendars offload reads is two decisions, not one.</strong> Connecting an
-            account lets you tick the calendars offload may use at all. A thread then picks which of
-            those it reads, starting from none. If you pick a calendar for a thread you share, the
-            events on it become visible to everyone in that thread, as a title, a time and where it is,
-            for as long as the calendar is picked. Where an event is gets looked up as section 5
-            says, and what offload remembers of that goes with our copy of the calendar. Who is
-            invited to an event stays with you. Un-ticking a
-            calendar in Settings takes it out of every thread at once.
-          </p>
-          <p>
-            <strong>An event brings other people with it.</strong> offload keeps nothing about
-            the guests on an event: not their names, not their answers, not their addresses, with
-            one exception. When it changes an event that has guests, it asks Google who they are
-            at that moment and tells you before anyone hears about it. When you have it delete
-            one, the guests' addresses are kept with what the event said, so that undo can invite
-            them again, and are deleted when you undo or within a day. When you ask it to invite somebody, their
-            address waits with that request until you say yes or no, an hour at most, and is
-            deleted within a day after. offload does note whether you made an event or were
-            invited to it, so it can show you your own day apart from what other people put on a
-            calendar you share. Our copy of a calendar holds a rolling window, sixty days back and twelve months ahead, and an event
-            that falls behind it leaves the copy; the whole copy goes when you un-tick the calendar
-            or disconnect the account. We keep what a calendar describes and none of the
-            event&rsquo;s own description text.
+            If you connect a Google calendar, offload reads the calendars you choose, keeps what it
+            needs from their events, and writes to them when you ask it to. Section 7 says more.
           </p>
 
           <h3 className={styles.h3}>What we collect because software has to run</h3>
           <ul>
+            <li>Your IP address and a description of your device and browser, kept with your sign-in sessions.</li>
             <li>
-              <strong>Your IP address and a description of your browser or device</strong>, stored
-              against your sign-in sessions so we can show you where you are signed in and end a
-              session that should not be there.
+              Your device&rsquo;s time zone, so dates mean what you meant. We do not ask your device
+              for its location.
             </li>
+            <li>The country you set in Settings, if you set one.</li>
             <li>
-              <strong>Server logs.</strong> Which request, how long it took, whether it worked.
-              Never what was in it.
+              Records of what each request did, how long it took and what it cost, including each
+              call to an AI model. These are built to hold no content.
             </li>
+            <li>Product events, such as finishing first run, tied to a random identifier rather than to your account.</li>
+            <li>Records of staff access to your account, kept for security.</li>
             <li>
-              <strong>What each account costs to run.</strong> Every time offload calls an AI
-              model or looks something up, we record which model, how much it read and wrote, how
-              long it took and what it cost. Never what was in it.
-            </li>
-            <li>
-              <strong>When a limit stops you, and what staff do to your account.</strong> A limit
-              refusing you is kept for 30 days. A record of staff opening your account&rsquo;s
-              page, disabling it, signing it out, changing its limits or deleting it is kept for
-              two years, so that access by us can be checked. It holds who did what and when.
-            </li>
-            <li>
-              <strong>Your device&apos;s time zone</strong>, sent with each thing you dump, type
-              into a thread or answer, and kept with it, so that &quot;tomorrow&quot; and
-              &quot;3pm&quot; mean what they meant where you were. The first one offload hears
-              becomes the clock your dates are shown in, until you change it in Settings; and if
-              you answer Keep when a phone is somewhere else, that one zone, so it does not ask
-              again. Nothing finer than the zone: no location, no clock.
-            </li>
-            <li>
-              <strong>Notifications</strong>, when you have them on: one message in the morning and
-              one in the evening about what you asked to be reminded of, and one when somebody
-              connects with you or shares a thread. Each carries a few words from what you or a
-              member of your thread put in, and those words leave to the companies that deliver
-              it, named in section 6. A record of what was sent, and of what offload decided not
-              to send, is kept for you in Activity.
-            </li>
-            <li>
-              <strong>Product events</strong>, such as joining the waitlist or finishing first run.
-              These carry a random identifier for your account rather than your account id or your
-              address. Deleting your account destroys the mapping, after which every event we have
-              already recorded is permanently unattributable to you.
+              If you turn notifications on, a token that identifies your phone, and a record of
+              what was sent to it.
             </li>
           </ul>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>4. Why we hold it, and on what basis</h2>
+          <h2 className={styles.h2}>4. Why we use it</h2>
+          <ul>
+            <li>
+              To run offload for you: store, sort, search, answer, look things up, put places on a
+              map, send the notifications you choose, and connect the apps you choose.
+            </li>
+            <li>To keep accounts secure and stop abuse.</li>
+            <li>To find out whether offload works and what it costs, from records that carry no content.</li>
+            <li>To email you about your account and about changes to this page.</li>
+            <li>To answer a lawful request, or to establish or defend a legal claim.</li>
+          </ul>
           <p>
-            If you are in the UK or the European Economic Area, the law asks us to name a legal
-            basis for each purpose. These are ours.
-          </p>
-          <div className={styles.scroller}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th scope="col">Why</th>
-                  <th scope="col">What</th>
-                  <th scope="col">Basis</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>To give you offload at all</td>
-                  <td>Your account and everything you upload</td>
-                  <td>Performance of our contract with you</td>
-                </tr>
-                <tr>
-                  <td>To keep you signed in and keep others out</td>
-                  <td>Sessions, IP address, device description, rate limits</td>
-                  <td>Our legitimate interest in a secure service</td>
-                </tr>
-                <tr>
-                  <td>To email you about your account</td>
-                  <td>Your email address</td>
-                  <td>Performance of our contract with you</td>
-                </tr>
-                <tr>
-                  <td>To put places on a map</td>
-                  <td>The name of a place you keep, sent to Google alone</td>
-                  <td>Performance of our contract with you</td>
-                </tr>
-                <tr>
-                  <td>To find out whether offload works</td>
-                  <td>Pseudonymous product events and server logs, never content</td>
-                  <td>Our legitimate interest in improving the product</td>
-                </tr>
-                <tr>
-                  <td>To hold the private material people inevitably upload</td>
-                  <td>Health, money, and anything else personal that lands in a thread</td>
-                  <td>Your explicit consent, given in first run</td>
-                </tr>
-                <tr>
-                  <td>To improve offload using your own content</td>
-                  <td>What you upload, only if you switch this on</td>
-                  <td>Your consent, and off until you give it</td>
-                </tr>
-                <tr>
-                  <td>To answer a lawful request or defend a claim</td>
-                  <td>Whatever is strictly relevant</td>
-                  <td>Legal obligation, or our legitimate interest</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p>
-            Where the basis is our legitimate interest, you can object, and section 14 says how.
-            Where it is consent, you can withdraw it at any time without losing anything else.
-          </p>
-          <p>
-            <strong>The consent on the private material row is the one that matters most</strong>,
-            and it is why first run asks for two tick boxes rather than a button. Some of what
-            people upload will be health, money, beliefs or relationships, because those are the
-            subjects worth not forgetting, and European law asks for consent that is explicit and
-            specific before anyone holds them. That is the tick. It is separate from acknowledging
-            this page, and if you withdraw it we can no longer run offload for you, so withdrawing
-            it means closing the account and taking your export with you.
+            First run asks you to agree to offload holding what you put in, which can include
+            private matters, and to it being processed to run offload, including by AI services
+            from other companies. You need that, and an email address, to have an account. If you
+            no longer agree, delete your account; you can take a copy first.
           </p>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>5. AI, and what it does with what you upload</h2>
+          <h2 className={styles.h2}>5. AI</h2>
           <p>
-            Sorting an upload into a thread, pulling a date out of a sentence, reading a photo,
-            transcribing a voice note and answering you in the composer are all done by AI models we
-            call on your behalf.
-            To do that, the relevant part of your content is sent to the companies in the table
-            below.
+            Sorting, reading photos, transcribing voice notes, looking things up and answering you
+            are done by AI models from other companies, which we call on your behalf. Each call
+            carries what that task needs: what you just put in, the recent conversation, the names
+            of your threads and labels, and, when offload answers, what it reads from your threads
+            to answer. Not more.
           </p>
           <ul>
             <li>
-              <strong>They do not train on it.</strong> Every company in the table below publishes
-              terms that rule out using what an API sends them to train or improve their own models,
-              except Google Maps Platform, which does not; section 6 says what it receives. Not
-              publishing such a term disqualifies any other company from this list. We rely on those
-              published terms rather than on separately negotiated ones, which is worth knowing
-              because a published term can be changed by the company that published it. We check
-              them, and section 17 says what happens when something material moves.
+              <strong>No training.</strong> We do not use your content to train models. The
+              companies that process your content for us are bound, by their terms or by settings
+              we have turned on, not to use it to train theirs.
             </li>
             <li>
-              <strong>An email you forward</strong> goes to Anthropic like anything else you upload,
-              and so do small copies of its pictures, so offload can tell a ticket from a logo.
+              <strong>Looking things up.</strong> When offload needs a fact it does not hold, it may
+              search the web with words from what you put in, and read a link you pasted. The site
+              sees a request from our server, and your device may load the page&rsquo;s preview
+              picture straight from the site. You can turn searching and link reading off in
+              Settings under Privacy.
             </li>
             <li>
-              <strong>Only what the task needs goes out.</strong> Not your account, not your
-              history, not your other threads.
+              <strong>Places.</strong> When something you keep names a place, a place&rsquo;s name,
+              on its own, is sent to Google Maps Platform to put it on a map.
             </li>
             <li>
-              <strong>A photo goes as a smaller copy, with the camera&rsquo;s details removed.</strong>{" "}
-              When it reads a photo, the model sees the picture and nothing about the file: not
-              its name, not when it was taken, not where.
-            </li>
-            <li>
-              <strong>A voice note goes as its audio, to be written down.</strong> It goes to
-              AssemblyAI&rsquo;s European servers and nowhere else. Two reasons for the choice of
-              servers, both theirs to publish: what is sent to their other servers may be used to
-              train their models, and what is sent to the European ones is not; and the audio
-              then stays in the EU. The code checks the address on every call. They delete the
-              audio within two days, by their own statement, and offload deletes the transcript
-              from their side once it has read it.
-            </li>
-            <li>
-              <strong>Our own monitoring never sees content.</strong> The tooling we use to watch
-              cost and reliability receives identifiers, model names, token counts, timings and
-              outcomes. No prompts, no responses, nothing you wrote.
-            </li>
-            <li>
-              <strong>We do not train models on your content either</strong>, and there is nothing
-              in offload today that does. If that ever changes it will be a switch that starts off,
-              described here first, and yours to leave alone.
+              <strong>Automated decisions.</strong> Filing is automatic, which is the point of
+              offload, but it has no legal or similarly significant effect on anyone. You can see
+              and correct everything offload does.
             </li>
           </ul>
-          <p>
-            <strong>Looking things up.</strong> Some of what you dump needs a fact offload does not
-            hold: what day a holiday falls on, what the weather will be, what a link you pasted
-            actually is. When that happens, two things leave.
-          </p>
-          <ul>
-            <li>
-              <strong>A search carries words you dumped.</strong> It is built only from the words of
-              the thing you just dumped, never from your other threads, your notes, or anything
-              anyone else put in a thread with you. It goes to Anthropic, who run the search, and
-              from there to a search index.
-            </li>
-            <li>
-              <strong>A link you paste is opened.</strong> The site you linked to receives a request
-              from us. It is not a company you picked, and it can see that somebody asked for that
-              page, along with anything already in the address you pasted. The page is also read
-              for where it is, when it says.
-            </li>
-            <li>
-              <strong>offload only opens links you gave it.</strong> Not one it thought of, not one
-              that appeared inside a page it read, and not one someone else wrote into a thread you
-              share.
-            </li>
-            <li>
-              <strong>What comes back is not kept.</strong> What is stored is the answer it needed,
-              such as a date, and the address it came from. The page itself is not stored anywhere.
-            </li>
-            <li>
-              <strong>A search may carry your approximate location.</strong> Today that is a
-              country: the one in Settings, or the one you pick when offload asks which country a
-              question is about, because a thread of yours says you are somewhere else. It goes in
-              the question so a date or a forecast is the one where you are. It is two letters and
-              nothing else about where you live: not your address, not your town, and never taken
-              from your IP or your phone. Leave it unset and offload tells itself it does not know,
-              which is why an answer that needs a country is sometimes "Not sure." rather than a
-              guess.
-            </li>
-            <li>
-              <strong>A link can bring its picture, and the picture comes from the site.</strong>{" "}
-              When offload files a link you pasted, our server asks that page once for the image
-              it publishes about itself, so the row shows the photo instead of a symbol. That one
-              request happens for every link kept, whatever the switches below say: it is part of
-              filing a link, not of reading one, and the page sees a request from us, not from
-              you. A link kept before the map arrived has its page asked one more time, for where
-              it is, when Read links I paste is on, and never again. We do not store the image. Your device loads it from that site each time the
-              row is on screen, which means the site can see your IP address and when you looked,
-              the same as if you had opened the page. In a thread you share, that applies to each
-              person who sees the row.
-            </li>
-            <li>
-              <strong>A place goes to Google to be put on a map.</strong> A place you save, the
-              venue of an event offload files for you, a place a page you pasted names (when Read
-              links I paste is on) and where an event is in a calendar a thread picks are sent to
-              Google Maps Platform as a search, alone, with nothing about who asked. Before
-              anything goes, offload refuses anything with a number in it, an email or web address,
-              a possessive, or a street word, because that is what a street address, a phone number
-              and somebody&rsquo;s home usually look like. Directions opens Google Maps with the
-              destination, which Google then receives.
-            </li>
-            <li>
-              <strong>Both of these are switches, in Settings, and either can be off.</strong> With
-              both off, nothing you dump is searched for on the web and no page is read. The one
-              request above, for a kept link&apos;s picture, still happens, and a place you keep
-              still goes to Google to be put on the map, because that is what keeping a place is
-              for. For a calendar, the control is which calendars a thread picks.
-            </li>
-            <li>
-              <strong>We record that a lookup happened, and not what it was.</strong> What kind of
-              thing was looked up, whether it helped, and what it cost. Never the words you searched
-              with and never a link tied to your account.
-            </li>
-          </ul>
-          <p>
-            <strong>Automated decisions.</strong> Filing is automatic, which is the whole point of
-            offload, but it produces no legal or similarly significant effect on anyone. Every
-            decision it makes is visible to you and reversible by you, and anything filed in the
-            wrong place can be moved afterwards. We do not profile you to decide anything about you.
-          </p>
         </section>
 
         <section className={styles.section}>
           <h2 className={styles.h2}>6. The companies that help us run offload</h2>
-          <div className={styles.scroller}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th scope="col">Company</th>
-                  <th scope="col">What they do</th>
-                  <th scope="col">What they receive</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Railway</td>
-                  <td>Runs our servers and our database</td>
-                  <td>Everything, because it is where offload runs</td>
-                </tr>
-                <tr>
-                  <td>Cloudflare R2</td>
-                  <td>Stores files and our nightly backup</td>
-                  <td>Your photos, screenshots, voice notes and the pictures from email you forward, encrypted, and never a key</td>
-                </tr>
-                <tr>
-                  <td>Anthropic</td>
-                  <td>
-                    Claude, which does the sorting and the conversation, and which runs the
-                    searches and opens the links described in section 5
-                  </td>
-                  <td>
-                    The part of your content a given task needs, including a smaller copy of a
-                    photo you dump with its camera details removed, the words of a search when
-                    offload looks something up, your device&apos;s time zone, and your country
-                    when you have set one
-                  </td>
-                </tr>
-                <tr>
-                  {/* Not a processor we chose, which is the point of naming it
-                      here: it is whoever owns a page somebody pasted. */}
-                  <td>The site a link points to</td>
-                  <td>
-                    Shows the picture that page publishes about itself, on the row, when offload
-                    read the link
-                  </td>
-                  <td>
-                    Nothing we send. Your device asks that site for the image, so it sees your IP
-                    address and the time, the same as opening the page
-                  </td>
-                </tr>
-                <tr>
-                  <td>Voyage AI</td>
-                  <td>Makes what offload holds searchable, including its own replies to you</td>
-                  <td>The text being indexed</td>
-                </tr>
-                <tr>
-                  <td>AssemblyAI</td>
-                  <td>Transcribes voice notes, on their European servers</td>
-                  <td>The audio of a voice note</td>
-                </tr>
-                <tr>
-                  <td>Resend</td>
-                  <td>Sends the handful of emails we send, and receives email you forward to offload</td>
-                  <td>
-                    Your email address and the email itself; an email you forward is kept by them for
-                    30 days, in the United States, encrypted, and then deleted
-                  </td>
-                </tr>
-                <tr>
-                  <td>Expo</td>
-                  <td>
-                    Builds the phone apps and, each time the app opens, tells it whether a newer
-                    version of its code is ready
-                  </td>
-                  <td>
-                    Your IP address and the app and device version when the app opens. Nothing
-                    you dumped
-                  </td>
-                </tr>
-                <tr>
-                  <td>Google Calendar</td>
-                  <td>
-                    Only if you connect one: reads the calendars you tick, reads who can see each
-                    calendar you own and keeps that as a count, and writes the changes you ask for
-                  </td>
-                  <td>
-                    The events in the calendars you tick, and the events offload writes for you. A
-                    separate connection from signing in, which you can end at any time
-                  </td>
-                </tr>
-                <tr>
-                  {/* 030. The one company here that acts for itself: the owner
-                      waived the no-training bar for it, recorded in
-                      docs/tech/decisions.md. */}
-                  <td>Google Maps Platform</td>
-                  <td>Draws the map in a thread and turns the name of a place into a point on it</td>
-                  <td>
-                    The name of a place being looked up, alone, with nothing about who asked. And
-                    from your device, whenever a map is on screen, your IP address, the area being
-                    drawn and, on the phones, the device details Google&rsquo;s map collects; if you
-                    are signed in to Google there, it may recognise you. In a thread you share, that
-                    applies to each person who opens its map. Google decides for itself how it uses
-                    this, under its own terms, and those say it may keep it and use it to improve its
-                    products. Its map runs inside offload&rsquo;s page, so what it could see there
-                    rests on those terms, not on anything offload enforces
-                  </td>
-                </tr>
-                <tr>
-                  <td>Expo</td>
-                  <td>Sends notifications to your phone</td>
-                  <td>
-                    The words of each notification, held only as long as the send takes, by their
-                    statement, and the token that names your phone
-                  </td>
-                </tr>
-                <tr>
-                  <td>Apple and Google</td>
-                  <td>Sign you in, and deliver notifications to your phone, which carry their words</td>
-                  <td>
-                    They tell us your verified email address and your name. We tell them nothing
-                    about what you upload beyond the words of a notification
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
           <p>
-            Each of them, except Google Maps Platform as its row says, is under a contract that
-            lets them process this only to provide their service to us, and never for themselves. We do not add a company that will hold your
-            content without updating this page and telling account holders before the change takes
-            effect.
+            We use a small number of companies: for hosting and our database, file storage and
+            backups, AI models and web search, search indexing, transcription, email, building the
+            phone apps and sending notifications, signing in, maps, and, if you connect one, your
+            calendar. The current list, with what each does and receives, is on{" "}
+            <a href="/privacy/companies">the companies page</a>, which has its own date.
+          </p>
+          <p>
+            Each processes data only to provide its service to us, under terms that require it to
+            protect that data. Two are different. Apple and Google, when you sign in with them, act
+            for themselves under their own terms. Google Maps Platform, which draws maps and finds
+            places by name, receives a place&rsquo;s name from us with nothing about who asked,
+            and, while a map is on screen, your IP address and device details from your device. It
+            acts for itself under its own terms, which allow it to keep that and use it to improve
+            its products, and it may recognise you if you are signed in to Google.
+          </p>
+          <p>
+            We keep the list current. If a change would materially change how your content is
+            handled, we email account holders before it takes effect.
           </p>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>7. If someone else asks for your content</h2>
+          <h2 className={styles.h2}>7. Google user data</h2>
           <p>
-            The companies in section 6 are not the only way something could leave offload. A court,
-            a regulator or the police can compel disclosure, and no privacy policy can promise
-            otherwise. Here is what we do.
+            If you connect a Google account, offload accesses your calendar list, the events in the
+            calendars you choose, and who each of your calendars is shared with. It uses them to
+            show your calendar in offload, to file and answer from it, and to add, change or delete
+            events when you ask. When a change would notify other people, offload asks you first.
+            We keep only what those features need, delete it when you disconnect or delete your
+            account, and ask Google to revoke our access when you delete your account.
           </p>
+          <p>
+            Calendar data goes only to the companies on our list that are needed to provide those
+            features, and to the members of a shared thread you choose to show a calendar in.
+          </p>
+          <p>
+            offload&rsquo;s use and transfer of information received from Google APIs will adhere
+            to the{" "}
+            <a href="https://developers.google.com/terms/api-services-user-data-policy">
+              Google API Services User Data Policy
+            </a>
+            , including the Limited Use requirements. We do not use Google user data for
+            advertising, we do not sell it, and we do not use it to develop, improve or train AI or
+            machine learning models. Nobody at offload reads it unless you have agreed to that for
+            the specific data, for example to fix a problem you reported, it is needed for
+            security, or the law requires it.
+          </p>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.h2}>8. Other people in offload</h2>
           <ul>
             <li>
-              <strong>We give what the law requires, not more.</strong> A request for an account
-              gets that account. It does not get a thread other people are also in, and it does not
-              get an adjacent account because it would be convenient.
+              You can share a thread with a connection: someone you have both agreed to connect
+              with. There are no public links.
             </li>
             <li>
-              <strong>We check that a request is valid before we answer it.</strong> A demand
-              without the paperwork behind it gets refused, and we push back on one that is
-              overbroad rather than treating any letterhead as an order.
+              Everyone in a thread can read everything in it and add to it, and sees your name and
+              your mark next to what you add.
             </li>
             <li>
-              <strong>We tell you, unless we are forbidden from telling you.</strong> If we can say
-              that your content has been asked for, we will, before we hand anything over if there
-              is time and afterwards if there is not. Where a gag order applies we say nothing,
-              because that is what a gag order is, and we tell you the moment it lifts.
+              Somebody who knows the email address you signed up with can ask to connect with you.
+              They cannot see anything you have put in.
             </li>
-            <li>
-              <strong>We cannot hand over a key we do not have.</strong> That cuts both ways: your
-              photos, screenshots and voice notes are encrypted, and your text is not. Section 12 is
-              precise about which is which.
-            </li>
+            <li>A calendar you show in a shared thread is visible to its members while it is shown.</li>
           </ul>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>8. If offload is bought or merges</h2>
+          <h2 className={styles.h2}>9. Shared threads, and deleting</h2>
           <p>
-            Companies get bought, merge and occasionally wind up, and personal information usually
-            moves with the rest of the business when they do. Our commitment:
-          </p>
-          <ul>
-            <li>
-              <strong>A buyer inherits this page as it stands.</strong> If offload is acquired,
-              merges, or its assets are sold, whoever ends up holding your content is bound by the
-              policy you are reading, not by whatever policy they already had.
-            </li>
-            <li>
-              <strong>Anything weaker needs your agreement first.</strong> A new owner who wants to
-              do something this page does not allow, including anything that would count as selling
-              your information, has to ask you and get a yes. Not a notice, not a banner, not
-              continued use of the app. A yes.
-            </li>
-            <li>
-              <strong>You get told before it completes, and you can leave with everything you put in.</strong>{" "}
-              We email account holders ahead of a change of ownership, with enough time to export
-              everything and delete the account first if that is what you want.
-            </li>
-          </ul>
-        </section>
-
-        <section className={styles.section}>
-          <h2 className={styles.h2}>9. Where it is kept</h2>
-          <p>
-            offload runs in the United States, in California. If you are in the UK or the
-            European Economic Area, that means your information is transferred out of it. We rely on
-            the European Commission's standard contractual clauses, and the UK addendum to them, for
-            those transfers, and we hold the same terms with each company in section 6. Google Maps
-            Platform is the exception: what reaches it is not under those terms, because it receives
-            it as a controller, under its own.
-          </p>
-        </section>
-
-        <section className={styles.section}>
-          <h2 className={styles.h2}>10. How long we keep it</h2>
-          <ul>
-            <li>
-              <strong>What you upload: for as long as your account exists.</strong> offload does not
-              age your uploads out or thin them down over time. Being able to find something from
-              three years ago is the product, so nothing expires on a clock. This covers what you
-              put in: your dumps, the conversations they arrived in, and your photos, screenshots
-              and voice notes.
-            </li>
-            <li>
-              <strong>A copy you export: 7 days.</strong> It is destroyed 7 days after you ask for
-              it, or sooner as section 13 says.
-            </li>
-            <li>
-              <strong>What offload works out about you: for as long as it is still true.</strong>{" "}
-              The short notes it keeps on a thread are its picture of that thread, not a record of
-              what you said, and it revises them. Once a day it goes over them: it merges two that
-              say the same thing, it combines ones that belong together, it drops what has stopped
-              being true, and it adds what it learned from your conversations that day. Notes it
-              wrote itself it can also remove. A note you typed it can set aside, so it stops acting
-              on it, and it cannot delete your words. Every note is on the thread, in front of you,
-              yours to correct and to delete where you wrote it: in a thread you share, the rule
-              below holds here too, and nobody changes or deletes what somebody else wrote. A note can
-              carry a longer text from what you dumped; that is kept with it without being shown,
-              and goes when the note does.
-            </li>
-            <li>
-              <strong>Labels: a deleted one for 30 days, and a record of what you took off.</strong>{" "}
-              A label you delete is hidden straight away and kept for 30 days so offload does not
-              make it again, then it is gone; Undo brings it back in the moment you delete it. When
-              you take a label off something, offload keeps a record that you did, with no name or
-              words in it, so it never puts that label back. The record goes when the label, or what
-              it was on, is gone for good, inside the 30 days above.
-            </li>
-            <li>
-              <strong>A dismissed suggestion.</strong> When you dismiss one, offload keeps a record
-              that you did, with no words in it, so it never suggests anything for that thing again.
-              It goes when the thing does. A proposal it no longer makes is removed.
-            </li>
-            <li>
-              <strong>Places: thirty days for where they are.</strong> A place&rsquo;s coordinates
-              are deleted thirty days after offload fetched them, whatever else happens, and
-              fetched again if a map shows the place after that. Google&rsquo;s id for a place is
-              kept while something points at it and deleted when nothing does. Neither is tied to
-              an account, so neither goes with one.
-            </li>
-            <li>
-              <strong>Anything else you delete: immediately, then 30 days.</strong> It goes from the live
-              database and from file storage as soon as you ask. Our backups, which exist so a bad
-              day is recoverable, roll over within 30 days, and after that it is gone from those
-              too.
-            </li>
-            <li>
-              <strong>When you delete your account:</strong> the same, and three things more.
-              Access to a calendar you connected is revoked at Google. Our record of what each
-              request cost to run is kept with your account removed from it, and holds none of your
-              content. And we send one email to your address to say it was done.
-              If you ask us to delete it for you, the account is locked straight away and leaves
-              the live systems a day later.
-            </li>
-            <li>
-              <strong>Product events:</strong> kept, but detached. Deleting your account destroys
-              the identifier that connects them to you.
-            </li>
-            <li>
-              <strong>The record of staff actions: two years.</strong> It names an account by an
-              internal number that points at nothing once the account is gone.
-            </li>
-            <li>
-              <strong>Activity, the record of what offload sent you: 30 days.</strong> A row that
-              carries another member&apos;s words goes sooner, when you leave or are taken out of
-              that thread, when what it names is destroyed, or when the person who wrote them
-              deletes their account.
-            </li>
-          </ul>
-
-          <h3 className={styles.h3}>Deleting your account, and shared threads</h3>
-          <p>
-            Deleting your account removes what you kept privately, including your notes, and your
-            membership of every thread you were in. There is one deliberate exception:{" "}
+            Sharing is deliberate: one thread, with people you already know.{" "}
             <strong>
-              what you put into a thread you shared with other people stays in that thread, and
-              that includes the notes you added to it.
+              What you put in a shared thread becomes part of a record the other members rely on,
+              so it stays with them
             </strong>{" "}
-            Understand this before you share anything, so here is the reasoning behind it.
+            when you leave the thread or delete your account. Taking it out would leave them with
+            gaps and delete information about them on your instruction.
           </p>
           <p>
-            <strong>Sharing is a deliberate act, on one thread, with one person you already know.</strong>{" "}
-            offload has no public links and nothing is shared by default. You pick a thread and you
-            pick a connection, someone you and they have both agreed to be connected to, and you do
-            it again for the next thread. Nothing arrives in a shared thread without you. offload
-            may suggest a shared thread for something you put down, and the suggestion shows who is
-            in it; it moves only when you tap it, and you can undo it for a few seconds after.
+            While you are in a thread, nobody else can delete what you wrote, and you cannot delete
+            what they wrote. Any member can export the thread as they see it, and any member can
+            take another out. Once you leave, what you left becomes the thread&rsquo;s, and the
+            others can edit or remove it. When the last member leaves, the thread is deleted.
           </p>
           <p>
-            <strong>What you put in a shared thread becomes part of a shared record.</strong> The
-            moment you add something to a thread with other people in it, it stops being only your
-            information and becomes theirs as well: their record of a trip you are planning
-            together, their copy of the answer to a question they asked, the context for everything
-            they added after it. Taking your part back out later would not return the thread to some
-            earlier state. It would leave the other members with a conversation full of holes and no
-            way to know what used to be there, and it would delete information about them, on your
-            instruction, without their agreement.
-          </p>
-          <p>
-            <strong>So nobody owns a shared thread, including us.</strong> A thread has members and
-            no owner, and every member has the same standing: being the person who created it
-            grants nothing beyond having been the first one in it. Anyone in a shared thread can
-            bring one of their connections into it, and anyone in it can take another member out.
-            Nobody, including you, can delete what somebody else wrote while that person is still
-            in the thread, with one exception: a label belongs to the thread, so any member can
-            rename or delete one. That symmetry is the point: the protection you give up over your own
-            contribution is exactly the protection you get over everybody else&rsquo;s, and the
-            same is true of the power to take somebody out.{" "}
-            <strong>Any member can take a copy of a shared thread as they see it</strong>, in their
-            own export, including what the others added and who added it.{" "}
-            <strong>
-              When somebody leaves a thread, is taken out of it, or deletes their account, what
-              they left in it becomes the thread&rsquo;s.
-            </strong>{" "}
-            Anyone still there can edit or remove it. We think that is the right way round: the
-            protection exists so a thread cannot become a place where someone else destroys your
-            work, and once you have gone there is no work of yours left to protect, only a thread
-            other people still use carrying things none of them can tidy. It also means a shared
-            thread is only as safe as the people in it. Somebody in a thread with you can take you
-            out of it, and what you put in stays behind for the others. Everyone in a thread was
-            brought in by somebody already there, from among their own connections, and the sheet
-            shows who is in before anyone new joins; taking somebody out is confirmed on a sheet
-            that shows exactly what stays.
-          </p>
-          <p>
-            <strong>What you keep is the right to leave, and the thread ends with its last
-            member.</strong> You can take yourself out of a shared thread at any time. Your
-            membership and your access go, and the other members' view is untouched. When the last
-            member leaves, the thread and everything in it is deleted, which is the only moment at
-            which nobody is left who could read it. Nothing is kept forever against everyone's
-            wishes. It is kept for as long as somebody in it still wants it.
-          </p>
-          <p>
-            We tell you all of this at the moment you share a thread, not afterwards, so the trade
-            is one you make on purpose. If you would rather keep something entirely yours, keep it
-            in a thread you have not shared, where deleting it deletes it.
+            We show you this when you share a thread. If you want something to stay entirely yours,
+            keep it in a thread you have not shared.
           </p>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>11. Other people</h2>
+          <h2 className={styles.h2}>10. If someone else asks for your data</h2>
+          <p>
+            A court, a regulator or the police can compel us to disclose data. We hand over only
+            what a valid request requires, we push back on requests that are not valid or go too
+            far, and we tell you before we do, unless the law forbids it or there is no time, in
+            which case we tell you when we can. Our storage provider holds your photos only in
+            encrypted form, but we hold the keys, so a request to us can reach your photos as well
+            as your text.
+          </p>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.h2}>11. If offload is bought or merges</h2>
+          <p>
+            Whoever ends up holding your information is bound by this page. Anything weaker needs
+            your agreement first. We email account holders before a change of ownership completes,
+            with time to take a copy and delete the account.
+          </p>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.h2}>12. Where it is kept</h2>
+          <p>
+            offload runs in the United States. Some of the companies on our list may process data
+            in other countries, under the terms section 6 describes.
+          </p>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.h2}>13. How long we keep it</h2>
           <ul>
             <li>
-              You can share a thread with a <strong>connection</strong>, which is someone you have
-              both agreed to be connected to. Everyone in a thread can read everything in it and add
-              to it, and nobody can delete what they did not write themselves. Inviting somebody
-              puts the thread&apos;s name in front of them before they have accepted, on the
-              invitation and in a notification if they have those on.
+              <strong>What you put in, and what offload makes from it:</strong> for as long as your
+              account exists, or until you delete it. Nothing expires on a clock, because finding
+              something from years ago is the point.
             </li>
             <li>
-              <strong>Everyone in a shared thread sees your name</strong>, the initials taken
-              from it, and the mark offload drew for your account when it was created, which is
-              generated from nothing but the account itself, next to what you add. Changing your
-              name in Settings changes what they see.
+              <strong>What you delete is deleted.</strong> It is removed from our live systems
+              promptly, and from our backups within 30 days.
             </li>
             <li>
-              <strong>Somebody who knows the email you signed up with can find you</strong>, to
-              ask to connect. They see your name and your mark, and that you are on offload; they
-              cannot see anything you have put in, and they cannot search for you by name. You
-              decide whether to accept, nobody is told when you do not, and you can block them.
+              <strong>Data from a connected app:</strong> while it is connected, and only the part
+              offload is using. It goes when you disconnect or delete your account.
             </li>
             <li>
-              <strong>An email you forward into a shared thread</strong> shows the others what it
-              says, including who sent it. If you copy offload in on an email to somebody who is
-              also on offload and they reply to all, their reply, quoting you, lands in their
-              account, where you cannot delete it.
+              <strong>Working records,</strong> such as what offload keeps so a change can be
+              undone, or a list of the notifications it sent: only as long as the feature needs
+              them, usually days or weeks.
             </li>
             <li>
-              <strong>A photo you put in a shared thread is theirs to see too</strong>, with what
-              offload wrote about it and the day it was taken. The file&rsquo;s own name stays with
-              you. If you leave, it stays with the others, and if one of them deletes it, it is
-              deleted for you too.
+              <strong>A copy you export: 7 days,</strong> then it is deleted.
             </li>
             <li>
-              <strong>A calendar you pick for a shared thread is read for the whole thread.</strong>{" "}
-              Everyone in it sees the events on that calendar, as a title, a time and where it is,
-              for as long as it is picked. Nobody but you can write to it, and un-picking it takes it back out.
+              <strong>Logs and usage records:</strong> server logs for a limited period set by our
+              host. Records of what requests did and cost are kept, and when you delete your
+              account it is removed from them.
             </li>
             <li>
-              <strong>There are no public links.</strong> Nothing in offload can be handed to
-              someone who is not in the thread. The only way into a thread is a member sharing it
-              with one of their own connections, so everyone in a thread was brought in by
-              somebody already there, and you can see who is in it before you add anything.
+              <strong>Security records,</strong> including staff access to your account: up to two
+              years.
             </li>
             <li>
-              Leaving a shared thread takes you and your access out of it. The other members' view
-              is untouched.
+              <strong>Product events:</strong> kept, but deleting your account destroys the
+              identifier that links them to you.
+            </li>
+            <li>
+              <strong>The companies on our list</strong> keep what we send only as long as their
+              service needs, under their terms, except Google Maps Platform, as section 6 says.
             </li>
           </ul>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>12. Security, described exactly</h2>
+          <h2 className={styles.h2}>14. Security</h2>
+          <p>We would rather make a narrow claim that is true than a broad one that sounds better.</p>
           <p>
-            We would rather make a narrow claim that is true than a broad one that sounds better.
-            Precisely:
-          </p>
-
-          <h3 className={styles.h3}>What is encrypted by us</h3>
-          <p>
-            Your photos, your screenshots, the audio of your voice notes and the pictures from email
-            you forward are encrypted by offload before they are stored, each under its own key, and
-            our storage provider never receives a key. They hold ciphertext and nothing else. An
-            email you forward travels to us the way email does, which is not encrypted end to end.
-          </p>
-
-          <h3 className={styles.h3}>What is not, and what that means</h3>
-          <p>
-            The text in offload is not encrypted by us. Titles, bodies, transcripts, notes and
-            search indexes sit in our database as ordinary text, protected by our provider's own
-            disk encryption and by access control, the way most software works. Three consequences
-            follow from that:
-          </p>
-          <ul>
-            <li>
-              Someone who obtained a copy of our database would be able to read text content in it.
-            </li>
-            <li>
-              <strong>What a file says is not protected even where the file is.</strong> A voice
-              note's audio is encrypted while its transcript is ordinary text, and the same is true
-              of what offload writes about a photo, the words in it included.
-            </li>
-            <li>None of this defends against a compromise of the running service itself.</li>
-          </ul>
-          <p className={styles.note}>
-            We plan to encrypt text as well. This section changes when that ships, and section 17
-            says how we tell you.
-          </p>
-
-          <h3 className={styles.h3}>The rest of it</h3>
-          <ul>
-            <li>
-              Every request is authorised on the server, per row, against the account that owns it.
-              A client is never trusted to decide what it may see.
-            </li>
-            <li>
-              Content never leaves in a log, an error report, an analytics event or an AI trace.
-              Those carry identifiers, counts and outcomes only, and that rule is enforced in the
-              code rather than remembered. A notification is the one channel that carries words,
-              a few of them, and only to your own phone.
-            </li>
-            <li>
-              Only a small number of people can reach production, and they read your content when
-              you have asked for help or when a specific fault requires it. Not to look around.
-              Staff who help with accounts use a panel that shows no content: your name and
-              address, when you were last active, counts of what you have, what ran and what it
-              cost. Opening your page there is recorded.
-            </li>
-            <li>
-              Backups run nightly and are encrypted. We can restore to a point in time if something
-              goes badly wrong.
-            </li>
-          </ul>
-        </section>
-
-        <section className={styles.section}>
-          <h2 className={styles.h2}>13. What you can change</h2>
-          <p className={styles.note}>
-            offload is an invite-only beta as of {UPDATED}. Deleting is built: a single upload, a
-            thread, or your whole account, which you delete yourself in Settings under My account.{" "}
-            <a href="/delete-account">How deleting an account works</a>. Exporting is built too:
-            you make a copy yourself in Settings under Privacy. The first three controls below
-            are not built yet. Email us and we will do any of them by hand, usually the same day.
-            Nothing here is on unless the text says so.
-          </p>
-          <ul>
-            <li>
-              <strong>Improve offload with my data.</strong> Off. Nothing you upload is used to
-              train anything unless you turn this on yourself.
-            </li>
-            <li>
-              <strong>Let offload notice patterns.</strong> On. This is what lets it work out that
-              the brackets belong to the bookshelf. It stays inside your own account.
-            </li>
-            <li>
-              <strong>Crash and usage reports.</strong> Counts and failures, never content.
-            </li>
-            <li>
-              <strong>Export everything.</strong> One file, readable without offload, holding
-              everything you can read: your threads, your conversations, your notes, your people,
-              and your photos and voice notes as ordinary files. We keep the copy for 7 days,
-              encrypted with a key our storage provider never receives, and it is downloaded only
-              while you are signed in. You can make one every 7 days. It is destroyed sooner if
-              you delete it, if you leave or are taken out of a thread it holds, or with your
-              account. We send one email to your address to say a copy was asked for.
-            </li>
-            <li>
-              <strong>Delete.</strong> A single upload, a thread, or your whole account.
-            </li>
-          </ul>
-        </section>
-
-        <section className={styles.section}>
-          <h2 className={styles.h2}>14. Your rights</h2>
-          <p>
-            Wherever you live, you can ask us for a copy of what we hold, ask us to correct it, or
-            ask us to delete it, and we will not treat you differently for asking. Write to{" "}
-            <a href="mailto:hello@offload.club">hello@offload.club</a>. We answer within 30 days and
-            usually much sooner. We may need to confirm you are who you say you are before we act,
-            which for most requests means asking from the address you signed in with.
-          </p>
-
-          <h3 className={styles.h3}>If you are in the UK or the European Economic Area</h3>
-          <p>
-            You have the right to access your information, to have it corrected, to have it erased,
-            to restrict what we do with it, to object to processing we base on a legitimate
-            interest, to take your information elsewhere in a portable form, and to withdraw any
-            consent you have given without that affecting what came before it.
+            <strong>Encrypted by us:</strong> your photos, screenshots, voice note audio and the
+            pictures in email you forward, before they are stored, with keys our storage provider
+            never receives. Exports and backups are encrypted too. We hold the keys, so this
+            protects against a breach at our storage provider, not against a compromise of offload
+            itself.
           </p>
           <p>
-            <strong>One limit on erasure, and it is the one in section 10.</strong> We will delete
-            everything of yours that is yours alone, on request, without asking why. We will not
-            delete what you put into a thread you shared with other people, because that is also
-            their information and erasing it would be erasing theirs at your request. We will always
-            remove you from the thread, which takes away your membership and your access, and the
-            thread and its contents are deleted when the last member leaves it. If you think that
-            balance is wrong in your particular case, tell us and a person will look at it rather
-            than a policy.
+            <strong>Not encrypted by us:</strong> the text in offload, including transcripts and
+            what offload writes about a photo. It sits in our database protected by our host&rsquo;s
+            disk encryption and access controls. Someone who obtained a copy of our database could
+            read it.
           </p>
           <p>
-            You also have the right to complain to your data protection authority. In the UK that is
-            the Information Commissioner's Office; in the EEA it is the authority for the country
-            you live in. We would rather you came to us first, but it is your call.
-          </p>
-
-          <h3 className={styles.h3}>If you are in California</h3>
-          <p>
-            You have the right to know what we collect and why, to a copy of it, to have it deleted,
-            to have it corrected, and not to be discriminated against for exercising any of that.
-            You may use an authorised agent.
-          </p>
-          <p>
-            <strong>
-              We do not sell your personal information and we do not share it for cross-context
-              behavioural advertising,
-            </strong>{" "}
-            as those terms are defined by the California Consumer Privacy Act, and we have not in
-            the twelve months before the date at the top of this page. There is therefore nothing to
-            opt out of, and no "do not sell" link, because there is no sale.
-          </p>
-          <p>
-            Some of what you upload may count as sensitive personal information. We use it only to
-            give you offload, which is a purpose the Act permits without a separate right to limit,
-            and never to infer anything about you for anyone else.
-          </p>
-
-          <h3 className={styles.h3}>If you are elsewhere in the United States</h3>
-          <p>
-            Several other states now give their residents broadly the same rights. Rather than
-            checking which state you are in, we apply the list above to everyone.
+            Access to your data is checked on our servers for every request. Only a few people can
+            reach production, and they read your content only when you ask for help or a specific
+            fault requires it, and Google user data only as section 7 allows. Our staff tools show
+            no content, and their use is recorded. Our logs, analytics and monitoring are built to
+            carry no content. Notifications are the exception: they carry a few words of what you
+            or a thread member wrote, to your own phone.
           </p>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>15. Cookies</h2>
+          <h2 className={styles.h2}>15. Health information</h2>
           <p>
-            offload sets what it needs to keep you signed in and to stop the sign-in and waitlist
-            being abused. That is the entire list. There is no advertising cookie, no third-party
-            analytics running in your browser and nothing that follows you to another site, which is
-            why this page is not interrupted by a banner asking you to accept something. A
-            thread&rsquo;s map is drawn by Google&rsquo;s own code in your browser; offload sets
-            no cookie for it, and what Google receives is in section 6.
+            offload does not ask for health information. If you put some in, it is treated like
+            everything else you put in: used only to run offload for you, never sold, never used
+            for advertising, and deleted when you delete it.
           </p>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>16. Age</h2>
+          <h2 className={styles.h2}>16. Your choices and your rights</h2>
           <p>
-            offload is for people aged 18 and over. We do not knowingly hold information about
-            anyone younger, and if we find out that an account belongs to someone under 18 we delete
-            it. If you think that has happened, tell us at{" "}
-            <a href="mailto:hello@offload.club">hello@offload.club</a> and we will deal with it.
+            In Settings you can export everything, delete your account, turn web search and link
+            reading on or off, connect or disconnect a calendar, and choose your notifications. You
+            delete something you put in, or a thread, where it is.{" "}
+            <a href="/delete-account">How deleting an account works</a>.
+          </p>
+          <p>
+            Wherever you are in the United States, you have the right to know what we collect and
+            why, to a copy, to correct it, and to delete it, and we will not treat you differently
+            for asking. You may use an authorised agent. Write to {MAIL}. We answer within one
+            month, and may need to confirm it is you, usually by having you write from the address
+            you sign in with. One limit on deleting: section 9.
+          </p>
+          <p>
+            We do not sell your personal information or share it for cross-context behavioural
+            advertising, so there is nothing to opt out of. We use sensitive information only to
+            run offload for you.
           </p>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>17. Changes to this page</h2>
+          <h2 className={styles.h2}>17. If you are not on offload</h2>
           <p>
-            When we change this we change the date at the top. If a change actually matters, meaning
-            it affects what we do with your content rather than how a sentence is worded, we email
-            account holders before it takes effect rather than relying on you to notice.
+            What people put in can mention you: an event you are invited to, an email you sent that
+            someone forwarded, a note with your name in it. We hold that only as part of their
+            account, for the purposes above, and the same retention and security apply. To ask
+            about it, write to {MAIL}.
           </p>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>18. Contact</h2>
+          <h2 className={styles.h2}>18. Cookies and tracking</h2>
           <p>
-            <a href="mailto:hello@offload.club">hello@offload.club</a>. We have no postal address to
-            give yet.
+            offload sets what it needs to sign you in, keep you signed in and stop abuse, and your
+            browser keeps your display preferences on your device. There are no advertising
+            cookies and no third-party analytics in your browser, so there is no banner. We do not
+            track you across other sites, so we treat a Do Not Track signal the way we treat
+            everyone. Two others can see your device&rsquo;s requests while you use offload: Google,
+            when a map is on screen, which may recognise you across its own services as section 6
+            says, and a site whose preview picture is shown for a link.
           </p>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.h2}>19. Age</h2>
+          <p>
+            offload is for people 18 and over. If we learn an account belongs to someone younger,
+            we delete it. Tell us at {MAIL} if you think that has happened.
+          </p>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.h2}>20. Changes to this page</h2>
+          <p>
+            When we change this page we change the date at the top. If a change materially affects
+            how your information is handled, we email account holders before it takes effect. The
+            list of companies has its own date and changes there.
+          </p>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.h2}>21. Contact</h2>
+          <p>{MAIL}. We have no postal address to give yet.</p>
         </section>
       </article>
 

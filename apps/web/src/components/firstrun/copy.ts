@@ -67,11 +67,13 @@ export const BEFORE = {
 
 /** The two ticks, verbatim on all three surfaces. */
 export const CONSENT = {
-  policyBefore: "I have read the ",
+  termsBefore: "I agree to the ",
+  termsLink: "terms",
+  policyBefore: " and have read the ",
   policyLink: "privacy policy",
   policyAfter: ".",
   processing:
-    "I understand offload will hold whatever I dump in, which can include health, money and other private matters, and I agree to it being processed to run offload.",
+    "I understand offload will hold whatever I dump in, which can include health, money and other private matters, and I agree to it being processed to run offload, including by AI services from other companies.",
   note: "We do not recommend sharing passwords, card numbers or government IDs in any AI tool.",
 } as const;
 

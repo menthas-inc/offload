@@ -8,7 +8,7 @@ import { db, closeDb } from "../src/db.js";
 import { env } from "../src/env.js";
 import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
-import { backfillMaps } from "../src/places/backfill.js";
+import { BACKFILL_RAN, backfillMaps } from "../src/places/backfill.js";
 
 await migrate(() => {});
 
@@ -35,6 +35,7 @@ afterEach(() => {
 
 beforeEach(async () => {
   await db.deleteFrom("jobs").execute();
+  await db.deleteFrom("app_settings").where("key", "=", BACKFILL_RAN).execute();
   await db.deleteFrom("content").execute();
   await db.deleteFrom("place_lookups").execute();
   await db.deleteFrom("places").execute();
@@ -135,6 +136,23 @@ describe("the one pass (T1.17, AC-27)", () => {
     await backfillMaps();
     expect(await booked("link.place")).toHaveLength(1);
     expect(await booked("location.resolve")).toHaveLength(1);
+  });
+
+  // The job's key kept it to one run only while the job row lived, and
+  // jobs.purge removes finished jobs after thirty days. Every boot after that
+  // forgot the remembered misses and looked every one up again.
+  it("runs once ever, after its job row is long gone", async () => {
+    mapsOn();
+    const me = await account();
+    const t = await thread(me);
+    await db.insertInto("content").values({ account_id: me, thread_id: t, type: "location", title: "Time Out Market", updated_at: new Date() }).execute();
+    await backfillMaps();
+    await db.deleteFrom("jobs").execute();
+    await db.insertInto("place_lookups").values({ query_hash: "h", place_id: null }).execute();
+
+    expect(await backfillMaps()).toEqual({ places: 0, links: 0 });
+    expect(await db.selectFrom("place_lookups").selectAll().execute()).toHaveLength(1);
+    expect(await db.selectFrom("jobs").selectAll().execute()).toHaveLength(0);
   });
 });
 

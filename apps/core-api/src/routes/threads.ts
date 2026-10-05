@@ -22,7 +22,16 @@ import { threadLine } from "../threads/line.js";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
 import { dropThreadWrapIfUnused, ensureThreadWrap, passThreadKeyOn } from "../blobs/keys.js";
-import { restorePhotosOfRow, restorePhotosOfThread, takePhotosOfRow, takePhotosOfThread } from "../blobs/storage.js";
+import {
+  restoreFilesOfRow,
+  restoreFilesOfThread,
+  restoreSourceOfRow,
+  restoreSourcesOfThread,
+  takeFilesOfRow,
+  takeFilesOfThread,
+  takeSourceOfRow,
+  takeSourcesOfThread,
+} from "../threads/takes.js";
 import { initialsOf } from "../accounts/initials.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import {
@@ -539,7 +548,7 @@ export function toRow(row: RawRow, viewerId: string) {
     // missing from two thirds of the link rows in production.
     url: row.url,
     // An address, never bytes. The client loads it from the site, which is the
-    // thing section 9 of the privacy policy now says out loud.
+    // thing the privacy policy says out loud (section 5, looking things up).
     imageUrl: row.image_url,
     // 020. Filled in by `withPhotos` after the page is read, one query for
     // the page rather than a join on every select that shapes a row.
@@ -781,7 +790,7 @@ export async function setArchived(
   await db.transaction().execute(async (trx) => {
     const before = await trx
       .selectFrom("content")
-      .select(["deleted_at", "archived_at"])
+      .select(["deleted_at", "archived_at", "derived_from_message_id"])
       .where("id", "=", ref.id)
       .executeTakeFirstOrThrow();
 
@@ -806,8 +815,12 @@ export async function setArchived(
       })
       .where("id", "=", ref.id)
       .execute();
-    // 036. The photos the delete took come back with the row.
-    if (!archived && before.deleted_at !== null) await restorePhotosOfRow(trx, ref.id, before.deleted_at);
+    // 036. What the delete took comes back with the row: its files, and the
+    // message it came from with that message's own files and reply.
+    if (!archived && before.deleted_at !== null) {
+      await restoreFilesOfRow(trx, ref.id, before.deleted_at);
+      await restoreSourceOfRow(trx, before.derived_from_message_id);
+    }
 
     // Restoring puts the count back. Without this an undo restores the row and
     // leaves the header saying one fewer, which is AC-8 broken by the undo path
@@ -916,14 +929,17 @@ export async function deleteContent(
       })
       .where("id", "=", ref.id)
       .where("deleted_at", "is", null)
-      .returning(["archived_at", "deleted_at", "purge_after"])
+      .returning(["archived_at", "deleted_at", "purge_after", "derived_from_message_id"])
       .executeTakeFirst();
 
     if (!result) return false;
 
-    // 036. The photo goes with the row, on the row's clock, when the person
-    // deleting it is the one who dumped it. The purge destroys the file.
-    await takePhotosOfRow(trx, ref.id, accountId, { deletedAt: result.deleted_at!, purgeAfter: result.purge_after! });
+    // 036, and the owner 2026-10-05. What the row carries goes with it, on the
+    // row's clock, and so does the message it came from once nothing else
+    // alive came from that message (takes.ts). The purge destroys them.
+    const clock = { deletedAt: result.deleted_at!, purgeAfter: result.purge_after! };
+    await takeFilesOfRow(trx, ref.id, accountId, clock);
+    await takeSourceOfRow(trx, { messageId: result.derived_from_message_id, threadId: ref.threadId }, accountId, clock);
 
     // An archived row already left the count when it was archived.
     if (result.archived_at === null) {
@@ -1244,12 +1260,14 @@ export async function deleteThread(
       .returning(["deleted_at", "purge_after"])
       .executeTakeFirst();
 
-    // 036. The photos in it go with it, held for as long as Undo
-    // can still bring the thread back, and the purge is asked for rather than
-    // left to the day's run, so the files leave storage once that has passed.
+    // 036. Everything in it goes with it, the files its rows carry and the
+    // messages they came from (takes.ts), held for as long as Undo can still
+    // bring the thread back, and the purge is asked for rather than left to
+    // the day's run, so it all leaves once that has passed.
     if (dead) {
       const purgeAfter = new Date(dead.deleted_at!.getTime() + RESTORE_WINDOW_MS);
-      await takePhotosOfThread(trx, threadId, { deletedAt: dead.deleted_at!, purgeAfter });
+      await takeFilesOfThread(trx, threadId, { deletedAt: dead.deleted_at!, purgeAfter });
+      await takeSourcesOfThread(trx, threadId, { deletedAt: dead.deleted_at!, purgeAfter });
       await enqueue({
         kind: "content.purge",
         accountId,
@@ -1310,8 +1328,9 @@ export async function restoreThread(
         .set({ deleted_at: null, purge_after: null, updated_at: sql`now()` })
         .where("id", "=", threadId)
         .execute();
-      // 036. And the photos that went with it.
-      await restorePhotosOfThread(trx, threadId, dead.deleted_at!);
+      // 036. And what went with it.
+      await restoreFilesOfThread(trx, threadId, dead.deleted_at!);
+      await restoreSourcesOfThread(trx, threadId);
     }
 
     return true;
@@ -2415,7 +2434,8 @@ export async function threadRoutes(app: App): Promise<void> {
           const accountId = await currentAccountId(request);
           if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
-          const deleted = await deleteNote(request.params.id, accountId);
+          // One transaction: the note and what goes with it (takes.ts).
+          const deleted = await db.transaction().execute((trx) => deleteNote(request.params.id, accountId, trx));
           return reply.send({ deleted });
         })
     );

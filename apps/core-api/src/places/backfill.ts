@@ -21,6 +21,11 @@ export async function backfillMaps(): Promise<{ places: number; links: number }>
   // 034. Both of the owner's switches: this pass looks places up and books
   // pages to be read.
   if (!(await mapsOn()) || !(await setting("switch.web_links"))) return { places: 0, links: 0 };
+  // Once ever. The boot's job key cannot say so for long: jobs.purge removes
+  // a finished job after thirty days, and every boot after that would forget
+  // the misses below and look each one up again.
+  const ran = await db.selectFrom("app_settings").select("key").where("key", "=", BACKFILL_RAN).executeTakeFirst();
+  if (ran) return { places: 0, links: 0 };
 
   await db.deleteFrom("place_lookups").where("place_id", "is", null).execute();
 
@@ -50,8 +55,17 @@ export async function backfillMaps(): Promise<{ places: number; links: number }>
       maxAttempts: 1,
     });
   }
+  await db
+    .insertInto("app_settings")
+    .values({ key: BACKFILL_RAN, value: JSON.stringify(true) })
+    .onConflict((oc) => oc.column("key").doNothing())
+    .execute();
   return { places: places.length, links: links.length };
 }
+
+/** The mark that the pass has run, a row in `app_settings` the registry has
+ *  no entry for and so never reads or shows (0074). */
+export const BACKFILL_RAN = "ran.maps_backfill";
 
 /** The links whose page may be read for a place: live, not read before, the
  *  author's *Read links I paste* on, and the address in the author's own words
