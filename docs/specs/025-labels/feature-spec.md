@@ -182,7 +182,7 @@ Retirement and the edges
 - **AC-31** Moving a row to another thread removes its labels and undoing the move restores them; deleting a row and undoing it keeps its labels.
 - **AC-32** A save against a deleted label is refused as `label_gone`; a refused, failed or offline write puts the previous state back with *Couldn't save that* and Try again; two members ticking different rows of one label both land.
 - **AC-33** No label name, row title or note text reaches an analytics event, a trace, a log line, an error report or `jobs.last_error`; those carry label ids, counts, error codes and outcomes only.
-- **AC-34** The privacy page line reads as above and its updated date moves; `docs/tech/decisions.md` carries the OFF-6 allowlist entry for labels and the entry retiring 007's grouping and 006's tags; the design log carries the entries below, each with its Design system impact.
+- **AC-34** The privacy page line reads as above and its updated date moves (since 2026-10-05 the policy is general and no longer names labels; the date still moves with the consent version); `docs/tech/decisions.md` carries the OFF-6 allowlist entry for labels and the entry retiring 007's grouping and 006's tags; the design log carries the entries below, each with its Design system impact.
 
 ## Out of scope
 
