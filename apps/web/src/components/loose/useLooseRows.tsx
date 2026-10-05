@@ -22,6 +22,7 @@ import { perform, useWrites, type Writes } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
 import { drawnWhen } from "../../lib/when";
 import {
+  completeContent,
   deleteContent,
   deleteNote,
   editContent,
@@ -54,6 +55,8 @@ export const RETRY = "Try again";
 
 export interface LooseRows {
   handlers: RowHandlers;
+  /** A to-do's checkbox. */
+  tick: (row: ContentRow) => void;
   accept: (entry: LooseEntry) => void;
   dismiss: (entry: LooseEntry) => void;
   /** The note open in its editor, by id. */
@@ -140,6 +143,18 @@ export function useLooseRows<S extends LooseSummary>(
       unwrite: () => setArchived(row.id, false),
       did: "Deleted, gone in a moment",
       failed: "Couldn't delete that",
+      unfailed: "Couldn't put that back",
+    });
+  }
+
+  /** A ticked to-do is done and is not in this list, so it leaves at the
+   *  press, and Undo is the way back since the box goes with it. */
+  function tick(row: ContentRow): void {
+    leave(find(keyOf("content", row.id)), {
+      write: () => completeContent(row.id, true),
+      unwrite: () => completeContent(row.id, false),
+      did: "Ticked off",
+      failed: "Couldn't tick that off",
       unfailed: "Couldn't put that back",
     });
   }
@@ -422,6 +437,7 @@ export function useLooseRows<S extends LooseSummary>(
 
   return {
     handlers,
+    tick,
     accept,
     dismiss,
     editingNote,

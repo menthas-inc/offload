@@ -9,7 +9,7 @@
 // a test can see them: which chips show, what the All link says, the meta
 // line, the count in words, the name a create will take.
 
-import { noonUtc, putDown } from "@offload/widgets";
+import { noonUtc } from "@offload/widgets";
 import { send } from "./api";
 import { withPlaceId, type ContentRow, type Note } from "./threads";
 
@@ -206,15 +206,12 @@ export function noteRow(note: Note): ContentRow {
 
 // ------------------------------------------------------------------- rows
 
-/** *Photo · Monday*: what it is, then when it was put down. An archived row
- *  says when it was archived, as the thread page's archived rows do. */
-export function metaOf(entry: LooseEntry, today: string, dayOf: (iso: string) => string): string {
+/** Only an archived row has a meta line, saying when it was archived, as the
+ *  thread page's archived rows do. A live row's tile already says what it is
+ *  (2026-10-05). */
+export function metaOf(entry: LooseEntry, dayOf: (iso: string) => string): string | undefined {
   if (entry.kind === "content" && entry.row.archivedAt) return `archived ${dateOf(dayOf(entry.row.archivedAt))}`;
-  const chip = chipOf(entry);
-  const singular = CHIPS.find((one) => one.key === chip)?.singular;
-  const createdAt = entry.kind === "note" ? entry.note.createdAt : entry.row.createdAt;
-  const when = putDown(dayOf(createdAt), today);
-  return singular ? `${singular} · ${when}` : when;
+  return undefined;
 }
 
 /** *3 Oct*, in the order the person's locale puts it. */

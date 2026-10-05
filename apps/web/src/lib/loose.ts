@@ -6,7 +6,6 @@
 // loose.ts and loose/read.ts. "Loose" is the code's word only; nothing a
 // person reads says it.
 
-import { dayIn, putDown } from "@offload/widgets";
 import type { ContentPage, ContentRow, Note } from "./threads";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
@@ -132,20 +131,6 @@ const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "e
  *  ten. */
 export function countInWords(n: number): string {
   return WORDS[n] ?? String(n);
-}
-
-/** When it was put down. A note read without `createdAt` uses when it was
- *  written, which for most notes is the same. */
-export function createdOf(entry: LooseEntry): string {
-  return entry.kind === "note" ? (entry.note.createdAt ?? entry.note.writtenAt) : entry.row.createdAt;
-}
-
-/** *Photo · Monday*, the day in the account's clock and worded by
- *  `putDown`, as the phones word it. A type with no chip says only when. */
-export function metaLine(entry: LooseEntry, today: string, zone: string | null): string {
-  const chip = chipOf(entry);
-  const when = putDown(dayIn(new Date(createdOf(entry)), zone), today);
-  return chip ? `${chipInfo(chip).singular} · ${when}` : when;
 }
 
 export function entryTitle(entry: LooseEntry): string {

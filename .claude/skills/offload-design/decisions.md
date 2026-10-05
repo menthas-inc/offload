@@ -11,6 +11,14 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-05 · A loose to-do has its checkbox, and loose rows lose the meta line
+**Surface:** iOS, Android, web, My threads' Not in a thread and its full list
+**Raised by:** code, from the owner: a to-do outside any thread could not be ticked from the list.
+**Was:** every row drew its type tile, a to-do included, and a meta line under the title, *To-do · Thursday*, the type's singular then when it was put down. The web had no way to tick a loose to-do at all; the phones only through a long press into the action sheet.
+**Is:** a to-do leads with the thread page's checkbox in the tile's slot. Ticking takes the row out at the press with *Ticked off* and Undo, since the group holds no ticked to-dos and the box leaves with the row. No meta line on a live row; an archived row on the full list still says *archived 3 Oct*. The suggestion sits under the title.
+**Why:** ticking is the thing people come to a to-do to do, and the meta line said twice what the tile already says, at the cost of a line per row.
+**Design system impact:** `mobile_app/LooseParts.jsx` `LooseRow`: a `task` row draws the To do widget's checkbox in place of its tile, and the meta line goes; the web kit's `WThings` draws the same rows. 028's readme section on rows loses *Photo · Monday*.
+
 ### 2026-10-05 · The consent ticks accept the terms and name AI services from other companies
 **Surface:** iOS, Android, web, first run's Before you start
 **Raised by:** code, from the legal review of 2026-10-05 (Apple 5.1.2(i), and terms accepted by use rather than by a tick).

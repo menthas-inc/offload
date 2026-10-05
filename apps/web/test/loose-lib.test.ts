@@ -16,7 +16,6 @@ import {
   fetchLooseArchived,
   fetchProposal,
   entryTitle,
-  metaLine,
   moveNote,
   sharedHint,
   suggestionName,
@@ -125,25 +124,9 @@ describe("the words (AC-8, AC-9, AC-20, AC-24)", () => {
     expect(countInWords(11)).toBe("11");
   });
 
-  it("writes the meta as the type's singular and when it was put down", () => {
-    // Tuesday 29 September 2026 in Lisbon.
-    const today = "2026-09-29";
-    const zone = "Europe/Lisbon";
-    expect(metaLine(content("a", "image", "2026-09-29T08:00:00Z"), today, zone)).toBe("Photo · today");
-    expect(metaLine(content("b", "link", "2026-09-28T08:00:00Z"), today, zone)).toBe("Link · yesterday");
-    expect(metaLine(content("c", "image", "2026-09-28T23:30:00Z"), today, zone)).toBe("Photo · today");
-    expect(metaLine(content("d", "task", "2026-09-26T08:00:00Z"), today, zone)).toBe("To-do · Saturday");
-    expect(metaLine(note("n", "x", "2026-09-23T08:00:00Z"), today, zone)).toBe("Note · Wednesday");
-    // A date from a week back, as @offload/widgets' putDown says it on both
-    // clients, never "last week".
-    expect(metaLine(content("e", "event", "2026-09-20T08:00:00Z"), today, zone)).toMatch(/^Event · (20 Sept?|Sep 20)$/);
-    expect(metaLine(content("g", "file", "2026-07-29T08:00:00Z"), today, zone)).toMatch(/^File · (29 Jul|Jul 29)$/);
-  });
-
-  it("gives a type it does not know no chip and no singular, as the phones do", () => {
+  it("gives a type it does not know no chip, as the phones do", () => {
     const odd = content("x", "something-new", "2026-09-29T08:00:00Z");
     expect(chipOf(odd)).toBeNull();
-    expect(metaLine(odd, "2026-09-29", "Europe/Lisbon")).toBe("today");
     const summary: LooseSummary = { count: 2, byType: { link: 1 }, rows: [odd, content("a", "link")] };
     const next = withoutEntry(summary, odd);
     expect(next.count).toBe(1);

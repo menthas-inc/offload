@@ -3,7 +3,9 @@
 // My threads' group and the full list draw the same rows with the same
 // sheets, so both take them from here, as Today takes its rows from
 // `useTodayRows`. A row is the thread page's content row with no thread slot,
-// no labels and no handle, its meta, and its suggestion under it. A tap opens
+// no labels and no handle, and its suggestion under it. No meta line but an
+// archived row's: the tile says what it is (2026-10-05). A to-do leads with
+// its checkbox, as on the thread page, and a tick takes it out. A tap opens
 // what the thread page opens: the edit sheet, the note's sheet, the photo.
 // A swipe deletes with the eight-second Undo; a long press opens the action
 // sheet, which carries Move.
@@ -82,7 +84,7 @@ export function useLooseRows(
 } {
   const router = useRouter();
   const { notify } = useConversation();
-  const { zone, today } = useClock();
+  const { zone } = useClock();
   // What has left, by key, kept whole so its type can come off the counts.
   const [dropped, setDropped] = useState<Map<string, LooseEntry>>(new Map());
   const [unsuggested, setUnsuggested] = useState<Set<string>>(new Set());
@@ -191,15 +193,19 @@ export function useLooseRows(
     );
   }
 
+  /** A ticked to-do is done and is not in this list, so it leaves at the
+   *  press, and Undo is the way back since the box goes with it. */
   function tick(row: ContentRow): void {
-    const key = `c:${row.id}`;
-    const wasDone = row.doneAt !== null;
+    const entry: LooseEntry = { kind: "content", row, suggestion: null };
     void perform(
       {
-        apply: () => patch(key, { doneAt: wasDone ? null : new Date().toISOString() }),
-        revert: () => patch(key, { doneAt: row.doneAt }),
-        write: () => completeContent(row.id, !wasDone),
-        failed: wasDone ? "Couldn't put that back" : "Couldn't tick that off",
+        apply: () => drop(entry),
+        revert: () => put(entry),
+        write: () => completeContent(row.id, true),
+        unwrite: () => completeContent(row.id, false),
+        did: "Ticked off",
+        failed: "Couldn't tick that off",
+        unfailed: "Couldn't put that back",
       },
       toast,
       writes,
@@ -391,11 +397,7 @@ export function useLooseRows(
             ...(acting.row.photo
               ? []
               : [
-                  {
-                    label: acting.row.doneAt ? "Mark not done" : "Mark done",
-                    icon: acting.row.doneAt ? "rewind" : "check",
-                    run: () => tick(acting.row),
-                  },
+                  { label: "Mark done", icon: "check", run: () => tick(acting.row) },
                 ]),
             acting.row.canDelete
               ? { label: "Delete", icon: "trash-2", danger: true, run: () => remove(acting) }
@@ -423,7 +425,8 @@ export function useLooseRows(
         key={keyOf(entry)}
         row={content}
         border={options.border}
-        meta={metaOf(entry, today, dayOf)}
+        meta={metaOf(entry, dayOf)}
+        onToggle={entry.kind === "content" && entry.row.type === "task" ? () => tick(entry.row) : undefined}
         titleLines={1}
         muted={entry.kind === "note" && entry.note.muted}
         onEdit={() => (entry.kind === "note" ? setNoting(entry.note) : setRenaming(entry.row))}
