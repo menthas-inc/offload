@@ -101,6 +101,16 @@ describe("a code that did not work, on the refusal screen", () => {
     expect(host.querySelector('[role="alert"]')!.textContent).toBe("That code did not work.");
     expect(button("Have a code?")).toBeUndefined();
     await click("Try another code");
-    expect(replace).toHaveBeenCalledWith("/sign-in");
+    expect(replace).toHaveBeenCalledWith("/sign-in?code=1");
+  });
+
+  it("lands back on sign-in with the field already open and focused", async () => {
+    window.history.replaceState(null, "", "/sign-in?code=1");
+    await open(<SignInPage />);
+    const input = host.querySelector('input[aria-label="Code"]');
+    expect(input).toBeTruthy();
+    expect(document.activeElement).toBe(input);
+    expect(button("Have a code?")).toBeUndefined();
+    window.history.replaceState(null, "", "/sign-in");
   });
 });

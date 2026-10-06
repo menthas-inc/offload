@@ -12,7 +12,7 @@
 
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Linking, Pressable, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GateBackdrop } from "../GateBackdrop";
 import { GateLockup } from "../GateLockup";
@@ -41,7 +41,9 @@ export default function SignIn() {
   const [hasApple, setHasApple] = useState(false);
   // 039. Whether review codes are on, and the one typed, if any.
   const [codes, setCodes] = useState(false);
-  const [codeOpen, setCodeOpen] = useState(false);
+  // Back from "Try another code", the field is already open (and focused).
+  const { code: codeParam } = useLocalSearchParams<{ code?: string }>();
+  const [codeOpen, setCodeOpen] = useState(() => codeParam === "1");
   const [code, setCode] = useState("");
 
   useEffect(() => {

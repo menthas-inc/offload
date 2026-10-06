@@ -60,6 +60,8 @@ export default function SignInPage() {
     // invite line would be, and not as a failure: nothing went wrong.
     if (query.has("deleted")) setDeleted(true);
     if (query.get("to") === "admin") setToAdmin(true);
+    // 039. Back from "Try another code": the field is already open.
+    if (query.get("code") === "1") setCodeOpen(true);
   }, []);
 
   async function go(provider: Provider) {

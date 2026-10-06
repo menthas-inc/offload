@@ -100,7 +100,7 @@ export default function NoInvite() {
               )}
 
               <Pressable
-                onPress={() => router.replace("/sign-in")}
+                onPress={() => router.replace(badCode ? "/sign-in?code=1" : "/sign-in")}
                 className="min-h-composer-height w-full items-center justify-center rounded-pill border border-border-strong bg-surface-raised active:opacity-90"
               >
                 <Text className="font-core text-body font-medium text-text-primary">

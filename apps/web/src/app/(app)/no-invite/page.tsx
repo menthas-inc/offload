@@ -115,7 +115,7 @@ export default function NoInvitePage() {
           <button type="button" className={styles.primary} onClick={join} disabled={!email}>
             Join the waitlist with this email
           </button>
-          <button type="button" className={styles.secondary} onClick={() => router.replace("/sign-in")}>
+          <button type="button" className={styles.secondary} onClick={() => router.replace(badCode ? "/sign-in?code=1" : "/sign-in")}>
             {badCode ? "Try another code" : "Use a different account"}
           </button>
         </div>

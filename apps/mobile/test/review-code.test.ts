@@ -149,6 +149,8 @@ describe("both phones", () => {
       expect(source).toMatch(/\{codes && codeOpen \? \(\s*<CodeField/);
       expect(source).toMatch(/\{codes && !codeOpen \? \(\s*<CodeLine/);
       expect(source).toContain("signIn(provider, codes ? code : \"\")");
+      // Back from "Try another code" with the field already open.
+      expect(source).toContain('useState(() => codeParam === "1")');
     });
 
     it(`the refusal on ${platform}: sends the proof, and says a code did not work`, () => {
@@ -157,6 +159,7 @@ describe("both phones", () => {
       expect(source).toContain('setBadCode(data.reason === "code")');
       expect(source).toContain("GATE.code.refused");
       expect(source).toContain("badCode ? GATE.code.tryAnother : GATE.notInvited.switch");
+      expect(source).toContain('router.replace(badCode ? "/sign-in?code=1" : "/sign-in")');
     });
   }
 });

@@ -69,7 +69,8 @@ opens past the waitlist.
   and spends nothing. A disabled one is refused as disabled.
 - **AC-7** A code that does not work ends at the no-invite screen, whose
   refusal carries `reason: code`: it says *That code did not work.* and its
-  outlined button reads *Try another code*, back to sign-in.
+  outlined button reads *Try another code*, back to sign-in with the code
+  field already open and focused.
 - **AC-8** Tries are limited to 10 an hour per address and 20 an hour per IP,
   counted whether or not they succeed. Over the limit the code does not work
   and nothing more is written. The limiter keeps HMACs, not addresses or IPs,
