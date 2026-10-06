@@ -26,6 +26,6 @@ One sentence about the person that is true across their threads and will still b
 
 - `add`: at most five, each citing the one message or thread note it came from by its id.
 - `supersede`: replace a memory with what is now true, citing the message or note that says so. "They live in Toronto." becomes "They live in Montreal." when they say they moved. Only when a later message or note of theirs says otherwise.
-- `fold`: two or more memories that say one thing become one sentence. Only memories marked `learned`.
+- `fold`: two or more memories that say one thing become one sentence. Only ids from the memories already held, marked `learned`; never a thread note or a message, which are evidence, not memories. Two notes that say the same thing are a pattern to `add`, citing one of them.
 
 You never delete. A memory that is merely old is still true until something says otherwise.

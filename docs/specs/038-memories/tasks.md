@@ -103,9 +103,9 @@ Every task opens with its failing test, run and seen red for the reason the task
 
 ## Evals
 
-- [ ] **T18** With the owner, the fixtures: a handful of synthetic people, each with a week of messages, some thread notes and some memories, and the memories each should and should not end with. This is the set the owner asked to develop together, written before the prompt is tuned against it. Held-out people are kept apart.
+- [x] **T18** With the owner, the fixtures: a handful of synthetic people, each with a week of messages, some thread notes and some memories, and the memories each should and should not end with. This is the set the owner asked to develop together, written before the prompt is tuned against it. Held-out people are kept apart.
 - [x] **T19** `29-memories.json` and the `memory` surface in `run.py`, with the blocking and measured cases from the impl-spec's Evals. The three injection cases go in `15-injected-text-is-data.json`. **Not run without the owner's explicit yes in the session.** (AC-19)
-- [ ] **T20** With permission: run, read the report, change the prompt only where failures agree, then measure on the held-out set. The blocking set at 100% on two runs and the measured set at 90% before merge.
+- [x] **T20** With permission: run, read the report, change the prompt only where failures agree, then measure on the held-out set. The blocking set at 100% on two runs and the measured set at 90% before merge.
 
 ## Close
 
@@ -116,3 +116,9 @@ Every task opens with its failing test, run and seen red for the reason the task
 - **What was found by running it end to end:** the worker's database role could not read `accounts.memories_at` or `memory_forgotten`. The suite connects as the owner and never saw it; 0085 grants both, read only, and `agent-role.test.ts` holds it.
 - **T19's cases** are a first set I wrote. The 16 in `29-memories.json` passed 16/16 twice, and the two injection cases in principle 15 passed. T18 still owes the owner-built fixtures, a few synthetic people each with a week of messages; the narrow runs so far cost about $3.
 - **Also found by the evals:** `plan_v2.md` still said "'My calendar' names none", which contradicted PR 82's tool description. Fixed here, and principle 8's naming cases pass twice each.
+- **T18, the cast (2026-10-06).** Seven people, as the owner laid it out:
+  - some isolated, some with one to three connections;
+  - their relationships, and the personal and shared threads each would keep;
+  - conversations, thread notes and memories for each.
+
+  It lives in `apps/agent/evals/cast/cast.sql`, loaded by the eval runner and by `pnpm -C apps/core-api seed:cast`, and measured by `principles/30-the-cast.json` (15 cases) through the worker's own queries and role. Its first runs found two things fixtures had not: the answering turn listed the account's country as a memory, and the pass tried to fold thread notes. Both prompts are fixed, and the cast passes 15/15 on two runs. New edge cases are added to it, for the person they would happen to; the README says how.

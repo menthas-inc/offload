@@ -112,6 +112,9 @@ MODELS = {
     "nightly": _DEFAULTS["nightly_model"],
     # 038.
     "memory": _DEFAULTS["memory_model"],
+    "cast-memory": _DEFAULTS["memory_model"],
+    "cast-file": _DEFAULTS["model"],
+    "cast-answer": _DEFAULTS["answer_model"],
 }
 # The eval's own judge is a different tier from the answerer on purpose: a
 # model marking its own work is the failure this file exists to avoid.
@@ -345,11 +348,58 @@ def _memories(fx: dict) -> list[Memory]:
 # server refuses: `memories/ground.ts`, `memories/shapes.ts` and the turn's
 # taint in `routes/tools.ts`. A stub that always remembers tests nothing.
 _IGNORED = {
-    "they", "their", "theirs", "them", "themselves", "s", "is", "are", "was", "were", "be",
-    "been", "a", "an", "the", "of", "in", "on", "at", "to", "for", "with", "and", "or", "as",
-    "by", "from", "it", "its", "has", "have", "had", "that", "this", "which", "who", "what",
-    "when", "where", "call", "calls", "called", "mean", "means", "always", "never", "every",
-    "everywhere", "now", "place", "one", "ones",
+    "they",
+    "their",
+    "theirs",
+    "them",
+    "themselves",
+    "s",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "a",
+    "an",
+    "the",
+    "of",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "with",
+    "and",
+    "or",
+    "as",
+    "by",
+    "from",
+    "it",
+    "its",
+    "has",
+    "have",
+    "had",
+    "that",
+    "this",
+    "which",
+    "who",
+    "what",
+    "when",
+    "where",
+    "call",
+    "calls",
+    "called",
+    "mean",
+    "means",
+    "always",
+    "never",
+    "every",
+    "everywhere",
+    "now",
+    "place",
+    "one",
+    "ones",
 }
 
 
@@ -1428,6 +1478,14 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         photos=_photos(fx),
         memories=_memories(fx),
     )
+    return await _file_with(client, case, model, ctx, rec)
+
+
+async def _file_with(
+    client: AsyncAnthropic, case: Case, model: str, ctx: Any, rec: Recorder
+) -> Result:
+    """The turn run and judged, on a context built from a fixture or from the cast."""
+    fx = case.fixture
     try:
         outcome = await plan(client, ctx, model, rec)
     except Exception as exc:  # noqa: BLE001
@@ -1590,6 +1648,13 @@ async def _run_answer(client: AsyncAnthropic, case: Case, model: str) -> Result:
         ],
         memories=_memories(fx),
     )
+    return await _answer_with(client, case, model, ctx, rec)
+
+
+async def _answer_with(
+    client: AsyncAnthropic, case: Case, model: str, ctx: Any, rec: Recorder
+) -> Result:
+    """The turn run and judged, on a context built from a fixture or from the cast."""
     try:
         outcome = await plan_answer(client, ctx, model, rec)
     except Exception as exc:  # noqa: BLE001
@@ -1841,6 +1906,175 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
     return Result(case, "", transcript, failures, judged, note, cost=cost)
 
 
+# ---------------------------------------------------------------- the cast
+#
+# 038. Seven people in a database of their own (cast/cast.sql), measured
+# through the same queries the worker runs: what a pass reads, what a turn's
+# context holds, what the agent role may see. Needs EVAL_CAST_DATABASE_URL,
+# a database whose name has "cast" in it, migrated; the seed is applied at
+# the start of a run. EVAL_CAST_AGENT_DATABASE_URL, when set, reads as the
+# worker's role, which is how 038 found a missing grant.
+
+CAST = HERE / "cast"
+_cast_lock = asyncio.Lock()
+_cast_engine: Any = None
+
+
+def _cast_ids() -> dict:
+    return json.loads((CAST / "ids.json").read_text())
+
+
+async def _cast() -> Any:
+    """The cast's database, seeded once per run."""
+    global _cast_engine
+    async with _cast_lock:
+        if _cast_engine is not None:
+            return _cast_engine
+        url = os.environ.get("EVAL_CAST_DATABASE_URL")
+        if not url:
+            raise RuntimeError("the cast needs EVAL_CAST_DATABASE_URL")
+        if "cast" not in url.rsplit("/", 1)[-1]:
+            raise RuntimeError("EVAL_CAST_DATABASE_URL must name a database with 'cast' in it")
+        import asyncpg
+        from sqlalchemy.ext.asyncio import create_async_engine
+
+        from offload_agent.config import _asyncpg
+
+        seed = await asyncpg.connect(url.replace("postgresql+asyncpg://", "postgresql://"))
+        try:
+            await seed.execute((CAST / "cast.sql").read_text())
+        finally:
+            await seed.close()
+        _cast_engine = create_async_engine(
+            _asyncpg(os.environ.get("EVAL_CAST_AGENT_DATABASE_URL") or url)
+        )
+        return _cast_engine
+
+
+async def _cast_turn(case: Case, writer: Any) -> tuple[str, str, str]:
+    """A dump of theirs in a conversation of its own, as the route writes one:
+    the account, the conversation and the message. Removed after the case."""
+    ids = _cast_ids()
+    who = ids["people"][case.input["character"]]
+    looking = ids["threads"].get(case.input.get("looking_at", ""))
+    async with writer.begin() as conn:
+        from sqlalchemy import text as sql_text
+
+        conversation = (
+            await conn.execute(
+                sql_text("insert into conversations (account_id) values (:a) returning id::text"),
+                {"a": who},
+            )
+        ).scalar_one()
+        message = (
+            await conn.execute(
+                sql_text(
+                    "insert into messages (conversation_id, account_id, role, type, turn_id, "
+                    "text, state, source, looking_at_thread_id, created_at) "
+                    "values (:c, :a, 'person', 'text', gen_random_uuid(), :t, 'seen', "
+                    "'person', :l, "
+                    # Eight days back: outside every pass's seven-day window,
+                    # so a pass case running beside this one never reads it.
+                    "now() - interval '8 days') returning id::text"
+                ),
+                {"c": conversation, "a": who, "t": case.input["dump"], "l": looking},
+            )
+        ).scalar_one()
+    return who, conversation, message
+
+
+async def _cast_forget(writer: Any, conversation: str) -> None:
+    from sqlalchemy import text as sql_text
+
+    async with writer.begin() as conn:
+        await conn.execute(sql_text("delete from conversations where id = :c"), {"c": conversation})
+
+
+def _cast_writer() -> Any:
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from offload_agent.config import _asyncpg
+
+    return create_async_engine(_asyncpg(os.environ["EVAL_CAST_DATABASE_URL"]))
+
+
+def _with_memories(case: Case, memories: list) -> Case:
+    """The stub answers a forget against the memories the context really holds."""
+    fixture = {
+        **case.fixture,
+        "memories": [{"id": m.id, "kind": m.kind, "text": m.text} for m in memories],
+    }
+    return Case(**{**case.__dict__, "fixture": fixture})
+
+
+async def _run_cast_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
+    """A filing turn by one of the cast, its context loaded from the database."""
+    from offload_agent import context as ctx_mod
+
+    await _cast()
+    writer = _cast_writer()
+    who, conversation, message = await _cast_turn(case, writer)
+    try:
+        async with (await _cast()).connect() as conn:
+            ctx = await ctx_mod.load(
+                conn,
+                account_id=who,
+                conversation_id=conversation,
+                message_id=message,
+                max_turns=20,
+                max_threads=12,
+            )
+        case = _with_memories(case, ctx.memories)
+        rec = Recorder(case, ctx.dump)
+        return await _file_with(client, case, model, ctx, rec)
+    finally:
+        await _cast_forget(writer, conversation)
+        await writer.dispose()
+
+
+async def _run_cast_answer(client: AsyncAnthropic, case: Case, model: str) -> Result:
+    """A question asked by one of the cast, its context loaded from the database."""
+    from offload_agent import context as ctx_mod
+
+    await _cast()
+    writer = _cast_writer()
+    who, conversation, message = await _cast_turn(case, writer)
+    try:
+        async with (await _cast()).connect() as conn:
+            ctx = await ctx_mod.load_answer(
+                conn,
+                account_id=who,
+                question=case.input["dump"],
+                max_threads=12,
+                conversation_id=conversation,
+                message_id=message,
+                max_turns=20,
+            )
+        case = _with_memories(case, ctx.memories)
+        rec = Recorder(case, case.input["dump"])
+        return await _answer_with(client, case, model, ctx, rec)
+    finally:
+        await _cast_forget(writer, conversation)
+        await writer.dispose()
+
+
+async def _run_cast_memory(client: AsyncAnthropic, case: Case, model: str) -> Result:
+    """One of the cast's memory pass, reading exactly what the worker reads."""
+    ids = _cast_ids()
+    who = ids["people"][case.input["character"]]
+    async with (await _cast()).connect() as conn:
+        today, held, notes, messages = await memories_mod.read(conn, who)
+    return await _memory_with(
+        client,
+        case,
+        model,
+        [dict(m) for m in held],
+        [dict(n) for n in notes],
+        [dict(m) for m in messages],
+        today,
+    )
+
+
 async def _run_memory(client: AsyncAnthropic, case: Case, model: str) -> Result:
     """038. One account's memory pass.
 
@@ -1855,9 +2089,22 @@ async def _run_memory(client: AsyncAnthropic, case: Case, model: str) -> Result:
         {"id": m.get("id") or f"k{n}", "origin": m.get("origin", "learned"), **m}
         for n, m in enumerate(fx.get("memories") or [], start=1)
     ]
-    listing = memories_mod.listing(
-        today=case.fixture.get("today") or TODAY, memories=held, notes=notes, messages=messages
+    return await _memory_with(
+        client, case, model, held, notes, messages, case.fixture.get("today") or TODAY
     )
+
+
+async def _memory_with(
+    client: AsyncAnthropic,
+    case: Case,
+    model: str,
+    held: list[dict],
+    notes: list[dict],
+    messages: list[dict],
+    today: str | None,
+) -> Result:
+    """The pass run and judged, on a set from a fixture or from the cast."""
+    listing = memories_mod.listing(today=today, memories=held, notes=notes, messages=messages)
     cfg = Config(
         database_url="", api_url="", internal_token="", anthropic_api_key="", memory_model=model
     )
@@ -1924,6 +2171,9 @@ async def _run_memory(client: AsyncAnthropic, case: Case, model: str) -> Result:
 
 _SURFACES = {
     "memory": _run_memory,
+    "cast-memory": _run_cast_memory,
+    "cast-file": _run_cast_file,
+    "cast-answer": _run_cast_answer,
     "file": _run_file,
     "answer": _run_answer,
     "classify": _run_classify,

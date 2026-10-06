@@ -1207,8 +1207,11 @@ def build_answer_blocks(ctx: AnswerContext) -> list[dict]:
     blocks.append(
         {
             "type": "text",
+            # 038. A setting, said as one: asked what offload remembers about
+            # them, an answer listed this beside their memories as one more.
             "text": (
-                f"They are in {name_of(country) or country}."
+                f"Their country setting is {name_of(country) or country}. "
+                "It is a setting, not something offload remembers about them."
                 if country
                 else "You do not know what country they are in. They have not said."
             ),

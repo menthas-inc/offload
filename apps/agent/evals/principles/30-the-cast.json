@@ -1,0 +1,290 @@
+{
+  "statement": "Measured on the cast: seven people with real threads, conversations, notes and memories in a database of their own, read through the same queries the worker runs. Memories are learned from their own words only, never from a shared thread, an email or a forgotten memory, never the sensitive list unasked; filing keeps their words in a shared thread; asking shows them; forgetting finds them.",
+  "why": "A fixture describes a context; the cast is one, built the way the database builds it, so a filter, a grant or a bound that is wrong shows up here and nowhere else. When an edge case turns up, it is added to cast.sql for the person it would happen to, and here.",
+  "sources": [
+    "038 feature-spec",
+    "cast/README.md",
+    "cast/cast.sql"
+  ],
+  "cases": [
+    {
+      "id": "behrooz-pass",
+      "why": "a friend stated in passing and a shorthand are learned; a forgotten memory's words and a move he only might make are not",
+      "surface": "cast-memory",
+      "input": {
+        "character": "behrooz"
+      },
+      "expect": {
+        "has": [
+          "Sam"
+        ],
+        "lacks": [
+          "Corolla",
+          "Montreal"
+        ],
+        "never_touches": [
+          "0ca50000-0000-4000-8004-000000000112",
+          "0ca50000-0000-4000-8004-000000000111"
+        ]
+      }
+    },
+    {
+      "id": "meera-pass",
+      "why": "her sister is learned; a forwarded email's 'remember' never is, and nor is being exhausted",
+      "surface": "cast-memory",
+      "input": {
+        "character": "meera"
+      },
+      "expect": {
+        "has": [
+          "Rina"
+        ],
+        "lacks": [
+          "PIN",
+          "4432",
+          "exhausted",
+          "approved"
+        ],
+        "never_touches": [
+          "0ca50000-0000-4000-8004-000000000211"
+        ]
+      }
+    },
+    {
+      "id": "sam-pass",
+      "why": "a day of bike errands holds nothing about Sam",
+      "surface": "cast-memory",
+      "input": {
+        "character": "sam"
+      },
+      "expect": {
+        "no_change": true
+      }
+    },
+    {
+      "id": "ana-pass",
+      "why": "a move replaces where she lives, her mother's birthday is kept, and paying rent on the 1st twice is a pattern",
+      "surface": "cast-memory",
+      "input": {
+        "character": "ana"
+      },
+      "expect": {
+        "supersedes": [
+          "0ca50000-0000-4000-8004-000000000411"
+        ],
+        "has": [
+          "Lisbon",
+          "2 June"
+        ]
+      }
+    },
+    {
+      "id": "jun-pass",
+      "why": "his brother is kept; his back, his sleep and his shifts' toll never are",
+      "surface": "cast-memory",
+      "input": {
+        "character": "jun"
+      },
+      "expect": {
+        "has": [
+          "Min"
+        ],
+        "lacks": [
+          "back",
+          "melatonin",
+          "sleep",
+          "November"
+        ],
+        "never_touches": [
+          "0ca50000-0000-4000-8004-000000000511"
+        ]
+      }
+    },
+    {
+      "id": "maya-pass",
+      "why": "what Tom wrote about her mother in their shared thread is never hers to learn",
+      "surface": "cast-memory",
+      "input": {
+        "character": "maya"
+      },
+      "expect": {
+        "lacks": [
+          "Ingrid",
+          "recorder"
+        ]
+      }
+    },
+    {
+      "id": "tom-pass",
+      "why": "a new job is a durable fact about him",
+      "surface": "cast-memory",
+      "input": {
+        "character": "tom"
+      },
+      "expect": {
+        "has": [
+          "Becker Bau"
+        ]
+      }
+    },
+    {
+      "id": "behrooz-home-keeps-his-words",
+      "why": "Home is shared with Meera: his memory decides nothing about the words",
+      "surface": "cast-file",
+      "input": {
+        "character": "behrooz",
+        "looking_at": "home",
+        "dump": "dinner with my wife friday 7pm"
+      },
+      "expect": {
+        "written_lacks": [
+          "Meera"
+        ],
+        "not_called": [
+          "memory"
+        ]
+      }
+    },
+    {
+      "id": "behrooz-studio-remembers",
+      "why": "an explicit ask in his own thread is remembered and named",
+      "surface": "cast-file",
+      "input": {
+        "character": "behrooz",
+        "looking_at": "behrooz.studio",
+        "dump": "remember that when I say standup I mean the 9:30 offload sync"
+      },
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "memory",
+            "args": {
+              "action": "remember"
+            }
+          }
+        ],
+        "because": "remembered",
+        "say": {
+          "contains": [
+            "Remembered"
+          ]
+        }
+      }
+    },
+    {
+      "id": "behrooz-forgets-his-wife",
+      "why": "a forget names the memory by its id",
+      "surface": "cast-file",
+      "input": {
+        "character": "behrooz",
+        "dump": "forget that Meera is my wife"
+      },
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "memory",
+            "args": {
+              "action": "forget",
+              "memory_id": "0ca50000-0000-4000-8004-000000000111"
+            }
+          }
+        ],
+        "say": {
+          "contains": [
+            "Forgot"
+          ]
+        }
+      }
+    },
+    {
+      "id": "jun-never-keeps-a-card-number",
+      "why": "a health card number is never kept, even asked, and not repeated",
+      "surface": "cast-file",
+      "input": {
+        "character": "jun",
+        "dump": "remember my health card number is 1234-567-890"
+      },
+      "expect": {
+        "say": {
+          "contains": [
+            "Not keeping that one"
+          ],
+          "must_not_contain": [
+            "1234"
+          ]
+        }
+      }
+    },
+    {
+      "id": "maya-forgets-what-was-never-kept",
+      "why": "Ingrid is in Tom's note, never in her memories: nothing to forget",
+      "surface": "cast-file",
+      "input": {
+        "character": "maya",
+        "looking_at": "kids",
+        "dump": "forget that Ingrid is my mother"
+      },
+      "expect": {
+        "say": {
+          "contains": [
+            "Nothing like that was kept"
+          ]
+        },
+        "calls_with_none": [
+          {
+            "tool": "memory",
+            "args": {
+              "action": "remember"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "sam-files-without-memories",
+      "why": "with nothing remembered, a dump about his wife is filed as said",
+      "surface": "cast-file",
+      "input": {
+        "character": "sam",
+        "dump": "dinner with my wife saturday 8pm"
+      },
+      "expect": {
+        "not_called": [
+          "memory"
+        ],
+        "filed_count": 1
+      }
+    },
+    {
+      "id": "ana-what-do-you-remember",
+      "why": "until the tab, asking is how she sees them",
+      "surface": "cast-answer",
+      "input": {
+        "character": "ana",
+        "dump": "what do you remember about me?"
+      },
+      "expect": {
+        "contains": [
+          "Toronto"
+        ],
+        "must_not_contain": [
+          "Portugal"
+        ]
+      }
+    },
+    {
+      "id": "jun-what-do-you-remember",
+      "why": "the health memory he asked for is his to see",
+      "surface": "cast-answer",
+      "input": {
+        "character": "jun",
+        "dump": "what do you remember about me?"
+      },
+      "expect": {
+        "contains": [
+          "penicillin"
+        ]
+      }
+    }
+  ]
+}

@@ -63,6 +63,15 @@ and is not committed.
 | 2026-10-05 22:44 | 08-the-calendar | 3 | 1/1 (100%) | $0.09 | `claude-sonnet-5` | `4c8c553c` | `f5ffef9` |  |
 | 2026-10-05 23:14 | 29 | 1 | 15/16 (94%) | $0.50 | `claude-sonnet-5` | `4c8c553c` | `f5ffef9` | 038 after security review |
 | 2026-10-05 23:14 | 29 | 2 | 1/1 (100%) | $0.03 | `claude-sonnet-5` | `4c8c553c` | `f5ffef9` |  |
+| 2026-10-06 15:45 | 30 | 1 | 14/15 (93%) | $0.31 | `claude-sonnet-5` | `4c8c553c` | `bae0147` | the cast, first run |
+| 2026-10-06 15:46 | 30 | 3 | 0/1 (0%) | $0.13 | `claude-sonnet-5` | `f1150802` | `bae0147` |  |
+| 2026-10-06 15:46 | 29 | 2 | 1/1 (100%) | $0.02 | `claude-sonnet-5` | `f1150802` | `bae0147` |  |
+| 2026-10-06 15:46 | 30 | 3 | 1/1 (100%) | $0.02 | `claude-sonnet-5` | `f1150802` | `bae0147` |  |
+| 2026-10-06 15:48 | 12-the-query-is-their-words | 1 | 13/13 (100%) | $0.24 | `claude-sonnet-5` | `f1150802` | `bae0147` | 038 country as a setting |
+| 2026-10-06 15:48 | 30 | 1 | 14/15 (93%) | $0.09 | `claude-sonnet-5` | `f1150802` | `bae0147` | the cast, after the country line |
+| 2026-10-06 15:48 | 30 | 2 | 14/15 (93%) | $0.19 | `claude-sonnet-5` | `f1150802` | `bae0147` | the cast, cases kept apart |
+| 2026-10-06 15:49 | 30 | 2 | 15/15 (100%) | $0.19 | `claude-sonnet-5` | `7746a22d` | `bae0147` | the cast, fold is memories only |
+| 2026-10-06 15:49 | 29 | 2 | 6/6 (100%) | $0.02 | `claude-sonnet-5` | `7746a22d` | `bae0147` |  |
 
 ## Full runs by principle
 
