@@ -37,7 +37,7 @@ export function Field({
   error?: string | null;
   onReset?: () => void;
   width?: number | string;
-  type?: "text" | "email";
+  type?: "text" | "email" | "date";
 }) {
   const id = useId();
   const bounds =

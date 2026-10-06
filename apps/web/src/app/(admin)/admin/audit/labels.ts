@@ -4,7 +4,7 @@
 //
 // What a setting is called is Limits' to say (`limits/labels.ts`).
 
-import { count, dollars } from "../../ui";
+import { count, day, dollars } from "../../ui";
 
 /** What was done, as a phrase. A kind with no phrase shows as its kind. */
 export const KIND_LABELS: Record<string, string> = {
@@ -29,6 +29,8 @@ export const KIND_LABELS: Record<string, string> = {
   "panel.opened": "Opened the panel",
   "code.created": "Made a review code",
   "code.revoked": "Revoked a review code",
+  "staff.exported": "Exported the staff list",
+  "audit.exported": "Exported the audit log",
 };
 
 export function kindLabel(kind: string): string {
@@ -77,4 +79,11 @@ export function settingValue(key: string, value: unknown): string {
 /** The first stretch of an id, enough to tell two apart on a page. */
 export function shortId(id: string): string {
   return id.slice(0, 8);
+}
+
+/** The period an export of the log covered, stored as `from/to` UTC days. */
+export function period(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const [from, to] = value.split("/");
+  return from && to ? `${day(from)} to ${day(to)}` : null;
 }

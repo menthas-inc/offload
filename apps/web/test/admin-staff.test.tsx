@@ -274,3 +274,40 @@ describe("remove", () => {
     expect(host.querySelector('[role="status"]')!.textContent).toBe("That did not go through. Nobody was removed");
   });
 });
+
+// Going-public 17c. Who has access, as a file an auditor can keep.
+describe("the export", () => {
+  it("posts for the file with the session and saves it, named for the day", async () => {
+    calls = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({ url: String(url), init });
+        if (String(url).endsWith("/staff/export"))
+          return new Response("account_id\r\n", { status: 200 });
+        return new Response(JSON.stringify(LIST), { status: 200 });
+      }),
+    );
+    const host = await open();
+    const saved: Array<{ href: string; download: string }> = [];
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: vi.fn(() => "blob:staff"), revokeObjectURL: vi.fn() }));
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      saved.push({ href: this.href, download: this.download });
+    });
+
+    await click(button(host, "Export CSV"));
+    const call = calls.find((one) => one.url.endsWith("/v1/admin/staff/export"))!;
+    expect(call.init).toMatchObject({ method: "POST", credentials: "include" });
+    expect(saved).toEqual([{ href: "blob:staff", download: `offload-staff-${new Date().toISOString().slice(0, 10)}.csv` }]);
+  });
+
+  it("says the export did not happen when it fails, and saves nothing", async () => {
+    api({ write: { status: 500 } });
+    const host = await open();
+    const clicked = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    clicked.mockClear();
+    await click(button(host, "Export CSV"));
+    expect(clicked).not.toHaveBeenCalled();
+    expect([...host.querySelectorAll('[role="status"]')].map((node) => node.textContent)).toContain("That did not go through. Nothing was exported");
+  });
+});

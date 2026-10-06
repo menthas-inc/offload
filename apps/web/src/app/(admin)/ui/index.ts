@@ -6,6 +6,6 @@ export { Table, Row, RowLink, Lines, type Col } from "./table";
 export { PaneHead, Back, Stats, Stat, Section, Notes, StatusPill, toneOf, Loading, Failed, Empty, useSay, type Tone } from "./chrome";
 export { Field, Diff, Confirm, RangePicker, RANGES, useRange, type Range } from "./forms";
 export { Plot, ShareBar, type Point } from "./plot";
-export { useAdminRead, adminWrite, API, type AdminRead } from "./read";
+export { useAdminRead, adminWrite, adminDownload, API, type AdminRead } from "./read";
 export { dollars, count, day, moment, clock, outOfBounds } from "./format";
 export { PAGES, navFor, landingFor, ownerOnly, type Page, type Role } from "./nav";
