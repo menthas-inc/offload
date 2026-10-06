@@ -27,6 +27,8 @@ export const KIND_LABELS: Record<string, string> = {
   "staff.removed": "Removed from staff",
   "person.viewed": "Opened their page",
   "panel.opened": "Opened the panel",
+  "code.created": "Made a review code",
+  "code.revoked": "Revoked a review code",
 };
 
 export function kindLabel(kind: string): string {

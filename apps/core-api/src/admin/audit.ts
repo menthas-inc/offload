@@ -30,6 +30,12 @@ export const AUDIT_KINDS = [
   "staff.removed",
   "person.viewed",
   "panel.opened",
+  // 039. A review code made, and revoked. The code's id rides in the value.
+  "code.created",
+  "code.revoked",
+  // A code let somebody in at sign-in, recorded against the staff member who
+  // made it, on the account it let in.
+  "code.redeemed",
 ] as const;
 
 export type AuditKind = (typeof AUDIT_KINDS)[number];

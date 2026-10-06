@@ -11,6 +11,14 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-05 · Have a code? on the sign-in screen, and review codes on the Waitlist page
+**Surface:** iOS, Android, web, the sign-in screen and the no-invite screen; the admin panel's Waitlist and Limits pages
+**Raised by:** code, spec 039, for going-public item 21: Apple and Google reviewers sign in with their own accounts and an emailed invite cannot reach them. Placement on the sign-in screen is the owner's, 2026-10-05.
+**Was:** the sign-in screen had its two providers and the waitlist line. The no-invite screen had its two buttons and caption. The Waitlist page ended with its table and Notes.
+**Is:** under the sign-in screen's waitlist line, *Have a code?* in the caption's accent. Tapped, it becomes a field at the providers' height (centred, capitals, *Your code*) above the two providers, and the code rides with whichever is picked. Not drawn when the *Review codes* switch is off. On the phones the screen now avoids the keyboard, as the waitlist screen does. A code that did not work ends on the no-invite screen with the gate's refusal block, *That code did not work.*, and the outlined button reads *Try another code*. The Waitlist page gains a *Review codes* section before Notes: *New code* opens the invite dialog's shape with Note, Uses (5) and Days (30); the new code is shown once in a bordered row with *Copy* and *Done*; the table is Note, Used (*2 of 5*), Expires, State (live, expired, used up, revoked) and *Revoke* on a live row behind a danger confirm. Limits gains the *Review codes* switch.
+**Why:** a reviewer should sign in once, as anybody does. A quiet line keeps the screen the kit's for everybody else.
+**Design system impact:** `web_app/WFirstRunGate.jsx` `WGate` invited branch, `mobile_app/FirstRun.jsx` `SignInScreen` and `android_app/M3FirstRun.jsx` `M3SignInScreen`: the *Have a code?* line under the terms and its open field above the providers. The no-invite screens on all three: the refusal block for a code and the *Try another code* label. `admin_web/APeople.jsx` `WaitlistPage`: the Review codes section between the table and Notes; `AOps.jsx` Limits: one more switch. No new token or component.
+
 ### 2026-10-05 · A loose to-do has its checkbox, and loose rows lose the meta line
 **Surface:** iOS, Android, web, My threads' Not in a thread and its full list
 **Raised by:** code, from the owner: a to-do outside any thread could not be ticked from the list.

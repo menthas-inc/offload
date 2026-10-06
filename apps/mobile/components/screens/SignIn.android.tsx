@@ -11,13 +11,15 @@
 //   Type sits on Material's tighter tracking rather than offload's.
 
 import { useEffect, useState } from "react";
-import { Linking, Pressable, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { KeyboardAvoidingView, Linking, Pressable, Text, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GateBackdrop } from "../GateBackdrop";
 import { GateLockup } from "../GateLockup";
 import { AppleGlyph, GoogleGlyph } from "../Glyphs";
 import { GATE } from "../../lib/gate";
+import { codesOn } from "../../lib/code";
+import { CodeField, CodeLine } from "./CodeEntry";
 import { takeDeletedNotice } from "../../lib/account";
 import { PRIVACY_URL, TERMS_URL } from "../../lib/links";
 import { useColors } from "../../lib/colors";
@@ -37,15 +39,22 @@ export default function SignIn() {
   // deleted their account and for nobody who signs in on this phone after.
   const [deleted] = useState(() => takeDeletedNotice());
   const [hasApple, setHasApple] = useState(false);
+  // 039. Whether review codes are on, and the one typed, if any.
+  const [codes, setCodes] = useState(false);
+  // Back from "Try another code", the field is already open (and focused).
+  const { code: codeParam } = useLocalSearchParams<{ code?: string }>();
+  const [codeOpen, setCodeOpen] = useState(() => codeParam === "1");
+  const [code, setCode] = useState("");
 
   useEffect(() => {
     void appleAvailable().then(setHasApple);
+    void codesOn().then(setCodes);
   }, []);
 
   async function go(provider: Provider) {
     setRefused(false);
     setPending(provider);
-    const result = await signIn(provider);
+    const result = await signIn(provider, codes ? code : "");
     setPending(null);
 
     if (result.ok) {
@@ -71,126 +80,138 @@ export default function SignIn() {
   return (
     <SafeAreaView className="flex-1 bg-a-surface">
       <GateBackdrop>
-        <GateLockup />
+        {/* 039. The code field sits at the foot, under the keyboard without
+            this. "padding" on both, for the edge to edge reason the
+            waitlist screen gives. */}
+        <KeyboardAvoidingView className="flex-1" behavior="padding">
+          <GateLockup />
 
-        <View
-          className="items-center justify-end px-gutter-screen pb-space-9"
-          style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
-        >
-          <Text
-            className="text-center font-core text-title-1 font-semibold text-a-on"
-            style={{ letterSpacing: 0 }}
+          <View
+            className="items-center justify-end px-gutter-screen pb-space-9"
+            style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
           >
-            {GATE.signIn.title}
-          </Text>
-          <Text className="mt-space-6 text-center font-core text-body text-a-on-var">
-            {deleted ? GATE.signIn.deleted : GATE.signIn.sub}
-          </Text>
-        </View>
-
-        {/* gap-space-5, because the Android kit's foot gap is 12 and space-5 is
-          12. The 8 that was here is space-4 and belongs to nothing on this
-          screen. */}
-        <View className="px-gutter-screen pb-space-8 gap-space-5">
-          {refused ? (
-            <View
-              accessibilityRole="alert"
-              accessibilityLiveRegion="polite"
-              className="rounded-a-md bg-surface-attention-soft px-space-6 py-space-5"
+            <Text
+              className="text-center font-core text-title-1 font-semibold text-a-on"
+              style={{ letterSpacing: 0 }}
             >
-              <Text className="font-core text-body-sm text-text-on-attention">
-                {GATE.refused}
-              </Text>
-            </View>
-          ) : null}
+              {GATE.signIn.title}
+            </Text>
+            <Text className="mt-space-6 text-center font-core text-body text-a-on-var">
+              {deleted ? GATE.signIn.deleted : GATE.signIn.sub}
+            </Text>
+          </View>
 
-          {providers.map((provider) => {
-            const filled = provider === "google";
-            const dark = provider === "apple";
-            return (
-              <Pressable
-                key={provider}
-                onPress={() => void go(provider)}
-                disabled={pending !== null}
-                // 56, not 52: Material's button height. min-h and not h, because
-                // text scales to 200% and a fixed height clips it.
-                className={`min-h-a-row-height w-full flex-row items-center justify-center gap-space-4 rounded-pill active:opacity-90 ${
-                  filled
-                    ? "bg-blue-600"
-                    : dark
-                      ? "bg-ink-950"
-                      : "border border-a-outline bg-surface-raised"
-                }`}
+          {/* gap-space-5, because the Android kit's foot gap is 12 and space-5 is
+            12. The 8 that was here is space-4 and belongs to nothing on this
+            screen. */}
+          <View className="px-gutter-screen pb-space-8 gap-space-5">
+            {refused ? (
+              <View
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                className="rounded-a-md bg-surface-attention-soft px-space-6 py-space-5"
               >
-                {provider === "apple" ? (
-                  <AppleGlyph color={COLOR.onSolid} />
-                ) : (
-                  <GoogleGlyph />
-                )}
-                <Text
-                  className={`font-core font-medium ${filled ? "text-text-on-solid" : dark ? "text-text-inverse" : "text-a-on"}`}
-                  style={{ fontSize: 15, letterSpacing: 0.15 }}
+                <Text className="font-core text-body-sm text-text-on-attention">
+                  {GATE.refused}
+                </Text>
+              </View>
+            ) : null}
+
+            {codes && codeOpen ? (
+              <CodeField value={code} onChange={setCode} />
+            ) : null}
+
+            {providers.map((provider) => {
+              const filled = provider === "google";
+              const dark = provider === "apple";
+              return (
+                <Pressable
+                  key={provider}
+                  onPress={() => void go(provider)}
+                  disabled={pending !== null}
+                  // 56, not 52: Material's button height. min-h and not h, because
+                  // text scales to 200% and a fixed height clips it.
+                  className={`min-h-a-row-height w-full flex-row items-center justify-center gap-space-4 rounded-pill active:opacity-90 ${
+                    filled
+                      ? "bg-blue-600"
+                      : dark
+                        ? "bg-ink-950"
+                        : "border border-a-outline bg-surface-raised"
+                  }`}
                 >
-                  {pending === provider
-                    ? "Taking you there…"
-                    : GATE.signIn[provider]}
+                  {provider === "apple" ? (
+                    <AppleGlyph color={COLOR.onSolid} />
+                  ) : (
+                    <GoogleGlyph />
+                  )}
+                  <Text
+                    className={`font-core font-medium ${filled ? "text-text-on-solid" : dark ? "text-text-inverse" : "text-a-on"}`}
+                    style={{ fontSize: 15, letterSpacing: 0.15 }}
+                  >
+                    {pending === provider
+                      ? "Taking you there…"
+                      : GATE.signIn[provider]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+
+            <Text
+              className="text-center font-core text-a-on-var"
+              style={{ fontSize: 12.5, lineHeight: 18 }}
+            >
+              {GATE.signIn.terms}
+              <Text
+                className="font-medium text-blue-700"
+                accessibilityRole="link"
+                onPress={() => router.push("/waitlist")}
+              >
+                {GATE.signIn.termsAccent}
+              </Text>
+            </Text>
+            {codes && !codeOpen ? (
+              <CodeLine onOpen={() => setCodeOpen(true)} />
+            ) : null}
+            {/* 44px of touch around each word of a 12.5px line, per the design
+              system's hit area rule: the text stays the size the kit draws it. */}
+            <View className="flex-row items-center justify-center">
+              <Pressable
+                onPress={() => void Linking.openURL(TERMS_URL)}
+                className="items-center justify-center px-2"
+                style={{ minHeight: 44 }}
+                accessibilityRole="link"
+              >
+                <Text
+                  className="font-core text-a-on-var"
+                  style={{ fontSize: 12.5, lineHeight: 18 }}
+                >
+                  {GATE.signIn.legal.terms}
                 </Text>
               </Pressable>
-            );
-          })}
-
-          <Text
-            className="text-center font-core text-a-on-var"
-            style={{ fontSize: 12.5, lineHeight: 18 }}
-          >
-            {GATE.signIn.terms}
-            <Text
-              className="font-medium text-blue-700"
-              accessibilityRole="link"
-              onPress={() => router.push("/waitlist")}
-            >
-              {GATE.signIn.termsAccent}
-            </Text>
-          </Text>
-          {/* 44px of touch around each word of a 12.5px line, per the design
-            system's hit area rule: the text stays the size the kit draws it. */}
-          <View className="flex-row items-center justify-center">
-            <Pressable
-              onPress={() => void Linking.openURL(TERMS_URL)}
-              className="items-center justify-center px-2"
-              style={{ minHeight: 44 }}
-              accessibilityRole="link"
-            >
               <Text
                 className="font-core text-a-on-var"
                 style={{ fontSize: 12.5, lineHeight: 18 }}
+                accessibilityElementsHidden
+                importantForAccessibility="no"
               >
-                {GATE.signIn.legal.terms}
+                ·
               </Text>
-            </Pressable>
-            <Text
-              className="font-core text-a-on-var"
-              style={{ fontSize: 12.5, lineHeight: 18 }}
-              accessibilityElementsHidden
-              importantForAccessibility="no"
-            >
-              ·
-            </Text>
-            <Pressable
-              onPress={() => void Linking.openURL(PRIVACY_URL)}
-              className="items-center justify-center px-2"
-              style={{ minHeight: 44 }}
-              accessibilityRole="link"
-            >
-              <Text
-                className="font-core text-a-on-var"
-                style={{ fontSize: 12.5, lineHeight: 18 }}
+              <Pressable
+                onPress={() => void Linking.openURL(PRIVACY_URL)}
+                className="items-center justify-center px-2"
+                style={{ minHeight: 44 }}
+                accessibilityRole="link"
               >
-                {GATE.signIn.legal.privacy}
-              </Text>
-            </Pressable>
+                <Text
+                  className="font-core text-a-on-var"
+                  style={{ fontSize: 12.5, lineHeight: 18 }}
+                >
+                  {GATE.signIn.legal.privacy}
+                </Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </GateBackdrop>
     </SafeAreaView>
   );

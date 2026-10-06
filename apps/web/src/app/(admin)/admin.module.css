@@ -821,3 +821,20 @@
 }
 .textLink::after { content: ""; position: absolute; inset: -12px 0; }
 .textLink:hover { text-decoration-color: var(--text-primary); }
+
+/* 039. Review codes on the Waitlist page: the button under the section
+   title, and a new code shown once beside Copy. */
+.codesTools { display: flex; justify-content: flex-end; margin-bottom: var(--space-4); }
+.codeShown {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-hairline);
+  background: var(--surface-raised);
+}
+.codeValue { font: var(--weight-semibold) var(--size-body)/1 var(--font-core); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.codeShown .rowActions { margin-left: auto; }
+

@@ -40,14 +40,19 @@ export const WEB_PROVIDER_ORDER = ["google", "apple"] as const;
 export type Provider = (typeof WEB_PROVIDER_ORDER)[number];
 
 /** `to` is the one other place a sign-in may land: the admin panel, which
- *  asks staff for a fresh one. A closed choice, never a path from the address. */
-export async function signIn(provider: Provider, to: "admin" | null = null): Promise<{ error?: string }> {
+ *  asks staff for a fresh one. A closed choice, never a path from the address.
+ *
+ *  039. `code` is a review code typed on the sign-in screen. It goes in the
+ *  OAuth state Better Auth keeps for this one sign-in, and is redeemed at the
+ *  callback once the provider has said who this is. */
+export async function signIn(provider: Provider, to: "admin" | null = null, code = ""): Promise<{ error?: string }> {
   const { error } = await authClient.signIn.social({
     provider,
     // Land on first run. The server decides whether that person has already
     // done it, so this is a destination rather than a claim.
     callbackURL: `${origin()}${to === "admin" ? "/admin" : "/welcome"}`,
     errorCallbackURL: `${origin()}/no-invite`,
+    ...(code.trim() ? { additionalData: { reviewCode: code.trim() } } : {}),
   });
   return error ? { error: error.message ?? "unknown" } : {};
 }

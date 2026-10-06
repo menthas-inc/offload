@@ -22,6 +22,7 @@ import { emit } from "../analytics.js";
 import { passThreadKeyOn } from "../blobs/keys.js";
 import { open, seal } from "../connectors/vault.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
+import { codeAttemptHmac } from "../admin/review-codes.js";
 import { attemptHmac } from "../routes/waitlist.js";
 import { deleteNotesForThread } from "../threads/notes.js";
 import { uuidv7 } from "../uuid.js";
@@ -144,6 +145,7 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
     await trx.deleteFrom("blob_keys").where("scope", "=", "account").where("scope_id", "=", accountId).execute();
     await trx.deleteFrom("analytics_events").where("subject_id", "=", account.analytics_subject_id).execute();
     await trx.deleteFrom("waitlist_attempts").where("email_hmac", "=", attemptHmac(account.email)).execute();
+    await trx.deleteFrom("review_code_attempts").where("email_hmac", "=", codeAttemptHmac(account.email)).execute();
 
     // Their copy, if there is one: the row goes with the account, and its
     // sealed parts are booked for removal while the row still says how many.

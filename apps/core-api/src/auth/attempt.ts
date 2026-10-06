@@ -42,15 +42,26 @@ interface AttemptStore {
    *  arrives once in the form post of the first authorization and is never in a
    *  token at all. */
   providerName: string | null;
+  /** 039. A review code typed on the sign-in screen and sent with a native
+   *  sheet's token. A browser sign-in carries it in its OAuth state instead,
+   *  which is bound to that one attempt (`auth/code-at-sign-in.ts`). */
+  code: string | null;
+  /** Who is asking, for the review code limiter. */
+  ip: string | null;
+  /** A code came with this sign-in and did not let them in. The refusal that
+   *  follows says so. */
+  codeRefused: boolean;
 }
 
-export type AttemptReason = "disabled";
+/** `disabled`: the account exists and is disabled. `code`: a review code came
+ *  with the sign-in and did not work. */
+export type AttemptReason = "disabled" | "code";
 
 const storage = new AsyncLocalStorage<AttemptStore>();
 
 /** Run a request with a slot the gate hooks can write a refused address into. */
 export function withAttempt<T>(fn: (store: AttemptStore) => Promise<T>): Promise<T> {
-  const store: AttemptStore = { email: null, reason: null, providerName: null };
+  const store: AttemptStore = { email: null, reason: null, providerName: null, code: null, ip: null, codeRefused: false };
   return storage.run(store, () => fn(store));
 }
 
@@ -75,6 +86,23 @@ export function providerName(): string | null {
   return storage.getStore()?.providerName ?? null;
 }
 
+/** 039. The code a native sign-in carried, and the address asking. */
+export function carried(): { code: string | null; ip: string | null } {
+  const store = storage.getStore();
+  return { code: store?.code ?? null, ip: store?.ip ?? null };
+}
+
+export function markCodeRefused(): void {
+  const store = storage.getStore();
+  if (store) store.codeRefused = true;
+}
+
+/** The reason a refusal carries: disabled wins, then a code that did not work. */
+export function refusalReason(disabled: boolean): AttemptReason | null {
+  if (disabled) return "disabled";
+  return storage.getStore()?.codeRefused ? "code" : null;
+}
+
 /** Its own key, derived from the auth secret rather than the secret itself,
  *  so this cookie, the waitlist limiter and the connector state cannot be
  *  forged with one another's material. See `crypto/derived.ts`. */
@@ -97,7 +125,7 @@ export function unsealAttempt(value: string, now: number): { email: string; reas
   if (parts.length !== 3 && parts.length !== 4) return null;
   const mac = parts[parts.length - 1]!;
   const [encoded, expiresAt, reason] = parts.slice(0, -1) as [string, string, string | undefined];
-  if (reason !== undefined && reason !== "disabled") return null;
+  if (reason !== undefined && reason !== "disabled" && reason !== "code") return null;
 
   const expected = Buffer.from(sign(parts.slice(0, -1).join(".")));
   const actual = Buffer.from(mac);
@@ -106,7 +134,7 @@ export function unsealAttempt(value: string, now: number): { email: string; reas
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
 
   if (!Number.isFinite(Number(expiresAt)) || Number(expiresAt) < now) return null;
-  return { email: Buffer.from(encoded, "base64url").toString("utf8"), reason: reason ?? null };
+  return { email: Buffer.from(encoded, "base64url").toString("utf8"), reason: (reason as AttemptReason | undefined) ?? null };
 }
 
 /** The address alone. */

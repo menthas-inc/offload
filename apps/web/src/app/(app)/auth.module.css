@@ -123,6 +123,32 @@
 }
 .captionLink { color: var(--text-accent); font-weight: var(--weight-medium); }
 
+/* 039. Have a code? on the sign-in card: the caption's accent as a button,
+   then a field at the providers' height above them. No kit draws it. */
+.codeLine { margin: 10px 0 0; }
+.codeLink {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-accent);
+  font-weight: var(--weight-medium);
+}
+.codeField {
+  min-height: 48px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 20px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font: var(--weight-regular) 15.5px/1 var(--font-core);
+  text-align: center;
+}
+.codeField::placeholder { color: var(--text-tertiary); }
+
 /* ------------------------------------- the connect block (Settings, 019) */
 
 .runCopy { width: 520px; max-width: 100%; text-align: center; }
