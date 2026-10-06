@@ -86,15 +86,15 @@ describe("AC-29 a setting unset", () => {
   });
 
   it("leaves every switch on and no fixed cost", async () => {
-    for (const key of ["switch.web_maps", "switch.maps", "switch.web_search", "switch.web_links", "switch.nightly"] as const) {
+    for (const key of ["switch.web_maps", "switch.maps", "switch.web_search", "switch.web_links", "switch.nightly", "switch.review_codes"] as const) {
       expect(await setting(key), key).toBe(true);
     }
     expect(await setting("costs.fixed")).toEqual({});
   });
 
-  it("names eighteen keys, each with a default inside its own bounds", () => {
-    // 036 added `cap.storage_bytes`.
-    expect(SETTING_KEYS).toHaveLength(18);
+  it("names nineteen keys, each with a default inside its own bounds", () => {
+    // 036 added `cap.storage_bytes`, 039 `switch.review_codes`.
+    expect(SETTING_KEYS).toHaveLength(19);
     for (const key of SETTING_KEYS) {
       const def = settingDef(key);
       if (typeof def.default === "number") {

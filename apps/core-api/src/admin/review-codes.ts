@@ -3,9 +3,10 @@
 // Apple and Google review the apps signed in with their own accounts, often
 // behind an Apple relay address nobody can know in advance, so an emailed
 // invite cannot reach them. Staff make a code instead, and it goes in the
-// review notes. A reviewer signs in, is refused like any stranger, types the
-// code on the no-invite screen, and the address they just signed in with is
-// promoted exactly as an admin invite would promote it.
+// review notes. A reviewer types it on the sign-in screen and signs in as
+// anyone would; at sign-in, once the provider has said who they are, the code
+// promotes that address exactly as an admin invite would, and the same sign-in
+// lets them in (`auth/code-at-sign-in.ts`).
 //
 // Three rules carry the design:
 //
@@ -113,6 +114,7 @@ export async function createCode(
         note: input.note,
         max_uses: input.maxUses,
         expires_at: sql<Date>`now() + make_interval(days => ${input.days})`,
+        created_by: staff.accountId,
       })
       .returning(SELECT)
       .executeTakeFirstOrThrow();
@@ -190,7 +192,7 @@ export async function redeem(email: string, code: string): Promise<"in" | "refus
         .where("revoked_at", "is", null)
         .where(sql<boolean>`expires_at > now()`)
         .where(sql<boolean>`uses < max_uses`)
-        .returning("id")
+        .returning(["id", "created_by"])
         .executeTakeFirst();
       if (!claimed) return "refused" as const;
 
@@ -199,6 +201,8 @@ export async function redeem(email: string, code: string): Promise<"in" | "refus
       if (outcome.status === "refused") throw new NotSpent("refused");
 
       await tx.updateTable("accounts").set({ review_code_id: claimed.id }).where("id", "=", outcome.accountId).execute();
+      // It signs somebody in, so it is on the record, against whoever made the code.
+      await audit(tx, { staff: { accountId: claimed.created_by }, kind: "code.redeemed", targetAccountId: outcome.accountId, new: claimed.id });
       return "in" as const;
     });
   } catch (error) {

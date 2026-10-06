@@ -52,19 +52,28 @@ export async function authRoutes(app: App): Promise<void> {
 
       // The store is opened here so the gate's refusal, several layers down
       // inside Better Auth, can hand the attempted address back out.
-      const { response, attempt, reason } = await withAttempt(async (store) => ({
-        response: await auth.handler(
-          new Request(url, {
-            method: request.method,
-            headers,
-            ...(request.method === "GET" || request.method === "HEAD"
-              ? {}
-              : { body: JSON.stringify(request.body ?? {}) }),
-          })
-        ),
-        attempt: store.email,
-        reason: store.reason,
-      }));
+      // 039. A native sheet's sign-in carries the review code beside its
+      // token. The browser's carries it in the OAuth state instead.
+      const body = request.body as { additionalData?: { reviewCode?: unknown } } | undefined;
+      const code = body?.additionalData?.reviewCode;
+
+      const { response, attempt, reason } = await withAttempt(async (store) => {
+        store.code = typeof code === "string" && code.length <= 40 ? code : null;
+        store.ip = request.ip;
+        return {
+          response: await auth.handler(
+            new Request(url, {
+              method: request.method,
+              headers,
+              ...(request.method === "GET" || request.method === "HEAD"
+                ? {}
+                : { body: JSON.stringify(request.body ?? {}) }),
+            })
+          ),
+          attempt: store.email,
+          reason: store.reason,
+        };
+      });
 
       reply.status(response.status);
       response.headers.forEach((value, key) => {

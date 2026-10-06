@@ -1,6 +1,6 @@
 # 002 Getting in
 
-**Amended by 039 (2026-10-05):** a review code staff make in the admin panel lets in the address a refused sign-in just used, through the same promotion, from *Have a code?* on the no-invite screen. It exists for the store reviewers. Where the two disagree about who can get in, `docs/specs/039-reviewer-codes/` is current.
+**Amended by 039 (2026-10-05):** a review code staff make in the admin panel, typed under *Have a code?* on the sign-in screen, lets in the address that sign-in verifies, through the same promotion, and signs it in at once. It exists for the store reviewers and has a switch for when the waitlist ends. Where the two disagree about who can get in, `docs/specs/039-reviewer-codes/` is current.
 
 **Amended by 033 (2026-10-03):** first run is three screens: an intro that plays itself, Before you start (the name and the two consents together), and Bring it all in (optional cards), then Today. No Skip in a corner; the consent is no longer the last screen. Where the two disagree, `docs/specs/033-first-run/` is current.
 

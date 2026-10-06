@@ -37,6 +37,7 @@ export const SETTING_LABELS: Record<string, string> = {
   "switch.web_search": "Web search",
   "switch.web_links": "Reading links",
   "switch.nightly": "The nightly pass",
+  "switch.review_codes": "Review codes",
   "costs.fixed": "Subscriptions",
 };
 

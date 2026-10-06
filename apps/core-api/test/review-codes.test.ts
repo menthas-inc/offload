@@ -1,25 +1,25 @@
-// 039. A way in for store reviewers: a code staff make, that lets in the
-// address a refused sign-in just used, through the one promotion there is.
+// 039. A way in for store reviewers: a code staff make, typed on the sign-in
+// screen and redeemed at sign-in for the verified address, through the one
+// promotion there is. The sign-in itself is `review-codes-sign-in.test.ts`;
+// this file is the code, the panel and the limits.
 //
 // AC-1  a code is made with a note, uses and days, shown once, stored as a hash
 // AC-2  listed and revoked, both audited
-// AC-3  redeeming promotes the proven address and spends one use, together
+// AC-3  redeeming promotes the address and spends one use, together, audited
 // AC-4  the database holds the limit, under concurrency
 // AC-5  expired, revoked, used up and unknown are one answer and spend nothing
 // AC-6  already in is in and spends nothing; disabled is refused
-// AC-7  no proof, no read
 // AC-8  tries are limited per address and per IP; the limiter's rows go with
 //       the account and with the daily purge
 
 import { createHash } from "node:crypto";
 import { sql } from "kysely";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
-import { recordAttempt, seal, unsealAttempt } from "../src/auth/attempt.js";
-import { auth } from "../src/auth/auth.js";
-import { hashCode, newCode, normaliseCode, redeem, codeAttemptHmac } from "../src/admin/review-codes.js";
+import { seal } from "../src/auth/attempt.js";
+import { hashCode, newCode, normaliseCode, overLimit, redeem, codeAttemptHmac } from "../src/admin/review-codes.js";
 import { deleteAccount } from "../src/accounts/delete.js";
 import { handlers } from "../src/jobs/handlers.js";
 import { MemoryMailer } from "../src/mail/mailer.js";
@@ -36,9 +36,6 @@ afterAll(async () => {
   await app.close();
   await closeDb();
 });
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 beforeEach(async () => {
   await db.deleteFrom("review_code_attempts").execute();
   await wipeAdmin();
@@ -47,28 +44,16 @@ beforeEach(async () => {
 
 const FORMAT = /^[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
 
-const proof = (email: string, reason: "disabled" | null = null) =>
-  `offload_attempt=${encodeURIComponent(seal(email, Date.now(), reason))}`;
-
 const make = async (cookie: string, body: Record<string, unknown> = { note: "App Store review 1.0" }) =>
   app.inject({ method: "POST", url: "/v1/admin/codes", headers: { cookie }, payload: body });
 
 /** A live code, made through the panel as staff make one. */
-async function aCode(body: Record<string, unknown> = { note: "App Store review 1.0" }): Promise<{ id: string; code: string }> {
+async function aCode(body: Record<string, unknown> = { note: "App Store review 1.0" }): Promise<{ id: string; code: string; staffId: string }> {
   const staff = await staffMember("support");
   const res = await make(staff.cookie, body);
   expect(res.statusCode).toBe(200);
-  return res.json() as { id: string; code: string };
+  return { ...(res.json() as { id: string; code: string }), staffId: staff.id };
 }
-
-const use = (code: string, cookie?: string, ip = "203.0.113.7") =>
-  app.inject({
-    method: "POST",
-    url: "/api/sign-in/code",
-    headers: cookie ? { cookie } : {},
-    payload: { code },
-    remoteAddress: ip,
-  });
 
 const usesOf = async (id: string) =>
   (await db.selectFrom("review_codes").select("uses").where("id", "=", id).executeTakeFirstOrThrow()).uses;
@@ -105,6 +90,7 @@ describe("AC-1 staff make a code", () => {
 
     const row = await db.selectFrom("review_codes").selectAll().where("id", "=", made.id).executeTakeFirstOrThrow();
     expect(Buffer.from(row.code_hash).equals(hashCode(made.code))).toBe(true);
+    expect(row.created_by).toBe(staff.id);
     // Nothing in the row is the code, in any spelling.
     const stored = JSON.stringify(row);
     expect(stored).not.toContain(made.code);
@@ -165,38 +151,6 @@ describe("AC-2 listed and revoked", () => {
   });
 });
 
-describe("AC-3 redeeming", () => {
-  it("lets in the address that just signed in, through promotion, and spends one use", async () => {
-    const made = await aCode();
-    const res = await use(made.code, proof("reviewer@privaterelay.appleid.com"));
-    expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ status: "in" });
-
-    const account = await accountOf("reviewer@privaterelay.appleid.com");
-    expect(account).toMatchObject({ state: "invited", review_code_id: made.id });
-    expect(await usesOf(made.id)).toBe(1);
-    // What promotion makes, made: a key, the default thread, the invite email.
-    expect(await db.selectFrom("account_keys").select("account_id").where("account_id", "=", account!.id).executeTakeFirst()).toBeTruthy();
-    expect(await db.selectFrom("thread_members").select("thread_id").where("account_id", "=", account!.id).executeTakeFirst()).toBeTruthy();
-    expect(await db.selectFrom("jobs").select("kind").where("account_id", "=", account!.id).where("kind", "=", "email.invited").executeTakeFirst()).toBeTruthy();
-    // And the proof is spent with it.
-    expect(String(res.headers["set-cookie"])).toMatch(/offload_attempt=;.*Max-Age=0/);
-  });
-
-  it("lets in somebody already waiting", async () => {
-    const made = await aCode();
-    await db.insertInto("accounts").values({ email: "waiting@example.test", state: "waitlist" }).execute();
-    expect((await use(made.code, proof("waiting@example.test"))).json()).toEqual({ status: "in" });
-    expect(await accountOf("waiting@example.test")).toMatchObject({ state: "invited", review_code_id: made.id });
-  });
-
-  it("works however the code is typed", async () => {
-    const made = await aCode();
-    const typed = ` ${made.code.toLowerCase().replace(/-/g, " ").replace(/0/g, "o").replace(/1/g, "l")} `;
-    expect((await use(typed, proof("typed@example.test"))).json()).toEqual({ status: "in" });
-  });
-});
-
 describe("AC-4 the limit is the database's", () => {
   it("lets exactly one of five in on a code with one use left", async () => {
     const made = await aCode({ note: "one", maxUses: 1 });
@@ -216,6 +170,29 @@ describe("AC-4 the limit is the database's", () => {
   });
 });
 
+describe("AC-3 redeeming", () => {
+  it("lets in the address through promotion, spends one use, and records it against the code's maker", async () => {
+    const made = await aCode();
+    expect(await redeem("reviewer@privaterelay.appleid.com", made.code)).toBe("in");
+    const account = await accountOf("reviewer@privaterelay.appleid.com");
+    expect(account).toMatchObject({ state: "invited", review_code_id: made.id });
+    expect(await usesOf(made.id)).toBe(1);
+    expect(await db.selectFrom("account_keys").select("account_id").where("account_id", "=", account!.id).executeTakeFirst()).toBeTruthy();
+    expect(await db.selectFrom("thread_members").select("thread_id").where("account_id", "=", account!.id).executeTakeFirst()).toBeTruthy();
+    expect((await auditEntries()).filter((e) => e.kind === "code.redeemed")).toEqual([
+      expect.objectContaining({ staff_account_id: made.staffId, target_account_id: account!.id, new_value: made.id }),
+    ]);
+  });
+
+  it("lets in somebody already waiting, however the code is typed", async () => {
+    const made = await aCode();
+    await db.insertInto("accounts").values({ email: "waiting@example.test", state: "waitlist" }).execute();
+    const typed = ` ${made.code.toLowerCase().replace(/-/g, " ").replace(/0/g, "o").replace(/1/g, "l")} `;
+    expect(await redeem("waiting@example.test", typed)).toBe("in");
+    expect(await accountOf("waiting@example.test")).toMatchObject({ state: "invited", review_code_id: made.id });
+  });
+});
+
 describe("AC-5 a code that does not work is one answer and spends nothing", () => {
   it("refuses expired, revoked, used up and unknown alike", async () => {
     const expired = await aCode({ note: "expired" });
@@ -231,7 +208,7 @@ describe("AC-5 a code that does not work is one answer and spends nothing", () =
       [used.code, "c@example.test"],
       [newCode(), "d@example.test"],
     ] as const) {
-      expect((await use(code, proof(email))).json(), code).toEqual({ status: "refused" });
+      expect(await redeem(email, code), code).toBe("refused");
       expect(await accountOf(email)).toBeUndefined();
     }
     expect(await usesOf(expired.id)).toBe(0);
@@ -241,10 +218,10 @@ describe("AC-5 a code that does not work is one answer and spends nothing", () =
 });
 
 describe("AC-6 an address that is already in, or disabled", () => {
-  it("tells somebody already in that they are in, and spends nothing", async () => {
+  it("is in already and spends nothing", async () => {
     const made = await aCode();
     await activeAccount("already@example.test");
-    expect((await use(made.code, proof("already@example.test"))).json()).toEqual({ status: "in" });
+    expect(await redeem("already@example.test", made.code)).toBe("in");
     expect(await usesOf(made.id)).toBe(0);
     expect(await accountOf("already@example.test")).toMatchObject({ state: "active", review_code_id: null });
   });
@@ -253,75 +230,41 @@ describe("AC-6 an address that is already in, or disabled", () => {
     const made = await aCode();
     const id = await activeAccount("off@example.test");
     await db.updateTable("accounts").set({ state: "disabled" }).where("id", "=", id).execute();
-    expect((await use(made.code, proof("off@example.test", "disabled"))).json()).toEqual({ status: "refused" });
-    expect((await use(made.code, proof("off@example.test"))).json()).toEqual({ status: "refused" });
+    expect(await redeem("off@example.test", made.code)).toBe("refused");
     expect(await usesOf(made.id)).toBe(0);
-    expect(await accountOf("off@example.test")).toMatchObject({ state: "disabled" });
   });
 });
 
-describe("AC-7 without a live proof", () => {
-  it("asks for a sign-in and reads nothing", async () => {
-    const made = await aCode();
-    expect((await use(made.code)).json()).toEqual({ status: "sign-in" });
-    const stale = `offload_attempt=${encodeURIComponent(seal("late@example.test", Date.now() - 11 * 60 * 1000))}`;
-    expect((await use(made.code, stale)).json()).toEqual({ status: "sign-in" });
-    expect((await use(made.code, "offload_attempt=forged.1.mac")).json()).toEqual({ status: "sign-in" });
-    expect(await usesOf(made.id)).toBe(0);
-    expect(await db.selectFrom("review_code_attempts").select("id").execute()).toHaveLength(0);
-  });
-
-  it("leaves the proof in place when the address is read, so a code can follow it", async () => {
-    const res = await app.inject({ method: "GET", url: "/api/sign-in/attempt", headers: { cookie: proof("jo@example.test") } });
+describe("the refusal's cookie", () => {
+  it("is cleared by the read that names the address, as before 039", async () => {
+    const cookie = `offload_attempt=${encodeURIComponent(seal("jo@example.test", Date.now()))}`;
+    const res = await app.inject({ method: "GET", url: "/api/sign-in/attempt", headers: { cookie } });
     expect(res.json()).toEqual({ email: "jo@example.test", reason: null });
-    expect(res.headers["set-cookie"]).toBeUndefined();
+    expect(String(res.headers["set-cookie"])).toMatch(/offload_attempt=;.*Max-Age=0/);
   });
-});
 
-describe("AC-10 the phones' proof", () => {
-  // A phone signs in with an ID token by a plain POST, and a refusal comes back
-  // as an error body, not a redirect. The phones read the proof off that
-  // response's set-cookie, so it has to be there. The refusal itself is Better
-  // Auth's hook calling recordAttempt, stood in for here.
-  it("rides out on a refused ID-token sign-in, which is not a redirect", async () => {
-    vi.spyOn(auth, "handler").mockImplementation(async () => {
-      recordAttempt("reviewer@privaterelay.appleid.com");
-      return new Response(JSON.stringify({ message: "unable to create user" }), { status: 422, headers: { "content-type": "application/json" } });
-    });
-    const res = await app.inject({ method: "POST", url: "/api/auth/sign-in/social", payload: { provider: "apple", idToken: { token: "t" } } });
-    expect(res.statusCode).toBe(422);
-    const cookie = /offload_attempt=([^;]+)/.exec(String(res.headers["set-cookie"]))![1]!;
-    expect(unsealAttempt(decodeURIComponent(cookie), Date.now())).toEqual({ email: "reviewer@privaterelay.appleid.com", reason: null });
+  it("can say a code did not work, under the same signature", async () => {
+    const cookie = `offload_attempt=${encodeURIComponent(seal("jo@example.test", Date.now(), "code"))}`;
+    const res = await app.inject({ method: "GET", url: "/api/sign-in/attempt", headers: { cookie } });
+    expect(res.json()).toEqual({ email: "jo@example.test", reason: "code" });
   });
 });
 
 describe("AC-8 tries are limited", () => {
-  it("refuses an address after ten tries in an hour, even with a good code", async () => {
-    const made = await aCode();
-    for (let i = 0; i < 10; i++) {
-      expect((await use(newCode(), proof("guess@example.test"))).json()).toEqual({ status: "refused" });
-    }
-    expect((await use(made.code, proof("guess@example.test"))).json()).toEqual({ status: "refused" });
-    expect(await usesOf(made.id)).toBe(0);
-  });
-
-  it("refuses an IP after twenty tries in an hour, whatever the address", async () => {
-    const made = await aCode();
-    for (let i = 0; i < 20; i++) {
-      await use(newCode(), proof(`g${i}@example.test`), "198.51.100.9");
-    }
-    expect((await use(made.code, proof("fresh@example.test"), "198.51.100.9")).json()).toEqual({ status: "refused" });
-    // Another IP is not held up by that one.
-    expect((await use(made.code, proof("fresh@example.test"), "198.51.100.10")).json()).toEqual({ status: "in" });
-  });
-
-  it("writes nothing more once an address is over the limit", async () => {
-    for (let i = 0; i < 15; i++) await use(newCode(), proof("flood@example.test"));
+  it("refuses an address after ten tries in an hour, and writes nothing more", async () => {
+    for (let i = 0; i < 10; i++) expect(await overLimit("guess@example.test", "203.0.113.7")).toBe(false);
+    for (let i = 0; i < 5; i++) expect(await overLimit("Guess@Example.test", "203.0.113.8")).toBe(true);
     expect(await db.selectFrom("review_code_attempts").select("id").execute()).toHaveLength(10);
   });
 
+  it("refuses an IP after twenty tries in an hour, whatever the address", async () => {
+    for (let i = 0; i < 20; i++) expect(await overLimit(`g${i}@example.test`, "198.51.100.9")).toBe(false);
+    expect(await overLimit("fresh@example.test", "198.51.100.9")).toBe(true);
+    expect(await overLimit("fresh@example.test", "198.51.100.10")).toBe(false);
+  });
+
   it("keeps HMACs, not addresses or IPs", async () => {
-    await use(newCode(), proof("kept@example.test"), "192.0.2.44");
+    await overLimit("kept@example.test", "192.0.2.44");
     const rows = await db.selectFrom("review_code_attempts").selectAll().execute();
     expect(rows).toHaveLength(1);
     expect(Buffer.from(rows[0]!.email_hmac).equals(codeAttemptHmac("kept@example.test"))).toBe(true);
@@ -331,16 +274,16 @@ describe("AC-8 tries are limited", () => {
   it("forgets an account's tries when it is deleted", async () => {
     const id = await activeAccount("gone@example.test");
     // The provider can assert an address in any case; the account keeps it lowered.
-    await use(newCode(), proof("Gone@Example.test"));
-    await use(newCode(), proof("stays@example.test"));
+    await overLimit("Gone@Example.test", "203.0.113.7");
+    await overLimit("stays@example.test", "203.0.113.7");
     await deleteAccount(id);
     const left = await db.selectFrom("review_code_attempts").select("email_hmac").execute();
     expect(left.map((r) => Buffer.from(r.email_hmac).equals(codeAttemptHmac("stays@example.test")))).toEqual([true]);
   });
 
   it("forgets tries older than two days in the daily purge", async () => {
-    await use(newCode(), proof("old@example.test"));
-    await use(newCode(), proof("new@example.test"));
+    await overLimit("old@example.test", "203.0.113.7");
+    await overLimit("new@example.test", "203.0.113.7");
     await sql`update review_code_attempts set created_at = now() - interval '3 days'
       where email_hmac = ${codeAttemptHmac("old@example.test")}`.execute(db);
     await handlers["jobs.purge"]!({}, { mailer: new MemoryMailer() }, null);

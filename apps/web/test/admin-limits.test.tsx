@@ -69,6 +69,7 @@ function settings(over: Record<string, Partial<Setting>> = {}): { settings: Sett
       one("switch.web_search", "bool", true),
       one("switch.web_links", "bool", true),
       one("switch.nightly", "bool", true),
+      one("switch.review_codes", "bool", true),
       one("costs.fixed", "money-map", {}, { min: 0, max: 100_000_000_000 }),
     ],
   };

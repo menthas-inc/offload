@@ -57,7 +57,6 @@ describe("the gate's refusal", () => {
     attempt = { email: "jo@hey.com", reason: null };
     await open();
     expect(host.querySelector("h1")!.textContent).toBe("You are not on the list yet");
-    // 039 added the review code's line under the two buttons.
-    expect(buttons()).toEqual(["Join the waitlist with this email", "Use a different account", "Have a code?"]);
+    expect(buttons()).toEqual(["Join the waitlist with this email", "Use a different account"]);
   });
 });

@@ -122,10 +122,9 @@
   line-height: 1.45;
 }
 .captionLink { color: var(--text-accent); font-weight: var(--weight-medium); }
-.secondary:disabled { color: var(--state-disabled-text); cursor: default; }
 
-/* 039. Have a code? The caption's accent as a button, then a field at the
-   buttons' height above the secondary button. No kit draws it. */
+/* 039. Have a code? on the sign-in card: the caption's accent as a button,
+   then a field at the providers' height above them. No kit draws it. */
 .codeLine { margin: 10px 0 0; }
 .codeLink {
   border: none;
@@ -136,8 +135,6 @@
   color: var(--text-accent);
   font-weight: var(--weight-medium);
 }
-.codeForm { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
-.codeForm > .refusal { margin-top: 0; }
 .codeField {
   min-height: 48px;
   width: 100%;

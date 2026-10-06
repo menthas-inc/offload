@@ -16,7 +16,6 @@ import { healthRoutes } from "./routes/health.js";
 import { waitlistRoutes } from "./routes/waitlist.js";
 import { authRoutes } from "./routes/auth.js";
 import { sessionRoutes } from "./routes/session.js";
-import { signInCodeRoutes } from "./routes/sign-in-code.js";
 import { adminRoutes } from "./routes/admin.js";
 import { dumpRoutes } from "./routes/dumps.js";
 import { internalRoutes } from "./routes/internal.js";
@@ -170,7 +169,6 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
   await app.register(healthRoutes);
   await app.register(authRoutes);
   await app.register(sessionRoutes);
-  await app.register(signInCodeRoutes);
   await app.register(waitlistRoutes);
   await app.register(adminRoutes);
   await app.register(dumpRoutes);

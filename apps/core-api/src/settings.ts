@@ -45,6 +45,7 @@ interface SettingTypes {
   "switch.web_search": boolean;
   "switch.web_links": boolean;
   "switch.nightly": boolean;
+  "switch.review_codes": boolean;
   "costs.fixed": Record<string, number>;
 }
 
@@ -100,6 +101,10 @@ function defs(): Map<SettingKey, SettingDef> {
     { key: "switch.web_search", kind: "bool", default: true },
     { key: "switch.web_links", kind: "bool", default: true },
     { key: "switch.nightly", kind: "bool", default: true },
+    // 039. On while store reviewers need a way in; off when offload opens
+    // past the waitlist, and then no client draws the entry and a code is
+    // ignored at sign-in.
+    { key: "switch.review_codes", kind: "bool", default: true },
     // Vendor to a monthly amount, for the subscriptions no interface bills.
     { key: "costs.fixed", kind: "money-map", default: {}, min: 0, max: 100_000 * DOLLAR },
   ];
@@ -131,6 +136,7 @@ export const SETTING_KEYS: readonly SettingKey[] = [
   "switch.web_search",
   "switch.web_links",
   "switch.nightly",
+  "switch.review_codes",
   "costs.fixed",
 ];
 

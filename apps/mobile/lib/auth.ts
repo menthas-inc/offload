@@ -103,6 +103,13 @@ const SESSION_KEYS = ["offload_cookie", "offload_session_data"] as const;
 
 export type Provider = "apple" | "google";
 
+/** 039. A review code typed on the sign-in screen, as Better Auth carries it:
+ *  beside the token of a native sheet's sign-in, and in the OAuth state of a
+ *  browser's. Nothing at all without one. */
+function withCode(code: string): { additionalData?: { reviewCode: string } } {
+  return code.trim() ? { additionalData: { reviewCode: code.trim() } } : {};
+}
+
 /** What the gate screens do next.
  *
  *  `no-invite` is its own outcome rather than an error string, because the two
@@ -128,7 +135,7 @@ function classify(message: string | undefined): "no-invite" | "failed" {
  *  what it asks. Apple keeps its filled treatment. Product owner, 2026-09-21. */
 export const providerOrder: Provider[] = ["google", "apple"];
 
-export async function signInWithApple(): Promise<SignInResult> {
+export async function signInWithApple(code = ""): Promise<SignInResult> {
   // Android gets the browser flow, the same one Google uses there.
   //
   // expo-apple-authentication is the native sheet and exists only on iOS, but
@@ -140,6 +147,7 @@ export async function signInWithApple(): Promise<SignInResult> {
       provider: "apple",
       callbackURL: "offload://welcome",
       errorCallbackURL: "offload://no-invite",
+      ...withCode(code),
     });
     return error ? { ok: false, reason: classify(error.message) } : { ok: true };
   }
@@ -160,6 +168,7 @@ export async function signInWithApple(): Promise<SignInResult> {
     const { error } = await authClient.signIn.social({
       provider: "apple",
       idToken: { token: credential.identityToken },
+      ...withCode(code),
     });
     // Apple's native sheet has no redirect, so there is no errorCallbackURL to
     // carry a refusal. The outcome is classified here instead and the screen
@@ -182,7 +191,7 @@ const GOOGLE_WEB_CLIENT_ID = process.env["EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID"];
 /** The browser flow. Kept for iOS, where the system's auth session hands the
  *  return URL straight to the app that opened it, and as the fallback where
  *  the native sheet cannot run at all. */
-async function googleThroughTheBrowser(): Promise<SignInResult> {
+async function googleThroughTheBrowser(code: string): Promise<SignInResult> {
   const { error } = await authClient.signIn.social({
     provider: "google",
     callbackURL: "offload://welcome",
@@ -191,6 +200,7 @@ async function googleThroughTheBrowser(): Promise<SignInResult> {
     // trusted origins, and the server checks it there rather than trusting it
     // from here.
     errorCallbackURL: "offload://no-invite",
+    ...withCode(code),
   });
   return error ? { ok: false, reason: classify(error.message) } : { ok: true };
 }
@@ -206,8 +216,8 @@ async function googleThroughTheBrowser(): Promise<SignInResult> {
  *  id and no URL carries a session at any point. iOS keeps the browser flow,
  *  whose auth session returns the URL to the app that opened it, until an iOS
  *  client id exists for the native sheet there too. */
-export async function signInWithGoogle(): Promise<SignInResult> {
-  if (Platform.OS !== "android" || !GOOGLE_WEB_CLIENT_ID) return googleThroughTheBrowser();
+export async function signInWithGoogle(code = ""): Promise<SignInResult> {
+  if (Platform.OS !== "android" || !GOOGLE_WEB_CLIENT_ID) return googleThroughTheBrowser(code);
 
   let GoogleSignin: typeof import("@react-native-google-signin/google-signin").GoogleSignin;
   try {
@@ -217,7 +227,7 @@ export async function signInWithGoogle(): Promise<SignInResult> {
   } catch {
     // No native module in this build, or no Play services on this device:
     // the browser flow is the only door left. Rare, and better than no door.
-    return googleThroughTheBrowser();
+    return googleThroughTheBrowser(code);
   }
 
   let idToken: string | null = null;
@@ -232,12 +242,12 @@ export async function signInWithGoogle(): Promise<SignInResult> {
 
   // The id token goes to our API, which verifies it against Google's keys and
   // the web client id. Nothing here decides anything, exactly as with Apple.
-  const { error } = await authClient.signIn.social({ provider: "google", idToken: { token: idToken } });
+  const { error } = await authClient.signIn.social({ provider: "google", idToken: { token: idToken }, ...withCode(code) });
   return error ? { ok: false, reason: classify(error.message) } : { ok: true };
 }
 
-export function signIn(provider: Provider): Promise<SignInResult> {
-  return provider === "apple" ? signInWithApple() : signInWithGoogle();
+export function signIn(provider: Provider, code = ""): Promise<SignInResult> {
+  return provider === "apple" ? signInWithApple(code) : signInWithGoogle(code);
 }
 
 /** Whether to offer Apple at all.

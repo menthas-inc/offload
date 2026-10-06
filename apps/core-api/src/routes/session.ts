@@ -4,7 +4,7 @@
 // render anything: the current account, the address a refused sign-in used,
 // and the write that ends onboarding.
 
-import { mapsOn, webMapsOn } from "../settings.js";
+import { mapsOn, setting, webMapsOn } from "../settings.js";
 import { atDailyLimit } from "../budget.js";
 import { layoutShape, resolveLayout, todayLayout } from "../today/layout.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -530,21 +530,41 @@ export async function sessionRoutes(app: App): Promise<void> {
     }
   );
 
-  // The address a refused sign-in used. No session is required, because by
-  // definition the person holding this cookie does not have one. The cookie
-  // itself is the authorization, and all it unlocks is an address they
-  // authenticated with a minute ago.
-  //
-  // 039: no longer cleared on the read. The same cookie is the proof a review
-  // code is checked against, typed on the screen this read draws. It runs out
-  // on its own after ten minutes, and a redemption that lets them in clears it.
+  // The address a refused sign-in used, read once and then cleared. No session
+  // is required, because by definition the person holding this cookie does not
+  // have one. The cookie itself is the authorization, and all it unlocks is
+  // an address they authenticated with a minute ago.
   app.get(
     "/api/sign-in/attempt",
-    { schema: { response: { 200: z.object({ email: z.string().nullable(), reason: z.literal("disabled").nullable() }) } } },
+    { schema: { response: { 200: z.object({ email: z.string().nullable(), reason: z.enum(["disabled", "code"]).nullable() }) } } },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const raw = readCookie(request.headers.cookie, ATTEMPT_COOKIE);
       const attempt = raw ? unsealAttempt(raw, Date.now()) : null;
+
+      const cleared = [
+        `${ATTEMPT_COOKIE}=`,
+        "Path=/",
+        "Max-Age=0",
+        "HttpOnly",
+        "SameSite=Lax",
+        ...(isProduction ? ["Secure"] : []),
+        ...(env.COOKIE_DOMAIN !== "localhost" ? [`Domain=${env.COOKIE_DOMAIN}`] : []),
+      ].join("; ");
+      reply.header("set-cookie", cleared);
+
       return reply.send({ email: attempt?.email ?? null, reason: attempt?.reason ?? null });
+    }
+  );
+
+  // 039. What the sign-in screen offers before anybody is signed in: today,
+  // whether to draw "Have a code?". A switch every client reads here, since
+  // `/api/me` needs a session and this screen is where there is none.
+  app.get(
+    "/api/sign-in/options",
+    { schema: { response: { 200: z.object({ codes: z.boolean() }) } } },
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      reply.header("cache-control", "no-store");
+      return reply.send({ codes: await setting("switch.review_codes") });
     }
   );
 

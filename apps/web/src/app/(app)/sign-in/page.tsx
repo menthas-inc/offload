@@ -12,11 +12,17 @@
 // more people arrive with a Google account. The treatment is what stops the
 // pair reading as an arbitrary choice between two identical things, and it is
 // also the App Store's prominence requirement met without Apple being first.
+//
+// 039. *Have a code?* under the caption, for store reviewers: a line in the
+// caption's accent that opens a field above the two providers. The code rides
+// with whichever is picked. Not drawn once the switch is off.
 
 import { useEffect, useState } from "react";
 import { AppleMark, GateCard, GateChrome, GoogleMark } from "../../../components/GateChrome";
 import { signIn, WEB_PROVIDER_ORDER, type Provider } from "../../../lib/auth-client";
 import styles from "../auth.module.css";
+
+const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
 const LABEL: Record<Provider, string> = {
   apple: "Continue with Apple",
@@ -30,6 +36,16 @@ export default function SignInPage() {
   // Sent here by the admin panel, which opens only for a sign-in made a few
   // minutes ago. The one value read; anything else in its place is ignored.
   const [toAdmin, setToAdmin] = useState(false);
+  // 039. Whether codes are on, and the one typed, if any.
+  const [codes, setCodes] = useState(false);
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [code, setCode] = useState("");
+  useEffect(() => {
+    fetch(`${API}/api/sign-in/options`)
+      .then((response) => (response.ok ? response.json() : { codes: false }))
+      .then((data: { codes?: boolean }) => setCodes(data.codes === true))
+      .catch(() => setCodes(false));
+  }, []);
   useEffect(() => {
     // Better Auth bounces a failed callback back here with a code in the query
     // string. Showing the banner is the whole point of being bounced somewhere
@@ -49,7 +65,7 @@ export default function SignInPage() {
   async function go(provider: Provider) {
     setRefused(false);
     setPending(provider);
-    const { error } = await signIn(provider, toAdmin ? "admin" : null);
+    const { error } = await signIn(provider, toAdmin ? "admin" : null, codes ? code : "");
     // On success the browser has already left for the provider, so reaching
     // here at all means it did not.
     if (error) {
@@ -79,6 +95,20 @@ export default function SignInPage() {
         ) : null}
 
         <div className={`${styles.providers} ${refused ? styles.providersTight : ""}`}>
+          {codes && codeOpen ? (
+            <input
+              className={styles.codeField}
+              aria-label="Code"
+              placeholder="Your code"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              maxLength={40}
+              autoFocus
+            />
+          ) : null}
           {WEB_PROVIDER_ORDER.map((provider) => (
             <button
               key={provider}
@@ -99,6 +129,14 @@ export default function SignInPage() {
             Join the waitlist
           </a>
         </p>
+
+        {codes && !codeOpen ? (
+          <p className={`${styles.caption} ${styles.codeLine}`}>
+            <button type="button" className={styles.codeLink} onClick={() => setCodeOpen(true)}>
+              Have a code?
+            </button>
+          </p>
+        ) : null}
       </GateCard>
     </GateChrome>
   );

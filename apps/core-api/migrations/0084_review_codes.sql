@@ -1,8 +1,9 @@
--- 0084 A way in for store reviewers (039).
+-- 0084 A way in for store reviewers (039). Typed on the sign-in screen and
+-- redeemed at sign-in, for the address the provider has just verified.
 --
 -- A code staff make in the panel, pasted into the store review notes. It lets
--- in the address a refused sign-in just used, through the same promotion an
--- admin invite runs. Only a hash of the code is kept: it is shown once.
+-- in that address through the same promotion an admin invite runs. Only a
+-- hash of the code is kept: it is shown once.
 --
 -- The limit is the database's. A redemption claims a use with one conditional
 -- update, and the check below is the backstop for anything that writes the
@@ -17,6 +18,9 @@ create table review_codes (
   uses integer not null default 0,
   expires_at timestamptz not null,
   revoked_at timestamptz,
+  -- The staff member who made it. No foreign key, as an audit entry's: a
+  -- redemption is recorded against them, and reads the same once they go.
+  created_by uuid not null,
   created_at timestamptz not null default now(),
   constraint review_codes_within_limit check (uses >= 0 and uses <= max_uses)
 );

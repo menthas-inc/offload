@@ -492,6 +492,8 @@ export interface ReviewCodesTable {
   uses: Generated<number>;
   expires_at: Timestamp;
   revoked_at: Timestamp | null;
+  /** The staff member who made it. No foreign key. */
+  created_by: string;
   created_at: Generated<Timestamp>;
 }
 
