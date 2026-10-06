@@ -141,6 +141,15 @@ describe("the words, from the one copy both phones read", () => {
   });
 });
 
+describe("the code field", () => {
+  it("takes the code as printed: capitals, no corrections, no spelling, no suggestions", () => {
+    const source = read("components/screens/CodeEntry.tsx");
+    for (const prop of ['autoCapitalize="characters"', "autoCorrect={false}", "spellCheck={false}", 'autoComplete="off"', 'textContentType="none"']) {
+      expect(source).toContain(prop);
+    }
+  });
+});
+
 describe("both phones", () => {
   for (const platform of ["ios", "android"]) {
     it(`sign in on ${platform}: offers the code only with the switch on, and sends it with the provider`, () => {

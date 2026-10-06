@@ -106,6 +106,7 @@ export default function SignInPage() {
               onChange={(event) => setCode(event.target.value)}
               autoComplete="off"
               autoCapitalize="characters"
+              autoCorrect="off"
               spellCheck={false}
               maxLength={40}
               autoFocus

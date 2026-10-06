@@ -71,6 +71,11 @@ describe("a review code on the sign-in screen", () => {
     const first = [...host.querySelectorAll("button")].find((b) => b.textContent?.includes("Continue with"))!;
     expect(input.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(button("Have a code?")).toBeUndefined();
+    // Taken as printed: no case change, correction, spelling or autofill.
+    expect(input.getAttribute("autocapitalize")).toBe("characters");
+    expect(input.getAttribute("autocorrect")).toBe("off");
+    expect(input.getAttribute("spellcheck")).toBe("false");
+    expect(input.getAttribute("autocomplete")).toBe("off");
   });
 
   it("rides with the sign-in, whichever provider is picked", async () => {

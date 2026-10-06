@@ -36,7 +36,10 @@ export function CodeField({ value, onChange }: { value: string; onChange: (next:
       // of the corrections that would mangle them.
       autoCapitalize="characters"
       autoCorrect={false}
+      spellCheck={false}
       autoComplete="off"
+      // No autofill suggestion bar over a code nobody has saved.
+      textContentType="none"
       maxLength={40}
       returnKeyType="done"
       autoFocus
