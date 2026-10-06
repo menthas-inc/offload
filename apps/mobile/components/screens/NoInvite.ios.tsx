@@ -3,22 +3,28 @@
 // Both actions are full-width buttons: a quiet text link for the second one makes it look optional, and it is the one an invited person actually needs.
 
 import { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GateBackdrop } from "../GateBackdrop";
 import { GateLockup } from "../GateLockup";
 import { GATE } from "../../lib/gate";
 import { API_URL } from "../../lib/auth";
+import { attemptHeaders } from "../../lib/attempt";
+import { HaveACode } from "./HaveACode";
 
 export default function NoInvite() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
   const [disabled, setDisabled] = useState(false);
+  // 039. A review code let them in; the next sign-in opens first run.
+  const [admitted, setAdmitted] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/sign-in/attempt`)
+    // 039. With the refusal's proof, which this app keeps itself
+    // (`lib/attempt.ts`): its fetches never hold cookies.
+    fetch(`${API_URL}/api/sign-in/attempt`, { headers: attemptHeaders() })
       .then((response) => (response.ok ? response.json() : { email: null }))
       .then((data: { email: string | null; reason?: "disabled" | null }) => {
         setEmail(data.email);
@@ -40,64 +46,86 @@ export default function NoInvite() {
   }
 
   const copy = disabled ? GATE.disabled : joined ? GATE.joined : GATE.notInvited;
+  const title = admitted ? GATE.admitted.title : copy.title;
+  const sub = admitted ? GATE.admitted.sub : email ? copy.sub(email) : copy.subNoEmail;
 
   return (
     <SafeAreaView className="flex-1 bg-surface-page">
       <GateBackdrop>
-        <GateLockup />
+        {/* 039. The code field sits at the foot, under the keyboard without
+            this. "padding" on both, for the edge to edge reason the
+            waitlist screen gives. */}
+        <KeyboardAvoidingView className="flex-1" behavior="padding">
+          {/* A tap anywhere that is not a control puts the keyboard
+              away: iOS has no back button. */}
+          <Pressable className="flex-1" onPress={Keyboard.dismiss} accessible={false}>
+            <GateLockup />
 
-        <View
-          className="items-center justify-end px-gutter-screen pb-space-9"
-          style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
-        >
-          <Text className="text-center font-core text-title-1 font-semibold text-text-primary">
-            {copy.title}
-          </Text>
-          <Text className="mt-space-5 text-center font-core text-body text-text-secondary">
-            {email ? copy.sub(email) : copy.subNoEmail}
-          </Text>
-        </View>
-
-        <View className="px-gutter-screen pb-space-8 gap-space-4">
-          {joined ? (
             <View
-              accessibilityRole="alert"
-              accessibilityLiveRegion="polite"
-              className="self-center rounded-pill bg-ink-950 px-space-7 py-space-5"
+              className="items-center justify-end px-gutter-screen pb-space-9"
+              style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
             >
-              <Text className="font-core text-body-sm font-medium text-text-inverse">
-                {GATE.joined.toast}
+              <Text className="text-center font-core text-title-1 font-semibold text-text-primary">
+                {title}
+              </Text>
+              <Text className="mt-space-5 text-center font-core text-body text-text-secondary">
+                {sub}
               </Text>
             </View>
-          ) : (
-            <>
-              {disabled ? null : (
+
+            <View className="px-gutter-screen pb-space-8 gap-space-4">
+              {joined ? (
+                <View
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="polite"
+                  className="self-center rounded-pill bg-ink-950 px-space-7 py-space-5"
+                >
+                  <Text className="font-core text-body-sm font-medium text-text-inverse">
+                    {GATE.joined.toast}
+                  </Text>
+                </View>
+              ) : admitted ? (
                 <Pressable
-                  onPress={join}
-                  disabled={!email}
+                  onPress={() => router.replace("/sign-in")}
                   className="min-h-composer-height w-full items-center justify-center rounded-pill bg-ink-950 active:opacity-90"
                 >
-                  <Text className="font-core text-body font-medium text-text-inverse">
-                    {GATE.notInvited.join}
-                  </Text>
+                  <Text className="font-core text-body font-medium text-text-inverse">{GATE.admitted.signIn}</Text>
                 </Pressable>
+              ) : (
+                <>
+                  {disabled ? null : (
+                    <Pressable
+                      onPress={join}
+                      disabled={!email}
+                      className="min-h-composer-height w-full items-center justify-center rounded-pill bg-ink-950 active:opacity-90"
+                    >
+                      <Text className="font-core text-body font-medium text-text-inverse">
+                        {GATE.notInvited.join}
+                      </Text>
+                    </Pressable>
+                  )}
+
+                  <Pressable
+                    onPress={() => router.replace("/sign-in")}
+                    className="min-h-composer-height w-full items-center justify-center rounded-pill border border-border-strong bg-surface-raised active:opacity-90"
+                  >
+                    <Text className="font-core text-body font-medium text-text-primary">
+                      {GATE.notInvited.switch}
+                    </Text>
+                  </Pressable>
+
+                  <Text className="text-center font-core text-caption text-text-tertiary">
+                    {disabled ? "" : GATE.notInvited.terms}
+                  </Text>
+
+                  {email && !disabled ? (
+                    <HaveACode onIn={() => setAdmitted(true)} />
+                  ) : null}
+                </>
               )}
-
-              <Pressable
-                onPress={() => router.replace("/sign-in")}
-                className="min-h-composer-height w-full items-center justify-center rounded-pill border border-border-strong bg-surface-raised active:opacity-90"
-              >
-                <Text className="font-core text-body font-medium text-text-primary">
-                  {GATE.notInvited.switch}
-                </Text>
-              </Pressable>
-
-              <Text className="text-center font-core text-caption text-text-tertiary">
-                {disabled ? "" : GATE.notInvited.terms}
-              </Text>
-            </>
-          )}
-        </View>
+            </View>
+          </Pressable>
+        </KeyboardAvoidingView>
       </GateBackdrop>
     </SafeAreaView>
   );

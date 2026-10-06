@@ -35,6 +35,23 @@ export const GATE = {
     switch: "Use a different account",
     terms: "Invited on another address? Sign in with that one.",
   },
+  // 039. A review code, under the no-invite screen's two buttons. Each
+  // refusal is one clause, and the control beside it is the way forward.
+  code: {
+    open: "Have a code?",
+    placeholder: "Your code",
+    use: "Use code",
+    refused: "That code did not work.",
+    signIn: "Sign in again to use a code.",
+    failed: "That did not go through, try again.",
+    signInButton: "Sign in",
+  },
+  // A code let them in. The next sign-in opens first run.
+  admitted: {
+    title: "You are in",
+    sub: "Sign in once more with the same account.",
+    signIn: "Sign in",
+  },
   // The account exists and is disabled: by staff, or for the day before it is
   // deleted. No invite to look for and no waitlist to join.
   disabled: {

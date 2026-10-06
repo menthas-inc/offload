@@ -25,6 +25,7 @@ import { limitsAdminRoutes } from "./admin/limits.js";
 import { healthAdminRoutes, jobAdminRoutes } from "./admin/health.js";
 import { staffAdminRoutes } from "./admin/staff.js";
 import { auditAdminRoutes } from "./admin/audit.js";
+import { codeAdminRoutes } from "./admin/codes.js";
 
 export async function adminRoutes(app: App): Promise<void> {
   await app.register(
@@ -110,6 +111,8 @@ export async function adminRoutes(app: App): Promise<void> {
       await admin.register(waitlistAdminRoutes);
       await admin.register(peopleAdminRoutes);
       await admin.register(jobAdminRoutes);
+      // 039. Review codes, on the Waitlist page: inviting is support's job.
+      await admin.register(codeAdminRoutes);
 
       // What only an owner sees: Health, Costs, Limits, Staff and Audit.
       await admin.register(async (owner: App) => {

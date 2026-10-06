@@ -530,28 +530,20 @@ export async function sessionRoutes(app: App): Promise<void> {
     }
   );
 
-  // The address a refused sign-in used, read once and then cleared. No session
-  // is required, because by definition the person holding this cookie does not
-  // have one. The cookie itself is the authorization, and all it unlocks is
-  // an address they authenticated with a minute ago.
+  // The address a refused sign-in used. No session is required, because by
+  // definition the person holding this cookie does not have one. The cookie
+  // itself is the authorization, and all it unlocks is an address they
+  // authenticated with a minute ago.
+  //
+  // 039: no longer cleared on the read. The same cookie is the proof a review
+  // code is checked against, typed on the screen this read draws. It runs out
+  // on its own after ten minutes, and a redemption that lets them in clears it.
   app.get(
     "/api/sign-in/attempt",
     { schema: { response: { 200: z.object({ email: z.string().nullable(), reason: z.literal("disabled").nullable() }) } } },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const raw = readCookie(request.headers.cookie, ATTEMPT_COOKIE);
       const attempt = raw ? unsealAttempt(raw, Date.now()) : null;
-
-      const cleared = [
-        `${ATTEMPT_COOKIE}=`,
-        "Path=/",
-        "Max-Age=0",
-        "HttpOnly",
-        "SameSite=Lax",
-        ...(isProduction ? ["Secure"] : []),
-        ...(env.COOKIE_DOMAIN !== "localhost" ? [`Domain=${env.COOKIE_DOMAIN}`] : []),
-      ].join("; ");
-      reply.header("set-cookie", cleared);
-
       return reply.send({ email: attempt?.email ?? null, reason: attempt?.reason ?? null });
     }
   );

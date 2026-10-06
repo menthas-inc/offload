@@ -90,6 +90,9 @@ export interface AccountsTable {
   delete_after: Timestamp | null;
   /** 034. Who asked. An id with no foreign key, as an audit entry's are. */
   delete_requested_by: string | null;
+  /** 039. The review code that let this account in. Null for everyone an
+   *  admin invited. */
+  review_code_id: string | null;
 }
 
 export interface AccountIdentitiesTable {
@@ -475,6 +478,26 @@ export interface SchemaMigrationsTable {
 export interface WaitlistAttemptsTable {
   id: Generated<string>;
   /** HMAC, never the address. See migration 0004. */
+  email_hmac: Buffer;
+  ip_hmac: Buffer;
+  created_at: Generated<Timestamp>;
+}
+
+/** 039. A code staff make for store reviewers. Only its hash is kept. */
+export interface ReviewCodesTable {
+  id: Generated<string>;
+  code_hash: Buffer;
+  note: string;
+  max_uses: number;
+  uses: Generated<number>;
+  expires_at: Timestamp;
+  revoked_at: Timestamp | null;
+  created_at: Generated<Timestamp>;
+}
+
+/** 039. The redemption limiter's record. HMACs, never the address or IP. */
+export interface ReviewCodeAttemptsTable {
+  id: Generated<string>;
   email_hmac: Buffer;
   ip_hmac: Buffer;
   created_at: Generated<Timestamp>;
@@ -1287,6 +1310,8 @@ export interface Database {
   label_runs: LabelRunsTable;
   mail_signatures: MailSignaturesTable;
   waitlist_attempts: WaitlistAttemptsTable;
+  review_codes: ReviewCodesTable;
+  review_code_attempts: ReviewCodeAttemptsTable;
   schema_migrations: SchemaMigrationsTable;
 
   /** 013's views, from migration 0026. One authorization rule each, in SQL,

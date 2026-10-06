@@ -201,6 +201,9 @@ const WRITES: Write[] = [
   { route: "POST /v1/admin/waitlist/remove", body: ({ marked }) => ({ ids: [marked.accountId] }), says: { removed: 0, skipped: 1 } },
   { route: "POST /v1/admin/waitlist/invite-next", body: () => ({ count: 1 }), says: { batchSize: 1 } },
   { route: "POST /v1/admin/waitlist/invite-address", body: ({ email }) => ({ email }), says: { status: "already-in" } },
+  // 039. A review code: the answer carries the code, once, and nobody.
+  { route: "POST /v1/admin/codes", body: () => ({ note: "App Store review 1.0" }), says: { state: "live", maxUses: 5 } },
+  { route: "POST /v1/admin/codes/:id/revoke", says: { status: "already" } },
 ];
 
 /** A write route this test does not call, and why not. Empty: a route goes

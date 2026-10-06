@@ -6,10 +6,16 @@
 // of its own, both actions are full-width buttons rather than one button and a
 // quiet link, and the footer answers the question the screen provokes, which is
 // "but I was invited".
+//
+// 039. Under the caption, *Have a code?*: a store reviewer signs in like
+// anybody, lands here, and types the code from the review notes. No kit draws
+// it, so it is the card's own pieces: the caption's accent, the kit's refusal
+// line, a field at the buttons' height, and the secondary button.
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GateCard, GateChrome } from "../../../components/GateChrome";
+import { HaveACode } from "../../../components/HaveACode";
 import styles from "../auth.module.css";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
@@ -22,10 +28,12 @@ export default function NoInvitePage() {
   // deleted. There is no invite to look for and no waitlist to join, so the
   // screen says what is true and where to write.
   const [disabled, setDisabled] = useState(false);
+  // 039. A review code let them in; the next sign-in opens first run.
+  const [admitted, setAdmitted] = useState(false);
 
   useEffect(() => {
-    // Read once; the server clears the cookie as it answers, so a reload shows
-    // the screen without the address rather than a stale one.
+    // The cookie runs out on its own after ten minutes. It is not cleared by
+    // this read, because a review code typed below is checked against it.
     fetch(`${API}/api/sign-in/attempt`, { credentials: "include" })
       .then((response) => (response.ok ? response.json() : { email: null }))
       .then((data: { email: string | null; reason?: "disabled" | null }) => {
@@ -45,6 +53,22 @@ export default function NoInvitePage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email }),
     }).catch(() => {});
+  }
+
+  if (admitted) {
+    return (
+      <GateChrome>
+        <GateCard>
+          <h1 className={styles.title}>You are in</h1>
+          <p className={styles.sub}>Sign in once more with the same account.</p>
+          <div className={styles.actions}>
+            <button type="button" className={styles.primary} onClick={() => router.replace("/sign-in")}>
+              Sign in
+            </button>
+          </div>
+        </GateCard>
+      </GateChrome>
+    );
   }
 
   if (joined) {
@@ -111,6 +135,8 @@ export default function NoInvitePage() {
         </div>
 
         <p className={styles.caption}>Invited on another address? Sign in with that one instead.</p>
+
+        {email ? <HaveACode onIn={() => setAdmitted(true)} onSignIn={() => router.replace("/sign-in")} /> : null}
       </GateCard>
     </GateChrome>
   );

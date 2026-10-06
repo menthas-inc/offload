@@ -98,6 +98,7 @@ export const ACCOUNT_LEDGER: Record<string, Entry> = {
   "note_chunks.subject_id": { fate: "row", why: "goes with its note" },
   "analytics_events.subject_id": { fate: "step", why: "unshipped events under the account's pseudonym" },
   "waitlist_attempts.email_hmac": { fate: "step", why: "the limiter's record of the address" },
+  "review_code_attempts.email_hmac": { fate: "step", why: "039: the review code limiter's record of the address" },
 
   // The account row itself, and rows that go with it.
   "accounts.email": { fate: "row" },

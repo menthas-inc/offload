@@ -39,72 +39,82 @@ export async function promote(
   email: string,
   options: { invitedBy?: string | null } = {}
 ): Promise<PromotionOutcome> {
+  return db.transaction().execute((tx) => promoteIn(tx, email, options));
+}
+
+/** The promotion itself, inside a transaction the caller owns. 039's review
+ *  code spends a use in the same transaction, so a refused or repeated
+ *  promotion gives the use back by rolling both back together. Not a second
+ *  way to make an account: `promote` is this, in a transaction of its own. */
+export async function promoteIn(
+  tx: Transaction<Database>,
+  email: string,
+  options: { invitedBy?: string | null } = {}
+): Promise<PromotionOutcome> {
   const address = email.trim().toLowerCase();
 
-  return db.transaction().execute(async (tx) => {
-    // Lock the account row for the length of the transaction, so a second
-    // admin promoting the same person waits here rather than racing past the
-    // state check below.
-    const existing = await tx
-      .selectFrom("accounts")
-      .select(["id", "state", "default_thread_id", "analytics_subject_id"])
-      .where((eb) => eb(eb.fn("lower", ["email"]), "=", address))
-      .where("deleted_at", "is", null)
-      .forUpdate()
-      .executeTakeFirst();
+  // Lock the account row for the length of the transaction, so a second
+  // admin promoting the same person waits here rather than racing past the
+  // state check below.
+  const existing = await tx
+    .selectFrom("accounts")
+    .select(["id", "state", "default_thread_id", "analytics_subject_id"])
+    .where((eb) => eb(eb.fn("lower", ["email"]), "=", address))
+    .where("deleted_at", "is", null)
+    .forUpdate()
+    .executeTakeFirst();
 
-    if (existing?.state === "disabled") {
-      return { status: "refused", accountId: existing.id, reason: "disabled" } as const;
-    }
-    if (existing && existing.state !== "waitlist") {
-      return { status: "already-in", accountId: existing.id } as const;
-    }
+  if (existing?.state === "disabled") {
+    return { status: "refused", accountId: existing.id, reason: "disabled" } as const;
+  }
+  if (existing && existing.state !== "waitlist") {
+    return { status: "already-in", accountId: existing.id } as const;
+  }
 
-    const account = existing
-      ? await tx
-          .updateTable("accounts")
-          .set({ state: "invited", updated_at: new Date() })
-          .where("id", "=", existing.id)
-          .returning(["id", "default_thread_id", "analytics_subject_id"])
-          .executeTakeFirstOrThrow()
-      : // Promoting an address nobody submitted is legitimate: it is how the
-        // first owner and any direct invite get in. The account is created
-        // straight into 'invited' rather than through the waitlist.
-        await tx
-          .insertInto("accounts")
-          .values({ email: address, state: "invited" })
-          .returning(["id", "default_thread_id", "analytics_subject_id"])
-          .executeTakeFirstOrThrow();
+  const account = existing
+    ? await tx
+        .updateTable("accounts")
+        .set({ state: "invited", updated_at: new Date() })
+        .where("id", "=", existing.id)
+        .returning(["id", "default_thread_id", "analytics_subject_id"])
+        .executeTakeFirstOrThrow()
+    : // Promoting an address nobody submitted is legitimate: it is how the
+      // first owner and any direct invite get in. The account is created
+      // straight into 'invited' rather than through the waitlist.
+      await tx
+        .insertInto("accounts")
+        .values({ email: address, state: "invited" })
+        .returning(["id", "default_thread_id", "analytics_subject_id"])
+        .executeTakeFirstOrThrow();
 
-    const accountKey = await ensureAccountKey(tx, account.id);
-    await ensureDefaultThread(tx, account.id, account.default_thread_id, accountKey);
+  const accountKey = await ensureAccountKey(tx, account.id);
+  await ensureDefaultThread(tx, account.id, account.default_thread_id, accountKey);
 
-    await enqueue({
-      kind: "email.invited",
-      accountId: account.id,
-      payload: { accountId: account.id },
-      priority: PRIORITY.interactive,
-      // One invite email per account, enforced by the queue rather than by the
-      // handler having to remember.
-      idempotencyKey: `email.invited:${account.id}`,
-      tx,
-    });
-
-    await emit({
-      name: "invite_sent",
-      subjectId: account.analytics_subject_id,
-      properties: { invited_by_staff: Boolean(options.invitedBy) },
-      tx,
-    });
-
-    // 034. Who let them in, in the transaction that did it. Only when this
-    // call changed something: inviting twice is inviting once.
-    if (options.invitedBy) {
-      await audit(tx, { staff: { accountId: options.invitedBy }, kind: "invited", targetAccountId: account.id });
-    }
-
-    return { status: "invited", accountId: account.id } as const;
+  await enqueue({
+    kind: "email.invited",
+    accountId: account.id,
+    payload: { accountId: account.id },
+    priority: PRIORITY.interactive,
+    // One invite email per account, enforced by the queue rather than by the
+    // handler having to remember.
+    idempotencyKey: `email.invited:${account.id}`,
+    tx,
   });
+
+  await emit({
+    name: "invite_sent",
+    subjectId: account.analytics_subject_id,
+    properties: { invited_by_staff: Boolean(options.invitedBy) },
+    tx,
+  });
+
+  // 034. Who let them in, in the transaction that did it. Only when this
+  // call changed something: inviting twice is inviting once.
+  if (options.invitedBy) {
+    await audit(tx, { staff: { accountId: options.invitedBy }, kind: "invited", targetAccountId: account.id });
+  }
+
+  return { status: "invited", accountId: account.id } as const;
 }
 
 /** The account's data key, wrapped by the root. Returned unwrapped because the

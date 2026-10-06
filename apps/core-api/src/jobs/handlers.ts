@@ -602,6 +602,11 @@ const jobsPurge: Handler = async () => {
     .deleteFrom("waitlist_attempts")
     .where(sql<boolean>`created_at < now() - interval '2 days'`)
     .executeTakeFirst();
+  // 039. The review code limiter reads an hour.
+  const codeAttempts = await db
+    .deleteFrom("review_code_attempts")
+    .where(sql<boolean>`created_at < now() - interval '2 days'`)
+    .executeTakeFirst();
   const lookups = await db
     .deleteFrom("people_lookups")
     .where(sql<boolean>`looked_up_at < now() - interval '1 day'`)
@@ -629,6 +634,7 @@ const jobsPurge: Handler = async () => {
       msg: "jobs purged",
       removed: Number(result.numDeletedRows ?? 0),
       attempts: Number(attempts.numDeletedRows ?? 0),
+      codeAttempts: Number(codeAttempts.numDeletedRows ?? 0),
       lookups: Number(lookups.numDeletedRows ?? 0),
       sessions: Number(sessions.numDeletedRows ?? 0),
       verifications: Number(verifications.numDeletedRows ?? 0),

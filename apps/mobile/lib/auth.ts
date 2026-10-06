@@ -22,6 +22,7 @@ import * as SecureStore from "expo-secure-store";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
+import { rememberAttempt } from "./attempt";
 
 /** The API base. A phone is not on localhost, so a device build needs the
  *  machine's LAN address here rather than a loopback that resolves to itself.
@@ -59,6 +60,13 @@ const deviceOnly = {
 
 export const authClient = createAuthClient({
   baseURL: API_URL,
+  // 039. A refused sign-in carries the signed `offload_attempt` cookie, and
+  // the no-invite screen needs it: to name the address it checked and to check
+  // a review code against. This client omits credentials, so nothing else
+  // would keep it. See `lib/attempt.ts`.
+  fetchOptions: {
+    onError: (context: { response: Response }) => rememberAttempt(context.response.headers.get("set-cookie")),
+  },
   plugins: [
     expoClient({
       scheme: "offload",
