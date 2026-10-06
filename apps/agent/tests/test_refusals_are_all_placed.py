@@ -89,3 +89,12 @@ def test_the_evals_judge_the_reply_the_worker_sends() -> None:
     spec.loader.exec_module(module)
     assert module._reply_as_sent is worker._reply_as_sent
     assert "_reply_as_sent(outcome, ctx, rec.budget)" in path.read_text()
+
+
+def test_a_refused_memory_is_a_decline_the_model_can_say() -> None:
+    """038. Its line is fixed in the prompt; the turn is not partial for it."""
+    codes = (
+        "untrusted_turn", "not_their_words", "never_list", "too_long", "empty", "unknown_memory"
+    )
+    for code in codes:
+        assert _declined_if_argument({"ok": False, "error": code}).get("declined") is True, code

@@ -170,3 +170,34 @@ describe("the terms", () => {
     expect(terms).toContain("Apple's standard licensed application end user licence agreement");
   });
 });
+
+// 038. Memories: what offload knows about a person across their threads. The
+// page says what they are, how each kind is written, what is never kept, where
+// they go, and how to see and remove one while there is no screen for it.
+describe("memories", () => {
+  it("are listed with what offload makes from what you put in", () => {
+    expect(policy).toContain("Memories: what offload knows about you across your threads");
+  });
+
+  it("say how each kind is written, and that sensitive ones are kept only when asked", () => {
+    expect(policy).toContain("when you ask it to remember something");
+    expect(policy).toContain("from what you said, overnight");
+    expect(policy).toContain("only when you asked offload to remember it");
+    expect(policy).toContain("never an ID or account number, a password or immigration status");
+  });
+
+  it("go with every call, and never into a web search", () => {
+    // Named in the list of what each call carries, so "Not more." stays true.
+    expect(policy).toContain("labels, what offload knows about you, and, when offload answers");
+    expect(policy).toContain("never put into a web search");
+  });
+
+  it("can be seen and removed by asking, and are in the export", () => {
+    expect(policy).toContain("Ask offload what it remembers about you");
+    expect(policy).toContain("tell it to forget");
+  });
+
+  it("name the people in your life, and nothing more about them", () => {
+    expect(policy).toContain("the names of people in your life, how they relate to you and their birthdays");
+  });
+});

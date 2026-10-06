@@ -56,7 +56,8 @@ offload's voice is a calm assistant that has already done the work and does not 
 | thread / my threads | folder, project, workspace, board, space |
 | thing / things | item, entry, record, asset |
 | a thread holds things | a project holds items |
-| note / notes | memory, profile, knowledge base, facts |
+| note / notes (what a thread knows about itself) | profile, knowledge base, facts |
+| memory / memories (what offload knows about a person across their threads, since 038) | profile, knowledge base, facts, saved info |
 | learns, learned | works out, worked out, figures out, infers |
 | sorted | classified, auto-tagged, processed |
 | label (a group inside a thread) | tag, category, folder |

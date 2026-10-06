@@ -3819,3 +3819,21 @@ exactly like "I refreshed and I cannot see your change".
 **It was two lines and two dots.** "Pay mortgage", filed with its calendar event, sat under today twice, the second saying "due", next to a To do section that held it once. 015 drew a task with both dates on both days because they are two facts, and that holds when they are two days. On one day they are one thing to do, and two lines read as two.
 
 **Design system impact:** none for the kits, which draw one line per row already. Worth a sentence on the timeline's day list if it ever gets a contract: entries are per row per day, not per date field.
+
+### 2026-10-05 · Memories come back, for what offload knows about a person across their threads
+**Surface:** all
+
+**Is:** *memory* is a word again, for one thing: a sentence offload knows about a person that holds across every thread ("Their wife is Meera."). A **note** stays what a thread knows about itself. 014 retired *memory* on 2026-09-10 because a person dumping something could not say which of the two they meant; the split now is scope, decided by offload, never chosen at capture.
+
+**What a person reads changes in three places, and no screen is added.**
+- **The calendar question asked in their terms:** `Filed "Pay mortgage". Which calendar is shared with Meera?`. The row's title stays so Today's card still says which row, and the name is clipped to 16 characters.
+- **The reply when they ask to remember or forget something,** verb first and second person: *Remembered that Meera is your wife.* / *Forgot that …*.
+- **Three fixed refusals:** *Send that on its own and it will be remembered.* / *Not keeping that one.* / *Nothing like that was kept.*
+
+**Shared threads keep the person's words.** A memory decides where and how something is filed in a shared thread and never the words of a title or a note there (owner, 2026-10-05).
+
+**Design system impact:**
+- The readme's vocabulary table now has note (a thread) and memory (the person) on separate rows.
+- `WMemories.jsx`, `MemoriesScreen.jsx` and `M3MemoriesScreen.jsx` are the fast-follow tab, as rows not chips, per the design queue's answer 1. Their groups map to the six classes: people, things, words, about, rules and patterns. Their sub line must not say "things" and must not draw a zero.
+- `MemoryRow`'s origin values become asked, answered and learned.
+- The calendar question's person variant is new copy for `QuickReplies`, with no change to the component.

@@ -18,6 +18,7 @@ import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
 import { matchCalendarLabel } from "../src/questions.js";
 import { GrantRevoked } from "../src/connectors/google.js";
+import { undoTurn } from "../src/routes/dumps.js";
 
 const tokens = vi.hoisted(() => ({ real: false }));
 vi.mock("../src/connectors/tokens.js", async (importOriginal) => {
@@ -62,6 +63,7 @@ beforeEach(async () => {
   await db.deleteFrom("jobs").execute();
   await db.deleteFrom("sessions").execute();
   await db.deleteFrom("questions").execute();
+  await db.deleteFrom("notes").execute();
   await db.deleteFrom("connector_pending_writes").execute();
   await db.deleteFrom("connector_calendars").execute();
   await db.deleteFrom("connector_connections").execute();
@@ -1680,5 +1682,213 @@ describe("AC-11, AC-17 a tapped calendar answer", () => {
     expect(matchCalendarLabel("family", options)).toBeNull();
     expect(matchCalendarLabel("not", options)).toBeNull();
     expect(matchCalendarLabel("", options)).toBeNull();
+  });
+});
+
+// 038. A calendar named by who it is shared with, asked once in those words and
+// remembered: "Which calendar is shared with Meera?".
+describe("038 the calendar shared with somebody offload cannot find", () => {
+  async function world() {
+    const me = await account("Behrooz Afghahi");
+    const t = await thread(me);
+    const n = await connection(me);
+    const mine = await calendar(n, { summary: "me@g.com", externalId: "cal-mine", primary: true });
+    const pb = await calendar(n, { summary: "P**B", externalId: "cal-pb", participants: 2 });
+    google.countParticipants.mockResolvedValue(2);
+    return { me, t, n, mine, pb };
+  }
+
+  /** What they said, which a remembered name has to come from. */
+  const says = (messageId: string, text: string) => db.updateTable("messages").set({ text }).where("id", "=", messageId).execute();
+
+  const memories = (accountId: string) =>
+    db
+      .selectFrom("notes")
+      .select(["text", "origin", "kind", "calendar_id"])
+      .where("scope", "=", "account")
+      .where("subject_id", "=", accountId)
+      .where("deleted_at", "is", null)
+      .where("superseded_at", "is", null)
+      .execute();
+
+  it("asks in their words, with the row, and the answer writes the event and remembers who", async () => {
+    const { me, t, mine, pb } = await world();
+    const { jobId, messageId } = await dump(me, t);
+    await says(messageId, "add it to my calendar with Meera, or Anoushka Sen-Mukherjee");
+    const contentId = await row(me, t, "Pay mortgage", messageId);
+
+    const asked = (await tool({ tool: "create_event", jobId, toolCallId: "m1", contentId, calendar: "my calendar with Meera" })).json() as Record<string, unknown>;
+    expect(asked).toEqual({ ok: true, asked: true });
+    const q = await db.selectFrom("questions").selectAll().where("target_content_id", "=", contentId).executeTakeFirstOrThrow();
+    expect(q.text).toBe('Filed "Pay mortgage". Which calendar is shared with Meera?');
+    expect((q.options as Array<{ label: string }>).map((o) => o.label)).toEqual(["Behrooz Afghahi", "P**B", "Not that"]);
+    expect(await memories(me)).toEqual([]);
+
+    const tapped = await app.inject({ method: "POST", url: `/v1/questions/${q.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 1 } });
+    expect(tapped.statusCode).toBe(200);
+    // Somebody else sees that calendar, so the write is put to them first.
+    const pending = await db.selectFrom("connector_pending_writes").select("calendar_id").executeTakeFirstOrThrow();
+    expect(pending.calendar_id).toBe(pb);
+    // The calendar's name is never in it: it may be somebody else's words.
+    expect(await memories(me)).toEqual([{ text: "They share a calendar with Meera.", origin: "answered", kind: "things", calendar_id: pb }]);
+    void mine;
+  });
+
+  it("settles the next time from what it remembered, over the thread's pick and without Google", async () => {
+    const { me, t, mine, pb } = await world();
+    await pick(t, mine, me);
+    const first = await dump(me, t);
+    await says(first.messageId, "add it to my calendar with Meera, or Anoushka Sen-Mukherjee");
+    const one = await row(me, t, "Pay mortgage", first.messageId);
+    await tool({ tool: "create_event", jobId: first.jobId, toolCallId: "m1", contentId: one, calendar: "my calendar with Meera" });
+    const q = await db.selectFrom("questions").select("id").where("target_content_id", "=", one).executeTakeFirstOrThrow();
+    await app.inject({ method: "POST", url: `/v1/questions/${q.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 1 } });
+    await db.deleteFrom("connector_pending_writes").execute();
+    google.sharedWith.mockClear();
+
+    const next = await dump(me, t, first.conversationId);
+    await says(next.messageId, "add it to my calendar with Meera, or Anoushka Sen-Mukherjee");
+    const two = await row(me, t, "Bins night", next.messageId);
+    const settled = (await tool({ tool: "create_event", jobId: next.jobId, toolCallId: "m2", contentId: two, calendar: "calendar with MEERA" })).json() as Record<string, unknown>;
+    expect(settled).toMatchObject({ ok: true, waitingForThem: true });
+    expect((await db.selectFrom("connector_pending_writes").select("calendar_id").executeTakeFirstOrThrow()).calendar_id).toBe(pb);
+    expect(google.sharedWith).not.toHaveBeenCalled();
+  });
+
+  it("asks again when the remembered calendar is no longer approved, and a second answer replaces the first", async () => {
+    const { me, t, mine, pb } = await world();
+    const first = await dump(me, t);
+    await says(first.messageId, "add it to my calendar with Meera, or Anoushka Sen-Mukherjee");
+    const one = await row(me, t, "Pay mortgage", first.messageId);
+    await tool({ tool: "create_event", jobId: first.jobId, toolCallId: "m1", contentId: one, calendar: "with Meera" });
+    const q1 = await db.selectFrom("questions").select("id").where("target_content_id", "=", one).executeTakeFirstOrThrow();
+    await app.inject({ method: "POST", url: `/v1/questions/${q1.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 1 } });
+
+    await db.updateTable("connector_calendars").set({ selected: false }).where("id", "=", pb).execute();
+    const next = await dump(me, t, first.conversationId);
+    await says(next.messageId, "add it to my calendar with Meera, or Anoushka Sen-Mukherjee");
+    const two = await row(me, t, "Bins night", next.messageId);
+    expect((await tool({ tool: "create_event", jobId: next.jobId, toolCallId: "m2", contentId: two, calendar: "with Meera" })).json()).toEqual({ ok: true, asked: true });
+    const q2 = await db.selectFrom("questions").select("id").where("target_content_id", "=", two).executeTakeFirstOrThrow();
+    await app.inject({ method: "POST", url: `/v1/questions/${q2.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 0 } });
+    expect((await memories(me)).map((m) => m.calendar_id)).toEqual([mine]);
+  });
+
+  it("remembers nothing on Not that, and a typed answer remembers like a tap", async () => {
+    const { me, t, pb } = await world();
+    const first = await dump(me, t);
+    await says(first.messageId, "add it to my calendar with Meera, or Anoushka Sen-Mukherjee");
+    const one = await row(me, t, "Pay mortgage", first.messageId);
+    await tool({ tool: "create_event", jobId: first.jobId, toolCallId: "m1", contentId: one, calendar: "with Meera" });
+    const q1 = await db.selectFrom("questions").select("id").where("target_content_id", "=", one).executeTakeFirstOrThrow();
+    await app.inject({ method: "POST", url: `/v1/questions/${q1.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 2 } });
+    expect(await memories(me)).toEqual([]);
+
+    const second = await dump(me, t, first.conversationId);
+    await says(second.messageId, "add it to my calendar with Meera, or Anoushka Sen-Mukherjee");
+    const two = await row(me, t, "Bins night", second.messageId);
+    await tool({ tool: "create_event", jobId: second.jobId, toolCallId: "m2", contentId: two, calendar: "with Meera" });
+    const q2 = await db.selectFrom("questions").select("id").where("target_content_id", "=", two).executeTakeFirstOrThrow();
+    const typed = await dump(me, t, first.conversationId);
+    const hit = await app.inject({
+      method: "POST",
+      url: "/internal/v1/question-answer",
+      headers: { authorization: `Bearer ${env.INTERNAL_SERVICE_TOKEN}` },
+      payload: { jobId: typed.jobId, questionId: q2.id, value: { text: "P**B" } },
+    });
+    expect(hit.json()).toEqual({ applied: true });
+    expect((await memories(me)).map((m) => m.calendar_id)).toEqual([pb]);
+  });
+
+  it("keeps the sentence inside the bound with a long title and a long name", async () => {
+    const { me, t } = await world();
+    const { jobId, messageId } = await dump(me, t);
+    await says(messageId, "add it to my calendar with Meera, or Anoushka Sen-Mukherjee");
+    const contentId = await row(me, t, "Pay the mortgage and the property tax and the water bill", messageId);
+    await tool({ tool: "create_event", jobId, toolCallId: "m1", contentId, calendar: "my calendar with Anoushka Sen-Mukherjee" });
+    const q = await db.selectFrom("questions").select("text").where("target_content_id", "=", contentId).executeTakeFirstOrThrow();
+    expect(q.text.length).toBeLessThanOrEqual(80);
+    expect(q.text).toMatch(/^Filed ".+". Which calendar is shared with Anoushka Sen-Ch…\?$/);
+  });
+});
+
+describe("038 security review: a remembered name is theirs, from a clean turn", () => {
+  async function world() {
+    const me = await account("Behrooz Afghahi");
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "me@g.com", externalId: "cal-mine", primary: true });
+    await calendar(n, { summary: "P**B", externalId: "cal-pb", participants: 2 });
+    google.countParticipants.mockResolvedValue(2);
+    return { me, t };
+  }
+  const memories = (accountId: string) =>
+    db.selectFrom("notes").select("text").where("scope", "=", "account").where("subject_id", "=", accountId).execute();
+  const answer = async (me: string, contentId: string) => {
+    const q = await db.selectFrom("questions").select(["id", "text"]).where("target_content_id", "=", contentId).executeTakeFirstOrThrow();
+    await app.inject({ method: "POST", url: `/v1/questions/${q.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 1 } });
+    return q.text;
+  };
+
+  it("asks plainly and remembers nothing when the name is not in what they said", async () => {
+    const { me, t } = await world();
+    const { jobId, messageId } = await dump(me, t);
+    await db.updateTable("messages").set({ text: "dentist tuesday 3pm" }).where("id", "=", messageId).execute();
+    const contentId = await row(me, t, "Dentist", messageId);
+    await tool({ tool: "create_event", jobId, toolCallId: "x1", contentId, calendar: "my calendar with Mallory" });
+    expect(await answer(me, contentId)).toBe('Filed "Dentist". Which calendar?');
+    expect(await memories(me)).toEqual([]);
+  });
+
+  it("asks plainly and remembers nothing in a turn that read a calendar", async () => {
+    const { me, t } = await world();
+    const { jobId, messageId } = await dump(me, t);
+    await db.updateTable("messages").set({ text: "add it to my calendar with Meera" }).where("id", "=", messageId).execute();
+    await db.updateTable("jobs").set({ payload: sql`payload || '{"sawApps": true}'::jsonb` }).where("id", "=", jobId).execute();
+    const contentId = await row(me, t, "Dentist", messageId);
+    await tool({ tool: "create_event", jobId, toolCallId: "x2", contentId, calendar: "my calendar with Meera" });
+    expect(await answer(me, contentId)).toBe('Filed "Dentist". Which calendar?');
+    expect(await memories(me)).toEqual([]);
+  });
+});
+
+describe("038 security review: Undo on an answer takes its memory back", () => {
+  it("removes the memory the answer wrote and puts back the one it replaced", async () => {
+    const me = await account("Behrooz Afghahi");
+    const t = await thread(me);
+    const n = await connection(me);
+    const mine = await calendar(n, { summary: "me@g.com", externalId: "cal-mine", primary: true });
+    const pb = await calendar(n, { summary: "P**B", externalId: "cal-pb", participants: 1 });
+    const active = () =>
+      db
+        .selectFrom("notes")
+        .select("calendar_id")
+        .where("scope", "=", "account")
+        .where("subject_id", "=", me)
+        .where("deleted_at", "is", null)
+        .where("superseded_at", "is", null)
+        .execute();
+    const ask = async (title: string, tag: string) => {
+      const d = await dump(me, t);
+      await db.updateTable("messages").set({ text: "add it to my calendar with Meera" }).where("id", "=", d.messageId).execute();
+      const contentId = await row(me, t, title, d.messageId);
+      await db.deleteFrom("notes").where("scope", "=", "account").where("origin", "=", "answered").where("calendar_id", "is", null).execute();
+      await tool({ tool: "create_event", jobId: d.jobId, toolCallId: tag, contentId, calendar: "with Meera" });
+      return db.selectFrom("questions").select("id").where("target_content_id", "=", contentId).executeTakeFirst();
+    };
+
+    const q1 = await ask("Rent", "u1");
+    await app.inject({ method: "POST", url: `/v1/questions/${q1!.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 0 } });
+    expect(await active()).toEqual([{ calendar_id: mine }]);
+    // Settled from memory now, so make the next one ask by un-approving mine.
+    await db.updateTable("connector_calendars").set({ selected: false }).where("id", "=", mine).execute();
+    const q2 = await ask("Bins", "u2");
+    await db.updateTable("connector_calendars").set({ selected: true }).where("id", "=", mine).execute();
+    const tapped = await app.inject({ method: "POST", url: `/v1/questions/${q2!.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 0 } });
+    expect(await active()).toEqual([{ calendar_id: pb }]);
+
+    const { turnId } = tapped.json() as { turnId: string };
+    await undoTurn(me, turnId);
+    expect(await active()).toEqual([{ calendar_id: mine }]);
   });
 });

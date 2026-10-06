@@ -13,6 +13,8 @@
 // browser, and it is the same lesson as trusting a model's output for a
 // destination.
 
+import { MEMORY_TEXT_CHARS } from "../memories/store.js";
+import { applyMemoryPass, PASS_ADDS } from "../memories/pass.js";
 import { PROPOSAL_CANDIDATES, applyProposals } from "../loose/propose.js";
 import { applyPageRead, linkReadable } from "../places/backfill.js";
 import { timingSafeEqual } from "node:crypto";
@@ -332,6 +334,29 @@ function when(raw: string | null | undefined): Date | null {
   return at && plausible(at) ? at : null;
 }
 
+/** 038. What a memory pass proposes. Bounded on every axis (OFF-5); which
+ *  messages and notes it may cite is the Core API's to decide. `rules` is not
+ *  a class it may write: only the person makes a rule. */
+const memoryKind = z.enum(["people", "things", "words", "about", "patterns"]);
+const memoryBody = z.strictObject({
+  jobId: z.string().uuid(),
+  add: z
+    .array(z.strictObject({ kind: memoryKind, text: z.string().min(1).max(MEMORY_TEXT_CHARS), cites: z.string().uuid() }))
+    .max(PASS_ADDS)
+    .default([]),
+  supersede: z
+    .array(z.strictObject({ id: z.string().uuid(), text: z.string().min(1).max(MEMORY_TEXT_CHARS), cites: z.string().uuid() }))
+    .max(20)
+    .default([]),
+  fold: z
+    .array(z.strictObject({ ids: z.array(z.string().uuid()).min(2).max(10), text: z.string().min(1).max(MEMORY_TEXT_CHARS) }))
+    .max(20)
+    .default([]),
+  usage: usage.optional(),
+});
+
+const memoryApplied = z.object({ added: z.number(), superseded: z.number(), folded: z.number(), ignored: z.number() });
+
 const nightlyApplied = z.object({
   superseded: z.number(),
   removed: z.number(),
@@ -502,6 +527,54 @@ export async function internalRoutes(app: App): Promise<void> {
 
       // Counts, never text (OFF-1).
       console.log(JSON.stringify({ level: "info", msg: "nightly applied", ...outcome }));
+      return reply.send(outcome);
+    }
+  );
+
+  // 038. A memory pass, applied. The account comes from the job row, never
+  // the body, and every rule is enforced in `applyMemoryPass`.
+  app.post(
+    "/internal/v1/memory-result",
+    { schema: { body: memoryBody, response: { 200: memoryApplied, 401: refused, 404: refused } } },
+    async (request, reply) => {
+      const header = request.headers.authorization;
+      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+      if (!tokenMatches(presented)) {
+        return reply.code(401).send({ error: "unauthorised" as const });
+      }
+
+      const result = request.body;
+      const job = await db
+        .selectFrom("jobs")
+        .select(["id", "account_id"])
+        .where("id", "=", result.jobId)
+        .where("kind", "=", "account.memories")
+        .executeTakeFirst();
+      if (!job?.account_id) return reply.code(404).send({ error: "unknown_job" as const });
+      const accountId = job.account_id;
+      const none = { added: 0, superseded: 0, folded: 0, ignored: 0 };
+
+      const outcome = await db.transaction().execute(async (trx) => {
+        // Once per job: a retried post writes nothing a second time.
+        const open = await trx.selectFrom("jobs").select("state").where("id", "=", result.jobId).forUpdate().executeTakeFirstOrThrow();
+        if (open.state !== "running") return none;
+
+        const applied = await applyMemoryPass(trx, accountId, { add: result.add, supersede: result.supersede, fold: result.fold });
+        if (result.usage && result.usage.length > 0) {
+          await trx.insertInto("llm_usage").values(ledgerRows(accountId, "account.memories", "scheduled", result.usage, result.jobId)).execute();
+        }
+        // After everything this pass wrote, so the next reads what came since.
+        await trx.updateTable("accounts").set({ memories_at: sql`clock_timestamp()` }).where("id", "=", accountId).execute();
+        await trx
+          .updateTable("jobs")
+          .set({ state: "done", locked_at: null, locked_by: null, error_code: null, updated_at: sql`now()` })
+          .where("id", "=", result.jobId)
+          .execute();
+        return applied;
+      });
+
+      // Counts, never text (OFF-1).
+      console.log(JSON.stringify({ level: "info", msg: "memories applied", ...outcome }));
       return reply.send(outcome);
     }
   );

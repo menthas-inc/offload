@@ -114,7 +114,7 @@ describe("the job runner the server builds", () => {
       return [...list.slice(0, list.indexOf("]")).matchAll(/"([a-z_.]+)"/g)].map((match) => match[1]!);
     };
     const agent = "../../agent/src/offload_agent";
-    const worker = [`${agent}/worker.py`, `${agent}/embed_jobs.py`, `${agent}/nightly.py`, `${agent}/link_place.py`].flatMap(listIn);
+    const worker = [`${agent}/worker.py`, `${agent}/embed_jobs.py`, `${agent}/nightly.py`, `${agent}/memories.py`, `${agent}/link_place.py`].flatMap(listIn);
     // The mirror is the worker's list, whole.
     expect([...MODEL_KINDS].sort()).toEqual([...new Set(worker)].sort());
 

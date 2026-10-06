@@ -30,6 +30,9 @@ import {
   type CopyThread,
 } from "./pages.js";
 
+/** 038. A memory's origin, as the person reads it. */
+const HOW = { stated: "you asked", answered: "you answered", learned: "offload learned" } as const;
+
 /** A part of the archive before sealing. Memory is a few of these at most. */
 export const PART_BYTES = 32 * 1024 * 1024;
 /** Far above the heaviest account. A guard against a runaway, not a limit
@@ -154,7 +157,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
 
       const ownNotes = await trx
         .selectFrom("notes")
-        .select(["scope", "text", "body", "created_at"])
+        .select(["scope", "text", "body", "created_at", "origin", "kind"])
         // By subject for what is about the account, by keeper for what the
         // account keeps about the people it named, as the delete reads them.
         .where((eb) =>
@@ -333,6 +336,9 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
           author: null,
           addedAt: note.created_at.toISOString(),
           about: note.scope === "account" ? ("you" as const) : ("someone" as const),
+          // 038. How offload came to know a memory, since this is one of the
+          // ways to see them until the Memories tab.
+          ...(note.scope === "account" ? { how: HOW[note.origin], kind: note.kind } : {}),
         })),
         people: people.map((person) => ({ name: person.display_name ?? "Someone" })),
       };

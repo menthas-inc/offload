@@ -46,6 +46,9 @@ export type JobKind =
   // the day's dumps add, and on the default thread the threads to suggest.
   // Drained by the Python worker.
   | "thread.nightly"
+  // 038. One account's memory pass: what it learned about the person across
+  // their threads. Drained by the Python worker.
+  | "account.memories"
   // 013. The sweep runs here and finds what needs embedding; the three embed
   // kinds are drained by the Python worker, which is where the client lives.
   | "embed.sweep"

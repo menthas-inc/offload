@@ -30,6 +30,8 @@ export interface AccountsTable {
   email: string;
   email_verified: Generated<boolean>;
   default_thread_id: string | null;
+  /** 038. The last memory pass, which the next one reads from. */
+  memories_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
   referred_by_account_id: string | null;
   referral_thread_id: string | null;
   analytics_subject_id: Generated<string>;
@@ -789,6 +791,17 @@ export interface MessageThreadsTable {
   created_at: Timestamp;
 }
 
+/** 038. The classes of what offload knows about a person. */
+export type MemoryClass = "people" | "things" | "words" | "about" | "rules" | "patterns";
+
+/** 038. The messages a forgotten memory came from: ids only, so the same words
+ *  cannot teach it again. */
+export interface MemoryForgottenTable {
+  account_id: string;
+  message_id: string;
+  created_at: Generated<Timestamp>;
+}
+
 export interface NotesTable {
   id: Generated<string>;
   /** The author. Decides delete (OFF-3) and shows in a shared thread. Never a
@@ -803,10 +816,14 @@ export interface NotesTable {
   /** A thread_id, for thread scope. Polymorphic, so no foreign key, so thread
    *  deletion has to remove these itself. */
   subject_id: string | null;
-  kind: "going_on" | "person" | "preference" | "noticed" | "standing";
+  /** A thread note's five, or since 038 a memory's class (scope 'account'). */
+  kind: "going_on" | "person" | "preference" | "noticed" | "standing" | MemoryClass;
   text: string;
   /** Corrections beat inference: offload may never overwrite a `stated` one. */
-  origin: "stated" | "learned";
+  /** 038: `answered` is a memory's only, written from an answer to a question. */
+  origin: "stated" | "learned" | "answered";
+  /** 038. An answered memory's calendar, by id, never its name. */
+  calendar_id: ColumnType<string | null, string | null | undefined, string | null>;
   derived_from_untrusted: Generated<boolean>;
   /** Any member, thread-wide, reversible. Content has `archived_at` for the
    *  same job: let everyone quiet something without letting anyone destroy
@@ -1241,6 +1258,7 @@ export interface Database {
   connector_connections: ConnectorConnectionsTable;
   connector_secrets: ConnectorSecretsTable;
   connector_calendars: ConnectorCalendarsTable;
+  memory_forgotten: MemoryForgottenTable;
   connector_events: ConnectorEventsTable;
   thread_calendars: ThreadCalendarsTable;
   connector_pending_writes: ConnectorPendingWritesTable;

@@ -74,6 +74,9 @@ import type { WriteAction } from "../connectors/write.js";
 import { linkPhoto, photoForRow, withTaken } from "../blobs/rows.js";
 import { placeQuery } from "../places/query.js";
 import { attachPagePoint, mayReadForPlace } from "../places/resolve.js";
+import { forget, remember } from "../memories/store.js";
+import { askedToForget, askedToRemember, groundedIn, ruleGrounded } from "../memories/ground.js";
+import { flat } from "../memories/flat.js";
 
 /** The only string that ever leaves for a geocoder.
  *
@@ -142,6 +145,19 @@ function tokenMatches(presented: string | undefined): boolean {
 const contentType = z.enum(["link", "image", "screenshot", "voice", "file", "task", "event"]);
 
 const body = z.discriminatedUnion("tool", [
+  // 038. What the person asked offload to remember or forget, everywhere.
+  // Only on their explicit ask; the gate below is the enforcement.
+  z.strictObject({
+    tool: z.literal("memory"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    action: z.enum(["remember", "forget"]),
+    text: z.string().max(400).nullish(),
+    kind: z.enum(["people", "things", "words", "about", "rules", "patterns"]).nullish(),
+    memoryId: z.string().uuid().nullish(),
+    /** Set by the worker, never the model: the turn has read a web page. */
+    afterLookup: z.boolean().optional(),
+  }),
   z.strictObject({
     tool: z.literal("create_thread"),
     jobId: z.string().uuid(),
@@ -613,9 +629,19 @@ const result = z.union([
   z.object({ ok: z.literal(true), asked: z.literal(true) }),
   /** 019. Nothing approved to write to. The row stays a row; nothing is said. */
   z.object({ ok: z.literal(true), noCalendar: z.literal(true) }),
+  /** 038. What the memory tool did. */
+  z.object({ ok: z.literal(true), remembered: z.object({ id: z.string() }) }),
+  z.object({ ok: z.literal(true), forgot: z.object({ id: z.string() }) }),
   z.object({
     ok: z.literal(false),
     error: z.enum([
+      // 038. Why a remember or a forget did not happen.
+      "untrusted_turn",
+      "not_their_words",
+      "never_list",
+      "too_long",
+      "empty",
+      "unknown_memory",
       "unknown_thread",
       "limit_reached",
       // 025. What label_content can be told.
@@ -735,9 +761,17 @@ type Outcome =
   | { ok: true; waitingForThem: true; because: string }
   | { ok: true; asked: true }
   | { ok: true; noCalendar: true }
+  | { ok: true; remembered: { id: string } }
+  | { ok: true; forgot: { id: string } }
   | {
       ok: false;
       error:
+        | "untrusted_turn"
+        | "not_their_words"
+        | "never_list"
+        | "too_long"
+        | "empty"
+        | "unknown_memory"
         | "unknown_thread"
         | "limit_reached"
         | "not_in_the_dump"
@@ -838,6 +872,94 @@ async function lookingAt(messageId: string | null, trx: Executor): Promise<strin
     .where("id", "=", messageId)
     .executeTakeFirst();
   return row?.looking_at_thread_id ?? null;
+}
+
+/** 038. The name a calendar was asked about, when it may be remembered: in
+ *  the person's own message, in a turn that read nothing of anybody else's,
+ *  clipped as the question shows it. Null otherwise, and the question is the
+ *  plain one. */
+async function rememberable(trx: Executor, messageId: string | null, person: string | null, tainted: boolean): Promise<string | null> {
+  if (!person || !messageId || tainted) return null;
+  const message = await trx
+    .selectFrom("messages")
+    .select(["role", "source", "derived_from_untrusted", sql<string | null>`said(text, transcript)`.as("said")])
+    .where("id", "=", messageId)
+    .executeTakeFirst();
+  if (!message || message.role !== "person" || message.source !== "person" || message.derived_from_untrusted) return null;
+  const heard = new Set(flat(message.said ?? "").split(" "));
+  const name = flat(person).split(" ").filter(Boolean);
+  if (name.length === 0 || !name.every((word) => heard.has(word))) return null;
+  const clipped = person.replace(/\s+/g, " ").trim();
+  return clipped.length <= 16 ? clipped : `${clipped.slice(0, 15).trimEnd()}…`;
+}
+
+/** 038. Remember or forget, for the person whose turn this is.
+ *
+ *  **Refused in any turn that read somebody else's words**: a connected app,
+ *  a forwarded email, a web page, a photo, a link or something shared from
+ *  another app, or a message marked untrusted. offload cannot tell which words
+ *  a "remember that" came from in such a turn, so the person is asked to say
+ *  it on its own. And what is remembered has to be in their own message
+ *  (`groundedIn`), which keeps an injected "remember that" in another
+ *  member's note or a tool result out of it. A forget takes the same gate: a
+ *  hostile page must not erase what they asked for either. */
+async function memoryTool(
+  trx: Executor,
+  turn: { accountId: string; messageId: string; sawApps: boolean; sawMail: boolean },
+  call: Extract<z.infer<typeof body>, { tool: "memory" }>,
+): Promise<Outcome> {
+  const message = await trx
+    .selectFrom("messages")
+    .select(["role", "source", "derived_from_untrusted", sql<string | null>`said(text, transcript)`.as("said")])
+    .where("id", "=", turn.messageId)
+    .where("account_id", "=", turn.accountId)
+    .executeTakeFirst();
+  const photo = await trx
+    .selectFrom("blobs")
+    .select("id")
+    .where("message_id", "=", turn.messageId)
+    .where("kind", "=", "image")
+    .executeTakeFirst();
+  const said = message?.said ?? "";
+  const tainted =
+    !message ||
+    turn.sawApps ||
+    turn.sawMail ||
+    call.afterLookup === true ||
+    message.role !== "person" ||
+    message.source !== "person" ||
+    message.derived_from_untrusted ||
+    photo !== undefined ||
+    /https?:\/\/|\bwww\./i.test(said);
+
+  const outcome: Outcome = await (async (): Promise<Outcome> => {
+    if (tainted) return { ok: false, error: "untrusted_turn" };
+    if (call.action === "forget") {
+      if (!askedToForget(said)) return { ok: false, error: "not_their_words" };
+      if (!call.memoryId) return { ok: false, error: "unknown_memory" };
+      const gone = await forget(trx, { accountId: turn.accountId, messageId: turn.messageId, memoryId: call.memoryId });
+      return gone.ok ? { ok: true, forgot: { id: gone.id } } : gone;
+    }
+    if (!call.text || !call.kind) return { ok: false, error: "empty" };
+    // Asked for in so many words, and the words their own: a rule, which
+    // every later turn follows, to every word of it.
+    if (!askedToRemember(said) || !groundedIn(call.text, said)) return { ok: false, error: "not_their_words" };
+    if (call.kind === "rules" && !ruleGrounded(call.text, said)) return { ok: false, error: "not_their_words" };
+    const kept = await remember(trx, { accountId: turn.accountId, messageId: turn.messageId, text: call.text, kind: call.kind });
+    return kept.ok ? { ok: true, remembered: { id: kept.id } } : kept;
+  })();
+
+  // Which, and how it went. Never the words (OFF-1).
+  console.log(
+    JSON.stringify({
+      level: "info",
+      msg: "memory tool",
+      action: call.action,
+      kind: call.kind ?? null,
+      outcome: outcome.ok ? "ok" : (outcome as { error: string }).error,
+    }),
+  );
+  return outcome;
 }
 
 async function markSawApps(jobId: string): Promise<void> {
@@ -1048,7 +1170,7 @@ async function placeEdit(
 }
 
 async function existing(
-  call: Extract<z.infer<typeof body>, { tool: Exclude<ToolName, "create_thread" | "add_content" | "label_content"> }>,
+  call: Extract<z.infer<typeof body>, { tool: Exclude<ToolName, "create_thread" | "add_content" | "label_content" | "memory"> }>,
   accountId: string,
   trx: Executor,
   /** The turn's own message, for provenance on anything this writes. A memory
@@ -1386,6 +1508,11 @@ async function existing(
       title: detail.title,
       calendars: offered.slice(0, 4),
       onAnswer: said.named ? "write" : picks.length === 0 ? "pick" : null,
+      // 038. Asked in their terms, and remembered on the answer, only when the
+      // name is in their own message and the turn read nothing of anybody
+      // else's: otherwise the model's `calendar` may carry words from a page,
+      // an email or an event, and one tap would keep them in every prompt.
+      person: (await rememberable(trx, messageId, said.person ?? null, sawApps || sawMail)) ?? null,
       sawApps,
     });
     return raised ? { ok: true, asked: true } : { ok: true, noCalendar: true };
@@ -1710,6 +1837,11 @@ export async function toolRoutes(app: App): Promise<void> {
           .where("derived_from_message_id", "=", messageId)
           .where("deleted_at", "is", null)
               .executeTakeFirstOrThrow();
+
+        // 038. A memory files nothing either.
+        if (call.tool === "memory") {
+          return memoryTool(trx, { accountId, messageId, sawApps, sawMail }, call);
+        }
 
         // 025. Labelling files nothing, so it is not held to the filing
         // bound above.

@@ -145,6 +145,15 @@ export default function Privacy() {
             </li>
             <li>Notes about a thread, written by you or by offload.</li>
             <li>
+              Memories: what offload knows about you across your threads, such as the names of
+              people in your life, how they relate to you and their birthdays, what your calendars
+              are, and how you like things done. offload keeps one when you ask it to remember
+              something, when you answer a question it asked, and from what you said, overnight.
+              Health, religion, politics, sexuality, ethnicity, a criminal record and money are kept
+              only when you asked offload to remember it, and never an ID or account number, a
+              password or immigration status.
+            </li>
+            <li>
               Its replies to you, with the addresses of the pages it read or searched to answer.
             </li>
             <li>Suggestions, and search indexes that make all of this findable.</li>
@@ -208,8 +217,9 @@ export default function Privacy() {
             Sorting, reading photos, transcribing voice notes, looking things up and answering you
             are done by AI models from other companies, which we call on your behalf. Each call
             carries what that task needs: what you just put in, the recent conversation, the names
-            of your threads and labels, and, when offload answers, what it reads from your threads
-            to answer. Not more.
+            of your threads and labels, what offload knows about you, and, when offload answers,
+            what it reads from your threads to answer. Not more. What offload knows about you is
+            never put into a web search.
           </p>
           <ul>
             <li>
@@ -365,7 +375,8 @@ export default function Privacy() {
             <li>
               <strong>What you put in, and what offload makes from it:</strong> for as long as your
               account exists, or until you delete it. Nothing expires on a clock, because finding
-              something from years ago is the point.
+              something from years ago is the point. A memory is kept while it is still true: when
+              one is replaced, the old one goes after 30 days.
             </li>
             <li>
               <strong>What you delete is deleted.</strong> It is removed from our live systems
@@ -434,7 +445,8 @@ export default function Privacy() {
           <p>
             offload does not ask for health information. If you put some in, it is treated like
             everything else you put in: used only to run offload for you, never sold, never used
-            for advertising, and deleted when you delete it.
+            for advertising, and deleted when you delete it. offload keeps it as a memory only when
+            you asked it to remember it.
           </p>
         </section>
 
@@ -444,7 +456,9 @@ export default function Privacy() {
             In Settings you can export everything, delete your account, turn web search and link
             reading on or off, connect or disconnect a calendar, and choose your notifications. You
             delete something you put in, or a thread, where it is.{" "}
-            <a href="/delete-account">How deleting an account works</a>.
+            <a href="/delete-account">How deleting an account works</a>. Ask offload what it
+            remembers about you to see your memories, and tell it to forget one to remove it; your
+            export lists them too.
           </p>
           <p>
             Wherever you are in the United States, you have the right to know what we collect and
@@ -464,7 +478,8 @@ export default function Privacy() {
           <h2 className={styles.h2}>17. If you are not on offload</h2>
           <p>
             What people put in can mention you: an event you are invited to, an email you sent that
-            someone forwarded, a note with your name in it. We hold that only as part of their
+            someone forwarded, a note with your name in it, or a memory of theirs that says who you
+            are to them. We hold that only as part of their
             account, for the purposes above, and the same retention and security apply. To ask
             about it, write to {MAIL}.
           </p>

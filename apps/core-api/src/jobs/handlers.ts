@@ -3,6 +3,8 @@
 // Handlers are pure of transport concerns: claiming, retrying, backoff and
 // scrubbing live in the runner. A handler does the work or throws.
 
+import { sweepMemories } from "../memories/store.js";
+import { passOwed } from "../memories/pass.js";
 import { shouldPropose, sweepSuggestions } from "../loose/propose.js";
 import { sql, type ExpressionBuilder, type Transaction } from "kysely";
 import { db } from "../db.js";
@@ -912,6 +914,23 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
       await book(defaultThread, propose);
       booked += 1;
     }
+  }
+
+  // 038. What offload knows about the person across their threads: a learned
+  // memory whose source is gone goes with it, then one pass when they said
+  // anything of their own since the last. Booked after the thread passes and
+  // not waiting on them: it reads their notes as they are when it runs.
+  await sweepMemories(accountId);
+  if (mayBook && (await passOwed(db, accountId))) {
+    await enqueue({
+      kind: "account.memories",
+      accountId,
+      payload: {},
+      priority: PRIORITY.background,
+      idempotencyKey: `account.memories:${accountId}:${day}`,
+      maxAttempts: 2,
+    });
+    booked += 1;
   }
 
   // Counts, never text.

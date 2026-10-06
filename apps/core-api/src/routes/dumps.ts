@@ -10,6 +10,7 @@
 // can fail without losing what somebody handed us, which is the one promise
 // this product cannot break.
 
+import { answerMemory, restoreForgotten, undoAnswered } from "../memories/store.js";
 import { randomUUID } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
@@ -2088,6 +2089,21 @@ export async function undoTurn(
       .$if(opts.since !== undefined, (qb) => qb.where("updated_at", "<=", since))
       .execute();
 
+    // 038. A memory the turn asked for went with the notes above (it is one,
+    // at account scope). One the turn forgot comes back, and its words may
+    // teach again.
+    await restoreForgotten(
+      trx,
+      accountId,
+      live.map((row) => row.id),
+    );
+    // And an answer to "which calendar is shared with" takes its memory back.
+    await undoAnswered(
+      trx,
+      accountId,
+      live.map((row) => row.id),
+    );
+
     // 018. The asking turn's questions close with what they were about; an
     // answer's turn puts the previous value back and the question stays
     // answered. A turn is only ever one of the two.
@@ -2408,6 +2424,9 @@ export async function answerCalendarQuestion(
     // They named a calendar and the name did not settle on one: the tap is
     // about this event, so it needs no pick in the thread and makes none.
     const named = (question.previous_value as { named?: boolean } | null)?.named === true;
+    // 038. They named the calendar by who it is shared with: the answer is
+    // remembered, so the same name settles without asking next time.
+    const person = (question.previous_value as { person?: unknown } | null)?.person;
 
     // Still theirs, approved, writable, and picked in the row's thread unless
     // the tap is the pick. A calendar un-approved since the question was asked
@@ -2494,6 +2513,9 @@ export async function answerCalendarQuestion(
       })
       .where("id", "=", question.id)
       .execute();
+    if (typeof person === "string" && person.trim()) {
+      await answerMemory(trx, { accountId, name: person, calendarId, answeredIn: message.id });
+    }
     if (picksOnAnswer) {
       await trx
         .insertInto("thread_calendars")

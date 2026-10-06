@@ -166,7 +166,8 @@ function toNote(row: Row & { authorIsMember?: boolean | number }): Note {
     id: row.id,
     text: row.text,
     body: row.body,
-    origin: row.origin,
+    // `answered` is a memory's (038) and the table refuses it at thread scope.
+    origin: row.origin === "learned" ? "learned" : "stated",
     authorId: row.account_id,
     authorIsMember: Boolean(row.authorIsMember),
     muted: row.muted_at !== null,

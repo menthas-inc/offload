@@ -15,6 +15,8 @@ import { sql } from "kysely";
 import { db } from "../db.js";
 import { calendarName } from "../connectors/calendars.js";
 import { sharedWith } from "../connectors/google.js";
+import { flat } from "../memories/flat.js";
+import { settleByMemory } from "../memories/store.js";
 import { accessTokenFor } from "../connectors/tokens.js";
 import { connectionsOf } from "../people/access.js";
 import { memberOf, NotYours, type Executor } from "./access.js";
@@ -467,15 +469,22 @@ function personalOf<C extends Nameable>(candidates: C[]): C | null {
   return primary.length === 1 ? primary[0]! : null;
 }
 
-const flat = (text: string): string =>
-  text
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim();
 
 const AROUND_A_NAME = new Set(["my", "our", "the", "calendar", "calendars"]);
 const MEANS_MINE = new Set(["own", "personal", "main", "primary", "default"]);
+
+/** "My calendar with Meera": the person, in their own casing, or null. What
+ *  follows the last "with", trimmed of punctuation. */
+export function personSaid(said: string | null): string | null {
+  const text = (said ?? "").normalize("NFKC");
+  const at = [...text.matchAll(/\bwith\b/gi)].at(-1);
+  if (!at || at.index === undefined) return null;
+  const rest = text
+    .slice(at.index + at[0].length)
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")
+    .replace(/\s+/g, " ");
+  return rest || null;
+}
 
 /** "My calendar with Meera": the person a calendar is named by, or null. */
 export function sharedWithWho(said: string | null): string | null {
@@ -498,12 +507,20 @@ export async function calendarsNamed(
   said: string | null,
   candidates: ScopedCalendar[],
   trx: Executor = db
-): Promise<{ named: boolean; matches: ScopedCalendar[] }> {
+): Promise<{ named: boolean; matches: ScopedCalendar[]; person?: string }> {
   // A name wins first: "Dinner with friends" is a calendar before it is a
   // person called Friends.
   const byName = namedCalendars(said, candidates);
   const person = sharedWithWho(said);
   if (!person || byName.matches.length > 0) return byName;
+  // 038. Their word for the person, as they wrote it: the question asks in
+  // those terms and the answer is remembered by it.
+  const who = personSaid(said) ?? person;
+
+  // What they answered last time, before anything else is read: a memory of
+  // theirs, settled in code, never by a model reading it.
+  const remembered = await settleByMemory(accountId, who, candidates, trx);
+  if (remembered) return { named: true, matches: [remembered], person: who };
 
   const people = (await connectionsOf(accountId, trx)).filter((c) => nameMatches(person, c.displayName));
   const theirs = people.length
@@ -523,10 +540,10 @@ export async function calendarsNamed(
     : [];
   const held = new Set(theirs.map((row) => row.externalId));
   const both = candidates.filter((calendar) => held.has(calendar.externalId));
-  if (both.length > 0) return { named: true, matches: madeForSharing(both) };
+  if (both.length > 0) return { named: true, matches: madeForSharing(both), person: who };
   // Somebody they are not connected to is asked about, never looked for on
   // Google: an address with a name in it is not a person they know.
-  if (people.length === 0) return byName;
+  if (people.length === 0) return { named: true, matches: [], person: who };
 
   const addresses = new Set<string>();
   {
@@ -561,7 +578,7 @@ export async function calendarsNamed(
       // person is asked among the rest.
     }
   }
-  return { named: true, matches: madeForSharing(matches) };
+  return { named: true, matches: madeForSharing(matches), person: who };
 }
 
 const MAX_ACL_READS = 5;

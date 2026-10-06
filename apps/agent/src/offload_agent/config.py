@@ -89,6 +89,9 @@ class Config:
     # misses restated rows as notes, Sonnet 5 passed 26 of 26, at twice the
     # price per token, about a cent a pass.
     nightly_model: str = "claude-sonnet-5"
+    # 038. The memory pass: what offload learned about one person across their
+    # threads. The nightly pass's model until an eval says otherwise.
+    memory_model: str = "claude-sonnet-5"
 
     @classmethod
     def from_env(cls) -> "Config":

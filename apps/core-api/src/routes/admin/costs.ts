@@ -46,6 +46,7 @@ const TREND_KEYS = 4;
 const JOB_NAMES: Record<string, string> = {
   "dump.answer": "Filing and answering",
   "thread.nightly": "Nightly pass",
+  "account.memories": "Memory pass",
   "lookup.search": "Web search",
   "lookup.read": "Reading links",
 };

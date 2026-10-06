@@ -213,6 +213,8 @@ describe("AC-18 a person", () => {
     await mail(ana, 2);
     await sql`insert into notes (account_id, scope, subject_id, kind, text, origin) values (${ana}, 'thread', ${home}, 'going_on', 'words', 'stated')`.execute(db);
     await sql`insert into notes (account_id, scope, subject_id, kind, text, origin, deleted_at) values (${ana}, 'thread', ${home}, 'going_on', 'gone', 'stated', now())`.execute(db);
+    // 038. A memory is counted apart from a thread's notes.
+    await sql`insert into notes (account_id, scope, subject_id, kind, text, origin) values (${ana}, 'account', ${ana}, 'people', 'a memory', 'learned')`.execute(db);
     const [a, b] = [ana, tom].sort();
     await sql`insert into connections (account_a, account_b) values (${a}, ${b})`.execute(db);
     await photo(ana, 1000);
@@ -232,6 +234,7 @@ describe("AC-18 a person", () => {
       threadsShared: 1,
       dumped: 2,
       notes: 1,
+      memories: 1,
       connections: 1,
       files: 2,
       fileBytes: 3048,
@@ -242,12 +245,13 @@ describe("AC-18 a person", () => {
     });
     expect(Date.parse(has.sessionLastUsed)).toBeGreaterThan(Date.now() - 60_000);
     expect(Object.keys(has).sort()).toEqual([
-      "calendarSync", "calendars", "connections", "devices", "dumped", "fileBytes", "files", "notes", "sessionLastUsed", "sessions", "threadsAlone", "threadsShared",
+      "calendarSync", "calendars", "connections", "devices", "dumped", "fileBytes", "files", "memories", "notes", "sessionLastUsed", "sessions", "threadsAlone", "threadsShared",
     ]);
     // No calendar's name, no second address, no token.
     expect(res.payload).not.toContain("second@example.test");
     expect(res.payload).not.toContain("ExponentPushToken");
     expect(res.payload).not.toContain("a name nobody may read");
+    expect(res.payload).not.toContain("a memory");
 
     await sql`update connector_connections set last_error_at = now() + interval '1 minute' where account_id = ${ana}`.execute(db);
     expect((await get(support.cookie, `/people/${ana}`)).json().has.calendarSync).toBe("failed");

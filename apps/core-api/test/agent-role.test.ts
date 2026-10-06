@@ -153,3 +153,20 @@ describe("and no more than its job", () => {
     expect(mark.allowed, "it could read a mark").toBe(false);
   });
 });
+
+// 038. The memory pass reads since the account's last pass, and never learns
+// again from a forgotten memory's message. It writes neither: the Core API
+// stamps the pass and records what was forgotten. Found by running the pass
+// against a local worker, which connects as this role and the suite does not.
+describe("038 the memory pass", () => {
+  it("reads the last pass's stamp and the forgotten sources, and writes neither", async () => {
+    const stamp = await asAgent("select memories_at from accounts limit 1");
+    expect(stamp.allowed, stamp.error).toBe(true);
+    const forgotten = await asAgent("select account_id, message_id from memory_forgotten limit 1");
+    expect(forgotten.allowed, forgotten.error).toBe(true);
+    const write = await asAgent("delete from memory_forgotten where false");
+    expect(write.allowed, "it could write memory_forgotten").toBe(false);
+    const stampWrite = await asAgent("update accounts set memories_at = now() where false");
+    expect(stampWrite.allowed, "it could stamp the pass").toBe(false);
+  });
+});
