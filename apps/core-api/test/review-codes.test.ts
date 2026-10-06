@@ -315,6 +315,11 @@ describe("AC-8 tries are limited", () => {
     expect((await use(made.code, proof("fresh@example.test"), "198.51.100.10")).json()).toEqual({ status: "in" });
   });
 
+  it("writes nothing more once an address is over the limit", async () => {
+    for (let i = 0; i < 15; i++) await use(newCode(), proof("flood@example.test"));
+    expect(await db.selectFrom("review_code_attempts").select("id").execute()).toHaveLength(10);
+  });
+
   it("keeps HMACs, not addresses or IPs", async () => {
     await use(newCode(), proof("kept@example.test"), "192.0.2.44");
     const rows = await db.selectFrom("review_code_attempts").selectAll().execute();
@@ -325,7 +330,8 @@ describe("AC-8 tries are limited", () => {
 
   it("forgets an account's tries when it is deleted", async () => {
     const id = await activeAccount("gone@example.test");
-    await use(newCode(), proof("gone@example.test"));
+    // The provider can assert an address in any case; the account keeps it lowered.
+    await use(newCode(), proof("Gone@Example.test"));
     await use(newCode(), proof("stays@example.test"));
     await deleteAccount(id);
     const left = await db.selectFrom("review_code_attempts").select("email_hmac").execute();

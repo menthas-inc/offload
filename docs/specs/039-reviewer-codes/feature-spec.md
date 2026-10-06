@@ -64,7 +64,8 @@ The review notes say which button to use.
 - **AC-7** Without a live proof the answer is `sign-in`, and nothing is read
   or spent.
 - **AC-8** Tries are limited to 10 an hour per address and 20 an hour per IP,
-  counted whether or not they succeed. Over the limit the answer is `refused`.
+  counted whether or not they succeed. Over the limit the answer is `refused`
+  and nothing more is written.
   The limiter keeps HMACs, not addresses or IPs, is purged daily with the
   waitlist's, and an account's rows go when the account is deleted.
 - **AC-9** The no-invite screen on the web and both phones offers *Have a

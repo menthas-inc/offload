@@ -143,11 +143,14 @@ export async function revokeCode(id: string, staff: { accountId: string }): Prom
   });
 }
 
-/** Record a try and answer whether it is over either limit. */
+/** Answer whether a try is over either limit, and record it when it is not.
+ *
+ *  Counted before the write, so a flood past the limit writes nothing more,
+ *  and closed when the count cannot be read. The address is lowered as the
+ *  account keeps it, so deleting the account finds its rows. */
 export async function overLimit(email: string, ip: string): Promise<boolean> {
-  const emailHmac = codeAttemptHmac(email);
+  const emailHmac = codeAttemptHmac(email.trim().toLowerCase());
   const ipHmac = codeAttemptHmac(ip);
-  await db.insertInto("review_code_attempts").values({ email_hmac: emailHmac, ip_hmac: ipHmac }).execute();
 
   const { rows } = await sql<{ by_email: string; by_ip: string }>`
     select
@@ -157,8 +160,11 @@ export async function overLimit(email: string, ip: string): Promise<boolean> {
         where ip_hmac = ${ipHmac} and created_at > now() - interval '1 hour') as by_ip
   `.execute(db);
   const counts = rows[0];
-  if (!counts) return false;
-  return Number(counts.by_email) > LIMIT.perAddress || Number(counts.by_ip) > LIMIT.perIp;
+  if (!counts) return true;
+  if (Number(counts.by_email) >= LIMIT.perAddress || Number(counts.by_ip) >= LIMIT.perIp) return true;
+
+  await db.insertInto("review_code_attempts").values({ email_hmac: emailHmac, ip_hmac: ipHmac }).execute();
+  return false;
 }
 
 /** Thrown inside the transaction to give the claimed use back. */
