@@ -122,7 +122,7 @@ A done dot is the same colour with no fill: a ring. **New surface**, since no ki
 | One thing, two years out | Whole weeks to it, with the empty run between collapsed to one line. |
 | A thing whose end is before its start | Drawn as a point on its start. A bad range is somebody else's bug and this is not the place to raise it. |
 | A day with eleven things | Four dots and a count, and the day view has all eleven. |
-| A task with both a due date and an occurrence | Two entries, on both days. It is on the calendar twice because it is two facts. |
+| A task with both a due date and an occurrence | Two entries, on both days. It is on the calendar twice because it is two facts. **Changed 2026-10-05:** on a day both fall on, the row is one line and one dot, drawn as the occurrence. |
 | An archived row | Not on the rail. It is out of the active list, which is what archive means. |
 | A muted note | On the rail. Muting stops it reaching the model, not the screen. |
 | The week-start setting changes | The rail redraws from the same array, no fetch (AC-16). |

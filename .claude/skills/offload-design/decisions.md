@@ -3810,3 +3810,12 @@ exactly like "I refreshed and I cannot see your change".
 **It survives a reload**, returned with the conversation as well as with the turn, so backgrounding the app mid-decision comes back to the same question rather than to a reply about something that never happened.
 
 **Design system impact:** this is the control the 8 September entry said nothing draws yet, and now something does. It is not a destructive-action dialog, because nothing is being destroyed, and not a toast, because it has to be answered before anything happens. Worth a contract: a reply-attached decision with a named consequence, a primary action and a quiet decline, on both phone kits and `WMisc.jsx`'s conversation. The wording of the consequence line is the app's, not the design system's, since it is a claim about somebody else's data.
+
+### 2026-10-05 · A row is one line on a day, even when it both happens and is due then
+**Surface:** web, mobile
+
+**Is:** a thread's day list and its month grid draw a row once on any day. A to-do that happens at noon and is due at noon is one line and one dot, drawn as the occurrence, with no "due" under it. On a day it is only due, it is still drawn with "due".
+
+**It was two lines and two dots.** "Pay mortgage", filed with its calendar event, sat under today twice, the second saying "due", next to a To do section that held it once. 015 drew a task with both dates on both days because they are two facts, and that holds when they are two days. On one day they are one thing to do, and two lines read as two.
+
+**Design system impact:** none for the kits, which draw one line per row already. Worth a sentence on the timeline's day list if it ever gets a contract: entries are per row per day, not per date field.

@@ -499,7 +499,8 @@ CHANGING_TOOLS = frozenset(
 # calendar, `create_event` carries the name as they said it. The server matches
 # it against their own approved calendars and asks when it does not settle on
 # one. Without it "add it to my shared calendar" went on the personal one,
-# because the tool had nowhere to put what they said.
+# because the tool had nowhere to put what they said. Since 2026-10-05 "my
+# calendar" and "my calendar with Meera" are names too, resolved the same way.
 
 
 class ListCalendars(BaseModel):
@@ -522,9 +523,10 @@ class CreateEvent(BaseModel):
     # Addresses, because that is what an invitation needs. Adding one is what
     # makes a write reach somebody else, which the server notices.
     guests: list[str] | None = None
-    # The calendar's name in their words, only when they named one. Never an
-    # id, never a guess, and nothing here decides whether the write is
-    # confirmed.
+    # The calendar in their words, only when they said which: a name, "my
+    # calendar" for the one only they see, or "my calendar with Sam" for the
+    # one shared with Sam (2026-10-05). Never an id, never a guess, and
+    # nothing here decides whether the write is confirmed.
     calendar: str | None = Field(default=None, max_length=120)
 
 
@@ -584,8 +586,10 @@ _DESCRIPTIONS.update(
             "which calendar from the thread the row is in: with one it is "
             "written, with several or none yet they are asked in the "
             "conversation, with nothing approved nothing happens. Say nothing "
-            "about any of that. Only when they named a calendar, give "
-            "`calendar` the name as they said it; 'my calendar' names none. "
+            "about any of that. Only when they said which calendar, give "
+            "`calendar` their words for it: its name, 'my calendar' or 'my "
+            "personal calendar', or who it is shared with, as in 'my calendar "
+            "with Sam'. 'The calendar' and 'our calendar' say none. "
             "If it needs guests, add them: offload will ask "
             "them to confirm before anybody is emailed. Refused `no_time`: set "
             "the time on that row with `edit_content` and call this again with "

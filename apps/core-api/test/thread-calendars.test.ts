@@ -34,6 +34,7 @@ const google = vi.hoisted(() => ({
   deleteEvent: vi.fn(async () => undefined),
   patchEvent: vi.fn(async () => undefined),
   countParticipants: vi.fn(async () => 1),
+  sharedWith: vi.fn(async (_token: string, _calendarId: string): Promise<string[]> => []),
 }));
 
 vi.mock("../src/connectors/google.js", async (importOriginal) => {
@@ -56,6 +57,8 @@ beforeEach(async () => {
   google.createEvent.mockClear();
   google.countParticipants.mockReset();
   google.countParticipants.mockResolvedValue(1);
+  google.sharedWith.mockReset();
+  google.sharedWith.mockResolvedValue([]);
   await db.deleteFrom("jobs").execute();
   await db.deleteFrom("sessions").execute();
   await db.deleteFrom("questions").execute();
@@ -117,7 +120,14 @@ async function connection(accountId: string): Promise<string> {
 
 async function calendar(
   connectionId: string,
-  over: { accessRole?: "owner" | "writer" | "reader"; selected?: boolean; summary?: string; externalId?: string; participants?: number | null } = {}
+  over: {
+    accessRole?: "owner" | "writer" | "reader";
+    selected?: boolean;
+    summary?: string;
+    externalId?: string;
+    participants?: number | null;
+    primary?: boolean;
+  } = {}
 ): Promise<string> {
   const row = await db
     .insertInto("connector_calendars")
@@ -128,8 +138,19 @@ async function calendar(
       access_role: over.accessRole ?? "owner",
       selected: over.selected ?? true,
       participants: over.participants === undefined ? 1 : over.participants,
+      is_primary: over.primary ?? false,
     })
     .returning("id")
+    .executeTakeFirstOrThrow();
+  return row.id;
+}
+
+async function idOf(externalId: string, connectionId: string): Promise<string> {
+  const row = await db
+    .selectFrom("connector_calendars")
+    .select("id")
+    .where("external_id", "=", externalId)
+    .where("connection_id", "=", connectionId)
     .executeTakeFirstOrThrow();
   return row.id;
 }
@@ -1187,6 +1208,154 @@ describe("AC-11 where a write goes", () => {
     const plain = (await tool({ tool: "create_event", jobId: next.jobId, toolCallId: "n6", contentId: two, calendar: "my calendar" })).json() as Record<string, unknown>;
     expect(plain["written"]).toBe(true);
     expect(calledWith(1)).toBe("cal-sam");
+  });
+
+  // 2026-10-05. "Also add it to my personal calendar" in a new thread asked
+  // which calendar, with the one nobody else sees and the one shared with
+  // Meera as the two chips. Mine is the one only they see.
+  it("'my personal calendar' and 'my calendar' are the one nobody else sees, over a thread's pick", async () => {
+    const me = await account("Behrooz Afghahi");
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "me@g.com", externalId: "cal-mine", primary: true });
+    const shared = await calendar(n, { summary: "P**B", externalId: "cal-pb", participants: 2 });
+    const { jobId, messageId } = await dump(me, t);
+
+    const first = await row(me, t, "Pay mortgage", messageId);
+    const personal = (
+      await tool({ tool: "create_event", jobId, toolCallId: "p1", contentId: first, calendar: "my personal calendar" })
+    ).json() as Record<string, unknown>;
+    expect(personal["written"]).toBe(true);
+    expect(calledWith(0)).toBe("cal-mine");
+
+    // A thread reading through the shared one: "my calendar" still says whose.
+    await pick(t, shared, me);
+    const second = await row(me, t, "Dentist", messageId);
+    const mine = (await tool({ tool: "create_event", jobId, toolCallId: "p2", contentId: second, calendar: "my calendar" })).json() as Record<string, unknown>;
+    expect(mine["written"]).toBe(true);
+    expect(calledWith(1)).toBe("cal-mine");
+  });
+
+  it("'my calendar' with two nobody else sees is the primary one, and 'our calendar' still names nothing", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "Gym", externalId: "cal-gym" });
+    await calendar(n, { summary: "me@g.com", externalId: "cal-mine", primary: true });
+    const { jobId, messageId } = await dump(me, t);
+    const one = await row(me, t, "Dentist", messageId);
+    const mine = (await tool({ tool: "create_event", jobId, toolCallId: "p3", contentId: one, calendar: "my own calendar" })).json() as Record<string, unknown>;
+    expect(mine["written"]).toBe(true);
+    expect(calledWith(0)).toBe("cal-mine");
+
+    const two = await row(me, t, "Dentist again", messageId);
+    const ours = (await tool({ tool: "create_event", jobId, toolCallId: "p4", contentId: two, calendar: "our calendar" })).json() as Record<string, unknown>;
+    expect(ours).toEqual({ ok: true, asked: true });
+  });
+
+  it("'my calendar with Meera' is the one Meera has too, read from her own offload", async () => {
+    const me = await account("Behrooz Afghahi");
+    const meera = await account("Meera Sen");
+    await db.insertInto("connections").values(me < meera ? { account_a: me, account_b: meera } : { account_a: meera, account_b: me }).execute();
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "me@g.com", externalId: "cal-mine", primary: true });
+    await calendar(n, { summary: "P**B", externalId: "cal-pb", participants: 2 });
+    await calendar(n, { summary: "Work", externalId: "cal-work", participants: 5 });
+    // Hers, approved in offload. She can see his primary too, which is "my
+    // calendar", not the one called by her. One she did not approve is not
+    // read: connecting is not consenting to all of them.
+    const hers = await connection(meera);
+    await calendar(hers, { summary: "P**B", externalId: "cal-pb", accessRole: "writer" });
+    await calendar(hers, { summary: "me@g.com", externalId: "cal-mine", accessRole: "reader" });
+    await calendar(hers, { summary: "Work", externalId: "cal-work", accessRole: "reader", selected: false });
+    google.countParticipants.mockResolvedValue(2);
+    const { jobId, messageId } = await dump(me, t);
+    const contentId = await row(me, t, "Pay mortgage", messageId);
+
+    const result = (
+      await tool({ tool: "create_event", jobId, toolCallId: "w1", contentId, calendar: "my calendar with Meera" })
+    ).json() as Record<string, unknown>;
+    expect(result).toMatchObject({ ok: true, waitingForThem: true });
+    const pending = await db.selectFrom("connector_pending_writes").select("calendar_id").executeTakeFirstOrThrow();
+    expect(pending.calendar_id).toBe(await idOf("cal-pb", n));
+    // Her offload answered, so Google was not asked.
+    expect(google.sharedWith).not.toHaveBeenCalled();
+  });
+
+  it("'the calendar I share with Meera' falls back to who Google says each calendar is shared with", async () => {
+    const me = await account("Behrooz Afghahi");
+    const meera = await account("Meera Sen");
+    await db.insertInto("connections").values(me < meera ? { account_a: me, account_b: meera } : { account_a: meera, account_b: me }).execute();
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "me@g.com", externalId: "cal-mine", primary: true });
+    await calendar(n, { summary: "P**B", externalId: "cal-pb", participants: 2 });
+    await calendar(n, { summary: "Work", externalId: "cal-work", participants: 5 });
+    google.sharedWith.mockImplementation(async (_token: string, id: string) =>
+      id === "cal-pb" ? ["meera.sen@gmail.com"] : id === "cal-work" ? ["anoushka@work.com", "boss@work.com"] : []
+    );
+    google.countParticipants.mockResolvedValue(2);
+    const { jobId, messageId } = await dump(me, t);
+    const contentId = await row(me, t, "Pay mortgage", messageId);
+
+    const result = (
+      await tool({ tool: "create_event", jobId, toolCallId: "w2", contentId, calendar: "the calendar I share with Meera" })
+    ).json() as Record<string, unknown>;
+    expect(result).toMatchObject({ ok: true, waitingForThem: true });
+    const pending = await db.selectFrom("connector_pending_writes").select("calendar_id").executeTakeFirstOrThrow();
+    expect(pending.calendar_id).toBe(await idOf("cal-pb", n));
+    // Only calendars other people see are worth asking about.
+    expect(google.sharedWith.mock.calls.map((call) => call[1]).sort()).toEqual(["cal-pb", "cal-work"]);
+  });
+
+  it("a calendar whose own name has 'with' in it is still found by its name, and 'personal calendar' alone is theirs", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "me@g.com", externalId: "cal-mine", primary: true });
+    await calendar(n, { summary: "Dinner with friends", externalId: "cal-dinner", participants: 2 });
+    google.countParticipants.mockResolvedValue(2);
+    const { jobId, messageId } = await dump(me, t);
+
+    const one = await row(me, t, "Tapas", messageId);
+    const named = (await tool({ tool: "create_event", jobId, toolCallId: "d1", contentId: one, calendar: "Dinner with friends" })).json() as Record<string, unknown>;
+    expect(named).toMatchObject({ ok: true, waitingForThem: true });
+    expect(google.sharedWith).not.toHaveBeenCalled();
+
+    google.countParticipants.mockResolvedValue(1);
+    const two = await row(me, t, "Dentist", messageId);
+    const personal = (await tool({ tool: "create_event", jobId, toolCallId: "d2", contentId: two, calendar: "personal calendar" })).json() as Record<string, unknown>;
+    expect(personal["written"]).toBe(true);
+    expect(calledWith(0)).toBe("cal-mine");
+  });
+
+  it("a connection's address on Google's list counts, and nobody matching is a question", async () => {
+    const me = await account("Behrooz Afghahi");
+    const sam = await account("Sam Ibekwe");
+    await db.insertInto("connections").values(me < sam ? { account_a: me, account_b: sam } : { account_a: sam, account_b: me }).execute();
+    const samEmail = (await db.selectFrom("accounts").select("email").where("id", "=", sam).executeTakeFirstOrThrow()).email;
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "me@g.com", externalId: "cal-mine", primary: true });
+    await calendar(n, { summary: "Flat", externalId: "cal-flat", participants: 2 });
+    google.sharedWith.mockImplementation(async (_token: string, id: string) => (id === "cal-flat" ? [samEmail] : []));
+    google.countParticipants.mockResolvedValue(2);
+    const { jobId, messageId } = await dump(me, t);
+
+    const one = await row(me, t, "Bins", messageId);
+    const found = (await tool({ tool: "create_event", jobId, toolCallId: "s1", contentId: one, calendar: "calendar with Sam" })).json() as Record<string, unknown>;
+    expect(found).toMatchObject({ ok: true, waitingForThem: true });
+
+    // Ana is nobody they are connected to. An address with her name in it
+    // is not enough on its own, and Google is not asked.
+    google.sharedWith.mockClear();
+    google.sharedWith.mockImplementation(async (_token: string, id: string) => (id === "cal-flat" ? ["ana.sen@x.com"] : []));
+    const two = await row(me, t, "Rent", messageId);
+    const nobody = (await tool({ tool: "create_event", jobId, toolCallId: "s2", contentId: two, calendar: "my calendar with Ana" })).json() as Record<string, unknown>;
+    expect(nobody).toEqual({ ok: true, asked: true });
+    expect(google.sharedWith).not.toHaveBeenCalled();
+    expect(google.createEvent).not.toHaveBeenCalled();
   });
 
   it("a confirmed write is something the turn did: Done on the single read and in the tail, and after the purge", async () => {

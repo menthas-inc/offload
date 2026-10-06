@@ -1069,7 +1069,11 @@ def test_create_event_carries_the_calendar_they_named_and_nothing_else_about_whe
     assert set(schema.model_fields) == {"content_id", "location", "guests", "calendar"}
 
     described = next(t for t in CALENDAR_TOOL_DEFS if t["name"] == "create_event")
-    assert "named" in described["description"]
+    # 2026-10-05. "My calendar" and who a calendar is shared with say which
+    # one too: the server resolves both, so the words have to reach it.
+    assert "'my calendar' names none" not in described["description"]
+    assert "'my calendar'" in described["description"]
+    assert "shared with" in described["description"]
     assert "calendar" in described["input_schema"]["properties"]
     assert "calendar" not in described["input_schema"].get("required", [])
 

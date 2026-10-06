@@ -65,7 +65,7 @@ import {
   setPreference,
 } from "./threads.js";
 import { calendarOfEvent, findEvents, summarise, writeThroughTool } from "../connectors/tool-calls.js";
-import { approvedWritable, namedCalendars, turnScope, writablePicks } from "../threads/calendars.js";
+import { approvedWritable, calendarsNamed, turnScope, writablePicks } from "../threads/calendars.js";
 import { raiseCalendarQuestion } from "../questions.js";
 import { shownToModel } from "../threads/default.js";
 import { suggestAtFiling } from "../loose/suggestions.js";
@@ -1354,7 +1354,7 @@ async function existing(
     // a shared thread sees it, and only a tap makes one.
     const picks = await writablePicks(accountId, row.threadId, trx);
     const approved = await approvedWritable(accountId, trx);
-    const said = namedCalendars(call.calendar ?? null, approved);
+    const said = await calendarsNamed(accountId, call.calendar ?? null, approved, trx);
     const target = said.named
       ? said.matches.length === 1
         ? said.matches[0]

@@ -1,5 +1,5 @@
 {
-  "statement": "With a calendar in reach, offload reads before it writes, takes the scope of a recurring change from their words with one occurrence as the default, puts a filed row on the calendar by its id and never picks the calendar itself, passing on only a calendar name they said, files one appointment as one row and fixes that row when the server refuses it, says nothing when a write came back written, asked or found no calendar, and reports a write that is waiting on somebody else as waiting rather than done. Without one, an appointment is a row and nothing is said about calendars unless they asked for one.",
+  "statement": "With a calendar in reach, offload reads before it writes, takes the scope of a recurring change from their words with one occurrence as the default, puts a filed row on the calendar by its id and never picks the calendar itself, passing on only the words they used for which calendar, its name, 'my calendar' or who it is shared with, files one appointment as one row and fixes that row when the server refuses it, says nothing when a write came back written, asked or found no calendar, and reports a write that is waiting on somebody else as waiting rather than done. Without one, an appointment is a row and nothing is said about calendars unless they asked for one.",
   "why": "The irreversible thing is somebody else finding out, and the model does not decide whether a write is confirmed: the server tells it, and the reply has to say what the server said. Moving the wrong event is the other cost, and reading first is what prevents it.",
   "sources": [
     "012 AC-4, AC-7, AC-9",
@@ -7,7 +7,7 @@
     "plan_v2.md: Their calendar",
     "answer.md: the calendar lines",
     "harness/tools.py: create_event takes content_id; edit_content takes a time; scope is one or following",
-    "harness/tools.py: create_event takes calendar, the name they said, only when they named one"
+    "harness/tools.py: create_event takes calendar, their words for which calendar: a name, 'my calendar', or who it is shared with"
   ],
   "cases": [
     {
@@ -303,10 +303,82 @@
       }
     },
     {
-      "id": "my-calendar-names-no-calendar",
-      "why": "'my calendar' is the calendar, not a name: nothing is passed and the thread decides",
+      "id": "my-calendar-is-passed-on",
+      "why": "2026-10-05: 'my calendar' is the one only they see, so the words go to the server, which resolves them; it used to be passed as nothing and the thread asked which",
       "surface": "file",
       "input": "add the dentist to my calendar, thursday 10am",
+      "context": "calendar",
+      "expect": {
+        "called": [
+          "add_content",
+          "create_event"
+        ],
+        "calls_with_none": [
+          {
+            "tool": "create_event",
+            "args": {
+              "calendar": null
+            }
+          }
+        ],
+        "say": null,
+        "call_count": {
+          "add_content": 1
+        }
+      }
+    },
+    {
+      "id": "personal-calendar-is-passed-on",
+      "why": "the owner's report on 2026-10-05: 'also add that to my personal calendar' was asked which calendar, between the personal one and the shared one",
+      "surface": "file",
+      "input": "monthly reminder on the 5th to pay mortgage. Also add that to my personal calendar",
+      "context": "calendar",
+      "expect": {
+        "called": [
+          "add_content",
+          "create_event"
+        ],
+        "calls_with_none": [
+          {
+            "tool": "create_event",
+            "args": {
+              "calendar": null
+            }
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "calendar-named-by-who-it-is-shared-with",
+      "why": "2026-10-05: a shared calendar is called by who it is shared with, and the server finds it from the person",
+      "surface": "file",
+      "input": "add bins night to my calendar with Meera, every tuesday 8pm",
+      "context": "calendar",
+      "expect": {
+        "called": [
+          "add_content",
+          "create_event"
+        ],
+        "calls_with_none": [
+          {
+            "tool": "create_event",
+            "args": {
+              "calendar": null
+            }
+          }
+        ],
+        "say": null,
+        "call_count": {
+          "add_content": 1
+        }
+      }
+    },
+    {
+      "id": "our-calendar-names-none",
+      "why": "'the calendar' and 'our calendar' do not say which, so the thread decides",
+      "surface": "file",
+      "input": "put the plumber on the calendar, wednesday 9am",
       "context": "calendar",
       "expect": {
         "calls_with": [
