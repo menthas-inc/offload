@@ -58,6 +58,7 @@ from typing import Any
 
 from anthropic import AsyncAnthropic
 
+from offload_agent import memories as memories_mod
 from offload_agent import nightly as nightly_mod
 from offload_agent.config import Config
 from offload_agent.context import (
@@ -65,6 +66,7 @@ from offload_agent.context import (
     DumpContext,
     LabelRef,
     Mail,
+    Memory,
     Photo,
     Thread,
     Turn,
@@ -108,6 +110,11 @@ MODELS = {
     "classify": _DEFAULTS["sort_model"],
     "judge": _DEFAULTS["sort_model"],
     "nightly": _DEFAULTS["nightly_model"],
+    # 038.
+    "memory": _DEFAULTS["memory_model"],
+    "cast-memory": _DEFAULTS["memory_model"],
+    "cast-file": _DEFAULTS["model"],
+    "cast-answer": _DEFAULTS["answer_model"],
 }
 # The eval's own judge is a different tier from the answerer on purpose: a
 # model marking its own work is the failure this file exists to avoid.
@@ -199,6 +206,8 @@ def _merge(base: dict, over: dict) -> dict:
 
 _FIXTURE_KEYS = {
     "threads",
+    # 038. What offload knows about them: [{id, kind, text}].
+    "memories",
     # 025. The labels in the fixture's threads: [{id, threadId, name}].
     "labels",
     "looking_at",
@@ -317,9 +326,130 @@ def _threads(fx: dict) -> list[Thread]:
         {"id": "00000003-0000-0000-0000-000000000000", "name": "Miscellaneous", "default": "yes"},
     ]
     return [
-        Thread(id=t["id"], name=t["name"], is_default=t.get("default") in ("yes", True))
+        Thread(
+            id=t["id"],
+            name=t["name"],
+            is_default=t.get("default") in ("yes", True),
+            shared=bool(t.get("shared")),
+        )
         for t in raw
     ]
+
+
+def _memories(fx: dict) -> list[Memory]:
+    """038. What offload knows about them, from the fixture."""
+    return [
+        Memory(id=str(m.get("id") or f"mem{n}"), kind=str(m["kind"]), text=str(m["text"]))
+        for n, m in enumerate(fx.get("memories") or [], start=1)
+    ]
+
+
+# 038. The Core API's memory gate, mirrored so the stub can refuse what the
+# server refuses: `memories/ground.ts`, `memories/shapes.ts` and the turn's
+# taint in `routes/tools.ts`. A stub that always remembers tests nothing.
+_IGNORED = {
+    "they",
+    "their",
+    "theirs",
+    "them",
+    "themselves",
+    "s",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "a",
+    "an",
+    "the",
+    "of",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "with",
+    "and",
+    "or",
+    "as",
+    "by",
+    "from",
+    "it",
+    "its",
+    "has",
+    "have",
+    "had",
+    "that",
+    "this",
+    "which",
+    "who",
+    "what",
+    "when",
+    "where",
+    "call",
+    "calls",
+    "called",
+    "mean",
+    "means",
+    "always",
+    "never",
+    "every",
+    "everywhere",
+    "now",
+    "place",
+    "one",
+    "ones",
+}
+
+
+def _flat(text: str) -> str:
+    return re.sub(r"[^\w]+|_", " ", unicodedata.normalize("NFKC", text).lower()).strip()
+
+
+def _grounded(text: str, said: str) -> bool:
+    own = set(_flat(said).split())
+    mine = [w for w in _flat(text).split() if w and w not in _IGNORED]
+    if not mine or not all(w in own for w in mine if re.search(r"\d", w)):
+        return False
+
+    def heard(w: str) -> bool:
+        return w in own or (
+            len(w) >= 4
+            and not re.search(r"\d", w)
+            and any(len(o) >= 4 and o[:4] == w[:4] for o in own)
+        )
+
+    return sum(heard(w) for w in mine) * 2 >= len(mine)
+
+
+def _never_holds(text: str) -> bool:
+    text = unicodedata.normalize("NFKC", text)
+    return bool(
+        re.search(r"\d(?:[\s./-]?\d){8,}", text) or re.search(r"\b\d{3}-\d{2}-\d{4}\b", text)
+    )
+
+
+def _asked(said: str, action: str) -> bool:
+    """The Core API's `askedToRemember` and `askedToForget`."""
+    pattern = (
+        r"\b(forget|don'?t remember|stop remembering|no longer remember)\b"
+        if action == "forget"
+        else r"\b(remember|from now on|keep in mind|don'?t forget)\b"
+    )
+    return bool(re.search(pattern, unicodedata.normalize("NFKC", said), re.I))
+
+
+def _rule_grounded(text: str, said: str) -> bool:
+    """The Core API's `ruleGrounded`: every word theirs, and an always, a never
+    or a from now on in what they said."""
+    if not re.search(r"\b(always|never|from now on)\b", said, re.I):
+        return False
+    own = set(_flat(said).split())
+    mine = [w for w in _flat(text).split() if w and w not in _IGNORED]
+    return bool(mine) and all(
+        w in own or (len(w) >= 4 and any(len(o) >= 4 and o[:4] == w[:4] for o in own)) for w in mine
+    )
 
 
 def _thread(fx: dict, thread_id: str | None) -> Thread | None:
@@ -476,6 +606,39 @@ class Recorder:
         self.results.append(body)
         return body
 
+    def _memory(self, args: dict) -> dict:
+        """038. As the Core API answers it: refused in a turn that read
+        anybody else's words, refused for what no memory holds, refused for
+        words not in the person's own message."""
+        fx = self.fx
+        tainted = (
+            bool(args.get("after_lookup"))
+            or bool(fx.get("mail"))
+            or bool(fx.get("photos"))
+            or bool(re.search(r"https?://|\bwww\.", self.dump, re.I))
+        )
+        if tainted:
+            return {"ok": False, "error": "untrusted_turn"}
+        if args.get("action") == "forget":
+            if not _asked(self.dump, "forget"):
+                return {"ok": False, "error": "not_their_words"}
+            ids = {m.id for m in _memories(fx)}
+            if args.get("memory_id") in ids:
+                return {"ok": True, "forgot": {"id": args["memory_id"]}}
+            return {"ok": False, "error": "unknown_memory"}
+        text = str(args.get("text") or "")
+        if not text or not args.get("kind"):
+            return {"ok": False, "error": "empty"}
+        if len(text) > 200:
+            return {"ok": False, "error": "too_long"}
+        if _never_holds(text):
+            return {"ok": False, "error": "never_list"}
+        if not _asked(self.dump, "remember") or not _grounded(text, self.dump):
+            return {"ok": False, "error": "not_their_words"}
+        if args.get("kind") == "rules" and not _rule_grounded(text, self.dump):
+            return {"ok": False, "error": "not_their_words"}
+        return {"ok": True, "remembered": {"id": f"remembered{len(self.calls)}"}}
+
     async def _answer(self, tool: str, args: dict) -> dict:
         fx = self.fx
         # A tool the case says fails: `fail_tools` maps a name, or `name:N`
@@ -489,6 +652,8 @@ class Recorder:
             return {"ok": False, "error": fx["tool_errors"][tool]}
         if tool == "look_up":
             return self._look_up(args)
+        if tool == "memory":
+            return self._memory(args)
         if tool == "account_facts":
             return {"ok": True, "facts": fx.get("facts") or {}}
         # 019. The scope is the server's, so the stub answers with every
@@ -1311,7 +1476,16 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         # 020. The photos, as the worker would hand them over: the large
         # rendition of each fixture, made by the real rendition code.
         photos=_photos(fx),
+        memories=_memories(fx),
     )
+    return await _file_with(client, case, model, ctx, rec)
+
+
+async def _file_with(
+    client: AsyncAnthropic, case: Case, model: str, ctx: Any, rec: Recorder
+) -> Result:
+    """The turn run and judged, on a context built from a fixture or from the cast."""
+    fx = case.fixture
     try:
         outcome = await plan(client, ctx, model, rec)
     except Exception as exc:  # noqa: BLE001
@@ -1367,6 +1541,19 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
                 failures.append(
                     f"title ended as {title!r}, under {expect['final_title_min_words']} words"
                 )
+
+    # 038. Words that must or must not be in what was filed: a title or a note.
+    written = " ".join(
+        str(args.get("title") or args.get("text") or "")
+        for tool, args in rec.calls
+        if tool in {"add_content", "add_note", "edit_content"}
+    ).lower()
+    for word in expect.get("written_lacks", []):
+        if word.lower() in written:
+            failures.append(f"wrote {word!r} into what it filed: {written!r}")
+    for word in expect.get("written_has", []):
+        if word.lower() not in written:
+            failures.append(f"did not write {word!r} into what it filed: {written!r}")
 
     filed = _filed_summary(rec.calls, fx)
     if "filed" in expect:
@@ -1459,7 +1646,15 @@ async def _run_answer(client: AsyncAnthropic, case: Case, model: str) -> Result:
             n if isinstance(n, str) else n["text"]
             for n in (fx.get("notes") or {}).get(looking_at or "", [])
         ],
+        memories=_memories(fx),
     )
+    return await _answer_with(client, case, model, ctx, rec)
+
+
+async def _answer_with(
+    client: AsyncAnthropic, case: Case, model: str, ctx: Any, rec: Recorder
+) -> Result:
+    """The turn run and judged, on a context built from a fixture or from the cast."""
     try:
         outcome = await plan_answer(client, ctx, model, rec)
     except Exception as exc:  # noqa: BLE001
@@ -1630,8 +1825,13 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
     groups_raw = [g.model_dump() for g in getattr(plan_, "groups", [])]
     touched = set(supersede) | set(remove) | {i for a in adds for i in a.get("folded_from", [])}
     transcript = json.dumps(
-        {"supersede": supersede, "remove": remove, "add": adds, "learned": learned_raw,
-         "groups": groups_raw},
+        {
+            "supersede": supersede,
+            "remove": remove,
+            "add": adds,
+            "learned": learned_raw,
+            "groups": groups_raw,
+        },
         ensure_ascii=False,
     )
     failures: list[str] = []
@@ -1706,7 +1906,274 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
     return Result(case, "", transcript, failures, judged, note, cost=cost)
 
 
+# ---------------------------------------------------------------- the cast
+#
+# 038. Seven people in a database of their own (cast/cast.sql), measured
+# through the same queries the worker runs: what a pass reads, what a turn's
+# context holds, what the agent role may see. Needs EVAL_CAST_DATABASE_URL,
+# a database whose name has "cast" in it, migrated; the seed is applied at
+# the start of a run. EVAL_CAST_AGENT_DATABASE_URL, when set, reads as the
+# worker's role, which is how 038 found a missing grant.
+
+CAST = HERE / "cast"
+_cast_lock = asyncio.Lock()
+_cast_engine: Any = None
+
+
+def _cast_ids() -> dict:
+    return json.loads((CAST / "ids.json").read_text())
+
+
+async def _cast() -> Any:
+    """The cast's database, seeded once per run."""
+    global _cast_engine
+    async with _cast_lock:
+        if _cast_engine is not None:
+            return _cast_engine
+        url = os.environ.get("EVAL_CAST_DATABASE_URL")
+        if not url:
+            raise RuntimeError("the cast needs EVAL_CAST_DATABASE_URL")
+        if "cast" not in url.rsplit("/", 1)[-1]:
+            raise RuntimeError("EVAL_CAST_DATABASE_URL must name a database with 'cast' in it")
+        import asyncpg
+        from sqlalchemy.ext.asyncio import create_async_engine
+
+        from offload_agent.config import _asyncpg
+
+        seed = await asyncpg.connect(url.replace("postgresql+asyncpg://", "postgresql://"))
+        try:
+            await seed.execute((CAST / "cast.sql").read_text())
+        finally:
+            await seed.close()
+        _cast_engine = create_async_engine(
+            _asyncpg(os.environ.get("EVAL_CAST_AGENT_DATABASE_URL") or url)
+        )
+        return _cast_engine
+
+
+async def _cast_turn(case: Case, writer: Any) -> tuple[str, str, str]:
+    """A dump of theirs in a conversation of its own, as the route writes one:
+    the account, the conversation and the message. Removed after the case."""
+    ids = _cast_ids()
+    who = ids["people"][case.input["character"]]
+    looking = ids["threads"].get(case.input.get("looking_at", ""))
+    async with writer.begin() as conn:
+        from sqlalchemy import text as sql_text
+
+        conversation = (
+            await conn.execute(
+                sql_text("insert into conversations (account_id) values (:a) returning id::text"),
+                {"a": who},
+            )
+        ).scalar_one()
+        message = (
+            await conn.execute(
+                sql_text(
+                    "insert into messages (conversation_id, account_id, role, type, turn_id, "
+                    "text, state, source, looking_at_thread_id, created_at) "
+                    "values (:c, :a, 'person', 'text', gen_random_uuid(), :t, 'seen', "
+                    "'person', :l, "
+                    # Eight days back: outside every pass's seven-day window,
+                    # so a pass case running beside this one never reads it.
+                    "now() - interval '8 days') returning id::text"
+                ),
+                {"c": conversation, "a": who, "t": case.input["dump"], "l": looking},
+            )
+        ).scalar_one()
+    return who, conversation, message
+
+
+async def _cast_forget(writer: Any, conversation: str) -> None:
+    from sqlalchemy import text as sql_text
+
+    async with writer.begin() as conn:
+        await conn.execute(sql_text("delete from conversations where id = :c"), {"c": conversation})
+
+
+def _cast_writer() -> Any:
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from offload_agent.config import _asyncpg
+
+    return create_async_engine(_asyncpg(os.environ["EVAL_CAST_DATABASE_URL"]))
+
+
+def _with_memories(case: Case, memories: list) -> Case:
+    """The stub answers a forget against the memories the context really holds."""
+    fixture = {
+        **case.fixture,
+        "memories": [{"id": m.id, "kind": m.kind, "text": m.text} for m in memories],
+    }
+    return Case(**{**case.__dict__, "fixture": fixture})
+
+
+async def _run_cast_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
+    """A filing turn by one of the cast, its context loaded from the database."""
+    from offload_agent import context as ctx_mod
+
+    await _cast()
+    writer = _cast_writer()
+    who, conversation, message = await _cast_turn(case, writer)
+    try:
+        async with (await _cast()).connect() as conn:
+            ctx = await ctx_mod.load(
+                conn,
+                account_id=who,
+                conversation_id=conversation,
+                message_id=message,
+                max_turns=20,
+                max_threads=12,
+            )
+        case = _with_memories(case, ctx.memories)
+        rec = Recorder(case, ctx.dump)
+        return await _file_with(client, case, model, ctx, rec)
+    finally:
+        await _cast_forget(writer, conversation)
+        await writer.dispose()
+
+
+async def _run_cast_answer(client: AsyncAnthropic, case: Case, model: str) -> Result:
+    """A question asked by one of the cast, its context loaded from the database."""
+    from offload_agent import context as ctx_mod
+
+    await _cast()
+    writer = _cast_writer()
+    who, conversation, message = await _cast_turn(case, writer)
+    try:
+        async with (await _cast()).connect() as conn:
+            ctx = await ctx_mod.load_answer(
+                conn,
+                account_id=who,
+                question=case.input["dump"],
+                max_threads=12,
+                conversation_id=conversation,
+                message_id=message,
+                max_turns=20,
+            )
+        case = _with_memories(case, ctx.memories)
+        rec = Recorder(case, case.input["dump"])
+        return await _answer_with(client, case, model, ctx, rec)
+    finally:
+        await _cast_forget(writer, conversation)
+        await writer.dispose()
+
+
+async def _run_cast_memory(client: AsyncAnthropic, case: Case, model: str) -> Result:
+    """One of the cast's memory pass, reading exactly what the worker reads."""
+    ids = _cast_ids()
+    who = ids["people"][case.input["character"]]
+    async with (await _cast()).connect() as conn:
+        today, held, notes, messages = await memories_mod.read(conn, who)
+    return await _memory_with(
+        client,
+        case,
+        model,
+        [dict(m) for m in held],
+        [dict(n) for n in notes],
+        [dict(m) for m in messages],
+        today,
+    )
+
+
+async def _run_memory(client: AsyncAnthropic, case: Case, model: str) -> Result:
+    """038. One account's memory pass.
+
+    The input is {messages: [{day, text}], notes: [{day, text}], memories:
+    [{id, kind, origin, text}]}. Structural rules hold on every case, as the
+    Core API holds them: at most five adds, never a rule, every add and
+    supersede citing something it was shown, folds of learned memories only."""
+    fx = case.input if isinstance(case.input, dict) else {"messages": case.input}
+    messages = [{"id": f"m{n}", **m} for n, m in enumerate(fx.get("messages") or [], start=1)]
+    notes = [{"id": f"n{n}", **m} for n, m in enumerate(fx.get("notes") or [], start=1)]
+    held = [
+        {"id": m.get("id") or f"k{n}", "origin": m.get("origin", "learned"), **m}
+        for n, m in enumerate(fx.get("memories") or [], start=1)
+    ]
+    return await _memory_with(
+        client, case, model, held, notes, messages, case.fixture.get("today") or TODAY
+    )
+
+
+async def _memory_with(
+    client: AsyncAnthropic,
+    case: Case,
+    model: str,
+    held: list[dict],
+    notes: list[dict],
+    messages: list[dict],
+    today: str | None,
+) -> Result:
+    """The pass run and judged, on a set from a fixture or from the cast."""
+    listing = memories_mod.listing(today=today, memories=held, notes=notes, messages=messages)
+    cfg = Config(
+        database_url="", api_url="", internal_token="", anthropic_api_key="", memory_model=model
+    )
+    try:
+        plan_, usage = await memories_mod._ask(client, cfg, listing)
+    except Exception as exc:  # noqa: BLE001
+        return Result(case, "", "", [f"raised {type(exc).__name__}: {exc}"], False, "")
+    if plan_ is None:
+        return Result(case, "", "", ["no parseable memory plan"], False, "")
+    adds = [a.model_dump() for a in plan_.add]
+    supersedes = [s_.model_dump() for s_ in plan_.supersede]
+    folds = [f.model_dump() for f in plan_.fold]
+    transcript = json.dumps(
+        {"add": adds, "supersede": supersedes, "fold": folds}, ensure_ascii=False
+    )
+    shown = {m["id"] for m in messages} | {n["id"] for n in notes}
+    by_id = {m["id"]: m for m in held}
+    failures: list[str] = []
+    for one in adds + supersedes:
+        failures.extend(_copy_problems(str(one.get("text", ""))))
+        if one.get("cites") not in shown:
+            failures.append(f"cited something it was not shown: {one.get('cites')}")
+    for f in folds:
+        if any(by_id.get(i, {}).get("origin") != "learned" for i in f.get("ids", [])):
+            failures.append(f"folded a memory the person gave: {f.get('ids')}")
+    expect = case.expect
+    texts = [str(a.get("text", "")) for a in adds] + [str(x.get("text", "")) for x in supersedes]
+    if expect.get("no_change") and (adds or supersedes or folds):
+        failures.append(f"changed what needed nothing: {transcript}")
+    if "adds" in expect and len(adds) != expect["adds"]:
+        failures.append(f"added {len(adds)}, wanted {expect['adds']}: {transcript}")
+    for word in expect.get("has", []):
+        if not any(word.lower() in t.lower() for t in texts):
+            failures.append(f"no memory says {word!r}: {transcript}")
+    for word in expect.get("lacks", []):
+        if any(word.lower() in t.lower() for t in texts):
+            failures.append(f"a memory says {word!r}: {transcript}")
+    for kind in expect.get("kinds", []):
+        if not any(a.get("kind") == kind for a in adds):
+            failures.append(f"no memory of kind {kind!r}: {transcript}")
+    for i in expect.get("supersedes", []):
+        if i not in {x.get("id") for x in supersedes} and not any(
+            i in f.get("ids", []) for f in folds
+        ):
+            failures.append(f"left {i} standing: {transcript}")
+    for i in expect.get("never_touches", []):
+        if i in {x.get("id") for x in supersedes} or any(i in f.get("ids", []) for f in folds):
+            failures.append(f"touched {i}, which must stand: {transcript}")
+    if expect.get("folds") and not any(
+        set(expect["folds"]) <= set(f.get("ids", [])) for f in folds
+    ):
+        failures.append(f"did not fold {expect['folds']}: {transcript}")
+    cost = sum(
+        _cost(
+            u.get("model", model),
+            u.get("inputTokens", 0),
+            u.get("outputTokens", 0),
+            u.get("cacheReadTokens", 0),
+        )
+        for u in usage
+    )
+    return Result(case, "", transcript, failures, True, "", cost=cost)
+
+
 _SURFACES = {
+    "memory": _run_memory,
+    "cast-memory": _run_cast_memory,
+    "cast-file": _run_cast_file,
+    "cast-answer": _run_cast_answer,
     "file": _run_file,
     "answer": _run_answer,
     "classify": _run_classify,

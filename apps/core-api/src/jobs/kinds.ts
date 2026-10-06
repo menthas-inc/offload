@@ -20,5 +20,6 @@ export const MODEL_KINDS = [
   "embed.note",
   "embed.message",
   "thread.nightly",
+  "account.memories",
   "link.place",
 ] as const;

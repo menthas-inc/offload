@@ -41,7 +41,7 @@ export type ProposeOutcome =
 
 /** Whole name, first name, or initials, case-insensitively. "Sam" matches
  *  Sam Ibekwe and not Samira; "SO" matches Sam Ibekwe. */
-function nameMatches(person: string, name: string | null): boolean {
+export function nameMatches(person: string, name: string | null): boolean {
   if (!name) return false;
   const p = person.trim().toLowerCase();
   const n = name.trim().toLowerCase();

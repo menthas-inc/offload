@@ -247,16 +247,27 @@ export function datedFor(
  *  know which fact put each thing there: the same row can be on two days, once
  *  because it happens and once because it is wanted by then. */
 export function thingsOn(dated: readonly Dated[], iso: string): Dated[] {
+  // **One row is one line on a day.** A task that happens at noon and is due
+  // at noon is on that day for one reason as far as anybody reading it can
+  // tell, and drawing it twice read as two (2026-10-05). The occurrence comes
+  // first from `datedFor`, so it is the one kept.
+  const seen = new Set<string>();
   return dated.filter((one) => {
-    if (!one.rule) return one.from <= iso && iso <= one.to;
-    if (iso < one.from) return false;
-    // Straight to the day in question rather than walking there from whenever
-    // the rule began, so an old rule still answers for today.
-    const length = spanOf(one);
-    return occurrencesIn(one.rule, one.from, addDays(iso, -length), iso).some(
-      (at) => iso >= at && iso <= addDays(at, length),
-    );
+    if (seen.has(one.rowId) || !isOn(one, iso)) return false;
+    seen.add(one.rowId);
+    return true;
   });
+}
+
+function isOn(one: Dated, iso: string): boolean {
+  if (!one.rule) return one.from <= iso && iso <= one.to;
+  if (iso < one.from) return false;
+  // Straight to the day in question rather than walking there from whenever
+  // the rule began, so an old rule still answers for today.
+  const length = spanOf(one);
+  return occurrencesIn(one.rule, one.from, addDays(iso, -length), iso).some(
+    (at) => iso >= at && iso <= addDays(at, length),
+  );
 }
 
 /** How many days one occurrence covers. */
@@ -277,7 +288,12 @@ function dotsByDay(
   window?: { from: string; to: string },
 ): Map<string, Dot[]> {
   const days = new Map<string, Dot[]>();
+  // One dot per row per day, for the reason `thingsOn` draws one line.
+  const rows = new Map<string, Set<string>>();
   const put = (day: string, one: Dated): void => {
+    const seen = rows.get(day) ?? new Set<string>();
+    if (seen.has(one.rowId)) return;
+    rows.set(day, seen.add(one.rowId));
     const held = days.get(day);
     if (held) held.push({ kind: one.kind, done: one.done });
     else days.set(day, [{ kind: one.kind, done: one.done }]);

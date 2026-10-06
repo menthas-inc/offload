@@ -10,7 +10,8 @@
 // Not `calendar`, which also grants calendar management this feature does not
 // use. The access list is read, counted and dropped: a count is what decides
 // whether a write is put to the person first, and nothing else about the list
-// is kept anywhere.
+// is kept anywhere. Since 2026-10-05 it is also read to find the calendar a
+// person means by "my calendar with Meera", compared and dropped the same way.
 
 import { GOOGLE_EVENT_LINK } from "@offload/widgets";
 import { env } from "../env.js";
@@ -200,6 +201,35 @@ export async function listCalendars(accessToken: string): Promise<GoogleCalendar
 export async function countParticipants(accessToken: string, calendarId: string): Promise<number> {
   let count = 0;
   let broad = false;
+  for await (const rule of aclRules(accessToken, calendarId)) {
+    if (!rule.role || rule.role === "none") continue;
+    if (rule.scope?.type === "user") count += 1;
+    else broad = true;
+  }
+  return count + (broad ? 2 : 0);
+}
+
+/** The addresses a calendar is shared with, one per person, lowercased.
+ *
+ *  2026-10-05. Read at the moment somebody says "my calendar with Meera" and
+ *  dropped when the write is decided: compared, never stored and never
+ *  logged. Owners only, like the count. */
+export async function sharedWith(accessToken: string, calendarId: string): Promise<string[]> {
+  const out: string[] = [];
+  for await (const rule of aclRules(accessToken, calendarId)) {
+    if (!rule.role || rule.role === "none" || rule.scope?.type !== "user" || !rule.scope.value) continue;
+    out.push(rule.scope.value.toLowerCase());
+  }
+  return out;
+}
+
+interface AclRule {
+  role?: string;
+  scope?: { type?: string; value?: string };
+}
+
+/** One page in memory at a time: a list's length is Google's, not ours. */
+async function* aclRules(accessToken: string, calendarId: string): AsyncGenerator<AclRule> {
   let pageToken: string | null = null;
   do {
     const params = new URLSearchParams({ maxResults: "250" });
@@ -210,18 +240,10 @@ export async function countParticipants(accessToken: string, calendarId: string)
     );
     if (response.status === 401) throw new GrantRevoked();
     if (!response.ok) throw new Error(`google acl ${response.status}`);
-    const body = (await response.json()) as {
-      items?: Array<{ role?: string; scope?: { type?: string } }>;
-      nextPageToken?: string;
-    };
-    for (const rule of body.items ?? []) {
-      if (!rule.role || rule.role === "none") continue;
-      if (rule.scope?.type === "user") count += 1;
-      else broad = true;
-    }
+    const body = (await response.json()) as { items?: AclRule[]; nextPageToken?: string };
+    yield* body.items ?? [];
     pageToken = body.nextPageToken ?? null;
   } while (pageToken);
-  return count + (broad ? 2 : 0);
 }
 
 /** One occurrence, already flattened. A recurring series arrives expanded,

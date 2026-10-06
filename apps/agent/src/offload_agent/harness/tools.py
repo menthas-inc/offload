@@ -349,6 +349,18 @@ class AddNote(BaseModel):
         return _rule_shape(v)
 
 
+class Memory(BaseModel):
+    """038. Remember or forget something about them, everywhere."""
+
+    action: Literal["remember", "forget"]
+    # Third person, one sentence, from their own words. 200 matches the Core
+    # API's MEMORY_TEXT_CHARS.
+    text: str | None = Field(default=None, max_length=200)
+    kind: Literal["people", "things", "words", "about", "rules", "patterns"] | None = None
+    # A forget names the memory by the id it was shown with.
+    memory_id: str | None = Field(default=None, max_length=40)
+
+
 SCHEMAS: dict[str, type[BaseModel]] = {
     "create_thread": CreateThread,
     "add_content": AddContent,
@@ -361,6 +373,7 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "set_thread_preference": SetThreadPreference,
     "rename_thread": RenameThread,
     "add_note": AddNote,
+    "memory": Memory,
 }
 
 
@@ -426,6 +439,15 @@ _DESCRIPTIONS = {
         "when they state one, and put anything longer than a sentence in body "
         "with the short version in text."
     ),
+    "memory": (
+        "Only when they explicitly ask you to remember or forget something "
+        "about them in general, not about one thread: 'remember that', 'from "
+        "now on, everywhere', 'forget that'. Remember: one sentence in the third "
+        "person from their own words, with its kind: people (who, how related, "
+        "birthdays), things (their accounts, places, belongings), words (what a "
+        "name means), about (durable facts), rules (always, never, from now "
+        "on), patterns. Forget: the memory's id. Never on your own initiative."
+    ),
 }
 
 TOOLS: list[dict[str, Any]] = [
@@ -476,6 +498,9 @@ CHANGING_TOOLS = frozenset(
         "create_event",
         "edit_event",
         "delete_event",
+        # 038. Remembering or forgetting files nothing and is still the turn
+        # having done what was asked.
+        "memory",
     }
 )
 
@@ -499,7 +524,8 @@ CHANGING_TOOLS = frozenset(
 # calendar, `create_event` carries the name as they said it. The server matches
 # it against their own approved calendars and asks when it does not settle on
 # one. Without it "add it to my shared calendar" went on the personal one,
-# because the tool had nowhere to put what they said.
+# because the tool had nowhere to put what they said. Since 2026-10-05 "my
+# calendar" and "my calendar with Meera" are names too, resolved the same way.
 
 
 class ListCalendars(BaseModel):
@@ -522,9 +548,10 @@ class CreateEvent(BaseModel):
     # Addresses, because that is what an invitation needs. Adding one is what
     # makes a write reach somebody else, which the server notices.
     guests: list[str] | None = None
-    # The calendar's name in their words, only when they named one. Never an
-    # id, never a guess, and nothing here decides whether the write is
-    # confirmed.
+    # The calendar in their words, only when they said which: a name, "my
+    # calendar" for the one only they see, or "my calendar with Sam" for the
+    # one shared with Sam (2026-10-05). Never an id, never a guess, and
+    # nothing here decides whether the write is confirmed.
     calendar: str | None = Field(default=None, max_length=120)
 
 
@@ -584,8 +611,11 @@ _DESCRIPTIONS.update(
             "which calendar from the thread the row is in: with one it is "
             "written, with several or none yet they are asked in the "
             "conversation, with nothing approved nothing happens. Say nothing "
-            "about any of that. Only when they named a calendar, give "
-            "`calendar` the name as they said it; 'my calendar' names none. "
+            "about any of that. When their words say which or whose calendar, "
+            "give `calendar` those words: a name, 'my calendar' (add it to my "
+            "calendar gives 'my calendar'), 'my personal calendar', or who it is "
+            "shared with, 'my calendar with Sam'. 'The calendar' and 'our "
+            "calendar' say none. "
             "If it needs guests, add them: offload will ask "
             "them to confirm before anybody is emailed. Refused `no_time`: set "
             "the time on that row with `edit_content` and call this again with "
@@ -770,7 +800,9 @@ ANSWER_CALENDAR_TOOL_DEFS = [
 #: need nothing landed. `could_not_do` is the one the record cannot see, a
 #: calendar that is not connected or a thread they have to delete themselves,
 #: so it is taken on trust. "Done." has no reason to claim, which is the point.
-SayReason = Literal["could_not_read", "nothing_to_file", "could_not_do", "waiting", "new_thread"]
+SayReason = Literal[
+    "could_not_read", "nothing_to_file", "could_not_do", "waiting", "new_thread", "remembered"
+]
 
 
 class Say(BaseModel):
@@ -786,8 +818,8 @@ _DESCRIPTIONS["say"] = (
     "Say something to them. **Almost never.** A dump that you simply filed "
     "needs nothing said: they can see the Done mark and the thread it went to. "
     "Call this only when they would not otherwise know something, and name "
-    "which of the five it is in `because`: could_not_read, nothing_to_file, "
-    "could_not_do, waiting, new_thread. A say whose reason the turn's record "
+    "which of the six it is in `because`: could_not_read, nothing_to_file, "
+    "could_not_do, waiting, new_thread, remembered. A say whose reason the turn's record "
     "does not bear out is dropped. Not calling it is the normal "
     "end of a turn."
 )

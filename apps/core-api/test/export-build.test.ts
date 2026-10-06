@@ -175,10 +175,11 @@ async function world() {
     .insertInto("notes")
     .values([
       { account_id: ana.id, scope: "thread", subject_id: shared, kind: "going_on", text: "The lease ends in March", origin: "stated" },
-      { account_id: ana.id, scope: "account", subject_id: ana.id, kind: "preference", text: "Prefers morning flights", origin: "learned" },
+      // 038. A memory: what offload knows about Ana across her threads.
+      { account_id: ana.id, scope: "account", subject_id: ana.id, kind: "about", text: "Prefers morning flights", origin: "learned" },
       { account_id: sam.id, scope: "thread", subject_id: theirs, kind: "going_on", text: "Ana must not find out", origin: "stated" },
       // About Sam, kept under Sam's account: never Ana's to read.
-      { account_id: sam.id, scope: "account", subject_id: sam.id, kind: "preference", text: "Sam prefers trains", origin: "learned" },
+      { account_id: sam.id, scope: "account", subject_id: sam.id, kind: "about", text: "Sam prefers trains", origin: "learned" },
     ])
     .execute();
 
@@ -326,7 +327,7 @@ describe("the archive", () => {
     const data = JSON.parse(files.get("data.json")!.toString()) as {
       threads: { name: string; shared: boolean; rows: { id: string; title: string; author: string | null; archived: boolean }[] }[];
       conversations: { messages: { from: string; text: string }[] }[];
-      notes: { text: string }[];
+      notes: { text: string; how?: string }[];
       people: { name: string }[];
     };
     expect(data.threads.map((thread) => thread.name).sort()).toContain("The flat");
@@ -342,6 +343,10 @@ describe("the archive", () => {
     expect(data.conversations).toHaveLength(1);
     expect(data.conversations[0]!.messages.map((message) => message.from)).toEqual(["you", "offload"]);
     expect(data.notes.map((note) => note.text)).toEqual(["Prefers morning flights"]);
+    // 038. A memory says how offload came to know it, since the export is one
+    // of the ways to see them until the Memories tab.
+    expect(data.notes[0]!.how).toBe("offload learned");
+    expect((data.notes[0] as { kind?: string }).kind).toBe("about");
     expect(data.people).toEqual([{ name: "Sam Ibekwe" }]);
 
     const page = [...files.values()].map(String).find((text) => text.includes("Rent is due on the first"))!;

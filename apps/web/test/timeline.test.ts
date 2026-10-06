@@ -299,6 +299,36 @@ describe("what the review found", () => {
     expect(onOccurrence?.rowId).toBe("c1");
     expect(onDue?.rowId).toBe("c1");
   });
+
+  it("draws a row once on a day it both happens and is due (2026-10-05)", () => {
+    // "Pay mortgage" at noon, due at noon, filed with its calendar event: the
+    // thread's today listed it twice, the second one saying "due", and the
+    // day carried two dots for one thing.
+    const dated = datedFor([
+      {
+        id: "c1",
+        type: "task",
+        priority: 50,
+        doneAt: null,
+        placeId: null,
+        occursEndAt: null,
+        occursAt: "2026-10-05T12:00:00Z",
+        dueAt: "2026-10-05T12:00:00Z",
+        rrule: "FREQ=MONTHLY",
+      },
+    ]);
+
+    const today = thingsOn(dated, "2026-10-05");
+    expect(today).toHaveLength(1);
+    expect(today[0]?.due).toBe(false);
+    // Next month it is only due, and still drawn.
+    expect(thingsOn(dated, "2026-11-05").map((one) => one.due)).toEqual([true]);
+
+    const day = monthFor("2026-10-01", dated, TODAY)
+      .weeks.flatMap((week) => week.days)
+      .find((one) => one.iso === "2026-10-05");
+    expect(day?.count).toBe(1);
+  });
 });
 
 describe("one row that repeats, drawn on every matching day", () => {

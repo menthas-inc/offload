@@ -265,6 +265,8 @@ const person = z.object({
     threadsShared: z.number().int(),
     dumped: z.number().int(),
     notes: z.number().int(),
+    /** 038. What offload knows about them across threads, counted apart. */
+    memories: z.number().int(),
     connections: z.number().int(),
     files: z.number().int(),
     fileBytes: z.number().int(),
@@ -693,6 +695,7 @@ export async function peopleAdminRoutes(app: App): Promise<void> {
         threads_shared: string;
         dumped: string;
         notes: string;
+        memories: string;
         connections: string;
         files: string;
         file_bytes: string;
@@ -714,7 +717,8 @@ export async function peopleAdminRoutes(app: App): Promise<void> {
           (select count(*) from mine where not shared) as threads_alone,
           (select count(*) from mine where shared) as threads_shared,
           (select count(*) from messages where account_id = ${id} and role = 'person' and deleted_at is null) as dumped,
-          (select count(*) from notes where account_id = ${id} and deleted_at is null and superseded_at is null) as notes,
+          (select count(*) from notes where account_id = ${id} and scope = 'thread' and deleted_at is null and superseded_at is null) as notes,
+          (select count(*) from notes where subject_id = ${id} and scope = 'account' and deleted_at is null and superseded_at is null) as memories,
           (select count(*) from connections where account_a = ${id} or account_b = ${id}) as connections,
           (select count(*) from blobs where account_id = ${id} and deleted_at is null) as files,
           (select coalesce(sum(byte_size), 0) from blobs where account_id = ${id} and deleted_at is null) as file_bytes,
@@ -781,6 +785,7 @@ export async function peopleAdminRoutes(app: App): Promise<void> {
         threadsShared: Number(counts.threads_shared),
         dumped: Number(counts.dumped),
         notes: Number(counts.notes),
+        memories: Number(counts.memories),
         connections: Number(counts.connections),
         files: Number(counts.files),
         fileBytes: Number(counts.file_bytes),

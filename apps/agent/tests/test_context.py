@@ -7,7 +7,16 @@ AC-2:  the default thread is always offered and is found by id.
 AC-16: what already landed reaches the prompt and is never dropped to fit.
 """
 
-from offload_agent.context import DumpContext, Filed, LabelRef, Thread, Turn, approx_tokens, fit
+from offload_agent.context import (
+    DumpContext,
+    Filed,
+    LabelRef,
+    Memory,
+    Thread,
+    Turn,
+    approx_tokens,
+    fit,
+)
 from offload_agent.harness.plan import build_blocks
 
 
@@ -197,6 +206,13 @@ def test_fitting_a_context_keeps_every_field_it_was_given():
         answered={"field": "when", "value": "Friday"},
         has_connections=True,
         mentions=[Mention(account_id="00000003-0000-0000-0000-000000000000", name="Sam Ibekwe")],
+        memories=[
+            Memory(
+                id="00000005-0000-0000-0000-000000000000",
+                kind="people",
+                text="Their wife is Meera.",
+            )
+        ],
         labels=[
             LabelRef(
                 id="00000004-0000-0000-0000-000000000000", thread_id=threads[0].id, name="Istanbul"

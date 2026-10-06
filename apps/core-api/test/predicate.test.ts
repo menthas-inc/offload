@@ -194,17 +194,16 @@ describe("AC-2c a thread note has no account_id and still resolves", () => {
     expect(await readable(stranger)).toEqual([]);
   });
 
-  it("carries no scope but thread, because nothing writes the others", async () => {
+  it("carries no scope but thread, so memories are never read through it", async () => {
     const ana = await account();
     const trip = await thread(ana);
     await db
       .insertInto("notes")
-      .values({ scope: "account", subject_id: null, account_id: ana, kind: "preference", text: "Mornings are quiet", origin: "stated" })
+      .values({ scope: "account", subject_id: ana, account_id: ana, kind: "about", text: "Mornings are quiet", origin: "stated" })
       .execute();
 
-    // Not a leak and not a loss: nothing writes account scope today, and the
-    // view gains a branch when something does. Asserted so that whoever adds
-    // the writer finds this test rather than a silent absence.
+    // 038 writes account scope: memories, read by their own functions and
+    // never through this view, which is about what a thread's members see.
     const rows = await db
       .selectFrom("readable_notes")
       .select("id")

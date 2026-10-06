@@ -43,6 +43,8 @@ WRITES = {
     "create_event",
     "edit_event",
     "delete_event",
+    # 038. Remembering and forgetting change what offload knows.
+    "memory",
     # 022. A proposal, not a write to a row, and still a write: it puts a
     # share in front of the person, which an answering turn must never do.
     "share_thread",
@@ -246,7 +248,9 @@ def test_the_turn_always_says_where_they_are_or_that_nobody_knows() -> None:
     # **The name, not the code.** "They are in PT" reads as a code to a model and
     # as nothing to a person; more to the point, the name is the word it writes
     # into a query, and the bound has to recognise that word.
-    assert "They are in Portugal." in block_with(known, "they are in")
+    # 038: said as a setting, so an answer to "what do you remember about me"
+    # does not list it as a memory.
+    assert "Their country setting is Portugal." in block_with(known, "country setting")
 
     unknown = build_answer_blocks(
         AnswerContext(question="when is the next bank holiday", threads=[], has_calendar=False)

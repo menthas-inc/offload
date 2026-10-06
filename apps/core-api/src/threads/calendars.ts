@@ -14,7 +14,13 @@
 import { sql } from "kysely";
 import { db } from "../db.js";
 import { calendarName } from "../connectors/calendars.js";
+import { sharedWith } from "../connectors/google.js";
+import { flat } from "../memories/flat.js";
+import { settleByMemory } from "../memories/store.js";
+import { accessTokenFor } from "../connectors/tokens.js";
+import { connectionsOf } from "../people/access.js";
 import { memberOf, NotYours, type Executor } from "./access.js";
+import { nameMatches } from "./proposals.js";
 import { bookLocate } from "../places/resolve.js";
 import { mapsOn } from "../settings.js";
 
@@ -329,6 +335,11 @@ export interface ScopedCalendar {
   /** Owned at Google, so its name is the person's own words. A calendar
    *  shared with them, on their own connection, is somebody else's. */
   owned: boolean;
+  primary: boolean;
+  /** How many people see it, 1 being only them; null is unknown and reads as
+   *  more than one. */
+  participants: number | null;
+  connectionId: string;
 }
 
 /** What a turn may read: the looking-at thread's picks, any member's, when the
@@ -346,6 +357,8 @@ export async function turnScope(accountId: string, threadId: string | null, trx:
       "c.summary as summary",
       "c.is_primary as isPrimary",
       "c.access_role as accessRole",
+      "c.participants as participants",
+      "c.connection_id as connectionId",
       "n.account_id as ownerId",
       "owner.display_name as ownerName",
     ])
@@ -372,6 +385,9 @@ export async function turnScope(accountId: string, threadId: string | null, trx:
       writable: row.ownerId === accountId && (row.accessRole === "owner" || row.accessRole === "writer"),
       yours: row.ownerId === accountId,
       owned: row.ownerId === accountId && row.accessRole === "owner",
+      primary: row.isPrimary,
+      participants: row.participants,
+      connectionId: row.connectionId,
     }))
     .sort((a, b) => Number(b.yours) - Number(a.yours));
 }
@@ -391,8 +407,14 @@ export async function approvedWritable(accountId: string, trx: Executor = db): P
 /** Which of their calendars a name they said means.
  *
  *  `named` is false when nothing was said, or when what was said names
- *  nothing: "my calendar" is the calendar, not a name. Then the thread
+ *  nothing: "our calendar" is the calendar, not a name. Then the thread
  *  decides, as it does for a write with no name on it.
+ *
+ *  "My calendar", "my personal calendar" say whose, and that is a name
+ *  (2026-10-05): the one of theirs nobody else sees, the primary one when
+ *  that leaves several. It goes there over the thread's pick, because a
+ *  thread reading through a shared calendar is exactly where somebody says
+ *  "mine" to mean the other one.
  *
  *  Otherwise the whole name wins over a longer one that contains it, so
  *  "Family" is not ambiguous beside "Family trips"; failing that, every
@@ -400,13 +422,7 @@ export async function approvedWritable(accountId: string, trx: Executor = db): P
  *  is a question for the person. Matched in code against their own approved
  *  writable calendars: a calendar shared with them has a name somebody else
  *  wrote, and it only ever selects among calendars they approved. */
-export function namedCalendars<C extends { name: string }>(said: string | null, candidates: C[]): { named: boolean; matches: C[] } {
-  const flat = (text: string): string =>
-    text
-      .normalize("NFKC")
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}]+/gu, " ")
-      .trim();
+export function namedCalendars<C extends Nameable>(said: string | null, candidates: C[]): { named: boolean; matches: C[] } {
   const whole = flat(said ?? "");
   if (!whole) return { named: false, matches: [] };
 
@@ -416,8 +432,13 @@ export function namedCalendars<C extends { name: string }>(said: string | null, 
   // The words around a name, and the words that mean "mine" with no name in
   // them. "Shared" is neither: with nothing else said it still asks for a
   // calendar other people see, so it stays a name that matched nothing.
-  const words = whole.split(" ").filter((word) => !AROUND_A_NAME.has(word));
-  if (words.every((word) => MEANS_MINE.has(word))) return { named: false, matches: [] };
+  const all = whole.split(" ");
+  const words = all.filter((word) => !AROUND_A_NAME.has(word));
+  if (words.every((word) => MEANS_MINE.has(word))) {
+    if (!all.some((word) => word === "my" || MEANS_MINE.has(word))) return { named: false, matches: [] };
+    const mine = personalOf(candidates);
+    return mine ? { named: true, matches: [mine] } : { named: false, matches: [] };
+  }
   const core = words.filter((word) => word !== "shared").join(" ");
   if (!core) return { named: true, matches: [] };
 
@@ -432,8 +453,142 @@ export function namedCalendars<C extends { name: string }>(said: string | null, 
   };
 }
 
+interface Nameable {
+  name: string;
+  owned?: boolean;
+  primary?: boolean;
+  participants?: number | null;
+}
+
+/** The one of theirs only they see, or the primary among several. */
+function personalOf<C extends Nameable>(candidates: C[]): C | null {
+  const owned = candidates.filter((calendar) => calendar.owned);
+  const alone = owned.filter((calendar) => calendar.participants === 1);
+  if (alone.length === 1) return alone[0]!;
+  const primary = (alone.length ? alone : owned).filter((calendar) => calendar.primary);
+  return primary.length === 1 ? primary[0]! : null;
+}
+
+
 const AROUND_A_NAME = new Set(["my", "our", "the", "calendar", "calendars"]);
 const MEANS_MINE = new Set(["own", "personal", "main", "primary", "default"]);
+
+/** "My calendar with Meera": the person, in their own casing, or null. What
+ *  follows the last "with", trimmed of punctuation. */
+export function personSaid(said: string | null): string | null {
+  const text = (said ?? "").normalize("NFKC");
+  const at = [...text.matchAll(/\bwith\b/gi)].at(-1);
+  if (!at || at.index === undefined) return null;
+  const rest = text
+    .slice(at.index + at[0].length)
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")
+    .replace(/\s+/g, " ");
+  return rest || null;
+}
+
+/** "My calendar with Meera": the person a calendar is named by, or null. */
+export function sharedWithWho(said: string | null): string | null {
+  const words = flat(said ?? "").split(" ");
+  const at = words.lastIndexOf("with");
+  if (at < 0) return null;
+  return words.slice(at + 1).join(" ") || null;
+}
+
+/** The calendars they named, by name or by who they share it with.
+ *
+ *  2026-10-05. A calendar shared with somebody is called by who: "my calendar
+ *  with Meera". Meera is found among their connections the way sharing a
+ *  thread finds her, and the calendar is the one in both her list and theirs,
+ *  which is offload's own record and costs nothing. When that finds none,
+ *  Google is asked who each of their calendars other people see is shared
+ *  with, and an address matches a connection's or has her name in it. */
+export async function calendarsNamed(
+  accountId: string,
+  said: string | null,
+  candidates: ScopedCalendar[],
+  trx: Executor = db
+): Promise<{ named: boolean; matches: ScopedCalendar[]; person?: string }> {
+  // A name wins first: "Dinner with friends" is a calendar before it is a
+  // person called Friends.
+  const byName = namedCalendars(said, candidates);
+  const person = sharedWithWho(said);
+  if (!person || byName.matches.length > 0) return byName;
+  // 038. Their word for the person, as they wrote it: the question asks in
+  // those terms and the answer is remembered by it.
+  const who = personSaid(said) ?? person;
+
+  // What they answered last time, before anything else is read: a memory of
+  // theirs, settled in code, never by a model reading it.
+  const remembered = await settleByMemory(accountId, who, candidates, trx);
+  if (remembered) return { named: true, matches: [remembered], person: who };
+
+  const people = (await connectionsOf(accountId, trx)).filter((c) => nameMatches(person, c.displayName));
+  const theirs = people.length
+    ? await trx
+        .selectFrom("connector_calendars as c")
+        .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+        .select("c.external_id as externalId")
+        .where(
+          "n.account_id",
+          "in",
+          people.map((p) => p.accountId)
+        )
+        .where("n.deleted_at", "is", null)
+        // Hers that she approved: connecting is not consenting to all of them.
+        .where("c.selected", "=", true)
+        .execute()
+    : [];
+  const held = new Set(theirs.map((row) => row.externalId));
+  const both = candidates.filter((calendar) => held.has(calendar.externalId));
+  if (both.length > 0) return { named: true, matches: madeForSharing(both), person: who };
+  // Somebody they are not connected to is asked about, never looked for on
+  // Google: an address with a name in it is not a person they know.
+  if (people.length === 0) return { named: true, matches: [], person: who };
+
+  const addresses = new Set<string>();
+  {
+    const ids = people.map((p) => p.accountId);
+    for (const row of await trx.selectFrom("accounts").select("email").where("id", "in", ids).execute()) {
+      addresses.add(row.email.toLowerCase());
+    }
+    for (const row of await trx
+      .selectFrom("connector_connections")
+      .select("external_account_email as email")
+      .where("account_id", "in", ids)
+      .where("deleted_at", "is", null)
+      .where("state", "=", "active")
+      .execute()) {
+      if (row.email) addresses.add(row.email.toLowerCase());
+    }
+  }
+  const first = person.split(" ")[0]!;
+  const fits = (address: string): boolean =>
+    addresses.has(address) || (address.split("@")[0] ?? "").split(/[^\p{L}]+/u).includes(first);
+
+  // Bounded, because each is a round trip to Google inside the turn's
+  // transaction, and how many there are is chosen by what the model passed.
+  const matches: ScopedCalendar[] = [];
+  const asked = candidates.filter((calendar) => calendar.owned && calendar.participants !== 1).slice(0, MAX_ACL_READS);
+  for (const calendar of asked) {
+    try {
+      const listed = await sharedWith(await accessTokenFor(calendar.connectionId), calendar.externalId);
+      if (listed.some(fits)) matches.push(calendar);
+    } catch {
+      // A list Google would not give is a calendar this cannot name; the
+      // person is asked among the rest.
+    }
+  }
+  return { named: true, matches: madeForSharing(matches), person: who };
+}
+
+const MAX_ACL_READS = 5;
+
+/** A calendar called by who it is shared with is the one made for sharing.
+ *  Their primary is "my calendar" even when that person can see it too. */
+function madeForSharing(matches: ScopedCalendar[]): ScopedCalendar[] {
+  const rest = matches.filter((calendar) => !calendar.primary);
+  return rest.length > 0 ? rest : matches;
+}
 
 /** A member leaving takes their picks with them. */
 export async function dropPicksOf(accountId: string, threadId: string, trx: Executor = db): Promise<void> {

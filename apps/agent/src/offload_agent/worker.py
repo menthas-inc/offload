@@ -46,6 +46,8 @@ from offload_agent.harness.plan import (
 from offload_agent.heartbeat import heartbeats
 from offload_agent.link_place import KINDS as LINK_PLACE_KINDS
 from offload_agent.link_place import handle_link_place
+from offload_agent.memories import KINDS as MEMORY_KINDS
+from offload_agent.memories import handle_memories
 from offload_agent.nightly import KINDS as NIGHTLY_KINDS
 from offload_agent.nightly import handle_nightly
 from offload_agent.og import page, picture
@@ -72,6 +74,7 @@ KINDS = [
     "voice.forget",
     *EMBED_KINDS,
     *NIGHTLY_KINDS,
+    *MEMORY_KINDS,
     *LINK_PLACE_KINDS,
 ]
 
@@ -646,6 +649,12 @@ def _tool_caller(
             read_web = True
             return await _look_up(lookups[0], lookups[1], lookups[2], args, say, http)
 
+        # 038. A memory after a web read is refused by the Core API, which
+        # cannot see the read for itself. The loop sets this too; either is
+        # enough.
+        if tool == "memory":
+            args = {**args, "after_lookup": bool(args.get("after_lookup")) or read_web}
+
         if read_web and tool in ("add_content", "add_note"):
             args = {key: value for key, value in args.items() if key != "suggest_thread_id"}
 
@@ -776,6 +785,13 @@ def _tool_caller(
 # failures: the server could not, and a Finish control is the right offer.
 ARGUMENT_REFUSALS = frozenset(
     {
+        # 038. A memory refused: the model says the fixed line for it once.
+        "untrusted_turn",
+        "not_their_words",
+        "never_list",
+        "too_long",
+        "empty",
+        "unknown_memory",
         "unknown_thread",
         # 025. label_content's, each answerable by a different call.
         "not_in_the_dump",
@@ -979,6 +995,18 @@ async def _handle(
     """One job. Never raises: the outcome always reaches the Core API, because a
     dump that silently stops being answered is indistinguishable from one still
     being thought about."""
+    if job.kind in MEMORY_KINDS:
+        # 038. As the nightly pass: nobody is waiting, so a failure releases
+        # the job and the account keeps every memory it has. The type, never
+        # the value (OFF-1).
+        try:
+            await handle_memories(job, cfg=cfg, engine=engine, http=http, client=anthropic)
+        except Exception as exc:  # noqa: BLE001
+            log.error("memory pass failed", kind=job.kind, error=type(exc).__name__)
+            async with engine.begin() as conn:
+                await retry_or_die(conn, job, "memory_error", delay_seconds=3600)
+        return
+
     if job.kind in NIGHTLY_KINDS:
         # 032. Nobody is waiting on a nightly pass, so a failure releases the
         # job and the thread keeps every note it has. Wrapped because it

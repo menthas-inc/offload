@@ -35,6 +35,8 @@
 
   *Amended 2026-09-10 by 014, which merged memories and dumped sentences into one derived table and made this distinction load-bearing. Amended in the same change with one dated exception: 014's migration deletes the `note` content rows that exist on 2026-09-10, once, while the product is in alpha and invite only. It is an exception rather than a precedent, and it is written here rather than left in a migration comment.*
 
+  *A second dated exception, the product owner's on 2026-10-05, for 038: memories, what offload knows about a person across their threads, ship without a screen that shows them. The owner accepted that knowingly as a fast follow. Until the Memories tab ships, a person sees them by asking offload what it remembers and in their export, and corrects one by telling offload to forget it. The exception ends when the tab ships, and is not a precedent for any other derived state.*
+
   The hard line is on the way out: no content in analytics events, no content in LLM traces, no content in application logs, no content in error reports. Those carry ids, kinds, counts, tokens, latency and outcomes only.
 
   **The warehouse is never a second copy of content under weaker controls.** Analysis and machine learning that need content read the production tables, under the same per-account authorization as everything else and for a stated purpose. They do not get a parallel store where the same data sits with looser access, longer reach and no membership check. *This is the specific way an honest privacy posture usually dies: not by a decision to leak, but by an analytics pipeline that was allowed one reasonable-sounding field at a time.* Rationale: the product needs the data; nothing else does.

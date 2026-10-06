@@ -98,6 +98,7 @@ interface Person {
     threadsShared: number;
     dumped: number;
     notes: number;
+    memories: number;
     connections: number;
     files: number;
     fileBytes: number;
@@ -542,6 +543,7 @@ export default function PersonPage() {
           />
           <Stat label="Dumped" value={count(has.dumped)} />
           <Stat label="Notes" value={count(has.notes)} />
+          <Stat label="Memories" value={count(has.memories)} />
           <Stat label="Connections" value={count(has.connections)} />
         </Stats>
         <Stats>

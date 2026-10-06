@@ -39,7 +39,7 @@ from sqlalchemy import text
 
 from offload_agent import ledger
 from offload_agent.config import Config
-from offload_agent.context import today_line
+from offload_agent.context import memories_of, today_line
 from offload_agent.prompt_files import load
 from offload_agent.queue import ClaimedJob, finish, retry_or_die
 
@@ -97,7 +97,10 @@ def mode_for(*, on_default: bool, candidates: list | None) -> str:
 _MEMBER = text(
     """
     select t.name as name, (a.default_thread_id = t.id) as is_default,
-           a.time_zone as time_zone
+           a.time_zone as time_zone,
+           exists (select 1 from thread_members o
+                    where o.thread_id = t.id and o.account_id <> m.account_id
+                      and o.state = 'accepted') as shared
       from thread_members m
       join threads t on t.id = m.thread_id
       join accounts a on a.id = m.account_id
@@ -270,6 +273,13 @@ def _flat(words: str, limit: int) -> str:
     return " ".join(str(words).split())[:limit]
 
 
+def memories_for(member, memories: list) -> list:
+    """038. What the pass is shown of what offload knows about them: nothing in
+    a thread somebody else is in, since what it writes there every member
+    reads, and a memory's words must not reach them."""
+    return [] if member["shared"] else list(memories)
+
+
 def listing(
     *,
     thread_name: str,
@@ -277,6 +287,7 @@ def listing(
     notes: list[dict],
     messages: list[dict] | None = None,
     candidates: list[dict] | None = None,
+    memories: list | None = None,
 ) -> str:
     """The user turn: a data label, then one JSON entry per line."""
     lines = [
@@ -300,6 +311,12 @@ def listing(
     # read past a per-line flag on every run of 2026-10-02.
     yours = [note for note in notes if note["theirs"]]
     others = [note for note in notes if not note["theirs"]]
+    if memories:
+        # 038. What the assistant knows about them across threads: context for
+        # what a note already says, never something this pass changes.
+        lines += ["What the assistant knows about them across threads, to read and never change:"]
+        lines += [_entry(text=memory.text) for memory in memories]
+        lines += [""]
     lines += ["Your notes, oldest first:"]
     lines += [note_entry(note) for note in yours] or ["(none)"]
     if others:
@@ -519,6 +536,7 @@ async def handle_nightly(
         # In the member's own zone: the prompt reads each date against today,
         # and UTC's today is a day off for part of every day somewhere.
         today = await today_line(conn, member["time_zone"])
+        memories = memories_for(member, await memories_of(conn, job.account_id))
 
     mode = mode_for(on_default=on_default, candidates=candidates)
     owns_notes = any(row["theirs"] for row in notes)
@@ -535,6 +553,7 @@ async def handle_nightly(
         notes=list(notes),
         messages=None if on_default else (messages or []),
         candidates=candidates,
+        memories=memories,
     )
     plan, usage = await _ask(client, cfg, turn, propose=mode == "propose", mode=mode)
     if plan is None:

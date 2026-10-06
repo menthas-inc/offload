@@ -69,7 +69,7 @@ export interface Copy {
   threads: CopyThread[];
   conversations: CopyConversation[];
   /** What offload keeps about the person and the people they named. */
-  notes: (CopyNote & { about: "you" | "someone" })[];
+  notes: (CopyNote & { about: "you" | "someone"; how?: "you asked" | "you answered" | "offload learned"; kind?: string })[];
   people: { name: string }[];
 }
 
@@ -214,7 +214,13 @@ export function notesPage(copy: Copy): string {
     if (notes.length === 0) return "";
     return (
       `<h2>${title}</h2>` +
-      notes.map((note) => `<article><p>${esc(note.text)}</p>${note.body ? `<p>${esc(note.body)}</p>` : ""}</article>`).join("")
+      notes
+        .map(
+          (note) =>
+            `<article><p>${esc(note.text)}</p>${note.body ? `<p>${esc(note.body)}</p>` : ""}` +
+            `${note.how ? `<p class="quiet">${esc(`${note.how[0]!.toUpperCase()}${note.how.slice(1)}`)} · ${esc(note.addedAt.slice(0, 10))}</p>` : ""}</article>`,
+        )
+        .join("")
     );
   };
   return page("Notes", section("About you", "you") + section("About people you named", "someone"), "index.html");
