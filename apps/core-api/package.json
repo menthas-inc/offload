@@ -12,6 +12,7 @@
     "migrate": "node --import tsx --import ./src/preload-env.ts src/migrate.ts",
     "seed": "node --import tsx --import ./src/preload-env.ts src/seed.ts",
     "seed:admins": "node --import tsx --import ./src/preload-env.ts src/seed-admins.ts",
+    "seed:cast": "node --import tsx --import ./src/preload-env.ts src/seed-cast.ts",
     "agent:role": "node --import tsx --import ./src/preload-env.ts src/agent-role.ts"
   },
   "dependencies": {

@@ -57,7 +57,8 @@ export async function note(accountId: string, threadId: string, text: string, sc
       scope,
       subject_id: scope === "thread" ? threadId : accountId,
       text,
-      kind: "going_on",
+      // 038: an account-scope note is a memory, and takes a memory's class.
+      kind: scope === "account" ? "about" : "going_on",
       origin: "stated",
     } as never)
     .returning("id")

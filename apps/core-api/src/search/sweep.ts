@@ -78,6 +78,9 @@ const NOTES = sql<{ id: string; account_id: string | null; version: string }>`
          extract(epoch from m.updated_at)::bigint::text as version
   from notes m
   where m.deleted_at is null and m.superseded_at is null
+    -- 038. A thread's notes only: memories reach every prompt whole and are
+    -- not searched, so nothing embeds them.
+    and m.scope = 'thread'
     and not exists (
       select 1 from note_chunks ch
       where ch.note_id = m.id

@@ -373,8 +373,16 @@ describe("AC-7 the daily run books one pass per thread and member", () => {
   async function daily(me: string) {
     await handlers["account.daily.run"]!({}, { mailer: new MemoryMailer() }, me);
   }
+  // The thread passes. 038's memory pass is booked by the same run and has its
+  // own tests in memories-pass.test.ts.
   const booked = (me: string) =>
-    db.selectFrom("jobs").select(["kind", "payload", "idempotency_key"]).where("account_id", "=", me).orderBy("kind").execute();
+    db
+      .selectFrom("jobs")
+      .select(["kind", "payload", "idempotency_key"])
+      .where("account_id", "=", me)
+      .where("kind", "!=", "account.memories")
+      .orderBy("kind")
+      .execute();
 
   it("books a pass for a thread the member dumped into today, and nothing retired", async () => {
     const ana = await account("Ana");

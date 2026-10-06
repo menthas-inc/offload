@@ -39,6 +39,7 @@ One job per account per day, and compaction is one part of it. In order:
 - **Note compaction**, per thread, the four steps above. *Since 032 this is the nightly pass, one per thread and member, booked only on material change since that member's last pass, at most ten threads a member a night; it also learns, and on the default thread suggests threads (028).*
 - **Today generation**, the account's own view of the day ahead, assembled once rather than computed on every open.
 - **Thread compaction**, the same resolution one level up: a thread's standing picture of itself, rewritten from its notes and recent activity.
+- **The memory pass**, *built by 038*: one per account, booked after the thread passes when the person said anything of their own since the last, reading at most 60 of their messages, 40 of their own thread notes and the 50 memories held. It adds at most five memories a night (25 learned at most), supersedes and folds, and never deletes.
 
 They share an account, a clock and a budget, which is the reason they are one job rather than three schedules that each wake an idle account up. Each part is specced where it lands; this is the list, so a later feature adds to it rather than inventing a second daily job.
 
@@ -69,7 +70,7 @@ The obligation this creates is on storage growth rather than on deletion. Nothin
 Prompt assembly has a fixed budget per tier, and the budget is enforced at assembly rather than hoped for.
 
 - The frozen system prompt: stable, and cached (`cache_control`), so it is nearly free after the first call.
-- Per-account derived context: bounded, and stable enough between turns to stay cached.
+- Per-account derived context: bounded, and stable enough between turns to stay cached. *Since 038 this is the person's memories: at most 50 sentences, their own before learned, first in the turn with their own cache mark, as data except their rules.*
 - The turn's own material: the message, the thread in view, the content retrieved for this question.
 
 **"The thread in view" is literal, and it is one line.** `messages.looking_at_thread_id` records the thread that was on screen when somebody dumped, and the planner is told about it: "They are looking at thread <id>, called 'Sustain'. Anything to file belongs there unless what they dumped names a different thread, in which case that one wins." It is a default rather than a destination, it is never dropped to fit because it is what decides where things land, and membership is resolved again when it is read rather than trusted from the stored id.

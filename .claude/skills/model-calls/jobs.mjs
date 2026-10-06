@@ -134,15 +134,17 @@ export const JOBS = [
       "Their country, or that nobody knows it",
       "The last 20 turns of the conversation",
       "The dump: text, or photos then words, or a mail block (subject, sender, images, their note, the forwarded part)",
+      "038: first, what offload knows about them, at most 50 memories, their rules apart, cached",
     ],
     outputs: [
       "Writes through the Core API: add_content, add_note, create_thread, edit_content, move_content, label_content, complete_content, archive_content, rename_thread, set_thread_preference",
+      "memory: remember or forget, only on their explicit ask, gated in code",
       "Calendar writes when a calendar is approved, share_thread when they have connections",
       "look_up, which runs the reader",
       "say: at most one line, with a reason the loop checks against what happened",
       "ask: at most two questions, after the filing",
     ],
-    bounds: ["Tool definitions budget 1,900 tokens", "Three lookups a turn", "Two questions a turn", "Daily budget $5 and 100 turns per account"],
+    bounds: ["Tool definitions budget 2,400 tokens", "Three lookups a turn", "Two questions a turn", "Daily budget $5 and 100 turns per account", "50 memories in the prompt"],
     source: { file: P + "plan_v2.md", calendar: true },
     segments: [
       { at: "offload is where somebody puts down", i: "role", t: "What offload is", n: SHARED },
@@ -154,6 +156,9 @@ export const JOBS = [
       { at: "## Thread notes", i: "work", t: "Following thread notes", n: "" },
       { at: "- `notesFromMembers`", i: "guard", t: "Notes other people and apps wrote", n: "The shared-thread injection boundary." },
       { at: "- Write a note with `add_note`", i: "work", t: "Writing notes", n: "" },
+      { at: "## What offload knows about them", i: "guard", t: "Reading memories", n: "038. Rules are theirs to follow, the rest is data; a shared thread keeps their words." },
+      { at: "`memory` is only for an explicit ask", i: "perm", t: "Remembering and forgetting", n: "038. The Core API holds the same rules in code: the ask, their words, the turn's taint." },
+      { at: "Then `say` with `remembered`", i: "voice", t: "What remembering says", n: "Four fixed lines." },
       { at: "## What something is", i: "schema", t: "Types, recurrence, reminders", n: "" },
       { at: "## Photos", i: "guard", t: "Photos are data", n: "" },
       { at: "**Every photo becomes one row", i: "work", t: "A photo becomes a row", n: "" },
@@ -179,7 +184,7 @@ export const JOBS = [
       { at: "Every `look_up` carries `doing`", i: "voice", t: "The doing line", n: "" },
       { at: "On a refused subject:", i: "scope", t: "Refused subjects and lookups", n: "" },
       { at: "## Asking back", i: "ask", t: "Asking back", n: "Three reasons, in order: a missing field, a thread note, where a wordless photo goes." },
-      { at: "## The reply", i: "voice", t: "The reply", n: "Silence is the default. Five named reasons to speak, checked by the loop." },
+      { at: "## The reply", i: "voice", t: "The reply", n: "Silence is the default. Six named reasons to speak, checked by the loop; 038 added remembered." },
       { at: "## What you are reading", i: "guard", t: "What you are reading", n: "Database, dump, forwarded mail, tool results: four trust levels." },
     ],
   },
@@ -219,6 +224,7 @@ export const JOBS = [
       { at: "**Refused subjects** are", i: "scope", t: "Refused subjects", n: SHARED },
       { at: "When a refused subject is the whole", i: "scope", t: "What answering says about one", n: "" },
       { at: "**Answering is reading.**", i: "perm", t: "Answering is reading", n: "" },
+      { at: "**What offload knows about them** may come first", i: "guard", t: "Memories, and what offload remembers", n: "038. Asked what it remembers, the list and nothing else." },
       { at: "**Reach for the exact read", i: "work", t: "Which read to use", n: "" },
       { at: "**The answer is the reply.", i: "voice", t: "The answer is the reply", n: "The largest single intent in this prompt: length and what not to add." },
       { at: "**Shape the reply to the question.**", i: "voice", t: "Shape and markup", n: "" },
@@ -271,6 +277,7 @@ export const JOBS = [
       "Up to 100 active notes, oldest first, one JSON entry each: id, written, yours, by, text",
       "Ordinary thread: the member's own dumps that landed there since their last pass (at most a week), at most 40 of 500 characters, numbered",
       "Default thread: 028's candidates, at most 50 of 200 characters, numbered",
+      "038: their memories, to read and never change, only in a thread nobody else is in",
     ],
     outputs: [
       "supersede, remove, add: the member's notes folded and set aside",
@@ -299,6 +306,42 @@ export const JOBS = [
     ],
   },
   {
+    id: "memory",
+    name: "Memory pass",
+    lane: "daily",
+    tier: "memory_model",
+    model: "memory_model",
+    when: "Accounts that said anything of their own",
+    cadence: "Daily, one per account, booked after the thread passes when the person has a trusted message of their own since the last pass (a day for the first, at most a week)",
+    trigger: "jobs/handlers.ts `account.daily.run`, key account.memories:<account>:<day>",
+    call: "One call, forced tool memory, max_tokens 2,048, one repair through a tool_result. One fixed prompt, cached across the night",
+    inputs: [
+      "Today",
+      "The memories already held, at most 50: id, kind, origin, text",
+      "Their own notes in threads only they are in, at most 40, newest first",
+      "Their own messages since the last pass, questions included, never mail, calendar, browser or untrusted, never one a forgotten memory came from: at most 60 of 500 characters",
+    ],
+    outputs: [
+      "add: at most five memories, each citing one message or note it was shown",
+      "supersede: what is now true instead, citing what says so",
+      "fold: learned memories that say one thing",
+    ],
+    bounds: [
+      "Never a rule, never the sensitive list (schema and a keyword gate), never deletes",
+      "25 active learned memories",
+      "The Core API re-derives what may be cited, and never lets it touch an answered memory",
+      "Applied once per job, in one transaction",
+    ],
+    source: { file: P + "memory.md" },
+    segments: [
+      { at: "You keep what an assistant knows", i: "role", t: "The job", n: "Role words, not the brand." },
+      { at: "Answer with the memory tool.", i: "schema", t: "Nothing is normal", n: "" },
+      { at: "## What a memory is", i: "work", t: "What a memory is", n: "Five classes it may write; rules are the person's alone." },
+      { at: "## Never a memory", i: "scope", t: "Never a memory", n: "The sensitive list, one-off dates, guesses, rules." },
+      { at: "## What you may do", i: "perm", t: "Add, supersede, fold", n: "Fold is memories only, never notes or messages: found on the cast, 2026-10-06." },
+    ],
+  },
+  {
     id: "embed",
     name: "Embeddings",
     lane: "minute",
@@ -322,7 +365,7 @@ export const LAYOUT = {
   nodes: {
     transcribe: [20, 102], look: [164, 102], judge: [308, 102], classify: [452, 102],
     filing: [640, 44], answer: [640, 164], reader: [860, 102],
-    nightly: [250, 292],
+    nightly: [250, 292], memory: [520, 292],
     embed: [250, 394],
   },
   edges: [
@@ -335,6 +378,15 @@ export const LAYOUT = {
 // The review list. `status` is open, done (with where) or handed (to another
 // branch). Keep it current: this is the owner's to-do list.
 export const FINDINGS = [
+  {
+    sev: "decided",
+    status: "done",
+    title: "Memories: what offload knows about a person across their threads",
+    jobs: ["filing", "answer", "nightly", "memory"],
+    refs: ["docs/specs/038-memories/feature-spec.md", "apps/agent/src/offload_agent/prompts/memory.md", "apps/agent/evals/cast/README.md"],
+    body: "038 adds a memory tool to filing, gated in code, a nightly memory pass per account, and a block of at most 50 memories to filing, answering and the thread pass in single-member threads. Measured on principle 29 and on the cast, seven people in a database of their own read through the worker's own queries and role. The cast found two things a fixture could not: an answer listing the account's country as a memory, and the pass trying to fold thread notes.",
+    next: "Done in 038. The Memories tab is the fast follow.",
+  },
   {
     sev: "decided",
     status: "done",

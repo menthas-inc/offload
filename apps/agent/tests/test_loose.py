@@ -68,9 +68,10 @@ def test_the_filing_tools_carry_a_suggested_thread():
 
 def test_the_tool_set_fits_the_raised_budget():
     # Raised from 1,800 by the product owner on 2026-10-01, and to 2,100 on
-    # 2026-10-04 for 037's icon names, both logged in docs/tech/decisions.md,
+    # 2026-10-04 for 037's icon names, and to 2,400 on 2026-10-05 for 038's
+    # memory tool, each logged in docs/tech/decisions.md,
     # rather than moving the tail behind defer_loading.
-    assert TOOL_DEFINITION_BUDGET == 2_100
+    assert TOOL_DEFINITION_BUDGET == 2_400
     assert len(json.dumps(TOOLS)) // 4 + 1 < TOOL_DEFINITION_BUDGET
 
 

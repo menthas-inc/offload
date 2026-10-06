@@ -93,8 +93,14 @@ export function renderText(field: Field, title: string, dimension?: string): str
       return `Filed "${name}". Which day and time?`;
     case "country":
       return "For which country?";
-    case "calendar":
-      return `Filed "${name}". Which calendar?`;
+    case "calendar": {
+      if (!dimension) return `Filed "${name}". Which calendar?`;
+      // 038. Named by who it is shared with: their word, then as much of the
+      // row's title as the bound leaves, so Today's card still says which row.
+      const who = clip(dimension, 16);
+      const room = QUESTION_TEXT_CHARS - `Filed "". Which calendar is shared with ?`.length - who.length;
+      return `Filed "${clip(title, Math.min(40, room))}". Which calendar is shared with ${who}?`;
+    }
     case "thread":
       return `Kept "${name}". Which thread?`;
     case "person":
@@ -546,6 +552,9 @@ export async function raiseCalendarQuestion(
      *  the thread's picks stay as they are. Null: the thread's own picks were
      *  offered, and the tap has to be one of them. */
     onAnswer: "pick" | "write" | null;
+    /** 038. The person the calendar was named by ("with Meera"), in their
+     *  casing: the question asks in their terms and the answer is remembered. */
+    person?: string | null;
     /** The turn has read a connected app, so the title it quotes may have a
      *  stranger's words in it. The taint is per turn, as 008 has it. */
     sawApps: boolean;
@@ -568,7 +577,7 @@ export async function raiseCalendarQuestion(
   if (options.length === 0) return false;
   options.push({ label: ESCAPE_LABEL, value: null });
 
-  const text = renderText("calendar", input.title);
+  const text = renderText("calendar", input.title, input.person ?? undefined);
   await storeQuestions(
     trx,
     [{ field: "calendar", text, options, targetContentId: input.contentId, targetNoteId: null }],
@@ -583,7 +592,11 @@ export async function raiseCalendarQuestion(
   if (input.onAnswer) {
     await trx
       .updateTable("questions")
-      .set({ previous_value: JSON.stringify(input.onAnswer === "pick" ? { picks: true } : { named: true }) })
+      .set({
+        previous_value: JSON.stringify(
+          input.onAnswer === "pick" ? { picks: true } : { named: true, ...(input.person ? { person: input.person } : {}) },
+        ),
+      })
       .where("turn_id", "=", message.turn_id)
       .where("field", "=", "calendar")
       .execute();

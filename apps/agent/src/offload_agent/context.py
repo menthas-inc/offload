@@ -53,6 +53,23 @@ class Thread:
     id: str
     name: str
     is_default: bool
+    #: 038. Somebody else is in it. A memory never changes the words of what
+    #: is filed into a shared thread, and the list says which ones are.
+    shared: bool = False
+
+
+@dataclass(frozen=True)
+class Memory:
+    """038. Something offload knows about the person across their threads.
+
+    The text is the person's own words reworded, or offload's from what they
+    said, and reaches the prompt as data; a `rules` memory is their standing
+    instruction, in their words, and only they make one.
+    """
+
+    id: str
+    kind: str
+    text: str
 
 
 @dataclass(frozen=True)
@@ -203,6 +220,9 @@ class DumpContext:
     #: 022. Who an @ in the dump picked, as the Core API vouched for them:
     #: accepted connections only, at most ten. The share tool takes the id.
     mentions: list["Mention"] = field(default_factory=list)
+    #: 038. What offload knows about them, at most fifty. Bounded by the query,
+    #: never trimmed by `fit`.
+    memories: list[Memory] = field(default_factory=list)
 
     @property
     def may_look_up(self) -> bool:
@@ -239,7 +259,10 @@ _LABELS = text(
 
 _THREADS = text(
     """
-    select t.id, t.name
+    select t.id, t.name,
+           exists (select 1 from thread_members o
+                    where o.thread_id = t.id and o.account_id <> :account_id
+                      and o.state = 'accepted') as shared
     from threads t
     join thread_members m on m.thread_id = t.id
     where m.account_id = :account_id
@@ -518,7 +541,8 @@ async def load(
     ).all()
 
     threads = [
-        Thread(id=str(r.id), name=r.name, is_default=str(r.id) == default_id) for r in thread_rows
+        Thread(id=str(r.id), name=r.name, is_default=str(r.id) == default_id, shared=bool(r.shared))
+        for r in thread_rows
     ]
     # The default thread is always offered, even when it is too stale to make
     # the cap. It is where anything with no obvious home goes, so a prompt
@@ -590,6 +614,7 @@ async def load(
             for m in (dump_row.mentions or [])
             if isinstance(m, dict) and m.get("accountId") and m.get("name")
         ][:10],
+        memories=await memories_of(conn, account_id),
     )
 
 
@@ -683,6 +708,8 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         spoken=ctx.spoken,
         # 026. Bounded by its own clamps, never trimmed here.
         mail=ctx.mail,
+        # 038. Bounded at fifty by the query, never trimmed here.
+        memories=ctx.memories,
     )
 
 
@@ -723,6 +750,8 @@ def fit_answer(ctx: "AnswerContext", ceiling: int) -> "AnswerContext":
         country_override=ctx.country_override,
         looking_at=ctx.looking_at,
         looking_at_notes=notes,
+        # 038. Bounded at fifty by the query, never trimmed here.
+        memories=ctx.memories,
     )
 
 
@@ -827,6 +856,32 @@ _HAS_CALENDAR = text(
 # caller reverses them so the model reads them in the order they were written.
 # `superseded_at` is filtered because the daily job sets it on what a thread no
 # longer says.
+# 038. What offload knows about the person, at most fifty (OFF-8): their own
+# (asked and answered) before learned, then newest first. Their account only,
+# and by subject as the Core API writes it.
+MEMORIES_IN_PROMPT = 50
+
+_MEMORIES = text(
+    """
+    select n.id::text as id, n.kind, n.text
+      from notes n
+     where n.scope = 'account'
+       and n.subject_id = :account_id
+       and n.account_id = :account_id
+       and n.deleted_at is null
+       and n.superseded_at is null
+     order by (n.origin = 'learned'), n.created_at desc, n.id desc
+     limit :limit
+    """
+)
+
+
+async def memories_of(conn: AsyncConnection, account_id: str) -> list[Memory]:
+    params = {"account_id": account_id, "limit": MEMORIES_IN_PROMPT}
+    rows = (await conn.execute(_MEMORIES, params)).all()
+    return [Memory(id=r.id, kind=r.kind, text=r.text) for r in rows]
+
+
 _THREAD_NOTES = text(
     """
     select n.text, (n.account_id = :account_id) as theirs
@@ -883,6 +938,9 @@ class AnswerContext:
     #: puts them somewhere other than the account says. None from Today.
     looking_at: Thread | None = None
     looking_at_notes: list[str] = field(default_factory=list)
+    #: 038. What offload knows about them, at most fifty; "what do you
+    #: remember about me" is answered from it.
+    memories: list[Memory] = field(default_factory=list)
 
     @property
     def may_look_up(self) -> bool:
@@ -945,7 +1003,8 @@ async def load_answer(
     default_id = str(default_row.id) if default_row else None
 
     threads = [
-        Thread(id=str(r.id), name=r.name, is_default=str(r.id) == default_id) for r in thread_rows
+        Thread(id=str(r.id), name=r.name, is_default=str(r.id) == default_id, shared=bool(r.shared))
+        for r in thread_rows
     ]
     # Always offered, even when too stale to make the cap: it is where anything
     # with no obvious home lives, so a question about "that thing I saved" has
@@ -1014,6 +1073,7 @@ async def load_answer(
         country_override=country_override,
         looking_at=looking_at,
         looking_at_notes=looking_at_notes,
+        memories=await memories_of(conn, account_id),
     )
 
 

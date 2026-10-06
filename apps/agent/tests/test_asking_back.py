@@ -197,7 +197,7 @@ def test_the_answering_tail_is_dropped_oldest_first_and_the_question_never():
 
     blocks = build_answer_blocks(fitted)
     texts = [b["text"] for b in blocks]
-    assert texts[0].startswith("They are in T")
+    assert texts[0].startswith("Their country setting is T")
     assert any(t.startswith("Today is") for t in texts)
     assert any(t.startswith("Earlier in this conversation") for t in texts)
     assert texts[-1].endswith("which dates")

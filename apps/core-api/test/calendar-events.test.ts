@@ -7,9 +7,9 @@
 // per calendar, and a thread reads it through its picks. There is nowhere for
 // an event to be routed to, so `threadFor` and its rules are gone.
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { isUntrusted, mapEvent, sourceRefFor } from "../src/connectors/events.js";
-import { eventLink, listEvents, type GoogleEvent } from "../src/connectors/google.js";
+import { countParticipants, eventLink, listEvents, sharedWith, type GoogleEvent } from "../src/connectors/google.js";
 
 function event(over: Partial<GoogleEvent> = {}): GoogleEvent {
   return {
@@ -224,5 +224,33 @@ describe("027 self is the calendar's, not the person's", () => {
     for (const email of ["en.usa#holiday@group.v.calendar.google.com", "abc123@import.calendar.google.com", "team@group.calendar.google.com"]) {
       expect(mapEvent(event({ creator: { email, self: false }, attendees: [] }), "subscribed", shared).createdByMe, email).toBe(true);
     }
+  });
+});
+
+describe("2026-10-05 who a calendar is shared with", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("is the people on Google's list, every page, lowercased, never a domain or a removed rule", async () => {
+    const pages = [
+      {
+        items: [
+          { role: "owner", scope: { type: "user", value: "Me@G.com" } },
+          { role: "writer", scope: { type: "user", value: "Meera.Sen@gmail.com" } },
+          { role: "none", scope: { type: "user", value: "gone@gmail.com" } },
+        ],
+        nextPageToken: "2",
+      },
+      { items: [{ role: "reader", scope: { type: "domain", value: "work.com" } }, { role: "reader", scope: { type: "user", value: "sam@x.com" } }] },
+    ];
+    const fetch = vi.fn(async (url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () => pages[url.includes("pageToken=2") ? 1 : 0],
+    }));
+    vi.stubGlobal("fetch", fetch);
+
+    expect(await sharedWith("token", "cal-pb")).toEqual(["me@g.com", "meera.sen@gmail.com", "sam@x.com"]);
+    // The count reads the same list and still counts a domain as more people.
+    expect(await countParticipants("token", "cal-pb")).toBe(5);
   });
 });

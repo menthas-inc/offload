@@ -152,7 +152,7 @@ describe("deleting an account", () => {
     await row(me.id, mine, "Renew by March");
     await db.insertInto("notes").values({ account_id: me.id, scope: "thread", subject_id: mine, kind: "standing", text: "x", origin: "stated" }).execute();
     await db.insertInto("notes").values({ account_id: me.id, scope: "thread", subject_id: shared, kind: "standing", text: "y", origin: "stated" }).execute();
-    await db.insertInto("notes").values({ account_id: me.id, scope: "account", subject_id: null, kind: "preference", text: "z", origin: "stated" }).execute();
+    await db.insertInto("notes").values({ account_id: me.id, scope: "account", subject_id: null, kind: "about", text: "z", origin: "stated" }).execute();
 
     await deleteAccount(me.id);
 

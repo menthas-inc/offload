@@ -81,6 +81,8 @@ describe("AC-39 the scheduled registry", () => {
         "calendar.sync",
         "account.daily.run",
         "thread.nightly",
+        // 038.
+        "account.memories",
         "account.digest",
         "push.receipts",
         "shared.activity",

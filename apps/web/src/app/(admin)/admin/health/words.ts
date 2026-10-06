@@ -8,6 +8,7 @@ import type { Range } from "../../ui";
 const JOB_NAMES: Record<string, string> = {
   "dump.answer": "Answering a dump",
   "thread.nightly": "The nightly pass",
+  "account.memories": "The memory pass",
   "account.daily": "Nightly pass, finding accounts",
   "account.daily.run": "Nightly pass, one account",
   "account.digest": "A digest",

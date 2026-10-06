@@ -411,7 +411,12 @@ async def test_no_dynamic_dispatch_on_a_model_supplied_name():
         # name and resolves nothing with it.
         'if block.name == "say":',
         "outcome.failed.append(block.name)",
-        "body = await call_tool(block.name, block.id, args.model_dump())",
+        # 038. A comparison against one literal, adding the turn's own web-read
+        # flag to what is sent. Resolves nothing with the name.
+        'if block.name == "memory":',
+        "body = await call_tool(block.name, block.id, sent)",
+        # 038. The same, setting that flag once a look-up has run.
+        'if block.name == "look_up":',
         # Recorded on a list of what the server declined, with its reason: a
         # tool name and an error code, never a value. A string appended to a
         # list.
@@ -421,6 +426,8 @@ async def test_no_dynamic_dispatch_on_a_model_supplied_name():
         # A membership test against a closed set of the tools that change
         # something without filing. Reads the name, resolves nothing.
         "if block.name in CHANGING_TOOLS:",
+        # 038. Counting a remember or a forget, for `remembered`.
+        'if block.name == "memory":',
         # A membership test against a second closed set, deciding whether this
         # call counts as having filed something. Safe for the same reason as
         # the first line: it reads the name, it does not resolve anything with
@@ -714,6 +721,7 @@ async def test_the_tools_are_sent_on_every_call():
             "set_thread_preference",
             "rename_thread",
             "add_note",
+            "memory",
             # Last, and it writes nothing: a turn speaks by calling it and
             # almost never does.
             "say",
@@ -1069,7 +1077,11 @@ def test_create_event_carries_the_calendar_they_named_and_nothing_else_about_whe
     assert set(schema.model_fields) == {"content_id", "location", "guests", "calendar"}
 
     described = next(t for t in CALENDAR_TOOL_DEFS if t["name"] == "create_event")
-    assert "named" in described["description"]
+    # 2026-10-05. "My calendar" and who a calendar is shared with say which
+    # one too: the server resolves both, so the words have to reach it.
+    assert "'my calendar' names none" not in described["description"]
+    assert "'my calendar'" in described["description"]
+    assert "shared with" in described["description"]
     assert "calendar" in described["input_schema"]["properties"]
     assert "calendar" not in described["input_schema"].get("required", [])
 
