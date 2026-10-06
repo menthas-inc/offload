@@ -255,13 +255,28 @@ describe("the chips (AC-7, AC-8)", () => {
 });
 
 describe("the rows (AC-9 to AC-11)", () => {
-  it("draw the tile, the title and the meta, with no thread and no labels", async () => {
+  it("draw the tile and the title, with no meta line, no thread and no labels (2026-10-05)", async () => {
     await draw();
-    expect(said()).toContain("Photo · yesterday");
-    expect(said()).toContain("Note · Saturday");
+    expect(said()).not.toContain("Photo · ");
+    expect(said()).not.toContain("Note · ");
     expect(host.querySelector('a[href="/content/c2?from=thread"]')!.textContent).toBe("Miso aubergine, a recipe");
     expect(host.querySelector('a[href^="/threads/t"]')).toBeNull();
     expect(host.querySelector('[aria-label^="Label "]')).toBeNull();
+  });
+
+  it("draw a to-do's checkbox, and ticking it takes the row out with Undo (2026-10-05)", async () => {
+    const todo = { kind: "content", row: row("c3", "Book the boiler service", "task"), suggestion: null };
+    await draw(summary({ rows: [todo, ...summary().rows.slice(1)] as Summary["rows"] }));
+    const box = host.querySelector<HTMLInputElement>('input[type="checkbox"][aria-label="Finish Book the boiler service"]');
+    expect(box).not.toBeNull();
+    expect(box!.checked).toBe(false);
+    await click(box!);
+    expect(of("/v1/content/c3/complete").map((c) => c.body)).toEqual([{ done: true }]);
+    expect(said()).not.toContain("Book the boiler service");
+    expect(said()).toContain("Ticked off");
+    await click(named("Undo"));
+    expect(of("/v1/content/c3/complete").map((c) => c.body)).toEqual([{ done: true }, { done: false }]);
+    expect(said()).toContain("Book the boiler service");
   });
 
   it("delete with the thread page's question and the eight-second Undo", async () => {

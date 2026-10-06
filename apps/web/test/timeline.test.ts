@@ -262,9 +262,12 @@ describe("one shape from two stores (AC-6)", () => {
     // and wrong every evening.
     const late = new Date(2026, 8, 16, 23, 30);
     expect(localDay(late)).toBe("2026-09-16");
+    // In the clock the date was built in. With no zone the day is UTC's,
+    // which west of Greenwich is tomorrow and is not what this asks.
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const dated = datedFor([
       { ...base, id: "c1", type: "event", occursAt: late.toISOString() },
-    ]);
+    ], [], zone);
     expect(dated[0]?.from).toBe("2026-09-16");
   });
 });

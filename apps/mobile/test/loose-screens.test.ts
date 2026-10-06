@@ -57,6 +57,15 @@ describe("028 the screens", () => {
     expect(read("components/loose/useLooseRows.tsx")).toMatch(/placeholder="What is worth remembering\?"/);
   });
 
+  it("gives a to-do its checkbox, and a tick takes the row out with Undo (2026-10-05)", () => {
+    const source = read("components/loose/useLooseRows.tsx");
+    expect(source).toMatch(/onToggle=\{entry\.kind === "content" && entry\.row\.type === "task" \? \(\) => tick\(entry\.row\) : undefined\}/);
+    const tick = source.slice(source.indexOf("function tick("), source.indexOf("function edit("));
+    expect(tick).toMatch(/apply: \(\) => drop\(entry\)/);
+    expect(tick).toMatch(/unwrite: \(\) => completeContent\(row\.id, false\)/);
+    expect(tick).toMatch(/did: "Ticked off"/);
+  });
+
   it("labels Today's way to a row's thread by whether it has one", () => {
     expect(read("components/today/useTodayRows.tsx")).toMatch(/label: openThreadLabel\(acting\.threadName\)/);
   });

@@ -114,35 +114,16 @@ describe("T3.3 the chips and the All link", () => {
 });
 
 describe("T3.4 a row's meta line", () => {
-  const today = "2026-10-02";
   const dayOf = (iso: string) => iso.slice(0, 10);
 
-  it("says what it is, in the singular", () => {
-    const say = (type: string) => loose.metaOf(content("c", type, "2026-10-02T08:00:00.000Z"), today, dayOf).split(" · ")[0];
-    expect(["task", "link", "image", "screenshot", "event", "location", "voice", "file"].map(say)).toEqual([
-      "To-do", "Link", "Photo", "Photo", "Event", "Place", "Voice note", "File",
-    ]);
-    expect(loose.metaOf(note("n", "2026-10-02T08:00:00.000Z"), today, dayOf)).toBe("Note · today");
-  });
-
-  it("then when it was put down", () => {
-    const at = (iso: string) => loose.metaOf(content("c", "link", iso), today, dayOf);
-    expect(at("2026-10-01T08:00:00.000Z")).toBe("Link · yesterday");
-    // 28 September 2026 is a Monday.
-    expect(at("2026-09-28T08:00:00.000Z")).toBe("Link · Monday");
-    expect(at("2026-09-12T08:00:00.000Z")).toMatch(/^Link · (12 Sept?|Sept? 12)$/);
-  });
-
-  it("says it through the one wording both clients share, not its own", async () => {
-    const { readFileSync } = await import("node:fs");
-    const source = readFileSync(new URL("../lib/loose.ts", import.meta.url), "utf8");
-    expect(source).toMatch(/import \{[^}]*\bputDown\b[^}]*\} from "@offload\/widgets"/);
-    expect(source).not.toMatch(/function putDown/);
+  it("is not drawn for a live row: the tile says the type (2026-10-05)", () => {
+    expect(loose.metaOf(content("c", "task", "2026-10-02T08:00:00.000Z"), dayOf)).toBeUndefined();
+    expect(loose.metaOf(note("n", "2026-10-02T08:00:00.000Z"), dayOf)).toBeUndefined();
   });
 
   it("says when an archived row was archived, as the thread page does", () => {
     const row = content("c", "link", "2026-09-01T08:00:00.000Z", "2026-10-03T08:00:00.000Z");
-    expect(loose.metaOf(row, "2026-10-05", dayOf)).toMatch(/^archived (3 Oct|Oct 3)$/);
+    expect(loose.metaOf(row, dayOf)).toMatch(/^archived (3 Oct|Oct 3)$/);
   });
 });
 

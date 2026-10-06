@@ -59,7 +59,7 @@ It stays unshareable and undeletable, as 022 and 004 already refuse; the swipe r
 
 A chip **filters the group in place**: still at most three rows, then the link names the type, *All 5 links*. The pick is not kept across visits; My threads opens on *All*. When the picked type's last row leaves, the filter falls back to *All*; when fewer than two types remain, the chips go.
 
-**Rows.** The thing itself, as the kit draws it: a 36px type tile (a photo's or link's own picture where the thread page draws one), the title at 15.5/21 medium on one line, and the meta at 13/18, *Photo · Monday*, the type's singular then when it was put down. Rows sit on `min-height`, 60 on the phones and 52 on the web, with an inset hairline after the tile as list rows do. No thread slot, no labels, no handle. A to-do draws its tile, not a tick box. Then the row's suggestion, if it has one (section 5), with the row aligning to its top.
+**Rows.** The thing itself, as the kit draws it: a 36px type tile (a photo's or link's own picture where the thread page draws one), and the title at 15.5/21 medium on one line. No meta line: the tile already says what it is, and *To-do · Thursday* under every row was a line of space saying it twice (2026-10-05). An archived row on the full list still says when it was archived. Rows sit on `min-height`, 60 on the phones and 52 on the web, with an inset hairline after the tile as list rows do. No thread slot, no labels, no handle. A to-do leads with the thread page's checkbox in the tile's place (2026-10-05): the web had no way to tick one at all, and the phones only through a long press. Then the row's suggestion, if it has one (section 5), with the row aligning to its top.
 
 - **Tap** opens the row exactly as the thread page does: one's own content row opens its edit sheet, someone else's opens its action sheet, a note opens the note sheet.
 - **On the phones** a swipe deletes, with the eight-second Undo; Move is in the row's action sheet. **On the web** the row carries the thread page's hover tools, edit and delete, and Move is in the edit modal (below).
@@ -83,7 +83,7 @@ A pushed screen on the phones (the app bar is back and the title, nothing else; 
 
 **Create** a new thread. Written by a daily pass over what is not in a thread, **only for two to ten things that belong together**, each pointing at the same proposal. Never for one thing. The pass looks at a bounded, newest-first set of rows that carry no suggestion and were never dismissed, only on days that set has changed, and is behind a switch that is on from the merge. A proposal whose undismissed, still-loose things fall below two is drawn on none of them and is removed.
 
-**Drawing.** Under the row's meta, 8px down, one button and a cross.
+**Drawing.** Under the row's title, 8px down, one button and a cross.
 - *Move to*: `--surface-accent-soft` ground, `sparkles` 13px in `--moss-600`, *Move to* 13px `--text-secondary`, then `lasso` 12px and the thread's name in `--moss-700` medium, then the faces when it is shared. Pill radius, 8 on Android.
 - *Create*: `--surface-raised` ground with a 1px dashed `--moss-600` outline, `sparkles`, *Create*, `plus` and the proposed name in `--moss-700` medium, then *new thread* in `--text-secondary`.
 - At least 32px tall on `min-height`. The name ellipsises before the faces drop; the button never wraps. The name is a label, never a link: the button's accessible name is the action, *Move Boiler service receipt to Flat admin* or *Create Kitchen shelves and move 3 into it*, and the inner name is hidden from assistive tech.
@@ -142,7 +142,7 @@ The thread named *Miscellaneous* on every account stays the default thread, and 
 - **AC-6.** The group sits between the first list and *Older threads*, titled *Not in a thread* with the count of live content rows (not archived, not deleted, to-dos not ticked) plus current notes, and is not drawn when that count is zero. Its three rows may be notes.
 - **AC-7.** Chips are drawn only when two or more types are present, *All* first, then the present types in the table's order, each with its count; images and screenshots count as Photos. The server returns the chip keys.
 - **AC-8.** A chip narrows the group to that type, at most three rows, and the link reads *All N* plus the type's plural in lower case; *All* reads *All N*. The link is not drawn when the list it would open holds three or fewer. When the picked type empties, the filter returns to *All*.
-- **AC-9.** A row draws its type tile, title and *Type · when*, no thread slot and no labels; a tap opens the same sheet the thread page opens for it.
+- **AC-9.** A row draws its type tile (a to-do its checkbox) and its title, with no meta line, no thread slot and no labels; a tap opens the same sheet the thread page opens for it. Ticking a to-do takes it out at the press with *Ticked off* and Undo (2026-10-05).
 - **AC-10.** A swipe on the phones and the delete tool on the web delete one row with an eight-second Undo that brings it back into the group.
 - **AC-11.** Move on a loose row opens the move sheet without the default thread; picking a thread moves it with *Moved to* and the thread's name, and Undo.
 
@@ -155,7 +155,7 @@ The thread named *Miscellaneous* on every account stays the default thread, and 
 
 **Suggestions**
 
-- **AC-16.** A filing that lands in the default thread with a suggested thread writes a Move to suggestion; the row shows it under its meta; accepting moves the row at once with *Moved to* and Undo, and Undo restores both the row and the suggestion.
+- **AC-16.** A filing that lands in the default thread with a suggested thread writes a Move to suggestion; the row shows it under its title; accepting moves the row at once with *Moved to* and Undo, and Undo restores both the row and the suggestion.
 - **AC-17.** A suggestion is never written for a thread the person is not an accepted member of, a deleted thread, the default thread, a row 018 asked about, a note marked untrusted, or **from a turn that read a forwarded email, a calendar or a web page**; one whose thread is later left or deleted is never drawn.
 - **AC-18.** A Move to suggestion for a thread with other members draws up to two of them as initials marks and *+N* after the name.
 - **AC-19.** The daily pass writes a Create proposal only over two to ten live, never-dismissed things in the default thread that carry no suggestion, from a set it was given, newest first and bounded; it runs only when that set changed since its last run and only while its switch is on.
@@ -189,7 +189,7 @@ The thread named *Miscellaneous* on every account stays the default thread, and 
 ## Edge cases
 
 - **Archived rows already in the default thread** are reached from the full list's foot row.
-- **A ticked to-do** leaves the group and the list; it is done. Ticking happens where it is due, on Today, or in its sheet.
+- **A ticked to-do** leaves the group and the list; it is done. It is ticked from its checkbox on the row, on Today, or in its sheet, and the toast's Undo is the way back since the box leaves with the row (2026-10-05).
 - **A row moved into a thread by hand** loses nothing; its suggestion is simply not drawn, because suggestions are drawn only on loose rows. Moved back by Undo, it draws again unless dismissed.
 - **A Create proposal and a Move to suggestion never sit on the same row.**
 - **A proposal's name is offload's words**, read by the person and editable before anything is made. It is plain text, one line, never markup or a link.
