@@ -43,6 +43,14 @@ describe("the address handed to Better Auth", () => {
     expect(await forwarded({ "x-forwarded-for": "203.0.113.7, 10.1.2.3" })).toBe("203.0.113.7");
   });
 
+  // Railway's edge, as it answered on 2026-10-06 (`docs/tech/decisions.md`):
+  // whatever the client sent is dropped, and the header arrives as the
+  // connecting address and then the edge's own. A hop count of one would
+  // make every request the edge's address, one bucket for everybody.
+  it("is the client's, not the edge's, in the shape Railway sends", async () => {
+    expect(await forwarded({ "x-forwarded-for": "203.0.113.7, 152.233.47.67" }, "100.64.0.3")).toBe("203.0.113.7");
+  });
+
   it("is the socket's when no header came", async () => {
     expect(await forwarded({}, "10.0.0.9")).toBe("10.0.0.9");
   });
