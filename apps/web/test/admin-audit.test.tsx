@@ -198,7 +198,7 @@ describe("the log", () => {
   });
 
   it("has a phrase for every kind the log can hold", () => {
-    for (const kind of ["invited", "resent", "waitlist.removed", "disabled", "enabled", "deletion.scheduled", "deletion.cancelled", "deleted", "signed_out", "override.set", "override.cleared", "setting.changed", "job.retried", "job.dismissed", "staff.added", "staff.role_changed", "staff.removed", "person.viewed", "panel.opened", "staff.exported", "audit.exported"]) {
+    for (const kind of ["invited", "resent", "waitlist.removed", "disabled", "enabled", "deletion.scheduled", "deletion.cancelled", "deleted", "signed_out", "override.set", "override.cleared", "setting.changed", "job.retried", "job.dismissed", "staff.added", "staff.role_changed", "staff.removed", "person.viewed", "panel.opened", "code.created", "code.revoked", "code.redeemed", "staff.exported", "audit.exported"]) {
       expect(KIND_LABELS[kind], kind).toBeTruthy();
     }
   });

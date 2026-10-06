@@ -617,9 +617,14 @@ const jobsPurge: Handler = async () => {
     .deleteFrom("sessions")
     .where(sql<boolean>`expires_at < now() - interval '1 day'`)
     .executeTakeFirst();
+  // A verification goes at its expiry, with no margin. Better Auth refuses
+  // an expired one by its own clock, and nothing else reads the table. A
+  // browser's sign-in keeps its OAuth state here, and with it any review
+  // code that was typed (039), so an abandoned sign-in's code lasts until
+  // this pass after its ten minutes, and no longer.
   const verifications = await db
     .deleteFrom("verifications")
-    .where(sql<boolean>`expires_at < now() - interval '1 day'`)
+    .where(sql<boolean>`expires_at < now()`)
     .executeTakeFirst();
 
   // 034. The admin panel's own tables, each to its window: a heartbeat and

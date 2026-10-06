@@ -3,7 +3,10 @@
 --
 -- A code staff make in the panel, pasted into the store review notes. It lets
 -- in that address through the same promotion an admin invite runs. Only a
--- hash of the code is kept: it is shown once.
+-- hash of the code is kept here: it is shown once. A browser's sign-in also
+-- carries the typed code in Better Auth's OAuth state, a `verifications` row,
+-- in plain text for that row's life: ten minutes, and gone at the next daily
+-- purge after it expires.
 --
 -- The limit is the database's. A redemption claims a use with one conditional
 -- update, and the check below is the backstop for anything that writes the

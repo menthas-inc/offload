@@ -29,6 +29,7 @@ export const KIND_LABELS: Record<string, string> = {
   "panel.opened": "Opened the panel",
   "code.created": "Made a review code",
   "code.revoked": "Revoked a review code",
+  "code.redeemed": "A review code let somebody in",
   "staff.exported": "Exported the staff list",
   "audit.exported": "Exported the audit log",
 };

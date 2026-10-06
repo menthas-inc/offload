@@ -6,6 +6,11 @@
 // Better Auth keeps server-side for that attempt and hands back at the
 // callback. Never a cookie of its own.
 //
+// That state is a `verifications` row, and the code is in it as typed, not
+// hashed, for the row's life: ten minutes, then the next daily purge, which
+// removes a verification at its expiry (`jobs.purge`). A finished sign-in
+// deletes its row at the callback.
+//
 // It runs from the providers' `mapProfileToUser`, the one point after the
 // provider has said who this is and before Better Auth looks for an account.
 // So a good code promotes the address there, through the one promotion there
