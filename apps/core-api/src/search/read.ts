@@ -399,66 +399,129 @@ export const ASIDES = 5;
  *  ranked against each other in any meaningful way: a note and a task
  *  answer different halves of a question, and interleaving them by score would
  *  push rows out of a list to make room for context.
+ *
+ *  Each corpus runs the two arms content does and fuses them the same way, so
+ *  "the heater was replaced" answers a question about the boiler. Until
+ *  2026-10-07 only the words were read, and the vectors 013 specified were
+ *  written every minute and never queried. The query vector is the one the
+ *  content arm already has: no second embed.
  */
 async function asidesFor(accountId: string, options: SearchOptions): Promise<Aside[]> {
-  const notes = await sql<{ text: string; thread_name: string | null }>`
-    select m.text as text,
-      -- 028. The default thread's stored name never reaches the model.
-      case when t.id = (select a.default_thread_id from accounts a where a.id = ${accountId}::uuid) then ${NOT_IN_A_THREAD} else t.name end as thread_name
-    from readable_notes m
-    left join threads t on t.id = m.subject_id
-    where m.viewer_account_id = ${accountId}::uuid
+  const viewer = sql`m.viewer_account_id = ${accountId}::uuid`;
+  const query = sql`websearch_to_tsquery('simple', ${options.query})`;
+
+  const noteFilter = sql`${viewer}
       and m.deleted_at is null and m.superseded_at is null and m.muted_at is null
       -- A note scoped to a deleted thread is about somewhere that no longer
       -- exists, and it would still be steering the answer. The left join means
       -- an account-scoped note has no thread and stays.
-      and (t.id is null or t.deleted_at is null)
-      and m.search_text @@ websearch_to_tsquery('simple', ${options.query})
-    order by ts_rank(m.search_text, websearch_to_tsquery('simple', ${options.query})) desc,
-             m.updated_at desc
-    limit ${ASIDES}
+      and (t.id is null or t.deleted_at is null)`;
+  const noteText = await sql<{ id: string }>`
+    select m.id::text as id
+    from readable_notes m
+    left join threads t on t.id = m.subject_id
+    where ${noteFilter}
+      and m.search_text @@ ${query}
+    order by ts_rank(m.search_text, ${query}) desc, m.updated_at desc
+    limit ${SHORTLIST}
   `.execute(db);
+  const noteMeaning = options.queryVector
+    ? await sql<{ id: string }>`
+        select m.id::text as id
+        from note_chunks ch
+        join readable_notes m on m.id = ch.note_id
+        left join threads t on t.id = m.subject_id
+        where ${noteFilter}
+          and ch.embedding is not null
+        order by ch.embedding <=> ${options.queryVector}::halfvec(1024), m.updated_at desc
+        limit ${SHORTLIST}
+      `.execute(db)
+    : { rows: [] as { id: string }[] };
+  const noteIds = fuse([noteText.rows.map((r) => r.id), noteMeaning.rows.map((r) => r.id)]).slice(0, ASIDES);
+  const noteRows = noteIds.length
+    ? await sql<{ id: string; text: string; thread_name: string | null }>`
+        select m.id::text as id, m.text as text,
+          -- 028. The default thread's stored name never reaches the model.
+          case when t.id = (select a.default_thread_id from accounts a where a.id = ${accountId}::uuid) then ${NOT_IN_A_THREAD} else t.name end as thread_name
+        from readable_notes m
+        left join threads t on t.id = m.subject_id
+        where m.viewer_account_id = ${accountId}::uuid
+          and m.id in (${sql.join(noteIds.map((id) => sql`${id}::uuid`))})
+      `.execute(db)
+    : { rows: [] };
+  const noteById = new Map(noteRows.rows.map((r) => [r.id, r]));
 
   // A message and the content it became are near duplicates, since the row was
   // written from the text. The content row wins: it still exists in a thread
   // and it can be ticked, while the message is only provenance. So messages are
   // read for what is NOT in a row, which is mostly offload's own replies and
   // the reasoning around a filing.
-  const messages = await sql<{ text: string; role: "person" | "offload" }>`
-    select said(m.text, m.transcript) as text, m.role as role
-    from readable_messages m
-    where m.viewer_account_id = ${accountId}::uuid
+  const messageFilter = sql`${viewer}
       and m.deleted_at is null
       and m.state in ('seen', 'answered')
       and said(m.text, m.transcript) is not null
       -- 019. A tapped label that was somebody else's calendar name is not
       -- the person's words, here any more than in the tail or the index.
       and not m.derived_from_untrusted
-      and m.search_text @@ websearch_to_tsquery('simple', ${options.query})
       and not exists (
         select 1 from content c
         where c.derived_from_message_id = m.id and c.deleted_at is null
-      )
-    order by ts_rank(m.search_text, websearch_to_tsquery('simple', ${options.query})) desc,
-             m.created_at desc
-    limit ${ASIDES}
+      )`;
+  const messageText = await sql<{ id: string }>`
+    select m.id::text as id
+    from readable_messages m
+    where ${messageFilter}
+      and m.search_text @@ ${query}
+    order by ts_rank(m.search_text, ${query}) desc, m.created_at desc
+    limit ${SHORTLIST}
   `.execute(db);
+  const messageMeaning = options.queryVector
+    ? await sql<{ id: string }>`
+        select m.id::text as id
+        from message_chunks ch
+        join readable_messages m on m.id = ch.message_id
+        where ${messageFilter}
+          and ch.account_id = ${accountId}::uuid
+          and ch.embedding is not null
+        order by ch.embedding <=> ${options.queryVector}::halfvec(1024), m.created_at desc
+        limit ${SHORTLIST}
+      `.execute(db)
+    : { rows: [] as { id: string }[] };
+  // A long message is several chunks; it counts once, at its best rank.
+  const messageIds = fuse([messageText.rows.map((r) => r.id), [...new Set(messageMeaning.rows.map((r) => r.id))]]).slice(0, ASIDES);
+  const messageRows = messageIds.length
+    ? await sql<{ id: string; text: string; role: "person" | "offload" }>`
+        select m.id::text as id, said(m.text, m.transcript) as text, m.role as role
+        from readable_messages m
+        where m.viewer_account_id = ${accountId}::uuid
+          and m.id in (${sql.join(messageIds.map((id) => sql`${id}::uuid`))})
+      `.execute(db)
+    : { rows: [] };
+  const messageById = new Map(messageRows.rows.map((r) => [r.id, r]));
 
+  // Back into fused order, as the rows are.
   return [
-    ...notes.rows.map((row) => ({
-      kind: "note" as const,
-      who: "a member" as const,
-      threadName: row.thread_name,
-      text: row.text.slice(0, ANSWER_ROW_CHARS),
-    })),
-    ...messages.rows.map((row) => ({
-      kind: "message" as const,
-      // The distinction the prompt turns on: offload's earlier reply is a
-      // record of what was said and evidence of nothing else about the world.
-      who: row.role === "offload" ? ("offload" as const) : ("you" as const),
-      threadName: null,
-      text: row.text.slice(0, ANSWER_ROW_CHARS),
-    })),
+    ...noteIds.flatMap((id) => {
+      const row = noteById.get(id);
+      return row
+        ? [{ kind: "note" as const, who: "a member" as const, threadName: row.thread_name, text: row.text.slice(0, ANSWER_ROW_CHARS) }]
+        : [];
+    }),
+    ...messageIds.flatMap((id) => {
+      const row = messageById.get(id);
+      return row
+        ? [
+            {
+              kind: "message" as const,
+              // The distinction the prompt turns on: offload's earlier reply is a
+              // record of what was said and evidence of nothing else about the world.
+              who: row.role === "offload" ? ("offload" as const) : ("you" as const),
+              threadName: null,
+              text: row.text.slice(0, ANSWER_ROW_CHARS),
+            },
+          ]
+        : [];
+    }),
   ];
 }
 

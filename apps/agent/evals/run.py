@@ -228,6 +228,10 @@ _FIXTURE_KEYS = {
     "may_search",
     "may_read_links",
     "truncated",
+    # 2026-10-07. What a search returns beside its rows: the notes and
+    # messages the Core API found by words or meaning, [{kind, who,
+    # threadName, text}]. Search only; the filters never carry them.
+    "asides",
     "answered",
     "country_override",
     "calendar_waits",
@@ -842,17 +846,15 @@ class Recorder:
         thread_id = args.get("thread_id")
         rows = _rows_for(fx, thread_id)
         named = _thread(fx, thread_id)
-        return {
-            "ok": True,
-            "result": {
-                "threadId": thread_id,
-                "threadName": named.name
-                if named
-                else (rows[0].get("threadName") if rows else None),
-                "truncated": bool(fx.get("truncated")),
-                "rows": rows,
-            },
+        result: dict[str, Any] = {
+            "threadId": thread_id,
+            "threadName": named.name if named else (rows[0].get("threadName") if rows else None),
+            "truncated": bool(fx.get("truncated")),
+            "rows": rows,
         }
+        if tool == "search" and fx.get("asides"):
+            result["asides"] = fx["asides"]
+        return {"ok": True, "result": result}
 
     def _look_up(self, args: dict) -> dict:
         """The real bounds, then a plausible result, so a case exercises the

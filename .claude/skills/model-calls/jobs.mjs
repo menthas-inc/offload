@@ -357,7 +357,7 @@ export const JOBS = [
     bounds: [
       "On a turn, memories wait at most 0.3 s after the context load, then the 50 newest",
       "Nightly and memory passes wait at most 2 s",
-      "The search tool sets no bound, so the HTTP client's 30 s applies: see the list",
+      "The search tool waits at most 10 s (`SEARCH_SECONDS`), then the text arm answers alone",
     ],
     latency: [
       "Measured for 040: 302 ms on a cold connection, 209 ms on a warm one",
@@ -380,7 +380,7 @@ export const JOBS = [
     when: "The answer path searches",
     cadence: "Per `search` tool call on the answer path, up to three reads a turn. Filing never searches: its context is the threads by latest activity",
     trigger: "worker POST /internal/v1/tool-call, routes/tools.ts, search/read.ts `search`",
-    call: "Two arms in one request, one after the other: full text over content (`websearch_to_tsquery`, top 60) and, with a vector, the nearest content chunks by cosine on the HNSW index (top 60). Fused by reciprocal rank (k 60); notes and messages by text only, five each; the top 20 hydrated",
+    call: "Two arms in one request, one after the other: full text over content (`websearch_to_tsquery`, top 60) and, with a vector, the nearest content chunks by cosine on the HNSW index (top 60). Fused by reciprocal rank (k 60), the top 20 hydrated. Notes and messages the same way, words and meaning fused, five each, beside the rows",
     inputs: ["The model's query and, when the embed came back, its vector", "Only what the asking account can read"],
     outputs: ["Up to 20 rows, back to the model as the tool's result"],
     bounds: ["Without a vector the text arm answers alone", "`hnsw.iterative_scan` relaxed on every connection, so a filter that drops most neighbours still fills the 60"],
@@ -390,7 +390,7 @@ export const JOBS = [
     ],
     compute: [
       "A heavy account is about 84,000 chunks, about 170 MB of vectors and index (013's sizing)",
-      "Note and message chunks are embedded and indexed but never searched by vector: see the list",
+      "Two more index scans for notes and messages, on the same query vector: no second embed",
     ],
     source: null,
   },
@@ -435,7 +435,7 @@ export const JOBS = [
     bounds: ["Three attempts, a minute apart", "Without a key the chunks are stored and search answers on text alone"],
     latency: [
       "Up to a minute from a dump to its vector: a search straight after finds it by its words, not its meaning, and a new memory joins the relevant 50 a minute later",
-      "Shares the worker's one job at a time loop with dumps. Lower priority, so it never jumps a waiting dump, but a dump waits for a batch already running",
+      "Runs in the worker's general lane; dumps have a lane of their own, so an embed batch never holds one",
     ],
     compute: [
       "About 30 cents per account per year by 013's estimate, about $150 at 10,000 accounts",
@@ -456,8 +456,14 @@ export const JOBS = [
     inputs: ["Memories with no place yet"],
     outputs: ["A place for each, computed and never stored, so the map moves only overnight"],
     bounds: ["Search on the map is a filter in the client: no request, no embed"],
-    latency: ["Nothing when all are placed; a few milliseconds for a day's new memories"],
-    compute: ["A flat scan of at most 300 vectors: no index on notes.embedding, by design under the cap"],
+    latency: [
+      "Measured 2026-10-07 on 90 memories: the whole read 2.2 ms at p50 with every memory placed, 3.5 ms with five new ones",
+      "Its answer changes only when a memory is added, changed or forgotten, or when a new one's vector lands a minute later",
+    ],
+    compute: [
+      "A flat scan of at most 300 vectors: no index on notes.embedding, by design under the cap",
+      "No vendor, so no per call cost; about a millisecond of Core API time",
+    ],
     source: null,
   },
 ];
@@ -472,7 +478,7 @@ export const PATHS = [
     jobs: ["classify", "query", "filing"],
     hops: [
       { at: "Client", what: "POST to Core API: the message is written and a `dump.answer` job booked at priority 10", ms: "tens of ms" },
-      { at: "Queue", kind: "wait", what: "The worker polls the jobs table every second, highest priority first, at most two running per account", note: "One job at a time per process: a dump waits for whatever that process already runs", ms: "0 to 1 s" },
+      { at: "Queue", kind: "wait", what: "The worker polls the jobs table every second, highest priority first, at most two running per account", note: "Dumps have a lane of their own in each worker, so background work never holds one", ms: "0 to 1 s" },
       { at: "Anthropic", kind: "vendor", what: "Classify, Haiku, on the words alone", ms: "p50 on Calls" },
       { at: "Worker", what: "Context from Postgres. The memory embed starts beside it when the account holds more than 50", ms: "+0.3 s at most" },
       { at: "Voyage", kind: "vendor", what: "Query embed, overlapped with the context load", ms: "0.2 to 0.3 s" },
@@ -515,7 +521,7 @@ export const PATHS = [
     jobs: ["embed"],
     hops: [
       { at: "Core API", what: "The sweep books up to 200 rows per corpus as background jobs", ms: "every 60 s" },
-      { at: "Queue", kind: "wait", what: "Claimed at priority 200, after any waiting dump", ms: "after the dumps" },
+      { at: "Queue", kind: "wait", what: "Claimed at priority 200 by the general lane; the dump lane never takes it", ms: "after the dumps" },
       { at: "Voyage", kind: "vendor", what: "Batches of up to 128, input_type document", ms: "30 s timeout" },
       { at: "Postgres", what: "halfvec(1024) written; the HNSW index takes it in", ms: "" },
     ],
@@ -559,30 +565,30 @@ export const LAYOUT = {
 export const FINDINGS = [
   {
     sev: "risk",
-    status: "open",
+    status: "done",
     title: "One job at a time per worker process: a dump can wait behind a nightly pass",
     jobs: ["filing", "answer", "nightly", "memory", "embed"],
     refs: ["apps/agent/src/offload_agent/worker.py", "apps/agent/src/offload_agent/queue.py"],
     body: "The worker claims the highest priority job and awaits it before claiming the next. Priority decides what is claimed, never what is interrupted, so a dump that arrives while the process runs a Sonnet thread pass, a memory pass or an embed batch waits for it to finish. With one replica, that is every dump during the nightly window. Nothing in the repo says how many replicas run.",
-    next: "Check the replica count on Railway. Then either a second loop for background lanes, or a dump lane that background work cannot hold.",
+    next: "Done in 040, 2026-10-07: each worker process runs an interactive lane that claims only priority 10 beside a general lane, so a dump is claimed within a poll while background work runs.",
   },
   {
     sev: "risk",
-    status: "open",
+    status: "done",
     title: "The search tool's query embed has no time bound",
     jobs: ["query", "search", "answer"],
     refs: ["apps/agent/src/offload_agent/worker.py", "apps/agent/src/offload_agent/embed.py"],
     body: "The memories embed on a turn waits 0.3 s and the passes 2 s, but the search tool's embedder is built without a timeout, so a slow Voyage holds a question for up to the client's 30 s on each of three searches. The text arm alone would have answered.",
-    next: "Bound it at about a second and fall back to text, as the memories path does. A test first.",
+    next: "Done in 040: 10 s, the owner's figure (`SEARCH_SECONDS`), then the text arm alone.",
   },
   {
     sev: "opportunity",
-    status: "open",
+    status: "done",
     title: "Note and message chunks are embedded and never searched by vector",
     jobs: ["embed", "search"],
     refs: ["apps/core-api/src/search/read.ts", "apps/core-api/src/search/sweep.ts", "apps/core-api/migrations/0027_what_offload_can_find.sql"],
     body: "The sweep embeds note_chunks and message_chunks and both carry an HNSW index, but the only vector reader is content_chunks in `search`. Notes and messages join the results by their words only. It costs Voyage tokens, index upkeep on every write, and the space.",
-    next: "A call: search them by meaning in the asides, or stop embedding them.",
+    next: "Done in 040 at the owner's call, 2026-10-07: both corpora fuse words and meaning, the same 5 and 5, on the query vector the search already has. Two answer cases in principle 17, not yet run.",
   },
   {
     sev: "tidy",
@@ -591,7 +597,7 @@ export const FINDINGS = [
     jobs: ["embed", "query"],
     refs: ["apps/core-api/src/billing/vendors.ts", "apps/core-api/src/health/calls.ts"],
     body: "Every Anthropic call lands in llm_usage with its latency, so Health's Calls view shows p50 and p95 per job. Embeddings do not, so their volume, cost and latency are visible nowhere, and the 0.3 s bound on memories was set from two hand measurements.",
-    next: "Record each embed call, kind and latency, without the text.",
+    next: "Later, the owner's call on 2026-10-07: record each embed call, kind and latency, without the text.",
   },
   {
     sev: "bug",
