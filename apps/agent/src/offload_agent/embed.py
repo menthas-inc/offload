@@ -45,6 +45,12 @@ CHUNK_CHARS = CHUNK_TOKENS * 4
 # well under it and leaves the backfill room to pack rows together.
 BATCH = 128
 
+# A document embed has nobody waiting on it, and a timeout is only a retry.
+DOCUMENT_SECONDS = 30.0
+# A slow Voyage should cost a question its vector arm, never half a minute;
+# the text arm answers alone.
+SEARCH_SECONDS = 10.0
+
 _ENDPOINT = "https://api.voyageai.com/v1/embeddings"
 
 
@@ -136,7 +142,7 @@ async def embed(
     client: httpx.AsyncClient,
     api_key: str,
     input_type: str = "document",
-    timeout: float = 30.0,
+    timeout: float = DOCUMENT_SECONDS,
 ) -> list[list[float]]:
     """One call, one batch, vectors in the order the texts came in.
 
