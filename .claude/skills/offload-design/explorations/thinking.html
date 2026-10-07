@@ -1,0 +1,33 @@
+<!doctype html><html data-theme="light" lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thinking row, animations and stop</title>
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="thinking.css?v=1">
+</head><body>
+<div class="wrap" id="root">
+<div class="bar">
+<div class="pl" id="plat"><button data-p="ios">iOS</button><button data-p="android">Android</button><button data-p="web">Web</button></div>
+<div class="pl" id="state"><em>State</em><button data-s="play">Play a turn</button><button data-s="start">Started</button><button data-s="say">Thinking</button><button data-s="stop">Can stop</button></div>
+<div class="pl" id="stop"><em>Stop</em><button data-t="round">Round</button><button data-t="pill">Pill</button><button data-t="comp">In the composer</button></div>
+<div class="pl" id="rm"><button data-r="0">Motion</button><button data-r="1">Reduced</button></div>
+</div>
+<h1 class="pt">Thinking row</h1>
+<p class="lede">This replaces the three dots and the line <b>Looking through your threads</b> in a conversation. While offload works, the row is one small looping animation. When the model writes a thinking phrase, the phrase appears beside it and replaces itself as new ones arrive. From ten seconds, Stop joins the row. Ten animations from simple to insane, each 3 to 10 seconds and looping without a seam. <b>Play a turn</b> runs the real timing: the animation alone, a phrase from 2.5 seconds, Stop from 10.</p>
+<div id="dirs"></div>
+<div class="xs"><h2>Stop</h2></div>
+<ul class="notes">
+<li><b>Round</b> is a 30px outlined circle holding an 8px ink square, the size of a thread pill, so it reads as part of the row rather than a link in it. The tap area runs 7px past it to 44.</li>
+<li><b>Pill</b> keeps the word, for anyone who does not read the square: <i>Stop</i> beside the same square, in the same 30px outline.</li>
+<li><b>In the composer</b> takes it out of the row. The send button turns into a filled stop while a turn runs, the place most chat apps put it, and the row is only the animation and the phrase. It cannot share the button with a new message, so a dump typed mid-turn waits for the turn or stops it.</li>
+<li>Today's Stop is accent text with no shape. All three are ink: stopping is not something offload did, so it is not moss.</li>
+</ul>
+<div class="xs"><h2>For every option</h2></div>
+<ul class="notes">
+<li><b>The row</b> is the animation at 22px tall, a 10px gap, the phrase in 13.5px secondary, then Stop. It sits where the dots bubble sat, with no bubble: nothing in it is offload speaking.</li>
+<li><b>A phrase replaces the last</b> in 350ms, out upward and in from below with a 3px blur, never stacking. A screen reader hears each one politely. The animation is hidden from it; the row is labelled <i>offload is thinking</i> until a phrase arrives.</li>
+<li><b>The animation never restarts</b> when the phrase changes or Stop arrives. It runs from the turn's start to its end, then the row goes.</li>
+<li><b>Reduced motion</b> holds each one on a still frame, chosen to read as the mark rather than as a paused moment. Switch above to see them.</li>
+<li><b>Dark mode</b> needs no new colours for the ink ones, which take the ink token. The prism ones are drawn for light here and need a check on dark.</li>
+<li><b>Changes the readme.</b> <i>Loading</i> says one spinner and no shimmer, and declined a fading sweep on 20 September. This is a second loading state for conversations only, and the prism type in I1 is the nearest thing here to a shimmer.</li>
+</ul>
+</div>
+<script src="thinking.js?v=1"></script>
+</body></html>
