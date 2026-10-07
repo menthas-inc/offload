@@ -28,8 +28,7 @@ The case that started it: Meera is not on offload, so "my calendar with Meera" h
 | --- | --- | --- |
 | **People** | Somebody in their life: the name, how they relate to the person, what the person calls them, and their birthday or the person's anniversary with them. Nothing else about that person: no address, number, email, health or opinions. | Their wife is Meera. Meera's birthday is 14 March. They call their mother Maman. |
 | **Their things** | Accounts, calendars, places and belongings offload deals with, and what each one is. A place is a city or a name, never a street address unless they asked. | They share a calendar with Meera. Home is in Toronto. Their car is a 2019 Civic. |
-| **Their words** | What a name or a shorthand means wherever they use it. | "The cottage" is the place in Muskoka. "Standup" is their 9:30 work meeting. |
-| **About them** | Durable facts about their life that change how something is filed or answered: work, household, languages, the country they live in, their own birthday and other dates that recur. | They work at Shopify as a designer. They have two kids, Sam and Leila. |
+| **About them** | Durable facts about their life that change how something is filed or answered: work, household, languages, the country they live in, their own birthday and other dates that recur, and what a name or a shorthand means wherever they use it. *Amended 2026-10-06 by 040: Their words folded in here.* | They work at Shopify as a designer. They have two kids, Sam and Leila. "The cottage" is the place in Muskoka. |
 | **Their rules** | How they want offload to work everywhere, stated by them with *always*, *never* or *from now on*, about more than one thread. | They write dates day first. Work things never go in Home. |
 | **Patterns** | Something they did on several different days, across threads, written as a fact and never as an instruction. | They pay bills on the 5th. |
 
@@ -77,7 +76,7 @@ It may **add** a memory citing one message or note it was shown, **supersede** o
 
 **As data, in a user-turn block, never in the system prompt**, cached with its own breakpoint, under a heading saying these are things offload knows about the person. One exception, the same one 014 makes for a person's own thread notes: **the rules class is their standing instruction**, given as the person's own words, because a rule nobody follows is not a rule. Only the person makes one (2a), so nothing offload or anyone else wrote is ever obeyed from this block.
 
-**At most fifty reach a prompt**, asked and answered before learned, then newest first. Past fifty the oldest learned ones stay out of the prompt, and an asked one is never pushed out by a learned one.
+**At most fifty reach a prompt**: every rule, then the person's own (asked, answered, typed) nearest the person's own words in the call, then learned ones nearest, fifty in all, and all of them, in that order, while there are fifty or fewer. A learned one never pushes out one of the person's own. *Amended 2026-10-06 by 040, whose section 3 says which words each call measures against, and the fallback.*
 
 **In a shared thread**, a memory may decide where and how something is filed, and **never changes the words of what is filed there**: titles and notes in a shared thread keep the person's own words (owner, 2026-10-05). "Dinner with my wife" stays that in a shared thread and may become *Dinner with Meera* in their own. A memory never reaches a call made for another account.
 
@@ -115,7 +114,7 @@ It may **add** a memory citing one message or note it was shown, **supersede** o
 - **AC-13** A pass whose answer does not fit its schema gets one repair and then applies nothing; a result posted twice applies once.
 
 **Reach**
-- **AC-14** Exactly filing, answering, the nightly thread pass and the memory pass are given the account's memories, at most fifty, asked and answered first; a test lists every model call the worker makes and asserts the rest get none.
+- **AC-14** Exactly filing, answering, the nightly thread pass and the memory pass are given the account's memories, at most fifty: every rule, then the person's own nearest, then learned nearest; a test lists every model call the worker makes and asserts the rest get none. *Amended 2026-10-06 by 040 (its AC-19 and AC-21).*
 - **AC-15** The block is a user-turn block, never in a system prompt. The rules class reaches the prompt as the person's own instruction, the rest as data.
 - **AC-16** A memory never reaches a call made for another account. In a shared thread, filing never puts a memory's words into a title or a note, measured by the eval.
 - **AC-17** A lookup's query and fetched address carry no memory text unless the person's question names it, measured by the eval.
@@ -132,7 +131,7 @@ It may **add** a memory citing one message or note it was shown, **supersede** o
 
 - **The Memories tab** on web and the phones: viewing, editing, muting. The fast follow, which takes these rows as `MemoryRow` already draws notes.
 - **Birthdays reaching Today or a calendar.** A remembered birthday reaches the model only.
-- **Retrieval.** Fifty sentences fit in every prompt; memories are not embedded or searched.
+- **Retrieval.** Fifty sentences fit in every prompt; memories are not embedded or searched. *Amended 2026-10-06 by 040: each memory is embedded on its own row to choose the fifty, and is never in the search corpus.*
 - **Person-scoped notes**, and anything shown about a connection.
 - **Remembering a `Not that`.**
 

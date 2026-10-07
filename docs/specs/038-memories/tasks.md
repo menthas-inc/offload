@@ -109,7 +109,7 @@ Every task opens with its failing test, run and seen red for the reason the task
 
 ## Close
 
-- [ ] **T21** Full gates in the worktree: the suites on the isolated database, lint, typecheck, `ruff`, the three `dead-*` scripts. Then code, security and client reviews. Then the PR.
+- [x] **T21** *(Merged as PR 84, 2026-10-06, `066aca5`; what the code and security reviews changed is in the feature spec, under *Changed by the code and security reviews of the build*.)* Full gates in the worktree: the suites on the isolated database, lint, typecheck, `ruff`, the three `dead-*` scripts. Then code, security and client reviews. Then the PR.
 
 ## Built, 2026-10-05
 

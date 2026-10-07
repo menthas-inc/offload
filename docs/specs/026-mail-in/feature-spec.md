@@ -40,7 +40,7 @@ Everything else is dropped on arrival: nothing is kept, and **nothing is ever se
 
 ### Limits
 
-- **An email over 25MB** in total is refused by Cloudflare before offload sees it.
+- **An email over 26MB** in total is refused by core-api as it downloads it from Resend, and nothing is written (as built, 2026-10-01).
 - **Thirty accepted emails an hour and a hundred a day per account.** Past either, an email is dropped and one Activity row a day says so: *Too many emails today*, *Some weren't added. Forward them again tomorrow.* Every accepted email is also a model turn under the account's daily budget, as any dump is.
 - **Parsing is bounded**, part by part: decoded size, nesting depth, number of parts, HTML length, image pixels, and time. An email that breaches a bound is treated as one that held nothing, below.
 
@@ -131,7 +131,6 @@ Told to the owner in this spec, before code; made before the first email is acce
 
 - Section 3, *What you give us*: email you forward, and what is kept of it and what is not.
 - Section 5: an email's words, and small copies of its images for the look that decides which to keep, go to Anthropic as any dump's do.
-- Section 6: Cloudflare's row gains Email Routing, which receives an email you forward and passes it to us. What they receive is the email; how long they hold it, including while they retry delivery when offload is unreachable, is written from Cloudflare's own statement and checked against it, not assumed.
 - Section 6: the R2 row and the short version's encryption bullet name the images from an email alongside photos, screenshots and voice notes; the text of an email is not encrypted, as no text is.
 - Section 11: forwarding an email into a shared thread shows its sender's name and words to the other members; copying offload in on an email to somebody who is also on offload means their reply-all, quoting you, lands in their account, where you cannot delete it.
 - Section 12: an email travels to offload as email does, which is not encrypted end to end.
@@ -148,7 +147,7 @@ Told to the owner in this spec, before code; made before the first email is acce
 
 Arriving
 
-- **AC-1** Cloudflare Email Routing on `to.offload.club` delivers mail for `over@` to the mail Worker, which has no storage, queue or database binding, forwards the raw message to one public core-api route authenticated by its own secret with a signed timestamp, logs an outcome enum and nothing else, retries the forward for about thirty seconds and then refuses when core-api does not accept; every other address on the subdomain is rejected by Cloudflare. No route that accepts `INTERNAL_SERVICE_TOKEN` is publicly reachable.
+- **AC-1** *(As built, 2026-10-01.)* Resend receives mail for `to.offload.club` on one MX record and calls one public core-api route, `POST /v1/mail/resend`, with a webhook that carries metadata only and is signed with Svix. The route verifies that signature on the raw body, ignores any event that is not `email.received` for `over@to.offload.club`, fetches the received email from Resend's API, downloads its raw bytes and hands them to the sender check, which verifies the sender's own DKIM signature rather than trusting Resend's verdict. It logs an outcome enum and nothing else. An email whose bytes or signing key cannot be fetched, or that arrives while four others are being handled, is answered 503 so Resend delivers the webhook again; accepted and refused are answered the same 200. **An email over 26MB is refused by core-api** as it downloads it (`MAX_MAIL_BYTES`), answered 200 and written nowhere. No route that accepts `INTERNAL_SERVICE_TOKEN` is publicly reachable.
 - **AC-2** The inbound route refuses a request without a valid signature, with a timestamp outside five minutes, or replayed within that window; captures no request body in any log or error report; and caps the body at 26MB.
 - **AC-3** The sender check accepts a real signed Gmail message and refuses each of: an unsigned message; a signature from another domain; a signature with a body length limit; a signature not covering From; offload named only in an unsigned To or Cc; two From headers or two addresses in one; a display name holding the account's address over another address; a `+tag` or dotted variant of the account's address; a non-ASCII local part; a signature seen before; a signature dated more than seven days ago; a filter-forwarded message. A key that cannot be fetched is answered 503, so the Worker retries, and writes nothing.
 - **AC-4** A refused email writes nothing except, when its From is an account's sign-in email and the refusal is not temporary, one Activity row in that account's record, at most one an hour and three a day, carrying no text from the email and opening the Mail page.

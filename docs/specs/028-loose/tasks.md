@@ -2,6 +2,8 @@
 
 Every task starts with its failing test, run and seen red for the reason the task exists, then the code (QUAL-1). A task is done when its test is green and nothing else is red. Three tracks after the foundation, API, Mobile and Web; the feature closes when all three pass.
 
+*As built after 032 (2026-10-02): `loose_propose.py` and `compact.py` are gone, folded into `nightly.py`. The daily run books one `thread.nightly` per thread and member in place of `loose.propose` and `notes.compact`, and the pass posts to `/internal/v1/nightly-result` in place of `/internal/v1/loose-proposals`. On the default thread that pass is what suggests threads; the candidate rules, `loose_pass_key` and the `LOOSE_PROPOSALS` switch stay, in `loose/propose.ts`. The struck names below are the ones it replaced.*
+
 ## 0. Setup
 
 - [x] **T0.1** Worktree `028-loose` via `.claude/scripts/new-worktree.sh 028-loose`. Its own databases (`offload_028_loose` for servers and devices, `offload_028_loose_test` for the suites), `env.sh` and `env-test.sh` in the scratchpad, launch entries that cd into it. *(process)*
@@ -44,8 +46,8 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ### The daily pass, server side
 
-- [x] **T1.18** `accountDailyRun` enqueues `loose.propose`. Tests: enqueued when the candidate set's hash differs from `loose_pass_key`; not when equal; not with `LOOSE_PROPOSALS=off`; candidates are the newest 50 loose things with no suggestion, never dismissed, notes not untrusted. *(AC-19, OFF-8)*
-- [x] **T1.19** `POST /internal/v1/loose-proposals`. Tests: writes a proposal and a `create` suggestion per id; drops ids not in `sent`, ids no longer valid, a group left with one, a group of eleven, a name that fails validation, and every group past three; records `llm_usage` as `scheduled`; sets `loose_pass_key`; refuses without the internal token; a log line carries counts and no name or title. *(AC-19, AC-35, SEC-2, OFF-1)*
+- [x] **T1.18** `accountDailyRun` enqueues ~~`loose.propose`~~. Tests: enqueued when the candidate set's hash differs from `loose_pass_key`; not when equal; not with `LOOSE_PROPOSALS=off`; candidates are the newest 50 loose things with no suggestion, never dismissed, notes not untrusted. *(AC-19, OFF-8)*
+- [x] **T1.19** ~~`POST /internal/v1/loose-proposals`~~. Tests: writes a proposal and a `create` suggestion per id; drops ids not in `sent`, ids no longer valid, a group left with one, a group of eleven, a name that fails validation, and every group past three; records `llm_usage` as `scheduled`; sets `loose_pass_key`; refuses without the internal token; a log line carries counts and no name or title. *(AC-19, AC-35, SEC-2, OFF-1)*
 
 ## 2. Agent
 
@@ -53,7 +55,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 - [x] **T2.2** `suggest_thread_id` in `tools.py` and the prompt line; `TOOL_DEFINITION_BUDGET` to 1,900 with `test_labels.py`'s pinned value. Tests: the schema carries the field on both tools; the budget test passes at the new value and fails at 1,800. *(AC-16)*
 - [x] **T2.3** The worker strips `suggest_thread_id` from a call made after the turn ran `look_up`. Test with a scripted turn: look_up then add_content with the argument reaches the server without it. *(AC-17)*
 - [x] **T2.4** `_partial_reply`. Tests: only loose landed gives *Saved.*; loose and a thread gives *Saved to Lisbon trip.*; nothing names the default thread. *(AC-27)*
-- [x] **T2.5** `loose_propose.py`. Tests: the system prompt is a constant and the items are in one user block; at most 50 items of at most 200 characters whatever the input; the model's integers map back to ids and an out-of-range integer is dropped; an invalid first answer gets one repair and a second invalid answer raises with the error type logged and no value; the internal post carries `sent`; no log record carries a title. *(AC-19, AC-35, OFF-5, OFF-8, SEC-1)*
+- [x] **T2.5** ~~`loose_propose.py`~~. Tests: the system prompt is a constant and the items are in one user block; at most 50 items of at most 200 characters whatever the input; the model's integers map back to ids and an out-of-range integer is dropped; an invalid first answer gets one repair and a second invalid answer raises with the error type logged and no value; the internal post carries `sent`; no log record carries a title. *(AC-19, AC-35, OFF-5, OFF-8, SEC-1)*
 - [x] **T2.6** Eval cases, written and not run: `02-where-it-goes` (a loose filing with a near candidate suggests it; a clear filing suggests nothing; a confident filing goes in the thread), `15-injected-text-is-data` (a dump and a forwarded email each telling offload to put this with a shared thread write no suggestion; an injected title does not steer the daily pass), `17-the-answer-is-the-reply` (*fact-default-thread*: the answer names no thread), `03-what-it-is` (*rule-stop-putting* still resolves). Running them is a separate ask. *(AC-16, AC-17, AC-29, QUAL-1)*
 - [ ] **T2.7** Regenerate the harness map (the `harness-map` skill) after T2.1 to T2.5. *(process)*
 

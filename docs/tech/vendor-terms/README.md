@@ -38,6 +38,7 @@ turned on and by whom; until that line exists, treat the vendor as training
 on what it receives.
 
 - Opt-out turned on: 2026-09-26, by the owner, in the Voyage dashboard. Data sent before that date stays under the old licence.
+- Nothing was sent before the opt-out: the owner, 2026-10-07, says `VOYAGE_API_KEY` was not set in production before 2026-09-26, so no content reached Voyage under the old licence and the privacy page's no-training line holds for it. Recorded from the owner's word, raised by the 2026-10-07 sweep (S21); Railway keeps no variable history to check it against.
 
 ## Anthropic (the model)
 
