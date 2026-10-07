@@ -15,6 +15,9 @@ export interface Me {
   needsFirstRun: boolean;
   /** No name yet, so one is asked for before the app is any use. */
   needsName: boolean;
+  /** Active, and agreed to an older privacy policy or terms: the two ticks
+   *  are asked again, alone, before the app. */
+  needsConsent: boolean;
   /** What Apple or Google called them, to fill the field in. Only ever sent to
    *  the account it belongs to. */
   suggestedName: string | null;
@@ -31,11 +34,12 @@ export interface Me {
 
 /** Whether this account still has something to answer before the shell.
  *
- *  Two questions, one gate. They came apart because every account that existed
- *  when 011 shipped had finished first run and had no name, so "finished first
- *  run" stopped being the same as "ready". */
+ *  Three questions, one gate. They came apart because every account that
+ *  existed when 011 shipped had finished first run and had no name, so
+ *  "finished first run" stopped being the same as "ready", and an account can
+ *  finish it and then see the policy or the terms move. */
 export function stillAsking(me: Me): boolean {
-  return me.needsFirstRun || me.needsName;
+  return me.needsFirstRun || me.needsName || me.needsConsent;
 }
 
 /** Race a promise against a deadline, resolving to a fallback instead of

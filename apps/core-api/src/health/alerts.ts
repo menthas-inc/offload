@@ -14,6 +14,13 @@
 //     the next check, so each new death opens it again. A dead alert email is
 //     left out: an alert about not being able to alert goes nowhere.
 //   - `backup_late`: no good backup in 26 hours.
+//   - `review_code_old`: one or more review codes still live fourteen days
+//     after they were made. One is made for one store review, and one that
+//     can still let somebody in a fortnight later is one somebody forgot. One
+//     condition for any number of codes, so a backlog takes one of the day's
+//     ten rather than crowding out an outage, and none while
+//     `switch.review_codes` is off, since then no code can be redeemed. It
+//     opens again when the switch comes back on.
 //
 // **One email per condition until it clears.** A condition is a row in
 // `alert_states`, open from when it is first true until it stops being. It is
@@ -35,15 +42,36 @@ import { platformCapReached } from "../budget.js";
 import { backups, downServices } from "./services.js";
 import { lateKinds } from "./scheduled.js";
 import { bookAlert, owners } from "./mail.js";
+import { setting } from "../settings.js";
 
 export const DAILY_ALERTS = 10;
 
 /** How long a service is down before anybody is mailed. */
 const DOWN_MINUTES = 5;
 
+/** How old a live review code gets before the owners are told. */
+const REVIEW_CODE_DAYS = 14;
+
+/** Whether any review code is still live a fortnight on, live as the panel
+ *  reads it: not revoked, not expired, not used up. Nothing while the switch
+ *  is off, because sign in checks it before it reads a code. */
+async function oldReviewCode(): Promise<boolean> {
+  if (!(await setting("switch.review_codes"))) return false;
+  const row = await db
+    .selectFrom("review_codes")
+    .select("id")
+    .where("revoked_at", "is", null)
+    .where(sql<boolean>`expires_at > now()`)
+    .where(sql<boolean>`uses < max_uses`)
+    .where(sql<boolean>`created_at < now() - make_interval(days => ${REVIEW_CODE_DAYS})`)
+    .limit(1)
+    .executeTakeFirst();
+  return row !== undefined;
+}
+
 /** Every condition that is true now. */
 async function conditions(): Promise<string[]> {
-  const [cap, down, late, dead, backup] = await Promise.all([
+  const [cap, down, late, dead, backup, codes] = await Promise.all([
     platformCapReached(),
     downServices(DOWN_MINUTES),
     lateKinds(),
@@ -54,6 +82,7 @@ async function conditions(): Promise<string[]> {
           and updated_at > coalesce((select last_sent_at from alert_states where condition = 'job_dead'), '-infinity')
       ) as died`.execute(db),
     backups(),
+    oldReviewCode(),
   ]);
   return [
     ...(cap ? ["platform_cap"] : []),
@@ -61,6 +90,7 @@ async function conditions(): Promise<string[]> {
     ...late.map((kind) => `job_late:${kind}`),
     ...(dead.rows[0]!.died ? ["job_dead"] : []),
     ...(backup.late ? ["backup_late"] : []),
+    ...(codes ? ["review_code_old"] : []),
   ];
 }
 

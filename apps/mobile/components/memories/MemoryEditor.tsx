@@ -19,6 +19,8 @@ import {
   MEMORY_KINDS,
   MEMORY_TEXT_CHARS,
   memoryOrigin,
+  shownText,
+  storedText,
   type MemoryKindId,
   type MemoryView,
 } from "@offload/widgets";
@@ -32,7 +34,7 @@ const COLUMNS = 3;
 const GAP = 8;
 
 export function MemoryEditor({
-  editing,
+  editing: held,
   preset = null,
   onClose,
   onSaved,
@@ -57,6 +59,10 @@ export function MemoryEditor({
   onGone: () => void;
 }) {
   const COLOR = useColors();
+  // Stored about the person and shown to them (F4), by the rule the web's
+  // editor uses: the sheet holds the person's form, and a save writes the
+  // stored one.
+  const editing = held ? { ...held, text: shownText(held.text) } : null;
   const field = useRef<TextInput>(null);
   const [draft, setDraft] = useState(editing?.text ?? "");
   const [kind, setKind] = useState<MemoryKindId>(editing?.kind ?? preset ?? "about");
@@ -80,7 +86,7 @@ export function MemoryEditor({
   async function save(text: string = draft): Promise<void> {
     if (!text.trim() || busy) return;
     setBusy(true);
-    const done = await submitMemory(editing, text, kind);
+    const done = await submitMemory(held, storedText(held?.text ?? null, text), kind);
     setBusy(false);
     if (done.outcome === "refused") {
       setRefusal(done.line);
@@ -249,7 +255,7 @@ export function MemoryEditor({
         <Pressable
           onPress={() => {
             onClose();
-            onForget(editing);
+            onForget(held ?? editing);
           }}
           accessibilityRole="button"
           className="mt-space-6 min-h-tap-min flex-row items-center gap-space-4 self-start"

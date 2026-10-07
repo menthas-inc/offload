@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   description: "What you can expect from offload, and what offload expects from you.",
 };
 
-const UPDATED = "5 October 2026";
+const UPDATED = "7 October 2026";
 
 const MAIL = <a href="mailto:hello@offload.club">hello@offload.club</a>;
 
@@ -178,9 +178,9 @@ export default function Terms() {
         <section className={styles.section}>
           <h2 className={styles.h2}>12. Changes to these terms</h2>
           <p>
-            When we change these terms we change the date at the top. If a change matters, it takes
-            effect 14 days after we email account holders about it. Using offload after that means
-            you accept the change; if you do not, you can take a copy and delete your account.
+            When we change these terms we change the date at the top. If a change matters, offload
+            tells you the next time you open it and asks you to agree again before you go on. If you
+            do not agree, you can take a copy and delete your account.
           </p>
         </section>
 

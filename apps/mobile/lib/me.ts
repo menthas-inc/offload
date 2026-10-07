@@ -22,6 +22,9 @@ export interface Me {
   needsFirstRun: boolean;
   /** No name yet. See `stillAsking` in `api.ts`, which is the gate. */
   needsName: boolean;
+  /** Active, and agreed to an older privacy policy or terms: asked again on
+   *  first run's last screen, the ticks alone. */
+  needsConsent: boolean;
   /** What Apple or Google called them, to fill the field in. */
   suggestedName: string | null;
   /** 016. Whether offload may search the web, and whether it may open a link
@@ -165,16 +168,7 @@ export function useMe(): Me | null {
   return me;
 }
 
-/** Turning a switch. 016.
- *
- *  Patches one field, never the pair and never a name: a settings toggle
- *  sending a display name is a toggle that can clear one by accident. The
- *  server's own schema is the other half of that, where every field is optional
- *  and only what was sent is written.
- *
- *  Broadcast like `saveName`, so every mounted `useMe` has the new state
- *  without a refetch and the switch never disagrees with itself. */
-/** The countries somebody can say they are in. 
+/** The countries somebody can say they are in.
  *
  *  Fetched rather than shipped: the server validates against the same list it
  *  serves, so a code this offers is always one the patch accepts. */
@@ -201,6 +195,15 @@ export async function setCountry(country: string | null): Promise<Me | null> {
   }
 }
 
+/** Turning a switch. 016.
+ *
+ *  Patches one field, never the pair and never a name: a settings toggle
+ *  sending a display name is a toggle that can clear one by accident. The
+ *  server's own schema is the other half of that, where every field is optional
+ *  and only what was sent is written.
+ *
+ *  Broadcast like `saveName`, so every mounted `useMe` has the new state
+ *  without a refetch and the switch never disagrees with itself. */
 export async function setWebAccess(
   patch: { webSearch?: boolean; webLinks?: boolean },
 ): Promise<Me | null> {
@@ -292,5 +295,28 @@ export async function saveName(displayName: string): Promise<Me | null> {
   } catch (error) {
     failed("me.saveName", error);
     return null;
+  }
+}
+
+/** The two ticks again, for an active account whose consent is on an older
+ *  version of the privacy policy or terms.
+ *
+ *  Done only when the identity the server sends back says so: a 200 whose
+ *  update matched nothing still needs consent, and treating it as done sent
+ *  the person straight back to the question with nothing said. That identity
+ *  is handed to every mounted `useMe` either way, as a saved name is. */
+export async function giveConsent(): Promise<boolean> {
+  try {
+    const updated = await request<Me>("/api/consent", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true }),
+    });
+    if (!updated) return false;
+    announce(updated);
+    return !updated.needsConsent;
+  } catch (error) {
+    failed("me.giveConsent", error);
+    return false;
   }
 }

@@ -43,7 +43,7 @@ export {
   monthFor,
   railFor,
   stepMonth,
-  thingsOn,
+  contentOn,
   weeksSpanned,
   type Dated,
   type Day,

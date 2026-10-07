@@ -4,6 +4,8 @@
 **Surfaces:** web, iOS, Android, the agent plane, and the privacy policy
 **First of two.** 015, the timeline, reads what this produces and does not work without it.
 
+*Amended 2026-10-05 by 038 and 2026-10-06 by 040: memory is a word again, for what offload knows about a person across their threads (account scope) and nothing else. A note stays what a thread knows about itself, as this spec made it. The phones' Notes tab became Memories, at the route `memories`, with `/notes` redirecting. AC-4's search for the word memory holds for anything about a thread.*
+
 ## Why
 
 offload has two words for one idea and nobody outside the code can tell them apart.

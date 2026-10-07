@@ -4,7 +4,7 @@
 
 ## Foundation
 
-- [x] **F1** `packages/widgets`: `Dated`, `datedFor`, `railFor`, `thingsOn`, `WeekStart`, `MAX_DOTS`. Local dates as `YYYY-MM-DD` throughout. (AC-2, AC-3, AC-4, AC-6, AC-7)
+- [x] **F1** `packages/widgets`: `Dated`, `datedFor`, `railFor`, `contentOn`, `WeekStart`, `MAX_DOTS`. Local dates as `YYYY-MM-DD` throughout. `contentOn` was `thingsOn` until the sweep renamed it on 2026-10-07. (AC-2, AC-3, AC-4, AC-6, AC-7)
 - [x] **F2** The gap row: three or more empty weeks collapse, one and two do not. (AC-5)
 - [x] **F3** Remove the widget: `timeline` out of `WIDGET_KINDS` and `EARNS`, `splitRepeating` and `cadenceLabel` and `Series` deleted with their tests, `STARTS_AS.timeline` deleted. (Feature spec, "What this replaces")
 

@@ -13,7 +13,7 @@
 //
 // 028. The default thread is never in the list, so no row refuses its swipe.
 
-import { Platform, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 import { Glyph } from "../Glyph";
@@ -40,19 +40,27 @@ export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
     <View className="relative">
       {/* The action sits behind the row and the row paints over it. */}
       <Animated.View
-        className="absolute inset-y-0 right-0 items-center justify-center bg-surface-danger"
+        className="absolute inset-y-0 right-0 bg-surface-danger"
         style={[revealed, { width: REVEAL + 24 }]}
+        // Out of a screen reader's reach: it cannot swipe the row open, and
+        // `pointerEvents` off leaves the button in the tree on every row. The
+        // row carries Delete instead.
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
       >
-        <Text
-          className="font-core font-medium text-text-on-solid"
-          style={{ fontSize: 13 }}
+        {/* The whole panel is the target, not the word in it (S10). */}
+        <Pressable
+          accessibilityRole="button"
+          className="min-h-tap-min flex-1 items-center justify-center self-stretch"
           onPress={() => {
             close();
             onDelete();
           }}
         >
-          Delete
-        </Text>
+          <Text className="font-core font-medium text-text-on-solid" style={{ fontSize: 13 }}>
+            Delete
+          </Text>
+        </Pressable>
       </Animated.View>
 
       <GestureDetector gesture={gesture}>
@@ -63,6 +71,17 @@ export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
           className={`flex-row items-center gap-space-5 px-gutter-screen py-space-4 ${
             isAndroid ? "bg-a-surface" : "bg-surface-page"
           } ${border ? "border-b border-border-hairline" : ""}`}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel={thread.name}
+          accessibilityHint={thread.meta || undefined}
+          // The swipe is out of reach of a screen reader, so Delete is an
+          // action on the row as well, as on the memory row.
+          accessibilityActions={[{ name: "activate" }, { name: "delete", label: "Delete" }]}
+          onAccessibilityAction={(event) => {
+            if (event.nativeEvent.actionName === "delete") onDelete();
+            else onOpen();
+          }}
         >
           <ThreadIcon icon={thread.icon} hue={thread.hue} seed={thread.id} size={isAndroid ? 44 : 40} />
 

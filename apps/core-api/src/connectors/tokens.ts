@@ -109,9 +109,15 @@ export async function revokeAndForget(connectionId: string): Promise<void> {
   // after this, and a copy of somebody else's system that nobody reads is not
   // something to keep. The calendars' foreign keys cascade to both.
   await db.deleteFrom("connector_calendars").where("connection_id", "=", connectionId).execute();
+  // The row stays, soft-deleted, and stops saying which Google account it was:
+  // the privacy page says a disconnected calendar keeps nothing. Emptied, not
+  // nulled, because 0023 declares the column not null; the unique key only
+  // covers rows that are not deleted, so any number of these can share it.
+  // The empty string is a convention, not a constraint: a reader that skips
+  // `deleted_at is null` gets "" where it expects an address.
   await db
     .updateTable("connector_connections")
-    .set({ state: "revoked", deleted_at: new Date(), updated_at: new Date() })
+    .set({ state: "revoked", external_account_email: "", deleted_at: new Date(), updated_at: new Date() })
     .where("id", "=", connectionId)
     .execute();
 }

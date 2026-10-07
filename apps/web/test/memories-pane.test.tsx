@@ -159,7 +159,7 @@ describe("the list", () => {
     await click(button("Search"));
     const input = host.querySelector("input[type=search]") as HTMLInputElement;
     await type(input, "meera");
-    expect(text()).toContain("Their wife is Meera.");
+    expect(text()).toContain("Your wife is Meera.");
     expect(text()).not.toContain("Shopify");
     await type(input, "zebra");
     expect(text()).toContain("Nothing kept says “zebra”.");
@@ -172,7 +172,7 @@ describe("the list", () => {
     list.status = 200;
     list.body = { memories: [memory("m1", "people", "Their wife is Meera.")], full: false, rulesFull: false };
     await click(button("Try again"));
-    expect(text()).toContain("Their wife is Meera.");
+    expect(text()).toContain("Your wife is Meera.");
   });
 
   it("is quiet when empty, with the plus and no switch or search", async () => {
@@ -199,7 +199,7 @@ describe("the editor", () => {
     expect(host.querySelector('[role=radio][aria-checked=true]')?.textContent).toBe("About");
     await type(field(), "My sister is Rina.");
     await key(field(), "Enter");
-    expect(sent.find((s) => s.method === "POST" && s.path === "/v1/memories")?.body).toEqual({ text: "My sister is Rina.", kind: "about" });
+    expect(sent.find((s) => s.method === "POST" && s.path === "/v1/memories")?.body).toEqual({ text: "Their sister is Rina.", kind: "about" });
     expect(text()).toContain("Remembered");
   });
 
@@ -215,7 +215,7 @@ describe("the editor", () => {
 
   it("keeps the pane open with the reason when a change is refused", async () => {
     await mount();
-    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Their wife is Meera.")));
+    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Your wife is Meera.")));
     expect(text()).toContain("You asked offload to remember this");
     expect(text()).toContain("Said in Lisbon trip.");
     writeAnswer = { status: 200, body: { ok: false, error: "duplicate" } };
@@ -237,23 +237,65 @@ describe("the editor", () => {
 
   it("forgets with eight seconds of Undo, which puts it back", async () => {
     await mount();
-    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Their wife is Meera.")));
+    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Your wife is Meera.")));
     await click(button("Forget"));
     expect(sent.find((s) => s.method === "DELETE")?.path).toBe("/v1/memories/m1");
     expect(text()).toContain("Memory forgotten");
-    expect([...host.querySelectorAll("[data-memory]")].some((r) => r.textContent?.includes("Their wife is Meera."))).toBe(false);
+    expect([...host.querySelectorAll("[data-memory]")].some((r) => r.textContent?.includes("Your wife is Meera."))).toBe(false);
     await click(button("Undo"));
     expect(sent.find((s) => s.method === "POST" && s.path === "/v1/memories/m1/restore")).toBeTruthy();
-    expect([...host.querySelectorAll("[data-memory]")].some((r) => r.textContent?.includes("Their wife is Meera."))).toBe(true);
+    expect([...host.querySelectorAll("[data-memory]")].some((r) => r.textContent?.includes("Your wife is Meera."))).toBe(true);
   });
 
   it("a write that fails says so with Retry", async () => {
     await mount();
-    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Their wife is Meera.")));
+    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Your wife is Meera.")));
     writeAnswer = { status: 500, body: {} };
     await click(button("Forget"));
     expect(text()).toContain("Couldn't save that");
     expect(button("Retry")).toBeTruthy();
+  });
+});
+
+describe("F4 spoken to the person it is about", () => {
+  it("reads each row to them, not about them", async () => {
+    await mount();
+    expect(text()).toContain("You work at Shopify as a designer.");
+    expect(text()).toContain("Your wife is Meera.");
+    expect(text()).not.toContain("They work at Shopify");
+    expect(text()).not.toContain("Their wife");
+  });
+
+  it("finds a row by the words it is read in", async () => {
+    await mount();
+    await click(button("Search"));
+    await type(host.querySelector("input[type=search]") as HTMLInputElement, "your wife");
+    expect(text()).toContain("Your wife is Meera.");
+    expect(text()).not.toContain("Shopify");
+  });
+
+  it("opens the editor on the words as read, and saves what is typed in the stored form", async () => {
+    await mount();
+    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Your wife is Meera.")));
+    expect(field().value).toBe("Your wife is Meera.");
+    await type(field(), "You call your mother Maman.");
+    await click(button("Save"));
+    expect(sent.find((s) => s.method === "PATCH")).toMatchObject({ path: "/v1/memories/m1", body: { text: "They call their mother Maman." } });
+  });
+
+  it("closes on Save with nothing sent when the words are as shown", async () => {
+    await mount();
+    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Your wife is Meera.")));
+    await click(button("Save"));
+    expect(sent.some((s) => s.method === "PATCH")).toBe(false);
+    expect(host.querySelector("textarea")).toBeNull();
+  });
+
+  it("an answer's words as shown do not unlink its calendar", async () => {
+    await mount();
+    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("share a calendar")));
+    expect(field().value).toBe("You share a calendar with Meera.");
+    expect(text()).not.toContain("Changing the words means offload asks which calendar again.");
   });
 });
 
@@ -284,7 +326,7 @@ describe("040 client review", () => {
 
   it("a refused Undo says it could not put it back", async () => {
     await mount();
-    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Their wife is Meera.")));
+    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Your wife is Meera.")));
     await click(button("Forget"));
     writeAnswer = { status: 500, body: {} };
     await click(button("Undo"));
@@ -302,7 +344,7 @@ describe("040 client review", () => {
 
   it("forgetting one already gone elsewhere is done, with no Retry", async () => {
     await mount();
-    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Their wife is Meera.")));
+    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Your wife is Meera.")));
     writeAnswer = { status: 404, body: { error: "not_found" } };
     await click(button("Forget"));
     expect(button("Retry")).toBeUndefined();
@@ -319,7 +361,7 @@ describe("040 client review", () => {
 describe("040 security review", () => {
   it("making a memory a rule sends its words, so the change shows what becomes an instruction", async () => {
     await mount();
-    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Their wife is Meera.")));
+    await click([...host.querySelectorAll("[data-memory]")].find((r) => r.textContent?.includes("Your wife is Meera.")));
     await click([...host.querySelectorAll("[role=radio]")].find((r) => r.textContent === "Rules"));
     await click(button("Save"));
     expect(sent.find((s) => s.method === "PATCH")?.body).toEqual({ text: "Their wife is Meera.", kind: "rules" });

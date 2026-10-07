@@ -3,7 +3,9 @@
 # in R2, fetches the one you pick into a private temporary directory, asks for
 # the age private key without showing it, reads the backup end to end and says
 # what is in it. Then saves the decrypted dump, restores it into a new database,
-# both, or nothing.
+# both, or nothing. The dump carries no grants, so a restored database is the
+# restorer's alone. One that offload will run on gets the worker's and the
+# API's grants back through regrant.sql; a drill copy stays the restorer's.
 #
 # The key is only ever a shell variable. It reaches age through a pipe, so it is
 # never on a command line, in the environment, in a file, in the history or in a
@@ -21,6 +23,8 @@
 #                      exist yet, in a URL without its password
 #   --password-fd N    read that database's password from file descriptor N,
 #                      where otherwise PGPASSWORD or a hidden question gives it
+#   --grants yes|no    whether offload will run on the restored database, so
+#                      its worker and its API get their grants there
 #
 # ENV_FILE=path reads another .env, such as the main checkout's from a worktree.
 # BACKUP_PREFIX is read as backup.sh reads it.
@@ -71,10 +75,10 @@ ask() {
   [ -t 0 ] || printf '\n' >&2
 }
 
-file="" pick="" key_fd="" password_fd="" action="" save="" target=""
+file="" pick="" key_fd="" password_fd="" action="" save="" target="" grants=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --file|--pick|--key-fd|--password-fd|--do|--save|--target)
+    --file|--pick|--key-fd|--password-fd|--do|--save|--target|--grants)
       [ $# -ge 2 ] || die "$1 needs a value."
       case "$1" in
         --file) file="$2" ;;
@@ -84,6 +88,7 @@ while [ $# -gt 0 ]; do
         --do) action="$2" ;;
         --save) save="$2" ;;
         --target) target="$2" ;;
+        --grants) grants="$2" ;;
       esac
       shift 2 ;;
     -h|--help) usage; exit 0 ;;
@@ -95,6 +100,7 @@ done
 case "$pick" in *[![:digit:]]*|????*) die "--pick takes a small number, 1 being the newest." ;; esac
 case "$key_fd$password_fd" in *[![:digit:]]*) die "--key-fd and --password-fd take a file descriptor number." ;; esac
 case "$action" in ""|verify|save|restore|both) ;; *) die "--do takes verify, save, restore or both." ;; esac
+case "$grants" in ""|yes|no) ;; *) die "--grants takes yes or no." ;; esac
 
 need="age pg_restore psql node"
 [ -n "$file" ] || need="rclone $need"
@@ -432,6 +438,27 @@ pg() {
   if [ -n "$u_pass" ]; then PGPASSWORD="$u_pass" "$@"; else "$@"; fi
 }
 
+# Whether the worker and the API get their grants on the restored database.
+# Asked before anything is created, so an unattended run without an answer
+# stops having changed nothing. No is the default: a drill copy given them is
+# a second full copy of everything, deleted rows included, that the live API
+# could read.
+ask_grants() {
+  [ -z "$grants" ] || return 0
+  say "" "Will offload run on it? Then its worker and its API get their grants there." \
+    "A drill copy needs none, and without them only you can read it."
+  while :; do
+    ask "Give them their grants? [no]: " || die "No answer. --grants yes or no says without asking."
+    case "${answer:-no}" in yes|no) grants="${answer:-no}"; return ;; esac
+    say "yes or no."
+  done
+}
+
+# How to give the grants later, as a command to paste. No password in it.
+regrant_command() {
+  say "  psql -X -1 -v ON_ERROR_STOP=1 -f $here/regrant.sql $u_url"
+}
+
 restore_dump() {
   local url="$target" shown="" st env_db=""
   local bad="It needs a postgres:// URL with a host and a new database name of lowercase letters, digits and underscores."
@@ -468,6 +495,7 @@ restore_dump() {
     ask "Type yes to go ahead: " || true
     [ "$answer" = yes ] || die "Nothing was restored."
   fi
+  ask_grants
   [ -n "$u_pass" ] || read_password
   pg psql -X -q -v ON_ERROR_STOP=1 -v db="$u_db" "$u_admin" <<'SQL' || die "Could not create $u_db, so nothing was restored."
 CREATE DATABASE :"db" TEMPLATE template0;
@@ -490,7 +518,20 @@ SQL
     fi
     die "The restore stopped at its first error, and dropping $u_db failed, so it is still there."
   fi
-  say "Restored. Rows in some of its tables:"
+  # The dump carries no grants, so the worker and the API would be refused
+  # everything. regrant.sql puts back what the migrations gave them.
+  if [ "$grants" = yes ]; then
+    if ! pg psql -X -q -1 -v ON_ERROR_STOP=1 -f "$here/regrant.sql" "$u_url" >/dev/null 2>"$tmp/regrant.err"; then
+      grep -m 1 'ERROR:' "$tmp/regrant.err" | sed 's/^/  /' >&2 || true
+      { say "Restored into $u_db, but the worker's and the API's grants are not back, so neither can use it yet." \
+          "Give them before offload runs on it, as a superuser:"; regrant_command; } >&2
+      kept
+      exit 1
+    fi
+    say "Restored, with the worker's and the API's grants. Rows in some of its tables:"
+  else
+    say "Restored, with no grants, so only the role that restored it can read it. Rows in some of its tables:"
+  fi
   pg psql -X -q -A -t -F '|' -v ON_ERROR_STOP=1 -v tables="$counted_tables" "$u_url" <<'SQL' \
     | awk -F'|' '{ printf "  %-18s %s\n", $1, $2 }'
 select t, (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t), false, true, '')))[1]
@@ -499,6 +540,10 @@ where to_regclass(format('public.%I', t)) is not null
 order by i;
 SQL
   say "" "It is at $u_url"
+  if [ "$grants" != yes ]; then
+    say "If offload is to run on it, give the worker and the API their grants first, as a superuser:"
+    regrant_command
+  fi
   kept
 }
 

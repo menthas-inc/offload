@@ -15,22 +15,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "../Logo";
 import { SCENE_MS, autoAdvance, introNext } from "../../lib/first-run";
+import { useReducedMotion } from "../../lib/reduced-motion";
 import { INTRO } from "./copy";
 import { IntroArt } from "./IntroArt";
 import { RunFooter } from "./RunFooter";
 import styles from "./firstrun.module.css";
-
-function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(query.matches);
-    const changed = (event: MediaQueryListEvent) => setReduced(event.matches);
-    query.addEventListener("change", changed);
-    return () => query.removeEventListener("change", changed);
-  }, []);
-  return reduced;
-}
 
 export function Intro({ button, onLeave }: { button: string; onLeave: () => void }) {
   const [scene, setScene] = useState(0);

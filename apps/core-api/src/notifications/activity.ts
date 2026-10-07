@@ -7,7 +7,11 @@
 // row with a different lead. Thirty days, then it purges; a row that names
 // another member's words goes sooner, when the viewer's membership ends,
 // when the row it names is destroyed, and when that member deletes their
-// account, which the foreign keys and the callers of `purgeAbout` carry.
+// account. The foreign keys on `content_id` and `thread_id` carry a destroyed
+// row and a destroyed thread; the callers of `purgeAbout` carry a membership
+// ending; `purgeNaming` carries account deletion, because a mention's foreign
+// key takes the mention and leaves the row, and a request, a share or an
+// expiry names the person only in its words.
 //
 // Readable by its own account only, and nothing the worker may read.
 
@@ -227,4 +231,53 @@ export async function purgeAbout(
       ]),
     )
     .execute();
+}
+
+/** Account deletion: every row in somebody else's Activity that names the
+ *  account, which 035 promises goes with it. A row names somebody by its own
+ *  column, by a mention, or only in its words, through the request or the
+ *  membership it was written about: a request from or to them, a share they
+ *  sent, an invite to them that expired. Called while those rows still exist.
+ *
+ *  The account's own rows are locked with the others, all in id order, so two
+ *  deletes that name each other wait in turn rather than each holding a row
+ *  the other's cascade needs. */
+export async function purgeNaming(accountId: string, trx: Executor): Promise<void> {
+  const rows = await trx
+    .selectFrom("activity")
+    .select(["id", "account_id"])
+    .where((eb) =>
+      eb.or([
+        eb("account_id", "=", accountId),
+        eb("about_account_id", "=", accountId),
+        eb.exists(
+          eb
+            .selectFrom("activity_mentions")
+            .select("activity_mentions.activity_id")
+            .whereRef("activity_mentions.activity_id", "=", "activity.id")
+            .where("activity_mentions.about_account_id", "=", accountId),
+        ),
+        eb(
+          "request_id",
+          "in",
+          eb
+            .selectFrom("connection_requests")
+            .select("connection_requests.id")
+            .where((r) => r.or([r("from_account_id", "=", accountId), r("to_account_id", "=", accountId)])),
+        ),
+        eb(
+          "member_id",
+          "in",
+          eb
+            .selectFrom("thread_members")
+            .select("thread_members.id")
+            .where((m) => m.or([m("thread_members.account_id", "=", accountId), m("thread_members.invited_by", "=", accountId)])),
+        ),
+      ]),
+    )
+    .orderBy("id")
+    .forUpdate()
+    .execute();
+  const theirs = rows.filter((row) => row.account_id !== accountId).map((row) => row.id);
+  if (theirs.length > 0) await trx.deleteFrom("activity").where("id", "in", theirs).execute();
 }

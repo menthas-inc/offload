@@ -27,11 +27,13 @@ import {
   memoryWorld,
   pillShape,
   sentenceSize,
+  toSecondPerson,
   type MemoryKindId,
   type MemoryKindPlace,
   type MemoryView,
 } from "@offload/widgets";
 import { Icon } from "../Icon";
+import { useReducedMotion } from "../../lib/reduced-motion";
 import styles from "../../app/(shell)/memories.module.css";
 
 interface Camera {
@@ -45,10 +47,6 @@ function flightMs(): number {
   if (typeof window === "undefined") return 280;
   const ms = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--duration-slow").trim());
   return Number.isFinite(ms) && ms > 0 ? ms : 280;
-}
-
-function reducedMotion(): boolean {
-  return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export function MemoriesMap({
@@ -103,6 +101,7 @@ export function MemoriesMap({
 
   const flight = useRef(0);
   useEffect(() => () => cancelAnimationFrame(flight.current), []);
+  const reduced = useReducedMotion();
 
   const clamp = (c: Camera): Camera => ({
     z: Math.min(MAP_ZOOM.max, Math.max(min, c.z)),
@@ -112,7 +111,7 @@ export function MemoriesMap({
 
   const fly = (to: Camera) => {
     cancelAnimationFrame(flight.current);
-    if (!camera || reducedMotion()) return setCamera(to);
+    if (!camera || reduced) return setCamera(to);
     const from = camera;
     const started = performance.now();
     const ms = flightMs();
@@ -294,13 +293,15 @@ export function MemoriesMap({
         const sy = Y(at.y);
         if (sx < -MAP_LOOK.cull.x || sx > size.w + MAP_LOOK.cull.x || sy < -MAP_LOOK.cull.y || sy > size.h + MAP_LOOK.cull.y) return null;
         const info = MEMORY_KINDS.find((k) => k.kind === m.kind)!;
+        // Stored about the person, read to them (F4).
+        const said = toSecondPerson(m.text);
         const shared = {
           "data-memory": m.id,
           "data-k": m.kind,
           "data-dim": matchesMemory(m, query) ? undefined : true,
-          "aria-label": `${m.text}, ${info.name}`,
+          "aria-label": `${said}, ${info.name}`,
         };
-        const shape = pillShape(m.text, m.origin === "learned");
+        const shape = pillShape(said, m.origin === "learned");
         if (!near) {
           return (
             <button
@@ -335,7 +336,7 @@ export function MemoriesMap({
             onClick={() => onOpen(m.id)}
           >
             {m.origin === "learned" ? <Icon name="sparkles" size={Math.round(fs * 0.8)} /> : null}
-            <span style={{ WebkitLineClamp: shape.lines }}>{m.text}</span>
+            <span style={{ WebkitLineClamp: shape.lines }}>{said}</span>
           </button>
         );
       })}

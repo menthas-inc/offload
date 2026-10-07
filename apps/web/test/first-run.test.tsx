@@ -57,6 +57,7 @@ const { afterYou, autoAdvance, bringCards, firstStep, introNext } = await import
 const { default: WelcomePage } = await import("../src/app/(app)/welcome/page");
 const { default: BringPage } = await import("../src/app/(app)/welcome/bring/page");
 const { default: TutorialPage } = await import("../src/app/(app)/tutorial/page");
+const { FAILED } = await import("../src/components/firstrun/copy");
 
 beforeEach(() => {
   me = FIRST_RUN;
@@ -245,9 +246,7 @@ describe("033 Before you start (AC-5, AC-6)", () => {
     await click(checkboxes(host)[0]);
     await click(checkboxes(host)[1]);
     await click(button(host, "Continue"));
-    expect(host.querySelector('[role="alert"]')?.textContent).toBe(
-      "That did not go through. Check your connection and try again.",
-    );
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe(FAILED);
     expect(router.replace).not.toHaveBeenCalled();
   });
 

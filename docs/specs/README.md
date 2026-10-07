@@ -40,11 +40,11 @@ Then say what follows from it, explicitly:
 - A feature that touches the clients specs three tracks, API, Mobile and Web, and is closed only when all three pass. Platform-native capabilities (push, camera, share sheet, the sunset calculation, platform sign-in) are per-platform by nature and are noted per track rather than counted as a gap.
 - Anything with a visual result cites the design system: which kit, which screen, which component contract.
 
-## Suggested first specs
+## Where this started, 2026-08
 
-Not a roadmap, just the order in which the open questions in `docs/tech/decisions.md` need answering.
+A record of the first specs suggested, reworded only to today's vocabulary. It is not a list of what is left: CLAUDE.md's Status says what is built, and `docs/tech/decisions.md` what is open.
 
-1. **The data model.** thread, thing, memory, connection, grant, account. Names fixed from the first migration.
-2. **Encryption and key custody.** Resolves open decision 1, and blocks every content table.
+1. **The data model.** thread, content, note, connection, grant, account. Names fixed from the first migration.
+2. **Encryption and key custody.** Resolves the open decision on encryption, since decided in `docs/tech/decisions.md` as *Encryption is scoped to cold storage only* (2026-08-26), and blocks every content table.
 3. **Getting in.** Waitlist, invite, Apple and Google sign-in, first run, the no-invite screen.
-4. **The dump.** Composer to outbox to blob to Core API to sort job to a thing in a thread, with Undo.
+4. **The dump.** Composer to outbox to blob to Core API to sort job to content in a thread, with Undo.

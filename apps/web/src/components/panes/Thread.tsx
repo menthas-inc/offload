@@ -1280,8 +1280,11 @@ export function Thread({ id, onChanged }: Props) {
             it saying so, which is the same noise an empty heading was. The
             content is visibly above; the sentence adds a row to say so. What
             stays is the genuinely empty thread, which has nothing else on the
-            screen and does need telling. */}
-        {rest.length === 0 && (showArchived || inWidgets.size === 0) ? (
+            screen and does need telling. Decided from what the thread holds,
+            not from what is left for this list: an event on the rail, on a day
+            other than the one picked, is not an empty thread (sweep
+            2026-10-07). */}
+        {rows.length === 0 && (showArchived || notes.length === 0) ? (
           filtering && !showArchived ? null : <p className={styles.empty}>
             {showArchived
               ? "Nothing archived here."

@@ -199,7 +199,7 @@ Wording goes to the owner before the code. What changes, by section of the page:
 - **Section 12, who can reach production** (today: *they read your content when you have asked for help or when a specific fault requires it*): two sentences. What support sees through the panel: who you are, how much you use offload, what it cost and what failed, and nothing you put in or offload wrote. And that reading content needs direct access to the database, which support does not have, and happens only when you asked or a specific fault requires it.
 - **Section 12, where content never goes:** the list gains the support panel, its exports and its alert emails.
 - **The opening promise and section 10 on deleting an account:** true for the first time. A deletion done for you by staff takes up to a day to leave the live systems, then 30 days for the backups. The shared-thread exception stays as written.
-- **Section 13's dated note** that the controls are not built **stays**: deleting your own account from Settings is still out of scope, and it is still done by writing to offload.
+- **Deleting your own account** *(2026-10-07)*: deletion from Settings shipped with 035 (PR 65, 2026-10-03); the page names the control in *Your choices and your rights*, and the dated note that it was not built is gone.
 - **Sections 3, 4 and 10 gain three records:** what each request to a model cost (the model, how much it read and wrote, the price, how long it took), kept while you have an account and kept with nobody attached after; each time a limit refused you, kept 30 days; and a record of which staff member opened your account's page or changed something on it, kept two years.
 
 ## Design divergences, one decisions entry each

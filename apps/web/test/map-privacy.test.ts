@@ -21,16 +21,16 @@ describe("the privacy page says what the map adds (T5.3)", () => {
     expect(companies).toContain("Acts for itself under its own terms");
   });
 
-  it("never asks consent to a version later than the page", () => {
-    // A material change moves both. One that names something the policy
-    // already covers moves the page's date alone, as 041 did on 7 October
-    // with PDFs, and nobody is asked again.
-    const updated = /const UPDATED = "(\d+) (\w+) (\d{4})"/.exec(page);
-    const version = /export const CONSENT_VERSION = "(\d{4}-\d{2}-\d{2})";/.exec(session);
-    expect(updated && version).toBeTruthy();
-    const pageDay = new Date(`${updated![2]} ${updated![1]}, ${updated![3]} 12:00 UTC`).toISOString().slice(0, 10);
-    expect(version![1] <= pageDay).toBe(true);
-    expect(version![1]).toBe("2026-10-06");
+  // Not pinned to a day: every later change to the page moves both, and
+  // apps/core-api/test/consent.test.ts holds the rule (the later of the
+  // privacy and terms dates). Here, only that the map change moved them past it.
+  it("moves its date with the consent version", () => {
+    const updated = /const UPDATED = "(\d{1,2}) October 2026"/.exec(page);
+    const consent = /export const CONSENT_VERSION = "2026-10-(\d{2})";/.exec(session);
+    expect(updated, "UPDATED in October 2026").not.toBeNull();
+    expect(consent, "CONSENT_VERSION in October 2026").not.toBeNull();
+    expect(Number(consent![1])).toBeGreaterThanOrEqual(Number(updated![1]));
+    expect(Number(updated![1])).toBeGreaterThanOrEqual(3);
   });
 });
 

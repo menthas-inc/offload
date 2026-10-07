@@ -117,6 +117,10 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
 
   // The internal routes on the private name only, decided before the token
   // is read: a request for `/internal/*` by the public name is not found.
+  // **Defence in depth, not the boundary.** The name compared is the Host
+  // header, which whoever sends the request writes. The token each internal
+  // route checks is the control; this only keeps the routes out of sight on
+  // the public name.
   if (internalHost) {
     app.addHook("onRequest", async (request, reply) => {
       // The routed path, not the raw URL, which an encoded letter

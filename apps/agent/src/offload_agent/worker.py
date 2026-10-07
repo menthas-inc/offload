@@ -2144,8 +2144,10 @@ async def _lane(
 
 
 async def run(cfg: Config, stop: asyncio.Event) -> None:
-    # Five: the cancel listener holds one for the life of the process, and each
-    # lane can hold two at once (the nightly pass writes while it reads).
+    # Five kept open: the cancel listener holds one for the life of the process,
+    # and each lane can hold two at once (the nightly pass writes while it
+    # reads). The ceiling is fifteen, not five: SQLAlchemy's default
+    # max_overflow of 10 opens up to ten more under load. Size Postgres for 15.
     engine = create_async_engine(cfg.database_url, pool_size=5, pool_pre_ping=True)
     anthropic = AsyncAnthropic(api_key=cfg.anthropic_api_key)
     worker_id = f"agent-{uuid.uuid4().hex[:8]}"

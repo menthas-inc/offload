@@ -244,9 +244,9 @@ export function datedFor(
 /** What is on a given day, in the order the thread holds it.
  *
  *  The entries rather than the ids, because a caller drawing the day needs to
- *  know which fact put each thing there: the same row can be on two days, once
+ *  know which fact put each entry there: the same row can be on two days, once
  *  because it happens and once because it is wanted by then. */
-export function thingsOn(dated: readonly Dated[], iso: string): Dated[] {
+export function contentOn(dated: readonly Dated[], iso: string): Dated[] {
   // **One row is one line on a day.** A task that happens at noon and is due
   // at noon is on that day for one reason as far as anybody reading it can
   // tell, and drawing it twice read as two (2026-10-05). The occurrence comes
@@ -288,7 +288,7 @@ function dotsByDay(
   window?: { from: string; to: string },
 ): Map<string, Dot[]> {
   const days = new Map<string, Dot[]>();
-  // One dot per row per day, for the reason `thingsOn` draws one line.
+  // One dot per row per day, for the reason `contentOn` draws one line.
   const rows = new Map<string, Set<string>>();
   const put = (day: string, one: Dated): void => {
     const seen = rows.get(day) ?? new Set<string>();

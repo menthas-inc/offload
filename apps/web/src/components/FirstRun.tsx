@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Unanswered } from "./Unanswered";
-import { completeOnboarding, updateName, useMe } from "../lib/use-me";
+import { completeOnboarding, giveConsent, updateName, useMe } from "../lib/use-me";
 import { deviceZone } from "../lib/clock";
 import { useCalendars } from "../lib/use-calendars";
 import { afterYou, bringCards, firstStep, type Step } from "../lib/first-run";
@@ -31,6 +31,8 @@ export function FirstRun({ replay = false }: { replay?: boolean }) {
   const router = useRouter();
   const [step, setStep] = useState<Step | null>(null);
   const [nameOnly, setNameOnly] = useState(false);
+  const [again, setAgain] = useState(false);
+  const [askName, setAskName] = useState(true);
   const [name, setName] = useState("");
   const [readPolicy, setReadPolicy] = useState(false);
   const [agreeToProcessing, setAgreeToProcessing] = useState(false);
@@ -45,7 +47,12 @@ export function FirstRun({ replay = false }: { replay?: boolean }) {
     if (state.status !== "ready" || opened.current) return;
     opened.current = true;
     const only = !replay && !state.me.needsFirstRun;
-    setNameOnly(only);
+    // The policy or the terms moved since they agreed: first run's last
+    // screen, the ticks alone, and never the whole of first run again.
+    const asked = only && state.me.needsConsent;
+    setAgain(asked);
+    setAskName(!asked || state.me.needsName);
+    setNameOnly(only && !asked);
     setStep(firstStep({ replay, nameOnly: only }));
     // The suggestion, not the name: `displayName` is null for everybody who
     // reaches first run, `suggestedName` is what the provider said.
@@ -58,15 +65,17 @@ export function FirstRun({ replay = false }: { replay?: boolean }) {
     setFailed(false);
     // The write first, checked: Today is never drawn for an account the
     // server still considers mid first run, and a refusal stays here.
-    const recorded = nameOnly
-      ? (await updateName(name.trim())) !== null
-      : await completeOnboarding(name.trim(), deviceZone());
+    const recorded = again
+      ? (!askName || (await updateName(name.trim())) !== null) && (await giveConsent())
+      : nameOnly
+        ? (await updateName(name.trim())) !== null
+        : await completeOnboarding(name.trim(), deviceZone());
     if (!recorded) {
       setWorking(false);
       setFailed(true);
       return;
     }
-    if (nameOnly) return router.replace("/today");
+    if (nameOnly || again) return router.replace("/today");
     setWritten(true);
   }
 
@@ -98,6 +107,8 @@ export function FirstRun({ replay = false }: { replay?: boolean }) {
   }
   return (
     <BeforeYouStart
+      again={again}
+      askName={askName}
       nameOnly={nameOnly}
       name={name}
       onName={setName}

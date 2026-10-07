@@ -70,7 +70,8 @@ export interface Day {
 
 export function datedFor(rows: ContentRow[], notes: Note[]): Dated[];
 export function railFor(dated: Dated[], today: string, weekStart: WeekStart): RailRow[];
-export function thingsOn(dated: Dated[], iso: string): string[];
+/** Was `thingsOn`; the sweep renamed it `contentOn` on 2026-10-07. */
+export function contentOn(dated: Dated[], iso: string): string[];
 ```
 
 **Dates are local, and that is the whole reason they are strings.** `occurs_at` is a timestamp; the day a person sees it on is the day in their own zone. Every comparison here is on `YYYY-MM-DD` produced from the local date, so a 23:00 event is on the day it looks like and not on the next one in UTC. *This is the bug that would ship silently: it is right for most of the day, in most of the world.*

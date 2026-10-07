@@ -2,6 +2,8 @@
 
 Reads with `feature-spec.md`. Grounded in the code at `e30feee` and in `docs/tech/` (stack, decisions, context-and-memory). No open decision at the bottom of `docs/tech/decisions.md` blocks this; the one it touches, the tool definition budget (`decisions.md`, 2026-09-11, 2026-09-17, 2026-09-27), is decided here by the product owner (2026-10-01): raised to 1,900 and logged.
 
+*As built after 032 (2026-10-02): `loose_propose.py` and `compact.py` are gone, folded into `nightly.py`. The daily run books one `thread.nightly` per thread and member in place of `loose.propose` and `notes.compact`, and the pass posts to `/internal/v1/nightly-result` in place of `/internal/v1/loose-proposals`. On the default thread that pass is what suggests threads; the candidate rules, `loose_pass_key` and the `LOOSE_PROPOSALS` switch stay, in `loose/propose.ts`. The struck names below are the ones it replaced.*
+
 ## What is already true, and what that settles
 
 - **Only the default thread has `always_on = true`** (`admin/promote.ts:35`; `create_thread` writes false, `routes/tools.ts:1633`). Retiring *Always on* is taking the default thread out of `/v1/threads`.
@@ -13,7 +15,7 @@ Reads with `feature-spec.md`. Grounded in the code at `e30feee` and in `docs/tec
 - **A filing turn says nothing**; the footer is Done plus pills from `threadsFor` (`routes/dumps.ts:577`). *Saved to X.* exists only in the worker's `_partial_reply` (`worker.py:1700`).
 - **A turn is marked untrusted** by `sawApps` (calendar reads, `routes/tools.ts:1188-1193`) and `sawMail` (`message.source = 'mail'`). A web read (016's `look_up`, run by the worker's reader) marks nothing on the server; the worker knows.
 - **Content pages** are `GET /v1/threads/:id/content`, cursor = the last id, `PAGE = 30`.
-- **The daily run** is `account.daily.run` (`jobs/handlers.ts:592`), which enqueues per-thread `notes.compact`. The Python worker's scheduled model jobs read with direct SQL as `offload_agent`, call the model with a forced tool, and post the result to an internal route that writes and records `llm_usage` with `category = 'scheduled'` (`compact.py`, `internal.ts:420`).
+- **The daily run** is `account.daily.run` (`jobs/handlers.ts:592`), which enqueues per-thread ~~`notes.compact`~~. The Python worker's scheduled model jobs read with direct SQL as `offload_agent`, call the model with a forced tool, and post the result to an internal route that writes and records `llm_usage` with `category = 'scheduled'` (~~`compact.py`~~, `internal.ts:420`).
 
 ## Volume and access
 
@@ -134,8 +136,8 @@ type Suggestion =
 **Labels.** `applyTurnLabels` skips rows in the default thread and returns them as unlabelled rather than refused, so the model is not told to retry; the nightly enqueue skips the default thread.
 
 **Daily pass.**
-- `accountDailyRun` enqueues `loose.propose` (background priority, key `loose.propose:{account}:{day}`, `maxAttempts 2`) when `LOOSE_PROPOSALS` is not `off` (default on) and the account's candidate set hashes differently from `accounts.loose_pass_key`. Candidates: the newest 50 loose things that carry no suggestion, were never dismissed, and, for notes, are not `derived_from_untrusted`. The sweep of spent proposals and accepted suggestions runs here too.
-- `POST /internal/v1/loose-proposals` (internal token) `{ jobId, accountId, sent: string[], groups: { name, ids }[] , usage }`: re-reads the candidates; intersects every group's ids with `sent` and with the still-valid candidates; drops a group below two or above ten, or one whose name fails validation; writes at most three proposals and their `create` suggestions (`on conflict do nothing` on the target); records `llm_usage` `category: 'scheduled'`; sets `loose_pass_key`. Logs counts only.
+- `accountDailyRun` enqueues ~~`loose.propose` (background priority, key `loose.propose:{account}:{day}`, `maxAttempts 2`)~~ when `LOOSE_PROPOSALS` is not `off` (default on) and the account's candidate set hashes differently from `accounts.loose_pass_key`. Candidates: the newest 50 loose things that carry no suggestion, were never dismissed, and, for notes, are not `derived_from_untrusted`. The sweep of spent proposals and accepted suggestions runs here too.
+- ~~`POST /internal/v1/loose-proposals`~~ (internal token) `{ jobId, accountId, sent: string[], groups: { name, ids }[] , usage }`: re-reads the candidates; intersects every group's ids with `sent` and with the still-valid candidates; drops a group below two or above ten, or one whose name fails validation; writes at most three proposals and their `create` suggestions (`on conflict do nothing` on the target); records `llm_usage` `category: 'scheduled'`; sets `loose_pass_key`. Logs counts only.
 
 ### Agent
 
@@ -144,7 +146,7 @@ type Suggestion =
 - **Web reads**: the worker strips `suggest_thread_id` from a call made after the turn ran `look_up`, since only the worker knows (`reader.py`). The server's gate is the second line.
 - **018**: raising a `thread` question on a content row deletes any suggestion on it, in the same transaction (`questions.ts`, beside `threadQuestionAllowed`).
 - **`_partial_reply`** (`worker.py:1700`): `landed` items carry `is_default`; names exclude the default thread; only default landed gives *Saved.*
-- **`loose_propose.py`** (new, beside `compact.py`; registered in `worker.py` `KINDS`): reads the candidates as `offload_agent` (ids, type, title or note text, each cut to 200 characters; never a body, never a re-fetch of a source), numbers them `1..N` so the model echoes small integers, and calls the `sort` tier (`claude-haiku-4-5`) with a constant system prompt, the items in one user-turn block labelled as things to read and never instructions, and a forced `propose_threads` tool: `{ groups: [{ name: str(1..60), items: list[int](2..10) }] (≤ 3) }`. Pydantic validation; one repair turn on failure, then raise, logging the error type and never the value. Posts the mapped ids. Logs account id, counts, model, tokens, latency and outcome only. Prompt size is constant: at most 50 items of at most 200 characters, about 3,000 tokens with the system prompt, whatever the account's age (OFF-8).
+- **~~`loose_propose.py`~~** (new, beside ~~`compact.py`~~; registered in `worker.py` `KINDS`): reads the candidates as `offload_agent` (ids, type, title or note text, each cut to 200 characters; never a body, never a re-fetch of a source), numbers them `1..N` so the model echoes small integers, and calls the `sort` tier (`claude-haiku-4-5`) with a constant system prompt, the items in one user-turn block labelled as things to read and never instructions, and a forced `propose_threads` tool: `{ groups: [{ name: str(1..60), items: list[int](2..10) }] (≤ 3) }`. Pydantic validation; one repair turn on failure, then raise, logging the error type and never the value. Posts the mapped ids. Logs account id, counts, model, tokens, latency and outcome only. Prompt size is constant: at most 50 items of at most 200 characters, about 3,000 tokens with the system prompt, whatever the account's age (OFF-8).
 
 ### Mobile (`apps/mobile`)
 

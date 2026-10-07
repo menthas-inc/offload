@@ -23,6 +23,9 @@ import {
   memoryOrigin,
   memoryRefusal,
   memorySections,
+  shownText,
+  storedText,
+  toSecondPerson,
   type MemoryKindId,
   type MemoryList,
   type MemoryView,
@@ -278,7 +281,8 @@ function MemoryEntry({ memory, dot, on, onOpen }: { memory: MemoryView; dot: boo
     >
       {dot ? <span className={styles.rowDot} aria-hidden="true" /> : null}
       <span className={styles.rowText}>
-        <span className={styles.sentence}>{memory.text}</span>
+        {/* Stored about the person, read to them (F4). */}
+        <span className={styles.sentence}>{toSecondPerson(memory.text)}</span>
         <span className={styles.meta}>
           {meta.learned ? (
             <span className={styles.learned}>
@@ -313,7 +317,10 @@ function MemoryEditor({
   onGone: () => void;
 }) {
   const toast = useToast();
-  const [draft, setDraft] = useState(memory?.text ?? "");
+  // Stored about the person and shown to them (F4), by the rule the phones'
+  // editor uses: the field holds the person's form and a save writes the
+  // stored one.
+  const [draft, setDraft] = useState(() => (memory ? shownText(memory.text) : ""));
   const [kind, setKind] = useState<MemoryKindId>(firstKind);
   const [refused, setRefused] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -327,19 +334,20 @@ function MemoryEditor({
   }, []);
 
   const words = draft.replace(/\s+/g, " ").trim();
-  const severs = memory?.origin === "answered" && words !== memory.text;
+  const text = storedText(memory?.text ?? null, draft);
+  const severs = memory?.origin === "answered" && text !== memory.text;
 
   const save = async (): Promise<void> => {
     if (!words || busy) return;
-    if (memory && words === memory.text && kind === memory.kind) return onClose();
+    if (memory && text === memory.text && kind === memory.kind) return onClose();
     setBusy(true);
     const result = memory
       ? await changeMemory(memory.id, {
           // A change that makes a rule carries its words: the server refuses one without.
-          ...(words !== memory.text || (kind === "rules" && kind !== memory.kind) ? { text: words } : {}),
+          ...(text !== memory.text || (kind === "rules" && kind !== memory.kind) ? { text } : {}),
           ...(kind !== memory.kind ? { kind } : {}),
         })
-      : await addMemory(words, kind);
+      : await addMemory(text, kind);
     setBusy(false);
     if (result.kind === "ok") return onSaved(memory ? MEMORY_COPY.saved : MEMORY_COPY.remembered);
     if (result.kind === "refused") return setRefused(memoryRefusal(result.error));

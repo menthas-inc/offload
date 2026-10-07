@@ -16,6 +16,8 @@ A thread is grouped by labels a person can see, name and correct, and by nothing
 
 **A person's label writes** (make, rename, recolour, delete, apply, remove) are drawn first and written second with the eight-second Undo: a set, a rename or a recolour is undone by the same write backwards through the same checks; a delete is soft for thirty days and restored by id. **offload's live labelling** (`label_content`: apply by id, make one only when its name is in the words of the message being filed, remove when asked) sits inside 004's whole-turn Undo. **The nightly sort**, built and switched off for now by the owner (`NIGHTLY_LABEL_SORT` false in `jobs/handlers.ts`, so no job is booked), creates and applies labels only, never removes, renames, recolours or deletes, and is on the list as compaction is (2026-09-10): automatic, on an offload-owned surface, destroying nothing, with no toast and so no eight seconds, and undone instead from its Activity row for thirty days. All three are enforced in `threads/labels.ts`, the one write path: a label and a row meet only inside one thread the caller is in, who set it comes from the route and never the request, and offload is refused anything a person set, took off, renamed, recoloured or deleted.
 
+**As built:** the nightly sort shipped 2026-09-27, switched off the same day, deleted by 032 on 2026-10-02 with its job, worker, prompt, endpoint, switch and evals. What stays is the live-turn labelling, whose `labelled` Activity row keeps its Undo.
+
 **Design system impact:** none here.
 
 ### 2026-09-27 · Activity gains its first action, and a record one member undoes for all

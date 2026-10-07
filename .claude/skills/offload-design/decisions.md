@@ -11,6 +11,47 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-07 · The landing page says no "things"
+**Surface:** web, marketing site
+**Raised by:** code, the repo sweep of 2026-10-07 (product lane), against CLAUDE.md's vocabulary.
+
+**Was:** the landing story as the kit draws it: "one for each thing you are keeping track of", the kicker "Getting things in", and "Related things gather in one thread."
+
+**Is:** "one for each trip, plan or job you are keeping track of", "Getting it in", and "What belongs together gathers in one thread." Nothing else on the page moved.
+
+**Why:** in anything a person reads there is no noun for what they put in; the marketing site was the last place it was said.
+
+**Design system impact:** `ui_kits/marketing_site/landing.js` and `explorations/landing-core.js`: the same three lines, reworded as above. `explorations/onboarding-screens.js`: "Related things gather in one thread." only.
+
+### 2026-10-07 · Asked again: first run's last screen, alone
+**Surface:** iOS, Android, web
+**Raised by:** code, the repo sweep of 2026-10-07 (S20, the owner's call): when the privacy policy, the terms or the companies list moves, an account that agreed to an older version is asked again.
+
+**Was:** no state for it. First run's last screen (the two consent ticks) was only ever reached from first run, and no kit draws the consent step at all (the 2026-09 entry's fourth first-run screen is still to draw).
+
+**Is:**
+- The same screen, alone: no carousel, no Bring it in, and the section head promoted to the page title.
+- One line above the ticks says the terms or the privacy policy changed, linking both.
+- A name is asked for on the same screen when the account has none, as first run does.
+- A quiet secondary, *Take a copy or delete your account*, opens the account settings without agreeing first, because the terms promise both to someone who does not agree.
+- The failure line under Continue is *That did not go through. Try again.* on both clients, shared, where the phones said *Check your connection and try again.*: the phone cannot tell a dropped connection from a refusal, and offload never diagnoses itself.
+
+**Why:** the policy promised a notice before a material change and nothing gave one; asking in the app is the notice, and the screen people already agreed on is the one they recognise.
+
+**Design system impact:** `ui_kits/mobile_app/FirstRun.jsx`, `android_app/M3FirstRun.jsx` and `web_app/WFirstRunGate.jsx`: the consent step, then its asked-again state with the title swap, the changed line with its two links, and the quiet secondary. The failure line's words wherever the kits draw it.
+
+### 2026-10-07 · Memories speak to the person they are about
+**Surface:** iOS, Android, web
+**Raised by:** code, the repo sweep of 2026-10-07 (F4, the owner's call: rewrite on display, algorithmically, no model).
+
+**Was:** an account memory read as stored, in the third person: *They are allergic to penicillin.*, shown to that same person.
+
+**Is:** every account memory is shown in the second person on the list, the map's cards and labels, the editor and search: *You are allergic to penicillin.* The memory is still stored as the memory pass writes it, and an edit or a typed memory is saved back in that form, so a memory typed as *I'm allergic to penicillin.* shows as *You're allergic to penicillin.* too. A thread's notes are untouched. The object *them* is left as it is, since in these sentences it is usually somebody else.
+
+**Why:** a person reading facts about themselves as if about someone else.
+
+**Design system impact:** `ui_kits/memories_tab/memories.js` and the 2026-10-05 and 2026-10-06 entries' examples: every memory sentence in the second person.
+
 ### 2026-10-07 · PDFs: the paperclip, page 1 on the tile, and a third row in the photo sheet
 **Surface:** iOS, Android, web
 **Raised by:** code, spec 041, building PDFs from the composer, the share sheet and forwarded mail, checked in the browser and on an iOS simulator.
@@ -75,12 +116,14 @@ the new truth, and the design system is updated to match on the next sync.
 - **A row's meta has two more forms**, *You added* for one typed in the tab and *You changed* for one changed there, matching the editor's lines.
 - **Map marks off screen are not drawn on either surface**, so tabbing never lands on one nobody can see; the list holds everything and is the accessible view.
 - **The editor** says the severing line under the field before Save, and a refusal in the same place in danger; a failed save keeps it open with the toast's Retry. The new memory's rule line is plain, not *rule* in bold.
+- **The web's forget is a toast with Undo**, with no confirmation, where a thread's delete on the web is an inline confirm row (`panes/MyThreads.tsx`). A memory is one sentence and comes back with Undo; a thread is everything in it. (Logged 2026-10-07 by the sweep: 040's review listed it as logged and it was not.)
+- **The List | Map switch draws `map`**, where 030's switch on a thread (`components/map/MapFrame.tsx`) draws `map-pin`. Two switches on the web now disagree; `map` is the one to keep, since the pane shows a map of meaning and not of places, and MapFrame is the one to change. (Logged 2026-10-07 by the sweep.)
 - **On the phones** the title sizes (30 semibold, 24 regular on Android) are typed inline as other screens type them; Android's fills are the M3 container tokens Edit thread uses; the field focuses in `DragSheet`'s `onOpen`; the pan starts 24pt in from both side edges so the system's edge swipes stay the system's; marks far off screen are not drawn, as the kit culls them.
 - **Dark** screens the ground (0.08) and the clouds (0.6) onto the paper instead of multiplying them (owner, 2026-10-06). On the phones the clouds come out fainter than on the web, and the kind labels' ink is mixed toward the light text. The owner judges the screenshots; the designer confirms or redraws.
 
 **Why:** each one is a place the drawing met a real number of memories, a real keyboard, a real composer or a real touch system.
 
-**Design system impact:** `ui_kits/memories_tab/memories.js`: `CLT`, `CLW` and `SUBT` give way to a computed world (`memoryWorld` with kind places and the canvas's aspect), memories placed as a network inside each cloud, each pill sized and clamped by `pillShape`, no sub-clouds, swipe at 88, the plus on the empty state, the cap line, the severing line. `readme.md`, The Memories tab: the map's layout paragraph says the kinds are placed from their extent and a card takes one or two lines at its words' own width. A dark drawing of the map to confirm or replace the screen blend.
+**Design system impact:** `ui_kits/memories_tab/memories.js`: `CLT`, `CLW` and `SUBT` give way to a computed world (`memoryWorld` with kind places and the canvas's aspect), memories placed as a network inside each cloud, each pill sized and clamped by `pillShape`, no sub-clouds, swipe at 88, the plus on the empty state, the cap line, the severing line; forget as a toast with Undo, no confirm; the List | Map switch glyph `map`, and 030's thread switch redrawn to match. `readme.md`, The Memories tab: the map's layout paragraph says the kinds are placed from their extent and a card takes one or two lines at its words' own width. A dark drawing of the map to confirm or replace the screen blend.
 
 ### 2026-10-06 · The Memories tab
 **Surface:** iOS, Android, web

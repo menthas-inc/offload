@@ -61,16 +61,21 @@ export async function decideLink(accountId: string): Promise<GateVerdict> {
   // that flow exists this fails closed instead, which is stricter than the
   // flow it stands in for. A staff member who loses a provider is unblocked by
   // another admin, not by a self-service link.
-  // forUpdate, because this is a check-then-act and the act happens in Better
-  // Auth's insert afterwards. Without the lock, two provider callbacks landing
-  // together both read "no identity yet" and both link, which is the exact
-  // escalation this guard exists to prevent.
+  // This read is what turns a refusal into one the gate can explain. It does
+  // not close the race: Better Auth runs this hook and its insert as separate
+  // statements, so no lock taken here would still be held when the insert
+  // runs. The database holds the rest, partly: 0007's trigger on
+  // account_identities refuses a staff account a second identity once one has
+  // committed, and 0075's mirror on staff refuses staff to an account that has
+  // two. Two first identities landing in the same instant are not serialised:
+  // the trigger's check runs under READ COMMITTED, cannot see the other's
+  // uncommitted row, and nothing makes account_id unique, so both can commit.
+  // Closing that is held for a migration.
   const alreadyHasIdentity = await db
     .selectFrom("staff")
     .innerJoin("account_identities", "account_identities.account_id", "staff.account_id")
     .select("staff.account_id")
     .where("staff.account_id", "=", account.id)
-    .forUpdate()
     .executeTakeFirst();
 
   if (alreadyHasIdentity)

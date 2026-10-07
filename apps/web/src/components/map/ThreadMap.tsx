@@ -45,6 +45,7 @@ import {
 } from "@offload/widgets";
 import type { Theme } from "../../lib/appearance";
 import { MAP_ID, MAPS_KEY } from "../../lib/map-view";
+import { useReducedMotion } from "../../lib/reduced-motion";
 import type { Point } from "../../lib/threads";
 import { Callout } from "./Callout";
 import { kindWord, PointDot } from "./Point";
@@ -75,9 +76,6 @@ const SCHEME: Record<Theme, ColorScheme> = {
 /** The opening fit's padding, from the exploration: 28 at the sides, 70 at the
  *  top for the chips, 40 above the foot. */
 const PADDING = { top: 70, right: 28, bottom: 40, left: 28 };
-
-/** Read once: a camera that moves for a pick jumps instead of gliding. */
-const REDUCED = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
 /** The label colours as Google's circle needs them, values rather than
  *  variables: index 0 the ink of no label. Read once per theme. */
@@ -165,6 +163,13 @@ function Drawn({
 }: ThreadMapProps & { zoom: number | null; onFit: (zoom: number) => void }) {
   const map = useMap();
   const fitted = useRef(false);
+  // Under reduced motion a camera that moves for a pick jumps instead of
+  // gliding. A ref, so the preference changing does not move the map.
+  const prefersReduced = useReducedMotion();
+  const reduced = useRef(prefersReduced);
+  useEffect(() => {
+    reduced.current = prefersReduced;
+  }, [prefersReduced]);
   const colours = useMemo(labelColours, [theme]);
 
   const shown = useMemo(() => points.filter((p) => pointPasses(p, pick)), [points, pick]);
@@ -213,7 +218,7 @@ function Drawn({
     const camera = { center: { lat: center.lat(), lng: center.lng() }, zoom };
     const { dx, dy } = calloutPan(screenOf(p, camera, view), view);
     if (!dx && !dy) return;
-    if (REDUCED) map.moveCamera({ center: panned(camera, dx, dy) });
+    if (reduced.current) map.moveCamera({ center: panned(camera, dx, dy) });
     else map.panBy(dx, dy);
   }, [map, selected]);
 

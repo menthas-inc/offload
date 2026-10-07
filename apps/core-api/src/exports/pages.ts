@@ -4,6 +4,8 @@
 // text. A link is a link only when it is http or https. The same rows are in
 // `data.json` for a program; these are for a person.
 
+import { dayIn, describeRule, parseRule } from "@offload/widgets";
+
 export interface CopyFile {
   /** Path inside the archive: `files/<blob id>.<ext>`. An id, never a name. */
   path: string;
@@ -23,6 +25,9 @@ export interface CopyRow {
   dueAt: string | null;
   occursAt: string | null;
   occursEndAt: string | null;
+  /** That it comes round again, as its RFC 5545 rule, anchored on
+   *  `occursAt` for an event and `dueAt` for everything else. */
+  rrule?: string | null;
   addedAt: string;
   /** Who added it. Null when that account is gone. */
   author: string | null;
@@ -35,6 +40,11 @@ export interface CopyNote {
   body: string | null;
   author: string | null;
   addedAt: string;
+  /** A note can come round again too: its rule, anchored on whichever of the
+   *  two dates it has. */
+  occursAt?: string | null;
+  dueAt?: string | null;
+  rrule?: string | null;
 }
 
 export interface CopyThread {
@@ -130,6 +140,18 @@ function files(list: CopyFile[], root: string): string {
     .join("");
 }
 
+/** A row's or a note's rule in the words the thread page uses, anchored on
+ *  its day in the reader's zone: an event's on when it happens, a row's on when
+ *  it is due, a note's on whichever date it has. Nothing for one that does not
+ *  repeat or a rule the grammar does not read: the date beside it is still true
+ *  of the first. */
+function repeats(item: CopyRow | CopyNote, timeZone: string): string | null {
+  const anchor = "type" in item ? (item.type === "event" ? item.occursAt : item.dueAt) : (item.occursAt ?? item.dueAt);
+  if (!item.rrule || !anchor) return null;
+  const parsed = parseRule(item.rrule);
+  return parsed.ok ? esc(describeRule(parsed.rule, dayIn(new Date(anchor), timeZone), "en-GB")) : null;
+}
+
 const by = (author: string | null): string => `Added by ${author === null ? "someone who has gone" : esc(author)}`;
 
 export function indexPage(copy: Copy): string {
@@ -161,6 +183,7 @@ export function threadPage(thread: CopyThread, timeZone: string): string {
           .map(
             (note) =>
               `<article><p>${esc(note.text)}</p>${note.body ? `<p>${esc(note.body)}</p>` : ""}` +
+              (repeats(note, timeZone) ? `<p class="quiet">${repeats(note, timeZone)}</p>` : "") +
               (thread.shared ? `<p class="quiet">${by(note.author)}</p>` : "") +
               `</article>`,
           )
@@ -170,6 +193,7 @@ export function threadPage(thread: CopyThread, timeZone: string): string {
       const facts = [
         row.occursAt ? `On ${when(row.occursAt, timeZone)}${row.occursEndAt ? ` to ${when(row.occursEndAt, timeZone)}` : ""}` : null,
         row.dueAt ? `Due ${when(row.dueAt, timeZone)}` : null,
+        repeats(row, timeZone),
         row.location ? esc(row.location) : null,
         row.done ? "Done" : null,
         row.archived ? "Archived" : null,

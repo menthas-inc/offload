@@ -2,6 +2,8 @@
 // kinds in the order the tab draws them, their hue and glyph, the caps, and
 // the map's pitches. One module, so three clients never type them three times.
 
+import { toSecondPerson } from "./voice.js";
+
 export type MemoryKindId = "people" | "things" | "about" | "rules" | "patterns";
 
 export interface MemoryKindInfo {
@@ -208,9 +210,11 @@ export function memorySections(memories: MemoryView[], sort: "kind" | "new", now
   ].filter((section) => section.rows.length > 0);
 }
 
+/** Search, by the words a memory is read in (F4, spoken to the person) as
+ *  well as the words it is stored in, so `your` finds *Their sister is Sara.* */
 export function matchesMemory(memory: MemoryView, query: string): boolean {
   const q = query.trim().toLowerCase();
-  return !q || memory.text.toLowerCase().includes(q);
+  return !q || memory.text.toLowerCase().includes(q) || toSecondPerson(memory.text).toLowerCase().includes(q);
 }
 
 /** The line under the field when an add or a change is refused. */

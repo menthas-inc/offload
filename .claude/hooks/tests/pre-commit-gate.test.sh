@@ -26,5 +26,32 @@ check "failing suite" 2 "FAIL src/thing.test.ts > breaks" 1
 check "failing suite names its log" 2 "full output:" 1
 check "passing suite" 0 "pre-commit gate" 0
 
+# A gate that cannot block is worse than none. On 2026-10-07, with Docker down,
+# the suite failed 138 files and the commit went through: the summary's
+# `grep | head -40` under pipefail and errexit took a broken pipe once the
+# matching lines outgrew the pipe buffer, the script exited 141 before its
+# `exit 2`, and only 2 blocks. A failure that matches no pattern did the same
+# through grep's exit 1.
+check_cmd() {
+  local name="$1" cmd="$2" out code
+  out="$(cd "$tmp" && printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$tmp" PROJECT_TEST_CMD="$cmd" bash "$gate" 2>&1 >/dev/null)"; code=$?
+  if [ "$code" != 2 ]; then echo "FAIL $name: exit $code, wanted 2"; fails=$((fails+1)); fi
+  if [ "${#out}" -gt "$limit" ]; then echo "FAIL $name: ${#out} bytes on stderr, limit $limit"; fails=$((fails+1)); fi
+}
+check_cmd "a failure with more matching lines than a pipe holds" \
+  'python3 -c "import sys; [print(\"Error: connect ECONNREFUSED 127.0.0.1:4710 line %d\" % i) for i in range(20000)]; sys.exit(1)"'
+check_cmd "a failure that matches no pattern" 'python3 -c "import sys; print(\"boom\"); sys.exit(1)"'
+
+# The harness's own tests live outside every workspace, so `pnpm test` never ran
+# them: the board, the sweep's trigger and workflows, and the specs' as-built
+# checks (sweep, 2026-10-07). A failing one blocks like a failing suite.
+mkdir -p "$tmp/.claude/scripts" "$tmp/docs/specs"
+printf 'import unittest\nclass T(unittest.TestCase):\n    def test_x(self):\n        self.fail("harness py breaks")\nunittest.main()\n' > "$tmp/.claude/scripts/test_broken.py"
+check "failing harness python test" 2 "harness tests failed" 0
+rm "$tmp/.claude/scripts/test_broken.py"
+printf 'import { test } from "node:test";\nimport assert from "node:assert";\ntest("spec", () => assert.fail("harness js breaks"));\n' > "$tmp/docs/specs/broken.test.mjs"
+check "failing harness node test" 2 "harness tests failed" 0
+rm "$tmp/docs/specs/broken.test.mjs"
+
 [ "$fails" = 0 ] && echo "pre-commit-gate: all passed"
 exit "$fails"

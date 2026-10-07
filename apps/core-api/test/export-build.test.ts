@@ -402,6 +402,43 @@ describe("the archive", () => {
     expect(page).toContain("Added by Sam Ibekwe");
     expect(page).toContain("Added by someone who has gone");
   });
+
+  it("keeps a repeating row repeating: the rule rides in data.json beside its date", async () => {
+    // Sweep 2026-10-07, S3. Without it a weekly yoga class came back as one date.
+    const ana = await person("Ana Duarte");
+    const yoga = await row(ana.id, ana.defaultThreadId, "Yoga", {
+      type: "event",
+      occurs_at: sql`'2026-10-06T18:00:00Z'::timestamptz`,
+      rrule: "FREQ=WEEKLY;BYDAY=TU",
+    });
+    const once = await row(ana.id, ana.defaultThreadId, "Dentist", { type: "event", occurs_at: sql`'2026-10-09T09:00:00Z'::timestamptz` });
+    await db
+      .insertInto("notes")
+      .values({
+        account_id: ana.id,
+        scope: "thread",
+        subject_id: ana.defaultThreadId,
+        kind: "going_on",
+        text: "Bins go out",
+        origin: "stated",
+        occurs_at: sql`'2026-10-08T07:00:00Z'::timestamptz`,
+        rrule: "FREQ=WEEKLY;BYDAY=WE",
+      })
+      .execute();
+    await buildCopy(await asked(ana));
+    const files = await unzip(ana.id);
+    const data = JSON.parse(files.get("data.json")!.toString()) as {
+      threads: {
+        rows: { id: string; occursAt: string | null; rrule?: string | null }[];
+        notes: { text: string; occursAt?: string | null; rrule?: string | null }[];
+      }[];
+    };
+    const rows = data.threads.flatMap((thread) => thread.rows);
+    expect(rows.find((entry) => entry.id === yoga)).toMatchObject({ occursAt: "2026-10-06T18:00:00.000Z", rrule: "FREQ=WEEKLY;BYDAY=TU" });
+    expect(rows.find((entry) => entry.id === once)!.rrule).toBeNull();
+    const bins = data.threads.flatMap((thread) => thread.notes).find((note) => note.text === "Bins go out");
+    expect(bins).toMatchObject({ occursAt: "2026-10-08T07:00:00.000Z", rrule: "FREQ=WEEKLY;BYDAY=WE" });
+  });
 });
 
 describe("how the copy is kept", () => {

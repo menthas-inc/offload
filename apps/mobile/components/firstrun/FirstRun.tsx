@@ -20,7 +20,7 @@ import { useCalendars } from "../../lib/calendars";
 import { deviceZone } from "../../lib/clock";
 import { afterYou, backFrom, bringCards, firstStep, type Card, type NotificationOffer, type Step } from "../../lib/firstRun";
 import { BEFORE, BRING } from "../../lib/gate";
-import { saveName, useMe } from "../../lib/me";
+import { giveConsent, saveName, useMe } from "../../lib/me";
 import { register } from "../../lib/notifications";
 import { ToastHost, useToast } from "../shell/Toast";
 import { BeforeYouStart } from "./BeforeYouStart";
@@ -36,6 +36,8 @@ export function FirstRun({ tone, replay = false }: { tone: Tone; replay?: boolea
 
   const [step, setStep] = useState<Step | null>(null);
   const [nameOnly, setNameOnly] = useState(false);
+  const [again, setAgain] = useState(false);
+  const [askName, setAskName] = useState(true);
   const [name, setName] = useState("");
   const [readPolicy, setReadPolicy] = useState(false);
   const [agreeToProcessing, setAgreeToProcessing] = useState(false);
@@ -65,7 +67,12 @@ export function FirstRun({ tone, replay = false }: { tone: Tone; replay?: boolea
     if (!me || opened.current) return;
     opened.current = true;
     const only = !replay && !me.needsFirstRun;
-    setNameOnly(only);
+    // The policy or the terms moved since they agreed: first run's last
+    // screen, the ticks alone, and never the whole of first run again.
+    const asked = only && me.needsConsent;
+    setAgain(asked);
+    setAskName(!asked || me.needsName);
+    setNameOnly(only && !asked);
     setStep(firstStep({ replay, nameOnly: only }));
     // The suggestion, not the name: `displayName` is null for everybody who
     // reaches first run, `suggestedName` is what the provider said.
@@ -81,28 +88,33 @@ export function FirstRun({ tone, replay = false }: { tone: Tone; replay?: boolea
   // while the write is in flight.
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      const next = backFrom(step ?? "intro", { nameOnly, working });
+      // Asked again has no intro behind it to go back to.
+      const next = backFrom(step ?? "intro", { nameOnly: nameOnly || again, working });
       if (next === "intro") setStep("intro");
       else if (next === "today") router.replace("/today");
       return next !== "system";
     });
     return () => sub.remove();
-  }, [step, nameOnly, working, router]);
+  }, [step, nameOnly, again, working, router]);
 
   async function onContinue() {
     if (working) return;
     setWorking(true);
     setFailed(false);
-    const recorded = nameOnly
-      ? (await saveName(name.trim())) !== null
-      : // The write first, checked. Today is never drawn for an account the
-        // server still considers mid first run, and a refusal stays here.
-        await completeOnboarding(name.trim(), deviceZone());
+    const recorded = again
+      ? (!askName || (await saveName(name.trim())) !== null) && (await giveConsent())
+      : nameOnly
+        ? (await saveName(name.trim())) !== null
+        : // The write first, checked. Today is never drawn for an account the
+          // server still considers mid first run, and a refusal stays here.
+          await completeOnboarding(name.trim(), deviceZone());
     if (!recorded) {
       setWorking(false);
       setFailed(true);
       return;
     }
+    // Already active, so nothing more to offer: straight to Today.
+    if (again) return today();
     if (nameOnly) return today();
     // The account is active now. A phone that already allows notifications
     // has no card to press, and its launch registration was refused while
@@ -143,6 +155,8 @@ export function FirstRun({ tone, replay = false }: { tone: Tone; replay?: boolea
         ) : step === "you" ? (
           <BeforeYouStart
             tone={tone}
+            again={again}
+            askName={askName}
             nameOnly={nameOnly}
             name={name}
             onName={setName}
@@ -153,6 +167,8 @@ export function FirstRun({ tone, replay = false }: { tone: Tone; replay?: boolea
             working={working}
             failed={failed}
             onContinue={() => void onContinue()}
+            // Pushed over the question, so Back comes back to it unanswered.
+            onWayOut={() => router.push("/settings/account")}
           />
         ) : (
           <BringItIn

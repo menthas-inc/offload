@@ -27,6 +27,10 @@ export const GATE = {
     legal: { terms: "Terms", privacy: "Privacy" },
   },
   refused: "That did not go through. Nothing was sent, try again.",
+  // First run's and the consent's, beside Continue. What happened, never
+  // why: the phone cannot tell a dropped network from a refusal. The web
+  // holds it as FAILED in `components/firstrun/copy.ts`.
+  failed: "That did not go through. Try again.",
   notInvited: {
     title: "You are not on the list yet",
     sub: (email: string) => `We checked ${email} and found no invite.`,
@@ -163,6 +167,23 @@ export const CONSENT = {
   note: "We do not recommend sharing passwords, card numbers or government IDs in any AI tool.",
 } as const;
 
+/** Above the two ticks when an active account is asked again, because the
+ *  privacy policy or the terms moved. Both words link. The web holds the same
+ *  in `components/firstrun/copy.ts`. */
+export const RECONSENT = {
+  before: "We have changed the ",
+  terms: "terms",
+  middle: " or the ",
+  policy: "privacy policy",
+  after: ".",
+} as const;
+
+/** Under the ticks when asked again, and only then: the terms say whoever does
+ *  not agree can take a copy and delete their account, so the screen offers
+ *  the way to both without agreeing first. The web holds the same in
+ *  `components/firstrun/copy.ts`. */
+export const WAY_OUT = "Take a copy or delete your account";
+
 /** 033. The intro: one screen, three scenes that play themselves. Each title
  *  and line is read as one live announcement, so they are written to stand
  *  alone. The web repeats them in `components/firstrun/copy.ts`. */
@@ -227,6 +248,9 @@ export const INTRO_WAYS = {
  *  run asks. The consent's own words are `CONSENT`, below. */
 export const BEFORE = {
   title: "Before you start",
+  // Asked again: an account that has used offload for weeks is not starting.
+  // One title whether the name is asked with the ticks or not.
+  again: "Before you go on",
   name: "What should we call you?",
   agree: "What you are agreeing to",
   next: "Continue",

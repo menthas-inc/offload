@@ -1,7 +1,7 @@
 // 028. What is not in a thread, from a phone.
 //
 // Stored in the account's default thread, which is never drawn as a thread:
-// what it holds is drawn as things, sorted by what they are, newest first,
+// what it holds is drawn as content rows, sorted by what they are, newest first,
 // each with at most one suggestion of where it could go. The server resolves
 // the default thread from the session, so nothing here ever names its id.
 //
@@ -9,41 +9,15 @@
 // a test can see them: which chips show, what the All link says, the meta
 // line, the count in words, the name a create will take.
 
-import { noonUtc } from "@offload/widgets";
+import { chipOf, countInWords, noonUtc, type ChipKey, type Face, type Suggestion, type ThreadRef } from "@offload/widgets";
 import { send } from "./api";
 import { withPlaceId, type ContentRow, type Note } from "./threads";
 
+// The chip table and the words a suggestion says are shared with the web.
+export { chipOf, countInWords, sharedHint, suggestionName } from "@offload/widgets";
+export type { ChipKey, Face, Suggestion, ThreadRef } from "@offload/widgets";
+
 // ------------------------------------------------------------------ types
-
-export type ChipKey = "todo" | "link" | "photo" | "note" | "event" | "place" | "voice" | "file";
-
-export interface Face {
-  accountId: string;
-  initials: string;
-  displayName: string;
-}
-
-/** One button under a row. The thread's or the proposal's name is the
- *  server's current reading, so a rename since draws the new name. */
-/** 037. A thread as a chip and a toast name it. */
-export interface ThreadRef {
-  id: string;
-  name: string;
-  icon: string;
-  hue: number;
-}
-
-export type Suggestion =
-  | {
-      id: string;
-      kind: "move";
-      thread: ThreadRef;
-      /** At most two other members, empty when the thread is not shared. */
-      faces: Face[];
-      /** How many more beyond the faces. */
-      more: number;
-    }
-  | { id: string; kind: "create"; proposal: { id: string; name: string; count: number } };
 
 export type LooseEntry =
   | { kind: "content"; row: ContentRow; suggestion: Suggestion | null }
@@ -65,7 +39,7 @@ export interface LoosePage extends LooseSummary {
 export interface Proposal {
   id: string;
   name: string;
-  /** Every still-loose thing of the proposal, each without its suggestion. */
+  /** Everything of the proposal still loose, each without its suggestion. */
   entries: LooseEntry[];
 }
 
@@ -83,21 +57,6 @@ export const CHIPS: { key: ChipKey; label: string; singular: string; glyph: stri
   { key: "voice", label: "Voice notes", singular: "Voice note", glyph: "mic" },
   { key: "file", label: "Files", singular: "File", glyph: "paperclip" },
 ];
-
-const CHIP_OF_TYPE: Record<string, ChipKey> = {
-  task: "todo",
-  link: "link",
-  image: "photo",
-  screenshot: "photo",
-  event: "event",
-  location: "place",
-  voice: "voice",
-  file: "file",
-};
-
-export function chipOf(entry: LooseEntry): ChipKey | null {
-  return entry.kind === "note" ? "note" : (CHIP_OF_TYPE[entry.row.type] ?? null);
-}
 
 /** The chips to draw: none unless two types or more are present. */
 export function chipsFor(byType: Partial<Record<ChipKey, number>>): ((typeof CHIPS)[number] & { count: number })[] {
@@ -166,7 +125,7 @@ export function titleOf(entry: LooseEntry): string {
   return entry.kind === "note" ? entry.note.text : entry.row.title;
 }
 
-/** A note, as the row the list draws for it: the kit draws every loose thing
+/** A note, as the row the list draws for it: the kit draws everything loose
  *  as one kind of row, a tile, a title and the meta, so a note takes the
  *  content row's shape under its own type. Nothing in the default thread is
  *  shared, so it is the person's own; the server still decides. No labels:
@@ -221,37 +180,15 @@ function dateOf(day: string): string {
 
 // ------------------------------------------------------------ suggestions
 
-/** The button's accessible name is the action; the name inside it is a
- *  label and hidden from assistive tech. */
-export function suggestionName(suggestion: Suggestion, title: string): string {
-  return suggestion.kind === "move"
-    ? `Move ${title} to ${suggestion.thread.name}`
-    : `Create ${suggestion.proposal.name} and move ${suggestion.proposal.count} into it`;
-}
-
 /** Who will see it: two initials marks at most, then the rest as *+N*. */
 export function facesOf(suggestion: Extract<Suggestion, { kind: "move" }>): { faces: Face[]; more: string | null } {
   return { faces: suggestion.faces.slice(0, 2), more: suggestion.more > 0 ? `+${suggestion.more}` : null };
-}
-
-/** The marks are hidden from a screen reader, which hears this instead. */
-export function sharedHint(suggestion: Extract<Suggestion, { kind: "move" }>): string | undefined {
-  const names = suggestion.faces.slice(0, 2).map((face) => face.displayName);
-  if (names.length === 0) return undefined;
-  return suggestion.more > 0 ? `Shared with ${names.join(", ")} and ${suggestion.more} more` : `Shared with ${names.join(" and ")}`;
 }
 
 export const movedCopy = (thread: string): string => `Moved to ${thread}`;
 export const duplicateCopy = (thread: string): string => `That's already in ${thread}`;
 
 // ------------------------------------------------------------ create sheet
-
-const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
-
-/** *two* to *ten*, which is every size a proposal can be. */
-export function countInWords(n: number): string {
-  return WORDS[n] ?? String(n);
-}
 
 export function createLine(count: number): string {
   return `These ${countInWords(count)} look like they belong together.`;
@@ -358,7 +295,7 @@ export async function dismissSuggestion(id: string): Promise<boolean> {
   return status === 200;
 }
 
-/** Make the thread and move the ticked things into it. Keys are `keyOf`'s. */
+/** Make the thread and move the ticked entries into it. Keys are `keyOf`'s. */
 export async function createFromProposal(
   id: string,
   name: string,

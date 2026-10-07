@@ -484,3 +484,10 @@ export {
 } from "./thread-icons.js";
 export type { ThreadDraft, ThreadIconColors, ThreadIconWords, ThreadLook } from "./thread-icons.js";
 export * from "./memories.js";
+
+// F4. An account memory, spoken to the person it is about and stored about them.
+export { shownText, storedText, toSecondPerson, toThirdPerson } from "./voice.js";
+
+// 028. Not in a thread: the chip table and the words a suggestion says.
+export { chipOf, countInWords, sharedHint, suggestionName } from "./loose.js";
+export type { ChipEntry, ChipKey, Face, Suggestion, ThreadRef } from "./loose.js";

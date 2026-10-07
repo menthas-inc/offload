@@ -39,6 +39,7 @@
 // No parallax. Under reduced motion it is the pinned picture, exactly.
 
 import { useEffect, useRef } from "react";
+import { useReducedMotion } from "../lib/reduced-motion";
 import styles from "./atmosphere.module.css";
 
 // A full-screen triangle. No geometry, no matrices: the fragment shader is the
@@ -97,10 +98,6 @@ function pageColour(): [number, number, number] {
   if (!hex) return [1, 1, 1];
   const digits = hex[1]!.length === 3 ? [...hex[1]!].map((d) => d + d) : hex[1]!.match(/../g)!;
   return digits.map((pair) => parseInt(pair, 16) / 255) as [number, number, number];
-}
-
-function reducedMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /** The film in scroll mode is drawn at 0.6 of a CSS pixel whatever the
@@ -182,13 +179,14 @@ export function Atmosphere({ mode = "drift" }: { mode?: "drift" | "pinned" | "sc
   /** A pinned atmosphere is a still one, for the same reason reduced motion is:
    *  both want the picture without anything that repaints it. */
   const still = pinned;
+  const reduced = useReducedMotion();
 
   // The pointer parallax. Two loops on purpose: the pointer writes a target and
   // the frame eases towards it, so a fast flick across the page drags the stack
   // rather than teleporting it.
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || still || scroll || reducedMotion()) return;
+    if (!root || still || scroll || reduced) return;
 
     const flares = [...root.querySelectorAll<HTMLElement>("[data-flare]")];
     const target = { x: 0, y: 0 };
@@ -222,11 +220,18 @@ export function Atmosphere({ mode = "drift" }: { mode?: "drift" | "pinned" | "sc
     };
 
     window.addEventListener("pointermove", wake);
+    // Back to rest when the loop stops, so turning reduced motion on does not
+    // leave the stack parked where the pointer last pushed it, and a later run
+    // starts from where its own `eased` does.
     return () => {
       window.removeEventListener("pointermove", wake);
       cancelAnimationFrame(frame);
+      for (const flare of flares) {
+        flare.style.removeProperty("--fx");
+        flare.style.removeProperty("--fy");
+      }
     };
-  }, [still, scroll]);
+  }, [still, scroll, reduced]);
 
   // The prism shader.
   useEffect(() => {
@@ -250,13 +255,13 @@ export function Atmosphere({ mode = "drift" }: { mode?: "drift" | "pinned" | "sc
     // from what was already on screen, and each redraw pushes the canvas back
     // through its filter. The timer sets the rate and the frame keeps the draw
     // on the browser's own schedule, so nothing is drawn into a hidden tab.
-    const reduced = still || reducedMotion();
+    const fixed = still || reduced;
     const start = performance.now();
     let frame = 0;
     let timer = 0;
     const draw = (now: number) => {
-      film.draw(reduced ? 40 : (now - start) / 1000, 0.25, 0, 1);
-      if (!reduced) timer = window.setTimeout(() => (frame = requestAnimationFrame(draw)), SHADER_INTERVAL_MS);
+      film.draw(fixed ? 40 : (now - start) / 1000, 0.25, 0, 1);
+      if (!fixed) timer = window.setTimeout(() => (frame = requestAnimationFrame(draw)), SHADER_INTERVAL_MS);
     };
     frame = requestAnimationFrame(draw);
 
@@ -265,7 +270,7 @@ export function Atmosphere({ mode = "drift" }: { mode?: "drift" | "pinned" | "sc
       window.clearTimeout(timer);
       cancelAnimationFrame(frame);
     };
-  }, [still, scroll]);
+  }, [still, scroll, reduced]);
 
   // Scroll mode: the mark, its film and the clouds, placed by how far the
   // window has scrolled. One loop, woken by the scroll and by a ten-a-second
@@ -281,11 +286,14 @@ export function Atmosphere({ mode = "drift" }: { mode?: "drift" | "pinned" | "sc
     if (!root || !canvas || !mark || !filmBox || !clouds) return;
 
     const film = prism(canvas);
-    const reduced = reducedMotion();
 
     // Reduced motion is the pinned picture: no zoom and no clock. The styles
-    // already draw the mark where pinned does, so one draw is all there is.
+    // already draw the mark where pinned does, so one draw is all there is,
+    // once whatever the scroll wrote is taken off again.
     if (reduced) {
+      for (const property of ["transform", "opacity"]) mark.style.removeProperty(property);
+      for (const property of ["-webkit-mask-size", "mask-size", "-webkit-mask-position", "mask-position", "opacity"]) filmBox.style.removeProperty(property);
+      clouds.style.removeProperty("opacity");
       const once = () => {
         film?.size(SCROLL_FILM_SCALE);
         film?.draw(40, 0.25, 0, 1);
@@ -384,7 +392,7 @@ export function Atmosphere({ mode = "drift" }: { mode?: "drift" | "pinned" | "sc
       window.clearTimeout(timer);
       cancelAnimationFrame(frame);
     };
-  }, [mode]);
+  }, [mode, reduced]);
 
   if (scroll) {
     return (

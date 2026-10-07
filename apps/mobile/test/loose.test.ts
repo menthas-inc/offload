@@ -143,8 +143,8 @@ describe("T3.5 suggestions", () => {
   const create = { id: "s2", kind: "create" as const, proposal: { id: "p1", name: "Kitchen shelves", count: 3 } };
 
   it("names the action, never the thread as a link", () => {
-    expect(loose.suggestionName(move, "Boiler service receipt")).toBe("Move Boiler service receipt to Flat admin");
-    expect(loose.suggestionName(create, "Oak brackets")).toBe("Create Kitchen shelves and move 3 into it");
+    expect(loose.suggestionName("Boiler service receipt", move)).toBe("Move Boiler service receipt to Flat admin");
+    expect(loose.suggestionName("Oak brackets", create)).toBe("Create Kitchen shelves and move 3 into it");
   });
 
   it("draws two faces at most, then the rest as a count", () => {

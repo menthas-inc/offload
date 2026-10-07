@@ -50,6 +50,12 @@ case "$commits" in
       local msg="$1"; shift
       echo "== $*" >> "$log"
       if ! eval "$@" >> "$log" 2>&1; then
+        # The summary is best effort and never decides the exit. Under pipefail
+        # and errexit, `grep | head` dies of a broken pipe once the matches
+        # outgrow the pipe buffer (141), and grep with no match exits 1; either
+        # ended the script before `exit 2`, and only 2 blocks, so a loud failure
+        # committed (2026-10-07, Docker down). Tested by the gate's test.
+        set +e +o pipefail
         {
           echo "$msg"
           echo "failing lines (first 40):"
@@ -82,6 +88,21 @@ case "$commits" in
       for check in dead-classes dead-css dead-icons; do
         step "BLOCKED by pre-commit gate: $check found something." node ".claude/scripts/$check.mjs"
       done
+    fi
+    # The harness's own tests sit outside every workspace, so `pnpm test` never
+    # ran them, and the sweep of 2026-10-07 found three that nothing ran: the
+    # board's, the sweep's trigger and workflows, the specs' as-built checks.
+    harness=""
+    for f in .claude/scripts/test_*.py; do
+      if [ -f "$f" ]; then harness="$harness python3 '$f' &&"; fi
+    done
+    js=""
+    for f in .claude/workflows/*.test.mjs docs/specs/*.test.mjs; do
+      if [ -f "$f" ]; then js="$js '$f'"; fi
+    done
+    if [ -n "$js" ]; then harness="$harness node --test $js &&"; fi
+    if [ -n "$harness" ]; then
+      step "BLOCKED by pre-commit gate: harness tests failed." "$harness true"
     fi
     # The agent plane has no package.json, so `pnpm lint` never sees it and CI's
     # `ruff check` was the first gate to. Six pushes in a row went red on ruff

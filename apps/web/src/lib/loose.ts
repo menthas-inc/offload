@@ -6,39 +6,16 @@
 // loose.ts and loose/read.ts. "Loose" is the code's word only; nothing a
 // person reads says it.
 
+import { chipOf, type ChipKey, type Suggestion, type ThreadRef } from "@offload/widgets";
 import type { ContentPage, ContentRow, Note } from "./threads";
+
+// The chip table and the words a suggestion says are shared with the phones.
+export { chipOf, countInWords, sharedHint, suggestionName } from "@offload/widgets";
+export type { ChipKey, Face, Suggestion, ThreadRef } from "@offload/widgets";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 const send = { credentials: "include" as const };
 const json = { credentials: "include" as const, headers: { "content-type": "application/json" } };
-
-export type ChipKey = "todo" | "link" | "photo" | "note" | "event" | "place" | "voice" | "file";
-
-export interface Face {
-  accountId: string;
-  initials: string;
-  displayName: string;
-}
-
-/** 037. A thread as a chip and a toast name it. */
-export interface ThreadRef {
-  id: string;
-  name: string;
-  icon: string;
-  hue: number;
-}
-
-export type Suggestion =
-  | {
-      id: string;
-      kind: "move";
-      thread: ThreadRef;
-      /** At most two of the thread's other members, empty when it is not
-       *  shared, then how many more. */
-      faces: Face[];
-      more: number;
-    }
-  | { id: string; kind: "create"; proposal: { id: string; name: string; count: number } };
 
 export type LooseEntry =
   | { kind: "content"; row: ContentRow; suggestion: Suggestion | null }
@@ -96,23 +73,6 @@ export const CHIPS: ChipInfo[] = [
 const CHIP = new Map(CHIPS.map((chip) => [chip.key, chip]));
 export const chipInfo = (key: ChipKey): ChipInfo => CHIP.get(key)!;
 
-const OF_TYPE: Record<string, ChipKey> = {
-  task: "todo",
-  link: "link",
-  image: "photo",
-  screenshot: "photo",
-  event: "event",
-  location: "place",
-  voice: "voice",
-  file: "file",
-};
-
-/** Which chip an entry is under. A type this table does not know is under
- *  none, as on the phones, rather than counted as a file it is not. */
-export function chipOf(entry: LooseEntry): ChipKey | null {
-  return entry.kind === "note" ? "note" : (OF_TYPE[entry.row.type] ?? null);
-}
-
 /** The chips drawn after All: only the types present, and none at all unless
  *  two are. */
 export function chipsShown(byType: ByType): ChipKey[] {
@@ -123,14 +83,6 @@ export function chipsShown(byType: ByType): ChipKey[] {
 /** *All 14*, or *All 5 links* with a chip on. */
 export function allLabel(count: number, chip: ChipKey | null): string {
   return chip ? `All ${count} ${chipInfo(chip).plural}` : `All ${count}`;
-}
-
-const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
-
-/** *These three look like they belong together.* A proposal holds two to
- *  ten. */
-export function countInWords(n: number): string {
-  return WORDS[n] ?? String(n);
 }
 
 export function entryTitle(entry: LooseEntry): string {
@@ -144,21 +96,6 @@ export function entryId(entry: LooseEntry): string {
 /** Unique across both tables. */
 export function entryKey(entry: LooseEntry): string {
   return `${entry.kind}:${entryId(entry)}`;
-}
-
-/** The suggestion button's accessible name: the action, never the label. */
-export function suggestionName(title: string, suggestion: Suggestion): string {
-  return suggestion.kind === "move"
-    ? `Move ${title} to ${suggestion.thread.name}`
-    : `Create ${suggestion.proposal.name} and move ${suggestion.proposal.count} into it`;
-}
-
-/** Who will see it, for a move into a shared thread: the faces are hidden
- *  from assistive tech, which hears this instead. The phones' words. */
-export function sharedHint(suggestion: Extract<Suggestion, { kind: "move" }>): string | undefined {
-  const names = suggestion.faces.slice(0, 2).map((face) => face.displayName);
-  if (names.length === 0) return undefined;
-  return suggestion.more > 0 ? `Shared with ${names.join(", ")} and ${suggestion.more} more` : `Shared with ${names.join(" and ")}`;
 }
 
 export const THREAD_NAME_CHARS = 60;
