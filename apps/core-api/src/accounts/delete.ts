@@ -8,6 +8,9 @@
 //     that goes with the account goes;
 //   - a thread nobody else is in is deleted, since nothing else would;
 //   - what refers to the account without a foreign key is removed by name;
+//   - a row in somebody else's Activity that names them goes, since the
+//     cascade takes or clears the mention, request or membership that links
+//     the row to them and leaves the row;
 //   - a calendar grant is kept, sealed and nameless, until Google has taken it
 //     back;
 //   - a photo nothing references any more is put on the purge clock.
@@ -25,6 +28,7 @@ import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { codeAttemptHmac } from "../admin/review-codes.js";
 import { attemptHmac } from "../routes/waitlist.js";
 import { deleteNotesForThread } from "../threads/notes.js";
+import { purgeNaming } from "../notifications/activity.js";
 import { uuidv7 } from "../uuid.js";
 
 /** The admin panel needs somebody who can open it. */
@@ -108,6 +112,11 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
       .where("mine.account_id", "=", accountId)
       .where("mine.state", "=", "accepted")
       .execute();
+    // Every row in somebody else's Activity that names them. Most name them only
+    // through a mention, a request or a membership, which the cascade takes or
+    // clears and leaves the row, so these go by name while the link is there.
+    // After the threads, which leaving locks before it purges, and in id order.
+    await purgeNaming(accountId, trx);
     const gone: string[] = [];
     let unopened = 0;
     for (const membership of memberships) {

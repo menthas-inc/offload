@@ -27,8 +27,16 @@ import {
   threadPage,
   type Copy,
   type CopyFile,
+  type CopyNote,
+  type CopyRow,
   type CopyThread,
 } from "./pages.js";
+
+/** Sweep 2026-10-07, S3. That a row comes round again, as its RFC 5545 rule,
+ *  anchored on `occursAt` for an event and `dueAt` for everything else. In
+ *  data.json for a program; without it a weekly class came back as one date.
+ *  A thread's note carries the dates its rule is anchored on as well. */
+type Repeats = { rrule: string | null };
 
 /** 038. A memory's origin, as the person reads it. */
 const HOW = { stated: "you asked", answered: "you answered", learned: "offload learned" } as const;
@@ -137,6 +145,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
           "c.due_at",
           "c.occurs_at",
           "c.occurs_end_at",
+          "c.rrule",
           "c.created_at",
           "accounts.display_name",
         ])
@@ -160,7 +169,17 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
       const threadNotes = await trx
         .selectFrom("readable_notes as n")
         .leftJoin("accounts", "accounts.id", "n.account_id")
-        .select(["n.subject_id", "n.account_id", "n.text", "n.body", "n.created_at", "accounts.display_name"])
+        .select([
+          "n.subject_id",
+          "n.account_id",
+          "n.text",
+          "n.body",
+          "n.occurs_at",
+          "n.due_at",
+          "n.rrule",
+          "n.created_at",
+          "accounts.display_name",
+        ])
         .where("n.viewer_account_id", "=", accountId)
         .where("n.deleted_at", "is", null)
         .where("n.superseded_at", "is", null)
@@ -305,13 +324,16 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
             shared: others.length > 0,
             members: others.map((member) => member.display_name ?? "Someone"),
             labels: (labelsOf.get(thread.id) ?? []).map((label) => label.name),
-            notes: (notesOf.get(thread.id) ?? []).map((note) => ({
+            notes: (notesOf.get(thread.id) ?? []).map((note): CopyNote & Repeats & { occursAt: string | null; dueAt: string | null } => ({
               text: note.text,
               body: note.body,
               author: author(note),
               addedAt: note.created_at.toISOString(),
+              occursAt: iso(note.occurs_at),
+              dueAt: iso(note.due_at),
+              rrule: note.rrule,
             })),
-            rows: (rowsOf.get(thread.id) ?? []).map((row) => ({
+            rows: (rowsOf.get(thread.id) ?? []).map((row): CopyRow & Repeats => ({
               id: row.id,
               type: row.type,
               title: row.title,
@@ -323,6 +345,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
               dueAt: iso(row.due_at),
               occursAt: iso(row.occurs_at),
               occursEndAt: iso(row.occurs_end_at),
+              rrule: row.rrule,
               addedAt: row.created_at.toISOString(),
               author: author(row),
               labels: (rowLabelsOf.get(row.id) ?? []).flatMap((pair) => labelName.get(pair.label_id) ?? []),

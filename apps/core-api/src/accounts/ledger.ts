@@ -71,6 +71,9 @@ export const ACCOUNT_LEDGER: Record<string, Entry> = {
   "pending_shares.target_account_id": cascade,
   "activity.account_id": cascade,
   "activity.about_account_id": cascade,
+  // The cascade takes the mention, not the row it named, and a request's or a
+  // membership's set-null leaves a row that names them in its words: those
+  // rows are removed by the delete's `purgeNaming` step first.
   "activity_mentions.about_account_id": cascade,
 
   // Threads. The membership and the key go; what was added to a thread other

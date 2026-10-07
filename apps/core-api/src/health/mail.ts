@@ -86,7 +86,14 @@ const CHECKED = new Set(["web", "database"]);
 
 const PAUSED = "This is the tenth alert today, so alerts are paused until tomorrow.";
 
-function conditionWords(condition: string, cleared: boolean): { headline: string; body: string } {
+/** Where a condition's button goes, when somewhere says more than Health. */
+interface ConditionWords {
+  headline: string;
+  body: string;
+  button?: { label: string; path: string };
+}
+
+function conditionWords(condition: string, cleared: boolean): ConditionWords {
   const [name, detail = ""] = condition.split(/:(.*)/s);
   if (name === "platform_cap") {
     return {
@@ -112,6 +119,19 @@ function conditionWords(condition: string, cleared: boolean): { headline: string
   }
   if (name === "backup_late") {
     return { headline: "The backup is late", body: "No backup has finished in the last 26 hours." };
+  }
+  if (name === "review_code_old") {
+    // The codes are a section of the Waitlist page (039), so the button goes
+    // there rather than to Health, which only says the condition is open.
+    const button = { label: "Open Waitlist", path: "/admin/waitlist" };
+    if (cleared) {
+      return { headline: "No old review code is live", body: "None made more than two weeks ago can let anybody in now.", button };
+    }
+    return {
+      headline: "A review code is two weeks old",
+      body: "At least one review code made more than two weeks ago can still let somebody in. Revoke any the review is done with.",
+      button,
+    };
   }
   return { headline: "Something needs a look", body: "Health has the detail." };
 }
@@ -147,8 +167,8 @@ export function renderAlert(payload: AlertPayload, actor: Actor | null): { subje
       slots: {
         headline: words.headline,
         body: payload.state === "paused" ? `${words.body} ${PAUSED}` : words.body,
-        buttonLabel: "Open Health",
-        buttonUrl: `${env.WEB_URL}/admin/health?range=24h`,
+        buttonLabel: words.button?.label ?? "Open Health",
+        buttonUrl: `${env.WEB_URL}${words.button?.path ?? "/admin/health?range=24h"}`,
         footer,
       },
     };

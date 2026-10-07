@@ -44,8 +44,9 @@ does only what a cascade cannot. The full ledger:
 `lookups`, `people_lookups`, `connector_connections` (and `connector_secrets`,
 `connector_calendars`), `connector_events`, `connector_pending_writes`,
 `thread_calendars`, `connections`, `connection_requests`, `blocks`,
-`pending_shares` (both columns), `push_tokens`, `activity` (both columns, so
-entries about the person leave other people's feeds), `activity_mentions`,
+`pending_shares` (both columns), `push_tokens`, `activity` (both columns: the
+person's own feed, and a row in someone else's whose `about_account_id` is
+them), `activity_mentions` (the mention, not the row it named),
 `today_put_offs`, `thread_proposals`, `suggestions`, `exports` (new).
 
 **Set null by the row (kept, authorless):** `content.account_id`,
@@ -63,7 +64,17 @@ entries about the person leave other people's feeds), `activity_mentions`,
 | `notes` of account scope (and their `note_chunks`, `note_labels`) | delete before the row goes, or `SET NULL` leaves them ownerless and unreadable |
 | `analytics_events.subject_id` | delete every row for `accounts.analytics_subject_id` (the table is the outbox; what has shipped is the privacy page's "kept, but detached"); the pseudonym itself goes with the row, which is the shred 001 asks for |
 | `waitlist_attempts.email_hmac` | delete the rows for the address's HMAC |
+| `review_code_attempts.email_hmac` | delete the rows for the address's HMAC under the review code limiter's key (039) |
+| `activity` rows in other people's feeds that name the person through a mention, a connection request from or to them, or a membership that is theirs or that they invited (a share they sent, an invite to them that expired) | `purgeNaming` in `src/notifications/activity.ts` deletes them while the mention, request and membership still exist; the cascade would take the mention or clear the link and leave the row |
 | `connector_connections.external_account_email` | goes with its row |
+
+*Amended 2026-10-07 by the sweep.* The ledger above once had the `activity`
+cascade emptying other people's feeds of the person, and it does not: a row
+names somebody through `about_account_id` only sometimes, and otherwise
+through a mention, whose foreign key takes the mention and leaves the row, or
+in its words, through the request or the membership it was written about. The
+`purgeNaming` step is what keeps the feature spec's "every entry about them in
+other people's" true, and `review_code_attempts` came with 039.
 
 The list is `src/accounts/ledger.ts`, with a fate per column.
 
@@ -88,7 +99,16 @@ One transaction:
    `google.revoke`, deletes the row on success or on Google's 400 (already
    dead), books itself again in an hour while any row is left, and drops a row
    unrevoked at 7 days (AC-7).
-4. **Thread keys.** For each thread where the account is an accepted member
+4. **Thread keys.** The threads the account is an accepted member of are
+   locked first, in id order, as accepting a share and taking somebody out
+   lock them, and the memberships counted. Then, before any key moves or any
+   thread goes, `purgeNaming(accountId, trx)` locks every `activity` row that
+   names the account (its own, by `about_account_id`, by a mention, by a
+   connection request from or to it, or by a membership that is its own or
+   that it invited), in id order so two deletes that name each other wait in
+   turn, and deletes every one of them that is in somebody else's feed. The
+   account's own go with the row. *Amended 2026-10-07 by the sweep.*
+   For each thread where the account is an accepted member
    and another accepted member exists: `threadKey(trx, id)` to read the key,
    then `wrapForMembersWithout`. If no accepted member holds a copy and the
    account does, unwrap from the account's copy first. Only then may the

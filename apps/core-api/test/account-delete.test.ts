@@ -23,6 +23,9 @@ import { env } from "../src/env.js";
 import { buildApp, type App } from "../src/app.js";
 import { MemoryMailer } from "../src/mail/mailer.js";
 import { complete } from "../src/jobs/queue.js";
+import { record } from "../src/notifications/activity.js";
+import { notifyPerson } from "../src/notifications/people.js";
+import { sweepPeople } from "../src/people/people.js";
 
 await migrate(() => {});
 
@@ -212,6 +215,122 @@ describe("deleting an account", () => {
     const said = await db.selectFrom("analytics_events").select(["subject_id", "properties"]).where("name", "=", "account_deleted").execute();
     expect(said).toHaveLength(1);
     expect(said[0]!.subject_id).toBeNull();
+  });
+
+  it("takes the digest rows that name it out of other people's Activity", async () => {
+    const ana = await person("Ana");
+    const ben = await person("Ben");
+    const lisbon = await thread("Lisbon", ana.id, ben.id);
+    // A digest carries no thread or person in its own columns, only mentions.
+    const digest = await record(ben.id, {
+      kind: "digest",
+      sent: true,
+      title: "Lisbon",
+      body: "Ana: book flights",
+      mentions: [{ threadId: lisbon, aboutAccountId: ana.id }],
+    });
+    const own = await record(ben.id, { kind: "digest", sent: true, title: "Lisbon", body: "Ben: pack", mentions: [{ threadId: lisbon, aboutAccountId: ben.id }] });
+
+    await deleteAccount(ana.id);
+
+    const left = await db.selectFrom("activity").select("id").where("account_id", "=", ben.id).execute();
+    expect(left.map((one) => one.id)).not.toContain(digest);
+    expect(left.map((one) => one.id)).toContain(own);
+  });
+
+  // 035: every entry about them in other people's Activity goes. A row can
+  // name somebody by its own column, by a mention, or only in its words, with
+  // the link to them held by a request or a membership; this writes each kind
+  // through the code that writes it in the product.
+  it("leaves no row in anybody else's Activity that names it, whatever the kind", async () => {
+    // Kinds that can name another person, and kinds that only ever name the
+    // account's own rows. A new kind fails here until it is placed.
+    const naming = ["digest", "request", "share", "shared_activity", "expired"];
+    const ownOnly = ["moved", "acted", "labelled", "mail", "export"];
+    const check = await sql<{ def: string }>`
+      select pg_get_constraintdef(oid) as def from pg_constraint where conname = 'activity_kind_check'
+    `.execute(db);
+    const kinds = [...check.rows[0]!.def.matchAll(/'([a-z_]+)'/g)].map((match) => match[1]).sort();
+    expect(kinds).toEqual([...naming, ...ownOnly].sort());
+
+    const ana = await person("Anouk");
+    const ben = await person("Ben");
+    const lisbon = await thread("Lisbon", ana.id);
+    const porto = await thread("Porto", ben.id);
+
+    // request: Anouk asks Ben, and Ben is told.
+    const asked = await db.insertInto("connection_requests").values({ from_account_id: ana.id, to_account_id: ben.id }).returning("id").executeTakeFirstOrThrow();
+    await notifyPerson({ kind: "request", requestId: asked.id });
+    // share: Anouk shares Lisbon, Ben is told, and accepts.
+    const invite = await db
+      .insertInto("thread_members")
+      .values({ thread_id: lisbon, account_id: ben.id, state: "pending", invited_by: ana.id, expires_at: sql`now() + interval '30 days'` })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await notifyPerson({ kind: "share", memberId: invite.id });
+    await db.updateTable("thread_members").set({ state: "accepted", responded_at: sql`now()` }).where("id", "=", invite.id).execute();
+    // expired: Ben's request to Anouk and his invite to Porto go unanswered.
+    await db.insertInto("connection_requests").values({ from_account_id: ben.id, to_account_id: ana.id, expires_at: sql`now() - interval '1 minute'` }).execute();
+    await db
+      .insertInto("thread_members")
+      .values({ thread_id: porto, account_id: ana.id, state: "pending", invited_by: ben.id, expires_at: sql`now() - interval '1 minute'` })
+      .execute();
+    await sweepPeople();
+    // digest and shared_activity: what Anouk added, in Ben's record.
+    await record(ben.id, { kind: "digest", sent: true, title: "Lisbon", body: "Anouk: book flights", mentions: [{ threadId: lisbon, aboutAccountId: ana.id }] });
+    await record(ben.id, { kind: "shared_activity", sent: true, title: "Anouk added one to Lisbon", body: "Book flights", threadId: lisbon, aboutAccountId: ana.id });
+    // Ben's own, which stays.
+    const own = await record(ben.id, { kind: "digest", sent: true, title: "Lisbon", body: "Pack", mentions: [{ threadId: lisbon, aboutAccountId: ben.id }] });
+
+    const written = await db.selectFrom("activity").select("kind").where("account_id", "=", ben.id).execute();
+    expect(written.map((one) => one.kind).sort()).toEqual(["digest", "digest", "expired", "expired", "request", "share", "shared_activity"]);
+
+    await deleteAccount(ana.id);
+
+    const left = await db.selectFrom("activity").select(["id", "kind", "title", "body"]).execute();
+    expect(left.filter((one) => `${one.title} ${one.body ?? ""}`.includes("Anouk"))).toEqual([]);
+    expect(left.map((one) => one.id)).toEqual([own]);
+  });
+
+  // Two people who share no thread have no thread lock to put their deletes in
+  // order. Each has a row in the other's Activity that its own delete takes,
+  // and a row of its own that its cascade takes. Locked in one order, the
+  // second waits; in two, Postgres aborts one of them. A row about the other
+  // by its column alone is the one the owner's delete would reach only at the
+  // cascade. (A request names both people, so both deletes reach it by name
+  // and it orders them by itself.)
+  it("deletes two people who name each other at the same time", async () => {
+    const ana = await person("Anouk");
+    const ben = await person("Ben");
+    await record(ben.id, { kind: "shared_activity", sent: true, title: "Anouk added one", body: null, aboutAccountId: ana.id });
+    await record(ana.id, { kind: "shared_activity", sent: true, title: "Ben added one", body: null, aboutAccountId: ben.id });
+
+    // Both deletes held at a step after the Activity purge and before the
+    // cascade, the limiter's table, so they meet there whatever the timing.
+    let release!: () => void;
+    const released = new Promise<void>((resolve) => (release = resolve));
+    let locked!: () => void;
+    const isLocked = new Promise<void>((resolve) => (locked = resolve));
+    const holding = db.transaction().execute(async (trx) => {
+      await sql`lock table waitlist_attempts in exclusive mode`.execute(trx);
+      locked();
+      await released;
+    });
+    await isLocked;
+    const deleting = Promise.allSettled([deleteAccount(ana.id), deleteAccount(ben.id)]);
+    const waiting = async () =>
+      Number(
+        (await sql<{ n: string }>`select count(*) as n from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock'`.execute(db))
+          .rows[0]!.n,
+      );
+    for (let tries = 0; tries < 250 && (await waiting()) < 2; tries += 1) await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(await waiting()).toBe(2);
+    release();
+    await holding;
+
+    const outcomes = await deleting;
+    expect(outcomes.map((one) => (one.status === "rejected" ? String(one.reason) : "deleted"))).toEqual(["deleted", "deleted"]);
+    expect(await db.selectFrom("activity").select("id").execute()).toEqual([]);
   });
 
   it("refuses the last staff owner, and lets one of two go", async () => {
