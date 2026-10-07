@@ -152,6 +152,8 @@ describe("the privacy page says what happens to an email you forward (T6.1)", ()
     const version = /export const CONSENT_VERSION = "(\d{4}-\d{2}-\d{2})";/.exec(session);
     expect(updated && version).toBeTruthy();
     const day = new Date(`${updated![2]} ${updated![1]}, ${updated![3]} 12:00 UTC`).toISOString().slice(0, 10);
-    expect(day).toBe(version![1]);
+    // 041: the version is never later than the page, which a change that only
+    // names something already covered moves alone.
+    expect(version![1] <= day).toBe(true);
   });
 });

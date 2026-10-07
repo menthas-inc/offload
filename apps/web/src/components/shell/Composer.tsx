@@ -70,6 +70,7 @@ import { SHARE_LINE, answerShare, fetchPeople, nameOf, type Person } from "../..
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import { Icon } from "../Icon";
 import { TurnFooter, type TurnSource } from "./TurnFooter";
+import { Thinking } from "./Thinking";
 import { AnswerResults } from "./AnswerResult";
 import { Reply } from "./Reply";
 import { isRich, plainText } from "@offload/markup";
@@ -1269,7 +1270,7 @@ export function Composer({
                   : ""}
           </p>
 
-          {waiting ? <Working step={step} since={inFlight?.since ?? null} onStop={stop} /> : null}
+          {waiting ? <Thinking step={step} since={inFlight?.since ?? null} onStop={stop} /> : null}
         </div>
       ) : null}
 
@@ -1658,90 +1659,5 @@ function Waiting({
         </button>
       </span>
     </span>
-  );
-}
-
-/** How long a turn runs before it is worth saying anything about it. 017.
- *
- *  Under this, the three dots are the honest answer: a line appearing and being
- *  replaced twice inside a second is noise, and most turns finish here.
- *
- *  **Not the same number as the way out.** Saying what it is doing is
- *  reassurance and comes early; offering to stop is an admission this is taking
- *  too long and comes later. One number for both would either delay the
- *  reassurance or offer the escape to somebody who did not need it. */
-const SAY_AFTER_MS = 2500;
-
-/** When the way out appears. The product owner's number. */
-const STOP_AFTER_MS = 10_000;
-
-/** What offload is doing, and past ten seconds a way to stop it.
- *
- *  **Both live where the three dots already were**, at the foot of the log,
- *  because the alternative is a toast and a toast takes the only control away
- *  with it when it clears. This has no mock; the divergence is logged.
- *
- *  It re-renders on a clock rather than on the step, because the two thresholds
- *  are times and nothing else moves them: a turn can sit on one line for eight
- *  seconds and the way out still has to arrive. */
-function Working({
-  step,
-  since,
-  onStop,
-}: {
-  step: string | null;
-  since: number | null;
-  onStop: () => void;
-}) {
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    if (since === null) return;
-    setElapsed(Date.now() - since);
-    // Half a second. Fine enough that neither threshold lands visibly late,
-    // coarse enough not to be a render loop on a page that is waiting.
-    const timer = setInterval(() => setElapsed(Date.now() - since), 500);
-    return () => clearInterval(timer);
-  }, [since]);
-
-  const line = elapsed >= SAY_AFTER_MS ? step : null;
-  const canStop = elapsed >= STOP_AFTER_MS;
-
-  // **Falls back to the dots, not to a filler sentence.** A turn with no step is
-  // a turn that is thinking rather than looking something up, and inventing a
-  // line for it would be offload narrating itself.
-  if (!line && !canStop) {
-    return (
-      <div className={styles.writing} aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles.working}>
-      {line ? (
-        // The line replaces itself rather than stacking. The log's own live
-        // region announces the turn's transitions, so this one is scoped to the
-        // sentence and polite.
-        <p className={styles.workingStep} aria-live="polite">
-          {line}
-        </p>
-      ) : (
-        <div className={styles.writing} aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-      )}
-
-      {canStop ? (
-        <button type="button" className={styles.retry} onClick={onStop}>
-          Stop
-        </button>
-      ) : null}
-    </div>
   );
 }

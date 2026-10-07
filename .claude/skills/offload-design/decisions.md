@@ -31,6 +31,30 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Design system impact:** `ThreadWidgets.jsx` and `M3ThreadWidgets.jsx` `FileTile`: a PDF is page 1 cropped from the top, `paperclip` as the fallback, and `data.js` f4 and f7 gain a preview; `FilesWidget` is earned by a PDF. `Composer.jsx` and `M3Composer.jsx` `AttachChip`: a `kind` prop, `paperclip`, a middle clip. `LiveConversation.jsx` and `M3LiveConversation.jsx` `SentPhoto`: the same for a PDF. Both mobile kits owe the photo sheet with three rows (the 2026-09-21 entry owed two). `WMisc.jsx` `WComposer`: `paperclip`, Add a photo or PDF. readme.md's failure lines gain the six above.
 
+### 2026-10-07 · The thinking row as built
+**Surface:** iOS, Android, web
+**Raised by:** the build of the thinking row on `feat/thinking-row`, against `handoff/APPLY-2026-10-07-thinking.md` and `ui_kits/thinking_row/`.
+
+**Was:** the kit's row, with `role="status"` and its own label on web, a 2px margin before Stop on top of the 10px gap (12 in all), and the 3px blur on the phrase change everywhere.
+
+**Is:** as the handoff, with these differences. **Stop sits 8px after the phrase**, the handoff's number, not the kit's 12; from the mark alone it keeps the row's 10. **The web row carries no status role of its own**: the conversation already has a region that says *offload is thinking* for the whole turn, so the row adds only the phrase, in a polite region that is always in the document so its first phrase is read. **On the phones the label sits on the mark, not the row**, because a row made one accessible element hid Stop from VoiceOver; iOS has no live regions, so each phrase is announced there. **The phones leave out the blur**: the phrase fades and moves 3px. **The web's text scales** with the larger-text setting (`--type-scale`) and the pill takes `min-height`, so neither clips. **Stop on Android** is Material's on-surface (`a-on`) for the square and the word; its outline stays `--ink-400` as the handoff asks, the one ramp in a phone component. **Reduced motion on web has its own rule** for the row: the global rule only collapses durations, which would land the dot on its hidden 100% frame. The worker no longer writes *Looking through your threads* at all, so a turn that looks nothing up is the mark alone.
+
+**Why:** each is something the build or its review found that the mock cannot show: a screen reader, a text size, a platform's colour scope, a looping mark under reduced motion.
+
+**Design system impact:** `ui_kits/thinking_row/index.html` should drop the `margin-left:2px` on `.stop` when there is no phrase and the `role="status"` on the row; readme's **The thinking row** can say the blur is web only; `tokens/motion.css` could give looping marks a resting-state hook so a component needs no reduced-motion rule of its own. No token change.
+
+### 2026-10-07 · The thinking row
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, off `explorations/thinking.html` and `explorations/thinking-drop.html`, read from `Conversation.tsx` on `main` at `60d4e15`. Handoff: `handoff/APPLY-2026-10-07-thinking.md`.
+
+**Was:** three dots in a bubble under 2.5 seconds, then the step line in 13.5px secondary (the worker's *Looking through your threads* first), and from ten seconds *Stop* as accent text.
+
+**Is:** one row, no bubble: the **Splash** drop, the mark animated in ink over 3.2 seconds, from the turn's start; the model's thinking phrase beside it as soon as one exists, each replacing the last; and from ten seconds a **Stop pill**, 30px outlined with an ink square. The 2.5 second wait for the line goes: the animation says working from the first frame, and the phrase is shown when it arrives.
+
+**Considered and not taken:** nine other animations (Hover, Gather, Thin film, Stack, Weave, Filing, Lasso, Prism type, Orbit) and six other landings of the drop (Sink, Ripple, Merge, Catch, Bounce, Fill). Stop as a round icon button, and Stop on the composer's send button.
+
+**Design system impact:** `readme.md` gains **The thinking row**, and **Loading** names it as the one exception to the single spinner. New kit `ui_kits/thinking_row/`. No new tokens or glyphs. Code: `Working` and `Writing` in `Conversation.tsx` and the web's conversation; the worker may stop writing *Looking through your threads* as a first step.
+
 ### 2026-10-06 · The Memories tab as built
 **Surface:** iOS, Android, web
 **Raised by:** code, spec 040, building the tab from `ui_kits/memories_tab/` and `handoff/APPLY-2026-10-06-memories.md`, checked in the browser on the web and on an iOS simulator.

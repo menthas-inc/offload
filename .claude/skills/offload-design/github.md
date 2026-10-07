@@ -4,6 +4,20 @@ path:
 
 ## Last sync
 
+date: 2026-10-07T17:09:24Z
+
+Read `main` at `60d4e15` for the thinking row: `Conversation.tsx` (`Working`, `Writing`) and the web conversation.
+Taken into the repository on `feat/thinking-row` with only the thinking row's files; the same bundle's Memories
+work is carried by `feat/040-memories-tab`.
+
+### Updated in this project
+
+- **The thinking row**: Splash and a Stop pill; `handoff/APPLY-2026-10-07-thinking.md`, `ui_kits/thinking_row/`, `handoff/thinking-standalone.html`
+
+## Sync history
+
+### 2026-10-04T14:22:22Z
+
 date: 2026-10-04T14:22:22Z
 
 Read `main` for the landing page: `apps/web/src/app/(marketing)/page.tsx`, `page.module.css`, `components/Screen.tsx`,
@@ -57,6 +71,7 @@ shared log, with this project's thread marks entry kept), and read `apps/web/src
 | First run | `explorations/onboarding-v2.html`, `handoff/APPLY-2026-10-03-onboarding.md` | `apps/mobile/components/screens/Welcome.ios.tsx`, `Welcome.android.tsx`, `apps/mobile/lib/gate.ts`, `apps/mobile/components/TutorialArt.tsx`, `ConsentTicks.tsx`, `ConnectStep.tsx`, `GateBackdrop.tsx`, `apps/web/src/components/FirstRun.tsx` |
 | Settings | `explorations/settings-v2.html`, `handoff/APPLY-2026-10-02-settings.md` | `apps/mobile/app/settings/`, `apps/mobile/components/settings/`, `apps/mobile/components/people/PeoplePage.tsx`, `apps/mobile/lib/sessions.ts`, `apps/web/src/components/panes/Settings.tsx`, `SettingsRows.tsx`, `Account.tsx`, `DateTime.tsx`, `Appearance.tsx` |
 | Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/` |
+| Thinking row | `ui_kits/thinking_row/`, `explorations/thinking-drop.html`, `handoff/APPLY-2026-10-07-thinking.md` | `apps/mobile/components/shell/Conversation.tsx` (`Working`, `Writing`), the web conversation |
 | Landing page, invite email | `ui_kits/marketing_site/`, `explorations/landing-scroll.html`, `handoff/APPLY-2026-10-04-landing.md` | `apps/web/src/app/(marketing)/`, `apps/web/src/components/Screen.tsx`, `Atmosphere.tsx` |
 | Design tokens | `styles.css`, `tokens/` | `packages/tokens/`, generated from `.claude/skills/offload-design/tokens` |
 | Components | `components/` | `packages/widgets/`, `apps/mobile/components/` |

@@ -1,0 +1,82 @@
+<!-- @dsCard group="Conversation" viewport="760x620" name="Thinking row" subtitle="Splash, the phrase, and the Stop pill" -->
+<!doctype html><html data-theme="light" lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thinking row</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+body{margin:0;background:var(--surface-sunken);color:var(--text-primary);font:var(--text-body-role);padding:20px}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.pl{display:inline-flex;gap:2px;padding:3px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline),var(--shadow-2)}
+.pl button{height:32px;padding:0 14px;border-radius:99px;border:0;background:transparent;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pl button.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.pl em{font-style:normal;align-self:center;padding:0 8px 0 10px;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px;max-width:900px}
+@media (max-width:640px){.cols{grid-template-columns:minmax(0,1fr)}}
+.big{height:220px;border-radius:18px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline);display:flex;align-items:center;justify-content:center}
+.big .an{zoom:5}
+.cv{border-radius:18px;overflow:hidden;background:var(--surface-plate);box-shadow:inset 0 0 0 1px var(--border-hairline);display:flex;flex-direction:column}
+.tr{display:flex;flex-direction:column;gap:14px;padding:22px 20px 16px;min-height:170px;box-sizing:border-box;justify-content:flex-end}
+.you{align-self:flex-end;max-width:84%;padding:10px 16px;border:1px solid var(--blue-100);background:var(--blue-50);border-radius:16px 16px 4px 16px;font:var(--weight-regular) 15px/22px var(--font-core);color:var(--ink-950)}
+.wk{display:flex;align-items:center;gap:10px;min-height:30px;align-self:flex-start;max-width:100%}
+.ph{display:grid;font:var(--weight-regular) 13.5px/1.3 var(--font-core);color:var(--text-secondary);min-width:0}
+.ph:empty{display:none}
+.ph span{grid-area:1/1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .35s var(--ease-out),filter .35s var(--ease-out),transform .35s var(--ease-out)}
+.ph span.out{opacity:0;filter:blur(3px);transform:translateY(-3px)}.ph span.in{opacity:0;filter:blur(3px);transform:translateY(3px)}
+.stop{display:none;align-items:center;gap:7px;height:30px;padding:0 12px 0 11px;border:0;border-radius:99px;background:transparent;box-shadow:inset 0 0 0 1px var(--border-strong);font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-primary);cursor:pointer;margin-left:2px;position:relative;animation:stin .3s var(--ease-out)}
+.stop:after{content:"";position:absolute;inset:-7px 0}
+.stop i{display:block;width:7px;height:7px;border-radius:2px;background:currentColor}
+.stop:hover{background:var(--state-hover)}
+.wk.can .stop{display:inline-flex}
+@keyframes stin{from{opacity:0;transform:scale(.8)}}
+.cmp{margin:0 14px 14px;height:48px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-strong);display:flex;align-items:center;padding:0 18px;font:var(--weight-regular) 16px/1 var(--font-core);color:var(--text-tertiary)}
+.spec{max-width:900px;margin:18px 0 0;padding-left:18px;font:var(--weight-regular) 13.5px/1.6 var(--font-core);color:var(--text-secondary)}.spec b{color:var(--text-primary);font-weight:500}
+/* Splash, 3.2s */
+.an{display:block;width:22px;height:22px;color:var(--text-primary)}
+.an svg{display:block;overflow:visible}.an *{transform-box:fill-box}
+.an .d{transform-origin:50% 50%;animation:sp-d 3.2s infinite}
+.an .v{transform-origin:50% 100%;animation:sp-v 3.2s infinite}
+.an .k{opacity:0;transform-origin:50% 50%;animation:3.2s infinite}
+.an .k1{animation-name:sp-l}.an .k2{animation-name:sp-r}.an .k3{animation-name:sp-c}
+@keyframes sp-d{0%{transform:translateY(-5px);opacity:0}16%{transform:none;opacity:1;animation-timing-function:ease-in-out}46%{transform:none;animation-timing-function:cubic-bezier(.5,0,.9,.4)}61%{transform:translateY(9px) scaleY(1.1);opacity:1}63%{transform:translateY(9.6px) scale(1.2,.5);opacity:0}100%{transform:translateY(-5px);opacity:0}}
+@keyframes sp-v{0%,60%{transform:none}66%{transform:scaleY(.82) scaleX(1.06)}76%{transform:scaleY(1.04) scaleX(.98)}84%,100%{transform:none}}
+@keyframes sp-l{0%,61%{opacity:0;transform:none}62%{opacity:1;transform:none;animation-timing-function:cubic-bezier(.2,.7,.4,1)}72%{opacity:1;transform:translate(-5.5px,-8px)}84%{opacity:0;transform:translate(-8px,-3px) scale(.6)}100%{opacity:0}}
+@keyframes sp-r{0%,61%{opacity:0;transform:none}62%{opacity:1;transform:none;animation-timing-function:cubic-bezier(.2,.7,.4,1)}72%{opacity:1;transform:translate(5.5px,-7px)}84%{opacity:0;transform:translate(8px,-2px) scale(.6)}100%{opacity:0}}
+@keyframes sp-c{0%,62%{opacity:0;transform:none}63%{opacity:1;transform:none;animation-timing-function:cubic-bezier(.2,.7,.4,1)}71%{opacity:1;transform:translate(.5px,-10px) scale(.8)}82%{opacity:0;transform:translate(.5px,-5px) scale(.5)}100%{opacity:0}}
+.rm .an *{animation:none!important}.rm .an .d{opacity:1;transform:none}.rm .an .k{opacity:0}.rm .ph span{transition:none}
+@media (prefers-reduced-motion:reduce){.an *{animation:none!important}.an .d{opacity:1}.an .k{opacity:0}}
+</style></head><body>
+<div class="bar">
+<div class="pl" id="state"><em>State</em><button data-s="play">Play a turn</button><button data-s="start">Started</button><button data-s="say">Thinking</button><button data-s="stop">Can stop</button></div>
+<div class="pl" id="rm"><button data-r="0">Motion</button><button data-r="1">Reduced</button></div>
+</div>
+<div class="cols">
+<div class="big" id="big"></div>
+<div class="cv"><div class="tr"><div class="you">Ana can only do the 14th to the 17th. Move the flights?</div>
+<div class="wk" id="wk" role="status" aria-label="offload is thinking"><span id="an2"></span><span class="ph" id="ph" aria-live="polite"></span><button class="stop" type="button"><i></i>Stop</button></div></div>
+<div class="cmp">Add to this</div></div>
+</div>
+<ul class="spec">
+<li><b>Splash</b>, 22px, ink, 3.2s loop: arrive 0 to 16%, hover to 46%, fall to 61%, hit at 62% with three droplets out to 84%; the vessel gives 60 to 84%.</li>
+<li><b>The phrase</b> 13.5px <code>--text-secondary</code>, 10px after the mark, replacing itself in 350ms. <b>Stop</b> from ten seconds: a 30px pill, <code>--border-strong</code>, a 7px ink square.</li>
+<li>Build: <code>handoff/APPLY-2026-10-07-thinking.md</code>.</li>
+</ul>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0B0B0B"/><circle cx="50" cy="30" r="8" fill="#fff"/><path d="M30 50v12a9 9 0 0 0 9 9h22a9 9 0 0 0 9-9V50" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/></svg></template>
+<script>
+const MARK='<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path class="v" d="M5.5 11.5V15.5a3 3 0 0 0 3 3h7a3 3 0 0 0 3-3V11.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle class="k k1" cx="12" cy="14" r="1.05" fill="currentColor"/><circle class="k k2" cx="12" cy="14" r=".9" fill="currentColor"/><circle class="k k3" cx="12" cy="14" r=".75" fill="currentColor"/><circle class="d" cx="12" cy="5.25" r="2.6" fill="currentColor"/></svg>';
+document.getElementById('big').innerHTML='<span class="an">'+MARK+'</span>';
+document.getElementById('an2').outerHTML='<span class="an">'+MARK+'</span>';
+const PH=['Looking through your threads','Checking your calendar','Reading Lisbon trip','Working out which days Ana is free'];
+const S={state:'play',rm:false};let t0=performance.now(),last=-2,lastCan=null;
+const wk=document.getElementById('wk'),ph=document.getElementById('ph');
+function phrase(i){const old=ph.querySelector('span');if(i<0){ph.innerHTML='';wk.setAttribute('aria-label','offload is thinking');return}
+ const s=document.createElement('span');s.className='in';s.textContent=PH[i];ph.appendChild(s);wk.removeAttribute('aria-label');
+ if(old){old.classList.add('out');setTimeout(()=>old.remove(),360)}requestAnimationFrame(()=>requestAnimationFrame(()=>s.classList.remove('in')))}
+function tick(force){let say=-1,can=false;
+ if(S.state==='say')say=0;else if(S.state==='stop'){say=0;can=true}
+ else if(S.state==='play'){const t=((performance.now()-t0)/1000)%20;say=t<2.5?-1:t<6?0:t<11?1:t<15.5?2:3;can=t>=10}
+ if(force)last=-2;if(say!==last){phrase(say);last=say}if(can!==lastCan||force){wk.classList.toggle('can',can);lastCan=can}}
+function ui(){document.body.classList.toggle('rm',S.rm);document.querySelectorAll('#state button').forEach(b=>b.classList.toggle('on',b.dataset.s===S.state));document.querySelectorAll('#rm button').forEach(b=>b.classList.toggle('on',(b.dataset.r==='1')===S.rm));tick(true)}
+document.querySelectorAll('#state button').forEach(b=>b.onclick=()=>{S.state=b.dataset.s;t0=performance.now();ui()});
+document.querySelectorAll('#rm button').forEach(b=>b.onclick=()=>{S.rm=b.dataset.r==='1';ui()});
+setInterval(()=>{if(S.state==='play')tick()},200);ui();
+</script>
+</body></html>

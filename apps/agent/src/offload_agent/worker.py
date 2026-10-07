@@ -1164,16 +1164,12 @@ async def _handle(
             # answering path cannot see a picture and the picture has to land.
             with_photos = await ctx_mod.photo_count(conn, message_id=message_id) > 0
 
-        # **The first step is written before anything else happens**, ahead
-        # of the classifier. An answering turn's first model round trip runs
-        # ten to thirty seconds and the step a lookup writes arrives after it,
-        # which put the line on screen after Stop every time. Written here
-        # rather than in the answer path, because the classifier in between
-        # costs three seconds of its own and the line was landing at six.
-        # Reading the threads is what happens first on both paths, so that is
-        # what it says; a filing turn that finishes under the client's
-        # threshold never shows it.
-        await _step_writer(http, cfg, job.id)("Looking through your threads")
+        # **No step of our own here.** "Looking through your threads" was
+        # written at this point until 2026-10-07 so that a line was on screen
+        # before Stop. The thinking row's animation says working from the
+        # first frame, so the line was filler, and on "what time is it" it was
+        # untrue. A step is written when the turn really does something:
+        # listening, looking at a picture, a lookup's `doing`.
 
         # 018. A country picked with a tap. The question is already answered;
         # this job re-runs the answer for the country they chose, read-only.
@@ -2244,7 +2240,6 @@ async def _handle_answer(
     """
     assert job.account_id is not None
 
-    # The first step was already written by `handle`, ahead of the classifier.
     say = _step_writer(http, cfg, job.id)
 
     try:

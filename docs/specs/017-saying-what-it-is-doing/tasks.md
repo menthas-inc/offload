@@ -46,3 +46,14 @@
 - [x] **T-13 The line and the control** have no mock. Both sit in the
   conversation area the pinned composer already uses, and the divergence owes a
   `decisions.md` entry with the Design system impact field. *OFF-7.*
+
+## The thinking row, 2026-10-07
+
+- [x] **T-14 The row on web**: Splash, the phrase as soon as it exists with the
+  400ms floor, the Stop pill from ten seconds; the dots and `SAY_AFTER_MS`
+  removed. `apps/web/test/thinking-row.test.tsx`. *AC-1, AC-3, AC-7.*
+- [x] **T-15 The row on the phones**: the same, with the keyframes in
+  `lib/splash.ts` checked against the design's numbers.
+  `apps/mobile/test/thinking-row.test.ts`. *AC-1, AC-3, AC-7.*
+- [x] **T-16 No filler step**: the worker stops writing "Looking through your
+  threads". `apps/agent/tests/test_first_step_db.py`. *AC-3a, withdrawn.*
