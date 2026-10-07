@@ -53,6 +53,7 @@ _CLAIM = text(
           )
         )
         and j.kind = any(:kinds)
+        and j.priority <= coalesce(cast(:max_priority as integer), j.priority)
         and (
           j.account_id is null
           or (
@@ -101,6 +102,10 @@ _REAP = text(
 #: that.
 STALE_AFTER_SECONDS = 900
 
+#: `PRIORITY.interactive` in apps/core-api/src/jobs/queue.ts: somebody is
+#: waiting. A test reads that file so the two cannot drift.
+INTERACTIVE = 10
+
 
 async def claim(
     conn: AsyncConnection,
@@ -109,13 +114,15 @@ async def claim(
     per_account: int,
     *,
     stale_after_seconds: int = STALE_AFTER_SECONDS,
+    max_priority: int | None = None,
 ) -> ClaimedJob | None:
     """Claim one runnable job, or None.
 
     Scoped by kind so this worker never takes a job the TypeScript runner owns.
     Both drain the same table and neither should surprise the other. A
     `running` row nobody has touched for `stale_after_seconds` is runnable
-    too: its worker is gone.
+    too: its worker is gone. `max_priority` leaves out anything less urgent,
+    which is how the worker's interactive lane takes only interactive work.
     """
     row = (
         await conn.execute(
@@ -125,6 +132,7 @@ async def claim(
                 "kinds": kinds,
                 "per_account": per_account,
                 "stale_seconds": stale_after_seconds,
+                "max_priority": max_priority,
             },
         )
     ).first()

@@ -23,7 +23,9 @@ from offload_agent.embed import (
     BATCH,
     CHUNK_CHARS,
     DIMENSION,
+    DOCUMENT_SECONDS,
     MODEL,
+    QUERY_SECONDS,
     EmbeddingUnavailable,
     chunk,
     embed,
@@ -213,3 +215,51 @@ async def test_an_unexpected_embed_failure_releases_the_job_rather_than_strandin
     )
 
     assert released == [("job-1", "embed_error")]
+
+
+def _voyage(seen: list[httpx.Request], fail: Exception | None = None) -> httpx.MockTransport:
+    def answer(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if fail is not None:
+            raise fail
+        return httpx.Response(200, json={"data": [{"index": 0, "embedding": [0.1] * DIMENSION}]})
+
+    return httpx.MockTransport(answer)
+
+
+def _search_cfg() -> Config:
+    return Config(
+        database_url="postgresql+asyncpg://x/y",
+        api_url="http://api.test",
+        internal_token="t",
+        anthropic_api_key="k",
+        voyage_api_key="v",
+    )
+
+
+async def test_a_question_waits_ten_seconds_for_its_vector_and_a_document_thirty() -> None:
+    """2026-10-07. The search tool's query embed sits inside a turn somebody is
+    watching, and it used to take the document embed's thirty seconds."""
+    from offload_agent.worker import _embed_query
+
+    seen: list[httpx.Request] = []
+    async with httpx.AsyncClient(transport=_voyage(seen)) as client:
+        assert await _embed_query(_search_cfg(), client)("flat in Lisbon") is not None
+        await embed(["a row"], client=client, api_key="unused")
+
+    assert QUERY_SECONDS == 10
+    assert DOCUMENT_SECONDS == 30
+    assert seen[0].extensions["timeout"]["read"] == QUERY_SECONDS
+    assert seen[1].extensions["timeout"]["read"] == DOCUMENT_SECONDS
+
+
+async def test_a_question_whose_vector_times_out_is_searched_by_text() -> None:
+    """None is what the tool call carries as `queryVector`, and the Core API's
+    search answers from its text arm alone. The turn is not failed for it."""
+    from offload_agent.worker import _embed_query
+
+    seen: list[httpx.Request] = []
+    slow = httpx.ReadTimeout("slow")
+    async with httpx.AsyncClient(transport=_voyage(seen, slow)) as client:
+        assert await _embed_query(_search_cfg(), client)("flat in Lisbon") is None
+    assert len(seen) == 1, "asked once and not retried inside the turn"
