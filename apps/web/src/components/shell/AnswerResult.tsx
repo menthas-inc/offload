@@ -133,7 +133,7 @@ function Result({
               className={styles.tilePhoto}
               fallback={
                 <span className={styles.tile} aria-hidden="true">
-                  <Icon name="image" size={16} />
+                  <Icon name={TYPE_ICON[row.type] ?? "image"} size={16} />
                 </span>
               }
             />

@@ -27,6 +27,7 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { ContentRowView } from "./ContentRow";
 import { PhotoThumb } from "./PhotoThumb";
+import { PdfOpening } from "./PdfOpening";
 import { useConversation } from "./conversation-context";
 import { QUICK_ADD_CHARS, TYPED_ROW_PLACEHOLDER } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
@@ -336,9 +337,11 @@ function FileTile({ row, onOpen }: { row: ContentRow; onOpen: () => void }) {
   // The screen's gutter twice, the kit's gap twice, three tiles. The two
   // tokens as numbers, since a square's side is arithmetic and not a class.
   const side = Math.floor((width - 2 * GUTTER - 2 * GAP) / 3);
+  // 041. A PDF's tile is page 1, the paperclip until it is drawn.
+  const pdf = row.photo?.kind === "pdf" || row.type === "file";
   const glyph = (
     <View className="flex-1 items-center justify-center">
-      <Glyph name="image" size={22} color={COLOR.iconOnWell} />
+      <Glyph name={pdf ? "paperclip" : "image"} size={22} color={COLOR.iconOnWell} />
     </View>
   );
   return (
@@ -361,6 +364,7 @@ function FileTile({ row, onOpen }: { row: ContentRow; onOpen: () => void }) {
       ) : (
         glyph
       )}
+      {row.photo?.kind === "pdf" ? <PdfOpening blobId={row.photo.blobId} /> : null}
     </Pressable>
   );
 }

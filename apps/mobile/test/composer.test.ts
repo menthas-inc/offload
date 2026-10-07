@@ -7,7 +7,7 @@
 // needed two. The rule is a latch, and it is pure so it can be pinned here.
 
 import { describe, expect, it } from "vitest";
-import { DAY_USED, PLACEHOLDERS, closedForTheDay, staysOpen } from "../lib/composer";
+import { DAY_USED, PLACEHOLDERS, closedForTheDay, fieldFlex, staysOpen } from "../lib/composer";
 
 describe("the box opened for height", () => {
   it("opens when the words are taller than one line, and stays open while any words remain", () => {
@@ -53,5 +53,16 @@ describe("the composer at the day's limit", () => {
     expect(closedForTheDay({ atDailyLimit: true }, false, true)).toBe(false);
     expect(closedForTheDay({ atDailyLimit: false }, true, true)).toBe(false);
     expect(closedForTheDay({ atDailyLimit: true }, false, false)).toBe(true);
+  });
+});
+
+describe("the field in the box", () => {
+  // Found on the Pixel during 041: a chip opens the box into a column, and a
+  // field that kept `flex-1` there started at zero height and took only what
+  // the box's 48px minimum left, so the words vanished and the chips hung
+  // below the border. In a row it takes the width beside the controls.
+  it("grows across a row and keeps its own height in a column", () => {
+    expect(fieldFlex(false)).toBe("flex-1");
+    expect(fieldFlex(true)).toBe("");
   });
 });

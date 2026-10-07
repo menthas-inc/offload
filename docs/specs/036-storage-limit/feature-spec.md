@@ -1,5 +1,7 @@
 # 036 · A storage limit per account
 
+**Amended by 041 (2026-10-07):** PDFs count toward the limit as photos do; the Storage row reads *Photos, PDFs and voice notes* and its caption *Deleting a photo or PDF makes room.* See `docs/specs/041-pdfs/`.
+
 Status: reviewed, 2026-10-04. Clarified with the owner the same day, twice:
 the limit is 1 GB; reaching it refuses new uploads and nothing else; deleting a
 photo gives its room back; the person sees what they use in Settings on all

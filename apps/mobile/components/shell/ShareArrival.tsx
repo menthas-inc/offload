@@ -1,4 +1,4 @@
-// A photo shared from another app, arriving in the composer.
+// A photo or a PDF shared from another app, arriving in the composer.
 //
 // On iOS the share extension hands the files to the app through the app group
 // and opens it by the URL scheme, the workaround every shipping share
@@ -8,8 +8,8 @@
 // the sheet and focuses the field, so the words come next and one tap sends.
 // Nothing is sent until the person sends.
 //
-// Still images only, and up to ten: the eleventh onward is dropped with the
-// composer's own line. The library's copy of the files is cleared as soon as
+// Still images and PDFs, as many as the draft takes: the rest are dropped
+// with the composer's own line. The library's copy of the files is cleared as soon as
 // they are in the draft, so nothing waits on disk past this. Signed out, the
 // draft holds them behind the gate; the draft lives in memory, so a killed
 // app forgets them, and nothing sent is ever lost.
@@ -17,6 +17,7 @@
 import { useEffect } from "react";
 import { useShareIntent } from "expo-share-intent";
 import { useConversation } from "./conversation-context";
+import { isPdf } from "../../lib/dump";
 
 export function ShareArrival() {
   const { addPhotos } = useConversation();
@@ -28,7 +29,10 @@ export function ShareArrival() {
 
   useEffect(() => {
     if (!hasShareIntent) return;
-    const files = (shareIntent.files ?? []).filter((file) => file.mimeType.startsWith("image/"));
+    // 041. Photos and PDFs; the draft's own caps decide how many it keeps.
+    const files = (shareIntent.files ?? []).filter(
+      (file) => file.mimeType.startsWith("image/") || isPdf({ type: file.mimeType, name: file.fileName || file.path }),
+    );
     if (files.length > 0) {
       addPhotos(
         files.map((file) => ({
@@ -45,7 +49,8 @@ export function ShareArrival() {
       );
     }
     // Text and links from the share sheet are out until they are specced:
-    // the extension is configured for images, and anything else is dropped.
+    // the extension is configured for images and PDFs, and anything else is
+    // dropped.
     resetShareIntent();
   }, [hasShareIntent, shareIntent, addPhotos, resetShareIntent]);
 

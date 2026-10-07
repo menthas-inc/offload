@@ -189,8 +189,11 @@ export default function Thread() {
       onPress: () => void restoreThread(id),
     });
   }
-  const { filed, setOnScreen, provisional: inFlight, adoptProvisional, raiseFor, notify } =
+  const { filed, setOnScreen, provisional: inFlight, adoptProvisional, raiseFor, notify, openPdf } =
     useConversation();
+  /** 020, 041. A photo row opens the viewer; a PDF row opens the PDF. */
+  const openFileOf = (row: ContentRow) =>
+    row.photo?.kind === "pdf" ? openPdf(row.photo, row.title) : setViewing(row.id);
 
   // The `+` writes in flight for this thread, drawn from the composer's list
   // rather than from the server: the row is on screen at the press, with the
@@ -849,12 +852,13 @@ export default function Thread() {
 
   // 020. What the viewer pages through: every photo row on the page, in the
   // page's order, each with its row so the tools follow it.
-  const photoRows = rows.filter((row) => row.photo !== null);
+  // 041. The viewer pages through photos; a PDF opens itself.
+  const photoRows = rows.filter((row) => row.photo !== null && row.photo.kind !== "pdf");
   const viewerSet: ViewerPhoto[] = photoRows.map((row) => ({
     blobId: row.photo!.blobId,
     ready: row.photo!.ready,
-    width: row.photo!.width,
-    height: row.photo!.height,
+    width: row.photo!.width ?? 0,
+    height: row.photo!.height ?? 0,
     title: row.title,
     body: row.body,
     row,
@@ -1066,7 +1070,7 @@ export default function Thread() {
             onDelete={remove}
             onActions={setActing}
             onEdit={setRenaming}
-            onOpenPhoto={(row: ContentRow) => setViewing(row.id)}
+            onOpenPhoto={(row: ContentRow) => openFileOf(row)}
             onToggle={tick}
             onReorder={reorder}
             arrived={arrived}
@@ -1147,7 +1151,7 @@ export default function Thread() {
             onDelete={() => remove(row)}
             onActions={() => setActing(row)}
             onEdit={() => setRenaming(row)}
-            onOpenPhoto={() => setViewing(row.id)}
+            onOpenPhoto={() => openFileOf(row)}
           />
         ))}
 

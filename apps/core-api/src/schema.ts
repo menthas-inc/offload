@@ -1140,11 +1140,17 @@ export interface BlobsTable {
   /** Sniffed from the bytes. */
   content_type: string;
   byte_size: number;
-  /** 021. Every reader of a message's blobs filters on it. */
-  kind: Generated<"image" | "audio">;
-  /** Null for a voice note, set for a photo; the check constraint holds it. */
+  /** 021, 041. Every reader of a message's blobs filters on it. */
+  kind: Generated<"image" | "audio" | "pdf">;
+  /** Null for a voice note and a PDF, set for a photo; the check constraint
+   *  holds it. */
   width: number | null;
   height: number | null;
+  /** 041. A PDF's page count, at most a thousand; null for anything else. */
+  pages: number | null;
+  /** 041. When a PDF's clean copy was sealed, the one form of it any route
+   *  serves. */
+  clean_at: Timestamp | null;
   /** 021. The device's count, then the provider's measurement. */
   duration_ms: number | null;
   measured_ms: number | null;

@@ -83,7 +83,7 @@ export function useLooseRows(
   sheets: ReactNode;
 } {
   const router = useRouter();
-  const { notify } = useConversation();
+  const { notify, openPdf } = useConversation();
   const { zone } = useClock();
   // What has left, by key, kept whole so its type can come off the counts.
   const [dropped, setDropped] = useState<Map<string, LooseEntry>>(new Map());
@@ -432,7 +432,13 @@ export function useLooseRows(
         onEdit={() => (entry.kind === "note" ? setNoting(entry.note) : setRenaming(entry.row))}
         onActions={() => setActing(entry)}
         onDelete={() => remove(entry)}
-        onOpenPhoto={entry.kind === "content" && entry.row.photo ? () => setViewing(entry.row) : undefined}
+        onOpenPhoto={
+          entry.kind === "content" && entry.row.photo
+            ? () =>
+                // 041. A PDF opens itself; a photo, the viewer.
+                entry.row.photo!.kind === "pdf" ? openPdf(entry.row.photo!, entry.row.title) : setViewing(entry.row)
+            : undefined
+        }
         below={
           suggestion ? (
             <SuggestionLine
@@ -455,8 +461,8 @@ export function useLooseRows(
             {
               blobId: viewing.photo.blobId,
               ready: viewing.photo.ready,
-              width: viewing.photo.width,
-              height: viewing.photo.height,
+              width: viewing.photo.width ?? 0,
+              height: viewing.photo.height ?? 0,
               title: viewing.title,
               body: viewing.body,
               row: viewing,

@@ -40,8 +40,15 @@ export type Parsed = {
   messageId: string | null;
   cc: boolean;
   images: ParsedImage[];
+  /** 041. Attachments that are PDFs by their header, at most ten and each at
+   *  most 20 MB, for the rules and the look. The rest are left out. */
+  pdfs: Uint8Array[];
   leftOut: Partial<Record<LeftOutKind, number>>;
 };
+
+/** 041. What one email may hand on to the PDF rules. */
+export const MAX_PDF_CANDIDATES = 10;
+const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
 export type ParseResult = Parsed | { refused: "unparseable" };
 
@@ -168,15 +175,23 @@ export async function extract(raw: Uint8Array): Promise<ParseResult> {
   const fwdFrom = fwd?.fields.from ? address(fwd.fields.from) : null;
 
   const images: ParsedImage[] = [];
+  const pdfs: Uint8Array[] = [];
   const leftOut: Partial<Record<LeftOutKind, number>> = {};
   for (const a of mail.attachments) {
     const type = (a.contentType ?? "").toLowerCase();
     if (type.startsWith("image/")) {
       images.push({ bytes: new Uint8Array(a.content), contentType: type, drawn: drawnSize(html, a.cid) });
-    } else {
-      const kind = kindOf(type, a.filename ?? "");
-      leftOut[kind] = (leftOut[kind] ?? 0) + 1;
+      continue;
     }
+    const kind = kindOf(type, a.filename ?? "");
+    // 041. A PDF by its name or type and by its own first bytes goes on to the
+    // rules; anything calling itself a PDF that is not one is left out.
+    const isPdf = a.content.subarray(0, 5).toString("latin1") === "%PDF-";
+    if (kind === "pdf" && isPdf && pdfs.length < MAX_PDF_CANDIDATES && a.content.length <= MAX_PDF_BYTES) {
+      pdfs.push(new Uint8Array(a.content));
+      continue;
+    }
+    leftOut[kind] = (leftOut[kind] ?? 0) + 1;
   }
 
   const ccValues = [mail.cc].flat().filter(Boolean) as { value: { address?: string }[] }[];
@@ -193,6 +208,7 @@ export async function extract(raw: Uint8Array): Promise<ParseResult> {
     messageId: mail.messageId ?? null,
     cc,
     images,
+    pdfs,
     leftOut,
   };
 }

@@ -67,6 +67,7 @@ const EXTENSION: Record<string, string> = {
   "audio/mp4": "m4a",
   "audio/webm": "webm",
   "audio/ogg": "ogg",
+  "application/pdf": "pdf",
 };
 
 interface Blob extends CopyFile {
@@ -218,13 +219,21 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
                 "blobs.content_type",
                 "blobs.account_id",
                 "blobs.renditions_at",
+                "blobs.clean_at",
               ])
               .where("content_blobs.content_id", "in", rowIds)
               // A voice note is its dumper's alone, as the audio route has it;
-              // only a photo is the thread's through a row.
-              .where("blobs.kind", "=", "image")
+              // only a photo or a PDF (041) is the thread's through a row.
+              .where("blobs.kind", "in", ["image", "pdf"])
               .where("blobs.deleted_at", "is", null)
-              .where("blobs.unreadable_at", "is", null)
+              // 041. The person's own PDF that could not be cleaned is still
+              // theirs to take: it has no other copy.
+              .where((eb) =>
+                eb.or([
+                  eb("blobs.unreadable_at", "is", null),
+                  eb.and([eb("blobs.kind", "=", "pdf"), eb("blobs.account_id", "=", accountId)]),
+                ]),
+              )
               .orderBy("blobs.created_at")
               .execute();
       const onMessages =
@@ -232,10 +241,12 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
           ? []
           : await trx
               .selectFrom("blobs")
-              .select(["message_id", "id", "kind", "name", "content_type", "account_id", "renditions_at"])
+              .select(["message_id", "id", "kind", "name", "content_type", "account_id", "renditions_at", "clean_at"])
               .where("message_id", "in", messageIds)
               .where("deleted_at", "is", null)
-              .where("unreadable_at", "is", null)
+              .where((eb) =>
+                eb.or([eb("unreadable_at", "is", null), eb.and([eb("kind", "=", "pdf"), eb("account_id", "=", accountId)])]),
+              )
               .orderBy("created_at")
               .execute();
 
@@ -258,15 +269,31 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
       // own JPEG, or nothing while that has not been made.
       const fileOf = (blob: {
         id: string;
-        kind: "image" | "audio";
+        kind: "image" | "audio" | "pdf";
         name: string | null;
         content_type: string;
         account_id: string | null;
         renditions_at: Date | null;
+        clean_at: Date | null;
       }): Blob[] => {
         const known = blobs.get(blob.id);
         if (known) return [known];
         const own = blob.account_id === accountId;
+        // 041. A PDF comes back as its clean copy, whoever put it in: the
+        // bytes that were sent are served to nobody. The one exception is the
+        // person's own PDF that could not be cleaned, which has no other copy.
+        if (blob.kind === "pdf") {
+          if (!blob.clean_at && !own) return [];
+          const file: Blob = {
+            id: blob.id,
+            rendition: blob.clean_at ? "clean" : "original",
+            path: `files/${blob.id}.pdf`,
+            kind: "pdf",
+            name: own ? blob.name : null,
+          };
+          blobs.set(blob.id, file);
+          return [file];
+        }
         if (!own && !(blob.kind === "image" && blob.renditions_at)) return [];
         const file: Blob = own
           ? { id: blob.id, rendition: "original", path: `files/${blob.id}.${EXTENSION[blob.content_type] ?? "bin"}`, kind: blob.kind, name: blob.name }

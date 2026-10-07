@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'club.offload'
+version = '1.0.0'
+
+android {
+  namespace "club.offload.pdfopen"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
+
+dependencies {
+  // FileProvider, for a content uri the viewer may read and nothing else.
+  implementation "androidx.core:core:1.13.1"
+}

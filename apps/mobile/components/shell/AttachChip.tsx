@@ -9,28 +9,36 @@
 import { Pressable, Text, View } from "react-native";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
+import { clipMiddle } from "../../lib/dump";
 
-export type ChipError = "too_big" | "not_a_photo" | null;
+export type ChipError = "too_big" | "not_a_photo" | "locked_pdf" | null;
 
 const LINES: Record<Exclude<ChipError, null>, string> = {
   too_big: "Too big to send.",
-  not_a_photo: "Only photos.",
+  not_a_photo: "Only photos and PDFs.",
+  // 041.
+  locked_pdf: "Only unlocked PDFs.",
 };
 
 export function AttachChip({
   name,
+  kind = "image",
   error,
   disabled,
   onRemove,
 }: {
   name: string;
+  /** 041. A PDF draws the paperclip, clips its name in the middle so its end
+   *  survives, and says it is a PDF to a screen reader. */
+  kind?: "image" | "pdf";
   error: ChipError;
   /** While the send is out: a chip removed then would still go. */
   disabled?: boolean;
   onRemove: () => void;
 }) {
   const COLOR = useColors();
-  const shown = name.length > 20 ? `${name.slice(0, 20)}…` : name;
+  const pdf = kind === "pdf";
+  const shown = pdf ? clipMiddle(name) : name.length > 20 ? `${name.slice(0, 20)}…` : name;
   return (
     <View
       className={`flex-row items-center gap-space-1 rounded-pill border bg-surface-raised ${
@@ -38,11 +46,12 @@ export function AttachChip({
       }`}
       style={{ minHeight: 26, paddingLeft: 8, paddingRight: 4, maxWidth: "100%" }}
     >
-      <Glyph name="image" size={13} color={COLOR.iconOnWell} />
+      <Glyph name={pdf ? "paperclip" : "image"} size={13} color={COLOR.iconOnWell} />
       <Text
         className="font-core text-text-secondary"
         style={{ fontSize: 12.5, lineHeight: 15 }}
         numberOfLines={1}
+        accessibilityLabel={`${pdf ? "PDF" : "Photo"}, ${name}`}
       >
         {shown}
       </Text>

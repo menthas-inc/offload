@@ -14,8 +14,11 @@ import { PhotoThumb } from "./PhotoThumb";
 import type { PhotoOnWire } from "../../lib/dump";
 import styles from "../../app/(shell)/composer.module.css";
 
+/** 041. A PDF draws the same way: page 1 in the tile, the paperclip until it
+ *  exists, and a tap that opens the PDF itself. */
 export function SentPhoto({ photo, onOpen }: { photo: PhotoOnWire; onOpen: () => void }) {
-  const name = photo.name ?? "Photo";
+  const pdf = photo.kind === "pdf";
+  const name = photo.name ?? (pdf ? "PDF" : "Photo");
   return (
     <button type="button" className={styles.sentPhoto} onClick={onOpen} aria-label={`Open ${name}`}>
       <PhotoThumb
@@ -26,7 +29,7 @@ export function SentPhoto({ photo, onOpen }: { photo: PhotoOnWire; onOpen: () =>
         className={styles.sentPhotoTile}
         fallback={
           <span className={styles.sentPhotoTile} data-empty="true" aria-hidden="true">
-            <Icon name="image" size={15} />
+            <Icon name={pdf ? "paperclip" : "image"} size={15} />
           </span>
         }
       />

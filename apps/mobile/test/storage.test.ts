@@ -81,8 +81,8 @@ describe("the Storage section", () => {
     const section = source("components/settings/StorageSection.tsx");
     expect(section).toContain('label="Storage"');
     expect(section).toContain('icon="image"');
-    expect(section).toContain('caption="Deleting a photo makes room."');
-    expect(section).toContain('title="Photos and voice notes"');
+    expect(section).toContain('caption="Deleting a photo or PDF makes room."');
+    expect(section).toContain('title="Photos, PDFs and voice notes"');
     expect(section).toContain("storageFigure(");
     expect(section).toContain('"Couldn\'t load storage"');
   });

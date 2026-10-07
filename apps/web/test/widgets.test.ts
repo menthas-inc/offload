@@ -67,6 +67,13 @@ describe("widgets are earned", () => {
     expect(widgetsFor(rows).map((w) => w.kind).sort()).toEqual(["files", "todo"]);
   });
 
+  // 041. A PDF row earns Files as a photo does; a file row with no PDF,
+  // which a turn before 041 could write, has nothing to draw.
+  it("earns files with a PDF row", () => {
+    expect(widgetsFor([row({ type: "file", photo: { kind: "pdf" } })]).map((w) => w.kind)).toEqual(["files"]);
+    expect(widgetsFor([row({ type: "file" })]).map((w) => w.kind)).toEqual([]);
+  });
+
   it("loses a widget when the content that earned it goes (AC-1)", () => {
     // A thread that loses its last picture loses its files. That is the
     // system working, not state going missing.

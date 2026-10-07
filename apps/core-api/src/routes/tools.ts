@@ -71,7 +71,7 @@ import { shownToModel } from "../threads/default.js";
 import { suggestAtFiling } from "../loose/suggestions.js";
 import { proposeShare } from "../threads/proposals.js";
 import type { WriteAction } from "../connectors/write.js";
-import { linkPhoto, photoForRow, withTaken } from "../blobs/rows.js";
+import { linkPhoto, pdfForRow, photoForRow, withTaken } from "../blobs/rows.js";
 import { placeQuery } from "../places/query.js";
 import { attachPagePoint, mayReadForPlace } from "../places/resolve.js";
 import { forget, remember } from "../memories/store.js";
@@ -214,6 +214,9 @@ const body = z.discriminatedUnion("tool", [
      *  resolves it against the message's own blobs and nothing else. Only on
      *  an image or a screenshot, and the schema says so. */
     photo: z.number().int().min(1).max(10).nullish(),
+    /** 041. Which of the message's PDFs this row is, one-based among its
+     *  PDFs, on a `file` row only; resolved by the server the same way. */
+    pdf: z.number().int().min(1).max(2).nullish(),
     // Dates are only ever set when the dump states or implies one. The prompt
     // carries that rule; this says what shape one may take, and it is
     // deliberately generous: see `../threads/dates.ts` for the production
@@ -655,6 +658,8 @@ const result = z.union([
       // 020. A photo index that names nothing on this message, or a photo
       // this turn already filed, or an index on a row that is not a picture.
       "unknown_photo",
+      // 041. The same for a PDF, and for a `file` row.
+      "unknown_pdf",
       "bad_place_name",
       // 030. A location on a row that cannot have one.
       "location_not_here",
@@ -784,6 +789,7 @@ type Outcome =
         | "person_set"
         | "person_deleted"
         | "unknown_photo"
+        | "unknown_pdf"
         | "bad_place_name"
         | "location_not_here"
         | "unknown_content"
@@ -901,7 +907,7 @@ async function rememberable(trx: Executor, messageId: string | null, person: str
 /** 038. Remember or forget, for the person whose turn this is.
  *
  *  **Refused in any turn that read somebody else's words**: a connected app,
- *  a forwarded email, a web page, a photo, a link or something shared from
+ *  a forwarded email, a web page, a photo or a PDF, a link or something shared from
  *  another app, or a message marked untrusted. offload cannot tell which words
  *  a "remember that" came from in such a turn, so the person is asked to say
  *  it on its own. And what is remembered has to be in their own message
@@ -923,7 +929,7 @@ async function memoryTool(
     .selectFrom("blobs")
     .select("id")
     .where("message_id", "=", turn.messageId)
-    .where("kind", "=", "image")
+    .where("kind", "in", ["image", "pdf"])
     .executeTakeFirst();
   const said = message?.said ?? "";
   const tainted =
@@ -1990,6 +1996,11 @@ export async function toolRoutes(app: App): Promise<void> {
         // files again without it.
         const photo = call.photo ? await photoForRow(trx, messageId, call.photo, call.type) : null;
         if (call.photo && !photo) return { ok: false, error: "unknown_photo" };
+        // 041. A PDF the same way, by its index among the message's PDFs, and
+        // a `file` row is only ever a PDF the turn was handed.
+        const pdf = call.pdf ? await pdfForRow(trx, messageId, call.pdf, call.type) : null;
+        if (call.pdf && !pdf) return { ok: false, error: "unknown_pdf" };
+        if (call.type === "file" && !pdf) return { ok: false, error: "unknown_pdf" };
 
         const inserted = await trx
           .insertInto("content")
@@ -2002,7 +2013,7 @@ export async function toolRoutes(app: App): Promise<void> {
             // The photo's own sentence about when and where, appended by the
             // server rather than asked of the model: a date and a town, never
             // a coordinate.
-            body: withTaken(call.body, photo),
+            body: withTaken(call.body, photo ?? pdf),
             url: call.url ?? null,
             image_url: call.imageUrl ?? null,
             source: "person",
@@ -2097,6 +2108,7 @@ export async function toolRoutes(app: App): Promise<void> {
         // 020. The row carries the picture: the link, and the thread wrap
         // that makes it readable to that thread's members.
         if (photo) await linkPhoto(trx, inserted.id, photo.id, thread.id);
+        if (pdf) await linkPhoto(trx, inserted.id, pdf.id, thread.id);
 
         // Denormalised, in the same transaction as the write that changes them,
         // per 001. A count maintained anywhere else drifts.

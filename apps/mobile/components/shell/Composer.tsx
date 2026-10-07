@@ -40,7 +40,7 @@ import { useConversation } from "./conversation-context";
 import { MentionList, mentionQuery } from "../people/MentionList";
 import { HashList } from "../labels/HashList";
 import { labelQuery } from "@offload/widgets";
-import { DAY_USED, PLACEHOLDERS, staysOpen } from "../../lib/composer";
+import { DAY_USED, PLACEHOLDERS, fieldFlex, staysOpen } from "../../lib/composer";
 
 const isAndroid = Platform.OS === "android";
 
@@ -416,7 +416,7 @@ export function Composer({
           // came back from that with its text drawn in nothing, present to
           // the screen reader and invisible to the eye. The send control is
           // what locks; the words typed meanwhile survive the send.
-          className={`flex-1 font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+          className={`${fieldFlex(expanded)} font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
           style={{ fontSize: 16, lineHeight: 22, paddingVertical: 12, maxHeight: MAX_HEIGHT }}
         />
         )}
@@ -454,6 +454,7 @@ export function Composer({
                 <AttachChip
                   key={photo.key}
                   name={photo.name}
+                  kind={photo.kind}
                   error={photo.error}
                   disabled={sending || writing}
                   onRemove={() => removePhoto(photo.key)}
@@ -470,7 +471,8 @@ export function Composer({
                 onPress={offerPhoto}
                 disabled={sending || writing || dayUsed}
                 hitSlop={5}
-                accessibilityLabel="Add a photo"
+                // 041. The sheet it opens takes a PDF too; the glyph is the kit's.
+                accessibilityLabel="Add a photo or PDF"
                 className="items-center justify-center rounded-pill"
                 style={{ width: 34, height: 34 }}
               >

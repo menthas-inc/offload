@@ -108,6 +108,27 @@ class Photo:
 
 
 @dataclass(frozen=True)
+class Pdf:
+    """041. A PDF the message carries, as the model will read it.
+
+    `index` is one-based among the message's PDFs, in the order they were
+    attached, and it is how `add_content` names one. `cut` is the clean copy's
+    first ten pages, filled by the worker, and None for a PDF it could not
+    make safe. `picture` is page 1's large JPEG, sent instead when the request
+    bound left no room for even one page. `clean` and `large` are the worker's
+    own copies, held for the bound and never sent.
+    """
+
+    blob_id: str
+    index: int
+    pages: int
+    cut: bytes | None = None
+    picture: bytes | None = None
+    clean: bytes | None = field(default=None, repr=False)
+    large: bytes | None = field(default=None, repr=False)
+
+
+@dataclass(frozen=True)
 class Mail:
     """026. A forwarded email, as the turn reads it.
 
@@ -179,6 +200,9 @@ class DumpContext:
     #: 020. The photos on this message, in order. Outside the text budget:
     #: their cost is bounded by the ten-photo cap per message, not by `fit`.
     photos: list[Photo] = field(default_factory=list)
+    #: 041. The PDFs on this message, in order. Outside the text budget like
+    #: photos: two at most, ten pages each, is the bound.
+    pdfs: list[Pdf] = field(default_factory=list)
     #: 021. The dump holds a transcript: its words were spoken and written
     #: down, and the label says so.
     spoken: bool = False
@@ -334,6 +358,8 @@ _TURNS = text(
                 else said(m.text, m.transcript) end as text,
            (select count(*) from blobs b
              where b.message_id = m.id and b.kind = 'image' and b.deleted_at is null) as photos,
+           (select count(*) from blobs b
+             where b.message_id = m.id and b.kind = 'pdf' and b.deleted_at is null) as pdfs,
            (select string_agg(c.title, ', ' order by c.created_at)
               from content c
              where c.derived_from_message_id = m.id
@@ -346,7 +372,8 @@ _TURNS = text(
       and m.deleted_at is null
       and (said(m.text, m.transcript) is not null
            or exists (select 1 from blobs b
-                       where b.message_id = m.id and b.kind = 'image' and b.deleted_at is null))
+                       where b.message_id = m.id and b.kind in ('image', 'pdf')
+                         and b.deleted_at is null))
       and m.id <> :exclude_id
     order by m.created_at desc
     limit :limit
@@ -363,6 +390,21 @@ _PHOTOS = text(
     where b.message_id = :message_id
       and m.account_id = :account_id
       and b.kind = 'image'
+      and b.deleted_at is null
+    order by b.created_at, b.id
+    """
+)
+
+# 041. The PDFs on the dump, in the order they were attached, numbered among
+# themselves.
+_PDFS = text(
+    """
+    select b.id, b.pages
+    from blobs b
+    join messages m on m.id = b.message_id
+    where b.message_id = :message_id
+      and m.account_id = :account_id
+      and b.kind = 'pdf'
       and b.deleted_at is null
     order by b.created_at, b.id
     """
@@ -405,14 +447,19 @@ async def voice_of(conn: AsyncConnection, *, message_id: str) -> Voice | None:
     )
 
 
-def turn_text(text_: str | None, photos: int, photo_titles: str | None) -> str:
-    """How a message reads in the tail: its words, then its photos as a count
-    and the titles they became."""
+def turn_text(text_: str | None, photos: int, photo_titles: str | None, pdfs: int = 0) -> str:
+    """How a message reads in the tail: its words, then its photos and PDFs
+    (041) as counts and the titles they became. Never a picture or a page."""
     words = text_ or ""
-    if not photos:
+    counts = [
+        f"{n} {noun if n == 1 else noun + 's'}"
+        for n, noun in ((photos, "photo"), (pdfs, "PDF"))
+        if n
+    ]
+    if not counts:
         return words
-    noun = "photo" if photos == 1 else "photos"
-    tail = f"({photos} {noun}: {photo_titles})" if photo_titles else f"({photos} {noun})"
+    what = ", ".join(counts)
+    tail = f"({what}: {photo_titles})" if photo_titles else f"({what})"
     return f"{words} {tail}".strip()
 
 
@@ -542,7 +589,11 @@ async def load(
     photo_rows = (
         await conn.execute(_PHOTOS, {"message_id": message_id, "account_id": account_id})
     ).all()
-    if not dump_row.text and not photo_rows:
+    # 041. And so is a PDF.
+    pdf_rows = (
+        await conn.execute(_PDFS, {"message_id": message_id, "account_id": account_id})
+    ).all()
+    if not dump_row.text and not photo_rows and not pdf_rows:
         return None
 
     thread_rows = (
@@ -598,10 +649,17 @@ async def load(
         dump=mail.dump if mail else (dump_row.text or ""),
         mail=mail,
         turns=[
-            Turn(role=r.role, text=turn_text(r.text, int(r.photos or 0), r.photo_titles))
+            Turn(
+                role=r.role,
+                text=turn_text(r.text, int(r.photos or 0), r.photo_titles, int(r.pdfs or 0)),
+            )
             for r in reversed(turn_rows)
         ],
         photos=[Photo(blob_id=str(r.id), index=at + 1) for at, r in enumerate(photo_rows)],
+        pdfs=[
+            Pdf(blob_id=str(r.id), index=at + 1, pages=int(r.pages or 1))
+            for at, r in enumerate(pdf_rows)
+        ],
         spoken=bool(dump_row.spoken),
         threads=threads,
         landed=[Filed(title=r.title, thread_name=r.thread_name) for r in landed_rows],
@@ -720,6 +778,8 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         # 020. Never dropped and never counted here: the ten-photo cap is the
         # bound, and a photo dropped from the prompt is a photo filed blind.
         photos=ctx.photos,
+        # 041. The same: two PDFs at most, cut to ten pages, is the bound.
+        pdfs=ctx.pdfs,
         spoken=ctx.spoken,
         # 026. Bounded by its own clamps, never trimmed here.
         mail=ctx.mail,
@@ -1255,7 +1315,7 @@ async def question_text(conn: AsyncConnection, *, message_id: str) -> str | None
 _PHOTO_COUNT = text(
     """
     select count(*) from blobs
-    where message_id = :message_id and kind = 'image' and deleted_at is null
+    where message_id = :message_id and kind in ('image', 'pdf') and deleted_at is null
     """
 )
 

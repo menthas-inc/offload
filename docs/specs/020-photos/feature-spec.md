@@ -3,6 +3,7 @@
 **Status:** drafted 2026-09-18, revised the same day with the product owner's answers and the three reviews
 **Surfaces:** web, iOS, Android, the Core API and the agent plane
 **Depends on:** 003, whose message this rides; 004 and 006, whose filing and extraction it extends to a picture; 007, whose Files widget changes shape here; 013, which said a photo's description would be "just more text" when it arrived; 018, whose question shape this borrows for one new field, and whose "never which thread" gains its one exception
+**Amended by 041 (2026-10-07):** a PDF rides this pipeline as a blob of a third kind. *Only photos.* becomes *Only photos and PDFs.*, a message takes ten files of which two may be PDFs, and Files is earned by a `file` row with its PDF as by a picture. What any route serves of a PDF is its clean copy, never the original, at `GET /v1/blobs/:id/pdf`; a PDF's tile is page 1 and a tap opens it in the platform's viewer, never the photo viewer. See `docs/specs/041-pdfs/`.
 
 ## Why
 
