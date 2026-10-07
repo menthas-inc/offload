@@ -50,10 +50,18 @@ itself. The brief may name what offload is doing and the domain it is doing it
 to, because a domain is a fact about where a request went. It may not contain
 anything from inside a page or a search result.
 
-**It does not appear immediately.** Under a threshold, around a second and a
-half, nothing is drawn and the existing writing indicator is the whole of it. An
-ordinary two-second filing turn should look exactly as it looks today, and a
-line that appears and vanishes inside a second is noise.
+**It appears when it exists.** *Changed 2026-10-07 by the thinking row
+(`.claude/skills/offload-design/handoff/APPLY-2026-10-07-thinking.md`).* The
+three dots and the 2.5 second wait before the line are gone. The row is the
+Splash mark, animated from the first frame, with the line beside it as soon as
+one arrives; with no line it is the mark alone. A line that lands within 400ms
+of the last waits for it, so two that arrive together do not flicker. **offload
+never writes a line of its own to fill the row**: "Looking through your
+threads" was written on every turn and is not any more, because on "what time
+is it" it was untrue. A line says what the turn is really doing.
+
+*Before 2026-10-07:* under a threshold, around a second and a half, nothing was
+drawn and the writing indicator was the whole of it.
 
 **It is not stored and not logged.** The line exists for the length of the turn,
 and it is the only place in the product where a model-written sentence describing
@@ -63,7 +71,8 @@ else, which is the distinction OFF-1 actually draws.
 
 ### A way to stop it
 
-**At ten seconds, a way out appears** beside the line.
+**At ten seconds, a way out appears** beside the line: since 2026-10-07 a Stop
+pill in ink, outlined, rather than accent text.
 
 Pressing it:
 
@@ -94,18 +103,22 @@ streaming, sees the step that is current right now. Not the ones before it.
 
 ## Acceptance criteria
 
-- **AC-1** A turn that passes the threshold shows one line describing what is
-  happening, written by offload, replaced as the work moves on.
+- **AC-1** *Changed 2026-10-07.* A turn shows one line describing what is
+  happening as soon as a step exists, written by offload, replaced as the work
+  moves on, beside the Splash mark. A line that lands within 400ms of the last
+  is held until the last has been up 400ms.
 - **AC-2** Only the latest step is ever on screen. There is no way to see the
   previous ones, because they are not kept.
-- **AC-3** A turn that settles under the threshold shows exactly what it shows
-  today: the writing indicator and nothing else.
-- **AC-3a** *Added 2026-09-15.* Every dump turn writes its first step before
-  anything else happens, ahead of the classifier: "Looking through your
-  threads". The answer model's first round trip runs ten to thirty seconds and
-  the step a lookup writes arrived after Stop every time; written after the
-  classifier it still landed at six seconds. A filing turn that finishes under
-  the threshold never shows it.
+- **AC-3** *Changed 2026-10-07.* A turn with no step shows the Splash mark
+  alone, and a screen reader hears "offload is thinking": on the phones from
+  the mark's label, on web from the conversation's own status region. There
+  are no dots and no bubble.
+- **AC-3a** *Added 2026-09-15, withdrawn 2026-10-07.* Every dump turn wrote
+  "Looking through your threads" ahead of the classifier so a line was on
+  screen before Stop. The thinking row's animation says working from the first
+  frame, so the worker writes no step of its own before the model has done
+  anything; a step is written only for work the turn really does (listening,
+  looking at a picture, a lookup).
 - **AC-4** The line is capped in length by the server, not by the prompt, and a
   longer one is cut rather than drawn.
 - **AC-5** No step is written to a log, an analytics event, an LLM trace or an

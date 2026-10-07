@@ -57,6 +57,7 @@ import { answerShare } from "../../lib/people";
 import { openLink } from "../../lib/links";
 import { SHARE_LINE } from "../people/ShareSheet";
 import { QuickReplies } from "./QuickReplies";
+import { Thinking } from "./Thinking";
 import { useRouter } from "expo-router";
 import { useConversation, type Pin, type Turn } from "./conversation-context";
 import { SentPhoto } from "./SentPhoto";
@@ -394,7 +395,7 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
           <Theirs key={turn.id} turn={turn} sent={answered.get(turn.id) ?? null} />
         ),
       )}
-      {writing ? <Working /> : null}
+      {writing ? <Thinking /> : null}
     </KeyboardChatScrollView>
   );
 }
@@ -778,114 +779,6 @@ function Theirs({ turn, sent }: { turn: Turn; sent: Turn | null }) {
           }}
         />
       ) : null}
-    </View>
-  );
-}
-
-/** How long a turn runs before it is worth saying anything about it. 017.
- *
- *  Under this, the three dots are the honest answer: a line appearing and being
- *  replaced twice inside a second is noise, and most turns finish here.
- *
- *  **Not the same number as the way out.** Saying what it is doing is
- *  reassurance and comes early; offering to stop is an admission this is taking
- *  too long and comes later. One number for both would either delay the
- *  reassurance or offer the escape to somebody who did not need it. */
-const SAY_AFTER_MS = 2500;
-
-/** When the way out appears. The product owner's number. */
-const STOP_AFTER_MS = 10_000;
-
-/** What offload is doing, and past ten seconds a way to stop it.
- *
- *  **Both live where the three dots already were**, in the conversation area the
- *  pinned composer has to itself, because the alternative is a toast and a toast
- *  takes the only control away with it when it clears. This has no mock; the
- *  divergence is logged.
- *
- *  It re-renders on a clock rather than on the step, because the two thresholds
- *  are times and nothing else moves them: a turn can sit on one line for eight
- *  seconds and the way out still has to arrive. */
-function Working() {
-  const { working, stop } = useConversation();
-  const [elapsed, setElapsed] = useState(0);
-
-  const since = working?.since ?? null;
-  useEffect(() => {
-    if (since === null) return;
-    setElapsed(Date.now() - since);
-    // Half a second. Fine enough that neither threshold lands visibly late,
-    // coarse enough not to be a render loop on a screen that is waiting.
-    const timer = setInterval(() => setElapsed(Date.now() - since), 500);
-    return () => clearInterval(timer);
-  }, [since]);
-
-  const step = elapsed >= SAY_AFTER_MS ? working?.step : null;
-  const canStop = working !== null && elapsed >= STOP_AFTER_MS;
-
-  // **Falls back to the dots, not to a filler sentence.** A turn with no step is
-  // a turn that is thinking rather than looking something up, and inventing a
-  // line for it would be offload narrating itself.
-  if (!step && !canStop) return <Writing />;
-
-  return (
-    // A row, so Stop sits on the line it belongs to rather than under it: it is
-    // the way out of the thing on screen, not a second thing that appeared.
-    <View
-      className="flex-row flex-wrap items-center gap-space-4"
-      style={{ alignSelf: "flex-start" }}
-    >
-      {step ? (
-        <Text
-          className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
-          style={{ fontSize: 13.5 }}
-          // The line replaces itself rather than stacking, and a screen reader
-          // should hear the change without being interrupted mid-sentence.
-          accessibilityLiveRegion="polite"
-        >
-          {step}
-        </Text>
-      ) : (
-        <Writing />
-      )}
-
-      {canStop ? (
-        <Pressable
-          onPress={stop}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Stop"
-          className="min-h-tap-min justify-center"
-        >
-          <Text className="font-core font-medium text-text-accent" style={{ fontSize: 13.5 }}>
-            Stop
-          </Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
-function Writing() {
-  return (
-    <View
-      className={`flex-row items-center gap-space-2 px-space-5 py-space-4 ${
-        isAndroid ? "bg-a-c" : "bg-ink-50"
-      }`}
-      style={{
-        alignSelf: "flex-start",
-        borderRadius: 16,
-        borderBottomLeftRadius: 4,
-      }}
-      accessibilityLabel="offload is writing"
-    >
-      {[0, 1, 2].map((i) => (
-        <View
-          key={i}
-          className="rounded-pill bg-ink-300"
-          style={{ width: 6, height: 6 }}
-        />
-      ))}
     </View>
   );
 }

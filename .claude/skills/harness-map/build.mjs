@@ -59,7 +59,7 @@ const workerPy = read("apps/agent/src/offload_agent/worker.py");
 const readerPy = read("apps/agent/src/offload_agent/reader.py");
 const configPy = read("apps/agent/src/offload_agent/config.py");
 const internalTs = read("apps/core-api/src/routes/internal.ts");
-const composerTsx = read("apps/web/src/components/shell/Composer.tsx");
+const thinkingTsx = read("apps/web/src/components/shell/Thinking.tsx");
 const toastTsx = read("apps/web/src/components/shell/Toast.tsx");
 const nightlyPy = read("apps/agent/src/offload_agent/nightly.py");
 
@@ -85,8 +85,8 @@ const C = {
   pauses: num(grab(readerPy, /^MAX_PAUSES\s*=\s*(\d+)/m)),
   sources: num(grab(workerPy, /^MAX_SOURCES\s*=\s*(\d+)/m)),
   stepChars: num(grab(internalTs, /text:\s*z\.string\(\)[^\n]*\.max\((\d+)\)/, "80")),
-  sayAfterMs: num(grab(composerTsx, /SAY_AFTER_MS\s*=\s*([\d_]+)/)),
-  stopAfterMs: num(grab(composerTsx, /STOP_AFTER_MS\s*=\s*([\d_]+)/)),
+  floorMs: num(grab(thinkingTsx, /PHRASE_FLOOR_MS\s*=\s*([\d_]+)/)),
+  stopAfterMs: num(grab(thinkingTsx, /STOP_AFTER_MS\s*=\s*([\d_]+)/)),
   undoMs: num(grab(toastTsx, /VISIBLE_MS\s*=\s*([\d_]+)/)),
   model: grab(configPy, /^\s+model:\s*str\s*=\s*"([^"]+)"/m),
   sortModel: grab(configPy, /sort_model:\s*str\s*=\s*"([^"]+)"/),
@@ -304,7 +304,7 @@ const boundRows = [
   ["Reader pauses per lookup", C.pauses, "reader"],
   ["Sources kept per turn", C.sources, "worker and API schema"],
   ["Step line", `${C.stepChars} chars`, "API check constraint"],
-  ["Step shown from", `${C.sayAfterMs / 1000}s`, "client, from the press"],
+  ["Step shown", `as it arrives, ${C.floorMs}ms apart`, "client"],
   ["Stop offered from", `${C.stopAfterMs / 1000}s`, "client, from the press"],
   ["Undo window", `${C.undoMs / 1000}s`, "client toast"],
   ["Notes a nightly pass reads", C.nightlyNotes, "nightly.py NOTE_BUDGET"],
@@ -344,7 +344,7 @@ const fill = {
   SEARCHES: String(C.searches),
   READS: String(C.reads),
   STEP_CHARS: String(C.stepChars),
-  SAY_AFTER: `${C.sayAfterMs / 1000}s`,
+  FLOOR: `${C.floorMs}ms`,
   MAX_TOKENS: C.maxTokens.toLocaleString("en-GB"),
   MAX_TOKENS_RETRY: C.maxTokensRetry.toLocaleString("en-GB"),
   TOOL_BUDGET: C.toolBudget.toLocaleString("en-GB"),
