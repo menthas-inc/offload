@@ -4,6 +4,7 @@
 // scrubbing live in the runner. A handler does the work or throws.
 
 import { sweepMemories } from "../memories/store.js";
+import { layoutMemories } from "../memories/layout.js";
 import { passOwed } from "../memories/pass.js";
 import { shouldPropose, sweepSuggestions } from "../loose/propose.js";
 import { sql, type ExpressionBuilder, type Transaction } from "kysely";
@@ -829,6 +830,10 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
 
   // 034. Disabled or marked for deletion since the fan-out booked this.
   if (!(await worksInBackground(accountId))) return;
+
+  // 040. Where each memory sits on the map, once a day, from yesterday's
+  // embeddings: the map moves overnight and never under someone reading it.
+  await layoutMemories(accountId);
 
   const account = await db.selectFrom("accounts").select("default_thread_id").where("id", "=", accountId).executeTakeFirst();
   const defaultThread = account?.default_thread_id ?? null;

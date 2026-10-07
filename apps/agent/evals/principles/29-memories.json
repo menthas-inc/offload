@@ -99,6 +99,22 @@
       }
     },
     {
+      "id": "full-says-so-once",
+      "why": "040: at 300 the person's own are never retired, so the tool refuses and the turn says the fixed line",
+      "surface": "file",
+      "context": "behrooz",
+      "full": "memories",
+      "input": "remember that my dentist is Dr Lee",
+      "expect": {
+        "say": {
+          "contains": [
+            "Memories are full"
+          ]
+        },
+        "filed": "none"
+      }
+    },
+    {
       "id": "a-link-is-somebody-elses-words",
       "why": "a remember in a turn with a page in it is refused in code, and the reply is the fixed line",
       "surface": "file",
@@ -207,7 +223,7 @@
       "looking_at": "00000021-0000-0000-0000-000000000000",
       "memories": [
         {
-          "kind": "words",
+          "kind": "about",
           "text": "\"The cottage\" is the place in Muskoka."
         }
       ],
@@ -242,6 +258,28 @@
         "must_not_contain": [
           "Their wife",
           "Portugal"
+        ]
+      }
+    },
+    {
+      "id": "first-person-is-theirs",
+      "why": "040: a memory typed in the tab is kept as typed, so 'my' in it is the person, not offload",
+      "surface": "answer",
+      "context": "behrooz",
+      "memories": [
+        {
+          "kind": "people",
+          "text": "My sister is Rina."
+        }
+      ],
+      "input": "what's my sister's name?",
+      "expect": {
+        "contains": [
+          "Rina"
+        ],
+        "must_not_contain": [
+          "My sister is Rina",
+          "your sister's name is not"
         ]
       }
     },

@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     "What offload collects, why, who else handles it, how long it is kept and how to get rid of it. Plus a short version at the top.",
 };
 
-const UPDATED = "5 October 2026";
+const UPDATED = "6 October 2026";
 
 const MAIL = <a href="mailto:hello@offload.club">hello@offload.club</a>;
 
@@ -148,10 +148,11 @@ export default function Privacy() {
               Memories: what offload knows about you across your threads, such as the names of
               people in your life, how they relate to you and their birthdays, what your calendars
               are, and how you like things done. offload keeps one when you ask it to remember
-              something, when you answer a question it asked, and from what you said, overnight.
-              Health, religion, politics, sexuality, ethnicity, a criminal record and money are kept
-              only when you asked offload to remember it, and never an ID or account number, a
-              password or immigration status.
+              something, when you answer a question it asked, from what you said, overnight, and
+              when you add one yourself in Memories. Health, religion, politics, sexuality,
+              ethnicity, a criminal record and money are kept only when you asked offload to
+              remember it or added it yourself, and never an ID or account number, a password or
+              immigration status.
             </li>
             <li>
               Its replies to you, with the addresses of the pages it read or searched to answer.
@@ -446,7 +447,7 @@ export default function Privacy() {
             offload does not ask for health information. If you put some in, it is treated like
             everything else you put in: used only to run offload for you, never sold, never used
             for advertising, and deleted when you delete it. offload keeps it as a memory only when
-            you asked it to remember it.
+            you asked it to remember it or added it yourself in Memories.
           </p>
         </section>
 
@@ -456,9 +457,9 @@ export default function Privacy() {
             In Settings you can export everything, delete your account, turn web search and link
             reading on or off, connect or disconnect a calendar, and choose your notifications. You
             delete something you put in, or a thread, where it is.{" "}
-            <a href="/delete-account">How deleting an account works</a>. Ask offload what it
-            remembers about you to see your memories, and tell it to forget one to remove it; your
-            export lists them too.
+            <a href="/delete-account">How deleting an account works</a>. In Memories you can see,
+            add, change and forget what offload knows about you; you can also ask offload what it
+            remembers, and your export lists them too.
           </p>
           <p>
             Wherever you are in the United States, you have the right to know what we collect and

@@ -10,6 +10,8 @@
 - **OFF-1, by the owner's dated exception of 2026-10-05:** memories ship without a screen. See Constitution.
 - The privacy page, before any code that writes a memory ships.
 
+*Amended 2026-10-06 by 040, the Memories tab:* five kinds, *words* folded into *about*; a person adds, changes and forgets memories in the tab, which ends OFF-1's exception; at most 300 memories and 20 rules; and the 50 that reach a turn are chosen by meaning against the person's own words once there are more than 50.
+
 ## Why
 
 Thread notes exist so a person does not repeat themselves inside one thread. The same is true across threads and nothing holds it. offload is told "Meera is my wife" in one thread and "add it to my calendar with Meera" in another, and has to be told again.

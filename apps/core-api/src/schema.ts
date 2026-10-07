@@ -817,7 +817,7 @@ export interface MessageThreadsTable {
 }
 
 /** 038. The classes of what offload knows about a person. */
-export type MemoryClass = "people" | "things" | "words" | "about" | "rules" | "patterns";
+export type MemoryClass = "people" | "things" | "about" | "rules" | "patterns";
 
 /** 038. The messages a forgotten memory came from: ids only, so the same words
  *  cannot teach it again. */
@@ -849,6 +849,14 @@ export interface NotesTable {
   origin: "stated" | "learned" | "answered";
   /** 038. An answered memory's calendar, by id, never its name. */
   calendar_id: ColumnType<string | null, string | null | undefined, string | null>;
+  /** 040. A memory's own embedding (halfvec(1024)) and its place on the map.
+   *  Null on every thread note; the check holds it. */
+  embedding: ColumnType<string | null, string | null | undefined, string | null>;
+  embedding_model: string | null;
+  embedded_at: Timestamp | null;
+  place_dx: number | null;
+  place_dy: number | null;
+  placed_at: Timestamp | null;
   derived_from_untrusted: Generated<boolean>;
   /** Any member, thread-wide, reversible. Content has `archived_at` for the
    *  same job: let everyone quiet something without letting anyone destroy

@@ -19,10 +19,14 @@ content; ids, counts and latencies only.
 
 from __future__ import annotations
 
+import asyncio
 import os
 from dataclasses import dataclass
 
 import httpx
+import structlog
+
+log = structlog.get_logger()
 
 # voyage-4 at its default width, which is what halfvec(1024) was chosen for.
 # The family also has -large, -lite, -nano and -code, all at 32K context and all
@@ -132,6 +136,7 @@ async def embed(
     client: httpx.AsyncClient,
     api_key: str,
     input_type: str = "document",
+    timeout: float = 30.0,
 ) -> list[list[float]]:
     """One call, one batch, vectors in the order the texts came in.
 
@@ -155,7 +160,7 @@ async def embed(
                 "input_type": input_type,
                 "output_dimension": DIMENSION,
             },
-            timeout=30.0,
+            timeout=timeout,
         )
     except httpx.HTTPError as error:  # network, DNS, timeout
         raise EmbeddingUnavailable(type(error).__name__) from error
@@ -177,3 +182,41 @@ async def embed(
 def to_pgvector(vector: list[float]) -> str:
     """pgvector's text form. `halfvec` parses this and not a Postgres array."""
     return "[" + ",".join(repr(float(v)) for v in vector) + "]"
+
+
+def query_embedder(api_key: str | None, http: httpx.AsyncClient, timeout: float | None = None):
+    """Turn a query into a vector in pgvector's text form, or into nothing.
+
+    `input_type="query"` rather than `document`: Voyage embeds the two
+    asymmetrically, and getting it the wrong way round is a quiet loss of
+    quality rather than an error, which is exactly the kind of mistake that
+    never gets found.
+
+    040. With a `timeout`, a hard bound and no retry: the memory query of a
+    turn waits 300ms at most, and no vector in time is the newest memories.
+    """
+
+    async def call(query: str) -> str | None:
+        vectors = await embed(
+            [query],
+            client=http,
+            api_key=api_key or "",
+            input_type="query",
+            **({"timeout": timeout} if timeout else {}),
+        )
+        return to_pgvector(vectors[0])
+
+    async def run(query: str) -> str | None:
+        if not api_key or not query:
+            return None
+        try:
+            if timeout:
+                return await asyncio.wait_for(call(query), timeout)
+            return await call(query)
+        # Anything at all is no vector, and the turn goes on with the newest:
+        # a malformed reply must not fail the turn it was only helping.
+        except Exception as error:  # noqa: BLE001
+            log.warning("query not embedded", reason=type(error).__name__)
+            return None
+
+    return run

@@ -30,7 +30,7 @@ from offload_agent.cancels import Cancels, listen
 from offload_agent.config import Config
 from offload_agent.context import DumpContext, Photo
 from offload_agent.countries import name_of
-from offload_agent.embed import EmbeddingUnavailable, embed, to_pgvector
+from offload_agent.embed import query_embedder
 from offload_agent.embed_jobs import KINDS as EMBED_KINDS
 from offload_agent.embed_jobs import handle_embed
 from offload_agent.harness.look import LookFailed, look
@@ -792,6 +792,9 @@ ARGUMENT_REFUSALS = frozenset(
         "too_long",
         "empty",
         "unknown_memory",
+        # 040. No room: the person makes it in Memories.
+        "rules_full",
+        "memories_full",
         "unknown_thread",
         # 025. label_content's, each answerable by a different call.
         "not_in_the_dump",
@@ -1307,6 +1310,7 @@ async def _handle(
                 message_id=message_id,
                 max_turns=cfg.max_turns,
                 max_threads=cfg.max_threads,
+                embedder=_embed_query(cfg, http, timeout=ctx_mod.QUERY_LONGEST),
             )
 
         if loaded is None:
@@ -2053,6 +2057,7 @@ async def _handle_answer(
                 message_id=str(job.payload.get("messageId") or "") or None,
                 max_turns=cfg.max_turns,
                 country_override=country_override,
+                embedder=_embed_query(cfg, http, timeout=ctx_mod.QUERY_LONGEST),
             )
         ctx = ctx_mod.fit_answer(loaded, cfg.max_prompt_tokens)
 
@@ -2110,25 +2115,6 @@ async def _handle_answer(
         )
 
 
-def _embed_query(cfg: Config, http: httpx.AsyncClient):
-    """Turn a question into a vector, or into nothing.
-
-    `input_type="query"` rather than `document`: Voyage embeds the two
-    asymmetrically, and getting it the wrong way round is a quiet loss of
-    quality rather than an error, which is exactly the kind of mistake that
-    never gets found.
-    """
-
-    async def run(query: str) -> str | None:
-        if not cfg.voyage_api_key or not query:
-            return None
-        try:
-            vectors = await embed(
-                [query], client=http, api_key=cfg.voyage_api_key, input_type="query"
-            )
-        except EmbeddingUnavailable as error:
-            log.warning("query not embedded", reason=str(error))
-            return None
-        return to_pgvector(vectors[0])
-
-    return run
+def _embed_query(cfg: Config, http: httpx.AsyncClient, timeout: float | None = None):
+    """Turn a question into a vector, or into nothing. See `query_embedder`."""
+    return query_embedder(cfg.voyage_api_key, http, timeout)

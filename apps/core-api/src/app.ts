@@ -31,6 +31,7 @@ import { todayRoutes } from "./routes/today.js";
 import { looseRoutes } from "./routes/loose.js";
 import { sharingRoutes } from "./routes/sharing.js";
 import { exportRoutes } from "./routes/export.js";
+import { memoryRoutes } from "./routes/memories.js";
 import { MAX_PHOTO_BYTES } from "./blobs/photos.js";
 import { mailInRoutes } from "./routes/mail-in.js";
 import type { Writable } from "node:stream";
@@ -185,6 +186,7 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
   await app.register(looseRoutes);
   await app.register(sharingRoutes);
   await app.register(exportRoutes);
+  await app.register(memoryRoutes);
   await app.register(mailInRoutes, {
     secret: options.resendWebhookSecret ?? env.RESEND_WEBHOOK_SECRET,
     apiKey: options.resendApiKey ?? env.RESEND_API_KEY,

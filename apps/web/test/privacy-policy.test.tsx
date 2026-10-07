@@ -38,9 +38,9 @@ const terms = textOf(renderToStaticMarkup(<Terms />));
 const source = (path: string) => readFileSync(`${process.cwd()}/src/${path}`, "utf8");
 
 describe("the privacy policy, general", () => {
-  it("is titled as a privacy policy and dated 5 October 2026", () => {
+  it("is titled as a privacy policy and dated 6 October 2026", () => {
     expect(policyHtml).toMatch(/<h1[^>]*>Privacy policy<\/h1>/);
-    expect(policy).toContain("Last updated 5 October 2026");
+    expect(policy).toContain("Last updated 6 October 2026");
   });
 
   it("names the controller and says it is for the United States only", () => {
@@ -193,11 +193,36 @@ describe("memories", () => {
   });
 
   it("can be seen and removed by asking, and are in the export", () => {
-    expect(policy).toContain("Ask offload what it remembers about you");
-    expect(policy).toContain("tell it to forget");
+    // 040: the tab, with asking and the export beside it.
+    expect(policy).toContain("ask offload what it remembers");
+    expect(policy).toContain("add, change and forget");
   });
 
   it("name the people in your life, and nothing more about them", () => {
     expect(policy).toContain("the names of people in your life, how they relate to you and their birthdays");
+  });
+});
+
+// 040. The Memories tab: a fourth way a memory is kept, the tab as where they
+// are seen and changed, and what Voyage receives once memories are embedded.
+describe("040 the memories tab", () => {
+  it("says in the health section, too, that a memory is kept when you add it yourself", () => {
+    expect(policy).toContain("offload keeps it as a memory only when you asked it to remember it or added it yourself in Memories.");
+  });
+
+  it("says a memory is kept when you add one in the tab, and that the tab is where you see and change them", () => {
+    expect(policy).toContain("when you add one yourself in Memories");
+    expect(policy).toContain("In Memories you can see, add, change and forget what offload knows about you");
+    expect(policy).not.toContain("Ask offload what it remembers about you to see your memories");
+  });
+
+  it("says Voyage lays out memories and finds the ones a message needs, and what it receives", () => {
+    expect(companies).toContain("Makes what offload holds searchable, lays out your memories by meaning and finds the ones a message needs");
+    expect(companies).toContain("The text being indexed, your memories, the words of a search inside offload, and your own words in a message or a thread's name and your notes in it, to find the memories it needs");
+  });
+
+  it("moves both dates", () => {
+    expect(policy).toContain("Last updated 6 October 2026");
+    expect(companies).toContain("Last updated 6 October 2026");
   });
 });

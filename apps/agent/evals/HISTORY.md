@@ -72,6 +72,11 @@ and is not committed.
 | 2026-10-06 15:48 | 30 | 2 | 14/15 (93%) | $0.19 | `claude-sonnet-5` | `f1150802` | `bae0147` | the cast, cases kept apart |
 | 2026-10-06 15:49 | 30 | 2 | 15/15 (100%) | $0.19 | `claude-sonnet-5` | `7746a22d` | `bae0147` | the cast, fold is memories only |
 | 2026-10-06 15:49 | 29 | 2 | 6/6 (100%) | $0.02 | `claude-sonnet-5` | `7746a22d` | `bae0147` |  |
+| 2026-10-06 21:58 | noor-the-usual-past-250 | 1 | 0/1 (0%) | $0.06 | `claude-sonnet-5` | `e3511c2b` | `3cd7874` |  |
+| 2026-10-06 21:58 | first-person-is-theirs | 1 | 1/1 (100%) | $0.04 | `claude-sonnet-5` | `e3511c2b` | `3cd7874` |  |
+| 2026-10-06 21:58 | full-says-so-once | 1 | 1/1 (100%) | $0.01 | `claude-sonnet-5` | `e3511c2b` | `3cd7874` |  |
+| 2026-10-06 21:58 | own-thread-uses-what-it-knows | 1 | 1/1 (100%) | $0.02 | `claude-sonnet-5` | `e3511c2b` | `3cd7874` |  |
+| 2026-10-06 22:01 | noor-the-usual-past-250 | 1 | 1/1 (100%) | $0.03 | `claude-sonnet-5` | `e3511c2b` | `3cd7874` |  |
 
 ## Full runs by principle
 

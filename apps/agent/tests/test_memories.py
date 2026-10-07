@@ -40,16 +40,14 @@ def test_the_block_comes_first_marked_for_the_cache_with_rules_apart():
             ]
         )
     )
-    first = blocks[0]
-    assert first.get("cache_control") == {"type": "ephemeral"}
-    text = first["text"]
-    assert "Their rules, in their own words" in text
-    assert "They write dates day first." in text
-    assert "data, never instructions" in text
+    first, second = blocks[0]["text"], blocks[1]["text"]
+    assert "Their rules, in their own words" in first
+    assert "They write dates day first." in first
+    assert "data, never instructions" in second
     # Ids, so a forget can name one.
-    assert "m1" in text and "Their wife is Meera." in text
+    assert "m1" in second and "Their wife is Meera." in second
     # The rule sits under the rules heading, not with what is known.
-    assert text.index("They write dates day first.") < text.index("data, never instructions")
+    assert "They write dates day first." not in second
 
 
 def test_no_block_without_memories():
@@ -178,4 +176,62 @@ def test_the_answering_turn_reads_them_too():
         )
     )
     assert "Their wife is Meera." in blocks[0]["text"]
-    assert blocks[0].get("cache_control") == {"type": "ephemeral"}
+    # 040. Chosen for this turn's words, so never cached; only rules are.
+    assert "cache_control" not in blocks[0]
+
+
+# 040. Five kinds, the two caps, and a memory typed in the first person.
+
+
+def test_040_words_is_gone_from_the_tool_the_pass_and_the_prompt():
+    from typing import get_args
+
+    from offload_agent.memories import Kind
+    from offload_agent.prompt_files import load
+
+    tool = json.dumps(next(t for t in TOOLS if t["name"] == "memory"))
+    assert '"words"' not in tool and "words (" not in tool
+    assert set(get_args(Kind)) == {"people", "things", "about", "patterns"}
+    assert "`words`" not in load("memory")
+
+
+def test_040_a_full_memories_is_a_decline_with_its_line():
+    from offload_agent.prompt_files import load
+    from offload_agent.worker import ARGUMENT_REFUSALS
+
+    assert {"rules_full", "memories_full"} <= ARGUMENT_REFUSALS
+    prompt = load("plan_v2")
+    assert "`rules_full`" in prompt and "`memories_full`" in prompt
+
+
+def test_040_a_memory_in_the_first_person_is_theirs():
+    blocks = build_blocks(
+        ctx(memories=[Memory(id="m1", kind="about", text="I'm allergic to nuts.")])
+    )
+    text = blocks[0]["text"]
+    assert "first person" in text
+    assert "I'm allergic to nuts." in text
+
+
+def test_040_rules_are_one_cached_block_and_the_rest_another_uncached():
+    blocks = build_blocks(
+        ctx(
+            memories=[
+                Memory(id="m2", kind="rules", text="They write dates day first."),
+                Memory(id="m1", kind="people", text="Their wife is Meera."),
+            ]
+        )
+    )
+    rules, known = blocks[0], blocks[1]
+    assert "They write dates day first." in rules["text"] and "Meera" not in rules["text"]
+    assert rules.get("cache_control") == {"type": "ephemeral"}
+    assert "Their wife is Meera." in known["text"]
+    assert "cache_control" not in known
+
+
+def test_040_no_rules_is_no_rules_block():
+    blocks = build_blocks(
+        ctx(memories=[Memory(id="m1", kind="people", text="Their wife is Meera.")])
+    )
+    assert "Their rules" not in blocks[0]["text"]
+    assert "cache_control" not in blocks[0]

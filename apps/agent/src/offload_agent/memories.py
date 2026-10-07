@@ -28,7 +28,8 @@ from sqlalchemy import text
 
 from offload_agent import ledger
 from offload_agent.config import Config
-from offload_agent.context import today_line
+from offload_agent.context import QUERY_LONGEST, Embedder, memories_for, query_words, today_line
+from offload_agent.embed import query_embedder
 from offload_agent.prompt_files import load
 from offload_agent.queue import ClaimedJob, finish, retry_or_die
 
@@ -40,7 +41,6 @@ KINDS = ["account.memories"]
 MESSAGE_CAP = 60
 MESSAGE_CHARS = 500
 NOTE_CAP = 40
-MEMORY_CAP = 50
 
 _PROMPT = load("memory")
 
@@ -96,20 +96,7 @@ _NOTES = text(
     """
 )
 
-_MEMORIES = text(
-    """
-    select n.id::text as id, n.kind, n.text, n.origin
-      from notes n
-     where n.scope = 'account'
-       and n.subject_id = cast(:account_id as uuid)
-       and n.deleted_at is null
-       and n.superseded_at is null
-     order by (n.origin = 'learned'), n.created_at desc
-     limit :limit
-    """
-)
-
-Kind = Literal["people", "things", "words", "about", "patterns"]
+Kind = Literal["people", "things", "about", "patterns"]
 
 
 class Add(BaseModel):
@@ -247,18 +234,25 @@ async def _ask(
     return None, usage
 
 
-async def read(conn, account_id: str) -> tuple[str | None, list, list, list]:
-    """Today, the memories, the notes and the messages, already bounded."""
+async def read(
+    conn, account_id: str, embedder: Embedder | None = None
+) -> tuple[str | None, list, list, list]:
+    """Today, the memories, the notes and the messages, already bounded.
+
+    040. The messages first: the memories it is shown are the fifty nearest
+    what the person said, their own before learned, as a turn's are."""
     params = {"account_id": account_id}
     account = (await conn.execute(_ACCOUNT, params)).mappings().first()
     today = await today_line(conn, account["time_zone"] if account else None)
-    memories = list(
-        (await conn.execute(_MEMORIES, {**params, "limit": MEMORY_CAP})).mappings().all()
-    )
     notes = list((await conn.execute(_NOTES, {**params, "limit": NOTE_CAP})).mappings().all())
     messages = list(
         (await conn.execute(_MESSAGES, {**params, "limit": MESSAGE_CAP})).mappings().all()
     )
+    words = query_words("\n".join(str(m["text"] or "") for m in messages))
+    memories = [
+        {"id": m.id, "kind": m.kind, "text": m.text, "origin": m.origin}
+        for m in await memories_for(conn, account_id, words, embedder, wait=QUERY_LONGEST)
+    ]
     return today, memories, notes, messages
 
 
@@ -272,7 +266,9 @@ async def handle_memories(
         return
 
     async with engine.connect() as conn:
-        today, memories, notes, messages = await read(conn, job.account_id)
+        today, memories, notes, messages = await read(
+            conn, job.account_id, query_embedder(cfg.voyage_api_key, http, QUERY_LONGEST)
+        )
     if not messages:
         # Nothing new of theirs since the booking.
         async with engine.begin() as conn:

@@ -1,4 +1,4 @@
--- The cast: seven people offload's memory is measured against.
+-- The cast: eight people offload's memory is measured against.
 --
 -- Loaded by the eval runner into its own database before the cast cases run,
 -- and by `pnpm -C apps/core-api seed:cast` into a local database to sign in as
@@ -36,6 +36,7 @@ delete from accounts where id::text like '0ca50000-0000-4000-8000-%';
 -- Ana is a freelance designer who moved from Toronto to Lisbon. Nobody else.
 -- Jun is a night-shift nurse in Toronto whose dumps are full of health. Nobody else.
 -- Maya and Tom Becker live in Berlin with their kids Lena and Felix.
+-- Noor commutes Montreal to Ottawa and keeps 251 memories, the heavy user (040).
 insert into accounts (id, email, state, email_verified, display_name, analytics_subject_id,
                       time_zone, country, consented_at, consent_version, first_signed_in_at)
 values
@@ -45,7 +46,8 @@ values
   ('0ca50000-0000-4000-8000-000000000004', 'ana@cast.offload.test',     'active', true, 'Ana Duarte',      gen_random_uuid(), 'Europe/Lisbon', 'PT', now(), '2026-10-05', now() - interval '200 days'),
   ('0ca50000-0000-4000-8000-000000000005', 'jun@cast.offload.test',     'active', true, 'Jun Park',        gen_random_uuid(), 'America/Toronto', 'CA', now(), '2026-10-05', now() - interval '40 days'),
   ('0ca50000-0000-4000-8000-000000000006', 'maya@cast.offload.test',    'active', true, 'Maya Becker',     gen_random_uuid(), 'Europe/Berlin', 'DE', now(), '2026-10-05', now() - interval '120 days'),
-  ('0ca50000-0000-4000-8000-000000000007', 'tom@cast.offload.test',     'active', true, 'Tom Becker',      gen_random_uuid(), 'Europe/Berlin', 'DE', now(), '2026-10-05', now() - interval '120 days');
+  ('0ca50000-0000-4000-8000-000000000007', 'tom@cast.offload.test',     'active', true, 'Tom Becker',      gen_random_uuid(), 'Europe/Berlin', 'DE', now(), '2026-10-05', now() - interval '120 days'),
+  ('0ca50000-0000-4000-8000-000000000008', 'noor@cast.offload.test',    'active', true, 'Noor Haddad',     gen_random_uuid(), 'America/Toronto', 'CA', now(), '2026-10-05', now() - interval '400 days');
 
 -- account_a < account_b, as the table requires.
 insert into connections (account_a, account_b) values
@@ -83,7 +85,11 @@ insert into threads (id, created_by_account_id, name, icon, always_on, last_acti
   ('0ca50000-0000-4000-8001-000000000602', '0ca50000-0000-4000-8000-000000000006', 'Garden', 'sprout', false, now() - interval '1 day'),
   ('0ca50000-0000-4000-8001-000000000610', '0ca50000-0000-4000-8000-000000000006', 'Kids', 'lasso', false, now() - interval '2 hours'),
   ('0ca50000-0000-4000-8001-000000000701', '0ca50000-0000-4000-8000-000000000007', 'Miscellaneous', 'lasso', true, now()),
-  ('0ca50000-0000-4000-8001-000000000702', '0ca50000-0000-4000-8000-000000000007', 'Work: Becker Bau', 'hammer', false, now() - interval '5 hours');
+  ('0ca50000-0000-4000-8001-000000000702', '0ca50000-0000-4000-8000-000000000007', 'Work: Becker Bau', 'hammer', false, now() - interval '5 hours'),
+  -- Noor
+  ('0ca50000-0000-4000-8001-000000000801', '0ca50000-0000-4000-8000-000000000008', 'Miscellaneous', 'lasso', true, now()),
+  ('0ca50000-0000-4000-8001-000000000802', '0ca50000-0000-4000-8000-000000000008', 'Commute', 'lasso', false, now() - interval '1 day'),
+  ('0ca50000-0000-4000-8001-000000000803', '0ca50000-0000-4000-8000-000000000008', 'Home', 'house', false, now() - interval '2 days');
 
 update accounts a set default_thread_id = t.id
   from threads t
@@ -135,7 +141,7 @@ insert into conversations (id, account_id, started_at, last_message_at)
 select ('0ca50000-0000-4000-8002-0000000000' || lpad(n::text, 2, '0'))::uuid,
        ('0ca50000-0000-4000-8000-0000000000' || lpad(n::text, 2, '0'))::uuid,
        now() - interval '1 day', now()
-  from generate_series(1, 7) n;
+  from generate_series(1, 8) n;
 
 -- What each of them said today. The memory pass reads these: their own,
 -- person-sourced, trusted, since the last pass (none yet, so a day).
@@ -180,6 +186,27 @@ insert into notes (id, account_id, scope, subject_id, kind, text, origin, derive
   -- Jun asked offload to remember this one, which is the only way a health
   -- memory is ever kept.
   ('0ca50000-0000-4000-8004-000000000511', '0ca50000-0000-4000-8000-000000000005', 'account', '0ca50000-0000-4000-8000-000000000005', 'about', 'They are allergic to penicillin.', 'stated', null, '{}', now() - interval '20 days', now() - interval '20 days');
+
+-- Noor, the heavy user (040): 250 memories from the last two months about
+-- everything but trains, and one from ten months ago that is the only way to
+-- know what "the usual" is. Above fifty, a turn is given the nearest of their
+-- own, so "book the usual for thursday" has to find the old one past 250
+-- newer. Their ids are ...-8004-0000000081NN and ...-8004-000000008xxx.
+insert into notes (id, account_id, scope, subject_id, kind, text, origin, created_at, updated_at)
+select ('0ca50000-0000-4000-8004-00000000' || lpad((8000 + n)::text, 4, '0'))::uuid,
+       '0ca50000-0000-4000-8000-000000000008', 'account', '0ca50000-0000-4000-8000-000000000008',
+       (array['people', 'things', 'about', 'patterns'])[1 + n % 4],
+       case n % 5
+         when 0 then format('Their neighbour in unit %s waters the plants when they are away.', n)
+         when 1 then format('Storage bin %s in the basement holds their winter gear.', n)
+         when 2 then format('Their cousin number %s lives in Laval and loves hockey.', n)
+         when 3 then format('Book %s on their shelf is lent to a friend from work.', n)
+         else format('Recipe %s in their binder is the lentil soup they make on Sundays.', n)
+       end,
+       'stated', now() - make_interval(hours => n * 5), now() - make_interval(hours => n * 5)
+  from generate_series(1, 250) n;
+insert into notes (id, account_id, scope, subject_id, kind, text, origin, created_at, updated_at) values
+  ('0ca50000-0000-4000-8004-000000008999', '0ca50000-0000-4000-8000-000000000008', 'account', '0ca50000-0000-4000-8000-000000000008', 'about', '"The usual" is the 7:40 VIA train from Montreal to Ottawa.', 'stated', now() - interval '300 days', now() - interval '300 days');
 
 -- Behrooz forgot "Their car is a Corolla." this morning; the pass must not
 -- learn it again from the message it came from.

@@ -2239,17 +2239,13 @@ export async function threadRoutes(app: App): Promise<void> {
   // content: reading and editing are co-owned, deleting is the author's, and
   // mute is what everybody else gets instead.
   //
-  // **The old `/memories` paths answer identically and are deleted one release
-  // from now.** Phone builds go out through EAS and an installed app is pinned
-  // to the names it shipped with, so renaming a route under it is the same
-  // class of break as deleting its data.
+  // 014 kept the old `/memories` paths for a release while installed phones
+  // caught up. 040 took them back: `/v1/memories` is the Memories tab's now,
+  // and a thread note's id there is not found.
 
-  const notePaths = (suffix: string): [string, string] => [
-    `/v1/notes${suffix}`,
-    `/v1/memories${suffix}`,
-  ];
+  const notePaths = (suffix: string): [string] => [`/v1/notes${suffix}`];
 
-  for (const path of ["/v1/threads/:id/notes", "/v1/threads/:id/memories"]) {
+  for (const path of ["/v1/threads/:id/notes"]) {
     app.post(
       path,
       {
@@ -2471,7 +2467,7 @@ export async function threadRoutes(app: App): Promise<void> {
 
   // Move a note within its section. Any member, reversible by writing the
   // previous number back, and the twin of `/v1/content/:id/priority`: the same
-  // scale, so the same drag helper serves both lists. No `/memories` alias,
+  // scale, so the same drag helper serves both lists. No old alias,
   // because no shipped build calls it.
   app.post(
     "/v1/notes/:id/priority",

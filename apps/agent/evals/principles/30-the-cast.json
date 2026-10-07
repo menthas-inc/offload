@@ -1,5 +1,5 @@
 {
-  "statement": "Measured on the cast: seven people with real threads, conversations, notes and memories in a database of their own, read through the same queries the worker runs. Memories are learned from their own words only, never from a shared thread, an email or a forgotten memory, never the sensitive list unasked; filing keeps their words in a shared thread; asking shows them; forgetting finds them.",
+  "statement": "Measured on the cast: eight people with real threads, conversations, notes and memories in a database of their own, read through the same queries the worker runs. Memories are learned from their own words only, never from a shared thread, an email or a forgotten memory, never the sensitive list unasked; filing keeps their words in a shared thread; asking shows them; forgetting finds them. Above fifty, a turn is given the memories nearest the person's own words, so an old one that matters is found past hundreds of newer ones.",
   "why": "A fixture describes a context; the cast is one, built the way the database builds it, so a filter, a grant or a bound that is wrong shows up here and nowhere else. When an edge case turns up, it is added to cast.sql for the person it would happen to, and here.",
   "sources": [
     "038 feature-spec",
@@ -283,6 +283,23 @@
       "expect": {
         "contains": [
           "penicillin"
+        ]
+      }
+    },
+    {
+      "id": "noor-the-usual-past-250",
+      "why": "040: 251 memories, and the one that says what 'the usual' is was written ten months ago; the turn is given the nearest of their own, not the newest fifty",
+      "surface": "cast-file",
+      "input": {
+        "character": "noor",
+        "dump": "book the usual for thursday"
+      },
+      "expect": {
+        "written_has": [
+          "Ottawa"
+        ],
+        "not_called": [
+          "memory"
         ]
       }
     }

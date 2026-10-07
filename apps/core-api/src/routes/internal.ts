@@ -337,7 +337,7 @@ function when(raw: string | null | undefined): Date | null {
 /** 038. What a memory pass proposes. Bounded on every axis (OFF-5); which
  *  messages and notes it may cite is the Core API's to decide. `rules` is not
  *  a class it may write: only the person makes a rule. */
-const memoryKind = z.enum(["people", "things", "words", "about", "patterns"]);
+const memoryKind = z.enum(["people", "things", "about", "patterns"]);
 const memoryBody = z.strictObject({
   jobId: z.string().uuid(),
   add: z

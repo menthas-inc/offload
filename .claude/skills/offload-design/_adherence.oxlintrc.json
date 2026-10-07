@@ -28,6 +28,7 @@
               "ui_kits/admin_web/**",
               "ui_kits/android_app/**",
               "ui_kits/marketing_site/**",
+              "ui_kits/memories_tab/**",
               "ui_kits/mobile_app/**",
               "ui_kits/web_app/**"
             ],
