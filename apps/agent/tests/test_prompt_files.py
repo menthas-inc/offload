@@ -64,3 +64,16 @@ def test_the_small_calls_do_not_say_offload() -> None:
 
     for name in ("judge", "classify", "reader", "look"):
         assert "offload" not in load(name).lower(), f"{name} says offload"
+
+
+def test_a_nested_include_fails_at_load_and_names_itself(tmp_path: Path) -> None:
+    """No shared part includes another today, so a nested include is refused
+    rather than expanded: it fails at import, never in a prompt as sent."""
+    from offload_agent.prompt_files import load
+
+    (tmp_path / "shared").mkdir()
+    (tmp_path / "shared" / "outer.md").write_text("Outer.\n\n<!-- include: shared/inner -->\n")
+    (tmp_path / "shared" / "inner.md").write_text("Inner.\n")
+    (tmp_path / "top.md").write_text("Top.\n\n<!-- include: shared/outer -->\n")
+    with pytest.raises(RuntimeError, match="shared/outer includes shared/inner"):
+        load("top", root=tmp_path)

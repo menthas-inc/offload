@@ -20,15 +20,25 @@ if [ "${1:-}" != inside ]; then
   # it is on no command line.
   PGPASSWORD=offload
   export PGPASSWORD
+  admin="postgres://offload@host.docker.internal:4710/postgres"
+  # regrant.sql creates the worker's role when the cluster lacks it, so a drill
+  # that made it takes it away again. Unknown counts as already there.
+  agent_was=1
   finish() {
-    docker run --rm -e PGPASSWORD offload-backup-check psql -X -q "postgres://offload@host.docker.internal:4710/postgres" \
+    docker run --rm -e PGPASSWORD offload-backup-check psql -X -q "$admin" \
       -c "drop database if exists $scratch" -c "drop database if exists ${scratch}_refused" \
       -c "drop database if exists ${scratch}_tunnel" -c "drop database if exists ${scratch}_fails" \
       -c "drop database if exists ${scratch}_src" -c "drop database if exists ${scratch}_pw" >/dev/null 2>&1 || true
+    if [ "$agent_was" = 0 ]; then
+      docker run --rm -e PGPASSWORD offload-backup-check psql -X -q "$admin" -c "drop role if exists offload_agent" >/dev/null 2>&1 \
+        || echo "WARN  this drill created the role offload_agent and could not drop it"
+    fi
   }
   trap finish EXIT
   trap 'exit 1' INT TERM HUP
   docker build -q -t offload-backup-check "$here" >/dev/null
+  agent_was="$(docker run --rm -e PGPASSWORD offload-backup-check psql -X -A -t "$admin" \
+    -c "select count(*) from pg_roles where rolname = 'offload_agent'" 2>/dev/null)" || agent_was=1
   docker run --rm -e SCRATCH="$scratch" -e PGPASSWORD \
     -v "$here:/repo/apps/backup:ro" -v "$dotenv:/repo/node_modules/dotenv:ro" \
     offload-backup-check sh /repo/apps/backup/restore-check.sh inside
@@ -95,7 +105,7 @@ EOF
 
 # Everything at once, from the stand-in bucket, into a new database on a host
 # that is not the local one, so it has to be answered with a yes.
-printf 'yes\n' | run a --pick 1 --key-fd 3 --do both --save /work/plain.dump --target "$db/$SCRATCH" 3</work/check.key \
+printf 'yes\n' | run a --pick 1 --key-fd 3 --do both --save /work/plain.dump --target "$db/$SCRATCH" --grants yes 3</work/check.key \
   || { cat /work/a.log; fail "restore.sh did not get through fetch, check, save and restore"; }
 sed 's/^/      | /' /work/a.log
 says a "Fetching $newest"
@@ -111,6 +121,14 @@ restored="$(migrations_in "$SCRATCH")"
 { [ "$migrations" -gt 0 ] && [ "$restored" = "$migrations" ]; } || fail "restored $restored of $migrations migrations"
 grep -Eq "schema_migrations +$migrations\$" /work/a.log || fail "restore.sh did not report $migrations migrations"
 ok "restores into a new database with all $migrations migrations, and reports them"
+# The dump carries no grants. The worker's role has to read jobs there all the
+# same, as its first claim does, and still be refused what it never had.
+psql -X -q -v ON_ERROR_STOP=1 "$db/$SCRATCH" -c "set role offload_agent" -c "select count(*) from jobs" >/dev/null 2>/work/role.err \
+  || { head -1 /work/role.err; fail "the worker's role cannot read jobs in the restored database"; }
+if psql -X -q -v ON_ERROR_STOP=1 "$db/$SCRATCH" -c "set role offload_agent" -c "select count(*) from sessions" >/dev/null 2>&1; then
+  fail "the worker's role reads sessions in the restored database"
+fi
+ok "gives the worker's role its grants back, so it reads jobs there and still not sessions"
 says a "is not the local database"
 says a "postgres://offload@host.docker.internal:4710/$SCRATCH"
 never a "$key" "the key"
@@ -180,7 +198,7 @@ clean e
 ok "asks before touching a server that is not the local one, and stops without a yes"
 
 printf '%s\n' "$pw" >/work/pw
-if (unset PGPASSWORD; printf 'yes\n' | run f --file "$backup" --key-fd 3 --password-fd 4 --do restore --target "$db/$SCRATCH" \
+if (unset PGPASSWORD; printf 'yes\n' | run f --file "$backup" --key-fd 3 --password-fd 4 --do restore --target "$db/$SCRATCH" --grants yes \
   3</work/check.key 4</work/pw); then
   fail "restored into a database that already exists"
 fi
@@ -204,7 +222,7 @@ clean h
 ok "offers no default beside a database that is not local, and stops without a --target"
 
 (unset PGPASSWORD; export ENV_FILE=/work/local.env
-  printf '\n' | run i --file "$backup" --key-fd 3 --do restore 3</work/check.key) \
+  printf '\n\n' | run i --file "$backup" --key-fd 3 --do restore 3</work/check.key) \
   || { cat /work/i.log; fail "restoring into the default target did not pass"; }
 default_db="$(sed -n 's|^It is at postgres://offload@localhost:4710/\(offload_restore_[0-9_]*\)$|\1|p' /work/i.log)"
 [ -n "$default_db" ] || { cat /work/i.log; fail "i: did not say where it restored"; }
@@ -213,9 +231,15 @@ never i "Type yes" "a question the local database does not need"
 never i "offload:$pw@" "the password from .env"
 [ "$(migrations_in "$default_db")" = "$migrations" ] || fail "the default target does not hold all $migrations migrations"
 says i "Delete it by $deadline"
+says i "Give them their grants? [no]"
+says i "regrant.sql"
+if psql -X -q -v ON_ERROR_STOP=1 "$db/$default_db" -c "set role offload_agent" -c "select count(*) from jobs" >/dev/null 2>&1; then
+  fail "i: the worker's role reads jobs in a drill copy nobody said offload would run on"
+fi
 psql -X -q "$db/postgres" -c "drop database $default_db" >/dev/null && default_db=""
 clean i
 ok "offers a fresh offload_restore_<time> beside the local database in .env, and restores there with its password"
+ok "gives a drill copy no grants unless asked, and says how to give them later"
 
 if (export ENV_FILE=/work/local.env; printf 'no\n' | run j --file "$backup" --key-fd 3 --do restore \
   --target "postgres://offload@localhost:4799/${SCRATCH}_tunnel" 3</work/check.key); then
@@ -239,7 +263,7 @@ insert into guarded values ('a row that must not be printed');
 SQL
 pg_dump -Fc "$db/${SCRATCH}_src" | age -r "$recipient" >/work/fails.dump.age
 psql -X -q "$db/postgres" -c "drop database ${SCRATCH}_src"
-if printf 'yes\n' | run k --file /work/fails.dump.age --key-fd 3 --do restore --target "$db/${SCRATCH}_fails" 3</work/check.key; then
+if printf 'yes\n' | run k --file /work/fails.dump.age --key-fd 3 --do restore --target "$db/${SCRATCH}_fails" --grants no 3</work/check.key; then
   fail "called a failed restore done"
 fi
 says k 'COPY failed for table "guarded"'

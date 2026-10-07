@@ -198,8 +198,11 @@ def query_embedder(api_key: str | None, http: httpx.AsyncClient, timeout: float 
     quality rather than an error, which is exactly the kind of mistake that
     never gets found.
 
-    040. With a `timeout`, a hard bound and no retry: the memory query of a
-    turn waits 300ms at most, and no vector in time is the newest memories.
+    040. With a `timeout`, a hard bound of that many seconds from the call's
+    start and no retry; without one, the HTTP client's own. The turn's 300ms
+    wait for the memory query is not here: it is `context.QUERY_SECONDS`,
+    counted after the rest of the context loads, while the query itself runs
+    under `context.QUERY_LONGEST`. No vector in time is the newest memories.
     """
 
     async def call(query: str) -> str | None:
