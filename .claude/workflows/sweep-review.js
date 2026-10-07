@@ -107,14 +107,25 @@ async function verify(lane, f) {
   return { ...f, lane: lane.key, severity: standing[0].severity, verdict: 'CONFIRMED', notes: standing.map(v => v.reason).join(' | ') }
 }
 
-const lanes = await pipeline(
-  LANES,
-  lane => agent(reviewPrompt(lane), {
-    label: `review:${lane.key}`,
+// A reviewer whose structured output never parses comes back as null. The first
+// sweep lost a lane that way; one retry that asks for shorter entries recovers it.
+const RETRY = 'Your last attempt returned output that did not parse. Keep every checked item and evidence short, one or two sentences, with plain quotes and no raw newlines inside a string.'
+
+function review(lane, retry) {
+  return agent(retry ? `${reviewPrompt(lane)}\n\n${RETRY}` : reviewPrompt(lane), {
+    label: retry ? `review:${lane.key}:retry` : `review:${lane.key}`,
     phase: 'Review',
     schema: LANE_RESULT,
     ...(lane.agentType ? { agentType: lane.agentType } : {}),
-  }),
+  })
+}
+
+// Nothing checked is not nothing found: a lane with an empty checklist is lost.
+const usable = r => (r && r.checked.length ? r : null)
+
+const lanes = await pipeline(
+  LANES,
+  async lane => usable(await review(lane, false)) || usable(await review(lane, true)),
   async (result, lane) => {
     if (!result) {
       log(`${lane.key}: no result`)

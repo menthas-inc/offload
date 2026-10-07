@@ -58,7 +58,8 @@ function rules(p) {
   return [
     `You own only these files: ${p.files.join(', ')}. You may create new test files beside them; list every file you create.`,
     `Other agents are editing other files in this same tree right now. Never edit, format, stash, reset, checkout or restore anything outside your set, and run no git command that changes the index or the tree. Commit nothing. Start no servers.`,
-    `Run tests only on your own database: \`source ${p.envFile}\` in the same shell before every test command, then the narrowest command that runs the test (one file, not the suite). Send its output to a file and read the end of it.`,
+    `Run tests only on your own database, by loading its file into the test process rather than the shell (a worktree-isolated session refuses to source a file outside the tree): \`node --env-file=${p.envFile} <path to vitest.mjs> run <file>\` from the app's directory for node, \`uv run --env-file ${p.envFile} pytest <file>\` in apps/agent for python. The file sets DATABASE_URL and AGENT_DATABASE_URL; never print it. Run the narrowest command that runs the test (one file, not the suite), send its output to a file and read the end of it.`,
+    `Before you change a name, a signature, an export or a string, grep for every caller and every test that uses it. The ones in your set change with it. Each one outside your set goes under outside with its file and line and the exact change it needs, so the lead can make it after the wave.`,
     `A failure in a file you do not own is not yours: report it under outside, do not fix it.`,
   ].join('\n')
 }

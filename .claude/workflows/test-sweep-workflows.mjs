@@ -39,7 +39,7 @@ const reviewArgs = { worktree: "/w", reviewed: "abc", base: "def", since: "2026-
   focus: { legal: ["026 added a mail vendor"] } };
 
 test("every lane is reviewed once, with its persona and its focus", async () => {
-  const { calls } = await run("sweep-review.js", reviewArgs, () => ({ checked: [], findings: [] }));
+  const { calls } = await run("sweep-review.js", reviewArgs, () => ({ checked: [{ item: "i", evidence: "e" }], findings: [] }));
   const reviews = calls.filter(c => c.phase === "Review");
   assert.equal(reviews.length, 9);
   assert.equal(reviews.find(c => c.label === "review:security").agentType, "security-reviewer");
@@ -55,7 +55,7 @@ test("low findings skip verification, medium gets one skeptic, high gets two", a
       return { checked: [{ item: "i", evidence: "e" }],
         findings: [finding("low", "a.ts"), finding("medium", "b.ts"), finding("high", "c.ts")] };
     }
-    return { checked: [], findings: [] };
+    return { checked: [{ item: "i", evidence: "e" }], findings: [] };
   });
   assert.equal(calls.filter(c => c.phase === "Verify").length, 3);
   const lane = result.lanes.find(l => l.lane === "seams-data");
@@ -65,18 +65,45 @@ test("low findings skip verification, medium gets one skeptic, high gets two", a
 test("a finding every skeptic refutes is marked refuted, not dropped", async () => {
   const { result } = await run("sweep-review.js", reviewArgs, (prompt, opts) => {
     if (opts.phase === "Verify") return { refuted: true, reason: "handled by the predicate", severity: "low" };
-    if (opts.label === "review:security") return { checked: [], findings: [finding("critical", "d.ts")] };
-    return { checked: [], findings: [] };
+    if (opts.label === "review:security") return { checked: [{ item: "i", evidence: "e" }], findings: [finding("critical", "d.ts")] };
+    return { checked: [{ item: "i", evidence: "e" }], findings: [] };
   });
   const f = result.lanes.find(l => l.lane === "security").findings[0];
   assert.equal(f.verdict, "REFUTED");
   assert.match(f.notes, /predicate/);
 });
 
-test("a lane that returns nothing is named as missing", async () => {
-  const { result } = await run("sweep-review.js", reviewArgs,
-    (prompt, opts) => (opts.label === "review:product" ? null : { checked: [], findings: [] }));
+test("a lane that returns nothing twice is named as missing", async () => {
+  const { result, calls } = await run("sweep-review.js", reviewArgs,
+    (prompt, opts) => (opts.label?.startsWith("review:product") ? null : { checked: [{ item: "i", evidence: "e" }], findings: [] }));
   assert.deepEqual(result.missing, ["product"]);
+  assert.equal(calls.filter(c => c.label?.startsWith("review:product")).length, 2);
+});
+
+// The first sweep's second run took a code-web lane with no checklist and no
+// findings as a clean lane. Nothing checked is not nothing found.
+test("a lane that returns an empty checklist is retried, and named missing if it stays empty", async () => {
+  const { result, calls } = await run("sweep-review.js", reviewArgs,
+    (prompt, opts) => (opts.label?.startsWith("review:code-web") ? { checked: [], findings: [] } : { checked: [{ item: "i", evidence: "e" }], findings: [] }));
+  assert.equal(calls.filter(c => c.label?.startsWith("review:code-web")).length, 2);
+  assert.deepEqual(result.missing, ["code-web"]);
+});
+
+// The first sweep lost its code-agent lane to a reviewer whose structured output
+// never parsed; one retry with a shorter-output instruction is what recovered it.
+test("a lane whose reviewer returns nothing is retried once, asking for shorter output", async () => {
+  let product = 0;
+  const { result, calls } = await run("sweep-review.js", reviewArgs, (prompt, opts) => {
+    if (opts.label?.startsWith("review:product")) {
+      product += 1;
+      return product === 1 ? null : { checked: [{ item: "i", evidence: "e" }], findings: [] };
+    }
+    return { checked: [{ item: "i", evidence: "e" }], findings: [] };
+  });
+  assert.deepEqual(result.missing, []);
+  const retry = calls.filter(c => c.label?.startsWith("review:product"))[1];
+  assert.match(retry.prompt, /short/i);
+  assert.equal(result.lanes.find(l => l.lane === "product").checked.length, 1);
 });
 
 const pkg = (id, extra = {}) => ({ id, title: `t${id}`, area: "apps/web", files: [`apps/web/${id}.ts`],
@@ -94,7 +121,10 @@ test("each package is implemented, reviewed by the right persona, and answered o
   assert.equal(calls.find(c => c.label === "review:p1").agentType, "code-reviewer");
   assert.equal(calls.find(c => c.label === "review:p2").agentType, "security-reviewer");
   assert.deepEqual(calls.filter(c => c.phase === "Answer").map(c => c.label), ["answer:p2"]);
-  assert.match(calls.find(c => c.label === "fix:p1").prompt, /source \/s\/env-p1\.sh/);
+  // A worktree-isolated session refuses `source` of a file outside the tree,
+  // which every fix agent of the first sweep had to work around.
+  assert.match(calls.find(c => c.label === "fix:p1").prompt, /--env-file=\/s\/env-p1\.sh/);
+  assert.doesNotMatch(calls.find(c => c.label === "fix:p1").prompt, /`source /);
   assert.match(calls.find(c => c.label === "fix:p1").prompt, /Commit nothing/);
   assert.equal(result.packages.length, 2);
 });

@@ -106,7 +106,11 @@ While that runs, the lead does the **functional lane** from `functional.md`. It
 needs the servers, the simulator and the Pixel, which a sub-agent should not hold.
 
 When the workflow returns, re-read the source yourself for every critical and
-high finding before it goes in the report, as the security review did.
+high finding before it goes in the report, as the security review did. A lane that
+still comes back missing after the workflow's own retry is re-run on its own. A
+resume of the run is not a cache replay to count on (the first sweep's resume re-ran
+every lane), so treat a second full run as a second sample: the two runs of
+2026-10-07 agreed on most findings and each found some the other did not.
 
 ## Phase 3. Merge into a worklist
 
@@ -124,6 +128,11 @@ high finding before it goes in the report, as the security review did.
 3. **Pack the fixes into work packages** the implement fan-out can run at once:
    - The file sets of two packages never overlap. Two fixes that touch one file are
      in one package. A package names its files up front.
+   - **A package's set includes the callers and tests of what it changes.** Grep for
+     every use of a name it renames, moves or re-signs, every string it rewords, and
+     the barrel and `package.json` of any module it adds. The first sweep's packages
+     each closed their own findings and left a dozen joins between them (a missing
+     export, a caller passing arguments in the old order, tests pinning old copy).
    - One area per package, at most about eight findings, each with the test that will
      go red first and the suite that owns it.
    - Shared-state edits (`docs/constitution/`, `docs/tech/`, the design system) are
@@ -134,7 +143,9 @@ high finding before it goes in the report, as the security review did.
 
 ## Phase 4. Implement
 
-1. For each package make `offload_sweep_<id>_test` and its env file, as in Phase 0.
+1. For each package that runs database tests make `offload_sweep_<id>_test` and its
+   env file, as in Phase 0. Agents load it with `node --env-file` or
+   `uv run --env-file`; a worktree-isolated session refuses to `source` it.
 2. Start the fix fan-out, one wave at a time:
 
 ```
@@ -150,7 +161,15 @@ Workflow({ name: "sweep-fix", args: { worktree, packages: [
    answers that review once.
 3. After each wave: `git status --porcelain` lists only files some package owned. A
    file outside every set is a defect to look at, not to commit.
-4. **Commit per package**, with the `suite` hold: `board.py hold suite "sweep:
+4. **Integrate.** Read every package's `outside` list and every review finding its
+   answer skipped. The joins between packages are the lead's: make the small ones by
+   hand, and pack the rest as the next wave with the same rules.
+5. **Run every gate in the worktree first.** A session that entered the worktree
+   from main runs its hooks in main's checkout, so the commit gate tests main, not
+   the sweep, and a generating hook (model-calls) writes into main. Run `pnpm test`
+   on `offload_sweep_test`, `pnpm lint`, `pnpm typecheck`, the three `dead-*.mjs`,
+   `ruff` and the harness tests in the worktree, then commit.
+6. **Commit per package**, with the `suite` hold: `board.py hold suite "sweep:
    commit <id>"`, commit, `board.py release suite`. The gate runs the shared suite,
    so check the board first and never commit while another session holds it. The
    message names the findings it closes.

@@ -45,6 +45,10 @@ export default [
       ".claude/skills/offload-design/**",
       "**/.claude/skills/offload-design/**",
       "**/.claude/worktrees/**",
+      // Workflow scripts run in Claude Code's Workflow runtime, which allows a
+      // top-level return; their dry-run test (test-sweep-workflows.mjs) is
+      // what checks them.
+      ".claude/workflows/*.js",
       "**/node_modules/**",
       "**/dist/**",
       "**/build/**",

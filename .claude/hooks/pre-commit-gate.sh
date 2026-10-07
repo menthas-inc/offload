@@ -83,6 +83,21 @@ case "$commits" in
         step "BLOCKED by pre-commit gate: $check found something." node ".claude/scripts/$check.mjs"
       done
     fi
+    # The harness's own tests sit outside every workspace, so `pnpm test` never
+    # ran them, and the sweep of 2026-10-07 found three that nothing ran: the
+    # board's, the sweep's trigger and workflows, the specs' as-built checks.
+    harness=""
+    for f in .claude/scripts/test_*.py; do
+      if [ -f "$f" ]; then harness="$harness python3 '$f' &&"; fi
+    done
+    js=""
+    for f in .claude/workflows/*.test.mjs docs/specs/*.test.mjs; do
+      if [ -f "$f" ]; then js="$js '$f'"; fi
+    done
+    if [ -n "$js" ]; then harness="$harness node --test $js &&"; fi
+    if [ -n "$harness" ]; then
+      step "BLOCKED by pre-commit gate: harness tests failed." "$harness true"
+    fi
     # The agent plane has no package.json, so `pnpm lint` never sees it and CI's
     # `ruff check` was the first gate to. Six pushes in a row went red on ruff
     # alone before this line existed. Skipped while the venv is absent so a fresh

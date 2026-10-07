@@ -26,5 +26,16 @@ check "failing suite" 2 "FAIL src/thing.test.ts > breaks" 1
 check "failing suite names its log" 2 "full output:" 1
 check "passing suite" 0 "pre-commit gate" 0
 
+# The harness's own tests live outside every workspace, so `pnpm test` never ran
+# them: the board, the sweep's trigger and workflows, and the specs' as-built
+# checks (sweep, 2026-10-07). A failing one blocks like a failing suite.
+mkdir -p "$tmp/.claude/scripts" "$tmp/docs/specs"
+printf 'import unittest\nclass T(unittest.TestCase):\n    def test_x(self):\n        self.fail("harness py breaks")\nunittest.main()\n' > "$tmp/.claude/scripts/test_broken.py"
+check "failing harness python test" 2 "harness tests failed" 0
+rm "$tmp/.claude/scripts/test_broken.py"
+printf 'import { test } from "node:test";\nimport assert from "node:assert";\ntest("spec", () => assert.fail("harness js breaks"));\n' > "$tmp/docs/specs/broken.test.mjs"
+check "failing harness node test" 2 "harness tests failed" 0
+rm "$tmp/docs/specs/broken.test.mjs"
+
 [ "$fails" = 0 ] && echo "pre-commit-gate: all passed"
 exit "$fails"
