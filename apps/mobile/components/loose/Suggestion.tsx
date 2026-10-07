@@ -50,7 +50,7 @@ export function SuggestionLine({
         onPress={onAccept}
         hitSlop={{ top: (TARGET - DRAWN) / 2, bottom: (TARGET - DRAWN) / 2 }}
         accessibilityRole="button"
-        accessibilityLabel={suggestionName(suggestion, title)}
+        accessibilityLabel={suggestionName(title, suggestion)}
         {...(hint ? { accessibilityHint: hint } : {})}
         className={`flex-row items-center gap-space-3 border ${isAndroid ? "rounded-a-sm" : "rounded-pill"} ${
           move ? "border-transparent bg-surface-accent-soft" : "border-dashed border-moss-600 bg-surface-raised"

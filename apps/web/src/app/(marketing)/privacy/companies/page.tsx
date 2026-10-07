@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description: "The companies that help run offload, what each does, and what each receives.",
 };
 
-const UPDATED = "6 October 2026";
+const UPDATED = "7 October 2026";
 
 /** Company, what for, what they receive. Marked `self` when it acts for itself. */
 const COMPANIES: { name: string; does: string; receives: string; self?: true }[] = [
@@ -45,7 +45,8 @@ const COMPANIES: { name: string; does: string; receives: string; self?: true }[]
   {
     name: "Resend",
     does: "Sends the emails we send, and receives email you forward to offload",
-    receives: "Your email address, the emails we send you, and the email you forward",
+    receives:
+      "Your email address, the emails we send you, and the email you forward, which it keeps as received, attachments included, for 30 days and then deletes",
   },
   {
     name: "Expo",

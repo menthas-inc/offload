@@ -28,6 +28,10 @@ export interface Me {
    *  run uses, because a name is not something Settings should have to be found
    *  for. */
   needsName: boolean;
+  /** Active, and agreed to an older privacy policy or terms: the two ticks
+   *  are asked again, alone, before the shell. Optional for a server that
+   *  predates it. */
+  needsConsent?: boolean;
   /** 016. Whether offload may search the web, and whether it may open a link
    *  they pasted. Two different promises, so two switches. */
   webSearch: boolean;
@@ -88,11 +92,28 @@ export async function refreshMe(): Promise<void> {
 
 /** Whether this account still has something to answer before the shell.
  *
- *  Two questions, one gate. They came apart because every account that existed
- *  when 011 shipped had finished first run and had no name, so "finished first
- *  run" stopped being the same as "ready". */
+ *  Three questions, one gate. They came apart because every account that
+ *  existed when 011 shipped had finished first run and had no name, so
+ *  "finished first run" stopped being the same as "ready", and an account can
+ *  finish it and then see the policy or the terms move. */
 export function stillAsking(me: Me): boolean {
-  return me.needsFirstRun || me.needsName;
+  return me.needsFirstRun || me.needsName || me.needsConsent === true;
+}
+
+/** The two ticks again, for an active account whose consent is on an older
+ *  version. Returns whether the server recorded it. */
+export async function giveConsent(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API}/api/consent`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 export type MeState =

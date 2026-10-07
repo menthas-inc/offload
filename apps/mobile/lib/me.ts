@@ -22,6 +22,9 @@ export interface Me {
   needsFirstRun: boolean;
   /** No name yet. See `stillAsking` in `api.ts`, which is the gate. */
   needsName: boolean;
+  /** Active, and agreed to an older privacy policy or terms: asked again on
+   *  first run's last screen, the ticks alone. */
+  needsConsent?: boolean;
   /** What Apple or Google called them, to fill the field in. */
   suggestedName: string | null;
   /** 016. Whether offload may search the web, and whether it may open a link
@@ -165,16 +168,7 @@ export function useMe(): Me | null {
   return me;
 }
 
-/** Turning a switch. 016.
- *
- *  Patches one field, never the pair and never a name: a settings toggle
- *  sending a display name is a toggle that can clear one by accident. The
- *  server's own schema is the other half of that, where every field is optional
- *  and only what was sent is written.
- *
- *  Broadcast like `saveName`, so every mounted `useMe` has the new state
- *  without a refetch and the switch never disagrees with itself. */
-/** The countries somebody can say they are in. 
+/** The countries somebody can say they are in.
  *
  *  Fetched rather than shipped: the server validates against the same list it
  *  serves, so a code this offers is always one the patch accepts. */
@@ -201,6 +195,15 @@ export async function setCountry(country: string | null): Promise<Me | null> {
   }
 }
 
+/** Turning a switch. 016.
+ *
+ *  Patches one field, never the pair and never a name: a settings toggle
+ *  sending a display name is a toggle that can clear one by accident. The
+ *  server's own schema is the other half of that, where every field is optional
+ *  and only what was sent is written.
+ *
+ *  Broadcast like `saveName`, so every mounted `useMe` has the new state
+ *  without a refetch and the switch never disagrees with itself. */
 export async function setWebAccess(
   patch: { webSearch?: boolean; webLinks?: boolean },
 ): Promise<Me | null> {

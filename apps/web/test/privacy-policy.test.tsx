@@ -38,9 +38,9 @@ const terms = textOf(renderToStaticMarkup(<Terms />));
 const source = (path: string) => readFileSync(`${process.cwd()}/src/${path}`, "utf8");
 
 describe("the privacy policy, general", () => {
-  it("is titled as a privacy policy and dated 6 October 2026", () => {
+  it("is titled as a privacy policy and dated 7 October 2026", () => {
     expect(policyHtml).toMatch(/<h1[^>]*>Privacy policy<\/h1>/);
-    expect(policy).toContain("Last updated 6 October 2026");
+    expect(policy).toContain("Last updated 7 October 2026");
   });
 
   it("names the controller and says it is for the United States only", () => {
@@ -61,9 +61,21 @@ describe("the privacy policy, general", () => {
     expect(policy).toContain("Apple and Google, when you sign in with them, act for themselves");
   });
 
-  it("says new companies are listed and material changes are emailed in advance", () => {
+  it("names the country a web search carries, and how long Resend keeps forwarded mail", () => {
+    expect(policy).toContain("words from what you put in and the country you set in Settings");
+    expect(companies).toContain("keeps as received, attachments included, for 30 days and then deletes");
+  });
+
+  it("says new companies are listed and a material change is put to you again in the app", () => {
     expect(policy).toContain("We keep the list current");
-    expect(policy).toContain("we email account holders before it takes effect");
+    expect(policy).toContain("offload tells you the next time you open it and asks you to agree again");
+    expect(policy).not.toContain("we email account holders before it takes effect");
+  });
+
+  it("claims our encryption only for our own backup and exports, not the host's recovery copies", () => {
+    expect(policy).toContain("Our own nightly backup and your exports are encrypted the same way.");
+    expect(policy).toContain("recovery copies of the database are protected by its encryption");
+    expect(policy).not.toContain("Exports and backups are encrypted too.");
   });
 
   it("says what you delete is deleted, promptly, and from backups within 30 days", () => {
@@ -152,7 +164,7 @@ describe("the companies page", () => {
 
 describe("the terms", () => {
   it("are dated, named, and for the United States", () => {
-    expect(terms).toContain("Last updated 5 October 2026");
+    expect(terms).toContain("Last updated 7 October 2026");
     expect(terms).toContain("Behrooz Afghahi");
     expect(terms).toContain("only offered in the United States");
   });
@@ -166,7 +178,7 @@ describe("the terms", () => {
     expect(terms).toContain("sexual content involving minors");
     expect(terms).toContain("You are responsible for how you use what offload produces.");
     expect(terms).toContain("time to take a copy");
-    expect(terms).toContain("14 days after we email account holders");
+    expect(terms).toContain("asks you to agree again before you go on");
     expect(terms).toContain("Apple's standard licensed application end user licence agreement");
   });
 });
@@ -179,11 +191,14 @@ describe("memories", () => {
     expect(policy).toContain("Memories: what offload knows about you across your threads");
   });
 
-  it("say how each kind is written, and that sensitive ones are kept only when asked", () => {
+  it("say how each kind is written, and that keeping sensitive ones only when asked is an instruction, not a guarantee", () => {
     expect(policy).toContain("when you ask it to remember something");
     expect(policy).toContain("from what you said, overnight");
-    expect(policy).toContain("only when you asked offload to remember it");
-    expect(policy).toContain("never an ID or account number, a password or immigration status");
+    expect(policy).toContain("offload is told to keep health, religion");
+    expect(policy).toContain("never an ID or account number, a password");
+    expect(policy).toContain("That is an instruction and a filter, not a guarantee");
+    // The sweep of 2026-10-07: a word list cannot carry "kept only when asked".
+    expect(policy).not.toContain("are kept only when you asked offload to remember it");
   });
 
   it("go with every call, and never into a web search", () => {
@@ -207,7 +222,8 @@ describe("memories", () => {
 // are seen and changed, and what Voyage receives once memories are embedded.
 describe("040 the memories tab", () => {
   it("says in the health section, too, that a memory is kept when you add it yourself", () => {
-    expect(policy).toContain("offload keeps it as a memory only when you asked it to remember it or added it yourself in Memories.");
+    expect(policy).toContain("offload is told to keep it as a memory");
+    expect(policy).toContain("only when you asked it to remember it or added it yourself in Memories.");
   });
 
   it("says a memory is kept when you add one in the tab, and that the tab is where you see and change them", () => {
@@ -222,7 +238,7 @@ describe("040 the memories tab", () => {
   });
 
   it("moves both dates", () => {
-    expect(policy).toContain("Last updated 6 October 2026");
-    expect(companies).toContain("Last updated 6 October 2026");
+    expect(policy).toContain("Last updated 7 October 2026");
+    expect(companies).toContain("Last updated 7 October 2026");
   });
 });

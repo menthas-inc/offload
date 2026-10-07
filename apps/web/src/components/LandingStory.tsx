@@ -18,6 +18,7 @@
 // them as a list of somebody else's notes.
 
 import { useEffect, useRef } from "react";
+import { useReducedMotion } from "../lib/reduced-motion";
 import { Icon } from "./Icon";
 import { ThreadIcon } from "./ThreadIcon";
 import styles from "./landing-story.module.css";
@@ -26,17 +27,17 @@ const STEPS = [
   {
     kicker: "What it is",
     heading: "Send it. offload files it.",
-    body: "offload is a place to put down what is on your mind: notes, links, photos and voice notes. It reads each one and files it into a thread, one for each thing you are keeping track of.",
+    body: "offload is a place to put down what is on your mind: notes, links, photos and voice notes. It reads each one and files it into a thread, one for each trip, plan or job you are keeping track of.",
   },
   {
-    kicker: "Getting things in",
+    kicker: "Getting it in",
     heading: "Send it as is",
     body: "Type it, say it, snap it, or forward it.",
   },
   {
     kicker: "Threads",
     heading: "Everything lands in threads",
-    body: "Related things gather in one thread. Share it, and plan it with the people in it.",
+    body: "What belongs together gathers in one thread. Share it, and plan it with the people in it.",
   },
   {
     kicker: "Google Calendar",
@@ -204,6 +205,7 @@ const DRAWINGS = [Filing, Ways, Thread, Calendar];
 
 export function LandingStory() {
   const storyRef = useRef<HTMLElement | null>(null);
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     const story = storyRef.current;
@@ -212,7 +214,6 @@ export function LandingStory() {
     if (!story || !pin || !panel) return;
 
     // Reduced motion keeps the panel and swaps its steps by opacity alone.
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const steps = [...story.querySelectorAll<HTMLElement>("[data-step]")].map((el) => ({
       el,
       words: el.querySelector<HTMLElement>("[data-words]"),
@@ -254,7 +255,16 @@ export function LandingStory() {
         const o = visible(pos, j);
         step.el.style.opacity = o.toFixed(3);
         step.el.style.pointerEvents = o > 0.5 ? "" : "none";
-        if (reduced) return;
+        if (reduced) {
+          // Whatever the moving version wrote comes off again.
+          step.words?.style.removeProperty("transform");
+          step.words?.style.removeProperty("filter");
+          for (const part of step.parts) {
+            part.style.removeProperty("opacity");
+            part.style.removeProperty("transform");
+          }
+          return;
+        }
 
         // The outgoing words move with the scroll and blur as they go.
         if (step.words) {
@@ -299,7 +309,7 @@ export function LandingStory() {
       story.removeEventListener("focusin", onFocus);
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [reduced]);
 
   return (
     <section ref={storyRef} className={styles.story} data-landing-story>

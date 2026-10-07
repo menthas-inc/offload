@@ -13,7 +13,7 @@
 //
 // 028. The default thread is never in the list, so no row refuses its swipe.
 
-import { Platform, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 import { Glyph } from "../Glyph";
@@ -40,19 +40,22 @@ export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
     <View className="relative">
       {/* The action sits behind the row and the row paints over it. */}
       <Animated.View
-        className="absolute inset-y-0 right-0 items-center justify-center bg-surface-danger"
+        className="absolute inset-y-0 right-0 bg-surface-danger"
         style={[revealed, { width: REVEAL + 24 }]}
       >
-        <Text
-          className="font-core font-medium text-text-on-solid"
-          style={{ fontSize: 13 }}
+        {/* The whole panel is the target, not the word in it (S10). */}
+        <Pressable
+          accessibilityRole="button"
+          className="min-h-tap-min flex-1 items-center justify-center self-stretch"
           onPress={() => {
             close();
             onDelete();
           }}
         >
-          Delete
-        </Text>
+          <Text className="font-core font-medium text-text-on-solid" style={{ fontSize: 13 }}>
+            Delete
+          </Text>
+        </Pressable>
       </Animated.View>
 
       <GestureDetector gesture={gesture}>

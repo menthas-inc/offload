@@ -10,10 +10,10 @@
 // the noticed ink; the kind's hue is only ever the dot, and only in Newest,
 // where no heading says the kind.
 
-import { Platform, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
-import { memoryMeta, type MemoryView } from "@offload/widgets";
+import { memoryMeta, toSecondPerson, type MemoryView } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { REVEAL, useRowSwipe } from "../shell/swipe";
@@ -41,6 +41,8 @@ export function MemoryListRow({
   const COLOR = useColors();
   const { gesture, sliding, revealed, close } = useRowSwipe(onOpen);
   const meta = memoryMeta(memory);
+  // Stored about the person, read to them (F-P2).
+  const said = toSecondPerson(memory.text);
   // Tertiary on both phones, as the kit draws the meta.
   const quiet = "text-text-tertiary";
 
@@ -48,19 +50,22 @@ export function MemoryListRow({
     <View className="relative">
       {/* The action sits behind the row and the row paints over it. */}
       <Animated.View
-        className="absolute inset-y-0 right-0 items-center justify-center bg-surface-danger"
+        className="absolute inset-y-0 right-0 bg-surface-danger"
         style={[revealed, { width: REVEAL + 24 }]}
       >
-        <Text
-          className="font-core font-medium text-text-on-solid"
-          style={{ fontSize: 13 }}
+        {/* The whole panel is the target, not the word in it (S10). */}
+        <Pressable
+          accessibilityRole="button"
+          className="min-h-tap-min flex-1 items-center justify-center self-stretch"
           onPress={() => {
             close();
             onForget();
           }}
         >
-          Forget
-        </Text>
+          <Text className="font-core font-medium text-text-on-solid" style={{ fontSize: 13 }}>
+            Forget
+          </Text>
+        </Pressable>
       </Animated.View>
 
       <GestureDetector gesture={gesture}>
@@ -69,7 +74,7 @@ export function MemoryListRow({
           className={isAndroid ? "bg-a-surface" : "bg-surface-page"}
           accessible
           accessibilityRole="button"
-          accessibilityLabel={memory.text}
+          accessibilityLabel={said}
           accessibilityHint={`${meta.label}, ${meta.day}`}
           // The swipe is out of reach of a screen reader, so Forget is an
           // action on the row as well.
@@ -94,7 +99,7 @@ export function MemoryListRow({
                 className={`font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
                 style={{ fontSize: 15.5, lineHeight: 21.7 }}
               >
-                {memory.text}
+                {said}
               </Text>
               <View className="mt-space-2 flex-row flex-wrap items-center" style={{ gap: 5 }}>
                 {meta.learned ? (

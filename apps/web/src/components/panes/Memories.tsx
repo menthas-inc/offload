@@ -23,6 +23,8 @@ import {
   memoryOrigin,
   memoryRefusal,
   memorySections,
+  toSecondPerson,
+  toThirdPerson,
   type MemoryKindId,
   type MemoryList,
   type MemoryView,
@@ -278,7 +280,8 @@ function MemoryEntry({ memory, dot, on, onOpen }: { memory: MemoryView; dot: boo
     >
       {dot ? <span className={styles.rowDot} aria-hidden="true" /> : null}
       <span className={styles.rowText}>
-        <span className={styles.sentence}>{memory.text}</span>
+        {/* Stored about the person, read to them (F-P2). */}
+        <span className={styles.sentence}>{toSecondPerson(memory.text)}</span>
         <span className={styles.meta}>
           {meta.learned ? (
             <span className={styles.learned}>
@@ -313,7 +316,14 @@ function MemoryEditor({
   onGone: () => void;
 }) {
   const toast = useToast();
-  const [draft, setDraft] = useState(memory?.text ?? "");
+  // Stored about the person and shown to them (F-P2), as the phones' editor:
+  // the field holds the person's form and a save writes the stored one. A
+  // memory the rewrite left alone is saved as typed, and words left as shown
+  // keep their stored form.
+  const shown = memory ? toSecondPerson(memory.text) : "";
+  const voiced = !memory || shown !== memory.text;
+  const stored = (text: string): string => (memory && text === shown ? memory.text : voiced ? toThirdPerson(text) : text);
+  const [draft, setDraft] = useState(shown);
   const [kind, setKind] = useState<MemoryKindId>(firstKind);
   const [refused, setRefused] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -327,19 +337,20 @@ function MemoryEditor({
   }, []);
 
   const words = draft.replace(/\s+/g, " ").trim();
-  const severs = memory?.origin === "answered" && words !== memory.text;
+  const text = stored(words);
+  const severs = memory?.origin === "answered" && text !== memory.text;
 
   const save = async (): Promise<void> => {
     if (!words || busy) return;
-    if (memory && words === memory.text && kind === memory.kind) return onClose();
+    if (memory && text === memory.text && kind === memory.kind) return onClose();
     setBusy(true);
     const result = memory
       ? await changeMemory(memory.id, {
           // A change that makes a rule carries its words: the server refuses one without.
-          ...(words !== memory.text || (kind === "rules" && kind !== memory.kind) ? { text: words } : {}),
+          ...(text !== memory.text || (kind === "rules" && kind !== memory.kind) ? { text } : {}),
           ...(kind !== memory.kind ? { kind } : {}),
         })
-      : await addMemory(words, kind);
+      : await addMemory(text, kind);
     setBusy(false);
     if (result.kind === "ok") return onSaved(memory ? MEMORY_COPY.saved : MEMORY_COPY.remembered);
     if (result.kind === "refused") return setRefused(memoryRefusal(result.error));

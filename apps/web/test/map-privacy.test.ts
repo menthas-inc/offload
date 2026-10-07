@@ -21,9 +21,16 @@ describe("the privacy page says what the map adds (T5.3)", () => {
     expect(companies).toContain("Acts for itself under its own terms");
   });
 
+  // Not pinned to a day: every later change to the page moves both, and
+  // apps/core-api/test/consent.test.ts holds the rule (the later of the
+  // privacy and terms dates). Here, only that the map change moved them past it.
   it("moves its date with the consent version", () => {
-    expect(page).toContain('const UPDATED = "6 October 2026"');
-    expect(session).toContain('export const CONSENT_VERSION = "2026-10-06";');
+    const updated = /const UPDATED = "(\d{1,2}) October 2026"/.exec(page);
+    const consent = /export const CONSENT_VERSION = "2026-10-(\d{2})";/.exec(session);
+    expect(updated, "UPDATED in October 2026").not.toBeNull();
+    expect(consent, "CONSENT_VERSION in October 2026").not.toBeNull();
+    expect(Number(consent![1])).toBeGreaterThanOrEqual(Number(updated![1]));
+    expect(Number(updated![1])).toBeGreaterThanOrEqual(3);
   });
 });
 

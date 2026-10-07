@@ -1,5 +1,6 @@
 // 033. First run's words on the web. The phones hold the same in
-// `apps/mobile/lib/gate.ts`; the two have to match.
+// `apps/mobile/lib/gate.ts`; the two have to match, and test/consent.test.tsx
+// checks the consent's and the failure line's.
 
 import { MAIL_ADDRESS } from "../MailBlock";
 
@@ -99,4 +100,18 @@ export const BRING = {
   done: "Done",
 } as const;
 
-export const FAILED = "That did not go through. Check your connection and try again.";
+/** What happened, never why: offload cannot see whether it was the network or
+ *  the server, and Continue beside it is the way forward. The phones hold it
+ *  as `GATE.failed` in `apps/mobile/lib/gate.ts`. */
+export const FAILED = "That did not go through. Try again.";
+
+/** Above the two ticks when an active account is asked again, because the
+ *  privacy policy or the terms moved. Both words link. The phones hold the
+ *  same in `apps/mobile/lib/gate.ts`. */
+export const RECONSENT = {
+  before: "We have changed the ",
+  terms: "terms",
+  middle: " or the ",
+  policy: "privacy policy",
+  after: ".",
+} as const;

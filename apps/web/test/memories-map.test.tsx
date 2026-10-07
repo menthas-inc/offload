@@ -62,7 +62,7 @@ describe("the map", () => {
     );
     const pills = [...host.querySelectorAll("[data-memory]")];
     expect(pills.every((p) => p.getAttribute("data-shape") === "sentence")).toBe(true);
-    expect(pills.map((p) => p.getAttribute("aria-label"))).toEqual(["Their son is Leo., People", "Their wife is Meera., People", "They work at Shopify., About"]);
+    expect(pills.map((p) => p.getAttribute("aria-label"))).toEqual(["Your son is Leo., People", "Your wife is Meera., People", "You work at Shopify., About"]);
     await act(async () => (pills[1] as HTMLElement).click());
     expect(onOpen).toHaveBeenCalledWith("a");
   });

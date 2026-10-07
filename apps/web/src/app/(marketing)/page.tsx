@@ -12,6 +12,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LandingStory } from "../../components/LandingStory";
+import { useReducedMotion } from "../../lib/reduced-motion";
 import { Screen, ScreenFooter, ScreenHeader, screenStyles } from "../../components/Screen";
 import styles from "./page.module.css";
 
@@ -52,13 +53,19 @@ export default function Landing() {
   const bleedRef = useRef<SVGFEDisplacementMapElement | null>(null);
   const wakeBleed = useRef<(() => void) | null>(null);
 
-  outRef.current = out;
+  const reduced = useReducedMotion();
+  // A word caught leaving when reduced motion comes on is shown, not left gone.
+  const leaving = out && !reduced;
+  outRef.current = leaving;
 
   // The cycle. Reduced motion opts out of the whole thing rather than shortening
   // it: the point of the animation is the dissolve, and a word that swaps every
   // five seconds with no transition is just a page that will not sit still.
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (reduced) {
+      bleedRef.current?.setAttribute("scale", "0");
+      return;
+    }
 
     let arriving = 0;
     const interval = window.setInterval(() => {
@@ -122,7 +129,7 @@ export default function Landing() {
       wakeBleed.current = null;
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [reduced]);
 
   // Both ends of the swap wake it: the word leaving and the next one arriving.
   useEffect(() => {
@@ -259,7 +266,7 @@ export default function Landing() {
             <h1 ref={titleRef} className={styles.title}>
               <span className={styles.line}>offload</span>
               <span className={styles.line}>
-                <span className={styles.cycle} data-state={out ? "out" : "in"}>
+                <span className={styles.cycle} data-state={leaving ? "out" : "in"}>
                   <span className={styles.word}>{word}</span>
                   <span className={`${styles.ghost} ${styles.ghostViolet}`} aria-hidden="true">
                     {word}

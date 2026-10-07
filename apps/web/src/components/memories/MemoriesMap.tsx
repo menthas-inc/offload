@@ -27,6 +27,7 @@ import {
   memoryWorld,
   pillShape,
   sentenceSize,
+  toSecondPerson,
   type MemoryKindId,
   type MemoryKindPlace,
   type MemoryView,
@@ -294,13 +295,15 @@ export function MemoriesMap({
         const sy = Y(at.y);
         if (sx < -MAP_LOOK.cull.x || sx > size.w + MAP_LOOK.cull.x || sy < -MAP_LOOK.cull.y || sy > size.h + MAP_LOOK.cull.y) return null;
         const info = MEMORY_KINDS.find((k) => k.kind === m.kind)!;
+        // Stored about the person, read to them (F-P2).
+        const said = toSecondPerson(m.text);
         const shared = {
           "data-memory": m.id,
           "data-k": m.kind,
           "data-dim": matchesMemory(m, query) ? undefined : true,
-          "aria-label": `${m.text}, ${info.name}`,
+          "aria-label": `${said}, ${info.name}`,
         };
-        const shape = pillShape(m.text, m.origin === "learned");
+        const shape = pillShape(said, m.origin === "learned");
         if (!near) {
           return (
             <button
@@ -335,7 +338,7 @@ export function MemoriesMap({
             onClick={() => onOpen(m.id)}
           >
             {m.origin === "learned" ? <Icon name="sparkles" size={Math.round(fs * 0.8)} /> : null}
-            <span style={{ WebkitLineClamp: shape.lines }}>{m.text}</span>
+            <span style={{ WebkitLineClamp: shape.lines }}>{said}</span>
           </button>
         );
       })}

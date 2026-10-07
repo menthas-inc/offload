@@ -26,13 +26,13 @@ const STEPS = [
   [
     "What it is",
     "Send it. offload files it.",
-    "offload is a place to put down what is on your mind: notes, links, photos and voice notes. It reads each one and files it into a thread, one for each thing you are keeping track of.",
+    "offload is a place to put down what is on your mind: notes, links, photos and voice notes. It reads each one and files it into a thread, one for each trip, plan or job you are keeping track of.",
   ],
-  ["Getting things in", "Send it as is", "Type it, say it, snap it, or forward it."],
+  ["Getting it in", "Send it as is", "Type it, say it, snap it, or forward it."],
   [
     "Threads",
     "Everything lands in threads",
-    "Related things gather in one thread. Share it, and plan it with the people in it.",
+    "What belongs together gathers in one thread. Share it, and plan it with the people in it.",
   ],
   [
     "Google Calendar",
@@ -96,6 +96,14 @@ describe("the landing page, as the server sends it", () => {
 
   it("is written without a dash", () => {
     expect(text).not.toMatch(/[\u2013\u2014]/);
+  });
+
+  // *thing* is a retired word: in anything a person reads there is no noun,
+  // so the story rewords around it.
+  it("tells the story without the retired noun", () => {
+    const story = html.slice(html.indexOf("data-landing-story"), html.indexOf("data-landing-end"));
+    const words = story.replace(/<[^>]+>/g, " ");
+    expect(words.match(/\bthings?\b/gi) ?? []).toEqual([]);
   });
 });
 

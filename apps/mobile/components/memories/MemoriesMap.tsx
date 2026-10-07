@@ -45,7 +45,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Canvas, Circle, Fill, Group, Image as SkiaImage, RadialGradient, useImage, vec, type Transforms3d } from "@shopify/react-native-skia";
 import { useColorScheme } from "nativewind";
-import { MAP_ZOOM, memoryAt, memoryWorld, type MemoryKindId, type MemoryKindPlace, type MemoryView, type MemoryWorldKind } from "@offload/widgets";
+import { MAP_ZOOM, memoryAt, memoryWorld, toSecondPerson, type MemoryKindId, type MemoryKindPlace, type MemoryView, type MemoryWorldKind } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { usePlateInset } from "../shell/plate-inset";
 import { atOpacity, useColors } from "../../lib/colors";
@@ -398,7 +398,11 @@ export function MemoriesMap({
     [fly, minZ],
   );
 
-  const marks = useMemo(() => (settled ? mapMarks(memories, world, settled.window, settled.zs, query) : []), [memories, world, settled, query]);
+  // A mark's name is its sentence, read to the person it is about (F-P2).
+  const marks = useMemo(
+    () => (settled ? mapMarks(memories, world, settled.window, settled.zs, query).map((m) => ({ ...m, label: toSecondPerson(m.label) })) : []),
+    [memories, world, settled, query],
+  );
   // One object per layout zoom, so a window move keeps every mark's props equal.
   const box = useMemo(() => settled?.box ?? null, [settledZoom]); // `settled.box` is made from `settledZoom`.
 
@@ -632,7 +636,9 @@ const MapMark = memo(function MapMark({ mark, box, zs, open, onDot, onOpen }: Ma
   // collapsed the clamped sentence to nothing on iOS.
   //
   // Its own shape: one line when short, two when not, as wide as its words.
-  const card = cardOf(mark.memory, zs);
+  // Stored about the person, read to them (F-P2), and sized by what is read.
+  const said = toSecondPerson(mark.memory.text);
+  const card = cardOf({ ...mark.memory, text: said }, zs);
   // Towards 44 only as far as the layout's gap allows, by the card's own
   // height. The box holds the slop, since a touch outside a parent is not
   // delivered.
@@ -684,7 +690,7 @@ const MapMark = memo(function MapMark({ mark, box, zs, open, onDot, onOpen }: Ma
           textBreakStrategy="balanced"
           style={{ fontSize: box.fontSize, lineHeight: box.fontSize * 1.3, color: COLOR.ink }}
         >
-          {mark.memory.text}
+          {said}
         </Text>
       </Pressable>
     </View>

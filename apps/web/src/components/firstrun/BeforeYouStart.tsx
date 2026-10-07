@@ -7,7 +7,7 @@
 import { Logo } from "../Logo";
 import { Icon } from "../Icon";
 import { NAME_MAX } from "../../lib/name";
-import { BEFORE, CONSENT, FAILED } from "./copy";
+import { BEFORE, CONSENT, FAILED, RECONSENT } from "./copy";
 import { RunFooter } from "./RunFooter";
 import styles from "./firstrun.module.css";
 
@@ -31,7 +31,14 @@ export function BeforeYouStart({
   working,
   failed,
   onContinue,
+  again = false,
+  askName = true,
 }: {
+  /** Asked again, for an active account, because the policy or the terms
+   *  moved: the ticks under a line that says so, and the name only when
+   *  there is none yet (`askName`). */
+  again?: boolean;
+  askName?: boolean;
   nameOnly: boolean;
   name: string;
   onName: (next: string) => void;
@@ -43,7 +50,9 @@ export function BeforeYouStart({
   failed: boolean;
   onContinue: () => void;
 }) {
-  const ready = name.trim().length > 0 && (nameOnly || (readPolicy && agreeToProcessing));
+  const ready = (!askName || name.trim().length > 0) && (nameOnly || (readPolicy && agreeToProcessing));
+  // Asked again with nothing else: the screen is the agreement, so its head is the title.
+  const ticksAlone = again && !askName;
 
   return (
     <main className={styles.page}>
@@ -52,30 +61,45 @@ export function BeforeYouStart({
       </div>
       <div className={styles.column}>
         <div className={styles.body}>
-          <h1 className={styles.title}>{nameOnly ? BEFORE.name : BEFORE.title}</h1>
+          <h1 className={styles.title}>{nameOnly ? BEFORE.name : ticksAlone ? BEFORE.agree : BEFORE.title}</h1>
 
-          <div className={styles.block}>
-            {nameOnly ? null : <h2 className={styles.head}>{BEFORE.name}</h2>}
-            <input
-              className={styles.field}
-              type="text"
-              value={name}
-              autoFocus={nameOnly}
-              autoComplete="name"
-              maxLength={NAME_MAX}
-              placeholder="Your name"
-              aria-label="Your name"
-              onChange={(event) => onName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && nameOnly && ready) onContinue();
-              }}
-            />
-            <p className={styles.hint}>{BEFORE.nameSub}</p>
-          </div>
+          {askName ? (
+            <div className={styles.block}>
+              {nameOnly ? null : <h2 className={styles.head}>{BEFORE.name}</h2>}
+              <input
+                className={styles.field}
+                type="text"
+                value={name}
+                autoFocus={nameOnly}
+                autoComplete="name"
+                maxLength={NAME_MAX}
+                placeholder="Your name"
+                aria-label="Your name"
+                onChange={(event) => onName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && nameOnly && ready) onContinue();
+                }}
+              />
+              <p className={styles.hint}>{BEFORE.nameSub}</p>
+            </div>
+          ) : null}
 
           {nameOnly ? null : (
             <div className={styles.block}>
-              <h2 className={styles.head}>{BEFORE.agree}</h2>
+              {ticksAlone ? null : <h2 className={styles.head}>{BEFORE.agree}</h2>}
+              {again ? (
+                <p className={styles.hint} data-reconsent="">
+                  {RECONSENT.before}
+                  <a className={styles.tickLink} href="/terms" target="_blank" rel="noreferrer">
+                    {RECONSENT.terms}
+                  </a>
+                  {RECONSENT.middle}
+                  <a className={styles.tickLink} href="/privacy" target="_blank" rel="noreferrer">
+                    {RECONSENT.policy}
+                  </a>
+                  {RECONSENT.after}
+                </p>
+              ) : null}
               <label className={styles.tick}>
                 <input
                   type="checkbox"

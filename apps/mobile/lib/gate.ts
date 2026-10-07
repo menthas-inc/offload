@@ -27,6 +27,10 @@ export const GATE = {
     legal: { terms: "Terms", privacy: "Privacy" },
   },
   refused: "That did not go through. Nothing was sent, try again.",
+  // First run's and the consent's, beside Continue. What happened, never
+  // why: the phone cannot tell a dropped network from a refusal. The web
+  // holds it as FAILED in `components/firstrun/copy.ts`.
+  failed: "That did not go through. Try again.",
   notInvited: {
     title: "You are not on the list yet",
     sub: (email: string) => `We checked ${email} and found no invite.`,
@@ -161,6 +165,17 @@ export const CONSENT = {
   // Not a consent and not a warning about us. It is the one piece of advice on
   // the screen and it applies to every assistant, not only this one.
   note: "We do not recommend sharing passwords, card numbers or government IDs in any AI tool.",
+} as const;
+
+/** Above the two ticks when an active account is asked again, because the
+ *  privacy policy or the terms moved. Both words link. The web holds the same
+ *  in `components/firstrun/copy.ts`. */
+export const RECONSENT = {
+  before: "We have changed the ",
+  terms: "terms",
+  middle: " or the ",
+  policy: "privacy policy",
+  after: ".",
 } as const;
 
 /** 033. The intro: one screen, three scenes that play themselves. Each title

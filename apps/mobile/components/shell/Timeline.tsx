@@ -19,7 +19,7 @@ import {
   datedFor,
   monthFor,
   stepMonth,
-  thingsOn,
+  contentOn,
   type Dated,
   type Day,
   type RailRow,
@@ -169,7 +169,7 @@ export function Timeline({
   // and a due date on another is on both, and they are two different facts:
   // drawing it from the row's own fields puts the occurrence's time on the due
   // day and says the thing happens on a day it does not.
-  const onDay = thingsOn(dated, selected);
+  const onDay = contentOn(dated, selected);
   const byId = new Map(rows.map((row) => [row.id, row]));
   const notesById = new Map(notes.map((note) => [note.id, note]));
   const dayRows = onDay

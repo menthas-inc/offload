@@ -14,8 +14,9 @@
 // Copy on this page says "put in" and "upload" where the rest of the product
 // says "dump". That is deliberate and local to this page. See decisions.md.
 //
-// UPDATED must name the same day as CONSENT_VERSION in
-// apps/core-api/src/routes/session.ts.
+// CONSENT_VERSION in apps/core-api/src/routes/session.ts must be the later of
+// this page's UPDATED and the terms page's; a test holds the two together.
+// Moving it asks every account to agree again the next time they open offload.
 
 import type { Metadata } from "next";
 import { Screen, ScreenFooter, ScreenHeader, screenStyles } from "../../../components/Screen";
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
     "What offload collects, why, who else handles it, how long it is kept and how to get rid of it. Plus a short version at the top.",
 };
 
-const UPDATED = "6 October 2026";
+const UPDATED = "7 October 2026";
 
 const MAIL = <a href="mailto:hello@offload.club">hello@offload.club</a>;
 
@@ -149,10 +150,12 @@ export default function Privacy() {
               people in your life, how they relate to you and their birthdays, what your calendars
               are, and how you like things done. offload keeps one when you ask it to remember
               something, when you answer a question it asked, from what you said, overnight, and
-              when you add one yourself in Memories. Health, religion, politics, sexuality,
-              ethnicity, a criminal record and money are kept only when you asked offload to
-              remember it or added it yourself, and never an ID or account number, a password or
-              immigration status.
+              when you add one yourself in Memories. offload is told to keep health, religion,
+              politics, sexuality, ethnicity, a criminal record and money only when you asked it to
+              remember them or added them yourself, and never an ID or account number, a password
+              or immigration status, and it filters what it learns overnight. That is an
+              instruction and a filter, not a guarantee: you can see and forget every memory in
+              Memories.
             </li>
             <li>
               Its replies to you, with the addresses of the pages it read or searched to answer.
@@ -230,7 +233,8 @@ export default function Privacy() {
             </li>
             <li>
               <strong>Looking things up.</strong> When offload needs a fact it does not hold, it may
-              search the web with words from what you put in, and read a link you pasted. The site
+              search the web with words from what you put in and the country you set in Settings,
+              and read a link you pasted. The site
               sees a request from our server, and your device may load the page&rsquo;s preview
               picture straight from the site. You can turn searching and link reading off in
               Settings under Privacy.
@@ -267,7 +271,8 @@ export default function Privacy() {
           </p>
           <p>
             We keep the list current. If a change would materially change how your content is
-            handled, we email account holders before it takes effect.
+            handled, offload tells you the next time you open it and asks you to agree again before
+            you go on.
           </p>
         </section>
 
@@ -421,9 +426,13 @@ export default function Privacy() {
           <p>
             <strong>Encrypted by us:</strong> your photos, screenshots, voice note audio and the
             pictures in email you forward, before they are stored, with keys our storage provider
-            never receives. Exports and backups are encrypted too. We hold the keys, so this
-            protects against a breach at our storage provider, not against a compromise of offload
-            itself.
+            never receives. Our own nightly backup and your exports are encrypted the same way. We
+            hold the keys, so this protects against a breach at our storage provider, not against a
+            compromise of offload itself.
+          </p>
+          <p>
+            Our host&rsquo;s recovery copies of the database are protected by its encryption, as the
+            database is, not by ours.
           </p>
           <p>
             <strong>Not encrypted by us:</strong> the text in offload, including transcripts and
@@ -446,8 +455,9 @@ export default function Privacy() {
           <p>
             offload does not ask for health information. If you put some in, it is treated like
             everything else you put in: used only to run offload for you, never sold, never used
-            for advertising, and deleted when you delete it. offload keeps it as a memory only when
-            you asked it to remember it or added it yourself in Memories.
+            for advertising, and deleted when you delete it. offload is told to keep it as a memory
+            only when you asked it to remember it or added it yourself in Memories. That is an
+            instruction and a filter, not a guarantee, and you can forget any memory there.
           </p>
         </section>
 
@@ -511,8 +521,9 @@ export default function Privacy() {
           <h2 className={styles.h2}>20. Changes to this page</h2>
           <p>
             When we change this page we change the date at the top. If a change materially affects
-            how your information is handled, we email account holders before it takes effect. The
-            list of companies has its own date and changes there.
+            how your information is handled, offload tells you the next time you open it and asks
+            you to agree again before you go on. The list of companies has its own date and changes
+            there.
           </p>
         </section>
 

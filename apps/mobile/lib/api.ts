@@ -15,6 +15,10 @@ export interface Me {
   needsFirstRun: boolean;
   /** No name yet, so one is asked for before the app is any use. */
   needsName: boolean;
+  /** Active, and agreed to an older privacy policy or terms: the two ticks
+   *  are asked again, alone, before the app. Optional for a server that
+   *  predates it. */
+  needsConsent?: boolean;
   /** What Apple or Google called them, to fill the field in. Only ever sent to
    *  the account it belongs to. */
   suggestedName: string | null;
@@ -31,11 +35,12 @@ export interface Me {
 
 /** Whether this account still has something to answer before the shell.
  *
- *  Two questions, one gate. They came apart because every account that existed
- *  when 011 shipped had finished first run and had no name, so "finished first
- *  run" stopped being the same as "ready". */
+ *  Three questions, one gate. They came apart because every account that
+ *  existed when 011 shipped had finished first run and had no name, so
+ *  "finished first run" stopped being the same as "ready", and an account can
+ *  finish it and then see the policy or the terms move. */
 export function stillAsking(me: Me): boolean {
-  return me.needsFirstRun || me.needsName;
+  return me.needsFirstRun || me.needsName || me.needsConsent === true;
 }
 
 /** Race a promise against a deadline, resolving to a fallback instead of
@@ -288,6 +293,21 @@ export async function completeOnboarding(
     // request() resolves to null on a bad response but still rejects if fetch
     // itself throws, and an uncaught rejection here left `leaving` true
     // forever with nothing on screen to say why.
+    return false;
+  }
+}
+
+/** The two ticks again, for an active account whose consent is on an older
+ *  version of the privacy policy or terms. Whether the server recorded it. */
+export async function giveConsent(): Promise<boolean> {
+  try {
+    const result = await request("/api/consent", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true }),
+    });
+    return result !== null;
+  } catch {
     return false;
   }
 }

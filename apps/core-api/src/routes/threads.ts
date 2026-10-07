@@ -373,7 +373,7 @@ export const contentRow = z.object({
   filingAt: z.string().nullable(),
 });
 
-// 028. A loose thing on the wire: the thread page's own row or note, so both
+// 028. Loose content on the wire: the thread page's own row or note, so both
 // clients reuse their rows and sheets, plus at most one suggestion.
 export const suggestionSchema = z.discriminatedUnion("kind", [
   z.object({

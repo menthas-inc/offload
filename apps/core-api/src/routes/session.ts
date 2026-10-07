@@ -82,6 +82,10 @@ const meResponse = z.object({
   /** invited means the account exists and has never finished first run. The
    *  client does not get to decide this; it is the account's state. */
   needsFirstRun: z.boolean(),
+  /** An active account that agreed to an older privacy policy or terms, or
+   *  to none on record: asked again, with the two ticks alone, before the
+   *  shell. Never true in first run, which asks for itself. */
+  needsConsent: z.boolean(),
   /** 016. Whether offload may search the web, and whether it may open a link
    *  they pasted. Drawn as two rows in settings, and read here so the switch
    *  state comes from the account rather than from anything a client kept. */
@@ -146,14 +150,16 @@ const meResponse = z.object({
 /** 024. An hour as the page sends it, HH:MM, twenty-four hour. */
 const HOUR = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-/** The version of the privacy policy the consent on first run is against.
+/** The version of the privacy policy and the terms that consent is against.
  *
- *  The date the policy carries at the top, so a row in `accounts` says which
- *  wording someone agreed to rather than only that they agreed to something.
- *  When the policy changes materially this changes with it, and the gap between
- *  a stored version and this one is the query that finds who has to be asked
- *  again. Must match UPDATED in apps/web/src/app/(marketing)/privacy/page.tsx. */
-export const CONSENT_VERSION = "2026-10-06";
+ *  A date, so a row in `accounts` says which wording someone agreed to rather
+ *  than only that they agreed to something. When either page changes
+ *  materially this moves with it, and an active account on an older version is
+ *  asked again (`needsConsent`). The first tick agrees to both pages, so this
+ *  is the later of the two UPDATED dates, in
+ *  apps/web/src/app/(marketing)/privacy/page.tsx and terms/page.tsx;
+ *  test/consent.test.ts holds it there. */
+export const CONSENT_VERSION = "2026-10-07";
 
 /** invited -> active, plus the consent record and the event, in one transaction.
  *
@@ -221,9 +227,13 @@ export async function completeFirstRun(
  *  A boolean the client asserts is all a server can ever receive here. What it
  *  buys is that a client which does not present the ticks cannot complete
  *  first run by accident. */
-const consentBody = z.object({
+const ticks = {
   readPolicy: z.literal(true),
   agreeToProcessing: z.literal(true),
+} as const;
+
+const consentBody = z.object({
+  ...ticks,
   /** 011 AC-3. Every client that has the name screen sends one.
    *
    *  **Optional on the wire, required on the screen.** A phone build installed
@@ -251,6 +261,7 @@ export async function meFor(accountId: string): Promise<z.infer<typeof meRespons
     .selectFrom("accounts")
     .select([
       "state",
+      "consent_version",
       "display_name",
       "provider_name",
       "email",
@@ -285,6 +296,9 @@ export async function meFor(accountId: string): Promise<z.infer<typeof meRespons
     email: account.email,
     initials: initialsOf(account.display_name ?? ""),
     needsFirstRun: account.state === "invited",
+    // ISO days compare as strings.
+    needsConsent:
+      account.state === "active" && (account.consent_version === null || account.consent_version < CONSENT_VERSION),
     needsName: account.display_name === null,
     suggestedName: account.provider_name,
     requestsWaiting: await requestsWaiting(accountId),
@@ -565,6 +579,32 @@ export async function sessionRoutes(app: App): Promise<void> {
     async (_request: FastifyRequest, reply: FastifyReply) => {
       reply.header("cache-control", "no-store");
       return reply.send({ codes: await setting("switch.review_codes") });
+    }
+  );
+
+  // Agreeing again, once the policy or the terms have moved. The same two
+  // ticks as first run, and only for an active account: an invited one agrees
+  // by finishing first run. Idempotent by the where clause, so a double tap
+  // leaves the first agreement's moment where it was.
+  app.post(
+    "/api/consent",
+    { schema: { body: z.object(ticks), response: { 200: meResponse, 401: unauthenticated } } },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
+
+      const now = new Date();
+      await db
+        .updateTable("accounts")
+        .set({ consent_version: CONSENT_VERSION, consented_at: now, updated_at: now })
+        .where("id", "=", accountId)
+        .where("state", "=", "active")
+        .where("deleted_at", "is", null)
+        .where((eb) => eb.or([eb("consent_version", "is", null), eb("consent_version", "<", CONSENT_VERSION)]))
+        .execute();
+
+      const me = await meFor(accountId);
+      return me ? reply.send(me) : reply.status(401).send({ error: "unauthenticated" });
     }
   );
 

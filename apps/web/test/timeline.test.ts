@@ -19,7 +19,7 @@ import {
   monthFor,
   railFor,
   stepMonth,
-  thingsOn,
+  contentOn,
   weeksSpanned,
   type Dated,
   type RailRow,
@@ -201,9 +201,9 @@ describe("what lands on a day", () => {
 
   it("answers what is on a day, for the list underneath", () => {
     const dated = [span("stay", "2026-09-15", "2026-09-17"), point("dinner", "2026-09-17")];
-    expect(thingsOn(dated, "2026-09-16").map((one) => one.id)).toEqual(["stay"]);
+    expect(contentOn(dated, "2026-09-16").map((one) => one.id)).toEqual(["stay"]);
     expect(
-      thingsOn(dated, "2026-09-17")
+      contentOn(dated, "2026-09-17")
         .map((one) => one.id)
         .sort(),
     ).toEqual(["dinner", "stay"]);
@@ -290,8 +290,8 @@ describe("what the review found", () => {
       },
     ]);
 
-    const onOccurrence = thingsOn(dated, "2026-09-16")[0];
-    const onDue = thingsOn(dated, "2026-09-18")[0];
+    const onOccurrence = contentOn(dated, "2026-09-16")[0];
+    const onDue = contentOn(dated, "2026-09-18")[0];
 
     expect(onOccurrence?.due).toBe(false);
     expect(onDue?.due).toBe(true);
@@ -318,11 +318,11 @@ describe("what the review found", () => {
       },
     ]);
 
-    const today = thingsOn(dated, "2026-10-05");
+    const today = contentOn(dated, "2026-10-05");
     expect(today).toHaveLength(1);
     expect(today[0]?.due).toBe(false);
     // Next month it is only due, and still drawn.
-    expect(thingsOn(dated, "2026-11-05").map((one) => one.due)).toEqual([true]);
+    expect(contentOn(dated, "2026-11-05").map((one) => one.due)).toEqual([true]);
 
     const day = monthFor("2026-10-01", dated, TODAY)
       .weeks.flatMap((week) => week.days)
@@ -414,9 +414,9 @@ describe("one row that repeats, drawn on every matching day", () => {
 
   it("answers what is on a day from the rule", () => {
     const dated = [rule("2026-09-15", "week")];
-    expect(thingsOn(dated, "2026-09-22")).toHaveLength(1);
-    expect(thingsOn(dated, "2026-09-23")).toHaveLength(0);
-    expect(thingsOn(dated, "2026-09-08")).toHaveLength(0);
+    expect(contentOn(dated, "2026-09-22")).toHaveLength(1);
+    expect(contentOn(dated, "2026-09-23")).toHaveLength(0);
+    expect(contentOn(dated, "2026-09-08")).toHaveLength(0);
   });
 });
 
@@ -448,8 +448,8 @@ describe("an old rule still draws today", () => {
 
   it("answers for today from a weekly rule set up years ago", () => {
     // 16 September 2026 is a Wednesday, and so is the anchor.
-    expect(thingsOn([old("week", "2023-09-20")], TODAY)).toHaveLength(1);
-    expect(thingsOn([old("week", "2023-09-20")], "2026-09-17")).toHaveLength(0);
+    expect(contentOn([old("week", "2023-09-20")], TODAY)).toHaveLength(1);
+    expect(contentOn([old("week", "2023-09-20")], "2026-09-17")).toHaveLength(0);
   });
 
   it("keeps the weekend out of an old weekday rule", () => {
@@ -465,7 +465,7 @@ describe("an old rule still draws today", () => {
 
   it("answers for today from a monthly rule anchored on the 31st", () => {
     // Clamping holds across years too: the 31st is the 30th in September.
-    expect(thingsOn([old("month", "2024-01-31")], "2026-09-30")).toHaveLength(1);
+    expect(contentOn([old("month", "2024-01-31")], "2026-09-30")).toHaveLength(1);
   });
 });
 
