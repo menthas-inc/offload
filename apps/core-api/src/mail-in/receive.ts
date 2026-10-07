@@ -12,7 +12,7 @@ import { takeDump } from "../routes/dumps.js";
 import { checkSender, spendSignature, type Resolver, type SenderOutcome } from "./sender.js";
 import { recordNothing, recordOverLimit, recordRefused } from "./activity.js";
 import { parseMail } from "./parse.js";
-import { candidatesOf, sealCandidates } from "./images.js";
+import { candidatesOf, pdfCandidatesOf, sealCandidates } from "./images.js";
 import { mailAttrs } from "./attrs.js";
 import { clampTo as clamp } from "../notifications/copy.js";
 
@@ -86,7 +86,13 @@ export async function receiveMail(
   }
 
   const parsed = await parseMail(raw);
-  const candidates = "refused" in parsed ? [] : candidatesOf(parsed.images);
+  // 041. The PDFs through their own rules, outside the parse thread, and the
+  // ones refused counted with the attachments the parse already left out.
+  const pdfs = "refused" in parsed ? { candidates: [], leftOut: 0 } : await pdfCandidatesOf(parsed.pdfs);
+  if (!("refused" in parsed) && pdfs.leftOut > 0) {
+    parsed.leftOut = { ...parsed.leftOut, pdf: (parsed.leftOut.pdf ?? 0) + pdfs.leftOut };
+  }
+  const candidates = "refused" in parsed ? [] : [...candidatesOf(parsed.images), ...pdfs.candidates];
   if ("refused" in parsed || (parsed.text.length === 0 && candidates.length === 0)) {
     const subject = "refused" in parsed ? "" : parsed.subject;
     await recordNothing(accountId, subject, "refused" in parsed ? {} : parsed.leftOut);

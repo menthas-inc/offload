@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://offload.club/schemas/events/dump_sent.v1.json",
   "title": "dump_sent",
-  "description": "A person sent a dump. Emitted when the message is committed, not when it is answered, so the funnel separates dumping from being answered and a model outage shows as answers falling rather than dumps falling. 020 added the photo count, their byte size and whether they came through the share sheet: counts, a size and a boolean, never a name (OFF-1). 021 added whether a voice note came with it, its seconds as the device counted them, and its bytes: a boolean, a duration and a size. 026 added whether it arrived as a forwarded email: a boolean.",
+  "description": "A person sent a dump. Emitted when the message is committed, not when it is answered, so the funnel separates dumping from being answered and a model outage shows as answers falling rather than dumps falling. 020 added the photo count, their byte size and whether they came through the share sheet: counts, a size and a boolean, never a name (OFF-1). 021 added whether a voice note came with it, its seconds as the device counted them, and its bytes: a boolean, a duration and a size. 026 added whether it arrived as a forwarded email: a boolean. 041 added the PDFs it carried: a count, their bytes and their pages.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -32,6 +32,20 @@
     },
     "via_mail": {
       "type": "boolean"
+    },
+    "pdfs": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "pdf_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pdf_pages": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2000
     }
   }
 }

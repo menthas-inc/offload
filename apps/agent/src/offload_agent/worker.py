@@ -26,9 +26,10 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent import context as ctx_mod
 from offload_agent import ledger, reader
+from offload_agent import pdfs as pdfs_mod
 from offload_agent.cancels import Cancels, listen
 from offload_agent.config import Config
-from offload_agent.context import DumpContext, Photo
+from offload_agent.context import DumpContext, Pdf, Photo
 from offload_agent.countries import name_of
 from offload_agent.embed import SEARCH_SECONDS, query_embedder
 from offload_agent.embed_jobs import KINDS as EMBED_KINDS
@@ -810,6 +811,8 @@ ARGUMENT_REFUSALS = frozenset(
         "person_set",
         "person_deleted",
         "unknown_photo",
+        # 041. The same for a PDF's index.
+        "unknown_pdf",
         "bad_place_name",
         # 030. A location on a row that is not an event.
         "location_not_here",
@@ -1161,16 +1164,12 @@ async def _handle(
             # answering path cannot see a picture and the picture has to land.
             with_photos = await ctx_mod.photo_count(conn, message_id=message_id) > 0
 
-        # **The first step is written before anything else happens**, ahead
-        # of the classifier. An answering turn's first model round trip runs
-        # ten to thirty seconds and the step a lookup writes arrives after it,
-        # which put the line on screen after Stop every time. Written here
-        # rather than in the answer path, because the classifier in between
-        # costs three seconds of its own and the line was landing at six.
-        # Reading the threads is what happens first on both paths, so that is
-        # what it says; a filing turn that finishes under the client's
-        # threshold never shows it.
-        await _step_writer(http, cfg, job.id)("Looking through your threads")
+        # **No step of our own here.** "Looking through your threads" was
+        # written at this point until 2026-10-07 so that a line was on screen
+        # before Stop. The thinking row's animation says working from the
+        # first frame, so the line was filler, and on "what time is it" it was
+        # untrue. A step is written when the turn really does something:
+        # listening, looking at a picture, a lookup's `doing`.
 
         # 018. A country picked with a tap. The question is already answered;
         # this job re-runs the answer for the country they chose, read-only.
@@ -1338,6 +1337,26 @@ async def _handle(
             loaded = dataclasses.replace(
                 loaded, photos=await _prepare_photos(http, cfg, engine, job.id, loaded.photos)
             )
+        # 041. The PDFs, made safe and cut, then fitted to one request beside
+        # the photos.
+        if loaded.pdfs:
+            await _step_writer(http, cfg, job.id)(
+                "Reading the PDF" if len(loaded.pdfs) == 1 else "Reading the PDFs"
+            )
+            prepared = await _prepare_pdfs(http, cfg, engine, job.id, loaded.pdfs)
+            fitted_pdfs, steps = await fit_documents(
+                prepared,
+                other_bytes=sum(len(p.large or b"") for p in loaded.photos),
+            )
+            log.info(
+                "pdfs read",
+                job_id=job.id,
+                documents=sum(1 for p in fitted_pdfs if p.cut is not None),
+                document_bytes=sum(len(p.cut or b"") for p in fitted_pdfs),
+                pictures=sum(1 for p in fitted_pdfs if p.picture is not None),
+                bound_steps=steps,
+            )
+            loaded = dataclasses.replace(loaded, pdfs=fitted_pdfs)
 
         if answered is not None:
             loaded = dataclasses.replace(loaded, answered=answered)
@@ -1520,20 +1539,36 @@ async def _run_look(
         except httpx.HTTPError as exc:
             log.warning("look fetch failed", error_type=type(exc).__name__)
             continue
-        if response.status_code == 200:
-            fetched.append((blob_id, response.content))
+        if response.status_code != 200:
+            continue
+        content = response.content
+        # 041. A PDF is shown to the look as page 1, drawn in a bounded child;
+        # one that cannot be drawn is left out of the look like an image
+        # that cannot be fetched.
+        if content[:5] == b"%PDF-":
+            try:
+                content = await pdfs_mod.run_look(content)
+            except pdfs_mod.Failed as failure:
+                log.warning("look pdf unreadable", reason=failure.reason)
+                continue
+        fetched.append((blob_id, content))
     keep: list[str] = []
+    failed = False
     if fetched:
         try:
             indices = await look(anthropic, cfg.sort_model, [b for _, b in fetched])
             keep = [fetched[i][0] for i in indices]
         except LookFailed:
+            failed = True
             log.error("look failed", candidates=len(fetched))
         except Exception as exc:  # noqa: BLE001
+            failed = True
             log.error("look failed", candidates=len(fetched), error_type=type(exc).__name__)
     response = await http.post(
         f"{cfg.api_url}/internal/v1/messages/{message_id}/look",
-        json={"jobId": job_id, "keep": keep},
+        # 041. `failed` so the Core API can name every PDF the look never
+        # judged in Activity.
+        json={"jobId": job_id, "keep": keep, **({"failed": True} if failed else {})},
         headers=headers,
         timeout=30.0,
     )
@@ -1571,6 +1606,118 @@ async def _prepare_photos(
         return dataclasses.replace(photo, large=large)
 
     return list(await asyncio.gather(*(one(photo) for photo in photos)))
+
+
+# ---------------------------------------------------------------- 041 PDFs
+
+#: 041. What the PDFs and photos of one turn may add up to, raw, before
+#: base64: about 29 MB once encoded, under the 32 MB a request may be, with
+#: room for the text.
+REQUEST_BYTES = 22 * 1024 * 1024
+
+
+async def _prepare_pdfs(
+    http: httpx.AsyncClient, cfg: Config, engine, job_id: str, pdfs: list[Pdf]
+) -> list[Pdf]:
+    """041. Each PDF made safe and cut for the model, in a bounded child, and
+    its renditions posted when the Core API has none yet: page 1's two JPEGs
+    and the clean copy, with the page count. A PDF that cannot be made safe is
+    posted as unreadable and reaches the model as a line saying so."""
+    async with engine.connect() as conn:
+        rows = (await conn.execute(_RENDITIONS_STATE, {"ids": [p.blob_id for p in pdfs]})).all()
+    made = {str(r.id): r.renditions_at is not None for r in rows}
+    headers = {"authorization": f"Bearer {cfg.internal_token}"}
+
+    async def one(pdf: Pdf) -> Pdf:
+        response = await http.get(
+            f"{cfg.api_url}/internal/v1/blobs/{pdf.blob_id}/original",
+            params={"jobId": job_id},
+            headers=headers,
+            timeout=60.0,
+        )
+        if response.status_code == 404:
+            return pdf
+        response.raise_for_status()
+        try:
+            copies = await pdfs_mod.run_pdf(response.content)
+        except pdfs_mod.Failed as failure:
+            # The reason, never the parser's words, which can quote the file.
+            log.warning("pdf unreadable", blob_id=pdf.blob_id, reason=failure.reason)
+            await http.post(
+                f"{cfg.api_url}/internal/v1/blobs/{pdf.blob_id}/unreadable",
+                json={"jobId": job_id},
+                headers=headers,
+                timeout=30.0,
+            )
+            return pdf
+        if not made.get(pdf.blob_id, False):
+            posted = await http.post(
+                f"{cfg.api_url}/internal/v1/blobs/{pdf.blob_id}/renditions",
+                params={"jobId": job_id},
+                headers=headers,
+                data={"pages": str(copies.pages)},
+                files={
+                    "thumb": ("thumb.jpg", copies.thumb, "image/jpeg"),
+                    "large": ("large.jpg", copies.large, "image/jpeg"),
+                    "clean": ("clean.pdf", copies.clean, "application/pdf"),
+                },
+                timeout=120.0,
+            )
+            posted.raise_for_status()
+            log.info(
+                "pdf made",
+                blob_id=pdf.blob_id,
+                pages=copies.pages,
+                clean_bytes=len(copies.clean),
+                cut_bytes=len(copies.cut),
+            )
+        return dataclasses.replace(
+            pdf, pages=copies.pages, cut=copies.cut, clean=copies.clean, large=copies.large
+        )
+
+    out: list[Pdf] = []
+    # One at a time: two at most, and each child holds up to a gigabyte.
+    for pdf in pdfs:
+        try:
+            out.append(await one(pdf))
+        except Exception as exc:  # noqa: BLE001
+            log.error("pdf failed", blob_id=pdf.blob_id, error_type=type(exc).__name__)
+            out.append(pdf)
+    return out
+
+
+async def fit_documents(
+    pdfs: list[Pdf], *, other_bytes: int, limit: int = REQUEST_BYTES
+) -> tuple[list[Pdf], int]:
+    """041. The PDFs as they fit one request beside `other_bytes` of photos:
+    the larger cut one page shorter at a time, from the end, until they fit,
+    and a PDF that does not fit as one page, or whose shorter cut fails, sent
+    as page 1's picture. Every cut is made in the bounded child; this process
+    counts pages and never opens a PDF. Returns the PDFs and how many steps it
+    took, which is logged as a count and never a page."""
+    out = list(pdfs)
+    pages = [min(p.pages, pdfs_mod.CUT_PAGES) for p in out]
+    steps = 0
+
+    def total() -> int:
+        return other_bytes + sum(len(p.cut or p.picture or b"") for p in out)
+
+    while total() > limit:
+        candidates = [at for at, p in enumerate(out) if p.cut is not None]
+        if not candidates:
+            break
+        at = max(candidates, key=lambda i: len(out[i].cut or b""))
+        pdf = out[at]
+        steps += 1
+        if pages[at] > 1 and pdf.clean is not None:
+            pages[at] -= 1
+            try:
+                out[at] = dataclasses.replace(pdf, cut=await pdfs_mod.run_cut(pdf.clean, pages[at]))
+                continue
+            except pdfs_mod.Failed:
+                pass
+        out[at] = dataclasses.replace(pdf, cut=None, picture=pdf.large)
+    return out, steps
 
 
 #: How many sources cross to the Core API, and it is the server's number too.
@@ -2070,10 +2217,6 @@ def main() -> None:
     asyncio.run(_main())
 
 
-if __name__ == "__main__":
-    main()
-
-
 async def _handle_answer(
     job: ClaimedJob,
     *,
@@ -2095,7 +2238,6 @@ async def _handle_answer(
     """
     assert job.account_id is not None
 
-    # The first step was already written by `handle`, ahead of the classifier.
     say = _step_writer(http, cfg, job.id)
 
     try:
@@ -2174,3 +2316,7 @@ def _embed_query(cfg: Config, http: httpx.AsyncClient, timeout: float = SEARCH_S
     half a minute, and the text arm answers alone.
     """
     return query_embedder(cfg.voyage_api_key, http, timeout)
+
+
+if __name__ == "__main__":
+    main()

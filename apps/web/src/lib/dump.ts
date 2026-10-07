@@ -79,7 +79,16 @@ export interface FoundRow {
   body: string | null;
   done: boolean;
   /** 020. The row's photo, when it has one. */
-  photo: { blobId: string; width: number; height: number; ready: boolean } | null;
+  photo: {
+    blobId: string;
+    kind: "image" | "pdf";
+    width?: number;
+    height?: number;
+    pages?: number;
+    openable?: boolean;
+    unreadable?: boolean;
+    ready: boolean;
+  } | null;
 }
 
 /** 016. Where a fact in a turn came from. Two fields, and the omissions are the
@@ -103,6 +112,8 @@ export interface QuestionOnWire {
 export interface Answer {
   state: MessageState;
   reply: string | null;
+  /** 020, 041. The message's files as the server has them now. */
+  photos?: PhotoOnWire[];
   threads?: TouchedThread[];
   sources?: Source[];
   /** 025. The labels the turn applied, in order, for the footer's marks. */
@@ -206,21 +217,31 @@ export class UnknownBlob extends Error {
 
 // ---------------------------------------------------------------- 020, photos
 
-/** A photo on a person's message, as the server sends it. `ready` is whether
- *  the renditions exist yet; until they do the thumbnail draws the glyph. */
+/** A photo on a person's message, as the server sends it, or a PDF (041).
+ *  `ready` is whether the renditions exist yet; until they do the thumbnail
+ *  draws the glyph. A photo has its dimensions; a PDF its pages and whether
+ *  its clean copy exists to be opened. */
 export interface PhotoOnWire {
   blobId: string;
+  kind: "image" | "pdf";
   name: string | null;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
+  pages?: number;
+  openable?: boolean;
+  /** 041. A PDF the server could not make safe: it will never open. */
+  unreadable?: boolean;
   ready: boolean;
   /** This device only, never from the wire: the file as an object URL, for
    *  the moment between the send and the renditions. */
   localUrl?: string;
 }
 
-/** Per message, and the server holds the same number. */
+/** Per message, photos and PDFs together, and the server holds the same
+ *  number. */
 export const MAX_PHOTOS = 10;
+/** 041. Per message, inside the ten. */
+export const MAX_PDFS = 2;
 /** Per photo. The server holds the same number and refuses by bytes. */
 export const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 /** What the product takes. Checked by extension too, because a browser
@@ -232,12 +253,70 @@ export function isPhoto(file: File): boolean {
   return PHOTO_TYPES.has(file.type.toLowerCase()) || (file.type === "" && PHOTO_EXTENSIONS.test(file.name));
 }
 
-/** Why a photo was refused on the device, or null when it may go. The one
- *  line each is the failure table's. */
-export function refusePhoto(file: File): "too_big" | "not_a_photo" | null {
-  if (!isPhoto(file)) return "not_a_photo";
+/** 041. A PDF by its type, or by its name when the browser reports none. The
+ *  server reads the bytes; this only spares a request. */
+export function isPdf(file: File): boolean {
+  const type = file.type.toLowerCase();
+  // Some systems hand a .pdf over as bytes of no type; the server reads the
+  // bytes either way.
+  return type === "application/pdf" || ((type === "" || type === "application/octet-stream") && /\.pdf$/i.test(file.name));
+}
+
+/** Why a photo or a PDF was refused on the device, or null when it may go.
+ *  The one line each is the failure table's. A locked PDF is the server's to
+ *  find. */
+export function refuseFile(file: File): "too_big" | "not_a_photo" | null {
+  if (!isPhoto(file) && !isPdf(file)) return "not_a_photo";
   if (file.size > MAX_PHOTO_BYTES) return "too_big";
   return null;
+}
+
+/** 041. Which of the incoming files a draft holding `current` takes: ten in
+ *  all, two of them PDFs, in the order given, and the line for what it left. */
+export function takeFiles(
+  current: { kind: "image" | "pdf" }[],
+  incoming: File[],
+): { taken: File[]; line: "Ten at a time." | "Two PDFs at a time." | null } {
+  let room = MAX_PHOTOS - current.length;
+  let pdfRoom = MAX_PDFS - current.filter((one) => one.kind === "pdf").length;
+  const taken: File[] = [];
+  let line: "Ten at a time." | "Two PDFs at a time." | null = null;
+  for (const one of incoming) {
+    if (room <= 0) {
+      line ??= "Ten at a time.";
+      continue;
+    }
+    if (isPdf(one)) {
+      if (pdfRoom <= 0) {
+        line ??= "Two PDFs at a time.";
+        continue;
+      }
+      pdfRoom--;
+    }
+    room--;
+    taken.push(one);
+  }
+  return { taken, line };
+}
+
+/** The name a chip shows: the file's own, or "Photo", "Photo 2", "PDF",
+ *  "PDF 2" counting the draft's unnamed ones of its kind. A browser names a
+ *  pasted image `image.png`, which is an identifier and not a name. */
+export function draftName(file: File, current: { kind: "image" | "pdf"; named: boolean }[]): string {
+  const own = file.name && !/^image\.(png|jpe?g|webp|gif|heic|heif)$/i.test(file.name) ? file.name : "";
+  if (own) return own;
+  const kind = isPdf(file) ? "pdf" : "image";
+  const n = current.filter((one) => one.kind === kind && !one.named).length;
+  const word = kind === "pdf" ? "PDF" : "Photo";
+  return n === 0 ? word : `${word} ${n + 1}`;
+}
+
+/** 041. A long name clipped in the middle, so its end, which is usually what
+ *  tells two PDFs apart, survives. */
+export function clipMiddle(name: string, max = 20): string {
+  if (name.length <= max) return name;
+  const tail = Math.ceil((max - 1) / 2);
+  return `${name.slice(0, max - 1 - tail)}…${name.slice(name.length - tail)}`;
 }
 
 /** 036. Which ceiling a 429 on an upload was: everything kept, or the day's.
@@ -248,7 +327,9 @@ async function overLimit(response: Response): Promise<"storage_full" | "daily_li
 }
 
 export class PhotoRefused extends Error {
-  constructor(readonly reason: "too_big" | "not_a_photo" | "daily_limit" | "storage_full" | "unavailable") {
+  constructor(
+    readonly reason: "too_big" | "not_a_photo" | "locked_pdf" | "daily_limit" | "storage_full" | "unavailable",
+  ) {
     super(reason);
   }
 }
@@ -258,18 +339,96 @@ export class PhotoRefused extends Error {
 export async function uploadPhoto(
   file: File,
   clientKey: string,
-): Promise<{ blobId: string; width: number; height: number }> {
+): Promise<{ blobId: string; kind: "image" | "pdf"; width?: number; height?: number; pages?: number }> {
   const form = new FormData();
   form.append("clientKey", clientKey);
   if (file.name) form.append("name", file.name);
   form.append("file", file, file.name || "photo");
   const response = await fetch(`${API}/v1/blobs`, { method: "POST", credentials: "include", body: form });
   if (response.status === 413) throw new PhotoRefused("too_big");
-  if (response.status === 415) throw new PhotoRefused("not_a_photo");
+  if (response.status === 415) {
+    // 041. A locked PDF is its own line; anything else is neither kind.
+    const body = (await response.json().catch(() => null)) as { error?: unknown } | null;
+    throw new PhotoRefused(body?.error === "locked_pdf" ? "locked_pdf" : "not_a_photo");
+  }
   if (response.status === 429) throw new PhotoRefused(await overLimit(response));
   if (response.status === 503) throw new PhotoRefused("unavailable");
   if (!response.ok) throw new Error(`upload failed: ${response.status}`);
-  return (await response.json()) as { blobId: string; width: number; height: number };
+  return (await response.json()) as { blobId: string; kind: "image" | "pdf"; width?: number; height?: number; pages?: number };
+}
+
+/** 041. Where a PDF's clean copy is opened from. */
+export function pdfUrl(blobId: string): string {
+  return `${API}/v1/blobs/${blobId}/pdf`;
+}
+
+export type PdfOpened = "opened" | "blocked" | "not_yet" | "never";
+
+/** A new tab that cannot reach back to this one. Not `noopener`: with it the
+ *  browser answers null whether or not it opened the tab, and a blocked tab
+ *  has to be said. */
+function newTab(url: string): Window | null {
+  const tab = window.open(url, "_blank");
+  if (tab) tab.opener = null;
+  return tab;
+}
+
+/** 041. Open a PDF in the browser's own viewer, in a new tab, called inside
+ *  the click so no pop-up blocker takes it: the browser fetches it with the
+ *  session cookie, nothing is fetched first. */
+export function openPdf(pdf: { blobId: string; openable?: boolean; unreadable?: boolean }): PdfOpened {
+  if (pdf.unreadable) return "never";
+  if (!pdf.openable) return "not_yet";
+  return newTab(pdfUrl(pdf.blobId)) ? "opened" : "blocked";
+}
+
+/** 041. Retry for a PDF that was not there yet: the tab is opened in the
+ *  click, blank, and sent to the PDF once the server says it has the clean
+ *  copy, or closed. */
+export async function retryPdf(blobId: string): Promise<PdfOpened> {
+  const tab = newTab("");
+  if (!tab) return "blocked";
+  try {
+    const res = await fetch(pdfUrl(blobId), { method: "HEAD", credentials: "include" });
+    if (res.ok) {
+      tab.location.replace(pdfUrl(blobId));
+      return "opened";
+    }
+  } catch {
+    // Offline reads as not there yet, with the same Retry.
+  }
+  tab.close();
+  return "not_yet";
+}
+
+/** 041. Open a PDF and, when it did not open, say so with the way forward:
+ *  Retry, except for one that has no clean copy and never will. */
+export function openPdfSaying(
+  pdf: { blobId: string; openable?: boolean; unreadable?: boolean },
+  say: (text: string, retry?: () => void) => void,
+): void {
+  const report = (result: PdfOpened): void => {
+    if (result === "opened") return;
+    if (result === "never") return say("Can't open this one.");
+    say(result === "blocked" ? "Did not open." : "Not here yet.", () => void retryPdf(pdf.blobId).then(report));
+  };
+  report(openPdf(pdf));
+}
+
+/** 041. A settled turn's files as the server now has them, keeping the
+ *  device's own copy of a photo for the moment before its rendition draws. A
+ *  PDF learns here whether its clean copy exists. With no files on the answer
+ *  every photo is ready, as 020 has it: renditions are made before the model
+ *  reads them. */
+export function settledPhotos(
+  sent: PhotoOnWire[] | undefined,
+  answered: PhotoOnWire[] | undefined,
+): PhotoOnWire[] | undefined {
+  return sent?.map((photo) => {
+    const fresh = answered?.find((one) => one.blobId === photo.blobId);
+    if (!fresh) return { ...photo, ready: true };
+    return photo.localUrl ? { ...fresh, localUrl: photo.localUrl } : fresh;
+  });
 }
 
 /** Where a rendition is read from. The session cookie reaches the API on its
@@ -353,6 +512,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     waiting?: WaitingOn | null;
     found?: FoundResult[];
     voice?: VoiceOnWire | null;
+    photos?: PhotoOnWire[];
   };
   return {
     state: body.state,
@@ -366,6 +526,8 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     waiting: body.waiting ?? null,
     found: body.found ?? [],
     voice: body.voice ?? null,
+    // 041. The message's files as the server has them now.
+    ...(body.photos ? { photos: body.photos } : {}),
   };
 }
 

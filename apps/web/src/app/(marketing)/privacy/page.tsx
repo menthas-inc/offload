@@ -125,13 +125,13 @@ export default function Privacy() {
               invited or ask us to remove it.
             </li>
             <li>
-              Everything you put in: notes, links, photos, screenshots, voice notes, what you type
-              to offload, and email you forward to it. Photos can carry details the camera wrote
+              Everything you put in: notes, links, photos, screenshots, PDFs, voice notes, what you
+              type to offload, and email you forward to it. Photos can carry details the camera wrote
               into them, such as when and where they were taken; we keep those with the photo.
             </li>
             <li>
-              From an email you forward, its text and pictures, its subject, who sent it and when,
-              but not the raw email or its other attachments.
+              From an email you forward, its text, its pictures and its PDFs, its subject, who sent
+              it and when, but not the raw email or its other attachments.
             </li>
           </ul>
 
@@ -142,8 +142,8 @@ export default function Privacy() {
               details it pulls out.
             </li>
             <li>
-              Transcripts of voice notes, and descriptions of what photos and screenshots show,
-              including any words in them.
+              Transcripts of voice notes, and descriptions of what photos, screenshots and PDFs
+              show, including any words in them. The text of a PDF itself is not kept.
             </li>
             <li>Notes about a thread, written by you or by offload.</li>
             <li>
@@ -219,10 +219,11 @@ export default function Privacy() {
         <section className={styles.section}>
           <h2 className={styles.h2}>5. AI</h2>
           <p>
-            Sorting, reading photos, transcribing voice notes, looking things up and answering you
-            are done by AI models from other companies, which we call on your behalf. Each call
-            carries what that task needs: what you just put in, the recent conversation, the names
-            of your threads and labels, what offload knows about you, and, when offload answers,
+            Sorting, reading photos and PDFs, transcribing voice notes, looking things up and
+            answering you are done by AI models from other companies, which we call on your behalf.
+            Each call carries what that task needs: what you just put in (of a PDF, its first ten
+            pages), the recent conversation, the names of your threads and labels, what offload
+            knows about you, and, when offload answers,
             what it reads from your threads to answer. Not more. What offload knows about you is
             never put into a web search.
           </p>
@@ -321,6 +322,10 @@ export default function Privacy() {
               They cannot see anything you have put in.
             </li>
             <li>A calendar you show in a shared thread is visible to its members while it is shown.</li>
+            <li>
+              A PDF in a shared thread opens for its members as a copy without the details of who
+              made it and without anything in it that could run.
+            </li>
           </ul>
         </section>
 
@@ -425,11 +430,13 @@ export default function Privacy() {
           <h2 className={styles.h2}>14. Security</h2>
           <p>We would rather make a narrow claim that is true than a broad one that sounds better.</p>
           <p>
-            <strong>Encrypted by us:</strong> your photos, screenshots, voice note audio and the
-            pictures in email you forward, before they are stored, with keys our storage provider
-            never receives. Our own nightly backup and your exports are encrypted the same way. We
-            hold the keys, so this protects against a breach at our storage provider, not against a
-            compromise of offload itself.
+            <strong>Encrypted by us:</strong> your photos, screenshots, PDFs, voice note audio and
+            the pictures and PDFs in email you forward, before they are stored, with keys our
+            storage provider never receives. A PDF you open on your phone is handed to the
+            phone&rsquo;s own viewer from a private copy, deleted when you come back to offload.
+            Our own nightly backup and your exports are encrypted the same way. We hold the keys,
+            so this protects against a breach at our storage provider, not against a compromise of
+            offload itself.
           </p>
           <p>
             Our host&rsquo;s recovery copies of the database are protected by its encryption, as the
@@ -437,7 +444,7 @@ export default function Privacy() {
           </p>
           <p>
             <strong>Not encrypted by us:</strong> the text in offload, including transcripts and
-            what offload writes about a photo. It sits in our database protected by our host&rsquo;s
+            what offload writes about a photo or a PDF. It sits in our database protected by our host&rsquo;s
             disk encryption and access controls. Someone who obtained a copy of our database could
             read it.
           </p>

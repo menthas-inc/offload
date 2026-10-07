@@ -24,6 +24,7 @@ import { unwrap, wrap } from "../crypto/keys.js";
 import { mintObjectKey, objectKeyOf } from "../blobs/keys.js";
 import { objectKey, objectStore, RENDITIONS, type Rendition } from "../blobs/store.js";
 import {
+  MAX_PDFS,
   MAX_PHOTO_BYTES,
   MAX_PHOTOS,
   MAX_PIXELS,
@@ -37,8 +38,17 @@ import { recordHit } from "../budget.js";
 import { dailyLimit } from "./dumps.js";
 import { limitFor, type CapKey } from "../settings.js";
 import { MAX_CANDIDATES } from "../mail-in/images.js";
+import { MAX_PDF_CANDIDATES } from "../mail-in/parse-worker.js";
 import { storageUsed } from "../blobs/storage.js";
 import { reverseGeocodingOn } from "../places/reverse.js";
+import { inspectPdf, MAX_PAGES } from "../blobs/pdf-inspect.js";
+import { cleanCopyPasses } from "../blobs/pdf-scan.js";
+import { pdfDisposition } from "../blobs/pdf-name.js";
+
+/** 041. A clean copy can be a little larger than the original it was
+ *  rewritten from, which is at most 20 MB. */
+const MAX_CLEAN_BYTES = 24 * 1024 * 1024;
+
 import {
   audioFilename,
   MAX_AUDIO_BYTES,
@@ -47,6 +57,30 @@ import {
   sniffAudio,
   voiceToday,
 } from "../blobs/audio.js";
+
+/** 041. At most `limit` of something at once in this process, the rest
+ *  waiting their turn. */
+function bounded(limit: number) {
+  let inFlight = 0;
+  const waiters: (() => void)[] = [];
+  return async <T>(run: () => Promise<T>): Promise<T> => {
+    if (inFlight >= limit) await new Promise<void>((resolve) => waiters.push(resolve));
+    inFlight++;
+    try {
+      return await run();
+    } finally {
+      inFlight--;
+      waiters.shift()?.();
+    }
+  };
+}
+
+/** Four PDFs decrypted in memory at once: each is held whole, up to 24 MB,
+ *  because AES-GCM opens whole. */
+const servingPdf = bounded(4);
+/** Four uploads opened by pdf.js at once, each in a worker thread of up to
+ *  256 MB. */
+const inspecting = bounded(4);
 
 function fetchHeaders(request: FastifyRequest): Headers {
   const headers = new Headers();
@@ -77,7 +111,11 @@ function bearer(request: FastifyRequest): string | undefined {
 
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 const refused = z.object({ error: z.string() });
-const uploaded = z.object({ blobId: z.string(), width: z.number(), height: z.number() });
+// 041. A photo answers with its dimensions, a PDF with its pages.
+const uploaded = z.union([
+  z.object({ blobId: z.string(), kind: z.literal("image"), width: z.number(), height: z.number() }),
+  z.object({ blobId: z.string(), kind: z.literal("pdf"), pages: z.number() }),
+]);
 // 036. Everything the account keeps, as against a day's worth.
 const storageFull = z.object({ error: z.literal("storage_full") });
 const overLimit = z.union([dailyLimit, storageFull]);
@@ -267,8 +305,23 @@ export async function blobRoutes(app: App): Promise<void> {
 
       const type = sniff(upload.bytes);
       if (!type) return reply.code(415).send({ error: "not_a_photo" });
-      const size = dimensions(upload.bytes);
-      if (!size || size.width * size.height > MAX_PIXELS) return reply.code(415).send({ error: "not_a_photo" });
+      // 041. A photo has dimensions; a PDF has pages, which are read after
+      // the caps (opening one is the expensive step) and before anything
+      // about it is written, so a locked one is never stored.
+      let size: { width: number; height: number } | null = null;
+      let pages: number | null = null;
+      if (type !== "application/pdf") {
+        size = dimensions(upload.bytes);
+        if (!size || size.width * size.height > MAX_PIXELS) return reply.code(415).send({ error: "not_a_photo" });
+      }
+      const kind = type === "application/pdf" ? ("pdf" as const) : ("image" as const);
+      const answer = (
+        blobId: string,
+        row: { kind: "image" | "audio" | "pdf"; width: number | null; height: number | null; pages: number | null },
+      ) =>
+        row.kind === "pdf"
+          ? { blobId, kind: "pdf" as const, pages: row.pages! }
+          : { blobId, kind: "image" as const, width: row.width!, height: row.height! };
 
       // Idempotency first, so a retry reads nothing and counts nothing. A
       // row the sweep already took, an upload nobody sent for an hour, is
@@ -277,14 +330,15 @@ export async function blobRoutes(app: App): Promise<void> {
       // under the same key.
       const existing = await db
         .selectFrom("blobs")
-        .select(["id", "width", "height", "deleted_at"])
+        .select(["id", "kind", "width", "height", "pages", "deleted_at"])
         .where("account_id", "=", accountId)
         .where("client_key", "=", upload.clientKey)
-        .where("kind", "=", "image")
+        .where("kind", "in", ["image", "pdf"])
         .executeTakeFirst();
       if (existing && existing.deleted_at === null) {
-        // A photo's dimensions are not null by the kind constraint.
-        return reply.code(201).send({ blobId: existing.id, width: existing.width!, height: existing.height! });
+        // A photo's dimensions and a PDF's pages are not null by the kind
+        // constraint.
+        return reply.code(201).send(answer(existing.id, existing));
       }
       if (existing) {
         await store.remove(RENDITIONS.map((rendition) => objectKey(existing.id, rendition)));
@@ -307,6 +361,17 @@ export async function blobRoutes(app: App): Promise<void> {
         return reply.code(429).send({ error: "storage_full" as const });
       }
 
+      if (type === "application/pdf") {
+        const inspected = await inspecting(() => inspectPdf(upload.bytes!));
+        if ("refused" in inspected) {
+          request.log.info({ refused: inspected.refused, bytes: upload.bytes.length }, "pdf refused");
+          if (inspected.refused === "locked") return reply.code(415).send({ error: "locked_pdf" });
+          if (inspected.refused === "too_many_pages") return reply.code(413).send({ error: "too_big" });
+          return reply.code(415).send({ error: "not_a_photo" });
+        }
+        pages = inspected.pages;
+      }
+
       const bytes = upload.bytes;
 
       // The object that was put, so a commit that fails after the put can
@@ -325,8 +390,10 @@ export async function blobRoutes(app: App): Promise<void> {
               name: upload.name,
               content_type: type,
               byte_size: bytes.length,
-              width: size.width,
-              height: size.height,
+              kind,
+              width: size?.width ?? null,
+              height: size?.height ?? null,
+              pages,
               sha256: sha256(bytes),
             })
             .returning(["id"])
@@ -344,8 +411,8 @@ export async function blobRoutes(app: App): Promise<void> {
           throw error;
         });
 
-      request.log.info({ blobId: blob.id, bytes: bytes.length, type }, "photo stored");
-      return reply.code(201).send({ blobId: blob.id, width: size.width, height: size.height });
+      request.log.info({ blobId: blob.id, bytes: bytes.length, type, pages }, "photo stored");
+      return reply.code(201).send(answer(blob.id, { kind, width: size?.width ?? null, height: size?.height ?? null, pages }));
     },
   );
 
@@ -491,6 +558,66 @@ export async function blobRoutes(app: App): Promise<void> {
     },
   );
 
+  // 041. A PDF's clean copy, the one form of it any route serves. Readable
+  // exactly as a rendition is. Served so that nothing in it can act with the
+  // reader's session: `sandbox` gives the document an opaque origin, whose
+  // requests are cross-site to this API and carry no `SameSite=Lax` cookie;
+  // `no-store` because a member taken out of a thread must not keep a copy
+  // the browser made; no ranges, because AES-GCM opens whole.
+  app.get(
+    "/v1/blobs/:id/pdf",
+    { schema: { params: z.object({ id: z.string().uuid() }) } },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+      const { id } = request.params;
+      if (!(await readable(id, accountId))) return reply.code(404).send({ error: "not_found" });
+      const blob = await db
+        .selectFrom("blobs as b")
+        .leftJoin("messages as m", "m.id", "b.message_id")
+        .select(["b.kind", "b.clean_at", "b.name", "m.account_id as dumper"])
+        .where("b.id", "=", id)
+        .executeTakeFirst();
+      if (blob?.kind !== "pdf" || !blob.clean_at) return reply.code(404).send({ error: "not_found" });
+
+      // The dumper sees their own name for it; anybody else the row's title,
+      // read now, so a rename changes what opens next.
+      let title = blob.dumper === accountId ? blob.name : null;
+      if (title === null) {
+        const row = await db
+          .selectFrom("content_blobs as cb")
+          .innerJoin("content as c", "c.id", "cb.content_id")
+          .innerJoin("thread_members as tm", "tm.thread_id", "c.thread_id")
+          .select("c.title")
+          .where("cb.blob_id", "=", id)
+          .where("c.deleted_at", "is", null)
+          .where("tm.account_id", "=", accountId)
+          .where("tm.state", "=", "accepted")
+          .executeTakeFirst();
+        title = row?.title ?? null;
+      }
+
+      const bytes = await servingPdf(() =>
+        db.transaction().execute(async (trx) => openStored(id, "clean", await objectKeyOf(trx, id))),
+      );
+      if (!bytes) return reply.code(404).send({ error: "not_found" });
+
+      return reply
+        .code(200)
+        .header("Content-Type", "application/pdf")
+        .header("Content-Length", String(bytes.length))
+        .header("X-Content-Type-Options", "nosniff")
+        .header("Content-Security-Policy", "sandbox")
+        .header("Cache-Control", "no-store")
+        .header("X-Frame-Options", "DENY")
+        .header("Referrer-Policy", "no-referrer")
+        .header("Cross-Origin-Resource-Policy", "same-site")
+        .header("Accept-Ranges", "none")
+        .header("Content-Disposition", pdfDisposition(title))
+        .send(bytes);
+    },
+  );
+
   app.get(
     "/v1/blobs/:id/:rendition",
     {
@@ -535,7 +662,10 @@ export async function blobRoutes(app: App): Promise<void> {
   /** The job is the authority on which message, and the message on which
    *  blobs, exactly as `turn-step` has it. The worker never names a blob it
    *  was not handed. */
-  async function blobForJob(jobId: string, blobId: string): Promise<{ id: string; content_type: string } | null> {
+  async function blobForJob(
+    jobId: string,
+    blobId: string,
+  ): Promise<{ id: string; content_type: string; kind: "image" | "audio" | "pdf" } | null> {
     const job = await db
       .selectFrom("jobs")
       .select(["payload", "account_id"])
@@ -550,7 +680,7 @@ export async function blobRoutes(app: App): Promise<void> {
     const candidate = (payload.mailLook ?? []).includes(blobId);
     const blob = await db
       .selectFrom("blobs")
-      .select(["id", "content_type"])
+      .select(["id", "content_type", "kind"])
       .where("id", "=", blobId)
       .where("deleted_at", "is", null)
       .where((eb) =>
@@ -597,33 +727,47 @@ export async function blobRoutes(app: App): Promise<void> {
       // The renditions, and what the file said about itself. The worker is
       // the one reader of metadata, because it is the process that opens the
       // file: one parser for JPEG, PNG, WebP and HEIC alike, and one answer.
-      const files: Partial<Record<"thumb" | "large", Buffer>> = {};
+      const files: Partial<Record<"thumb" | "large" | "clean", Buffer>> = {};
       const fields: Record<string, string> = {};
-      for await (const part of request.parts()) {
+      // 041. A PDF's renditions carry a third file, its clean copy, which
+      // may be a little larger than the original it was rewritten from.
+      for await (const part of request.parts({ limits: { files: 3, fileSize: MAX_CLEAN_BYTES } })) {
         if (part.type !== "file") {
           if (typeof part.value === "string") fields[part.fieldname] = part.value.slice(0, 80);
           continue;
         }
-        if (part.fieldname !== "thumb" && part.fieldname !== "large") {
+        if (part.fieldname !== "thumb" && part.fieldname !== "large" && part.fieldname !== "clean") {
           await part.toBuffer();
           continue;
         }
         const bytes = await part.toBuffer();
-        // Our own JPEG output, by sniff, or it is not a rendition.
-        if (sniff(bytes) !== "image/jpeg") return reply.code(415).send({ error: "not_a_rendition" });
+        if (part.fieldname === "clean") {
+          // Only for a PDF, and only once it passes the API's own scan.
+          if (blob.kind !== "pdf" || !cleanCopyPasses(bytes)) return reply.code(415).send({ error: "not_a_rendition" });
+        } else if (sniff(bytes) !== "image/jpeg" || bytes.length > MAX_PHOTO_BYTES) {
+          // Our own JPEG output, by sniff, no larger than a photo may be, or
+          // it is not a rendition.
+          return reply.code(415).send({ error: "not_a_rendition" });
+        }
         files[part.fieldname] = bytes;
       }
       if (!files.thumb || !files.large) return reply.code(400).send({ error: "missing_rendition" });
+      const pages = blob.kind === "pdf" ? Number(fields.pages) : null;
+      if (blob.kind === "pdf" && (!files.clean || !Number.isInteger(pages) || pages! < 1 || pages! > MAX_PAGES)) {
+        return reply.code(400).send({ error: "missing_rendition" });
+      }
 
       const meta = readMetadataFields(fields);
       await db.transaction().execute(async (trx) => {
         const key = await objectKeyOf(trx, blob.id);
         await storeSealed(blob.id, "thumb", key, files.thumb!);
         await storeSealed(blob.id, "large", key, files.large!);
+        if (files.clean) await storeSealed(blob.id, "clean", key, files.clean);
         await trx
           .updateTable("blobs")
           .set({
             renditions_at: sql`now()`,
+            ...(files.clean ? { clean_at: sql`now()`, pages: pages! } : {}),
             unreadable_at: null,
             // Filled once and never overwritten: a retry of the same job
             // carries the same answer, and nothing else writes these.
@@ -648,7 +792,10 @@ export async function blobRoutes(app: App): Promise<void> {
           });
         }
       });
-      request.log.info({ blobId: blob.id, thumbBytes: files.thumb.length, largeBytes: files.large.length }, "renditions stored");
+      request.log.info(
+        { blobId: blob.id, thumbBytes: files.thumb.length, largeBytes: files.large.length, cleanBytes: files.clean?.length },
+        "renditions stored",
+      );
       return reply.code(200).send({ ok: true });
     },
   );
@@ -798,7 +945,13 @@ export async function blobRoutes(app: App): Promise<void> {
     {
       schema: {
         params: z.object({ id: z.string().uuid() }),
-        body: z.object({ jobId: z.string().uuid(), keep: z.array(z.string().uuid()).max(MAX_CANDIDATES) }),
+        // 041. `failed`: the look could not run, so every PDF it was given is
+        // one Activity names as left out.
+        body: z.object({
+          jobId: z.string().uuid(),
+          keep: z.array(z.string().uuid()).max(MAX_CANDIDATES + MAX_PDF_CANDIDATES),
+          failed: z.boolean().optional(),
+        }),
       },
     },
     async (request, reply) => {
@@ -817,21 +970,42 @@ export async function blobRoutes(app: App): Promise<void> {
       const messageId = request.params.id;
 
       const kept = await db.transaction().execute(async (trx) => {
-        const keep = named.filter((id) => request.body.keep.includes(id)).slice(0, MAX_PHOTOS);
         const live = await trx
           .selectFrom("blobs")
-          .select(["id", "message_id"])
+          .select(["id", "message_id", "kind"])
           .where("id", "in", named)
           .where("account_id", "=", accountId)
           .where("deleted_at", "is", null)
           .forUpdate()
           .execute();
-        const claimable = keep.filter((id) => live.some((b) => b.id === id && (b.message_id === null || b.message_id === messageId)));
+        const isClaimable = (id: string) => live.some((b) => b.id === id && (b.message_id === null || b.message_id === messageId));
+        const kindOf = (id: string) => live.find((b) => b.id === id)?.kind;
+        // 041. What a message the person sends may hold: PDFs first, two at
+        // most, in the email's order, then pictures up to ten in all. A PDF
+        // the look kept past the second, and every PDF when the look could
+        // not run, is one Activity names.
+        const yes = named.filter((id) => request.body.keep.includes(id) && isClaimable(id));
+        const pdfYes = yes.filter((id) => kindOf(id) === "pdf");
+        const pdfs = pdfYes.slice(0, MAX_PDFS);
+        const images = yes.filter((id) => kindOf(id) === "image").slice(0, MAX_PHOTOS - pdfs.length);
+        const claimable = [...pdfs, ...images];
+        const namedPdfs = live.filter((b) => b.kind === "pdf" && b.message_id === null).length;
+        const unnamed = request.body.failed ? namedPdfs : pdfYes.length - pdfs.length;
+        if (unnamed > 0) {
+          await trx
+            .updateTable("messages")
+            .set({
+              attrs: sql`jsonb_set(attrs, '{mail,leftOut,pdf}', to_jsonb(coalesce((attrs #>> '{mail,leftOut,pdf}')::int, 0) + ${unnamed}::int))`,
+            })
+            .where("id", "=", messageId)
+            .where("account_id", "=", accountId)
+            .execute();
+        }
         if (claimable.length > 0) {
           await trx.updateTable("blobs").set({ message_id: messageId }).where("id", "in", claimable).execute();
           await trx
             .updateTable("messages")
-            .set({ type: "image" })
+            .set({ type: images.length > 0 ? "image" : "file" })
             .where("id", "=", messageId)
             .where("account_id", "=", accountId)
             .where("text", "is", null)

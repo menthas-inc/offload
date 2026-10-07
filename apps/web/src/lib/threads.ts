@@ -243,7 +243,18 @@ export interface ContentRow {
   /** 020. The picture a photo row carries, as the id a rendition URL is built
    *  from. `ready` is whether the renditions exist yet. Null on everything
    *  that is not a photo. */
-  photo: { blobId: string; width: number; height: number; ready: boolean } | null;
+  /** 020, 041. The row's photo or PDF: dimensions for a photo, pages and
+   *  whether its clean copy can be opened for a PDF. */
+  photo: {
+    blobId: string;
+    kind: "image" | "pdf";
+    width?: number;
+    height?: number;
+    pages?: number;
+    openable?: boolean;
+    unreadable?: boolean;
+    ready: boolean;
+  } | null;
   createdAt: string;
   archivedAt: string | null;
   /** What 006 extracts. All of it may be null or empty, which is what a thread

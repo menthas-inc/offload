@@ -170,7 +170,7 @@ function Result({
                   className="items-center justify-center rounded-a-sm bg-surface-fill"
                   style={{ width: 32, height: 32 }}
                 >
-                  <Glyph name="image" size={16} />
+                  <Glyph name={TYPE_ICON[row.type] ?? "image"} size={16} />
                 </View>
               }
             />

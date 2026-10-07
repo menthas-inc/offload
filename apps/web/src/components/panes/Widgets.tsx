@@ -329,9 +329,10 @@ function QuickAdd({ onAdd, onCancel }: { onAdd: (text: string) => void; onCancel
  *  a hairline, `--radius-sm`, the picture cropped to the square, a glyph where
  *  there is no picture yet. */
 function FileTile({ row, onOpen }: { row: ContentRow; onOpen: () => void }) {
+  // 041. A PDF's tile is page 1, and the paperclip until it is drawn.
   const glyph = (
     <span className={styles.fileTileGlyph} aria-hidden="true">
-      <Icon name="image" size={22} />
+      <Icon name={row.photo?.kind === "pdf" || row.type === "file" ? "paperclip" : "image"} size={22} />
     </span>
   );
   return (

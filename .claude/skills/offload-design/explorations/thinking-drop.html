@@ -1,0 +1,42 @@
+<!doctype html><html data-theme="light" lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thinking row, how the drop lands</title>
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="thinking.css?v=2">
+<link rel="stylesheet" href="thinking-drop.css?v=1">
+</head><body>
+<div class="wrap" id="root">
+<div class="bar">
+<div class="pl" id="plat"><button data-p="ios">iOS</button><button data-p="android">Android</button><button data-p="web">Web</button></div>
+<div class="pl" id="state"><em>State</em><button data-s="play">Play a turn</button><button data-s="start">Started</button><button data-s="say">Thinking</button><button data-s="stop">Can stop</button></div>
+<div class="pl" id="stop"><em>Stop</em><button data-t="round">Round</button><button data-t="pill">Pill</button><button data-t="comp">In the composer</button></div>
+<div class="pl" id="rm"><button data-r="0">Motion</button><button data-r="1">Reduced</button></div>
+</div>
+<h1 class="pt">Drop, how it lands</h1>
+<p class="lede">Drop from <a href="thinking.html">the thinking row</a>, alone. The dot arrives, hovers, and drops into the vessel; these seven change only what happens when it gets there. All ink, all 3.2 seconds except Fill, which is three drops in 7.2.</p>
+<div id="dirs"></div>
+<ul class="notes" style="margin-top:28px">
+<li><b>What stays the same:</b> the mark's geometry, 22px in the row, the hover before the fall, and the ease into it. The fall is the same in all seven so they can be compared on the landing alone.</li>
+<li><b>Reduced motion</b> shows the mark whole and still in every one.</li>
+</ul>
+</div>
+<script>
+const V=(cls,extra,under)=>`<span class="an dv ${cls}"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">${under||''}<path class="v" d="M5.5 11.5V15.5a3 3 0 0 0 3 3h7a3 3 0 0 0 3-3V11.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>${extra||''}<circle class="d" cx="12" cy="5.25" r="2.6" fill="currentColor"/></svg></span>`;
+window.THINK_A={
+ sink:V('l-sink'),
+ splash:V('l-splash','<circle class="k k1" cx="12" cy="14" r="1.05" fill="currentColor"/><circle class="k k2" cx="12" cy="14" r=".9" fill="currentColor"/><circle class="k k3" cx="12" cy="14" r=".75" fill="currentColor"/>'),
+ merge:V('l-merge'),
+ ripple:V('l-ripple','<ellipse class="k" cx="12" cy="11.6" rx="3.2" ry="1" fill="none" stroke="currentColor" stroke-width=".9"/>'),
+ bounce:V('l-bounce'),
+ catch:V('l-catch'),
+ fill:V('l-fill','','<clipPath id="CLIP"><path d="M7 11.5V15.5a1.6 1.6 0 0 0 1.6 1.6h6.8a1.6 1.6 0 0 0 1.6-1.6V11.5z"/></clipPath><g clip-path="url(#CLIP)"><rect class="lv" x="6" y="11" width="12" height="7" fill="currentColor" opacity=".9"/></g>')
+};
+window.THINK_D=[['Landings','l1','Same fall, seven endings, gentlest first.',[
+ ['sink','Sink','3.2s','Today\u2019s. It shrinks as it goes in and is gone; the vessel gives under it.'],
+ ['ripple','Ripple','3.2s','It goes in and a ring spreads from the mouth and fades, like a drop into water.'],
+ ['merge','Merge','3.2s','It reaches the floor, spreads into a puddle, and the vessel\u2019s line thickens as it takes it in. Nothing leaves; it becomes the mark.'],
+ ['catch','Catch','3.2s','The vessel rises to meet it and carries it back down. The vessel doing the work, which is the product\u2019s idea.'],
+ ['bounce','Bounce','3.2s','It lands, bounces once, settles, and dissolves. The most playful.'],
+ ['splash','Splash','3.2s','It hits and three droplets jump out over the rim and fall away. The loudest landing.'],
+ ['fill','Fill','7.2s','Each drop raises a level inside. The third fills it, and it drains to start again. Says progress, which a thinking row cannot promise.']]]];
+</script>
+<script src="thinking.js?v=2"></script>
+</body></html>

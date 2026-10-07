@@ -8,6 +8,7 @@
 // Read through `readable_content`, so an answer written while somebody was in a
 // thread stops showing its rows if they ever leave it.
 
+import { fileToWire, type FileOnRow } from "../blobs/wire.js";
 import { sql } from "kysely";
 import { db } from "../db.js";
 import { ANSWER_ROW_CHARS } from "./read.js";
@@ -33,7 +34,7 @@ export interface FoundResult {
     body: string | null;
     done: boolean;
     /** 020. The row's photo, when it has one, as the thread page sends it. */
-    photo: { blobId: string; width: number; height: number; ready: boolean } | null;
+    photo: FileOnRow | null;
   }[];
 }
 
@@ -65,9 +66,13 @@ export async function foundFor(
     body: string | null;
     done_at: Date | null;
     blob_id: string | null;
+    blob_kind: "image" | "audio" | "pdf" | null;
     blob_width: number | null;
     blob_height: number | null;
-    blob_ready: boolean | null;
+    blob_pages: number | null;
+    blob_renditions_at: Date | null;
+    blob_clean_at: Date | null;
+    blob_unreadable_at: Date | null;
   }>`
     select mc.message_id::text as message_id, mc.ord as ord, mc.truncated as truncated,
            c.id::text as id, c.thread_id::text as thread_id,
@@ -76,8 +81,9 @@ export async function foundFor(
            case when t.id = (select a.default_thread_id from accounts a where a.id = ${accountId}::uuid) then null else t.icon end as thread_icon,
            case when t.id = (select a.default_thread_id from accounts a where a.id = ${accountId}::uuid) then null else t.hue end as thread_hue,
            c.type as type, c.title as title, c.body as body, c.done_at as done_at,
-           p.id::text as blob_id, p.width as blob_width, p.height as blob_height,
-           (p.renditions_at is not null) as blob_ready
+           p.id::text as blob_id, p.kind as blob_kind, p.width as blob_width, p.height as blob_height,
+           p.pages as blob_pages, p.renditions_at as blob_renditions_at, p.clean_at as blob_clean_at,
+           p.unreadable_at as blob_unreadable_at
     from message_content mc
     join readable_content c on c.id = mc.content_id
     join threads t on t.id = c.thread_id
@@ -86,7 +92,7 @@ export async function foundFor(
     -- page would. The viewer already passed readable_content, so the blob
     -- needs no check of its own.
     left join lateral (
-      select b.id, b.width, b.height, b.renditions_at
+      select b.id, b.kind, b.width, b.height, b.pages, b.renditions_at, b.clean_at, b.unreadable_at
       from content_blobs cb
       join blobs b on b.id = cb.blob_id and b.deleted_at is null
       where cb.content_id = c.id
@@ -126,7 +132,16 @@ export async function foundFor(
       body: row.body ? row.body.slice(0, ANSWER_ROW_CHARS) : null,
       done: row.done_at !== null,
       photo: row.blob_id
-        ? { blobId: row.blob_id, width: row.blob_width!, height: row.blob_height!, ready: Boolean(row.blob_ready) }
+        ? fileToWire({
+            id: row.blob_id,
+            kind: row.blob_kind!,
+            width: row.blob_width,
+            height: row.blob_height,
+            pages: row.blob_pages,
+            renditions_at: row.blob_renditions_at,
+            clean_at: row.blob_clean_at,
+            unreadable_at: row.blob_unreadable_at,
+          })
         : null,
     });
     byMessage.set(row.message_id, results);

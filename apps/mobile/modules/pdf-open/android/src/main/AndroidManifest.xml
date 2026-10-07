@@ -1,0 +1,22 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- 041. Which apps can open a PDF, which Android 11 hides unless asked. -->
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:mimeType="application/pdf" />
+    </intent>
+  </queries>
+  <application>
+    <!-- Not exported: another app reads a PDF only through the one grant the
+         intent carries, and only under cache/pdfs. -->
+    <provider
+      android:name="androidx.core.content.FileProvider"
+      android:authorities="${applicationId}.pdfopen"
+      android:exported="false"
+      android:grantUriPermissions="true">
+      <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/pdf_open_paths" />
+    </provider>
+  </application>
+</manifest>

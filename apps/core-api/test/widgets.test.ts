@@ -58,7 +58,11 @@ describe("widgets are earned", () => {
     // stays in the list with the page's own picture on it.
     expect(widgetsFor([row({ type: "link" })]).map((w) => w.kind)).toEqual([]);
     expect(widgetsFor([row({ type: "screenshot" })]).map((w) => w.kind)).toEqual(["files"]);
+    // 041. A file row with its PDF earns it, page 1 being its tile. One
+    // written before 041, which could name a file it was never given, has
+    // nothing to draw and does not.
     expect(widgetsFor([row({ type: "file" })]).map((w) => w.kind)).toEqual([]);
+    expect(widgetsFor([row({ type: "file", photo: { kind: "pdf" } })]).map((w) => w.kind)).toEqual(["files"]);
   });
 
   it("loses a widget when the content that earned it goes (AC-1)", () => {

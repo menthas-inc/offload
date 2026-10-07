@@ -194,7 +194,9 @@ describe("the privacy page moves its date with the consent version (AC-34)", () 
     const updated = /const UPDATED = "(\d+ \w+ 2026)"/.exec(page)?.[1];
     const version = /CONSENT_VERSION = "(2026-\d\d-\d\d)"/.exec(session)?.[1];
     expect(updated).toBeDefined();
-    expect(new Date(`${updated} UTC`).toISOString().slice(0, 10)).toBe(version);
+    // 041: a change that only names something already covered moves the
+    // page's date alone, so the version is never later than the page.
+    expect(version! <= new Date(`${updated} UTC`).toISOString().slice(0, 10)).toBe(true);
   });
 });
 

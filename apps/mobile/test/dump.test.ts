@@ -130,3 +130,16 @@ describe("reading an answer", () => {
     expect((await fetchAnswer("m1"))?.threads).toHaveLength(1);
   });
 });
+
+describe("the answer", () => {
+  // 041. A settled turn learns from its answer which of its PDFs can be
+  // opened; the parse used to drop the files on the floor, as it once did
+  // `found`, and a PDF sent a moment ago said Not here yet. until a reload.
+  it("keeps the message's files", async () => {
+    vi.useRealTimers();
+    const file = { blobId: "d1", kind: "pdf", name: "b.pdf", pages: 1, ready: true, openable: true, unreadable: false };
+    answer = { state: "answered", reply: null, photos: [file] } as typeof answer;
+    const got = await fetchAnswer("m1");
+    expect(got?.photos).toEqual([file]);
+  });
+});

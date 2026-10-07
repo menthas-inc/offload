@@ -43,6 +43,20 @@ describe("the privacy policy, general", () => {
     expect(policy).toContain("Last updated 7 October 2026");
   });
 
+  // 041. PDFs, wherever the page says what is put in, kept, made, sent to a
+  // model, shared and encrypted.
+  it("names PDFs where it names photos", () => {
+    expect(policy).toContain("notes, links, photos, screenshots, PDFs, voice notes");
+    expect(policy).toContain("its text, its pictures and its PDFs, its subject, who sent it and when, but not the raw email or its other attachments");
+    expect(policy).toContain("descriptions of what photos, screenshots and PDFs show, including any words in them. The text of a PDF itself is not kept.");
+    expect(policy).toContain("Sorting, reading photos and PDFs, transcribing voice notes");
+    expect(policy).toContain("what you just put in (of a PDF, its first ten pages),");
+    expect(policy).toContain("A PDF in a shared thread opens for its members as a copy without the details of who made it and without anything in it that could run.");
+    expect(policy).toContain("your photos, screenshots, PDFs, voice note audio and the pictures and PDFs in email you forward");
+    expect(policy).toContain("what offload writes about a photo or a PDF");
+    expect(policy).toContain("A PDF you open on your phone is handed to the phone's own viewer from a private copy, deleted when you come back to offload.");
+  });
+
   it("names the controller and says it is for the United States only", () => {
     expect(policy).toContain("It is run by Behrooz Afghahi, an individual in the United States.");
     expect(policy).toContain("offload is only offered in the United States");

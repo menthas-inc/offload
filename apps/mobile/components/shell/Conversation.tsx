@@ -57,12 +57,14 @@ import { answerShare } from "../../lib/people";
 import { openLink } from "../../lib/links";
 import { SHARE_LINE } from "../people/ShareSheet";
 import { QuickReplies } from "./QuickReplies";
+import { Thinking } from "./Thinking";
 import { useRouter } from "expo-router";
 import { useConversation, type Pin, type Turn } from "./conversation-context";
 import { SentPhoto } from "./SentPhoto";
 import { VoiceNotePlayer } from "./SentVoice";
 import { RowActionSheet } from "./RowActionSheet";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
+import type { PhotoOnWire } from "../../lib/dump";
 import { putKeyboardAway } from "../../lib/keyboard";
 import { threadHref } from "../../lib/loose";
 
@@ -70,15 +72,17 @@ import { threadHref } from "../../lib/loose";
  *  the sheet. No row yet, so no tools: the Files grid is where a photo's row
  *  is. */
 /** 020, per the 21 September design: the composer's photo sheet, drawn here
- *  above the plate. Library first, then the camera, and no Cancel row. */
+ *  above the plate. Library first, then the camera, then (041) a PDF, and no
+ *  Cancel row. */
 export function ConversationPhotoSheet() {
-  const { photoSheet, closePhotoSheet, pickPhotos } = useConversation();
+  const { photoSheet, closePhotoSheet, pickPhotos, pickPdfs } = useConversation();
   return (
     <RowActionSheet
       open={photoSheet}
       actions={[
         { label: "Choose from library", icon: "image", run: () => void pickPhotos("library") },
         { label: "Take a photo", icon: "camera", run: () => void pickPhotos("camera") },
+        { label: "Choose a PDF", icon: "paperclip", run: () => void pickPdfs() },
       ]}
       onClose={closePhotoSheet}
     />
@@ -89,13 +93,16 @@ export function ConversationPhotoViewer() {
   const { turns, photoOpen, openPhoto, closePhoto } = useConversation();
   if (!photoOpen) return null;
   const turn = turns.find((one) => one.id === photoOpen.turnId);
-  const set: ViewerPhoto[] = (turn?.photos ?? []).map((photo) => ({
-    blobId: photo.blobId,
-    ready: photo.ready,
-    width: photo.width,
-    height: photo.height,
-    title: photo.name ?? "Photo",
-  }));
+  // 041. The viewer's set is the message's photos, never its PDFs.
+  const set: ViewerPhoto[] = (turn?.photos ?? [])
+    .filter((photo) => photo.kind !== "pdf")
+    .map((photo) => ({
+      blobId: photo.blobId,
+      ready: photo.ready,
+      width: photo.width ?? 0,
+      height: photo.height ?? 0,
+      title: photo.name ?? "Photo",
+    }));
   if (set.length === 0) return null;
   return (
     <PhotoViewer
@@ -281,7 +288,7 @@ function PinnedTarget({ pin }: { pin: Pin }) {
 }
 
 function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
-  const { turns, writing, finish, openPhoto, retry, recording } = useConversation();
+  const { turns, writing, finish, openPhoto, openPdf, retry, recording } = useConversation();
   const { ref, offset, native } = scroll;
 
   // Opened at its end, and kept there as turns arrive.
@@ -363,6 +370,7 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
               footer={!replied.has(turn.id) && !turn.question}
               onFinish={() => void finish(turn.id)}
               onOpenPhoto={(index) => openPhoto(turn.id, index)}
+              onOpenPdf={(pdf) => openPdf(pdf, pdf.name)}
               onRetry={() => retry(turn.id)}
               recording={recording}
             />
@@ -394,7 +402,7 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
           <Theirs key={turn.id} turn={turn} sent={answered.get(turn.id) ?? null} />
         ),
       )}
-      {writing ? <Working /> : null}
+      {writing ? <Thinking /> : null}
     </KeyboardChatScrollView>
   );
 }
@@ -404,12 +412,15 @@ function Yours({
   footer,
   onFinish,
   onOpenPhoto,
+  onOpenPdf,
   onRetry,
   recording,
 }: {
   turn: Turn;
   footer: boolean;
   onOpenPhoto: (index: number) => void;
+  /** 041. A PDF the message carried, opened in the platform's viewer. */
+  onOpenPdf: (pdf: PhotoOnWire) => void;
   onFinish: () => void;
   /** The send did not land. Puts the words back in the field. */
   onRetry: () => void;
@@ -469,8 +480,18 @@ function Yours({
         {/* 021. The voice note it carried, between the words and the photos. */}
         {turn.voice ? <VoiceNotePlayer voice={turn.voice} inert={recording} /> : null}
         {/* 020. The photos the message carried, shown rather than named. */}
-        {(turn.photos ?? []).map((photo, at) => (
-          <SentPhoto key={photo.blobId} photo={photo} onOpen={() => onOpenPhoto(at)} />
+        {(turn.photos ?? []).map((photo) => (
+          <SentPhoto
+            key={photo.blobId}
+            photo={photo}
+            onOpen={() =>
+              // 041. A PDF opens itself; a photo, the viewer at its place
+              // among the message's photos.
+              photo.kind === "pdf"
+                ? onOpenPdf(photo)
+                : onOpenPhoto((turn.photos ?? []).filter((p) => p.kind !== "pdf").indexOf(photo))
+            }
+          />
         ))}
       </View>
 
@@ -778,114 +799,6 @@ function Theirs({ turn, sent }: { turn: Turn; sent: Turn | null }) {
           }}
         />
       ) : null}
-    </View>
-  );
-}
-
-/** How long a turn runs before it is worth saying anything about it. 017.
- *
- *  Under this, the three dots are the honest answer: a line appearing and being
- *  replaced twice inside a second is noise, and most turns finish here.
- *
- *  **Not the same number as the way out.** Saying what it is doing is
- *  reassurance and comes early; offering to stop is an admission this is taking
- *  too long and comes later. One number for both would either delay the
- *  reassurance or offer the escape to somebody who did not need it. */
-const SAY_AFTER_MS = 2500;
-
-/** When the way out appears. The product owner's number. */
-const STOP_AFTER_MS = 10_000;
-
-/** What offload is doing, and past ten seconds a way to stop it.
- *
- *  **Both live where the three dots already were**, in the conversation area the
- *  pinned composer has to itself, because the alternative is a toast and a toast
- *  takes the only control away with it when it clears. This has no mock; the
- *  divergence is logged.
- *
- *  It re-renders on a clock rather than on the step, because the two thresholds
- *  are times and nothing else moves them: a turn can sit on one line for eight
- *  seconds and the way out still has to arrive. */
-function Working() {
-  const { working, stop } = useConversation();
-  const [elapsed, setElapsed] = useState(0);
-
-  const since = working?.since ?? null;
-  useEffect(() => {
-    if (since === null) return;
-    setElapsed(Date.now() - since);
-    // Half a second. Fine enough that neither threshold lands visibly late,
-    // coarse enough not to be a render loop on a screen that is waiting.
-    const timer = setInterval(() => setElapsed(Date.now() - since), 500);
-    return () => clearInterval(timer);
-  }, [since]);
-
-  const step = elapsed >= SAY_AFTER_MS ? working?.step : null;
-  const canStop = working !== null && elapsed >= STOP_AFTER_MS;
-
-  // **Falls back to the dots, not to a filler sentence.** A turn with no step is
-  // a turn that is thinking rather than looking something up, and inventing a
-  // line for it would be offload narrating itself.
-  if (!step && !canStop) return <Writing />;
-
-  return (
-    // A row, so Stop sits on the line it belongs to rather than under it: it is
-    // the way out of the thing on screen, not a second thing that appeared.
-    <View
-      className="flex-row flex-wrap items-center gap-space-4"
-      style={{ alignSelf: "flex-start" }}
-    >
-      {step ? (
-        <Text
-          className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
-          style={{ fontSize: 13.5 }}
-          // The line replaces itself rather than stacking, and a screen reader
-          // should hear the change without being interrupted mid-sentence.
-          accessibilityLiveRegion="polite"
-        >
-          {step}
-        </Text>
-      ) : (
-        <Writing />
-      )}
-
-      {canStop ? (
-        <Pressable
-          onPress={stop}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Stop"
-          className="min-h-tap-min justify-center"
-        >
-          <Text className="font-core font-medium text-text-accent" style={{ fontSize: 13.5 }}>
-            Stop
-          </Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
-function Writing() {
-  return (
-    <View
-      className={`flex-row items-center gap-space-2 px-space-5 py-space-4 ${
-        isAndroid ? "bg-a-c" : "bg-ink-50"
-      }`}
-      style={{
-        alignSelf: "flex-start",
-        borderRadius: 16,
-        borderBottomLeftRadius: 4,
-      }}
-      accessibilityLabel="offload is writing"
-    >
-      {[0, 1, 2].map((i) => (
-        <View
-          key={i}
-          className="rounded-pill bg-ink-300"
-          style={{ width: 6, height: 6 }}
-        />
-      ))}
     </View>
   );
 }

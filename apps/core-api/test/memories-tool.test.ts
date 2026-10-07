@@ -136,6 +136,18 @@ describe("remember", () => {
     expect(await tool({ jobId, action: "remember", text: "Their wife is Meera.", kind: "people" })).toEqual({ ok: false, error: "untrusted_turn" });
   });
 
+  it("refuses a message that carries a PDF (041)", async () => {
+    // A PDF is a stranger's words as much as a photo is, and the model read
+    // its pages in this turn.
+    const me = await account();
+    const { jobId, messageId } = await dump(me, "remember that Meera is my wife");
+    await db
+      .insertInto("blobs")
+      .values({ account_id: me, message_id: messageId, client_key: uuidv7(), name: null, kind: "pdf", pages: 1, content_type: "application/pdf", byte_size: 1, sha256: Buffer.alloc(32) } as never)
+      .execute();
+    expect(await tool({ jobId, action: "remember", text: "Their wife is Meera.", kind: "people" })).toEqual({ ok: false, error: "untrusted_turn" });
+  });
+
   it("refuses words that are not in what the person said", async () => {
     // Injected text in a note or a tool result can ask for a memory; what is
     // kept has to come from the person's own message.

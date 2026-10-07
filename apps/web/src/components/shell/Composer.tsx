@@ -29,7 +29,12 @@ import {
   undoTurn,
   cancelTurn,
   uploadPhoto,
-  refusePhoto,
+  refuseFile,
+  takeFiles,
+  draftName,
+  isPdf,
+  openPdfSaying,
+  settledPhotos,
   PhotoRefused,
   UnknownBlob,
   MAX_PHOTOS,
@@ -65,6 +70,7 @@ import { SHARE_LINE, answerShare, fetchPeople, nameOf, type Person } from "../..
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import { Icon } from "../Icon";
 import { TurnFooter, type TurnSource } from "./TurnFooter";
+import { Thinking } from "./Thinking";
 import { AnswerResults } from "./AnswerResult";
 import { Reply } from "./Reply";
 import { isRich, plainText } from "@offload/markup";
@@ -133,10 +139,14 @@ interface Turn {
 interface DraftPhoto {
   key: string;
   file: File;
+  /** 041. A photo or a PDF, from the file's own type or name. */
+  kind: "image" | "pdf";
   name: string;
+  /** Whether the name is the file's own, for counting "PDF 2". */
+  named: boolean;
   error: ChipError;
   /** Set once the server has it. A retry skips what already landed. */
-  uploaded?: { blobId: string; width: number; height: number };
+  uploaded?: { blobId: string; kind: "image" | "pdf"; width?: number; height?: number; pages?: number };
 }
 
 export function Composer({
@@ -416,7 +426,8 @@ export function Composer({
                   // 020. The renditions are made before the model reads the
                   // photos, so a settled turn's thumbnails exist; one that
                   // could not be opened draws the glyph when its fetch fails.
-                  photos: turn.photos?.map((photo) => ({ ...photo, ready: true })),
+                  // 041. And the answer says which PDFs can be opened.
+                  photos: settledPhotos(turn.photos, answer.photos),
                   // 021. The transcript, when the answer was read rather
                   // than streamed; the stream delivered it on its own event.
                   voice: answer.voice
@@ -552,24 +563,24 @@ export function Composer({
     const incoming = [...files];
     if (incoming.length === 0) return;
     setPhotos((current) => {
-      const room = MAX_PHOTOS - current.length;
-      if (room <= 0 || incoming.length > room) setLine({ text: "Ten at a time." });
-      const taken = incoming.slice(0, Math.max(0, room)).map((file, at) => ({
-        key: crypto.randomUUID(),
-        file,
-        name: photoName(file, current.length + at),
-        error: refusePhoto(file),
-      }));
-      return [...current, ...taken];
+      // 041. Ten in all, two of them PDFs, and the line for what was left.
+      const { taken, line } = takeFiles(current, incoming);
+      if (line) setLine({ text: line });
+      const added: DraftPhoto[] = [];
+      for (const file of taken) {
+        const name = draftName(file, [...current, ...added]);
+        added.push({
+          key: crypto.randomUUID(),
+          file,
+          kind: isPdf(file) ? "pdf" : "image",
+          name,
+          named: name === file.name,
+          error: refuseFile(file),
+        });
+      }
+      return [...current, ...added];
     });
     input.current?.focus();
-  }
-
-  /** The file's own name, or "Photo", "Photo 2". A browser names a pasted
-   *  image `image.png`, which is an identifier and not a name. */
-  function photoName(file: File, at: number): string {
-    const own = file.name && !/^image\.(png|jpe?g|webp|gif|heic|heif)$/i.test(file.name) ? file.name : "";
-    return own || (at === 0 ? "Photo" : `Photo ${at + 1}`);
   }
 
   function removePhoto(key: string): void {
@@ -626,14 +637,20 @@ export function Composer({
     // itself, under the chip's key until the upload gives it a blob. Never
     // revoked: a turn keeps it for the session, and a session's worth of
     // object URLs is a few dozen.
-    const shown: PhotoOnWire[] = sendable.map((photo) => ({
-      blobId: photo.uploaded?.blobId ?? photo.key,
-      name: photo.name,
-      width: photo.uploaded?.width ?? 0,
-      height: photo.uploaded?.height ?? 0,
-      ready: false,
-      localUrl: URL.createObjectURL(photo.file),
-    }));
+    const shown: PhotoOnWire[] = sendable.map((photo) =>
+      photo.kind === "pdf"
+        ? // 041. A PDF has no picture of its own until page 1 is drawn.
+          { blobId: photo.uploaded?.blobId ?? photo.key, kind: "pdf", name: photo.name, ready: false, openable: false }
+        : {
+            blobId: photo.uploaded?.blobId ?? photo.key,
+            kind: "image",
+            name: photo.name,
+            width: photo.uploaded?.width ?? 0,
+            height: photo.uploaded?.height ?? 0,
+            ready: false,
+            localUrl: URL.createObjectURL(photo.file),
+          },
+    );
     const shownVoice: VoiceOnWire | null = spoken
       ? {
           blobId: noteUploaded.current?.blobId ?? `${clientKey}-voice`,
@@ -681,14 +698,19 @@ export function Composer({
       for (const [at, photo] of sendable.entries()) {
         const uploaded = photo.uploaded ?? (await uploadPhoto(photo.file, photo.key));
         setPhotos((current) => current.map((p) => (p.key === photo.key ? { ...p, uploaded } : p)));
-        sentPhotos.push({
-          blobId: uploaded.blobId,
-          name: photo.name,
-          width: uploaded.width,
-          height: uploaded.height,
-          ready: false,
-          localUrl: shown[at]?.localUrl,
-        });
+        sentPhotos.push(
+          photo.kind === "pdf"
+            ? { blobId: uploaded.blobId, kind: "pdf", name: photo.name, pages: uploaded.pages, ready: false, openable: false }
+            : {
+                blobId: uploaded.blobId,
+                kind: "image",
+                name: photo.name,
+                width: uploaded.width ?? 0,
+                height: uploaded.height ?? 0,
+                ready: false,
+                localUrl: shown[at]?.localUrl,
+              },
+        );
       }
       // 021. The voice note the same way, under the draft's own key with a
       // suffix, so a retry finds the upload the server already made.
@@ -754,7 +776,7 @@ export function Composer({
         setLine({ text: "Your storage is full." });
       } else if (
         error instanceof PhotoRefused &&
-        (error.reason === "too_big" || error.reason === "not_a_photo")
+        (error.reason === "too_big" || error.reason === "not_a_photo" || error.reason === "locked_pdf")
       ) {
         // The server disagreed with the device about one of them. Mark the
         // first chip not yet landed rather than guessing which; the remove
@@ -803,14 +825,17 @@ export function Composer({
    *  their names. Rows are not known here, so the viewer has no tools; the
    *  Files grid is where a photo's row is. */
   function viewerPhotos(turn: Turn): ViewerPhoto[] {
-    return (turn.photos ?? []).map((photo) => ({
-      blobId: photo.blobId,
-      ready: photo.ready,
-      width: photo.width,
-      height: photo.height,
-      title: photo.name ?? "Photo",
-      localUrl: photo.localUrl,
-    }));
+    // 041. The viewer's set is a message's photos, never its PDFs.
+    return (turn.photos ?? [])
+      .filter((photo) => photo.kind !== "pdf")
+      .map((photo) => ({
+        blobId: photo.blobId,
+        ready: photo.ready,
+        width: photo.width ?? 0,
+        height: photo.height ?? 0,
+        title: photo.name ?? "Photo",
+        localUrl: photo.localUrl,
+      }));
   }
 
   /** Nothing landed, so there is nothing to resume. Put the text back where
@@ -1066,11 +1091,23 @@ export function Composer({
                 {turn.voice ? <VoiceNotePlayer voice={turn.voice} inert={recording} /> : null}
                 {turn.photos?.length ? (
                   <span className={styles.sentPhotos}>
-                    {turn.photos.map((photo, at) => (
+                    {turn.photos.map((photo) => (
                       <SentPhoto
                         key={photo.blobId}
                         photo={photo}
-                        onOpen={() => setViewer({ turnId: turn.id, index: at })}
+                        onOpen={() => {
+                          // 041. A PDF opens itself, in the browser's viewer;
+                          // a photo opens the viewer at its place among the
+                          // message's photos.
+                          if (photo.kind === "pdf") {
+                            openPdfSaying(photo, (text, retry) =>
+                              toast.show(text, retry && { label: "Retry", onPress: retry }),
+                            );
+                            return;
+                          }
+                          const images = turn.photos!.filter((p) => p.kind !== "pdf");
+                          setViewer({ turnId: turn.id, index: images.indexOf(photo) });
+                        }}
                       />
                     ))}
                   </span>
@@ -1233,7 +1270,7 @@ export function Composer({
                   : ""}
           </p>
 
-          {waiting ? <Working step={step} since={inFlight?.since ?? null} onStop={stop} /> : null}
+          {waiting ? <Thinking step={step} since={inFlight?.since ?? null} onStop={stop} /> : null}
         </div>
       ) : null}
 
@@ -1353,6 +1390,7 @@ export function Composer({
                 <AttachChip
                   key={photo.key}
                   name={photo.name}
+                  kind={photo.kind}
                   error={photo.error}
                   disabled={sending}
                   onRemove={() => removePhoto(photo.key)}
@@ -1366,7 +1404,7 @@ export function Composer({
             <input
               ref={picker}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,application/pdf,.pdf"
               multiple
               hidden
               onChange={(event) => {
@@ -1380,12 +1418,14 @@ export function Composer({
               <button
                 type="button"
                 className={styles.quiet}
-                aria-label="Add a photo"
-                title="Add a photo"
+                aria-label="Add a photo or PDF"
+                title="Add a photo or PDF"
                 disabled={sending || dayUsed}
                 onClick={() => picker.current?.click()}
               >
-                <Icon name="camera" size={17} />
+                {/* 041. The paperclip, where the kit draws the camera: the web
+                    never took a photo with one, and now it takes PDFs too. */}
+                <Icon name="paperclip" size={17} />
               </button>
             )}
             {/* 021. The microphone, live, in the kit's order. Not drawn while
@@ -1619,90 +1659,5 @@ function Waiting({
         </button>
       </span>
     </span>
-  );
-}
-
-/** How long a turn runs before it is worth saying anything about it. 017.
- *
- *  Under this, the three dots are the honest answer: a line appearing and being
- *  replaced twice inside a second is noise, and most turns finish here.
- *
- *  **Not the same number as the way out.** Saying what it is doing is
- *  reassurance and comes early; offering to stop is an admission this is taking
- *  too long and comes later. One number for both would either delay the
- *  reassurance or offer the escape to somebody who did not need it. */
-const SAY_AFTER_MS = 2500;
-
-/** When the way out appears. The product owner's number. */
-const STOP_AFTER_MS = 10_000;
-
-/** What offload is doing, and past ten seconds a way to stop it.
- *
- *  **Both live where the three dots already were**, at the foot of the log,
- *  because the alternative is a toast and a toast takes the only control away
- *  with it when it clears. This has no mock; the divergence is logged.
- *
- *  It re-renders on a clock rather than on the step, because the two thresholds
- *  are times and nothing else moves them: a turn can sit on one line for eight
- *  seconds and the way out still has to arrive. */
-function Working({
-  step,
-  since,
-  onStop,
-}: {
-  step: string | null;
-  since: number | null;
-  onStop: () => void;
-}) {
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    if (since === null) return;
-    setElapsed(Date.now() - since);
-    // Half a second. Fine enough that neither threshold lands visibly late,
-    // coarse enough not to be a render loop on a page that is waiting.
-    const timer = setInterval(() => setElapsed(Date.now() - since), 500);
-    return () => clearInterval(timer);
-  }, [since]);
-
-  const line = elapsed >= SAY_AFTER_MS ? step : null;
-  const canStop = elapsed >= STOP_AFTER_MS;
-
-  // **Falls back to the dots, not to a filler sentence.** A turn with no step is
-  // a turn that is thinking rather than looking something up, and inventing a
-  // line for it would be offload narrating itself.
-  if (!line && !canStop) {
-    return (
-      <div className={styles.writing} aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles.working}>
-      {line ? (
-        // The line replaces itself rather than stacking. The log's own live
-        // region announces the turn's transitions, so this one is scoped to the
-        // sentence and polite.
-        <p className={styles.workingStep} aria-live="polite">
-          {line}
-        </p>
-      ) : (
-        <div className={styles.writing} aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-      )}
-
-      {canStop ? (
-        <button type="button" className={styles.retry} onClick={onStop}>
-          Stop
-        </button>
-      ) : null}
-    </div>
   );
 }

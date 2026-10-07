@@ -62,7 +62,8 @@ import {
 } from "../questions.js";
 import { foundFor } from "../search/found.js";
 import { memberOf } from "../threads/access.js";
-import { MAX_PHOTOS } from "../blobs/photos.js";
+import { MAX_PDFS, MAX_PHOTOS } from "../blobs/photos.js";
+import { fileOnMessage, fileOnRow, fileToWire, type FileOnMessage } from "../blobs/wire.js";
 import { OverBudget, requireBudget } from "../budget.js";
 import type { MailAttrs } from "../mail-in/attrs.js";
 
@@ -77,7 +78,7 @@ export class UnknownBlob extends Error {
 /** 021. The blobs are all the account's, but not a message's worth: two
  *  voice notes, or more photos than one message carries. Refused whole. */
 export class BadBlobMix extends Error {
-  constructor(readonly code: "one_voice_note" | "too_many_photos") {
+  constructor(readonly code: "one_voice_note" | "too_many_photos" | "too_many_pdfs") {
     super(code);
   }
 }
@@ -265,9 +266,7 @@ const foundResults = z.array(
         title: z.string(),
         body: z.string().nullable(),
         done: z.boolean(),
-        photo: z
-          .object({ blobId: z.string(), width: z.number(), height: z.number(), ready: z.boolean() })
-          .nullable(),
+        photo: fileOnRow.nullable(),
       })
     ),
   })
@@ -288,15 +287,10 @@ function mailOnWire(text: string | null, attrs: unknown): { subject: string; not
   return { subject: mail.subject ?? "", note: (text ?? "").slice(0, mail.noteLength ?? 0).trim() };
 }
 
-/** 020. A photo on a person's message, as the client draws it. */
-const photoOnWire = z.object({
-  blobId: z.string(),
-  name: z.string().nullable(),
-  width: z.number(),
-  height: z.number(),
-  ready: z.boolean(),
-});
-type PhotoOnWire = z.infer<typeof photoOnWire>;
+/** 020. A photo on a person's message, as the client draws it, or a PDF
+ *  (041). */
+const photoOnWire = fileOnMessage;
+type PhotoOnWire = FileOnMessage;
 
 /** 021. The voice note on a person's message, as the client draws it: the
  *  bars and the length at once, the transcript when it exists. `text` on the
@@ -398,7 +392,7 @@ const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 // 020. A 409 rather than a 400: a 400 schema on this route would also
 // serialise Fastify's own validation errors, and they do not fit it. 021's
 // two mix refusals ride the same status for the same reason.
-const unknownBlob = z.object({ error: z.enum(["unknown_blob", "one_voice_note", "too_many_photos"]) });
+const unknownBlob = z.object({ error: z.enum(["unknown_blob", "one_voice_note", "too_many_photos", "too_many_pdfs"]) });
 
 /** The reply to a person's message, if it has been answered.
  *
@@ -509,17 +503,29 @@ export async function photosForAll(
   const rows = await db
     .selectFrom("blobs")
     .innerJoin("messages", "messages.id", "blobs.message_id")
-    .select(["blobs.id as id", "blobs.message_id as message_id", "blobs.name", "blobs.width", "blobs.height", "blobs.renditions_at", "blobs.created_at"])
+    .select([
+      "blobs.id as id",
+      "blobs.message_id as message_id",
+      "blobs.name",
+      "blobs.kind",
+      "blobs.width",
+      "blobs.height",
+      "blobs.pages",
+      "blobs.renditions_at",
+      "blobs.clean_at",
+      "blobs.unreadable_at",
+      "blobs.created_at",
+    ])
     .where("blobs.message_id", "in", messageIds)
-    .where("blobs.kind", "=", "image")
+    // 041. Photos and PDFs; a voice note is drawn by its own player.
+    .where("blobs.kind", "in", ["image", "pdf"])
     .where("messages.account_id", "=", accountId)
     .where("blobs.deleted_at", "is", null)
     .orderBy("blobs.created_at", "asc")
     .execute();
   for (const row of rows) {
     const list = out.get(row.message_id!) ?? [];
-    // A photo's dimensions are not null by the kind constraint.
-    list.push({ blobId: row.id, name: row.name, width: row.width!, height: row.height!, ready: row.renditions_at !== null });
+    list.push({ ...fileToWire(row), name: row.name });
     out.set(row.message_id!, list);
   }
   return out;
@@ -964,6 +970,7 @@ export async function takeDump(
     // dump is refused whole: a message that claims a photo it cannot have is
     // worse than no message. Locked, so two dumps cannot claim one photo.
     let voice: { byte_size: number; duration_ms: number | null } | null = null;
+    let onlyPdfs = false;
     if (blobIds.length > 0) {
       const mine = await trx
         .selectFrom("blobs")
@@ -976,11 +983,14 @@ export async function takeDump(
         .execute();
       if (mine.length !== blobIds.length) throw new UnknownBlob();
       // 021. One voice note, at most ten photos, checked against the rows
-      // rather than the ids, since an id says nothing about its kind.
+      // rather than the ids, since an id says nothing about its kind. 041:
+      // the ten are photos and PDFs together, at most two of them PDFs.
       const audio = mine.filter((row) => row.kind === "audio");
       if (audio.length > 1) throw new BadBlobMix("one_voice_note");
+      if (mine.filter((row) => row.kind === "pdf").length > MAX_PDFS) throw new BadBlobMix("too_many_pdfs");
       if (mine.length - audio.length > MAX_PHOTOS) throw new BadBlobMix("too_many_photos");
       voice = audio[0] ?? null;
+      onlyPdfs = mine.every((row) => row.kind === "pdf");
     }
 
     const inserted = await trx
@@ -990,13 +1000,15 @@ export async function takeDump(
         account_id: accountId,
         role: "person",
         // 021. A message carrying a voice note is voice, whatever else it
-        // carries. Otherwise a photo with no words is an image message and
-        // words with or without photos are text; the blobs ride on the row
-        // either way.
+        // carries. Otherwise a photo with no words is an image message, PDFs
+        // alone with no words a file message (041), and words with or
+        // without either are text; the blobs ride on the row either way.
         type: voice
           ? "voice"
           : (blobIds.length > 0 || (mail?.candidates.length ?? 0) > 0) && text.trim().length === 0
-            ? "image"
+            ? onlyPdfs && blobIds.length > 0
+              ? "file"
+              : "image"
             : "text",
         turn_id: turnId,
         text: text.trim().length === 0 ? null : text,
@@ -1062,16 +1074,18 @@ export async function takeDump(
     // The claim. Checked above, written here, one transaction.
     let photoBytes = 0;
     let photoCount = 0;
+    let pdfs: { byte_size: number; pages: number | null }[] = [];
     if (blobIds.length > 0) {
       const claimed = await trx
         .updateTable("blobs")
         .set({ message_id: message.id })
         .where("id", "in", blobIds)
-        .returning(["byte_size", "kind"])
+        .returning(["byte_size", "kind", "pages"])
         .execute();
       const images = claimed.filter((row) => row.kind === "image");
       photoCount = images.length;
       photoBytes = images.reduce((sum, row) => sum + row.byte_size, 0);
+      pdfs = claimed.filter((row) => row.kind === "pdf");
     }
 
     await trx
@@ -1128,6 +1142,14 @@ export async function takeDump(
         photos: photoCount,
         photo_bytes: photoBytes,
         via_share: Boolean(photos?.viaShare),
+        // 041. Counts, bytes and pages; never a name.
+        ...(pdfs.length > 0
+          ? {
+              pdfs: pdfs.length,
+              pdf_bytes: pdfs.reduce((sum, row) => sum + row.byte_size, 0),
+              pdf_pages: pdfs.reduce((sum, row) => sum + (row.pages ?? 0), 0),
+            }
+          : {}),
         ...(mail ? { via_mail: true } : {}),
         ...(voice
           ? { voice: true, voice_seconds: Math.round((voice.duration_ms ?? 0) / 1000), voice_bytes: voice.byte_size }
@@ -1642,6 +1664,8 @@ export async function dumpRoutes(app: App): Promise<void> {
               // 021. The transcript rides the settlement too, for a wake that
               // sees the write and the reply together.
               voice: (await voiceForAll([message.id], accountId)).get(message.id) ?? null,
+              // 041. And the files, so a PDF learns it can be opened.
+              photos: (await photosForAll([message.id], accountId)).get(message.id) ?? [],
               waiting: (await anyWaitingFor([message.id])).get(message.id) ?? null,
               // 018. The question, with the turn that asked it.
               question: (await questionsFor(accountId, [message.id])).get(message.id) ?? null,

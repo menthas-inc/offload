@@ -167,6 +167,11 @@ class AddContent(BaseModel):
     # definition on every call, and the prompt already says one to ten.
     photo: int | None = None
 
+    # 041. Which of the message's PDFs this row is, by its number among the
+    # PDFs, one or two. Only on a `file` row, and a `file` row is only ever a
+    # PDF you were shown.
+    pdf: int | None = None
+
     # 028. Filed into their default thread with a home in mind you were not
     # sure enough to file into: that thread's id. Offered to them as a
     # suggestion on the row; nothing moves.
@@ -188,6 +193,12 @@ class AddContent(BaseModel):
             raise ValueError("photo goes only on an image or a screenshot")
         if self.photo is not None and not 1 <= self.photo <= 10:
             raise ValueError("photo is a number from 1 to 10")
+        if self.pdf is not None and self.type != "file":
+            raise ValueError("pdf goes only on a file")
+        if self.type == "file" and self.pdf is None:
+            raise ValueError("a file is a PDF: give its number as pdf")
+        if self.pdf is not None and not 1 <= self.pdf <= 2:
+            raise ValueError("pdf is 1 or 2")
         return self
 
     @field_validator("rrule")

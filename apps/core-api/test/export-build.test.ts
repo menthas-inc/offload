@@ -292,6 +292,55 @@ describe("the archive", () => {
     expect(sams.get(`files/${theirs.id}.heic`)).toEqual(original);
   });
 
+  // 041. A PDF comes back as its clean copy, whoever put it in: the bytes
+  // that were sent are served to nobody, the export included. The one
+  // exception is the person's own PDF that could not be cleaned.
+  it("gives every PDF as its clean copy, and only the person's own uncleanable one as the file they sent", async () => {
+    const w = await world();
+    const original = Buffer.from("%PDF-1.7 the original, with its author and its script");
+    const clean = Buffer.from("%PDF-1.7 the clean copy");
+    const pdfOf = async (owner: Person, cleaned: boolean) => {
+      const blob = await db
+        .insertInto("blobs")
+        .values({
+          account_id: owner.id,
+          client_key: uuidv7(),
+          name: "Boarding pass TAP.pdf",
+          content_type: "application/pdf",
+          kind: "pdf",
+          pages: 1,
+          byte_size: original.length,
+          sha256: Buffer.alloc(32),
+          renditions_at: cleaned ? sql`now()` : null,
+          clean_at: cleaned ? sql`now()` : null,
+          // What the worker writes when it cannot make a clean copy.
+          unreadable_at: cleaned ? null : sql`now()`,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const key = await db.transaction().execute((trx) => mintObjectKey(trx, blob.id, owner.id));
+      await objectStore()!.put(objectKey(blob.id, "original"), wrap(original, key));
+      if (cleaned) await objectStore()!.put(objectKey(blob.id, "clean"), wrap(clean, key));
+      await db.insertInto("content_blobs").values({ content_id: w.boiler, blob_id: blob.id }).execute();
+      await db.transaction().execute((trx) => ensureThreadWrap(trx, blob.id, w.shared));
+      return blob.id;
+    };
+    const anasClean = await pdfOf(w.ana, true);
+    const anasUnclean = await pdfOf(w.ana, false);
+    const samsClean = await pdfOf(w.sam, true);
+    const samsUnclean = await pdfOf(w.sam, false);
+
+    await buildCopy(await asked(w.ana));
+    const files = await unzip(w.ana.id);
+    expect(files.get(`files/${anasClean}.pdf`)).toEqual(clean);
+    expect(files.get(`files/${anasUnclean}.pdf`)).toEqual(original);
+    expect(files.get(`files/${samsClean}.pdf`)).toEqual(clean);
+    expect([...files.keys()].some((name) => name.includes(samsUnclean))).toBe(false);
+    const page = [...files.entries()].find(([name]) => name.startsWith("threads/") && files.get(name)!.includes(anasClean))![1].toString();
+    expect(page).toContain(`<a href="../files/${anasClean}.pdf">Boarding pass TAP.pdf</a>`);
+    expect(page).not.toContain(`<img src="../files/${anasClean}.pdf"`);
+  });
+
   it("leaves out somebody else's photo that has no rendition yet", async () => {
     const w = await world();
     const waiting = await photo(w.sam, JPEG, { contentId: w.boiler, threadId: w.shared });

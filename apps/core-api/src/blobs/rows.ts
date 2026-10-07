@@ -21,17 +21,20 @@ export interface MessagePhoto {
   taken_at: Date | null;
   town: string | null;
   unreadable: boolean;
+  /** 041. A PDF's page count; null for a photo. */
+  pages: number | null;
 }
 
-/** The photos a message carries, in the order they were attached. 021: the
- *  voice note on the same message is not one of them, to this or to anything
- *  built on it. */
-export async function photosOf(trx: Trx, messageId: string): Promise<MessagePhoto[]> {
+/** The photos a message carries, in the order they were attached, or with
+ *  `kind` "pdf" its PDFs (041), each counted among its own kind: PDF 2 is the
+ *  second PDF, whatever photos sit between. 021: the voice note on the same
+ *  message is never one of them, to this or to anything built on it. */
+export async function photosOf(trx: Trx, messageId: string, kind: "image" | "pdf" = "image"): Promise<MessagePhoto[]> {
   const rows = await trx
     .selectFrom("blobs")
-    .select(["id", "taken_at", "town", "unreadable_at"])
+    .select(["id", "taken_at", "town", "unreadable_at", "pages"])
     .where("message_id", "=", messageId)
-    .where("kind", "=", "image")
+    .where("kind", "=", kind)
     .where("deleted_at", "is", null)
     .orderBy("created_at", "asc")
     .orderBy("id", "asc")
@@ -42,6 +45,7 @@ export async function photosOf(trx: Trx, messageId: string): Promise<MessagePhot
     taken_at: row.taken_at,
     town: row.town,
     unreadable: row.unreadable_at !== null,
+    pages: row.pages,
   }));
 }
 
@@ -75,10 +79,32 @@ export async function photoForRow(
   return photo;
 }
 
-/** The body with the photo's own sentence about when and where at the end. */
-export function withTaken(body: string, photo: MessagePhoto | null): string | null {
-  const sentence = photo ? takenSentence(photo.taken_at, photo.town) : "";
-  const joined = [body.trim(), sentence].filter(Boolean).join("\n\n");
+/** 041. The PDF that `add_content` names by `pdf`, on a `file` row only; null
+ *  for an index past the PDFs or a PDF this turn already filed. */
+export async function pdfForRow(
+  trx: Trx,
+  messageId: string | null,
+  index: number,
+  type: string,
+): Promise<MessagePhoto | null> {
+  if (!messageId || type !== "file") return null;
+  const pdf = (await photosOf(trx, messageId, "pdf"))[index - 1];
+  if (!pdf) return null;
+  if ((await filedIds(trx, messageId)).has(pdf.id)) return null;
+  return pdf;
+}
+
+/** 041. "1 page." or "12 pages.", the server's own sentence on a PDF's row. */
+export function pagesSentence(pages: number | null): string {
+  if (!pages) return "";
+  return pages === 1 ? "1 page." : `${pages} pages.`;
+}
+
+/** The body with the photo's own sentence about when and where at the end,
+ *  or a PDF's page count. */
+export function withTaken(body: string | null | undefined, photo: MessagePhoto | null): string | null {
+  const sentence = !photo ? "" : photo.pages !== null ? pagesSentence(photo.pages) : takenSentence(photo.taken_at, photo.town);
+  const joined = [(body ?? "").trim(), sentence].filter(Boolean).join("\n\n");
   return joined === "" ? null : joined;
 }
 
@@ -101,11 +127,16 @@ export async function fileUnfiled(
   accountId: string,
   threadId: string,
 ): Promise<number> {
-  const photos = await photosOf(trx, messageId);
+  // 041. Photos as "A photo", PDFs as "A PDF" on a file row: never one as
+  // the other.
+  const photos = [
+    ...(await photosOf(trx, messageId)).map((photo) => ({ photo, type: "image" as const, title: "A photo", key: "photo" })),
+    ...(await photosOf(trx, messageId, "pdf")).map((photo) => ({ photo, type: "file" as const, title: "A PDF", key: "pdf" })),
+  ];
   if (photos.length === 0) return 0;
   const filed = await filedIds(trx, messageId);
   let count = 0;
-  for (const photo of photos) {
+  for (const { photo, type, title, key } of photos) {
     if (filed.has(photo.id)) continue;
     const inserted = await trx
       .insertInto("content")
@@ -113,12 +144,12 @@ export async function fileUnfiled(
         account_id: accountId,
         thread_id: threadId,
         derived_from_message_id: messageId,
-        type: "image",
-        title: "A photo",
+        type,
+        title,
         body: withTaken("", photo),
         source: "person",
-        // One per photo per message, so a retried settle files nothing twice.
-        tool_call_id: `photo:${photo.id}`,
+        // One per file per message, so a retried settle files nothing twice.
+        tool_call_id: `${key}:${photo.id}`,
         updated_at: sql`now()`,
       })
       .onConflict((oc) =>

@@ -108,3 +108,18 @@ export function withImages(count: number, body = "Boarding passes attached"): st
   parts.push("--b1--", "");
   return raw({ body: parts.join("\r\n") }).replace("Content-Type: text/plain; charset=utf-8", 'Content-Type: multipart/mixed; boundary="b1"');
 }
+
+/** 041. An email carrying these PDFs, named and typed as a mail client
+ *  attaches one, after `images` noise PNGs. */
+export function withPdfs(pdfs: Buffer[], images = 0, body = "Boarding passes attached"): string {
+  const message = withImages(images, body);
+  const attached = pdfs.flatMap((bytes, i) => [
+    "--b1",
+    "Content-Type: application/pdf",
+    "Content-Transfer-Encoding: base64",
+    `Content-Disposition: attachment; filename="document${i}.pdf"`,
+    "",
+    bytes.toString("base64").replace(/.{76}/g, "$&\r\n"),
+  ]);
+  return message.replace(/--b1--\r\n$/, [...attached, "--b1--", ""].join("\r\n"));
+}

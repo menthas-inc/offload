@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"SentVoice","sourcePath":"components/conversation/SentVoice.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Avatar","sourcePath":"components/core/Avatar.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"LabelMark","sourcePath":"components/core/LabelMark.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/SentVoice.jsx":"08bb27934031","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Avatar.jsx":"1c8eef696ff5","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"fcac9a7cce5d","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/core/LabelMark.jsx":"f7c78223c974","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"7f6290747633","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"d58108f37e4d","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","explorations/landing-core.js":"32e8f6337779","explorations/landing-dirs.js":"1858a6d2e14c","explorations/onboarding-screens.js":"4b514292623c","explorations/settings-pages-v2.js":"24a2e3c27320","explorations/settings-pages.js":"478a7f384452","explorations/thread-marks-v2.js":"d56f48769191","explorations/thread-marks.js":"1cc87f13c484","ui_kits/admin_web/A.jsx":"14c3017336ab","ui_kits/admin_web/AOps.jsx":"b78ac3169b9f","ui_kits/admin_web/APeople.jsx":"7f2571db7e1d","ui_kits/admin_web/AdminApp.jsx":"ef5fb96309c2","ui_kits/admin_web/AdminData.js":"3f12c5e639db","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"c5d8ae19a52c","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"fafa6cd83dc4","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"815b631d6e6d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"fd0b5edce6dd","ui_kits/android_app/M3SettingsScreen.jsx":"dade732e7925","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"d4e7d87079cb","ui_kits/android_app/M3TodayScreen.jsx":"0bc87b953e81","ui_kits/marketing_site/landing.js":"6e39e2d995c3","ui_kits/mobile_app/App.jsx":"98207e3ef49a","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"828eecc1f7ca","ui_kits/mobile_app/LooseParts.jsx":"d39791d4afdd","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"4ef26e230ccd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"269d6f059c17","ui_kits/mobile_app/SettingsScreen.jsx":"8bbffe11f5d4","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"b1d227129152","ui_kits/mobile_app/TodayParts.jsx":"66adfacb1077","ui_kits/mobile_app/TodayScreen.jsx":"ba3c48281d49","ui_kits/mobile_app/data.js":"9cbe9c7e1010","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"d32465d6f729","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"SentVoice","sourcePath":"components/conversation/SentVoice.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Avatar","sourcePath":"components/core/Avatar.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"LabelMark","sourcePath":"components/core/LabelMark.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/SentVoice.jsx":"08bb27934031","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Avatar.jsx":"1c8eef696ff5","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"fcac9a7cce5d","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/core/LabelMark.jsx":"f7c78223c974","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"7f6290747633","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"d58108f37e4d","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","explorations/landing-core.js":"32e8f6337779","explorations/landing-dirs.js":"1858a6d2e14c","explorations/memories-proto.js":"5b13ef74bc50","explorations/memories-v2.js":"00ff6cea546a","explorations/onboarding-screens.js":"4b514292623c","explorations/settings-pages-v2.js":"24a2e3c27320","explorations/settings-pages.js":"478a7f384452","explorations/thinking.js":"98a75fd73e16","explorations/thread-marks-v2.js":"d56f48769191","explorations/thread-marks.js":"1cc87f13c484","ui_kits/admin_web/A.jsx":"14c3017336ab","ui_kits/admin_web/AOps.jsx":"b78ac3169b9f","ui_kits/admin_web/APeople.jsx":"7f2571db7e1d","ui_kits/admin_web/AdminApp.jsx":"ef5fb96309c2","ui_kits/admin_web/AdminData.js":"3f12c5e639db","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"c5d8ae19a52c","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"fafa6cd83dc4","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"815b631d6e6d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"fd0b5edce6dd","ui_kits/android_app/M3SettingsScreen.jsx":"dade732e7925","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"d4e7d87079cb","ui_kits/android_app/M3TodayScreen.jsx":"0bc87b953e81","ui_kits/marketing_site/landing.js":"6e39e2d995c3","ui_kits/memories_tab/memories.js":"f81c11547f52","ui_kits/mobile_app/App.jsx":"98207e3ef49a","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"828eecc1f7ca","ui_kits/mobile_app/LooseParts.jsx":"d39791d4afdd","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"4ef26e230ccd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"269d6f059c17","ui_kits/mobile_app/SettingsScreen.jsx":"8bbffe11f5d4","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"b1d227129152","ui_kits/mobile_app/TodayParts.jsx":"66adfacb1077","ui_kits/mobile_app/TodayScreen.jsx":"ba3c48281d49","ui_kits/mobile_app/data.js":"9cbe9c7e1010","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"d32465d6f729","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -5057,6 +5057,893 @@ try { (() => {
 })();
 })(); } catch (e) { __ds_ns.__errors.push({ path: "explorations/landing-dirs.js", error: String((e && e.message) || e) }); }
 
+// explorations/memories-proto.js
+try { (() => {
+/* Memories tab, clickable. List and map of one set of memories; tap either to edit. */
+(function () {
+  const g = (n, s) => `<i class="g" style="--ic:url(../assets/icons/${n}.svg)${s ? ';width:' + s + 'px;height:' + s + 'px' : ''}"></i>`;
+  const K = {
+    people: {
+      l: 'People',
+      ic: 'users',
+      c: 'var(--label-2)'
+    },
+    things: {
+      l: 'Things',
+      ic: 'tag',
+      c: 'var(--label-1)'
+    },
+    about: {
+      l: 'About',
+      ic: 'heart',
+      c: 'var(--label-6)'
+    },
+    rules: {
+      l: 'Rules',
+      ic: 'compass',
+      c: 'var(--ink-950)'
+    },
+    patterns: {
+      l: 'Patterns',
+      ic: 'spline',
+      c: 'var(--label-5)'
+    }
+  };
+  const KO = ['people', 'things', 'about', 'rules', 'patterns'];
+  /* A world 800 wide and 1500 tall, because a phone is tall: the kinds stack down it.
+     Each memory has its own row inside its kind, so sentences never sit on each other. */
+  const TALL = {
+    W: 800,
+    H: 1500
+  };
+  const CLT = {
+    people: [255, 260, 210],
+    things: [560, 560, 180],
+    patterns: [220, 830, 150],
+    about: [420, 1110, 250],
+    rules: [600, 1380, 140]
+  };
+  const SUBT = [['people', 265, 170, 100], ['people', 250, 330, 100], ['things', 470, 470, 80], ['things', 625, 590, 95], ['patterns', 225, 830, 95], ['about', 340, 1030, 105], ['about', 560, 1010, 75], ['about', 370, 1210, 105], ['rules', 600, 1380, 95]];
+  const SEED = [['people', 'Their wife is Meera.', 'stated', 3, 'Said in Lisbon trip', 200, 140], ['people', 'Meera\u2019s birthday is 14 March.', 'stated', 3, 'Said in Lisbon trip', 330, 200], ['people', 'They call their mother Maman.', 'learned', 1, 'From what you said in Sunday lunch', 180, 300], ['people', 'Their brother is Arjun.', 'learned', 8, 'From what you said in Bookshelf build', 320, 360], ['things', 'They share a calendar with Meera.', 'answered', 4, 'Your answer to \u201cWhich calendar is shared with Meera?\u201d', 470, 470], ['things', 'Home is in Toronto.', 'learned', 10, 'From a note in Groceries', 590, 560], ['things', 'Their car is a 2019 Civic.', 'stated', 17, 'Said in Car', 650, 620], ['about', '\u201cThe cottage\u201d is the place in Muskoka.', 'learned', 1, 'From what you said in Long weekend', 570, 1010], ['about', '\u201cStandup\u201d is their 9:30 work meeting.', 'learned', 6, 'From a note in Work', 380, 1060], ['about', 'They work at Shopify as a designer.', 'stated', 24, 'Said in Work', 300, 1000], ['about', 'They have two kids, Sam and Leila.', 'learned', 12, 'From a note in School', 420, 1180], ['about', 'They are allergic to nuts.', 'stated', 26, 'Said in Groceries', 300, 1240], ['rules', 'They write dates day first.', 'stated', 28, 'Said in Lisbon trip', 560, 1350], ['rules', 'Work things never go in Home.', 'stated', 28, 'Said in Home', 640, 1410], ['patterns', 'They pay bills on the 5th.', 'learned', 0, 'From notes in Home and Bills', 190, 800], ['patterns', 'They shop for groceries on Sundays.', 'learned', 5, 'From notes in Groceries', 260, 860]];
+  /* Wide screens get the kinds side by side instead. Each kind moves as a block, so what sits near what
+     inside a kind is the same in both. */
+  const CLW = {
+    people: [300, 300, 210],
+    things: [760, 260, 180],
+    patterns: [1160, 330, 150],
+    about: [520, 700, 250],
+    rules: [1060, 720, 140]
+  };
+  let WW = 800,
+    WH = 1500,
+    CL = CLT,
+    SUB = SUBT,
+    WIDE = false;
+  function setLayout(wide) {
+    WIDE = wide;
+    WW = wide ? 1440 : 800;
+    WH = wide ? 960 : 1500;
+    CL = wide ? CLW : CLT;
+    SUB = SUBT.map(s => {
+      const a = CLT[s[0]],
+        b = CL[s[0]];
+      return [s[0], s[1] - a[0] + b[0], s[2] - a[1] + b[1], s[3]];
+    });
+  }
+  const P_ = m => {
+    const a = CLT[m.k],
+      b = CL[m.k];
+    return [m.x - a[0] + b[0], m.y - a[1] + b[1]];
+  };
+  const DAY = n => n === 0 ? 'Today' : n === 1 ? 'Yesterday' : (() => {
+    const d = new Date(2026, 9, 6 - n);
+    return d.getDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  })();
+  let uid = 0;
+  const S = {
+    mems: SEED.map(r => ({
+      id: ++uid,
+      k: r[0],
+      t: r[1],
+      o: r[2],
+      n: r[3],
+      s: r[4],
+      x: r[5],
+      y: r[6]
+    })),
+    view: 'list',
+    sort: 'kind',
+    q: '',
+    search: false,
+    open: null,
+    draft: '',
+    dk: null,
+    cam: {
+      cx: WW / 2,
+      cy: WH / 2,
+      z: .38
+    },
+    toast: null,
+    swiped: null,
+    plat: 'ios'
+  };
+  const OPEN_AT = .55,
+    ZMIN = .3,
+    ZMAX = 2.4;
+  const kv = (k, x = '') => `data-k="${k}" style="--k:${K[k].c};${x}"`;
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const meta = m => `<span class="mt">${m.o === 'learned' ? `<span class="lr">${g('sparkles')}Learned</span>` : `<span>${m.o === 'answered' ? 'Your answer' : 'You said'}</span>`}<span>\u00b7</span><span>${DAY(m.n)}</span></span>`;
+  const match = m => !S.q || m.t.toLowerCase().includes(S.q.toLowerCase());
+  const byId = id => S.mems.find(m => m.id === id);
+  const web = () => S.plat === 'web';
+  let root, stage;
+
+  /* ---------- shell ---------- */
+  const LOGO = `<svg width="20" height="20" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="21" r="10" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"/></svg>`;
+  const vt = () => `<span class="vt" role="tablist" aria-label="View">${['list', 'map'].map(v => `<button role="tab" data-act="view" data-v="${v}" aria-label="${v === 'list' ? 'List' : 'Map'}" aria-selected="${S.view === v}" class="vs${S.view === v ? ' on' : ''}">${g(v, 16)}</button>`).join('')}</span>`;
+  function shell() {
+    if (web()) return `<div class="wb pw"><nav class="side"><span class="brand">${LOGO}offload</span><span class="ni">${g('sun')}Today</span><span class="ni">${g('message-circle')}My threads<em>14</em></span><span class="ni on">${g('cloudy')}Memories<em id="cnt">${S.mems.length}</em></span><span class="sl">Recent</span>${['Lisbon trip', 'Bookshelf build', 'Groceries', 'Work'].map(n => `<span class="ni">${g('lasso')}${n}</span>`).join('')}<span class="ft"></span><span class="ni">${g('bell')}Activity</span><span class="ni">${g('settings')}Settings</span></nav>
+<div class="wm"><header class="wh2"><h1>Memories</h1><label class="srch wsr">${g('search', 15)}<input id="q" placeholder="Search memories" value="${esc(S.q)}"></label>${vt()}<button class="wbtn" data-act="new">${g('plus')}New memory</button></header><div class="wcols"><div class="wmain" id="main"></div><aside class="wpane" id="pane"></aside></div></div><div id="toast"></div></div>`;
+    const st = S.plat === 'android' ? `<div class="stb"><span>9:41</span><i>\u25be \u25b4 \u25ae</i></div>` : `<div class="stb"><span>9:41</span><i>\u25cf\u25cf\u25cf \u25ae</i></div>`;
+    return `<div class="ph pp">${st}<div class="ab"><h1>Memories</h1>${vt()}<button class="ib${S.search ? ' on' : ''}" data-act="search" aria-label="Search">${g('search')}</button><button class="ib" data-act="new" aria-label="New memory">${g('plus')}</button></div>
+<div id="sbar">${sbar()}</div><div class="body" id="main"></div><div class="plate"><div class="cmp"><s>Dump anything</s><span>${g('camera')}</span><span>${g('mic')}</span></div><div class="tabs"><span>${g('sun')}Today</span><span>${g('message-circle')}Threads</span><span class="on">${g('cloudy')}Memories</span></div><div class="hb"><i></i></div></div><div id="sheet"></div><div id="toast"></div></div>`;
+  }
+  const sbar = () => S.search ? `<label class="srch">${g('search', 16)}<input id="q" placeholder="Search memories" value="${esc(S.q)}"><button data-act="clearq" aria-label="Clear" style="display:${S.q ? 'flex' : 'none'}">${g('x', 15)}</button></label>` : '';
+
+  /* ---------- list ---------- */
+  function rowH(m) {
+    const sw = S.swiped === m.id,
+      on = web() && S.open === m.id;
+    return `<div class="swp${sw ? ' open' : ''}" data-row="${m.id}"><button class="act" data-act="forget" data-id="${m.id}">Forget</button><div class="rw${S.sort === 'new' ? ' ind' : ''}${on ? ' on' : ''}" ${kv(m.k, sw ? 'transform:translateX(-96px)' : '')} role="button" tabindex="0">${S.sort === 'new' ? '<span class="dot"></span>' : ''}<span class="tx"><b>${esc(m.t)}</b>${meta(m)}</span></div></div>`;
+  }
+  function listH() {
+    const ms = S.mems.filter(match);
+    let h = `<div class="sg" role="tablist" aria-label="Sort">${[['kind', 'By kind'], ['new', 'Newest']].map(o => `<button role="tab" data-act="sort" data-v="${o[0]}" aria-selected="${S.sort === o[0]}" class="${S.sort === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>`;
+    if (!ms.length) return h + `<p class="cap" style="text-align:center;margin-top:60px">Nothing kept says \u201c${esc(S.q)}\u201d.</p>`;
+    if (S.sort === 'kind') KO.forEach(k => {
+      const a = ms.filter(m => m.k === k);
+      if (!a.length) return;
+      h += `<div class="sh" ${kv(k)}><span class="sw"></span>${K[k].l}<em>${a.length}</em></div>` + a.map(rowH).join('');
+    });else {
+      const a = [...ms].sort((p, q) => p.n - q.n);
+      const wk = a.filter(m => m.n <= 7),
+        old = a.filter(m => m.n > 7);
+      if (wk.length) h += `<div class="sh">This week<em>${wk.length}</em></div>` + wk.map(rowH).join('');
+      if (old.length) h += `<div class="sh">Earlier<em>${old.length}</em></div>` + old.map(rowH).join('');
+    }
+    return h + '<div style="height:28px"></div>';
+  }
+
+  /* ---------- map ---------- */
+  let MW = 390,
+    MH = 600;
+  function mapH() {
+    const {
+        cx,
+        cy,
+        z
+      } = S.cam,
+      X = x => (x - cx) * z + MW / 2,
+      Y = y => (y - cy) * z + MH / 2,
+      near = z >= OPEN_AT;
+    let h = `<div class="tex"></div>`;
+    KO.forEach(k => {
+      const c = CL[k],
+        r = c[2] * z * 1.3;
+      h += `<span class="cl" ${kv(k, `left:${X(c[0]) - r}px;top:${Y(c[1]) - r}px;width:${r * 2}px;height:${r * 2}px`)}></span>`;
+    });
+    SUB.forEach(s => {
+      const r = s[3] * z;
+      h += `<span class="sub" ${kv(s[0], `left:${X(s[1]) - r}px;top:${Y(s[2]) - r}px;width:${r * 2}px;height:${r * 2}px`)}></span>`;
+    });
+    const fs = Math.min(15.5, Math.max(10, 7 + z * 6)),
+      mw = Math.round(fs * 17);
+    S.mems.forEach(m => {
+      const [wx, wy] = P_(m),
+        x = X(wx),
+        y = Y(wy);
+      if (x < -200 || x > MW + 200 || y < -50 || y > MH + 50) return;
+      const dim = match(m) ? '' : ' dim';
+      if (!near) {
+        h += `<span class="md${m.o === 'learned' ? ' lrn' : ''}${dim}" data-act="dot" data-id="${m.id}" ${kv(m.k, `left:${x}px;top:${y}px`)}></span>`;
+        return;
+      }
+      h += `<span class="mp${S.open === m.id ? ' tap' : ''}${dim}" data-act="open" data-id="${m.id}" ${kv(m.k, `left:${x}px;top:${y}px;font-size:${fs.toFixed(1)}px;max-width:${mw}px;padding:${(fs * .45).toFixed(1)}px ${(fs * .75).toFixed(1)}px;border-radius:${(fs * 1.1).toFixed(1)}px`)}>${m.o === 'learned' ? g('sparkles', Math.round(fs * .8)) : ''}<span>${esc(m.t)}</span></span>`;
+    });
+    /* kind labels: over their cloud while it is on screen, pinned to the edge once it is not */
+    /* kind labels sit over their cloud while it is on screen. Once it is not, it joins one dock along the top,
+       with an arrow pointing the way, so labels never land on each other or on a memory */
+    const dock = [];
+    KO.forEach(k => {
+      const c = CL[k],
+        n = S.mems.filter(m => m.k === k).length,
+        rx = X(c[0]),
+        ry = Y(c[1] - c[2] * (near ? .98 : .78));
+      if (rx > -10 && rx < MW + 10 && ry > -10 && ry < MH + 10) {
+        h += `<button class="cln" data-act="fly" ${kv(k, `left:${rx}px;top:${ry}px`)}>${g(K[k].ic, 14)}${K[k].l}<u>${n}</u></button>`;
+        return;
+      }
+      if (near) {
+        const ang = Math.atan2(Y(c[1]) - MH / 2, X(c[0]) - MW / 2) * 180 / Math.PI + 90;
+        dock.push(`<button class="cln dk" data-act="fly" ${kv(k)}>${K[k].l}<i class="g" style="--ic:url(../assets/icons/arrow-up.svg);width:13px;height:13px;transform:rotate(${ang.toFixed(0)}deg)"></i></button>`);
+      }
+    });
+    if (dock.length) h += `<div class="dock">${dock.join('')}</div>`;
+    const zp = Math.max(0, Math.min(1, Math.log(S.cam.z / ZMIN) / Math.log(ZMAX / ZMIN)));
+    h += `<span class="zm"><button data-act="zin" aria-label="Zoom in">${'+'}</button><b><i style="height:${Math.max(6, zp * 100).toFixed(0)}%"></i></b><button data-act="zout" aria-label="Zoom out">\u2212</button></span>`;
+    if (z > fitZ() * 1.4) h += `<button class="zall" data-act="all">Everything</button>`;
+    return h;
+  }
+  const fitZ = () => Math.max(ZMIN, Math.min(MW / WW, MH / WH) * .94);
+  function drawMap() {
+    const fd = root.querySelector('.fd');
+    if (fd) fd.innerHTML = mapH();
+  }
+  const clampCam = () => {
+    const c = S.cam;
+    c.z = Math.min(ZMAX, Math.max(ZMIN, c.z));
+    c.cx = Math.min(WW, Math.max(0, c.cx));
+    c.cy = Math.min(WH, Math.max(0, c.cy));
+  };
+  function zoomAt(px, py, nz) {
+    const c = S.cam,
+      wx = c.cx + (px - MW / 2) / c.z,
+      wy = c.cy + (py - MH / 2) / c.z;
+    c.z = Math.min(ZMAX, Math.max(ZMIN, nz));
+    c.cx = wx - (px - MW / 2) / c.z;
+    c.cy = wy - (py - MH / 2) / c.z;
+    clampCam();
+    drawMap();
+  }
+  let flyRaf;
+  function fly(cx, cy, z) {
+    cancelAnimationFrame(flyRaf);
+    const a = {
+        ...S.cam
+      },
+      t0 = performance.now(),
+      D = 520;
+    const step = t => {
+      const p = Math.min(1, (t - t0) / D),
+        e = 1 - Math.pow(1 - p, 3);
+      S.cam.cx = a.cx + (cx - a.cx) * e;
+      S.cam.cy = a.cy + (cy - a.cy) * e;
+      S.cam.z = a.z * Math.pow(z / a.z, e);
+      drawMap();
+      if (p < 1) flyRaf = requestAnimationFrame(step);
+    };
+    flyRaf = requestAnimationFrame(step);
+  }
+
+  /* ---------- editor ---------- */
+  function edH() {
+    const isNew = S.open === 'new',
+      m = isNew ? null : byId(S.open);
+    if (!isNew && !m) return '';
+    const head = web() ? `<div class="eh"><b>${isNew ? 'New memory' : 'Memory'}</b><button class="ib" data-act="close" aria-label="Close">${g('x', 18)}</button></div>` : `<div class="eh"><button class="tl" data-act="close">Cancel</button><b>${isNew ? 'New memory' : 'Memory'}</b><button class="tl strong" data-act="save" id="savebtn">${isNew ? 'Add' : 'Save'}</button></div>`;
+    const why = isNew ? `<div class="why">${g('compass', 16)}<span>A <b>rule</b> is followed in every thread. Anything else is something offload knows, and uses when filing and answering.</span></div>` : `<div class="why">${g(m.o === 'learned' ? 'sparkles' : m.o === 'answered' ? 'message-circle-more' : 'text-quote', 16)}<span>${m.o === 'learned' ? `<b>offload learned this</b> ${m.n < 2 ? DAY(m.n).toLowerCase() : 'on ' + DAY(m.n)}. ${m.s}.` : m.o === 'answered' ? `<b>${m.s}</b> on ${DAY(m.n)}. It picks that calendar the next time you say \u201cwith Meera\u201d.` : `<b>You asked offload to remember this</b> on ${DAY(m.n)}. ${m.s}.`}</span></div>`;
+    const foot = web() ? `<div class="ef">${isNew ? '' : `<button class="forget" data-act="forget" data-id="${m.id}">${g('trash-2', 16)}Forget</button>`}<span style="flex:1"></span><button class="wbtn ol" data-act="close">Cancel</button><button class="wbtn" data-act="save" id="savebtn">${isNew ? 'Add' : 'Save'}</button></div>` : isNew ? '' : `<button class="forget" data-act="forget" data-id="${m.id}">${g('trash-2', 17)}Forget</button>`;
+    return `${head}<div class="fld"><textarea id="ta" rows="3" maxlength="200" placeholder="Something offload should know in every thread">${esc(S.draft)}</textarea><div class="cnt"><span id="cc">${S.draft.length}</span>/200</div></div>
+<div class="slab">Kind</div><div class="kgrid" role="radiogroup" aria-label="Kind">${KO.map(k => `<button role="radio" aria-checked="${k === S.dk}" class="ko${k === S.dk ? ' on' : ''}" data-act="kind" ${kv(k)}>${g(K[k].ic, 16)}<span>${K[k].l}</span></button>`).join('')}</div>${why}${foot}`;
+  }
+  function paintEd(anim) {
+    const ed = edH();
+    if (web()) {
+      const p = root.querySelector('#pane');
+      p.innerHTML = ed;
+      p.classList.toggle('open', !!ed);
+      if (S.view === 'map') measureMap();
+      return;
+    }
+    const host = root.querySelector('#sheet');
+    if (!ed) {
+      host.innerHTML = '';
+      return;
+    }
+    host.innerHTML = `<div class="dim" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true"><span class="grab"></span>${ed}</div>`;
+    const sh = host.querySelector('.sheet'),
+      dm = host.querySelector('.dim');
+    if (anim) {
+      sh.getBoundingClientRect();
+      requestAnimationFrame(() => {
+        sh.classList.add('up');
+        dm.classList.add('up');
+      });
+    } else {
+      sh.classList.add('up');
+      dm.classList.add('up');
+    }
+  }
+  function openEd(id) {
+    if (id === 'new') {
+      S.open = 'new';
+      S.draft = '';
+      S.dk = S.view === 'map' && S.cam.z >= OPEN_AT ? nearestKind() : null;
+    } else {
+      const m = byId(id);
+      S.open = id;
+      S.draft = m.t;
+      S.dk = m.k;
+    }
+    if (S.swiped !== null) {
+      S.swiped = null;
+      paintMain(true);
+    }
+    paintEd(true);
+    if (web()) paintMain(true);else if (S.view === 'map') drawMap();
+    syncSave();
+    /* focus once the sheet has arrived: focusing inside a box that is still off screen scrolls its parents */
+    setTimeout(() => {
+      const ta = root.querySelector('#ta');
+      if (ta) {
+        ta.focus({
+          preventScroll: true
+        });
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+      }
+    }, web() ? 0 : 300);
+  }
+  function nearestKind() {
+    let b = null,
+      d = 1e9;
+    KO.forEach(k => {
+      const c = CL[k],
+        e = Math.hypot(c[0] - S.cam.cx, c[1] - S.cam.cy);
+      if (e < d) {
+        d = e;
+        b = k;
+      }
+    });
+    return b;
+  }
+  function closeEd() {
+    const sh = root.querySelector('#sheet .sheet');
+    if (sh) {
+      sh.classList.remove('up');
+      root.querySelector('#sheet .dim').classList.remove('up');
+      setTimeout(() => {
+        S.open = null;
+        paintEd();
+        if (S.view === 'map') drawMap();
+      }, 260);
+    } else {
+      S.open = null;
+      paintEd();
+      paintMain(true);
+    }
+  }
+  function syncSave() {
+    root.querySelectorAll('#savebtn').forEach(b => b.disabled = !(S.draft.trim() && S.dk));
+  }
+  const spot = (k, m) => {
+    const c = CLT[k],
+      ys = S.mems.filter(o => o.k === k && o !== m).map(o => o.y);
+    let y = c[1] - c[2] * .5;
+    for (let i = 0; i < 20 && ys.some(v => Math.abs(v - y) < 56); i++) y += 58;
+    return [c[0] + (Math.random() - .5) * c[2] * .6, Math.min(c[1] + c[2] * .8, y)];
+  };
+  function save() {
+    const t = S.draft.replace(/\s+/g, ' ').trim();
+    if (!t || !S.dk) return;
+    if (S.open === 'new') {
+      const [x, y] = spot(S.dk);
+      S.mems.push({
+        id: ++uid,
+        k: S.dk,
+        t,
+        o: 'stated',
+        n: 0,
+        s: 'Typed in Memories',
+        x,
+        y
+      });
+      toast('Remembered');
+    } else {
+      const m = byId(S.open);
+      if (m.k !== S.dk) {
+        [m.x, m.y] = spot(S.dk, m);
+        m.k = S.dk;
+      }
+      if (m.t !== t) {
+        m.t = t;
+        if (m.o === 'learned') {
+          m.o = 'stated';
+          m.s = 'Changed in Memories';
+          m.n = 0;
+        }
+      }
+      toast('Saved');
+    }
+    paintMain(true);
+    closeEd();
+  }
+  function forget(id) {
+    const i = S.mems.findIndex(m => m.id === id);
+    if (i < 0) return;
+    const [m] = S.mems.splice(i, 1);
+    S.swiped = null;
+    const wasOpen = S.open !== null;
+    paintMain(true);
+    if (wasOpen) closeEd();
+    toast('Memory forgotten', () => {
+      S.mems.splice(i, 0, m);
+      paintMain(true);
+    });
+  }
+  let tT;
+  function toast(text, undo) {
+    clearTimeout(tT);
+    S.toast = {
+      text,
+      undo
+    };
+    paintToast();
+    tT = setTimeout(() => {
+      S.toast = null;
+      paintToast();
+    }, undo ? 8000 : 2400);
+  }
+  function paintToast() {
+    const el = root.querySelector('#toast');
+    if (el) el.innerHTML = S.toast ? `<div class="toast" role="status"><span>${S.toast.text}</span>${S.toast.undo ? '<button data-act="undo">Undo</button>' : ''}</div>` : '';
+  }
+
+  /* ---------- paint ---------- */
+  /* The layout is picked once, from the map's shape when it first opens, and kept: opening the editor pane or resizing never reshuffles it. */
+  function measureMap() {
+    const fd = root.querySelector('.fd');
+    if (!fd) return;
+    const w = fd.offsetWidth,
+      h = fd.offsetHeight;
+    MW = w;
+    MH = h;
+    if (!S._camSet) {
+      setLayout(w > h * 1.1);
+      S.cam = {
+        cx: WW / 2,
+        cy: WH / 2,
+        z: fitZ()
+      };
+      S._camSet = true;
+    }
+    drawMap();
+  }
+  function paintMain(keep) {
+    const main = root.querySelector('#main');
+    const sc = main.querySelector('.lsc'),
+      top = keep && sc ? sc.scrollTop : 0;
+    main.classList.toggle('mapmode', S.view === 'map');
+    if (S.view === 'map') {
+      if (!main.querySelector('.fd')) main.innerHTML = '<div class="fd"></div>';
+      measureMap();
+    } else {
+      main.innerHTML = `<div class="lsc">${listH()}</div>`;
+      main.querySelector('.lsc').scrollTop = top;
+    }
+    const c = root.querySelector('#cnt');
+    if (c) c.textContent = S.mems.length;
+  }
+  function paint() {
+    root.innerHTML = shell();
+    fit();
+    paintMain();
+    paintEd();
+    paintToast();
+  }
+  function fit() {
+    const el = root.firstElementChild;
+    if (!el) return;
+    el.style.transform = '';
+    const w = el.offsetWidth,
+      h = el.offsetHeight,
+      aw = stage.clientWidth - 8,
+      ah = Math.max(360, window.innerHeight - stage.getBoundingClientRect().top - 16);
+    const s = Math.min(1, aw / w, ah / h);
+    el.style.transform = `scale(${s})`;
+    el.style.transformOrigin = 'top left';
+    root.style.width = w * s + 'px';
+    root.style.height = h * s + 'px';
+  }
+  const scaleOf = () => {
+    const el = root.firstElementChild;
+    return el.getBoundingClientRect().width / el.offsetWidth;
+  };
+  function setView(v) {
+    S.view = v;
+    S.swiped = null;
+    root.querySelectorAll('.vs').forEach(b => {
+      b.classList.toggle('on', b.dataset.v === v);
+      b.setAttribute('aria-selected', b.dataset.v === v);
+    });
+    paintMain();
+  }
+
+  /* ---------- input ---------- */
+  function bind() {
+    let moved = false;
+    root.addEventListener('click', e => {
+      const a = e.target.closest('[data-act]');
+      if (!a || moved) return;
+      const act = a.dataset.act;
+      if (act === 'view') setView(a.dataset.v);else if (act === 'sort') {
+        S.sort = a.dataset.v;
+        paintMain();
+      } else if (act === 'search') {
+        S.search = !S.search;
+        if (!S.search) S.q = '';
+        a.classList.toggle('on', S.search);
+        root.querySelector('#sbar').innerHTML = sbar();
+        paintMain(true);
+        if (S.search) root.querySelector('#q').focus({
+          preventScroll: true
+        });
+      } else if (act === 'clearq') {
+        S.q = '';
+        root.querySelector('#q').value = '';
+        a.style.display = 'none';
+        paintMain(true);
+      } else if (act === 'new') openEd('new');else if (act === 'open') openEd(+a.dataset.id);else if (act === 'close') closeEd();else if (act === 'save') save();else if (act === 'kind') {
+        S.dk = a.dataset.k;
+        root.querySelectorAll('.ko').forEach(b => {
+          const on = b.dataset.k === S.dk;
+          b.classList.toggle('on', on);
+          b.setAttribute('aria-checked', on);
+        });
+        syncSave();
+      } else if (act === 'forget') forget(+a.dataset.id);else if (act === 'undo') {
+        const u = S.toast && S.toast.undo;
+        S.toast = null;
+        paintToast();
+        u && u();
+      } else if (act === 'fly') {
+        const c = CL[a.dataset.k];
+        fly(c[0], c[1], Math.min(1.05, Math.max(.8, MW / (c[2] * 2.6))));
+      } else if (act === 'dot') {
+        const m = byId(+a.dataset.id),
+          [wx, wy] = P_(m);
+        fly(wx, wy, Math.max(OPEN_AT * 1.6, S.cam.z));
+      } else if (act === 'zin') fly(S.cam.cx, S.cam.cy, Math.min(ZMAX, S.cam.z * 1.5));else if (act === 'zout') fly(S.cam.cx, S.cam.cy, Math.max(ZMIN, S.cam.z / 1.5));else if (act === 'all') fly(WW / 2, WH / 2, fitZ());
+    });
+    root.addEventListener('input', e => {
+      if (e.target.id === 'ta') {
+        S.draft = e.target.value;
+        root.querySelector('#cc').textContent = S.draft.length;
+        syncSave();
+      }
+      if (e.target.id === 'q') {
+        S.q = e.target.value;
+        const c = root.querySelector('[data-act=clearq]');
+        if (c) c.style.display = S.q ? 'flex' : 'none';
+        paintMain(true);
+      }
+    });
+    root.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && S.open) {
+        e.preventDefault();
+        closeEd();
+      }
+      if (e.target.id === 'ta' && e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        save();
+      }
+      if (e.key === 'Enter' && e.target.classList.contains('rw')) openEd(+e.target.closest('[data-row]').dataset.row);
+    });
+    const P = new Map();
+    let mode = null,
+      start = null,
+      rowEl = null,
+      rowId = null,
+      pinch0 = null;
+    const local = e => {
+      const fd = root.querySelector('.fd'),
+        r = fd.getBoundingClientRect(),
+        s = scaleOf();
+      return [(e.clientX - r.left) / s, (e.clientY - r.top) / s];
+    };
+    root.addEventListener('pointerdown', e => {
+      moved = false;
+      const fd = e.target.closest('.fd');
+      if (fd && !e.target.closest('.zm,.zall')) {
+        P.set(e.pointerId, local(e));
+        mode = 'map';
+        start = {
+          cam: {
+            ...S.cam
+          },
+          p: local(e)
+        };
+        cancelAnimationFrame(flyRaf);
+        if (P.size === 2) {
+          const [a, b] = [...P.values()];
+          pinch0 = {
+            d: Math.hypot(a[0] - b[0], a[1] - b[1]),
+            z: S.cam.z,
+            mid: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+          };
+        }
+        return;
+      }
+      const sw = e.target.closest('[data-row]');
+      if (sw && !e.target.closest('.act')) {
+        mode = 'row';
+        rowEl = sw.querySelector('.rw');
+        rowId = +sw.dataset.row;
+        start = {
+          x: e.clientX,
+          y: e.clientY,
+          o: S.swiped === rowId ? -96 : 0,
+          h: null
+        };
+      }
+    });
+    window.addEventListener('pointermove', e => {
+      if (mode === 'map' && P.has(e.pointerId)) {
+        const p = local(e);
+        P.set(e.pointerId, p);
+        if (P.size === 2 && pinch0) {
+          const [a, b] = [...P.values()];
+          const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+          moved = true;
+          zoomAt(pinch0.mid[0], pinch0.mid[1], pinch0.z * d / pinch0.d);
+          return;
+        }
+        const dx = p[0] - start.p[0],
+          dy = p[1] - start.p[1];
+        if (Math.hypot(dx, dy) > 5) moved = true;
+        if (moved) {
+          S.cam.cx = start.cam.cx - dx / S.cam.z;
+          S.cam.cy = start.cam.cy - dy / S.cam.z;
+          clampCam();
+          drawMap();
+        }
+      }
+      if (mode === 'row' && !web()) {
+        const s = scaleOf(),
+          dx = (e.clientX - start.x) / s,
+          dy = (e.clientY - start.y) / s;
+        if (start.h === null && Math.hypot(dx, dy) > 8) start.h = Math.abs(dx) > Math.abs(dy);
+        if (start.h) {
+          moved = true;
+          const x = Math.min(0, Math.max(-120, start.o + dx));
+          rowEl.style.transition = 'none';
+          rowEl.style.transform = `translateX(${x}px)`;
+          rowEl.parentElement.classList.toggle('open', x < 0);
+          start.last = x;
+        } else if (start.h === false) mode = null;
+      }
+    });
+    window.addEventListener('pointerup', e => {
+      if (mode === 'map') {
+        P.delete(e.pointerId);
+        if (P.size < 2) pinch0 = null;
+        if (P.size === 0) {
+          mode = null;
+          setTimeout(() => {
+            moved = false;
+          }, 0);
+        }
+        return;
+      }
+      if (mode === 'row') {
+        mode = null;
+        if (start.h) {
+          const open = (start.last ?? 0) < -48;
+          rowEl.style.transition = '';
+          rowEl.style.transform = open ? 'translateX(-96px)' : '';
+          rowEl.parentElement.classList.toggle('open', open);
+          S.swiped = open ? rowId : null;
+          setTimeout(() => {
+            moved = false;
+          }, 0);
+        } else if (!moved) {
+          if (S.swiped !== null) {
+            const id = S.swiped;
+            S.swiped = null;
+            const r = root.querySelector(`[data-row="${id}"]`);
+            if (r) {
+              r.classList.remove('open');
+              r.querySelector('.rw').style.transform = '';
+            }
+          } else openEd(rowId);
+        }
+      }
+    });
+    root.addEventListener('wheel', e => {
+      const fd = e.target.closest('.fd');
+      if (!fd) return;
+      e.preventDefault();
+      cancelAnimationFrame(flyRaf);
+      const [x, y] = local(e);
+      zoomAt(x, y, S.cam.z * Math.exp(-e.deltaY * (e.ctrlKey ? .012 : .0022)));
+    }, {
+      passive: false
+    });
+    window.addEventListener('resize', () => {
+      fit();
+      if (S.view === 'map') measureMap();
+    });
+  }
+  window.MEMP = {
+    start(r, s) {
+      root = r;
+      stage = s;
+      bind();
+      paint();
+    },
+    plat(p) {
+      S.plat = p;
+      S.open = null;
+      S.swiped = null;
+      S.view = 'list';
+      S._camSet = false;
+      paint();
+    }
+  };
+})();
+})(); } catch (e) { __ds_ns.__errors.push({ path: "explorations/memories-proto.js", error: String((e && e.message) || e) }); }
+
+// explorations/memories-v2.js
+try { (() => {
+/* Memories tab: one list and one map of the same memories, behind a List | Map switch.
+   038's kinds, with their words folded into About and the possessives dropped. */
+(function () {
+  const g = (n, s) => `<i class="g" style="--ic:url(../assets/icons/${n}.svg)${s ? ';width:' + s + 'px;height:' + s + 'px' : ''}"></i>`;
+  const K = {
+    people: {
+      l: 'People',
+      ic: 'users',
+      c: 'var(--label-2)'
+    },
+    things: {
+      l: 'Things',
+      ic: 'tag',
+      c: 'var(--label-1)'
+    },
+    about: {
+      l: 'About',
+      ic: 'heart',
+      c: 'var(--label-6)'
+    },
+    rules: {
+      l: 'Rules',
+      ic: 'compass',
+      c: 'var(--ink-950)'
+    },
+    patterns: {
+      l: 'Patterns',
+      ic: 'spline',
+      c: 'var(--label-5)'
+    }
+  };
+  const KO = ['people', 'things', 'about', 'rules', 'patterns'];
+  /* [kind, text, origin, day, source, world x, world y]. Positions: kind first, then meaning. */
+  const M = [['people', 'Their wife is Meera.', 'stated', '3 Oct', 'Said in Lisbon trip', 232, 206], ['people', 'Meera\u2019s birthday is 14 March.', 'stated', '3 Oct', 'Said in Lisbon trip', 300, 250], ['people', 'They call their mother Maman.', 'learned', 'Yesterday', 'From what you said in Sunday lunch', 214, 372], ['people', 'Their brother is Arjun.', 'learned', '28 Sep', 'From what you said in Bookshelf build', 300, 410], ['things', 'They share a calendar with Meera.', 'answered', '2 Oct', 'Your answer to \u201cWhich calendar is shared with Meera?\u201d', 590, 230], ['things', 'Home is in Toronto.', 'learned', '26 Sep', 'From a note in Groceries', 760, 300], ['things', 'Their car is a 2019 Civic.', 'stated', '19 Sep', 'Said in Car', 800, 380], ['about', '\u201cThe cottage\u201d is the place in Muskoka.', 'learned', 'Yesterday', 'From what you said in Long weekend', 420, 630], ['about', '\u201cStandup\u201d is their 9:30 work meeting.', 'learned', '30 Sep', 'From a note in Work', 196, 604], ['about', 'They work at Shopify as a designer.', 'stated', '12 Sep', 'Said in Work', 250, 560], ['about', 'They have two kids, Sam and Leila.', 'learned', '24 Sep', 'From a note in School', 300, 740], ['about', 'They are allergic to nuts.', 'stated', '10 Sep', 'Said in Groceries', 190, 790], ['rules', 'They write dates day first.', 'stated', '8 Sep', 'Said in Lisbon trip', 700, 770], ['rules', 'Work things never go in Home.', 'stated', '8 Sep', 'Said in Home', 780, 830], ['patterns', 'They pay bills on the 5th.', 'learned', 'Today', 'From notes in Home and Bills', 600, 520], ['patterns', 'They shop for groceries on Sundays.', 'learned', '1 Oct', 'From notes in Groceries', 660, 580]].map((r, i) => ({
+    id: i,
+    k: r[0],
+    t: r[1],
+    o: r[2],
+    d: r[3],
+    s: r[4],
+    x: r[5],
+    y: r[6]
+  }));
+  /* kind clouds, and the smaller groups of meaning inside them */
+  const CL = {
+    people: [262, 310, 190],
+    things: [720, 300, 170],
+    about: [290, 680, 210],
+    rules: [740, 800, 120],
+    patterns: [630, 550, 110]
+  };
+  const SUB = [['people', 266, 228, 80], ['people', 257, 391, 74], ['things', 590, 230, 58], ['things', 780, 340, 84], ['about', 223, 582, 76], ['about', 420, 630, 56], ['about', 245, 765, 84], ['rules', 740, 800, 80], ['patterns', 630, 550, 76]];
+  const by = k => M.filter(m => m.k === k);
+  const kv = (k, x = '') => `data-k="${k}" style="--k:${K[k].c};${x}"`;
+  const meta = m => `<span class="mt">${m.o === 'learned' ? `<span class="lr" style="display:flex;align-items:center;gap:4px">${g('sparkles')}Learned</span>` : `<span>${m.o === 'answered' ? 'Your answer' : 'You said'}</span>`}<span>\u00b7</span><span>${m.d}</span></span>`;
+  let PLAT = 'ios';
+  const stb = () => PLAT === 'android' ? `<div class="stb"><span>9:41</span><i>\u25be \u25b4 \u25ae</i></div>` : `<div class="stb"><span>9:41</span><i>\u25cf\u25cf\u25cf \u25ae</i></div>`;
+  const plate = () => `<div class="plate"><div class="cmp"><s>Dump anything</s><span>${g('camera')}</span><span>${g('mic')}</span></div><div class="tabs"><span>${g('sun')}Today</span><span>${g('message-circle')}Threads</span><span class="on">${g('cloudy')}Memories</span></div><div class="hb"><i></i></div></div>`;
+  const phone = (body, over = '', view = 'list') => `<div class="ph">${stb()}${bar(view)}<div class="body">${body}</div>${plate()}${over}</div>`;
+  /* the switch is Segmented's icon variant, as a thread's List | Map */
+  const sw = view => `<span class="vt">${['list', 'map'].map(v => `<i class="${v === view ? 'on' : ''}">${g(v, 16)}</i>`).join('')}</span>`;
+  const bar = view => `<div class="ab"><h1>Memories</h1>${sw(view)}<span class="ib">${g('search')}</span><span class="ib">${g('plus')}</span></div>`;
+  const LOGO = `<svg width="20" height="20" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="21" r="10" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"/></svg>`;
+  const web = (view, main, pane) => `<div class="wb"><nav class="side"><span class="brand">${LOGO}offload</span><span class="ni">${g('sun')}Today</span><span class="ni">${g('message-circle')}My threads<em>14</em></span><span class="ni on">${g('cloudy')}Memories<em>${M.length}</em></span><span class="sl">Recent</span>${['Lisbon trip', 'Bookshelf build', 'Groceries', 'Work'].map(n => `<span class="ni">${g('lasso')}${n}</span>`).join('')}<span class="ft"></span><span class="ni">${g('bell')}Activity</span><span class="ni">${g('settings')}Settings</span></nav><div class="wm"><div class="wh"><h1>Memories</h1>${sw(view)}<span class="srch">${g('search')}Search memories</span><span class="wbtn">${g('plus')}New memory</span></div><div class="wcols"><div class="wlist" style="${view === 'map' ? 'padding:0;position:relative' : ''}">${main}</div>${pane ? `<div class="wpane">${pane}</div>` : ''}</div></div></div>`;
+  const cell = (html, lab) => `<div class="cell">${html}<div class="lab">${lab}</div></div>`;
+
+  /* list */
+  const row = (m, o = {}) => `<div class="rw${o.dot ? ' ind' : ''}${o.cls ? ' ' + o.cls : ''}" ${kv(m.k)}>${o.dot ? '<span class="dot"></span>' : ''}<span class="tx"><b>${m.t}</b>${meta(m)}</span></div>`;
+  const swiped = m => `<div class="swp"><span class="act">Forget</span>${row(m)}</div>`;
+  const segSort = s => `<div class="seg"><i class="${s === 'kind' ? 'on' : ''}">By kind</i><i class="${s === 'new' ? 'on' : ''}">Newest</i></div>`;
+  const kindList = (o = {}) => `${segSort('kind')}${KO.slice(0, o.n || 3).map(k => `<div class="sh" ${kv(k, o.gut || '')}><span class="sw"></span>${K[k].l}<em>${by(k).length}</em></div>${by(k).map((m, i) => o.swipe && k === 'things' && i === 1 ? swiped(m) : row(m, {
+    cls: o.cls ? o.cls + (m.id === o.on ? ' on' : '') : ''
+  })).join('')}`).join('')}`;
+
+  /* the editor, one for both views */
+  const kindPick = sel => `<div class="kgrid">${KO.map(k => `<span class="ko${k === sel ? ' on' : ''}" ${kv(k)}>${g(K[k].ic)}${K[k].l}</span>`).join('')}</div>`;
+  const editor = (m, head) => `${head}<div class="fld"><p>${m.t}<i></i></p><div class="cnt">${m.t.length}/200</div></div>
+<div class="slab">Kind</div>${kindPick(m.k)}
+<div class="why">${g(m.o === 'learned' ? 'sparkles' : m.o === 'answered' ? 'message-circle-more' : 'text-quote')}<span>${m.o === 'learned' ? `<b>offload learned this</b> ${m.d === 'Yesterday' ? 'yesterday' : 'on ' + m.d}. ${m.s}.` : m.o === 'answered' ? `<b>${m.s}</b> on ${m.d}. It picks that calendar next time you say \u201cwith Meera\u201d.` : `<b>You asked offload to remember this</b> on ${m.d}. ${m.s}.`}</span></div>
+<span class="forget">${g('trash-2')}Forget</span>`;
+  const sheet = (m, top) => `<div class="dim"></div><div class="sheet" style="top:${top}px"><span class="grab"></span>${editor(m, '<div class="shh"><span class="cx">Cancel</span><b>Memory</b><span class="done">Save</span></div>')}</div>`;
+  const paneEd = m => editor(m, '<div class="shh"><b>Memory</b><span class="wbtn" style="height:32px">Save</span></div>');
+
+  /* map: a world of 1000 by 1000, seen through a viewport at centre (cx,cy) and zoom z.
+     Zoomed out, memories are dots and the kinds are named; zoomed in, they are readable. */
+  function map(W, H, cx, cy, z, o = {}) {
+    const X = x => (x - cx) * z + W / 2,
+      Y = y => (y - cy) * z + H / 2,
+      near = z >= .95;
+    let h = `<div class="fd"><div class="tex"></div>`;
+    KO.forEach(k => {
+      const c = CL[k],
+        r = c[2] * z * 1.25;
+      h += `<span class="cl" ${kv(k, `left:${X(c[0]) - r}px;top:${Y(c[1]) - r}px;width:${r * 2}px;height:${r * 2}px`)}></span>`;
+    });
+    SUB.forEach(s => {
+      const r = s[3] * z;
+      h += `<span class="sub" ${kv(s[0], `left:${X(s[1]) - r}px;top:${Y(s[2]) - r}px;width:${r * 2}px;height:${r * 2}px`)}></span>`;
+    });
+    if (!near) KO.forEach(k => {
+      const c = CL[k];
+      h += `<span class="cln" ${kv(k, `left:${X(c[0])}px;top:${Y(c[1] - c[2] * .72)}px`)}>${g(K[k].ic)}${K[k].l}<u>${by(k).length}</u></span>`;
+    });
+    M.forEach(m => {
+      const x = X(m.x),
+        y = Y(m.y);
+      if (x < -140 || x > W + 140 || y < -40 || y > H + 40) return;
+      if (!near) {
+        h += `<span class="md${m.o === 'learned' ? ' lrn' : ''}" ${kv(m.k, `left:${x}px;top:${y}px`)}></span>`;
+        return;
+      }
+      h += `<span class="mp${m.id === o.tap ? ' tap' : ''}" ${kv(m.k, `left:${x}px;top:${y}px;font-size:${Math.min(16, 11 + z * 2.4).toFixed(1)}px;max-width:${Math.round(110 + z * 55)}px`)}>${m.o === 'learned' ? g('sparkles') : ''}${m.t}</span>`;
+    });
+    if (near && o.edge) o.edge.forEach(k => {
+      const c = CL[k];
+      const rx = X(c[0]),
+        x = Math.min(W - 12, Math.max(12, rx)),
+        y = Math.min(H - 60, Math.max(24, Y(c[1]))),
+        tx = rx > W - 12 ? '-100%' : rx < 12 ? '0' : '-50%';
+      h += `<span class="edge" ${kv(k, `left:${x}px;top:${y}px;transform:translate(${tx},-50%)`)}>${g(K[k].ic)}${K[k].l}</span>`;
+    });
+    const zp = Math.round(Math.log(z / .42) / Math.log(2.4 / .42) * 100);
+    h += `<span class="zm"><span>+</span><b><i style="height:${Math.max(6, zp)}%"></i></b><span>\u2212</span></span>`;
+    return h + (o.extra || '') + '</div>';
+  }
+  function render() {
+    if (PLAT === 'web') {
+      return [cell(web('list', kindList({
+        n: 3,
+        cls: 'wrw',
+        on: 4,
+        gut: '--gut:14px'
+      }), paneEd(M[4])), 'List. Two panes, as a thread is on web: the memory you pick opens on the right.'), cell(web('map', map(1048 - 400, 690, 450, 470, .72), null).replace('<div class="wlist" style="padding:0;position:relative">', '<div class="wlist" style="padding:0;position:relative;height:690px">'), 'Map, zoomed out: every kind is a cloud with its count, and each memory is a dot. Scroll or pinch on the trackpad to zoom, drag to move around.'), cell(web('map', map(1048 - 400, 690, 250, 300, 1.7, {
+        tap: 2,
+        edge: ['things', 'about', 'patterns']
+      }), paneEd(M[2])).replace('<div class="wlist" style="padding:0;position:relative">', '<div class="wlist" style="padding:0;position:relative;height:690px">'), 'Map, zoomed into People. Clicking a memory opens the same pane as the list. The kinds you have moved away from wait at the edges; click one to go there.')].join('');
+    }
+    const W = PLAT === 'android' ? 412 : 390,
+      H = PLAT === 'android' ? 640 : 600;
+    const list = `<div class="scroll">${kindList({
+      swipe: 1
+    })}</div>`;
+    return [cell(phone(list), 'List, by kind. The switch beside the title changes view and stays where you left it. A swipe forgets, with the same Undo as a thread.'), cell(phone(list, sheet(M[2], 236)), 'Tap a row: the sentence opens in a sheet. Rewrite it, move it to another kind, or forget it. The grey box says where it came from.'), cell(phone(map(W, H, 480, 520, .42), '', 'map'), 'Map, zoomed out. One cloud per kind, sized by how much is in it. Memories are dots, amber where offload learned them. Nothing to read yet; this is the overview.'), cell(phone(map(W, H, 262, 320, 1.05, {
+      edge: ['things', 'about', 'patterns']
+    }), '', 'map'), 'Pinch into People. Inside a kind, memories that mean similar things sit together: Meera\u2019s two, then family. The kinds off screen are labelled at the edge.'), cell(phone(map(W, H, 262, 320, 1.05, {
+      tap: 2,
+      edge: ['things', 'about', 'patterns']
+    }), sheet(M[2], 236), 'map'), 'Tap a memory on the map and the same sheet opens. Close it and you are where you were.'), cell(phone(map(W, H, 280, 650, 1.15, {
+      edge: ['people', 'rules', 'patterns']
+    }), '', 'map'), 'About, which now holds their words too. Work, the cottage, and the household each make their own group.')].join('');
+  }
+  window.MEM = {
+    render,
+    setPlat: p => {
+      PLAT = p;
+    }
+  };
+})();
+})(); } catch (e) { __ds_ns.__errors.push({ path: "explorations/memories-v2.js", error: String((e && e.message) || e) }); }
+
 // explorations/onboarding-screens.js
 try { (() => {
 /* Onboarding exploration: screens. Copy marked in the page as verbatim comes from apps/mobile/lib/gate.ts on main. */
@@ -6152,6 +7039,132 @@ Object.assign(window, {
   row
 });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "explorations/settings-pages.js", error: String((e && e.message) || e) }); }
+
+// explorations/thinking.js
+try { (() => {
+(function () {
+  const MK = (dot, ves) => `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">${ves ? `<path class="v" d="M5.5 11.5V15.5a3 3 0 0 0 3 3h7a3 3 0 0 0 3-3V11.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>` : ''}${dot || ''}</svg>`;
+  const A = {
+    hover: `<span class="an a-hover">${MK('<circle class="d" cx="12" cy="5.25" r="2.6" fill="currentColor"/>', 1)}</span>`,
+    drop: `<span class="an a-drop">${MK('<circle class="d" cx="12" cy="5.25" r="2.6" fill="currentColor"/>', 1)}</span>`,
+    gather: `<span class="an a-gather">${MK('<circle class="d d1" cx="6" cy="4" r="1.9" fill="currentColor"/><circle class="d d2" cx="12" cy="4" r="1.9" fill="currentColor"/><circle class="d d3" cx="18" cy="4" r="1.9" fill="currentColor"/>', 1)}</span>`,
+    film: `<span class="an a-film"></span>`,
+    stack: `<span class="an a-stack"><i></i><i></i><i></i><i></i></span>`,
+    weave: `<span class="an a-weave"><svg viewBox="0 0 60 22" aria-hidden="true"><g>${[['--pv', 0, 11], ['--pa', 10, 11], ['--pb', 20, 11]].map(([c, o, y]) => `<path d="M${-30 + o} ${y} q7.5 -6 15 0 t15 0 t15 0 t15 0 t15 0 t15 0 t15 0" stroke="var(${c})"/>`).join('')}</g></svg></span>`,
+    file: `<span class="an a-file"><b class="f1"></b><b class="f2"></b><b class="f3"></b><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><defs><clipPath id="CLIP"><path d="M7 11.5V15.5a1.6 1.6 0 0 0 1.6 1.6h6.8a1.6 1.6 0 0 0 1.6-1.6V11.5z"/></clipPath></defs><g class="vs"><g clip-path="url(#CLIP)"><rect class="lv" x="6" y="10.5" width="12" height="7" fill="url(#GRAD)"/></g><path d="M5.5 11.5V15.5a3 3 0 0 0 3 3h7a3 3 0 0 0 3-3V11.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></g><linearGradient id="GRAD" x1="0" x2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset=".5" stop-color="#2f7bff"/><stop offset="1" stop-color="#f0a020"/></linearGradient></svg></span>`,
+    lasso: `<span class="an a-lasso"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle class="d" cx="12" cy="11" r="2.6" fill="currentColor"/><circle class="rope" cx="12" cy="11" r="7.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" transform="rotate(-90 12 11)"/></svg></span>`,
+    orbit: `<span class="an a-orbit"><span class="core"><span class="an a-film"></span></span><span class="ox"><span class="oy"><b></b></span></span><span class="ox"><span class="oy"><b></b></span></span><span class="ox"><span class="oy"><b></b></span></span><span class="ox"><span class="oy"><b></b></span></span></span>`
+  };
+  A.prism = A.film;
+  Object.assign(A, window.THINK_A || {});
+  const D = window.THINK_D || [['Simple', 'l1', 'The mark, in ink, doing one thing. Quiet enough to sit under any reply.', [['hover', 'Hover', '3s', 'The dot floats over the vessel and the vessel gives a little under it. Almost still.'], ['drop', 'Drop', '3.2s', 'The dot settles, drops into the vessel, and a new one arrives. The mark filing something, once a loop.'], ['gather', 'Gather', '4.2s', 'The three dots the row has today fall into the vessel one by one. The step from what is there now.']]], ['Bolder', 'l2', 'Colour comes in, from the prism and the thread labels.', [['film', 'Thin film', '6s', 'The mark, filled with the prism\u2019s thin film, turning. The composer band\u2019s texture at 22px.'], ['stack', 'Stack', '6s', 'Four strips in thread label colours step down through four slots, one leaving and one arriving each beat. Sorting, as a conveyor.'], ['weave', 'Weave', '5s', 'Violet, amber and blue threads flowing through each other. Threads, literally.']]], ['Bold', 'l3', 'Little stories about filing, still at the row\u2019s height.', [['file', 'Filing', '7.5s', 'A note, a photo and a voice note arc into the vessel, which fills with each one and tips out to start again. The landing page\u2019s story in a glyph.'], ['lasso', 'Lasso', '4.8s', 'A loop draws round a dot, cinches, and pulls it away into a thread. The thread glyph doing its job.']]], ['Insane', 'l4', 'The row itself joins in.', [['prism', 'Prism type', '8s', 'The thin film mark, and the phrase splits into violet, amber and blue as it changes, as the hero\u2019s cycling word does, breathing apart and back between changes.', 'prism'], ['orbit', 'Orbit', '10s', 'Four things circle the thin film mark, passing in front of it and behind, smaller and fainter at the back.']]]];
+  const PH = ['Looking through your threads', 'Checking your calendar', 'Reading Lisbon trip', 'Working out which days Ana is free'];
+  const ST = {
+    plat: localStorage.getItem('thinking-plat') || 'ios',
+    state: localStorage.getItem('thinking-state') || 'play',
+    stop: localStorage.getItem('thinking-stop') || 'round',
+    rm: localStorage.getItem('thinking-rm') === '1'
+  };
+  const g = n => `<i class="g" style="--ic:url(../assets/icons/${n}.svg)"></i>`;
+  let n = 0;
+  const uniq = s => {
+    n++;
+    return s.replace(/CLIP/g, 'clip' + n).replace(/GRAD/g, 'grad' + n);
+  };
+  function card(a) {
+    const [id, name, per, desc, mode] = a;
+    const an = uniq(A[id]);
+    const stopBtn = ST.stop === 'round' ? `<button class="st round" aria-label="Stop"><i></i></button>` : ST.stop === 'pill' ? `<button class="st pill"><i></i>Stop</button>` : '';
+    return `<div class="card"><div class="ch"><b>${name}</b><u>${per} loop</u></div><div class="cd">${desc}</div><div class="big">${an}</div>
+<div class="cv"><div class="tr"><div class="you">Ana can only do the 14th to the 17th. Move the flights?</div>
+<div class="wk${mode ? ' ' + mode : ''}" role="status" aria-label="offload is thinking">${uniq(A[id])}<span class="ph" aria-live="polite"></span>${stopBtn}</div></div>
+<div class="cmp"><s>Add to this</s><span class="ic">${g('camera')}</span><span class="ic">${g('mic')}</span><span class="send" aria-label="Send">${g('arrow-up').replace('class="g"', 'class="g ar"')}<i class="sq"></i></span></div></div></div>`;
+  }
+  function render() {
+    document.body.dataset.plat = ST.plat;
+    document.body.classList.toggle('rm', ST.rm);
+    [['plat', 'p', ST.plat], ['state', 's', ST.state], ['stop', 't', ST.stop], ['rm', 'r', ST.rm ? '1' : '0']].forEach(([id, k, v]) => document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.toggle('on', b.dataset[k] === v)));
+    document.getElementById('dirs').innerHTML = D.map(t => `<div class="xs"><h2>${t[0]}</h2><span class="lvl ${t[1]}">${t[0]}</span></div><p class="xp">${t[2]}</p><div class="grid">${t[3].map(card).join('')}</div>`).join('');
+    apply(true);
+  }
+  let t0 = performance.now(),
+    last = {
+      say: -1,
+      can: null
+    };
+  function phraseHTML(s, prism) {
+    return prism ? `<span class="tx">${s}</span><span class="gh v" aria-hidden="true">${s}</span><span class="gh a" aria-hidden="true">${s}</span><span class="gh b" aria-hidden="true">${s}</span>` : s;
+  }
+  function setPhrase(i) {
+    document.querySelectorAll('.wk').forEach(w => {
+      const ph = w.querySelector('.ph'),
+        prism = w.classList.contains('prism');
+      const old = ph.querySelector(':scope>span');
+      if (i < 0) {
+        ph.innerHTML = '';
+        w.setAttribute('aria-label', 'offload is thinking');
+        return;
+      }
+      const s = document.createElement('span');
+      s.className = 'in';
+      s.innerHTML = phraseHTML(PH[i], prism);
+      ph.appendChild(s);
+      w.removeAttribute('aria-label');
+      if (old) {
+        old.classList.add('out');
+        setTimeout(() => old.remove(), 360);
+      }
+      requestAnimationFrame(() => requestAnimationFrame(() => s.classList.remove('in')));
+    });
+  }
+  function setCan(on) {
+    document.querySelectorAll('.wk').forEach(w => w.classList.toggle('can', on && ST.stop !== 'comp'));
+    document.querySelectorAll('.cv').forEach(c => c.classList.toggle('cstop', on && ST.stop === 'comp'));
+  }
+  function apply(force) {
+    let say = -1,
+      can = false;
+    if (ST.state === 'say') {
+      say = 0;
+    } else if (ST.state === 'stop') {
+      say = 0;
+      can = true;
+    } else if (ST.state === 'play') {
+      const t = (performance.now() - t0) / 1000 % 20;
+      say = t < 2.5 ? -1 : t < 6 ? 0 : t < 11 ? 1 : t < 15.5 ? 2 : 3;
+      can = t >= 10;
+    }
+    if (force) {
+      last = {
+        say: -2,
+        can: null
+      };
+    }
+    if (say !== last.say) {
+      setPhrase(say);
+      last.say = say;
+    }
+    if (can !== last.can || force) {
+      setCan(can);
+      last.can = can;
+    }
+  }
+  setInterval(() => {
+    if (ST.state === 'play') apply();
+  }, 200);
+  const bind = (id, k, key, cast = x => x) => document.querySelectorAll('#' + id + ' button').forEach(b => b.onclick = () => {
+    ST[key] = cast(b.dataset[k]);
+    localStorage.setItem('thinking-' + key, b.dataset[k]);
+    if (key === 'state') t0 = performance.now();
+    render();
+  });
+  bind('plat', 'p', 'plat');
+  bind('state', 's', 'state');
+  bind('stop', 't', 'stop');
+  bind('rm', 'r', 'rm', v => v === '1');
+  render();
+})();
+})(); } catch (e) { __ds_ns.__errors.push({ path: "explorations/thinking.js", error: String((e && e.message) || e) }); }
 
 // explorations/thread-marks-v2.js
 try { (() => {
@@ -15578,6 +16591,731 @@ try { (() => {
   };
 })();
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/marketing_site/landing.js", error: String((e && e.message) || e) }); }
+
+// ui_kits/memories_tab/memories.js
+try { (() => {
+/* Memories tab, clickable. List and map of one set of memories; tap either to edit. */
+(function () {
+  const g = (n, s) => `<i class="g" style="--ic:url(../../assets/icons/${n}.svg)${s ? ';width:' + s + 'px;height:' + s + 'px' : ''}"></i>`;
+  const K = {
+    people: {
+      l: 'People',
+      ic: 'users',
+      c: 'var(--label-2)'
+    },
+    things: {
+      l: 'Things',
+      ic: 'tag',
+      c: 'var(--label-1)'
+    },
+    about: {
+      l: 'About',
+      ic: 'heart',
+      c: 'var(--label-6)'
+    },
+    rules: {
+      l: 'Rules',
+      ic: 'compass',
+      c: 'var(--ink-950)'
+    },
+    patterns: {
+      l: 'Patterns',
+      ic: 'spline',
+      c: 'var(--label-5)'
+    }
+  };
+  const KO = ['people', 'things', 'about', 'rules', 'patterns'];
+  /* A world 800 wide and 1500 tall, because a phone is tall: the kinds stack down it.
+     Each memory has its own row inside its kind, so sentences never sit on each other. */
+  const TALL = {
+    W: 800,
+    H: 1500
+  };
+  const CLT = {
+    people: [255, 260, 210],
+    things: [560, 560, 180],
+    patterns: [220, 830, 150],
+    about: [420, 1110, 250],
+    rules: [600, 1380, 140]
+  };
+  const SUBT = [['people', 265, 170, 100], ['people', 250, 330, 100], ['things', 470, 470, 80], ['things', 625, 590, 95], ['patterns', 225, 830, 95], ['about', 340, 1030, 105], ['about', 560, 1010, 75], ['about', 370, 1210, 105], ['rules', 600, 1380, 95]];
+  const SEED = [['people', 'Their wife is Meera.', 'stated', 3, 'Said in Lisbon trip', 200, 140], ['people', 'Meera\u2019s birthday is 14 March.', 'stated', 3, 'Said in Lisbon trip', 330, 200], ['people', 'They call their mother Maman.', 'learned', 1, 'From what you said in Sunday lunch', 180, 300], ['people', 'Their brother is Arjun.', 'learned', 8, 'From what you said in Bookshelf build', 320, 360], ['things', 'They share a calendar with Meera.', 'answered', 4, 'Your answer to \u201cWhich calendar is shared with Meera?\u201d', 470, 470], ['things', 'Home is in Toronto.', 'learned', 10, 'From a note in Groceries', 590, 560], ['things', 'Their car is a 2019 Civic.', 'stated', 17, 'Said in Car', 650, 620], ['about', '\u201cThe cottage\u201d is the place in Muskoka.', 'learned', 1, 'From what you said in Long weekend', 570, 1010], ['about', '\u201cStandup\u201d is their 9:30 work meeting.', 'learned', 6, 'From a note in Work', 380, 1060], ['about', 'They work at Shopify as a designer.', 'stated', 24, 'Said in Work', 300, 1000], ['about', 'They have two kids, Sam and Leila.', 'learned', 12, 'From a note in School', 420, 1180], ['about', 'They are allergic to nuts.', 'stated', 26, 'Said in Groceries', 300, 1240], ['rules', 'They write dates day first.', 'stated', 28, 'Said in Lisbon trip', 560, 1350], ['rules', 'Work things never go in Home.', 'stated', 28, 'Said in Home', 640, 1410], ['patterns', 'They pay bills on the 5th.', 'learned', 0, 'From notes in Home and Bills', 190, 800], ['patterns', 'They shop for groceries on Sundays.', 'learned', 5, 'From notes in Groceries', 260, 860]];
+  /* Wide screens get the kinds side by side instead. Each kind moves as a block, so what sits near what
+     inside a kind is the same in both. */
+  const CLW = {
+    people: [300, 300, 210],
+    things: [760, 260, 180],
+    patterns: [1160, 330, 150],
+    about: [520, 700, 250],
+    rules: [1060, 720, 140]
+  };
+  let WW = 800,
+    WH = 1500,
+    CL = CLT,
+    SUB = SUBT,
+    WIDE = false;
+  function setLayout(wide) {
+    WIDE = wide;
+    WW = wide ? 1440 : 800;
+    WH = wide ? 960 : 1500;
+    CL = wide ? CLW : CLT;
+    SUB = SUBT.map(s => {
+      const a = CLT[s[0]],
+        b = CL[s[0]];
+      return [s[0], s[1] - a[0] + b[0], s[2] - a[1] + b[1], s[3]];
+    });
+  }
+  const P_ = m => {
+    const a = CLT[m.k],
+      b = CL[m.k];
+    return [m.x - a[0] + b[0], m.y - a[1] + b[1]];
+  };
+  const DAY = n => n === 0 ? 'Today' : n === 1 ? 'Yesterday' : (() => {
+    const d = new Date(2026, 9, 6 - n);
+    return d.getDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  })();
+  let uid = 0;
+  const S = {
+    mems: SEED.map(r => ({
+      id: ++uid,
+      k: r[0],
+      t: r[1],
+      o: r[2],
+      n: r[3],
+      s: r[4],
+      x: r[5],
+      y: r[6]
+    })),
+    view: 'list',
+    sort: 'kind',
+    q: '',
+    search: false,
+    open: null,
+    draft: '',
+    dk: null,
+    cam: {
+      cx: WW / 2,
+      cy: WH / 2,
+      z: .38
+    },
+    toast: null,
+    swiped: null,
+    plat: 'ios'
+  };
+  const OPEN_AT = .55,
+    ZMIN = .3,
+    ZMAX = 2.4;
+  const kv = (k, x = '') => `data-k="${k}" style="--k:${K[k].c};${x}"`;
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const meta = m => `<span class="mt">${m.o === 'learned' ? `<span class="lr">${g('sparkles')}Learned</span>` : `<span>${m.o === 'answered' ? 'Your answer' : 'You said'}</span>`}<span>\u00b7</span><span>${DAY(m.n)}</span></span>`;
+  const match = m => !S.q || m.t.toLowerCase().includes(S.q.toLowerCase());
+  const byId = id => S.mems.find(m => m.id === id);
+  const web = () => S.plat === 'web';
+  let root, stage;
+
+  /* ---------- shell ---------- */
+  const LOGO = `<svg width="20" height="20" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="21" r="10" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"/></svg>`;
+  const vt = () => `<span class="vt" role="tablist" aria-label="View">${['list', 'map'].map(v => `<button role="tab" data-act="view" data-v="${v}" aria-label="${v === 'list' ? 'List' : 'Map'}" aria-selected="${S.view === v}" class="vs${S.view === v ? ' on' : ''}">${g(v, 16)}</button>`).join('')}</span>`;
+  function shell() {
+    if (web()) return `<div class="wb pw"><nav class="side"><span class="brand">${LOGO}offload</span><span class="ni">${g('sun')}Today</span><span class="ni">${g('message-circle')}My threads<em>14</em></span><span class="ni on">${g('cloudy')}Memories<em id="cnt">${S.mems.length}</em></span><span class="sl">Recent</span>${['Lisbon trip', 'Bookshelf build', 'Groceries', 'Work'].map(n => `<span class="ni">${g('lasso')}${n}</span>`).join('')}<span class="ft"></span><span class="ni">${g('bell')}Activity</span><span class="ni">${g('settings')}Settings</span></nav>
+<div class="wm"><header class="wh2"><h1>Memories</h1><label class="srch wsr">${g('search', 15)}<input id="q" placeholder="Search memories" value="${esc(S.q)}"></label>${vt()}<button class="wbtn" data-act="new">${g('plus')}New memory</button></header><div class="wcols"><div class="wmain" id="main"></div><aside class="wpane" id="pane"></aside></div></div><div id="toast"></div></div>`;
+    const st = S.plat === 'android' ? `<div class="stb"><span>9:41</span><i>\u25be \u25b4 \u25ae</i></div>` : `<div class="stb"><span>9:41</span><i>\u25cf\u25cf\u25cf \u25ae</i></div>`;
+    return `<div class="ph pp">${st}<div class="ab"><h1>Memories</h1>${vt()}<button class="ib${S.search ? ' on' : ''}" data-act="search" aria-label="Search">${g('search')}</button><button class="ib" data-act="new" aria-label="New memory">${g('plus')}</button></div>
+<div id="sbar">${sbar()}</div><div class="body" id="main"></div><div class="plate"><div class="cmp"><s>Dump anything</s><span>${g('camera')}</span><span>${g('mic')}</span></div><div class="tabs"><span>${g('sun')}Today</span><span>${g('message-circle')}Threads</span><span class="on">${g('cloudy')}Memories</span></div><div class="hb"><i></i></div></div><div id="sheet"></div><div id="toast"></div></div>`;
+  }
+  const sbar = () => S.search ? `<label class="srch">${g('search', 16)}<input id="q" placeholder="Search memories" value="${esc(S.q)}"><button data-act="clearq" aria-label="Clear" style="display:${S.q ? 'flex' : 'none'}">${g('x', 15)}</button></label>` : '';
+
+  /* ---------- list ---------- */
+  function rowH(m) {
+    const sw = S.swiped === m.id,
+      on = web() && S.open === m.id;
+    return `<div class="swp${sw ? ' open' : ''}" data-row="${m.id}"><button class="act" data-act="forget" data-id="${m.id}">Forget</button><div class="rw${S.sort === 'new' ? ' ind' : ''}${on ? ' on' : ''}" ${kv(m.k, sw ? 'transform:translateX(-96px)' : '')} role="button" tabindex="0">${S.sort === 'new' ? '<span class="dot"></span>' : ''}<span class="tx"><b>${esc(m.t)}</b>${meta(m)}</span></div></div>`;
+  }
+  function listH() {
+    const ms = S.mems.filter(match);
+    let h = `<div class="sg" role="tablist" aria-label="Sort">${[['kind', 'By kind'], ['new', 'Newest']].map(o => `<button role="tab" data-act="sort" data-v="${o[0]}" aria-selected="${S.sort === o[0]}" class="${S.sort === o[0] ? 'on' : ''}">${o[1]}</button>`).join('')}</div>`;
+    if (!ms.length) return h + `<p class="cap" style="text-align:center;margin-top:60px">Nothing kept says \u201c${esc(S.q)}\u201d.</p>`;
+    if (S.sort === 'kind') KO.forEach(k => {
+      const a = ms.filter(m => m.k === k);
+      if (!a.length) return;
+      h += `<div class="sh" ${kv(k)}><span class="sw"></span>${K[k].l}<em>${a.length}</em></div>` + a.map(rowH).join('');
+    });else {
+      const a = [...ms].sort((p, q) => p.n - q.n);
+      const wk = a.filter(m => m.n <= 7),
+        old = a.filter(m => m.n > 7);
+      if (wk.length) h += `<div class="sh">This week<em>${wk.length}</em></div>` + wk.map(rowH).join('');
+      if (old.length) h += `<div class="sh">Earlier<em>${old.length}</em></div>` + old.map(rowH).join('');
+    }
+    return h + '<div style="height:28px"></div>';
+  }
+
+  /* ---------- map ---------- */
+  let MW = 390,
+    MH = 600;
+  function mapH() {
+    const {
+        cx,
+        cy,
+        z
+      } = S.cam,
+      X = x => (x - cx) * z + MW / 2,
+      Y = y => (y - cy) * z + MH / 2,
+      near = z >= OPEN_AT;
+    let h = `<div class="tex"></div>`;
+    KO.forEach(k => {
+      const c = CL[k],
+        r = c[2] * z * 1.3;
+      h += `<span class="cl" ${kv(k, `left:${X(c[0]) - r}px;top:${Y(c[1]) - r}px;width:${r * 2}px;height:${r * 2}px`)}></span>`;
+    });
+    SUB.forEach(s => {
+      const r = s[3] * z;
+      h += `<span class="sub" ${kv(s[0], `left:${X(s[1]) - r}px;top:${Y(s[2]) - r}px;width:${r * 2}px;height:${r * 2}px`)}></span>`;
+    });
+    const fs = Math.min(15.5, Math.max(10, 7 + z * 6)),
+      mw = Math.round(fs * 17);
+    S.mems.forEach(m => {
+      const [wx, wy] = P_(m),
+        x = X(wx),
+        y = Y(wy);
+      if (x < -200 || x > MW + 200 || y < -50 || y > MH + 50) return;
+      const dim = match(m) ? '' : ' dim';
+      if (!near) {
+        h += `<span class="md${m.o === 'learned' ? ' lrn' : ''}${dim}" data-act="dot" data-id="${m.id}" ${kv(m.k, `left:${x}px;top:${y}px`)}></span>`;
+        return;
+      }
+      h += `<span class="mp${S.open === m.id ? ' tap' : ''}${dim}" data-act="open" data-id="${m.id}" ${kv(m.k, `left:${x}px;top:${y}px;font-size:${fs.toFixed(1)}px;max-width:${mw}px;padding:${(fs * .45).toFixed(1)}px ${(fs * .75).toFixed(1)}px;border-radius:${(fs * 1.1).toFixed(1)}px`)}>${m.o === 'learned' ? g('sparkles', Math.round(fs * .8)) : ''}<span>${esc(m.t)}</span></span>`;
+    });
+    /* kind labels: over their cloud while it is on screen, pinned to the edge once it is not */
+    /* kind labels sit over their cloud while it is on screen. Once it is not, it joins one dock along the top,
+       with an arrow pointing the way, so labels never land on each other or on a memory */
+    const dock = [];
+    KO.forEach(k => {
+      const c = CL[k],
+        n = S.mems.filter(m => m.k === k).length,
+        rx = X(c[0]),
+        ry = Y(c[1] - c[2] * (near ? .98 : .78));
+      if (rx > -10 && rx < MW + 10 && ry > -10 && ry < MH + 10) {
+        h += `<button class="cln" data-act="fly" ${kv(k, `left:${rx}px;top:${ry}px`)}>${g(K[k].ic, 14)}${K[k].l}<u>${n}</u></button>`;
+        return;
+      }
+      if (near) {
+        const ang = Math.atan2(Y(c[1]) - MH / 2, X(c[0]) - MW / 2) * 180 / Math.PI + 90;
+        dock.push(`<button class="cln dk" data-act="fly" ${kv(k)}>${K[k].l}<i class="g" style="--ic:url(../../assets/icons/arrow-up.svg);width:13px;height:13px;transform:rotate(${ang.toFixed(0)}deg)"></i></button>`);
+      }
+    });
+    if (dock.length) h += `<div class="dock">${dock.join('')}</div>`;
+    const zp = Math.max(0, Math.min(1, Math.log(S.cam.z / ZMIN) / Math.log(ZMAX / ZMIN)));
+    h += `<span class="zm"><button data-act="zin" aria-label="Zoom in">${'+'}</button><b><i style="height:${Math.max(6, zp * 100).toFixed(0)}%"></i></b><button data-act="zout" aria-label="Zoom out">\u2212</button></span>`;
+    if (z > fitZ() * 1.4) h += `<button class="zall" data-act="all">Everything</button>`;
+    return h;
+  }
+  const fitZ = () => Math.max(ZMIN, Math.min(MW / WW, MH / WH) * .94);
+  function drawMap() {
+    const fd = root.querySelector('.fd');
+    if (fd) fd.innerHTML = mapH();
+  }
+  const clampCam = () => {
+    const c = S.cam;
+    c.z = Math.min(ZMAX, Math.max(ZMIN, c.z));
+    c.cx = Math.min(WW, Math.max(0, c.cx));
+    c.cy = Math.min(WH, Math.max(0, c.cy));
+  };
+  function zoomAt(px, py, nz) {
+    const c = S.cam,
+      wx = c.cx + (px - MW / 2) / c.z,
+      wy = c.cy + (py - MH / 2) / c.z;
+    c.z = Math.min(ZMAX, Math.max(ZMIN, nz));
+    c.cx = wx - (px - MW / 2) / c.z;
+    c.cy = wy - (py - MH / 2) / c.z;
+    clampCam();
+    drawMap();
+  }
+  let flyRaf;
+  function fly(cx, cy, z) {
+    cancelAnimationFrame(flyRaf);
+    const a = {
+        ...S.cam
+      },
+      t0 = performance.now(),
+      D = 520;
+    const step = t => {
+      const p = Math.min(1, (t - t0) / D),
+        e = 1 - Math.pow(1 - p, 3);
+      S.cam.cx = a.cx + (cx - a.cx) * e;
+      S.cam.cy = a.cy + (cy - a.cy) * e;
+      S.cam.z = a.z * Math.pow(z / a.z, e);
+      drawMap();
+      if (p < 1) flyRaf = requestAnimationFrame(step);
+    };
+    flyRaf = requestAnimationFrame(step);
+  }
+
+  /* ---------- editor ---------- */
+  function edH() {
+    const isNew = S.open === 'new',
+      m = isNew ? null : byId(S.open);
+    if (!isNew && !m) return '';
+    const head = web() ? `<div class="eh"><b>${isNew ? 'New memory' : 'Memory'}</b><button class="ib" data-act="close" aria-label="Close">${g('x', 18)}</button></div>` : `<div class="eh"><button class="tl" data-act="close">Cancel</button><b>${isNew ? 'New memory' : 'Memory'}</b><button class="tl strong" data-act="save" id="savebtn">${isNew ? 'Add' : 'Save'}</button></div>`;
+    const why = isNew ? `<div class="why">${g('compass', 16)}<span>A <b>rule</b> is followed in every thread. Anything else is something offload knows, and uses when filing and answering.</span></div>` : `<div class="why">${g(m.o === 'learned' ? 'sparkles' : m.o === 'answered' ? 'message-circle-more' : 'text-quote', 16)}<span>${m.o === 'learned' ? `<b>offload learned this</b> ${m.n < 2 ? DAY(m.n).toLowerCase() : 'on ' + DAY(m.n)}. ${m.s}.` : m.o === 'answered' ? `<b>${m.s}</b> on ${DAY(m.n)}. It picks that calendar the next time you say \u201cwith Meera\u201d.` : `<b>You asked offload to remember this</b> on ${DAY(m.n)}. ${m.s}.`}</span></div>`;
+    const foot = web() ? `<div class="ef">${isNew ? '' : `<button class="forget" data-act="forget" data-id="${m.id}">${g('trash-2', 16)}Forget</button>`}<span style="flex:1"></span><button class="wbtn ol" data-act="close">Cancel</button><button class="wbtn" data-act="save" id="savebtn">${isNew ? 'Add' : 'Save'}</button></div>` : isNew ? '' : `<button class="forget" data-act="forget" data-id="${m.id}">${g('trash-2', 17)}Forget</button>`;
+    return `${head}<div class="fld"><textarea id="ta" rows="3" maxlength="200" placeholder="Something offload should know in every thread">${esc(S.draft)}</textarea><div class="cnt"><span id="cc">${S.draft.length}</span>/200</div></div>
+<div class="slab">Kind</div><div class="kgrid" role="radiogroup" aria-label="Kind">${KO.map(k => `<button role="radio" aria-checked="${k === S.dk}" class="ko${k === S.dk ? ' on' : ''}" data-act="kind" ${kv(k)}>${g(K[k].ic, 16)}<span>${K[k].l}</span></button>`).join('')}</div>${why}${foot}`;
+  }
+  function paintEd(anim) {
+    const ed = edH();
+    if (web()) {
+      const p = root.querySelector('#pane');
+      p.innerHTML = ed;
+      p.classList.toggle('open', !!ed);
+      if (S.view === 'map') measureMap();
+      return;
+    }
+    const host = root.querySelector('#sheet');
+    if (!ed) {
+      host.innerHTML = '';
+      return;
+    }
+    host.innerHTML = `<div class="dim" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true"><span class="grab"></span>${ed}</div>`;
+    const sh = host.querySelector('.sheet'),
+      dm = host.querySelector('.dim');
+    if (anim) {
+      sh.getBoundingClientRect();
+      requestAnimationFrame(() => {
+        sh.classList.add('up');
+        dm.classList.add('up');
+      });
+    } else {
+      sh.classList.add('up');
+      dm.classList.add('up');
+    }
+  }
+  function openEd(id) {
+    if (id === 'new') {
+      S.open = 'new';
+      S.draft = '';
+      S.dk = S.view === 'map' && S.cam.z >= OPEN_AT ? nearestKind() : null;
+    } else {
+      const m = byId(id);
+      S.open = id;
+      S.draft = m.t;
+      S.dk = m.k;
+    }
+    if (S.swiped !== null) {
+      S.swiped = null;
+      paintMain(true);
+    }
+    paintEd(true);
+    if (web()) paintMain(true);else if (S.view === 'map') drawMap();
+    syncSave();
+    /* focus once the sheet has arrived: focusing inside a box that is still off screen scrolls its parents */
+    setTimeout(() => {
+      const ta = root.querySelector('#ta');
+      if (ta) {
+        ta.focus({
+          preventScroll: true
+        });
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+      }
+    }, web() ? 0 : 300);
+  }
+  function nearestKind() {
+    let b = null,
+      d = 1e9;
+    KO.forEach(k => {
+      const c = CL[k],
+        e = Math.hypot(c[0] - S.cam.cx, c[1] - S.cam.cy);
+      if (e < d) {
+        d = e;
+        b = k;
+      }
+    });
+    return b;
+  }
+  function closeEd() {
+    const sh = root.querySelector('#sheet .sheet');
+    if (sh) {
+      sh.classList.remove('up');
+      root.querySelector('#sheet .dim').classList.remove('up');
+      setTimeout(() => {
+        S.open = null;
+        paintEd();
+        if (S.view === 'map') drawMap();
+      }, 260);
+    } else {
+      S.open = null;
+      paintEd();
+      paintMain(true);
+    }
+  }
+  function syncSave() {
+    root.querySelectorAll('#savebtn').forEach(b => b.disabled = !(S.draft.trim() && S.dk));
+  }
+  const spot = (k, m) => {
+    const c = CLT[k],
+      ys = S.mems.filter(o => o.k === k && o !== m).map(o => o.y);
+    let y = c[1] - c[2] * .5;
+    for (let i = 0; i < 20 && ys.some(v => Math.abs(v - y) < 56); i++) y += 58;
+    return [c[0] + (Math.random() - .5) * c[2] * .6, Math.min(c[1] + c[2] * .8, y)];
+  };
+  function save() {
+    const t = S.draft.replace(/\s+/g, ' ').trim();
+    if (!t || !S.dk) return;
+    if (S.open === 'new') {
+      const [x, y] = spot(S.dk);
+      S.mems.push({
+        id: ++uid,
+        k: S.dk,
+        t,
+        o: 'stated',
+        n: 0,
+        s: 'Typed in Memories',
+        x,
+        y
+      });
+      toast('Remembered');
+    } else {
+      const m = byId(S.open);
+      if (m.k !== S.dk) {
+        [m.x, m.y] = spot(S.dk, m);
+        m.k = S.dk;
+      }
+      if (m.t !== t) {
+        m.t = t;
+        if (m.o === 'learned') {
+          m.o = 'stated';
+          m.s = 'Changed in Memories';
+          m.n = 0;
+        }
+      }
+      toast('Saved');
+    }
+    paintMain(true);
+    closeEd();
+  }
+  function forget(id) {
+    const i = S.mems.findIndex(m => m.id === id);
+    if (i < 0) return;
+    const [m] = S.mems.splice(i, 1);
+    S.swiped = null;
+    const wasOpen = S.open !== null;
+    paintMain(true);
+    if (wasOpen) closeEd();
+    toast('Memory forgotten', () => {
+      S.mems.splice(i, 0, m);
+      paintMain(true);
+    });
+  }
+  let tT;
+  function toast(text, undo) {
+    clearTimeout(tT);
+    S.toast = {
+      text,
+      undo
+    };
+    paintToast();
+    tT = setTimeout(() => {
+      S.toast = null;
+      paintToast();
+    }, undo ? 8000 : 2400);
+  }
+  function paintToast() {
+    const el = root.querySelector('#toast');
+    if (el) el.innerHTML = S.toast ? `<div class="toast" role="status"><span>${S.toast.text}</span>${S.toast.undo ? '<button data-act="undo">Undo</button>' : ''}</div>` : '';
+  }
+
+  /* ---------- paint ---------- */
+  /* The layout is picked once, from the map's shape when it first opens, and kept: opening the editor pane or resizing never reshuffles it. */
+  function measureMap() {
+    const fd = root.querySelector('.fd');
+    if (!fd) return;
+    const w = fd.offsetWidth,
+      h = fd.offsetHeight;
+    MW = w;
+    MH = h;
+    if (!S._camSet) {
+      setLayout(w > h * 1.1);
+      S.cam = {
+        cx: WW / 2,
+        cy: WH / 2,
+        z: fitZ()
+      };
+      S._camSet = true;
+    }
+    drawMap();
+  }
+  function paintMain(keep) {
+    const main = root.querySelector('#main');
+    const sc = main.querySelector('.lsc'),
+      top = keep && sc ? sc.scrollTop : 0;
+    main.classList.toggle('mapmode', S.view === 'map');
+    if (S.view === 'map') {
+      if (!main.querySelector('.fd')) main.innerHTML = '<div class="fd"></div>';
+      measureMap();
+    } else {
+      main.innerHTML = `<div class="lsc">${listH()}</div>`;
+      main.querySelector('.lsc').scrollTop = top;
+    }
+    const c = root.querySelector('#cnt');
+    if (c) c.textContent = S.mems.length;
+  }
+  function paint() {
+    root.innerHTML = shell();
+    fit();
+    paintMain();
+    paintEd();
+    paintToast();
+  }
+  function fit() {
+    const el = root.firstElementChild;
+    if (!el) return;
+    el.style.transform = '';
+    const w = el.offsetWidth,
+      h = el.offsetHeight,
+      aw = stage.clientWidth - 8,
+      ah = Math.max(360, window.innerHeight - stage.getBoundingClientRect().top - 16);
+    const s = Math.min(1, aw / w, ah / h);
+    el.style.transform = `scale(${s})`;
+    el.style.transformOrigin = 'top left';
+    root.style.width = w * s + 'px';
+    root.style.height = h * s + 'px';
+  }
+  const scaleOf = () => {
+    const el = root.firstElementChild;
+    return el.getBoundingClientRect().width / el.offsetWidth;
+  };
+  function setView(v) {
+    S.view = v;
+    S.swiped = null;
+    root.querySelectorAll('.vs').forEach(b => {
+      b.classList.toggle('on', b.dataset.v === v);
+      b.setAttribute('aria-selected', b.dataset.v === v);
+    });
+    paintMain();
+  }
+
+  /* ---------- input ---------- */
+  function bind() {
+    let moved = false;
+    root.addEventListener('click', e => {
+      const a = e.target.closest('[data-act]');
+      if (!a || moved) return;
+      const act = a.dataset.act;
+      if (act === 'view') setView(a.dataset.v);else if (act === 'sort') {
+        S.sort = a.dataset.v;
+        paintMain();
+      } else if (act === 'search') {
+        S.search = !S.search;
+        if (!S.search) S.q = '';
+        a.classList.toggle('on', S.search);
+        root.querySelector('#sbar').innerHTML = sbar();
+        paintMain(true);
+        if (S.search) root.querySelector('#q').focus({
+          preventScroll: true
+        });
+      } else if (act === 'clearq') {
+        S.q = '';
+        root.querySelector('#q').value = '';
+        a.style.display = 'none';
+        paintMain(true);
+      } else if (act === 'new') openEd('new');else if (act === 'open') openEd(+a.dataset.id);else if (act === 'close') closeEd();else if (act === 'save') save();else if (act === 'kind') {
+        S.dk = a.dataset.k;
+        root.querySelectorAll('.ko').forEach(b => {
+          const on = b.dataset.k === S.dk;
+          b.classList.toggle('on', on);
+          b.setAttribute('aria-checked', on);
+        });
+        syncSave();
+      } else if (act === 'forget') forget(+a.dataset.id);else if (act === 'undo') {
+        const u = S.toast && S.toast.undo;
+        S.toast = null;
+        paintToast();
+        u && u();
+      } else if (act === 'fly') {
+        const c = CL[a.dataset.k];
+        fly(c[0], c[1], Math.min(1.05, Math.max(.8, MW / (c[2] * 2.6))));
+      } else if (act === 'dot') {
+        const m = byId(+a.dataset.id),
+          [wx, wy] = P_(m);
+        fly(wx, wy, Math.max(OPEN_AT * 1.6, S.cam.z));
+      } else if (act === 'zin') fly(S.cam.cx, S.cam.cy, Math.min(ZMAX, S.cam.z * 1.5));else if (act === 'zout') fly(S.cam.cx, S.cam.cy, Math.max(ZMIN, S.cam.z / 1.5));else if (act === 'all') fly(WW / 2, WH / 2, fitZ());
+    });
+    root.addEventListener('input', e => {
+      if (e.target.id === 'ta') {
+        S.draft = e.target.value;
+        root.querySelector('#cc').textContent = S.draft.length;
+        syncSave();
+      }
+      if (e.target.id === 'q') {
+        S.q = e.target.value;
+        const c = root.querySelector('[data-act=clearq]');
+        if (c) c.style.display = S.q ? 'flex' : 'none';
+        paintMain(true);
+      }
+    });
+    root.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && S.open) {
+        e.preventDefault();
+        closeEd();
+      }
+      if (e.target.id === 'ta' && e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        save();
+      }
+      if (e.key === 'Enter' && e.target.classList.contains('rw')) openEd(+e.target.closest('[data-row]').dataset.row);
+    });
+    const P = new Map();
+    let mode = null,
+      start = null,
+      rowEl = null,
+      rowId = null,
+      pinch0 = null;
+    const local = e => {
+      const fd = root.querySelector('.fd'),
+        r = fd.getBoundingClientRect(),
+        s = scaleOf();
+      return [(e.clientX - r.left) / s, (e.clientY - r.top) / s];
+    };
+    root.addEventListener('pointerdown', e => {
+      moved = false;
+      const fd = e.target.closest('.fd');
+      if (fd && !e.target.closest('.zm,.zall')) {
+        P.set(e.pointerId, local(e));
+        mode = 'map';
+        start = {
+          cam: {
+            ...S.cam
+          },
+          p: local(e)
+        };
+        cancelAnimationFrame(flyRaf);
+        if (P.size === 2) {
+          const [a, b] = [...P.values()];
+          pinch0 = {
+            d: Math.hypot(a[0] - b[0], a[1] - b[1]),
+            z: S.cam.z,
+            mid: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+          };
+        }
+        return;
+      }
+      const sw = e.target.closest('[data-row]');
+      if (sw && !e.target.closest('.act')) {
+        mode = 'row';
+        rowEl = sw.querySelector('.rw');
+        rowId = +sw.dataset.row;
+        start = {
+          x: e.clientX,
+          y: e.clientY,
+          o: S.swiped === rowId ? -96 : 0,
+          h: null
+        };
+      }
+    });
+    window.addEventListener('pointermove', e => {
+      if (mode === 'map' && P.has(e.pointerId)) {
+        const p = local(e);
+        P.set(e.pointerId, p);
+        if (P.size === 2 && pinch0) {
+          const [a, b] = [...P.values()];
+          const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+          moved = true;
+          zoomAt(pinch0.mid[0], pinch0.mid[1], pinch0.z * d / pinch0.d);
+          return;
+        }
+        const dx = p[0] - start.p[0],
+          dy = p[1] - start.p[1];
+        if (Math.hypot(dx, dy) > 5) moved = true;
+        if (moved) {
+          S.cam.cx = start.cam.cx - dx / S.cam.z;
+          S.cam.cy = start.cam.cy - dy / S.cam.z;
+          clampCam();
+          drawMap();
+        }
+      }
+      if (mode === 'row' && !web()) {
+        const s = scaleOf(),
+          dx = (e.clientX - start.x) / s,
+          dy = (e.clientY - start.y) / s;
+        if (start.h === null && Math.hypot(dx, dy) > 8) start.h = Math.abs(dx) > Math.abs(dy);
+        if (start.h) {
+          moved = true;
+          const x = Math.min(0, Math.max(-120, start.o + dx));
+          rowEl.style.transition = 'none';
+          rowEl.style.transform = `translateX(${x}px)`;
+          rowEl.parentElement.classList.toggle('open', x < 0);
+          start.last = x;
+        } else if (start.h === false) mode = null;
+      }
+    });
+    window.addEventListener('pointerup', e => {
+      if (mode === 'map') {
+        P.delete(e.pointerId);
+        if (P.size < 2) pinch0 = null;
+        if (P.size === 0) {
+          mode = null;
+          setTimeout(() => {
+            moved = false;
+          }, 0);
+        }
+        return;
+      }
+      if (mode === 'row') {
+        mode = null;
+        if (start.h) {
+          const open = (start.last ?? 0) < -48;
+          rowEl.style.transition = '';
+          rowEl.style.transform = open ? 'translateX(-96px)' : '';
+          rowEl.parentElement.classList.toggle('open', open);
+          S.swiped = open ? rowId : null;
+          setTimeout(() => {
+            moved = false;
+          }, 0);
+        } else if (!moved) {
+          if (S.swiped !== null) {
+            const id = S.swiped;
+            S.swiped = null;
+            const r = root.querySelector(`[data-row="${id}"]`);
+            if (r) {
+              r.classList.remove('open');
+              r.querySelector('.rw').style.transform = '';
+            }
+          } else openEd(rowId);
+        }
+      }
+    });
+    root.addEventListener('wheel', e => {
+      const fd = e.target.closest('.fd');
+      if (!fd) return;
+      e.preventDefault();
+      cancelAnimationFrame(flyRaf);
+      const [x, y] = local(e);
+      zoomAt(x, y, S.cam.z * Math.exp(-e.deltaY * (e.ctrlKey ? .012 : .0022)));
+    }, {
+      passive: false
+    });
+    window.addEventListener('resize', () => {
+      fit();
+      if (S.view === 'map') measureMap();
+    });
+  }
+  window.MEMP = {
+    start(r, s) {
+      root = r;
+      stage = s;
+      bind();
+      paint();
+    },
+    plat(p) {
+      S.plat = p;
+      S.open = null;
+      S.swiped = null;
+      S.view = 'list';
+      S._camSet = false;
+      paint();
+    }
+  };
+})();
+})(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/memories_tab/memories.js", error: String((e && e.message) || e) }); }
 
 // ui_kits/mobile_app/App.jsx
 try { (() => {

@@ -14,8 +14,10 @@ import { db } from "../db.js";
 export const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 /** Bounds every decoder downstream. An 8064 by 6048 photo is 49 megapixels. */
 export const MAX_PIXELS = 60_000_000;
-/** Per message. */
+/** Per message: photos and PDFs together (041). */
 export const MAX_PHOTOS = 10;
+/** 041. Per message, inside the ten: what one turn reads is twenty pages. */
+export const MAX_PDFS = 2;
 /** Per account per day. A ceiling for an invited alpha, not a product limit. */
 export const DAILY_PHOTOS = 200;
 export const DAILY_BYTES = 500 * 1024 * 1024;
@@ -29,21 +31,28 @@ export async function photosToday(accountId: string): Promise<{ n: number; bytes
     .selectFrom("blobs")
     .select(({ fn }) => [fn.countAll<string>().as("n"), fn.sum<string>("byte_size").as("bytes")])
     .where("account_id", "=", accountId)
-    .where("kind", "=", "image")
+    // 041. A PDF counts toward the day's photos, by count and by bytes.
+    .where("kind", "in", ["image", "pdf"])
     .where("created_at", ">", sql<Date>`now() - interval '24 hours'`)
     .executeTakeFirstOrThrow();
   return { n: Number(today.n), bytes: Number(today.bytes ?? 0) };
 }
 
 export type PhotoType = "image/jpeg" | "image/png" | "image/webp" | "image/heic" | "image/heif";
+/** 041. What the upload takes: a photo, or a PDF. */
+export type FileType = PhotoType | "application/pdf";
 
 const HEIF_BRANDS = new Set(["heic", "heix", "hevc", "hevx", "mif1", "msf1", "heif"]);
 
 /** The type the bytes declare, or null for anything the product does not take.
  *  GIF is not here on purpose: a GIF is usually an animation, and the product
- *  takes still photos. */
-export function sniff(bytes: Buffer): PhotoType | null {
+ *  takes still photos. A PDF is one whose header is its first five bytes
+ *  (041): the format allows junk before it, real generators never write
+ *  any, and refusing it removes the file that is a PDF to one reader and
+ *  something else to another. */
+export function sniff(bytes: Buffer): FileType | null {
   if (bytes.length < 12) return null;
+  if (bytes.subarray(0, 5).toString("latin1") === "%PDF-") return "application/pdf";
   if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
   if (bytes.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47]))) return "image/png";
   if (bytes.subarray(0, 4).toString("latin1") === "RIFF" && bytes.subarray(8, 12).toString("latin1") === "WEBP") {

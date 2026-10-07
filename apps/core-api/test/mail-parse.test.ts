@@ -110,7 +110,23 @@ describe("attachments (AC-10)", () => {
       ),
     );
     if ("refused" in out) throw new Error(out.refused);
-    expect(out.leftOut).toEqual({ pdf: 1, spreadsheet: 2, calendar: 1, archive: 1 });
+    // 041. A PDF by its header goes on to the PDF rules rather than out.
+    expect(out.pdfs).toHaveLength(1);
+    expect(out.leftOut).toEqual({ spreadsheet: 2, calendar: 1, archive: 1 });
+  });
+
+  it("leaves out an attachment called a PDF that is not one by its bytes", async () => {
+    const out = await extract(
+      Buffer.from(
+        multipart([
+          part("text/plain", "see attached"),
+          part("application/pdf", b64(Buffer.from("<html>not a pdf</html>")), ["Content-Transfer-Encoding: base64", 'Content-Disposition: attachment; filename="itinerary.pdf"']),
+        ]),
+      ),
+    );
+    if ("refused" in out) throw new Error(out.refused);
+    expect(out.pdfs).toHaveLength(0);
+    expect(out.leftOut).toEqual({ pdf: 1 });
   });
 });
 

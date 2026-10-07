@@ -72,6 +72,7 @@ import { EditModal } from "./EditModal";
 import { ConfirmModal } from "../people/Modal";
 import { useRouter } from "next/navigation";
 import { useClock } from "../../lib/clock";
+import { openPdfSaying } from "../../lib/dump";
 import { drawnWhen } from "../../lib/when";
 import { FilterBar } from "../labels/FilterBar";
 import { LabelPopover, type LabelChoice } from "../labels/LabelPopover";
@@ -856,8 +857,15 @@ export function Thread({ id, onChanged }: Props) {
     onArchive: archive,
     onAsk: (rowId) => setAsking(rowId && isProvisional(rowId) ? null : rowId),
     onDelete: remove,
-    // 020. A photo row's tile, and a tile in Files, open the viewer.
-    onOpenPhoto: (row) => setViewing(row.id),
+    // 020. A photo row's tile, and a tile in Files, open the viewer. 041: a
+    // PDF's opens the PDF itself, in the browser's own viewer.
+    onOpenPhoto: (row) => {
+      if (row.photo?.kind === "pdf") {
+        openPdfSaying(row.photo, (text, retry) => toast.show(text, retry && { label: "Retry", onPress: retry }));
+        return;
+      }
+      setViewing(row.id);
+    },
     // 025. The marks, the tag tool and a mark's list.
     labels: new Map(thread.labels.map((label) => [label.id, label])),
     onLabel: (row, anchor) => setLabelling({ row, anchor }),
@@ -890,12 +898,12 @@ export function Thread({ id, onChanged }: Props) {
 
   // 020. What the viewer pages through: every photo row on the page, in the
   // page's order, each with its row so the tools follow it.
-  const photoRows = rows.filter((row) => row.photo !== null);
+  const photoRows = rows.filter((row) => row.photo !== null && row.photo.kind !== "pdf");
   const viewerSet: ViewerPhoto[] = photoRows.map((row) => ({
     blobId: row.photo!.blobId,
     ready: row.photo!.ready,
-    width: row.photo!.width,
-    height: row.photo!.height,
+    width: row.photo!.width ?? 0,
+    height: row.photo!.height ?? 0,
     title: row.title,
     body: row.body,
     row,

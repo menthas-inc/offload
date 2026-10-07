@@ -50,6 +50,7 @@ import { Glyph } from "../Glyph";
 import { DateChip, HourChip } from "./DateChip";
 import { ThreadPill } from "./ThreadPill";
 import { PhotoThumb } from "./PhotoThumb";
+import { PdfOpening } from "./PdfOpening";
 import { useColors } from "../../lib/colors";
 import { domainOf, isProvisional, rowTap, type ContentRow } from "../../lib/threads";
 import { openLink } from "../../lib/links";
@@ -403,6 +404,8 @@ export function ContentRowView({
                 hitSlop={4}
                 accessibilityLabel={`Open ${row.title}`}
                 accessibilityRole="button"
+                // The spinner's scrim keeps to the tile's corners.
+                className="overflow-hidden rounded-sm"
               >
                 <PhotoThumb
                   blobId={row.photo.blobId}
@@ -414,10 +417,11 @@ export function ContentRowView({
                       className={`items-center justify-center rounded-sm ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
                       style={{ width: PICTURE, height: PICTURE }}
                     >
-                      <Glyph name="image" size={18} color={COLOR.iconOnWell} />
+                      <Glyph name={row.photo.kind === "pdf" ? "paperclip" : "image"} size={18} color={COLOR.iconOnWell} />
                     </View>
                   }
                 />
+                {row.photo.kind === "pdf" ? <PdfOpening blobId={row.photo.blobId} /> : null}
               </Pressable>
             ) : row.imageUrl && !row.archivedAt ? (
               <Image

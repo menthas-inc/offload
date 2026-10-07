@@ -507,7 +507,7 @@ describe("the row", () => {
     // The page carries the photo, ready, and never the coordinate.
     const page = await app.inject({ method: "GET", url: `/v1/threads/${build}/content`, headers: { cookie: await signIn(me.id) } });
     const shaped = page.json().rows.find((r: { id: string }) => r.id === row.id);
-    expect(shaped.photo).toEqual({ blobId: blobIds[0], width: 640, height: 480, ready: true });
+    expect(shaped.photo).toEqual({ blobId: blobIds[0], kind: "image", width: 640, height: 480, ready: true });
     expect(JSON.stringify(page.json())).not.toContain("38.71");
   });
 
