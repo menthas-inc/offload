@@ -12,12 +12,15 @@ dependencies = [
   "structlog>=24.4",
   "pillow>=11",
   "pillow-heif>=0.20",
+  "pikepdf>=9",
+  "pypdfium2>=4.30",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
+    "reportlab>=4",
     "ruff>=0.7",
 ]
 

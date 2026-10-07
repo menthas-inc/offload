@@ -18,8 +18,9 @@ import {
 } from "@aws-sdk/client-s3";
 import { env, isProduction, r2Configured } from "../env.js";
 
-export type Rendition = "original" | "thumb" | "large";
-export const RENDITIONS: readonly Rendition[] = ["original", "thumb", "large"];
+/** 041. `clean` is a PDF's clean copy, the one form of it any route serves. */
+export type Rendition = "original" | "thumb" | "large" | "clean";
+export const RENDITIONS: readonly Rendition[] = ["original", "thumb", "large", "clean"];
 
 export interface ObjectStore {
   put(key: string, bytes: Buffer): Promise<void>;

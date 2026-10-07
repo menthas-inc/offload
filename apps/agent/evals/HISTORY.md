@@ -77,6 +77,7 @@ and is not committed.
 | 2026-10-06 21:58 | full-says-so-once | 1 | 1/1 (100%) | $0.01 | `claude-sonnet-5` | `e3511c2b` | `3cd7874` |  |
 | 2026-10-06 21:58 | own-thread-uses-what-it-knows | 1 | 1/1 (100%) | $0.02 | `claude-sonnet-5` | `e3511c2b` | `3cd7874` |  |
 | 2026-10-06 22:01 | noor-the-usual-past-250 | 1 | 1/1 (100%) | $0.03 | `claude-sonnet-5` | `e3511c2b` | `3cd7874` |  |
+| 2026-10-07 16:12 | 31 | 1 | 18/18 (100%) | $0.80 | `claude-sonnet-5` | `91ff6dcb` | `f89eb787` |  |
 
 ## Full runs by principle
 

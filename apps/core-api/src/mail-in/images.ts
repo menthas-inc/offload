@@ -16,6 +16,7 @@ import { limitFor, type CapKey } from "../settings.js";
 import { MAX_PHOTO_BYTES, MAX_PIXELS, dimensions, photosToday, sha256, sniff, type PhotoType } from "../blobs/photos.js";
 import { storageUsed } from "../blobs/storage.js";
 import type { ParsedImage } from "./parse.js";
+import { inspectPdf } from "../blobs/pdf-inspect.js";
 
 export const MIN_BYTES = 20 * 1024;
 export const MIN_SIDE = 300;
@@ -24,6 +25,33 @@ export const MAX_ASPECT = 4;
 export const MAX_CANDIDATES = 20;
 
 export type Candidate = { bytes: Buffer; type: PhotoType; width: number; height: number };
+/** 041. A PDF that passed the rules, with its page count. */
+export type PdfCandidate = { bytes: Buffer; type: "application/pdf"; pages: number };
+
+/** 041. The PDF rules: each through pdf.js's inspection, one at a time, under
+ *  one budget for the email so the inbound webhook still answers in time. A
+ *  locked PDF, one over a thousand pages, an unreadable one and any the
+ *  budget did not reach are left out, and Activity names them. */
+export async function pdfCandidatesOf(
+  pdfs: Uint8Array[],
+  opts: { budgetMs?: number } = {},
+): Promise<{ candidates: PdfCandidate[]; leftOut: number }> {
+  const deadline = Date.now() + (opts.budgetMs ?? 20_000);
+  const candidates: PdfCandidate[] = [];
+  let leftOut = 0;
+  for (const raw of pdfs) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      leftOut++;
+      continue;
+    }
+    const bytes = Buffer.from(raw);
+    const inspected = await inspectPdf(bytes, { timeoutMs: Math.min(remaining, 10_000) });
+    if ("refused" in inspected) leftOut++;
+    else candidates.push({ bytes, type: "application/pdf", pages: inspected.pages });
+  }
+  return { candidates, leftOut };
+}
 
 export function candidatesOf(images: ParsedImage[]): Candidate[] {
   const out: Candidate[] = [];
@@ -32,7 +60,8 @@ export function candidatesOf(images: ParsedImage[]): Candidate[] {
     const bytes = Buffer.from(image.bytes);
     if (bytes.length < MIN_BYTES || bytes.length > MAX_PHOTO_BYTES) continue;
     const type = sniff(bytes);
-    if (!type) continue;
+    // A PDF sent as an image part is not a picture; 041's own path takes PDFs.
+    if (!type || type === "application/pdf") continue;
     const size = dimensions(bytes);
     if (!size || size.width * size.height > MAX_PIXELS) continue;
     if (Math.min(size.width, size.height) < MIN_SIDE) continue;
@@ -49,7 +78,11 @@ export function candidatesOf(images: ParsedImage[]): Candidate[] {
 /** Seal each candidate as an unclaimed image blob of the account's, under
  *  020's daily limits, and return their ids in the email's order. The same
  *  email sealed twice returns the same ids. */
-export async function sealCandidates(accountId: string, messageKey: string, candidates: Candidate[]): Promise<string[]> {
+export async function sealCandidates(
+  accountId: string,
+  messageKey: string,
+  candidates: (Candidate | PdfCandidate)[],
+): Promise<string[]> {
   const store = objectStore();
   if (!store || candidates.length === 0) return [];
   const today = await photosToday(accountId);
@@ -62,14 +95,20 @@ export async function sealCandidates(accountId: string, messageKey: string, cand
   const maxKept = await limitFor(accountId, "cap.storage_bytes");
 
   const ids: string[] = [];
-  for (const [index, candidate] of candidates.entries()) {
-    const clientKey = `mail:${messageKey}:${index}`;
+  let images = 0;
+  let pdfs = 0;
+  for (const candidate of candidates) {
+    // 041. A PDF's key carries its kind, so the images' keys stay as 026
+    // wrote them.
+    const isPdf = candidate.type === "application/pdf";
+    const kind = isPdf ? ("pdf" as const) : ("image" as const);
+    const clientKey = isPdf ? `mail:${messageKey}:pdf:${pdfs++}` : `mail:${messageKey}:${images++}`;
     const existing = await db
       .selectFrom("blobs")
       .select("id")
       .where("account_id", "=", accountId)
       .where("client_key", "=", clientKey)
-      .where("kind", "=", "image")
+      .where("kind", "=", kind)
       .where("deleted_at", "is", null)
       .executeTakeFirst();
     if (existing) {
@@ -103,8 +142,10 @@ export async function sealCandidates(accountId: string, messageKey: string, cand
             name: null,
             content_type: candidate.type,
             byte_size: candidate.bytes.length,
-            width: candidate.width,
-            height: candidate.height,
+            kind,
+            width: "width" in candidate ? candidate.width : null,
+            height: "height" in candidate ? candidate.height : null,
+            pages: "pages" in candidate ? candidate.pages : null,
             sha256: sha256(candidate.bytes),
           })
           .returning("id")
@@ -128,7 +169,7 @@ export async function sealCandidates(accountId: string, messageKey: string, cand
             .where("client_key", "=", clientKey)
             // The same look as above. The index is not partial, so a deleted
             // picture still holds its key, and that one is never handed back.
-            .where("kind", "=", "image")
+            .where("kind", "=", kind)
             .where("deleted_at", "is", null)
             .executeTakeFirst();
           if (theirs) return { id: theirs.id, theirs: true as const };

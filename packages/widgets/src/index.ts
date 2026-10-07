@@ -67,6 +67,9 @@ export interface Sortable {
    *  been taught to send it should read as "nothing repeats" rather than fail
    *  to compile. */
   seriesRef?: string | null;
+  /** 041. The row's photo or PDF, as far as Files needs to know: a `file`
+   *  row earns it only with its PDF. */
+  photo?: { kind?: string } | null;
 }
 
 /** One repeating thing, and the occurrences behind it. */
@@ -214,9 +217,10 @@ const EARNS: Record<WidgetKind, (row: Sortable) => boolean> = {
   // 020. Files is the kit's grid of square tiles, and a picture is what a tile
   // is. A link earned it until then, drawn as a row; a link in a grid of
   // untitled squares loses the title and the domain that identify it, so a
-  // link row stays in the list with the page's own picture on it. `file`
-  // waits for the spec that brings PDFs.
-  files: (row) => row.type === "image" || row.type === "screenshot",
+  // link row stays in the list with the page's own picture on it.
+  // 041: a `file` row with its PDF earns it as a photo does. One written
+  // before 041 could name a file it was never given, and has nothing to draw.
+  files: (row) => row.type === "image" || row.type === "screenshot" || (row.type === "file" && row.photo?.kind === "pdf"),
 };
 
 export interface Widget<T extends Sortable> {

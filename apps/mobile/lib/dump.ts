@@ -97,7 +97,17 @@ export interface FoundRow {
   body: string | null;
   done: boolean;
   /** 020. The row's photo, when it has one. */
-  photo: { blobId: string; width: number; height: number; ready: boolean } | null;
+  /** 020, 041. The row's photo or PDF. */
+  photo: {
+    blobId: string;
+    kind: "image" | "pdf";
+    width?: number;
+    height?: number;
+    pages?: number;
+    openable?: boolean;
+    unreadable?: boolean;
+    ready: boolean;
+  } | null;
 }
 
 /** 016. Where a fact in a turn came from. Two fields, and the omissions are the
@@ -121,6 +131,8 @@ export interface QuestionOnWire {
 export interface Answer {
   state: MessageState;
   reply: string | null;
+  /** 020, 041. The message's files as the server has them now. */
+  photos?: PhotoOnWire[];
   threads: TouchedThread[];
   sources: Source[];
   /** 025. The labels the turn applied, in order, for the footer's marks. */
@@ -267,21 +279,30 @@ export class UnknownBlob extends Error {
   }
 }
 
-/** A photo on a person's message, as the server sends it. `ready` is whether
- *  the renditions exist yet; until they do the thumbnail draws the glyph. */
+/** A photo on a person's message, as the server sends it, or a PDF (041).
+ *  `ready` is whether the renditions exist yet; until they do the thumbnail
+ *  draws the glyph. A PDF has its pages, whether its clean copy can be
+ *  opened, and whether it never will be. */
 export interface PhotoOnWire {
   blobId: string;
+  kind: "image" | "pdf";
   name: string | null;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
+  pages?: number;
+  openable?: boolean;
+  unreadable?: boolean;
   ready: boolean;
   /** This device only, never from the wire: the file's uri, for the moment
    *  between the send and the renditions. */
   localUri?: string;
 }
 
-/** Per message, and the server holds the same number. */
+/** Per message, photos and PDFs together, and the server holds the same
+ *  number. */
 export const MAX_PHOTOS = 10;
+/** 041. Per message, inside the ten. */
+export const MAX_PDFS = 2;
 /** Per photo. The server holds the same number and refuses by bytes. */
 export const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 
@@ -290,14 +311,89 @@ export const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 const PHOTO_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"]);
 const PHOTO_EXTENSIONS = /\.(jpe?g|png|webp|heic|heif)$/i;
 
-export type PhotoRefusal = "too_big" | "not_a_photo" | "daily_limit" | "storage_full" | "unavailable";
+export type PhotoRefusal = "too_big" | "not_a_photo" | "locked_pdf" | "daily_limit" | "storage_full" | "unavailable";
 
-export function refusePhoto(file: { type: string | null; name: string; size: number | null }): "too_big" | "not_a_photo" | null {
+/** 041. A PDF by its type, or by its name when the picker gives no type. The
+ *  server reads the bytes; this only spares a request. */
+export function isPdf(file: { type: string | null; name: string | null }): boolean {
   const type = (file.type ?? "").toLowerCase();
-  const looksLikeOne = PHOTO_TYPES.has(type) || (!type && PHOTO_EXTENSIONS.test(file.name));
+  // Mail and several Android providers hand a .pdf over as bytes of no type;
+  // the server reads the bytes either way.
+  return type === "application/pdf" || ((type === "" || type === "application/octet-stream") && /\.pdf$/i.test(file.name ?? ""));
+}
+
+/** Why a photo or a PDF was refused on the device, or null when it may go.
+ *  A locked PDF is the server's to find. */
+export function refuseFile(file: { type: string | null; name: string; size: number | null }): "too_big" | "not_a_photo" | null {
+  const type = (file.type ?? "").toLowerCase();
+  const looksLikeOne = PHOTO_TYPES.has(type) || (!type && PHOTO_EXTENSIONS.test(file.name)) || isPdf(file);
   if (!looksLikeOne) return "not_a_photo";
   if (file.size !== null && file.size > MAX_PHOTO_BYTES) return "too_big";
   return null;
+}
+
+/** 041. Which of the incoming files a draft holding `current` takes: ten in
+ *  all, two of them PDFs, in the order given, and the line for what it left. */
+export function takeFiles<T extends { type: string | null; name: string | null }>(
+  current: { kind: "image" | "pdf" }[],
+  incoming: T[],
+): { taken: T[]; line: "Ten at a time." | "Two PDFs at a time." | null } {
+  let room = MAX_PHOTOS - current.length;
+  let pdfRoom = MAX_PDFS - current.filter((one) => one.kind === "pdf").length;
+  const taken: T[] = [];
+  let line: "Ten at a time." | "Two PDFs at a time." | null = null;
+  for (const one of incoming) {
+    if (room <= 0) {
+      line ??= "Ten at a time.";
+      continue;
+    }
+    if (isPdf(one)) {
+      if (pdfRoom <= 0) {
+        line ??= "Two PDFs at a time.";
+        continue;
+      }
+      pdfRoom--;
+    }
+    room--;
+    taken.push(one);
+  }
+  return { taken, line };
+}
+
+/** The name a chip shows: the file's own, or "Photo", "Photo 2", "PDF",
+ *  "PDF 2" counting the draft's unnamed ones of its kind. */
+export function draftName(
+  file: { type: string | null; name: string | null },
+  current: { kind: "image" | "pdf"; named: boolean }[],
+): string {
+  if (file.name) return file.name;
+  const kind = isPdf(file) ? "pdf" : "image";
+  const n = current.filter((one) => one.kind === kind && !one.named).length;
+  const word = kind === "pdf" ? "PDF" : "Photo";
+  return n === 0 ? word : `${word} ${n + 1}`;
+}
+
+/** 041. A settled turn's files as the server now has them, keeping the
+ *  device's own copy of a photo for the moment before its rendition draws. A
+ *  PDF learns here whether its clean copy exists. With no files on the answer
+ *  every photo is ready, as 020 has it. */
+export function settledPhotos(
+  sent: PhotoOnWire[] | undefined,
+  answered: PhotoOnWire[] | undefined,
+): PhotoOnWire[] {
+  return (sent ?? []).map((photo) => {
+    const fresh = answered?.find((one) => one.blobId === photo.blobId);
+    if (!fresh) return { ...photo, ready: true };
+    return photo.localUri ? { ...fresh, localUri: photo.localUri } : fresh;
+  });
+}
+
+/** 041. A long name clipped in the middle, so its end, which is usually what
+ *  tells two PDFs apart, survives. */
+export function clipMiddle(name: string, max = 20): string {
+  if (name.length <= max) return name;
+  const tail = Math.ceil((max - 1) / 2);
+  return `${name.slice(0, max - 1 - tail)}…${name.slice(name.length - tail)}`;
 }
 
 /** 036. Which ceiling a 429 on an upload was: everything kept, or the day's.
@@ -317,7 +413,7 @@ export class PhotoRefused extends Error {
 export async function uploadPhoto(
   file: { uri: string; name: string; type: string | null },
   clientKey: string,
-): Promise<{ blobId: string; width: number; height: number }> {
+): Promise<{ blobId: string; kind: "image" | "pdf"; width?: number; height?: number; pages?: number }> {
   const form = new FormData();
   form.append("clientKey", clientKey);
   form.append("name", file.name);
@@ -327,9 +423,16 @@ export async function uploadPhoto(
   // from a Pixel got. `File` here is expo-file-system's, a Blob over the
   // uri, read as the request streams.
   form.append("file", new File(file.uri) as unknown as Blob, file.name || "photo");
-  const { status, data, error } = await upload<{ blobId: string; width: number; height: number }>("/v1/blobs", form);
+  const { status, data, error } = await upload<{
+    blobId: string;
+    kind: "image" | "pdf";
+    width?: number;
+    height?: number;
+    pages?: number;
+  }>("/v1/blobs", form);
   if (status === 413) throw new PhotoRefused("too_big");
-  if (status === 415) throw new PhotoRefused("not_a_photo");
+  // 041. A locked PDF is its own line.
+  if (status === 415) throw new PhotoRefused(error === "locked_pdf" ? "locked_pdf" : "not_a_photo");
   if (status === 429) throw new PhotoRefused(overLimit(error));
   if (status === 503) throw new PhotoRefused("unavailable");
   if (!data) throw new Error(`upload failed: ${status}`);
@@ -404,6 +507,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     // force quit because the cold start reads `fetchCurrent` instead.
     found?: FoundResult[];
     voice?: VoiceOnWire | null;
+    photos?: PhotoOnWire[];
   }>(`/v1/messages/${messageId}`);
   if (!data) return null;
   return {
@@ -419,6 +523,8 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     question: data.question ?? null,
     found: data.found ?? [],
     voice: data.voice ?? null,
+    // 041. The message's files as the server has them now.
+    ...(data.photos ? { photos: data.photos } : {}),
   };
 }
 

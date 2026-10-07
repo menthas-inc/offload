@@ -58,8 +58,8 @@ describe("the Storage section", () => {
     const { host } = await render();
     expect(reads).toEqual(["/api/me/storage"]);
     expect(host.querySelector("h2")?.textContent).toBe("Storage");
-    expect(host.textContent).toContain("Deleting a photo makes room.");
-    expect(host.textContent).toContain("Photos and voice notes");
+    expect(host.textContent).toContain("Deleting a photo or PDF makes room.");
+    expect(host.textContent).toContain("Photos, PDFs and voice notes");
     expect(host.textContent).toContain("312 MB of 1 GB");
     expect(host.querySelector("button, a")).toBeNull();
   });
@@ -69,7 +69,7 @@ describe("the Storage section", () => {
     const failed: string[] = [];
     const { host, retries } = await render(failed);
     expect(failed).toEqual(["Couldn't load storage"]);
-    expect(host.textContent).toContain("Photos and voice notes");
+    expect(host.textContent).toContain("Photos, PDFs and voice notes");
     expect(host.textContent).not.toContain(" of ");
 
     answer = { status: 200, body: { usedBytes: 2 * 1024 * MB, limitBytes: 5 * 1024 * MB } };

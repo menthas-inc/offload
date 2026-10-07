@@ -10,32 +10,45 @@
 // table's own words, with the remove control as the way forward.
 
 import { Icon } from "../Icon";
+import { clipMiddle } from "../../lib/dump";
 import styles from "../../app/(shell)/composer.module.css";
 
-export type ChipError = "too_big" | "not_a_photo" | null;
+export type ChipError = "too_big" | "not_a_photo" | "locked_pdf" | null;
 
 const LINES: Record<Exclude<ChipError, null>, string> = {
   too_big: "Too big to send.",
-  not_a_photo: "Only photos.",
+  not_a_photo: "Only photos and PDFs.",
+  // 041.
+  locked_pdf: "Only unlocked PDFs.",
 };
 
 export function AttachChip({
   name,
+  kind = "image",
   error,
   disabled,
   onRemove,
 }: {
   name: string;
+  /** 041. A PDF draws the paperclip, clips its name in the middle so its end
+   *  survives, and says it is a PDF to a screen reader. */
+  kind?: "image" | "pdf";
   error: ChipError;
   /** While the send is out: a chip removed then would still go. */
   disabled?: boolean;
   onRemove: () => void;
 }) {
-  const shown = name.length > 20 ? `${name.slice(0, 20)}…` : name;
+  const pdf = kind === "pdf";
+  const shown = pdf ? clipMiddle(name) : name.length > 20 ? `${name.slice(0, 20)}…` : name;
   return (
-    <span className={styles.chip} data-error={error ? true : undefined}>
+    <span
+      className={styles.chip}
+      data-error={error ? true : undefined}
+      role="group"
+      aria-label={`${pdf ? "PDF" : "Photo"}, ${name}`}
+    >
       <span className={styles.chipGlyph} aria-hidden="true">
-        <Icon name="image" size={13} />
+        <Icon name={pdf ? "paperclip" : "image"} size={13} />
       </span>
       <span className={styles.chipName} title={name}>
         {shown}

@@ -11,6 +11,7 @@
 // refusal, for the reason stated there.
 
 import { z } from "zod";
+import { fileOnRow, fileToWire, type FileOnRow } from "../blobs/wire.js";
 import { sql, type Transaction } from "kysely";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
@@ -312,9 +313,7 @@ export const contentRow = z.object({
   /** 020. The picture a photo row carries, as the id the client builds a
    *  rendition URL from. `ready` is whether the renditions exist yet. Null on
    *  everything that is not a photo. */
-  photo: z
-    .object({ blobId: z.string(), width: z.number(), height: z.number(), ready: z.boolean() })
-    .nullable(),
+  photo: fileOnRow.nullable(),
   createdAt: z.string(),
   archivedAt: z.string().nullable(),
   /** What 006 extracts, and what 007's widgets are derived from. All of it may
@@ -552,7 +551,7 @@ export function toRow(row: RawRow, viewerId: string) {
     imageUrl: row.image_url,
     // 020. Filled in by `withPhotos` after the page is read, one query for
     // the page rather than a join on every select that shapes a row.
-    photo: null as { blobId: string; width: number; height: number; ready: boolean } | null,
+    photo: null as FileOnRow | null,
     createdAt: row.created_at.toISOString(),
     archivedAt: row.archived_at ? row.archived_at.toISOString() : null,
     doneAt: row.done_at ? row.done_at.toISOString() : null,
@@ -2709,17 +2708,26 @@ export async function withPhotos<T extends { id: string; photo: unknown }>(rows:
   const found = await db
     .selectFrom("content_blobs")
     .innerJoin("blobs", "blobs.id", "content_blobs.blob_id")
-    .select(["content_blobs.content_id as content_id", "blobs.id as id", "blobs.width", "blobs.height", "blobs.renditions_at"])
+    .select([
+      "content_blobs.content_id as content_id",
+      "blobs.id as id",
+      "blobs.kind",
+      "blobs.width",
+      "blobs.height",
+      "blobs.pages",
+      "blobs.renditions_at",
+      "blobs.clean_at",
+      "blobs.unreadable_at",
+    ])
     .where("content_blobs.content_id", "in", rows.map((row) => row.id))
-    .where("blobs.kind", "=", "image")
+    .where("blobs.kind", "in", ["image", "pdf"])
     .where("blobs.deleted_at", "is", null)
     .orderBy("content_blobs.created_at", "asc")
     .execute();
-  const byContent = new Map<string, { blobId: string; width: number; height: number; ready: boolean }>();
+  const byContent = new Map<string, FileOnRow>();
   for (const blob of found) {
     if (byContent.has(blob.content_id)) continue;
-    // A photo's dimensions are not null by the kind constraint.
-    byContent.set(blob.content_id, { blobId: blob.id, width: blob.width!, height: blob.height!, ready: blob.renditions_at !== null });
+    byContent.set(blob.content_id, fileToWire(blob));
   }
   // 025. Every row a client reads passes through here, so this is the one
   // place a row gains its labels.

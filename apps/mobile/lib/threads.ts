@@ -211,7 +211,17 @@ export interface ContentRow extends Sortable {
   /** 020. The picture a photo row carries, as the id a rendition URL is built
    *  from. `ready` is whether the renditions exist yet. Null on everything
    *  that is not a photo. */
-  photo: { blobId: string; width: number; height: number; ready: boolean } | null;
+  /** 020, 041. A photo's dimensions, or a PDF's pages and whether it opens. */
+  photo: {
+    blobId: string;
+    kind: "image" | "pdf";
+    width?: number;
+    height?: number;
+    pages?: number;
+    openable?: boolean;
+    unreadable?: boolean;
+    ready: boolean;
+  } | null;
   createdAt: string;
   archivedAt: string | null;
   doneAt: string | null;

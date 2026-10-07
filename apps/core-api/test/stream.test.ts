@@ -306,9 +306,12 @@ describe("the stream, over a real socket", () => {
     await post({ outcome: "answered", jobId: job.id, usage: [usage] });
 
     const frame = await stream.waitForFrame(/event: done/, 2_000);
-    const data = JSON.parse(frame.split("data: ")[1]!) as { threads: unknown[]; filed?: boolean };
+    const data = JSON.parse(frame.split("data: ")[1]!) as { threads: unknown[]; filed?: boolean; photos?: unknown[] };
     expect(data.threads).toEqual([]);
     expect(data.filed).toBe(true);
+    // 041. The message's files ride the settlement, so a PDF sent a moment
+    // ago learns it can be opened without a reload.
+    expect(data.photos).toEqual([]);
 
     stream.close();
   });

@@ -40,9 +40,9 @@ export function StorageSection({ toast }: { toast: ToastState }) {
   }, []);
 
   return (
-    <Group label="Storage" icon="image" caption="Deleting a photo makes room.">
+    <Group label="Storage" icon="image" caption="Deleting a photo or PDF makes room.">
       <Row
-        title="Photos and voice notes"
+        title="Photos, PDFs and voice notes"
         value={storage ? storageFigure(storage.usedBytes, storage.limitBytes) : undefined}
         last
       />

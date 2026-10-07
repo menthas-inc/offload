@@ -63,6 +63,7 @@ import { SentPhoto } from "./SentPhoto";
 import { VoiceNotePlayer } from "./SentVoice";
 import { RowActionSheet } from "./RowActionSheet";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
+import type { PhotoOnWire } from "../../lib/dump";
 import { putKeyboardAway } from "../../lib/keyboard";
 import { threadHref } from "../../lib/loose";
 
@@ -70,15 +71,17 @@ import { threadHref } from "../../lib/loose";
  *  the sheet. No row yet, so no tools: the Files grid is where a photo's row
  *  is. */
 /** 020, per the 21 September design: the composer's photo sheet, drawn here
- *  above the plate. Library first, then the camera, and no Cancel row. */
+ *  above the plate. Library first, then the camera, then (041) a PDF, and no
+ *  Cancel row. */
 export function ConversationPhotoSheet() {
-  const { photoSheet, closePhotoSheet, pickPhotos } = useConversation();
+  const { photoSheet, closePhotoSheet, pickPhotos, pickPdfs } = useConversation();
   return (
     <RowActionSheet
       open={photoSheet}
       actions={[
         { label: "Choose from library", icon: "image", run: () => void pickPhotos("library") },
         { label: "Take a photo", icon: "camera", run: () => void pickPhotos("camera") },
+        { label: "Choose a PDF", icon: "paperclip", run: () => void pickPdfs() },
       ]}
       onClose={closePhotoSheet}
     />
@@ -89,13 +92,16 @@ export function ConversationPhotoViewer() {
   const { turns, photoOpen, openPhoto, closePhoto } = useConversation();
   if (!photoOpen) return null;
   const turn = turns.find((one) => one.id === photoOpen.turnId);
-  const set: ViewerPhoto[] = (turn?.photos ?? []).map((photo) => ({
-    blobId: photo.blobId,
-    ready: photo.ready,
-    width: photo.width,
-    height: photo.height,
-    title: photo.name ?? "Photo",
-  }));
+  // 041. The viewer's set is the message's photos, never its PDFs.
+  const set: ViewerPhoto[] = (turn?.photos ?? [])
+    .filter((photo) => photo.kind !== "pdf")
+    .map((photo) => ({
+      blobId: photo.blobId,
+      ready: photo.ready,
+      width: photo.width ?? 0,
+      height: photo.height ?? 0,
+      title: photo.name ?? "Photo",
+    }));
   if (set.length === 0) return null;
   return (
     <PhotoViewer
@@ -281,7 +287,7 @@ function PinnedTarget({ pin }: { pin: Pin }) {
 }
 
 function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
-  const { turns, writing, finish, openPhoto, retry, recording } = useConversation();
+  const { turns, writing, finish, openPhoto, openPdf, retry, recording } = useConversation();
   const { ref, offset, native } = scroll;
 
   // Opened at its end, and kept there as turns arrive.
@@ -363,6 +369,7 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
               footer={!replied.has(turn.id) && !turn.question}
               onFinish={() => void finish(turn.id)}
               onOpenPhoto={(index) => openPhoto(turn.id, index)}
+              onOpenPdf={(pdf) => openPdf(pdf, pdf.name)}
               onRetry={() => retry(turn.id)}
               recording={recording}
             />
@@ -404,12 +411,15 @@ function Yours({
   footer,
   onFinish,
   onOpenPhoto,
+  onOpenPdf,
   onRetry,
   recording,
 }: {
   turn: Turn;
   footer: boolean;
   onOpenPhoto: (index: number) => void;
+  /** 041. A PDF the message carried, opened in the platform's viewer. */
+  onOpenPdf: (pdf: PhotoOnWire) => void;
   onFinish: () => void;
   /** The send did not land. Puts the words back in the field. */
   onRetry: () => void;
@@ -469,8 +479,18 @@ function Yours({
         {/* 021. The voice note it carried, between the words and the photos. */}
         {turn.voice ? <VoiceNotePlayer voice={turn.voice} inert={recording} /> : null}
         {/* 020. The photos the message carried, shown rather than named. */}
-        {(turn.photos ?? []).map((photo, at) => (
-          <SentPhoto key={photo.blobId} photo={photo} onOpen={() => onOpenPhoto(at)} />
+        {(turn.photos ?? []).map((photo) => (
+          <SentPhoto
+            key={photo.blobId}
+            photo={photo}
+            onOpen={() =>
+              // 041. A PDF opens itself; a photo, the viewer at its place
+              // among the message's photos.
+              photo.kind === "pdf"
+                ? onOpenPdf(photo)
+                : onOpenPhoto((turn.photos ?? []).filter((p) => p.kind !== "pdf").indexOf(photo))
+            }
+          />
         ))}
       </View>
 

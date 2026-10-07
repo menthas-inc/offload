@@ -36,14 +36,14 @@
       [
         "expo-share-intent",
         {
-          "iosActivationRules": {
-            "NSExtensionActivationSupportsImageWithMaxCount": 10
-          },
+          "iosActivationRules": "SUBQUERY (extensionItems, $e, SUBQUERY ($e.attachments, $a, (ANY $a.registeredTypeIdentifiers UTI-CONFORMS-TO \"public.image\" OR ANY $a.registeredTypeIdentifiers UTI-CONFORMS-TO \"com.adobe.pdf\")).@count >= 1 AND SUBQUERY ($e.attachments, $a, (ANY $a.registeredTypeIdentifiers UTI-CONFORMS-TO \"public.image\" OR ANY $a.registeredTypeIdentifiers UTI-CONFORMS-TO \"com.adobe.pdf\")).@count <= 10).@count >= 1",
           "androidIntentFilters": [
-            "image/*"
+            "image/*",
+            "application/pdf"
           ],
           "androidMultiIntentFilters": [
-            "image/*"
+            "image/*",
+            "application/pdf"
           ]
         }
       ],

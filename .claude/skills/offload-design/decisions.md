@@ -11,6 +11,26 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-07 · PDFs: the paperclip, page 1 on the tile, and a third row in the photo sheet
+**Surface:** iOS, Android, web
+**Raised by:** code, spec 041, building PDFs from the composer, the share sheet and forwarded mail, checked in the browser and on an iOS simulator.
+
+**Was:** no PDF anywhere. `FileTile` drew a PDF as the `paperclip` glyph alone (`data.js` f4, f7); Files was earned by a photo or a screenshot and by nothing else (2026-09-18); `AttachChip` and `SentPhoto` drew `image` and clipped a name at its head; the phones' photo sheet had two rows, Choose from library and Take a photo (2026-09-21); the web composer's button was `camera`, labelled Photo in `WComposer`.
+
+**Is:**
+- **A PDF's tile is page 1**, cropped to the square from the top of the page, where a document says what it is, with the `paperclip` glyph until page 1 is drawn. A grid of identical paperclips cannot be told apart. Files is earned by a PDF as by a photo. There is still no chip by kind and no mark saying it is a PDF.
+- **`AttachChip` for a PDF draws `paperclip`** and clips a long name in the middle, `Boarding_…_14OCT.pdf`, because the end of a PDF's name is usually what tells two apart. Its accessible name says PDF.
+- **`SentPhoto` draws a PDF the same way**: page 1 in the 36px tile, `paperclip` until it exists, and a tap opens the PDF itself in the platform's viewer (Quick Look, Android's PDF app, a browser tab), never the photo viewer. One spinner sits over the tile while a phone brings the copy down.
+- **The phones' photo sheet has a third row**, Choose a PDF, with `paperclip`, after Choose from library and Take a photo.
+- **The web composer's button is `paperclip`, labelled Add a photo or PDF.** The web never took a photo with a camera, and the button now takes PDFs too.
+- **The phones' camera button keeps the kit's `camera` glyph and is named Add a photo or PDF**, since the sheet it opens takes a PDF.
+- **On the web the open lines are toasts**, *Not here yet.* and *Did not open.* with Retry, because the composer's line has no control and the failure table gives both a way forward. An answer's row draws a PDF's `paperclip` until page 1 exists, never `image`.
+- New lines: *Two PDFs at a time.*, *Only photos and PDFs.* (was *Only photos.*), *Only unlocked PDFs.*, *Can't open this one.*, *Did not open.* with Retry, or with Share on an Android phone with no PDF app.
+
+**Why:** spec 041. A PDF is the thing people forward most and screenshot worst; the tile and the chip have to tell two of them apart, and opening one has to show the real thing at a gate.
+
+**Design system impact:** `ThreadWidgets.jsx` and `M3ThreadWidgets.jsx` `FileTile`: a PDF is page 1 cropped from the top, `paperclip` as the fallback, and `data.js` f4 and f7 gain a preview; `FilesWidget` is earned by a PDF. `Composer.jsx` and `M3Composer.jsx` `AttachChip`: a `kind` prop, `paperclip`, a middle clip. `LiveConversation.jsx` and `M3LiveConversation.jsx` `SentPhoto`: the same for a PDF. Both mobile kits owe the photo sheet with three rows (the 2026-09-21 entry owed two). `WMisc.jsx` `WComposer`: `paperclip`, Add a photo or PDF. readme.md's failure lines gain the six above.
+
 ### 2026-10-06 · The Memories tab as built
 **Surface:** iOS, Android, web
 **Raised by:** code, spec 040, building the tab from `ui_kits/memories_tab/` and `handoff/APPLY-2026-10-06-memories.md`, checked in the browser on the web and on an iOS simulator.

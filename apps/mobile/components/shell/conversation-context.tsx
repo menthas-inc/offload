@@ -26,6 +26,9 @@ import { raisedOf, settled } from "../../lib/conversation-sheet";
 import { AppState, Linking, type AppStateStatus } from "react-native";
 import { useAudioRecorder } from "expo-audio";
 import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import { openPdf as openPdfOnPhone, sharePdf, sweepPdfs } from "../../lib/pdf-open";
+import { onSignedOut } from "../../lib/auth";
 import { plainText } from "@offload/markup";
 import {
   DailyLimit,
@@ -40,10 +43,15 @@ import {
   undoTurn,
   uploadPhoto,
   uploadVoice,
-  refusePhoto,
+  refuseFile,
+  settledPhotos,
+  takeFiles,
+  draftName,
+  isPdf,
   PhotoRefused,
   VoiceRefused,
   UnknownBlob,
+  MAX_PDFS,
   MAX_PHOTOS,
   type VoiceOnWire,
   type FoundResult,
@@ -180,11 +188,15 @@ export interface Notice {
 export interface DraftPhoto {
   key: string;
   uri: string;
+  /** 041. A photo or a PDF, from the file's own type or name. */
+  kind: "image" | "pdf";
   name: string;
+  /** Whether the name is the file's own, for counting "PDF 2". */
+  named: boolean;
   type: string | null;
   error: ChipError;
   /** Set once the server has it. A retry skips what already landed. */
-  uploaded?: { blobId: string; width: number; height: number };
+  uploaded?: { blobId: string; kind: "image" | "pdf"; width?: number; height?: number; pages?: number };
 }
 
 /** 020. A photo as a picker or the share sheet hands it over. */
@@ -269,6 +281,11 @@ export interface Conversation {
   offerPhoto: () => void;
   closePhotoSheet: () => void;
   pickPhotos: (from: "library" | "camera") => Promise<void>;
+  /** 041. The platform's document picker, PDFs only. */
+  pickPdfs: () => Promise<void>;
+  /** 041. Open a PDF in the platform's viewer, saying what happened when it
+   *  did not open, with its way forward. */
+  openPdf: (pdf: { blobId: string; openable?: boolean; unreadable?: boolean }, title: string | null) => void;
   line: { text: string; action?: { label: string; onPress: () => void } } | null;
   clearLine: () => void;
   /** The day's model budget is spent or its turns are used: the composer is
@@ -810,7 +827,8 @@ export function ConversationProvider({
                   // 020. The renditions are made before the model reads the
                   // photos, so a settled turn's thumbnails exist; one that
                   // could not be opened draws the glyph when its fetch fails.
-                  photos: (turn.photos ?? []).map((photo) => ({ ...photo, ready: true })),
+                  // 041. And the answer says which PDFs can be opened.
+                  photos: settledPhotos(turn.photos, answer.photos),
                   // 021. The transcript, as the settled read has it.
                   voice: answer.voice
                     ? {
@@ -993,17 +1011,24 @@ export function ConversationProvider({
         setFocusRequest((n) => n + 1);
       }
       setPhotos((current) => {
-        const room = MAX_PHOTOS - current.length;
-        if (room <= 0 || picked.length > room) setLine({ text: "Ten at a time." });
-        const taken = picked.slice(0, Math.max(0, room)).map((file, at) => ({
-          key: `${Date.now()}-${current.length + at}-${Math.random().toString(36).slice(2, 8)}`,
-          uri: file.uri,
-          // The file's own name, or "Photo", "Photo 2".
-          name: file.name || (current.length + at === 0 ? "Photo" : `Photo ${current.length + at + 1}`),
-          type: file.type,
-          error: refusePhoto({ type: file.type, name: file.name ?? "", size: file.size }),
-        }));
-        return [...current, ...taken];
+        // 041. Ten in all, two of them PDFs, and the line for what was left.
+        const { taken, line } = takeFiles(current, picked);
+        if (line) setLine({ text: line });
+        const added: DraftPhoto[] = [];
+        for (const [at, file] of taken.entries()) {
+          // The file's own name, or "Photo", "Photo 2", "PDF", "PDF 2".
+          const name = draftName(file, [...current, ...added]);
+          added.push({
+            key: `${Date.now()}-${current.length + at}-${Math.random().toString(36).slice(2, 8)}`,
+            uri: file.uri,
+            kind: isPdf(file) ? "pdf" : "image",
+            name,
+            named: Boolean(file.name),
+            type: file.type,
+            error: refuseFile({ type: file.type, name: file.name ?? "", size: file.size }),
+          });
+        }
+        return [...current, ...added];
       });
     },
     [writing],
@@ -1058,6 +1083,52 @@ export function ConversationProvider({
     },
     [photos.length, addPhotos],
   );
+
+  /** 041. The platform's document picker, PDFs only, several at once. It
+   *  copies what is picked into the app's cache, which is what the upload
+   *  reads. */
+  const pickPdfs = useCallback(async (): Promise<void> => {
+    if (photos.filter((photo) => photo.kind === "pdf").length >= MAX_PDFS) {
+      setLine({ text: "Two PDFs at a time." });
+      return;
+    }
+    const result = await DocumentPicker.getDocumentAsync({
+      type: "application/pdf",
+      multiple: true,
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled) return;
+    addPhotos(
+      result.assets.map((asset) => ({
+        uri: asset.uri,
+        name: asset.name || null,
+        type: asset.mimeType ?? "application/pdf",
+        size: asset.size ?? null,
+      })),
+      "picker",
+    );
+    setFocusRequest((n) => n + 1);
+  }, [photos, addPhotos]);
+
+  /** 041. A PDF opened from a tile or a thumbnail, and each way it may not
+   *  open said in one line with what acts on it. */
+  const openPdf = useCallback(
+    (pdf: { blobId: string; openable?: boolean; unreadable?: boolean }, title: string | null) => {
+      void openPdfOnPhone(pdf, title).then((outcome) => {
+        if (outcome === "never") notify("Can't open this one.");
+        else if (outcome === "not_yet") notify("Not here yet.", { label: "Retry", onPress: () => openPdf(pdf, title) });
+        else if (outcome === "failed") notify("Did not open.", { label: "Retry", onPress: () => openPdf(pdf, title) });
+        else if (outcome === "no_viewer") notify("Did not open.", { label: "Share", onPress: () => sharePdf(pdf.blobId, title) });
+      });
+    },
+    [notify],
+  );
+
+  // 041. A copy a kill or a viewer left behind goes on launch and on sign-out.
+  useEffect(() => {
+    sweepPdfs();
+    onSignedOut(sweepPdfs);
+  }, []);
 
   const removePhoto = useCallback((key: string) => {
     setPhotos((current) => current.filter((photo) => photo.key !== key));
@@ -1222,14 +1293,20 @@ export function ConversationProvider({
     setDraft("");
     // The photos as they are drawn until the server's copies exist: the file
     // itself, under the chip's key until the upload gives it a blob.
-    const shown: PhotoOnWire[] = sendable.map((photo) => ({
-      blobId: photo.uploaded?.blobId ?? photo.key,
-      name: photo.name,
-      width: photo.uploaded?.width ?? 0,
-      height: photo.uploaded?.height ?? 0,
-      ready: false,
-      localUri: photo.uri,
-    }));
+    const shown: PhotoOnWire[] = sendable.map((photo) =>
+      photo.kind === "pdf"
+        ? // 041. A PDF has no picture of its own until page 1 is drawn.
+          { blobId: photo.uploaded?.blobId ?? photo.key, kind: "pdf", name: photo.name, ready: false, openable: false }
+        : {
+            blobId: photo.uploaded?.blobId ?? photo.key,
+            kind: "image",
+            name: photo.name,
+            width: photo.uploaded?.width ?? 0,
+            height: photo.uploaded?.height ?? 0,
+            ready: false,
+            localUri: photo.uri,
+          },
+    );
     const shownVoice: VoiceOnWire | null = spoken
       ? {
           blobId: noteUploaded.current?.blobId ?? `${clientKey}-voice`,
@@ -1275,15 +1352,27 @@ export function ConversationProvider({
           photo.uploaded ??
           (await uploadPhoto({ uri: photo.uri, name: photo.name, type: photo.type }, photo.key));
         setPhotos((current) => current.map((p) => (p.key === photo.key ? { ...p, uploaded } : p)));
-        sentPhotos.push({
-          blobId: uploaded.blobId,
-          name: photo.name,
-          width: uploaded.width,
-          height: uploaded.height,
-          ready: false,
-          // The file itself, until the server's copy exists.
-          localUri: photo.uri,
-        });
+        sentPhotos.push(
+          photo.kind === "pdf"
+            ? {
+                blobId: uploaded.blobId,
+                kind: "pdf",
+                name: photo.name,
+                ...(uploaded.pages !== undefined ? { pages: uploaded.pages } : {}),
+                ready: false,
+                openable: false,
+              }
+            : {
+                blobId: uploaded.blobId,
+                kind: "image",
+                name: photo.name,
+                width: uploaded.width ?? 0,
+                height: uploaded.height ?? 0,
+                ready: false,
+                // The file itself, until the server's copy exists.
+                localUri: photo.uri,
+              },
+        );
       }
       // 021. The voice note the same way, under the draft's own key with a
       // suffix, so a retry finds the upload the server already made.
@@ -1357,7 +1446,7 @@ export function ConversationProvider({
         setLine({ text: "Your storage is full." });
       } else if (
         error instanceof PhotoRefused &&
-        (error.reason === "too_big" || error.reason === "not_a_photo")
+        (error.reason === "too_big" || error.reason === "not_a_photo" || error.reason === "locked_pdf")
       ) {
         // The server disagreed with the device about one of them. Mark the
         // first chip not yet landed; the remove control is the way forward.
@@ -1511,6 +1600,8 @@ export function ConversationProvider({
         offerPhoto: () => setPhotoSheet(true),
         closePhotoSheet: () => setPhotoSheet(false),
         pickPhotos,
+        pickPdfs,
+        openPdf,
         line,
         clearLine,
         dayUsed,

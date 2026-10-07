@@ -152,7 +152,9 @@ const HOUR = /^([01]\d|2[0-3]):[0-5]\d$/;
  *  wording someone agreed to rather than only that they agreed to something.
  *  When the policy changes materially this changes with it, and the gap between
  *  a stored version and this one is the query that finds who has to be asked
- *  again. Must match UPDATED in apps/web/src/app/(marketing)/privacy/page.tsx. */
+ *  again. Never later than UPDATED in apps/web/src/app/(marketing)/privacy/page.tsx;
+ *  a change that only names something the policy already covers moves that
+ *  date alone (041, 7 October 2026). */
 export const CONSENT_VERSION = "2026-10-06";
 
 /** invited -> active, plus the consent record and the event, in one transaction.

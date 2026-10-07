@@ -38,9 +38,23 @@ const terms = textOf(renderToStaticMarkup(<Terms />));
 const source = (path: string) => readFileSync(`${process.cwd()}/src/${path}`, "utf8");
 
 describe("the privacy policy, general", () => {
-  it("is titled as a privacy policy and dated 6 October 2026", () => {
+  it("is titled as a privacy policy and dated 7 October 2026", () => {
     expect(policyHtml).toMatch(/<h1[^>]*>Privacy policy<\/h1>/);
-    expect(policy).toContain("Last updated 6 October 2026");
+    expect(policy).toContain("Last updated 7 October 2026");
+  });
+
+  // 041. PDFs, wherever the page says what is put in, kept, made, sent to a
+  // model, shared and encrypted.
+  it("names PDFs where it names photos", () => {
+    expect(policy).toContain("notes, links, photos, screenshots, PDFs, voice notes");
+    expect(policy).toContain("its text, its pictures and its PDFs, its subject, who sent it and when, but not the raw email or its other attachments");
+    expect(policy).toContain("descriptions of what photos, screenshots and PDFs show, including any words in them. The text of a PDF itself is not kept.");
+    expect(policy).toContain("Sorting, reading photos and PDFs, transcribing voice notes");
+    expect(policy).toContain("what you just put in (of a PDF, its first ten pages),");
+    expect(policy).toContain("A PDF in a shared thread opens for its members as a copy without the details of who made it and without anything in it that could run.");
+    expect(policy).toContain("your photos, screenshots, PDFs, voice note audio and the pictures and PDFs in email you forward");
+    expect(policy).toContain("what offload writes about a photo or a PDF");
+    expect(policy).toContain("A PDF you open on your phone is handed to the phone's own viewer from a private copy, deleted when you come back to offload.");
   });
 
   it("names the controller and says it is for the United States only", () => {
@@ -222,7 +236,9 @@ describe("040 the memories tab", () => {
   });
 
   it("moves both dates", () => {
-    expect(policy).toContain("Last updated 6 October 2026");
+    // 041 moved the policy alone: PDFs named in it, no company added, so the
+    // companies page keeps its own date.
+    expect(policy).toContain("Last updated 7 October 2026");
     expect(companies).toContain("Last updated 6 October 2026");
   });
 });

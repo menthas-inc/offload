@@ -21,9 +21,16 @@ describe("the privacy page says what the map adds (T5.3)", () => {
     expect(companies).toContain("Acts for itself under its own terms");
   });
 
-  it("moves its date with the consent version", () => {
-    expect(page).toContain('const UPDATED = "6 October 2026"');
-    expect(session).toContain('export const CONSENT_VERSION = "2026-10-06";');
+  it("never asks consent to a version later than the page", () => {
+    // A material change moves both. One that names something the policy
+    // already covers moves the page's date alone, as 041 did on 7 October
+    // with PDFs, and nobody is asked again.
+    const updated = /const UPDATED = "(\d+) (\w+) (\d{4})"/.exec(page);
+    const version = /export const CONSENT_VERSION = "(\d{4}-\d{2}-\d{2})";/.exec(session);
+    expect(updated && version).toBeTruthy();
+    const pageDay = new Date(`${updated![2]} ${updated![1]}, ${updated![3]} 12:00 UTC`).toISOString().slice(0, 10);
+    expect(version![1] <= pageDay).toBe(true);
+    expect(version![1]).toBe("2026-10-06");
   });
 });
 

@@ -7,7 +7,7 @@
 export interface CopyFile {
   /** Path inside the archive: `files/<blob id>.<ext>`. An id, never a name. */
   path: string;
-  kind: "image" | "audio";
+  kind: "image" | "audio" | "pdf";
   name: string | null;
 }
 
@@ -122,9 +122,10 @@ function files(list: CopyFile[], root: string): string {
     .map((file) => {
       const src = esc(root + file.path);
       const label = esc(file.name ?? file.path.slice("files/".length));
-      return file.kind === "image"
-        ? `<a href="${src}"><img src="${src}" alt="${label}"></a>`
-        : `<audio controls src="${src}"></audio><p class="quiet"><a href="${src}">${label}</a></p>`;
+      if (file.kind === "image") return `<a href="${src}"><img src="${src}" alt="${label}"></a>`;
+      // 041. A link a browser opens in its own viewer, from the folder.
+      if (file.kind === "pdf") return `<p><a href="${src}">${label}</a></p>`;
+      return `<audio controls src="${src}"></audio><p class="quiet"><a href="${src}">${label}</a></p>`;
     })
     .join("");
 }

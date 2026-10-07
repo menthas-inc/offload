@@ -454,6 +454,7 @@ export function Composer({
                 <AttachChip
                   key={photo.key}
                   name={photo.name}
+                  kind={photo.kind}
                   error={photo.error}
                   disabled={sending || writing}
                   onRemove={() => removePhoto(photo.key)}
@@ -470,7 +471,8 @@ export function Composer({
                 onPress={offerPhoto}
                 disabled={sending || writing || dayUsed}
                 hitSlop={5}
-                accessibilityLabel="Add a photo"
+                // 041. The sheet it opens takes a PDF too; the glyph is the kit's.
+                accessibilityLabel="Add a photo or PDF"
                 className="items-center justify-center rounded-pill"
                 style={{ width: 34, height: 34 }}
               >

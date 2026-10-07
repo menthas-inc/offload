@@ -60,6 +60,7 @@ from anthropic import AsyncAnthropic
 
 from offload_agent import memories as memories_mod
 from offload_agent import nightly as nightly_mod
+from offload_agent import pdfs as pdfs_mod
 from offload_agent.config import Config
 from offload_agent.context import (
     AnswerContext,
@@ -67,12 +68,14 @@ from offload_agent.context import (
     LabelRef,
     Mail,
     Memory,
+    Pdf,
     Photo,
     Thread,
     Turn,
     mail_of,
 )
 from offload_agent.countries import name_of
+from offload_agent.harness.look import look
 from offload_agent.harness.plan import (
     classify,
     judge_answer,
@@ -88,6 +91,7 @@ from offload_agent.worker import (
     _from_the_dump,
     _in_the_dump,
     _reply_as_sent,
+    fit_documents,
     parse_answer,
 )
 
@@ -106,6 +110,8 @@ HISTORY_MD = HERE / "HISTORY.md"
 _DEFAULTS = {f.name: f.default for f in Config.__dataclass_fields__.values()}
 MODELS = {
     "file": _DEFAULTS["model"],
+    # 041. The cheap look at an email's pictures and PDF pages.
+    "look": _DEFAULTS["sort_model"],
     "answer": _DEFAULTS["answer_model"],
     "classify": _DEFAULTS["sort_model"],
     "judge": _DEFAULTS["sort_model"],
@@ -251,6 +257,11 @@ _FIXTURE_KEYS = {
     "tool_errors",
     # 020. File names under fixtures/photos, attached to the dump in order.
     "photos",
+    # 041. File names under fixtures/pdfs, attached in order; and for the look
+    # surface, the PDFs and photos an email carried.
+    "pdfs",
+    "look_pdfs",
+    "look_photos",
     # 026. A forwarded email: {subject, from_name, from_address, sent_at, note,
     # forwarded}. The dump is built from it through the worker's own `mail_of`.
     "mail",
@@ -580,6 +591,8 @@ class Recorder:
         #: run here on the same record.
         self.budget = Lookups(dump, may_search=True, may_read_links=True)
         self.filed_ids = 0
+        #: 041. The PDF indexes filed, each once.
+        self.pdfs_filed: set[int] = set()
         self.content_timed: dict[str, bool] = {}
         self.refused_time_once = False
         #: Title of every row this turn added, by the id handed back, so an
@@ -621,6 +634,7 @@ class Recorder:
             bool(args.get("after_lookup"))
             or bool(fx.get("mail"))
             or bool(fx.get("photos"))
+            or bool(fx.get("pdfs"))
             or bool(re.search(r"https?://|\bwww\.", self.dump, re.I))
         )
         if tainted:
@@ -781,6 +795,17 @@ class Recorder:
                 return {"ok": False, "error": "location_not_here"}
             if _place_refused(str(args["location"])):
                 return {"ok": False, "error": "bad_place_name"}
+        # 041. The PDF index as the Core API resolves it: a `file` row only
+        # with a PDF this message carries, and each PDF once. A stub that took
+        # any index would pass a model that files a PDF twice or as a task.
+        if tool == "add_content" and (args.get("pdf") or args.get("type") == "file"):
+            index = args.get("pdf")
+            count = len(fx.get("pdfs") or [])
+            if args.get("type") != "file" or not index or not 1 <= int(index) <= count:
+                return {"ok": False, "error": "unknown_pdf"}
+            if index in self.pdfs_filed:
+                return {"ok": False, "error": "unknown_pdf"}
+            self.pdfs_filed.add(index)
         if tool in {"add_content", "add_note"}:
             self.filed_ids += 1
             thread_id = str(args.get("thread_id") or "")
@@ -1105,6 +1130,11 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
             return False
         if matcher.get("no_photo") and args.get("photo"):
             return False
+        # 041. Which PDF, the same way.
+        if "pdf" in matcher and args.get("pdf") != matcher["pdf"]:
+            return False
+        if matcher.get("no_pdf") and args.get("pdf"):
+            return False
         # And what the body carries, for the transcription rules: a digit run
         # a passport must not leak, a line a screenshot must.
         body = str(args.get("body") or "")
@@ -1418,6 +1448,49 @@ _spent: list[float] = []
 
 
 PHOTO_FIXTURES = Path(__file__).parent / "fixtures" / "photos"
+PDF_FIXTURES = Path(__file__).parent / "fixtures" / "pdfs"
+
+
+async def _pdfs(fx: dict) -> list[Pdf]:
+    """041. The case's PDFs, by file name under `fixtures/pdfs/`, through the
+    worker's own clean, cut and request bound, so the model reads what it
+    would."""
+    out: list[Pdf] = []
+    for at, name in enumerate(fx.get("pdfs") or []):
+        made = pdfs_mod.make((PDF_FIXTURES / name).read_bytes())
+        out.append(
+            Pdf(
+                blob_id=f"pdf-{at + 1}",
+                index=at + 1,
+                pages=made.pages,
+                cut=made.cut,
+                clean=made.clean,
+                large=made.large,
+            )
+        )
+    fitted, _ = await fit_documents(out, other_bytes=0)
+    return fitted
+
+
+async def _run_look(client: AsyncAnthropic, case: Case, model: str) -> Result:
+    """041. The look at an email's pictures: page 1 of each PDF, as the worker
+    draws it, then the photos, and which it keeps by index."""
+    fx = case.fixture
+    pictures = [
+        pdfs_mod.look_picture((PDF_FIXTURES / n).read_bytes()) for n in fx.get("look_pdfs") or []
+    ]
+    pictures += [(PHOTO_FIXTURES / n).read_bytes() for n in fx.get("look_photos") or []]
+    try:
+        kept = await look(client, model, pictures)
+    except Exception as exc:  # noqa: BLE001
+        return Result(case, "", "", [f"raised {type(exc).__name__}: {exc}"], False, "")
+    transcript = f"kept {sorted(kept)} of {len(pictures)}"
+    failures = []
+    want = sorted(case.expect.get("keep", []))
+    if sorted(kept) != want:
+        failures.append(f"kept {sorted(kept)}, wanted {want}")
+    cost = _cost(model, 600 * len(pictures), 60)
+    return Result(case, "", transcript, failures, True, transcript, cost=cost)
 
 
 def _mail(fx: dict) -> Mail | None:
@@ -1485,6 +1558,7 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         # 020. The photos, as the worker would hand them over: the large
         # rendition of each fixture, made by the real rendition code.
         photos=_photos(fx),
+        pdfs=await _pdfs(fx),
         memories=_memories(fx),
     )
     return await _file_with(client, case, model, ctx, rec)
@@ -2236,6 +2310,7 @@ _SURFACES = {
     "cast-file": _run_cast_file,
     "cast-answer": _run_cast_answer,
     "file": _run_file,
+    "look": _run_look,
     "answer": _run_answer,
     "classify": _run_classify,
     "judge": _run_judge,

@@ -3,6 +3,7 @@
 **Status:** drafted 2026-09-20, revised the same day with the product owner's answers and the three reviews
 **Surfaces:** web, iOS, Android, the Core API and the agent plane
 **Depends on:** 003, whose message this rides; 004, 006 and 013, which act on the words once they are written down; 017, whose one line says what is happening while they are, and whose Stop learns to wait for one thing; 018, whose open question a spoken answer can close; 020, whose upload, encryption, claim and purge this reuses, and whose every reader of `blobs` learns to tell a photo from a voice note
+**Amended by 041 (2026-10-07):** blobs gain a third kind, `pdf`, with `pages` and `clean_at`; every reader of a message's blobs still names the kinds it reads, and the end-of-turn filing gains a `pdf` arm that files *A PDF* with its page count. See `docs/specs/041-pdfs/`.
 
 ## Why
 
