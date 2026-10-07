@@ -2215,10 +2215,6 @@ def main() -> None:
     asyncio.run(_main())
 
 
-if __name__ == "__main__":
-    main()
-
-
 async def _handle_answer(
     job: ClaimedJob,
     *,
@@ -2318,3 +2314,7 @@ def _embed_query(cfg: Config, http: httpx.AsyncClient, timeout: float = SEARCH_S
     half a minute, and the text arm answers alone.
     """
     return query_embedder(cfg.voyage_api_key, http, timeout)
+
+
+if __name__ == "__main__":
+    main()
