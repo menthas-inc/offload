@@ -54,6 +54,7 @@ export type JobKind =
   | "embed.sweep"
   | "embed.content"
   | "embed.note"
+  | "embed.memory"
   | "embed.message"
   // 020. The R2 delete for a blob nothing references, outside any
   // transaction; and naming a photo's rounded coordinate, behind the same

@@ -29,6 +29,8 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.deleteFrom("content_chunks").execute();
+  await db.deleteFrom("note_chunks").execute();
+  await db.deleteFrom("message_chunks").execute();
   await db.deleteFrom("notes").execute();
   await db.deleteFrom("content").execute();
   await db.updateTable("accounts").set({ default_thread_id: null }).execute();
@@ -449,6 +451,81 @@ describe("search reads notes and conversations, and does not draw them", () => {
     // the switch, and context.py already filters it where notes reach a
     // prompt, so the two agree.
     expect((await search(ana, { query: "aisle" })).asides ?? []).toEqual([]);
+  });
+});
+
+describe("notes and conversations are found by meaning too, as content is", () => {
+  /** A unit vector along one axis: two notes on different axes are far apart,
+   *  and a query on one axis is nearest the note on it. */
+  const along = (axis: number) => `[${Array.from({ length: 1024 }, (_, i) => (i === axis ? 1 : 0)).join(",")}]`;
+
+  async function note(threadId: string, accountId: string, text: string, axis: number, extra: { mutedAt?: boolean } = {}) {
+    const row = await db
+      .insertInto("notes")
+      .values({
+        scope: "thread",
+        subject_id: threadId,
+        account_id: accountId,
+        kind: "standing",
+        text,
+        origin: "stated",
+        ...(extra.mutedAt ? { muted_at: sql`now()` } : {}),
+      } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await sql`insert into note_chunks (note_id, subject_id, ord, text, embedding, embedded_at)
+      values (${row.id}, ${threadId}, 0, ${text}, ${along(axis)}::halfvec, now())`.execute(db);
+    return row.id;
+  }
+
+  async function said(accountId: string, role: "person" | "offload", text: string, axis: number) {
+    const chat = await db.insertInto("conversations").values({ account_id: accountId }).returning("id").executeTakeFirstOrThrow();
+    const row = await db
+      .insertInto("messages")
+      .values({ conversation_id: chat.id, account_id: accountId, role, turn_id: uuidv7(), text, state: "answered" })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await sql`insert into message_chunks (message_id, account_id, role, ord, text, embedding, embedded_at)
+      values (${row.id}, ${accountId}, ${role}, 0, ${text}, ${along(axis)}::halfvec, now())`.execute(db);
+    return row.id;
+  }
+
+  it("finds a note that shares no word with the question, nearest first", async () => {
+    const ana = await account();
+    const home = await thread(ana, "Home");
+    await note(home, ana, "Bins go out on Tuesday night", 2);
+    await note(home, ana, "The heater was replaced in 2024", 1);
+
+    const found = await search(ana, { query: "boiler", queryVector: along(1) });
+    expect(found.asides?.filter((a) => a.kind === "note")[0]?.text).toBe("The heater was replaced in 2024");
+  });
+
+  it("finds a message that shares no word with the question", async () => {
+    const ana = await account();
+    await said(ana, "person", "the plumber comes on Friday", 1);
+
+    const found = await search(ana, { query: "boiler", queryVector: along(1) });
+    expect(found.asides?.filter((a) => a.kind === "message").map((a) => a.text)).toEqual(["the plumber comes on Friday"]);
+  });
+
+  it("keeps every filter the words obey: muted notes, other accounts, messages already filed", async () => {
+    const ana = await account();
+    const bea = await account();
+    const home = await thread(ana, "Home");
+    await note(home, ana, "The heater was replaced in 2024", 1, { mutedAt: true });
+    await said(bea, "person", "the plumber comes on Friday", 1);
+    const filed = await said(ana, "person", "buy a new boiler filter", 1);
+    await db.insertInto("content").values({ thread_id: home, account_id: ana, title: "Boiler filter", type: "task", derived_from_message_id: filed }).execute();
+
+    const found = await search(ana, { query: "plumbing", queryVector: along(1) });
+    expect(found.asides ?? []).toEqual([]);
+  });
+
+  it("still finds by words alone when there is no vector", async () => {
+    const ana = await account();
+    const home = await thread(ana, "Home");
+    await note(home, ana, "The heater was replaced in 2024", 1);
+    expect((await search(ana, { query: "heater" })).asides?.map((a) => a.text)).toEqual(["The heater was replaced in 2024"]);
   });
 });
 

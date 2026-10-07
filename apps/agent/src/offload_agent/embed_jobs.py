@@ -30,7 +30,7 @@ from offload_agent.queue import ClaimedJob, finish, release_for_retry
 
 log = structlog.get_logger()
 
-KINDS = ["embed.content", "embed.note", "embed.message"]
+KINDS = ["embed.content", "embed.note", "embed.message", "embed.memory"]
 
 
 _CONTENT = text(
@@ -76,9 +76,63 @@ _SOURCES = {
 }
 
 
+# 040. A memory: one sentence, one vector, on its own row and never chunked,
+# so search cannot return it. `updated_at` is read with it and guards the
+# write, so a vector never lands on words that changed while it was made.
+_MEMORY = text(
+    """
+    select text, updated_at from notes
+    where id = :id and scope = 'account'
+      and deleted_at is null and superseded_at is null
+    """
+)
+
+_MEMORY_VECTOR = text(
+    """
+    update notes
+    set embedding = cast(:embedding as halfvec), embedding_model = :model, embedded_at = now()
+    where id = :id and scope = 'account' and updated_at = :version
+    """
+)
+
+
+async def _embed_memory(job: ClaimedJob, row_id: str, *, cfg: Config, engine, http) -> None:
+    async with engine.connect() as conn:
+        found = (await conn.execute(_MEMORY, {"id": row_id})).mappings().first()
+    if found is None or not cfg.voyage_api_key:
+        if found is not None:
+            log.info("embed skipped, no key", kind=job.kind, chunks=1)
+        async with engine.begin() as conn:
+            await finish(conn, job.id)
+        return
+    try:
+        vectors = await embed([found["text"]], client=http, api_key=cfg.voyage_api_key)
+    except EmbeddingUnavailable as error:
+        log.warning("embed unavailable", kind=job.kind, reason=str(error))
+        async with engine.begin() as conn:
+            await release_for_retry(conn, job.id, "embed_unavailable", delay_seconds=60)
+        return
+    async with engine.begin() as conn:
+        written = await conn.execute(
+            _MEMORY_VECTOR,
+            {
+                "id": row_id,
+                "embedding": to_pgvector(vectors[0]),
+                "model": MODEL,
+                "version": found["updated_at"],
+            },
+        )
+        await finish(conn, job.id)
+    # Zero rows is newer words: the next sweep books them.
+    log.info("embedded", kind=job.kind, chunks=written.rowcount)
+
+
 async def handle_embed(job: ClaimedJob, *, cfg: Config, engine, http: httpx.AsyncClient) -> None:
     """One row, chunked, stored, and embedded if we can reach Voyage."""
     row_id = job.payload.get("rowId")
+    if row_id and job.kind == "embed.memory":
+        await _embed_memory(job, row_id, cfg=cfg, engine=engine, http=http)
+        return
     spec = _SOURCES.get(job.kind)
     if not row_id or spec is None:
         async with engine.begin() as conn:

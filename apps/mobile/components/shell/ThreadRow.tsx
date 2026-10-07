@@ -14,20 +14,14 @@
 // 028. The default thread is never in the list, so no row refuses its swipe.
 
 import { Platform, Text, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
+import { GestureDetector } from "react-native-gesture-handler";
+import Animated from "react-native-reanimated";
 import { Glyph } from "../Glyph";
 import { ThreadIcon } from "../ThreadIcon";
 import { useColors } from "../../lib/colors";
 import type { ThreadRow as Row } from "../../lib/threads";
+import { REVEAL, useRowSwipe } from "./swipe";
 
-/** How far the row parks open, from the component contract. */
-const REVEAL = 88;
 const isAndroid = Platform.OS === "android";
 
 interface Props {
@@ -39,49 +33,8 @@ interface Props {
 
 export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
   const COLOR = useColors();
-  const dx = useSharedValue(0);
-
-  const close = (): void => {
-    dx.value = withSpring(0, { damping: 20, stiffness: 220 });
-  };
-
-  const pan = Gesture.Pan()
-    // Horizontal only, and only past a real threshold, or the list cannot be
-    // scrolled without rows twitching under the thumb.
-    .activeOffsetX([-12, 12])
-    .failOffsetY([-8, 8])
-    .onUpdate((event) => {
-      dx.value = Math.min(0, Math.max(-REVEAL - 24, event.translationX));
-    })
-    .onEnd(() => {
-      if (dx.value < -REVEAL / 2) {
-        dx.value = withSpring(-REVEAL, { damping: 20, stiffness: 220 });
-      } else {
-        dx.value = withSpring(0, { damping: 20, stiffness: 220 });
-      }
-    });
-
-  const tap = Gesture.Tap().onEnd((_event, ok) => {
-    if (!ok) return;
-    if (dx.value !== 0) {
-      dx.value = withSpring(0, { damping: 20, stiffness: 220 });
-      return;
-    }
-    runOnJS(onOpen)();
-  });
-
-  const sliding = useAnimatedStyle(() => ({ transform: [{ translateX: dx.value }] }));
-
-  /** The reveal is a property of the gesture, not of the row's existence.
-   *
-   *  A ramp over the first 12px and `pointerEvents` off while closed, which is
-   *  what the `SwipeRow` contract now specifies. Covering it with the row's
-   *  opaque background is not enough: any group fade over the screen, a tab
-   *  change or a modal, shows it through every closed row at once. */
-  const revealed = useAnimatedStyle(() => ({
-    opacity: Math.min(1, Math.abs(dx.value) / 12),
-    pointerEvents: dx.value === 0 ? "none" : "auto",
-  }));
+  // The gesture is `swipe.ts`'s, shared with 040's memory row.
+  const { gesture, sliding, revealed, close } = useRowSwipe(onOpen);
 
   return (
     <View className="relative">
@@ -102,7 +55,7 @@ export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
         </Text>
       </Animated.View>
 
-      <GestureDetector gesture={Gesture.Simultaneous(pan, tap)}>
+      <GestureDetector gesture={gesture}>
         <Animated.View
           style={sliding}
           // Centred, not top-aligned: a thread with no line under its name sits

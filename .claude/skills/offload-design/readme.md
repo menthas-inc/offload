@@ -1139,6 +1139,32 @@ It replaces the three dots and the line *Looking through your threads* on all th
 - **No bubble.** Nothing in the row is offload speaking.
 - **Reduced motion** draws the mark whole and still.
 
+## The Memories tab
+
+Decided 6 October 2026 off `explorations/memories-v2.html` and `explorations/memories-proto.html`, 038's fast
+follow. Build: `handoff/APPLY-2026-10-06-memories.md`. Kit: `ui_kits/memories_tab/`.
+
+**A memory is what offload knows about you across your threads; a note is what one thread knows about
+itself.** The tab shows every memory and lets you add, change and forget them. It replaces the empty Notes tab,
+keeps the `cloudy` glyph, and is called **Memories** on all three surfaces.
+
+**Five kinds, each a label hue:** People `--label-2`, Things `--label-1`, About `--label-6`, Rules in ink,
+Patterns `--label-5`. *Their words* is part of About, and no label says *their*. Rules are ink because they are
+the only kind offload obeys. **Origin is never a colour:** a learned memory carries the spark in
+`--text-noticed`; *You said* and *Your answer* are plain.
+
+**Two views of one set, behind `Segmented`'s icon variant, List | Map**, as a thread's map. It always opens on List.
+
+- **List:** By kind (sections in the order above, a dot of the hue, the count) or Newest (This week, Earlier).
+  The sentence in full, then `You said · 3 Oct`. Tap to edit, swipe to **Forget** with eight seconds of Undo.
+- **Map:** each kind a cloud of its hue on the paper and prism ground, memories that mean similar things
+  together inside it, one row each so sentences never overlap. Far out they are dots; from zoom 0.55 they are
+  sentences whose type grows with the zoom. Kind labels are pills on the hue's soft tint; kinds off screen dock
+  in one row along the top with an arrow towards them. Phones stack the kinds down a tall world; web lays
+  them out wide. The shape is picked once when the map opens and never reshuffles.
+- **The editor** is one sheet (web: the right-hand pane) from either view: the sentence with a 200 count, the
+  five kinds as a grid, where it came from, and Forget in clay. Changing a learned memory makes it yours.
+
 ## The landing page
 
 Decided 4 October 2026 off `explorations/landing-scroll.html`, direction C, *Through the prism*. Build:

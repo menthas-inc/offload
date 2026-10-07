@@ -845,6 +845,73 @@
         ],
         "max_words": 16
       }
+    },
+    {
+      "id": "aside-note-by-meaning",
+      "why": "a note found by meaning, sharing no word with the question, is the answer (2026-10-07: the asides gained a vector arm)",
+      "surface": "answer",
+      "input": "when did we replace the boiler",
+      "context": "three",
+      "threads": [
+        {
+          "id": "00000001-0000-0000-0000-000000000000",
+          "name": "Lisbon trip"
+        },
+        {
+          "id": "00000004-0000-0000-0000-000000000000",
+          "name": "Home"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "rows": [],
+      "asides": [
+        {
+          "kind": "note",
+          "who": "a member",
+          "threadName": "Home",
+          "text": "The heater was replaced in 2024"
+        }
+      ],
+      "expect": {
+        "called": [
+          "search"
+        ],
+        "contains": [
+          "2024"
+        ],
+        "max_words": 20,
+        "rubric": "Answers from the Home note that it was replaced in 2024, in a sentence or less. It may say the note calls it the heater. It does not say it found nothing, does not invent a month or a day, and does not talk about searching."
+      }
+    },
+    {
+      "id": "aside-message-by-meaning",
+      "why": "something they said earlier, found by meaning, answers a question in other words",
+      "surface": "answer",
+      "input": "when is someone coming to fix the leak",
+      "context": "three",
+      "rows": [],
+      "asides": [
+        {
+          "kind": "message",
+          "who": "you",
+          "threadName": null,
+          "text": "the plumber comes on Friday"
+        }
+      ],
+      "expect": {
+        "called": [
+          "search"
+        ],
+        "contains": [
+          "Friday"
+        ],
+        "max_words": 20,
+        "rubric": "Says the plumber is coming on Friday, from what they said earlier, in a sentence or less. It does not claim a time, does not say it added or changed anything, and does not talk about searching."
+      }
     }
   ]
 }

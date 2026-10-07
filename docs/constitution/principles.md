@@ -35,7 +35,7 @@
 
   *Amended 2026-09-10 by 014, which merged memories and dumped sentences into one derived table and made this distinction load-bearing. Amended in the same change with one dated exception: 014's migration deletes the `note` content rows that exist on 2026-09-10, once, while the product is in alpha and invite only. It is an exception rather than a precedent, and it is written here rather than left in a migration comment.*
 
-  *A second dated exception, the product owner's on 2026-10-05, for 038: memories, what offload knows about a person across their threads, ship without a screen that shows them. The owner accepted that knowingly as a fast follow. Until the Memories tab ships, a person sees them by asking offload what it remembers and in their export, and corrects one by telling offload to forget it. The exception ends when the tab ships, and is not a precedent for any other derived state.*
+  *A second dated exception, the product owner's on 2026-10-05, for 038: memories, what offload knows about a person across their threads, ship without a screen that shows them. The owner accepted that knowingly as a fast follow. Until the Memories tab ships, a person sees them by asking offload what it remembers and in their export, and corrects one by telling offload to forget it. The exception ends when the tab ships, and is not a precedent for any other derived state.* *Ended 2026-10-06 by 040: the Memories tab shows every memory offload keeps about the person, on all three surfaces, and lets them add, change and forget each one.*
 
   The hard line is on the way out: no content in analytics events, no content in LLM traces, no content in application logs, no content in error reports. Those carry ids, kinds, counts, tokens, latency and outcomes only.
 

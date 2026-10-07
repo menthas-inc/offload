@@ -1,0 +1,761 @@
+/* 040. The Memories pane, from ui_kits/memories_tab (the web branch of
+   memories.js and memories.css): the list column, and the editor as a 400px
+   pane on its right while one is open. Each kind is a thread label hue, with
+   its tints mixed in oklch as the kit mixes them; Rules are ink. */
+
+/* CSS modules take no bare attribute selector, so the hue is set on each
+   class that draws one. */
+.head[data-k],
+.row[data-k],
+.kind[data-k],
+.cloud[data-k],
+.dot[data-k],
+.pill[data-k],
+.label[data-k],
+.dockLabel[data-k] {
+  --kt: color-mix(in oklch, var(--k) 12%, var(--surface-raised));
+  --kt2: color-mix(in oklch, var(--k) 22%, var(--surface-raised));
+  --ki: color-mix(in oklch, var(--k) 78%, var(--text-primary));
+}
+
+.head[data-k="people"],
+.row[data-k="people"],
+.kind[data-k="people"],
+.cloud[data-k="people"],
+.dot[data-k="people"],
+.pill[data-k="people"],
+.label[data-k="people"],
+.dockLabel[data-k="people"] {
+  --k: var(--label-2);
+}
+
+.head[data-k="things"],
+.row[data-k="things"],
+.kind[data-k="things"],
+.cloud[data-k="things"],
+.dot[data-k="things"],
+.pill[data-k="things"],
+.label[data-k="things"],
+.dockLabel[data-k="things"] {
+  --k: var(--label-1);
+}
+
+.head[data-k="about"],
+.row[data-k="about"],
+.kind[data-k="about"],
+.cloud[data-k="about"],
+.dot[data-k="about"],
+.pill[data-k="about"],
+.label[data-k="about"],
+.dockLabel[data-k="about"] {
+  --k: var(--label-6);
+}
+
+.head[data-k="rules"],
+.row[data-k="rules"],
+.kind[data-k="rules"],
+.cloud[data-k="rules"],
+.dot[data-k="rules"],
+.pill[data-k="rules"],
+.label[data-k="rules"],
+.dockLabel[data-k="rules"] {
+  --k: var(--text-primary);
+}
+
+.head[data-k="patterns"],
+.row[data-k="patterns"],
+.kind[data-k="patterns"],
+.cloud[data-k="patterns"],
+.dot[data-k="patterns"],
+.pill[data-k="patterns"],
+.label[data-k="patterns"],
+.dockLabel[data-k="patterns"] {
+  --k: var(--label-5);
+}
+
+
+.columns {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  border-top: 1px solid var(--border-hairline);
+  margin-top: var(--space-6);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  overflow-y: auto;
+}
+
+.mapColumn {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.inner {
+  max-width: 700px;
+  margin: 0 auto;
+  /* Clears a closed composer, which floats over this. */
+  padding: var(--space-6) var(--space-7) 120px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: 700px;
+  width: 100%;
+  margin: var(--space-5) auto 0;
+  padding: 0 var(--space-8);
+  box-sizing: border-box;
+}
+
+.searchField {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 40px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-sm);
+  background: var(--surface-fill);
+  color: var(--text-tertiary);
+}
+
+.searchField input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: var(--weight-regular) calc(15px * var(--type-scale)) / 1.2 var(--font-core);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.searchField input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.emptyRow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.emptyMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-7) 0 var(--space-3);
+  padding: 0 var(--space-5);
+  font: var(--weight-semibold) calc(19px * var(--type-scale)) / 1.1 var(--font-core);
+  color: var(--text-primary);
+}
+
+.head em {
+  font-style: normal;
+  font: var(--weight-regular) var(--size-caption) / 1 var(--font-core);
+  color: var(--text-secondary);
+  background: var(--surface-fill);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-3);
+}
+
+.headDot {
+  width: 11px;
+  height: 11px;
+  border-radius: var(--radius-pill);
+  background: var(--k);
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  width: 100%;
+  padding: var(--space-5) var(--space-5);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.row + .row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--space-5);
+  right: 0;
+  height: 1px;
+  background: var(--border-hairline);
+}
+
+.row[data-dot] + .row[data-dot]::before {
+  left: calc(var(--space-5) + 22px);
+}
+
+.row:hover {
+  background: var(--state-hover);
+}
+
+.row[aria-current="true"] {
+  background: var(--surface-fill);
+}
+
+.row[aria-current="true"]::before,
+.row[aria-current="true"] + .row::before {
+  display: none;
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.rowDot {
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--k);
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+}
+
+.sentence {
+  display: block;
+  font: var(--weight-regular) calc(15.5px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-primary);
+  text-wrap: pretty;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: var(--space-2);
+  font: var(--weight-regular) calc(12.5px * var(--type-scale)) / 1.2 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.learned {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-noticed);
+}
+
+.line {
+  margin: var(--space-7) var(--space-5) 0;
+  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1.45 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.nothing {
+  margin-top: 60px;
+  text-align: center;
+  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1.45 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.failed {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-7) var(--space-5);
+  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-secondary);
+}
+
+/* ---------------------------------------------------------- the editor */
+
+.editor {
+  flex: 0 0 400px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  /* Clears the composer, which floats over the foot of every pane. */
+  padding: var(--space-7) var(--space-8) 120px;
+  border-left: 1px solid var(--border-hairline);
+  background: var(--surface-raised);
+}
+
+.editorHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+  font: var(--weight-semibold) calc(17px * var(--type-scale)) / 1 var(--font-core);
+}
+
+.field {
+  margin-top: var(--space-6);
+  padding: var(--space-5) var(--space-6) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-page);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.field:focus-within {
+  box-shadow: inset 0 0 0 2px var(--text-primary);
+}
+
+.field textarea {
+  display: block;
+  width: 100%;
+  min-height: 74px;
+  padding: 0;
+  border: 0;
+  resize: none;
+  background: transparent;
+  font: var(--weight-regular) calc(17px * var(--type-scale)) / 1.45 var(--font-core);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.field textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.count {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-3);
+  font: var(--weight-regular) var(--size-caption) / 1 var(--font-core);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.refused {
+  margin: var(--space-3) var(--space-1) 0;
+  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-danger);
+}
+
+.kindLabel {
+  margin: var(--space-7) var(--space-1) var(--space-4);
+  font: var(--weight-medium) calc(13px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.kinds {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.kind {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface-fill);
+  font: var(--weight-medium) calc(14px * var(--type-scale)) / 1.1 var(--font-core);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.kind > :first-child {
+  color: var(--ki);
+}
+
+.kind[aria-checked="true"] {
+  background: var(--kt2);
+  box-shadow: inset 0 0 0 2px var(--ki);
+  color: var(--ki);
+}
+
+.kind[data-k="rules"][aria-checked="true"] {
+  background: var(--surface-inverse);
+  box-shadow: none;
+  color: var(--text-inverse);
+}
+
+.kind[data-k="rules"][aria-checked="true"] > :first-child {
+  color: var(--text-inverse);
+}
+
+.kind:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.why {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  margin-top: var(--space-7);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--surface-fill);
+  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1.45 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.why > :first-child {
+  margin-top: 1px;
+}
+
+.why b {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.sever {
+  margin: var(--space-5) var(--space-1) 0;
+  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-primary);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-top: var(--space-7);
+}
+
+.forget {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 44px;
+  margin-right: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--weight-medium) calc(15px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-danger);
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .editor {
+    flex-basis: 340px;
+  }
+}
+
+/* ---------------------------------------------------------------- the map
+   From the kit's `.fd`: the paper with the oil ground over it, each kind a
+   radial cloud of its hue, dots far out and sentences close in. In light the
+   ground and the clouds are multiplied onto the paper; in dark they are
+   screened onto it at lower strength (owner, 2026-10-06). */
+
+.map {
+  position: absolute;
+  /* Stops above the composer, which floats over the pane, as a thread's map does. */
+  inset: 0 0 var(--map-foot) 0;
+  overflow: hidden;
+  background: var(--surface-page);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.map:active {
+  cursor: grabbing;
+}
+
+.ground {
+  position: absolute;
+  inset: -10%;
+  background: url("/prism/oil-ground.png") center / cover;
+  opacity: 0.22;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.cloud {
+  position: absolute;
+  border-radius: var(--radius-pill);
+  background: radial-gradient(
+    circle,
+    color-mix(in oklch, var(--k) 34%, transparent) 0,
+    color-mix(in oklch, var(--k) 14%, transparent) 45%,
+    transparent 70%
+  );
+  mix-blend-mode: multiply;
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+:global([data-theme="dark"]) .ground {
+  mix-blend-mode: screen;
+  opacity: 0.08;
+}
+
+:global([data-theme="dark"]) .cloud {
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+
+.dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--k);
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--surface-raised) 85%, transparent), var(--shadow-point);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+/* A 10px dot answers a 44px press, as the phones' do. */
+.dot::after,
+.zoom button::after {
+  content: "";
+  position: absolute;
+  inset: -17px;
+}
+
+.zoom button::after {
+  inset: -3px;
+}
+
+.zoom button {
+  position: relative;
+}
+
+.dot[data-learned] {
+  box-shadow: 0 0 0 2.5px var(--surface-noticed), var(--shadow-point);
+}
+
+.dot:hover {
+  transform: scale(1.5);
+}
+
+.pill {
+  position: absolute;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-sizing: border-box;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  border: 0;
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--k) 30%, transparent), var(--shadow-point);
+  font-family: var(--font-core);
+  font-weight: var(--weight-regular);
+  line-height: 1.3;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Its lines balanced inside the width `pillShape` gives it, and cut at its
+   line count only if the face runs wider than the estimate. */
+.pill > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: balance;
+}
+
+.pill > :first-child:not(span) {
+  color: var(--text-noticed);
+}
+
+.pill:hover {
+  box-shadow: inset 0 0 0 1.5px var(--ki), var(--shadow-point);
+}
+
+.pill[aria-current="true"] {
+  box-shadow: 0 0 0 2px var(--ki), var(--shadow-point-picked);
+}
+
+/* MAP_LOOK.dimmed in @offload/widgets, set on the map as --dimmed. */
+.pill[data-dim],
+.dot[data-dim] {
+  opacity: var(--dimmed);
+}
+
+.pill:focus-visible,
+.dot:focus-visible,
+.label:focus-visible,
+.dockLabel:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.label {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 var(--space-5) 0 10px;
+  transform: translate(-50%, -50%);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--kt2);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--k) 30%, transparent);
+  font: var(--weight-semibold) calc(13px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--ki);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.label u {
+  margin-left: 1px;
+  text-decoration: none;
+  font-weight: var(--weight-regular);
+  opacity: 0.85;
+}
+
+.label:hover {
+  background: var(--kt);
+}
+
+.label[data-k="rules"] {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+.dock {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.dockLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1.5px var(--ki), var(--shadow-2);
+  font: var(--weight-semibold) calc(13px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--ki);
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.dockLabel[data-k="rules"] {
+  background: var(--surface-inverse);
+  box-shadow: var(--shadow-2);
+  color: var(--text-inverse);
+}
+
+.dockArrow {
+  display: inline-flex;
+}
+
+.mapNothing {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1.45 var(--font-core);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.zoom {
+  position: absolute;
+  z-index: 3;
+  right: 14px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-hairline), var(--shadow-2);
+}
+
+.zoom button {
+  width: 38px;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  font: var(--weight-medium) calc(18px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.zoom b {
+  position: relative;
+  display: block;
+  width: 4px;
+  height: 46px;
+  border-radius: 2px;
+  background: var(--surface-fill);
+}
+
+.zoom i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 2px;
+  background: var(--text-secondary);
+}
+
+.everything {
+  position: absolute;
+  z-index: 3;
+  left: 14px;
+  bottom: 16px;
+  min-height: 34px;
+  padding: 0 var(--space-6);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--border-hairline), var(--shadow-2);
+  font: var(--weight-medium) calc(13.5px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    transition: none;
+  }
+}

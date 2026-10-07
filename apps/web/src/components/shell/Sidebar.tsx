@@ -32,6 +32,8 @@ export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityNew
   const tabs = [
     { href: "/today", label: "Today", icon: "sun", count: undefined as number | undefined },
     { href: "/threads", label: "My threads", icon: "message-circle", count: threadCount },
+    // 040. Where Notes was drawn inert until there was something to open.
+    { href: "/memories", label: "Memories", icon: "cloudy", count: undefined },
   ];
 
   // **Nothing is pinned, so nothing is shown as pinned.**
@@ -80,20 +82,6 @@ export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityNew
             </Link>
           );
         })}
-
-        {/* Notes is drawn and inert rather than absent. A nav that grows as
-            features land moves under people who have learned where things are,
-            and saying "nothing here yet" beats a click that does nothing. */}
-        <button
-          type="button"
-          className={styles.navItem}
-          disabled
-          aria-disabled="true"
-          title="Nothing here yet"
-        >
-          <Icon name="cloudy" size={17} />
-          <span className={styles.navLabel}>Notes</span>
-        </button>
       </div>
 
       {recent.length ? (

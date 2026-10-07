@@ -30,7 +30,7 @@ from offload_agent.cancels import Cancels, listen
 from offload_agent.config import Config
 from offload_agent.context import DumpContext, Photo
 from offload_agent.countries import name_of
-from offload_agent.embed import EmbeddingUnavailable, embed, to_pgvector
+from offload_agent.embed import SEARCH_SECONDS, query_embedder
 from offload_agent.embed_jobs import KINDS as EMBED_KINDS
 from offload_agent.embed_jobs import handle_embed
 from offload_agent.harness.look import LookFailed, look
@@ -51,7 +51,15 @@ from offload_agent.memories import handle_memories
 from offload_agent.nightly import KINDS as NIGHTLY_KINDS
 from offload_agent.nightly import handle_nightly
 from offload_agent.og import page, picture
-from offload_agent.queue import ClaimedJob, claim, finish, reap, release_for_retry, retry_or_die
+from offload_agent.queue import (
+    INTERACTIVE,
+    ClaimedJob,
+    claim,
+    finish,
+    reap,
+    release_for_retry,
+    retry_or_die,
+)
 from offload_agent.renditions import prepare
 from offload_agent.transcribe import TranscriptionFailed, forget, poll, submit
 
@@ -792,6 +800,9 @@ ARGUMENT_REFUSALS = frozenset(
         "too_long",
         "empty",
         "unknown_memory",
+        # 040. No room: the person makes it in Memories.
+        "rules_full",
+        "memories_full",
         "unknown_thread",
         # 025. label_content's, each answerable by a different call.
         "not_in_the_dump",
@@ -1303,6 +1314,7 @@ async def _handle(
                 message_id=message_id,
                 max_turns=cfg.max_turns,
                 max_threads=cfg.max_threads,
+                embedder=_embed_query(cfg, http, timeout=ctx_mod.QUERY_LONGEST),
             )
 
         if loaded is None:
@@ -1906,8 +1918,84 @@ async def _give_up_or_retry(
             await release_for_retry(conn, job.id, "undeliverable", delay_seconds=30)
 
 
+async def _lane(
+    name: str,
+    max_priority: int | None,
+    *,
+    cfg: Config,
+    stop: asyncio.Event,
+    engine,
+    anthropic: AsyncAnthropic,
+    http: httpx.AsyncClient,
+    cancels: Cancels,
+    worker_id: str,
+) -> None:
+    """Claim and run jobs, one at a time, until the worker stops.
+
+    `max_priority` bounds what this lane may claim. The interactive lane takes
+    only work somebody is waiting on; the general lane takes anything, in
+    priority order.
+    """
+    while not stop.is_set():
+        try:
+            async with engine.begin() as conn:
+                await reap(conn, KINDS, cfg.stale_after_seconds)
+                job = await claim(
+                    conn,
+                    worker_id,
+                    KINDS,
+                    cfg.per_account_running,
+                    stale_after_seconds=cfg.stale_after_seconds,
+                    max_priority=max_priority,
+                )
+
+            if job is None:
+                # Nothing to do. Wait, but wake immediately on shutdown
+                # rather than sleeping through it.
+                with contextlib.suppress(TimeoutError):
+                    await asyncio.wait_for(stop.wait(), timeout=cfg.poll_seconds)
+                continue
+
+            # **Cancelled before it was claimed.** The notification and the
+            # claim race, and this is the half of the race the listener
+            # cannot win: the job is already ours before the id arrives.
+            if cancels.asked(str(job.id)):
+                await _stopped(job, engine=engine, http=http, cfg=cfg)
+                cancels.done(str(job.id))
+                continue
+
+            # **In a task rather than awaited directly**, which is the whole
+            # mechanism: a coroutine being awaited cannot be interrupted, and
+            # a task can. Cancelling it raises at the next await, which
+            # inside an Anthropic call is the socket read.
+            running = asyncio.create_task(
+                handle(job, cfg=cfg, engine=engine, anthropic=anthropic, http=http)
+            )
+            cancels.watching(str(job.id), running)
+            try:
+                await running
+            except asyncio.CancelledError:
+                # **Ours, not the loop's.** A cancel aimed at this job must
+                # not read as a shutdown, so it is caught here and the worker
+                # carries on. If the process is actually stopping, `stop` is
+                # set and the `while` ends on its own.
+                if stop.is_set():
+                    raise
+                await _stopped(job, engine=engine, http=http, cfg=cfg)
+            finally:
+                cancels.done(str(job.id))
+
+        except Exception as exc:  # noqa: BLE001
+            # The loop itself must not die. A worker that exits on a
+            # transient database blip stops answering everybody.
+            log.error("worker loop error", lane=name, error_type=type(exc).__name__)
+            await asyncio.sleep(cfg.poll_seconds)
+
+
 async def run(cfg: Config, stop: asyncio.Event) -> None:
-    engine = create_async_engine(cfg.database_url, pool_size=4, pool_pre_ping=True)
+    # Five: the cancel listener holds one for the life of the process, and each
+    # lane can hold two at once (the nightly pass writes while it reads).
+    engine = create_async_engine(cfg.database_url, pool_size=5, pool_pre_ping=True)
     anthropic = AsyncAnthropic(api_key=cfg.anthropic_api_key)
     worker_id = f"agent-{uuid.uuid4().hex[:8]}"
 
@@ -1929,59 +2017,25 @@ async def run(cfg: Config, stop: asyncio.Event) -> None:
     async with httpx.AsyncClient() as http:
         # 034. One beat a minute, beside the loop rather than inside it.
         beats = asyncio.create_task(heartbeats(http, cfg, stop))
-        while not stop.is_set():
-            try:
-                async with engine.begin() as conn:
-                    await reap(conn, KINDS, cfg.stale_after_seconds)
-                    job = await claim(
-                        conn,
-                        worker_id,
-                        KINDS,
-                        cfg.per_account_running,
-                        stale_after_seconds=cfg.stale_after_seconds,
-                    )
 
-                if job is None:
-                    # Nothing to do. Wait, but wake immediately on shutdown
-                    # rather than sleeping through it.
-                    with contextlib.suppress(TimeoutError):
-                        await asyncio.wait_for(stop.wait(), timeout=cfg.poll_seconds)
-                    continue
-
-                # **Cancelled before it was claimed.** The notification and the
-                # claim race, and this is the half of the race the listener
-                # cannot win: the job is already ours before the id arrives.
-                if cancels.asked(str(job.id)):
-                    await _stopped(job, engine=engine, http=http, cfg=cfg)
-                    cancels.done(str(job.id))
-                    continue
-
-                # **In a task rather than awaited directly**, which is the whole
-                # mechanism: a coroutine being awaited cannot be interrupted, and
-                # a task can. Cancelling it raises at the next await, which
-                # inside an Anthropic call is the socket read.
-                running = asyncio.create_task(
-                    handle(job, cfg=cfg, engine=engine, anthropic=anthropic, http=http)
-                )
-                cancels.watching(str(job.id), running)
-                try:
-                    await running
-                except asyncio.CancelledError:
-                    # **Ours, not the loop's.** A cancel aimed at this job must
-                    # not read as a shutdown, so it is caught here and the worker
-                    # carries on. If the process is actually stopping, `stop` is
-                    # set and the `while` ends on its own.
-                    if stop.is_set():
-                        raise
-                    await _stopped(job, engine=engine, http=http, cfg=cfg)
-                finally:
-                    cancels.done(str(job.id))
-
-            except Exception as exc:  # noqa: BLE001
-                # The loop itself must not die. A worker that exits on a
-                # transient database blip stops answering everybody.
-                log.error("worker loop error", error_type=type(exc).__name__)
-                await asyncio.sleep(cfg.poll_seconds)
+        # **Two lanes, because priority decides what is claimed and never what
+        # is interrupted.** With one loop, a dump that arrived during a nightly
+        # pass or an embed batch waited for the whole of it. The interactive
+        # lane claims only work somebody is waiting on, so a dump is always
+        # claimable here even while the general lane is inside background work.
+        shared = dict(
+            cfg=cfg,
+            stop=stop,
+            engine=engine,
+            anthropic=anthropic,
+            http=http,
+            cancels=cancels,
+            worker_id=worker_id,
+        )
+        await asyncio.gather(
+            _lane("interactive", INTERACTIVE, **shared),
+            _lane("general", None, **shared),
+        )
 
         beats.cancel()
         with contextlib.suppress(asyncio.CancelledError):
@@ -2002,8 +2056,8 @@ def main() -> None:
     async def _main() -> None:
         loop = asyncio.get_running_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
-            # Finish the job in hand rather than dropping it mid-model-call and
-            # leaving the row locked until its visibility timeout.
+            # Finish the jobs in hand rather than dropping them mid-model-call
+            # and leaving the rows locked until their visibility timeout.
             loop.add_signal_handler(sig, stop.set)
         await run(cfg, stop)
 
@@ -2048,6 +2102,7 @@ async def _handle_answer(
                 message_id=str(job.payload.get("messageId") or "") or None,
                 max_turns=cfg.max_turns,
                 country_override=country_override,
+                embedder=_embed_query(cfg, http, timeout=ctx_mod.QUERY_LONGEST),
             )
         ctx = ctx_mod.fit_answer(loaded, cfg.max_prompt_tokens)
 
@@ -2105,25 +2160,10 @@ async def _handle_answer(
         )
 
 
-def _embed_query(cfg: Config, http: httpx.AsyncClient):
-    """Turn a question into a vector, or into nothing.
+def _embed_query(cfg: Config, http: httpx.AsyncClient, timeout: float = SEARCH_SECONDS):
+    """Turn a question into a vector, or into nothing. See `query_embedder`.
 
-    `input_type="query"` rather than `document`: Voyage embeds the two
-    asymmetrically, and getting it the wrong way round is a quiet loss of
-    quality rather than an error, which is exactly the kind of mistake that
-    never gets found.
+    Bounded by default: a slow Voyage costs a question its vector arm, never
+    half a minute, and the text arm answers alone.
     """
-
-    async def run(query: str) -> str | None:
-        if not cfg.voyage_api_key or not query:
-            return None
-        try:
-            vectors = await embed(
-                [query], client=http, api_key=cfg.voyage_api_key, input_type="query"
-            )
-        except EmbeddingUnavailable as error:
-            log.warning("query not embedded", reason=str(error))
-            return None
-        return to_pgvector(vectors[0])
-
-    return run
+    return query_embedder(cfg.voyage_api_key, http, timeout)

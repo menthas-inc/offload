@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description: "The companies that help run offload, what each does, and what each receives.",
 };
 
-const UPDATED = "5 October 2026";
+const UPDATED = "6 October 2026";
 
 /** Company, what for, what they receive. Marked `self` when it acts for itself. */
 const COMPANIES: { name: string; does: string; receives: string; self?: true }[] = [
@@ -37,8 +37,9 @@ const COMPANIES: { name: string; does: string; receives: string; self?: true }[]
   },
   {
     name: "Voyage AI",
-    does: "Makes what offload holds searchable",
-    receives: "The text being indexed, and the words of a search inside offload",
+    does: "Makes what offload holds searchable, lays out your memories by meaning and finds the ones a message needs",
+    receives:
+      "The text being indexed, your memories, the words of a search inside offload, and your own words in a message or a thread's name and your notes in it, to find the memories it needs",
   },
   { name: "AssemblyAI", does: "Transcribes voice notes, on its servers in the European Union", receives: "The audio of a voice note" },
   {

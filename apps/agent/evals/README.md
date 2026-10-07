@@ -78,6 +78,7 @@ this way the file goes, and the diff says which behaviour was dropped.
 | `answered` | `{field, label}`, the block a typed answer leaves | file |
 | `country_override` | the country picked when asked | answer |
 | `truncated` | the read hit its page | answer, file |
+| `asides` | `[{kind: note or message, who: a member, you or offload, threadName, text}]`, what `search` returns beside its rows | answer |
 | `lookup_result` | `{found: false}` or `{fields: {...}}` in place of the stub's | file, answer |
 | `fail_tools` | `{tool or tool:N: error}`, the Core API refusing | file |
 | `tool_errors` | `{tool: error}`, every call of it refused | file |

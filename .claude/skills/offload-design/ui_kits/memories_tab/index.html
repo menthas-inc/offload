@@ -1,0 +1,22 @@
+<!-- @dsCard group="Memories tab" viewport="1100x960" name="Memories tab" subtitle="List and map, iOS / Android / Web, clickable" -->
+<!doctype html><html data-theme="light" lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Memories tab, prototype</title>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="memories-base.css">
+<link rel="stylesheet" href="memories.css">
+</head><body style="padding:16px 24px 24px">
+<div class="wrap">
+<div class="bar"><div class="plat" id="plat"><button data-p="ios">iOS</button><button data-p="android">Android</button><button data-p="web">Web</button></div></div>
+<div class="proto-top"><p><b>Try:</b> switch List and Map beside the title. In the list, tap a row to edit it, or drag it left to forget it. On the map, drag to move, scroll or pinch to zoom, tap a kind to fly into it, and tap a memory to edit it. The plus adds one. Build: <code>handoff/APPLY-2026-10-06-memories.md</code>.</p></div>
+<div class="stage" id="stage"><div id="app"></div></div>
+</div>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0C7BB0"/><circle cx="38" cy="40" r="14" fill="#C6467B" opacity=".85"/><circle cx="62" cy="44" r="12" fill="#088285" opacity=".85"/><circle cx="50" cy="64" r="11" fill="#B25D25" opacity=".85"/></svg></template>
+<script src="memories.js"></script>
+<script>
+const app=document.getElementById('app'),stage=document.getElementById('stage');
+let P=new URLSearchParams(location.search).get('p')||localStorage.getItem('memories-platform')||'ios';
+const setP=p=>{P=p;localStorage.setItem('memories-platform',p);document.body.dataset.plat=p;document.querySelectorAll('#plat button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));MEMP.plat(p)};
+document.body.dataset.plat=P;
+MEMP.start(app,stage);setP(P);
+document.querySelectorAll('#plat button').forEach(b=>b.onclick=()=>setP(b.dataset.p));
+</script>
+</body></html>

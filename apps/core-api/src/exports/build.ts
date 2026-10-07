@@ -33,6 +33,18 @@ import {
 /** 038. A memory's origin, as the person reads it. */
 const HOW = { stated: "you asked", answered: "you answered", learned: "offload learned" } as const;
 
+/** How offload came to know a memory, in the editor's words: 040's tab adds
+ *  two ways, typed there and changed there. */
+export function howOf(
+  origin: keyof typeof HOW,
+  attrs: unknown,
+): "you asked" | "you answered" | "offload learned" | "you added" | "you changed" {
+  const marks = (typeof attrs === "string" ? JSON.parse(attrs) : (attrs ?? {})) as Record<string, unknown>;
+  if (marks.changed === "tab") return "you changed";
+  if (marks.added === "tab") return "you added";
+  return HOW[origin];
+}
+
 /** A part of the archive before sealing. Memory is a few of these at most. */
 export const PART_BYTES = 32 * 1024 * 1024;
 /** Far above the heaviest account. A guard against a runaway, not a limit
@@ -157,7 +169,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
 
       const ownNotes = await trx
         .selectFrom("notes")
-        .select(["scope", "text", "body", "created_at", "origin", "kind"])
+        .select(["scope", "text", "body", "created_at", "origin", "kind", "attrs"])
         // By subject for what is about the account, by keeper for what the
         // account keeps about the people it named, as the delete reads them.
         .where((eb) =>
@@ -336,9 +348,8 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
           author: null,
           addedAt: note.created_at.toISOString(),
           about: note.scope === "account" ? ("you" as const) : ("someone" as const),
-          // 038. How offload came to know a memory, since this is one of the
-          // ways to see them until the Memories tab.
-          ...(note.scope === "account" ? { how: HOW[note.origin], kind: note.kind } : {}),
+          // 038. How offload came to know a memory, as the tab says it.
+          ...(note.scope === "account" ? { how: howOf(note.origin, note.attrs), kind: note.kind } : {}),
         })),
         people: people.map((person) => ({ name: person.display_name ?? "Someone" })),
       };

@@ -67,6 +67,16 @@ describe("the agent role can do its job", () => {
     });
   }
 
+  // 040. A memory's own vector, on its own row, and nothing else of it.
+  it("writes a memory's embedding and no other column of notes", async () => {
+    const vector = await asAgent(`update notes set embedding = null, embedding_model = null, embedded_at = now() where false`);
+    expect(vector.allowed, vector.error).toBe(true);
+    for (const column of ["text", "kind", "place_dx", "deleted_at"]) {
+      const other = await asAgent(`update notes set ${column} = null where false`);
+      expect(other.allowed, `it could write notes.${column}`).toBe(false);
+    }
+  });
+
   // 034. The three switches the worker reads on every turn, and the code it
   // writes beside the reason when a job fails.
   it("reads app_settings", async () => {

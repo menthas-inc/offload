@@ -13,7 +13,9 @@ concatenated, because the whole value of the boundary is that the model can tell
 which is which.
 """
 
+import asyncio
 import re
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -58,6 +60,10 @@ class Thread:
     shared: bool = False
 
 
+#: A query's vector in pgvector's text form, or None when there is none in time.
+Embedder = Callable[[str], Awaitable[str | None]]
+
+
 @dataclass(frozen=True)
 class Memory:
     """038. Something offload knows about the person across their threads.
@@ -70,6 +76,8 @@ class Memory:
     id: str
     kind: str
     text: str
+    #: 040. stated, answered or learned: the pass folds only learned ones.
+    origin: str = "stated"
 
 
 @dataclass(frozen=True)
@@ -421,6 +429,9 @@ _DUMP = text(
            a.time_zone as account_time_zone,
            m.attrs->'mentions' as mentions,
            case when m.source = 'mail' then m.attrs->'mail' end as mail,
+           -- 040. Whether the words are the person's own, for the memory query.
+           (m.source = 'mail' or (m.source = 'person' and not m.derived_from_untrusted))
+             as own_words,
            lt.id as looking_at_id,
            case when lt.id = a.default_thread_id then 'not in a thread' else lt.name end
              as looking_at_name
@@ -508,6 +519,7 @@ async def load(
     message_id: str,
     max_turns: int,
     max_threads: int,
+    embedder: Embedder | None = None,
 ) -> DumpContext | None:
     """Everything the prompt needs, already bounded.
 
@@ -522,6 +534,10 @@ async def load(
     ).first()
     if dump_row is None:
         return None
+    mail = mail_of(dump_row.text or "", dump_row.mail) if dump_row.mail else None
+    # 040. The memory query starts now and runs while the rest is read.
+    memory_words = query_words(dump_row.text, mail=mail, trusted=bool(dump_row.own_words))
+    memory_query = await start_memory_query(conn, account_id, memory_words, embedder)
     # 020. A photo with no words is a dump. Nothing else without words is.
     photo_rows = (
         await conn.execute(_PHOTOS, {"message_id": message_id, "account_id": account_id})
@@ -578,7 +594,6 @@ async def load(
     )
     switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
 
-    mail = mail_of(dump_row.text or "", dump_row.mail) if dump_row.mail else None
     return DumpContext(
         dump=mail.dump if mail else (dump_row.text or ""),
         mail=mail,
@@ -614,7 +629,7 @@ async def load(
             for m in (dump_row.mentions or [])
             if isinstance(m, dict) and m.get("accountId") and m.get("name")
         ][:10],
-        memories=await memories_of(conn, account_id),
+        memories=await memories_for(conn, account_id, memory_words, embedder, started=memory_query),
     )
 
 
@@ -861,25 +876,144 @@ _HAS_CALENDAR = text(
 # and by subject as the Core API writes it.
 MEMORIES_IN_PROMPT = 50
 
+#: 040. At most this many rules, all of them, ahead of everything else.
+RULES_IN_PROMPT = 20
+#: 040. The person's own words a query embeds, and how long a turn waits for
+#: its vector once the rest of its context is loaded. The query starts as soon
+#: as the dump is read (`start_memory_query`), because a cold connection to
+#: the provider took 302ms on 2026-10-06 and a warm one 209ms.
+QUERY_CHARS = 2_000
+QUERY_SECONDS = 0.3
+#: How long the query itself may take from its start, overlapping the load.
+QUERY_LONGEST = 2.0
+
+_ACTIVE = """
+     from notes n
+    where n.scope = 'account'
+      and n.subject_id = :account_id
+      and n.account_id = :account_id
+      and n.deleted_at is null
+      and n.superseded_at is null
+"""
+
+_MEMORY_COUNT = text("select count(*)" + _ACTIVE)
+
+# Fifty or fewer: all of them, rules, then their own, then learned.
 _MEMORIES = text(
+    "select n.id::text as id, n.kind, n.text, n.origin"
+    + _ACTIVE
+    + """
+    order by (n.kind <> 'rules'), (n.origin = 'learned'), n.created_at desc, n.id desc
+    limit :limit
     """
-    select n.id::text as id, n.kind, n.text
-      from notes n
-     where n.scope = 'account'
-       and n.subject_id = :account_id
-       and n.account_id = :account_id
-       and n.deleted_at is null
-       and n.superseded_at is null
-     order by (n.origin = 'learned'), n.created_at desc, n.id desc
-     limit :limit
+)
+
+_RULES = text(
+    "select n.id::text as id, n.kind, n.text, n.origin"
+    + _ACTIVE
+    + " and n.kind = 'rules' order by n.created_at desc, n.id desc limit :limit"
+)
+
+# Above fifty: their own before learned, a learned memory never pushing out
+# one of theirs, and inside each the nearest the turn's words first.
+_NEAREST = text(
+    "select n.id::text as id, n.kind, n.text, n.origin"
+    + _ACTIVE
+    + """
+      and n.kind <> 'rules'
+    order by (n.origin = 'learned'),
+             n.embedding <=> cast(:query as halfvec) nulls last,
+             n.created_at desc, n.id desc
+    limit :limit
+    """
+)
+
+_NEWEST = text(
+    "select n.id::text as id, n.kind, n.text, n.origin"
+    + _ACTIVE
+    + """
+      and n.kind <> 'rules'
+    order by (n.origin = 'learned'), n.created_at desc, n.id desc
+    limit :limit
     """
 )
 
 
+def query_words(said: str | None, *, mail: Mail | None = None, trusted: bool = True) -> str:
+    """040. What a turn's memories are chosen against: the person's own words,
+    and nothing else. A forwarded email's note and never its body; nothing
+    from a message somebody else's words reached; at most 2,000 characters.
+    Mail, pages and other people's words never go to the embedding provider as
+    a query, and never choose what a prompt carries."""
+    if mail is not None:
+        said = mail.note
+    if not trusted or not said:
+        return ""
+    return said.strip()[:QUERY_CHARS]
+
+
+def _memory(r) -> Memory:
+    return Memory(id=r.id, kind=r.kind, text=r.text, origin=r.origin)
+
+
+async def _count(conn: AsyncConnection, account_id: str) -> int:
+    return (await conn.execute(_MEMORY_COUNT, {"account_id": account_id})).scalar_one()
+
+
+async def start_memory_query(
+    conn: AsyncConnection, account_id: str, query: str, embedder: Embedder | None
+) -> asyncio.Future | None:
+    """040. Start the turn's memory query as soon as its words are known, so
+    it overlaps the rest of the context load. Nothing is asked of the provider
+    for fifty or fewer, or with no words of the person's own."""
+    if not embedder or not query or await _count(conn, account_id) <= MEMORIES_IN_PROMPT:
+        return None
+    return asyncio.ensure_future(embedder(query))
+
+
+async def memories_for(
+    conn: AsyncConnection,
+    account_id: str,
+    query: str,
+    embedder: Embedder | None,
+    *,
+    started: asyncio.Future | None = None,
+    wait: float = QUERY_SECONDS,
+) -> list[Memory]:
+    """040. The memories a call is given, at most fifty: every rule, then the
+    person's own nearest `query`, then offload's learned nearest. Fifty or
+    fewer are all given and nothing is embedded; with no vector within `wait`
+    of asking (a query `started` early has had the load as well), the newest
+    stand in and the turn goes on."""
+    params = {"account_id": account_id}
+    if await _count(conn, account_id) <= MEMORIES_IN_PROMPT:
+        rows = (await conn.execute(_MEMORIES, {**params, "limit": MEMORIES_IN_PROMPT})).all()
+        return [_memory(r) for r in rows]
+
+    rules = [
+        _memory(r) for r in (await conn.execute(_RULES, {**params, "limit": RULES_IN_PROMPT})).all()
+    ]
+    room = {**params, "limit": MEMORIES_IN_PROMPT - len(rules)}
+    if started is None and embedder and query:
+        started = asyncio.ensure_future(embedder(query))
+    vector = None
+    if started is not None:
+        try:
+            vector = await asyncio.wait_for(asyncio.shield(started), wait)
+        except TimeoutError:
+            started.cancel()
+    log.info("memory query", outcome="near" if vector else ("unavailable" if query else "no_words"))
+    if vector:
+        rows = (await conn.execute(_NEAREST, {**room, "query": vector})).all()
+    else:
+        rows = (await conn.execute(_NEWEST, room)).all()
+    return rules + [_memory(r) for r in rows]
+
+
 async def memories_of(conn: AsyncConnection, account_id: str) -> list[Memory]:
-    params = {"account_id": account_id, "limit": MEMORIES_IN_PROMPT}
-    rows = (await conn.execute(_MEMORIES, params)).all()
-    return [Memory(id=r.id, kind=r.kind, text=r.text) for r in rows]
+    """The newest fifty, rules first: a call with no words of the person's
+    to measure against."""
+    return await memories_for(conn, account_id, "", None)
 
 
 _THREAD_NOTES = text(
@@ -982,6 +1116,7 @@ async def load_answer(
     message_id: str | None = None,
     max_turns: int = 0,
     country_override: str | None = None,
+    embedder: Embedder | None = None,
 ) -> AnswerContext:
     """The thread list, the day, and since 018 the conversation's tail.
 
@@ -989,6 +1124,18 @@ async def load_answer(
     that differed between filing and answering would be two ideas of what a
     person has.
     """
+    # 040. The memory query starts now and runs while the rest is read, and
+    # only from the person's own words, as on the dump's path: a message
+    # somebody else's words reached never goes to the provider as a query.
+    own = (
+        (
+            await conn.execute(_OWN_WORDS, {"message_id": message_id, "account_id": account_id})
+        ).scalar()
+        if message_id
+        else False
+    )
+    memory_words = query_words(question, trusted=bool(own))
+    memory_query = await start_memory_query(conn, account_id, memory_words, embedder)
     thread_rows = (
         await conn.execute(_THREADS, {"account_id": account_id, "limit": max_threads})
     ).all()
@@ -1073,8 +1220,17 @@ async def load_answer(
         country_override=country_override,
         looking_at=looking_at,
         looking_at_notes=looking_at_notes,
-        memories=await memories_of(conn, account_id),
+        memories=await memories_for(conn, account_id, memory_words, embedder, started=memory_query),
     )
+
+
+_OWN_WORDS = text(
+    """
+    select (m.source = 'person' and not m.derived_from_untrusted)
+      from messages m
+     where m.id = :message_id and m.account_id = :account_id and m.deleted_at is null
+    """
+)
 
 
 _QUESTION = text(

@@ -356,7 +356,7 @@ class Memory(BaseModel):
     # Third person, one sentence, from their own words. 200 matches the Core
     # API's MEMORY_TEXT_CHARS.
     text: str | None = Field(default=None, max_length=200)
-    kind: Literal["people", "things", "words", "about", "rules", "patterns"] | None = None
+    kind: Literal["people", "things", "about", "rules", "patterns"] | None = None
     # A forget names the memory by the id it was shown with.
     memory_id: str | None = Field(default=None, max_length=40)
 
@@ -444,9 +444,9 @@ _DESCRIPTIONS = {
         "about them in general, not about one thread: 'remember that', 'from "
         "now on, everywhere', 'forget that'. Remember: one sentence in the third "
         "person from their own words, with its kind: people (who, how related, "
-        "birthdays), things (their accounts, places, belongings), words (what a "
-        "name means), about (durable facts), rules (always, never, from now "
-        "on), patterns. Forget: the memory's id. Never on your own initiative."
+        "birthdays), things (their accounts, places, belongings), about "
+        "(durable facts, what a name they use means), rules (always, never, "
+        "from now on), patterns. Forget: the memory's id. Never on your own initiative."
     ),
 }
 

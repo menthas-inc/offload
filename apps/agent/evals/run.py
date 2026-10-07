@@ -208,6 +208,8 @@ _FIXTURE_KEYS = {
     "threads",
     # 038. What offload knows about them: [{id, kind, text}].
     "memories",
+    # 040. No room in Memories: "rules" or "memories".
+    "full",
     # 025. The labels in the fixture's threads: [{id, threadId, name}].
     "labels",
     "looking_at",
@@ -226,6 +228,10 @@ _FIXTURE_KEYS = {
     "may_search",
     "may_read_links",
     "truncated",
+    # 2026-10-07. What a search returns beside its rows: the notes and
+    # messages the Core API found by words or meaning, [{kind, who,
+    # threadName, text}]. Search only; the filters never carry them.
+    "asides",
     "answered",
     "country_override",
     "calendar_waits",
@@ -637,6 +643,11 @@ class Recorder:
             return {"ok": False, "error": "not_their_words"}
         if args.get("kind") == "rules" and not _rule_grounded(text, self.dump):
             return {"ok": False, "error": "not_their_words"}
+        # 040. A case may say Memories has no room: `full` is "rules" or "memories".
+        if fx.get("full") == "rules" and args.get("kind") == "rules":
+            return {"ok": False, "error": "rules_full"}
+        if fx.get("full") == "memories":
+            return {"ok": False, "error": "memories_full"}
         return {"ok": True, "remembered": {"id": f"remembered{len(self.calls)}"}}
 
     async def _answer(self, tool: str, args: dict) -> dict:
@@ -835,17 +846,15 @@ class Recorder:
         thread_id = args.get("thread_id")
         rows = _rows_for(fx, thread_id)
         named = _thread(fx, thread_id)
-        return {
-            "ok": True,
-            "result": {
-                "threadId": thread_id,
-                "threadName": named.name
-                if named
-                else (rows[0].get("threadName") if rows else None),
-                "truncated": bool(fx.get("truncated")),
-                "rows": rows,
-            },
+        result: dict[str, Any] = {
+            "threadId": thread_id,
+            "threadName": named.name if named else (rows[0].get("threadName") if rows else None),
+            "truncated": bool(fx.get("truncated")),
+            "rows": rows,
         }
+        if tool == "search" and fx.get("asides"):
+            result["asides"] = fx["asides"]
+        return {"ok": True, "result": result}
 
     def _look_up(self, args: dict) -> dict:
         """The real bounds, then a plausible result, so a case exercises the
@@ -1948,7 +1957,51 @@ async def _cast() -> Any:
         _cast_engine = create_async_engine(
             _asyncpg(os.environ.get("EVAL_CAST_AGENT_DATABASE_URL") or url)
         )
+        await _embed_cast_memories(url)
         return _cast_engine
+
+
+async def _embed_cast_memories(url: str) -> None:
+    """040. The cast's memories, embedded as the sweep's job would, so a turn
+    is given the nearest of them. Once per run, and only with a Voyage key:
+    without one, every turn falls back to the newest."""
+    key = os.environ.get("VOYAGE_API_KEY")
+    if not key:
+        return
+    import asyncpg
+    import httpx
+
+    from offload_agent.embed import BATCH, MODEL, embed, to_pgvector
+
+    conn = await asyncpg.connect(url.replace("postgresql+asyncpg://", "postgresql://"))
+    try:
+        rows = await conn.fetch(
+            "select id, text from notes where scope = 'account' and embedded_at is null "
+            "and id::text like '0ca50000-0000-4000-8004-%' and deleted_at is null"
+        )
+        async with httpx.AsyncClient() as http:
+            for start in range(0, len(rows), BATCH):
+                batch = rows[start : start + BATCH]
+                vectors = await embed([r["text"] for r in batch], client=http, api_key=key)
+                for row, vector in zip(batch, vectors, strict=True):
+                    await conn.execute(
+                        "update notes set embedding = $1::halfvec, embedding_model = $2, "
+                        "embedded_at = now() where id = $3",
+                        to_pgvector(vector),
+                        MODEL,
+                        row["id"],
+                    )
+    finally:
+        await conn.close()
+
+
+def _cast_embedder(http: Any) -> Any:
+    """The worker's query embedder, as the worker builds it, or none without a key."""
+    from offload_agent.context import QUERY_LONGEST
+    from offload_agent.embed import query_embedder
+
+    key = os.environ.get("VOYAGE_API_KEY")
+    return query_embedder(key, http, QUERY_LONGEST) if key else None
 
 
 async def _cast_turn(case: Case, writer: Any) -> tuple[str, str, str]:
@@ -2015,7 +2068,9 @@ async def _run_cast_file(client: AsyncAnthropic, case: Case, model: str) -> Resu
     writer = _cast_writer()
     who, conversation, message = await _cast_turn(case, writer)
     try:
-        async with (await _cast()).connect() as conn:
+        import httpx
+
+        async with httpx.AsyncClient() as http, (await _cast()).connect() as conn:
             ctx = await ctx_mod.load(
                 conn,
                 account_id=who,
@@ -2023,6 +2078,7 @@ async def _run_cast_file(client: AsyncAnthropic, case: Case, model: str) -> Resu
                 message_id=message,
                 max_turns=20,
                 max_threads=12,
+                embedder=_cast_embedder(http),
             )
         case = _with_memories(case, ctx.memories)
         rec = Recorder(case, ctx.dump)
@@ -2040,7 +2096,9 @@ async def _run_cast_answer(client: AsyncAnthropic, case: Case, model: str) -> Re
     writer = _cast_writer()
     who, conversation, message = await _cast_turn(case, writer)
     try:
-        async with (await _cast()).connect() as conn:
+        import httpx
+
+        async with httpx.AsyncClient() as http, (await _cast()).connect() as conn:
             ctx = await ctx_mod.load_answer(
                 conn,
                 account_id=who,
@@ -2049,6 +2107,7 @@ async def _run_cast_answer(client: AsyncAnthropic, case: Case, model: str) -> Re
                 conversation_id=conversation,
                 message_id=message,
                 max_turns=20,
+                embedder=_cast_embedder(http),
             )
         case = _with_memories(case, ctx.memories)
         rec = Recorder(case, case.input["dump"])
@@ -2062,8 +2121,10 @@ async def _run_cast_memory(client: AsyncAnthropic, case: Case, model: str) -> Re
     """One of the cast's memory pass, reading exactly what the worker reads."""
     ids = _cast_ids()
     who = ids["people"][case.input["character"]]
-    async with (await _cast()).connect() as conn:
-        today, held, notes, messages = await memories_mod.read(conn, who)
+    import httpx
+
+    async with httpx.AsyncClient() as http, (await _cast()).connect() as conn:
+        today, held, notes, messages = await memories_mod.read(conn, who, _cast_embedder(http))
     return await _memory_with(
         client,
         case,

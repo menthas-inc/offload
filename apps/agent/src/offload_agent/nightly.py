@@ -39,7 +39,8 @@ from sqlalchemy import text
 
 from offload_agent import ledger
 from offload_agent.config import Config
-from offload_agent.context import memories_of, today_line
+from offload_agent.context import QUERY_LONGEST, memories_for, query_words, today_line
+from offload_agent.embed import query_embedder
 from offload_agent.prompt_files import load
 from offload_agent.queue import ClaimedJob, finish, retry_or_die
 
@@ -273,7 +274,14 @@ def _flat(words: str, limit: int) -> str:
     return " ".join(str(words).split())[:limit]
 
 
-def memories_for(member, memories: list) -> list:
+def thread_words(name: str, notes: list) -> str:
+    """040. What a thread pass's memories are chosen against: the thread's
+    name and the member's own notes, never another member's words."""
+    said = [name] + [str(n["text"]) for n in notes if n["theirs"]]
+    return query_words("\n".join(part for part in said if part))
+
+
+def memories_shown(member, memories: list) -> list:
     """038. What the pass is shown of what offload knows about them: nothing in
     a thread somebody else is in, since what it writes there every member
     reads, and a memory's words must not reach them."""
@@ -536,7 +544,18 @@ async def handle_nightly(
         # In the member's own zone: the prompt reads each date against today,
         # and UTC's today is a day off for part of every day somewhere.
         today = await today_line(conn, member["time_zone"])
-        memories = memories_for(member, await memories_of(conn, job.account_id))
+        memories = memories_shown(
+            member,
+            []
+            if member["shared"]
+            else await memories_for(
+                conn,
+                job.account_id,
+                thread_words(str(member["name"] or ""), notes),
+                query_embedder(cfg.voyage_api_key, http, QUERY_LONGEST),
+                wait=QUERY_LONGEST,
+            ),
+        )
 
     mode = mode_for(on_default=on_default, candidates=candidates)
     owns_notes = any(row["theirs"] for row in notes)

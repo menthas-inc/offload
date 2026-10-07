@@ -7,6 +7,7 @@ import { sql } from "kysely";
 import type { Executor } from "../threads/access.js";
 import type { MemoryClass } from "../schema.js";
 import { touchesSensitive } from "./sensitive.js";
+import { MEMORY_CAP } from "@offload/widgets";
 import { LEARNED_MEMORY_CAP, shaped } from "./store.js";
 
 /** What a pass reads, at most (OFF-8). */
@@ -151,6 +152,9 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
   );
   const said = new Set(held.map((row) => row.text.trim().toLowerCase()));
   let learned = held.filter((row) => row.origin === "learned").length;
+  // 040. A pass never makes room: at 300 it adds nothing, and only a person's
+  // own add retires the oldest learned.
+  let active = held.length;
 
   const out: PassApplied = { added: 0, superseded: 0, folded: 0, ignored: 0 };
 
@@ -205,7 +209,7 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
   for (const entry of plan.add.slice(0, PASS_ADDS)) {
     const words = shaped(entry.text, entry.kind);
     const from = source(entry.cites);
-    if (!words.ok || !from || touchesSensitive(words.text) || said.has(words.text.toLowerCase()) || learned >= LEARNED_MEMORY_CAP) {
+    if (!words.ok || !from || touchesSensitive(words.text) || said.has(words.text.toLowerCase()) || learned >= LEARNED_MEMORY_CAP || active >= MEMORY_CAP) {
       out.ignored += 1;
       continue;
     }
@@ -215,6 +219,7 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
     }
     said.add(words.text.toLowerCase());
     learned += 1;
+    active += 1;
     out.added += 1;
   }
 
@@ -269,6 +274,7 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
     if (await write(kind, words.text, { messageId: first.derived_from_message_id, fromNote: attrs?.from_note ?? null })) {
       said.add(words.text.toLowerCase());
       learned -= olds.length - 1;
+      active -= olds.length - 1;
       out.folded += 1;
     }
   }
