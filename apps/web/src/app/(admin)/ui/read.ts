@@ -81,3 +81,18 @@ export function adminWrite(path: string, method: "POST" | "PATCH" | "DELETE", bo
     ...(body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),
   });
 }
+
+/** A file the API makes on a POST, because making it is recorded, saved
+ *  under `name`. The API is another origin and the session is a cookie, so
+ *  this is a fetch and not a link. False when nothing was saved. */
+export async function adminDownload(path: string, name: string, body?: unknown): Promise<boolean> {
+  const response = await adminWrite(path, "POST", body).catch(() => null);
+  if (!response?.ok) return false;
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  URL.revokeObjectURL(url);
+  return true;
+}

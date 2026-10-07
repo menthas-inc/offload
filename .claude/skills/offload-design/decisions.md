@@ -3884,3 +3884,12 @@ exactly like "I refreshed and I cannot see your change".
 - `WMemories.jsx`, `MemoriesScreen.jsx` and `M3MemoriesScreen.jsx` are the fast-follow tab, as rows not chips, per the design queue's answer 1. Their groups map to the six classes: people, things, words, about, rules and patterns. Their sub line must not say "things" and must not draw a zero.
 - `MemoryRow`'s origin values become asked, answered and learned.
 - The calendar question's person variant is new copy for `QuickReplies`, with no change to the component.
+
+### 2026-10-06 · Staff and Audit can be downloaded as CSV
+**Surface:** admin
+
+**Is:** the Staff page and the Audit page each carry an "Export CSV" button in the page head, drawn with the existing small secondary button. Staff downloads straight away. Audit opens a dialog with From and To date fields, defaulting to the last 90 days, and an "Export CSV" confirm. Both are owner only, like the pages, and each download is itself an audit row ("Exported the staff list", "Exported the audit log" with its period).
+
+**Why:** going-public 17c. An auditor wants who has access, and the log beside it, as files they can keep.
+
+**Design system impact:** the admin kit has no export control. Add an "Export CSV" small secondary button to the page head of the Staff and Audit screens in `ui_kits/admin`, and a two-date range dialog on Audit, using the existing `Field` and dialog patterns. No new component.

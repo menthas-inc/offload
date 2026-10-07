@@ -27,7 +27,14 @@
   "pnpm": {
     "overrides": {
       "react": "19.2.3",
-      "react-dom": "19.2.3"
+      "react-dom": "19.2.3",
+      "brace-expansion@<1.1.21": "^1.1.21",
+      "brace-expansion@>=4 <5.0.12": "^5.0.12",
+      "compression@<1.8.2": "^1.8.2",
+      "fast-uri@>=3 <3.1.8": "^3.1.8",
+      "postcss@<8.5.23": "^8.5.29",
+      "shell-quote@<1.11.0": "^1.11.0",
+      "source-map-js@<1.2.2": "^1.2.2"
     }
   }
 }

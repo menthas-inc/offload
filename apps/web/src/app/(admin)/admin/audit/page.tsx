@@ -15,9 +15,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "../../../../components/Icon";
 import styles from "../../admin.module.css";
-import { Diff, Empty, Failed, Lines, Loading, PaneHead, Row, Table, moment, useAdminRead, type Col } from "../../ui";
+import { Confirm, Diff, Empty, Failed, Field, Lines, Loading, PaneHead, Row, Table, adminDownload, moment, useAdminRead, useSay, type Col } from "../../ui";
 import { settingLabel } from "../limits/labels";
-import { kindLabel, settingValue, shortId } from "./labels";
+import { kindLabel, period, settingValue, shortId } from "./labels";
 
 type Who = { id: string; name?: string | null; email?: string };
 type Target = { id: string; name: string | null; email: string; deleted: false } | { id: string; deleted: true };
@@ -75,7 +75,36 @@ function Change({ entry }: { entry: Entry }) {
   if (entry.kind === "staff.role_changed") return <Diff changes={[{ label: "Role", from: String(entry.old), to: String(entry.new) }]} />;
   if (entry.kind === "staff.added" && typeof entry.new === "string") return <span className={styles.quiet}>as {entry.new}</span>;
   if (entry.kind === "staff.removed" && typeof entry.old === "string") return <span className={styles.quiet}>was {entry.old}</span>;
+  if (entry.kind === "audit.exported" && period(entry.new)) return <span className={styles.quiet}>{period(entry.new)}</span>;
   return null;
+}
+
+/** The export's period when none is chosen. */
+const EXPORT_DAYS = 90;
+const utcDay = (at: Date) => at.toISOString().slice(0, 10);
+const DAY_FORMAT = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Going-public 17c. The log for a period, as a file an auditor can keep:
+ *  UTC days, both ends included, the last 90 to start with. */
+function ExportLog({ onClose, onDone }: { onClose: () => void; onDone: (saved: boolean) => void }) {
+  const [to, setTo] = useState(() => utcDay(new Date()));
+  const [from, setFrom] = useState(() => utcDay(new Date(Date.parse(`${utcDay(new Date())}T00:00:00Z`) - EXPORT_DAYS * 86_400_000)));
+  const valid = DAY_FORMAT.test(from) && DAY_FORMAT.test(to);
+  const backwards = valid && from > to;
+
+  return (
+    <Confirm
+      title="Export the audit log"
+      body="Every entry from the start of the first day to the end of the last, in UTC, as a CSV. The export is recorded in the log."
+      confirmLabel="Export"
+      ready={valid && !backwards}
+      onConfirm={() => void adminDownload("/audit/export", `offload-audit-${from}-to-${to}.csv`, { from, to }).then(onDone)}
+      onClose={onClose}
+    >
+      <Field label="From" type="date" value={from} onChange={setFrom} width="100%" />
+      <Field label="To" type="date" value={to} onChange={setTo} error={backwards ? "Ends before it starts." : null} width="100%" />
+    </Confirm>
+  );
 }
 
 export default function AuditPage() {
@@ -83,6 +112,8 @@ export default function AuditPage() {
   const [kind, setKind] = useState("");
   const [typed, setTyped] = useState("");
   const [person, setPerson] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const { toast, say } = useSay();
 
   // Typing an address is one request when it stops, not one per letter.
   useEffect(() => {
@@ -160,6 +191,9 @@ export default function AuditPage() {
                 </select>
               </>
             ) : null}
+            <button type="button" className={styles.small} onClick={() => setExporting(true)}>
+              Export CSV
+            </button>
             <label className={styles.search}>
               <Icon name="search" size={15} />
               <input
@@ -226,6 +260,18 @@ export default function AuditPage() {
 
       {/* A refresh that failed leaves the log it had, and says so under it. */}
       {first.data && first.state === "failed" ? <Failed what="the audit log" onRetry={first.reload} /> : null}
+
+      {exporting ? (
+        <ExportLog
+          onClose={() => setExporting(false)}
+          onDone={(saved) => {
+            if (!saved) say("That did not go through. Nothing was exported");
+            else refresh();
+          }}
+        />
+      ) : null}
+
+      {toast}
     </>
   );
 }

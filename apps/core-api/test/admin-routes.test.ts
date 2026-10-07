@@ -280,8 +280,11 @@ describe("every route the impl-spec names", () => {
     "POST /v1/admin/staff",
     "PATCH /v1/admin/staff/:id",
     "DELETE /v1/admin/staff/:id",
+    // Going-public 17c: who has access, and the log, as files.
+    "POST /v1/admin/staff/export",
     "GET /v1/admin/audit",
     "GET /v1/admin/audit/facets",
+    "POST /v1/admin/audit/export",
     // 039. Review codes, on the Waitlist page.
     "GET /v1/admin/codes",
     "POST /v1/admin/codes",

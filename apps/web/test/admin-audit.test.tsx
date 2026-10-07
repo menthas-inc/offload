@@ -49,13 +49,14 @@ const FACETS = { staff: [ADA, { id: GONE }], kinds: ["disabled", "setting.change
 type Call = { url: string; init?: RequestInit };
 let calls: Call[] = [];
 
-function api(answers: { list?: number; facets?: number; pages?: Array<{ rows: unknown[]; nextCursor: string | null }> } = {}) {
+function api(answers: { list?: number; facets?: number; exported?: number; pages?: Array<{ rows: unknown[]; nextCursor: string | null }> } = {}) {
   calls = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       calls.push({ url: String(url), init });
       const path = String(url).replace(/^.*\/v1\/admin/, "");
+      if (path === "/audit/export") return new Response("id,at\r\n", { status: answers.exported ?? 200 });
       if (path.startsWith("/audit/facets")) return new Response(JSON.stringify(FACETS), { status: answers.facets ?? 200 });
       const query = new URLSearchParams(path.split("?")[1] ?? "");
       const pages = answers.pages ?? [{ rows: ROWS, nextCursor: null }];
@@ -197,7 +198,7 @@ describe("the log", () => {
   });
 
   it("has a phrase for every kind the log can hold", () => {
-    for (const kind of ["invited", "resent", "waitlist.removed", "disabled", "enabled", "deletion.scheduled", "deletion.cancelled", "deleted", "signed_out", "override.set", "override.cleared", "setting.changed", "job.retried", "job.dismissed", "staff.added", "staff.role_changed", "staff.removed", "person.viewed", "panel.opened"]) {
+    for (const kind of ["invited", "resent", "waitlist.removed", "disabled", "enabled", "deletion.scheduled", "deletion.cancelled", "deleted", "signed_out", "override.set", "override.cleared", "setting.changed", "job.retried", "job.dismissed", "staff.added", "staff.role_changed", "staff.removed", "person.viewed", "panel.opened", "code.created", "code.revoked", "code.redeemed", "staff.exported", "audit.exported"]) {
       expect(KIND_LABELS[kind], kind).toBeTruthy();
     }
   });
@@ -251,5 +252,86 @@ describe("load more", () => {
     expect(rows(host)).toHaveLength(ROWS.length + 1);
     expect(rows(host).at(-1)!.textContent).toContain("Enabled the account");
     expect(button(host, "Load more")).toBeUndefined();
+  });
+});
+
+// Going-public 17c. The log for a period as a file, the last 90 days unless
+// another period is chosen.
+describe("the export", () => {
+  const utcDay = (at: Date) => at.toISOString().slice(0, 10);
+  const field = (host: Element, label: string) =>
+    [...document.querySelectorAll("label")].find((one) => one.textContent === label)!.parentElement!.parentElement!.querySelector("input")!;
+  function type(input: HTMLInputElement, value: string) {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  const exports = () => calls.filter((call) => call.url.endsWith("/audit/export"));
+
+  it("asks for a period, the last 90 days to start with, and saves the file it gets", async () => {
+    api();
+    const host = await open();
+    const saved: Array<{ href: string; download: string }> = [];
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: vi.fn(() => "blob:audit"), revokeObjectURL: vi.fn() }));
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      saved.push({ href: this.href, download: this.download });
+    });
+
+    await act(async () => button(host, "Export CSV").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    const dialog = document.querySelector('[role="dialog"]')!;
+    expect(dialog.textContent).toContain("Export the audit log");
+    const to = utcDay(new Date());
+    const from = utcDay(new Date(Date.parse(`${to}T00:00:00Z`) - 90 * 86_400_000));
+    expect(field(host, "From").type).toBe("date");
+    expect(field(host, "From").value).toBe(from);
+    expect(field(host, "To").value).toBe(to);
+
+    await act(async () => button(dialog, "Export").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    expect(exports()).toHaveLength(1);
+    expect(exports()[0]!.init).toMatchObject({ method: "POST", credentials: "include", body: JSON.stringify({ from, to }) });
+    expect(saved).toEqual([{ href: "blob:audit", download: `offload-audit-${from}-to-${to}.csv` }]);
+  });
+
+  it("sends the period chosen, and will not send one that ends before it starts", async () => {
+    api();
+    const host = await open();
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: vi.fn(() => "blob:audit"), revokeObjectURL: vi.fn() }));
+    await act(async () => button(host, "Export CSV").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    const dialog = document.querySelector('[role="dialog"]')!;
+
+    await act(async () => type(field(host, "From"), "2026-09-10"));
+    await act(async () => type(field(host, "To"), "2026-09-01"));
+    expect(button(dialog, "Export").disabled).toBe(true);
+    expect(dialog.textContent).toContain("Ends before it starts.");
+
+    await act(async () => type(field(host, "To"), "2026-09-30"));
+    await act(async () => button(dialog, "Export").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    expect(exports()[0]!.init?.body).toBe(JSON.stringify({ from: "2026-09-10", to: "2026-09-30" }));
+  });
+
+  it("says the export did not happen when it fails, and saves nothing", async () => {
+    api({ exported: 500 });
+    const host = await open();
+    const clicked = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    clicked.mockClear();
+    await act(async () => button(host, "Export CSV").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    await act(async () => button(document.querySelector('[role="dialog"]')!, "Export").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    expect(clicked).not.toHaveBeenCalled();
+    expect([...host.querySelectorAll('[role="status"]')].map((node) => node.textContent)).toContain("That did not go through. Nothing was exported");
+  });
+
+  it("writes an export of the log with the period it covered", async () => {
+    api({ pages: [{ rows: [entry({ kind: "audit.exported", new: "2026-07-08/2026-10-06" }), entry({ kind: "staff.exported" })], nextCursor: null }] });
+    const host = await open();
+    const [first, second] = rows(host);
+    expect(first!.textContent).toContain("Exported the audit log");
+    expect(first!.textContent).toContain("8 Jul to 6 Oct");
+    expect(second!.textContent).toContain("Exported the staff list");
   });
 });

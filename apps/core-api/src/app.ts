@@ -93,6 +93,12 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
     // Trust the proxy so rate limiting sees the real client address rather
     // than Railway's edge. The waitlist endpoint is public and rate limited
     // per IP, so getting this wrong makes that limit meaningless.
+    //
+    // `true` takes the leftmost x-forwarded-for entry, which on Railway is
+    // the connecting client: its edge drops whatever the client sent and
+    // writes the client and then itself (seen 2026-10-06, `decisions.md`).
+    // A hop count of one would take the edge's own address, one bucket for
+    // everybody. Revisit if a CDN goes in front of the edge.
     trustProxy: true,
     disableRequestLogging: false,
   }).withTypeProvider<ZodTypeProvider>();
