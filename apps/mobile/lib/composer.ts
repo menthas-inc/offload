@@ -11,6 +11,14 @@ export function staysOpen(state: { open: boolean; tallNow: boolean; draft: strin
   return state.open || state.tallNow;
 }
 
+/** The field's flex. Across the pill's row it takes the width beside the
+ *  controls; in the open column it keeps its own height, since `flex-1` there
+ *  starts it at zero and leaves it only what the box's minimum has to spare
+ *  (041, on the Pixel: a chip opened the box and the words vanished). */
+export function fieldFlex(expanded: boolean): string {
+  return expanded ? "" : "flex-1";
+}
+
 /** The kit's own twenty, rotated on a ten second fade. Five are shorter than
  *  the kit's so every one stays on one line (2026-09-30). */
 export const PLACEHOLDERS = [
