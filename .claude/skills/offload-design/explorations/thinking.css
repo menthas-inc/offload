@@ -1,0 +1,169 @@
+/* Thinking row: the animations, the row, and the stop. Prism hues as on the hero's cycling word. */
+:root{--pv:#7c5cff;--pa:#f0a020;--pb:#2f7bff;--pt:#18b6a4;--pr:#e5487a;
+--mk:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='5.25' r='2.6'/%3E%3Cpath d='M5.5 11.5V15.5a3 3 0 0 0 3 3h7a3 3 0 0 0 3-3V11.5' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E")}
+body{margin:0;background:var(--surface-sunken);color:var(--text-primary);font:var(--text-body-role);padding:24px 40px 120px}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+.wrap{max-width:1440px;margin:0 auto}
+h1.pt{margin:18px 0 8px;font:var(--weight-semibold) 30px/1.15 var(--font-core);letter-spacing:-.02em}
+.lede{max-width:880px;color:var(--text-secondary);font:var(--weight-regular) 15px/1.6 var(--font-core);margin:0 0 8px;text-wrap:pretty}.lede b{color:var(--text-primary);font-weight:500}
+.bar{position:sticky;top:12px;z-index:50;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.pl{display:inline-flex;gap:2px;padding:3px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline),var(--shadow-2)}
+.pl button{height:32px;padding:0 14px;border-radius:99px;border:0;background:transparent;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.pl button.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.pl em{font-style:normal;align-self:center;padding:0 8px 0 10px;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary)}
+.xs{display:flex;align-items:baseline;gap:12px;margin:56px 0 6px;padding-bottom:10px;border-bottom:1px solid var(--ink-950)}.xs h2{margin:0;font:var(--weight-semibold) 22px/1.2 var(--font-core)}
+.lvl{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:99px;font:var(--weight-semibold) 11px/1 var(--font-core);letter-spacing:.02em;align-self:center}
+.lvl.l1{background:var(--surface-fill);color:var(--text-secondary)}.lvl.l2{background:var(--blue-50);color:var(--blue-700)}.lvl.l3{background:var(--surface-accent-soft);color:var(--moss-700)}.lvl.l4{background:var(--ink-950);color:var(--paper)}
+.xp{max-width:880px;color:var(--text-secondary);font:var(--weight-regular) 14px/1.6 var(--font-core);margin:10px 0 18px;text-wrap:pretty}.xp b{color:var(--text-primary);font-weight:500}
+.notes{max-width:900px;margin:18px 0 0;padding-left:18px;font:var(--weight-regular) 14px/1.6 var(--font-core);color:var(--text-secondary)}.notes li{margin-bottom:6px}.notes b{color:var(--text-primary);font-weight:500}
+.grid{display:flex;flex-wrap:wrap;gap:20px}
+/* a card: the animation large, then in place */
+.card{display:flex;flex-direction:column;background:var(--surface-raised);border-radius:20px;box-shadow:inset 0 0 0 1px var(--border-hairline);overflow:hidden;width:430px;max-width:100%}
+[data-plat=web] .card{width:680px}
+.ch{display:flex;align-items:baseline;gap:10px;padding:16px 18px 0}.ch b{font:var(--weight-semibold) 16px/1.2 var(--font-core)}.ch u{text-decoration:none;margin-left:auto;font:var(--text-numeric-role);font-size:12px;color:var(--text-tertiary)}
+.cd{padding:4px 18px 0;font:var(--weight-regular) 13px/1.5 var(--font-core);color:var(--text-secondary);min-height:39px;text-wrap:pretty}
+.big{margin:12px 18px 0;height:150px;border-radius:14px;background:var(--surface-page);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px var(--border-hairline)}
+.big .an{zoom:4}
+/* the conversation strip */
+.cv{margin:12px 0 0;background:var(--surface-plate);display:flex;flex-direction:column}
+.tr{display:flex;flex-direction:column;gap:14px;padding:18px 18px 16px;min-height:132px;box-sizing:border-box;justify-content:flex-end}
+.you{align-self:flex-end;max-width:84%;padding:10px 16px;border:1px solid var(--blue-100);background:var(--blue-50);border-radius:16px 16px 4px 16px;font:var(--weight-regular) 15px/22px var(--font-core);color:var(--ink-950)}
+[data-plat=web] .tr{padding:22px 28px 18px}
+/* the row */
+.wk{display:flex;align-items:center;gap:10px;min-height:30px;align-self:flex-start;max-width:100%}
+.wk .an{flex:0 0 auto}
+.ph{position:relative;display:grid;font:var(--weight-regular) 13.5px/1.3 var(--font-core);color:var(--text-secondary);min-width:0}
+[data-plat=android] .ph{color:var(--ink-700)}
+.ph span{grid-area:1/1;transition:opacity .35s var(--ease-out),filter .35s var(--ease-out),transform .35s var(--ease-out);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph span.out{opacity:0;filter:blur(3px);transform:translateY(-3px)}
+.ph span.in{opacity:0;filter:blur(3px);transform:translateY(3px)}
+.ph:empty{display:none}
+/* stop, three ways */
+.st{display:none}
+.wk.can .st{display:inline-flex}
+.st{align-items:center;justify-content:center;flex:0 0 auto;border:0;padding:0;cursor:pointer;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-primary);background:transparent;animation:stin .3s var(--ease-out)}
+@keyframes stin{from{opacity:0;transform:scale(.8)}}
+.st i{display:block;width:8px;height:8px;border-radius:2px;background:currentColor}
+.st.round{width:30px;height:30px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--border-strong);margin-left:2px;position:relative}
+.st.round:after{content:"";position:absolute;inset:-7px}
+.st.pill{height:30px;gap:7px;padding:0 12px 0 11px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--border-strong);margin-left:2px}
+.st.pill i{width:7px;height:7px}
+.st:hover{background:var(--state-hover)}
+[data-plat=android] .st.round,[data-plat=android] .st.pill{box-shadow:inset 0 0 0 1px var(--ink-400)}
+/* composer */
+.cmp{margin:0 14px 14px;height:48px;border-radius:99px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-strong);display:flex;align-items:center;gap:8px;padding:0 5px 0 18px;font:var(--weight-regular) 16px/1 var(--font-core);color:var(--text-tertiary)}
+.cmp s{flex:1;text-decoration:none}
+.cmp .ic{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+.cmp .send{width:38px;height:38px;border-radius:99px;display:flex;align-items:center;justify-content:center;background:var(--surface-fill);color:var(--text-tertiary);transition:background .25s,color .25s}
+.cmp .send i{display:block}
+.cmp .send .ar{width:16px;height:16px}
+.cmp .send .sq{display:none;width:11px;height:11px;border-radius:2.5px;background:currentColor}
+.cv.cstop .cmp .send{background:var(--surface-inverse);color:var(--text-inverse);cursor:pointer}
+.cv.cstop .cmp .send .ar{display:none}.cv.cstop .cmp .send .sq{display:block}
+[data-plat=android] .cv.cstop .cmp .send{background:var(--blue-600);color:#fff}
+[data-plat=android] .cmp{border-radius:28px}
+.g{display:inline-block;width:18px;height:18px;flex:0 0 auto;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+
+/* ================= animations ================= */
+.an{position:relative;display:block;height:22px;color:var(--text-primary)}
+.an svg{display:block;overflow:visible}
+.an *{transform-box:fill-box}
+/* S1 hover, 3s */
+.a-hover{width:22px}
+.a-hover .d{animation:hv 3s ease-in-out infinite}
+.a-hover .v{transform-origin:50% 100%;animation:hvv 3s ease-in-out infinite}
+@keyframes hv{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.2px)}}
+@keyframes hvv{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.94)}}
+/* S2 drop, 3.2s */
+.a-drop{width:22px}
+.a-drop .d{transform-origin:50% 50%;animation:dr 3.2s infinite}
+.a-drop .v{transform-origin:50% 100%;animation:drv 3.2s infinite}
+@keyframes dr{0%{transform:translateY(-5px);opacity:0}16%{transform:translateY(0);opacity:1;animation-timing-function:ease-in-out}46%{transform:translateY(0);animation-timing-function:cubic-bezier(.5,0,.9,.4)}62%{transform:translateY(8.5px) scale(.8);opacity:1}68%{transform:translateY(9.5px) scale(.6);opacity:0}100%{transform:translateY(-5px);opacity:0}}
+@keyframes drv{0%,60%{transform:scaleY(1) scaleX(1)}66%{transform:scaleY(.82) scaleX(1.06)}76%{transform:scaleY(1.04) scaleX(.98)}84%,100%{transform:none}}
+/* S3 gather, 4.2s: the three dots the row has now fall into the vessel one by one */
+.a-gather{width:22px}
+.a-gather .d{animation:4.2s infinite}
+.a-gather .d1{animation-name:ga1}.a-gather .d2{animation-name:ga2}.a-gather .d3{animation-name:ga3}
+.a-gather .v{transform-origin:50% 100%;animation:gav 4.2s infinite}
+@keyframes ga1{0%{opacity:0;transform:translate(0,-3px)}10%{opacity:1;transform:none}30%{transform:none;animation-timing-function:cubic-bezier(.5,0,.9,.5)}40%{opacity:1;transform:translate(6px,10px)}43%,100%{opacity:0;transform:translate(6px,10px)}}
+@keyframes ga2{0%{opacity:0;transform:translate(0,-3px)}10%{opacity:1;transform:none}45%{transform:none;animation-timing-function:cubic-bezier(.5,0,.9,.5)}55%{opacity:1;transform:translate(0,10px)}58%,100%{opacity:0;transform:translate(0,10px)}}
+@keyframes ga3{0%{opacity:0;transform:translate(0,-3px)}10%{opacity:1;transform:none}60%{transform:none;animation-timing-function:cubic-bezier(.5,0,.9,.5)}70%{opacity:1;transform:translate(-6px,10px)}73%,100%{opacity:0;transform:translate(-6px,10px)}}
+@keyframes gav{0%,40%{transform:none}44%{transform:scaleY(.88)}50%,55%{transform:none}59%{transform:scaleY(.88)}65%,70%{transform:none}74%{transform:scaleY(.86)}82%,100%{transform:none}}
+/* B1 thin film, 6s: the mark filled with the prism, turning */
+.a-film{width:22px;-webkit-mask:var(--mk) center/22px 22px no-repeat;mask:var(--mk) center/22px 22px no-repeat;overflow:hidden}
+.a-film:before{content:"";position:absolute;inset:-60%;background:conic-gradient(from 0deg,var(--pv),var(--pb),var(--pt),var(--pa),var(--pr),var(--pv));animation:spin 6s linear infinite}
+.a-film:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 35% 30%,rgb(255 255 255/.55),transparent 55%)}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* B2 stack, 6s: four strips of thread colour moving down through four slots */
+.a-stack{width:22px}
+.a-stack i{position:absolute;left:3px;height:3px;border-radius:2px;top:2.5px;animation:sk 6s infinite}
+.a-stack i:nth-child(1){width:16px;background:var(--label-1);animation-delay:0s}
+.a-stack i:nth-child(2){width:11px;background:var(--label-2);animation-delay:-1.5s}
+.a-stack i:nth-child(3){width:14px;background:var(--label-6);animation-delay:-3s}
+.a-stack i:nth-child(4){width:9px;background:var(--label-5);animation-delay:-4.5s}
+@keyframes sk{0%{transform:translate(0,0);opacity:1}18%{transform:translate(0,0);animation-timing-function:var(--ease-out)}25%{transform:translate(0,4.5px)}43%{transform:translate(0,4.5px);animation-timing-function:var(--ease-out)}50%{transform:translate(0,9px)}68%{transform:translate(0,9px);animation-timing-function:var(--ease-out)}75%{transform:translate(0,13.5px)}90%{transform:translate(0,13.5px);opacity:1;animation-timing-function:ease-in}95%{transform:translate(9px,13.5px);opacity:0}96%{transform:translate(-9px,0);opacity:0;animation-timing-function:var(--ease-out)}100%{transform:translate(0,0);opacity:1}}
+/* B3 weave, 5s: three threads flowing */
+.a-weave{width:30px;overflow:hidden;-webkit-mask:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);mask:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+.a-weave svg{width:60px;height:22px}
+.a-weave g{animation:wv 5s linear infinite}
+.a-weave path{fill:none;stroke-width:1.8;stroke-linecap:round;mix-blend-mode:multiply}
+@keyframes wv{to{transform:translateX(-30px)}}
+/* D1 filing, 7.5s: three things arc into the vessel, it fills, it pours */
+.a-file{width:36px}
+.a-file svg{position:absolute;right:0;top:0}
+.a-file b{position:absolute;left:0;top:0;offset-path:path("M2 7 C 9 -3, 19 -2, 26 13");offset-rotate:0deg;animation:7.5s infinite}
+.a-file b.f1{width:5px;height:4px;border-radius:1px;background:var(--pv);animation-name:fl1}
+.a-file b.f2{width:4px;height:4px;border-radius:99px;background:var(--pa);animation-name:fl2}
+.a-file b.f3{width:5px;height:4px;background:linear-gradient(90deg,var(--pb) 0 1.2px,transparent 0 2px,var(--pb) 0 3.2px,transparent 0 4px,var(--pb) 0);animation-name:fl3}
+@keyframes fl1{0%{offset-distance:0%;opacity:0}3%{opacity:1}5%{offset-distance:0%;animation-timing-function:cubic-bezier(.4,0,.7,1)}20%{offset-distance:100%;opacity:1}22%,100%{offset-distance:100%;opacity:0}}
+@keyframes fl2{0%,22%{offset-distance:0%;opacity:0}25%{opacity:1}27%{offset-distance:0%;animation-timing-function:cubic-bezier(.4,0,.7,1)}42%{offset-distance:100%;opacity:1}44%,100%{offset-distance:100%;opacity:0}}
+@keyframes fl3{0%,44%{offset-distance:0%;opacity:0}47%{opacity:1}49%{offset-distance:0%;animation-timing-function:cubic-bezier(.4,0,.7,1)}64%{offset-distance:100%;opacity:1}66%,100%{offset-distance:100%;opacity:0}}
+.a-file .lv{transform-origin:50% 100%;animation:flv 7.5s infinite}
+@keyframes flv{0%,20%{transform:scaleY(0)}26%,42%{transform:scaleY(.36)}48%,64%{transform:scaleY(.68)}70%,84%{transform:scaleY(1)}96%,100%{transform:scaleY(0)}}
+.a-file .vs{transform-origin:50% 100%;animation:fvs 7.5s infinite}
+@keyframes fvs{0%,19%,41%,63%{transform:none}22%,44%,66%{transform:scaleY(.9) scaleX(1.04)}26%,48%,70%,84%{transform:none}88%{transform:rotate(-14deg)}94%{transform:rotate(-14deg)}100%{transform:none}}
+/* D2 lasso, 4.8s */
+.a-lasso{width:22px}
+.a-lasso .rope{stroke-dasharray:46;transform-origin:50% 50%;animation:ls 4.8s infinite}
+.a-lasso .d{transform-origin:50% 50%;animation:lsd 4.8s infinite}
+@keyframes ls{0%{stroke-dashoffset:46;opacity:1;transform:none}8%{stroke-dashoffset:46;animation-timing-function:cubic-bezier(.45,0,.3,1)}38%{stroke-dashoffset:0;transform:none}48%{transform:scale(.48);animation-timing-function:cubic-bezier(.5,0,.9,.4)}70%{transform:translate(14px,0) scale(.48);opacity:1}76%,100%{transform:translate(18px,0) scale(.48);opacity:0;stroke-dashoffset:0}}
+@keyframes lsd{0%{transform:scale(0);opacity:0}8%{transform:none;opacity:1}38%{transform:none}48%{transform:scale(.8);animation-timing-function:cubic-bezier(.5,0,.9,.4)}70%{transform:translate(14px,0) scale(.8);opacity:1}76%,100%{transform:translate(18px,0) scale(.8);opacity:0}}
+/* I2 orbit, 10s: things circle the mark, in front of it and behind */
+.a-orbit{width:42px}
+.a-orbit .core{position:absolute;left:10px;top:0;width:22px;height:22px;z-index:5}
+.a-orbit .ox{position:absolute;left:19px;top:9px;animation:ox 5s ease-in-out infinite alternate}
+.a-orbit .oy{animation:oy 5s ease-in-out infinite alternate}
+.a-orbit .oy b{display:block;width:4px;height:4px;border-radius:99px;animation:os 5s ease-in-out infinite alternate}
+.a-orbit .ox{animation:ox 5s ease-in-out infinite alternate,oz 5s ease-in-out infinite alternate}
+.a-orbit .ox:nth-of-type(2){animation-delay:0s,-2.5s}.a-orbit .ox:nth-of-type(2) .oy,.a-orbit .ox:nth-of-type(2) .oy b{animation-delay:-2.5s}.a-orbit .ox:nth-of-type(2) .oy b{background:var(--pv)}
+.a-orbit .ox:nth-of-type(3){animation-delay:-2.5s,-5s}.a-orbit .ox:nth-of-type(3) .oy,.a-orbit .ox:nth-of-type(3) .oy b{animation-delay:-5s}.a-orbit .ox:nth-of-type(3) .oy b{background:var(--pa);border-radius:1px}
+.a-orbit .ox:nth-of-type(4){animation-delay:-5s,-7.5s}.a-orbit .ox:nth-of-type(4) .oy,.a-orbit .ox:nth-of-type(4) .oy b{animation-delay:-7.5s}.a-orbit .ox:nth-of-type(4) .oy b{background:var(--pb)}
+.a-orbit .ox:nth-of-type(5){animation-delay:-7.5s,-10s}.a-orbit .ox:nth-of-type(5) .oy,.a-orbit .ox:nth-of-type(5) .oy b{animation-delay:-10s}.a-orbit .ox:nth-of-type(5) .oy b{background:var(--pt);border-radius:1px}
+@keyframes oz{from{z-index:1}to{z-index:9}}
+@keyframes ox{from{transform:translateX(-17px)}to{transform:translateX(17px)}}
+@keyframes oy{from{transform:translateY(-5px)}to{transform:translateY(6px)}}
+@keyframes os{from{transform:scale(.55);opacity:.45}to{transform:scale(1.15);opacity:1}}
+/* I1 prism type: the phrase splits into violet, amber and blue as it changes, and breathes between */
+.wk.prism .ph span{position:relative}
+.wk.prism .ph .gh{position:absolute;left:0;top:0;mix-blend-mode:multiply;opacity:0;pointer-events:none;white-space:nowrap}
+.wk.prism .ph .gh.v{color:var(--pv)}.wk.prism .ph .gh.a{color:var(--pa)}.wk.prism .ph .gh.b{color:var(--pb)}
+.wk.prism .ph .tx{animation:pb 8s ease-in-out infinite}
+.wk.prism .ph .gh{animation:8s ease-in-out infinite}
+.wk.prism .ph .gh.v{animation-name:gv}.wk.prism .ph .gh.a{animation-name:ga}.wk.prism .ph .gh.b{animation-name:gb}
+@keyframes gv{0%,100%{opacity:.0;transform:none}50%{opacity:.55;transform:translate(-1.4px,-.6px);filter:blur(.6px)}}
+@keyframes ga{0%,100%{opacity:.0;transform:none}50%{opacity:.55;transform:translate(1.3px,.5px);filter:blur(.6px)}}
+@keyframes gb{0%,100%{opacity:.0;transform:none}50%{opacity:.45;transform:translate(.2px,-1.2px);filter:blur(.8px)}}
+.wk.prism .ph span.in .gh,.wk.prism .ph span.out .gh{animation:none;opacity:.7;filter:blur(1.5px)}
+.wk.prism .ph span.in .gh.v,.wk.prism .ph span.out .gh.v{transform:translate(-5px,-2px)}
+.wk.prism .ph span.in .gh.a,.wk.prism .ph span.out .gh.a{transform:translate(5px,1.5px)}
+.wk.prism .ph span.in .gh.b,.wk.prism .ph span.out .gh.b{transform:translate(1px,-4px)}
+/* reduced motion: every animation holds a designed frame */
+.rm .an *,.rm .an:before{animation:none!important}
+.rm .a-drop .d,.rm .a-gather .d,.rm .a-file b{opacity:1}
+.rm .a-file b{display:none}.rm .a-file .lv{transform:scaleY(.5)}
+.rm .a-lasso .rope{stroke-dashoffset:0}
+.rm .a-stack i:nth-child(2){transform:translateY(4.5px)}.rm .a-stack i:nth-child(3){transform:translateY(9px)}.rm .a-stack i:nth-child(4){transform:translateY(13.5px)}
+.rm .a-orbit .ox:nth-of-type(2){transform:translateX(-14px)}.rm .a-orbit .ox:nth-of-type(3){transform:translateX(15px)}.rm .a-orbit .ox:nth-of-type(4){transform:translateX(-6px) translateY(5px)}.rm .a-orbit .ox:nth-of-type(5){transform:translateX(9px) translateY(-4px)}
+.rm .a-orbit .oy,.rm .a-orbit .oy b{animation:none!important}
+.rm .wk.prism .ph *{animation:none!important}
+.rm .ph span{transition:none}

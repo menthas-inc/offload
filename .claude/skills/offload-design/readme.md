@@ -124,7 +124,7 @@ Roles: display 34, title-1 26, title-2 21, title-3 17, body 16, body-sm 14, labe
 
 **Navigation motion belongs to the platform, not to this system.** Each kit follows its own convention and owns its own numbers: the web kit slides a pane in from the right in 260ms on `--ease-out`; the Android kit uses Material's shared axis X at 300ms on emphasized decelerate `cubic-bezier(.05,.7,.1,1)`, fades through between peers, and slides one navigation indicator in 250ms; the iOS kit pushes the whole screen in 350ms on `cubic-bezier(.32,.72,0,1)` and cuts between tabs, because UIKit does. Inside a screen, the durations above still hold. Each kit's `README.md` lists what it animates.
 
-**Loading.** One spinner, optionally labelled in lowercase ("looking through your stuff"). No skeletons, no progress bars, no shimmer. **Asked for as a fading sweep on 20 September and declined:** a row typed in already has a treatment for "the server is still reading this", and drawing that row a second earlier is the whole of the placeholder.
+**Loading.** One spinner, optionally labelled in lowercase ("looking through your stuff"). No skeletons, no progress bars, no shimmer. **A conversation is the one exception:** while a turn runs, its row is the **Splash** drop, see **The thinking row**. **Asked for as a fading sweep on 20 September and declined:** a row typed in already has a treatment for "the server is still reading this", and drawing that row a second earlier is the whole of the placeholder.
 
 **A write is drawn at the press and the request follows**, on every surface: the tick, archive, delete, rename, the drag, the fold, a note's edit and move, the privacy switches. **Undo is offered the moment the change is drawn**, not when the server answers, because the eight seconds are the person's. When the server refuses, the screen is put back and a failure `Toast` says so in one clause with the same action beside it.
 
@@ -1119,6 +1119,25 @@ is never changed by a rename.
 
 **Edit thread is one sheet**: name, the seventy in a grid that scrolls inside the sheet, the ten hues, Save
 and Cancel. It opens from the mark or the name in the bar, and from More.
+
+## The thinking row
+
+Decided 7 October 2026 off `explorations/thinking.html` and `explorations/thinking-drop.html`. Build:
+`handoff/APPLY-2026-10-07-thinking.md`. Kit: `ui_kits/thinking_row/`.
+
+**While a turn runs, the conversation shows one row: the mark, animated, then the model's phrase beside it.**
+It replaces the three dots and the line *Looking through your threads* on all three surfaces.
+
+- **The animation is Splash**, 22px, ink, 3.2 seconds, looping without a seam: the dot arrives over the vessel,
+  hovers, drops in, and three droplets jump over the rim and fall away while the vessel gives under it.
+  It runs from the turn's start to its end and never restarts.
+- **The phrase** is the model's own line, 13.5px `--text-secondary`, 10px after the mark. Each replaces the last
+  in 350ms, out upward and in from below with a 3px blur. With no phrase, the row is the mark alone and is
+  labelled *offload is thinking*. offload never invents a phrase.
+- **Stop is a pill**, from ten seconds: 30px, `--border-strong` outline, a 7px ink square and *Stop* in ink.
+  Ink, not moss: stopping is not something offload did.
+- **No bubble.** Nothing in the row is offload speaking.
+- **Reduced motion** draws the mark whole and still.
 
 ## The Memories tab
 

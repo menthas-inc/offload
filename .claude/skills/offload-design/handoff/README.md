@@ -230,6 +230,12 @@ Needs `@shopify/react-native-skia` on the phones. Light theme only until someone
 every wash is a light tint chosen against paper and reads as fog on dark. **That bake is the one
 thing this side still owes.**
 
+## The thinking row, added 2026-10-07
+
+The conversation's working state becomes one row: the Splash drop, the model's phrase, and a Stop pill from ten
+seconds. `handoff/APPLY-2026-10-07-thinking.md` is the build, `handoff/thinking-standalone.html` the reference,
+`ui_kits/thinking_row/` the kit copy, **The thinking row** in `readme.md` the lasting statement.
+
 ## Known drift in the design files
 
 One item left, and it is deliberate.

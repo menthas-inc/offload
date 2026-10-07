@@ -273,22 +273,183 @@
   color: var(--text-secondary);
 }
 
-.working {
+/* The thinking row, from `ui_kits/thinking_row/` (2026-10-07). One line: the
+   Splash mark, 10px, the phrase, 8px, Stop. The phrase truncates before Stop
+   moves, and there is no bubble. */
+.thinking {
   align-self: flex-start;
   display: flex;
-  /* **A row, so Stop sits on the line it belongs to.** It was stacked
-     underneath, which read as a second thing that had appeared rather than as
-     the way out of the one already on screen. `baseline` would drop it below
-     the dots, which have no baseline of their own, so the two are centred. */
-  flex-flow: row wrap;
   align-items: center;
-  gap: var(--space-3);
+  gap: 10px;
+  min-height: 30px;
+  max-width: 100%;
 }
 
-.workingStep {
-  margin: 0;
-  font: var(--weight-regular) var(--size-body-sm) / 1.45 var(--font-core);
+.phrase:empty {
+  display: none;
+}
+
+/* 8px from the phrase to Stop; from the mark alone, the row's 10. */
+.phrase:not(:empty) + .stop {
+  margin-left: -2px;
+}
+
+.phrase {
+  display: grid;
+  min-width: 0;
+  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1.3 var(--font-core);
   color: var(--text-secondary);
+}
+
+/* Both phrases share one cell, so a change never shifts the row. */
+.phraseIn,
+.phraseOut {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phraseIn {
+  animation: phraseIn 0.35s var(--ease-out);
+}
+
+.phraseOut {
+  animation: phraseOut 0.35s var(--ease-out) forwards;
+}
+
+@keyframes phraseIn {
+  from { opacity: 0; filter: blur(3px); transform: translateY(3px); }
+}
+
+@keyframes phraseOut {
+  to { opacity: 0; filter: blur(3px); transform: translateY(-3px); }
+}
+
+.stop {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  min-height: 30px;
+  padding: 0 12px 0 11px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  font: var(--weight-medium) calc(13px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-primary);
+  cursor: pointer;
+  animation: stopIn 0.3s var(--ease-out);
+}
+
+/* The hit area to 44 tall. */
+.stop::after {
+  content: "";
+  position: absolute;
+  inset: -7px 0;
+}
+
+.stop:hover {
+  background: var(--state-hover);
+}
+
+.stop i {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+@keyframes stopIn {
+  from { opacity: 0; transform: scale(0.8); }
+}
+
+/* Splash: 3.2 seconds, never restarted by a phrase or by Stop arriving. */
+.splash {
+  display: block;
+  flex: none;
+  overflow: visible;
+  color: var(--text-primary);
+}
+
+.splash * {
+  transform-box: fill-box;
+}
+
+.splashDot {
+  transform-origin: 50% 50%;
+  animation: splashDot 3.2s infinite;
+}
+
+.splashVessel {
+  transform-origin: 50% 100%;
+  animation: splashVessel 3.2s infinite;
+}
+
+.splashLeft,
+.splashRight,
+.splashCentre {
+  opacity: 0;
+  transform-origin: 50% 50%;
+  animation: 3.2s infinite;
+}
+
+.splashLeft { animation-name: splashLeft; }
+.splashRight { animation-name: splashRight; }
+.splashCentre { animation-name: splashCentre; }
+
+@keyframes splashDot {
+  0% { transform: translateY(-5px); opacity: 0; }
+  16% { transform: none; opacity: 1; animation-timing-function: ease-in-out; }
+  46% { transform: none; animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.4); }
+  61% { transform: translateY(9px) scaleY(1.1); opacity: 1; }
+  63% { transform: translateY(9.6px) scale(1.2, 0.5); opacity: 0; }
+  100% { transform: translateY(-5px); opacity: 0; }
+}
+
+@keyframes splashVessel {
+  0%, 60% { transform: none; }
+  66% { transform: scaleY(0.82) scaleX(1.06); }
+  76% { transform: scaleY(1.04) scaleX(0.98); }
+  84%, 100% { transform: none; }
+}
+
+@keyframes splashLeft {
+  0%, 61% { opacity: 0; transform: none; }
+  62% { opacity: 1; transform: none; animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1); }
+  72% { opacity: 1; transform: translate(-5.5px, -8px); }
+  84% { opacity: 0; transform: translate(-8px, -3px) scale(0.6); }
+  100% { opacity: 0; }
+}
+
+@keyframes splashRight {
+  0%, 61% { opacity: 0; transform: none; }
+  62% { opacity: 1; transform: none; animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1); }
+  72% { opacity: 1; transform: translate(5.5px, -7px); }
+  84% { opacity: 0; transform: translate(8px, -2px) scale(0.6); }
+  100% { opacity: 0; }
+}
+
+@keyframes splashCentre {
+  0%, 62% { opacity: 0; transform: none; }
+  63% { opacity: 1; transform: none; animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1); }
+  71% { opacity: 1; transform: translate(0.5px, -10px) scale(0.8); }
+  82% { opacity: 0; transform: translate(0.5px, -5px) scale(0.5); }
+  100% { opacity: 0; }
+}
+
+/* Reduced motion: the mark whole and still, and phrases swap without moving. */
+@media (prefers-reduced-motion: reduce) {
+  .splash *,
+  .phraseIn,
+  .phraseOut,
+  .stop {
+    animation: none;
+  }
+  .splashDot { opacity: 1; }
+  .phraseOut { display: none; }
 }
 
 .turnFooter {
@@ -371,26 +532,6 @@
   color: var(--text-accent);
   cursor: pointer;
 }
-
-.writing {
-  align-self: flex-start;
-  display: flex;
-  gap: 5px;
-  padding: var(--space-4) var(--space-5);
-  border-radius: 18px 18px 18px 5px;
-  background: var(--ink-50);
-}
-
-.writing span {
-  width: 6px;
-  height: 6px;
-  border-radius: 99px;
-  background: var(--ink-300);
-  animation: writingPulse 1.2s var(--ease-in-out) infinite;
-}
-
-.writing span:nth-child(2) { animation-delay: 0.16s; }
-.writing span:nth-child(3) { animation-delay: 0.32s; }
 
 .composerError {
   margin: var(--space-3) 0 0;

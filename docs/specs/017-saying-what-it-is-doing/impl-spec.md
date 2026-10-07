@@ -56,7 +56,7 @@ No new table. A step is not a log and there is nothing to accumulate.
 | Field | Number |
 | --- | --- |
 | Records per account | None added. Two columns on a row that already exists. |
-| Fan-out | Steps per turn: 0 for a turn under the threshold, 2 to 5 for a turn with a lookup in it. Each overwrites the last. |
+| Fan-out | Steps per turn: 0 for a turn that looks nothing up, 2 to 5 for a turn with a lookup in it. Each overwrites the last. |
 | Growth | Zero. The column is cleared when the turn settles. |
 | Read pattern | The SSE loop on each wake, and `GET /v1/messages/:id` on reconnect. Both already read this row. |
 | Write pattern | One update per step, 2 to 5 per long turn, none on a short one. |
@@ -103,9 +103,30 @@ whose content it describes and goes nowhere else.
   Core API write already in flight completes. Cancel never rolls anything back;
   undo is the thing that does that.
 - **Two clients watching one turn.** Both get the step. One cancels, both stop.
-- **A turn that settles between the threshold and ten seconds** never draws the
-  cancel, which is correct and is the common case for a lookup turn.
-- **Reduced motion** changes nothing: the line is text, not movement.
+- **A turn that settles under ten seconds** never draws the cancel, which is
+  correct and is the common case for a lookup turn.
+- **Reduced motion** draws the Splash mark whole and still, and the line swaps
+  without moving. *Since 2026-10-07; before that the line was the only thing
+  drawn and nothing moved.*
+
+## The thinking row, 2026-10-07
+
+The design's thinking row (`.claude/skills/offload-design/handoff/APPLY-2026-10-07-thinking.md`,
+`ui_kits/thinking_row/`) replaced the client half of T-9 and T-10 on all three
+surfaces:
+
+- **Web:** `apps/web/src/components/shell/Thinking.tsx`, the CSS in
+  `composer.module.css` (`.thinking`, `.splash*`, `.phrase*`, `.stop`), the
+  kit's keyframes as they are.
+- **Phones:** `apps/mobile/components/shell/Thinking.tsx`, with the keyframes in
+  `lib/splash.ts`: one Reanimated clock over 3.2 seconds and each of the five
+  parts reading its own track, so they stay in step. The phrase leaves and
+  arrives with Reanimated layout animations; the web's 3px blur is left out.
+- **`SAY_AFTER_MS` is gone** on every surface. `STOP_AFTER_MS` stays at 10,000.
+  `PHRASE_FLOOR_MS`, 400, holds a phrase that lands right after another.
+- **The worker** no longer writes "Looking through your threads" ahead of the
+  classifier (AC-3a, withdrawn). `apps/agent/tests/test_first_step_db.py` holds
+  that no step is posted before the first model call.
 
 ## Constitution check
 
