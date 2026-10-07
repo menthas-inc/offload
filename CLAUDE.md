@@ -83,6 +83,7 @@ Short list, kept short. Each one cost real time in this repo.
 - Stack, architecture, decisions, CI/CD: `docs/tech/`
 - Design system, and the design decision log: `.claude/skills/offload-design/`
 - Workflows: `.claude/commands/` and `/plan-feature`, `/implement`, `/tweak`, `/review`
+- The repo sweep: `/sweep`, in its own worktree. A SessionStart hook says when it is due (`.claude/scripts/sweep_due.py`); reports in `docs/sweeps/`.
 - Reviewer personas: `.claude/agents/`
 - Mechanical gates: `.claude/hooks/` (secrets, pre-commit tests and lint, design guard)
 - LLM evals: `apps/agent/evals/`, principles with cases under each, run by `/run-llm-tests`. Never automatic, and **never run without my explicit permission in the session: a full run is about $7 on Sonnet, more on Opus.** A feature that changes what the model does adds cases to it before it is done; running them is a separate ask.
