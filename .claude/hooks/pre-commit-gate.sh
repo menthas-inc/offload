@@ -50,6 +50,12 @@ case "$commits" in
       local msg="$1"; shift
       echo "== $*" >> "$log"
       if ! eval "$@" >> "$log" 2>&1; then
+        # The summary is best effort and never decides the exit. Under pipefail
+        # and errexit, `grep | head` dies of a broken pipe once the matches
+        # outgrow the pipe buffer (141), and grep with no match exits 1; either
+        # ended the script before `exit 2`, and only 2 blocks, so a loud failure
+        # committed (2026-10-07, Docker down). Tested by the gate's test.
+        set +e +o pipefail
         {
           echo "$msg"
           echo "failing lines (first 40):"
