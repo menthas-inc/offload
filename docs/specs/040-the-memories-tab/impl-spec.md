@@ -31,7 +31,7 @@ tab ──► /v1/memories ──► store.ts ◄── tool / pass      sweep �
 **Shared constants** go in `packages/widgets/src/memories.ts`, imported by the Core API and all three clients:
 - `MEMORY_KINDS` (order, hue token, glyph);
 - `MEMORY_CAP = 300`, `RULES_CAP = 20`;
-- `ROW_PITCH = 58` and `COLUMN_PITCH`;
+- `pillShape` and `pillWorldSize` (a card's lines and size from its words);
 - `memoryWorld` (the tall and wide placement of the kinds and their radii, computed from each kind's extent);
 - the zoom range and the 0.55 threshold.
 
@@ -92,13 +92,15 @@ Refusals are 200s with `{ ok: false, error }`: `empty`, `too_long`, `never_list`
 
 **`search/sweep.ts`** gains a memories corpus: active account-scope notes where `embedded_at is null or embedded_at < updated_at`, booked as `embed.memory` jobs, the version being `updated_at`. **`memories/layout.ts`** (Part D):
 - **The distances:** `layoutMemories(accountId)` reads each kind's ids and pairwise `embedding <=> embedding` in one query.
-- **The projection:** two dimensions by classical scaling, with a deterministic power iteration from a fixed start vector, ties by id.
-- **The rows,** in a grid sized to the kind, one sentence per row (*corrected while building Part D, 2026-10-06*: the first draft fitted columns inside the handoff's fixed cloud radii, which hold about five memories a kind):
-  - `gridOf(n)`: `round(sqrt(n × ROW_PITCH / COLUMN_PITCH))` columns and as many rows as that needs, so a kind is about as tall as it is wide;
-  - columns are filled by the second coordinate and the rows inside a column ordered by the first, ties by id, what has no embedding last;
-  - columns sit `COLUMN_PITCH` apart and rows `ROW_PITCH` apart, centred on the kind. No nudge: a nudge put sentences in two columns within a sentence's width of each other.
+- **Within a kind** (*rewritten 2026-10-07 at the owner's ask, after research on real Voyage vectors: classical scaling kept 31% of each memory's five nearest neighbours in 2D, t-SNE 56%, and the grid read as a table*):
+  - exact t-SNE (perplexity up to 10, 750 steps, deterministic from a classical-scaling start);
+  - scaled to the disc the kind's pills would fill;
+  - far points pulled in, `r' = R(1 - e^(-r/R))`, so outliers do not stretch the cloud;
+  - each pill, centre outward, takes the free spot nearest its target, sized by its own card (`pillWorldSize`, from `pillShape`: one or two lines, as narrow as its words allow where they break), so clusters stay clusters and no two sentences overlap at any zoom.
+- **Between kinds:** one t-SNE of all the account's memories together; each kind's place is the mean of its own, normalised, in `memory_kind_places` (migration 0087). Kinds that talk alike sit near each other.
+- **On the clients,** `memoryWorld(memories, aspect, places)` stretches the kind places past the canvas's shape (taller on a phone, wider on the web), scales them so clouds about touch, then pushes any two clouds apart until their radii and a gap clear. A new account with no places yet stacks its kinds down the long side.
 
-  A kind of thirty is two columns of fifteen; one of 300 eight columns of 38. **The clients size each cloud from its kind's extent and place the kinds** (`memoryWorld` in the shared module), so the handoff's fixed centres and radii are not used: tall stacks the kinds down the world, wide lays them in rows, and no two clouds overlap. It writes `place_*` and `placed_at` and is called at the start of `accountDailyRun`.
+  It writes `place_*` and `placed_at` and is called at the start of `accountDailyRun`.
 - **Between nights:** `listMemories` places a memory with no `place` beside its nearest placed neighbour in its kind (`dy + ROW_PITCH`, the same `dx`), or below the kind's lowest row when it has no embedding. It is computed on read and not stored.
 
 ### Agent
@@ -147,7 +149,7 @@ The editor is a `DragSheet` with `keyboard="lift"`; the swipe is `SwipeRow` at 8
 
 - **A sentence changed during a sweep.** The `updated_at` guard drops the stale embedding, and the next sweep embeds the new one.
 - **A kind with one memory.** It lays out at the centre.
-- **A kind with 300.** Five or six columns inside the kind's area, never 17,000 units of rows; the cloud is drawn around the columns' extent. Neighbouring kinds' centres are far enough apart in both worlds for six columns; the shared module's test asserts that no two kinds' extents overlap at the cap.
+- **A kind with 300.** Measured 2026-10-07: about 1 s to lay out (t-SNE 0.5 s, making room 0.5 s) and 0.5 s more for the map of all kinds, in the daily run. The job runner shares the API's process, so the layout yields to the event loop every 8 ms of work and no request waits behind it for longer (a test holds it under 100 ms); the cloud is sized from its extent, and the shared module's test asserts no two clouds overlap.
 - **Forget, then Undo after the purge.** A 404; the toast is long gone by then.
 - **A thread note's id on a memory route.** A 404, through the scope predicate.
 - **The default thread as a source.** "Not in a thread", never its stored name.

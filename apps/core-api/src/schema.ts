@@ -821,6 +821,15 @@ export type MemoryClass = "people" | "things" | "about" | "rules" | "patterns";
 
 /** 038. The messages a forgotten memory came from: ids only, so the same words
  *  cannot teach it again. */
+/** 040. Where each kind's cloud sits, normalised, laid out nightly. */
+export interface MemoryKindPlacesTable {
+  account_id: string;
+  kind: string;
+  x: number;
+  y: number;
+  placed_at: Generated<Timestamp>;
+}
+
 export interface MemoryForgottenTable {
   account_id: string;
   message_id: string;
@@ -1292,6 +1301,7 @@ export interface Database {
   connector_secrets: ConnectorSecretsTable;
   connector_calendars: ConnectorCalendarsTable;
   memory_forgotten: MemoryForgottenTable;
+  memory_kind_places: MemoryKindPlacesTable;
   connector_events: ConnectorEventsTable;
   thread_calendars: ThreadCalendarsTable;
   connector_pending_writes: ConnectorPendingWritesTable;

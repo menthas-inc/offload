@@ -558,8 +558,8 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  width: max-content;
   box-sizing: border-box;
+  justify-content: center;
   transform: translate(-50%, -50%);
   border: 0;
   background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
@@ -572,12 +572,13 @@
   cursor: pointer;
 }
 
-/* Cut to `sentenceLines`, so a long sentence never reaches the next row. */
+/* Its lines balanced inside the width `pillShape` gives it, and cut at its
+   line count only if the face runs wider than the estimate. */
 .pill > span {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-wrap: pretty;
+  text-wrap: balance;
 }
 
 .pill > :first-child:not(span) {

@@ -99,6 +99,8 @@ export interface MemoryView {
 
 export interface MemoryList {
   memories: MemoryView[];
+  /** Where each kind's cloud sits, from last night's layout. */
+  kinds: { kind: MemoryKindId; x: number; y: number }[];
   /** At 300: the cap line shows. */
   full: boolean;
   rulesFull: boolean;
@@ -276,15 +278,26 @@ export interface MemoryWorld {
 const CLOUD_PAD = 60;
 const KIND_GAP = 70;
 const WORLD_MARGIN = 80;
-/** A wide world's row aims for about this many units before it wraps. */
-const WIDE_ROW = 1440;
 
 type Placed = { kind: string; place: { dx: number; dy: number } | null };
 
 /** Every memory's offset, the place of one with none still unknown taken as the centre. */
 const offsetOf = (m: Placed) => m.place ?? { dx: 0, dy: 0 };
 
-export function memoryWorld(memories: Placed[], wide: boolean): MemoryWorld {
+/** A kind's place from last night's layout: normalised, centred on zero. */
+export interface MemoryKindPlace {
+  kind: string;
+  x: number;
+  y: number;
+}
+
+/** The kinds in the world. Each goes where last night's layout put it (its
+ *  memories' mean in one t-SNE of them all, so kinds that talk alike sit near
+ *  each other), stretched to the canvas: `shape` is the canvas's width over
+ *  its height, taller on a phone and wider on the web (`true` and `false` are
+ *  the web's and the phone's usual shapes). Then any two clouds closer than
+ *  their radii and a gap are pushed apart, so no two ever overlap. Deterministic. */
+export function memoryWorld(memories: Placed[], shape: boolean | number, places: MemoryKindPlace[] = []): MemoryWorld {
   const sized = MEMORY_KINDS.flatMap((k) => {
     const own = memories.filter((m) => m.kind === k.kind);
     if (own.length === 0) return [];
@@ -299,53 +312,59 @@ export function memoryWorld(memories: Placed[], wide: boolean): MemoryWorld {
   });
   if (sized.length === 0) return { width: 2 * WORLD_MARGIN, height: 2 * WORLD_MARGIN, kinds: [] };
 
-  if (!wide) {
-    const widest = Math.max(...sized.map((k) => k.radius));
-    const width = 2 * widest + 2 * WORLD_MARGIN;
-    let y = WORLD_MARGIN;
-    const kinds = sized.map((k, i) => {
-      // Staggered left and right, as drawn, within the room a smaller cloud leaves.
-      const room = widest - k.radius;
-      const cx = width / 2 + (i % 2 === 0 ? -1 : 1) * room * 0.5;
-      const cy = y + k.radius;
-      y = cy + k.radius + KIND_GAP;
-      return { ...k, cx, cy };
-    });
-    return { width, height: y - KIND_GAP + WORLD_MARGIN, kinds };
+  const aspect = typeof shape === "number" ? shape : shape ? 1.6 : 0.6;
+  // Past the canvas's own shape: making room pushes clouds apart evenly, which
+  // rounds the world off, so the places lean harder than the canvas does.
+  const stretch = Math.pow(aspect, 1.4);
+  // A kind with no place yet (a new account, before its first night) goes
+  // down the canvas's long side in kind order, staggered, as drawn.
+  const targets = sized.map((k, i) => {
+    const place = places.find((p) => p.kind === k.kind);
+    if (place) return [place.x * stretch, place.y / stretch] as const;
+    const along = i - (sized.length - 1) / 2;
+    const across = i % 2 === 0 ? -0.3 : 0.3;
+    return aspect >= 1 ? ([along, across] as const) : ([across, along] as const);
+  });
+
+  // Scale the places so neighbouring clouds about touch, then make room.
+  let spread = 0;
+  let need = 0;
+  for (let i = 0; i < sized.length; i += 1)
+    for (let j = i + 1; j < sized.length; j += 1) {
+      spread += Math.hypot(targets[i]![0] - targets[j]![0], targets[i]![1] - targets[j]![1]);
+      need += sized[i]!.radius + sized[j]!.radius + KIND_GAP;
+    }
+  const scale = spread > 1e-9 ? need / spread : 1;
+  const at = targets.map(([x, y]) => [x * scale, y * scale]);
+  for (let step = 0; step < 500; step += 1) {
+    let moved = false;
+    for (let i = 0; i < at.length; i += 1)
+      for (let j = i + 1; j < at.length; j += 1) {
+        const a = at[i]!;
+        const b = at[j]!;
+        let dx = b[0]! - a[0]!;
+        let dy = b[1]! - a[1]!;
+        let d = Math.hypot(dx, dy);
+        const want = sized[i]!.radius + sized[j]!.radius + KIND_GAP;
+        if (d >= want) continue;
+        moved = true;
+        // Coincident: apart along the canvas's long side.
+        if (d < 1e-6) [dx, dy, d] = aspect >= 1 ? [1, 0, 1] : [0, 1, 1];
+        const push = (want - d) / 2;
+        a[0] = a[0]! - (dx / d) * push;
+        a[1] = a[1]! - (dy / d) * push;
+        b[0] = b[0]! + (dx / d) * push;
+        b[1] = b[1]! + (dy / d) * push;
+      }
+    if (!moved) break;
   }
 
-  // About as wide as the clouds' combined area is square, and wider: a row
-  // wraps once it is longer than that, so a large kind does not stand alone.
-  const area = sized.reduce((sum, k) => sum + (2 * k.radius + KIND_GAP) ** 2, 0);
-  const target = Math.max(WIDE_ROW, Math.sqrt(area) * 1.6, ...sized.map((k) => 2 * k.radius));
-  const rows: (typeof sized)[] = [[]];
-  let used = 0;
-  for (const k of sized) {
-    const span = 2 * k.radius + (rows[rows.length - 1]!.length ? KIND_GAP : 0);
-    if (used + span > target && rows[rows.length - 1]!.length) {
-      rows.push([]);
-      used = 0;
-    }
-    rows[rows.length - 1]!.push(k);
-    used += 2 * k.radius + (rows[rows.length - 1]!.length > 1 ? KIND_GAP : 0);
-  }
-  const kinds: MemoryWorldKind[] = [];
-  let top = WORLD_MARGIN;
-  let width = 0;
-  for (const row of rows) {
-    const tallest = Math.max(...row.map((k) => k.radius));
-    let x = WORLD_MARGIN;
-    row.forEach((k, i) => {
-      // A small stagger up and down, as drawn, inside the row's own height.
-      const cy = top + tallest + (i % 2 === 0 ? -1 : 1) * (tallest - k.radius) * 0.5;
-      kinds.push({ ...k, cx: x + k.radius, cy });
-      x += 2 * k.radius + KIND_GAP;
-    });
-    width = Math.max(width, x - KIND_GAP + WORLD_MARGIN);
-    top += 2 * tallest + KIND_GAP;
-  }
-  const byOrder = MEMORY_KINDS.map((k) => kinds.find((x) => x.kind === k.kind)).filter((k): k is MemoryWorldKind => !!k);
-  return { width, height: top - KIND_GAP + WORLD_MARGIN, kinds: byOrder };
+  const left = Math.min(...at.map(([x], i) => x! - sized[i]!.radius)) - WORLD_MARGIN;
+  const top = Math.min(...at.map(([, y], i) => y! - sized[i]!.radius)) - WORLD_MARGIN;
+  const kinds = sized.map((k, i) => ({ ...k, cx: at[i]![0]! - left, cy: at[i]![1]! - top }));
+  const width = Math.max(...kinds.map((k) => k.cx + k.radius)) + WORLD_MARGIN;
+  const height = Math.max(...kinds.map((k) => k.cy + k.radius)) + WORLD_MARGIN;
+  return { width, height, kinds };
 }
 
 /** Where a memory sits in the world: its kind's centre plus its offset. */
@@ -374,10 +393,80 @@ export function sentenceSize(zoom: number): number {
   return Math.min(15.5, Math.max(10, 7 + zoom * 6));
 }
 
-/** How many lines a sentence on the map may take before it is cut: one
- *  near the threshold and two from 0.7, where two lines of `sentenceSize`
- *  still fit inside a row. The whole sentence is in the editor and in the
- *  pill's name. */
-export function sentenceLines(zoom: number): 1 | 2 {
-  return zoom >= 0.7 ? 2 : 1;
+
+/** About how wide a run of text is, in ems of the core face: narrow letters,
+ *  wide ones, capitals and digits apart, close enough to size a card to its
+ *  words without measuring on the server. */
+export function textEms(text: string): number {
+  let ems = 0;
+  for (const ch of text) {
+    if (" ilj'.,:;!|".includes(ch)) ems += 0.27;
+    else if ("ftrI()[]-".includes(ch)) ems += 0.36;
+    else if ("mwMW".includes(ch)) ems += 0.82;
+    else if (ch >= "A" && ch <= "Z") ems += 0.64;
+    else if (ch >= "0" && ch <= "9") ems += 0.57;
+    else ems += 0.52;
+  }
+  // Calibrated against Instrument Sans in the browser on 2026-10-07: the
+  // table ran up to 4% short of the face, which wrapped a one-line card.
+  return ems * FACE_CALIBRATION;
+}
+
+const FACE_CALIBRATION = 1.05;
+
+/** A sentence's card on the map, in ems of its own type: one line when short,
+ *  two when not, three or more only when truly long, and as wide as its words
+ *  need, so no line ends in dead space. The clients draw it at this width with
+ *  balanced lines; the nightly layout makes room for it. */
+export interface PillShape {
+  lines: number;
+  /** The whole card, padding and the spark included. */
+  widthEms: number;
+  heightEms: number;
+  /** What of the width is padding and the spark, not words. */
+  padEms: number;
+}
+
+const ONE_LINE_EMS = 16;
+const TWO_LINES_EMS = 36;
+const LONG_LINE_EMS = 22;
+/** Room past the words on every line, for the face's own rounding. */
+const LINE_SLACK_EMS = 0.4;
+
+/** How many lines words take when wrapped greedily at `width` ems. */
+function wrappedLines(words: number[], space: number, width: number): number {
+  let lines = 1;
+  let used = 0;
+  for (const w of words) {
+    const next = used === 0 ? w : used + space + w;
+    if (next > width && used > 0) {
+      lines += 1;
+      used = w;
+    } else used = next;
+  }
+  return lines;
+}
+
+export function pillShape(text: string, learned: boolean): PillShape {
+  const total = textEms(text);
+  const lines = total <= ONE_LINE_EMS ? 1 : total <= TWO_LINES_EMS ? 2 : Math.ceil(total / LONG_LINE_EMS);
+  const padEms = 1.5 + (learned ? 1.3 : 0);
+  // The narrowest width at which the words, wrapped where they break, fill
+  // that many lines: an even split of the length ignores that a long word
+  // cannot be cut, and the card then needed a line it did not have.
+  const words = text.split(/\s+/).filter(Boolean).map(textEms);
+  const space = textEms(" ");
+  let width = Math.max(total / lines, ...words);
+  while (wrappedLines(words, space, width) > lines) width += 0.1;
+  // A little past it, so the face never wraps a line the estimate fitted.
+  return { lines, widthEms: width + LINE_SLACK_EMS + padEms, heightEms: lines * 1.3 + 0.9, padEms };
+}
+
+/** A card's size in world units at the zoom it first shows as a sentence,
+ *  where it is largest: above it, type grows slower than the zoom, so a
+ *  layout clear here is clear at every zoom. */
+export function pillWorldSize(text: string, learned: boolean): { w: number; h: number } {
+  const shape = pillShape(text, learned);
+  const fs = sentenceSize(MAP_ZOOM.sentences);
+  return { w: Math.ceil((shape.widthEms * fs) / MAP_ZOOM.sentences), h: Math.ceil((shape.heightEms * fs) / MAP_ZOOM.sentences) };
 }

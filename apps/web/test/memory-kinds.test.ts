@@ -170,15 +170,87 @@ describe("the map's world", () => {
   });
 });
 
-import { sentenceLines, sentenceSize as size } from "@offload/widgets";
+import { pillShape, pillWorldSize, textEms, sentenceSize as size } from "@offload/widgets";
 
-describe("a sentence on the map", () => {
-  it("never overlaps the next row or the next column, at any zoom from the threshold", () => {
-    for (let z = MAP_ZOOM.sentences; z <= MAP_ZOOM.max; z += 0.01) {
-      const fs = size(z);
-      const height = sentenceLines(z) * 1.3 * fs + 0.9 * fs;
-      expect(height, `zoom ${z.toFixed(2)}`).toBeLessThanOrEqual(PITCH * z);
-      expect(17 * fs, `zoom ${z.toFixed(2)}`).toBeLessThanOrEqual(COLUMN * z);
+describe("a sentence's card", () => {
+  it("is one line when short, two when not, three or more only when truly long", () => {
+    expect(pillShape("Their wife is Meera.", false).lines).toBe(1);
+    expect(pillShape("They work at Shopify as a designer and mentor two juniors.", false).lines).toBe(2);
+    expect(pillShape("Their favourite restaurant is the Ethiopian place on Bloor.", false).lines).toBe(2);
+    const long = "They visit family in Tehran every few years, usually in spring, and always bring saffron, pistachios and dried limes back for Meera's mother.";
+    expect(pillShape(long, false).lines).toBeGreaterThanOrEqual(3);
+  });
+
+  it("is as wide as its words need and no wider: no dead space after the last word", () => {
+    for (const text of ["Their wife is Meera.", "They avoid cilantro.", "They work at Shopify as a designer and mentor two juniors.", "Their favourite restaurant is the Ethiopian place on Bloor."]) {
+      const shape = pillShape(text, false);
+      const words = textEms(text);
+      // The words fit in its lines...
+      expect((shape.widthEms - shape.padEms) * shape.lines).toBeGreaterThanOrEqual(words);
+      // ...and each line is at most a word's slack longer than its share.
+      expect(shape.widthEms - shape.padEms - words / shape.lines).toBeLessThanOrEqual(2.5);
     }
+  });
+
+  it("is wide enough for its words to wrap into its lines where they break, not where an even split would", () => {
+    for (const text of ["They work at Shopify as a designer.", "They paint watercolours on weekends.", "Their favourite restaurant is the Ethiopian place on Bloor."]) {
+      const shape = pillShape(text, false);
+      const room = shape.widthEms - shape.padEms;
+      // Greedy wrapping by words at the card's width takes no more lines than the card has.
+      let lines = 1;
+      let used = 0;
+      for (const word of text.split(" ")) {
+        const w = textEms(word);
+        const next = used === 0 ? w : used + textEms(" ") + w;
+        if (next > room && used > 0) {
+          lines += 1;
+          used = w;
+        } else used = next;
+      }
+      expect(lines, text).toBeLessThanOrEqual(shape.lines);
+    }
+  });
+
+  it("is largest in the world at the threshold, so a layout clear there is clear at every zoom", () => {
+    const at = pillWorldSize("They work at Shopify as a designer and mentor two juniors.", false);
+    for (let z = MAP_ZOOM.sentences; z <= MAP_ZOOM.max; z += 0.05) {
+      const fs = size(z);
+      const shape = pillShape("They work at Shopify as a designer and mentor two juniors.", false);
+      expect((shape.widthEms * fs) / z).toBeLessThanOrEqual(at.w + 1e-6);
+      expect((shape.heightEms * fs) / z).toBeLessThanOrEqual(at.h + 1e-6);
+    }
+  });
+});
+
+describe("where the kinds sit", () => {
+  const grid2 = (kind: string, n: number) => Array.from({ length: n }, (_, i) => ({ kind, place: { dx: (i % 3) * 120 - 120, dy: Math.floor(i / 3) * 58 } }));
+  const set2 = [...grid2("people", 9), ...grid2("things", 9), ...grid2("about", 30), ...grid2("patterns", 6)];
+  const places = [
+    { kind: "people", x: -1, y: 0 },
+    { kind: "things", x: -0.9, y: 0.1 },
+    { kind: "about", x: 1.2, y: 0.2 },
+    { kind: "patterns", x: 0.7, y: -1.3 },
+  ];
+
+  it("follows last night's places: kinds that talk alike sit nearer than those that do not", () => {
+    const world = memoryWorld(set2, 1.6, places);
+    const at = (k: string) => world.kinds.find((x) => x.kind === k)!;
+    const gap = (a: string, b: string) => Math.hypot(at(a).cx - at(b).cx, at(a).cy - at(b).cy) - at(a).radius - at(b).radius;
+    expect(gap("people", "things")).toBeLessThan(gap("people", "about"));
+    for (const a of world.kinds)
+      for (const b of world.kinds) {
+        if (a === b) continue;
+        expect(Math.hypot(a.cx - b.cx, a.cy - b.cy)).toBeGreaterThanOrEqual(a.radius + b.radius);
+      }
+  });
+
+  it("leans to the canvas: taller on a phone, wider on the web, from the same places", () => {
+    const tall = memoryWorld(set2, 0.5, places);
+    const wide = memoryWorld(set2, 2, places);
+    expect(tall.height / tall.width).toBeGreaterThan(wide.height / wide.width);
+  });
+
+  it("is the same every time for the same memories and places", () => {
+    expect(memoryWorld(set2, 0.6, places)).toEqual(memoryWorld(set2, 0.6, places));
   });
 });

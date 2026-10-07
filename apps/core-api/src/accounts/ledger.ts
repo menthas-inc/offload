@@ -51,6 +51,8 @@ export const ACCOUNT_LEDGER: Record<string, Entry> = {
   "suggestions.account_id": cascade,
   // 038. Ids of the messages a forgotten memory came from, nothing else.
   "memory_forgotten.account_id": cascade,
+  // 040. Where each kind's cloud sits: derived, no words, rebuilt nightly.
+  "memory_kind_places.account_id": cascade,
 
   // Connected apps. The grant itself is revoked at the provider by a step.
   "connector_connections.account_id": cascade,

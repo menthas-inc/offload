@@ -44,7 +44,7 @@ type Sort = "kind" | "new";
 /** Which memory the editor holds: one by id, a new one, or none. */
 type Open = { id: string } | { fresh: true; kind: MemoryKindId } | null;
 
-const EMPTY: MemoryList = { memories: [], full: false, rulesFull: false };
+const EMPTY: MemoryList = { memories: [], kinds: [], full: false, rulesFull: false };
 
 export function MemoriesPane() {
   const toast = useToast();
@@ -218,6 +218,7 @@ export function MemoriesPane() {
           {state === "ready" && view === "map" ? (
             <MemoriesMap
               memories={list.memories}
+              places={list.kinds ?? []}
               query={query}
               openId={editing?.id ?? null}
               onOpen={(id) => setOpen({ id })}

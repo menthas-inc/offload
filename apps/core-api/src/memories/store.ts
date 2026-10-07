@@ -425,7 +425,13 @@ export interface ListedMemory extends Memory {
 export async function listMemories(
   accountId: string,
   trx: Executor = db,
-): Promise<{ memories: ListedMemory[]; full: boolean; rulesFull: boolean }> {
+): Promise<{
+  memories: ListedMemory[];
+  /** Where each kind's cloud sits, normalised, from last night's layout. */
+  kinds: { kind: MemoryClass; x: number; y: number }[];
+  full: boolean;
+  rulesFull: boolean;
+}> {
   const rows = await active(trx, accountId)
     .select(["id", "kind", "text", "origin", "created_at", "updated_at", "derived_from_message_id", "attrs", "place_dx", "place_dy"])
     .orderBy("created_at", "desc")
@@ -516,9 +522,16 @@ export async function listMemories(
   });
   // 040. Placed tonight or not yet: one with no place sits beside its nearest.
   const placed = await placeOnRead(accountId, memories, trx);
+  const kinds = await trx
+    .selectFrom("memory_kind_places")
+    .select(["kind", "x", "y"])
+    .where("account_id", "=", accountId)
+    .orderBy("kind")
+    .execute();
   for (const memory of memories) memory.place ??= placed.get(memory.id) ?? null;
   return {
     memories,
+    kinds: kinds.map((k) => ({ kind: k.kind as MemoryClass, x: k.x, y: k.y })),
     // The cap line: at 300 the pass learns nothing, whoever wrote the 300.
     full: memories.length >= MEMORY_CAP,
     rulesFull: memories.filter((m) => m.kind === "rules").length >= RULES_CAP,

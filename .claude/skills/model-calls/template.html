@@ -63,6 +63,7 @@
   .node { cursor: pointer; }
   .node rect.box { fill: var(--raised); stroke: var(--hairline); stroke-width: 1; }
   .node.vendor rect.box { stroke-dasharray: 4 3; stroke: var(--strong); }
+  .node.compute rect.box { stroke-dasharray: 1 3; stroke: var(--strong); stroke-linecap: round; }
   .node.off { opacity: 0.55; }
   .node:hover rect.box, .node:focus-visible rect.box { stroke: var(--strong); }
   .node.sel rect.box { stroke: var(--ink); stroke-width: 2; }
@@ -81,6 +82,23 @@
   .sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; flex: none; }
   .sw.t-haiku { background: var(--hairline); } .sw.t-sonnet { background: var(--strong); } .sw.t-opus { background: var(--ink); }
   .sw.t-vendor { border: 1px dashed var(--strong); }
+  .sw.t-compute { border: 1px dotted var(--strong); }
+
+  /* Request paths */
+  .paths { display: grid; gap: 14px; }
+  .path { background: var(--raised); border: 1px solid var(--hairline); border-radius: 14px; padding: 18px 20px; display: grid; gap: 12px; }
+  .path .ph { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+  .path .ph h3 { font-size: 16px; }
+  .path .ph .tot { margin-left: auto; font-size: 13px; color: var(--secondary); font-variant-numeric: tabular-nums; }
+  .path .sub { font-family: var(--quiet); font-size: 15px; color: var(--secondary); }
+  .hops { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+  .hop { display: grid; grid-template-columns: 96px minmax(0, 1fr) 132px; gap: 12px; padding: 8px 0; border-top: 1px solid var(--hairline); align-items: baseline; }
+  .hop .wh { font: 500 12px/1.3 var(--core); color: var(--tertiary); letter-spacing: 0.04em; text-transform: uppercase; }
+  .hop .wt { font-size: 14.5px; }
+  .hop .wt small { display: block; color: var(--tertiary); font-size: 13px; margin-top: 2px; }
+  .hop .ms { font-size: 13px; color: var(--secondary); text-align: right; font-variant-numeric: tabular-nums; }
+  .hop.vendor .wh { color: var(--ink); }
+  .hop.wait .ms { color: var(--tertiary); }
 
   /* Intent legend and bars */
   .legend { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -158,6 +176,8 @@
     .job { padding: 18px 16px; }
     .barrow, .axis { grid-template-columns: 96px minmax(0, 1fr) 48px; gap: 8px; }
     .finding { grid-template-columns: minmax(0, 1fr); }
+    .hop { grid-template-columns: 72px minmax(0, 1fr); }
+    .hop .ms { grid-column: 2; text-align: left; }
   }
   @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 </style>
@@ -166,7 +186,7 @@
   <header>
     <div class="eyebrow">offload · the agent worker</div>
     <h1 style="margin-top:10px">offload's model calls</h1>
-    <p class="lede">Every place offload calls a model: when it runs, what it reads, what it writes, and how each prompt divides by what its words are for. Built from the code, so it is as current as the commit below. Pick any job to read its prompt whole.</p>
+    <p class="lede">Every place offload calls a model or a vector service: when it runs, how a request gets there and what it costs in time, what it reads, what it writes, and how each prompt divides by what its words are for. Built from the code, so it is as current as the commit below. Pick any job to read its prompt whole.</p>
     <div class="meta" id="meta"></div>
   </header>
 
@@ -181,8 +201,17 @@
       <span><i class="sw t-sonnet"></i>Sonnet</span>
       <span><i class="sw t-opus"></i>Opus</span>
       <span><i class="sw t-vendor"></i>Another vendor, no prompt</span>
+      <span><i class="sw t-compute"></i>Our own compute, no vendor</span>
       <span style="color:var(--tertiary)">Faded: switched off</span>
     </div>
+  </section>
+
+  <section id="paths">
+    <header>
+      <h2>How a request reaches them</h2>
+      <p class="intro">Each path from the moment someone acts to the moment they see the result, hop by hop, with where the time goes. Times are typical, and say where they were measured or estimated.</p>
+    </header>
+    <div class="paths" id="pathlist"></div>
   </section>
 
   <section id="words">
@@ -263,12 +292,13 @@ function drawMap() {
   }
   for (const job of DATA.jobs) {
     const b = box(job.id);
-    const g = el("g", { class: `node ${job.tier === "vendor" ? "vendor" : ""} ${job.off ? "off" : ""}`, tabindex: "0", role: "button", "data-id": job.id, "aria-label": `${job.name}, ${job.when}` }, svg);
+    const bare = job.tier === "vendor" || job.tier === "compute";
+    const g = el("g", { class: `node ${bare ? job.tier : ""} ${job.off ? "off" : ""}`, tabindex: "0", role: "button", "data-id": job.id, "aria-label": `${job.name}, ${job.when}` }, svg);
     el("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 9, class: "box" }, g);
-    if (job.tier !== "vendor") el("rect", { x: b.x + 12, y: b.y + 30, width: 8, height: 8, rx: 2, class: `tier-${job.tier}` }, g);
+    if (!bare) el("rect", { x: b.x + 12, y: b.y + 30, width: 8, height: 8, rx: 2, class: `tier-${job.tier}` }, g);
     const nm = el("text", { x: b.x + 12, y: b.y + 21, class: "nm" }, g); nm.textContent = job.name;
-    const md = el("text", { x: b.x + (job.tier === "vendor" ? 12 : 25), y: b.y + 38, class: "md" }, g);
-    md.textContent = job.tier === "vendor" ? job.model : `${short(job.model)} · ${fmt(job.tokens)} tok`;
+    const md = el("text", { x: b.x + (bare ? 12 : 25), y: b.y + 38, class: "md" }, g);
+    md.textContent = bare ? job.model : `${short(job.model)} · ${fmt(job.tokens)} tok`;
     if (job.segs) {
       const total = job.tokens; let x = b.x + 12; const span = b.w - 24;
       for (const [k, v] of shareOf(job)) {
@@ -284,6 +314,18 @@ function drawMap() {
     g.addEventListener("click", go);
     g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
   }
+}
+
+function drawPaths() {
+  document.getElementById("pathlist").innerHTML = DATA.paths.map(p => `
+    <article class="path">
+      <div class="ph"><h3>${esc(p.name)}</h3><span class="tot">${ticks(p.total)}</span></div>
+      <p class="sub">${ticks(p.sub)}</p>
+      <ol class="hops">${p.hops.map(h => `
+        <li class="hop ${h.kind || ""}"><span class="wh">${esc(h.at)}</span><span class="wt">${ticks(h.what)}${h.note ? `<small>${ticks(h.note)}</small>` : ""}</span><span class="ms">${ticks(h.ms || "")}</span></li>`).join("")}</ol>
+      ${p.jobs?.length ? `<div class="jobchips">${p.jobs.filter(id => byId[id]).map(id => `<button type="button" class="jobchip" data-id="${id}">${esc(byId[id].name)}</button>`).join("")}</div>` : ""}
+    </article>`).join("");
+  document.querySelectorAll("#pathlist .jobchip").forEach(b => b.addEventListener("click", () => select(b.dataset.id, true)));
 }
 
 function drawLegend() {
@@ -348,8 +390,11 @@ function drawJob(job) {
     ["What it produces", `<ul>${job.outputs.map(x => `<li>${ticks(x)}</li>`).join("")}</ul>`],
     ["Bounds", `<ul>${job.bounds.map(x => `<li>${ticks(x)}</li>`).join("")}</ul>`],
   ];
+  if (job.latency) facts.push(["Latency", `<ul>${job.latency.map(x => `<li>${ticks(x)}</li>`).join("")}</ul>`]);
+  if (job.compute) facts.push(["Compute and cost", `<ul>${job.compute.map(x => `<li>${ticks(x)}</li>`).join("")}</ul>`]);
   const lane = DATA.lanes.find(l => l.id === job.lane);
   let prompt = `<p class="noprompt">No prompt. ${esc(job.model)} is not a language model call.</p>`;
+  if (job.tier === "compute") prompt = `<p class="noprompt">No prompt and no vendor. It runs in ${esc(job.model)}.</p>`;
   if (job.segs) {
     const share = shareOf(job);
     prompt = `
@@ -396,8 +441,8 @@ function select(id, scroll) {
 }
 
 document.getElementById("meta").innerHTML =
-  `<span><b>${DATA.prompts}</b> prompts</span><span><b>2</b> other vendors</span><span><b>${fmt(DATA.totalTokens)}</b> prompt tokens</span><span>Read from <b>${DATA.commit}</b></span><span>${DATA.date}</span>`;
-drawMap(); drawLegend(); drawBars(); drawFindings();
+  `<span><b>${DATA.prompts}</b> prompts</span><span><b>${new Set(DATA.jobs.filter(j => j.tier === "vendor").map(j => j.model.split(" ")[0])).size}</b> other vendors</span><span><b>${fmt(DATA.totalTokens)}</b> prompt tokens</span><span>Read from <b>${DATA.commit}</b></span><span>${DATA.date}</span>`;
+drawMap(); drawPaths(); drawLegend(); drawBars(); drawFindings();
 const fromHash = (location.hash || "").slice(1);
 select(byId[fromHash] ? fromHash : "filing", false);
 </script>

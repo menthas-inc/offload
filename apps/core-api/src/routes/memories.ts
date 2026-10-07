@@ -74,7 +74,19 @@ const params = z.object({ id: z.string().uuid() });
 export async function memoryRoutes(app: App): Promise<void> {
   app.get(
     "/v1/memories",
-    { schema: { response: { 200: z.object({ memories: z.array(memoryView), full: z.boolean(), rulesFull: z.boolean() }), 401: unauthenticated } } },
+    {
+      schema: {
+        response: {
+          200: z.object({
+            memories: z.array(memoryView),
+            kinds: z.array(z.object({ kind, x: z.number(), y: z.number() })),
+            full: z.boolean(),
+            rulesFull: z.boolean(),
+          }),
+          401: unauthenticated,
+        },
+      },
+    },
     async (request, reply) => {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" as const });

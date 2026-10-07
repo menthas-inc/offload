@@ -42,7 +42,7 @@ const memory = (over: Partial<MemoryView> & Pick<MemoryView, "id">): MemoryView 
   ...over,
 });
 
-const list = (rows: MemoryView[], full = false): MemoryList => ({ memories: rows, full, rulesFull: false });
+const list = (rows: MemoryView[], full = false): MemoryList => ({ memories: rows, kinds: [], full, rulesFull: false });
 
 describe("the read (AC-11)", () => {
   it("asks for every memory and hands back the list", async () => {

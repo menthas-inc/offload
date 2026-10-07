@@ -11,7 +11,7 @@
 // kind, hue and cap is `@offload/widgets`'s, shared with the web.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Platform, Pressable, Text, TextInput, View } from "react-native";
+import { Platform, Pressable, SectionList, Text, TextInput, View, type SectionListProps } from "react-native";
 import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
@@ -42,6 +42,21 @@ import {
 import { plusKind } from "../../lib/memories-map";
 
 const isAndroid = Platform.OS === "android";
+
+/** A list section as `SectionList` takes it. */
+interface ListSection {
+  key: string;
+  title: string;
+  kind: MemoryKindId | null;
+  data: MemoryView[];
+}
+
+/** **Virtualised (2026-10-07).** Three hundred rows mount as they scroll into
+ *  view rather than all at once; animated, so the prism behind the plate
+ *  still slides with it on the UI thread. */
+const MemorySectionList = Animated.createAnimatedComponent(
+  SectionList as unknown as new (props: SectionListProps<MemoryView, ListSection>) => SectionList<MemoryView, ListSection>,
+);
 
 /** The bar's tools are drawn at 40 and answer to 44. */
 const DRAWN = 40;
@@ -103,6 +118,7 @@ export default function Memories() {
 
   const screen = memoriesScreen(read);
   const memories = read && read !== "failed" ? read.memories : [];
+  const places = read && read !== "failed" ? (read.kinds ?? []) : [];
   const shown = listView(memories, sort, query);
   const palette = { labels: COLOR.labels, ink: COLOR.ink, raised: COLOR.raised, inverse: COLOR.inverse, onSolid: COLOR.onSolid };
 
@@ -203,67 +219,79 @@ export default function Memories() {
       ) : view === "map" ? (
         <MemoriesMap
           memories={memories}
+          places={places}
           query={query}
           openId={editor?.editing?.id ?? null}
           onOpen={(memory) => open(memory)}
           onFocusKind={setMapKind}
         />
       ) : (
-        <Animated.ScrollView
+        <MemorySectionList
+          sections={shown.sections.map((section) => ({ key: section.key, title: section.title, kind: section.kind, data: section.rows }))}
+          keyExtractor={(memory) => memory.id}
+          // About two screens up front, then a window of seven screens as it
+          // scrolls: 300 rows never mount at once.
+          initialNumToRender={14}
+          maxToRenderPerBatch={12}
+          windowSize={7}
+          stickySectionHeadersEnabled={false}
           onScroll={onScroll}
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           contentContainerClassName="pt-space-3"
-        >
-          <View className="px-gutter-screen pb-space-2">
-            <Segmented
-              label="Sort"
-              options={[
-                { value: "kind", label: "By kind" },
-                { value: "new", label: "Newest" },
-              ]}
-              value={sort}
-              onChange={(value) => setSort(value === "new" ? "new" : "kind")}
-            />
-          </View>
-
-          {screen.capLine ? (
-            <Text className="mx-gutter-screen mt-space-5 font-core text-text-tertiary" style={{ fontSize: 12.5, lineHeight: 18 }}>
-              {screen.capLine}
-            </Text>
-          ) : null}
-
-          {nothing}
-
-          {shown.sections.map((section) => (
-            <View key={section.key}>
-              <View className="flex-row items-center px-gutter-screen pb-space-3 pt-space-7" style={{ gap: 9 }} accessibilityRole="header">
-                {section.kind ? <Dot color={kindColors(section.kind, palette).dot} size={11} /> : null}
-                <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 19 }}>
-                  {section.title}
-                </Text>
-                <View className="rounded-pill bg-surface-fill px-space-3 py-space-1">
-                  <Text className="font-core text-text-secondary" style={{ fontSize: 12 }}>
-                    {section.rows.length}
-                  </Text>
-                </View>
-              </View>
-              {section.rows.map((memory, i) => (
-                <MemoryListRow
-                  key={memory.id}
-                  memory={memory}
-                  dot={sort === "new" ? kindColors(memory.kind, palette).dot : null}
-                  border={i > 0}
-                  onOpen={() => open(memory)}
-                  onForget={() => void forget(memory)}
+          ListHeaderComponent={
+            <>
+              <View className="px-gutter-screen pb-space-2">
+                <Segmented
+                  label="Sort"
+                  options={[
+                    { value: "kind", label: "By kind" },
+                    { value: "new", label: "Newest" },
+                  ]}
+                  value={sort}
+                  onChange={(value) => setSort(value === "new" ? "new" : "kind")}
                 />
-              ))}
+              </View>
+
+              {screen.capLine ? (
+                <Text className="mx-gutter-screen mt-space-5 font-core text-text-tertiary" style={{ fontSize: 12.5, lineHeight: 18 }}>
+                  {screen.capLine}
+                </Text>
+              ) : null}
+
+              {nothing}
+            </>
+          }
+          renderSectionHeader={({ section }) => (
+            <View className="flex-row items-center px-gutter-screen pb-space-3 pt-space-7" style={{ gap: 9 }} accessibilityRole="header">
+              {section.kind ? <Dot color={kindColors(section.kind, palette).dot} size={11} /> : null}
+              <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 19 }}>
+                {section.title}
+              </Text>
+              <View className="rounded-pill bg-surface-fill px-space-3 py-space-1">
+                <Text className="font-core text-text-secondary" style={{ fontSize: 12 }}>
+                  {section.data.length}
+                </Text>
+              </View>
             </View>
-          ))}
-          <View style={{ height: 28 }} />
-          <PlateSpace />
-        </Animated.ScrollView>
+          )}
+          renderItem={({ item: memory, index }) => (
+            <MemoryListRow
+              memory={memory}
+              dot={sort === "new" ? kindColors(memory.kind, palette).dot : null}
+              border={index > 0}
+              onOpen={() => open(memory)}
+              onForget={() => void forget(memory)}
+            />
+          )}
+          ListFooterComponent={
+            <>
+              <View style={{ height: 28 }} />
+              <PlateSpace />
+            </>
+          }
+        />
       )}
 
       {editor ? (

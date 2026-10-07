@@ -118,9 +118,19 @@ describe("the screen (AC-11 to AC-13)", () => {
     expect(source).toMatch(/placeholder=\{MEMORY_COPY\.search\}/);
   });
 
+  it("virtualises the list, so rows mount as they scroll into view", () => {
+    expect(source).toMatch(/<MemorySectionList\b/);
+    expect(source).toMatch(/Animated\.createAnimatedComponent\(\s*SectionList\b/);
+    expect(source).not.toMatch(/<Animated\.ScrollView/);
+    expect(source).toMatch(/initialNumToRender=\{/);
+    expect(source).toMatch(/windowSize=\{/);
+    expect(source).toMatch(/keyExtractor=\{\(memory\) => memory\.id\}/);
+    expect(source).toMatch(/renderSectionHeader=\{/);
+  });
+
   it("draws a kind's heading with its dot, name and count", () => {
     expect(source).toMatch(/section\.kind \? <Dot/);
-    expect(source).toMatch(/\{section\.rows\.length\}/);
+    expect(source).toMatch(/\{section\.data\.length\}/);
   });
 
   it("puts the toast over the sheet", () => {
@@ -222,7 +232,19 @@ describe("the map (AC-26 to AC-30)", () => {
   const source = read(MAP);
 
   it("draws what lib/memories-map decides", () => {
-    for (const fn of ["mapMarks(", "mapLabels(", "mapNothing(", "openCamera(", "zoomAbout(", "flightAt(", "pillBox(", "mapWide("]) {
+    for (const fn of [
+      "mapMarks(",
+      "mapLabels(",
+      "mapNothing(",
+      "openCamera(",
+      "zoomAbout(",
+      "flightAt(",
+      "settle(",
+      "needsRecull(",
+      "crossesSentences(",
+      "layerTransform(",
+      "labelAnchor(",
+    ]) {
       expect(source, fn).toContain(fn);
     }
     expect(source).toMatch(/memoryWorld\(/);
@@ -233,7 +255,39 @@ describe("the map (AC-26 to AC-30)", () => {
     expect(source).toMatch(/require\("\.\.\/\.\.\/assets\/prism\/oil-ground\.png"\)/);
     expect(source).toMatch(/dark \? "screen" : "multiply"/);
     expect(source).toMatch(/<RadialGradient\b/);
-    expect(source).toMatch(/k\.radius \* camera\.z \* CLOUD_REACH/);
+    expect(source).toMatch(/r=\{k\.radius \* CLOUD_REACH\}/);
+  });
+
+  it("keeps the camera on the UI thread: shared values, worklet gestures, no state per frame", () => {
+    expect(source).toMatch(/const cx = useSharedValue\(/);
+    expect(source).toMatch(/const cy = useSharedValue\(/);
+    expect(source).toMatch(/const z = useSharedValue\(/);
+    expect(source).not.toMatch(/\.runOnJS\(true\)/);
+    expect(source).not.toMatch(/setCamera\(/);
+    expect(source).not.toMatch(/requestAnimationFrame/);
+  });
+
+  it("flies with withTiming on the camera's duration", () => {
+    expect(source).toMatch(/withTiming\(1, \{ duration: ms, easing: Easing\.linear \}/);
+  });
+
+  it("moves one world layer, and the canvas reads the same values", () => {
+    expect(source).toMatch(/const layer = useAnimatedStyle\(/);
+    expect(source).toMatch(/transformOrigin: "left top"/);
+    expect(source).toMatch(/<Group transform=\{cloudTransform\}/);
+    expect(source).toMatch(/const cloudTransform = useDerivedValue(<\w+>)?\(/);
+  });
+
+  it("re-renders only on discrete changes: the threshold, settling, and the window moving", () => {
+    expect(source).toMatch(/useAnimatedReaction\(/);
+    expect(source).toMatch(/crossesSentences\(/);
+    expect(source).toMatch(/needsRecull\(/);
+    expect(source).toMatch(/runOnJS\(settleAt\)/);
+    expect(source).toMatch(/runOnJS\(recullAt\)/);
+  });
+
+  it("memoises each mark, so a recompute mounts only what enters", () => {
+    expect(source).toMatch(/const MapMark = memo\(function MapMark/);
   });
 
   it("makes every dot, pill and label a button with a name", () => {
@@ -245,7 +299,7 @@ describe("the map (AC-26 to AC-30)", () => {
   });
 
   it("clamps a pill's sentence to the box's lines, the whole of it in the label", () => {
-    expect(source).toMatch(/numberOfLines=\{box\.lines\}/);
+    expect(source).toMatch(/numberOfLines=\{card\.lines\}/);
   });
 
   it("pans and pinches with the gesture handler, clear of the edges", () => {
@@ -268,19 +322,20 @@ describe("the map (AC-26 to AC-30)", () => {
 
   it("is a named group, and says which sentence is open", () => {
     expect(source).toMatch(/role="group"/);
-    expect(source).toMatch(/accessibilityState=\{\{ selected: mark\.memory\.id === openId \}\}/);
+    expect(source).toMatch(/accessibilityState=\{\{ selected: open \}\}/);
   });
 
   it("widens a pill's target as far as the rows allow", () => {
     expect(source).toMatch(/hitSlop=\{\{ top: target\.slop, bottom: target\.slop \}\}/);
   });
 
-  it("picks its shape once, from its first size", () => {
-    expect(source).toMatch(/if \(wide === null\) setWide\(mapWide\(/);
+  it("takes its canvas's shape once, from its first size, and last night's kind places", () => {
+    expect(source).toMatch(/if \(aspect === null\) setAspect\(width \/ height\)/);
+    expect(source).toMatch(/memoryWorld\(memories, aspect \?\? TALL, places\)/);
   });
 
   it("tells the screen which kind it is zoomed into, for the plus", () => {
-    expect(source).toMatch(/const focused = camera \? focusKind\(world, camera\) : null;/);
+    expect(source).toMatch(/const focused = settled \? focusKind\(world, settled\.camera\) : null;/);
     expect(source).toMatch(/onFocusKind\(focused\);/);
     const screen = read(SCREEN);
     expect(screen).toMatch(/onFocusKind=\{setMapKind\}/);

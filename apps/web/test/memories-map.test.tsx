@@ -107,13 +107,19 @@ describe("040 client review", () => {
     expect(drawn.length).toBeLessThan(9);
   });
 
-  it("keeps a drag that leaves the map, by capturing the pointer", async () => {
+  it("keeps a drag that leaves the map by capturing the pointer, and only once it is a drag", async () => {
     await mount([memory("a", "people", "Their wife is Meera.")]);
     const map = host.querySelector('[aria-label="Map of memories"]') as HTMLElement;
     const captured: number[] = [];
     map.setPointerCapture = (id: number) => void captured.push(id);
     await act(async () => {
       map.dispatchEvent(new PointerEvent("pointerdown", { pointerId: 7, clientX: 10, clientY: 10, bubbles: true }));
+    });
+    // A press alone is a tap: capturing it would send the click to the map,
+    // not to the label, dot or sentence under it.
+    expect(captured).toEqual([]);
+    await act(async () => {
+      map.dispatchEvent(new PointerEvent("pointermove", { pointerId: 7, clientX: 40, clientY: 40, bubbles: true }));
     });
     expect(captured).toEqual([7]);
   });

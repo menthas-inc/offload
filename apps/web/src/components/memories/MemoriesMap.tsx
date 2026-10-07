@@ -25,9 +25,10 @@ import {
   memoryAt,
   memorySections,
   memoryWorld,
-  sentenceLines,
+  pillShape,
   sentenceSize,
   type MemoryKindId,
+  type MemoryKindPlace,
   type MemoryView,
 } from "@offload/widgets";
 import { Icon } from "../Icon";
@@ -52,12 +53,15 @@ function reducedMotion(): boolean {
 
 export function MemoriesMap({
   memories,
+  places = [],
   query,
   openId,
   onOpen,
   onFocusKind,
 }: {
   memories: MemoryView[];
+  /** Where each kind's cloud sits, from last night's layout. */
+  places?: MemoryKindPlace[];
   query: string;
   openId: string | null;
   onOpen: (id: string) => void;
@@ -78,24 +82,24 @@ export function MemoriesMap({
     return () => observer.disconnect();
   }, []);
 
-  // Picked once, when the map first has a size, and kept: opening the editor
-  // pane or resizing the window never reshuffles it.
-  const [wide, setWide] = useState<boolean | null>(null);
+  // The canvas's shape, picked once when the map first has a size, and kept:
+  // opening the editor pane or resizing the window never reshuffles it.
+  const [aspect, setAspect] = useState<number | null>(null);
   useEffect(() => {
-    if (size && wide === null) setWide(size.w > size.h * MAP_LOOK.widePast);
-  }, [size, wide]);
+    if (size && aspect === null) setAspect(size.w / size.h);
+  }, [size, aspect]);
 
-  const world = useMemo(() => memoryWorld(memories, wide ?? true), [memories, wide]);
+  const world = useMemo(() => memoryWorld(memories, aspect ?? MAP_LOOK.widePast, places), [memories, aspect, places]);
   const ordered = useMemo(() => memorySections(memories, "kind").flatMap((s) => s.rows), [memories]);
 
   const [camera, setCamera] = useState<Camera | null>(null);
   const [min, setMin] = useState<number>(MAP_ZOOM.min);
   useEffect(() => {
-    if (!size || wide === null || camera) return;
+    if (!size || aspect === null || camera) return;
     const open = mapOpening(world, size.w, size.h, memories.length);
     setMin(open.min);
     setCamera({ cx: open.cx, cy: open.cy, z: open.z });
-  }, [size, wide, camera, world, memories.length]);
+  }, [size, aspect, camera, world, memories.length]);
 
   const flight = useRef(0);
   useEffect(() => () => cancelAnimationFrame(flight.current), []);
@@ -173,7 +177,6 @@ export function MemoriesMap({
   const X = (x: number) => (x - camera.cx) * camera.z + size.w / 2;
   const Y = (y: number) => (y - camera.cy) * camera.z + size.h / 2;
   const fs = sentenceSize(camera.z);
-  const lines = sentenceLines(camera.z);
   const matches = ordered.filter((m) => matchesMemory(m, query));
   const fit = Math.min(size.w / world.width, size.h / world.height) * 0.94;
   const level = Math.max(0, Math.min(1, Math.log(camera.z / min) / Math.log(MAP_ZOOM.max / min)));
@@ -225,8 +228,6 @@ export function MemoriesMap({
       style={{ ["--dimmed" as string]: MAP_LOOK.dimmed }}
       onPointerDown={(event) => {
         if ((event.target as HTMLElement).closest("[data-map-control]")) return;
-        // A drag released outside the map still ends here.
-        event.currentTarget.setPointerCapture?.(event.pointerId);
         moved.current = false;
         cancelAnimationFrame(flight.current);
         pointers.current.set(event.pointerId, local(event));
@@ -253,7 +254,13 @@ export function MemoriesMap({
         const [x, y] = local(event);
         const dx = x - g.at[0];
         const dy = y - g.at[1];
-        if (Math.hypot(dx, dy) > 5) moved.current = true;
+        if (!moved.current && Math.hypot(dx, dy) > 5) {
+          moved.current = true;
+          // Once it is a drag, a release outside the map still ends it here.
+          // Not on the press: that would send a tap's click to the map, not
+          // to the label, dot or sentence under it.
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+        }
         if (moved.current) setCamera(clamp({ ...g.camera, cx: g.camera.cx - dx / g.camera.z, cy: g.camera.cy - dy / g.camera.z }));
       }}
       onPointerUp={release}
@@ -293,6 +300,7 @@ export function MemoriesMap({
           "data-dim": matchesMemory(m, query) ? undefined : true,
           "aria-label": `${m.text}, ${info.name}`,
         };
+        const shape = pillShape(m.text, m.origin === "learned");
         if (!near) {
           return (
             <button
@@ -319,14 +327,15 @@ export function MemoriesMap({
               left: X(at.x),
               top: Y(at.y),
               fontSize: `${fs.toFixed(1)}px`,
-              maxWidth: Math.round(fs * 17),
+              // As wide as its words need: no dead space after the last one.
+              width: `${(shape.widthEms * fs).toFixed(1)}px`,
               padding: `${(fs * 0.45).toFixed(1)}px ${(fs * 0.75).toFixed(1)}px`,
               borderRadius: `${(fs * 1.1).toFixed(1)}px`,
             }}
             onClick={() => onOpen(m.id)}
           >
             {m.origin === "learned" ? <Icon name="sparkles" size={Math.round(fs * 0.8)} /> : null}
-            <span style={{ WebkitLineClamp: lines }}>{m.text}</span>
+            <span style={{ WebkitLineClamp: shape.lines }}>{m.text}</span>
           </button>
         );
       })}
