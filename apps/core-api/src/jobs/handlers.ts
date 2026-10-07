@@ -604,6 +604,11 @@ const jobsPurge: Handler = async () => {
     .deleteFrom("waitlist_attempts")
     .where(sql<boolean>`created_at < now() - interval '2 days'`)
     .executeTakeFirst();
+  // 039. The review code limiter reads an hour.
+  const codeAttempts = await db
+    .deleteFrom("review_code_attempts")
+    .where(sql<boolean>`created_at < now() - interval '2 days'`)
+    .executeTakeFirst();
   const lookups = await db
     .deleteFrom("people_lookups")
     .where(sql<boolean>`looked_up_at < now() - interval '1 day'`)
@@ -612,9 +617,14 @@ const jobsPurge: Handler = async () => {
     .deleteFrom("sessions")
     .where(sql<boolean>`expires_at < now() - interval '1 day'`)
     .executeTakeFirst();
+  // A verification goes at its expiry, with no margin. Better Auth refuses
+  // an expired one by its own clock, and nothing else reads the table. A
+  // browser's sign-in keeps its OAuth state here, and with it any review
+  // code that was typed (039), so an abandoned sign-in's code lasts until
+  // this pass after its ten minutes, and no longer.
   const verifications = await db
     .deleteFrom("verifications")
-    .where(sql<boolean>`expires_at < now() - interval '1 day'`)
+    .where(sql<boolean>`expires_at < now()`)
     .executeTakeFirst();
 
   // 034. The admin panel's own tables, each to its window: a heartbeat and
@@ -631,6 +641,7 @@ const jobsPurge: Handler = async () => {
       msg: "jobs purged",
       removed: Number(result.numDeletedRows ?? 0),
       attempts: Number(attempts.numDeletedRows ?? 0),
+      codeAttempts: Number(codeAttempts.numDeletedRows ?? 0),
       lookups: Number(lookups.numDeletedRows ?? 0),
       sessions: Number(sessions.numDeletedRows ?? 0),
       verifications: Number(verifications.numDeletedRows ?? 0),

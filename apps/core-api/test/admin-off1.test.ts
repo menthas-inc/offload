@@ -166,8 +166,9 @@ interface Write {
   route: string;
   body?: (ctx: Ctx) => unknown;
   /** What the answer holds, so each write is known to have done its work
-   *  and not only to have been refused quietly. */
-  says: Record<string, unknown>;
+   *  and not only to have been refused quietly. A write whose answer is a
+   *  file says its first line instead. */
+  says: Record<string, unknown> | { csv: string };
 }
 
 /** Every write the panel has, once, in an order each can run in: disable
@@ -201,6 +202,18 @@ const WRITES: Write[] = [
   { route: "POST /v1/admin/waitlist/remove", body: ({ marked }) => ({ ids: [marked.accountId] }), says: { removed: 0, skipped: 1 } },
   { route: "POST /v1/admin/waitlist/invite-next", body: () => ({ count: 1 }), says: { batchSize: 1 } },
   { route: "POST /v1/admin/waitlist/invite-address", body: ({ email }) => ({ email }), says: { status: "already-in" } },
+  // 039. A review code: the answer carries the code, once, and nobody.
+  { route: "POST /v1/admin/codes", body: () => ({ note: "App Store review 1.0" }), says: { state: "live", maxUses: 5 } },
+  { route: "POST /v1/admin/codes/:id/revoke", says: { status: "already" } },
+  // Going-public 17c. The two files, last, so the log has every write above
+  // in it. The marked account is in the log by name and address, which the
+  // Audit page shows too; what may not be there is anything the mark is on.
+  { route: "POST /v1/admin/staff/export", says: { csv: "account_id,name,email,role,state,added_at,added_by_id,added_by_email,last_panel_opened_at,last_here_at" } },
+  {
+    route: "POST /v1/admin/audit/export",
+    body: () => ({}),
+    says: { csv: "id,at,kind,staff_id,staff_name,staff_email,target_id,target_name,target_email,target_deleted,setting_key,old,new,job_id" },
+  },
 ];
 
 /** A write route this test does not call, and why not. Empty: a route goes
@@ -260,7 +273,8 @@ describe("AC-4 and AC-5 every admin write, the CSV, the alerts and the audit log
       });
       const label = `${write.route} ${JSON.stringify(payload ?? null)}`;
       expect(response.statusCode, `${label}: ${response.payload}`).toBe(200);
-      expect(response.json(), label).toMatchObject(write.says);
+      if ("csv" in write.says) expect(response.payload.split("\r\n")[0], label).toBe(write.says.csv);
+      else expect(response.json(), label).toMatchObject(write.says);
       expect(leaks(response.payload, marked), label).toEqual([]);
       expect(leaks(JSON.stringify(response.headers), marked), `${label} headers`).toEqual([]);
     }

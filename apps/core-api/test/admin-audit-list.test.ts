@@ -194,9 +194,11 @@ describe("the filters", () => {
 });
 
 describe("AC-54 the log is read only", () => {
-  it("registers nothing under audit but reads", () => {
+  it("registers nothing under audit that changes an entry", () => {
     const routes = adminRoutesOf(app).filter((route) => route.url.startsWith("/v1/admin/audit"));
-    expect(routes.map((route) => `${route.method} ${route.url}`).sort()).toEqual(["GET /v1/admin/audit", "GET /v1/admin/audit/facets"]);
+    // Going-public 17c: the export is a POST because it is recorded. It reads
+    // the log and adds its own entry, and changes none.
+    expect(routes.map((route) => `${route.method} ${route.url}`).sort()).toEqual(["GET /v1/admin/audit", "GET /v1/admin/audit/facets", "POST /v1/admin/audit/export"]);
   });
 
   it("answers 404 to every write, and the log is as it was", async () => {

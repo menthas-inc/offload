@@ -6,6 +6,9 @@
 // of its own, both actions are full-width buttons rather than one button and a
 // quiet link, and the footer answers the question the screen provokes, which is
 // "but I was invited".
+//
+// 039. A review code typed on the sign-in screen that did not work comes back
+// here, said in one clause, with the way back to try another.
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -22,15 +25,17 @@ export default function NoInvitePage() {
   // deleted. There is no invite to look for and no waitlist to join, so the
   // screen says what is true and where to write.
   const [disabled, setDisabled] = useState(false);
+  const [badCode, setBadCode] = useState(false);
 
   useEffect(() => {
     // Read once; the server clears the cookie as it answers, so a reload shows
     // the screen without the address rather than a stale one.
     fetch(`${API}/api/sign-in/attempt`, { credentials: "include" })
       .then((response) => (response.ok ? response.json() : { email: null }))
-      .then((data: { email: string | null; reason?: "disabled" | null }) => {
+      .then((data: { email: string | null; reason?: "disabled" | "code" | null }) => {
         setEmail(data.email);
         setDisabled(data.reason === "disabled");
+        setBadCode(data.reason === "code");
       })
       .catch(() => setEmail(null));
   }, []);
@@ -90,6 +95,11 @@ export default function NoInvitePage() {
     <GateChrome>
       <GateCard>
         <h1 className={styles.title}>You are not on the list yet</h1>
+        {badCode ? (
+          <p className={styles.refusal} role="alert">
+            That code did not work.
+          </p>
+        ) : null}
         <p className={styles.sub}>
           offload is invite only right now.{" "}
           {email ? (
@@ -105,8 +115,8 @@ export default function NoInvitePage() {
           <button type="button" className={styles.primary} onClick={join} disabled={!email}>
             Join the waitlist with this email
           </button>
-          <button type="button" className={styles.secondary} onClick={() => router.replace("/sign-in")}>
-            Use a different account
+          <button type="button" className={styles.secondary} onClick={() => router.replace(badCode ? "/sign-in?code=1" : "/sign-in")}>
+            {badCode ? "Try another code" : "Use a different account"}
           </button>
         </div>
 

@@ -1,22 +1,30 @@
 // 034, section F. The audit log, read.
 //
 // Registered by the admin plugin in the owner scope, so every path here is
-// relative to `/v1/admin` and already behind the owner check. There are only
-// GETs: an entry is written by the route that did the thing, in that route's
-// transaction, and nothing changes or removes one. The database refuses both
-// (0075), and this file offers neither.
+// relative to `/v1/admin` and already behind the owner check. Reads, and the
+// export, which adds its own entry: an entry is written by the route that did
+// the thing, in that route's transaction, and nothing changes or removes one.
+// The database refuses both (0075), and this file offers neither.
 //
 // A stored entry names accounts by id and holds no address. Who and on whom
 // are joined from `accounts` when the log is read, which is why an account
 // that has gone reads as its id and nothing else.
 
+import { Readable } from "node:stream";
 import { z } from "zod";
 import type { App } from "../../app.js";
 import { db } from "../../db.js";
-import { AUDIT_KINDS } from "../../admin/audit.js";
+import { AUDIT_KINDS, audit } from "../../admin/audit.js";
+import { csvCell } from "./costs.js";
 
 const PAGE = 50;
 const DEFAULT_DAYS = 30;
+/** The export's period when none is asked for. */
+const EXPORT_DAYS = 90;
+/** Rows read at a time while the export streams, so a long log is never
+ *  held whole. */
+const CHUNK = 1000;
+const DAY_MS = 86_400_000;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -58,6 +66,110 @@ function decodeCursor(cursor: string): string | null {
   return UUID.test(id) ? id : null;
 }
 
+/** The log as the page reads it: each entry with who and on whom joined from
+ *  `accounts` as they are now. The list and the export both read through
+ *  this and `toEntry`, so the file holds what the page shows and no more. */
+function entries() {
+  return db
+    .selectFrom("staff_audit as entry")
+    .leftJoin("accounts as actor", "actor.id", "entry.staff_account_id")
+    .leftJoin("accounts as target", "target.id", "entry.target_account_id")
+    .select([
+      "entry.id as id",
+      "entry.at as at",
+      "entry.kind as kind",
+      "entry.staff_account_id as staff_id",
+      "entry.target_account_id as target_id",
+      "entry.setting_key as setting_key",
+      "entry.old_value as old_value",
+      "entry.new_value as new_value",
+      "entry.job_id as job_id",
+      "actor.id as actor_found",
+      "actor.display_name as actor_name",
+      "actor.email as actor_email",
+      "actor.deleted_at as actor_deleted_at",
+      "target.id as target_found",
+      "target.display_name as target_name",
+      "target.email as target_email",
+      "target.deleted_at as target_deleted_at",
+    ]);
+}
+
+type Found = Awaited<ReturnType<ReturnType<typeof entries>["execute"]>>[number];
+type Entry = z.infer<typeof entry>;
+
+function toEntry(row: Found): Entry {
+  return {
+    id: row.id,
+    at: row.at.toISOString(),
+    kind: row.kind,
+    staff:
+      row.actor_found && row.actor_email !== null && !row.actor_deleted_at
+        ? { id: row.staff_id, name: row.actor_name, email: row.actor_email }
+        : { id: row.staff_id },
+    target:
+      row.target_id === null
+        ? null
+        : row.target_found && row.target_email !== null && !row.target_deleted_at
+          ? { id: row.target_id, name: row.target_name, email: row.target_email, deleted: false as const }
+          : { id: row.target_id, deleted: true as const },
+    settingKey: row.setting_key,
+    old: row.old_value ?? null,
+    new: row.new_value ?? null,
+    jobId: row.job_id,
+  };
+}
+
+const AUDIT_CSV = ["id", "at", "kind", "staff_id", "staff_name", "staff_email", "target_id", "target_name", "target_email", "target_deleted", "setting_key", "old", "new", "job_id"];
+
+/** A stored value as a cell: a role or a word as itself, a number or a
+ *  switch as written, nothing as nothing, and the one map as its JSON. */
+function valueCell(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return csvCell(value);
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return csvCell(JSON.stringify(value));
+}
+
+function csvLine(one: Entry): string {
+  const staff = "email" in one.staff ? one.staff : null;
+  const target = one.target && !one.target.deleted ? one.target : null;
+  return [
+    one.id,
+    one.at,
+    csvCell(one.kind),
+    one.staff.id,
+    csvCell(staff?.name ?? ""),
+    csvCell(staff?.email ?? ""),
+    one.target?.id ?? "",
+    csvCell(target?.name ?? ""),
+    csvCell(target?.email ?? ""),
+    one.target ? String(one.target.deleted) : "",
+    csvCell(one.settingKey ?? ""),
+    valueCell(one.old),
+    valueCell(one.new),
+    one.jobId ?? "",
+  ].join(",");
+}
+
+/** The file, a chunk of rows at a time, newest first as the page lists it.
+ *  Keyed on the id as the page's cursor is, so an entry written while it
+ *  streams is never read twice and none is skipped. */
+async function* auditCsv(from: Date, until: Date): AsyncGenerator<string> {
+  yield `${AUDIT_CSV.join(",")}\r\n`;
+  let before: string | null = null;
+  for (;;) {
+    let query = entries().where("entry.at", ">=", from).where("entry.at", "<", until).orderBy("entry.id", "desc").limit(CHUNK);
+    if (before) query = query.where("entry.id", "<", before);
+    const rows = await query.execute();
+    if (rows.length > 0) yield rows.map((row) => `${csvLine(toEntry(row))}\r\n`).join("");
+    if (rows.length < CHUNK) return;
+    before = rows[rows.length - 1]!.id;
+  }
+}
+
+const utcDay = (at: Date) => at.toISOString().slice(0, 10);
+
 export async function auditAdminRoutes(app: App): Promise<void> {
   app.get(
     "/audit",
@@ -97,29 +209,7 @@ export async function auditAdminRoutes(app: App): Promise<void> {
         if (targets.length === 0) return reply.send({ rows: [], nextCursor: null });
       }
 
-      let query = db
-        .selectFrom("staff_audit as entry")
-        .leftJoin("accounts as actor", "actor.id", "entry.staff_account_id")
-        .leftJoin("accounts as target", "target.id", "entry.target_account_id")
-        .select([
-          "entry.id as id",
-          "entry.at as at",
-          "entry.kind as kind",
-          "entry.staff_account_id as staff_id",
-          "entry.target_account_id as target_id",
-          "entry.setting_key as setting_key",
-          "entry.old_value as old_value",
-          "entry.new_value as new_value",
-          "entry.job_id as job_id",
-          "actor.id as actor_found",
-          "actor.display_name as actor_name",
-          "actor.email as actor_email",
-          "actor.deleted_at as actor_deleted_at",
-          "target.id as target_found",
-          "target.display_name as target_name",
-          "target.email as target_email",
-          "target.deleted_at as target_deleted_at",
-        ])
+      let query = entries()
         .where("entry.at", ">=", from)
         // Newest first. One extra row answers whether there is a next page.
         .orderBy("entry.id", "desc")
@@ -135,25 +225,7 @@ export async function auditAdminRoutes(app: App): Promise<void> {
       const last = rows[rows.length - 1];
 
       return reply.send({
-        rows: rows.map((row) => ({
-          id: row.id,
-          at: row.at.toISOString(),
-          kind: row.kind,
-          staff:
-            row.actor_found && row.actor_email !== null && !row.actor_deleted_at
-              ? { id: row.staff_id, name: row.actor_name, email: row.actor_email }
-              : { id: row.staff_id },
-          target:
-            row.target_id === null
-              ? null
-              : row.target_found && row.target_email !== null && !row.target_deleted_at
-                ? { id: row.target_id, name: row.target_name, email: row.target_email, deleted: false as const }
-                : { id: row.target_id, deleted: true as const },
-          settingKey: row.setting_key,
-          old: row.old_value ?? null,
-          new: row.new_value ?? null,
-          jobId: row.job_id,
-        })),
+        rows: rows.map(toEntry),
         nextCursor: found.length > PAGE && last ? encodeCursor(last.id) : null,
       });
     }
@@ -180,6 +252,38 @@ export async function auditAdminRoutes(app: App): Promise<void> {
         staff: people.map((row) => (row.email !== null && !row.deleted_at ? { id: row.id, name: row.name, email: row.email } : { id: row.id })),
         kinds: kinds.map((row) => row.kind),
       });
+    }
+  );
+
+  // Going-public 17c. The log for a period, as a file: every column the page
+  // shows of an entry, by UTC day with both ends included, the last 90 days
+  // unless asked. A POST because it is recorded, with the period in the
+  // value, and the entry is written before the first row is read: a
+  // download that could not be recorded is not served. It streams, so a long
+  // log is never held whole, and the export's own entry is in it when the
+  // period runs to today.
+  app.post(
+    "/audit/export",
+    {
+      config: { audit: "audit.exported" },
+      schema: {
+        // No response schema: the answer is a file, as Costs' is.
+        body: z.object({ from: z.iso.date().optional(), to: z.iso.date().optional() }).optional(),
+      },
+    },
+    async (request, reply) => {
+      const now = new Date();
+      const to = request.body?.to ?? utcDay(now);
+      const from = request.body?.from ?? utcDay(new Date(Date.parse(`${to}T00:00:00Z`) - EXPORT_DAYS * DAY_MS));
+      // A period that ends before it starts, refused before anything is recorded.
+      if (from > to) return reply.status(400).send({ error: "period" as const });
+
+      await db.transaction().execute((tx) => audit(tx, { staff: request.staff!, kind: "audit.exported", new: `${from}/${to}` }));
+
+      return reply
+        .header("content-type", "text/csv; charset=utf-8")
+        .header("content-disposition", `attachment; filename="offload-audit-${from}-to-${to}.csv"`)
+        .send(Readable.from(auditCsv(new Date(`${from}T00:00:00Z`), new Date(Date.parse(`${to}T00:00:00Z`) + DAY_MS))));
     }
   );
 }

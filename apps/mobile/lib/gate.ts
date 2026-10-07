@@ -35,6 +35,15 @@ export const GATE = {
     switch: "Use a different account",
     terms: "Invited on another address? Sign in with that one.",
   },
+  // 039. A review code, on the sign-in screen: a line under the waitlist's
+  // that opens a field above the providers. A code that did not work comes
+  // back on the refusal screen in one clause, beside the way back.
+  code: {
+    open: "Have a code?",
+    placeholder: "Your code",
+    refused: "That code did not work.",
+    tryAnother: "Try another code",
+  },
   // The account exists and is disabled: by staff, or for the day before it is
   // deleted. No invite to look for and no waitlist to join.
   disabled: {

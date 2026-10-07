@@ -10,19 +10,25 @@ import { GateBackdrop } from "../GateBackdrop";
 import { GateLockup } from "../GateLockup";
 import { GATE } from "../../lib/gate";
 import { API_URL } from "../../lib/auth";
+import { attemptHeaders } from "../../lib/attempt";
 
 export default function NoInvite() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
   const [disabled, setDisabled] = useState(false);
+  // 039. A review code came with the sign-in and did not work.
+  const [badCode, setBadCode] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/sign-in/attempt`)
+    // With the refusal's proof, which this app keeps itself (`lib/attempt.ts`):
+    // its fetches never hold cookies.
+    fetch(`${API_URL}/api/sign-in/attempt`, { headers: attemptHeaders() })
       .then((response) => (response.ok ? response.json() : { email: null }))
-      .then((data: { email: string | null; reason?: "disabled" | null }) => {
+      .then((data: { email: string | null; reason?: "disabled" | "code" | null }) => {
         setEmail(data.email);
         setDisabled(data.reason === "disabled");
+        setBadCode(data.reason === "code");
       })
       .catch(() => setEmail(null));
   }, []);
@@ -71,6 +77,16 @@ export default function NoInvite() {
             </View>
           ) : (
             <>
+              {badCode ? (
+                <View
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="polite"
+                  className="rounded-md bg-surface-attention-soft px-space-6 py-space-5"
+                >
+                  <Text className="font-core text-body-sm text-text-on-attention">{GATE.code.refused}</Text>
+                </View>
+              ) : null}
+
               {disabled ? null : (
                 <Pressable
                   onPress={join}
@@ -84,11 +100,11 @@ export default function NoInvite() {
               )}
 
               <Pressable
-                onPress={() => router.replace("/sign-in")}
+                onPress={() => router.replace(badCode ? "/sign-in?code=1" : "/sign-in")}
                 className="min-h-composer-height w-full items-center justify-center rounded-pill border border-border-strong bg-surface-raised active:opacity-90"
               >
                 <Text className="font-core text-body font-medium text-text-primary">
-                  {GATE.notInvited.switch}
+                  {badCode ? GATE.code.tryAnother : GATE.notInvited.switch}
                 </Text>
               </Pressable>
 

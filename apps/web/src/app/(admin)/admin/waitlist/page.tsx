@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Checkbox } from "../../../../components/Checkbox";
 import { Icon } from "../../../../components/Icon";
 import { useAdmin } from "../../admin-context";
+import { ReviewCodes } from "./ReviewCodes";
 import styles from "../../admin.module.css";
 import {
   API,
@@ -552,6 +553,8 @@ export default function WaitlistPage() {
           ) : null}
         </>
       )}
+
+      <ReviewCodes />
 
       <Section note="what an invite does">Notes</Section>
       <Notes items={NOTES} />

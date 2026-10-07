@@ -30,6 +30,16 @@ export const AUDIT_KINDS = [
   "staff.removed",
   "person.viewed",
   "panel.opened",
+  // 039. A review code made, and revoked. The code's id rides in the value.
+  "code.created",
+  "code.revoked",
+  // A code let somebody in at sign-in, recorded against the staff member who
+  // made it, on the account it let in.
+  "code.redeemed",
+  // Going-public 17c. Who has access, downloaded as a file, and the log
+  // itself for a period, which rides in the value as `from/to` UTC days.
+  "staff.exported",
+  "audit.exported",
 ] as const;
 
 export type AuditKind = (typeof AUDIT_KINDS)[number];

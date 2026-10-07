@@ -191,6 +191,7 @@ Each section owns one route file, one page directory, one test file, and nothing
 - `GET /v1/admin/staff`, `POST /v1/admin/staff` `{email, role}`, `PATCH /v1/admin/staff/:id` `{role}`, `DELETE /v1/admin/staff/:id`.
 - The last-owner check locks the owner rows `for update` inside the transaction that changes them; here the route owns the transaction, so the lock holds.
 - `GET /v1/admin/audit?staff&kind&person&cursor`, 30 days by default. `GET /v1/admin/audit/facets` answers what the filters offer: the staff and the kinds the log holds.
+- *Added 2026-10-06, going-public 17c.* `POST /v1/admin/staff/export` and `POST /v1/admin/audit/export` `{from?, to?}` (UTC days, default the last 90) answer `text/csv`. POSTs because each writes its entry (`staff.exported`, `audit.exported` with `from/to` as the value) before reading, so AC-6 and AC-52 hold as written. The log is read through the list's own query and row mapping, keyed on the id a thousand rows at a time, and streamed. Cells go through Costs' `csvCell`. Who added a staff member is the newest `staff.added` on them at or after their row's `created_at`, the two being one transaction.
 
 ### G. Deletion (after the sections; `CA/src/accounts/delete.ts`, People's route file and page)
 

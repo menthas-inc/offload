@@ -11,6 +11,14 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-05 · Have a code? on the sign-in screen, and review codes on the Waitlist page
+**Surface:** iOS, Android, web, the sign-in screen and the no-invite screen; the admin panel's Waitlist and Limits pages
+**Raised by:** code, spec 039, for going-public item 21: Apple and Google reviewers sign in with their own accounts and an emailed invite cannot reach them. Placement on the sign-in screen is the owner's, 2026-10-05.
+**Was:** the sign-in screen had its two providers and the waitlist line. The no-invite screen had its two buttons and caption. The Waitlist page ended with its table and Notes.
+**Is:** under the sign-in screen's waitlist line, *Have a code?* in the caption's accent. Tapped, it becomes a field at the providers' height (centred, capitals, *Your code*) above the two providers, and the code rides with whichever is picked. Not drawn when the *Review codes* switch is off. On the phones the screen now avoids the keyboard, as the waitlist screen does. A code that did not work ends on the no-invite screen with the gate's refusal block, *That code did not work.*, and the outlined button reads *Try another code*. The Waitlist page gains a *Review codes* section before Notes: *New code* opens the invite dialog's shape with Note, Uses (5) and Days (30); the new code is shown once in a bordered row with *Copy* and *Done*; the table is Note, Used (*2 of 5*), Expires, State (live, expired, used up, revoked) and *Revoke* on a live row behind a danger confirm. Limits gains the *Review codes* switch.
+**Why:** a reviewer should sign in once, as anybody does. A quiet line keeps the screen the kit's for everybody else.
+**Design system impact:** `web_app/WFirstRunGate.jsx` `WGate` invited branch, `mobile_app/FirstRun.jsx` `SignInScreen` and `android_app/M3FirstRun.jsx` `M3SignInScreen`: the *Have a code?* line under the terms and its open field above the providers. The no-invite screens on all three: the refusal block for a code and the *Try another code* label. `admin_web/APeople.jsx` `WaitlistPage`: the Review codes section between the table and Notes; `AOps.jsx` Limits: one more switch. No new token or component.
+
 ### 2026-10-05 · A loose to-do has its checkbox, and loose rows lose the meta line
 **Surface:** iOS, Android, web, My threads' Not in a thread and its full list
 **Raised by:** code, from the owner: a to-do outside any thread could not be ticked from the list.
@@ -3837,3 +3845,12 @@ exactly like "I refreshed and I cannot see your change".
 - `WMemories.jsx`, `MemoriesScreen.jsx` and `M3MemoriesScreen.jsx` are the fast-follow tab, as rows not chips, per the design queue's answer 1. Their groups map to the six classes: people, things, words, about, rules and patterns. Their sub line must not say "things" and must not draw a zero.
 - `MemoryRow`'s origin values become asked, answered and learned.
 - The calendar question's person variant is new copy for `QuickReplies`, with no change to the component.
+
+### 2026-10-06 · Staff and Audit can be downloaded as CSV
+**Surface:** admin
+
+**Is:** the Staff page and the Audit page each carry an "Export CSV" button in the page head, drawn with the existing small secondary button. Staff downloads straight away. Audit opens a dialog with From and To date fields, defaulting to the last 90 days, and an "Export CSV" confirm. Both are owner only, like the pages, and each download is itself an audit row ("Exported the staff list", "Exported the audit log" with its period).
+
+**Why:** going-public 17c. An auditor wants who has access, and the log beside it, as files they can keep.
+
+**Design system impact:** the admin kit has no export control. Add an "Export CSV" small secondary button to the page head of the Staff and Audit screens in `ui_kits/admin`, and a two-date range dialog on Audit, using the existing `Field` and dialog patterns. No new component.

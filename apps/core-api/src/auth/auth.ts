@@ -36,7 +36,8 @@ import { expo } from "@better-auth/expo";
 import { db } from "../db.js";
 import { env, isProduction, webOrigins } from "../env.js";
 import { decideLink, maySignIn } from "./gate.js";
-import { providerName, recordAttempt, recordProviderName } from "./attempt.js";
+import { providerName, recordAttempt, recordProviderName, refusalReason } from "./attempt.js";
+import { redeemAtSignIn } from "./code-at-sign-in.js";
 import { emit } from "../analytics.js";
 import { uuidv7 } from "../uuid.js";
 import { appleClientSecret, appleConfigured } from "./apple.js";
@@ -84,8 +85,11 @@ async function emitFirstSignInOnce(accountId: string): Promise<void> {
  *  Mapping nothing is the point. The signature has to return a field map, and
  *  this returns an empty one, because the user row those fields would land on
  *  is never created: `user.create.before` always refuses. */
-function rememberName(profile: { name?: unknown }): Record<string, never> {
+async function rememberName(profile: { name?: unknown; email?: unknown; email_verified?: unknown }): Promise<Record<string, never>> {
   recordProviderName(typeof profile.name === "string" ? profile.name : null);
+  // 039. And the one point a review code can be redeemed: the provider has
+  // said who this is, and Better Auth has not yet looked for an account.
+  await redeemAtSignIn(profile);
   return {};
 }
 
@@ -301,7 +305,7 @@ export const auth = betterAuth({
           // screen's copy comes from. Remembering it is not a side effect of
           // the refusal: nothing is written, the value rides a request-scoped
           // slot back out to a cookie (attempt.ts).
-          recordAttempt(candidate.email);
+          recordAttempt(candidate.email, refusalReason(false));
           return false;
         },
       },
@@ -328,7 +332,7 @@ export const auth = betterAuth({
             // screen fell back to "we found no invite for that account" with
             // the join button disabled, which is exactly the dead end AC-5 is
             // written against, and it is the likelier route onto that screen.
-            recordAttempt(verdict.email, verdict.reason === "disabled" ? "disabled" : null);
+            recordAttempt(verdict.email, refusalReason(verdict.reason === "disabled"));
             return false;
           }
 

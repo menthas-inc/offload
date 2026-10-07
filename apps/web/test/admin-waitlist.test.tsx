@@ -38,6 +38,8 @@ function api(answers: { list?: number; stats?: number; invite?: unknown; rows?: 
       calls.push({ url: String(url), init });
       const path = String(url).replace(/^.*\/v1\/admin/, "");
       const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+      // 039. The review codes section reads its own list.
+      if (path === "/codes") return json({ rows: [] });
       if (path.startsWith("/waitlist/stats")) return json({ ...STATS, batch: answers.batch ?? STATS.batch }, answers.stats ?? 200);
       if (path.startsWith("/waitlist/invite-address")) return new Response(JSON.stringify(answers.invite ?? { accountId: "x", status: "invited" }), { status: 200 });
       if (path.startsWith("/waitlist/invite-next")) return json({ results: [{ status: "invited" }, { status: "invited" }] });

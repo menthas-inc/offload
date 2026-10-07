@@ -99,6 +99,8 @@ const SWITCHES: ReadonlyArray<{ key: string; off: string; own?: boolean }> = [
   { key: "switch.web_search", off: "Off, offload searches the web for nobody.", own: true },
   { key: "switch.web_links", off: "Off, offload reads a link for nobody.", own: true },
   { key: "switch.nightly", off: "Off, the nightly pass is booked for nobody." },
+  // 039. Off once offload opens past the waitlist.
+  { key: "switch.review_codes", off: "Off, sign-in offers no code and ignores one." },
 ];
 
 const SUB = "Caps are rolling over the last 24 hours, not reset at midnight.";

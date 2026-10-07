@@ -4,7 +4,7 @@
 // render anything: the current account, the address a refused sign-in used,
 // and the write that ends onboarding.
 
-import { mapsOn, webMapsOn } from "../settings.js";
+import { mapsOn, setting, webMapsOn } from "../settings.js";
 import { atDailyLimit } from "../budget.js";
 import { layoutShape, resolveLayout, todayLayout } from "../today/layout.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -536,7 +536,7 @@ export async function sessionRoutes(app: App): Promise<void> {
   // an address they authenticated with a minute ago.
   app.get(
     "/api/sign-in/attempt",
-    { schema: { response: { 200: z.object({ email: z.string().nullable(), reason: z.literal("disabled").nullable() }) } } },
+    { schema: { response: { 200: z.object({ email: z.string().nullable(), reason: z.enum(["disabled", "code"]).nullable() }) } } },
     async (request: FastifyRequest, reply: FastifyReply) => {
       const raw = readCookie(request.headers.cookie, ATTEMPT_COOKIE);
       const attempt = raw ? unsealAttempt(raw, Date.now()) : null;
@@ -553,6 +553,18 @@ export async function sessionRoutes(app: App): Promise<void> {
       reply.header("set-cookie", cleared);
 
       return reply.send({ email: attempt?.email ?? null, reason: attempt?.reason ?? null });
+    }
+  );
+
+  // 039. What the sign-in screen offers before anybody is signed in: today,
+  // whether to draw "Have a code?". A switch every client reads here, since
+  // `/api/me` needs a session and this screen is where there is none.
+  app.get(
+    "/api/sign-in/options",
+    { schema: { response: { 200: z.object({ codes: z.boolean() }) } } },
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      reply.header("cache-control", "no-store");
+      return reply.send({ codes: await setting("switch.review_codes") });
     }
   );
 

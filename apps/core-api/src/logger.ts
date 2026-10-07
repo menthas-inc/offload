@@ -21,6 +21,11 @@ const REDACT = [
   "*.email",
   "*.token",
   "*.secret",
+  // 039. A review code lets somebody in. A native sign-in carries it in the
+  // body's additional data, beside the token.
+  "reviewCode",
+  "*.reviewCode",
+  "req.body.additionalData",
 ];
 
 /** A SQLSTATE: what a Postgres error carries in `code`. */

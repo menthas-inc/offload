@@ -11,7 +11,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Icon } from "../../../../components/Icon";
 import styles from "../../admin.module.css";
-import { Confirm, Failed, Field, Lines, Loading, Notes, PaneHead, Row, Section, Table, adminWrite, count, day, moment, useAdminRead, useSay, type Col } from "../../ui";
+import { Confirm, Failed, Field, Lines, Loading, Notes, PaneHead, Row, Section, Table, adminDownload, adminWrite, count, day, moment, useAdminRead, useSay, type Col } from "../../ui";
 
 type Role = "owner" | "support";
 
@@ -98,6 +98,7 @@ export default function StaffPage() {
   const [role, setRole] = useState<Role>("support");
   const [problem, setProblem] = useState<string | null>(null);
   const [removing, setRemoving] = useState<Member | null>(null);
+  const [exporting, setExporting] = useState(false);
   // The dialog closes itself when its button is pressed. Adding has an answer
   // to wait for, and a refusal belongs on the dialog, so the close that comes
   // with the press is the one close this ignores.
@@ -162,6 +163,15 @@ export default function StaffPage() {
     list.reload();
   }
 
+  // Going-public 17c. Who has access, as a file an auditor can keep. The
+  // download is recorded, so it is a POST.
+  async function exportCsv() {
+    setExporting(true);
+    const saved = await adminDownload("/staff/export", `offload-staff-${new Date().toISOString().slice(0, 10)}.csv`);
+    setExporting(false);
+    if (!saved) say("That did not go through. Nothing was exported");
+  }
+
   const data = list.data;
 
   return (
@@ -176,10 +186,15 @@ export default function StaffPage() {
         asOf={list.asOf}
         onRefresh={list.reload}
         tools={
-          <button type="button" className={`${styles.smallPrimary} ${styles.withIcon}`} onClick={() => setAdding(true)} disabled={busy}>
-            <Icon name="plus" size={15} />
-            Add someone
-          </button>
+          <>
+            <button type="button" className={styles.small} disabled={exporting} onClick={() => void exportCsv()}>
+              Export CSV
+            </button>
+            <button type="button" className={`${styles.smallPrimary} ${styles.withIcon}`} onClick={() => setAdding(true)} disabled={busy}>
+              <Icon name="plus" size={15} />
+              Add someone
+            </button>
+          </>
         }
       />
 
