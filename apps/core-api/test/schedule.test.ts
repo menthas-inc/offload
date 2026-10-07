@@ -160,6 +160,22 @@ describe("AC-45 and AC-54 what the daily purge removes", () => {
     expect(await db.selectFrom("staff_audit").select("kind").execute()).toEqual([{ kind: "resent" }]);
   });
 
+  // 039, security review. Better Auth keeps a browser sign-in's OAuth state
+  // in a verification row, and the state carries a typed review code. An
+  // abandoned sign-in kept it a day past its expiry; it goes at the expiry.
+  it("removes a verification once it has expired, and keeps one still live", async () => {
+    await db.deleteFrom("verifications").execute();
+    await db
+      .insertInto("verifications")
+      .values([
+        { identifier: "gone", value: "{}", expires_at: sql`now() - interval '5 minutes'`, created_at: sql`now() - interval '15 minutes'`, updated_at: sql`now()` },
+        { identifier: "live", value: "{}", expires_at: sql`now() + interval '5 minutes'`, created_at: sql`now()`, updated_at: sql`now()` },
+      ] as never)
+      .execute();
+    await purge();
+    expect(await db.selectFrom("verifications").select("identifier").execute()).toEqual([{ identifier: "live" }]);
+  });
+
   it("leaves the hourly history a plot reads untouched by the job table's own thirty days", async () => {
     await sql`insert into job_stats_hourly (hour, kind, outcome, count) values (date_trunc('hour', now() - interval '60 days'), 'dump.answer', 'done', 9)`.execute(db);
     await db

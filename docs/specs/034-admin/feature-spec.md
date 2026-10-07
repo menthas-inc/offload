@@ -180,6 +180,7 @@ The kit's page. Owner only.
 - **Switch a role** in place. **Remove** with a confirmation: they lose the panel on their next request, and their own offload account is untouched.
 - **Guards, stated on the page:** there is always at least one owner; nobody changes or removes their own role.
 - **The roles table** says what each can do, as section 0 does.
+- **Export CSV** (*added 2026-10-06, going-public 17c*): who has access, as a file an auditor can keep. One row per person the list shows: account id, name, address, role, the account's state, when they were added and by whom where the log still says, when they last opened the panel and when they were last here. Recorded as `staff.exported`.
 
 ### 9. Audit
 
@@ -189,6 +190,7 @@ New. Owner only.
 - **Kinds:** invited, resent, removed from the waitlist, disabled, enabled, deletion scheduled, deletion cancelled, deleted, signed out, override set or cleared, setting changed, job retried or dismissed, staff added, role changed, staff removed, and a person's page opened.
 - Filter by staff member, by kind and by person. An entry about a live account links to it; one about a deleted account is plain text.
 - **Entries cannot be changed or removed**, by the panel or by the application: the database refuses it. They are kept for two years.
+- **Export CSV** (*added 2026-10-06, going-public 17c*): the log for a period of UTC days, both ends included, the last 90 to start with. Every entry the page would list, unfiltered, newest first, with the columns the page reads: id, when, kind, who (id, name, address), on whom (id, name, address, or the id alone once the account has gone), setting, old, new and job. Streamed a thousand rows at a time. Recorded as `audit.exported` with the period as its value, before the first row is read.
 
 ## Privacy page
 
@@ -310,6 +312,7 @@ Two tokens are requested with them: a solid danger surface, and a plot height.
 - **AC-52** Every write route under `/v1/admin` produces its audit entry in the same transaction: one per write, and one per setting changed for a Limits save. A test walks the route table and fails on a write route with none.
 - **AC-53** No audit entry contains content or an address. A setting change records old and new.
 - **AC-54** An update or a delete of an audit entry is refused by the database. Entries older than two years are removed by the daily purge and by nothing else.
+- **AC-54a** *Added 2026-10-06, going-public 17c.* An owner downloads who has access and the audit log for a period as two CSV files; support and anybody else are answered 404. Each download writes its own audit entry before anything is read, and a period that ends before it starts is refused with nothing recorded. Neither file holds a field the Staff or Audit page does not already show (`test/admin-access-export.test.ts`).
 
 **Privacy page**
 - **AC-55** The page carries every change listed under Privacy page, section 13's note is still there, and the consent version moves, in the same change that ships the panel.

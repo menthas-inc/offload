@@ -20,6 +20,7 @@ import { audit } from "../../admin/audit.js";
 import type { Staff, StaffRole } from "../../admin/staff.js";
 import { enqueue, PRIORITY } from "../../jobs/queue.js";
 import { uuidv7 } from "../../uuid.js";
+import { csvCell } from "./costs.js";
 
 const role = z.enum(["support", "owner"]);
 const notFound = z.object({ error: z.literal("not-found") });
@@ -34,6 +35,8 @@ const member = z.object({
   lastHere: z.string().nullable(),
   you: z.boolean(),
 });
+
+const STAFF_CSV = ["account_id", "name", "email", "role", "state", "added_at", "added_by_id", "added_by_email", "last_panel_opened_at", "last_here_at"];
 
 type StaffAlert = "staff.added" | "staff.role_changed" | "staff.removed";
 
@@ -135,6 +138,73 @@ export async function staffAdminRoutes(app: App): Promise<void> {
       });
     }
   );
+
+  // Going-public 17c. Who has access, as a file an auditor can keep: the
+  // page's people, their account's state, who added them where the log
+  // still says, and when they last opened the panel. A POST because it is
+  // recorded, and the entry is written before anything is read, so a
+  // download that could not be recorded is not served.
+  //
+  // Who added somebody is the newest `staff.added` on them from the moment
+  // their row was made: the entry and the row share a transaction, so an
+  // addition from an earlier time on staff is not credited to this one. One
+  // made by the seed, or older than the log keeps, reads as nobody.
+  app.post("/staff/export", { config: { audit: "staff.exported" } }, async (request, reply) => {
+    await db.transaction().execute((tx) => audit(tx, { staff: request.staff!, kind: "staff.exported" }));
+
+    const rows = await db
+      .selectFrom("staff")
+      .innerJoin("accounts", "accounts.id", "staff.account_id")
+      .select([
+        "staff.account_id as id",
+        "staff.role as role",
+        "staff.created_at as added",
+        "accounts.display_name as name",
+        "accounts.email as email",
+        "accounts.state as state",
+        sql<string | null>`(select staff_account_id from staff_audit
+            where kind = 'staff.added' and target_account_id = staff.account_id and at >= staff.created_at
+            order by id desc limit 1)`.as("added_by"),
+        sql<Date | null>`(select max(at) from staff_audit where kind = 'panel.opened' and staff_audit.staff_account_id = staff.account_id)`.as("opened"),
+        sql<Date | null>`(select max(at) from staff_audit where staff_audit.staff_account_id = staff.account_id)`.as("last_here"),
+      ])
+      .where("accounts.deleted_at", "is", null)
+      .orderBy("staff.created_at")
+      .orderBy("staff.account_id")
+      .execute();
+
+    // Whoever added them, by address while their account is there, as the
+    // Audit page names them.
+    const adders = [...new Set(rows.flatMap((row) => (row.added_by ? [row.added_by] : [])))];
+    const addresses = new Map(
+      adders.length === 0
+        ? []
+        : (await db.selectFrom("accounts").select(["id", "email"]).where("id", "in", adders).where("deleted_at", "is", null).execute()).map((one) => [one.id, one.email])
+    );
+
+    const iso = (at: Date | null) => (at ? at.toISOString() : "");
+    const lines = [
+      STAFF_CSV.join(","),
+      ...rows.map((row) =>
+        [
+          row.id,
+          csvCell(row.name ?? ""),
+          csvCell(row.email),
+          row.role,
+          csvCell(row.state),
+          row.added.toISOString(),
+          row.added_by ?? "",
+          csvCell((row.added_by && addresses.get(row.added_by)) || ""),
+          iso(row.opened),
+          iso(row.last_here),
+        ].join(",")
+      ),
+    ];
+    return reply
+      .header("content-type", "text/csv; charset=utf-8")
+      .header("content-disposition", `attachment; filename="offload-staff-${new Date().toISOString().slice(0, 10)}.csv"`)
+      .send(`${lines.join("\r\n")}\r\n`);
+  });
 
   // Add somebody, by address. They must already have an offload account that
   // works and that signs in one way: staff with two providers linked is two
