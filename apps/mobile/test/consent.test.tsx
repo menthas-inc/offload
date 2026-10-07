@@ -7,10 +7,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const calls: { url: string; init: RequestInit | undefined }[] = [];
 let status = 200;
+/** What the server answers with: by default an account that has agreed. */
+let answer: Record<string, unknown> = { needsConsent: false };
 
 vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
   calls.push({ url, init });
-  return new Response(JSON.stringify({ needsConsent: false }), {
+  return new Response(JSON.stringify(answer), {
     status,
     headers: { "content-type": "application/json" },
   });
@@ -37,6 +39,7 @@ vi.mock("better-auth/react", () => ({
 
 const api = await import("../lib/api");
 const gate = await import("../lib/gate");
+const meLib = await import("../lib/me");
 
 const read = (path: string): string => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const code = (path: string) => read(path).replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
@@ -44,6 +47,7 @@ const code = (path: string) => read(path).replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, 
 beforeEach(() => {
   calls.length = 0;
   status = 200;
+  answer = { needsConsent: false };
 });
 
 describe("S6 first run's failure line", () => {
@@ -87,7 +91,7 @@ describe("S20 asking again when the policy or the terms change", () => {
   });
 
   it("posts both ticks and nothing else, and says whether it was recorded", async () => {
-    const giveConsent = (api as Record<string, unknown>)["giveConsent"] as () => Promise<boolean>;
+    const giveConsent = (meLib as Record<string, unknown>)["giveConsent"] as () => Promise<boolean>;
     expect(typeof giveConsent).toBe("function");
     expect(await giveConsent()).toBe(true);
     expect(calls).toHaveLength(1);
@@ -97,6 +101,43 @@ describe("S20 asking again when the policy or the terms change", () => {
 
     status = 500;
     expect(await giveConsent()).toBe(false);
+  });
+
+  it("is done only when the identity it gets back says so, and hands that identity on", async () => {
+    const giveConsent = (meLib as Record<string, unknown>)["giveConsent"] as () => Promise<boolean>;
+    const heard: unknown[] = [];
+    const stop = meLib.onMe((me) => heard.push(me));
+
+    answer = { ...AGAIN, needsConsent: true };
+    expect(await giveConsent()).toBe(false);
+    expect(heard).toEqual([answer]);
+
+    answer = { ...AGAIN, needsConsent: false };
+    expect(await giveConsent()).toBe(true);
+    expect(meLib.currentMe()).toEqual(answer);
+    stop();
+  });
+
+  it("is never titled Before you start, and the name submits as it does alone", () => {
+    const source = code("components/firstrun/BeforeYouStart.tsx");
+    expect(source).toMatch(/again \? BEFORE\.again/);
+    expect(source).not.toMatch(/ticksAlone \? BEFORE\.agree : BEFORE\.title/);
+    expect(source).toMatch(/if \(\(nameOnly \|\| again\) && ready\) onContinue\(\)/);
+    expect((gate.BEFORE as Record<string, unknown>)["again"]).toBe("Before you go on");
+  });
+
+  it("offers the way out the terms promise, only when asked again, to My account", () => {
+    const screen = code("components/firstrun/BeforeYouStart.tsx");
+    expect(screen).toMatch(/again \? \([\s\S]*?\{WAY_OUT\}[\s\S]*?\) : null/);
+    expect(screen).toMatch(/onPress=\{onWayOut\}/);
+    expect((gate as Record<string, unknown>)["WAY_OUT"]).toBe("Take a copy or delete your account");
+
+    // Pushed over the question, so Back returns to it, and only launch gates:
+    // the settings screen asks nothing of the account.
+    const run = code("components/firstrun/FirstRun.tsx");
+    expect(run).toMatch(/onWayOut=\{\(\) => router\.push\("\/settings\/account"\)\}/);
+    expect(code("app/settings/[page].tsx")).not.toMatch(/stillAsking|\/welcome/);
+    expect(code("app/index.tsx")).toMatch(/else if \(stillAsking\(me\)\) router\.replace\("\/welcome"\)/);
   });
 
   it("opens first run's last screen alone, and goes to Today after the write", () => {

@@ -1,4 +1,4 @@
-// F-P2. Search finds a memory by the words the person reads, which are spoken
+// F4. Search finds a memory by the words the person reads, which are spoken
 // to them, as well as by the words it is stored in, which are about them.
 
 import { describe, expect, it } from "vitest";

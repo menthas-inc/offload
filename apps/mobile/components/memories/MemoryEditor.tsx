@@ -19,8 +19,8 @@ import {
   MEMORY_KINDS,
   MEMORY_TEXT_CHARS,
   memoryOrigin,
-  toSecondPerson,
-  toThirdPerson,
+  shownText,
+  storedText,
   type MemoryKindId,
   type MemoryView,
 } from "@offload/widgets";
@@ -59,13 +59,10 @@ export function MemoryEditor({
   onGone: () => void;
 }) {
   const COLOR = useColors();
-  // Stored about the person and shown to them (F-P2): the sheet holds the
-  // person's form, and a save writes the stored one. A memory the rewrite left
-  // alone is saved as typed, and words left as shown keep their stored form.
-  const shown = held ? toSecondPerson(held.text) : "";
-  const editing = held ? { ...held, text: shown } : null;
-  const voiced = !held || shown !== held.text;
-  const stored = (text: string): string => (held && text === shown ? held.text : voiced ? toThirdPerson(text) : text);
+  // Stored about the person and shown to them (F4), by the rule the web's
+  // editor uses: the sheet holds the person's form, and a save writes the
+  // stored one.
+  const editing = held ? { ...held, text: shownText(held.text) } : null;
   const field = useRef<TextInput>(null);
   const [draft, setDraft] = useState(editing?.text ?? "");
   const [kind, setKind] = useState<MemoryKindId>(editing?.kind ?? preset ?? "about");
@@ -89,7 +86,7 @@ export function MemoryEditor({
   async function save(text: string = draft): Promise<void> {
     if (!text.trim() || busy) return;
     setBusy(true);
-    const done = await submitMemory(held, stored(text), kind);
+    const done = await submitMemory(held, storedText(held?.text ?? null, text), kind);
     setBusy(false);
     if (done.outcome === "refused") {
       setRefusal(done.line);

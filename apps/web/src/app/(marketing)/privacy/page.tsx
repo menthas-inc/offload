@@ -14,8 +14,9 @@
 // Copy on this page says "put in" and "upload" where the rest of the product
 // says "dump". That is deliberate and local to this page. See decisions.md.
 //
-// CONSENT_VERSION in apps/core-api/src/routes/session.ts must be the later of
-// this page's UPDATED and the terms page's; a test holds the two together.
+// CONSENT_VERSION in apps/core-api/src/routes/session.ts must be the latest of
+// this page's UPDATED, the companies page's and the terms page's; a test holds
+// the three together.
 // Moving it asks every account to agree again the next time they open offload.
 
 import type { Metadata } from "next";

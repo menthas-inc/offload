@@ -23,8 +23,9 @@ import {
   memoryOrigin,
   memoryRefusal,
   memorySections,
+  shownText,
+  storedText,
   toSecondPerson,
-  toThirdPerson,
   type MemoryKindId,
   type MemoryList,
   type MemoryView,
@@ -280,7 +281,7 @@ function MemoryEntry({ memory, dot, on, onOpen }: { memory: MemoryView; dot: boo
     >
       {dot ? <span className={styles.rowDot} aria-hidden="true" /> : null}
       <span className={styles.rowText}>
-        {/* Stored about the person, read to them (F-P2). */}
+        {/* Stored about the person, read to them (F4). */}
         <span className={styles.sentence}>{toSecondPerson(memory.text)}</span>
         <span className={styles.meta}>
           {meta.learned ? (
@@ -316,14 +317,10 @@ function MemoryEditor({
   onGone: () => void;
 }) {
   const toast = useToast();
-  // Stored about the person and shown to them (F-P2), as the phones' editor:
-  // the field holds the person's form and a save writes the stored one. A
-  // memory the rewrite left alone is saved as typed, and words left as shown
-  // keep their stored form.
-  const shown = memory ? toSecondPerson(memory.text) : "";
-  const voiced = !memory || shown !== memory.text;
-  const stored = (text: string): string => (memory && text === shown ? memory.text : voiced ? toThirdPerson(text) : text);
-  const [draft, setDraft] = useState(shown);
+  // Stored about the person and shown to them (F4), by the rule the phones'
+  // editor uses: the field holds the person's form and a save writes the
+  // stored one.
+  const [draft, setDraft] = useState(() => (memory ? shownText(memory.text) : ""));
   const [kind, setKind] = useState<MemoryKindId>(firstKind);
   const [refused, setRefused] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -337,7 +334,7 @@ function MemoryEditor({
   }, []);
 
   const words = draft.replace(/\s+/g, " ").trim();
-  const text = stored(words);
+  const text = storedText(memory?.text ?? null, draft);
   const severs = memory?.origin === "answered" && text !== memory.text;
 
   const save = async (): Promise<void> => {

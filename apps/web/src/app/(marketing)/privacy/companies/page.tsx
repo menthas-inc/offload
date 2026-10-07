@@ -1,8 +1,9 @@
 // The companies that process data for offload, on their own page with their
-// own date (2026-10-05). The privacy policy names kinds of companies and how
-// they are bound, and links here, so adding or changing one moves this date
-// and not the policy's. A change that materially changes how content is
-// handled is still emailed to account holders first, as the policy says.
+// own date. The privacy policy names kinds of companies and how they are bound,
+// and links here, so adding or changing one moves this date and not the
+// policy's. Moving it moves CONSENT_VERSION in apps/core-api/src/routes/session.ts,
+// which asks every account to agree again the next time they open offload, as
+// the policy says.
 //
 // Corrected against the audit of 2026-10-05: Voyage embeds the words of a
 // search too; for a linked site our server fetches the page; sign-in and maps

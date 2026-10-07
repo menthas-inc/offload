@@ -154,10 +154,11 @@ function updatedOf(page: string): string {
   return `${year}-${String(index + 1).padStart(2, "0")}-${day!.padStart(2, "0")}`;
 }
 
-describe("S24 the consent covers the terms as well as the policy", () => {
-  it("is the later of the two pages' dates", () => {
-    const privacy = updatedOf("privacy");
-    const terms = updatedOf("terms");
-    expect(CONSENT_VERSION).toBe(privacy > terms ? privacy : terms);
+describe("S24 the consent covers the terms and the companies list as well as the policy", () => {
+  // Privacy section 6 promises a re-ask on a material change to who handles
+  // content, and the companies list carries its own UPDATED.
+  it("is the latest of the three pages' dates", () => {
+    const dates = [updatedOf("privacy"), updatedOf("terms"), updatedOf("privacy/companies")];
+    expect(CONSENT_VERSION).toBe(dates.reduce((a, b) => (a > b ? a : b)));
   });
 });

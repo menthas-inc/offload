@@ -32,11 +32,6 @@ import {
   type CopyThread,
 } from "./pages.js";
 
-/** Sweep 2026-10-07, S3. That a row comes round again, as its RFC 5545 rule,
- *  anchored on `occursAt` for an event and `dueAt` for everything else. In
- *  data.json for a program; without it a weekly class came back as one date.
- *  A thread's note carries the dates its rule is anchored on as well. */
-type Repeats = { rrule: string | null };
 
 /** 038. A memory's origin, as the person reads it. */
 const HOW = { stated: "you asked", answered: "you answered", learned: "offload learned" } as const;
@@ -324,7 +319,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
             shared: others.length > 0,
             members: others.map((member) => member.display_name ?? "Someone"),
             labels: (labelsOf.get(thread.id) ?? []).map((label) => label.name),
-            notes: (notesOf.get(thread.id) ?? []).map((note): CopyNote & Repeats & { occursAt: string | null; dueAt: string | null } => ({
+            notes: (notesOf.get(thread.id) ?? []).map((note): CopyNote => ({
               text: note.text,
               body: note.body,
               author: author(note),
@@ -333,7 +328,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
               dueAt: iso(note.due_at),
               rrule: note.rrule,
             })),
-            rows: (rowsOf.get(thread.id) ?? []).map((row): CopyRow & Repeats => ({
+            rows: (rowsOf.get(thread.id) ?? []).map((row): CopyRow => ({
               id: row.id,
               type: row.type,
               title: row.title,

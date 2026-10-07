@@ -10,7 +10,7 @@
 // so, with the name only when there is none yet.
 
 import { Linking, ScrollView, Text, View } from "react-native";
-import { BEFORE, GATE, NAME_STEP, RECONSENT } from "../../lib/gate";
+import { BEFORE, GATE, NAME_STEP, RECONSENT, WAY_OUT } from "../../lib/gate";
 import { PRIVACY_URL, TERMS_URL } from "../../lib/links";
 import { ConsentTicks } from "../ConsentTicks";
 import { NameField } from "../NameField";
@@ -40,6 +40,7 @@ export function BeforeYouStart({
   working,
   failed,
   onContinue,
+  onWayOut,
   again = false,
   askName = true,
 }: {
@@ -54,13 +55,14 @@ export function BeforeYouStart({
   working: boolean;
   failed: boolean;
   onContinue: () => void;
+  /** Asked again only: to My account, where the copy and the delete are,
+   *  without agreeing first. */
+  onWayOut?: () => void;
   again?: boolean;
   askName?: boolean;
 }) {
   const skin = SKIN[tone];
   const ready = (!askName || name.trim().length > 0) && (nameOnly || (readPolicy && agreeToProcessing));
-  // Asked again with nothing else: the screen is the agreement, so its head is the title.
-  const ticksAlone = again && !askName;
 
   return (
     <View className="flex-1">
@@ -70,7 +72,7 @@ export function BeforeYouStart({
         contentContainerStyle={{ paddingTop: 22, paddingHorizontal: GUTTER, paddingBottom: 8 }}
       >
         <Text className={`font-core font-semibold ${skin.text}`} style={titleStyle(tone)} accessibilityRole="header">
-          {nameOnly ? NAME_STEP.title : ticksAlone ? BEFORE.agree : BEFORE.title}
+          {nameOnly ? NAME_STEP.title : again ? BEFORE.again : BEFORE.title}
         </Text>
 
         {askName ? (
@@ -82,7 +84,7 @@ export function BeforeYouStart({
               value={name}
               onChange={onName}
               onSubmit={() => {
-                if (nameOnly && ready) onContinue();
+                if ((nameOnly || again) && ready) onContinue();
               }}
             />
             <Text className={`font-core ${skin.quiet}`} style={{ fontSize: 14, lineHeight: 20, marginTop: 8, marginHorizontal: 2 }}>
@@ -93,7 +95,7 @@ export function BeforeYouStart({
 
         {nameOnly ? null : (
           <View style={{ marginTop: 28 }}>
-            {ticksAlone ? null : <Head tone={tone}>{BEFORE.agree}</Head>}
+            <Head tone={tone}>{BEFORE.agree}</Head>
             {again ? (
               <Text className={`font-core ${skin.quiet}`} style={{ fontSize: 14, lineHeight: 20, marginBottom: 4, marginHorizontal: 2 }}>
                 {RECONSENT.before}
@@ -114,6 +116,14 @@ export function BeforeYouStart({
               onReadPolicy={onReadPolicy}
               onAgreeToProcessing={onAgreeToProcessing}
             />
+            {/* The way out the terms promise, quiet, under the ticks. */}
+            {again ? (
+              <Text className={`font-core ${skin.quiet}`} style={{ fontSize: 14, lineHeight: 20, marginTop: 12, marginHorizontal: 2 }}>
+                <Text className={`font-medium ${LINK[tone]}`} onPress={onWayOut} accessibilityRole="link">
+                  {WAY_OUT}
+                </Text>
+              </Text>
+            ) : null}
           </View>
         )}
       </ScrollView>

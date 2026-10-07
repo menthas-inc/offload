@@ -15,12 +15,12 @@ import { BackHandler, KeyboardAvoidingView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Notifications from "expo-notifications";
-import { completeOnboarding, giveConsent } from "../../lib/api";
+import { completeOnboarding } from "../../lib/api";
 import { useCalendars } from "../../lib/calendars";
 import { deviceZone } from "../../lib/clock";
 import { afterYou, backFrom, bringCards, firstStep, type Card, type NotificationOffer, type Step } from "../../lib/firstRun";
 import { BEFORE, BRING } from "../../lib/gate";
-import { saveName, useMe } from "../../lib/me";
+import { giveConsent, saveName, useMe } from "../../lib/me";
 import { register } from "../../lib/notifications";
 import { ToastHost, useToast } from "../shell/Toast";
 import { BeforeYouStart } from "./BeforeYouStart";
@@ -69,7 +69,7 @@ export function FirstRun({ tone, replay = false }: { tone: Tone; replay?: boolea
     const only = !replay && !me.needsFirstRun;
     // The policy or the terms moved since they agreed: first run's last
     // screen, the ticks alone, and never the whole of first run again.
-    const asked = only && me.needsConsent === true;
+    const asked = only && me.needsConsent;
     setAgain(asked);
     setAskName(!asked || me.needsName);
     setNameOnly(only && !asked);
@@ -167,6 +167,8 @@ export function FirstRun({ tone, replay = false }: { tone: Tone; replay?: boolea
             working={working}
             failed={failed}
             onContinue={() => void onContinue()}
+            // Pushed over the question, so Back comes back to it unanswered.
+            onWayOut={() => router.push("/settings/account")}
           />
         ) : (
           <BringItIn

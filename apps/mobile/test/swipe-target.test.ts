@@ -28,4 +28,15 @@ describe.each([
   it("puts no onPress on the Text", () => {
     expect(panel).not.toMatch(/<Text\b[^>]*onPress=/);
   });
+
+  // The sweep of 2026-10-07. `pointerEvents` off does not take the panel out
+  // of the accessibility tree, so a screen reader met a destructive button on
+  // every row. A screen reader cannot swipe the row open, so the panel is
+  // hidden from it and the row carries the action instead.
+  it(`hides the panel from a screen reader, and the row offers ${word} as an action`, () => {
+    expect(panel).toMatch(/accessibilityElementsHidden\b/);
+    expect(panel).toMatch(/importantForAccessibility="no-hide-descendants"/);
+    const row = source.slice(source.indexOf("<GestureDetector"));
+    expect(row).toMatch(new RegExp(`accessibilityActions=\\{\\[\\{ name: "activate" \\}, \\{ name: "\\w+", label: "${word}" \\}\\]\\}`));
+  });
 });

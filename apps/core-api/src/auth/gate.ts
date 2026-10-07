@@ -64,9 +64,13 @@ export async function decideLink(accountId: string): Promise<GateVerdict> {
   // This read is what turns a refusal into one the gate can explain. It does
   // not close the race: Better Auth runs this hook and its insert as separate
   // statements, so no lock taken here would still be held when the insert
-  // runs. What holds when two callbacks land together is the database: 0007's
-  // trigger on account_identities refuses a staff account a second identity,
-  // and 0075's mirror on staff refuses staff to an account that has two.
+  // runs. The database holds the rest, partly: 0007's trigger on
+  // account_identities refuses a staff account a second identity once one has
+  // committed, and 0075's mirror on staff refuses staff to an account that has
+  // two. Two first identities landing in the same instant are not serialised:
+  // the trigger's check runs under READ COMMITTED, cannot see the other's
+  // uncommitted row, and nothing makes account_id unique, so both can commit.
+  // Closing that is held for a migration.
   const alreadyHasIdentity = await db
     .selectFrom("staff")
     .innerJoin("account_identities", "account_identities.account_id", "staff.account_id")

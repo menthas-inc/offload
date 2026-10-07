@@ -42,6 +42,11 @@ export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
       <Animated.View
         className="absolute inset-y-0 right-0 bg-surface-danger"
         style={[revealed, { width: REVEAL + 24 }]}
+        // Out of a screen reader's reach: it cannot swipe the row open, and
+        // `pointerEvents` off leaves the button in the tree on every row. The
+        // row carries Delete instead.
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
       >
         {/* The whole panel is the target, not the word in it (S10). */}
         <Pressable
@@ -66,6 +71,17 @@ export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
           className={`flex-row items-center gap-space-5 px-gutter-screen py-space-4 ${
             isAndroid ? "bg-a-surface" : "bg-surface-page"
           } ${border ? "border-b border-border-hairline" : ""}`}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel={thread.name}
+          accessibilityHint={thread.meta || undefined}
+          // The swipe is out of reach of a screen reader, so Delete is an
+          // action on the row as well, as on the memory row.
+          accessibilityActions={[{ name: "activate" }, { name: "delete", label: "Delete" }]}
+          onAccessibilityAction={(event) => {
+            if (event.nativeEvent.actionName === "delete") onDelete();
+            else onOpen();
+          }}
         >
           <ThreadIcon icon={thread.icon} hue={thread.hue} seed={thread.id} size={isAndroid ? 44 : 40} />
 

@@ -199,7 +199,7 @@ describe("the editor", () => {
     expect(host.querySelector('[role=radio][aria-checked=true]')?.textContent).toBe("About");
     await type(field(), "My sister is Rina.");
     await key(field(), "Enter");
-    expect(sent.find((s) => s.method === "POST" && s.path === "/v1/memories")?.body).toEqual({ text: "My sister is Rina.", kind: "about" });
+    expect(sent.find((s) => s.method === "POST" && s.path === "/v1/memories")?.body).toEqual({ text: "Their sister is Rina.", kind: "about" });
     expect(text()).toContain("Remembered");
   });
 
@@ -257,7 +257,7 @@ describe("the editor", () => {
   });
 });
 
-describe("F-P2 spoken to the person it is about", () => {
+describe("F4 spoken to the person it is about", () => {
   it("reads each row to them, not about them", async () => {
     await mount();
     expect(text()).toContain("You work at Shopify as a designer.");

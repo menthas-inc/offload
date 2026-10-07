@@ -210,7 +210,7 @@ export function memorySections(memories: MemoryView[], sort: "kind" | "new", now
   ].filter((section) => section.rows.length > 0);
 }
 
-/** Search, by the words a memory is read in (F-P2, spoken to the person) as
+/** Search, by the words a memory is read in (F4, spoken to the person) as
  *  well as the words it is stored in, so `your` finds *Their sister is Sara.* */
 export function matchesMemory(memory: MemoryView, query: string): boolean {
   const q = query.trim().toLowerCase();

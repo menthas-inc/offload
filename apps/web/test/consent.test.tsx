@@ -29,6 +29,8 @@ const AGAIN: Me = {
 
 let me: Me = AGAIN;
 let consent = 200;
+/** What /api/consent answers with: by default the account, agreed. */
+let consented: () => Me = () => ({ ...me, needsConsent: false });
 const calls: { path: string; method: string; body: unknown }[] = [];
 
 vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
@@ -37,7 +39,7 @@ vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
   if (path === "/api/me" && (init?.method ?? "GET") === "GET") return json(me);
   if (path === "/api/me") return json({ ...me, needsName: false });
   if (path === "/api/connectors/calendars") return json({ available: true, askFirst: false, connections: [] });
-  if (path === "/api/consent") return json({ ...me, needsConsent: false }, consent);
+  if (path === "/api/consent") return json(consented(), consent);
   return json({}, 404);
 });
 
@@ -52,16 +54,18 @@ vi.stubGlobal("matchMedia", (query: string) => ({
   removeEventListener: () => undefined,
 }));
 
-const { stillAsking } = await import("../src/lib/use-me");
-const { FAILED, RECONSENT } = await import("../src/components/firstrun/copy");
+const { stillAsking, useMe } = await import("../src/lib/use-me");
+const { BEFORE, FAILED, RECONSENT, WAY_OUT } = await import("../src/components/firstrun/copy");
 const { BeforeYouStart } = await import("../src/components/firstrun/BeforeYouStart");
 const { default: WelcomePage } = await import("../src/app/(app)/welcome/page");
 
 beforeEach(() => {
   me = AGAIN;
   consent = 200;
+  consented = () => ({ ...me, needsConsent: false });
   calls.length = 0;
   router.replace.mockClear();
+  window.history.replaceState(null, "", "/welcome");
 });
 
 afterEach(() => {
@@ -132,7 +136,8 @@ describe("S20 asking again when the policy or the terms change", () => {
   it("shows the two ticks alone, with a line linking both pages, and never the intro", async () => {
     const host = await render(<WelcomePage />);
     expect(router.replace).not.toHaveBeenCalled();
-    expect(host.querySelector("h1")?.textContent).toBe("What you are agreeing to");
+    expect(host.querySelector("h1")?.textContent).toBe(BEFORE.again);
+    expect(host.querySelector("h2")?.textContent).toBe(BEFORE.agree);
     expect(host.querySelector('input[type="text"]')).toBeNull();
     expect(checkboxes(host)).toHaveLength(2);
 
@@ -177,6 +182,100 @@ describe("S20 asking again when the policy or the terms change", () => {
     expect(router.replace).toHaveBeenCalledWith("/today");
   });
 
+  it("is never titled Before you start, and the name takes focus and Enter as it does alone", async () => {
+    me = { ...AGAIN, displayName: null, needsName: true };
+    const host = await render(<WelcomePage />);
+    expect(host.querySelector("h1")?.textContent).toBe(BEFORE.again);
+    expect(host.querySelector("h1")?.textContent).not.toBe(BEFORE.title);
+    const field = host.querySelector<HTMLInputElement>('input[type="text"]')!;
+    expect(document.activeElement).toBe(field);
+    for (const box of checkboxes(host)) await click(box);
+    await act(async () => {
+      field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+    await settle();
+    expect(calls.filter((c) => c.method !== "GET").map((c) => c.path)).toEqual(["/api/me", "/api/consent"]);
+  });
+
+  it("stays and says so when the write answers but the account still needs consent", async () => {
+    consented = () => ({ ...me, needsConsent: true });
+    const host = await render(<WelcomePage />);
+    for (const box of checkboxes(host)) await click(box);
+    await click(button(host, "Continue"));
+    expect(calls.filter((c) => c.method === "POST").map((c) => c.path)).toEqual(["/api/consent"]);
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe(FAILED);
+    expect(router.replace).not.toHaveBeenCalledWith("/today");
+  });
+
+  it("offers a way out, to take a copy or delete the account, and only when asked again", async () => {
+    const host = await render(<WelcomePage />);
+    const out = [...host.querySelectorAll("a")].find((a) => a.textContent === WAY_OUT);
+    expect(out?.getAttribute("href")).toBe("/settings/account");
+    expect(WAY_OUT).not.toMatch(new RegExp("[\\u2013\\u2014]"));
+
+    document.body.innerHTML = "";
+    const first = await render(
+      <BeforeYouStart
+        nameOnly={false}
+        name="Jo"
+        onName={() => undefined}
+        readPolicy={false}
+        agreeToProcessing={false}
+        onReadPolicy={() => undefined}
+        onAgreeToProcessing={() => undefined}
+        working={false}
+        failed={false}
+        onContinue={() => undefined}
+      />,
+    );
+    expect(first.textContent).not.toContain(WAY_OUT);
+  });
+
+  it("lets that way out through the shell without agreeing, and bounces everything else", async () => {
+    let seen = "";
+    function Probe() {
+      seen = useMe("shell").status;
+      return null;
+    }
+    async function at(path: string) {
+      window.history.replaceState(null, "", path);
+      router.replace.mockClear();
+      document.body.innerHTML = "";
+      await render(<Probe />);
+    }
+
+    await at("/settings/account");
+    expect(router.replace).not.toHaveBeenCalled();
+    expect(seen).toBe("ready");
+
+    await at("/settings/privacy");
+    expect(router.replace).not.toHaveBeenCalled();
+    expect(seen).toBe("ready");
+
+    await at("/today");
+    expect(router.replace).toHaveBeenCalledWith("/welcome");
+
+    // Somewhere else from the way out, with the shell already mounted.
+    window.history.replaceState(null, "", "/settings/account");
+    router.replace.mockClear();
+    document.body.innerHTML = "";
+    const host = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(host);
+    await act(async () => root.render(<Probe />));
+    await settle();
+    expect(router.replace).not.toHaveBeenCalled();
+    window.history.pushState(null, "", "/settings/notifications");
+    await act(async () => root.render(<Probe />));
+    await settle();
+    expect(router.replace).toHaveBeenCalledWith("/welcome");
+    act(() => root.unmount());
+
+    // Never for an account still in first run.
+    me = { ...AGAIN, needsFirstRun: true, state: "invited" };
+    await at("/settings/account");
+    expect(router.replace).toHaveBeenCalledWith("/welcome");
+  });
+
   it("keeps the phones' words", () => {
     const pick = (source: string) =>
       /export const RECONSENT = (\{[\s\S]*?\}) as const;/.exec(source)?.[1]?.replace(/\/\/.*$/gm, "").replace(/\s+/g, " ");
@@ -184,5 +283,8 @@ describe("S20 asking again when the policy or the terms change", () => {
     const phone = read("../../mobile/lib/gate.ts");
     expect(pick(web)).toBeTruthy();
     expect(pick(phone)).toBe(pick(web));
+    const wayOut = (source: string) => /export const WAY_OUT = "([^"]*)";/.exec(source)?.[1];
+    expect(wayOut(phone)).toBe(WAY_OUT);
+    expect(phones("again")).toBe(BEFORE.again);
   });
 });

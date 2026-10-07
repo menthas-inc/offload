@@ -41,7 +41,7 @@ export function MemoryListRow({
   const COLOR = useColors();
   const { gesture, sliding, revealed, close } = useRowSwipe(onOpen);
   const meta = memoryMeta(memory);
-  // Stored about the person, read to them (F-P2).
+  // Stored about the person, read to them (F4).
   const said = toSecondPerson(memory.text);
   // Tertiary on both phones, as the kit draws the meta.
   const quiet = "text-text-tertiary";
@@ -52,6 +52,11 @@ export function MemoryListRow({
       <Animated.View
         className="absolute inset-y-0 right-0 bg-surface-danger"
         style={[revealed, { width: REVEAL + 24 }]}
+        // Out of a screen reader's reach: it cannot swipe the row open, and
+        // `pointerEvents` off leaves the button in the tree on every row. The
+        // row carries Forget instead.
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
       >
         {/* The whole panel is the target, not the word in it (S10). */}
         <Pressable

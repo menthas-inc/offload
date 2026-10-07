@@ -1,4 +1,4 @@
-// F-P2 on the phones: an account memory is stored about the person and read
+// F4 on the phones: an account memory is stored about the person and read
 // back to them. Read from the source, as the other screen tests are, since
 // these tests render nothing; the rewrite itself is tested in
 // packages/widgets/test/voice.test.ts.
@@ -33,9 +33,10 @@ describe("a memory speaks to the person it is about", () => {
 
   it("in the editor, which shows the person's form and saves the stored one", () => {
     const editor = read("components/memories/MemoryEditor.tsx");
-    expect(editor).toMatch(/toSecondPerson\(held\.text\)/);
-    expect(editor).toMatch(/toThirdPerson\(text\)/);
-    expect(editor).toMatch(/submitMemory\(held, stored\(text\), kind\)/);
+    // By the one rule in @offload/widgets, which the web's editor calls too.
+    expect(editor).toMatch(/shownText\(held\.text\)/);
+    expect(editor).toMatch(/submitMemory\(held, storedText\(held\?\.text \?\? null, text\), kind\)/);
+    expect(editor).not.toMatch(/toThirdPerson|toSecondPerson/);
     expect(editor).toMatch(/onForget\(held \?\? editing\)/);
   });
 });

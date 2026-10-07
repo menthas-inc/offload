@@ -178,6 +178,12 @@ export const RECONSENT = {
   after: ".",
 } as const;
 
+/** Under the ticks when asked again, and only then: the terms say whoever does
+ *  not agree can take a copy and delete their account, so the screen offers
+ *  the way to both without agreeing first. The web holds the same in
+ *  `components/firstrun/copy.ts`. */
+export const WAY_OUT = "Take a copy or delete your account";
+
 /** 033. The intro: one screen, three scenes that play themselves. Each title
  *  and line is read as one live announcement, so they are written to stand
  *  alone. The web repeats them in `components/firstrun/copy.ts`. */
@@ -242,6 +248,9 @@ export const INTRO_WAYS = {
  *  run asks. The consent's own words are `CONSENT`, below. */
 export const BEFORE = {
   title: "Before you start",
+  // Asked again: an account that has used offload for weeks is not starting.
+  // One title whether the name is asked with the ticks or not.
+  again: "Before you go on",
   name: "What should we call you?",
   agree: "What you are agreeing to",
   next: "Continue",

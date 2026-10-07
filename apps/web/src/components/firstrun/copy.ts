@@ -60,6 +60,9 @@ export const INTRO_WAYS = {
 
 export const BEFORE = {
   title: "Before you start",
+  /** Asked again: an account that has used offload for weeks is not starting.
+   *  One title whether the name is asked with the ticks or not. */
+  again: "Before you go on",
   name: "What should we call you?",
   nameSub: "This is the name people you share a thread with will see.",
   agree: "What you are agreeing to",
@@ -115,3 +118,9 @@ export const RECONSENT = {
   policy: "privacy policy",
   after: ".",
 } as const;
+
+/** Under the ticks when asked again, and only then: the terms say whoever does
+ *  not agree can take a copy and delete their account, so the screen offers
+ *  the way to both without agreeing first. The phones hold the same in
+ *  `apps/mobile/lib/gate.ts`. */
+export const WAY_OUT = "Take a copy or delete your account";

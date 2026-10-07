@@ -95,6 +95,25 @@ async function thread(name: string, ...members: string[]): Promise<string> {
   return row.id;
 }
 
+/** How many backends wait behind `holder`, directly or behind one that does.
+ *  Scoped to the holder, so a waiter from anything else sharing the database
+ *  cannot satisfy it. */
+async function blockedBehind(holder: number): Promise<number> {
+  const { rows } = await sql<{ n: string }>`
+    with recursive behind(pid) as (
+      select pid from pg_stat_activity where ${holder}::int = any(pg_blocking_pids(pid))
+      union
+      select a.pid from pg_stat_activity a join behind b on b.pid = any(pg_blocking_pids(a.pid))
+    )
+    select count(*) as n from behind`.execute(db);
+  return Number(rows[0]!.n);
+}
+
+async function untilBlocked(holder: number, n: number): Promise<void> {
+  for (let tries = 0; tries < 250 && (await blockedBehind(holder)) < n; tries += 1) await new Promise((resolve) => setTimeout(resolve, 20));
+  expect(await blockedBehind(holder)).toBe(n);
+}
+
 async function row(accountId: string, threadId: string, title: string): Promise<string> {
   const made = await db
     .insertInto("content")
@@ -238,6 +257,74 @@ describe("deleting an account", () => {
     expect(left.map((one) => one.id)).toContain(own);
   });
 
+  // FOR UPDATE locks rows, not a predicate. A request's notice names the
+  // person only through the request, so one written after the purge has read
+  // is a row it never saw, which the cascade's set-null would leave. The
+  // delete holds the request, so the notice waits and then has nothing to
+  // point at.
+  it("takes a naming row written while the delete is running", async () => {
+    const ana = await person("Ana");
+    const ben = await person("Ben");
+    const asked = await db.insertInto("connection_requests").values({ from_account_id: ana.id, to_account_id: ben.id }).returning("id").executeTakeFirstOrThrow();
+
+    // The delete held at the limiter's table, after the purge.
+    let release!: () => void;
+    const released = new Promise<void>((resolve) => (release = resolve));
+    let locked!: (pid: number) => void;
+    const isLocked = new Promise<number>((resolve) => (locked = resolve));
+    const holding = db.transaction().execute(async (trx) => {
+      const { rows } = await sql<{ pid: number }>`select pg_backend_pid() as pid`.execute(trx);
+      await sql`lock table waitlist_attempts in exclusive mode`.execute(trx);
+      locked(rows[0]!.pid);
+      await released;
+    });
+    const holder = await isLocked;
+    const deleting = deleteAccount(ana.id);
+    await untilBlocked(holder, 1);
+
+    // The notice, once it has written its row or is waiting behind the delete.
+    let settled = false;
+    const notifying = notifyPerson({ kind: "request", requestId: asked.id }).finally(() => (settled = true));
+    notifying.catch(() => {});
+    for (let tries = 0; tries < 250 && !settled && (await blockedBehind(holder)) < 2; tries += 1) await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(settled || (await blockedBehind(holder)) === 2).toBe(true);
+    release();
+    await holding;
+    await deleting;
+    await Promise.allSettled([notifying]);
+
+    expect(await db.selectFrom("activity").select(["kind", "title"]).where("account_id", "=", ben.id).execute()).toEqual([]);
+  });
+
+  // A notice still being written when the purge reads is a row it cannot see.
+  // Its foreign key check holds the request, so the delete has to wait for it
+  // before reading, not after, or the cascade clears the link and leaves the
+  // words.
+  it("takes a naming row that was being written when the delete began", async () => {
+    const ana = await person("Ana");
+    const ben = await person("Ben");
+    const asked = await db.insertInto("connection_requests").values({ from_account_id: ana.id, to_account_id: ben.id }).returning("id").executeTakeFirstOrThrow();
+
+    let commit!: () => void;
+    const committed = new Promise<void>((resolve) => (commit = resolve));
+    let written!: (pid: number) => void;
+    const isWritten = new Promise<number>((resolve) => (written = resolve));
+    const writing = db.transaction().execute(async (trx) => {
+      const { rows } = await sql<{ pid: number }>`select pg_backend_pid() as pid`.execute(trx);
+      await record(ben.id, { kind: "request", sent: true, title: "Ana wants to connect", body: null, requestId: asked.id }, trx);
+      written(rows[0]!.pid);
+      await committed;
+    });
+    const writer = await isWritten;
+    const deleting = deleteAccount(ana.id);
+    await untilBlocked(writer, 1);
+    commit();
+    await writing;
+    await deleting;
+
+    expect(await db.selectFrom("activity").select(["kind", "title"]).where("account_id", "=", ben.id).execute()).toEqual([]);
+  });
+
   // 035: every entry about them in other people's Activity goes. A row can
   // name somebody by its own column, by a mention, or only in its words, with
   // the link to them held by a request or a membership; this writes each kind
@@ -309,22 +396,18 @@ describe("deleting an account", () => {
     // cascade, the limiter's table, so they meet there whatever the timing.
     let release!: () => void;
     const released = new Promise<void>((resolve) => (release = resolve));
-    let locked!: () => void;
-    const isLocked = new Promise<void>((resolve) => (locked = resolve));
+    let locked!: (pid: number) => void;
+    const isLocked = new Promise<number>((resolve) => (locked = resolve));
     const holding = db.transaction().execute(async (trx) => {
+      const { rows } = await sql<{ pid: number }>`select pg_backend_pid() as pid`.execute(trx);
       await sql`lock table waitlist_attempts in exclusive mode`.execute(trx);
-      locked();
+      locked(rows[0]!.pid);
       await released;
     });
-    await isLocked;
+    const holder = await isLocked;
     const deleting = Promise.allSettled([deleteAccount(ana.id), deleteAccount(ben.id)]);
-    const waiting = async () =>
-      Number(
-        (await sql<{ n: string }>`select count(*) as n from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock'`.execute(db))
-          .rows[0]!.n,
-      );
-    for (let tries = 0; tries < 250 && (await waiting()) < 2; tries += 1) await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(await waiting()).toBe(2);
+    // One waits at the table and the other, which names it, waits behind it.
+    await untilBlocked(holder, 2);
     release();
     await holding;
 

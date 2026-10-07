@@ -115,7 +115,30 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
     // Every row in somebody else's Activity that names them. Most name them only
     // through a mention, a request or a membership, which the cascade takes or
     // clears and leaves the row, so these go by name while the link is there.
-    // After the threads, which leaving locks before it purges, and in id order.
+    // After the threads, which leaving locks before it purges, and in id order,
+    // before the thread deletes below cascade into any of them out of order.
+    // The requests and memberships that link a row to them are locked first:
+    // a notice being written holds its link until it commits, so this waits
+    // for it and the purge then sees its row; one written later waits behind
+    // this transaction and finds its request gone. A membership they sent
+    // stays with `invited_by` cleared, so a share notice that read their name
+    // before this began can still land after it: that check is the writer's.
+    // FOR UPDATE on the rows the purge reads would lock only the rows it could
+    // already see.
+    await trx
+      .selectFrom("connection_requests")
+      .select("id")
+      .where((r) => r.or([r("from_account_id", "=", accountId), r("to_account_id", "=", accountId)]))
+      .orderBy("id")
+      .forUpdate()
+      .execute();
+    await trx
+      .selectFrom("thread_members")
+      .select("id")
+      .where((m) => m.or([m("account_id", "=", accountId), m("invited_by", "=", accountId)]))
+      .orderBy("id")
+      .forUpdate()
+      .execute();
     await purgeNaming(accountId, trx);
     const gone: string[] = [];
     let unopened = 0;

@@ -398,7 +398,7 @@ export function MemoriesMap({
     [fly, minZ],
   );
 
-  // A mark's name is its sentence, read to the person it is about (F-P2).
+  // A mark's name is its sentence, read to the person it is about (F4).
   const marks = useMemo(
     () => (settled ? mapMarks(memories, world, settled.window, settled.zs, query).map((m) => ({ ...m, label: toSecondPerson(m.label) })) : []),
     [memories, world, settled, query],
@@ -636,7 +636,7 @@ const MapMark = memo(function MapMark({ mark, box, zs, open, onDot, onOpen }: Ma
   // collapsed the clamped sentence to nothing on iOS.
   //
   // Its own shape: one line when short, two when not, as wide as its words.
-  // Stored about the person, read to them (F-P2), and sized by what is read.
+  // Stored about the person, read to them (F4), and sized by what is read.
   const said = toSecondPerson(mark.memory.text);
   const card = cardOf({ ...mark.memory, text: said }, zs);
   // Towards 44 only as far as the layout's gap allows, by the card's own

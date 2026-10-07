@@ -49,7 +49,7 @@ export function FirstRun({ replay = false }: { replay?: boolean }) {
     const only = !replay && !state.me.needsFirstRun;
     // The policy or the terms moved since they agreed: first run's last
     // screen, the ticks alone, and never the whole of first run again.
-    const asked = only && state.me.needsConsent === true;
+    const asked = only && state.me.needsConsent;
     setAgain(asked);
     setAskName(!asked || state.me.needsName);
     setNameOnly(only && !asked);

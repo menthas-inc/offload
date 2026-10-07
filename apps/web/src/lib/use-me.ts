@@ -29,9 +29,8 @@ export interface Me {
    *  for. */
   needsName: boolean;
   /** Active, and agreed to an older privacy policy or terms: the two ticks
-   *  are asked again, alone, before the shell. Optional for a server that
-   *  predates it. */
-  needsConsent?: boolean;
+   *  are asked again, alone, before the shell. */
+  needsConsent: boolean;
   /** 016. Whether offload may search the web, and whether it may open a link
    *  they pasted. Two different promises, so two switches. */
   webSearch: boolean;
@@ -97,11 +96,28 @@ export async function refreshMe(): Promise<void> {
  *  "finished first run" stopped being the same as "ready", and an account can
  *  finish it and then see the policy or the terms move. */
 export function stillAsking(me: Me): boolean {
-  return me.needsFirstRun || me.needsName || me.needsConsent === true;
+  return me.needsFirstRun || me.needsName || me.needsConsent;
+}
+
+/** Where somebody asked again may go without agreeing. The terms say whoever
+ *  does not agree can take a copy and delete their account: delete is on My
+ *  account, and the copy is on Privacy, which its "Make a copy first" opens. */
+export const WAY_OUT_PATHS: readonly string[] = ["/settings/account", "/settings/privacy"];
+
+/** Whether the shell holds this account back from where the browser is now.
+ *  Read from the address rather than a hook: the shell layout re-renders on
+ *  every navigation, and Next has written the address by the time effects run. */
+function heldBack(me: Me): boolean {
+  if (!stillAsking(me)) return false;
+  const through = !me.needsFirstRun && me.needsConsent && WAY_OUT_PATHS.includes(window.location.pathname);
+  return !through;
 }
 
 /** The two ticks again, for an active account whose consent is on an older
- *  version. Returns whether the server recorded it. */
+ *  version. Done only when the identity the server sends back says so: a 200
+ *  whose update matched nothing still needs consent, and treating it as done
+ *  sent the person straight back here with nothing said. That identity is
+ *  announced either way, as a saved name is. */
 export async function giveConsent(): Promise<boolean> {
   try {
     const response = await fetch(`${API}/api/consent`, {
@@ -110,7 +126,11 @@ export async function giveConsent(): Promise<boolean> {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ readPolicy: true, agreeToProcessing: true }),
     });
-    return response.ok;
+    if (!response.ok) return false;
+    const me = (await response.json()) as Me;
+    cached = me;
+    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
+    return !me.needsConsent;
   } catch {
     return false;
   }
@@ -210,8 +230,8 @@ export function useMe(expect: "first-run" | "shell"): MeState {
         const me = (await response.json()) as Me;
         cached = me;
         if (!live) return;
-        if (stillAsking(me) && expect === "shell") router.replace("/welcome");
-        else if (!stillAsking(me) && expect === "first-run") router.replace("/today");
+        if (expect === "shell" && heldBack(me)) router.replace("/welcome");
+        else if (expect === "first-run" && !stillAsking(me)) router.replace("/today");
         else setState({ status: "ready", me });
       })
       .catch(() => {
@@ -229,7 +249,7 @@ export function useMe(expect: "first-run" | "shell"): MeState {
       // side: the welcome screen's name-only mode calls `updateName` from this
       // very hook. What makes that harmless is this early return plus the
       // `replace("/today")` that follows, not the event being impossible.
-      if (stillAsking(me) !== (expect === "first-run")) return;
+      if (expect === "shell" ? heldBack(me) : !stillAsking(me)) return;
       setState({ status: "ready", me });
     };
     window.addEventListener(CHANGED, onChanged);
@@ -239,6 +259,13 @@ export function useMe(expect: "first-run" | "shell"): MeState {
       window.removeEventListener(CHANGED, onChanged);
     };
   }, [expect, router, attempt]);
+
+  // Let through to the way out and then gone anywhere else: back to the
+  // question. Every render, because a navigation inside the shell re-renders
+  // it without fetching again.
+  useEffect(() => {
+    if (expect === "shell" && state.status === "ready" && heldBack(state.me)) router.replace("/welcome");
+  });
 
   return state;
 }

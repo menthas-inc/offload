@@ -7,7 +7,7 @@
 import { Logo } from "../Logo";
 import { Icon } from "../Icon";
 import { NAME_MAX } from "../../lib/name";
-import { BEFORE, CONSENT, FAILED, RECONSENT } from "./copy";
+import { BEFORE, CONSENT, FAILED, RECONSENT, WAY_OUT } from "./copy";
 import { RunFooter } from "./RunFooter";
 import styles from "./firstrun.module.css";
 
@@ -51,8 +51,8 @@ export function BeforeYouStart({
   onContinue: () => void;
 }) {
   const ready = (!askName || name.trim().length > 0) && (nameOnly || (readPolicy && agreeToProcessing));
-  // Asked again with nothing else: the screen is the agreement, so its head is the title.
-  const ticksAlone = again && !askName;
+  // The name is the first thing to answer wherever first run is behind them.
+  const nameFirst = nameOnly || again;
 
   return (
     <main className={styles.page}>
@@ -61,7 +61,7 @@ export function BeforeYouStart({
       </div>
       <div className={styles.column}>
         <div className={styles.body}>
-          <h1 className={styles.title}>{nameOnly ? BEFORE.name : ticksAlone ? BEFORE.agree : BEFORE.title}</h1>
+          <h1 className={styles.title}>{nameOnly ? BEFORE.name : again ? BEFORE.again : BEFORE.title}</h1>
 
           {askName ? (
             <div className={styles.block}>
@@ -70,14 +70,14 @@ export function BeforeYouStart({
                 className={styles.field}
                 type="text"
                 value={name}
-                autoFocus={nameOnly}
+                autoFocus={nameFirst}
                 autoComplete="name"
                 maxLength={NAME_MAX}
                 placeholder="Your name"
                 aria-label="Your name"
                 onChange={(event) => onName(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && nameOnly && ready) onContinue();
+                  if (event.key === "Enter" && nameFirst && ready) onContinue();
                 }}
               />
               <p className={styles.hint}>{BEFORE.nameSub}</p>
@@ -86,7 +86,7 @@ export function BeforeYouStart({
 
           {nameOnly ? null : (
             <div className={styles.block}>
-              {ticksAlone ? null : <h2 className={styles.head}>{BEFORE.agree}</h2>}
+              <h2 className={styles.head}>{BEFORE.agree}</h2>
               {again ? (
                 <p className={styles.hint} data-reconsent="">
                   {RECONSENT.before}
@@ -136,6 +136,15 @@ export function BeforeYouStart({
                 </span>
                 <span>{CONSENT.note}</span>
               </p>
+              {/* Asked again only: the way out the terms promise, quiet, and
+                  open without agreeing. The shell lets this one page through. */}
+              {again ? (
+                <p className={styles.hint}>
+                  <a className={styles.tickLink} href="/settings/account">
+                    {WAY_OUT}
+                  </a>
+                </p>
+              ) : null}
             </div>
           )}
         </div>

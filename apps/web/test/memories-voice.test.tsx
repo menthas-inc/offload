@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 //
-// F-P2 on the web: an account memory is stored about the person and read back
+// F4 on the web: an account memory is stored about the person and read back
 // to them, so the map's sentence and its name both say you.
 
 import { act } from "react";
@@ -43,5 +43,15 @@ describe("the map speaks to the person", () => {
     const pill = host.querySelector("[data-memory]")!;
     expect(pill.textContent).toBe("You are allergic to penicillin.");
     expect(pill.getAttribute("aria-label")).toBe("You are allergic to penicillin., About");
+  });
+});
+
+describe("the editor", () => {
+  it("shows and stores by the one rule the phones use", async () => {
+    const { readFileSync } = await import("node:fs");
+    const pane = readFileSync(`${process.cwd()}/src/components/panes/Memories.tsx`, "utf8");
+    expect(pane).toMatch(/shownText\(memory\.text\)/);
+    expect(pane).toMatch(/storedText\(memory\?\.text \?\? null, draft\)/);
+    expect(pane).not.toMatch(/toThirdPerson/);
   });
 });

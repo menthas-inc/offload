@@ -165,8 +165,11 @@ function Drawn({
   const fitted = useRef(false);
   // Under reduced motion a camera that moves for a pick jumps instead of
   // gliding. A ref, so the preference changing does not move the map.
-  const reduced = useRef(false);
-  reduced.current = useReducedMotion();
+  const prefersReduced = useReducedMotion();
+  const reduced = useRef(prefersReduced);
+  useEffect(() => {
+    reduced.current = prefersReduced;
+  }, [prefersReduced]);
   const colours = useMemo(labelColours, [theme]);
 
   const shown = useMemo(() => points.filter((p) => pointPasses(p, pick)), [points, pick]);

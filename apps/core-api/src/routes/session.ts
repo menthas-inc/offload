@@ -153,12 +153,14 @@ const HOUR = /^([01]\d|2[0-3]):[0-5]\d$/;
 /** The version of the privacy policy and the terms that consent is against.
  *
  *  A date, so a row in `accounts` says which wording someone agreed to rather
- *  than only that they agreed to something. When either page changes
- *  materially this moves with it, and an active account on an older version is
- *  asked again (`needsConsent`). The first tick agrees to both pages, so this
- *  is the later of the two UPDATED dates, in
- *  apps/web/src/app/(marketing)/privacy/page.tsx and terms/page.tsx;
- *  test/consent.test.ts holds it there. */
+ *  than only that they agreed to something. When any of the three pages
+ *  changes materially this moves with it, and an active account on an older
+ *  version is asked again (`needsConsent`). The first tick agrees to the
+ *  policy and the terms, and the policy's section 6 promises a re-ask when a
+ *  change to the companies list materially changes how content is handled,
+ *  so this is the latest of the UPDATED dates in
+ *  apps/web/src/app/(marketing)/privacy/page.tsx, privacy/companies/page.tsx
+ *  and terms/page.tsx; test/consent.test.ts holds it there. */
 export const CONSENT_VERSION = "2026-10-07";
 
 /** invited -> active, plus the consent record and the event, in one transaction.

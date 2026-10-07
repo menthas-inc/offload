@@ -90,15 +90,19 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         <Sidebar threads={threads} threadCount={threads.length} requestsWaiting={state.me.requestsWaiting} activityNew={state.me.activityNew} />
         <div className={styles.main}>
           <MapColumnContext.Provider value={setMapColumn}>{children}</MapColumnContext.Provider>
-          <Composer
-            mapColumn={mapColumn}
-            atDailyLimit={state.me.atDailyLimit}
-            inThread={inThread ? { id: inThread.id, name: inThread.name } : null}
-            onFiled={(threadIds) => {
-              void loadThreads();
-              setFiled({ threadIds, at: Date.now() });
-            }}
-          />
+          {/* The re-ask's way out reaches the account settings inside the shell;
+              nothing is dumped before the changed terms are agreed to. */}
+          {state.me.needsConsent ? null : (
+            <Composer
+              mapColumn={mapColumn}
+              atDailyLimit={state.me.atDailyLimit}
+              inThread={inThread ? { id: inThread.id, name: inThread.name } : null}
+              onFiled={(threadIds) => {
+                void loadThreads();
+                setFiled({ threadIds, at: Date.now() });
+              }}
+            />
+          )}
         </div>
       </div>
       </ToastProvider>

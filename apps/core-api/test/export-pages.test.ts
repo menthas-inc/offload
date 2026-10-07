@@ -47,6 +47,19 @@ describe("a thread page", () => {
     expect(html).toContain("Weekly on Monday");
   });
 
+  // The sweep's final review: data.json carried a note's rule and the page
+  // a person reads dropped it, so a weekly note read as a one-off.
+  it("says a repeating note repeats, too", () => {
+    const html = threadPage(
+      {
+        ...thread([]),
+        notes: [{ text: "Bins go out", body: null, author: null, addedAt: "2026-09-01T09:00:00.000Z", occursAt: null, dueAt: "2026-10-07T07:00:00.000Z", rrule: "FREQ=WEEKLY;BYDAY=WE" }],
+      },
+      "Europe/London",
+    );
+    expect(html).toContain("Weekly on Wednesday");
+  });
+
   it("says nothing more for a row that does not repeat, or a rule it cannot read", () => {
     const once = threadPage(thread([row({ occursAt: "2026-10-06T17:30:00.000Z" })]), "Europe/London");
     expect(once).not.toMatch(/Weekly|Daily|Monthly|Annually|Every/);
