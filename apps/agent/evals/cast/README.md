@@ -1,6 +1,6 @@
 # The cast
 
-Seven people with real threads, conversations, thread notes and memories, in a database of their own. offload's memory is measured on them through the same queries the worker runs. A fixture describes a context; the cast *is* one, built the way the database builds it. So a filter, a grant or a bound that is wrong shows up here and nowhere else. On its first run it found the agent role missing a grant, and an answer listing the account's country as a memory.
+Eight people with real threads, conversations, thread notes and memories, in a database of their own. offload's memory is measured on them through the same queries the worker runs. A fixture describes a context; the cast *is* one, built the way the database builds it. So a filter, a grant or a bound that is wrong shows up here and nowhere else. On its first run it found the agent role missing a grant, and an answer listing the account's country as a memory.
 
 - `cast.sql` is the cast, and the source of truth. It is idempotent, with times relative to `now()`.
 - `ids.json` maps names and thread keys to their ids.
@@ -17,6 +17,7 @@ Seven people with real threads, conversations, thread notes and memories, in a d
 | **Jun Park** | Toronto, night-shift nurse | nobody | Night shifts, Busan trip | none |
 | **Maya Becker** | Berlin, kids Lena and Felix | Tom (husband) | Garden | Kids (with Tom) |
 | **Tom Becker** | Berlin, site manager at Becker Bau | Maya | Work: Becker Bau | Kids |
+| **Noor Haddad** | Montreal, commutes to Ottawa | nobody | Commute, Home | none |
 
 Everyone also has a default thread, "Miscellaneous".
 
@@ -81,3 +82,7 @@ This loads the cast into the local database in `DATABASE_URL` and refuses one th
 4. **Add a line to this README** under "What is seeded".
 
 `apps/core-api/test/cast.test.ts` loads the seed twice in the suite, so a migration that breaks it fails there first.
+
+## The heavy user (040)
+
+Noor keeps 251 memories: 250 from the last two months about everything but trains, and one from ten months ago saying "The usual" is the 7:40 VIA train from Montreal to Ottawa. Above fifty, a turn is given the memories nearest the person's own words, so "book the usual for thursday" finds it past 250 newer ones. The runner embeds the cast's memories with Voyage once per run when `VOYAGE_API_KEY` is set, and the turn's query goes through the same 300ms embedder the worker uses; without a key every turn falls back to the newest, and that case fails, which is the point of it.

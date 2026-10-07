@@ -1,4 +1,4 @@
-// 038. The cast: seven people, their threads, conversations, notes and
+// 038. The cast: eight people, their threads, conversations, notes and
 // memories, from apps/agent/evals/cast/cast.sql, which the memory evals are
 // measured against. `pnpm seed:cast` loads them into a local database so the
 // app can be tried as one of them; `pnpm seed:cast ana <file>` also signs in as

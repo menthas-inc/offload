@@ -14,7 +14,7 @@
 // The kit hides both inside a thread; dumping from where you are is the
 // product's core move and a thread is the likeliest place to want it (009).
 // The tabs joined it on 30 September: every screen draws Today, My threads and
-// Notes, and they leave only under the conversation or the keyboard.
+// Memories, and they leave only under the conversation or the keyboard.
 //
 // Stacked, bottom to top: the plate, the conversation's scrim, the sheet, then
 // the composer's photo sheet and the toast.
@@ -34,7 +34,7 @@ import { timeOfDay } from "../../lib/sun";
 /** Where the composer belongs, and where it does not. Not "/", which is the
  *  launch screen since Today moved to "/today": the plate drew over it
  *  whenever launch held, a composer on a screen that has not heard back yet. */
-const TABS = ["/today", "/threads", "/notes"];
+const TABS = ["/today", "/threads", "/memories"];
 
 export function Shell() {
   const router = useRouter();
@@ -147,7 +147,7 @@ export function Shell() {
 
   // From a tab, the tabs swap; from a thread, back down to the tabs first,
   // so a tab never lands on top of the thread it left.
-  const go = (href: "/today" | "/threads" | "/notes"): void => {
+  const go = (href: "/today" | "/threads" | "/memories"): void => {
     if (inThread) router.dismissTo(href);
     else router.replace(href);
   };
@@ -176,15 +176,13 @@ export function Shell() {
           onPress: () => go("/threads"),
         },
         {
-          // `cloudy` was chosen for the word Memories and is kept for Notes:
-          // the screen is still what offload has collected about you, and the
-          // glyph was never about the noun. Looked at rather than inherited,
-          // per 014's task list.
-          key: "notes",
-          label: "Notes",
+          // 040. Memories again, with the `cloudy` it was drawn for: what
+          // offload knows about you across your threads.
+          key: "memories",
+          label: "Memories",
           icon: "cloudy",
-          active: pathname === "/notes",
-          onPress: () => go("/notes"),
+          active: pathname === "/memories",
+          onPress: () => go("/memories"),
         },
       ];
 

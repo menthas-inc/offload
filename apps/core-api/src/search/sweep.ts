@@ -40,7 +40,7 @@ export const SWEEP_SECONDS = 60;
 export const EMBED_MODEL = "voyage-4";
 
 interface Pending {
-  kind: "embed.content" | "embed.note" | "embed.message";
+  kind: "embed.content" | "embed.note" | "embed.message" | "embed.memory";
   rowId: string;
   accountId: string | null;
   /** The row's own version, so an edit is a different job.
@@ -91,6 +91,24 @@ const NOTES = sql<{ id: string; account_id: string | null; version: string }>`
   limit ${SWEEP_BATCH}
 `;
 
+// 040. Memories, embedded on their own row and never chunked, so search
+// cannot return one and a forgotten one cannot come back through a stale
+// chunk. The vector chooses which memories a turn is given and where each
+// sits on the map. A change clears `embedded_at`, and `updated_at` is the
+// version the worker's write is guarded by.
+const MEMORIES = sql<{ id: string; account_id: string | null; version: string }>`
+  select m.id::text as id, m.account_id::text as account_id,
+         extract(epoch from m.updated_at)::bigint::text as version
+  from notes m
+  where m.scope = 'account'
+    and m.deleted_at is null and m.superseded_at is null
+    and (m.embedded_at is null
+         or m.embedded_at < m.updated_at
+         or m.embedding_model is distinct from ${EMBED_MODEL})
+  order by m.updated_at desc
+  limit ${SWEEP_BATCH}
+`;
+
 // Only settled messages. `queued` has no text worth indexing yet and `failed`
 // has nothing worth finding, and both would be re-swept forever. A message
 // whose text is somebody else's words, a calendar name the person tapped, is
@@ -120,15 +138,17 @@ const MESSAGES = sql<{ id: string; account_id: string | null; version: string }>
 `;
 
 export async function pendingEmbeds(): Promise<Pending[]> {
-  const [content, notes, messages] = await Promise.all([
+  const [content, notes, messages, memories] = await Promise.all([
     CONTENT.execute(db),
     NOTES.execute(db),
     MESSAGES.execute(db),
+    MEMORIES.execute(db),
   ]);
   return [
     ...content.rows.map((r) => ({ kind: "embed.content" as const, rowId: r.id, accountId: r.account_id, version: r.version })),
     ...notes.rows.map((r) => ({ kind: "embed.note" as const, rowId: r.id, accountId: r.account_id, version: r.version })),
     ...messages.rows.map((r) => ({ kind: "embed.message" as const, rowId: r.id, accountId: r.account_id, version: r.version })),
+    ...memories.rows.map((r) => ({ kind: "embed.memory" as const, rowId: r.id, accountId: r.account_id, version: r.version })),
   ];
 }
 

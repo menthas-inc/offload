@@ -11,6 +11,45 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-06 · The Memories tab as built
+**Surface:** iOS, Android, web
+**Raised by:** code, spec 040, building the tab from `ui_kits/memories_tab/` and `handoff/APPLY-2026-10-06-memories.md`, checked in the browser on the web and on an iOS simulator.
+
+**Was:** the kit as drawn: a fixed world per shape (800x1500 and 1440x960) with hand-placed cloud centres and radii, a 300-unit column, sentences free to wrap, fainter sub-clouds for groups of meaning, swipe parking at 96, an empty state without the plus, a Memories count in the web sidebar.
+
+**Is:**
+- **The map's world is computed, not fixed, and reads as a network** (owner, 2026-10-07). Inside a kind, memories sit by meaning (t-SNE), clustered with air between, outliers pulled in, each sentence clear of the next; no columns. The kinds go where their memories' average sits in one map of them all, so kinds that talk alike are neighbours, stretched past the canvas's shape (down a phone, across the web) and kept a gap apart. The handoff's fixed centres and radii, and the 3-column grid of the first build, are gone.
+- **A card on the map is as big as its sentence** (owner, 2026-10-07). One line up to about 16 ems, two up to about 36, more only for a truly long sentence; the width is the narrowest at which the words, wrapped where they break, fill those lines, so there is no dead space after the last word (`pillShape`, shared by the web, the phones and the nightly layout). Placement uses each card's own size, so short sentences sit close and the cards stagger instead of sharing rows. The whole sentence is the card's name and is in the editor.
+- **No sub-clouds.** The nightly layout gives places, not groups, so nothing draws the fainter clouds for groups of meaning.
+- **Every number the map moves by is shared** (`MAP_ZOOM`, `MAP_LOOK`): the wide threshold, the 0.18 fade, the cloud's reach, the label heights, flying into a kind, the zoom step, Everything.
+- **The web map stops above the composer**, as a thread's map does (`--map-foot`), and has a column of its own so the list's scroll never moves it.
+- **Swipe parks at the shipped 88**, not 96, with ThreadRow's 13px Forget.
+- **Empty keeps the plus**, with *Nothing kept yet. Tell offload something to remember, or add it here.*; no switch and no search.
+- **The cap line** sits under By kind and Newest, above the first section.
+- **The web sidebar row has no count**: a count would read every memory on every page.
+- **The web pane head carries three tools**, the List | Map switch, search and the plus, past `PaneHead`'s two: a thread's pane already puts its map switch there, and the switch is the one tool that changes what the pane shows.
+- **A row's meta has two more forms**, *You added* for one typed in the tab and *You changed* for one changed there, matching the editor's lines.
+- **Map marks off screen are not drawn on either surface**, so tabbing never lands on one nobody can see; the list holds everything and is the accessible view.
+- **The editor** says the severing line under the field before Save, and a refusal in the same place in danger; a failed save keeps it open with the toast's Retry. The new memory's rule line is plain, not *rule* in bold.
+- **On the phones** the title sizes (30 semibold, 24 regular on Android) are typed inline as other screens type them; Android's fills are the M3 container tokens Edit thread uses; the field focuses in `DragSheet`'s `onOpen`; the pan starts 24pt in from both side edges so the system's edge swipes stay the system's; marks far off screen are not drawn, as the kit culls them.
+- **Dark** screens the ground (0.08) and the clouds (0.6) onto the paper instead of multiplying them (owner, 2026-10-06). On the phones the clouds come out fainter than on the web, and the kind labels' ink is mixed toward the light text. The owner judges the screenshots; the designer confirms or redraws.
+
+**Why:** each one is a place the drawing met a real number of memories, a real keyboard, a real composer or a real touch system.
+
+**Design system impact:** `ui_kits/memories_tab/memories.js`: `CLT`, `CLW` and `SUBT` give way to a computed world (`memoryWorld` with kind places and the canvas's aspect), memories placed as a network inside each cloud, each pill sized and clamped by `pillShape`, no sub-clouds, swipe at 88, the plus on the empty state, the cap line, the severing line. `readme.md`, The Memories tab: the map's layout paragraph says the kinds are placed from their extent and a card takes one or two lines at its words' own width. A dark drawing of the map to confirm or replace the screen blend.
+
+### 2026-10-06 · The Memories tab
+**Surface:** iOS, Android, web
+**Raised by:** 038's fast follow, decided with the product owner off `explorations/memories-v2.html` and `explorations/memories-proto.html`, read from `main` at `066aca5`. Handoff: `handoff/APPLY-2026-10-06-memories.md`.
+
+**Was:** a Notes tab with nothing in it on the phones and a disabled Notes row in the web sidebar. Memories could only be seen by asking, in the export, or in a turn's reply (038's dated exception to OFF-1).
+
+**Is:** **a Memories tab with a List | Map switch**, always opening on List. List: By kind or Newest, rows that open an editor sheet (text, kind, where it came from, Forget) and swipe to forget with Undo. Map: each kind a cloud of its colour, memories that mean similar things grouped inside it, zoom and pan; dots when far out, sentences from zoom 0.55 that grow with the zoom; off-screen kinds docked along the top. Tall layout on phones, wide on web, picked once when the map opens. **Five kinds:** their words folds into About, and no label says *their*. Typing a memory is new (origin stated); changing a learned one makes it yours.
+
+**Considered and not taken:** B, filter chips and a review queue; C, a portrait grouped by subject (needed a subject per memory); D's drag between clouds and drop-to-forget vessel. Kind labels pinned to the screen edges, which collided.
+
+**Design system impact:** `readme.md` gains **The Memories tab** and the vocabulary row for *memory* comes back (038). New kit `ui_kits/memories_tab/`. No new tokens: the kinds take `--label-2`, `--label-1`, `--label-6`, ink and `--label-5`. Code: a migration from six kinds to five, `prompts/memory.md`, add and change on `store.ts`, embeddings and a nightly layout for the map.
+
 ### 2026-10-05 · Have a code? on the sign-in screen, and review codes on the Waitlist page
 **Surface:** iOS, Android, web, the sign-in screen and the no-invite screen; the admin panel's Waitlist and Limits pages
 **Raised by:** code, spec 039, for going-public item 21: Apple and Google reviewers sign in with their own accounts and an emailed invite cannot reach them. Placement on the sign-in screen is the owner's, 2026-10-05.

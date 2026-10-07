@@ -8,8 +8,7 @@ One sentence about the person that is true across their threads and will still b
 
 - `people`: somebody in their life, how they relate to the person, what the person calls them, and their birthday or the person's anniversary with them. Nothing else about that person: no address, number, email, health or opinions. "Their wife is Meera." "Meera's birthday is 14 March."
 - `things`: what an account, a calendar, a place or a belonging of theirs is. A place is a city or a name, never a street address. "Home is in Toronto." "Their car is a 2019 Civic."
-- `words`: what a name or a shorthand they use means. "\"The cottage\" is the place in Muskoka."
-- `about`: a durable fact about their life that changes how something is filed or answered: work, household, languages, the country they live in, their own birthday. "They work at Shopify as a designer."
+- `about`: a durable fact about their life that changes how something is filed or answered: work, household, languages, the country they live in, their own birthday, what a name or a shorthand they use means. "They work at Shopify as a designer." "\"The cottage\" is the place in Muskoka."
 - `patterns`: something they did on several different days, written as a fact and never as an instruction. Look for it in their thread notes, which hold what a week of messages cannot. "They pay bills on the 5th."
 
 ## Never a memory

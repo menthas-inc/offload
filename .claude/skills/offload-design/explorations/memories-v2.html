@@ -1,0 +1,52 @@
+<!doctype html><html data-theme="light" lang="en"><head><meta charset="utf-8"><title>Memories tab, list and map</title>
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="memories-v2.css?v=3">
+</head><body>
+<div class="wrap">
+<div class="bar"><div class="plat" id="plat"><button data-p="ios">iOS</button><button data-p="android">Android</button><button data-p="web">Web</button></div></div>
+<h1 class="pt">Memories tab</h1>
+<p class="lede">One tab, two views of the same memories, behind a List | Map switch beside the title, the way a thread switches to its map. <b>List</b> is A from last round. <b>Map</b> is D reworked: memories of one kind sit together, memories that mean similar things sit closer still, and you zoom and pan around it. Tapping a memory in either view opens the same editor. <a href="memories-proto.html">Open the clickable prototype</a>.</p>
+
+<div class="xs"><h2>Kinds</h2></div>
+<table class="mx"><tr><th>Kind</th><th>Colour</th><th>Example</th></tr>
+<tr><td><b>People</b></td><td><span class="sw" style="--k:var(--label-2)"></span> label 2, rose</td><td>Their wife is Meera.</td></tr>
+<tr><td><b>Things</b></td><td><span class="sw" style="--k:var(--label-1)"></span> label 1, blue</td><td>They share a calendar with Meera.</td></tr>
+<tr><td><b>About</b></td><td><span class="sw" style="--k:var(--label-6)"></span> label 6, teal</td><td>They work at Shopify as a designer. “The cottage” is the place in Muskoka.</td></tr>
+<tr><td><b>Rules</b></td><td><span class="sw" style="--k:var(--ink-950)"></span> ink</td><td>They write dates day first.</td></tr>
+<tr><td><b>Patterns</b></td><td><span class="sw" style="--k:var(--label-5)"></span> label 5, ochre</td><td>They pay bills on the 5th.</td></tr></table>
+<ul class="notes">
+<li><b>Five kinds.</b> Their words is folded into About, and no label says <i>their</i>. This changes 038's six classes to five, so <code>words</code> has to go from the check on <code>notes.kind</code> and from the pass's prompt.</li>
+<li><b>Colours</b> are the thread label palette. Rules are ink because they are the only kind offload obeys rather than knows. <i>Learned</i> carries the spark in noticed amber.</li>
+</ul>
+
+<div class="xs"><h2>List and map</h2></div>
+<div class="grid" id="dirs"></div>
+<ul class="notes">
+<li><b>The switch</b> is <code>Segmented</code>'s icon variant, the same control a thread uses for List | Map. The view you pick is remembered on the device.</li>
+<li><b>Zoom has two levels of detail.</b> Out, each kind is one named cloud with its count, and memories are dots. In, the names give way to the sentences, which grow with the zoom. Kinds you have moved away from are pinned at the edge, so you can always find your way back.</li>
+<li><b>Tap</b> opens the editor sheet from the list, unchanged: text, kind, where it came from, Forget. On web it is the right-hand pane in both views.</li>
+<li><b>Changing a memory's kind</b> moves its dot to that cloud the next time the map is drawn.</li>
+</ul>
+
+<div class="xs"><h2>Open questions</h2></div>
+<ul class="notes">
+<li><b>The map needs positions that mean something.</b> 038 does not embed memories (Retrieval is out of scope). Grouping by meaning needs an embedding per memory, laid out once a night inside each kind's cloud, so the map is stable from day to day rather than reshuffled on every open.</li>
+<li><b>Third person.</b> Memories are stored as <i>Their wife is Meera.</i> and shown that way. <i>Your wife is Meera</i> would need a second-person copy written with each one.</li>
+<li><b>Typing a memory is new.</b> 038 only writes one from a turn, an answer or the nightly pass. A typed one would be origin <i>stated</i>, with the same refusals as asking. Can it be a rule? 038 lets only the person make one, and this is the person.</li>
+<li><b>Editing a learned memory.</b> Once you change one, it should probably become yours, so the nightly pass cannot replace it.</li>
+<li><b>The tab is called Notes</b> in both apps today, with the <i>cloudy</i> glyph. This renames it Memories and keeps the glyph.</li>
+</ul>
+</div>
+<script src="memories-v2.js?v=4"></script>
+<script>
+const ph=new URLSearchParams(location.search).get('p');
+let P=ph||localStorage.getItem('memories-platform')||'ios';
+function render(){
+ document.body.dataset.plat=P;MEM.setPlat(P);
+ document.querySelectorAll('#plat button').forEach(b=>b.classList.toggle('on',b.dataset.p===P));
+ document.getElementById('dirs').innerHTML=MEM.render();
+}
+document.querySelectorAll('#plat button').forEach(b=>b.onclick=()=>{P=b.dataset.p;localStorage.setItem('memories-platform',P);render()});
+render();
+</script>
+</body></html>

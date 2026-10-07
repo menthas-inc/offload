@@ -14,9 +14,11 @@ import styles from "../../app/(shell)/today.module.css";
 interface Props {
   title: string;
   line: string;
+  /** 040. A pane whose empty state still adds: Memories keeps its plus. */
+  tools?: React.ReactNode;
 }
 
-export function QuietEmpty({ title, line }: Props) {
+export function QuietEmpty({ title, line, tools }: Props) {
   return (
     <>
       <div className={pane.paneHead}>
@@ -24,6 +26,7 @@ export function QuietEmpty({ title, line }: Props) {
           <h1 className={`${pane.paneTitle} ${pane.paneTitleBig}`}>{title}</h1>
           <p className={pane.paneSub}>Nothing in here yet</p>
         </div>
+        {tools ? <span className={pane.paneTools}>{tools}</span> : null}
       </div>
 
       <div className={styles.quiet}>

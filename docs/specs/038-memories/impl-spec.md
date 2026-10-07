@@ -29,7 +29,7 @@
 | `scope` | `'account'` |
 | `account_id` | the person |
 | `subject_id` | **the person's account id**, always. The export selects account scope by `subject_id` (`exports/build.ts:155-168`) and deletion by either (`accounts/delete.ts:139-143`); a null here would delete correctly and export as nothing. |
-| `kind` | the class: `people`, `things`, `words`, `about`, `rules`, `patterns` |
+| `kind` | the class: `people`, `things`, `words`, `about`, `rules`, `patterns`. *Amended 2026-10-06 by 040: five, `words` folded into `about` by migration 0086.* |
 | `origin` | `stated` (asked), `answered`, `learned` |
 | `text` | at most 200 characters, third person |
 | `derived_from_message_id` | the source message (asked, learned from a message), else null |

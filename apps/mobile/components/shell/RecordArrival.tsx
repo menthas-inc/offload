@@ -22,7 +22,7 @@ import { usePathname } from "expo-router";
 import { useConversation } from "./conversation-context";
 
 /** Where the plate's composer is, and so where a recording can start. */
-const HOME = ["/today", "/threads", "/notes"];
+const HOME = ["/today", "/threads", "/memories"];
 
 export function RecordArrival() {
   const { startRecording, dismissPin, writing, recording, note } = useConversation();

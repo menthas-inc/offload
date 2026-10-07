@@ -28,12 +28,12 @@ const counts = async () =>
   ).rows[0];
 
 describe("the cast", () => {
-  it("loads, twice, to the same seven people", async () => {
+  it("loads, twice, to the same eight people", async () => {
     await seedCast();
     const first = await counts();
     await seedCast();
     expect(await counts()).toEqual(first);
-    expect(first).toEqual({ people: 7, threads: 21, members: 25, said: 19, memories: 5, connections: 4 });
+    expect(first).toEqual({ people: 8, threads: 24, members: 28, said: 19, memories: 256, connections: 4 });
   });
 
   it("signs in as one of them with a session the API accepts", async () => {

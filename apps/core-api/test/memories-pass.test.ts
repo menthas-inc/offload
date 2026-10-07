@@ -152,6 +152,13 @@ describe("what a pass may write", () => {
     expect((await post({ jobId, add: [{ kind: "about", text: "They live in Toronto.", cites: wife }] })).json()).toMatchObject({ added: 0 });
   });
 
+  it("040: refuses the retired kind words", async () => {
+    const ana = await account("Ana");
+    const from = await said(ana, "when I say the cottage I mean Muskoka");
+    const jobId = await passJob(ana);
+    expect((await post({ jobId, add: [{ kind: "words", text: "The cottage is in Muskoka.", cites: from }] })).statusCode).toBe(400);
+  });
+
   it("refuses a rule outright", async () => {
     const ana = await account("Ana");
     const from = await said(ana, "always put work things in Work");
@@ -252,6 +259,29 @@ describe("what a pass may write", () => {
     await db.insertInto("memory_forgotten").values({ account_id: ana, message_id: from }).execute();
     const next = await passJob(ana);
     expect((await post({ jobId: next, add: [{ kind: "people", text: "Their wife is Meera.", cites: from }] })).json()).toMatchObject({ added: 0 });
+  });
+
+  it("040: adds nothing at 300, and retires none of the person's own to make room", async () => {
+    const ana = await account("Ana");
+    await sql`insert into notes (account_id, scope, subject_id, kind, text, origin)
+      select ${ana}, 'account', ${ana}, 'about', 'Mine ' || n || '.', 'stated' from generate_series(1, 300) n`.execute(db);
+    const from = await said(ana, "my wife is Meera");
+    const job = await passJob(ana);
+    expect((await post({ jobId: job, add: [{ kind: "people", text: "Their wife is Meera.", cites: from }] })).json()).toMatchObject({ added: 0 });
+    const count = await db.selectFrom("notes").select(sql<number>`count(*)::int`.as("n")).where("deleted_at", "is", null).executeTakeFirstOrThrow();
+    expect(count.n).toBe(300);
+  });
+
+  it("040: stops adding at 300 inside one pass, a few below the cap", async () => {
+    const ana = await account("Ana");
+    await sql`insert into notes (account_id, scope, subject_id, kind, text, origin)
+      select ${ana}, 'account', ${ana}, 'about', 'Mine ' || n || '.', 'stated' from generate_series(1, 297) n`.execute(db);
+    const from = await said(ana, "my wife is Meera, my sister is Rina, my brother is Arjun, my son is Leo, my daughter is Mia");
+    const job = await passJob(ana);
+    const add = ["Meera", "Rina", "Arjun", "Leo", "Mia"].map((name) => ({ kind: "people", text: `Their family has ${name}.`, cites: from }));
+    expect((await post({ jobId: job, add })).json()).toMatchObject({ added: 3 });
+    const count = await db.selectFrom("notes").select(sql<number>`count(*)::int`.as("n")).where("deleted_at", "is", null).where("superseded_at", "is", null).executeTakeFirstOrThrow();
+    expect(count.n).toBe(300);
   });
 
   it("logs counts and never words", async () => {

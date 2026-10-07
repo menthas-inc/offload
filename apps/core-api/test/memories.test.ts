@@ -51,9 +51,9 @@ export async function account(name = "Jo Alves"): Promise<string> {
 }
 
 describe("the table holds a memory", () => {
-  it("takes the six classes and three origins at account scope, and nothing of the thread's", async () => {
+  it("takes the five classes (040) and three origins at account scope, and nothing of the thread's", async () => {
     const me = await account();
-    for (const kind of ["people", "things", "words", "about", "rules", "patterns"] as const) {
+    for (const kind of ["people", "things", "about", "rules", "patterns"] as const) {
       await db
         .insertInto("notes")
         .values({ account_id: me, scope: "account", subject_id: me, kind, text: `A ${kind} memory.`, origin: "answered" })
@@ -287,10 +287,10 @@ describe("038 security review: any replaced memory goes after 30 days", () => {
 });
 
 describe("memories are not searched", () => {
-  it("are never booked for embedding", async () => {
+  it("are never booked into the search index (040 embeds them on their own row instead)", async () => {
     const me = await account();
     const id = await learned(me, "Their wife is Meera.", null);
-    expect((await pendingEmbeds()).some((pending) => pending.rowId === id)).toBe(false);
+    expect((await pendingEmbeds()).some((pending) => pending.rowId === id && pending.kind !== "embed.memory")).toBe(false);
   });
 });
 

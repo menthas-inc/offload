@@ -153,7 +153,7 @@ const body = z.discriminatedUnion("tool", [
     toolCallId: z.string().min(1).max(120),
     action: z.enum(["remember", "forget"]),
     text: z.string().max(400).nullish(),
-    kind: z.enum(["people", "things", "words", "about", "rules", "patterns"]).nullish(),
+    kind: z.enum(["people", "things", "about", "rules", "patterns"]).nullish(),
     memoryId: z.string().uuid().nullish(),
     /** Set by the worker, never the model: the turn has read a web page. */
     afterLookup: z.boolean().optional(),
@@ -642,6 +642,9 @@ const result = z.union([
       "too_long",
       "empty",
       "unknown_memory",
+      // 040. No room for one more.
+      "rules_full",
+      "memories_full",
       "unknown_thread",
       "limit_reached",
       // 025. What label_content can be told.
@@ -772,6 +775,8 @@ type Outcome =
         | "too_long"
         | "empty"
         | "unknown_memory"
+        | "rules_full"
+        | "memories_full"
         | "unknown_thread"
         | "limit_reached"
         | "not_in_the_dump"

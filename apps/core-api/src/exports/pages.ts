@@ -69,7 +69,7 @@ export interface Copy {
   threads: CopyThread[];
   conversations: CopyConversation[];
   /** What offload keeps about the person and the people they named. */
-  notes: (CopyNote & { about: "you" | "someone"; how?: "you asked" | "you answered" | "offload learned"; kind?: string })[];
+  notes: (CopyNote & { about: "you" | "someone"; how?: "you asked" | "you answered" | "offload learned" | "you added" | "you changed"; kind?: string })[];
   people: { name: string }[];
 }
 

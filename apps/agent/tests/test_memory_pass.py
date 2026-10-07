@@ -53,8 +53,19 @@ def test_a_shared_thread_pass_is_never_shown_them():
     """038 security review: the thread pass writes notes every member reads,
     so a memory reaches it only in a thread nobody else is in."""
     from offload_agent.context import Memory
-    from offload_agent.nightly import memories_for
+    from offload_agent.nightly import memories_shown
 
     known = [Memory(id="a", kind="people", text="Their wife is Meera.")]
-    assert memories_for({"shared": True}, known) == []
-    assert memories_for({"shared": False}, known) == known
+    assert memories_shown({"shared": True}, known) == []
+    assert memories_shown({"shared": False}, known) == known
+
+
+def test_040_the_thread_pass_measures_against_the_threads_name_and_their_own_notes():
+    from offload_agent.nightly import thread_words
+
+    notes = [
+        {"text": "Flights are booked.", "theirs": True},
+        {"text": "Sam's note about the hotel.", "theirs": False},
+    ]
+    assert thread_words("Lisbon trip", notes) == "Lisbon trip\nFlights are booked."
+    assert len(thread_words("x" * 3_000, notes)) == 2_000

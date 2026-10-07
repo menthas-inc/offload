@@ -10,14 +10,23 @@ AC-12: one account cannot occupy the worker.
 """
 
 import os
+import re
 import uuid
+from pathlib import Path
 
 import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent.config import _asyncpg
-from offload_agent.queue import ClaimedJob, claim, reap, release_for_retry, retry_or_die
+from offload_agent.queue import (
+    INTERACTIVE,
+    ClaimedJob,
+    claim,
+    reap,
+    release_for_retry,
+    retry_or_die,
+)
 
 ADMIN_DB = os.environ.get("DATABASE_URL")
 
@@ -271,3 +280,34 @@ async def test_a_reaped_job_is_dead_with_stale_in_both_columns(db):
         await reap(conn, ["dump.answer"], 900)
         row = await _job(conn, stuck)
         assert (row.state, row.last_error, row.error_code) == ("dead", "stale", "stale")
+
+
+async def test_the_interactive_lane_never_claims_background_work(db):
+    """2026-10-07. The worker runs a lane that claims only interactive work, so
+    a dump is never stuck behind a nightly pass the other lane is inside. The
+    bound is what makes it that lane: a background row is left for the general
+    claim, which still takes it."""
+    async with db.begin() as conn:
+        who = await account(conn)
+        background = await enqueue(conn, who, priority=200)
+
+    async with db.begin() as conn:
+        assert await claim(conn, "w1", ["dump.answer"], 2, max_priority=INTERACTIVE) is None
+
+    async with db.begin() as conn:
+        urgent = await enqueue(conn, who, priority=INTERACTIVE)
+        claimed = await claim(conn, "w1", ["dump.answer"], 2, max_priority=INTERACTIVE)
+        assert claimed is not None and claimed.id == urgent
+
+    async with db.begin() as conn:
+        claimed = await claim(conn, "w1", ["dump.answer"], 2)
+        assert claimed is not None and claimed.id == background
+
+
+def test_interactive_is_the_core_apis_number():
+    """The lane's bound is `PRIORITY.interactive` in the TypeScript queue, read
+    from the file rather than restated, so the two cannot drift apart."""
+    source = (Path(__file__).resolve().parents[3] / "apps/core-api/src/jobs/queue.ts").read_text()
+    match = re.search(r"PRIORITY = \{ interactive: (\d+),", source)
+    assert match is not None, "PRIORITY moved in queue.ts"
+    assert int(match.group(1)) == INTERACTIVE

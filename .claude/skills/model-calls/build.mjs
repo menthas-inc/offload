@@ -12,7 +12,7 @@ import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { INTENTS, LANES, JOBS, LAYOUT, FINDINGS } from "./jobs.mjs";
+import { INTENTS, LANES, JOBS, LAYOUT, FINDINGS, PATHS } from "./jobs.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, "../../..");
@@ -47,7 +47,7 @@ const mapped = new Set();
 let total = 0;
 let prompts = 0;
 for (const job of JOBS) {
-  if (job.tier !== "vendor") {
+  if (job.tier !== "vendor" && job.tier !== "compute") {
     const id = models[job.model];
     if (!id) problems.push(`${job.id}: config.py has no ${job.model}`);
     job.modelId = id ?? job.model;
@@ -87,13 +87,16 @@ for (const job of JOBS) {
   prompts += 1;
 }
 
+// Every job a path names is on the page.
+for (const p of PATHS) for (const id of p.jobs || []) if (!JOBS.some((j) => j.id === id)) problems.push(`path "${p.name}" names ${id}, which is no job`);
+
 // Every prompt the worker can send belongs to a job on this page.
 for (const file of readdirSync(PROMPTS)) {
   if (file.endsWith(".md") && !mapped.has(file.replace(/\.md$/, ""))) {
     problems.push(`prompts/${file} is on no job in jobs.mjs: add it, with its cadence and sections`);
   }
 }
-const handWritten = JSON.stringify([JOBS.map(({ segs, ...rest }) => rest), FINDINGS, (JOBS.flatMap((j) => j.segs || [])).map((s) => [s.t, s.n])]);
+const handWritten = JSON.stringify([JOBS.map(({ segs, ...rest }) => rest), FINDINGS, PATHS, (JOBS.flatMap((j) => j.segs || [])).map((s) => [s.t, s.n])]);
 if (DASH.test(handWritten)) problems.push("a dash in jobs.mjs copy");
 
 if (problems.length) {
@@ -103,7 +106,7 @@ if (problems.length) {
 
 const commit = execFileSync("git", ["-C", repo, "rev-parse", "--short", "HEAD"]).toString().trim();
 const date = new Date().toISOString().slice(0, 10);
-const data = { intents: INTENTS, lanes: LANES, jobs: JOBS, layout: LAYOUT, findings: FINDINGS, commit, date, prompts, totalTokens: total };
+const data = { intents: INTENTS, lanes: LANES, jobs: JOBS, layout: LAYOUT, findings: FINDINGS, paths: PATHS, commit, date, prompts, totalTokens: total };
 const html = readFileSync(join(here, "template.html"), "utf8").replace("/*DATA*/null", JSON.stringify(data).replace(/</g, "\\u003c"));
 if (!checkOnly) writeFileSync(out, html);
 console.log(`model-calls: ${prompts} prompts, ${total} tokens, ${FINDINGS.filter((f) => f.status === "open").length} open on the list, commit ${commit}${checkOnly ? " (checked)" : `, wrote ${out}`}`);

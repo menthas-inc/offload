@@ -7,6 +7,7 @@ import { db, closeDb } from "../src/db.js";
 import { env } from "../src/env.js";
 import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
+import { sql } from "kysely";
 import { memoriesForPrompt } from "../src/memories/store.js";
 
 await migrate(() => {});
@@ -150,6 +151,32 @@ describe("remember", () => {
     expect(await tool({ jobId, action: "remember", text: "Their card is 4111 1111 1111 1111.", kind: "things" })).toEqual({ ok: false, error: "never_list" });
     expect(log.mock.calls.flat().join(" ")).not.toContain("4111");
     log.mockRestore();
+  });
+});
+
+describe("040 five kinds", () => {
+  it("refuses the retired kind words", async () => {
+    const me = await account();
+    const { jobId } = await dump(me, "remember that when I say the cottage I mean Muskoka");
+    const response = await app.inject({
+      method: "POST",
+      url: "/internal/v1/tool-call",
+      headers: { authorization: `Bearer ${env.INTERNAL_SERVICE_TOKEN}` },
+      payload: { tool: "memory", toolCallId: uuidv7(), jobId, action: "remember", text: "The cottage is in Muskoka.", kind: "words" },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it("says when there is no room: a twenty-first rule, or a 301st when every memory is the person's own", async () => {
+    const me = await account();
+    await sql`insert into notes (account_id, scope, subject_id, kind, text, origin)
+      select ${me}, 'account', ${me}, 'rules', 'Always rule ' || n || '.', 'stated' from generate_series(1, 20) n`.execute(db);
+    const rule = await dump(me, "remember to always put work things in Work");
+    expect(await tool({ jobId: rule.jobId, action: "remember", text: "Always put work things in Work.", kind: "rules" })).toEqual({ ok: false, error: "rules_full" });
+    await sql`insert into notes (account_id, scope, subject_id, kind, text, origin)
+      select ${me}, 'account', ${me}, 'about', 'Mine ' || n || '.', 'stated' from generate_series(1, 280) n`.execute(db);
+    const one = await dump(me, "remember that Meera is my wife");
+    expect(await tool({ jobId: one.jobId, action: "remember", text: "Their wife is Meera.", kind: "people" })).toEqual({ ok: false, error: "memories_full" });
   });
 });
 
