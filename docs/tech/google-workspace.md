@@ -143,9 +143,14 @@ Made in the organisation from the start, so none of the above ever applies to it
    a calendar's sharing list to count who will see a change before it writes,
    and keeps only the count. The code, the console and the scope justification
    sent to Google on 2026-10-05 all name these three.
-6. **Test users**: yourself. **Leave the app in Testing**: 100 users, each seeing
-   an unverified-app screen before consent, which is the right state for an
-   invite-only alpha.
+6. **Test users**: yourself, while the app is in Testing. In Testing only listed
+   test users can consent, each sees the unverified-app screen, and every grant
+   and refresh token expires seven days after consent, so a connected calendar
+   stops working a week later. Verification needs the app **In production**;
+   `offload-connectors` was published when it was submitted on 2026-10-05 and
+   its three scopes were approved on 2026-10-08, so any Google account can
+   connect, with no warning and no expiry. A scope added later shows the
+   warning again until Google approves it.
 7. **Credentials → Create credentials → OAuth client ID → Web application.** Not
    Android and not iOS: the phones open a browser to this and it returns to the
    API, exactly as sign-in does, because a cookie cannot span unrelated domains.
