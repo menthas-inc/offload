@@ -44,8 +44,12 @@ export function DayStepper({
       className="items-center justify-center"
       style={{ width: 44, height: 44, opacity: disabled ? 0.35 : 1 }}
     >
-      {/* Drawn at 40 inside the 44 target, as the kit's stepper is. */}
-      <View className={`items-center justify-center rounded-pill ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`} style={{ width: 40, height: 40 }}>
+      {/* Drawn at 40 inside the 44 target, as the kit's stepper is. Its
+          edge is Dark theme: edges (design decisions, 2026-10-07). */}
+      <View
+        className={`items-center justify-center rounded-pill ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
+        style={{ width: 40, height: 40, boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}
+      >
         <Glyph name={icon} size={18} color={COLOR.ink} />
       </View>
     </Pressable>
@@ -149,7 +153,9 @@ export function EventsStrip({
               className={`gap-space-1 ${raised ? "border border-border-hairline bg-surface-raised" : isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
               style={[
                 { width: 128, paddingHorizontal: 12, paddingVertical: 10, borderRadius: isAndroid ? 16 : 14 },
-                raised ? { shadowColor: COLOR.shadowLift.color, shadowOffset: { width: 0, height: COLOR.shadowLift.offsetY }, shadowRadius: COLOR.shadowLift.radius, shadowOpacity: 1 } : null,
+                raised
+                  ? { shadowColor: COLOR.shadowLift.color, shadowOffset: { width: 0, height: COLOR.shadowLift.offsetY }, shadowRadius: COLOR.shadowLift.radius, shadowOpacity: 1 }
+                  : { boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}` },
               ]}
             >
               <Text className="font-core font-semibold text-text-secondary" style={{ fontSize: 12, fontVariant: ["tabular-nums"] }}>

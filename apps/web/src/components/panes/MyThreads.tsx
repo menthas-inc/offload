@@ -9,12 +9,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { DEFAULT_THREAD_ICON, leaveAsk, leastUsedHue, staysWith } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { QuietEmpty } from "./QuietEmpty";
 import { ThreadIcon } from "../ThreadIcon";
 import { useToast } from "../shell/Toast";
 import styles from "../../app/(shell)/shell.module.css";
-import { deleteThread, restoreThread, type GroupKey, type ThreadGroup, type ThreadRow } from "../../lib/threads";
+import { EditThread } from "./EditThread";
+import { createThread, deleteThread, restoreThread, type GroupKey, type ThreadGroup, type ThreadRow } from "../../lib/threads";
 import type { Invitation } from "../../lib/people";
 import { InvitationStrip } from "../people/InvitationStrip";
 import { InvitationModal } from "../people/InvitationModal";
@@ -55,8 +58,13 @@ function Row({
   thread: ThreadRow;
   onDeleted: (thread: ThreadRow, deleted: boolean) => void;
 }) {
+  const toast = useToast();
   const [asking, setAsking] = useState(false);
   const [gone, setGone] = useState(false);
+  // 2026-10-07. With others in it, the row leaves the thread rather than
+  // deleting it, which is what the server does, and says so.
+  const others = thread.others ?? [];
+  const leaves = others.length > 0;
   const box = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | null>(null);
 
@@ -79,7 +87,11 @@ function Row({
 
   async function confirm(): Promise<void> {
     const result = await deleteThread(thread.id);
-    if (!result) return setAsking(false);
+    if (!result) {
+      setAsking(false);
+      toast.show(leaves ? "Couldn't leave that thread" : "Couldn't delete that thread", { label: "Try again", onPress: () => void confirm() });
+      return;
+    }
     setAsking(false);
     setGone(true);
     onDeleted(thread, result.deleted);
@@ -93,14 +105,21 @@ function Row({
       {asking ? (
         <div ref={box} className={styles.confirmRow} style={{ minHeight: height ?? undefined }}>
           <span className={styles.confirmIcon}>
-            <Icon name="trash-2" size={15} />
+            <Icon name={leaves ? "x" : "trash-2"} size={15} />
           </span>
-          <span className={styles.confirmText}>Delete {thread.name}?</span>
+          {leaves ? (
+            <span className={styles.confirmLines}>
+              <span className={styles.confirmText}>{leaveAsk(thread.name)}</span>
+              <span className={styles.confirmNote}>{staysWith(others)}</span>
+            </span>
+          ) : (
+            <span className={styles.confirmText}>Delete {thread.name}?</span>
+          )}
           <button type="button" className={styles.sectionAction} onClick={() => setAsking(false)}>
             Cancel
           </button>
           <button type="button" className={styles.danger} onClick={() => void confirm()}>
-            Delete
+            {leaves ? "Leave" : "Delete"}
           </button>
         </div>
       ) : (
@@ -122,8 +141,8 @@ function Row({
                 type="button"
                 className={styles.rowTool}
                 data-tone="danger"
-                aria-label={`Delete ${thread.name}`}
-                title="Delete"
+                aria-label={`${leaves ? "Leave" : "Delete"} ${thread.name}`}
+                title={leaves ? "Leave" : "Delete"}
                 onClick={(event) => {
                   // Inside a link, so both, or the row navigates out from
                   // under the question it just opened.
@@ -132,7 +151,7 @@ function Row({
                   setAsking(true);
                 }}
               >
-                <Icon name="trash-2" size={15} />
+                <Icon name={leaves ? "x" : "trash-2"} size={15} />
               </button>
             </span>
           </Link>
@@ -144,7 +163,9 @@ function Row({
 
 export function MyThreads({ groups, loose = null, invitations = [], loading, onChanged }: Props) {
   const toast = useToast();
+  const router = useRouter();
   const [looking, setLooking] = useState<Invitation | null>(null);
+  const [making, setMaking] = useState(false);
   const strips = invitations.map((invitation) => (
     <InvitationStrip key={invitation.memberId} invitation={invitation} onLook={() => setLooking(invitation)} />
   ));
@@ -175,6 +196,49 @@ export function MyThreads({ groups, loose = null, invitations = [], loading, onC
   }
 
   const total = groups.reduce((n, group) => n + group.threads.length, 0);
+
+  // 2026-10-07. A thread made by hand: Edit thread as New thread, its colour
+  // the one least used here, and the pane opens on it once it is made.
+  async function make(shown: { name: string; icon: string; hue: number }): Promise<void> {
+    const made = await createThread(shown);
+    if (!made) {
+      toast.show("Couldn't make that thread", { label: "Try again", onPress: () => void make(shown) });
+      return;
+    }
+    onChanged?.();
+    router.push(`/threads/${made.id}?from=threads`);
+  }
+  const newThread = (
+    <span className={`${styles.paneTools} ${styles.paneToolsAnchor}`}>
+      <button
+        type="button"
+        className={styles.tool}
+        aria-label="New thread"
+        title="New thread"
+        aria-haspopup="dialog"
+        onClick={() => setMaking(true)}
+      >
+        <Icon name="plus" size={16} />
+      </button>
+      {making ? (
+        <EditThread
+          thread={{
+            id: "new",
+            name: "",
+            icon: DEFAULT_THREAD_ICON,
+            hue: leastUsedHue(groups.flatMap((group) => group.threads.map((thread) => thread.hue))),
+            iconSetBy: "offload",
+          }}
+          from="name"
+          heading="New thread"
+          action="Create"
+          align="end"
+          onSave={(_change, shown) => void make(shown)}
+          onClose={() => setMaking(false)}
+        />
+      ) : null}
+    </span>
+  );
 
   function list(key: GroupKey) {
     const group = groups.find((one) => one.key === key);
@@ -212,6 +276,7 @@ export function MyThreads({ groups, loose = null, invitations = [], loading, onC
         <QuietEmpty
           title="My threads"
           line="Threads appear here on their own, once there is enough in one place to be one."
+          tools={newThread}
         />
         {modal}
       </>
@@ -221,7 +286,8 @@ export function MyThreads({ groups, loose = null, invitations = [], loading, onC
   return (
     <>
       <div className={styles.paneHead}>
-        <div>
+        {/* As PaneHead lays it out: the title takes the room, the tools end. */}
+        <div style={{ minWidth: 0, flex: 1 }}>
           <h1 className={`${styles.paneTitle} ${styles.paneTitleBig}`}>My threads</h1>
           {loading ? null : (
             <p className={styles.paneSub}>
@@ -229,6 +295,7 @@ export function MyThreads({ groups, loose = null, invitations = [], loading, onC
             </p>
           )}
         </div>
+        {newThread}
       </div>
 
       <div className={styles.paneBody}>

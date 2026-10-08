@@ -73,7 +73,7 @@ import { LabelRefused, carriesAny, contentLabelsFor, labelsOfThread, setRowLabel
 import { noteAddition } from "../notifications/people.js";
 import { looseSummary } from "../loose/read.js";
 import { shownThreadName } from "../threads/default.js";
-import { shownThreadHue, shownThreadIcon } from "../threads/icons.js";
+import { markFor, shownThreadHue, shownThreadIcon } from "../threads/icons.js";
 import { holdFloor } from "../loose/suggestions.js";
 
 /** 022. The account's default thread cannot be shared or deleted. */
@@ -173,6 +173,9 @@ const threadRow = z.object({
    *  anything. The list carries it so the row can say why rather than offering
    *  a control the server will refuse. */
   isDefault: z.boolean(),
+  /** 2026-10-07. Everybody else in it, by name: a shared thread's row offers
+   *  Leave and names who it stays with. Empty on a thread of your own. */
+  others: z.array(z.string()),
 });
 
 const threadList = z.object({
@@ -1531,6 +1534,7 @@ export async function threadRoutes(app: App): Promise<void> {
           count: row.count,
           meta: threadLine(kinds.get(row.id) ?? {}, others.get(row.id) ?? []),
           isDefault: row.id === account?.default_thread_id,
+          others: others.get(row.id) ?? [],
         };
         // 028. Time only. A slow thread sinks and comes back up when
         // something lands in it.
@@ -1879,6 +1883,24 @@ export async function threadRoutes(app: App): Promise<void> {
           query = query.where(carrying && bare ? sql<boolean>`(${carrying} or ${bare})` : (carrying ?? bare)!);
         }
 
+        // 2026-10-07. The label's list offers what is still ahead: a ticked
+        // off row and an event whose last day is before today are left out,
+        // unless the label carries them, so they can still come off it. A
+        // series is never over. Days as Today reads them: an all-day row by
+        // its UTC date, a timed one in the account's clock.
+        const ticksFor = request.query.ticksFor;
+        if (ticksFor) {
+          const zone = (await zoneOf(accountId)) ?? "UTC";
+          const today = sql`(now() at time zone ${zone})::date`;
+          const lastDay = sql`(coalesce(content.occurs_end_at, content.occurs_at) at time zone (case when content.attrs->>'all_day' = 'true' then 'UTC' else ${zone} end))::date`;
+          query = query.where(
+            sql<boolean>`(exists (${carriesAny(sql.ref("content.id"), [ticksFor])}) or (
+              content.done_at is null
+              and (content.occurs_at is null or content.rrule is not null or ${lastDay} >= ${today})
+            ))`,
+          );
+        }
+
         // The cursor is the id alone, and the ordering is by id alone.
         //
         // 001 specifies "(created_at, id), which UUIDv7 makes monotonic", and
@@ -1900,7 +1922,6 @@ export async function threadRoutes(app: App): Promise<void> {
         const last = page.at(-1);
 
         const finished = await withPhotos(page.map((row) => toRow(row, accountId)));
-        const ticksFor = request.query.ticksFor;
         return reply.send({
           rows: ticksFor ? finished.map((row) => ({ ...row, ticked: row.labels.includes(ticksFor) })) : finished,
           nextCursor: rows.length > PAGE && last ? last.id : null,
@@ -2516,6 +2537,57 @@ export async function threadRoutes(app: App): Promise<void> {
         })
     );
   }
+
+  // 2026-10-07. A thread made by hand, from the plus on My threads, with Edit
+  // thread's three fields. Made as the model's and a proposal's are: the
+  // thread and its creator's membership together, the icon read off the name
+  // unless another was picked, which makes it the person's. The popover sends
+  // the icon it showed, so the one offload would pick stays offload's.
+  app.post(
+    "/v1/threads",
+    {
+      schema: {
+        body: z.strictObject({
+          name: z.string().trim().min(1).max(80),
+          icon: z.string().refine(isThreadIcon).optional(),
+          hue: z.number().int().min(1).max(10).optional(),
+        }),
+        response: {
+          200: z.object({ thread: z.object({ id: z.string(), name: z.string(), icon: z.string(), hue: z.number() }) }),
+          401: unauthenticated,
+        },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+      const { name, icon, hue } = request.body;
+      const thread = await db.transaction().execute(async (trx) => {
+        const mark = await markFor(trx, accountId, name, icon);
+        const offloads = pickThreadIcon(name) ?? DEFAULT_THREAD_ICON;
+        const made = await trx
+          .insertInto("threads")
+          .values({
+            created_by_account_id: accountId,
+            name,
+            icon: mark.icon,
+            hue: hue ?? mark.hue,
+            icon_set_by: mark.icon === offloads ? "offload" : "person",
+            always_on: false,
+            last_activity_at: sql`now()`,
+            updated_at: sql`now()`,
+          })
+          .returning(["id", "name", "icon", "hue"])
+          .executeTakeFirstOrThrow();
+        await trx
+          .insertInto("thread_members")
+          .values({ thread_id: made.id, account_id: accountId, invited_by: null, state: "accepted", responded_at: sql`now()` })
+          .execute();
+        return made;
+      });
+      return reply.send({ thread });
+    },
+  );
 
   // 037. Edit thread: the name, the icon and the hue in one write. Co-owned,
   // and it touches no content.

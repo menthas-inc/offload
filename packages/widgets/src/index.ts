@@ -423,6 +423,7 @@ export {
   rowLabelledCopy,
   toggleLabel,
   toggleUnlabelled,
+  withMadeLabels,
 } from "./labels.js";
 export type { LabelPick } from "./labels.js";
 export { GOOGLE_EVENT_LINK, afterWrite, dayName, eventMeta, eventPast, eventRange, nextLine, nothingLine, retryDelay, stackView, type LineEvent, type WeekStart } from "./today.js";
@@ -491,3 +492,7 @@ export { shownText, storedText, toSecondPerson, toThirdPerson } from "./voice.js
 // 028. Not in a thread: the chip table and the words a suggestion says.
 export { chipOf, countInWords, sharedHint, suggestionName } from "./loose.js";
 export type { ChipEntry, ChipKey, Face, Suggestion, ThreadRef } from "./loose.js";
+// 2026-10-07. What a shared thread asks before archiving in it or leaving it.
+export { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive, leaveAsk, staysWith } from "./shared-confirm.js";
+// The composer's latch, both clients (2026-10-07).
+export { staysOpen } from "./composer.js";

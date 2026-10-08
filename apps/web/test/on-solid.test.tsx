@@ -47,7 +47,7 @@ describe("text on a fixed fill", () => {
 });
 
 describe("the admin nav's mark", () => {
-  // The nav is moss-700. Logo's inverse tone is for ink surfaces and flips,
+  // The nav is the accent surface, moss. Logo's inverse tone is for ink surfaces and flips,
   // so the mark takes on-solid through the contract's style prop.
   it("takes a colour from style, over its tone", () => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

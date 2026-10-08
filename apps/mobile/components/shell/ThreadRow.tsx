@@ -12,6 +12,10 @@
 // the argument that was overruled.
 //
 // 028. The default thread is never in the list, so no row refuses its swipe.
+//
+// 2026-10-07. A thread with others in it is left, not deleted, which is what
+// the server does: the action says Leave and the screen asks first, naming who
+// it stays with. A thread of your own keeps the unasked delete above.
 
 import { Platform, Pressable, Text, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
@@ -33,6 +37,8 @@ interface Props {
 
 export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
   const COLOR = useColors();
+  const leaves = (thread.others ?? []).length > 0;
+  const verb = leaves ? "Leave" : "Delete";
   // The gesture is `swipe.ts`'s, shared with 040's memory row.
   const { gesture, sliding, revealed, close } = useRowSwipe(onOpen);
 
@@ -58,7 +64,7 @@ export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
           }}
         >
           <Text className="font-core font-medium text-text-on-solid" style={{ fontSize: 13 }}>
-            Delete
+            {verb}
           </Text>
         </Pressable>
       </Animated.View>
@@ -77,7 +83,7 @@ export function ThreadRow({ thread, border, onOpen, onDelete }: Props) {
           accessibilityHint={thread.meta || undefined}
           // The swipe is out of reach of a screen reader, so Delete is an
           // action on the row as well, as on the memory row.
-          accessibilityActions={[{ name: "activate" }, { name: "delete", label: "Delete" }]}
+          accessibilityActions={[{ name: "activate" }, { name: "delete", label: verb }]}
           onAccessibilityAction={(event) => {
             if (event.nativeEvent.actionName === "delete") onDelete();
             else onOpen();

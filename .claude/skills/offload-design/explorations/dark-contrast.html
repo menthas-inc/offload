@@ -1,0 +1,127 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Dark theme contrast</title>
+<link rel="stylesheet" href="../styles.css?v=20261007-dark">
+<link rel="stylesheet" href="dark-contrast.css?v=1">
+<style id="optcss"></style>
+</head><body><div class="wrap">
+<h1>Dark theme contrast</h1>
+<p class="lede"><b>Decided 7 October: B, Edges.</b> Its values are now the shipped dark tokens; <i>Before</i> restates main as it was. Handoff: <a href="../handoff/APPLY-2026-10-07-dark-contrast.md">APPLY-2026-10-07-dark-contrast.md</a>.<br>Twelve screens of offload as built on <b>main</b>, drawn from the shipped tokens, then four ways to separate the dark theme more clearly. Light is untouched in every option. Measured before this pass: a card on the page is <b>1.07:1</b>, a grouped list on a card <b>1.02:1</b>, a hairline on a card <b>1.15:1</b>, and the blue and moss words on their own tints, as on avatars and the people and tip nudges, <b>3.3 to 3.8:1</b>.</p>
+<div class="bar"><div class="plat" id="plat"><button data-p="ios">iOS</button><button data-p="android">Android</button><button data-p="web">Web</button></div>
+<div class="seg2" id="theme"><button data-v="dark">Dark</button><button data-v="light">Light</button></div>
+<div class="seg2" id="view"><button data-v="all">All screens</button><button data-v="cmp">Compare options</button></div>
+<div class="seg2" id="optbar"></div></div>
+
+<div class="sechead"><h2>The options</h2><u>dark only</u></div>
+<div class="opts" id="opts"></div>
+
+<div class="sechead"><h2>Measured</h2><u>WCAG contrast, read from the rendered colours</u></div>
+<p class="snote">Surfaces have no WCAG floor, so the aim for them is a step the eye can find without hunting: about 1.25:1 for a card on the page and 1.5:1 for a line. Words aim at 4.5:1, a control's edge at 3:1.</p>
+<div style="overflow-x:auto"><table class="mt" id="meter"></table></div>
+
+<div class="sechead"><h2 id="gtitle">Screens</h2><u id="gsub"></u></div>
+<div class="scr" id="scrbar" hidden></div>
+<div class="gal" id="gal"></div>
+</div>
+<div id="probes" style="position:absolute;left:-9999px;top:0"></div>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#121211"/><rect x="30" y="30" width="40" height="40" rx="8" fill="#1F1F1F" stroke="#4F4F4F"/></svg></template>
+<script src="dark-contrast-screens.js?v=1"></script>
+<script>
+const OPTS=[
+{id:'cur',n:'Before',l:'0',d:'main at 60d4e15, before this pass. Surfaces sit 1 to 7% apart and separate mostly by nothing; the tints carry the -700 ramp step as their words.',
+ t:{'--surface-page':'#1C1B19','--surface-raised':'#212121','--surface-card':'#212121','--surface-chrome':'#212121','--surface-chrome-strong':'#212121','--surface-sunken':'#101010','--ink-100':'#232323','--ink-150':'#2C2C2C','--ink-200':'#383838','--ink-300':'#4A4A4A','--surface-fill':'#232323','--surface-fill-strong':'#2C2C2C','--state-selected':'#232323','--state-disabled-surface':'#232323','--border-hairline':'#2C2C2C','--border-lift':'#4A4A4A','--border-strong':'#777777','--moss-700':'#5A8E6C','--blue-700':'#5273E8','--text-tertiary':'#959595'},
+ a:{'--a-outline':'#3A3937','--a-on-quiet':'#8B8B87'}},
+{id:'a',n:'Steps',l:'A',d:'Separate by value. The page goes down to near black and cards, lists and fields each take a clear step up; lines and the switch track lift with them. The tinted words move up the ramp. No colour or component changes.',
+ t:{'--paper':'#262626','--surface-page':'#121212','--surface-sunken':'#0A0A0A','--surface-nav':'#202020','--surface-raised':'#262626','--surface-card':'#262626','--surface-chrome':'#262626','--surface-chrome-strong':'#262626','--ink-50':'#1C1C1C','--ink-100':'#333333','--ink-150':'#3C3C3C','--ink-200':'#4E4E4E','--ink-300':'#626262','--surface-fill':'#333333','--surface-fill-strong':'#3C3C3C','--surface-input':'#303030','--state-selected':'#333333','--border-hairline':'#474747','--border-lift':'#575757','--border-strong':'#8C8C8C','--switch-edge':'var(--border-strong)','--moss-700':'#86C29C','--blue-700':'#93A9FA','--text-tertiary':'#A6A6A6'},
+ a:{'--a-c-low':'#2A2A29','--a-c':'#323231','--a-c-high':'#3C3C3B','--a-outline':'#4A4A49','--a-on-quiet':'#A3A39F'}},
+{id:'b',n:'Edges (chosen)',l:'B',d:'Chosen 7 October and folded into the tokens. Keep the values close to today and let lines do the work: every card, list and chip gets a visible edge, the tinted ones in their own hue. Closest to how dark reads now, at the cost of more lines on screen.',
+ t:{'--surface-page':'#1A1A19','--surface-raised':'#232323','--surface-card':'#232323','--surface-chrome':'#232323','--ink-100':'#2B2B2B','--ink-150':'#333333','--ink-200':'#575757','--surface-fill':'#2B2B2B','--surface-fill-strong':'#333333','--border-hairline':'#444444','--border-lift':'#5C5C5C','--border-strong':'#8C8C8C','--moss-700':'#80B994','--blue-700':'#8BA1F7','--surface-sunken':'#0E0E0E','--text-tertiary':'#A0A0A0'},
+ a:{'--a-outline':'#4A4948','--a-on-quiet':'#9C9C98'}},
+{id:'c',n:'Colour',l:'C',d:'Fix the colour first. Tints get deeper and more saturated and their words go near pastel; labels, thread icons and memory kinds become tonal in dark, the hue\'s own words on a wash of it, so a 12px label reads at 7:1 rather than 4.6. Surfaces take a small step.',
+ t:{'--surface-page':'#161615','--surface-sunken':'#0C0C0C','--surface-nav':'#232323','--surface-raised':'#222222','--surface-card':'#222222','--ink-100':'#2C2C2C','--ink-150':'#353535','--ink-200':'#4A4A4A','--surface-fill':'#2C2C2C','--surface-fill-strong':'#353535','--border-hairline':'#3A3A3A','--border-lift':'#4D4D4D','--text-tertiary':'#A0A0A0','--moss-50':'#173523','--moss-100':'#1F4530','--moss-200':'#3A7550','--moss-700':'#9AD4AE','--blue-50':'#18234D','--blue-100':'#23326E','--blue-200':'#4459B0','--blue-700':'#AEBDFF','--blue-900':'#DCE3FF','--amber-100':'#45330A','--amber-700':'#FFD37A','--clay-100':'#4A1D18','--clay-200':'#8A3A2E','--clay-700':'#FFB4A8','--text-accent':'#9AD4AE','--text-attention':'#AEBDFF','--text-danger':'#FF9C8F','--text-noticed':'#FFD37A','--border-decision':'#FFD37A','--text-on-attention':'#E3E8FF','--surface-accent-soft':'#173523','--surface-attention-soft':'#23326E','--surface-noticed-soft':'#45330A','--surface-danger-soft':'#4A1D18'},
+ a:{'--a-c-low':'#272726','--a-c':'#2E2E2D','--a-c-high':'#383837','--a-outline':'#454544','--a-on-quiet':'#A0A09C'}},
+{id:'d',n:'Steps and colour',l:'D',d:'A and C together, with an edge only where a surface has no step of its own: grouped lists and the soon, late and kind chips. Secondary words lift a little. The strongest of the four.',t:null,a:null}];
+OPTS[4].t=Object.assign({},OPTS[3].t,OPTS[1].t,{'--text-secondary':'#C2C2C2','--ink-600':'#C2C2C2'});
+OPTS[4].a=Object.assign({},OPTS[1].a,{'--a-on-var':'#C2C2C2'});
+const AND={light:{'--a-c-low':'#F6F5F2','--a-c':'#ECEBE7','--a-c-high':'#E4E3DE','--a-outline':'#DEDDD8','--a-on':'#1B1B1A','--a-on-var':'#5A5A57','--a-on-quiet':'#8A8A86'},dark:{'--a-c-low':'#232220','--a-c':'#2A2927','--a-c-high':'#333230','--a-outline':'#3A3937','--a-on':'#EDEDED','--a-on-var':'#B3B3B3','--a-on-quiet':'#8B8B87'}};
+const decl=o=>Object.entries(o).map(([k,v])=>`${k}:${v}`).join(';');
+document.getElementById('optcss').textContent=
+ `.ap.and[data-theme="light"]{${decl(AND.light)};--icon-on-well:var(--a-on-var)}.ap.and[data-theme="dark"]{${decl(AND.dark)};--icon-on-well:var(--a-on-var)}`+
+ OPTS.map(o=>`[data-theme="dark"][data-opt="${o.id}"]{${decl(o.t)}}.ap.and[data-theme="dark"][data-opt="${o.id}"]{${decl(o.a)}}`).join('');
+
+const LS=(k,d)=>localStorage.getItem('dark-contrast-'+k)||d;
+let PLAT=LS('platform','ios'),THEME=LS('theme','dark'),VIEW=LS('view','all'),OPT=LS('opt','b'),SCR=LS('screen','today');
+const save=()=>{localStorage.setItem('dark-contrast-platform',PLAT);localStorage.setItem('dark-contrast-theme',THEME);localStorage.setItem('dark-contrast-view',VIEW);localStorage.setItem('dark-contrast-opt',OPT);localStorage.setItem('dark-contrast-screen',SCR)};
+
+/* ---------- meter ---------- */
+const PAIRS=[
+['Card on the page','Today\'s nudges, sheets, the answer card',1.25,'var(--surface-raised)','var(--surface-page)'],
+['Grouped list on the page','Every To do, Settings and Memories list',1.25,'var(--surface-fill)','var(--surface-page)'],
+['Grouped list on a card','A list inside a sheet or the answer',1.15,'var(--surface-fill)','var(--surface-raised)'],
+['Line between rows','The hairline, on a card',1.5,'var(--border-hairline)','var(--surface-raised)'],
+['A card\'s edge','--border-lift on the page',2,'var(--border-lift)','var(--surface-page)'],
+['Field and outline button edge','--border-strong on a card',3,'var(--border-strong)','var(--surface-raised)'],
+['Switch, off','Its edge on a card',3,'var(--switch-edge,var(--ink-200))','var(--surface-raised)'],
+['Web sidebar on the pane','The nav column against the page',1.15,'var(--surface-nav,var(--surface-sunken))','var(--surface-page)'],
+['Quiet words on a list','--text-tertiary on the fill',4.5,{c:'var(--text-tertiary)'},'var(--surface-fill)'],
+['Avatar initials','blue-700 on blue-100',4.5,{c:'var(--blue-700)'},'var(--blue-100)'],
+['People nudge action','blue-700 on blue-50',4.5,{c:'var(--blue-700)'},'var(--blue-50)'],
+['Tip action','moss-700 on the accent tint',4.5,{c:'var(--moss-700)'},'var(--surface-accent-soft)'],
+['Soon chip','',4.5,{c:'var(--text-noticed)'},'var(--surface-noticed-soft)'],
+['Late chip','',4.5,{c:'var(--text-danger)'},'var(--surface-danger-soft)'],
+['Label chip, leaf','12px words on the label',4.5,{cls:'lb',st:'--l:var(--label-3)'}],
+['Label chip, iris','',4.5,{cls:'lb',st:'--l:var(--label-9)'}],
+['Thread icon glyph, copper','The glyph on its wash',3,{cls:'ti',st:'--hue:var(--label-5)'}],
+['Memory kind, Things','The kind tag\'s words',4.5,{cls:'kt',st:'--k:var(--label-1)',k:1}],
+['Next event card on the page','The attention tint as a surface',1.5,'var(--surface-attention-soft)','var(--surface-page)']];
+const cv=document.createElement('canvas');cv.width=cv.height=1;const cx=cv.getContext('2d',{willReadFrequently:true});
+function rgb(c,under){cx.clearRect(0,0,1,1);if(under){cx.fillStyle=under;cx.fillRect(0,0,1,1)}cx.fillStyle='#000';cx.fillStyle=c;cx.fillRect(0,0,1,1);const d=cx.getImageData(0,0,1,1).data;return [d[0],d[1],d[2]]}
+const lum=c=>{const a=c.map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*a[0]+.7152*a[1]+.0722*a[2]};
+const ratio=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+function measure(opt){
+ const box=document.getElementById('probes');
+ box.innerHTML=`<div class="ap" data-theme="dark" data-opt="${opt}" style="width:200px;height:auto">${PAIRS.map((p,i)=>{const a=p[3];if(typeof a==='string')return `<span data-i="${i}" style="display:block;width:4px;height:4px;background:${a};color:${p[4]}"></span>`;if(a.c)return `<span data-i="${i}" style="display:block;width:4px;height:4px;color:${a.c};background:${p[4]}"></span>`;return `<span data-i="${i}" class="${a.cls}" ${a.k?'data-k':''} style="${a.st}">x</span>`}).join('')}</div>`;
+ const page=getComputedStyle(box.firstChild).backgroundColor;
+ return PAIRS.map((p,i)=>{const el=box.querySelector(`[data-i="${i}"]`),cs=getComputedStyle(el);
+  let fg,bg;
+  if(typeof p[3]==='string'){bg=rgb(cs.backgroundColor,page);fg=rgb(cs.color,page)}
+  else{fg=rgb(cs.color,page);bg=rgb(cs.backgroundColor,page)}
+  return {r:ratio(fg,bg),fg,bg}});
+}
+const hex=c=>'#'+c.map(v=>v.toString(16).padStart(2,'0')).join('');
+function meter(){
+ const M=OPTS.map(o=>measure(o.id));
+ document.getElementById('meter').innerHTML=`<tr><th>Pair</th><th>Aim</th>${OPTS.map(o=>`<th>${o.l==='0'?'Before':o.l+'. '+o.n}</th>`).join('')}</tr>`+
+ PAIRS.map((p,i)=>`<tr><td>${p[0]}${p[1]?`<em>${p[1]}</em>`:''}</td><td class="n">${p[2]}:1</td>${OPTS.map((o,j)=>{const m=M[j][i];const c=m.r>=p[2]?'ok':m.r>=p[2]*.85?'mid':'';return `<td class="${o.id===OPT?'sel':''}"><span class="cr ${c}">${m.r.toFixed(2)}</span></td>`}).join('')}</tr>`).join('');
+ return M;
+}
+/* ---------- options ---------- */
+function opts(M){
+ document.getElementById('opts').innerHTML=OPTS.map((o,j)=>{const m=M[j];const sw=[m[0].bg,m[0].fg,m[1].fg,m[3].fg,m[9].bg,m[11].bg,m[12].bg].map(c=>`<span style="background:${hex(c)}"></span>`).join('');
+  return `<div class="opt ${o.id===OPT?'on':''}" data-o="${o.id}"><h3><i>${o.l}</i>${o.n}</h3><p>${o.d}</p><div class="sws">${sw}</div></div>`}).join('');
+ document.querySelectorAll('.opt').forEach(el=>el.onclick=()=>{OPT=el.dataset.o;render()});
+ document.getElementById('optbar').innerHTML=OPTS.map(o=>`<button data-o="${o.id}" class="${o.id===OPT?'on':''}">${o.l==='0'?'Before':o.l}</button>`).join('');
+ document.querySelectorAll('#optbar button').forEach(b=>b.onclick=()=>{OPT=b.dataset.o;render()});
+}
+/* ---------- gallery ---------- */
+function gallery(){
+ const S=window.DC_SCREENS,gal=document.getElementById('gal'),bar=document.getElementById('scrbar');
+ gal.classList.toggle('cmp',VIEW==='cmp');
+ if(VIEW==='all'){
+  bar.hidden=true;const o=OPTS.find(x=>x.id===OPT);
+  document.getElementById('gtitle').textContent='Screens';
+  document.getElementById('gsub').textContent=THEME==='light'?'Light, as shipped':(o.l==='0'?'Dark, before':'Dark, option '+o.l+', '+o.n);
+  gal.innerHTML=S.map((s,i)=>`<div class="cell"><div class="cap"><u>${String(i+1).padStart(2,'0')}</u>${s.n}</div>${dcFrame(s,PLAT,THEME,OPT)}</div>`).join('');
+ }else{
+  bar.hidden=false;bar.innerHTML=S.map(s=>`<button data-s="${s.id}" class="${s.id===SCR?'on':''}">${s.n}</button>`).join('');
+  bar.querySelectorAll('button').forEach(b=>b.onclick=()=>{SCR=b.dataset.s;render()});
+  const s=S.find(x=>x.id===SCR)||S[0];
+  document.getElementById('gtitle').textContent='Compare: '+s.n;
+  document.getElementById('gsub').textContent='Light for reference, then dark in each option';
+  gal.innerHTML=`<div class="cell"><div class="cap"><u>Light</u>As shipped</div>${dcFrame(s,PLAT,'light','cur')}</div>`+OPTS.map(o=>`<div class="cell"><div class="cap"><u>${o.l==='0'?'Before':o.l}</u>${o.n}</div>${dcFrame(s,PLAT,'dark',o.id)}</div>`).join('');
+ }
+}
+const seg=(id,val,set)=>document.querySelectorAll(`#${id} button`).forEach(b=>{b.classList.toggle('on',(b.dataset.p||b.dataset.v)===val);b.onclick=()=>{set(b.dataset.p||b.dataset.v);render()}});
+function render(){save();seg('plat',PLAT,v=>PLAT=v);seg('theme',THEME,v=>THEME=v);seg('view',VIEW,v=>VIEW=v);
+ document.getElementById('optbar').style.display=VIEW==='all'&&THEME==='dark'?'':'none';
+ const M=meter();opts(M);gallery()}
+render();
+</script></body></html>

@@ -413,9 +413,10 @@ export function ContentRowView({
                   style={{ width: PICTURE, height: PICTURE }}
                   className="rounded-sm"
                   fallback={
+                    // Dark theme: edges (design decisions, 2026-10-07).
                     <View
                       className={`items-center justify-center rounded-sm ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
-                      style={{ width: PICTURE, height: PICTURE }}
+                      style={{ width: PICTURE, height: PICTURE, boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}
                     >
                       <Glyph name={row.photo.kind === "pdf" ? "paperclip" : "image"} size={18} color={COLOR.iconOnWell} />
                     </View>
@@ -446,7 +447,8 @@ export function ContentRowView({
                     ? "bg-a-c-low"
                     : "bg-surface-fill"
               }`}
-              style={{ width: 36, height: 36, marginTop: ON_TITLE_LINE }}
+              // The dashed archived tile has its own line.
+              style={{ width: 36, height: 36, marginTop: ON_TITLE_LINE, ...(row.archivedAt ? {} : { boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }) }}
             >
               <Glyph name={rowGlyph(row.type)} size={18} color={COLOR.iconOnWell} />
             </View>

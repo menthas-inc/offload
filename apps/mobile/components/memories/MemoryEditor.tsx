@@ -26,7 +26,7 @@ import {
 } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { DragSheet } from "../shell/DragSheet";
-import { useColors } from "../../lib/colors";
+import { atOpacity, useColors } from "../../lib/colors";
 import { kindColors, severs, submitMemory, typedLine } from "../../lib/memories";
 
 const isAndroid = Platform.OS === "android";
@@ -77,7 +77,7 @@ export function MemoryEditor({
   const canSave = draft.trim().length > 0 && !busy;
   const title = editing ? "Memory" : "New memory";
   const origin = editing ? memoryOrigin(editing) : null;
-  const palette = { labels: COLOR.labels, ink: COLOR.ink, raised: COLOR.raised, inverse: COLOR.inverse, onSolid: COLOR.onSolid };
+  const palette = { labels: COLOR.labels, ink: COLOR.ink, raised: COLOR.raised, inverse: COLOR.inverse, onSolid: COLOR.onSolid, hueInkMix: COLOR.hueInkMix };
   // Floored, as Edit thread's grid: Android rounds each cell to the pixel
   // grid, and three cells a fraction too wide wrap as two.
   const cell = gridWidth > 0 ? Math.floor((gridWidth - GAP * (COLUMNS - 1)) / COLUMNS) : 0;
@@ -211,7 +211,9 @@ export function MemoryEditor({
                   className={`flex-row items-center justify-center ${on ? "" : isAndroid ? "bg-a-c-high" : "bg-surface-fill"}`}
                   style={[
                     { width: cell, minHeight: 44, gap: 7, paddingHorizontal: 10, borderRadius: isAndroid ? 8 : 12 },
-                    on ? { backgroundColor: colors.soft } : null,
+                    // At rest, a ring in its own hue: Dark theme: edges
+                    // (design decisions, 2026-10-07). None in light.
+                    on ? { backgroundColor: colors.soft } : { boxShadow: `inset 0 0 0 1px ${atOpacity(colors.dot, COLOR.edgeHue)}` },
                     on && !colors.filled ? { borderWidth: 2, borderColor: colors.ink } : null,
                   ]}
                 >
@@ -231,7 +233,7 @@ export function MemoryEditor({
 
       <View
         className={`mt-space-6 flex-row items-start rounded-md px-space-6 py-space-5 ${isAndroid ? "bg-a-c-high" : "bg-surface-fill"}`}
-        style={{ gap: 10 }}
+        style={{ gap: 10, boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}
       >
         {origin ? (
           <>

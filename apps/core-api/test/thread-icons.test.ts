@@ -67,6 +67,40 @@ describe("on create", () => {
   });
 });
 
+// 2026-10-07. A thread made by hand, from the plus on My threads: Edit
+// thread's fields, the creator as its one member, and the list has it.
+describe("POST /v1/threads", () => {
+  it("makes a thread with the person as its member, picking the icon from the name", async () => {
+    const { me } = await owner();
+    const client = as(app, await signIn(me));
+    const response = await client.post("/v1/threads", { name: "Dentist", icon: "stethoscope", hue: 4 });
+    expect(response.statusCode).toBe(200);
+    const made = response.json().thread;
+    expect(made).toMatchObject({ name: "Dentist", icon: "stethoscope", hue: 4 });
+    expect(await mark(made.id)).toMatchObject({ icon_set_by: "offload" });
+    const member = await db.selectFrom("thread_members").select(["account_id", "state"]).where("thread_id", "=", made.id).execute();
+    expect(member).toEqual([{ account_id: me, state: "accepted" }]);
+    const list = (await client.get("/v1/threads")).json();
+    expect(JSON.stringify(list)).toContain(made.id);
+  });
+
+  it("takes a picked icon as the person's, and the least used hue when none is sent", async () => {
+    const { me } = await owner();
+    const client = as(app, await signIn(me));
+    const made = (await client.post("/v1/threads", { name: "Dentist", icon: "plane" })).json().thread;
+    expect(made).toMatchObject({ icon: "plane", hue: 1 });
+    expect(await mark(made.id)).toMatchObject({ icon_set_by: "person" });
+  });
+
+  it("refuses an empty name, an icon not in the set and a stranger", async () => {
+    const { me } = await owner();
+    const client = as(app, await signIn(me));
+    expect((await client.post("/v1/threads", { name: "  " })).statusCode).toBe(400);
+    expect((await client.post("/v1/threads", { name: "Gym", icon: "../etc" })).statusCode).toBe(400);
+    expect((await app.inject({ method: "POST", url: "/v1/threads", payload: { name: "Gym" } })).statusCode).toBe(401);
+  });
+});
+
 describe("PATCH /v1/threads/:id", () => {
   it("writes name, icon and hue in one request and says what was there (AC-7)", async () => {
     const me = await account();

@@ -39,3 +39,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 - [x] **T5.1** Decision entries: design (the three deviations, **Design system impact**) and tech (the columns, the shared list).
 - [x] **T5.2** All gates: lint, typecheck, core, web, mobile, agent, the three dead-* scripts.
 - [x] **T5.3** Code, client and security review of the diff; findings fixed.
+
+## Amended 2026-10-07
+
+T-2026-10-07 New thread from My threads. Done. See the feature spec's amendment of the same date.

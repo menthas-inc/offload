@@ -216,6 +216,34 @@ describe("reading (AC-18, AC-22, AC-27)", () => {
     expect(ticks).toEqual({ Ferry: true, Loose: false });
   });
 
+  // 2026-10-07. The list is for what is still ahead: an event that is over and
+  // a ticked off task are not offered, unless the label already carries them,
+  // so they can still be taken off it. Today's events and a series stay.
+  it("leaves out what is over, unless the label carries it", async () => {
+    const { me, t, client } = await setup();
+    const day = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    await row(me, t, "Open task");
+    await row(me, t, "Done task", { done_at: new Date(now - day) });
+    const carriedDone = await row(me, t, "Done, carried", { done_at: new Date(now - day) });
+    await row(me, t, "Last week", { type: "event", occurs_at: new Date(now - 7 * day) });
+    await row(me, t, "Ended a minute ago", {
+      type: "event",
+      occurs_at: new Date(now - 2 * 60 * 1000),
+      occurs_end_at: new Date(now - 60 * 1000),
+    });
+    await row(me, t, "Next week", { type: "event", occurs_at: new Date(now + 7 * day) });
+    await row(me, t, "Weekly since spring", { type: "event", occurs_at: new Date(now - 90 * day), rrule: "FREQ=WEEKLY" });
+    const label = (await client.post(`/v1/threads/${t}/labels`, { name: "Trip", rows: { content: [carriedDone] } })).json().label;
+    const page = (await client.get(`/v1/threads/${t}/content?ticksFor=${label.id}`)).json();
+    expect(page.rows.map((r: { title: string }) => r.title).sort()).toEqual(
+      ["Done, carried", "Ended a minute ago", "Next week", "Open task", "Weekly since spring"].sort(),
+    );
+    // The thread's own list is unchanged.
+    const all = (await client.get(`/v1/threads/${t}/content`)).json();
+    expect(all.rows).toHaveLength(7);
+  });
+
   it("never returns a label on a row that moved to another thread", async () => {
     const { me, t, client } = await setup();
     const other = await thread(me, "Other");

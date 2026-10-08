@@ -11,6 +11,7 @@ import { useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Avatar } from "../Avatar";
+import { useColors } from "../../lib/colors";
 import { nameOf, type RequestCard as Card } from "../../lib/people";
 
 const isAndroid = Platform.OS === "android";
@@ -27,6 +28,7 @@ export function RequestCard({
   onAnswer: (answer: "accept" | "dismiss") => Promise<boolean>;
 }) {
   const router = useRouter();
+  const COLOR = useColors();
   const [busy, setBusy] = useState<"accept" | "dismiss" | null>(null);
   const [failed, setFailed] = useState<"accept" | "dismiss" | null>(null);
 
@@ -43,6 +45,8 @@ export function RequestCard({
       className={`${last ? "" : "mb-space-4"} rounded-lg px-space-5 py-space-4 ${
         isAndroid ? "bg-a-c-low" : "bg-surface-accent-soft"
       }`}
+      // Dark theme: edges (design decisions, 2026-10-07).
+      style={{ boxShadow: `inset 0 0 0 1px ${isAndroid ? COLOR.edgeCard : COLOR.edgeAccent}` }}
     >
       <View className="flex-row items-center gap-space-4">
         <Pressable

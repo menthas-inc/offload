@@ -70,3 +70,30 @@ describe("the map's values (030)", () => {
     expect(paletteFor(true).shadowRaised).toBe(`inset 0 0 0 1px ${resolved.dark["border-lift"]}`);
   });
 });
+
+// 2026-10-07, dark theme edges: the six edge colours and the two shares come
+// from the tokens. Transparent in light, so nothing moves there; the lift and
+// the hairline in dark.
+describe("the edges", () => {
+  it("are transparent in light and the dark lines in dark", () => {
+    const light = paletteFor(false);
+    const dark = paletteFor(true);
+    for (const key of ["edgeCard", "edgeWell", "edgeNoticed", "edgeDanger", "edgeAccent", "edgeAttention"] as const) {
+      expect(light[key], key).toBe("transparent");
+      expect(dark[key], key).not.toBe("transparent");
+    }
+    expect(dark.edgeCard).toBe(resolved.dark["border-lift"]);
+    expect(dark.edgeWell).toBe(resolved.dark["border-hairline"]);
+    expect(light.edgeHue).toBe(0);
+    expect(dark.edgeHue).toBeCloseTo(0.38);
+    expect(light.hueInkMix).toBeCloseTo(0.78);
+    expect(dark.hueInkMix).toBeCloseTo(0.5);
+  });
+
+  it("carries the stronger dark lines", () => {
+    // The hairline is its own step now, not the fill-strong ink, and the lift
+    // is a step above it.
+    expect(resolved.dark["border-hairline"]).not.toBe(resolved.dark["ink-150"]);
+    expect(resolved.dark["border-lift"]).not.toBe(resolved.dark["border-hairline"]);
+  });
+});

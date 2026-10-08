@@ -13,6 +13,9 @@
 //   - **No bell and no settings in the bar.** The kit draws both and both
 //     destinations are out of scope, and a control that does nothing is worse
 //     on a phone than absent.
+//
+// 2026-10-07. A plus in the bar makes a thread by hand: Edit thread's sheet as
+// New thread, and the screen opens on what it made.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -26,16 +29,23 @@ import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
+import { DEFAULT_THREAD_ICON, leaveAsk, leastUsedHue, staysWith } from "@offload/widgets";
+import { ConfirmSheet } from "../people/ConfirmSheet";
+import { Glyph } from "../Glyph";
+import { EditThreadSheet } from "./EditThreadSheet";
+import { useColors } from "../../lib/colors";
 import { Logo } from "../Logo";
 import { QuietEmpty } from "./QuietEmpty";
 import { ThreadRow } from "../shell/ThreadRow";
 import { ToastHost, useToast } from "../shell/Toast";
 import {
+  createThread,
   deleteThread,
   fetchThreadsAndInvitations,
   myThreads,
   restoreThread,
   type ThreadGroup,
+  type ThreadRow as ThreadRowType,
 } from "../../lib/threads";
 import type { LooseSummary } from "../../lib/loose";
 import { LooseGroup } from "../loose/LooseGroup";
@@ -65,7 +75,11 @@ export default function MyThreads() {
   // 022. Waiting shares, one strip each at the top, from the same read.
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [allOlder, setAllOlder] = useState(false);
+  const [making, setMaking] = useState(false);
+  // 2026-10-07. A shared thread asks before it is left.
+  const [leaving, setLeaving] = useState<ThreadRowType | null>(null);
   const toast = useToast();
+  const COLOR = useColors();
   const { filed } = useConversation();
 
   const load = useCallback(async () => {
@@ -101,6 +115,16 @@ export default function MyThreads() {
   }, [filed, load]);
 
   const rows = useLooseRows(loose, load, toast);
+
+  async function make(shown: { name: string; icon: string; hue: number }): Promise<void> {
+    const made = await createThread(shown);
+    if (!made) {
+      toast.show("Couldn't make that thread", { label: "Try again", onPress: () => void make(shown) });
+      return;
+    }
+    void load();
+    router.push({ pathname: "/threads/[id]", params: { id: made.id } });
+  }
 
   async function remove(id: string, name: string): Promise<void> {
     const result = await deleteThread(id);
@@ -144,6 +168,10 @@ export default function MyThreads() {
     >
       <View className="h-appbar-height flex-row items-center px-gutter-screen">
         <Logo size={24} />
+        {/* A bare glyph, as every bar control on the phones. */}
+        <Pressable className="ml-auto" onPress={() => setMaking(true)} hitSlop={12} accessibilityRole="button" accessibilityLabel="New thread">
+          <Glyph name="plus" size={24} color={COLOR.iconOnWell} />
+        </Pressable>
       </View>
 
       {empty ? (
@@ -179,7 +207,7 @@ export default function MyThreads() {
                   params: { id: thread.id },
                 })
               }
-              onDelete={() => void remove(thread.id, thread.name)}
+              onDelete={() => ((thread.others ?? []).length > 0 ? setLeaving(thread) : void remove(thread.id, thread.name))}
             />
           ))}
 
@@ -207,7 +235,7 @@ export default function MyThreads() {
                   params: { id: thread.id },
                 })
               }
-              onDelete={() => void remove(thread.id, thread.name)}
+              onDelete={() => ((thread.others ?? []).length > 0 ? setLeaving(thread) : void remove(thread.id, thread.name))}
             />
           ))}
 
@@ -229,12 +257,42 @@ export default function MyThreads() {
       )}
 
       {rows.sheets}
+      <ConfirmSheet
+        open={leaving !== null}
+        title={leaveAsk(leaving?.name ?? "")}
+        body={staysWith(leaving?.others ?? [])}
+        action="Leave"
+        danger
+        onConfirm={() => {
+          const held = leaving;
+          setLeaving(null);
+          if (held) void remove(held.id, held.name);
+        }}
+        onClose={() => setLeaving(null)}
+      />
+      {making ? (
+        <EditThreadSheet
+          thread={{
+            id: "new",
+            name: "",
+            icon: DEFAULT_THREAD_ICON,
+            hue: leastUsedHue(groups.flatMap((group) => group.threads.map((thread) => thread.hue))),
+            iconSetBy: "offload",
+          }}
+          from="name"
+          heading="New thread"
+          action="Create"
+          onClose={() => setMaking(false)}
+          onSave={(_change, shown) => void make(shown)}
+        />
+      ) : null}
       <ToastHost state={toast} />
     </SafeAreaView>
   );
 }
 
 function Section({ label, count }: { label: string; count: number }) {
+  const COLOR = useColors();
   return (
     <View className="flex-row items-center gap-space-3 px-gutter-screen pb-space-3 pt-space-7">
       <Text
@@ -243,7 +301,8 @@ function Section({ label, count }: { label: string; count: number }) {
       >
         {label}
       </Text>
-      <View className="rounded-pill bg-surface-fill px-space-3 py-space-1">
+      {/* Dark theme: edges (design decisions, 2026-10-07). */}
+      <View className="rounded-pill bg-surface-fill px-space-3 py-space-1" style={{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}>
         <Text className="font-core text-text-secondary" style={{ fontSize: 12 }}>
           {count}
         </Text>

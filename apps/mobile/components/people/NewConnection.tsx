@@ -17,6 +17,7 @@ import { useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Avatar } from "../Avatar";
+import { useColors } from "../../lib/colors";
 import { refreshMe } from "../../lib/me";
 import {
   LOOKUP_LIMITED,
@@ -176,6 +177,7 @@ function FoundRow({
   onAnswer: (which: "accept" | "dismiss") => void;
 }) {
   const router = useRouter();
+  const COLOR = useColors();
   const first = firstNameOf(found);
   const trailing = (() => {
     if (dismissed) return <Value>Not now</Value>;
@@ -200,7 +202,11 @@ function FoundRow({
 
   return (
     <View className="pt-space-6">
-      <View className={`flex-row items-center gap-space-4 rounded-lg px-space-4 py-space-3 ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`} style={{ minHeight: 56 }}>
+      {/* Dark theme: edges (design decisions, 2026-10-07). */}
+      <View
+        className={`flex-row items-center gap-space-4 rounded-lg px-space-4 py-space-3 ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
+        style={{ minHeight: 56, boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}` }}
+      >
         <Pressable
           onPress={() => (found.relation === "you" ? undefined : router.push(`/people/${found.accountId}`))}
           hitSlop={6}

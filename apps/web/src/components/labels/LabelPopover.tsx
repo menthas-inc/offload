@@ -29,6 +29,8 @@ export function LabelPopover({
   title,
   labels,
   carried,
+  made: madeBefore = [],
+  align = "end",
   onDone,
   onClose,
 }: {
@@ -36,11 +38,17 @@ export function LabelPopover({
   title: string;
   labels: Label[];
   carried: string[];
+  /** Names already typed with New label and not made yet, when the popover
+   *  opens again from the edit dialog. */
+  made?: string[];
+  /** Which edge of what opened it the popover lines up with: the end for a
+   *  row's tag tool, the start for the edit dialog's Labels. */
+  align?: "start" | "end";
   onDone: (choice: LabelChoice) => void;
   onClose: () => void;
 }) {
   const [ticked, setTicked] = useState<string[]>(carried);
-  const [made, setMade] = useState<string[]>([]);
+  const [made, setMade] = useState<string[]>(madeBefore);
   const [naming, setNaming] = useState(false);
   const [draft, setDraft] = useState("");
   const [line, setLine] = useState<string | null>(null);
@@ -52,11 +60,11 @@ export function LabelPopover({
     const rect = anchor.getBoundingClientRect();
     const width = box.current?.offsetWidth ?? 300;
     const height = box.current?.offsetHeight ?? 320;
-    const left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12));
+    const left = Math.max(12, Math.min(align === "start" ? rect.left : rect.right - width, window.innerWidth - width - 12));
     const below = rect.bottom + 8;
     const top = below + height > window.innerHeight - 12 ? Math.max(12, rect.top - height - 8) : below;
     setAt({ top, left });
-  }, [anchor, naming, made.length]);
+  }, [anchor, naming, made.length, align]);
 
   // Focus in, Escape out, focus back to the control that opened it.
   useEffect(() => {

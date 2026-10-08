@@ -32,11 +32,13 @@ export function DateChip({ row, isReminder }: { row: ChipRow; isReminder: boolea
         ? "bg-surface-noticed-soft"
         : "bg-surface-fill";
   const ink = chip.tone === "late" ? COLOR.danger : chip.tone === "soon" ? COLOR.textNoticed : COLOR.secondary;
+  // Dark theme: edges (design decisions, 2026-10-07).
+  const edge = chip.tone === "late" ? COLOR.edgeDanger : chip.tone === "soon" ? COLOR.edgeNoticed : COLOR.edgeCard;
 
   return (
     <View
       className={`flex-row items-center gap-space-1 self-start rounded-xs px-space-2 ${ground}`}
-      style={{ minHeight: 24 }}
+      style={{ minHeight: 24, boxShadow: `inset 0 0 0 1px ${edge}` }}
       accessibilityLabel={isReminder ? `${chip.label}, offload will remind you` : chip.label}
     >
       <Glyph name="calendar" size={12} color={ink} />

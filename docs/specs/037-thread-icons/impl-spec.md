@@ -88,3 +88,7 @@ Both: the types in `lib/threads.ts`, `lib/today.ts`, `lib/dump.ts`, `lib/loose.t
 - **OFF-7** design entry logged for the deviations: the model's pick, keep on no match, the id's tail as the seed, the places the handoff's table did not list (sidebar at 20, crumbs, the *In thread* chip, the suggestion chip at 16, the footer pill staying 30).
 - **OFF-8** the enum is static.
 - **QUAL-1** every task starts red.
+
+## Amended 2026-10-07
+
+`POST /v1/threads` `{ name, icon?, hue? }`; `icon_set_by` is the person's only when the icon sent differs from the one offload would pick. `EditThread` and `EditThreadSheet` take `heading` and `action`. See the feature spec's amendment of the same date.

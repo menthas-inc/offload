@@ -138,6 +138,21 @@ export interface Colors {
   /** 030. A chip floating over the map: `--shadow-1`, and in dark, where
    *  that is none, the `--border-lift` edge. */
   shadowRaised: string;
+  /** 2026-10-07, dark theme edges. The 1px edge a surface draws round itself,
+   *  transparent in light so nothing moves there. Drawn as an inset
+   *  `boxShadow` string, never a border, so it takes no layout. A grouped
+   *  list and a neutral chip take `edgeCard`, a well inside one `edgeWell`,
+   *  a tint its own hue's. */
+  edgeCard: string;
+  edgeWell: string;
+  edgeNoticed: string;
+  edgeDanger: string;
+  edgeAccent: string;
+  edgeAttention: string;
+  /** A kind's or label's ring as a share of its hue, and how much of its hue
+   *  its words keep against the ink, as fractions. */
+  edgeHue: number;
+  hueInkMix: number;
 }
 
 export function paletteFor(dark: boolean): Colors {
@@ -200,6 +215,14 @@ export function paletteFor(dark: boolean): Colors {
     // two dot colours are text aliases rather than the fill aliases they were,
     // because a fill alias is fixed across themes and a 5px mark on a ground
     // that now moves with the theme measured 2.62:1 and 2.03:1.
+    edgeCard: base["edge-card"] ?? light["edge-card"]!,
+    edgeWell: base["edge-well"] ?? light["edge-well"]!,
+    edgeNoticed: base["edge-noticed"] ?? light["edge-noticed"]!,
+    edgeDanger: base["edge-danger"] ?? light["edge-danger"]!,
+    edgeAccent: base["edge-accent"] ?? light["edge-accent"]!,
+    edgeAttention: base["edge-attention"] ?? light["edge-attention"]!,
+    edgeHue: parseFloat(base["edge-hue"] ?? light["edge-hue"]!) / 100,
+    hueInkMix: parseFloat(base["hue-ink-mix"] ?? light["hue-ink-mix"]!) / 100,
     raised: base["surface-raised"] ?? light["surface-raised"]!,
     lift: base["border-lift"] ?? light["border-lift"]!,
     textAttention: base["text-attention"] ?? light["text-attention"]!,

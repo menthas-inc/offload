@@ -21,7 +21,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { photoCaption } from "@offload/widgets";
+import { photoCaption, ARCHIVE_SHARED, archiveAsk, asksBeforeArchive } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { MoveSheet } from "./MoveSheet";
 import { PhotoThumb } from "./PhotoThumb";
@@ -57,7 +57,11 @@ export function PhotoViewer({
   onClose,
   actions,
   threadId,
+  shared = null,
 }: {
+  /** 2026-10-07. Whether the thread has others in it, where known: archive
+   *  hides a row for everyone there, so it asks first. */
+  shared?: boolean | null;
   photos: ViewerPhoto[];
   index: number;
   onIndex: (next: number) => void;
@@ -72,7 +76,7 @@ export function PhotoViewer({
   const [menu, setMenu] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [moving, setMoving] = useState(false);
-  const [asking, setAsking] = useState(false);
+  const [asking, setAsking] = useState<"delete" | "archive" | false>(false);
   // Bumped by the Retry under "Not here yet.": the same id, a new attempt.
   const [attempt, setAttempt] = useState(0);
   const plane = useRef<HTMLDivElement>(null);
@@ -194,13 +198,22 @@ export function PhotoViewer({
                   </li>
                 ) : row.canDelete ? (
                   <li>
-                    <button type="button" role="menuitem" className={styles.menuItem} data-danger="true" onClick={() => { setMenu(false); setAsking(true); }}>
+                    <button type="button" role="menuitem" className={styles.menuItem} data-danger="true" onClick={() => { setMenu(false); setAsking("delete"); }}>
                       Delete
                     </button>
                   </li>
                 ) : (
                   <li>
-                    <button type="button" role="menuitem" className={styles.menuItem} onClick={() => { setMenu(false); void actions?.onArchive(row); }}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={styles.menuItem}
+                      onClick={() => {
+                        setMenu(false);
+                        if (asksBeforeArchive(row, shared)) setAsking("archive");
+                        else void actions?.onArchive(row);
+                      }}
+                    >
                       Archive
                     </button>
                   </li>
@@ -279,7 +292,18 @@ export function PhotoViewer({
           ) : (
             <h2 className={styles.title}>{photo.title}</h2>
           )}
-          {asking && row ? (
+          {asking === "archive" && row ? (
+            <p className={styles.confirm}>
+              {archiveAsk(row.title)} {ARCHIVE_SHARED}
+              <button type="button" className={styles.confirmCancel} onClick={() => setAsking(false)}>
+                Cancel
+              </button>
+              <button type="button" className={styles.confirmDelete} onClick={() => { setAsking(false); void actions?.onArchive(row); }}>
+                Archive
+              </button>
+            </p>
+          ) : null}
+          {asking === "delete" && row ? (
             <p className={styles.confirm}>
               Delete {row.title}?
               <button type="button" className={styles.confirmCancel} onClick={() => setAsking(false)}>

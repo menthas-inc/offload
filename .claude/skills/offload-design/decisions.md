@@ -11,6 +11,42 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-07 · Dark theme: edges
+**Surface:** iOS, Android, web, every screen in dark
+**Raised by:** the product owner, off `explorations/dark-contrast.html` (twelve screens of `main` at `60d4e15`, four options). Handoff: `handoff/APPLY-2026-10-07-dark-contrast.md`.
+
+**Was:** dark separated by value alone, and the values were 1 to 7% apart: a card on the page 1.07:1, a grouped list on a card 1.02:1, a hairline on a card 1.15:1. Words on the blue and moss tints (Android links, the people nudge, Suggestion's Move, the Mail mark) 3.3 to 3.8:1.
+
+**Is:** option B, **Edges**. Lines get stronger (hairline #444444, lift #5C5C5C, strong #8C8C8C), surfaces take a small step (page #1A1A19, raised #232323, fill #2B2B2B), and every grouped list, well, neutral chip and tinted surface draws a 1px edge from six new `--edge-*` tokens, which are transparent in light. `--blue-700` and `--moss-700` lift to #8BA1F7 and #80B994 in dark. Android's `--a-outline` and `--a-on-quiet` follow. Light is unchanged.
+
+**Considered and not taken:** A, Steps (a near-black page and value steps, no edges); C, Colour (deeper tints, tonal labels and thread icons in dark); D, A and C together.
+
+**Design system impact:** `tokens/colors.css` dark scope, six `--edge-*` tokens and `--edge-hue`, `--hue-ink-mix` in all three scopes; `ui_kits/android_app/index.html` dark scope. `Chip` (neutral), `Badge` (soft) and `SegmentedControl` paint their edges. `readme.md` **Dark theme** gains **Edges**. Code: `pnpm tokens`, then the edges per file in the handoff; `.adminLink` and the admin nav move off `--moss-700` to `--surface-accent`.
+
+### 2026-10-07 · Owner fixes: the composer at the wrap, Labels and Never in the edit dialog, New thread, Leave and the archive question
+**Surface:** iOS, Android, web
+**Raised by:** the owner, from use, 2026-10-07. Checked in the browser and on an iOS simulator.
+
+**Was:**
+- The web composer measured its height on every key with no latch, so at the wrap the box opened, the words fit on one line across it, it closed, and they wrapped again: one line, two lines, one, on alternate keys. The phones latched on 2026-09-26.
+- The web edit dialog had no Labels; Repeats on a row with no date was an empty disabled select, and the phones' Repeats row was blank.
+- The label's list offered every row in the thread, last week's events and ticked off rows included.
+- No way to make a thread: the kits pass `onNew` to the Threads screen and draw no control for it.
+- My threads' row said Delete on a shared thread, which the server has always left; Archive in a shared thread, which hides a row for everyone, asked nothing.
+- On iOS sign-in, the waitlist line sat 8px under the Apple button, the foot's gap, and read as part of it.
+
+**Is:**
+- The web composer latches as the phones' does: the height opens the box and only an empty draft closes it, and the field is measured again at the width the box opens to.
+- The web edit dialog has a Labels row under Repeats, a bordered control like the select beside it with the labels' dots and names, *None* when there are none, opening the label popover from its start edge. Repeats reads *Never* with no date on both.
+- The label's list leaves out what is over unless the label carries it.
+- A `plus` at the end of My threads' head (web) and in its bar (phones, a bare glyph as every bar control) opens Edit thread as *New thread* with *Create*.
+- A shared thread's row says *Leave* (the `x` glyph on the web) and asks *Leave Lisbon trip?* with *It stays for Sam.* on a line of its own. Archive in a shared thread asks *Archive Book the ferry?* with *It leaves the list for everyone in the thread.*: in the row's place on the web, in the delete question's clay and its `archive` glyph, and on a confirm sheet on the phones. The web's in-row question gains a second, wrapping line for the consequence, so a long title never hides it.
+- On iOS sign-in the waitlist line has 12px of its own above it, 20 from the Apple button.
+
+**Why:** each was a defect or a missing door the owner hit in use; the words say what the answer does because archive and leave act on other people.
+
+**Design system impact:** `ui_kits/web_app/WComposer.jsx`: none (the kit has no measured field). `ui_kits/web_app` edit dialog: a Labels row under Repeats, and Repeats drawn as Never with no date; `mobile_app/TodayParts.jsx` `RowEditSheet`: Repeats' value *Never* in place of the empty string. `ThreadsScreen.jsx` and `M3ThreadsScreen.jsx`: a `plus` on the bar's right, wired to the existing `onNew`; `web_app` threads pane head: a `plus` tool. Edit thread's sheet and popover: a New thread state (heading *New thread*, action *Create*, empty name, Create disabled until a name). The web row's confirm: a two-line variant (question, then the consequence in 13px). Thread rows: Leave in place of Delete on a shared thread, with its confirm; a confirm for Archive in a shared thread. `mobile_app/FirstRun.jsx` `SignInScreen`: the waitlist line 20 from the last provider button on iOS. `components/layout/SwipeRow.d.ts`: no longer delete-only in use, since a shared thread's swipe says Leave; its contract note should say the one action is the row's own removal, Delete or Leave by membership. The label's list (labels kit): rows that are over are not offered unless the label carries them. The Leave and archive questions' second line is `--text-secondary`.
+
 ### 2026-10-07 · The landing page says no "things"
 **Surface:** web, marketing site
 **Raised by:** code, the repo sweep of 2026-10-07 (product lane), against CLAUDE.md's vocabulary.

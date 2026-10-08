@@ -20,7 +20,7 @@
 //     saying offload has not done something is an apology taking up the most
 //     prominent space on the screen.
 
-import { threadLookAfter, type ThreadLook } from "@offload/widgets";
+import { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive, leaveAsk, threadLookAfter, type ThreadLook } from "@offload/widgets";
 import { ThreadIcon } from "../ThreadIcon";
 import { EditThreadSheet } from "./EditThreadSheet";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -148,6 +148,9 @@ export default function Thread() {
   // 022. The share sheet, and Leave with its confirmation.
   const [shareOpen, setShareOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  // 2026-10-07. The row asking before it is archived: in a shared thread
+  // archive hides it for everyone, so it asks first.
+  const [archiving, setArchiving] = useState<ContentRow | null>(null);
   const [leaveBusy, setLeaveBusy] = useState(false);
   const [leaveFailed, setLeaveFailed] = useState(false);
   // 037. Edit thread, and whether the icon or the name opened it.
@@ -381,6 +384,13 @@ export default function Thread() {
       toast,
       writes,
     );
+  }
+
+  /** Archive, asking first in a shared thread. Putting back never asks. */
+  function askArchive(row: ContentRow): void {
+    const shared = thread ? thread.members.some((member) => !member.isYou) : null;
+    if (asksBeforeArchive(row, shared)) setArchiving(row);
+    else archive(row);
   }
 
   /** Out of the list, or back into it. The row leaves this list either way,
@@ -905,7 +915,7 @@ export default function Thread() {
               {
                 label: "Put back in the thread",
                 icon: "rewind",
-                run: () => archive(acting),
+                run: () => askArchive(acting),
               },
             ]
           : acting.canDelete
@@ -921,7 +931,7 @@ export default function Thread() {
                 {
                   label: "Archive",
                   icon: "archive",
-                  run: () => archive(acting),
+                  run: () => askArchive(acting),
                 },
               ]),
       ]
@@ -1099,8 +1109,9 @@ export default function Thread() {
             >
               {showArchived ? "Archived" : restHeading}
             </Text>
+            {/* Dark theme: edges (design decisions, 2026-10-07). */}
             {cursor ? null : (
-              <View className="rounded-pill bg-surface-fill px-space-3 py-space-1">
+              <View className="rounded-pill bg-surface-fill px-space-3 py-space-1" style={{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}>
                 <Text
                   className="font-core text-text-secondary"
                   style={{ fontSize: 12 }}
@@ -1276,7 +1287,7 @@ export default function Thread() {
         onRemove={(row) => {
           setRenaming(null);
           if (row.canDelete && row.archivedAt === null) remove(row);
-          else archive(row);
+          else askArchive(row);
         }}
       />
 
@@ -1346,8 +1357,21 @@ export default function Thread() {
         onChanged={() => void load()}
       />
       <ConfirmSheet
+        open={archiving !== null}
+        title={archiveAsk(archiving?.title ?? "")}
+        body={ARCHIVE_SHARED}
+        action="Archive"
+        danger
+        onConfirm={() => {
+          const row = archiving;
+          setArchiving(null);
+          if (row) archive(row);
+        }}
+        onClose={() => setArchiving(null)}
+      />
+      <ConfirmSheet
         open={leaving}
-        title={`Leave ${thread.name}?`}
+        title={leaveAsk(thread.name)}
         body="Your membership and your access go. What you added stays with the others, and the thread is theirs to keep."
         action="Leave"
         danger

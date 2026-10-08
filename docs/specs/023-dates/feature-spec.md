@@ -247,3 +247,7 @@ Every criterion above has a test named in `impl-spec.md`, the suites are green o
 ## Amended 2026-09-29
 
 **No details field and no details anywhere.** AC-17 and AC-24 lose "details": the phones' edit sheet and the web's edit dialog carry the title, When, Repeats, Labels (on the phones) and, while the row is a reminder, Remind me, and no surface draws a row's body. Stored bodies are untouched and an edit never sends one. **On the phones When, Repeats and Labels open in place** inside the edit sheet rather than as sheets over it, each handing back on Done; Save still writes once. Every row sheet's foot is the way out or Clear on the left, Cancel and Save or Done on the right, so the When sheet opened alone gains Cancel. The sheet grows by the keyboard from its foot. Logged in both decision logs under 2026-09-29.
+
+## Amended 2026-10-07
+
+**Repeats says Never on a row with no date.** The web's select had no presets to read off a missing day and drew empty, and the phones' row drew nothing beside Repeats; both read as broken. The select now holds Never, disabled until a day is picked, and the phones' row says Never as `repeatsLabel` already did for every other caller.

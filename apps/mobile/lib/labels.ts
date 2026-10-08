@@ -100,50 +100,5 @@ export function writePick(threadId: string, pick: LabelPick): void {
 }
 
 /** A row's write that makes labels first, then carries them in the edit.
- *
- *  2026-09-29. Whatever this attempt made is taken back when a later step
- *  fails, so a Retry starts clean instead of meeting its own first label as
- *  taken, and nothing is left behind attached to no row. Undo deletes the
- *  made labels only once the row itself is put back. The steps are passed in
- *  so the rule is tested without a network. */
-export function withMadeLabels<P extends { labels?: string[] }, S>(
-  steps: {
-    make: (name: string) => Promise<string | null>;
-    edit: (patch: P) => Promise<S | null>;
-    /** The patch that puts the row back, from what the edit replaced. */
-    undo: (previous: S) => P;
-    drop: (id: string) => Promise<unknown>;
-  },
-  patch: P,
-  names: string[],
-): { write: () => Promise<boolean>; unwrite: () => Promise<boolean> } {
-  let made: string[] = [];
-  let previous: S | null = null;
-  const takeBack = async (): Promise<false> => {
-    for (const id of made) await steps.drop(id);
-    made = [];
-    return false;
-  };
-  return {
-    write: async () => {
-      made = [];
-      for (const name of names) {
-        const id = await steps.make(name);
-        if (id === null) return takeBack();
-        made.push(id);
-      }
-      const result = await steps.edit(made.length > 0 ? { ...patch, labels: [...(patch.labels ?? []), ...made] } : patch);
-      if (result === null) return takeBack();
-      previous = result;
-      return true;
-    },
-    unwrite: async () => {
-      if (previous === null) return false;
-      const result = await steps.edit(steps.undo(previous));
-      if (result === null) return false;
-      for (const id of made) await steps.drop(id);
-      made = [];
-      return true;
-    },
-  };
-}
+ *  Shared with the web since 2026-10-07; the rule lives in the widgets. */
+export { withMadeLabels } from "@offload/widgets";

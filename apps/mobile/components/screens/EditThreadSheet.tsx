@@ -7,6 +7,9 @@
 // popover shares, and the icon shown is `previewThreadIcon`: while the pick is
 // still offload's, typing a name shows the icon the rename would pick.
 //
+// 2026-10-07. The same sheet is New thread, from the plus on My threads, with
+// a heading and an action of its own.
+//
 // The sheet is as tall as its contents and rides up with the keyboard, so
 // the name being typed is never under it.
 
@@ -35,7 +38,12 @@ export function EditThreadSheet({
   from,
   onClose,
   onSave,
+  heading = "Edit thread",
+  action = "Save",
 }: {
+  /** New thread's words in place of Edit thread's. */
+  heading?: string;
+  action?: string;
   thread: ThreadLook & { id: string };
   /** What was tapped. The name opens the keyboard; the icon does not. */
   from: "icon" | "name";
@@ -69,7 +77,7 @@ export function EditThreadSheet({
   return (
     <DragSheet
       onClose={onClose}
-      accessibilityLabel="Edit thread"
+      accessibilityLabel={heading}
       // As tall as what is in it, and no taller: the design's sheet ran from
       // 150 below the top and left the space under the colours empty.
       className="px-gutter-screen pb-space-8 pt-space-2"
@@ -85,14 +93,14 @@ export function EditThreadSheet({
           </Text>
         </Pressable>
         <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 17 }} accessibilityRole="header">
-          Edit thread
+          {heading}
         </Text>
         <Pressable onPress={save} disabled={!canSave} hitSlop={12} accessibilityRole="button" accessibilityState={{ disabled: !canSave }}>
           <Text
             className={`font-core font-semibold ${isAndroid ? "text-blue-700" : "text-text-accent"}`}
             style={{ fontSize: 16, opacity: canSave ? 1 : 0.4 }}
           >
-            Save
+            {action}
           </Text>
         </Pressable>
       </View>

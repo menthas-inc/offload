@@ -5,6 +5,9 @@
 // page's `.wpop`; the rules for what Save sends are `threadChange` in
 // @offload/widgets, which the phones' sheet shares.
 //
+// 2026-10-07. The same popover is New thread, from the plus on My threads:
+// a heading and an action of its own, hung from the right of what opened it.
+//
 // It holds the keyboard while it is open: Escape and a click outside close
 // it, Tab stays inside, and closing puts focus back on what opened it.
 
@@ -24,6 +27,11 @@ export interface EditThreadProps {
   /** The change to write, and what the head draws at the press. */
   onSave: (change: { name?: string; icon?: string; hue?: number }, shown: { name: string; icon: string; hue: number }) => void;
   onClose: () => void;
+  /** New thread's words in place of Edit thread's. */
+  heading?: string;
+  action?: string;
+  /** Which edge of what opened it the popover hangs from. */
+  align?: "start" | "end";
 }
 
 /** Arrow keys over a radio group laid out as a grid: left and right by one,
@@ -34,7 +42,7 @@ function step(key: string, index: number, count: number, columns: number): numbe
   return next === null || next < 0 || next >= count ? null : next;
 }
 
-export function EditThread({ thread, from, onSave, onClose }: EditThreadProps) {
+export function EditThread({ thread, from, onSave, onClose, heading = "Edit thread", action = "Save", align = "start" }: EditThreadProps) {
   const [name, setName] = useState(thread.name);
   const [picked, setPicked] = useState<string | null>(null);
   const [hue, setHue] = useState(thread.hue);
@@ -92,14 +100,21 @@ export function EditThread({ thread, from, onSave, onClose }: EditThreadProps) {
   return (
     <>
       <div className={styles.scrim} onClick={onClose} />
-      <div ref={box} className={styles.popover} role="dialog" aria-modal="true" aria-label="Edit thread" tabIndex={-1}>
+      <div
+        ref={box}
+        className={`${styles.popover} ${align === "end" ? styles.popoverEnd : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={heading}
+        tabIndex={-1}
+      >
         <div className={styles.head}>
           <button type="button" className={styles.cancel} onClick={onClose}>
             Cancel
           </button>
-          <b className={styles.title}>Edit thread</b>
+          <b className={styles.title}>{heading}</b>
           <button type="button" className={styles.save} onClick={save} disabled={!canSave}>
-            Save
+            {action}
           </button>
         </div>
 

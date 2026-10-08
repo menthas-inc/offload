@@ -11,9 +11,11 @@ import { GateLockup } from "../GateLockup";
 import { GATE } from "../../lib/gate";
 import { API_URL } from "../../lib/auth";
 import { attemptHeaders } from "../../lib/attempt";
+import { useColors } from "../../lib/colors";
 
 export default function NoInvite() {
   const router = useRouter();
+  const COLOR = useColors();
   const [email, setEmail] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
   const [disabled, setDisabled] = useState(false);
@@ -82,6 +84,8 @@ export default function NoInvite() {
                   accessibilityRole="alert"
                   accessibilityLiveRegion="polite"
                   className="rounded-md bg-surface-attention-soft px-space-6 py-space-5"
+                  // Dark theme: edges (design decisions, 2026-10-07).
+                  style={{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeAttention}` }}
                 >
                   <Text className="font-core text-body-sm text-text-on-attention">{GATE.code.refused}</Text>
                 </View>

@@ -46,7 +46,7 @@ A **label** is a named, coloured group inside one thread. A row **carries** labe
 ### Many rows at once: the label's list
 
 - **Reached** from the `plus` chip at the trailing end of the filter bar (New label, then name it), from *+ Group with labels* (the same), from tapping a mark (that label), and from holding a label chip. **On the web** holding has two equivalents: the chip's context menu (right click, the context menu key or Shift+F10) and, on a picked label chip, a trailing `pencil` inside it.
-- A name field led by the colour's dot; *Tick what goes under it.*; every row in the thread, content and listed notes, grouped under the thread's own section headings, one tick each, a row's other labels drawn beside its title as 20px marks. Footer: Cancel and **Label N**, N the ticked count, disabled at zero for a new label.
+- A name field led by the colour's dot; *Tick what goes under it.*; every row in the thread that is still ahead (amended 2026-10-07, below), content and listed notes, grouped under the thread's own section headings, one tick each, a row's other labels drawn beside its title as 20px marks. Footer: Cancel and **Label N**, N the ticked count, disabled at zero for a new label.
 - **Large threads.** The list is virtualised on the phones (`MoveSheet.tsx`'s list is the precedent) and on the web, reads its rows page by page from the server, and shows one spinner until the first page arrives, never a skeleton. Ticks made before a later page arrives are kept.
 - **For an existing label** the foot adds Rename (the name field becomes editable), Colour (the ten, taken ones marked, a pick swaps) and Delete. Label N becomes **Save** and is one write of the name, the colour and the rows ticked and unticked.
 - **Done is one write and one Undo.** The toast: *Seven under Istanbul* with Undo, which writes the previous set, name and colour back in one request through the same checks.
@@ -230,3 +230,9 @@ Retirement and the edges
 ## Amended 2026-10-02 by 028
 
 Nothing is labelled in the account's default thread, which 028 draws as *Not in a thread* rather than as a thread: a label there would be drawn nowhere and removable nowhere. `label_content` reports such rows done without labelling them, and the nightly sort never takes the default thread.
+
+## Amended 2026-10-07
+
+**The label's list offers what is still ahead.** It is for quick access, and what a person groups is rarely over: a ticked off row and an event whose last day is before today are left out, unless the label already carries them, so they can still come off it. Today's events stay, as does any series, whatever its first date. Days are read as Today reads them: an all-day row by its UTC date, a timed one in the account's clock. The filter is the server's, on `ticksFor`, so both clients and every page agree; the thread's own list is unchanged.
+
+**The web's edit dialog carries Labels**, as the phones' sheet has since 2026-09-29: the row's labels by dot and name, *None* when it has none, and the label popover behind them, hung from the start of the control. A change is saved with the rest in one write, labels typed with New label made first; labels alone read as a labelling, with its toast. Absent where the row has no thread's labels to offer. Logged in both decision logs under 2026-10-07.

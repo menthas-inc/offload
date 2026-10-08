@@ -92,3 +92,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 ## Done means
 
 All three tracks green in CI; a device run on both phones and a browser run on the web covering the row, the sheet, the list, the filter bar, Today and the timeline; the privacy page and both decision logs updated; eval cases written and a run offered, not run.
+
+## Amended 2026-10-07
+
+T-2026-10-07 The label's list offers what is ahead; the web edit dialog carries Labels. Done. See the feature spec's amendment of the same date.

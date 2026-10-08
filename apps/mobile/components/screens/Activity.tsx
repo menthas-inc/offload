@@ -131,12 +131,13 @@ export default function Activity() {
                       {row.body}
                     </Text>
                   ) : null}
+                  {/* Dark theme: edges (design decisions, 2026-10-07). */}
                   {tag ? (
                     <View
                       className={`mt-space-2 justify-center self-start rounded-sm px-space-2 ${
                         tag.tone === "noticed" ? "bg-surface-noticed-soft" : isAndroid ? "bg-a-c-high" : "bg-surface-fill"
                       }`}
-                      style={{ height: 19 }}
+                      style={{ height: 19, boxShadow: `inset 0 0 0 1px ${tag.tone === "noticed" ? COLOR.edgeNoticed : COLOR.edgeWell}` }}
                     >
                       <Text className={`font-core font-medium ${tag.tone === "noticed" ? "text-text-noticed" : "text-text-tertiary"}`} style={{ fontSize: 10.5 }}>
                         {tag.label}

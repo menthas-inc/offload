@@ -91,7 +91,8 @@ export function FilterBar({
           accessibilityRole="button"
           accessibilityLabel="New label"
           className={`items-center justify-center ${isAndroid ? "rounded-sm bg-a-c" : "rounded-pill bg-surface-fill"}`}
-          style={{ width: 30, minHeight: isAndroid ? 32 : 30 }}
+          // Dark theme: edges (design decisions, 2026-10-07).
+          style={{ width: 30, minHeight: isAndroid ? 32 : 30, boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}
         >
           <Glyph name="plus" size={15} color={COLOR.iconOnWell} />
         </Pressable>

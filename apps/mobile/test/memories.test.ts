@@ -135,6 +135,8 @@ describe("a kind's colours", () => {
     raised: t["surface-raised"]!,
     inverse: t["surface-inverse"]!,
     onSolid: t["text-inverse"]!,
+    // 2026-10-07: the theme's share of a kind's hue in its words, 78% in light.
+    hueInkMix: 0.78,
   };
 
   it("mixes a hue's soft ground and ink from its label token", () => {
@@ -145,6 +147,10 @@ describe("a kind's colours", () => {
       filled: false,
     });
     expect(memories.kindColors("patterns", palette).dot).toBe(t["label-5"]);
+  });
+
+  it("keeps the theme's share of the hue in a kind's words, half in dark", () => {
+    expect(memories.kindColors("people", { ...palette, hueInkMix: 0.5 }).ink).toBe(mixOklch(t["label-2"]!, palette.ink, 0.5));
   });
 
   it("draws Rules in ink, filled, with inverse text", () => {

@@ -104,6 +104,9 @@ function Result({
       className={`overflow-hidden rounded-a-md ${
         isAndroid ? "bg-a-c-low" : "border border-border-hairline bg-surface-raised"
       }`}
+      // Dark theme: edges (design decisions, 2026-10-07): Android's card takes
+      // the edge iOS's hairline already draws.
+      style={isAndroid ? { boxShadow: `inset 0 0 0 1px ${colors.edgeCard}` } : undefined}
     >
       {/* The thread names the rows from a header inside the card rather than a
           chip above it: one link out per result, and the count has somewhere
