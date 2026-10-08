@@ -423,3 +423,19 @@ window.OFFLOAD_DATA.answers={
    for a read that failed and says nothing, "what day is the gun show" for a refusal with
    nothing to file. */
 
+
+/* Open in your threads, on Today (7 October 2026). A page per thread holding open to-dos with no
+   date, oldest open to-do first; the read is the first sentence of the thread's own standing read.
+   Things not in a thread close the set when any of them is a to-do. */
+window.OFFLOAD_DATA.open_threads=[
+  {name:"Europe, October",id:"lisbon",people:["AD","TR"],read:"Lisbon is booked. Paris still needs a hotel, and the Sintra train is yours to book.",
+   todos:[{title:"Book the Sintra train",age:"3 weeks"},{title:"Buy Viva Viagem cards",age:"2 weeks"},{title:"Mus\u00e9e d'Orsay tickets",age:"9 days"},{title:"Pack the charger adapters",age:"5 days"},{title:"Find a hotel in Paris",age:"2 days"}]},
+  {name:"Flat",id:"home",people:["SO"],read:"The council tax is the only one with a letter behind it.",
+   todos:[{title:"Fix the bathroom tap",age:"2 weeks"},{title:"Return the drill to Tom",age:"1 week"},{title:"Pay the council tax",age:"4 days"},{title:"Book the boiler service",age:"2 days"}]},
+  {name:"Bookshelf build",id:"shelf",people:[],read:"Brackets first. The sale on the matte black ones ends Friday.",
+   todos:[{title:"Order the oak brackets",age:"12 days"},{title:"Buy wall plugs",age:"12 days"},{title:"Cut the boards",age:"12 days"}]},
+  {name:"Work",id:"shelf",people:[],read:"Two things to settle before the offsite.",
+   todos:[{title:"Draft the offsite agenda",age:"6 days"},{title:"Review the Q4 budget",age:"3 days"}]},
+  {name:"Not in a thread",loose:true,people:[],read:"offload has a thread in mind for one of these.",more:"6 notes and links",
+   todos:[{title:"Renew passport",age:"3 weeks"},{title:"Call the landlord about the damp",age:"2 weeks"},{title:"Return the library books",age:"1 week"}]}
+];

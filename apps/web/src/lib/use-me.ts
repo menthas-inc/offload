@@ -71,8 +71,9 @@ export interface Me {
    *  sidebar's Settings and on the My people row. */
   requestsWaiting: number;
   /** 027. Customize Today's layout, resolved by the server against the
-   *  defaults, so a kind added later is already in it. */
-  todayLayout?: TodayLayout;
+   *  defaults, so a kind added later is already in it. `todayLayout` is the
+   *  same without open_threads, for phone builds from before it. */
+  todayLayoutV2?: TodayLayout;
 }
 
 /** 022. Ask again and tell every mounted `useMe`, for after a request is

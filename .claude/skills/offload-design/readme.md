@@ -1006,16 +1006,23 @@ nothing is drawn when it is empty, which is most days. There is no heading and n
   faded, the next one raised.
 - **To do**: late first with its late chip (past three, *3 more late*), then to-dos with a time
   carrying a clock chip, then the rest due that day. The thread page's own rows.
-- **If you have time**, on Today only: up to three to-dos with no date, offload's pick, each with
-  *+ Today* to take it on.
+- **Open in your threads**, on Today only (7 October 2026, off `explorations/home-thread-pages.html`;
+  it replaces *If you have time*): the to-dos with **no date**, a page per thread, swiped, the next
+  page peeking and dots under. A page: the thread's own icon and its name at 17px semibold with the
+  people sharing it; up to four to-dos, oldest first, each with how long it has been open; then
+  *N more* and *Open thread*. Threads with the oldest open to-do first; **Not in a thread** last, when
+  it holds a to-do, with offload's line when it has a thread in mind for one, what else it holds and
+  *Sort them*. A tick strikes through in place with Undo. The web shows two pages side by side,
+  stepped by arrows in the head. *As built, 7 October:* no first sentence of the thread's read
+  under the name, since nothing writes a thread's read yet; it comes back when one exists.
 - Empty sections are not drawn. No line for tomorrow.
 
 **Threads are thread pills**, the conversation's moss chip with `lasso`, at 24px to sit on a row's
 marks line beside the date chip; a label follows it. A calendar name stays plain text.
 
 **Customize Today** opens from `sliders-horizontal` in the app bar, which only Today draws:
-Needs you, Your day and What moved, each dragged to order and switched. What Needs you and If you
-have time hold is the server's rule, not a setting. The layout is one small document per account,
+Needs you, Your day, Open in your threads and What moved, each dragged to order and switched. What
+Needs you and Open in your threads hold is the server's rule, not a setting. The layout is one small document per account,
 read by the server; no model call is involved.
 
 **The forwarding tip** (026): *Forward emails to offload*, the address `over@to.offload.club` and

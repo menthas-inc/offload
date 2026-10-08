@@ -29,7 +29,8 @@ export function DayStepper({
         </span>
       </button>
       <div className={styles.stepName} aria-live="polite">
-        <h2 className={styles.stepDay}>{name}</h2>
+        {/* Today's one h1: the pane head has no title since 2026-10-07. */}
+        <h1 className={styles.stepDay}>{name}</h1>
         {sub ? <p className={styles.stepSub}>{sub}</p> : null}
       </div>
       <button type="button" className={styles.step} aria-label="Next day" disabled={last} onClick={() => onStep(1)}>

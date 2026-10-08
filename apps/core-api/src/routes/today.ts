@@ -1,4 +1,5 @@
-// 027 Today: one day, Needs you, putting a card off, and + Today.
+// 027 Today: one day, Needs you, putting a card off, and (2026-10-07) open
+// in your threads, which replaced If you have time and + Today.
 //
 // Every route resolves the session's account and nothing else (SEC-2). An id
 // that is not the account's answers 404, the same as one that does not exist
@@ -10,12 +11,9 @@ import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
-import { NotYours } from "../threads/access.js";
-import { Refused } from "../threads/refusals.js";
 import { dayResponse, readDay } from "../today/day.js";
 import { needsCard, needsYou, putOff } from "../today/needs.js";
-import { takeToday, undoTakeToday } from "../today/picks.js";
-import { agendaRow } from "../today/rows.js";
+import { openResponse, openThreads } from "../today/threads.js";
 
 async function currentAccountId(request: FastifyRequest): Promise<string | null> {
   const headers = new Headers();
@@ -79,49 +77,13 @@ export async function todayRoutes(app: App): Promise<void> {
     },
   );
 
-  const picked = { params: z.object({ contentId: z.string().uuid() }) };
-
-  app.post(
-    "/v1/today/picks/:contentId",
-    {
-      schema: {
-        ...picked,
-        response: { 200: agendaRow, 400: badRequest, 401: unauthenticated, 404: notFound },
-      },
-    },
+  app.get(
+    "/v1/today/threads",
+    { schema: { response: { 200: openResponse, 401: unauthenticated } } },
     async (request, reply) => {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" as const });
-      try {
-        return reply.send(await takeToday(accountId, request.params.contentId));
-      } catch (error) {
-        if (error instanceof NotYours) return reply.status(404).send({ error: "not_found" as const });
-        if (error instanceof Refused) return reply.status(400).send({ error: error.code });
-        throw error;
-      }
-    },
-  );
-
-  app.delete(
-    "/v1/today/picks/:contentId",
-    {
-      schema: {
-        ...picked,
-        response: { 200: ok, 400: badRequest, 401: unauthenticated, 404: notFound, 409: z.object({ error: z.literal("not_undoable") }) },
-      },
-    },
-    async (request, reply) => {
-      const accountId = await currentAccountId(request);
-      if (!accountId) return reply.status(401).send({ error: "unauthenticated" as const });
-      try {
-        const outcome = await undoTakeToday(accountId, request.params.contentId);
-        if (outcome === "not_undoable") return reply.status(409).send({ error: "not_undoable" as const });
-        return reply.send({ ok: true as const });
-      } catch (error) {
-        if (error instanceof NotYours) return reply.status(404).send({ error: "not_found" as const });
-        if (error instanceof Refused) return reply.status(400).send({ error: error.code });
-        throw error;
-      }
+      return reply.send(await openThreads(accountId));
     },
   );
 }

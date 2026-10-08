@@ -92,3 +92,11 @@ Every task starts with its failing test, run and seen red for the reason the tas
 - [x] **T6.4** `eventMeta` and both timelines draw it. *(AC-36)*
 - [x] **T6.5** `find_events` carries `yours`; the description says to keep them apart; eval cases added. Running them is a separate ask. *(AC-37)*
 - [x] **T6.6** Nothing about guests kept, the stored lists emptied, settled proposals deleted by the daily purge, the privacy page says so. *(AC-38)*
+
+## Amended 2026-10-07: open in your threads
+
+- [x] **T7.1** `today/threads.ts` and `GET /v1/today/threads`, red first: a page per thread with open undated to-dos, oldest thread first, four rows oldest first with the count; done, archived, deleted, non-task rows and unread threads left out; another member's to-do in a shared thread taken, its people named; twelve pages at most; Not in a thread last with `inMind` and `holds`, absent with no undated to-do; nothing when the layout has it off; 401. The day's `picks` always empty and + Today's route gone. *(AC-22, AC-28)*
+- [x] **T7.2** The layout's `open_threads`: the default after the day, a stored layout without it gets it after the day wherever the day is, refused twice; `/api/me`'s `todayLayout` without it and `todayLayoutV2` whole. *(AC-27, AC-28)*
+- [x] **T7.3** `@offload/widgets` `open-threads.ts`: `openFor`, `inMindLine`, `holdsLine`, `keepInPlace`. *(AC-23)*
+- [x] **T7.4** Web: the section after To do, two up with the chevrons, people, ages, N more, Open thread, Not in a thread's line and Sort them, the tick with Undo kept in place through a re-read, the row sheet, nothing on another day, with nothing open or switched off; Customize's third row; no page title. *(AC-22, AC-23, AC-27)*
+- [x] **T7.5** Phones: the pages with the peek, the snap and the dots, the tick, the row sheet, Customize's third row, the edge in dark. *(AC-22, AC-23, AC-27)*

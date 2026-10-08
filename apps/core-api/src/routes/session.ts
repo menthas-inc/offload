@@ -6,7 +6,7 @@
 
 import { mapsOn, setting, webMapsOn } from "../settings.js";
 import { atDailyLimit } from "../budget.js";
-import { layoutShape, resolveLayout, todayLayout } from "../today/layout.js";
+import { layoutShape, legacyLayout, resolveLayout, todayLayout } from "../today/layout.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { sql } from "kysely";
@@ -140,8 +140,12 @@ const meResponse = z.object({
    *  account can say where its email came from. Empty for an account with no
    *  identity yet, rather than a guess. */
   signInProviders: z.array(z.enum(["apple", "google"])),
-  /** 027. Customize Today's layout, resolved: every kind present, in order. */
+  /** 027. Customize Today's layout, resolved, for builds from before
+   *  open_threads (2026-10-07): every kind but that one. Remove once no build
+   *  that reads it is in use. */
   todayLayout: layoutShape,
+  /** Customize Today's layout, resolved: every kind present, in order. */
+  todayLayoutV2: layoutShape,
   /** The day's model budget is spent or its turns are used, so the composer is
    *  closed until the window moves (budget.ts). */
   atDailyLimit: z.boolean(),
@@ -327,7 +331,8 @@ export async function meFor(accountId: string): Promise<z.infer<typeof meRespons
     activityNew: await activityNew(accountId),
     mailAvailable: !/@privaterelay\.appleid\.com$/i.test(account.email),
     signInProviders: await signInProviders(accountId),
-    todayLayout: resolveLayout(account.today_layout),
+    todayLayout: legacyLayout(resolveLayout(account.today_layout)),
+    todayLayoutV2: resolveLayout(account.today_layout),
     atDailyLimit: await atDailyLimit(accountId),
   };
 }

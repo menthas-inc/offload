@@ -237,6 +237,12 @@ neutral chip and tint from six `--edge-*` tokens that are transparent in light. 
 `handoff/APPLY-2026-10-07-dark-contrast.md` lists the edge per file on all three surfaces,
 `handoff/dark-contrast-standalone.html` is the reference, **Dark theme** then **Edges** in `readme.md` the lasting statement.
 
+## Today: open in your threads, added 2026-10-07
+
+Today's *If you have time* becomes **Open in your threads**: a page per thread with its undated to-dos, swiped on the
+phones and two side by side on the web. `handoff/APPLY-2026-10-07-open-threads.md` is the build,
+`handoff/home-thread-pages-standalone.html` the reference, **Today** in `readme.md` the lasting statement.
+
 ## The thinking row, added 2026-10-07
 
 The conversation's working state becomes one row: the Splash drop, the model's phrase, and a Stop pill from ten

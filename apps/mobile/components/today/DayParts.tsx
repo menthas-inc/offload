@@ -92,7 +92,7 @@ export function NextLine({ events, now, isToday, zone }: { events: TodayEvent[];
   );
 }
 
-export function SectionHead({ title, count, hint }: { title: string; count?: number; hint?: string }) {
+export function SectionHead({ title, count }: { title: string; count?: number }) {
   return (
     <View className="flex-row items-baseline gap-space-3 pb-space-2">
       <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 15 }} accessibilityRole="header">
@@ -101,11 +101,6 @@ export function SectionHead({ title, count, hint }: { title: string; count?: num
       {count !== undefined ? (
         <Text className="font-core text-text-tertiary" style={{ fontSize: 13 }}>
           {count}
-        </Text>
-      ) : null}
-      {hint ? (
-        <Text className="ml-auto font-core text-text-tertiary" style={{ fontSize: 12.5 }}>
-          {hint}
         </Text>
       ) : null}
     </View>

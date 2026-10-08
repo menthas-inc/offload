@@ -47,7 +47,6 @@ export interface Day {
   timedMore: number;
   rest: TodayRow[];
   restMore: number;
-  picks: TodayRow[];
   everDumped: boolean;
   threadLabels: { id: string; name: string; colour: number }[];
 }
@@ -156,21 +155,38 @@ export async function putOff(card: string, forGood?: boolean): Promise<"ok" | "g
   return sent.status === 200 ? "ok" : sent.status === 404 ? "gone" : "failed";
 }
 
-// ---------------------------------------------------------------- + Today
+// ---------------------------------------------------------------- open in your threads
 
-export async function takeToday(contentId: string): Promise<boolean> {
-  return (await send(`/v1/today/picks/${contentId}`, { method: "POST" })).status === 200;
+/** A page (design 2026-10-07): a thread's open to-dos with no date, its oldest
+ *  four and how many it holds. `name` is null for Not in a thread, which
+ *  carries `loose`. */
+export interface OpenPage {
+  threadId: string;
+  name: string | null;
+  icon: string | null;
+  hue: number | null;
+  people: Person[];
+  todos: TodayRow[];
+  count: number;
+  loose: { inMind: number; holds: Record<string, number> } | null;
 }
 
-export async function untakeToday(contentId: string): Promise<boolean> {
-  return (await send(`/v1/today/picks/${contentId}`, { method: "DELETE" })).status === 200;
+/** The pages in the server's order, or null when they did not come back. */
+export async function fetchOpenThreads(): Promise<OpenPage[] | null> {
+  const sent = await send<{ pages: OpenPage[] }>("/v1/today/threads");
+  return sent.status === 200 && sent.data?.pages ? sent.data.pages : null;
 }
 
 // ---------------------------------------------------------------- the layout
 
 export type Part = "account" | "people" | "questions" | "tips";
 export const PARTS: Part[] = ["account", "people", "questions", "tips"];
-type Section = { kind: "needs_you"; parts: { kind: Part; on: boolean }[] } | { kind: "day"; on: boolean };
+type Section =
+  | { kind: "needs_you"; parts: { kind: Part; on: boolean }[] }
+  | { kind: "day"; on: boolean }
+  | { kind: "open_threads"; on: boolean };
+/** A section with a switch of its own. */
+export type SectionSwitch = "day" | "open_threads";
 export interface Layout {
   version: 1;
   sections: Section[];
@@ -178,39 +194,54 @@ export interface Layout {
 
 export const DEFAULT_LAYOUT: Layout = {
   version: 1,
-  sections: [{ kind: "needs_you", parts: PARTS.map((kind) => ({ kind, on: true })) }, { kind: "day", on: true }],
+  sections: [
+    { kind: "needs_you", parts: PARTS.map((kind) => ({ kind, on: true })) },
+    { kind: "day", on: true },
+    { kind: "open_threads", on: true },
+  ],
 };
+
+/** What `/api/me` resolved, or the defaults before it has said. Builds
+ *  before open_threads read `todayLayout`, which never names it. */
+export function layoutOf(me: { todayLayoutV2?: Layout } | null | undefined): Layout {
+  return me?.todayLayoutV2 ?? DEFAULT_LAYOUT;
+}
 
 export function partOn(layout: Layout, part: Part): boolean {
   const needs = layout.sections.find((section) => section.kind === "needs_you");
   return needs?.kind === "needs_you" ? (needs.parts.find((p) => p.kind === part)?.on ?? true) : true;
 }
 
-export function dayOn(layout: Layout): boolean {
-  const day = layout.sections.find((section) => section.kind === "day");
-  return day?.kind === "day" ? day.on : true;
+function sectionOn(layout: Layout, kind: SectionSwitch): boolean {
+  const found = layout.sections.find((section) => section.kind === kind);
+  return found && found.kind !== "needs_you" ? found.on : true;
 }
 
+export const dayOn = (layout: Layout): boolean => sectionOn(layout, "day");
+export const openThreadsOn = (layout: Layout): boolean => sectionOn(layout, "open_threads");
+
+const isSection = (key: Part | SectionSwitch): key is SectionSwitch => key === "day" || key === "open_threads";
+
 function onCount(layout: Layout): number {
-  return layout.sections.reduce((n, section) => n + (section.kind === "day" ? Number(section.on) : section.parts.filter((p) => p.on).length), 0);
+  return layout.sections.reduce((n, section) => n + (section.kind === "needs_you" ? section.parts.filter((p) => p.on).length : Number(section.on)), 0);
 }
 
 /** False for the one switch still on: Today is never blank. */
-export function canSwitchOff(layout: Layout, key: Part | "day"): boolean {
-  const on = key === "day" ? dayOn(layout) : partOn(layout, key);
+export function canSwitchOff(layout: Layout, key: Part | SectionSwitch): boolean {
+  const on = isSection(key) ? sectionOn(layout, key) : partOn(layout, key);
   return !on || onCount(layout) > 1;
 }
 
-export function setSwitch(layout: Layout, key: Part | "day", on: boolean): Layout {
+export function setSwitch(layout: Layout, key: Part | SectionSwitch, on: boolean): Layout {
   if (!on && !canSwitchOff(layout, key)) return layout;
   return {
     version: 1,
     sections: layout.sections.map((section) =>
-      section.kind === "day"
-        ? key === "day"
+      section.kind === "needs_you"
+        ? { ...section, parts: section.parts.map((p) => (p.kind === key ? { ...p, on } : p)) }
+        : section.kind === key
           ? { ...section, on }
-          : section
-        : { ...section, parts: section.parts.map((p) => (p.kind === key ? { ...p, on } : p)) },
+          : section,
     ),
   };
 }

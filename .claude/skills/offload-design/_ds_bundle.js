@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"SentVoice","sourcePath":"components/conversation/SentVoice.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Avatar","sourcePath":"components/core/Avatar.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"LabelMark","sourcePath":"components/core/LabelMark.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/SentVoice.jsx":"08bb27934031","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Avatar.jsx":"1c8eef696ff5","components/core/Badge.jsx":"c063e4a6f9fe","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"acc1861be6cb","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/core/LabelMark.jsx":"f7c78223c974","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"7f6290747633","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a8686d8045e4","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"d58108f37e4d","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/dark-contrast-screens.js":"1f447b0b9a3e","explorations/image-slot.js":"fff26d081c8d","explorations/landing-core.js":"32e8f6337779","explorations/landing-dirs.js":"1858a6d2e14c","explorations/memories-proto.js":"5b13ef74bc50","explorations/memories-v2.js":"00ff6cea546a","explorations/onboarding-screens.js":"4b514292623c","explorations/settings-pages-v2.js":"24a2e3c27320","explorations/settings-pages.js":"478a7f384452","explorations/thinking.js":"98a75fd73e16","explorations/thread-marks-v2.js":"d56f48769191","explorations/thread-marks.js":"1cc87f13c484","ui_kits/admin_web/A.jsx":"14c3017336ab","ui_kits/admin_web/AOps.jsx":"b78ac3169b9f","ui_kits/admin_web/APeople.jsx":"7f2571db7e1d","ui_kits/admin_web/AdminApp.jsx":"ef5fb96309c2","ui_kits/admin_web/AdminData.js":"3f12c5e639db","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"c5d8ae19a52c","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"fafa6cd83dc4","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"815b631d6e6d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"fd0b5edce6dd","ui_kits/android_app/M3SettingsScreen.jsx":"dade732e7925","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"d4e7d87079cb","ui_kits/android_app/M3TodayScreen.jsx":"0bc87b953e81","ui_kits/marketing_site/landing.js":"6e39e2d995c3","ui_kits/memories_tab/memories.js":"f81c11547f52","ui_kits/mobile_app/App.jsx":"98207e3ef49a","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"828eecc1f7ca","ui_kits/mobile_app/LooseParts.jsx":"d39791d4afdd","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"4ef26e230ccd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"269d6f059c17","ui_kits/mobile_app/SettingsScreen.jsx":"8bbffe11f5d4","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"b1d227129152","ui_kits/mobile_app/TodayParts.jsx":"66adfacb1077","ui_kits/mobile_app/TodayScreen.jsx":"ba3c48281d49","ui_kits/mobile_app/data.js":"9cbe9c7e1010","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"d32465d6f729","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"SentVoice","sourcePath":"components/conversation/SentVoice.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Avatar","sourcePath":"components/core/Avatar.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"LabelMark","sourcePath":"components/core/LabelMark.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/SentVoice.jsx":"08bb27934031","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Avatar.jsx":"1c8eef696ff5","components/core/Badge.jsx":"c063e4a6f9fe","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"acc1861be6cb","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/core/LabelMark.jsx":"f7c78223c974","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"7f6290747633","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a8686d8045e4","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"d58108f37e4d","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/dark-contrast-screens.js":"1f447b0b9a3e","explorations/image-slot.js":"fff26d081c8d","explorations/landing-core.js":"32e8f6337779","explorations/landing-dirs.js":"1858a6d2e14c","explorations/memories-proto.js":"5b13ef74bc50","explorations/memories-v2.js":"00ff6cea546a","explorations/onboarding-screens.js":"4b514292623c","explorations/settings-pages-v2.js":"24a2e3c27320","explorations/settings-pages.js":"478a7f384452","explorations/thinking.js":"98a75fd73e16","explorations/thread-marks-v2.js":"d56f48769191","explorations/thread-marks.js":"1cc87f13c484","ui_kits/admin_web/A.jsx":"14c3017336ab","ui_kits/admin_web/AOps.jsx":"b78ac3169b9f","ui_kits/admin_web/APeople.jsx":"7f2571db7e1d","ui_kits/admin_web/AdminApp.jsx":"ef5fb96309c2","ui_kits/admin_web/AdminData.js":"3f12c5e639db","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"c5d8ae19a52c","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"fafa6cd83dc4","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"815b631d6e6d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"fd0b5edce6dd","ui_kits/android_app/M3SettingsScreen.jsx":"dade732e7925","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"d4e7d87079cb","ui_kits/android_app/M3TodayScreen.jsx":"6a1755471919","ui_kits/marketing_site/landing.js":"6e39e2d995c3","ui_kits/memories_tab/memories.js":"f81c11547f52","ui_kits/mobile_app/App.jsx":"98207e3ef49a","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"828eecc1f7ca","ui_kits/mobile_app/LooseParts.jsx":"d39791d4afdd","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"4ef26e230ccd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"269d6f059c17","ui_kits/mobile_app/SettingsScreen.jsx":"8bbffe11f5d4","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"b1d227129152","ui_kits/mobile_app/TodayParts.jsx":"2e6355649513","ui_kits/mobile_app/TodayScreen.jsx":"11d4850dce39","ui_kits/mobile_app/data.js":"5b8bc81e7271","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"d32465d6f729","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"7376979ddfce"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -16330,7 +16330,8 @@ function TodayScreen({
   const open = name => onOpenThread && onOpenThread({
     "Europe, October": "lisbon",
     "Flat": "home",
-    "Work": "shelf"
+    "Work": "shelf",
+    "Bookshelf build": "shelf"
   }[name] || "lisbon");
   const ib = (icon, label, on, badge) => /*#__PURE__*/React.createElement("button", {
     type: "button",
@@ -24280,13 +24281,11 @@ function TodayBody({
   quiet
 }) {
   const [d, setD] = React.useState(0);
-  const [taken, setTaken] = React.useState([]);
   const [editing, setEditing] = React.useState(null);
   const day = TP_DATA.days[d];
   const cardBg = and ? "var(--a-c-low, var(--surface-fill))" : "var(--surface-fill)";
   const r = and ? 16 : "var(--radius-lg)";
-  const todo = day.todo.concat(d === 0 ? TP_DATA.days[0].spare.filter(s => taken.includes(s.title)) : []);
-  const spare = d === 0 ? day.spare.filter(s => !taken.includes(s.title)) : [];
+  const todo = day.todo;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -24371,32 +24370,224 @@ function TodayBody({
     last: i === todo.length - 1,
     onThread: onThread,
     onOpen: () => setEditing(it)
-  })))) : null, spare.length ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(TPHead, {
-    hint: "picked by offload"
-  }, "If you have time"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderRadius: r,
-      background: cardBg,
-      overflow: "hidden"
-    }
-  }, spare.map((it, i) => /*#__PURE__*/React.createElement(TodoRow, {
-    key: it.title,
-    it: it,
-    add: true,
-    last: i === spare.length - 1,
-    onThread: onThread,
-    onAdd: () => setTaken(t => t.concat(it.title))
-  })))) : null, editing ? /*#__PURE__*/React.createElement(RowEditSheet, {
+  })))) : null, d === 0 ? /*#__PURE__*/React.createElement(ThreadPages, {
+    and: and,
+    onThread: onThread
+  }) : null, editing ? /*#__PURE__*/React.createElement(RowEditSheet, {
     it: editing,
     and: and,
     onClose: () => setEditing(null)
   }) : null);
 }
+
+/* Open in your threads (7 October 2026, readme: Today). A page per thread, swiped, the next one
+   peeking: its name and people, the first sentence of its read, up to four undated to-dos with their
+   age, ticked in place, and a foot that opens the thread. Today only; not drawn when nothing is open. */
+function ThreadPages({
+  and,
+  onThread,
+  start
+}) {
+  const P = window.OFFLOAD_DATA && window.OFFLOAD_DATA.open_threads || [];
+  const [done, setDone] = React.useState([]);
+  const [pg, setPg] = React.useState(0);
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (el && start && el.children[start]) el.scrollLeft = el.children[start].offsetLeft - el.children[0].offsetLeft;
+  }, [start]);
+  if (!P.length) return null;
+  const total = P.reduce((n, p) => n + p.todos.length, 0);
+  const bg = and ? "var(--a-c-low, var(--surface-fill))" : "var(--surface-fill)";
+  const r = and ? 16 : "var(--radius-lg)";
+  const onScroll = e => {
+    const el = e.currentTarget;
+    const w = el.children[1] ? el.children[1].offsetLeft - el.children[0].offsetLeft : 1;
+    setPg(Math.round(el.scrollLeft / w));
+  };
+  const line = "inset 0 1px 0 var(--border-hairline)";
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(TPHead, {
+    n: total
+  }, "Open in your threads"), /*#__PURE__*/React.createElement("div", {
+    ref: ref,
+    onScroll: onScroll,
+    style: {
+      display: "flex",
+      gap: 8,
+      overflowX: "auto",
+      scrollSnapType: "x mandatory",
+      scrollPaddingLeft: "var(--gutter-screen)",
+      margin: "0 calc(var(--gutter-screen) * -1)",
+      padding: "0 var(--gutter-screen)",
+      scrollbarWidth: "none"
+    }
+  }, P.map(p => /*#__PURE__*/React.createElement("div", {
+    key: p.name,
+    style: {
+      flex: "0 0 calc(100% - 32px)",
+      scrollSnapAlign: "start",
+      borderRadius: r,
+      background: bg,
+      boxShadow: "inset 0 0 0 1px var(--edge-well)",
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    role: "button",
+    tabIndex: 0,
+    onClick: () => !p.loose && onThread && onThread(p.name),
+    style: {
+      padding: "14px 14px 10px",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      minHeight: 22,
+      font: "var(--weight-semibold) 17px/1.2 var(--font-core)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "flex",
+      color: p.loose ? "var(--icon-on-well)" : "var(--text-accent)"
+    }
+  }, /*#__PURE__*/React.createElement(TPIcon, {
+    name: p.loose ? "inbox" : "lasso",
+    size: 16
+  })), p.name, p.people.length ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      display: "flex"
+    }
+  }, p.people.map((x, i) => /*#__PURE__*/React.createElement("span", {
+    key: x,
+    style: {
+      width: 22,
+      height: 22,
+      borderRadius: 99,
+      marginLeft: i ? -5 : 0,
+      background: "var(--blue-100)",
+      color: "var(--blue-700)",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      font: "var(--weight-semibold) 10px/1 var(--font-core)",
+      boxShadow: "0 0 0 2px " + bg
+    }
+  }, x))) : null), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "4px 0 0",
+      font: "var(--weight-regular) 15px/1.45 var(--font-quiet)",
+      color: "var(--text-secondary)",
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden"
+    }
+  }, p.read)), p.todos.slice(0, 4).map(it => {
+    const k = p.name + it.title;
+    const on = done.includes(k);
+    return /*#__PURE__*/React.createElement("div", {
+      key: k,
+      style: {
+        display: "grid",
+        gridTemplateColumns: "22px minmax(0,1fr) auto",
+        columnGap: 8,
+        padding: "10px 14px",
+        boxShadow: line
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      role: "checkbox",
+      "aria-checked": on,
+      "aria-label": it.title,
+      onClick: () => setDone(x => on ? x.filter(y => y !== k) : x.concat(k)),
+      style: {
+        height: 20,
+        padding: 0,
+        border: "none",
+        background: "transparent",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("i", {
+      style: {
+        width: 15,
+        height: 15,
+        borderRadius: 4,
+        boxSizing: "border-box",
+        border: "1.5px solid " + (on ? "var(--text-primary)" : "var(--icon-on-well)"),
+        background: on ? "var(--text-primary)" : "transparent",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "var(--text-inverse)"
+      }
+    }, on ? /*#__PURE__*/React.createElement(TPIcon, {
+      name: "check",
+      size: 11
+    }) : null)), /*#__PURE__*/React.createElement("b", {
+      style: {
+        font: "var(--weight-medium) 15px/20px var(--font-core)",
+        textDecoration: on ? "line-through" : "none",
+        textDecorationThickness: 1,
+        color: on ? "var(--text-tertiary)" : "var(--text-primary)"
+      }
+    }, it.title), /*#__PURE__*/React.createElement("span", {
+      style: {
+        font: "var(--weight-regular) 12px/20px var(--font-core)",
+        color: "var(--text-tertiary)",
+        whiteSpace: "nowrap",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, it.age));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: "auto",
+      display: "flex",
+      justifyContent: "space-between",
+      padding: "10px 14px",
+      boxShadow: line,
+      font: "var(--weight-regular) 13px/20px var(--font-core)",
+      color: "var(--text-tertiary)"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, p.todos.length > 4 ? p.todos.length - 4 + " more" : p.more || ""), /*#__PURE__*/React.createElement("span", {
+    role: "button",
+    tabIndex: 0,
+    onClick: () => !p.loose && onThread && onThread(p.name),
+    style: {
+      color: "var(--text-accent)",
+      fontWeight: 500,
+      cursor: "pointer"
+    }
+  }, p.loose ? "Sort them" : "Open thread"))))), P.length > 1 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "center",
+      gap: 5,
+      marginTop: 8
+    }
+  }, P.map((_, i) => /*#__PURE__*/React.createElement("i", {
+    key: i,
+    style: {
+      width: i === pg ? 16 : 6,
+      height: 6,
+      borderRadius: 9,
+      background: i === pg ? "var(--text-primary)" : "var(--border-strong)",
+      transition: "width var(--dur-fast, 140ms) var(--ease-out)"
+    }
+  }))) : null);
+}
 function CustomizeSheet({
   and,
   onClose
 }) {
-  const [rows, setRows] = React.useState([["Needs you", "Requests, questions, account issues, tips", true], ["Your day", "Events and to-dos, a day at a time", true], ["What moved", "Shared threads, since you last looked", false]]);
+  const [rows, setRows] = React.useState([["Needs you", "Requests, questions, account issues, tips", true], ["Your day", "Events and to-dos, a day at a time", true], ["Open in your threads", "To-dos with no date, a thread at a time", true], ["What moved", "Shared threads, since you last looked", false]]);
   const sw = (on, i) => /*#__PURE__*/React.createElement("button", {
     type: "button",
     role: "switch",
@@ -25021,6 +25212,7 @@ function RowEditSheet({
   }, pb("Cancel", "", () => setPanel(false)), pb("Done", "pri", () => setPanel(false))))));
 }
 Object.assign(window, {
+  ThreadPages,
   RowEditSheet,
   TodayBody,
   CustomizeSheet,
@@ -25068,7 +25260,8 @@ function TodayScreen({
   const open = name => onOpenThread && onOpenThread({
     "Europe, October": "lisbon",
     "Flat": "home",
-    "Work": "shelf"
+    "Work": "shelf",
+    "Bookshelf build": "shelf"
   }[name] || "lisbon");
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(AppBar, {
     border: false,
@@ -26773,6 +26966,93 @@ window.OFFLOAD_DATA.answers = {
    day" for one source, "what's on over the long weekend" for five and a count, a pasted URL
    for a read that failed and says nothing, "what day is the gun show" for a refusal with
    nothing to file. */
+
+/* Open in your threads, on Today (7 October 2026). A page per thread holding open to-dos with no
+   date, oldest open to-do first; the read is the first sentence of the thread's own standing read.
+   Things not in a thread close the set when any of them is a to-do. */
+window.OFFLOAD_DATA.open_threads = [{
+  name: "Europe, October",
+  id: "lisbon",
+  people: ["AD", "TR"],
+  read: "Lisbon is booked. Paris still needs a hotel, and the Sintra train is yours to book.",
+  todos: [{
+    title: "Book the Sintra train",
+    age: "3 weeks"
+  }, {
+    title: "Buy Viva Viagem cards",
+    age: "2 weeks"
+  }, {
+    title: "Mus\u00e9e d'Orsay tickets",
+    age: "9 days"
+  }, {
+    title: "Pack the charger adapters",
+    age: "5 days"
+  }, {
+    title: "Find a hotel in Paris",
+    age: "2 days"
+  }]
+}, {
+  name: "Flat",
+  id: "home",
+  people: ["SO"],
+  read: "The council tax is the only one with a letter behind it.",
+  todos: [{
+    title: "Fix the bathroom tap",
+    age: "2 weeks"
+  }, {
+    title: "Return the drill to Tom",
+    age: "1 week"
+  }, {
+    title: "Pay the council tax",
+    age: "4 days"
+  }, {
+    title: "Book the boiler service",
+    age: "2 days"
+  }]
+}, {
+  name: "Bookshelf build",
+  id: "shelf",
+  people: [],
+  read: "Brackets first. The sale on the matte black ones ends Friday.",
+  todos: [{
+    title: "Order the oak brackets",
+    age: "12 days"
+  }, {
+    title: "Buy wall plugs",
+    age: "12 days"
+  }, {
+    title: "Cut the boards",
+    age: "12 days"
+  }]
+}, {
+  name: "Work",
+  id: "shelf",
+  people: [],
+  read: "Two things to settle before the offsite.",
+  todos: [{
+    title: "Draft the offsite agenda",
+    age: "6 days"
+  }, {
+    title: "Review the Q4 budget",
+    age: "3 days"
+  }]
+}, {
+  name: "Not in a thread",
+  loose: true,
+  people: [],
+  read: "offload has a thread in mind for one of these.",
+  more: "6 notes and links",
+  todos: [{
+    title: "Renew passport",
+    age: "3 weeks"
+  }, {
+    title: "Call the landlord about the damp",
+    age: "2 weeks"
+  }, {
+    title: "Return the library books",
+    age: "1 week"
+  }]
+}];
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/mobile_app/data.js", error: String((e && e.message) || e) }); }
 
 // ui_kits/mobile_app/sun.js
@@ -31480,6 +31760,208 @@ function WWeekStrip({
     }
   }, freeWords(d.events)))));
 }
+
+/* Open in your threads (7 October 2026): the phones' thread pages, two side by side, stepped by the
+   arrows in the section head. */
+function WThreadPages({
+  open
+}) {
+  const P = D.open_threads || [];
+  const [at, setAt] = React.useState(0);
+  const [done, setDone] = React.useState([]);
+  if (!P.length) return null;
+  const total = P.reduce((n, p) => n + p.todos.length, 0);
+  const go = p => p.loose ? open({
+    kind: "things"
+  }) : open({
+    kind: "thread",
+    id: p.id
+  });
+  const line = "inset 0 1px 0 var(--border-hairline)";
+  const arrow = (dir, off) => /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "aria-label": dir < 0 ? "Previous threads" : "Next threads",
+    disabled: off,
+    onClick: () => setAt(a => a + dir * 2),
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      border: "none",
+      background: "transparent",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: off ? "default" : "pointer",
+      opacity: off ? .35 : 1,
+      color: "var(--icon-on-well, var(--text-secondary))"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: dir < 0 ? "chevron-left" : "chevron-right",
+    size: 17
+  }));
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "var(--space-6) 0 var(--space-3)"
+    }
+  }, /*#__PURE__*/React.createElement("b", {
+    style: {
+      font: "var(--weight-semibold) 15px/1.2 var(--font-core)"
+    }
+  }, "Open in your threads"), /*#__PURE__*/React.createElement("em", {
+    style: {
+      fontStyle: "normal",
+      font: "var(--weight-regular) 13px/1 var(--font-core)",
+      color: "var(--text-tertiary)"
+    }
+  }, total), /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      display: "flex"
+    }
+  }, arrow(-1, at === 0), arrow(1, at + 2 >= P.length))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
+      gap: "var(--space-3)"
+    }
+  }, P.slice(at, at + 2).map(p => /*#__PURE__*/React.createElement("div", {
+    key: p.name,
+    style: {
+      borderRadius: "var(--radius-lg)",
+      background: "var(--surface-fill)",
+      boxShadow: "inset 0 0 0 1px var(--edge-well)",
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: () => go(p),
+    style: {
+      padding: "14px 16px 10px",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      font: "var(--weight-semibold) 16px/1.2 var(--font-core)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "flex",
+      color: p.loose ? "var(--text-secondary)" : "var(--text-accent)"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: p.loose ? "inbox" : "lasso",
+    size: 15
+  })), p.name, p.people.length ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      display: "flex"
+    }
+  }, p.people.map((x, i) => /*#__PURE__*/React.createElement("span", {
+    key: x,
+    style: {
+      width: 22,
+      height: 22,
+      borderRadius: 99,
+      marginLeft: i ? -5 : 0,
+      background: "var(--blue-100)",
+      color: "var(--blue-700)",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      font: "var(--weight-semibold) 10px/1 var(--font-core)",
+      boxShadow: "0 0 0 2px var(--surface-fill)"
+    }
+  }, x))) : null), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "4px 0 0",
+      font: "var(--weight-regular) 14.5px/1.45 var(--font-quiet)",
+      color: "var(--text-secondary)"
+    }
+  }, p.read)), p.todos.slice(0, 4).map(it => {
+    const k = p.name + it.title;
+    const on = done.includes(k);
+    return /*#__PURE__*/React.createElement("div", {
+      key: k,
+      style: {
+        display: "grid",
+        gridTemplateColumns: "22px minmax(0,1fr) auto",
+        columnGap: 8,
+        padding: "9px 16px",
+        boxShadow: line
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      role: "checkbox",
+      "aria-checked": on,
+      "aria-label": it.title,
+      onClick: () => setDone(x => on ? x.filter(y => y !== k) : x.concat(k)),
+      style: {
+        height: 20,
+        padding: 0,
+        border: "none",
+        background: "transparent",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("i", {
+      style: {
+        width: 15,
+        height: 15,
+        borderRadius: 4,
+        boxSizing: "border-box",
+        border: "1.5px solid " + (on ? "var(--text-primary)" : "var(--text-secondary)"),
+        background: on ? "var(--text-primary)" : "transparent",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "var(--text-inverse)"
+      }
+    }, on ? /*#__PURE__*/React.createElement(Icon, {
+      name: "check",
+      size: 11
+    }) : null)), /*#__PURE__*/React.createElement("b", {
+      style: {
+        font: "var(--weight-medium) 14.5px/20px var(--font-core)",
+        textDecoration: on ? "line-through" : "none",
+        color: on ? "var(--text-tertiary)" : "var(--text-primary)"
+      }
+    }, it.title), /*#__PURE__*/React.createElement("span", {
+      style: {
+        font: "var(--weight-regular) 12px/20px var(--font-core)",
+        color: "var(--text-tertiary)",
+        whiteSpace: "nowrap",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, it.age));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: "auto",
+      display: "flex",
+      justifyContent: "space-between",
+      padding: "10px 16px",
+      boxShadow: line,
+      font: "var(--weight-regular) 13px/20px var(--font-core)",
+      color: "var(--text-tertiary)"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, p.todos.length > 4 ? p.todos.length - 4 + " more" : p.more || ""), /*#__PURE__*/React.createElement("span", {
+    onClick: () => go(p),
+    style: {
+      color: "var(--text-accent)",
+      fontWeight: 500,
+      cursor: "pointer"
+    }
+  }, p.loose ? "Sort them" : "Open thread"))))));
+}
 function WToday({
   open,
   selectedId,
@@ -31531,6 +32013,8 @@ function WToday({
     onOpen: () => open({
       kind: "calendar"
     })
+  }), /*#__PURE__*/React.createElement(WThreadPages, {
+    open: open
   }), /*#__PURE__*/React.createElement(WSection, {
     count: TV.threads.length,
     tone: "accent"
@@ -31567,6 +32051,7 @@ function WToday({
   }))));
 }
 Object.assign(window, {
+  WThreadPages,
   WToday,
   WWeekStrip,
   weekDays,
