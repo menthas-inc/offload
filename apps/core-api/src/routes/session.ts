@@ -165,7 +165,7 @@ const HOUR = /^([01]\d|2[0-3]):[0-5]\d$/;
  *  so this is the latest of the UPDATED dates in
  *  apps/web/src/app/(marketing)/privacy/page.tsx, privacy/companies/page.tsx
  *  and terms/page.tsx; test/consent.test.ts holds it there. */
-export const CONSENT_VERSION = "2026-10-07";
+export const CONSENT_VERSION = "2026-10-08";
 
 /** invited -> active, plus the consent record and the event, in one transaction.
  *

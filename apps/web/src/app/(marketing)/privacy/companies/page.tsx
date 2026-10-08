@@ -9,7 +9,10 @@
 // search too; for a linked site our server fetches the page; sign-in and maps
 // act for themselves, so the contract sentence leaves them out. The web map is
 // behind an admin switch and off in production, so its row says the web only
-// when it is on.
+// when it is on. 2026-10-08, for the App Store privacy label: what the device
+// sends while a map is on screen follows the Maps SDK's own privacy manifest
+// (crash, performance, product interaction, a device id and a user id), said
+// generally; crash and performance reports come from the phones' SDK only.
 
 import type { Metadata } from "next";
 import { Screen, ScreenFooter, ScreenHeader, screenStyles } from "../../../../components/Screen";
@@ -20,7 +23,7 @@ export const metadata: Metadata = {
   description: "The companies that help run offload, what each does, and what each receives.",
 };
 
-const UPDATED = "7 October 2026";
+const UPDATED = "8 October 2026";
 
 /** Company, what for, what they receive. Marked `self` when it acts for itself. */
 const COMPANIES: { name: string; does: string; receives: string; self?: true }[] = [
@@ -71,7 +74,7 @@ const COMPANIES: { name: string; does: string; receives: string; self?: true }[]
     name: "Google Maps Platform",
     does: "Maps on the phones, and on the web when it is turned on; finding places by name",
     receives:
-      "A place's name, on its own, with nothing about who asked. From your device while a map is on screen, your IP address and device details. Acts for itself under its own terms, which let it keep this and use it to improve its products",
+      "A place's name, on its own, with nothing about who asked. From your device while a map is on screen, your IP address, device details, an identifier, how the map is used, and on the phones crash and performance reports. Acts for itself under its own terms, which let it keep this and use it to improve its products",
     self: true,
   },
 ];
