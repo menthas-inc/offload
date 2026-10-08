@@ -3,12 +3,8 @@
 // 027. Today's rows act in place exactly as the thread page's do: the tick,
 // the row's modal with When and Repeats, the label sheet, Archive and Delete,
 // each drawn first and written second with the thread page's words and the
-// eight-second Undo. One hook, used by To do and by If you have time, so the
-// two cannot drift from each other or from the thread page.
-//
-// + Today is here too, since it moves a row between the two: the row goes
-// into To do at the press, the toast says "Added to today" with Undo, and the
-// Undo gives the row back through its own route.
+// eight-second Undo. One hook, used by To do and by open in your threads, so
+// the two cannot drift from each other or from the thread page.
 
 import { useCallback, useEffect, useState } from "react";
 import { asksBeforeArchive, rowLabelledCopy, withMadeLabels } from "@offload/widgets";
@@ -22,7 +18,7 @@ import { createLabel, deleteLabel, type Label } from "../../lib/labels";
 import { perform, useWrites } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
 import { drawnWhen } from "../../lib/when";
-import { giveBackToday, takeToday, type AgendaRow } from "../../lib/today";
+import type { AgendaRow } from "../../lib/today";
 import {
   completeContent,
   deleteContent,
@@ -39,11 +35,8 @@ import pane from "../../app/(shell)/shell.module.css";
 export interface TodayRows {
   /** The rows as drawn: changed fields applied, taken-out rows gone. */
   shown: (rows: AgendaRow[]) => AgendaRow[];
-  /** Rows + Today moved into To do ahead of the server. */
-  taken: AgendaRow[];
   handlers: RowHandlers;
   lead: (row: ContentRow) => React.ReactNode;
-  take: (row: AgendaRow) => void;
   /** The modal and the label sheet, wherever the page puts them. */
   overlays: React.ReactNode;
   writes: ReturnType<typeof useWrites>;
@@ -51,7 +44,7 @@ export interface TodayRows {
 
 export function useTodayRows(reload: () => Promise<void>, labels: Map<string, Label>): TodayRows {
   const toast = useToast();
-  const { zone, today } = useClock();
+  const { zone } = useClock();
   const [asking, setAsking] = useState<string | null>(null);
   // 2026-10-07. Archive hides a row for everyone in its thread. Today does
   // not know who else is in one, so a row that is not yours asks first.
@@ -78,13 +71,11 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
   const [labelling, setLabelling] = useState<{ row: ContentRow; anchor: HTMLElement; labels: Label[] } | null>(null);
   const [drawn, setDrawn] = useState<Map<string, Partial<AgendaRow>>>(new Map());
   const [dropped, setDropped] = useState<Set<string>>(new Set());
-  const [taken, setTaken] = useState<AgendaRow[]>([]);
 
   const fresh = useCallback(async () => {
     await reload();
     setDrawn(new Map());
     setDropped(new Set());
-    setTaken([]);
   }, [reload]);
   const writes = useWrites(fresh);
 
@@ -254,24 +245,6 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
     );
   }
 
-  /** + Today: into To do at the press, today's date with no hour. */
-  function take(row: AgendaRow): void {
-    const dated: AgendaRow = { ...row, dueAt: `${today}T12:00:00.000Z`, allDay: true };
-    void perform(
-      {
-        apply: () => setTaken((held) => [...held.filter((one) => one.id !== row.id), dated]),
-        revert: () => setTaken((held) => held.filter((one) => one.id !== row.id)),
-        write: async () => (await takeToday(row.id)) !== null,
-        unwrite: () => giveBackToday(row.id),
-        did: "Added to today",
-        failed: "Couldn't save that",
-        unfailed: "Couldn't put it back",
-      },
-      toast,
-      writes,
-    );
-  }
-
   const handlers: RowHandlers = {
     editing: null,
     draft: "",
@@ -354,5 +327,5 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
     </>
   );
 
-  return { shown, taken: shown(taken), handlers, lead, take, overlays, writes };
+  return { shown, handlers, lead, overlays, writes };
 }

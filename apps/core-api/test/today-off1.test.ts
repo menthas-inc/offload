@@ -36,7 +36,7 @@ const TODAY = dayIn(new Date(), ZONE);
 const WORD = "Zanzibarquill";
 
 describe("027 OFF-1 nothing a person wrote reaches a log line", () => {
-  it("across the day, Needs you, put-off and + Today", async () => {
+  it("across the day, Needs you, put-off and open in your threads", async () => {
     const logged: string[] = [];
     for (const method of ["log", "info", "warn", "error"] as const) {
       vi.spyOn(console, method).mockImplementation((...args: unknown[]) => void logged.push(args.map(String).join(" ")));
@@ -57,8 +57,7 @@ describe("027 OFF-1 nothing a person wrote reaches a log line", () => {
         app.inject({ method: "GET", url: "/v1/today/needs", headers: { cookie } }),
         app.inject({ method: "POST", url: "/v1/today/put-off", headers: { cookie }, payload: { card: `question:${q}` } }),
         app.inject({ method: "POST", url: "/v1/today/put-off", headers: { cookie }, payload: { card: `${WORD}:x` } }),
-        app.inject({ method: "POST", url: `/v1/today/picks/${pick}`, headers: { cookie } }),
-        app.inject({ method: "DELETE", url: `/v1/today/picks/${pick}`, headers: { cookie } }),
+        app.inject({ method: "GET", url: "/v1/today/threads", headers: { cookie } }),
         app.inject({ method: "PATCH", url: "/api/me", headers: { cookie }, payload: { todayLayout: { version: 1, sections: [{ kind: WORD, on: true }] } } }),
       ];
       for (const call of calls) expect((await call).statusCode).toBeLessThan(500);

@@ -333,12 +333,6 @@
   color: var(--text-tertiary);
 }
 
-.headHint {
-  margin-left: auto;
-  font: var(--weight-regular) calc(12.5px * var(--type-scale)) / 1 var(--font-core);
-  color: var(--text-tertiary);
-}
-
 /* Where you will be: past the pane's gutter, no scrollbar, a trackpad or the
    keyboard moves it. */
 .strip {
@@ -455,37 +449,6 @@ a.event:hover {
   padding: var(--space-4) 0;
   font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.4 var(--font-core);
   color: var(--text-secondary);
-}
-
-/* + Today: drawn 28, a 44 target. */
-.take {
-  display: inline-flex;
-  align-items: center;
-  align-self: center;
-  flex: 0 0 auto;
-  min-height: var(--tap-min);
-  margin: calc((28px - var(--tap-min)) / 2) 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.takePill {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: var(--radius-pill);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-  background: var(--surface-raised);
-  font: var(--weight-medium) calc(12.5px * var(--type-scale)) / 1 var(--font-core);
-}
-
-.take:hover .takePill {
-  background: var(--state-hover);
 }
 
 .nothing {
@@ -721,4 +684,193 @@ a.event:hover {
   font-size: calc(19px * var(--type-scale));
   line-height: 1.5;
   color: var(--text-primary);
+}
+
+/* Open in your threads (design 2026-10-07, the kit's WThreadPages): two
+   pages side by side, stepped by the arrows at the head's right. A set takes
+   its tallest page's height, so each foot sits at the bottom. */
+.openHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.openHead .head {
+  flex: 1;
+}
+
+.openSteps {
+  display: flex;
+  margin: calc((32px - var(--tap-min)) / 2) calc((32px - var(--tap-min)) / 2) var(--space-3) 0;
+}
+
+/* Drawn 32, a 44 target, as the stepper's chevrons. */
+.openStep {
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--icon-on-well);
+  cursor: pointer;
+}
+
+.openStepDisc {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+
+.openStep:hover:not(:disabled) .openStepDisc {
+  background: var(--state-hover);
+}
+
+.openStep:disabled {
+  color: var(--state-disabled-text);
+  cursor: default;
+}
+
+.openPages {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+.openPage {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
+}
+
+.openPageHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 22px;
+  padding: 14px var(--space-6) var(--space-5);
+  font: var(--weight-semibold) calc(16px * var(--type-scale)) / 1.2 var(--font-core);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.openPageHead:hover .openName {
+  text-decoration: underline;
+}
+
+/* In a thread mark's 22 slot, so every page's name starts in one place. */
+.openLoose {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: var(--icon-on-well);
+}
+
+.openName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.openPeople {
+  display: flex;
+  margin-left: auto;
+}
+
+.openFace {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--surface-attention-soft);
+  color: var(--blue-700);
+  box-shadow: 0 0 0 2px var(--surface-fill);
+  font: var(--weight-semibold) calc(10px * var(--type-scale)) / 1 var(--font-core);
+}
+
+.openFace + .openFace {
+  margin-left: -5px;
+}
+
+.openLine {
+  margin: calc(var(--space-3) * -1) var(--space-6) var(--space-5);
+  font: var(--weight-regular) calc(14.5px * var(--type-scale)) / 1.45 var(--font-quiet);
+  color: var(--text-secondary);
+}
+
+.openRow {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-4);
+  padding: 9px var(--space-6);
+  box-shadow: inset 0 1px 0 var(--border-hairline);
+}
+
+/* The thread page's own tick, centred in its column. */
+.openCheck {
+  margin: 0 auto;
+}
+
+.openTitle {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: var(--weight-medium) calc(14.5px * var(--type-scale)) / 1.38 var(--font-core);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* The finished-task rule: tertiary ink and a 1px strike, never dimmed. */
+.openRow[data-done] .openTitle {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.openAge {
+  font: var(--weight-regular) calc(12px * var(--type-scale)) / 1.4 var(--font-core);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.openFoot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: auto;
+  padding: var(--space-5) var(--space-6);
+  box-shadow: inset 0 1px 0 var(--border-hairline);
+  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.5 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.openDoor {
+  font-weight: var(--weight-medium);
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.openDoor:hover {
+  text-decoration: underline;
 }

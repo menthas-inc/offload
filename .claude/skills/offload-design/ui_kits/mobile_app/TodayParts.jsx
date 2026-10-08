@@ -93,12 +93,10 @@ function TodoRow({it,last,onThread,add,onAdd,onOpen}){
 
 function TodayBody({and,onThread,quiet}){
   const [d,setD]=React.useState(0);
-  const [taken,setTaken]=React.useState([]);
   const [editing,setEditing]=React.useState(null);
   const day=TP_DATA.days[d];
   const cardBg=and?"var(--a-c-low, var(--surface-fill))":"var(--surface-fill)";const r=and?16:"var(--radius-lg)";
-  const todo=day.todo.concat(d===0?TP_DATA.days[0].spare.filter(s=>taken.includes(s.title)):[]);
-  const spare=d===0?day.spare.filter(s=>!taken.includes(s.title)):[];
+  const todo=day.todo;
   return <div style={{display:"flex",flexDirection:"column",gap:16,padding:"var(--space-3) var(--gutter-screen) var(--space-9)"}}>
     {quiet?null:<NeedsYou items={TP_DATA.needs} and={and} onThread={onThread}/>}
     <DayStepper day={day} first={d===0} onPrev={()=>setD(Math.max(0,d-1))} onNext={()=>setD(Math.min(TP_DATA.days.length-1,d+1))}/>
@@ -112,13 +110,49 @@ function TodayBody({and,onThread,quiet}){
             <b style={{font:"var(--weight-medium) 14px/1.3 var(--font-core)"}}>{e.title}</b>
             {e.thread?<span><ThreadPill name={e.thread} onOpen={onThread}/></span>:<span style={{font:"var(--weight-regular) 12px/1.3 var(--font-core)",color:"var(--text-tertiary)"}}>{e.s}</span>}</div>)}</div></div></>:null}
     {todo.length?<div><TPHead n={todo.length}>To do</TPHead><div style={{borderRadius:r,background:cardBg,overflow:"hidden"}}>{todo.map((it,i)=><TodoRow key={it.title} it={it} last={i===todo.length-1} onThread={onThread} onOpen={()=>setEditing(it)}/>)}</div></div>:null}
-    {spare.length?<div><TPHead hint="picked by offload">If you have time</TPHead><div style={{borderRadius:r,background:cardBg,overflow:"hidden"}}>{spare.map((it,i)=><TodoRow key={it.title} it={it} add last={i===spare.length-1} onThread={onThread} onAdd={()=>setTaken(t=>t.concat(it.title))}/>)}</div></div>:null}
+    {d===0?<ThreadPages and={and} onThread={onThread}/>:null}
     {editing?<RowEditSheet it={editing} and={and} onClose={()=>setEditing(null)}/>:null}
   </div>;
 }
 
+/* Open in your threads (7 October 2026, readme: Today). A page per thread, swiped, the next one
+   peeking: its name and people, the first sentence of its read, up to four undated to-dos with their
+   age, ticked in place, and a foot that opens the thread. Today only; not drawn when nothing is open. */
+function ThreadPages({and,onThread,start}){
+  const P=(window.OFFLOAD_DATA&&window.OFFLOAD_DATA.open_threads)||[];
+  const [done,setDone]=React.useState([]);
+  const [pg,setPg]=React.useState(0);
+  const ref=React.useRef(null);
+  React.useEffect(()=>{const el=ref.current;if(el&&start&&el.children[start])el.scrollLeft=el.children[start].offsetLeft-el.children[0].offsetLeft;},[start]);
+  if(!P.length)return null;
+  const total=P.reduce((n,p)=>n+p.todos.length,0);
+  const bg=and?"var(--a-c-low, var(--surface-fill))":"var(--surface-fill)";const r=and?16:"var(--radius-lg)";
+  const onScroll=e=>{const el=e.currentTarget;const w=el.children[1]?el.children[1].offsetLeft-el.children[0].offsetLeft:1;setPg(Math.round(el.scrollLeft/w));};
+  const line="inset 0 1px 0 var(--border-hairline)";
+  return <div><TPHead n={total}>Open in your threads</TPHead>
+    <div ref={ref} onScroll={onScroll} style={{display:"flex",gap:8,overflowX:"auto",scrollSnapType:"x mandatory",scrollPaddingLeft:"var(--gutter-screen)",margin:"0 calc(var(--gutter-screen) * -1)",padding:"0 var(--gutter-screen)",scrollbarWidth:"none"}}>
+      {P.map(p=><div key={p.name} style={{flex:"0 0 calc(100% - 32px)",scrollSnapAlign:"start",borderRadius:r,background:bg,boxShadow:"inset 0 0 0 1px var(--edge-well)",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+        <div role="button" tabIndex={0} onClick={()=>!p.loose&&onThread&&onThread(p.name)} style={{padding:"14px 14px 10px",cursor:"pointer"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,minHeight:22,font:"var(--weight-semibold) 17px/1.2 var(--font-core)"}}>
+            <span style={{display:"flex",color:p.loose?"var(--icon-on-well)":"var(--text-accent)"}}><TPIcon name={p.loose?"inbox":"lasso"} size={16}/></span>{p.name}
+            {p.people.length?<span style={{marginLeft:"auto",display:"flex"}}>{p.people.map((x,i)=><span key={x} style={{width:22,height:22,borderRadius:99,marginLeft:i?-5:0,background:"var(--blue-100)",color:"var(--blue-700)",display:"inline-flex",alignItems:"center",justifyContent:"center",font:"var(--weight-semibold) 10px/1 var(--font-core)",boxShadow:"0 0 0 2px "+bg}}>{x}</span>)}</span>:null}</div>
+          <p style={{margin:"4px 0 0",font:"var(--weight-regular) 15px/1.45 var(--font-quiet)",color:"var(--text-secondary)",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{p.read}</p></div>
+        {p.todos.slice(0,4).map(it=>{const k=p.name+it.title;const on=done.includes(k);
+          return <div key={k} style={{display:"grid",gridTemplateColumns:"22px minmax(0,1fr) auto",columnGap:8,padding:"10px 14px",boxShadow:line}}>
+            <button type="button" role="checkbox" aria-checked={on} aria-label={it.title} onClick={()=>setDone(x=>on?x.filter(y=>y!==k):x.concat(k))} style={{height:20,padding:0,border:"none",background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+              <i style={{width:15,height:15,borderRadius:4,boxSizing:"border-box",border:"1.5px solid "+(on?"var(--text-primary)":"var(--icon-on-well)"),background:on?"var(--text-primary)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-inverse)"}}>{on?<TPIcon name="check" size={11}/>:null}</i></button>
+            <b style={{font:"var(--weight-medium) 15px/20px var(--font-core)",textDecoration:on?"line-through":"none",textDecorationThickness:1,color:on?"var(--text-tertiary)":"var(--text-primary)"}}>{it.title}</b>
+            <span style={{font:"var(--weight-regular) 12px/20px var(--font-core)",color:"var(--text-tertiary)",whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>{it.age}</span></div>;})}
+        <div style={{marginTop:"auto",display:"flex",justifyContent:"space-between",padding:"10px 14px",boxShadow:line,font:"var(--weight-regular) 13px/20px var(--font-core)",color:"var(--text-tertiary)"}}>
+          <span>{p.todos.length>4?(p.todos.length-4)+" more":(p.more||"")}</span>
+          <span role="button" tabIndex={0} onClick={()=>!p.loose&&onThread&&onThread(p.name)} style={{color:"var(--text-accent)",fontWeight:500,cursor:"pointer"}}>{p.loose?"Sort them":"Open thread"}</span></div>
+      </div>)}</div>
+    {P.length>1?<div style={{display:"flex",justifyContent:"center",gap:5,marginTop:8}}>{P.map((_,i)=><i key={i} style={{width:i===pg?16:6,height:6,borderRadius:9,background:i===pg?"var(--text-primary)":"var(--border-strong)",transition:"width var(--dur-fast, 140ms) var(--ease-out)"}}/>)}</div>:null}
+  </div>;
+}
+
 function CustomizeSheet({and,onClose}){
-  const [rows,setRows]=React.useState([["Needs you","Requests, questions, account issues, tips",true],["Your day","Events and to-dos, a day at a time",true],["What moved","Shared threads, since you last looked",false]]);
+  const [rows,setRows]=React.useState([["Needs you","Requests, questions, account issues, tips",true],["Your day","Events and to-dos, a day at a time",true],["Open in your threads","To-dos with no date, a thread at a time",true],["What moved","Shared threads, since you last looked",false]]);
   const sw=(on,i)=><button type="button" role="switch" aria-checked={on} onClick={()=>setRows(rs=>rs.map((r,j)=>j===i?[r[0],r[1],!r[2]]:r))}
     style={{width:and?52:44,height:and?32:26,borderRadius:99,border:"none",position:"relative",flex:"0 0 auto",cursor:"pointer",background:on?"var(--moss-600)":(and?"transparent":"var(--ink-200)"),boxShadow:!on&&and?"inset 0 0 0 2px var(--a-on-var, var(--text-secondary))":"none"}}>
     <i style={{position:"absolute",top:and?(on?4:8):3,[on?"right":"left"]:and?(on?4:8):3,width:and?(on?24:16):20,height:and?(on?24:16):20,borderRadius:99,background:on||!and?"#fff":"var(--a-on-var, var(--text-secondary))"}}/></button>;
@@ -216,4 +250,4 @@ function RowEditSheet({it,and,onClose}){
     </div></>;
 }
 
-Object.assign(window,{RowEditSheet,TodayBody,CustomizeSheet,LaunchHold,ActivityScreen,MailStep,ThreadPill,TP_DATA});
+Object.assign(window,{ThreadPages,RowEditSheet,TodayBody,CustomizeSheet,LaunchHold,ActivityScreen,MailStep,ThreadPill,TP_DATA});

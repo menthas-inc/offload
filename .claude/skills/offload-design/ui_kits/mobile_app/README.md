@@ -60,7 +60,7 @@ The memory map is stubbed out at your request. Sharing, the invitation and the d
 
 ## Redrawn to the app as built, 1 October 2026 (decision 5A)
 
-- **Today** is the design in the readme's *Today* section: Needs you, the stepper, the next event, the events strip, To do, If you have time, thread pills, and Customize Today from the sliders in the app bar. Shared by both kits in `mobile_app/TodayParts.jsx`.
+- **Today** is the design in the readme's *Today* section: Needs you, the stepper, the next event, the events strip, To do, Open in your threads (7 October, `ThreadPages`), thread pills, and Customize Today from the sliders in the app bar. Shared by both kits in `mobile_app/TodayParts.jsx`.
 - **Rows open the one row sheet** (title, When, Repeats, Labels opening in place, Delete, Cancel, Save), with a grabber. Drawn from Today's rows.
 - **Activity** is a pushed screen with no plate, replacing the notification sheet; filled and hollow leads, *Not sent*, Undo.
 - **Notifications** replaces Communication in Settings. **Mail** is its own group in Connected apps and opens the Mail page (026).

@@ -64,6 +64,7 @@ const DEFAULT_LAYOUT = {
       ],
     },
     { kind: "day", on: true },
+    { kind: "open_threads", on: true },
   ],
 };
 
@@ -82,11 +83,40 @@ const baseMe = () => ({
   mailAvailable: true,
   requestsWaiting: 0,
   activityNew: false,
-  todayLayout: DEFAULT_LAYOUT,
+  todayLayout: { ...DEFAULT_LAYOUT, sections: DEFAULT_LAYOUT.sections.slice(0, 2) },
+  todayLayoutV2: DEFAULT_LAYOUT,
 });
 
 let needs: unknown[] = [];
 let days: Record<string, unknown> = {};
+
+// Open in your threads (design 2026-10-07).
+const openPage = (threadId: string, name: string | null, titles: string[], extra: Record<string, unknown> = {}) => ({
+  threadId,
+  name,
+  icon: name === null ? null : "luggage",
+  hue: name === null ? null : 2,
+  people: [],
+  todos: titles.slice(0, 4).map((title, n) => row(`${threadId}-${n}`, title, { threadId, threadName: name })),
+  count: titles.length,
+  loose: null,
+  ...extra,
+});
+const fullOpen = () => {
+  const pages = [
+    openPage("t2", "Europe, October", ["Book the Sintra train", "Viva Viagem cards", "Orsay tickets", "Adapters", "Hotel in Paris"], {
+      people: [
+        { accountId: "p1", displayName: "Ana Duarte", initials: "AD" },
+        { accountId: "p2", displayName: "Tom Reis", initials: "TR" },
+      ],
+    }),
+    openPage("t1", "Flat", ["Fix the bathroom tap"]),
+    openPage("t3", "Bookshelf build", ["Order the oak brackets", "Buy wall plugs"]),
+    openPage("t0", null, ["Renew passport", "Call the landlord"], { loose: { inMind: 1, holds: { note: 4, link: 2 } } }),
+  ];
+  return { pages, count: pages.reduce((sum, page) => sum + page.count, 0) };
+};
+let openRead: ReturnType<typeof fullOpen>;
 
 const row = (id: string, title: string, extra: Record<string, unknown> = {}) => ({
   id,
@@ -242,25 +272,15 @@ function serve(call: Call): Response | Promise<Response> {
   if (override) return override(call);
   if (pathname === "/api/me" && call.method === "GET") return json(me);
   if (pathname === "/api/me" && call.method === "PATCH") {
-    me = { ...me, ...(call.body as object) };
+    const body = call.body as { todayLayout?: unknown };
+    me = { ...me, ...body, ...(body.todayLayout ? { todayLayoutV2: body.todayLayout } : {}) };
     return json(me);
   }
+  if (pathname === "/v1/today/threads") return json(openRead);
   if (pathname === "/v1/today/needs") return json({ cards: needs });
   if (pathname === "/v1/today/day") {
     const date = new URLSearchParams(call.path.split("?")[1]).get("date")!;
     return json(days[date] ?? emptyDay(date));
-  }
-  if (pathname === "/v1/today/picks/c9") {
-    // As the server keeps it: taken, it is due today and no longer a pick;
-    // given back, it is not picked again today.
-    const today = days["2026-09-29"] as ReturnType<typeof fullToday>;
-    const taken = row("c9", "Return the drill to Tom", { dueAt: "2026-09-29T12:00:00.000Z", allDay: true });
-    if (call.method === "POST") {
-      days["2026-09-29"] = { ...today, picks: [], rest: [...today.rest, taken] };
-      return json(taken);
-    }
-    days["2026-09-29"] = { ...today, rest: today.rest.filter((one) => one.id !== "c9") };
-    return json({ ok: true });
   }
   if (pathname === "/v1/questions/q1/answer") return json({ messageId: "m9", conversationId: "v1", state: "answered", turnId: "turn1", threads: [] });
   if (pathname === "/v1/invitations/m1/accept") return json({ threadId: "t2" });
@@ -297,6 +317,7 @@ beforeEach(async () => {
   overrides = {};
   needs = [];
   days = { "2026-09-29": fullToday() };
+  openRead = fullOpen();
   me = baseMe();
   browserZone = "Europe/Lisbon";
   search = new URLSearchParams();
@@ -356,12 +377,19 @@ describe("027 AC-1 the page", () => {
     expect(before(stack, stepper)).toBe(true);
     act(() => root.unmount());
 
-    me = { ...baseMe(), todayLayout: { version: 1, sections: [DEFAULT_LAYOUT.sections[1], DEFAULT_LAYOUT.sections[0]] } };
+    me = { ...baseMe(), todayLayoutV2: { version: 1, sections: [DEFAULT_LAYOUT.sections[1], DEFAULT_LAYOUT.sections[0], DEFAULT_LAYOUT.sections[2]] } };
     await refreshMe();
     host = document.body.appendChild(document.createElement("div"));
     root = createRoot(host);
     await open();
     expect(before(button("Previous day")!, needsYou()!)).toBe(true);
+  });
+
+  it("names the day once, in the stepper, with no page title over it", async () => {
+    await open();
+    // The stepper's day is the page's one h1.
+    expect([...host.querySelectorAll("h1")].map((one) => one.textContent)).toEqual(["Today"]);
+    expect([...host.querySelectorAll("h1, h2")].filter((one) => one.textContent === "Today")).toHaveLength(1);
   });
 
   it("puts Customize Today at the pane head's right and today's date in the crumb bar, whatever day is shown", async () => {
@@ -615,7 +643,10 @@ describe("027 AC-4 to AC-10 the cards", () => {
     browserZone = "Asia/Tokyo";
     me = {
       ...baseMe(),
-      todayLayout: { version: 1, sections: [{ kind: "needs_you", parts: DEFAULT_LAYOUT.sections[0]!.parts!.map((part) => ({ ...part, on: part.kind !== "account" })) }, DEFAULT_LAYOUT.sections[1]] },
+      todayLayoutV2: {
+        version: 1,
+        sections: [{ kind: "needs_you", parts: DEFAULT_LAYOUT.sections[0]!.parts!.map((part) => ({ ...part, on: part.kind !== "account" })) }, ...DEFAULT_LAYOUT.sections.slice(1)],
+      },
     };
     await refreshMe();
     await open();
@@ -708,7 +739,7 @@ describe("027 AC-16, AC-17 and AC-19 the next line and the strip", () => {
   });
 });
 
-describe("027 AC-20 to AC-23 To do and If you have time", () => {
+describe("027 AC-20 and AC-21 To do", () => {
   it("folds late rows past three and opens them in place", async () => {
     await open();
     expect(text()).toContain("Late number 1");
@@ -747,34 +778,10 @@ describe("027 AC-20 to AC-23 To do and If you have time", () => {
     expect(writes("POST", "/v1/content/c6/complete")[0]!.body).toEqual({ done: true });
   });
 
-  it("offers up to three picks with + Today, which moves the row into To do with Undo", async () => {
+  it("never draws If you have time, whatever the day carries", async () => {
     await open();
-    expect(text()).toContain("If you have time");
-    expect(text()).toContain("picked by offload");
-    await press(button("Add Return the drill to Tom to today"));
-    expect(writes("POST", "/v1/today/picks/c9")).toHaveLength(1);
     expect(text()).not.toContain("If you have time");
-    expect(text()).toContain("Added to today");
-    await press(button("Undo"));
-    expect(writes("DELETE", "/v1/today/picks/c9")).toHaveLength(1);
-  });
-
-  it("keeps a row taken with + Today on Today when the day moves before the write lands", async () => {
-    days["2026-09-30"] = { ...emptyDay("2026-09-30"), rest: [row("c1", "Something")] };
-    overrides["POST /v1/today/picks/c9"] = () => new Promise<Response>(() => undefined);
-    await open();
-    await press(button("Add Return the drill to Tom to today"));
-    await press(button("Next day"));
-    expect(text()).toContain("Something");
     expect(text()).not.toContain("Return the drill to Tom");
-    delete overrides["POST /v1/today/picks/c9"];
-  });
-
-  it("draws no picks on another day", async () => {
-    days["2026-09-30"] = { ...emptyDay("2026-09-30"), rest: [row("c1", "Something")], picks: [row("c9", "Return the drill to Tom")] };
-    await open();
-    await press(button("Next day"));
-    expect(text()).not.toContain("If you have time");
   });
 });
 
@@ -823,18 +830,127 @@ describe("027 AC-24 and AC-25 the empty, failed and slow days", () => {
 
 // ------------------------------------------------------------------ Customize Today
 
+// ------------------------------------------------------------------ open in your threads
+
+const section = () => (host.querySelector("#open-threads-head")?.closest("section") ?? null) as HTMLElement | null;
+const pages = () => [...(section()?.querySelectorAll("[data-page]") ?? [])] as HTMLElement[];
+const box = (title: string) =>
+  section()!.querySelector(`input[aria-label="Finish ${title}"], input[aria-label="Put ${title} back on the list"]`) as HTMLInputElement;
+
+describe("open in your threads (design 2026-10-07)", () => {
+  it("comes after To do on Today, with the count of what the pages hold", async () => {
+    await open();
+    expect(section()).not.toBeNull();
+    expect(section()!.querySelector("h3")!.textContent).toBe("Open in your threads 10");
+    const todo = [...host.querySelectorAll("h3")].find((one) => one.textContent?.startsWith("To do"))!;
+    expect(before(todo, section()!)).toBe(true);
+  });
+
+  it("shows two pages side by side, stepped by two with the arrows, each disabled at its end", async () => {
+    await open();
+    expect(pages().map((one) => one.querySelector("[data-page-name]")!.textContent)).toEqual(["Europe, October", "Flat"]);
+    expect(button("Previous threads")!.disabled).toBe(true);
+    await press(button("Next threads"));
+    expect(pages().map((one) => one.querySelector("[data-page-name]")!.textContent)).toEqual(["Bookshelf build", "Not in a thread"]);
+    expect(button("Next threads")!.disabled).toBe(true);
+    await press(button("Previous threads"));
+    expect(pages()[0]!.textContent).toContain("Europe, October");
+  });
+
+  it("keeps the arrows with two pages or fewer, both disabled", async () => {
+    openRead = { ...openRead, pages: openRead.pages.slice(0, 2) };
+    await open();
+    expect(button("Previous threads")!.disabled).toBe(true);
+    expect(button("Next threads")!.disabled).toBe(true);
+  });
+
+  it("draws a page's people, four to-dos with how long they have been open, N more and Open thread", async () => {
+    await open();
+    const [trip] = pages();
+    expect(trip!.textContent).toContain("AD");
+    expect(trip!.textContent).toContain("TR");
+    expect(trip!.textContent).toContain("Book the Sintra train");
+    expect(trip!.textContent).toContain("Adapters");
+    expect(trip!.textContent).not.toContain("Hotel in Paris");
+    expect(trip!.textContent).toContain("3 weeks");
+    expect(trip!.textContent).toContain("1 more");
+    const doors = [...trip!.querySelectorAll("a")].map((one) => one.getAttribute("href"));
+    expect(doors).toEqual(["/threads/t2", "/threads/t2"]);
+    expect([...trip!.querySelectorAll("a")].at(-1)!.textContent).toBe("Open thread");
+  });
+
+  it("puts Not in a thread last, with offload's line, what else it holds and Sort them", async () => {
+    await open();
+    await press(button("Next threads"));
+    const loose = pages()[1]!;
+    expect(loose.textContent).toContain("offload has a thread in mind for one of these.");
+    expect(loose.textContent).toContain("6 notes and links");
+    expect([...loose.querySelectorAll("a")].map((one) => [one.textContent, one.getAttribute("href")]).at(-1)).toEqual(["Sort them", "/threads/loose"]);
+  });
+
+  it("ticks a to-do through in place with Undo, and keeps it on the page when Today reads again", async () => {
+    await open();
+    await press(box("Book the Sintra train"));
+    expect(box("Book the Sintra train").checked).toBe(true);
+    expect(writes("POST", "/v1/content/t2-0/complete")[0]!.body).toEqual({ done: true });
+    expect(text()).toContain("Ticked off");
+    // The server no longer has it; the page still draws it, struck.
+    openRead = { ...openRead, pages: openRead.pages.map((one) => (one.threadId === "t2" ? { ...one, todos: one.todos.slice(1), count: 4 } : one)) };
+    await press(box("Fix the bathroom tap"));
+    expect(box("Book the Sintra train").checked).toBe(true);
+    expect(section()!.querySelector("h3")!.textContent).toBe("Open in your threads 10");
+    // Undo takes back the latest tick, the one on Flat.
+    await press(button("Undo"));
+    expect(writes("POST", "/v1/content/t1-0/complete").map((one) => one.body)).toEqual([{ done: true }, { done: false }]);
+    expect(box("Fix the bathroom tap").checked).toBe(false);
+  });
+
+  it("opens a to-do's row sheet from its title", async () => {
+    await open();
+    await press(button("Viva Viagem cards"));
+    expect(document.querySelector('[role="dialog"][aria-label="Edit"]')).not.toBeNull();
+  });
+
+  it("is not drawn on another day, when nothing is open, or when the layout has it off", async () => {
+    await open();
+    await press(button("Next day"));
+    expect(section()).toBeNull();
+    act(() => root.unmount());
+
+    openRead = { pages: [], count: 0 };
+    host = document.body.appendChild(document.createElement("div"));
+    root = createRoot(host);
+    await open();
+    expect(section()).toBeNull();
+    act(() => root.unmount());
+
+    calls = [];
+    openRead = fullOpen();
+    me = { ...baseMe(), todayLayoutV2: { ...DEFAULT_LAYOUT, sections: [...DEFAULT_LAYOUT.sections.slice(0, 2), { kind: "open_threads", on: false }] } };
+    await refreshMe();
+    host = document.body.appendChild(document.createElement("div"));
+    root = createRoot(host);
+    await open();
+    expect(section()).toBeNull();
+    expect(calls.some((one) => one.path === "/v1/today/threads")).toBe(false);
+  });
+});
+
+
 const switchFor = (name: string) =>
   [...host.querySelectorAll("label")].find((one) => one.textContent?.includes(name))!.querySelector('input[role="switch"]') as HTMLInputElement;
 
 describe("027 AC-27 Customize Today", () => {
-  it("is a second pane beside Today, with four kinds under Needs you and a switch for Your day", async () => {
+  it("is a second pane beside Today, with four kinds under Needs you, then Your day and Open in your threads, each with a switch", async () => {
     await open("customize=1");
     expect(text()).toContain("Customize Today");
     expect(text()).toContain("Drag to reorder. Switch off to hide.");
-    for (const name of ["Account issues", "People", "Questions", "Tips", "Your day"]) expect(switchFor(name).checked).toBe(true);
-    expect(host.querySelectorAll('input[role="switch"]')).toHaveLength(5);
+    for (const name of ["Account issues", "People", "Questions", "Tips", "Your day", "Open in your threads"]) expect(switchFor(name).checked).toBe(true);
+    expect(host.querySelectorAll('input[role="switch"]')).toHaveLength(6);
+    expect(text()).toContain("To-dos with no date, a thread at a time");
     expect(button("Move Needs you")).toBeDefined();
     expect(button("Move Your day")).toBeDefined();
+    expect(button("Move Open in your threads")).toBeDefined();
     expect(button("Previous day")).toBeDefined();
   });
 
@@ -853,7 +969,14 @@ describe("027 AC-27 Customize Today", () => {
   it("will not switch off the last switch on", async () => {
     me = {
       ...baseMe(),
-      todayLayout: { version: 1, sections: [{ kind: "needs_you", parts: DEFAULT_LAYOUT.sections[0]!.parts!.map((part) => ({ ...part, on: false })) }, DEFAULT_LAYOUT.sections[1]] },
+      todayLayoutV2: {
+        version: 1,
+        sections: [
+          { kind: "needs_you", parts: DEFAULT_LAYOUT.sections[0]!.parts!.map((part) => ({ ...part, on: false })) },
+          DEFAULT_LAYOUT.sections[1],
+          { kind: "open_threads", on: false },
+        ],
+      },
     };
     await refreshMe();
     await open("customize=1");
@@ -870,7 +993,7 @@ describe("027 AC-27 Customize Today", () => {
     await settle();
     const patches = writes("PATCH", "/api/me");
     expect(patches).toHaveLength(1);
-    expect((patches[0]!.body as { todayLayout: typeof DEFAULT_LAYOUT }).todayLayout.sections.map((one) => one.kind)).toEqual(["day", "needs_you"]);
+    expect((patches[0]!.body as { todayLayout: typeof DEFAULT_LAYOUT }).todayLayout.sections.map((one) => one.kind)).toEqual(["day", "needs_you", "open_threads"]);
     expect(before(button("Previous day")!, needsYou()!)).toBe(true);
   });
 
@@ -885,11 +1008,11 @@ describe("027 AC-27 Customize Today", () => {
     await settle();
     const patches = writes("PATCH", "/api/me");
     expect(patches).toHaveLength(1);
-    expect((patches[0]!.body as { todayLayout: typeof DEFAULT_LAYOUT }).todayLayout.sections.map((one) => one.kind)).toEqual(["day", "needs_you"]);
+    expect((patches[0]!.body as { todayLayout: typeof DEFAULT_LAYOUT }).todayLayout.sections.map((one) => one.kind)).toEqual(["day", "needs_you", "open_threads"]);
   });
 
   it("resets to the defaults", async () => {
-    me = { ...baseMe(), todayLayout: { version: 1, sections: [DEFAULT_LAYOUT.sections[1], DEFAULT_LAYOUT.sections[0]] } };
+    me = { ...baseMe(), todayLayoutV2: { version: 1, sections: [DEFAULT_LAYOUT.sections[1], DEFAULT_LAYOUT.sections[0], DEFAULT_LAYOUT.sections[2]] } };
     await refreshMe();
     await open("customize=1");
     await press(button("Reset"));
@@ -919,7 +1042,7 @@ describe("027 AC-27 Customize Today", () => {
           failFirst = () => resolve(json({ error: "bad_layout" }, 400));
         });
       }
-      return json({ ...me, todayLayout: (call.body as { todayLayout: unknown }).todayLayout });
+      return json({ ...me, todayLayoutV2: (call.body as { todayLayout: unknown }).todayLayout });
     };
     await open("customize=1");
     await press(switchFor("Tips"));

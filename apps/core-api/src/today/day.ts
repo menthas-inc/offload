@@ -1,4 +1,4 @@
-// 027 one day of Today: the events, To do, and on Today the picks.
+// 027 one day of Today: the events and To do.
 //
 // The day is the account's zone's day. A bare day is a date, read by its UTC
 // date as `whenDayOf` reads it; a timed row is an instant inside the day. Every
@@ -11,8 +11,7 @@ import { zoneOf } from "../accounts/zone.js";
 import { calendarName } from "../connectors/calendars.js";
 import { db } from "../db.js";
 import { OVERDUE_CAP, TODAY_BACK_DAYS } from "../routes/notifications.js";
-import { todayPicks } from "./picks.js";
-import { agendaQuery, agendaRow, everDumped, labelsOf, shapeRows, type AgendaRaw, type AgendaRow } from "./rows.js";
+import { agendaQuery, agendaRow, everDumped, labelsOf, shapeRows, type AgendaRaw } from "./rows.js";
 
 /** How far ahead the stepper reaches: the edge of the calendar copy. */
 export const DAYS_AHEAD = 365;
@@ -54,6 +53,8 @@ export const dayResponse = z.object({
   timedMore: z.number(),
   rest: z.array(agendaRow),
   restMore: z.number(),
+  /** If you have time, gone 2026-10-07: always empty, for builds that still
+   *  read it. Remove once none is in use. */
   picks: z.array(agendaRow),
   everDumped: z.boolean(),
   threadLabels: z.array(z.object({ id: z.string(), name: z.string(), colour: z.number() })),
@@ -138,11 +139,10 @@ export async function readDay(accountId: string, date: string, now = new Date())
   const hourOf = (row: AgendaRaw) => (row.due_at ? timeHM(row.due_at.toISOString(), zone) : "");
   timed.sort((a, b) => (hourOf(a) < hourOf(b) ? -1 : hourOf(a) > hourOf(b) ? 1 : 0));
 
-  const [lateRows, timedRows, restRows, pickRows] = await Promise.all([
+  const [lateRows, timedRows, restRows] = await Promise.all([
     shapeRows(late.slice(0, OVERDUE_CAP).map((one) => one.row), accountId),
     shapeRows(timed.slice(0, TIMED_CAP), accountId),
     shapeRows(rest.slice(0, REST_CAP), accountId),
-    isToday ? todayPicks(accountId, today, zone) : Promise.resolve([] as AgendaRow[]),
   ]);
 
   return {
@@ -155,9 +155,9 @@ export async function readDay(accountId: string, date: string, now = new Date())
     timedMore: Math.max(0, timed.length - TIMED_CAP),
     rest: restRows,
     restMore: Math.max(0, rest.length - REST_CAP),
-    picks: pickRows,
+    picks: [],
     everDumped: await everDumped(accountId),
-    threadLabels: await labelsOf([...lateRows, ...timedRows, ...restRows, ...pickRows]),
+    threadLabels: await labelsOf([...lateRows, ...timedRows, ...restRows]),
   };
 }
 

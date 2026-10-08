@@ -1,7 +1,7 @@
 "use client";
 
-// 027 Today, over the wire: the day, Needs you, putting a card off, + Today,
-// and the layout Customize Today stores. Mirrors
+// 027 Today, over the wire: the day, Needs you, putting a card off, open in
+// your threads (2026-10-07), and the layout Customize Today stores. Mirrors
 // `apps/core-api/src/routes/today.ts` and `src/today/layout.ts`; the server's
 // zod schemas are the shapes, and these types say only what the page reads.
 
@@ -24,7 +24,8 @@ export type NeedsPart = (typeof NEEDS_PARTS)[number];
 
 export type LayoutSection =
   | { kind: "needs_you"; parts: { kind: NeedsPart; on: boolean }[] }
-  | { kind: "day"; on: boolean };
+  | { kind: "day"; on: boolean }
+  | { kind: "open_threads"; on: boolean };
 
 export interface TodayLayout {
   version: 1;
@@ -36,6 +37,7 @@ export const DEFAULT_LAYOUT: TodayLayout = {
   sections: [
     { kind: "needs_you", parts: NEEDS_PARTS.map((kind) => ({ kind, on: true })) },
     { kind: "day", on: true },
+    { kind: "open_threads", on: true },
   ],
 };
 
@@ -52,6 +54,11 @@ export function partsOn(layout: TodayLayout): Set<NeedsPart> {
 export function dayOn(layout: TodayLayout): boolean {
   const day = layout.sections.find((one) => one.kind === "day");
   return day?.kind === "day" ? day.on : true;
+}
+
+export function openThreadsOn(layout: TodayLayout): boolean {
+  const open = layout.sections.find((one) => one.kind === "open_threads");
+  return open?.kind === "open_threads" ? open.on : true;
 }
 
 /** How many switches are on, so the last one can be held on. */
@@ -71,8 +78,9 @@ export function withPart(layout: TodayLayout, kind: NeedsPart, on: boolean): Tod
   };
 }
 
-export function withDay(layout: TodayLayout, on: boolean): TodayLayout {
-  return { version: 1, sections: layout.sections.map((one) => (one.kind === "day" ? { ...one, on } : one)) };
+/** A section's own switch: the day, or open in your threads. */
+export function withSection(layout: TodayLayout, kind: "day" | "open_threads", on: boolean): TodayLayout {
+  return { version: 1, sections: layout.sections.map((one) => (one.kind === kind ? { ...one, on } : one)) };
 }
 
 /** The section moved to `to`, the others keeping their order. */
@@ -126,7 +134,6 @@ export interface Day {
   rest: AgendaRow[];
   restMore: number;
   timedMore: number;
-  picks: AgendaRow[];
   everDumped: boolean;
   threadLabels: { id: string; name: string; colour: number }[];
 }
@@ -226,25 +233,29 @@ export async function putOff(card: string, forGood = false): Promise<"ok" | "gon
   }
 }
 
-// ---------------------------------------------------------------- + Today
+// ---------------------------------------------------------------- open in your threads
 
-/** + Today: the row, dated today with no hour, or null on a refusal. */
-export async function takeToday(contentId: string): Promise<AgendaRow | null> {
-  try {
-    const response = await fetch(`${API}/v1/today/picks/${contentId}`, { ...send, method: "POST" });
-    if (!response.ok) return null;
-    return (await response.json()) as AgendaRow;
-  } catch {
-    return null;
-  }
+/** A page: a thread's open to-dos with no date, its oldest four and how many
+ *  it holds. `name` is null for Not in a thread, which carries `loose`. */
+export interface OpenPage {
+  threadId: string;
+  name: string | null;
+  icon: string | null;
+  hue: number | null;
+  people: Person[];
+  todos: AgendaRow[];
+  count: number;
+  loose: { inMind: number; holds: Record<string, number> } | null;
 }
 
-/** + Today's Undo: the date cleared, and not picked again today. */
-export async function giveBackToday(contentId: string): Promise<boolean> {
+/** The pages in the server's order, or null when they could not be read,
+ *  which draws no section and leaves the day alone. */
+export async function fetchOpenThreads(): Promise<OpenPage[] | null> {
   try {
-    const response = await fetch(`${API}/v1/today/picks/${contentId}`, { ...send, method: "DELETE" });
-    return response.ok;
+    const response = await fetch(`${API}/v1/today/threads`, send);
+    if (!response.ok) return null;
+    return ((await response.json()) as { pages: OpenPage[] }).pages;
   } catch {
-    return false;
+    return null;
   }
 }
