@@ -1354,10 +1354,10 @@ inside a row, solid where the badge is the only signal.
 
 ## Dark theme
 
-One dark scope, charcoal with lifted surfaces. The page sits off black at #1C1B19, cards
-and bars lift to #212121, the sunken step drops to #101010 and an input is #2E2E2E, so the
-separation white paper gets from shadow comes from value instead. Text stops at #EDEDED
-rather than pure white, and secondary and tertiary are #B3B3B3 and #959595. Both accents
+One dark scope, charcoal with lifted surfaces. The page sits off black at #1A1A19, cards
+and bars lift to #232323, a grouped list is #2B2B2B, the sunken step drops to #0E0E0E and an
+input is #2E2E2E. Text stops at #EDEDED rather than pure white, and secondary and tertiary
+are #B3B3B3 and #A0A0A0. Both accents
 lighten (moss #82BC97, blue #95A9F7) because the daylight values go muddy on dark.
 
 Apply it by putting `data-theme="dark"` on any ancestor. There is a matching
@@ -1371,3 +1371,26 @@ inherited colour was already resolved further up.
 Chrome is tokenised rather than literal white: `--surface-chrome`, `--surface-chrome-strong`
 (both resolve to `--surface-raised`, opaque, in every scope), `--surface-scrim-soft`. Shadows are neutralised on dark, since a shadow
 on a dark surface reads as nothing.
+
+### Edges
+
+Decided 7 October 2026 off `explorations/dark-contrast.html`, option B. Build:
+`handoff/APPLY-2026-10-07-dark-contrast.md`. **Dark separates by edges.** Value alone could
+not do it: a card on the page measured 1.07:1, a grouped list on a card 1.02:1, a line between
+rows 1.15:1. Light does not change.
+
+- **Lines are stronger.** `--border-hairline` #444444 (1.61:1 on a card), `--border-lift`
+  #5C5C5C (2.60:1 on the page), `--border-strong` #8C8C8C (4.67:1). The off switch, which is
+  the lift, reads at 2.35:1 on its row.
+- **Every surface that holds rows draws its edge**, a 1px inset ring: a grouped list and a
+  neutral chip take `--edge-card` (the lift), a well inside one (a tile, a search field, a
+  segmented track, an event card) `--edge-well` (the hairline), and a tinted surface its own
+  hue's: `--edge-accent`, `--edge-attention`, `--edge-noticed` for the soon chip and
+  `--edge-danger` for the late chip and a failure.
+- **A kind's or label's ring is its own hue** at `--edge-hue` (38% in dark), and its words mix
+  at `--hue-ink-mix` (50% in dark, 78% in light) so they read lighter.
+- **The -700 steps are the words on a tint in dark**, and now read as such: `--blue-700`
+  #8BA1F7 (5.6:1 on blue-100), `--moss-700` #80B994 (6.4:1 on moss-50). Never a fill in dark:
+  a solid accent is `--surface-accent`.
+- **The `--edge-*` tokens are transparent in light**, so a component paints its edge in both
+  themes and nothing moves in light. No `[data-theme]` branch is needed for a new component.

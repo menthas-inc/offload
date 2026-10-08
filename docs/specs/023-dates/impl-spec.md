@@ -235,3 +235,7 @@ The prompt gains one sentence in the Dates block and swaps an enum and a field f
 - **OFF-7.** Tokens consumed by alias, two minted with a log entry; the log entries named in the feature spec are appended.
 - **OFF-8.** One sentence in the prompt; the tool budget is measured and not moved.
 - **DATA-1.** This document precedes the migrations.
+
+## Amended 2026-10-07
+
+The web `EditModal` draws a Never option when there are no presets; the phones' `RowEditSheet` draws `repeatsLabel(when)` unconditionally. See the feature spec's amendment of the same date.

@@ -230,11 +230,25 @@ Needs `@shopify/react-native-skia` on the phones. Light theme only until someone
 every wash is a light tint chosen against paper and reads as fog on dark. **That bake is the one
 thing this side still owes.**
 
+## Dark theme: edges, added 2026-10-07
+
+Dark separates by edges: stronger lines, a small step in the surfaces, and a 1px edge on every grouped list, well,
+neutral chip and tint from six `--edge-*` tokens that are transparent in light. `pnpm tokens` carries the values;
+`handoff/APPLY-2026-10-07-dark-contrast.md` lists the edge per file on all three surfaces,
+`handoff/dark-contrast-standalone.html` is the reference, **Dark theme** then **Edges** in `readme.md` the lasting statement.
+
 ## The thinking row, added 2026-10-07
 
 The conversation's working state becomes one row: the Splash drop, the model's phrase, and a Stop pill from ten
 seconds. `handoff/APPLY-2026-10-07-thinking.md` is the build, `handoff/thinking-standalone.html` the reference,
 `ui_kits/thinking_row/` the kit copy, **The thinking row** in `readme.md` the lasting statement.
+
+## The Memories tab, added 2026-10-06
+
+038's fast follow: a Memories tab on all three surfaces with a List | Map switch. `handoff/APPLY-2026-10-06-memories.md`
+is the build order, `handoff/memories-standalone.html` the clickable reference (iOS / Android / Web),
+`ui_kits/memories_tab/` the kit copy, and **The Memories tab** in `readme.md` the lasting statement. Code work:
+six kinds become five, add and change on `store.ts`, and embeddings with a nightly layout for the map.
 
 ## Known drift in the design files
 

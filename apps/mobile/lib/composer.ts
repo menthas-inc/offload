@@ -1,15 +1,6 @@
-// The composer's box, and when it is open for height. 2026-09-26.
-//
-// The box is a pill while the words fit on one line beside the controls and
-// a column once they are taller. Measured height alone oscillated on the
-// Pixel: a wrap beside the controls opened the box to full width, where the
-// same words fit on one line, which closed it, which wrapped them again. So
-// the height opens the box and only an empty draft closes it.
-
-export function staysOpen(state: { open: boolean; tallNow: boolean; draft: string }): boolean {
-  if (state.draft.trim().length === 0) return false;
-  return state.open || state.tallNow;
-}
+// The composer's box, and when it is open for height (2026-09-26): the rule is
+// the widgets' since the web took it too (2026-10-07).
+export { staysOpen } from "@offload/widgets";
 
 /** The field's flex. Across the pill's row it takes the width beside the
  *  controls; in the open column it keeps its own height, since `flex-1` there

@@ -16,7 +16,8 @@
 import { threadLookAfter } from "@offload/widgets";
 import { ThreadIcon } from "../ThreadIcon";
 import { EditThread } from "./EditThread";
-import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, type LabelPick } from "@offload/widgets";
+import { asksBeforeArchive, leaveAsk } from "@offload/widgets";
+import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, withMadeLabels, type LabelPick } from "@offload/widgets";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -150,6 +151,9 @@ export function Thread({ id, onChanged }: Props) {
   // Which row is asking to be deleted. The kit asks in the row's own place
   // rather than in a dialog, so the question never covers what it is about.
   const [asking, setAsking] = useState<string | null>(null);
+  // 2026-10-07. Which row is asking before it is archived: in a shared thread
+  // archive hides it for everyone, so it asks in the same place.
+  const [archiving, setArchiving] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
   // What arrived while this screen was open, so it can be marked for a moment
   // rather than appearing silently in the middle of a list.
@@ -354,9 +358,10 @@ export function Thread({ id, onChanged }: Props) {
    *  and sent second, with the previous values as the Undo. The dates are
    *  drawn from the server's answer, which reads a wall time in the account's
    *  clock, so the page catches up once the write lands. */
-  function edit(row: ContentRow, patch: ContentPatch): void {
+  function edit(row: ContentRow, patch: ContentPatch, made: string[] = []): void {
     if (isProvisional(row.id)) return;
     const drawn: Partial<ContentRow> = {};
+    if (patch.labels !== undefined) drawn.labels = patch.labels;
     if (patch.title !== undefined) drawn.title = patch.title;
     if (patch.body !== undefined) drawn.body = patch.body;
     if (patch.isReminder !== undefined) drawn.isReminder = patch.isReminder;
@@ -372,28 +377,36 @@ export function Thread({ id, onChanged }: Props) {
       occursEndAt: row.occursEndAt,
       rrule: row.rrule,
       allDay: row.allDay,
+      labels: row.labels,
     };
-    let previous: ContentSnapshot | null = null;
+    // 2026-10-07. The edit dialog carries labels too, and any typed there are
+    // made first, as the phones' sheet does it.
+    const write = withMadeLabels<ContentPatch, ContentSnapshot>(
+      {
+        make: async (name) => {
+          const created = await createLabel(id, { name });
+          return created.ok ? created.value.label.id : null;
+        },
+        edit: async (fields) => {
+          const result = await editContent(row.id, fields);
+          if (result) {
+            void catchUp();
+            if (patch.labels !== undefined) relabelled();
+          }
+          return result ? result.previous : null;
+        },
+        undo: (previous) => previous,
+        drop: (labelId) => deleteLabel(labelId),
+      },
+      patch,
+      made,
+    );
     void perform(
       {
         apply: () => patchRow(row.id, drawn),
         revert: () => patchRow(row.id, before),
-        write: () =>
-          telling(
-            editContent(row.id, patch).then((result) => {
-              if (!result) return false;
-              previous = result.previous;
-              void catchUp();
-              return true;
-            }),
-          ),
-        unwrite: () =>
-          telling(
-            (previous ? editContent(row.id, previous) : Promise.resolve(null)).then((result) => {
-              if (result) void catchUp();
-              return result !== null;
-            }),
-          ),
+        write: () => telling(write.write()),
+        unwrite: () => telling(write.unwrite()),
         did: "Saved",
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
@@ -840,6 +853,7 @@ export function Thread({ id, onChanged }: Props) {
   // when nothing has: else what, otherwise.
   /** Everything a row needs from this page, in one place, so the list and the
    *  widgets cannot end up offering different controls on the same row. */
+  const shared = thread.members.some((member) => !member.isYou);
   const handlers: RowHandlers = {
     editing,
     draft,
@@ -854,7 +868,16 @@ export function Thread({ id, onChanged }: Props) {
     },
     onSaveTitle: saveTitle,
     onStopEditing: () => setEditing(null),
-    onArchive: archive,
+    onArchive: (row) => {
+      if (asksBeforeArchive(row, shared)) setArchiving(row.id);
+      else archive(row);
+    },
+    archiving,
+    onArchiveAsk: setArchiving,
+    onArchiveNow: (row) => {
+      setArchiving(null);
+      archive(row);
+    },
     onAsk: (rowId) => setAsking(rowId && isProvisional(rowId) ? null : rowId),
     onDelete: remove,
     // 020. A photo row's tile, and a tile in Files, open the viewer. 041: a
@@ -1050,7 +1073,7 @@ export function Thread({ id, onChanged }: Props) {
       ) : null}
       {leaving ? (
         <ConfirmModal
-          title={`Leave ${thread.name}?`}
+          title={leaveAsk(thread.name)}
           body="Your membership and your access go. What you added stays with the others, and the thread is theirs to keep."
           action="Leave"
           danger
@@ -1192,6 +1215,7 @@ export function Thread({ id, onChanged }: Props) {
             photos={viewerSet}
             index={viewerIndex}
             threadId={id}
+            shared={shared}
             onIndex={(index) => setViewing(photoRows[index]?.id ?? null)}
             onClose={() => setViewing(null)}
             actions={{
@@ -1214,10 +1238,14 @@ export function Thread({ id, onChanged }: Props) {
             key={editRow.id}
             row={editRow}
             threadId={id}
+            labels={thread.labels}
             onClose={() => setEditRow(null)}
-            onSave={(row, patch) => {
+            onSave={(row, patch, made) => {
               setEditRow(null);
-              edit(row, patch);
+              // Labels alone read as a labelling, with its own toast; anything
+              // more is one edit carrying them, as on the phones.
+              if (Object.keys(patch).length === 1 && patch.labels) labelRow(row, { ids: patch.labels, made });
+              else edit(row, patch, made);
             }}
             onMove={(row, to) => {
               setEditRow(null);

@@ -27,6 +27,7 @@ import { PhotoThumb } from "../shell/PhotoThumb";
 import { ThreadPill } from "../shell/ThreadPill";
 import { ReorderHandle, RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
+import { ARCHIVE_SHARED, archiveAsk } from "@offload/widgets";
 import { domainOf, isProvisional, type ContentRow } from "../../lib/threads";
 import { webHref } from "../../lib/links";
 import type { Label } from "../../lib/labels";
@@ -49,6 +50,11 @@ export interface RowHandlers {
   onSaveTitle: (row: ContentRow) => void;
   onStopEditing: () => void;
   onArchive: (row: ContentRow) => void;
+  /** 2026-10-07. The row asking before it is archived, in a shared thread,
+   *  where archive hides it for everyone; the answer, and the archive itself. */
+  archiving?: string | null;
+  onArchiveAsk?: (id: string | null) => void;
+  onArchiveNow?: (row: ContentRow) => void;
   onAsk: (id: string | null) => void;
   onDelete: (row: ContentRow) => void;
   /** 020. A photo row's tile opens the viewer; the row itself opens as a row. */
@@ -111,6 +117,30 @@ export function ContentRowView({
   // stay in the layout and are hidden by the stylesheet, so nothing reflows
   // when the id arrives, which is the readme's own rule for the filing slot.
   const provisional = isProvisional(row.id);
+  if (handlers.archiving === row.id) {
+    return (
+      <div className={styles.confirmRow}>
+        <span className={styles.confirmIcon}>
+          <Icon name="archive" size={15} />
+        </span>
+        <span className={styles.confirmLines}>
+          <span className={styles.confirmText}>{archiveAsk(row.title)}</span>
+          <span className={styles.confirmNote}>{ARCHIVE_SHARED}</span>
+        </span>
+        <button
+          type="button"
+          className={styles.sectionAction}
+          style={{ marginLeft: 0 }}
+          onClick={() => handlers.onArchiveAsk?.(null)}
+        >
+          Cancel
+        </button>
+        <button type="button" className={styles.danger} onClick={() => handlers.onArchiveNow?.(row)}>
+          Archive
+        </button>
+      </div>
+    );
+  }
   if (handlers.asking === row.id) {
     return (
       <div className={styles.confirmRow}>

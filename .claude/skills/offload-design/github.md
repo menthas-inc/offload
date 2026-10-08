@@ -4,17 +4,50 @@ path:
 
 ## Last sync
 
-date: 2026-10-07T17:09:24Z
+date: 2026-10-07T23:06:00Z
 
-Read `main` at `60d4e15` for the thinking row: `Conversation.tsx` (`Working`, `Writing`) and the web conversation.
-Taken into the repository on `feat/thinking-row` with only the thinking row's files; the same bundle's Memories
-work is carried by `feat/040-memories-tab`.
+Read `main` (tree `fb195f4`; 18 commits past `60d4e15`, none touching tokens) for the dark theme: `packages/tokens/src/generate.mjs`
+and `index.ts`, `apps/mobile/lib/colors.ts`, `DateChip.tsx`, `Segmented.tsx`, the web's `ThreadIcon`, `Chip`, `DateChip`,
+`switch.module.css`, `avatar.module.css`, `memories.module.css`, `auth.module.css`, and every `--surface-fill` and tint use on both
+clients. Nothing copied.
 
 ### Updated in this project
 
-- **The thinking row**: Splash and a Stop pill; `handoff/APPLY-2026-10-07-thinking.md`, `ui_kits/thinking_row/`, `handoff/thinking-standalone.html`
+- **Dark theme, edges** (option B): `tokens/colors.css` dark scope and six `--edge-*` tokens, Android kit's dark scope
+- `Chip`, `Badge`, `SegmentedControl` paint their edges; `readme.md` **Edges**; `decisions.md` one entry
+- `explorations/dark-contrast.html` (twelve screens, four options), `handoff/APPLY-2026-10-07-dark-contrast.md`, `handoff/dark-contrast-standalone.html`
 
 ## Sync history
+
+### 2026-10-07T17:09:24Z
+
+date: 2026-10-07T17:09:24Z
+
+Pulled `main` at `60d4e15`: 78 commits past `963d7a25aab7`. The design-system copy on main was at the
+4 October sync. Merged: **`decisions.md` adopted from the repository** (it adds fourteen code entries of 4 to 6
+October: review codes, loose to-dos, consent ticks, Connected apps, the landing as built, Disconnect, Privacy,
+reading someone else's note, the gate, Storage (036), Thread icons as built (037), the 034 answers, one line per
+day, memories coming back, and CSV downloads), with this project's two newer entries prepended. **`readme.md`
+adopted from the repository** (its First run section is the build's) with this project's Memories and thinking
+row sections put back. Tokens matched. Read `Conversation.tsx` for `Working` and `Writing`.
+
+#### Updated in this project
+
+- **The thinking row**: Splash and a Stop pill; `handoff/APPLY-2026-10-07-thinking.md`, `ui_kits/thinking_row/`, `handoff/thinking-standalone.html`
+- `decisions.md` and `readme.md` current with `main`, plus the Memories and thinking row entries
+
+### 2026-10-06T20:18:10Z
+
+date: 2026-10-06T20:18:10Z
+
+Read `main` (066aca5fcb2b tree) for 038 memories: `docs/specs/038-memories/feature-spec.md`, `prompts/memory.md`,
+`core-api/src/memories/store.ts`, `migrations/0085_memories.sql`, the phones' tabs, `Notes.tsx`, `MyThreads.tsx`,
+`ThreadRow.tsx`, `Segmented.tsx`, `Plate.tsx` and web `Sidebar.tsx`. Nothing copied.
+
+### Updated in this project
+
+- **Memories tab**: decided, List | Map; `handoff/APPLY-2026-10-06-memories.md`, `ui_kits/memories_tab/`, `handoff/memories-standalone.html`
+- `readme.md` gains **The Memories tab** and the *memory* vocabulary row; `decisions.md` entry 2026-10-06
 
 ### 2026-10-04T14:22:22Z
 
@@ -72,7 +105,9 @@ shared log, with this project's thread marks entry kept), and read `apps/web/src
 | Settings | `explorations/settings-v2.html`, `handoff/APPLY-2026-10-02-settings.md` | `apps/mobile/app/settings/`, `apps/mobile/components/settings/`, `apps/mobile/components/people/PeoplePage.tsx`, `apps/mobile/lib/sessions.ts`, `apps/web/src/components/panes/Settings.tsx`, `SettingsRows.tsx`, `Account.tsx`, `DateTime.tsx`, `Appearance.tsx` |
 | Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/` |
 | Thinking row | `ui_kits/thinking_row/`, `explorations/thinking-drop.html`, `handoff/APPLY-2026-10-07-thinking.md` | `apps/mobile/components/shell/Conversation.tsx` (`Working`, `Writing`), the web conversation |
+| Memories tab | `ui_kits/memories_tab/`, `handoff/APPLY-2026-10-06-memories.md` | `apps/mobile/components/screens/Notes.tsx`, `(tabs)/_layout.tsx`, `apps/web/src/components/shell/Sidebar.tsx`, `apps/core-api/src/memories/` |
 | Landing page, invite email | `ui_kits/marketing_site/`, `explorations/landing-scroll.html`, `handoff/APPLY-2026-10-04-landing.md` | `apps/web/src/app/(marketing)/`, `apps/web/src/components/Screen.tsx`, `Atmosphere.tsx` |
+| Dark theme, edges | `explorations/dark-contrast.html`, `handoff/APPLY-2026-10-07-dark-contrast.md` | `packages/tokens/src/generate.mjs` (via `pnpm tokens`), `apps/mobile/lib/colors.ts`, every `--surface-fill` and tint box on both clients |
 | Design tokens | `styles.css`, `tokens/` | `packages/tokens/`, generated from `.claude/skills/offload-design/tokens` |
 | Components | `components/` | `packages/widgets/`, `apps/mobile/components/` |
 | Decision log | `decisions.md` | `.claude/skills/offload-design/decisions.md` (shared, append-only both ways) |

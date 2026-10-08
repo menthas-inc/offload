@@ -63,7 +63,7 @@ import { DayUsed } from "./DayUsed";
 import { BAR_PITCH_PX, Recorder, recorderSupported, type Recording } from "../../lib/recorder";
 import { Mentions, mentionQuery, withMention } from "../people/Mentions";
 import { HashList } from "../labels/HashList";
-import { labelQuery } from "@offload/widgets";
+import { labelQuery, staysOpen } from "@offload/widgets";
 import { fetchThread } from "../../lib/threads";
 import type { Label } from "../../lib/labels";
 import { SHARE_LINE, answerShare, fetchPeople, nameOf, type Person } from "../../lib/people";
@@ -296,9 +296,17 @@ export function Composer({
     const height = Math.min(el.scrollHeight, MAX_FIELD_HEIGHT);
     el.style.height = `${height}px`;
     oneLine.current = oneLine.current === null ? height : Math.min(oneLine.current, height);
-    setTall(height > oneLine.current + 4);
-    // And when the field comes back after a note left the row.
-  }, [draft, holdsNote]);
+    // Latched, as the phones' is (`staysOpen`, 2026-09-26): a wrap beside the
+    // controls opens the box to the full width, where the same words fit on
+    // one line, and measuring alone closed it again on the next key. The
+    // height opens the box and only an empty draft closes it.
+    const tallNow = height > oneLine.current + 4;
+    setTall((open) => staysOpen({ open, tallNow, draft }));
+    // And when the field comes back after a note left the row, and once more
+    // when the box opens or a chip arrives, at the width the field has then:
+    // measured only per key, the key that opened the box left the field two
+    // lines high where the words fit on one, and the next key dropped it.
+  }, [draft, holdsNote, tall, photos.length]);
   const turnsBox = useRef<HTMLDivElement>(null);
   // Keyed by message, so a settled stream drops its own entry. A plain array
   // grew for the life of the tab.

@@ -10,8 +10,11 @@
 //
 // 2026-09-29. No details field: offload is for short things, and a second
 // field took space and confused people. What is stored there is untouched.
+//
+// 2026-10-07. Labels, as the phones' sheet has them: the row's labels by dot
+// and name, and the label popover behind them, saved with the rest.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   WEEKDAYS,
   formatRule,
@@ -28,6 +31,9 @@ import {
 import { Icon } from "../Icon";
 import { Modal } from "../people/Modal";
 import { MoveOver } from "../shell/MoveSheet";
+import { LabelPopover, type LabelChoice } from "../labels/LabelPopover";
+import { LabelDot } from "../labels/LabelMark";
+import type { Label } from "../../lib/labels";
 import styles from "../../app/(shell)/shell.module.css";
 import people from "../people/people.module.css";
 import { useAppearance } from "../../lib/appearance";
@@ -51,15 +57,20 @@ function weekdayOf(day: string): Weekday {
 export function EditModal({
   row,
   threadId = null,
+  labels,
   onClose,
   onSave,
   onMove,
 }: {
   row: ContentRow;
+  /** The thread's labels. Absent where the row has no thread's set. */
+  labels?: Label[] | undefined;
   /** The thread the row is in, which the move sheet leaves out. */
   threadId?: string | null;
   onClose: () => void;
-  onSave: (row: ContentRow, patch: ContentPatch) => void;
+  /** `made` is any label typed in the popover, to be made first and added
+   *  to `patch.labels`. */
+  onSave: (row: ContentRow, patch: ContentPatch, made: string[]) => void;
   /** 028. Move, for a row that can move, in any thread. The modal gives way to
    *  the move sheet; a pick moves the row and nothing typed here is saved. */
   onMove?: ((row: ContentRow, thread: ThreadRow) => void) | undefined;
@@ -73,6 +84,11 @@ export function EditModal({
   const [month, setMonth] = useState(held.day ?? today);
   const [custom, setCustom] = useState(false);
   const [moving, setMoving] = useState(false);
+  const [choice, setChoice] = useState<LabelChoice | null>(null);
+  const [labelling, setLabelling] = useState(false);
+  const labelsButton = useRef<HTMLButtonElement>(null);
+  const carried = (labels ?? []).filter((label) => (choice?.ids ?? row.labels).includes(label.id));
+  const labelNames = [...carried.map((label) => label.name), ...(choice?.made ?? [])];
   const isEvent = row.type === "event";
 
   const grid = useMemo(() => monthFor(month, [], today, weekStart), [month, today, weekStart]);
@@ -92,8 +108,12 @@ export function EditModal({
     if (text.length > 0 && text !== row.title) patch.title = text;
     if (!sameWhen(when, held)) Object.assign(patch, patchFor(row, when));
     if (row.isReminder && !remind) patch.isReminder = false;
-    if (Object.keys(patch).length === 0) return onClose();
-    onSave(row, patch);
+    const relabelled =
+      choice !== null &&
+      (choice.made.length > 0 || choice.ids.length !== row.labels.length || choice.ids.some((id) => !row.labels.includes(id)));
+    if (relabelled) patch.labels = choice.ids;
+    if (Object.keys(patch).length === 0 && !relabelled) return onClose();
+    onSave(row, patch, relabelled ? choice.made : []);
   }
 
   if (moving && onMove) {
@@ -101,7 +121,8 @@ export function EditModal({
   }
 
   return (
-    <Modal label="Edit" wide onClose={onClose}>
+    // The popover answers Escape itself; the dialog under it stays.
+    <Modal label="Edit" wide onClose={labelling ? () => {} : onClose}>
       <input
         className={`${styles.titleInput} ${styles.editTitle}`}
         value={title}
@@ -205,6 +226,9 @@ export function EditModal({
               }}
               aria-label="Repeats"
             >
+              {/* With no day there are no presets to read off it, and an
+                  empty select read as broken: it says Never. */}
+              {presets.length === 0 ? <option value="never">Never</option> : null}
               {presets.map((preset) => (
                 <option key={preset.label} value={preset.rule ?? "never"}>
                   {preset.rule === "custom" && when.rrule && !chosenPreset ? repeatsLabel(when) : preset.label}
@@ -216,6 +240,40 @@ export function EditModal({
             <CustomRule anchorDay={when.day} initial={when.rrule} onChange={(rrule) => setWhen({ ...when, rrule })} />
           ) : null}
         </div>
+      ) : null}
+
+      {labels ? (
+        <div className={styles.editRow}>
+          <span className={styles.editRowLabel}>Labels</span>
+          <button
+            ref={labelsButton}
+            type="button"
+            className={styles.editLabels}
+            onClick={() => setLabelling(true)}
+            aria-label={`Labels, ${labelNames.join(", ") || "none"}`}
+            aria-haspopup="dialog"
+          >
+            {carried.map((label) => (
+              <LabelDot key={label.id} colour={label.colour} />
+            ))}
+            <span className={styles.editLabelsNames}>{labelNames.join(", ") || "None"}</span>
+          </button>
+        </div>
+      ) : null}
+      {labelling && labels && labelsButton.current ? (
+        <LabelPopover
+          anchor={labelsButton.current}
+          title={title.trim() || row.title}
+          labels={labels}
+          carried={choice?.ids ?? row.labels}
+          made={choice?.made ?? []}
+          align="start"
+          onDone={(next) => {
+            setChoice(next);
+            setLabelling(false);
+          }}
+          onClose={() => setLabelling(false)}
+        />
       ) : null}
 
       {row.isReminder ? (

@@ -12,10 +12,11 @@
 
 /* Moss, not ink. Support keeps this window and the app open side by side and
    the two must never be confused at a glance. Nothing else changes colour.
-   The one ramp in this file, as the kit has it: no alias means "the admin
-   nav", and everything on it is mixed from --text-on-solid. */
+   The accent surface, moss 600 in both themes: the kit drew --moss-700, which
+   dark made a text step (2026-10-07). Everything on it is mixed from
+   --text-on-solid. */
 .nav {
-  background: var(--moss-700);
+  background: var(--surface-accent);
   color: var(--text-on-solid);
   padding: 24px 16px;
   display: flex;

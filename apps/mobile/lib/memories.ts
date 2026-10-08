@@ -71,6 +71,9 @@ export function listView(
  *  `--label-n`, as `useColors()` hands them over. */
 export interface KindPalette {
   labels: readonly string[];
+  /** 2026-10-07. How much of a kind's hue its words keep against the ink:
+   *  `--hue-ink-mix`, 78% in light and half in dark, so they read lighter. */
+  hueInkMix: number;
   /** `--text-primary`, ink in this theme. */
   ink: string;
   /** `--surface-raised`. */
@@ -99,7 +102,7 @@ export function kindColors(kind: MemoryKindId, palette: KindPalette): KindColors
   const n = hue ? Number(hue.replace("label-", "")) : NaN;
   const value = Number.isInteger(n) ? palette.labels[n] : undefined;
   if (!value) return { dot: palette.ink, soft: palette.inverse, ink: palette.onSolid, filled: true };
-  return { dot: value, soft: mixOklch(value, palette.raised, 0.22), ink: mixOklch(value, palette.ink, 0.78), filled: false };
+  return { dot: value, soft: mixOklch(value, palette.raised, 0.22), ink: mixOklch(value, palette.ink, palette.hueInkMix), filled: false };
 }
 
 /** One sentence: a newline, typed or pasted, is refused. */

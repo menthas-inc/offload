@@ -43,8 +43,10 @@ export function Segmented({
     return (
       <View
         className={`flex-row rounded-pill ${isAndroid ? "border border-border-strong" : "bg-surface-fill"}`}
-        // The exploration's 2px track: under the smallest spacing step.
-        style={isAndroid ? undefined : { padding: 2, gap: 2 }}
+        // The exploration's 2px track: under the smallest spacing step. The
+        // edge is Dark theme: edges (design decisions, 2026-10-07); Android's
+        // outlined pair has its border already.
+        style={isAndroid ? undefined : { padding: 2, gap: 2, boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}
         accessibilityRole="tablist"
         accessibilityLabel={label}
       >
@@ -78,6 +80,7 @@ export function Segmented({
   return (
     <View
       className={`flex-row rounded-sm p-space-1 ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
+      style={{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}
       accessibilityRole="tablist"
       accessibilityLabel={label}
     >

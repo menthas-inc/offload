@@ -41,8 +41,14 @@ function Offer({
   children: ReactNode;
 }) {
   const skin = SKIN[tone];
+  const COLOR = useColors();
   return (
-    <View className={skin.card} style={{ borderRadius: SIZE[tone].cardRadius, padding: 16 }}>
+    // Dark theme: edges (design decisions, 2026-10-07): Android's card takes
+    // the edge iOS's hairline already draws.
+    <View
+      className={skin.card}
+      style={{ borderRadius: SIZE[tone].cardRadius, padding: 16, ...(tone === "android" ? { boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}` } : {}) }}
+    >
       <View className="flex-row items-start" style={{ gap: 14 }}>
         {mark}
         <View className="flex-1">

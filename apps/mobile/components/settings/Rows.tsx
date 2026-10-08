@@ -77,7 +77,8 @@ export function Group({
       className={`overflow-hidden ${isAndroid ? "bg-a-c-low" : "rounded-lg bg-surface-fill"} ${
         isAndroid && headed ? "" : "px-space-4"
       } ${isAndroid && !headed ? "rounded-lg" : ""}`}
-      style={isAndroid && headed ? { borderRadius: 22 } : undefined}
+      // Dark theme: edges (design decisions, 2026-10-07).
+      style={{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}`, ...(isAndroid && headed ? { borderRadius: 22 } : {}) }}
     >
       {children}
     </View>

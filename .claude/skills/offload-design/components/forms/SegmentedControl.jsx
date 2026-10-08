@@ -2,7 +2,7 @@ import React from "react";
 
 export function SegmentedControl({options=[],value,onChange,style,...rest}){
   return (
-    <div role="tablist" {...rest} style={{display:"inline-flex",gap:2,padding:2,background:"var(--surface-fill)",borderRadius:"var(--radius-sm)",...style}}>
+    <div role="tablist" {...rest} style={{display:"inline-flex",gap:2,padding:2,background:"var(--surface-fill)",boxShadow:"inset 0 0 0 1px var(--edge-well)",borderRadius:"var(--radius-sm)",...style}}>
       {options.map((o)=>{
         const v=typeof o==="string"?o:o.value,l=typeof o==="string"?o:o.label;
         const on=v===value;

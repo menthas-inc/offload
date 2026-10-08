@@ -33,6 +33,14 @@
   overflow-y: auto;
 }
 
+/* Dark edges (2026-10-07): a surface that holds rows draws a 1px inset ring,
+   the --edge-* tokens, transparent in light. The sidebar is dark in both
+   themes, so its own --edge-card is never transparent: its edge keys off the
+   page instead, and only once the page is dark too. */
+:global(html[data-theme="dark"]) .sidebar {
+  box-shadow: inset -1px 0 0 var(--border-lift);
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -210,6 +218,7 @@
   /* A quiet fill, so a crumb reads as a place you can go rather than as a word
      in a sentence. Transparent made the trail disappear into the page. */
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   font: inherit;
   color: var(--text-secondary);
   text-decoration: none;
@@ -224,6 +233,7 @@
 
 .crumb[data-on="true"] {
   background: var(--surface-inverse);
+  box-shadow: none;
   color: var(--text-inverse);
 }
 
@@ -448,6 +458,11 @@
   flex: 0 0 auto;
 }
 
+/* 2026-10-07. Something hangs from a tool: New thread from My threads' plus. */
+.paneToolsAnchor {
+  position: relative;
+}
+
 .paneBody {
   flex: 1;
   min-height: 0;
@@ -513,6 +528,7 @@
 
 .sectionCount[data-tone="accent"] {
   background: var(--surface-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--edge-accent);
   color: var(--text-accent);
 }
 
@@ -520,6 +536,7 @@
    is a state rather than a thread, and asks nothing. */
 .sectionCount[data-tone="neutral"] {
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   color: var(--text-secondary);
 }
 
@@ -629,6 +646,7 @@
   flex: 0 0 auto;
   border-radius: var(--radius-sm);
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -753,6 +771,7 @@
    the archived view once the section heading stopped saying so. */
 .tool[data-on="true"] {
   background: var(--surface-inverse);
+  box-shadow: none;
   color: var(--text-inverse);
 }
 
@@ -765,6 +784,7 @@
   border: 0;
   border-radius: var(--radius-sm);
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-card);
   color: var(--text-secondary);
   cursor: pointer;
   transition: background var(--transition-ui), color var(--transition-ui);
@@ -772,6 +792,7 @@
 
 .tool:hover {
   background: var(--surface-inverse);
+  box-shadow: none;
   color: var(--text-inverse);
 }
 
@@ -928,6 +949,7 @@
   padding: var(--space-5);
   border-radius: var(--radius-md);
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   font-size: calc(14px * var(--type-scale));
   line-height: 1.5;
   color: var(--text-secondary);
@@ -1024,6 +1046,7 @@
    neutral tone and what a selected tool in the pane head already does here. */
 .chipOn {
   background: var(--surface-inverse);
+  box-shadow: none;
   color: var(--text-inverse);
 }
 
@@ -1107,6 +1130,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 2026-10-07. A question with its consequence under it: the archive in a
+   shared thread and Leave. The question may truncate; the line under it
+   wraps, so a long title never hides what the answer does. */
+.confirmLines {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.confirmLines > .confirmText {
+  flex: none;
+}
+
+.confirmNote {
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1.35;
+  font-family: var(--font-core);
+  color: var(--text-secondary);
 }
 
 .danger {
@@ -1258,6 +1302,7 @@
 .row[data-archived] .rowIcon {
   border: 1px dashed var(--border-strong);
   background: transparent;
+  box-shadow: none;
   color: var(--text-tertiary);
 }
 
@@ -1601,6 +1646,7 @@ a.settingsRow:hover,
   flex: 0 0 auto;
   border-radius: var(--radius-sm);
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -1751,6 +1797,7 @@ a.settingsRow:hover,
   border: 0;
   border-radius: 8px;
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   font: var(--weight-medium) calc(15px * var(--type-scale)) / 1 var(--font-core);
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
@@ -1804,6 +1851,7 @@ a.settingsRow:hover,
   flex: 0 0 auto;
   border-radius: 9px;
   background: var(--surface-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--edge-accent);
   color: var(--moss-700);
   display: flex;
   align-items: center;
@@ -1862,6 +1910,7 @@ a.settingsRow:hover,
    ground in dark, and the alias is pitched per theme to read. */
 .settingsStatus[data-tone="on"] {
   background: var(--surface-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--edge-accent);
   color: var(--text-accent);
 }
 
@@ -1957,6 +2006,7 @@ a.settingsRow:hover,
 
 .appMark[data-tone="mail"] {
   background: var(--surface-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--edge-accent);
   color: var(--moss-700);
 }
 
@@ -2070,6 +2120,7 @@ a.settingsRow:hover,
   padding: 0 10px;
   border-radius: 8px;
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   color: var(--text-tertiary);
 }
 
@@ -2302,6 +2353,7 @@ a.settingsRow:hover,
   padding: 3px;
   border-radius: var(--radius-sm);
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
 }
 
 .segment {
@@ -3023,6 +3075,7 @@ a.settingsRow:hover,
   margin: var(--space-4) 0;
   border-radius: var(--radius-sm);
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   color: var(--text-tertiary);
 }
 
@@ -3060,16 +3113,19 @@ a.settingsRow:hover,
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-card);
   color: var(--text-secondary);
 }
 
 .chipLate {
   background: var(--surface-danger-soft);
+  box-shadow: inset 0 0 0 1px var(--edge-danger);
   color: var(--text-danger);
 }
 
 .chipSoon {
   background: var(--surface-noticed-soft);
+  box-shadow: inset 0 0 0 1px var(--edge-noticed);
   color: var(--text-noticed);
 }
 
@@ -3203,6 +3259,30 @@ a.settingsRow:hover,
   width: 64px;
 }
 
+/* 2026-10-07. The row's labels in the edit dialog: dots and names, the
+   popover behind them. Drawn as the select beside it is. */
+.editLabels {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.editLabelsNames {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .editCustom {
   margin-top: var(--space-2);
   padding: var(--space-2) var(--space-3);
@@ -3303,12 +3383,14 @@ a.actRow:hover {
   min-height: 28px;
   border-radius: var(--radius-pill);
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   color: var(--text-secondary);
 }
 
 /* Hollow for a row that never reached a phone. */
 .actLeadOff {
   background: transparent;
+  box-shadow: none;
   border: 1.5px solid var(--border-lift);
   color: var(--text-tertiary);
 }
@@ -3366,12 +3448,14 @@ a.actRow:hover {
   padding: 0 6px;
   border-radius: 4px;
   background: var(--surface-noticed-soft);
+  box-shadow: inset 0 0 0 1px var(--edge-noticed);
   font: var(--weight-medium) calc(10.5px * var(--type-scale)) / 1 var(--font-core);
   color: var(--text-noticed);
 }
 
 .actTagQuiet {
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   color: var(--text-tertiary);
 }
 
@@ -3418,6 +3502,7 @@ a.actRow:hover {
   padding: 0 10px 0 4px;
   border-radius: var(--radius-pill);
   background: var(--surface-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--edge-accent);
   color: var(--text-accent);
   font: var(--weight-medium) calc(12.5px * var(--type-scale)) / 1 var(--font-core);
   text-decoration: none;

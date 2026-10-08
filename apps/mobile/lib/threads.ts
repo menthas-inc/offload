@@ -28,6 +28,9 @@ export interface ThreadRow {
   /** Always false since 028, which took the default thread out of the list.
    *  Kept because the server still sends it. */
   isDefault: boolean;
+  /** 2026-10-07. Everybody else in it, by name: a shared thread is left,
+   *  not deleted, and the question names who it stays with. */
+  others?: string[];
 }
 
 /** 028. Two groups: Always on went, and Older is about time only. */
@@ -499,6 +502,18 @@ export async function moveContent(
     { method: "POST", ...body({ threadId }) }
   );
   return data;
+}
+
+/** 2026-10-07. A thread made by hand, from the plus on My threads, with the
+ *  name, icon and colour New thread showed. */
+export async function createThread(input: { name: string; icon: string; hue: number }): Promise<{ id: string; name: string } | null> {
+  const { data } = await send<{ thread: { id: string; name: string; icon: string; hue: number } }>("/v1/threads", {
+    method: "POST",
+    ...body(input),
+  });
+  if (!data) return null;
+  looks.set(data.thread.id, { icon: data.thread.icon, hue: data.thread.hue });
+  return { id: data.thread.id, name: data.thread.name };
 }
 
 /** 037. Edit thread's one write: the name, the icon and the hue, any of

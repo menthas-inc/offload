@@ -55,7 +55,9 @@ export function SuggestionLine({
         className={`flex-row items-center gap-space-3 border ${isAndroid ? "rounded-a-sm" : "rounded-pill"} ${
           move ? "border-transparent bg-surface-accent-soft" : "border-dashed border-moss-600 bg-surface-raised"
         }`}
-        style={{ minHeight: DRAWN, paddingLeft: 10, paddingRight: 12, flexShrink: 1 }}
+        // Dark theme: edges (design decisions, 2026-10-07): the move, on the
+        // accent tint. Create has its dashed line.
+        style={{ minHeight: DRAWN, paddingLeft: 10, paddingRight: 12, flexShrink: 1, ...(move ? { boxShadow: `inset 0 0 0 1px ${COLOR.edgeAccent}` } : {}) }}
       >
         <Glyph name="sparkles" size={13} color={COLOR.accent} />
         <Text className={`font-core ${quiet}`} style={{ fontSize: 13, flexShrink: 0 }}>

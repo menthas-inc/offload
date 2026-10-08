@@ -110,6 +110,8 @@ export default function SignIn() {
                 accessibilityRole="alert"
                 accessibilityLiveRegion="polite"
                 className="rounded-a-md bg-surface-attention-soft px-space-6 py-space-5"
+                // Dark theme: edges (design decisions, 2026-10-07).
+                style={{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeAttention}` }}
               >
                 <Text className="font-core text-body-sm text-text-on-attention">
                   {GATE.refused}
@@ -156,8 +158,10 @@ export default function SignIn() {
               );
             })}
 
+            {/* Apart from the buttons, 20 in all, as on iOS: at the foot's 12
+                it read as part of the last button (owner, 2026-10-07). */}
             <Text
-              className="text-center font-core text-a-on-var"
+              className="mt-space-4 text-center font-core text-a-on-var"
               style={{ fontSize: 12.5, lineHeight: 18 }}
             >
               {GATE.signIn.terms}

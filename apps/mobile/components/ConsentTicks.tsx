@@ -122,7 +122,8 @@ export function ConsentTicks({
 
       <View
         className="flex-row items-start bg-surface-attention-soft"
-        style={{ gap: 10, marginTop: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12 }}
+        // Dark theme: edges (design decisions, 2026-10-07).
+        style={{ gap: 10, marginTop: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, boxShadow: `inset 0 0 0 1px ${COLOR.edgeAttention}` }}
       >
         <View style={{ marginTop: 2 }}>
           <Glyph name="lock" size={16} color={COLOR.textOnAttention} />

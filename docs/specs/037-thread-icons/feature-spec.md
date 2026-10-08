@@ -95,3 +95,7 @@ The model changing an icon or colour on request. A suggestions row or groups in 
 ## Privacy
 
 Nothing changes on the privacy page. The icon and the hue are derived from a thread's name on our own server; no content goes anywhere new, and no event or log carries the name (OFF-1).
+
+## Amended 2026-10-07
+
+**A thread can be made by hand.** A plus at the end of My threads' head on the web and in its bar on the phones opens Edit thread as **New thread**, with Create for Save: a name, the icon read off it until one is picked, and the colour least used among the threads on screen. `POST /v1/threads` makes the thread with the person as its only member, the icon offload's unless a different one was picked, and the new thread opens. Nothing changes on the privacy page.

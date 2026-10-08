@@ -15,7 +15,7 @@
 .dockLabel[data-k] {
   --kt: color-mix(in oklch, var(--k) 12%, var(--surface-raised));
   --kt2: color-mix(in oklch, var(--k) 22%, var(--surface-raised));
-  --ki: color-mix(in oklch, var(--k) 78%, var(--text-primary));
+  --ki: color-mix(in oklch, var(--k) var(--hue-ink-mix), var(--text-primary));
 }
 
 .head[data-k="people"],
@@ -123,6 +123,8 @@
   padding: 0 var(--space-5);
   border-radius: var(--radius-sm);
   background: var(--surface-fill);
+  /* The dark edges decision, 2026-10-07: an inset ring, transparent in light. */
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   color: var(--text-tertiary);
 }
 
@@ -168,6 +170,7 @@
   font: var(--weight-regular) var(--size-caption) / 1 var(--font-core);
   color: var(--text-secondary);
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   border-radius: var(--radius-pill);
   padding: var(--space-2) var(--space-3);
 }
@@ -376,6 +379,7 @@
   border: 0;
   border-radius: var(--radius-sm);
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--k) var(--edge-hue), transparent);
   font: var(--weight-medium) calc(14px * var(--type-scale)) / 1.1 var(--font-core);
   color: var(--text-primary);
   cursor: pointer;
@@ -414,6 +418,7 @@
   padding: var(--space-5) var(--space-6);
   border-radius: var(--radius-md);
   background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
   font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1.45 var(--font-core);
   color: var(--text-secondary);
 }

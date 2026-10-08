@@ -9,12 +9,14 @@
 import { Platform, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Avatar } from "../Avatar";
+import { useColors } from "../../lib/colors";
 import { nameOf, type Invitation } from "../../lib/people";
 
 const isAndroid = Platform.OS === "android";
 
 export function InvitationStrip({ invitation }: { invitation: Invitation }) {
   const router = useRouter();
+  const COLOR = useColors();
   return (
     <Pressable
       onPress={() => router.push({ pathname: "/invitations/[memberId]", params: { memberId: invitation.memberId } })}
@@ -22,7 +24,8 @@ export function InvitationStrip({ invitation }: { invitation: Invitation }) {
       className={`mx-gutter-screen mb-space-4 flex-row items-center gap-space-4 rounded-lg px-space-5 py-space-4 ${
         isAndroid ? "bg-a-c-low" : "bg-surface-accent-soft"
       }`}
-      style={{ minHeight: 56 }}
+      // Dark theme: edges (design decisions, 2026-10-07).
+      style={{ minHeight: 56, boxShadow: `inset 0 0 0 1px ${isAndroid ? COLOR.edgeCard : COLOR.edgeAccent}` }}
     >
       <View pointerEvents="none">
         <Avatar uid={invitation.from.accountId} initials={invitation.from.initials} name={invitation.from.displayName ?? undefined} size={28} />

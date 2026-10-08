@@ -10,8 +10,8 @@
 // into To do at the press, the toast says "Added to today" with Undo, and the
 // Undo gives the row back through its own route.
 
-import { useCallback, useState } from "react";
-import { rowLabelledCopy } from "@offload/widgets";
+import { useCallback, useEffect, useState } from "react";
+import { asksBeforeArchive, rowLabelledCopy, withMadeLabels } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { useToast } from "../shell/Toast";
 import { EditModal } from "../panes/EditModal";
@@ -53,7 +53,28 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
   const toast = useToast();
   const { zone, today } = useClock();
   const [asking, setAsking] = useState<string | null>(null);
+  // 2026-10-07. Archive hides a row for everyone in its thread. Today does
+  // not know who else is in one, so a row that is not yours asks first.
+  const [archiving, setArchiving] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<ContentRow | null>(null);
+  // 2026-10-07. The open row's thread labels, for the dialog's Labels, read
+  // when it opens since Today has no thread bundle. A row not in a thread
+  // has none to offer.
+  const [editLabels, setEditLabels] = useState<Label[] | undefined>(undefined);
+  useEffect(() => {
+    setEditLabels(undefined);
+    const threadId = (editRow as AgendaRow | null)?.threadId;
+    if (!threadId) return;
+    let live = true;
+    void fetchThread(threadId)
+      .then((bundle) => {
+        if (live && bundle) setEditLabels(bundle.labels);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [editRow]);
   const [labelling, setLabelling] = useState<{ row: ContentRow; anchor: HTMLElement; labels: Label[] } | null>(null);
   const [drawn, setDrawn] = useState<Map<string, Partial<AgendaRow>>>(new Map());
   const [dropped, setDropped] = useState<Set<string>>(new Set());
@@ -125,8 +146,9 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
     );
   }
 
-  function edit(row: ContentRow, patch: ContentPatch): void {
+  function edit(row: ContentRow, patch: ContentPatch, made: string[] = []): void {
     const next: Partial<ContentRow> = {};
+    if (patch.labels !== undefined) next.labels = patch.labels;
     if (patch.title !== undefined) next.title = patch.title;
     if (patch.body !== undefined) next.body = patch.body;
     if (patch.isReminder !== undefined) next.isReminder = patch.isReminder;
@@ -140,19 +162,27 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
       occursEndAt: row.occursEndAt,
       rrule: row.rrule,
       allDay: row.allDay,
+      labels: row.labels,
     };
-    let previous: ContentSnapshot | null = null;
+    const write = withMadeLabels<ContentPatch, ContentSnapshot>(
+      {
+        make: async (name) => {
+          const created = await createLabel((row as AgendaRow).threadId, { name });
+          return created.ok ? created.value.label.id : null;
+        },
+        edit: async (fields) => (await editContent(row.id, fields))?.previous ?? null,
+        undo: (previous) => previous,
+        drop: (labelId) => deleteLabel(labelId),
+      },
+      patch,
+      made,
+    );
     void perform(
       {
         apply: () => patchRow(row.id, next),
         revert: () => patchRow(row.id, before),
-        write: () =>
-          editContent(row.id, patch).then((result) => {
-            if (!result) return false;
-            previous = result.previous;
-            return true;
-          }),
-        unwrite: () => (previous ? editContent(row.id, previous) : Promise.resolve(null)).then((result) => result !== null),
+        write: write.write,
+        unwrite: write.unwrite,
         did: "Saved",
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
@@ -251,7 +281,16 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
     onEdit: (row) => setEditRow(row),
     onSaveTitle: () => undefined,
     onStopEditing: () => undefined,
-    onArchive: archive,
+    onArchive: (row) => {
+      if (asksBeforeArchive(row, null)) setArchiving(row.id);
+      else archive(row);
+    },
+    archiving,
+    onArchiveAsk: setArchiving,
+    onArchiveNow: (row) => {
+      setArchiving(null);
+      archive(row);
+    },
     onAsk: setAsking,
     onDelete: remove,
     labels,
@@ -288,10 +327,13 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
           key={editRow.id}
           row={editRow}
           threadId={(editRow as AgendaRow).threadId}
+          labels={editLabels}
           onClose={() => setEditRow(null)}
-          onSave={(row, patch) => {
+          onSave={(row, patch, made) => {
             setEditRow(null);
-            edit(row, patch);
+            if (Object.keys(patch).length === 1 && patch.labels && editLabels) {
+              labelRow(row, editLabels, { ids: patch.labels, made });
+            } else edit(row, patch, made);
           }}
           onMove={(row, to) => {
             setEditRow(null);

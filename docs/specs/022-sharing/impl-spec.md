@@ -293,3 +293,7 @@ The suite covers every API AC with two accounts: lookup, both directions of a re
 - **OFF-6:** request, share, accept, Add it, Withdraw, Take out, Remove, Block: each confirmed by its control, none undoable; Leave keeps its Undo; the said share is a proposal until the tap.
 - **OFF-7:** the divergences are listed in the feature spec for one `decisions.md` entry.
 - **OFF-8:** mentions are bounded per message; no connection list in the prompt.
+
+## Amended 2026-10-07
+
+`GET /v1/threads` rows carry `others`. `asksBeforeArchive`, `archiveAsk`, `ARCHIVE_SHARED`, `leaveAsk` and `staysWith` live in `@offload/widgets` (`shared-confirm.ts`); the web confirms in the row (`ContentRowView`, `PhotoViewer`, `MyThreads`), the phones through `ConfirmSheet` (`Thread`, `useTodayRows`, `MyThreads`). See the feature spec's amendment of the same date.

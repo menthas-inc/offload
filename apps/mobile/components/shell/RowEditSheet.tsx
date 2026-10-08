@@ -185,7 +185,7 @@ export function RowEditSheet({
                 Repeats
               </Text>
               <Text className={`font-core ${quiet}`} style={{ fontSize: 15 }} numberOfLines={1}>
-                {when.day ? repeatsLabel(when) : ""}
+                {repeatsLabel(when)}
               </Text>
               <Glyph name="chevron-right" size={18} color={COLOR.iconOnWell} />
             </Pressable>
@@ -204,7 +204,7 @@ export function RowEditSheet({
                 <LabelDot key={label.id} colour={label.colour} />
               ))}
               <Text className={`shrink font-core ${quiet}`} style={{ fontSize: 15 }} numberOfLines={1}>
-                {[...carried.map((label) => label.name), ...(choice?.made ?? [])].join(", ")}
+                {[...carried.map((label) => label.name), ...(choice?.made ?? [])].join(", ") || "None"}
               </Text>
             </View>
             <Glyph name="chevron-right" size={18} color={COLOR.iconOnWell} />

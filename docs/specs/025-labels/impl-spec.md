@@ -235,3 +235,7 @@ Divergences found during the build, each folded into the sections above or recor
 - **The privacy page's date and `CONSENT_VERSION` move together** to 27 September 2026; a web test holds them to the same day.
 - **The tool set measures 1,798 of 1,800.** No `defer_loading` was needed; the next tool will need it.
 - **Evals:** principle 25 (six filing cases) and principle 26 (four overnight cases on a new `label_sort` surface) are written and have not been run.
+
+## Amended 2026-10-07
+
+`GET /v1/threads/:id/content?ticksFor=` filters done rows and events whose last day is before today unless the label carries them (`apps/core-api/src/routes/threads.ts`). The web's `EditModal` takes `labels` and saves through `withMadeLabels`, moved to `@offload/widgets` so both clients share it; `LabelPopover` gains `made` and `align`. See the feature spec's amendment of the same date.

@@ -12,7 +12,7 @@ export function Chip({children,icon,label,selected=false,tone="neutral",disabled
      a tone is a fill. */
   const fill=(base,deep,fg)=>({bg:selected||(h&&interactive)?deep:base,fg,bd:"transparent"});
   let tones={
-    neutral:{bg:selected?"var(--surface-inverse)":h&&interactive?"var(--surface-fill-strong)":"var(--surface-fill)",fg:selected?"var(--text-inverse)":"var(--text-primary)",bd:"transparent"},
+    neutral:{bg:selected?"var(--surface-inverse)":h&&interactive?"var(--surface-fill-strong)":"var(--surface-fill)",fg:selected?"var(--text-inverse)":"var(--text-primary)",bd:selected?"transparent":"var(--edge-card)"},
     accent:fill("var(--moss-600)","var(--moss-700)","var(--text-on-solid)"),
     attention:fill("var(--blue-600)","var(--blue-700)","var(--text-on-solid)"),
     warning:fill("var(--amber-600)","var(--amber-700)","var(--amber-on)"),

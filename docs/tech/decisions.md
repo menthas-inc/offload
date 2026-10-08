@@ -361,6 +361,16 @@ What is left is not decisions but work, and it lives elsewhere: the deferred har
 
 *The data model is specced at `docs/specs/001-data-model/`. What remains of it is implementation.*
 
+## Owner fixes, 2026-10-07
+
+- ✅ **A thread can be made directly: `POST /v1/threads` `{ name, icon?, hue? }`.** The thread and its creator's accepted membership in one transaction, as the model's `create_thread` and a loose proposal make them. The icon is offload's (`icon_set_by` `offload`) unless the one sent differs from what offload would pick from the name, so a later rename can still re-pick it; the hue sent is the one New thread showed, the least used among the threads on screen.
+- ✅ **My threads' rows carry `others`**, the display names of the other accepted members, read by the query that already composed the row's line. The clients say Leave and name who a thread stays with; nothing new leaves the server, since members already see each other.
+- ✅ **The label's list filters on the server** (`ticksFor`): done rows and events whose last day is before today are left out unless the label carries them. Today is the account's clock; an all-day row's day is its UTC date, as Today reads it. Server side so paging and both clients agree.
+- ✅ **Archive stays thread-wide.** `content.archived_at` hides a row for every member; the owner chose a confirm that says so over a per-person archive, which would be a schema change and its own spec.
+- ✅ **`withMadeLabels` moved to `@offload/widgets`**, since the web's edit dialog now makes labels typed in it before the edit, exactly as the phones' sheet does.
+
+**Design system impact:** logged in the design system's `decisions.md` under 2026-10-07.
+
 ## PDFs, decided during 041 (2026-10-07)
 
 - ✅ **A PDF is a blob of a third kind, and what any route serves is its clean copy, never the original.** The worker rewrites the original with qpdf (pikepdf): annotations burned into their pages and removed, the catalog's scripts, open and additional actions, forms with XFA, names, outlines and metadata removed, every `/Metadata` and the document information removed, saved as one revision with no object streams, then verified by walking every object for a kill list of names. The Core API scans the posted copy again (`blobs/pdf-scan.ts`), outside stream data, before sealing it at `clean` under the blob's key, so a buggy or compromised worker cannot store a copy members then open. The two lists are one list, and a test reads both. The scan also refuses a stream with two `/Length` entries or an `endstream` inside its data, the two ways a viewer could end a stream somewhere other than where the scan did and read what the scan skipped as an object. The original stays sealed as the dump (OFF-1) and is served to nobody, the export's one exception being the owner's own PDF that could not be cleaned.

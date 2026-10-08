@@ -120,7 +120,7 @@ export default function Memories() {
   const memories = read && read !== "failed" ? read.memories : [];
   const places = read && read !== "failed" ? (read.kinds ?? []) : [];
   const shown = listView(memories, sort, query);
-  const palette = { labels: COLOR.labels, ink: COLOR.ink, raised: COLOR.raised, inverse: COLOR.inverse, onSolid: COLOR.onSolid };
+  const palette = { labels: COLOR.labels, ink: COLOR.ink, raised: COLOR.raised, inverse: COLOR.inverse, onSolid: COLOR.onSolid, hueInkMix: COLOR.hueInkMix };
 
   function toggleSearch(): void {
     if (searching) setQuery("");
@@ -174,8 +174,9 @@ export default function Memories() {
         <View className="px-gutter-screen pb-space-3 pt-space-1">
           <View
             className={`flex-row items-center gap-space-4 px-space-5 ${isAndroid ? "rounded-pill bg-a-c-low" : "bg-surface-fill"}`}
-            // A minimum, so the field grows with the text size rather than clipping it.
-            style={isAndroid ? { minHeight: 48 } : { minHeight: 40, borderRadius: 12 }}
+            // A minimum, so the field grows with the text size rather than
+            // clipping it. The edge is Dark theme: edges (design decisions, 2026-10-07).
+            style={[{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }, isAndroid ? { minHeight: 48 } : { minHeight: 40, borderRadius: 12 }]}
           >
             <Glyph name="search" size={16} color={COLOR.quiet} />
             <TextInput
@@ -269,7 +270,7 @@ export default function Memories() {
               <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 19 }}>
                 {section.title}
               </Text>
-              <View className="rounded-pill bg-surface-fill px-space-3 py-space-1">
+              <View className="rounded-pill bg-surface-fill px-space-3 py-space-1" style={{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}>
                 <Text className="font-core text-text-secondary" style={{ fontSize: 12 }}>
                   {section.data.length}
                 </Text>

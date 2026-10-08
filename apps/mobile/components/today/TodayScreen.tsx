@@ -254,6 +254,16 @@ export default function TodayScreen() {
 
   const ink = isAndroid ? "text-a-on" : "text-text-primary";
   const card = `overflow-hidden ${isAndroid ? "rounded-a-lg bg-a-c-low" : "rounded-lg bg-surface-fill"}`;
+  // Dark theme: edges (design decisions, 2026-10-07). A layer over the rows
+  // rather than a shadow on the card, since each row paints the card's fill
+  // under its swipe and would cover it.
+  const cardEdge = (
+    <View
+      pointerEvents="none"
+      className={`absolute inset-0 ${isAndroid ? "rounded-a-lg" : "rounded-lg"}`}
+      style={{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}` }}
+    />
+  );
 
   const dayBody = (() => {
     if (!day) {
@@ -323,6 +333,7 @@ export default function TodayScreen() {
               {todo.slice(lateShown.length).map(({ row, chip }, index) =>
                 rows.row(row, { border: lateShown.length + index < todo.length - 1, chip }),
               )}
+              {cardEdge}
             </View>
             {notDrawn > 0 ? (
               <Text className="pt-space-2 font-core text-text-tertiary" style={{ fontSize: 13 }}>
@@ -338,6 +349,7 @@ export default function TodayScreen() {
               {picks.map((pick, index) => (
                 <PickRow key={pick.id} pick={pick} last={index === picks.length - 1} rows={rows} />
               ))}
+              {cardEdge}
             </View>
           </View>
         ) : null}

@@ -90,7 +90,13 @@ export function ChipFace({
   return (
     <View
       className={`flex-row items-center gap-space-3 px-space-5 ${isAndroid ? "rounded-sm" : "rounded-pill"} ${fill}`}
-      style={{ minHeight: isAndroid ? 32 : 30, ...(raised ? { boxShadow: COLOR.shadowRaised } : {}) }}
+      // A neutral chip at rest takes Dark theme: edges (design decisions, 2026-10-07).
+      style={{
+        minHeight: isAndroid ? 32 : 30,
+        ...(raised
+          ? { boxShadow: COLOR.shadowRaised }
+          : !selected && tone === "neutral" ? { boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}` } : {}),
+      }}
     >
       {label ? <LabelDot colour={label} onSolid={selected} /> : null}
       {glyph ? <Glyph name={glyph} size={14} color={selected ? COLOR.onSolid : COLOR.iconOnWell} /> : null}

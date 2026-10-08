@@ -41,6 +41,9 @@ export interface ThreadRow {
   /** 028. Always false: the default thread is in no group any more. Kept
    *  because the server still sends it, so a shipped build parses. */
   isDefault: boolean;
+  /** 2026-10-07. Everybody else in it, by name: a shared thread is left,
+   *  not deleted, and the question names who it stays with. */
+  others?: string[];
 }
 
 /** 028. Two groups. Always on is retired, and Older threads is about time. */
@@ -539,6 +542,18 @@ export interface ThreadMark {
 export interface ThreadEdited {
   thread: ThreadMark & { id: string };
   previous: ThreadMark;
+}
+
+/** 2026-10-07. A thread made by hand, from the plus on My threads, with the
+ *  name, icon and colour New thread showed. */
+export async function createThread(input: { name: string; icon: string; hue: number }): Promise<{ id: string; name: string } | null> {
+  const response = await fetch(`${API}/v1/threads`, {
+    ...json,
+    method: "POST",
+    body: JSON.stringify(input),
+  }).catch(() => null);
+  if (!response?.ok) return null;
+  return ((await response.json()) as { thread: { id: string; name: string } }).thread;
 }
 
 /** Edit thread's one write: the name, the icon and the hue, any of them.

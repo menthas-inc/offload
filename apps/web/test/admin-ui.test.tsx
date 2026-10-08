@@ -500,9 +500,11 @@ describe("the stylesheet and the pages", () => {
     for (const dead of [".badgeAttention", ".badgeAccent", ".chip"]) expect(css, dead).not.toContain(dead);
   });
 
-  it("names colours by what they are for, with the nav's moss the one ramp", () => {
+  it("names colours by what they are for, the nav's moss included", () => {
+    // The nav was the one ramp, --moss-700, until dark made that a text step
+    // (2026-10-07). It is --surface-accent now, moss 600 in both themes.
     const ramps = css.match(/var\(--(?:ink|moss|clay|blue|amber)-\d+\)/g) ?? [];
-    expect(ramps).toEqual(["var(--moss-700)"]);
+    expect(ramps).toEqual([]);
     expect(css).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(css).not.toMatch(/rgba?\(/);
   });

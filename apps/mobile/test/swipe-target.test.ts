@@ -7,10 +7,12 @@ import { describe, expect, it } from "vitest";
 
 const read = (file: string): string => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 
+// The word as the source writes it: a thread row says Leave on a shared
+// thread and Delete on one of your own (2026-10-07), through `verb`.
 describe.each([
-  ["components/memories/MemoryListRow.tsx", "Forget"],
-  ["components/shell/ThreadRow.tsx", "Delete"],
-])("%s", (file, word) => {
+  ["components/memories/MemoryListRow.tsx", "Forget", "Forget", '"Forget"'],
+  ["components/shell/ThreadRow.tsx", "Delete", "\\{verb\\}", "verb"],
+])("%s", (file, word, drawn, label) => {
   const source = read(file);
   // The revealed panel, from its clay ground to the end of its Animated.View.
   const panel = source.slice(source.indexOf("bg-surface-danger"), source.indexOf("</Animated.View>"));
@@ -22,7 +24,7 @@ describe.each([
     // tokens' tap-min, which is 44.
     expect(panel).toMatch(/className="[^"]*\bflex-1\b[^"]*\bself-stretch\b[^"]*"/);
     expect(panel).toMatch(/className="[^"]*\bmin-h-tap-min\b/);
-    expect(panel).toMatch(new RegExp(`>\\s*${word}\\s*<`));
+    expect(panel).toMatch(new RegExp(`>\\s*${drawn}\\s*<`));
   });
 
   it("puts no onPress on the Text", () => {
@@ -37,6 +39,6 @@ describe.each([
     expect(panel).toMatch(/accessibilityElementsHidden\b/);
     expect(panel).toMatch(/importantForAccessibility="no-hide-descendants"/);
     const row = source.slice(source.indexOf("<GestureDetector"));
-    expect(row).toMatch(new RegExp(`accessibilityActions=\\{\\[\\{ name: "activate" \\}, \\{ name: "\\w+", label: "${word}" \\}\\]\\}`));
+    expect(row).toMatch(new RegExp(`accessibilityActions=\\{\\[\\{ name: "activate" \\}, \\{ name: "\\w+", label: ${label} \\}\\]\\}`));
   });
 });

@@ -122,6 +122,13 @@
   --state-selected:var(--ink-100);
   --state-disabled-text:var(--ink-400);
   --state-disabled-surface:var(--ink-100);
+
+  /* Edges, 7 October 2026. The line a surface draws round itself so it can be found on a dark page.
+     Transparent in light, where the drop shadow and the paper do this already, so a component paints
+     its edge in both themes and light does not move. Dark sets each one. --edge-hue is the share of a
+     kind's or label's own hue in its ring, 0% here. */
+  --edge-card:transparent;--edge-well:transparent;--edge-noticed:transparent;--edge-danger:transparent;
+  --edge-accent:transparent;--edge-attention:transparent;--edge-hue:0%;--hue-ink-mix:78%;
 }
 
 
@@ -155,6 +162,8 @@
   --surface-viewer:color-mix(in srgb,var(--surface-inverse) 90%,transparent);
   --state-hover:rgba(11,11,11,0.04);--state-press:rgba(11,11,11,0.08);
   --state-selected:var(--ink-100);--state-disabled-text:var(--ink-400);--state-disabled-surface:var(--ink-100);
+  --edge-card:transparent;--edge-well:transparent;--edge-noticed:transparent;--edge-danger:transparent;
+  --edge-accent:transparent;--edge-attention:transparent;--edge-hue:0%;--hue-ink-mix:78%;
   --shadow-1:0 1px 2px rgba(11,11,11,0.04);--shadow-2:0 4px 16px -4px rgba(11,11,11,0.08);
   --shadow-3:0 12px 32px -8px rgba(11,11,11,0.12);--shadow-sheet:0 -8px 40px -12px rgba(11,11,11,0.14);
   color-scheme:light;
@@ -165,26 +174,26 @@
    so it resolves against these base values rather than the ones on :root. */
 [data-theme="dark"]{
   --paper:#191919;
-  --ink-50:#212121;--ink-100:#232323;--ink-150:#2C2C2C;--ink-200:#383838;--ink-300:#4A4A4A;
+  --ink-50:#212121;--ink-100:#2B2B2B;--ink-150:#333333;--ink-200:#575757;--ink-300:#5C5C5C;
   --ink-400:#767676;--ink-500:#969696;--ink-600:#B3B3B3;--ink-700:#C2C2C2;--ink-800:#D8D8D8;
   --ink-900:#E4E4E4;--ink-950:#EDEDED;
 
   /* The semantics do NOT shift with the theme: a moss chip is the same moss at
      midnight as at noon. Only the tints (50/100) darken, because a tint is a
      surface, and a surface has to belong to the page it sits on. */
-  --moss-50:#182E20;--moss-100:#1E3928;--moss-200:#2C5A3F;--moss-500:#4E8060;--moss-600:#3F6B4F;--moss-700:#5A8E6C;
+  --moss-50:#182E20;--moss-100:#1E3928;--moss-200:#2C5A3F;--moss-500:#4E8060;--moss-600:#3F6B4F;--moss-700:#80B994;
   --blue-50:#161F42;--blue-100:#1E2A57;--blue-200:#334388;--blue-500:#4A68DE;--blue-600:#3355D6;
-  --blue-700:#5273E8;--blue-900:#D6DEFF;
+  --blue-700:#8BA1F7;--blue-900:#D6DEFF;
   --amber-100:#3E2E08;--amber-600:#F0A81E;--amber-700:#F6C86A;--amber-on:#0B0B0B;--text-on-solid:#FFFFFF;
   --clay-100:#3E1915;--clay-200:#6B2A22;--clay-600:#C0392B;--clay-700:#F9A99E;
 
-  --text-primary:var(--ink-950);--text-secondary:var(--ink-600);--text-tertiary:#959595; /* 4.5:1 on every dark surface, including the input */
+  --text-primary:var(--ink-950);--text-secondary:var(--ink-600);--text-tertiary:#A0A0A0; /* 5.4:1 on the fill, 4.9:1 on the input (7 October) */
   --text-inverse:#191919;--text-accent:#82BC97;--text-attention:#95A9F7;
   --text-on-attention:#D6DEFF;--text-link:var(--ink-950);--text-danger:#F28679;
 
-  --surface-page:#1C1B19;--surface-raised:#212121;
+  --surface-page:#1A1A19;--surface-raised:#232323;
   --surface-plate:#0F0F11; /* = --prism-veil-rgb; the plate is darker than a card on purpose */
-  --surface-card:#212121;--surface-sunken:#101010;
+  --surface-card:#232323;--surface-sunken:#0E0E0E;
   --surface-fill:var(--ink-100);--surface-fill-strong:var(--ink-150);--surface-inverse:var(--ink-950);
   --surface-accent-soft:var(--moss-50);--surface-attention-soft:var(--blue-100);
   --surface-attention:var(--blue-600);--surface-noticed:var(--amber-600);--surface-noticed-soft:var(--amber-100);
@@ -194,15 +203,23 @@
   --surface-chrome:var(--surface-raised);--surface-chrome-strong:var(--surface-raised);
   --surface-input:#2E2E2E;
 
-  --border-hairline:var(--ink-150);--border-strong:#777777;--border-focus:var(--blue-500);
+  /* 7 October: dark separates by edges (explorations/dark-contrast.html, option B). The hairline
+     is 1.61:1 on a card where it was 1.15, the lift 2.60:1 on the page where it was 1.94, and the
+     strong border 4.67:1. */
+  --border-hairline:#444444;--border-strong:#8C8C8C;--border-focus:var(--blue-500);
   --border-accent:var(--moss-200);--border-attention:var(--blue-200);--border-danger:var(--clay-200);
-  /* A step up from the hairline, because dark has no drop shadow: --shadow-1 is none here,
-     so the edge is the whole of the lift. 1.94:1 against the page against the hairline's 1.23. */
-  --border-lift:var(--ink-300);--border-decision:var(--amber-700);--text-noticed:var(--amber-700);
+  --border-lift:#5C5C5C;--border-decision:var(--amber-700);--text-noticed:var(--amber-700);
   --surface-viewer:var(--surface-plate); /* opaque: a mix of the page measures 1.00:1 against it */
 
   --state-hover:rgba(255,255,255,0.06);--state-press:rgba(255,255,255,0.10);
   --state-selected:var(--ink-100);--state-disabled-text:var(--ink-400);--state-disabled-surface:var(--ink-100);
+
+  /* Edges (7 October). A grouped list and a neutral chip take the lift; a well inside a list (a
+     tile, a search field, a segmented track) the hairline; a tinted surface the border of its own
+     hue. The soon and late rings are the chip's words at 38% over its ground, as hex because a
+     phone takes one colour. */
+  --edge-card:var(--border-lift);--edge-well:var(--border-hairline);--edge-noticed:#84682D;--edge-danger:#82423B;
+  --edge-accent:var(--border-accent);--edge-attention:var(--border-attention);--edge-hue:38%;--hue-ink-mix:50%;
 
   /* Shadows do nothing on dark; surfaces separate by value instead. */
   --shadow-1:none;--shadow-2:0 1px 0 rgba(255,255,255,0.04);--shadow-3:0 8px 28px rgba(0,0,0,0.6);

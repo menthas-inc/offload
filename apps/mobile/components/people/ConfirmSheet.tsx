@@ -88,7 +88,8 @@ export function ConfirmSheet({
         </Text>
 
         {shown.length > 0 ? (
-          <View className={`mt-space-5 rounded-lg px-space-4 ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}>
+          // Dark theme: edges (design decisions, 2026-10-07).
+          <View className={`mt-space-5 rounded-lg px-space-4 ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`} style={{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}` }}>
             {shown.map((row, i) => (
               <View
                 key={`${row.title}-${i}`}

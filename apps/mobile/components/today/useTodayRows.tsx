@@ -16,6 +16,8 @@ import { useRouter } from "expo-router";
 import { ContentRowView } from "../shell/ContentRow";
 import { RowEditSheet } from "../shell/RowEditSheet";
 import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
+import { ConfirmSheet } from "../people/ConfirmSheet";
+import { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive } from "@offload/widgets";
 import type { ToastState } from "../shell/Toast";
 import { completeContent, deleteContent, editContent, fetchThread, setArchived, type ContentPatch, type ContentRow, type ContentSnapshot } from "../../lib/threads";
 import { createLabel, deleteLabel, withMadeLabels, type Label } from "../../lib/labels";
@@ -100,6 +102,14 @@ export function useTodayRows(
       toast,
       writes,
     );
+  }
+
+  /** 2026-10-07. Archive hides a row for everyone in its thread. Today does
+   *  not know who else is in one, so a row that is not yours asks first. */
+  const [archiving, setArchiving] = useState<TodayRow | null>(null);
+  function askArchive(row: TodayRow): void {
+    if (asksBeforeArchive(row, null)) setArchiving(row);
+    else archive(row);
   }
 
   function archive(row: TodayRow): void {
@@ -220,10 +230,10 @@ export function useTodayRows(
         // 028. A row not in a thread opens Not in a thread.
         { label: openThreadLabel(acting.threadName), icon: "message-circle", run: () => router.push(threadHref(acting.threadId, acting.threadName)) },
         ...(acting.archivedAt
-          ? [{ label: "Put back in the thread", icon: "rewind", run: () => archive(acting) }]
+          ? [{ label: "Put back in the thread", icon: "rewind", run: () => askArchive(acting) }]
           : acting.canDelete
             ? [{ label: "Delete", icon: "trash-2", danger: true, run: () => remove(acting) }]
-            : [{ label: "Archive", icon: "archive", run: () => archive(acting) }]),
+            : [{ label: "Archive", icon: "archive", run: () => askArchive(acting) }]),
       ]
     : [];
 
@@ -270,10 +280,23 @@ export function useTodayRows(
           setRenaming(null);
           if (!held) return;
           if (held.canDelete && held.archivedAt === null) remove(held);
-          else archive(held);
+          else askArchive(held);
         }}
       />
       <RowActionSheet open={acting !== null} actions={actions} onClose={() => setActing(null)} />
+      <ConfirmSheet
+        open={archiving !== null}
+        title={archiveAsk(archiving?.title ?? "")}
+        body={ARCHIVE_SHARED}
+        action="Archive"
+        danger
+        onConfirm={() => {
+          const held = archiving;
+          setArchiving(null);
+          if (held) archive(held);
+        }}
+        onClose={() => setArchiving(null)}
+      />
     </>
   );
 
