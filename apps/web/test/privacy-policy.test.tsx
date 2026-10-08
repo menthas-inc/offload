@@ -38,9 +38,9 @@ const terms = textOf(renderToStaticMarkup(<Terms />));
 const source = (path: string) => readFileSync(`${process.cwd()}/src/${path}`, "utf8");
 
 describe("the privacy policy, general", () => {
-  it("is titled as a privacy policy and dated 7 October 2026", () => {
+  it("is titled as a privacy policy and dated 8 October 2026", () => {
     expect(policyHtml).toMatch(/<h1[^>]*>Privacy policy<\/h1>/);
-    expect(policy).toContain("Last updated 7 October 2026");
+    expect(policy).toContain("Last updated 8 October 2026");
   });
 
   // 041. PDFs, wherever the page says what is put in, kept, made, sent to a
@@ -252,7 +252,24 @@ describe("040 the memories tab", () => {
   });
 
   it("moves both dates", () => {
-    expect(policy).toContain("Last updated 7 October 2026");
-    expect(companies).toContain("Last updated 7 October 2026");
+    expect(policy).toContain("Last updated 8 October 2026");
+    expect(companies).toContain("Last updated 8 October 2026");
+  });
+});
+
+// 2026-10-08, the App Store privacy label. The label declares what the Google
+// Maps SDK's own privacy manifest says it collects, and product events as
+// linked, so both pages say the same in words.
+describe("the pages agree with the store's privacy label", () => {
+  it("say what the map collects on the phones, beyond the IP address", () => {
+    for (const page of [companies, policy]) {
+      expect(page).toContain("an identifier, how the map is used, and on the phones crash and performance reports");
+      expect(page).not.toContain("your IP address and device details");
+    }
+  });
+
+  it("say product events carry an identifier only we can link back to you, until the account goes", () => {
+    expect(policy).toContain("Product events, such as finishing first run, under a random identifier that only we can link back to you, until you delete your account.");
+    expect(policy).not.toContain("rather than to your account");
   });
 });
