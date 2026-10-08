@@ -166,7 +166,7 @@ Made in the organisation from the start, so none of the above ever applies to it
    ```
    GOOGLE_CONNECTOR_CLIENT_ID=<from step 7>
    GOOGLE_CONNECTOR_CLIENT_SECRET=<from step 7>
-   CONNECTOR_VAULT_KEY=<openssl rand -base64 32>
+   CONNECTOR_VAULT_KEY=<openssl rand -base64 32, generated per environment, never written here>
    ```
 
 ---
