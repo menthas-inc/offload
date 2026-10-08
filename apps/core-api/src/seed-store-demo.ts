@@ -6,7 +6,8 @@
 //
 // `--zone <tz>` sets the zone every time is wall-clock in (New York without
 // it): pick one where it is about 9:41 and launch the app with TZ set to it, and
-// the day matches the status bar. `--photo <jpeg>` also files a photo row in Garden, through the API's own
+// the day matches the status bar. `--newcomer` points the same session at an
+// invited account that has not done first run. `--photo <jpeg>` also files a photo row in Garden, through the API's own
 // upload and rendition routes, so the running API (API_URL) holds the bytes.
 // Renditions are made with `sips`, so that step is macOS only.
 //
@@ -20,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import { sql } from "kysely";
 import { makeSignature } from "better-auth/crypto";
 import { linkPhoto } from "./blobs/rows.js";
+import { layoutMemories } from "./memories/layout.js";
 import { generateKey, ROOT_NAME, wrap } from "./crypto/keys.js";
 import { closeDb, db } from "./db.js";
 import { env } from "./env.js";
@@ -28,6 +30,8 @@ import { uuidv7 } from "./uuid.js";
 const SEED = join(dirname(fileURLToPath(import.meta.url)), "../seeds/store-demo.sql");
 const PEOPLE = "0de70000-0000-4000-a000-%";
 export const SAM = "0de70000-0000-4000-a000-000000000001";
+/** Invited, first run not done: the first-run screenshot signs in as them. */
+export const NEWCOMER = "0de70000-0000-4000-a000-000000000004";
 const GARDEN = "0de70000-0000-4000-a001-000000000006";
 const CONVERSATION = "0de70000-0000-4000-a002-000000000001";
 const PHOTO_MESSAGE = "0de70000-0000-4000-a003-000000000010";
@@ -46,6 +50,57 @@ export async function seedStoreDemo(zone?: string): Promise<void> {
       .onConflict((oc) => oc.column("account_id").doNothing())
       .execute();
   }
+  await placeMemories();
+}
+
+/** What each memory is about, by its number in the seed: the topic its
+ *  made-up vector leans towards, so related memories gather on the map. */
+const TOPICS: Record<number, string> = {
+  1: "family", 2: "lisbon", 3: "work", 4: "home",
+  5: "outdoors", 6: "home", 7: "family", 8: "lisbon",
+  9: "home", 10: "lisbon", 11: "health", 12: "lisbon",
+  13: "home", 14: "work", 15: "outdoors",
+  16: "lisbon", 17: "work", 18: "family", 19: "health",
+};
+
+/** A deterministic unit vector from a word: no randomness, the same map each time. */
+function direction(word: string, dims = 1024): number[] {
+  let state = [...word].reduce((h, c) => (Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0), 2166136261);
+  const next = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 2 ** 32 - 0.5;
+  };
+  const v = Array.from({ length: dims }, next);
+  const norm = Math.hypot(...v);
+  return v.map((x) => x / norm);
+}
+
+/** Made-up embeddings for Sam's memories, then the real nightly layout over
+ *  them. Each vector is its kind, its topic and a little of itself, so the
+ *  map spreads by kind and gathers by topic. No model is called. */
+async function placeMemories(): Promise<void> {
+  const rows = await db
+    .selectFrom("notes")
+    .select(["id", "kind"])
+    .where("scope", "=", "account")
+    .where("subject_id", "=", SAM)
+    .where(sql<boolean>`id::text like '0de70000-0000-4000-a004-%'`)
+    .execute();
+  for (const row of rows) {
+    const n = Number(row.id.slice(-2));
+    const [kind, topic, own] = [direction(row.kind), direction(TOPICS[n] ?? "other"), direction(row.id)];
+    const mixed = kind.map((k, i) => 0.55 * k + 0.6 * topic[i]! + 0.35 * own[i]!);
+    const norm = Math.hypot(...mixed);
+    const vector = `[${mixed.map((x) => (x / norm).toFixed(5)).join(",")}]`;
+    await db
+      .updateTable("notes")
+      .set({ embedding: vector, embedding_model: "store-demo", embedded_at: sql`now()` })
+      .where("id", "=", row.id)
+      .execute();
+  }
+  // The worker would embed them again with a real model; nothing to do here.
+  await db.deleteFrom("jobs").where("kind", "=", "embed.memory").where("account_id", "=", SAM).where("state", "=", "queued").execute();
+  await layoutMemories(SAM);
 }
 
 /** Everything with a demo id gone, the people too: the file's own clear block
@@ -136,6 +191,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const at = args.indexOf(name);
     return at >= 0 ? args.splice(at, 2)[1] : undefined;
   };
+  const newcomer = args.includes("--newcomer");
+  if (newcomer) args.splice(args.indexOf("--newcomer"), 1);
   const photo = option("--photo");
   const zone = option("--zone");
   const [file] = args;
@@ -152,7 +209,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const expires = new Date(Date.now() + 30 * 86400_000).toISOString();
     writeFileSync(file, JSON.stringify({ "better-auth.session_token": { value, expires } }));
   }
+  // `--newcomer` moves the session to the newcomer, so a build that carries
+  // Sam's cookie opens on first run without being rebuilt; a reseed without
+  // the flag moves it back, first, so the photo is uploaded as Sam.
+  const token = decodeURIComponent(cookie.slice(cookie.indexOf("=") + 1)).split(".")[0]!;
+  const sessionFor = (accountId: string) => db.updateTable("sessions").set({ account_id: accountId }).where("token", "=", token).execute();
+  await sessionFor(SAM);
   if (photo) await filePhoto(photo, cookie);
+  if (newcomer) await sessionFor(NEWCOMER);
   console.log(`The store demo is in${file ? `; signed in as Sam, the session is in ${file}` : ""}${photo ? ", with the photo" : ""}.`);
   await closeDb();
 }

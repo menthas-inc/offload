@@ -60,7 +60,9 @@ insert into accounts (id, email, state, email_verified, display_name, analytics_
 values
   ('0de70000-0000-4000-a000-000000000001', 'sam@demo.offload.test', 'active', true, 'Sam Rivera', gen_random_uuid(), current_setting('demo.zone'), 'US', now(), '2026-10-07', now() - interval '60 days'),
   ('0de70000-0000-4000-a000-000000000002', 'ana@demo.offload.test', 'active', true, 'Ana Duarte', gen_random_uuid(), 'Europe/Lisbon', 'PT', now(), '2026-10-07', now() - interval '90 days'),
-  ('0de70000-0000-4000-a000-000000000003', 'tom@demo.offload.test', 'active', true, 'Tom Reyes',  gen_random_uuid(), current_setting('demo.zone'), 'US', now(), '2026-10-07', now() - interval '45 days')
+  ('0de70000-0000-4000-a000-000000000003', 'tom@demo.offload.test', 'active', true, 'Tom Reyes',  gen_random_uuid(), current_setting('demo.zone'), 'US', now(), '2026-10-07', now() - interval '45 days'),
+  -- Somebody just invited, for the first-run screenshot: no name, no consent.
+  ('0de70000-0000-4000-a000-000000000004', 'new@demo.offload.test', 'invited', true, null, gen_random_uuid(), current_setting('demo.zone'), 'US', null, null, null)
 on conflict (id) do update set
   state = excluded.state, display_name = excluded.display_name, time_zone = excluded.time_zone,
   consented_at = excluded.consented_at, consent_version = excluded.consent_version, deleted_at = null;
@@ -83,7 +85,8 @@ insert into threads (id, created_by_account_id, name, icon, hue, icon_set_by, al
   ('0de70000-0000-4000-a001-000000000009', '0de70000-0000-4000-a000-000000000001', 'Mum''s birthday',  'gift',     8, 'offload', false, now() - interval '3 days'),
   ('0de70000-0000-4000-a001-000000000010', '0de70000-0000-4000-a000-000000000001', 'Car service',     'car',      9, 'offload', false, now() - interval '5 days'),
   ('0de70000-0000-4000-a001-000000000021', '0de70000-0000-4000-a000-000000000002', 'Miscellaneous',   'lasso',    1, 'offload', true,  now() - interval '1 day'),
-  ('0de70000-0000-4000-a001-000000000031', '0de70000-0000-4000-a000-000000000003', 'Miscellaneous',   'lasso',    1, 'offload', true,  now() - interval '1 day');
+  ('0de70000-0000-4000-a001-000000000031', '0de70000-0000-4000-a000-000000000003', 'Miscellaneous',   'lasso',    1, 'offload', true,  now() - interval '1 day'),
+  ('0de70000-0000-4000-a001-000000000041', '0de70000-0000-4000-a000-000000000004', 'Miscellaneous',   'lasso',    1, 'offload', true,  now());
 
 update accounts a set default_thread_id = t.id
   from threads t
@@ -206,18 +209,29 @@ insert into notes (id, account_id, scope, subject_id, kind, text, origin, create
 
 -- ---------------------------------------------------------------- memories
 
--- What offload knows about Sam across threads, placed on the map by hand
--- (the nightly pass would place them from embeddings).
-insert into notes (id, account_id, scope, subject_id, kind, text, origin, place_dx, place_dy, placed_at, created_at, updated_at) values
-  ('0de70000-0000-4000-a004-000000000901', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'people',   'Tom is their brother.',                        'stated',  -0.55, -0.35, now(), now() - interval '40 days', now() - interval '40 days'),
-  ('0de70000-0000-4000-a004-000000000902', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'people',   'Ana is a friend who lives in Lisbon.',         'learned', -0.35, -0.55, now(), now() - interval '20 days', now() - interval '20 days'),
-  ('0de70000-0000-4000-a004-000000000903', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'about',    'They live in Brooklyn.',                       'stated',   0.10,  0.05, now(), now() - interval '50 days', now() - interval '50 days'),
-  ('0de70000-0000-4000-a004-000000000904', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'about',    'They prefer a window seat on flights.',        'learned',  0.45, -0.40, now(), now() - interval '5 days',  now() - interval '5 days'),
-  ('0de70000-0000-4000-a004-000000000905', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'things',   'Their bike is a grey folding bike.',           'stated',   0.55,  0.45, now(), now() - interval '30 days', now() - interval '30 days'),
-  ('0de70000-0000-4000-a004-000000000906', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'things',   'The landlord is Mr Patel, on the ground floor.', 'learned', 0.25, 0.60, now(), now() - interval '12 days', now() - interval '12 days'),
-  ('0de70000-0000-4000-a004-000000000907', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'patterns', 'They shop for groceries on Saturday mornings.', 'learned', -0.15, 0.50, now(), now() - interval '15 days', now() - interval '15 days'),
-  ('0de70000-0000-4000-a004-000000000908', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'patterns', 'Launch reviews happen on Thursdays.',          'learned', -0.60,  0.20, now(), now() - interval '9 days',  now() - interval '9 days'),
-  ('0de70000-0000-4000-a004-000000000909', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'about',    'They are allergic to cats.',                   'stated',   0.70,  0.05, now(), now() - interval '25 days', now() - interval '25 days');
+-- What offload knows about Sam across threads. The map needs an embedding per
+-- memory and a nightly layout; the script writes made-up vectors (a kind and
+-- a topic each, no model call) and runs the real layout over them.
+insert into notes (id, account_id, scope, subject_id, kind, text, origin, created_at, updated_at) values
+  ('0de70000-0000-4000-a004-000000000901', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'people', 'Tom is their brother.', 'stated', now() - interval '40 days', now() - interval '40 days'),
+  ('0de70000-0000-4000-a004-000000000902', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'people', 'Ana is a friend who lives in Lisbon.', 'learned', now() - interval '20 days', now() - interval '20 days'),
+  ('0de70000-0000-4000-a004-000000000903', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'people', 'Maya is on their launch team.', 'learned', now() - interval '9 days', now() - interval '9 days'),
+  ('0de70000-0000-4000-a004-000000000904', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'people', 'Mr Patel is the landlord, on the ground floor.', 'learned', now() - interval '12 days', now() - interval '12 days'),
+  ('0de70000-0000-4000-a004-000000000905', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'things', 'Their bike is a grey folding bike.', 'stated', now() - interval '30 days', now() - interval '30 days'),
+  ('0de70000-0000-4000-a004-000000000906', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'things', 'The bookshelf is oak, 18mm boards.', 'learned', now() - interval '6 days', now() - interval '6 days'),
+  ('0de70000-0000-4000-a004-000000000907', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'things', 'Tom keeps their spare key.', 'stated', now() - interval '35 days', now() - interval '35 days'),
+  ('0de70000-0000-4000-a004-000000000908', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'things', 'Their passport runs out in March 2028.', 'stated', now() - interval '4 days', now() - interval '4 days'),
+  ('0de70000-0000-4000-a004-000000000909', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'about', 'They live in Brooklyn.', 'stated', now() - interval '50 days', now() - interval '50 days'),
+  ('0de70000-0000-4000-a004-000000000910', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'about', 'They prefer a window seat on flights.', 'learned', now() - interval '5 days', now() - interval '5 days'),
+  ('0de70000-0000-4000-a004-000000000911', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'about', 'They are allergic to cats.', 'stated', now() - interval '25 days', now() - interval '25 days'),
+  ('0de70000-0000-4000-a004-000000000912', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'about', 'They are learning Portuguese.', 'learned', now() - interval '14 days', now() - interval '14 days'),
+  ('0de70000-0000-4000-a004-000000000913', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'patterns', 'They shop for groceries on Saturday mornings.', 'learned', now() - interval '15 days', now() - interval '15 days'),
+  ('0de70000-0000-4000-a004-000000000914', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'patterns', 'Launch reviews happen on Thursdays.', 'learned', now() - interval '9 days', now() - interval '9 days'),
+  ('0de70000-0000-4000-a004-000000000915', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'patterns', 'They do a long run on Saturdays.', 'learned', now() - interval '11 days', now() - interval '11 days'),
+  ('0de70000-0000-4000-a004-000000000916', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'rules', 'Put flights on their calendar.', 'stated', now() - interval '18 days', now() - interval '18 days'),
+  ('0de70000-0000-4000-a004-000000000917', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'rules', 'Nothing before 9 on weekdays.', 'stated', now() - interval '22 days', now() - interval '22 days'),
+  ('0de70000-0000-4000-a004-000000000918', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'people', 'Lena is Tom''s partner.', 'learned', now() - interval '16 days', now() - interval '16 days'),
+  ('0de70000-0000-4000-a004-000000000919', '0de70000-0000-4000-a000-000000000001', 'account', '0de70000-0000-4000-a000-000000000001', 'people', 'Dr Okoye is their dentist.', 'stated', now() - interval '7 days', now() - interval '7 days');
 
 -- ---------------------------------------------------------------- the conversation
 
