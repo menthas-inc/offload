@@ -496,3 +496,4 @@ export type { ChipEntry, ChipKey, Face, Suggestion, ThreadRef } from "./loose.js
 export { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive, leaveAsk, staysWith } from "./shared-confirm.js";
 // The composer's latch, both clients (2026-10-07).
 export { staysOpen } from "./composer.js";
+export { holdsLine, inMindLine, keepInPlace, openFor, type PageLike } from "./open-threads.js";

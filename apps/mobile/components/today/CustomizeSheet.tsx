@@ -1,7 +1,8 @@
 // Customize Today. 027, from `TodayParts.jsx`'s `CustomizeSheet`.
 //
-// Needs you, with a grip and its four kinds switched one by one, and Your day
-// with a grip and a switch. The two sections drag to reorder; the kinds keep
+// Needs you, with a grip and its four kinds switched one by one; Your day and
+// Open in your threads, each with a grip and a switch. The sections drag to
+// reorder; the kinds keep
 // their order, which is the server's. A drag or a switch applies at once and
 // is written as it settles, one write per gesture, and a write that fails puts
 // the sheet back. The last switch on cannot be switched off, so Today is never
@@ -15,7 +16,19 @@ import { Glyph } from "../Glyph";
 import { Switch } from "../settings/Switch";
 import { DragSheet } from "../shell/DragSheet";
 import { useColors } from "../../lib/colors";
-import { DEFAULT_LAYOUT, PARTS, canSwitchOff, dayOn, moveSection, partOn, setSwitch, type Layout, type Part } from "../../lib/today";
+import {
+  DEFAULT_LAYOUT,
+  PARTS,
+  canSwitchOff,
+  dayOn,
+  moveSection,
+  openThreadsOn,
+  partOn,
+  setSwitch,
+  type Layout,
+  type Part,
+  type SectionSwitch,
+} from "../../lib/today";
 
 const isAndroid = Platform.OS === "android";
 
@@ -24,6 +37,10 @@ const KIND: Record<Part, [string, string]> = {
   people: ["People", "Requests and shared threads"],
   questions: ["Questions", "What offload asked you"],
   tips: ["Tips", "Ways to use offload"],
+};
+const SECTION: Record<SectionSwitch, [string, string]> = {
+  day: ["Your day", "Events and to-dos, a day at a time"],
+  open_threads: ["Open in your threads", "To-dos with no date, a thread at a time"],
 };
 const ROW_H = 56;
 
@@ -92,8 +109,8 @@ export function CustomizeSheet({
   };
   const rule = isAndroid ? "border-a-outline" : "border-border-hairline";
 
-  const switchRow = (key: Part | "day", name: string, line: string, inset: boolean) => {
-    const on = key === "day" ? dayOn(shown) : partOn(shown, key);
+  const switchRow = (key: Part | SectionSwitch, name: string, line: string, inset: boolean) => {
+    const on = key === "day" ? dayOn(shown) : key === "open_threads" ? openThreadsOn(shown) : partOn(shown, key);
     return (
       <View key={key} className={`flex-row items-center gap-space-4 ${inset ? `border-b ${rule}` : ""}`} style={{ minHeight: ROW_H, paddingLeft: inset ? 32 : 0 }}>
         <View className="flex-1 py-space-2">
@@ -129,9 +146,9 @@ export function CustomizeSheet({
             {PARTS.map((part) => switchRow(part, KIND[part][0], KIND[part][1], true))}
           </View>
         ) : (
-          <View key="day" className={`flex-row items-center gap-space-4 border-b ${rule}`}>
-            <Grip name="Your day" onMove={(step) => apply(moveSection(shown, "day", step))} />
-            <View className="flex-1">{switchRow("day", "Your day", "Events and to-dos, a day at a time", false)}</View>
+          <View key={section.kind} className={`flex-row items-center gap-space-4 border-b ${rule}`}>
+            <Grip name={SECTION[section.kind][0]} onMove={(step) => apply(moveSection(shown, section.kind, step))} />
+            <View className="flex-1">{switchRow(section.kind, SECTION[section.kind][0], SECTION[section.kind][1], false)}</View>
           </View>
         ),
       )}

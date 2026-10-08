@@ -11,6 +11,39 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-07 · Today: open in your threads, as built
+**Surface:** iOS, Android, web, Today
+**Raised by:** code, building the handoff of the same day. Checked in the browser, on an iOS simulator and on a Pixel.
+
+**Was:** the handoff's page head with `lasso`, the first sentence of the thread's read under it, and a ticked box filled in `--text-primary`; the web pane head titled *Today*.
+
+**Is:**
+- The page head draws the thread's own icon and hue (037), as every thread pill does; Not in a thread keeps `inbox`.
+- **No read line.** Nothing writes a thread's standing read yet, and the thread page draws nothing in its place, so a page has no sentence from offload until one exists. Not in a thread's line (*offload has a thread in mind for one of these.*) is drawn, from its suggestions: *this one*, *one of these*, *some of these* or *all of these*.
+- A tick takes the codebase's finished row and its size: the moss tick at 21 on the phones, the web's 17 native checkbox, tertiary ink and a 1px strike on both, *Ticked off* with Undo. On the phones the tick and the row are separate controls, so a screen reader reaches both.
+- The people are 22px discs on `--surface-attention-soft` with `--blue-700` initials, three at most and no count past them: a mark of its own beside 028's 20px `Faces`. `--blue-700` has no semantic alias.
+- The web's chevrons are always drawn, disabled at each end, drawn 32 in a 44 target like the stepper's.
+- The age reads *Today*, *N days* under two weeks, *N weeks* under two months, *N months*, then *N years*. What else Not in a thread holds names its kinds most common first, three at most then *and more*: *6 notes and links*.
+- At most twelve thread pages, then Not in a thread.
+- **The web's Today has no page title** (the owner, 2026-10-07): the stepper already says Today and is the page's h1. The pane head keeps Customize Today's slider at its right.
+- **Today's sections stand 24 apart on the phones** (the owner, 2026-10-07: "they seem too close"), the page's gap and the day's, where both were 16. The stepper and the next line keep 16. The web keeps its 20.
+
+**Why:** code leads where the design draws something the product does not have yet (the read), and where a rule already holds elsewhere (thread icons, the finished row). The title said Today twice, one line apart.
+
+**Design system impact:** `TodayParts.jsx` `ThreadPages` and `WToday.jsx` `WThreadPages`: the thread's icon in place of `lasso`, the read line only on Not in a thread, the finished row's tick. `WToday.jsx`: `WPaneHead` without the title, the sliders alone at the right, the stepper's day as the heading. `data.js` `open_threads`: drop `read` on threads. `TodayParts.jsx` `TodayBody`: the column's gap 24 on both phones. The faces: either `Faces` grows to 22 with a count, or this mark goes into the components.
+
+### 2026-10-07 · Today: open in your threads
+**Surface:** iOS, Android, web, Today
+**Raised by:** the product owner: with few dated to-dos, Today is mostly empty while the open to-dos sit in threads. Off `explorations/home-summary.html` (four summaries, D taken), `explorations/home-thread-cards.html` (five ways to draw D, 3 taken) and `explorations/home-thread-pages.html`. Handoff: `handoff/APPLY-2026-10-07-open-threads.md`.
+
+**Was:** **If you have time**, on Today only: up to three undated to-dos, offload's pick, each with *+ Today*.
+
+**Is:** **Open in your threads**, on Today only, after To do: a page per thread holding open undated to-dos, swiped with the next one peeking and dots under. Each page has the thread's name and people, the first sentence of its own read, up to four to-dos oldest first with their age, and a foot with *N more* and *Open thread*. The oldest open to-do decides the order; **Not in a thread** comes last when it holds a to-do. Ticks in place with Undo. The web shows two pages side by side. A fourth Customize Today kind, `open_threads`, on by default.
+
+**Considered and not taken:** a row per thread (A), four count tiles (B), offload's read of the whole account (C). For D: a checklist strip, one next to-do per thread, stacked threads that open in place, a two-column grid.
+
+**Design system impact:** `readme.md` **Today**. Kits: `ThreadPages` in `ui_kits/mobile_app/TodayParts.jsx` (both phones), `WThreadPages` in `ui_kits/web_app/WToday.jsx`, `open_threads` in `data.js`, and the Customize Today row. No new tokens or glyphs. Code: the section, the server's page order, and the `open_threads` layout kind; *If you have time* and its *+ Today* pill come out.
+
 ### 2026-10-07 · Dark theme: edges
 **Surface:** iOS, Android, web, every screen in dark
 **Raised by:** the product owner, off `explorations/dark-contrast.html` (twelve screens of `main` at `60d4e15`, four options). Handoff: `handoff/APPLY-2026-10-07-dark-contrast.md`.

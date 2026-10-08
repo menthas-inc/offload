@@ -2,8 +2,8 @@
 //
 // What to expect and what to do, across every thread. Needs you on top when
 // something is waiting on the person, then the day, one at a time: the
-// stepper, the next line, Where you will be, To do, and on Today If you have
-// time. In the order Customize Today keeps, each drawn only when it holds
+// stepper, the next line, Where you will be and To do; and on Today, open in
+// your threads (2026-10-07). In the order Customize Today keeps, each drawn only when it holds
 // something. The page opens on Today every time; the day shown is never kept.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { addUtcDays, afterWrite, dayIn, dayName, nothingLine } from "@offload/widgets";
+import { addUtcDays, afterWrite, dayIn, dayName, keepInPlace, nothingLine } from "@offload/widgets";
 import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { GearDot } from "../people/GearDot";
 import { Glyph } from "../Glyph";
@@ -26,18 +26,21 @@ import { useWeekStart } from "../../lib/appearance";
 import { refreshMe, useMe } from "../../lib/me";
 import { permitted, register } from "../../lib/notifications";
 import {
-  DEFAULT_LAYOUT,
   dayOn,
   fetchDay,
   fetchNeeds,
+  fetchOpenThreads,
+  layoutOf,
   notificationsCard,
   onTodayReset,
+  openThreadsOn,
   saveLayout,
   stackOf,
   zoneCard,
   type Day,
   type DeviceCard,
   type Layout,
+  type OpenPage,
   type ServerCard,
   type TodayRow,
 } from "../../lib/today";
@@ -48,6 +51,7 @@ import { ToastHost, useToast } from "../shell/Toast";
 import { NeedsYou, NOTIFICATIONS_PUT_OFF } from "./NeedsYou";
 import { DayStepper, EventsStrip, NextLine, SectionHead } from "./DayParts";
 import { CustomizeSheet } from "./CustomizeSheet";
+import { OpenThreads } from "./OpenThreads";
 import { useTodayRows } from "./useTodayRows";
 
 const isAndroid = Platform.OS === "android";
@@ -102,13 +106,43 @@ export default function TodayScreen() {
     });
   }, []);
 
+  // Open in your threads: read with Today and again after every write, laid
+  // over the pages as drawn so a ticked row keeps its place until Today is
+  // built again, which a step away and back, or a return to the tab, is.
+  const [open, setOpen] = useState<OpenPage[] | null>(null);
+  const [struck, setStruck] = useState<ReadonlySet<string>>(new Set());
+  const struckNow = useRef(struck);
+  struckNow.current = struck;
+  const askedOpen = useRef(0);
+  const loadOpen = useCallback((fresh: boolean) => {
+    const ask = ++askedOpen.current;
+    if (fresh) {
+      setOpen(null);
+      setStruck(new Set());
+      struckNow.current = new Set();
+    }
+    void fetchOpenThreads().then((pages) => {
+      if (ask !== askedOpen.current || !pages) return;
+      setOpen((drawn) => keepInPlace(drawn ?? [], pages, struckNow.current));
+    });
+  }, []);
+  const strike = useCallback((id: string, on: boolean) => {
+    setStruck((held) => {
+      const next = new Set(held);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
   const show = useCallback(
     (which: string) => {
       setDate(which);
       setDay((held) => (held?.date === which ? held : null));
       loadDay(which);
+      if (which === today) loadOpen(true);
     },
-    [loadDay],
+    [loadDay, loadOpen, today],
   );
 
   // A turn that filed, changed or removed something may have done it to this
@@ -118,7 +152,8 @@ export default function TodayScreen() {
     if (!filed || filed.at === lastFiled.current) return;
     lastFiled.current = filed.at;
     loadDay(date);
-  }, [filed, loadDay, date]);
+    if (date === today) loadOpen(false);
+  }, [filed, loadDay, loadOpen, date, today]);
 
   // ---------------------------------------------------------------- Needs you
   const [needs, setNeeds] = useState<ServerCard[] | null>(null);
@@ -187,17 +222,17 @@ export default function TodayScreen() {
 
   // ---------------------------------------------------------------- the layout
   const [layoutState, setLayoutState] = useState(() => {
-    const held = me?.todayLayout ?? DEFAULT_LAYOUT;
+    const held = layoutOf(me);
     return { shown: held, confirmed: held };
   });
   const latestLayout = useRef(layoutState);
   latestLayout.current = layoutState;
   useEffect(() => {
-    const held = me?.todayLayout;
+    const held = me?.todayLayoutV2;
     if (!held) return;
     // A gesture still in flight stays drawn; its own answer decides.
     setLayoutState((now) => (now.shown === now.confirmed ? { shown: held, confirmed: held } : { ...now, confirmed: held }));
-  }, [me?.todayLayout]);
+  }, [me?.todayLayoutV2]);
   const layout = layoutState.shown;
   const [customizing, setCustomizing] = useState(false);
   const changeLayout = async (next: Layout): Promise<boolean> => {
@@ -233,7 +268,10 @@ export default function TodayScreen() {
   }, [needs, layout, zoneKey, notificationsKey]);
 
   // ---------------------------------------------------------------- the rows
-  const reloadDay = useCallback(() => loadDay(date), [loadDay, date]);
+  const reloadDay = useCallback(() => {
+    loadDay(date);
+    if (date === today) loadOpen(false);
+  }, [loadDay, loadOpen, date, today]);
   const rows = useTodayRows(day, reloadDay, toast);
   const [lateOpen, setLateOpen] = useState(false);
   useEffect(() => setLateOpen(false), [date]);
@@ -288,11 +326,9 @@ export default function TodayScreen() {
       ) : null;
     }
 
-    const taken = new Set(rows.taken);
     const late = rows.live(day.late);
     const timed = rows.live(day.timed);
-    const rest = rows.live([...day.rest, ...day.picks.filter((pick) => taken.has(pick.id))]);
-    const picks = isToday ? rows.live(day.picks.filter((pick) => !taken.has(pick.id))) : [];
+    const rest = rows.live(day.rest);
     const lateShown = lateOpen ? late : late.slice(0, LATE_SHOWN);
     const lateHidden = late.length - lateShown.length;
     const todo: { row: TodayRow; chip: "date" | "time" | "none" }[] = [
@@ -303,7 +339,7 @@ export default function TodayScreen() {
     const todoCount = late.length + timed.length + rest.length + day.lateMore + day.timedMore + day.restMore;
     const notDrawn = day.timedMore + day.restMore;
 
-    if (day.events.length === 0 && todoCount === 0 && picks.length === 0) {
+    if (day.events.length === 0 && todoCount === 0) {
       return (
         <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 15 }}>
           {nothingLine(name)}
@@ -342,23 +378,31 @@ export default function TodayScreen() {
             ) : null}
           </View>
         ) : null}
-        {picks.length > 0 ? (
-          <View>
-            <SectionHead title="If you have time" hint="picked by offload" />
-            <View className={card}>
-              {picks.map((pick, index) => (
-                <PickRow key={pick.id} pick={pick} last={index === picks.length - 1} rows={rows} />
-              ))}
-              {cardEdge}
-            </View>
-          </View>
-        ) : null}
       </>
     );
   })();
 
   const dayOne = day && !day.everDumped && isToday;
   const sections = layout.sections.map((section) => {
+    if (section.kind === "open_threads") {
+      // Today only, and never over the day-one invitation.
+      return isToday && openThreadsOn(layout) && open && !dayOne ? (
+        <OpenThreads
+          key="open"
+          pages={open.map((page) => {
+            // A row archived or deleted here leaves the count too, so N more holds.
+            const todos = rows.live(page.todos);
+            return { ...page, todos, count: page.count - (page.todos.length - todos.length) };
+          })}
+          struck={struck}
+          onStrike={strike}
+          onOpenRow={rows.open}
+          toast={toast}
+          writes={rows.writes}
+          now={now}
+        />
+      ) : null;
+    }
     if (section.kind === "needs_you") return cards.length > 0 ? <NeedsYou key="needs" cards={cards} load={needsLoad} toast={toast} onChanged={reloadDay} onReload={loadNeeds} /> : null;
     if (!dayOn(layout)) return null;
     if (dayOne) {
@@ -387,7 +431,7 @@ export default function TodayScreen() {
       );
     }
     return (
-      <View key="day" className="gap-space-6">
+      <View key="day" className="gap-space-8">
         <GestureDetector gesture={swipe}>
           <View className="gap-space-6">
             <DayStepper name={name} sub={sub} first={isToday} last={date >= addUtcDays(today, DAYS_AHEAD)} onPrev={() => step(-1)} onNext={() => step(1)} />
@@ -414,7 +458,7 @@ export default function TodayScreen() {
         </View>
       </View>
 
-      <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerClassName="gap-space-6 px-gutter-screen pt-space-3 pb-space-8">
+      <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerClassName="gap-space-8 px-gutter-screen pt-space-3 pb-space-8">
         {sections}
         <PlateSpace />
       </Animated.ScrollView>
@@ -422,27 +466,5 @@ export default function TodayScreen() {
       {customizing ? <CustomizeSheet layout={layout} onChange={changeLayout} onClose={() => setCustomizing(false)} /> : null}
       <ToastHost state={toast} />
     </SafeAreaView>
-  );
-}
-
-function PickRow({ pick, last, rows }: { pick: TodayRow; last: boolean; rows: ReturnType<typeof useTodayRows> }) {
-  return (
-    <>
-      {rows.row(pick, { border: !last, chip: "none", trailing: <PlusToday title={pick.title} onPress={() => rows.take(pick)} /> })}
-    </>
-  );
-}
-
-function PlusToday({ title, onPress }: { title: string; onPress: () => void }) {
-  const COLOR = useColors();
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Add ${title} to today`} className="min-h-tap-min justify-center">
-      <View className="flex-row items-center gap-space-1 rounded-pill border border-border-strong bg-surface-raised px-space-4" style={{ minHeight: 28 }}>
-        <Glyph name="plus" size={13} color={COLOR.ink} />
-        <Text className="font-core font-medium text-text-primary" style={{ fontSize: 12.5 }}>
-          Today
-        </Text>
-      </View>
-    </Pressable>
   );
 }

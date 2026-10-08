@@ -79,9 +79,13 @@ describe("Today's cards", () => {
     expect(edge).toContain(`boxShadow: \`${ring("COLOR.edgeCard")}\``);
   });
 
-  it("puts it in both cards", () => {
-    expect(at(source, "<View className={card}>").length).toBe(2);
-    expect(at(source, "{cardEdge}").length).toBe(2);
+  it("puts it in To do's card, the one card left since If you have time went", () => {
+    expect(at(source, "<View className={card}>").length).toBe(1);
+    expect(at(source, "{cardEdge}").length).toBe(1);
+  });
+
+  it("rings every page of open in your threads as a well", () => {
+    expect(read("today/OpenThreads.tsx")).toContain(`boxShadow: \`${ring("COLOR.edgeWell")}\``);
   });
 });
 

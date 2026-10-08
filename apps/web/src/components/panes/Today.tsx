@@ -6,8 +6,10 @@
 // the layout's order and each only when it holds something: **Needs you**, the
 // interruptions, read once per load and the same whichever day is shown; and
 // **the day**, one at a time, with the stepper, the next line, Where you will
-// be, To do and, on Today, If you have time. Customize Today is the second
-// pane beside this one, opened from the sliders in the pane head.
+// be and To do; and on Today, **open in your threads** (2026-10-07), a page
+// per thread holding to-dos with no date. Customize Today is the second pane
+// beside this one, opened from the sliders in the pane head, which has no
+// title: the stepper names the day, and Today said twice was one too many.
 //
 // An account that has never dumped sees 024's day-one invitation in place of
 // the day. Tapping an example fills the composer rather than submitting it,
@@ -21,14 +23,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { addUtcDays, dayName, nextLine, nothingLine, zoneStrip } from "@offload/widgets";
+import { addUtcDays, dayName, keepInPlace, nextLine, nothingLine, zoneStrip } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { PaneHead } from "../shell/PaneHead";
 import { useThreads } from "../shell/threads-context";
 import { NeedsYou, type Card } from "../today/NeedsYou";
 import { DayStepper } from "../today/DayStepper";
 import { EventsStrip, NextLine } from "../today/EventsStrip";
-import { Picks, TodoCard } from "../today/TodoCard";
+import { OpenThreads } from "../today/OpenThreads";
+import { TodoCard } from "../today/TodoCard";
 import { useTodayRows } from "../today/useTodayRows";
 import { useAppearance } from "../../lib/appearance";
 import { deviceZone, useClock } from "../../lib/clock";
@@ -39,11 +42,14 @@ import {
   dayOn,
   fetchDay,
   fetchNeeds,
+  fetchOpenThreads,
   layoutOf,
+  openThreadsOn,
   partOf,
   partsOn,
   type Day,
   type NeedsCard,
+  type OpenPage,
   type TodayLayout,
 } from "../../lib/today";
 import pane from "../../app/(shell)/shell.module.css";
@@ -133,7 +139,7 @@ export function TodayPane({
     () =>
       onMe((next) => {
         setMe(next);
-        setConfirmed(partsKey(layoutOf(next.todayLayout)));
+        setConfirmed(partsKey(layoutOf(next.todayLayoutV2)));
       }),
     [],
   );
@@ -212,11 +218,46 @@ export function TodayPane({
     };
   }, [confirmed]);
 
+  // Open in your threads: read with Today and again after every write, laid
+  // over the pages as drawn so a ticked row keeps its place until Today is
+  // built again, which stepping away and back is.
+  const showOpen = day === today && openThreadsOn(layout);
+  const [open, setOpen] = useState<OpenPage[] | null>(null);
+  const [struck, setStruck] = useState<ReadonlySet<string>>(new Set());
+  const struckNow = useRef(struck);
+  struckNow.current = struck;
+  const askedOpen = useRef(0);
+  const loadOpen = useCallback(async () => {
+    if (!showOpen) return;
+    const mine = ++askedOpen.current;
+    const got = await fetchOpenThreads();
+    if (mine !== askedOpen.current || !got) return;
+    setOpen((drawn) => keepInPlace(drawn ?? [], got, struckNow.current));
+  }, [showOpen]);
+  useEffect(() => {
+    setOpen(null);
+    setStruck(new Set());
+    void loadOpen();
+  }, [loadOpen]);
+  useEffect(() => {
+    if (filed) void loadOpen();
+  }, [filed, loadOpen]);
+  const strike = useCallback((id: string, on: boolean) => {
+    setStruck((held) => {
+      const next = new Set(held);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
   const labels = useMemo(
     () => new Map<string, Label>((read?.day.threadLabels ?? []).map((one) => [one.id, { ...one, count: 0 }])),
     [read],
   );
-  const reload = useCallback(() => load(false), [load]);
+  const reload = useCallback(async () => {
+    await Promise.all([load(false), loadOpen()]);
+  }, [load, loadOpen]);
   const rows = useTodayRows(reload, labels);
 
   // ------------------------------------------------------------ Needs you
@@ -283,17 +324,12 @@ export function TodayPane({
         </p>
       );
     } else if (shown) {
-      const takenIds = new Set(rows.taken.map((row) => row.id));
-      const picks = isToday ? rows.shown(shown.picks).filter((row) => !takenIds.has(row.id)) : [];
-      // A row taken with + Today is today's, so it is drawn on Today only,
-      // whatever day the stepper moved to while its write was in flight.
-      const taken = isToday ? rows.taken.filter((row) => !shown.rest.some((one) => one.id === row.id)) : [];
-      const rest = [...rows.shown(shown.rest), ...taken];
+      const rest = rows.shown(shown.rest);
       const late = isToday ? rows.shown(shown.late) : [];
       const timed = rows.shown(shown.timed);
       const next = nextLine(shown.events, now, isToday, zone);
       const empty =
-        shown.events.length + late.length + timed.length + rest.length + picks.length + shown.lateMore + shown.restMore + (shown.timedMore ?? 0) === 0;
+        shown.events.length + late.length + timed.length + rest.length + shown.lateMore + shown.restMore + (shown.timedMore ?? 0) === 0;
       sections = empty ? (
         <p className={styles.nothing}>{nothingLine(named.name)}</p>
       ) : (
@@ -311,7 +347,6 @@ export function TodayPane({
             rows={rows}
             zone={zone}
           />
-          <Picks picks={picks} rows={rows} />
         </>
       );
     } else if (slow) {
@@ -333,11 +368,19 @@ export function TodayPane({
     </div>
   ) : null;
 
+  // Today only, and never in place of the day-one invitation.
+  const openThreads =
+    showOpen && open && everDumped ? (
+      <OpenThreads key="open" pages={open.map((page) => {
+          // A row archived or deleted here leaves the count too, so N more holds.
+          const todos = rows.shown(page.todos);
+          return { ...page, todos, count: page.count - (page.todos.length - todos.length) };
+        })} struck={struck} onStrike={strike} rows={rows} now={now} />
+    ) : null;
+
   return (
     <>
       <PaneHead
-        title="Today"
-        big
         tools={
           <Link
             href={customizing ? "/today" : "/today?customize=1"}
@@ -353,7 +396,9 @@ export function TodayPane({
 
       <div className={pane.paneBody}>
         <div className={styles.today}>
-          {layout.sections.map((section) => (section.kind === "needs_you" ? needsYou : theDay))}
+          {layout.sections.map((section) =>
+            section.kind === "needs_you" ? needsYou : section.kind === "day" ? theDay : openThreads,
+          )}
         </div>
       </div>
 

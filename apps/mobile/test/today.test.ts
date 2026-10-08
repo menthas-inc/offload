@@ -1,7 +1,8 @@
 // 027 Today on the phones: the logic under the screen.
 //
 // AC-6, AC-7 the device cards; AC-11, AC-12 the stack; AC-15 the doors;
-// AC-23 + Today and its Undo; AC-27 Customize Today; AC-30 the tabs.
+// AC-27 Customize Today, with open in your threads (2026-10-07); AC-30 the
+// tabs.
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -25,7 +26,7 @@ const today = await import("../lib/today");
 const activity = await import("../lib/activity");
 const { tabOpacity } = await import("../lib/tabs");
 
-const layout = (parts: [boolean, boolean, boolean, boolean], day = true, order: "needs" | "day" = "needs") => {
+const layout = (parts: [boolean, boolean, boolean, boolean], day = true, order: "needs" | "day" = "needs", open = true) => {
   const needs = {
     kind: "needs_you" as const,
     parts: [
@@ -36,18 +37,23 @@ const layout = (parts: [boolean, boolean, boolean, boolean], day = true, order: 
     ],
   };
   const d = { kind: "day" as const, on: day };
-  return { version: 1 as const, sections: order === "needs" ? [needs, d] : [d, needs] };
+  const o = { kind: "open_threads" as const, on: open };
+  return { version: 1 as const, sections: order === "needs" ? [needs, d, o] : [d, needs, o] };
 };
 
 describe("027 AC-27 Customize Today", () => {
-  it("switches one kind or the day, and nothing else", () => {
+  it("switches one kind, the day or open in your threads, and nothing else", () => {
     expect(today.setSwitch(layout([true, true, true, true]), "people", false)).toEqual(layout([true, false, true, true]));
     expect(today.setSwitch(layout([true, true, true, true]), "day", false)).toEqual(layout([true, true, true, true], false));
+    expect(today.setSwitch(layout([true, true, true, true]), "open_threads", false)).toEqual(layout([true, true, true, true], true, "needs", false));
+    expect(today.openThreadsOn(layout([true, true, true, true], true, "needs", false))).toBe(false);
+    expect(today.DEFAULT_LAYOUT).toEqual(layout([true, true, true, true]));
   });
 
   it("will not switch off the last switch that is on", () => {
-    const one = layout([false, false, true, false], false);
+    const one = layout([false, false, true, false], false, "needs", false);
     expect(today.canSwitchOff(one, "questions")).toBe(false);
+    expect(today.canSwitchOff(layout([false, false, false, false], false), "open_threads")).toBe(false);
     expect(today.canSwitchOff(one, "day")).toBe(true);
     expect(today.setSwitch(one, "questions", false)).toEqual(one);
     expect(today.canSwitchOff(layout([true, true, true, true]), "tips")).toBe(true);
@@ -127,7 +133,7 @@ describe("027 AC-4, AC-11 the stack", () => {
   });
 });
 
-describe("027 AC-12, AC-23 the writes", () => {
+describe("027 AC-12 the writes, and open in your threads", () => {
   it("puts a card off, for good where asked", async () => {
     sent.length = 0;
     await today.putOff("question:q");
@@ -147,14 +153,16 @@ describe("027 AC-12, AC-23 the writes", () => {
     expect(await today.putOff("question:q")).toBe("ok");
   });
 
-  it("+ Today posts and its Undo deletes", async () => {
+  it("reads open in your threads, and nothing when it did not come back", async () => {
     sent.length = 0;
-    await today.takeToday("c1");
-    await today.untakeToday("c1");
-    expect(sent.map((s) => [s.path, s.init?.method])).toEqual([
-      ["/v1/today/picks/c1", "POST"],
-      ["/v1/today/picks/c1", "DELETE"],
-    ]);
+    expect(await today.fetchOpenThreads()).toBeNull();
+    expect(sent.map((s) => s.path)).toEqual(["/v1/today/threads"]);
+  });
+
+  it("reads the layout that names open in your threads, and the defaults before /api/me has said", () => {
+    const me = { todayLayout: layout([true, true, true, true]), todayLayoutV2: layout([false, true, true, true]) };
+    expect(today.layoutOf(me)).toEqual(layout([false, true, true, true]));
+    expect(today.layoutOf(null)).toEqual(today.DEFAULT_LAYOUT);
   });
 });
 

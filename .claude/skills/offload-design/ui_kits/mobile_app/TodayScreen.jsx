@@ -12,7 +12,7 @@ function timeOfDay(date){
    kit in TodayParts.jsx; only the bar differs. */
 function TodayScreen({unread,onOpenNotifications,onOpenSettings,barSolid,onOpenThread,quiet}){
   const [custom,setCustom]=React.useState(false);
-  const open=(name)=>onOpenThread&&onOpenThread({"Europe, October":"lisbon","Flat":"home","Work":"shelf"}[name]||"lisbon");
+  const open=(name)=>onOpenThread&&onOpenThread({"Europe, October":"lisbon","Flat":"home","Work":"shelf","Bookshelf build":"shelf"}[name]||"lisbon");
   return (
     <>
       <AppBar border={false} style={barSolid?{background:"var(--surface-raised)",backdropFilter:"none",WebkitBackdropFilter:"none"}:{background:"var(--surface-chrome)"}}

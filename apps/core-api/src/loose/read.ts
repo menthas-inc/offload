@@ -282,7 +282,7 @@ export async function proposalCounts(looseThreadId: string, proposalIds: string[
 }
 
 /** The other accepted members of each thread, oldest membership first. */
-async function facesOf(viewerId: string, threadIds: string[]) {
+export async function facesOf(viewerId: string, threadIds: string[]) {
   const out = new Map<string, { accountId: string; initials: string; displayName: string }[]>();
   if (threadIds.length === 0) return out;
   const rows = await db

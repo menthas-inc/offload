@@ -58,6 +58,40 @@ function WWeekStrip({onOpen}){
   );
 }
 
+/* Open in your threads (7 October 2026): the phones' thread pages, two side by side, stepped by the
+   arrows in the section head. */
+function WThreadPages({open}){
+  const P=D.open_threads||[];
+  const [at,setAt]=React.useState(0);const [done,setDone]=React.useState([]);
+  if(!P.length)return null;
+  const total=P.reduce((n,p)=>n+p.todos.length,0);
+  const go=p=>p.loose?open({kind:"things"}):open({kind:"thread",id:p.id});
+  const line="inset 0 1px 0 var(--border-hairline)";
+  const arrow=(dir,off)=><button type="button" aria-label={dir<0?"Previous threads":"Next threads"} disabled={off} onClick={()=>setAt(a=>a+dir*2)} style={{width:32,height:32,borderRadius:8,border:"none",background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:off?"default":"pointer",opacity:off?.35:1,color:"var(--icon-on-well, var(--text-secondary))"}}><Icon name={dir<0?"chevron-left":"chevron-right"} size={17}/></button>;
+  return <>
+    <div style={{display:"flex",alignItems:"center",gap:8,padding:"var(--space-6) 0 var(--space-3)"}}>
+      <b style={{font:"var(--weight-semibold) 15px/1.2 var(--font-core)"}}>Open in your threads</b>
+      <em style={{fontStyle:"normal",font:"var(--weight-regular) 13px/1 var(--font-core)",color:"var(--text-tertiary)"}}>{total}</em>
+      <span style={{marginLeft:"auto",display:"flex"}}>{arrow(-1,at===0)}{arrow(1,at+2>=P.length)}</span></div>
+    <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:"var(--space-3)"}}>
+      {P.slice(at,at+2).map(p=><div key={p.name} style={{borderRadius:"var(--radius-lg)",background:"var(--surface-fill)",boxShadow:"inset 0 0 0 1px var(--edge-well)",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+        <div onClick={()=>go(p)} style={{padding:"14px 16px 10px",cursor:"pointer"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,font:"var(--weight-semibold) 16px/1.2 var(--font-core)"}}>
+            <span style={{display:"flex",color:p.loose?"var(--text-secondary)":"var(--text-accent)"}}><Icon name={p.loose?"inbox":"lasso"} size={15}/></span>{p.name}
+            {p.people.length?<span style={{marginLeft:"auto",display:"flex"}}>{p.people.map((x,i)=><span key={x} style={{width:22,height:22,borderRadius:99,marginLeft:i?-5:0,background:"var(--blue-100)",color:"var(--blue-700)",display:"inline-flex",alignItems:"center",justifyContent:"center",font:"var(--weight-semibold) 10px/1 var(--font-core)",boxShadow:"0 0 0 2px var(--surface-fill)"}}>{x}</span>)}</span>:null}</div>
+          <p style={{margin:"4px 0 0",font:"var(--weight-regular) 14.5px/1.45 var(--font-quiet)",color:"var(--text-secondary)"}}>{p.read}</p></div>
+        {p.todos.slice(0,4).map(it=>{const k=p.name+it.title;const on=done.includes(k);
+          return <div key={k} style={{display:"grid",gridTemplateColumns:"22px minmax(0,1fr) auto",columnGap:8,padding:"9px 16px",boxShadow:line}}>
+            <button type="button" role="checkbox" aria-checked={on} aria-label={it.title} onClick={()=>setDone(x=>on?x.filter(y=>y!==k):x.concat(k))} style={{height:20,padding:0,border:"none",background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+              <i style={{width:15,height:15,borderRadius:4,boxSizing:"border-box",border:"1.5px solid "+(on?"var(--text-primary)":"var(--text-secondary)"),background:on?"var(--text-primary)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-inverse)"}}>{on?<Icon name="check" size={11}/>:null}</i></button>
+            <b style={{font:"var(--weight-medium) 14.5px/20px var(--font-core)",textDecoration:on?"line-through":"none",color:on?"var(--text-tertiary)":"var(--text-primary)"}}>{it.title}</b>
+            <span style={{font:"var(--weight-regular) 12px/20px var(--font-core)",color:"var(--text-tertiary)",whiteSpace:"nowrap",fontVariantNumeric:"tabular-nums"}}>{it.age}</span></div>;})}
+        <div style={{marginTop:"auto",display:"flex",justifyContent:"space-between",padding:"10px 16px",boxShadow:line,font:"var(--weight-regular) 13px/20px var(--font-core)",color:"var(--text-tertiary)"}}>
+          <span>{p.todos.length>4?(p.todos.length-4)+" more":(p.more||"")}</span>
+          <span onClick={()=>go(p)} style={{color:"var(--text-accent)",fontWeight:500,cursor:"pointer"}}>{p.loose?"Sort them":"Open thread"}</span></div>
+      </div>)}</div></>;
+}
+
 function WToday({open,selectedId,now}){
   const [all,setAll]=React.useState(false);
   const pri=all?TV.priority:TV.priority.slice(0,5);
@@ -79,6 +113,7 @@ function WToday({open,selectedId,now}){
           <Button variant="ghost" size="sm" iconAfter="chevron-down" onClick={()=>setAll(true)}>{hidden} more</Button></div>:null}
         <WSection action="Open calendar" onAction={()=>open({kind:"calendar"})}>This week</WSection>
         <WWeekStrip onOpen={()=>open({kind:"calendar"})}/>
+        <WThreadPages open={open}/>
         <WSection count={TV.threads.length} tone="accent">What moved</WSection>
         {TV.threads.map(t=>{
           const l=t.lines&&t.lines[0];
@@ -97,4 +132,4 @@ function WToday({open,selectedId,now}){
   );
 }
 
-Object.assign(window,{WToday,WWeekStrip,weekDays,freeWords});
+Object.assign(window,{WThreadPages,WToday,WWeekStrip,weekDays,freeWords});

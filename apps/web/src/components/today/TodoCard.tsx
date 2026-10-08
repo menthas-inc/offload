@@ -1,6 +1,6 @@
 "use client";
 
-// 027 To do and If you have time: the thread page's own rows in one card.
+// 027 To do: the thread page's own rows in one card.
 //
 // To do: late first, on Today only, oldest first with 023's late chip, and
 // past three the rest fold into one row that opens them in place; then the
@@ -8,9 +8,6 @@
 // rest due that day with no date chip, and past a hundred a count of the
 // rest, which the read does not carry. Every row
 // carries its thread pill and its labels on the marks line.
-//
-// If you have time: up to three of offload's picks, each with + Today at the
-// trailing edge.
 
 import { useState } from "react";
 import { timeIn, whenOf } from "@offload/widgets";
@@ -23,7 +20,7 @@ import styles from "../../app/(shell)/today.module.css";
 
 const LATE_SHOWN = 3;
 
-function Row({ row, rows, chip, trail }: { row: AgendaRow; rows: TodayRows; chip?: React.ReactNode; trail?: React.ReactNode }) {
+function Row({ row, rows, chip }: { row: AgendaRow; rows: TodayRows; chip?: React.ReactNode }) {
   return (
     <ContentRowView
       row={row}
@@ -33,7 +30,6 @@ function Row({ row, rows, chip, trail }: { row: AgendaRow; rows: TodayRows; chip
       // 028. A row not in a thread draws no pill.
       thread={row.threadName === null ? undefined : { id: row.threadId, name: row.threadName, icon: row.threadIcon ?? "lasso", hue: row.threadHue ?? 1 }}
       chip={chip}
-      trail={trail}
     />
   );
 }
@@ -99,35 +95,6 @@ export function TodoCard({
         {/* The read stops at a hundred and counts the rest; they are on the
             thread pages, and the count says how many. */}
         {notDrawn > 0 ? <p className={styles.foldNote}>and {notDrawn} more</p> : null}
-      </div>
-    </section>
-  );
-}
-
-export function Picks({ picks, rows }: { picks: AgendaRow[]; rows: TodayRows }) {
-  if (picks.length === 0) return null;
-  return (
-    <section className={styles.daySection}>
-      <h3 className={styles.head}>
-        If you have time <span className={styles.headHint}>picked by offload</span>
-      </h3>
-      <div className={styles.rows}>
-        {picks.map((row) => (
-          <Row
-            key={row.id}
-            row={row}
-            rows={rows}
-            chip={null}
-            trail={
-              <button type="button" className={styles.take} aria-label={`Add ${row.title} to today`} onClick={() => rows.take(row)}>
-                <span className={styles.takePill}>
-                  <Icon name="plus" size={13} />
-                  Today
-                </span>
-              </button>
-            }
-          />
-        ))}
       </div>
     </section>
   );

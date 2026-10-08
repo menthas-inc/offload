@@ -25,7 +25,8 @@ export function useFull(): boolean {
 }
 
 interface Props {
-  title: React.ReactNode;
+  /** Absent on Today, whose stepper names the day. */
+  title?: React.ReactNode;
   sub?: React.ReactNode;
   big?: boolean;
   /** Faces, share: whatever belongs to the thing rather than to the pane. */
@@ -70,7 +71,7 @@ export function PaneHead({ title, sub, big, lead, aside, tools, more, fullHref }
     <div className={styles.paneHead}>
       {lead ? <span className={styles.paneLead}>{lead}</span> : null}
       <div style={{ minWidth: 0, flex: 1 }}>
-        <h1 className={`${styles.paneTitle} ${big ? styles.paneTitleBig : ""}`}>{title}</h1>
+        {title !== undefined ? <h1 className={`${styles.paneTitle} ${big ? styles.paneTitleBig : ""}`}>{title}</h1> : null}
         {sub ? <p className={styles.paneSub}>{sub}</p> : null}
       </div>
 

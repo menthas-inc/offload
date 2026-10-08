@@ -27,14 +27,19 @@ const parts = (on: [boolean, boolean, boolean, boolean]) => [
   { kind: "questions", on: on[2] },
   { kind: "tips", on: on[3] },
 ];
-const layout = (over: Partial<{ order: "needs" | "day"; parts: [boolean, boolean, boolean, boolean]; day: boolean }> = {}) => {
+const layout = (
+  over: Partial<{ order: "needs" | "day"; parts: [boolean, boolean, boolean, boolean]; day: boolean; open: boolean }> = {},
+) => {
   const needs = { kind: "needs_you", parts: parts(over.parts ?? [true, true, true, true]) };
   const day = { kind: "day", on: over.day ?? true };
-  return { version: 1, sections: over.order === "day" ? [day, needs] : [needs, day] };
+  const open = { kind: "open_threads", on: over.open ?? true };
+  return { version: 1, sections: over.order === "day" ? [day, open, needs] : [needs, day, open] };
 };
+/** What builds before open_threads read: the same document without it. */
+const legacy = (value: ReturnType<typeof layout>) => ({ ...value, sections: value.sections.filter((one) => one.kind !== "open_threads") });
 
 describe("027 the layout document (AC-28)", () => {
-  it("defaults to Needs you with every kind on, then the day", () => {
+  it("defaults to Needs you with every kind on, then the day, then open in your threads", () => {
     expect(DEFAULT_LAYOUT).toEqual(layout());
     expect(resolveLayout(null)).toEqual(layout());
   });
@@ -42,8 +47,13 @@ describe("027 the layout document (AC-28)", () => {
   it("gives a stored layout that does not name a kind that kind at its default place", () => {
     expect(resolveLayout({ version: 1, sections: [{ kind: "day", on: false }] })).toEqual({
       version: 1,
-      sections: [{ kind: "needs_you", parts: parts([true, true, true, true]) }, { kind: "day", on: false }],
+      sections: [{ kind: "needs_you", parts: parts([true, true, true, true]) }, { kind: "day", on: false }, { kind: "open_threads", on: true }],
     });
+  });
+
+  it("puts open in your threads after the day in a stored layout from before it, wherever the day is", () => {
+    expect(resolveLayout(legacy(layout({ order: "day" })))).toEqual(layout({ order: "day" }));
+    expect(resolveLayout(legacy(layout()))).toEqual(layout());
   });
 
   it("resolves something that no longer parses to the defaults", () => {
@@ -58,11 +68,14 @@ describe("027 the layout document (AC-28)", () => {
       { version: 1, sections: [{ kind: "needs_you", parts: parts([true, true, true, true]).slice(0, 3) }, { kind: "day", on: true }] },
       { version: 1, sections: [{ kind: "needs_you", parts: [...parts([true, true, true, true]).slice(0, 3), { kind: "account", on: true }] }, { kind: "day", on: true }] },
       { ...layout(), extra: true },
-      layout({ parts: [false, false, false, false], day: false }),
+      layout({ parts: [false, false, false, false], day: false, open: false }),
+      { version: 1, sections: [...layout().sections, { kind: "open_threads", on: true }] },
       { version: 2, sections: layout().sections },
     ];
     for (const value of bad) expect(todayLayout.safeParse(value).success, JSON.stringify(value)).toBe(false);
     expect(todayLayout.safeParse(layout({ order: "day", parts: [true, false, false, false], day: false })).success).toBe(true);
+    expect(todayLayout.safeParse(layout({ parts: [false, false, false, false], day: false })).success).toBe(true);
+    expect(todayLayout.safeParse(legacy(layout())).success).toBe(true);
   });
 });
 
@@ -70,13 +83,22 @@ describe("027 the layout on /api/me (AC-27)", () => {
   it("reads the resolved layout and stores only what parsed, last write winning", async () => {
     const me = await account();
     const cookie = await signIn(me);
-    const read = async () => ((await app.inject({ method: "GET", url: "/api/me", headers: { cookie } })).json() as { todayLayout: unknown }).todayLayout;
+    const me2 = async () => (await app.inject({ method: "GET", url: "/api/me", headers: { cookie } })).json() as { todayLayout: unknown; todayLayoutV2: unknown };
+    const read = async () => (await me2()).todayLayoutV2;
     expect(await read()).toEqual(layout());
+    // Builds before open_threads draw every section that is not Needs you as
+    // the day, so their field never carries it.
+    expect((await me2()).todayLayout).toEqual(legacy(layout()));
 
     const first = await app.inject({ method: "PATCH", url: "/api/me", headers: { cookie }, payload: { todayLayout: layout({ order: "day" }) } });
     expect(first.statusCode).toBe(200);
     await app.inject({ method: "PATCH", url: "/api/me", headers: { cookie }, payload: { todayLayout: layout({ parts: [true, false, true, true] }) } });
     expect(await read()).toEqual(layout({ parts: [true, false, true, true] }));
+    // A build from before open_threads writes the document without it, and
+    // the switch comes back on after the day.
+    await app.inject({ method: "PATCH", url: "/api/me", headers: { cookie }, payload: { todayLayout: legacy(layout({ order: "day" })) } });
+    expect(await read()).toEqual(layout({ order: "day" }));
+    await app.inject({ method: "PATCH", url: "/api/me", headers: { cookie }, payload: { todayLayout: layout({ parts: [true, false, true, true] }) } });
 
     const refused = await app.inject({ method: "PATCH", url: "/api/me", headers: { cookie }, payload: { todayLayout: { ...layout(), extra: 1 } } });
     expect(refused.statusCode).toBe(400);

@@ -361,6 +361,12 @@ What is left is not decisions but work, and it lives elsewhere: the deferred har
 
 *The data model is specced at `docs/specs/001-data-model/`. What remains of it is implementation.*
 
+## Today, open in your threads, 2026-10-07
+
+- ✅ **A layout kind old phones cannot draw goes in a second field.** A phone built before `open_threads` maps every section that is not Needs you onto the day, so a three-section `todayLayout` draws the day twice there and lists Your day twice in its Customize sheet. `/api/me` keeps `todayLayout` without the new kind and adds `todayLayoutV2`, the whole document, which both clients of this change read; PATCH still takes `todayLayout`. A layout written by an old phone comes back with open in your threads on, after the day, which loses a switch only for somebody using an old phone and a new client and switching it off on the new one. Remove the legacy field once no such build is in use.
+- ✅ **The day keeps `picks`, always empty**, for the same phones; `+ Today`'s routes are gone, since nothing can draw a pick. `content_picks_idx` stays: dropping it is a migration for no gain at this size.
+- ✅ **One read, window functions, no N+1.** `row_number`, `count` and `min(created_at)` over the thread on `agendaQuery`, rank four or less, threads by their oldest row; twelve pages times four rows is the limit that reaches the twelfth page. The default thread is read apart so its age can never push it ahead of a thread.
+
 ## Owner fixes, 2026-10-07
 
 - ✅ **A thread can be made directly: `POST /v1/threads` `{ name, icon?, hue? }`.** The thread and its creator's accepted membership in one transaction, as the model's `create_thread` and a loose proposal make them. The icon is offload's (`icon_set_by` `offload`) unless the one sent differs from what offload would pick from the name, so a later rename can still re-pick it; the hue sent is the one New thread showed, the least used among the threads on screen.

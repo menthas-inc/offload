@@ -68,7 +68,9 @@ export interface Me {
    *  closed until the rolling day moves on. */
   atDailyLimit: boolean;
   /** 027. Customize Today's layout, resolved by the server. */
-  todayLayout?: import("./today").Layout;
+  /** Customize Today's layout; `todayLayout` is the same without
+   *  open_threads, for builds from before it. */
+  todayLayoutV2?: import("./today").Layout;
 }
 
 /** Ask again, and tell every mounted `useMe`. For after a request is

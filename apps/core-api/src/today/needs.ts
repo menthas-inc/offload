@@ -5,7 +5,7 @@
 // source is filtered by its own account predicate; a kind the layout has off
 // is not read at all; a card with a live put-off is left out.
 
-import { dayIn } from "@offload/widgets";
+import { addUtcDays, dayIn, instantIn } from "@offload/widgets";
 import { sql } from "kysely";
 import { z } from "zod";
 import { zoneOf } from "../accounts/zone.js";
@@ -17,8 +17,13 @@ import { requestsFor } from "../people/people.js";
 import { onWire, questionOnWire } from "../questions.js";
 import { invitationsFor } from "../threads/sharing.js";
 import { partsOn, resolveLayout, type NeedsPart } from "./layout.js";
-import { startOfTomorrow } from "./picks.js";
 import { everDumped } from "./rows.js";
+
+/** The start of the day after `day` in the zone: when a put-off ends. */
+export function startOfTomorrow(today: string, zone: string | null): Date {
+  const next = addUtcDays(today, 1);
+  return instantIn(`${next}T00:00`, zone) ?? new Date(`${next}T00:00:00Z`);
+}
 
 /** The fields whose answer stays inside offload and starts no turn. A share,
  *  a calendar write and the country question stay in the conversation, where
