@@ -7,7 +7,7 @@
 
 import { db } from "../db.js";
 import { GrantRevoked, refreshAccess, revoke } from "./google.js";
-import { open, seal, VAULT_NAME } from "./vault.js";
+import { openOrNull, seal, VAULT_NAME } from "./vault.js";
 
 /** Refresh a minute early, so a token does not expire between the check and the
  *  call it was fetched for. */
@@ -47,11 +47,14 @@ export async function accessTokenFor(connectionId: string): Promise<string> {
 
     const expires = row.access_expires_at ? new Date(row.access_expires_at).getTime() : 0;
     if (row.access_token.length > 0 && expires - SKEW_MS > Date.now()) {
-      return open(row.access_token, connectionId, "access_token");
+      const access = openOrNull(row.access_token, connectionId, "access_token");
+      if (access === null) throw new GrantRevoked();
+      return access;
     }
 
-    if (!row.refresh_token) throw new GrantRevoked();
-    const refreshed = await refreshAccess(open(row.refresh_token, connectionId, "refresh_token"));
+    const refresh = row.refresh_token ? openOrNull(row.refresh_token, connectionId, "refresh_token") : null;
+    if (refresh === null) throw new GrantRevoked();
+    const refreshed = await refreshAccess(refresh);
 
     await tx
       .updateTable("connector_secrets")
@@ -99,9 +102,9 @@ export async function revokeAndForget(connectionId: string): Promise<void> {
 
   if (row) {
     const token = row.refresh_token
-      ? open(row.refresh_token, connectionId, "refresh_token")
-      : open(row.access_token, connectionId, "access_token");
-    await revoke(token).catch(() => undefined);
+      ? openOrNull(row.refresh_token, connectionId, "refresh_token")
+      : openOrNull(row.access_token, connectionId, "access_token");
+    if (token !== null) await revoke(token).catch(() => undefined);
   }
 
   await db.deleteFrom("connector_secrets").where("connection_id", "=", connectionId).execute();
