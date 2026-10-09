@@ -39,3 +39,17 @@ describe("the map keys (AC-28)", () => {
     expect(config.plugins).toEqual(base.plugins);
   });
 });
+
+// 2026-10-09, ITMS-90683 on build 16. The Google Maps SDK links Core Location,
+// so Apple wants a location purpose string in every build that carries it,
+// though offload never asks for a location (ThreadMap turns the button off).
+// The string says so, since it is only ever shown if something asks.
+describe("the location purpose string", () => {
+  it("is in every build, and says offload never asks", async () => {
+    const config = await configWith({ GOOGLE_MAPS_IOS_KEY: "ios-secret-key" });
+    const text = config.ios?.infoPlist?.["NSLocationWhenInUseUsageDescription"];
+    expect(typeof text).toBe("string");
+    expect(text).toMatch(/^offload never asks for your location\./);
+    expect(text).not.toMatch(/[–—]/);
+  });
+});
