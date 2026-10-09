@@ -12,7 +12,8 @@
       "supportsTablet": false,
       "usesAppleSignIn": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "offload never asks for your location. The map that shows where things in a thread are needs this line to be present."
       },
       "privacyManifests": {
         "NSPrivacyTracking": false,
