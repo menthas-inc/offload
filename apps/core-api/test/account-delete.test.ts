@@ -568,6 +568,21 @@ describe("the calendar grant", () => {
     expect(left).toEqual([{ id: bad, attempts: 1 }]);
   });
 
+  it("does not stop the account going when it no longer opens", async () => {
+    const me = await person("Jo");
+    const id = await connected(me.id, "refresh-123");
+    // Sealed under a key the vault no longer holds.
+    await db
+      .updateTable("connector_secrets")
+      .set({ access_token: Buffer.from("x".repeat(48)), refresh_token: Buffer.from("y".repeat(48)) })
+      .where("connection_id", "=", id)
+      .execute();
+
+    await expect(deleteAccount(me.id)).resolves.toMatchObject({ deleted: true });
+    expect(await db.selectFrom("pending_revocations").select("id").execute()).toEqual([]);
+    expect(await db.selectFrom("accounts").select("id").where("id", "=", me.id).execute()).toEqual([]);
+  });
+
   it("is given up on after seven days", async () => {
     const id = uuidv7();
     await db
