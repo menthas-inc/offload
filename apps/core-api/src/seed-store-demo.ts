@@ -19,6 +19,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sql } from "kysely";
+import { CONSENT_VERSION } from "./routes/session.js";
 import { makeSignature } from "better-auth/crypto";
 import { linkPhoto } from "./blobs/rows.js";
 import { layoutMemories } from "./memories/layout.js";
@@ -40,7 +41,11 @@ const PHOTO_ROW = "0de70000-0000-4000-a005-000000000602";
 
 /** `zone` is the one every time is wall-clock in; New York without it. */
 export async function seedStoreDemo(zone?: string): Promise<void> {
-  const set = zone ? `select set_config('demo.zone', '${zone.replace(/[^A-Za-z0-9_/+-]/g, "")}', false);\n` : "";
+  // The consent version comes from the code, so a moved version never leaves the
+  // demo people being asked to agree again on screen (2026-10-10).
+  const set =
+    (zone ? `select set_config('demo.zone', '${zone.replace(/[^A-Za-z0-9_/+-]/g, "")}', false);\n` : "") +
+    `select set_config('demo.consent_version', '${CONSENT_VERSION.replace(/[^0-9-]/g, "")}', false);\n`;
   await sql.raw(set + readFileSync(SEED, "utf8")).execute(db);
   const people = await db.selectFrom("accounts").select("id").where(sql<boolean>`id::text like ${PEOPLE}`).execute();
   for (const { id } of people) {
