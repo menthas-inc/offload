@@ -292,8 +292,8 @@ export default function Privacy() {
           <p>
             If you connect a Google account, offload accesses your calendar list, the events in the
             calendars you choose, and who each of your calendars is shared with. It uses them to
-            show your calendar in offload, to file and answer from it, and to add, change or delete
-            events when you ask. When a change would notify other people, offload asks you first.
+            show your calendar in offload, to file and answer from it, to name the day&apos;s events
+            in your morning notification, and to add, change or delete events when you ask. When a change would notify other people, offload asks you first.
             We keep only what those features need, delete it when you disconnect or delete your
             account, and ask Google to revoke our access when you delete your account.
           </p>
@@ -463,8 +463,9 @@ export default function Privacy() {
             fault requires it, and Google user data only as section 7 allows. Our staff tools show
             no content, and their use is recorded. Our logs, analytics and monitoring are built to
             carry no content. Notifications are the exception: they carry a few words of what you
-            or a thread member wrote, or of what offload remembers for you, such as a birthday, to
-            your own phone.
+            or a thread member wrote, of what offload remembers for you, such as a birthday, or the
+            titles of the day&apos;s events on a calendar you connected, which somebody who invited
+            you may have written, to your own phone.
           </p>
         </section>
 

@@ -120,7 +120,7 @@ export async function candidatesOf(accountId: string, clock: Clock, trx: Executo
         left join notes an on an.id = l.anchor_note_id and an.deleted_at is null and an.superseded_at is null and an.muted_at is null
        where c.account_id = ${accountId}::uuid
          and c.deleted_at is null and c.done_at is null and c.archived_at is null
-         and c.source_ref is null and c.source in ('person', 'share')
+         and c.source in ('person', 'share')
          and not reminder_foreign(c.derived_from_message_id)
          and (l.id is null or (l.stopped_at is null and l.held_at is null))
          and (

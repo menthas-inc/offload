@@ -148,6 +148,17 @@ describe("027 an event is yours when you created it or were invited to it", () =
     expect(mapEvent(event({ ...by, attendees: [guest(false, "accepted")] }), "shared", me).invitedMe).toBe(false);
   });
 
+  it("you are going when you made it, or answered yes or maybe; an unanswered invite is not (2026-10-10)", () => {
+    const by = { creator: { email: "ana@hey.com", self: false } };
+    expect(mapEvent(event({ creator: { email: "jo@hey.com", self: false } }), "shared", me).going).toBe(true);
+    expect(mapEvent(event({ ...by, attendees: [guest(true, "accepted")] }), "shared", me).going).toBe(true);
+    expect(mapEvent(event({ ...by, attendees: [guest(true, "tentative")] }), "shared", me).going).toBe(true);
+    expect(mapEvent(event({ ...by, attendees: [guest(true, "needsAction")] }), "shared", me).going).toBe(false);
+    expect(mapEvent(event({ ...by, attendees: [guest(true, "declined")] }), "shared", me).going).toBe(false);
+    expect(mapEvent(event({ ...by, attendees: [guest(false, "accepted")] }), "shared", me).going).toBe(false);
+    expect(mapEvent(event(), "cal-1").going).toBeNull();
+  });
+
   it("is somebody else's when they made it on a shared calendar and did not invite you", () => {
     const mapped = mapEvent(event({ creator: { email: "ana@hey.com", self: false }, attendees: [] }), "shared", me);
     expect([mapped.createdByMe, mapped.invitedMe]).toEqual([false, false]);

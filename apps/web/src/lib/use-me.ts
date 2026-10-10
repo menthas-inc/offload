@@ -58,6 +58,8 @@ export interface Me {
    *  date: Low, Medium or High. */
   notifyReminders: boolean;
   notifyReminderCount: 1 | 2 | 3;
+  /** 2026-10-10. The morning names the day's calendar events. */
+  notifyCalendar: boolean;
   activityNew: boolean;
   /** 026. Whether mail forwarded from the sign-in address can reach them:
    *  false for an Apple private relay address. */
@@ -407,6 +409,7 @@ export async function updateNotify(patch: {
   notifySharedActivity?: boolean;
   notifyReminders?: boolean;
   notifyReminderCount?: 1 | 2 | 3;
+  notifyCalendar?: boolean;
 }): Promise<Me | null> {
   try {
     const response = await fetch(`${API}/api/me`, {
