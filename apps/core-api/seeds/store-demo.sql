@@ -58,9 +58,9 @@ delete from connections
 insert into accounts (id, email, state, email_verified, display_name, analytics_subject_id,
                       time_zone, country, consented_at, consent_version, first_signed_in_at)
 values
-  ('0de70000-0000-4000-a000-000000000001', 'sam@demo.offload.test', 'active', true, 'Sam Rivera', gen_random_uuid(), current_setting('demo.zone'), 'US', now(), '2026-10-07', now() - interval '60 days'),
-  ('0de70000-0000-4000-a000-000000000002', 'ana@demo.offload.test', 'active', true, 'Ana Duarte', gen_random_uuid(), 'Europe/Lisbon', 'PT', now(), '2026-10-07', now() - interval '90 days'),
-  ('0de70000-0000-4000-a000-000000000003', 'tom@demo.offload.test', 'active', true, 'Tom Reyes',  gen_random_uuid(), current_setting('demo.zone'), 'US', now(), '2026-10-07', now() - interval '45 days'),
+  ('0de70000-0000-4000-a000-000000000001', 'sam@demo.offload.test', 'active', true, 'Sam Rivera', gen_random_uuid(), current_setting('demo.zone'), 'US', now(), current_setting('demo.consent_version'), now() - interval '60 days'),
+  ('0de70000-0000-4000-a000-000000000002', 'ana@demo.offload.test', 'active', true, 'Ana Duarte', gen_random_uuid(), 'Europe/Lisbon', 'PT', now(), current_setting('demo.consent_version'), now() - interval '90 days'),
+  ('0de70000-0000-4000-a000-000000000003', 'tom@demo.offload.test', 'active', true, 'Tom Reyes',  gen_random_uuid(), current_setting('demo.zone'), 'US', now(), current_setting('demo.consent_version'), now() - interval '45 days'),
   -- Somebody just invited, for the first-run screenshot: no name, no consent.
   ('0de70000-0000-4000-a000-000000000004', 'new@demo.offload.test', 'invited', true, null, gen_random_uuid(), current_setting('demo.zone'), 'US', null, null, null)
 on conflict (id) do update set
