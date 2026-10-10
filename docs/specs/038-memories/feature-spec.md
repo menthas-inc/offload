@@ -130,7 +130,7 @@ It may **add** a memory citing one message or note it was shown, **supersede** o
 ## Out of scope
 
 - **The Memories tab** on web and the phones: viewing, editing, muting. The fast follow, which takes these rows as `MemoryRow` already draws notes.
-- **Birthdays reaching Today or a calendar.** A remembered birthday reaches the model only.
+- ~~**Birthdays reaching Today or a calendar.** A remembered birthday reaches the model only.~~ *Amended by 042 (2026-10-10): the memory pass writes the month and day of a birthday or an anniversary it holds, reminders name it, and Today's Reminders section draws it once its reminders have begun. A birthday still never reaches a calendar.*
 - **Retrieval.** Fifty sentences fit in every prompt; memories are not embedded or searched. *Amended 2026-10-06 by 040: each memory is embedded on its own row to choose the fifty, and is never in the search corpus.*
 - **Person-scoped notes**, and anything shown about a connection.
 - **Remembering a `Not that`.**

@@ -62,6 +62,17 @@ describe("024 AC-13 the payload maps to a screen from a table", () => {
     expect(routeFor({ kind: "shared_activity", threadId: THREAD })).toEqual({ pathname: "/threads/[id]", params: { id: THREAD } });
   });
 
+  it("042 a reminder of its own opens its thread by id, whether it names a row or a note", () => {
+    const ROW = "01a0c9c9-200a-732d-b56b-fd30e9379d82";
+    expect(routeFor({ kind: "reminder", threadId: THREAD, contentId: ROW })).toEqual({ pathname: "/threads/[id]", params: { id: THREAD } });
+    expect(routeFor({ kind: "reminder", threadId: THREAD, noteId: ROW })).toEqual({ pathname: "/threads/[id]", params: { id: THREAD } });
+    expect(routeFor({ kind: "reminder", threadId: "../../etc", contentId: ROW })).toBeNull();
+    expect(routeFor({ kind: "reminder" })).toBeNull();
+    // Every id it carries is checked, not only the one the route uses.
+    expect(routeFor({ kind: "reminder", threadId: THREAD, contentId: "/settings" })).toBeNull();
+    expect(routeFor({ kind: "reminder", threadId: THREAD, noteId: 7 })).toBeNull();
+  });
+
   it("ignores anything else: a path, a URL, an unknown kind, an id that is not one", () => {
     expect(routeFor({ kind: "digest", url: "https://evil.example/x", path: "/settings" })).toEqual({ pathname: "/" });
     expect(routeFor({ kind: "open", path: "/settings/people" })).toBeNull();

@@ -3,6 +3,7 @@
 **Status:** drafted 2026-09-22 against the design handoff of the same day (`handoff/APPLY-2026-09-22-dates.md` and `explorations/due-dates-and-notifications.html`, sections 1 to 6), revised the same day with the product owner's answers and the three reviews
 **Surfaces:** iOS, Android, web, the Core API and the agent plane
 **Depends on:** 006, whose four date columns and `is_reminder` this finally gives a person a way to write; 012 and 019, whose `all_day` and Google connector this reuses and whose `edit_content` dates this completes; 014, whose notes carry the same four columns; 015, whose rail and expander read the rule; 018, whose question sets a date only when there is none; the time zone header of migration 0051, which this gives the account a default beside
+**Amended by 042 (2026-10-10):** the Remind me switch in the edit sheet, drawn only while a row is a reminder, is drawn to a thing's author whenever offload will remind them about it, in the row sheet, the note editor and the memory editor, and stops every reminder for that thing; the bell on the chip marks the same rows. It never turns `is_reminder` on. See `042-reminders/feature-spec.md`.
 
 ## Why
 

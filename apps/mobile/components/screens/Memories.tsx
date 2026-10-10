@@ -14,8 +14,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, SectionList, Text, TextInput, View, type SectionListProps } from "react-native";
 import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
-import { MEMORY_COPY, type MemoryKindId, type MemoryView } from "@offload/widgets";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { MEMORY_COPY, MEMORY_PARAM, type MemoryKindId, type MemoryView } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { Segmented } from "../Segmented";
 import { Spinner } from "../Spinner";
@@ -76,6 +76,10 @@ export default function Memories() {
   const toast = useToast();
   const { filed } = useConversation();
   const searchField = useRef<TextInput>(null);
+  // 042. Today's Reminders opens a birthday here, in its editor, once.
+  const params = useLocalSearchParams<{ [MEMORY_PARAM]?: string }>();
+  const asked = params[MEMORY_PARAM];
+  const opened = useRef<string | null>(null);
 
   const onScroll = useAnimatedScrollHandler((event) => {
     prismShift.value = event.contentOffset.y * PRISM_SCROLL_FACTOR;
@@ -118,6 +122,13 @@ export default function Memories() {
 
   const screen = memoriesScreen(read);
   const memories = read && read !== "failed" ? read.memories : [];
+  useEffect(() => {
+    if (!asked || opened.current === asked) return;
+    const found = memories.find((memory) => memory.id === asked);
+    if (!found) return;
+    opened.current = asked;
+    setEditor({ key: Date.now(), editing: found, preset: null });
+  }, [asked, memories]);
   const places = read && read !== "failed" ? (read.kinds ?? []) : [];
   const shown = listView(memories, sort, query);
   const palette = { labels: COLOR.labels, ink: COLOR.ink, raised: COLOR.raised, inverse: COLOR.inverse, onSolid: COLOR.onSolid, hueInkMix: COLOR.hueInkMix };
@@ -298,7 +309,9 @@ export default function Memories() {
       {editor ? (
         <MemoryEditor
           key={editor.key}
-          editing={editor.editing}
+          // 042. The memory as last read, so the open editor shows what the
+          // server holds once Remind me has been written and read back.
+          editing={memories.find((memory) => memory.id === editor.editing?.id) ?? editor.editing}
           preset={editor.preset}
           onClose={() => setEditor(null)}
           onSaved={(said) => {
@@ -308,6 +321,7 @@ export default function Memories() {
           onFailed={(again) => toast.show(MEMORY_COPY.saveFailed, { label: "Retry", onPress: again })}
           onForget={(memory) => void forget(memory)}
           onGone={() => void load()}
+          onReminded={() => void load()}
         />
       ) : null}
       <ToastHost state={toast} />

@@ -49,17 +49,20 @@ export function peopleSummary(connected: number, waiting: number): string | unde
   return parts.length > 0 ? parts.join(", ") : undefined;
 }
 
-/** Notifications' head, from the switches that are on. */
+/** Notifications' head, from the switches that are on. 042 counts
+ *  Reminders, after the hours, since they ride in those two messages. */
 export function notifySummary(me: {
   notifyDueToday: boolean;
   notifyDueTodayAt: string;
   notifyComingTomorrow: boolean;
   notifyComingTomorrowAt: string;
+  notifyReminders?: boolean;
 }): string | undefined {
   const parts = [
     ...(me.notifyDueToday ? [`mornings at ${me.notifyDueTodayAt}`] : []),
     ...(me.notifyComingTomorrow ? [`evenings at ${me.notifyComingTomorrowAt}`] : []),
   ];
+  if (me.notifyReminders) parts.push(parts.length > 0 ? "with reminders" : "reminders");
   if (parts.length === 0) return undefined;
   const line = parts.join(", ");
   return line.charAt(0).toUpperCase() + line.slice(1);

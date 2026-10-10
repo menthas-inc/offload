@@ -84,6 +84,7 @@ import {
 import { perform, useWrites } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
 import { drawnWhen, patchFor, sameWhen, whenLabel, whenValueOf } from "../../lib/when";
+import { drawnRemind, undoPatch } from "../../lib/reminders";
 import { RowEditSheet } from "../shell/RowEditSheet";
 import { WhenSheet } from "../shell/WhenSheet";
 import { useConversation } from "../shell/conversation-context";
@@ -465,7 +466,8 @@ export default function Thread() {
     if (patch.labels !== undefined) drawn.labels = patch.labels;
     if (patch.title !== undefined) drawn.title = patch.title;
     if (patch.body !== undefined) drawn.body = patch.body;
-    if (patch.isReminder !== undefined) drawn.isReminder = patch.isReminder;
+    // 042. The switch's part: a stop draws isReminder off with it.
+    Object.assign(drawn, drawnRemind(patch));
     // The dates too, read in the account's clock exactly as the route reads
     // them, so the chip moves with the toast; the server's answer then
     // confirms what was drawn.
@@ -474,6 +476,7 @@ export default function Thread() {
       title: row.title,
       body: row.body,
       isReminder: row.isReminder,
+      reminders: row.reminders,
       dueAt: row.dueAt,
       occursAt: row.occursAt,
       occursEndAt: row.occursEndAt,
@@ -494,7 +497,7 @@ export default function Thread() {
           if (result) void catchUp();
           return result ? result.previous : null;
         },
-        undo: (previous) => previous,
+        undo: (previous) => undoPatch(previous),
         drop: (id) => deleteLabel(id),
       },
       patch,

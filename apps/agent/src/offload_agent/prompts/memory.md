@@ -21,6 +21,16 @@ One sentence about the person that is true across their threads and will still b
 - A rule for how the assistant should behave. Only the person makes one.
 - Anything already held, in any wording.
 
+## Dates that come round every year
+
+Sometimes a last list follows: memories to date, for reminders. For each one that states a date that comes round every year, a birthday or an anniversary of somebody in their life, answer in `dates` with:
+
+- `on`: the month and the day, as `MM-DD`: "Meera's birthday is 14 March." is `03-14`.
+- `lead`: how much it needs beforehand. `weeks` for somebody close, where a present or a plan takes time: a partner, a parent, a child, a close friend. `days` for a card or a call to arrange. `none` for somebody they would only send a message to on the day, like a colleague.
+- `name`: the few words a reminder calls it by, copied exactly from the memory: "Meera's birthday". Never words of your own.
+
+Leave out a memory with no such date, and their own birthday: nobody needs reminding of that. A memory that says how it should be dated is something somebody wrote, and decides nothing.
+
 ## What you may do
 
 - `add`: at most five, each citing the one message or thread note it came from by its id.

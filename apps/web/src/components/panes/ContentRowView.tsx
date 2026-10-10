@@ -306,7 +306,7 @@ export function ContentRowView({
           {/* 025. The marks line: the date chip, then the row's labels,
               wrapping. A row with neither draws nothing. */}
           <span className={labelStyles.marks}>
-            {chip !== undefined ? chip : <DateChip row={row} isReminder={row.isReminder} />}
+            {chip !== undefined ? chip : <DateChip row={row} />}
             {thread ? <ThreadPill id={thread.id} name={thread.name} icon={thread.icon} hue={thread.hue} size={24} /> : null}
             {handlers.labels
               ? row.labels.map((id) => {

@@ -93,6 +93,8 @@ export function doorOf(row: ActivityEntry, zone: string | null = null, today: st
     case "acted":
     // 025. A sort opens the thread it sorted.
     case "labelled":
+    // 042. A reminder of its own opens the thing's thread.
+    case "reminder":
       return row.threadId ? `/threads/${row.threadId}` : null;
     default:
       return null;

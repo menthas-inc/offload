@@ -22,6 +22,7 @@
 // Label names are content (they were written from what somebody dumped), so
 // nothing here logs one. Refusals carry a reason code and nothing else.
 
+import { remindersOf, type Reminders } from "../notifications/labels.js";
 import { sql, type Kysely, type Transaction } from "kysely";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
@@ -651,9 +652,15 @@ export async function withContentLabels<T extends { id: string }>(rows: T[], exe
   return rows.map((r) => ({ ...r, labels: found.get(r.id) ?? [] }));
 }
 
-export async function withNoteLabels<T extends { id: string }>(rows: T[], executor: Executor = db): Promise<(T & { labels: string[] })[]> {
+export async function withNoteLabels<T extends { id: string }>(
+  rows: T[],
+  executor: Executor = db,
+  viewerId?: string,
+): Promise<(T & { labels: string[]; reminders: Reminders | null })[]> {
   const found = await noteLabelsFor(rows.map((r) => r.id), executor);
-  return rows.map((r) => ({ ...r, labels: found.get(r.id) ?? [] }));
+  // 042. The author's Remind me, for the viewer's own notes only.
+  const reminders = viewerId ? await remindersOf(executor, "note", rows.map((r) => r.id), viewerId) : new Map<string, Reminders>();
+  return rows.map((r) => ({ ...r, labels: found.get(r.id) ?? [], reminders: reminders.get(r.id) ?? null }));
 }
 
 /** One row's labels as a full set: the diff against what it carries is the

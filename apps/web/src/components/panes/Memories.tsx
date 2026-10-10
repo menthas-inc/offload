@@ -12,6 +12,10 @@
 // Undo, which is `perform` as everywhere else. An add or a change is the
 // person's own edit and waits for the server: a refusal belongs under the
 // field, which stays open.
+//
+// 042. Remind me, on a memory offload will remind about, is the settings
+// `Switch`: drawn first and written second, put back with the toast's Retry
+// on a failure. No Undo, since this editor has none.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -23,6 +27,7 @@ import {
   memoryOrigin,
   memoryRefusal,
   memorySections,
+  remindSwitchShown,
   shownText,
   storedText,
   toSecondPerson,
@@ -31,6 +36,7 @@ import {
   type MemoryView,
 } from "@offload/widgets";
 import { Icon } from "../Icon";
+import { Switch } from "../Switch";
 import { PaneHead } from "../shell/PaneHead";
 import { useToast } from "../shell/Toast";
 import { Segmented } from "./Appearance";
@@ -38,6 +44,7 @@ import { QuietEmpty } from "./QuietEmpty";
 import { MemoriesMap } from "../memories/MemoriesMap";
 import { perform, useWrites } from "../../lib/optimistic";
 import { addMemory, changeMemory, forgetMemory, readMemories, restoreMemory } from "../../lib/memories";
+import { setReminders } from "../../lib/reminders";
 import pane from "../../app/(shell)/shell.module.css";
 import people from "../people/people.module.css";
 import styles from "../../app/(shell)/memories.module.css";
@@ -49,7 +56,13 @@ type Open = { id: string } | { fresh: true; kind: MemoryKindId } | null;
 
 const EMPTY: MemoryList = { memories: [], kinds: [], full: false, rulesFull: false };
 
-export function MemoriesPane() {
+export function MemoriesPane({
+  openId = null,
+}: {
+  /** 042. A door's `?memory=`, from Today's Reminders: opened once, when the
+   *  list holds it. */
+  openId?: string | null;
+} = {}) {
   const toast = useToast();
   const [state, setState] = useState<"loading" | "failed" | "ready">("loading");
   const [list, setList] = useState<MemoryList>(EMPTY);
@@ -79,6 +92,13 @@ export function MemoriesPane() {
     void load();
   }, [load]);
 
+  const doorOpened = useRef<string | null>(null);
+  useEffect(() => {
+    if (!openId || doorOpened.current === openId || state !== "ready") return;
+    doorOpened.current = openId;
+    if (list.memories.some((m) => m.id === openId)) setOpen({ id: openId });
+  }, [openId, state, list]);
+
   const forget = (memory: MemoryView) => {
     setOpen(null);
     void perform(
@@ -91,6 +111,21 @@ export function MemoriesPane() {
         did: MEMORY_COPY.forgotten,
         failed: MEMORY_COPY.saveFailed,
         unfailed: MEMORY_COPY.unfailed,
+      },
+      toast,
+      writes,
+    );
+  };
+
+  const remind = (memory: MemoryView, on: boolean) => {
+    const set = (reminders: MemoryView["reminders"]) =>
+      setList((now) => ({ ...now, memories: now.memories.map((m) => (m.id === memory.id ? { ...m, reminders } : m)) }));
+    void perform(
+      {
+        apply: () => set(on ? "on" : "off"),
+        revert: () => set(memory.reminders ?? null),
+        write: () => setReminders("memory", memory.id, on),
+        failed: MEMORY_COPY.saveFailed,
       },
       toast,
       writes,
@@ -131,6 +166,7 @@ export function MemoriesPane() {
         kind={editing?.kind ?? ("fresh" in open ? open.kind : "about")}
         onClose={() => setOpen(null)}
         onForget={forget}
+        onRemind={remind}
         onSaved={(message) => {
           setOpen(null);
           toast.show(message);
@@ -305,6 +341,7 @@ function MemoryEditor({
   kind: firstKind,
   onClose,
   onForget,
+  onRemind,
   onSaved,
   onGone,
 }: {
@@ -312,6 +349,7 @@ function MemoryEditor({
   kind: MemoryKindId;
   onClose: () => void;
   onForget: (memory: MemoryView) => void;
+  onRemind: (memory: MemoryView, on: boolean) => void;
   onSaved: (message: string) => void;
   /** Forgotten in another window while it was open. */
   onGone: () => void;
@@ -442,6 +480,12 @@ function MemoryEditor({
         </div>
       )}
       {severs ? <p className={styles.sever}>{MEMORY_COPY.sever}</p> : null}
+
+      {memory && remindSwitchShown(memory, true) ? (
+        <div className={pane.editSwitch}>
+          <Switch label="Remind me" checked={memory.reminders === "on"} onChange={(on) => onRemind(memory, on)} />
+        </div>
+      ) : null}
 
       <div className={styles.foot}>
         {memory ? (

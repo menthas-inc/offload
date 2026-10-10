@@ -1,7 +1,8 @@
 "use client";
 
 // 027 Today, over the wire: the day, Needs you, putting a card off, open in
-// your threads (2026-10-07), and the layout Customize Today stores. Mirrors
+// your threads (2026-10-07), Reminders (042), and the layout Customize Today
+// stores. Mirrors
 // `apps/core-api/src/routes/today.ts` and `src/today/layout.ts`; the server's
 // zod schemas are the shapes, and these types say only what the page reads.
 
@@ -25,7 +26,9 @@ export type NeedsPart = (typeof NEEDS_PARTS)[number];
 export type LayoutSection =
   | { kind: "needs_you"; parts: { kind: NeedsPart; on: boolean }[] }
   | { kind: "day"; on: boolean }
-  | { kind: "open_threads"; on: boolean };
+  | { kind: "open_threads"; on: boolean }
+  /** 042. Between Your day and Open in your threads by default. */
+  | { kind: "reminders"; on: boolean };
 
 export interface TodayLayout {
   version: 1;
@@ -37,6 +40,7 @@ export const DEFAULT_LAYOUT: TodayLayout = {
   sections: [
     { kind: "needs_you", parts: NEEDS_PARTS.map((kind) => ({ kind, on: true })) },
     { kind: "day", on: true },
+    { kind: "reminders", on: true },
     { kind: "open_threads", on: true },
   ],
 };
@@ -44,6 +48,12 @@ export const DEFAULT_LAYOUT: TodayLayout = {
 /** What `/api/me` resolved, or the defaults before it has said. */
 export function layoutOf(stored: TodayLayout | null | undefined): TodayLayout {
   return stored && Array.isArray(stored.sections) ? stored : DEFAULT_LAYOUT;
+}
+
+/** 042. The account's layout: V3, the whole document, then V2, which builds
+ *  from before Reminders read, then the defaults. */
+export function layoutOfMe(me: { todayLayoutV3?: TodayLayout | undefined; todayLayoutV2?: TodayLayout | undefined } | null): TodayLayout {
+  return layoutOf(me?.todayLayoutV3 ?? me?.todayLayoutV2);
 }
 
 export function partsOn(layout: TodayLayout): Set<NeedsPart> {
@@ -59,6 +69,11 @@ export function dayOn(layout: TodayLayout): boolean {
 export function openThreadsOn(layout: TodayLayout): boolean {
   const open = layout.sections.find((one) => one.kind === "open_threads");
   return open?.kind === "open_threads" ? open.on : true;
+}
+
+export function remindersOn(layout: TodayLayout): boolean {
+  const reminders = layout.sections.find((one) => one.kind === "reminders");
+  return reminders?.kind === "reminders" ? reminders.on : true;
 }
 
 /** How many switches are on, so the last one can be held on. */
@@ -78,8 +93,8 @@ export function withPart(layout: TodayLayout, kind: NeedsPart, on: boolean): Tod
   };
 }
 
-/** A section's own switch: the day, or open in your threads. */
-export function withSection(layout: TodayLayout, kind: "day" | "open_threads", on: boolean): TodayLayout {
+/** A section's own switch: the day, Reminders, or open in your threads. */
+export function withSection(layout: TodayLayout, kind: "day" | "reminders" | "open_threads", on: boolean): TodayLayout {
   return { version: 1, sections: layout.sections.map((one) => (one.kind === kind ? { ...one, on } : one)) };
 }
 
@@ -258,4 +273,67 @@ export async function fetchOpenThreads(): Promise<OpenPage[] | null> {
   } catch {
     return null;
   }
+}
+
+// ---------------------------------------------------------------- Reminders
+
+/** 042. A row whose reminders have begun: the day it is reminded against, and
+ *  whether that is "by" (a deadline, or a task that belongs to something). */
+export interface ReminderRow extends AgendaRow {
+  remindDay: string;
+  remindBy: boolean;
+}
+
+/** A note or a memory whose reminders have begun. A memory has no thread. */
+export interface ReminderOther {
+  of: "note" | "memory";
+  id: string;
+  name: string;
+  day: string;
+  by: boolean;
+  threadId: string | null;
+  threadName: string | null;
+  threadIcon: string | null;
+  threadHue: number | null;
+}
+
+export interface RemindersRead {
+  rows: ReminderRow[];
+  others: ReminderOther[];
+  /** Begun and not drawn: the further away. */
+  more: number;
+}
+
+/** The section's read, or null when it could not be read, which draws no
+ *  section and leaves the day alone. */
+export async function fetchReminders(): Promise<RemindersRead | null> {
+  try {
+    const response = await fetch(`${API}/v1/today/reminders`, send);
+    if (!response.ok) return null;
+    return (await response.json()) as RemindersRead;
+  } catch {
+    return null;
+  }
+}
+
+export type ReminderEntry = { row: ReminderRow; day: string } | { other: ReminderOther; day: string };
+
+/** Rows, notes and memories in one list, nearest first. The server sorted
+ *  each by day; this merges the two, a row first on the same day. */
+export function remindersInOrder(read: { rows: ReminderRow[]; others: ReminderOther[] }): ReminderEntry[] {
+  const merged: ReminderEntry[] = [];
+  let r = 0;
+  let o = 0;
+  while (r < read.rows.length || o < read.others.length) {
+    const row = read.rows[r];
+    const other = read.others[o];
+    if (row && (!other || row.remindDay <= other.day)) {
+      merged.push({ row, day: row.remindDay });
+      r += 1;
+    } else {
+      merged.push({ other: other!, day: other!.day });
+      o += 1;
+    }
+  }
+  return merged;
 }

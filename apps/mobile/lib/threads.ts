@@ -15,7 +15,7 @@ import type { Label } from "./labels";
 import { send } from "./api";
 import type { Invitation } from "./people";
 import type { LooseSummary } from "./loose";
-import type { Sortable, ThreadLook } from "@offload/widgets";
+import type { Reminders, Sortable, ThreadLook } from "@offload/widgets";
 
 export interface ThreadRow {
   id: string;
@@ -62,6 +62,8 @@ export interface Note {
    *  member may delete it. Computed server-side. */
   authorIsMember: boolean;
   muted: boolean;
+  /** 042. The author's Remind me on a dated note, as on a row. */
+  reminders?: Reminders | undefined;
   occursAt: string | null;
   occursEndAt: string | null;
   dueAt: string | null;
@@ -238,6 +240,9 @@ export interface ContentRow extends Sortable {
    *  of `@offload/widgets`, the server's own serialisation. */
   rrule: string | null;
   isReminder: boolean;
+  /** 042. The author's Remind me: on while offload will remind them, off once
+   *  they stopped it, null otherwise and to anybody else. */
+  reminders?: Reminders | undefined;
   /** 023. Written to a calendar, so its time is Google's: no When on it. */
   onCalendar: boolean;
   priority: number;
@@ -457,6 +462,9 @@ export interface ContentPatch {
   isReminder?: boolean;
   /** 025. The row's labels as a full set. */
   labels?: string[];
+  /** 042. The author's Remind me. Null leaves it alone, which is what Undo
+   *  sends back for anybody else and for a thing with nothing to remind. */
+  reminders?: Reminders;
 }
 
 export interface ContentSnapshot {
@@ -469,6 +477,8 @@ export interface ContentSnapshot {
   rrule: string | null;
   isReminder: boolean;
   labels: string[];
+  /** 042. Null to anybody but the author, and on a thing with no label. */
+  reminders: Reminders;
 }
 
 /** The refusals the route names; the screen is put back with one clause and

@@ -5,6 +5,12 @@
 // stepper, the next line, Where you will be and To do; and on Today, open in
 // your threads (2026-10-07). In the order Customize Today keeps, each drawn only when it holds
 // something. The page opens on Today every time; the day shown is never kept.
+//
+// 042. Reminders, on Today only: what offload is reminding about, nearest
+// first. Rows are Your day's rows with their thread; a note or a memory is its
+// name, its day and where it lives. Empty, it draws nothing. A section kind
+// this build does not know draws nothing either: Your day is its own branch,
+// never the fall-through.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, AppState, Platform, Pressable, Text, View } from "react-native";
@@ -13,8 +19,8 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { addUtcDays, afterWrite, dayIn, dayName, keepInPlace, nothingLine } from "@offload/widgets";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { addUtcDays, afterWrite, dayIn, dayName, keepInPlace, nothingLine, remindDayLabel, TODAY_REMINDERS } from "@offload/widgets";
 import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { GearDot } from "../people/GearDot";
 import { Glyph } from "../Glyph";
@@ -30,10 +36,14 @@ import {
   fetchDay,
   fetchNeeds,
   fetchOpenThreads,
+  fetchReminders,
   layoutOf,
   notificationsCard,
   onTodayReset,
   openThreadsOn,
+  reminderDoor,
+  remindersInOrder,
+  remindersOn,
   saveLayout,
   stackOf,
   zoneCard,
@@ -41,12 +51,16 @@ import {
   type DeviceCard,
   type Layout,
   type OpenPage,
+  type ReminderEntry,
   type ServerCard,
+  type TodayReminders,
   type TodayRow,
 } from "../../lib/today";
 import { useConversation } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
 import { BellDot } from "../shell/BellDot";
+import { PlainChip } from "../shell/DateChip";
+import { ThreadPill } from "../shell/ThreadPill";
 import { ToastHost, useToast } from "../shell/Toast";
 import { NeedsYou, NOTIFICATIONS_PUT_OFF } from "./NeedsYou";
 import { DayStepper, EventsStrip, NextLine, SectionHead } from "./DayParts";
@@ -77,6 +91,7 @@ export default function TodayScreen() {
   const weekStart = useWeekStart();
   const { setDraft, filed } = useConversation();
   const toast = useToast();
+  const router = useRouter();
   const params = useLocalSearchParams<{ day?: string }>();
 
   const onScroll = useAnimatedScrollHandler((event) => {
@@ -135,14 +150,30 @@ export default function TodayScreen() {
     });
   }, []);
 
+  // 042. Reminders: read with Today and again after every write, as open in
+  // your threads is.
+  const [reminders, setReminders] = useState<TodayReminders | null>(null);
+  const askedReminders = useRef(0);
+  const loadReminders = useCallback((fresh: boolean) => {
+    const ask = ++askedReminders.current;
+    if (fresh) setReminders(null);
+    void fetchReminders().then((next) => {
+      if (ask !== askedReminders.current || !next) return;
+      setReminders(next);
+    });
+  }, []);
+
   const show = useCallback(
     (which: string) => {
       setDate(which);
       setDay((held) => (held?.date === which ? held : null));
       loadDay(which);
-      if (which === today) loadOpen(true);
+      if (which === today) {
+        loadOpen(true);
+        loadReminders(true);
+      }
     },
-    [loadDay, loadOpen, today],
+    [loadDay, loadOpen, loadReminders, today],
   );
 
   // A turn that filed, changed or removed something may have done it to this
@@ -152,8 +183,11 @@ export default function TodayScreen() {
     if (!filed || filed.at === lastFiled.current) return;
     lastFiled.current = filed.at;
     loadDay(date);
-    if (date === today) loadOpen(false);
-  }, [filed, loadDay, loadOpen, date, today]);
+    if (date === today) {
+      loadOpen(false);
+      loadReminders(false);
+    }
+  }, [filed, loadDay, loadOpen, loadReminders, date, today]);
 
   // ---------------------------------------------------------------- Needs you
   const [needs, setNeeds] = useState<ServerCard[] | null>(null);
@@ -228,11 +262,12 @@ export default function TodayScreen() {
   const latestLayout = useRef(layoutState);
   latestLayout.current = layoutState;
   useEffect(() => {
-    const held = me?.todayLayoutV2;
+    // 042. V3 names Reminders; V2 is the same document without it.
+    const held = me?.todayLayoutV3 ?? me?.todayLayoutV2;
     if (!held) return;
     // A gesture still in flight stays drawn; its own answer decides.
     setLayoutState((now) => (now.shown === now.confirmed ? { shown: held, confirmed: held } : { ...now, confirmed: held }));
-  }, [me?.todayLayoutV2]);
+  }, [me?.todayLayoutV3, me?.todayLayoutV2]);
   const layout = layoutState.shown;
   const [customizing, setCustomizing] = useState(false);
   const changeLayout = async (next: Layout): Promise<boolean> => {
@@ -270,8 +305,11 @@ export default function TodayScreen() {
   // ---------------------------------------------------------------- the rows
   const reloadDay = useCallback(() => {
     loadDay(date);
-    if (date === today) loadOpen(false);
-  }, [loadDay, loadOpen, date, today]);
+    if (date === today) {
+      loadOpen(false);
+      loadReminders(false);
+    }
+  }, [loadDay, loadOpen, loadReminders, date, today]);
   const rows = useTodayRows(day, reloadDay, toast);
   const [lateOpen, setLateOpen] = useState(false);
   useEffect(() => setLateOpen(false), [date]);
@@ -383,6 +421,19 @@ export default function TodayScreen() {
   })();
 
   const dayOne = day && !day.everDumped && isToday;
+
+  // 042. One list, nearest first; a row archived or deleted here leaves it.
+  const reminding = (() => {
+    if (!reminders) return [];
+    const live = new Map(rows.live(reminders.rows).map((row) => [row.id, row]));
+    return remindersInOrder(reminders).flatMap((entry): ReminderEntry[] => {
+      if (entry.of !== "row") return [entry];
+      const row = live.get(entry.id);
+      return row ? [{ ...entry, ...row, of: "row" }] : [];
+    });
+  })();
+  const quietInk = isAndroid ? "text-a-on-var" : "text-text-secondary";
+
   const sections = layout.sections.map((section) => {
     if (section.kind === "open_threads") {
       // Today only, and never over the day-one invitation.
@@ -404,6 +455,67 @@ export default function TodayScreen() {
       ) : null;
     }
     if (section.kind === "needs_you") return cards.length > 0 ? <NeedsYou key="needs" cards={cards} load={needsLoad} toast={toast} onChanged={reloadDay} onReload={loadNeeds} /> : null;
+    if (section.kind === "reminders") {
+      // Today only, never over the day-one invitation, and nothing when empty.
+      return isToday && remindersOn(layout) && reminders && !dayOne && reminding.length > 0 ? (
+        <View key="reminders">
+          <SectionHead title={TODAY_REMINDERS.name} count={reminding.length + reminders.more} />
+          <View className={card}>
+            {reminding.map((entry, index) => {
+              const border = index < reminding.length - 1;
+              if (entry.of === "row") {
+                return rows.row(entry, {
+                  border,
+                  chip: "date",
+                  by: entry.remindBy && !entry.dueAt && !entry.occursAt ? remindDayLabel(entry.remindDay, today, true) : undefined,
+                });
+              }
+              const when = remindDayLabel(entry.day, today, entry.by);
+              // A note with no thread opens nothing, so it is a line and no button.
+              const door = reminderDoor(entry);
+              const line = {
+                accessibilityLabel: `${entry.name}, ${when}`,
+                className: `flex-row items-start gap-space-4 px-space-5 py-space-4 ${border ? `border-b ${isAndroid ? "border-a-outline" : "border-border-hairline"}` : ""}`,
+                style: { minHeight: 56 },
+              };
+              const said = (
+                <View className="flex-1 items-start gap-space-1">
+                  <Text className={`self-stretch font-core font-medium ${ink}`} style={{ fontSize: 15.5, lineHeight: 21 }}>
+                    {entry.name}
+                  </Text>
+                  <View className="flex-row flex-wrap items-center gap-space-2">
+                    <PlainChip label={when} />
+                    {entry.of === "note" && entry.threadId && entry.threadName ? (
+                      <ThreadPill id={entry.threadId} name={entry.threadName} icon={entry.threadIcon} hue={entry.threadHue} size={24} />
+                    ) : (
+                      <Text className={`font-core ${quietInk}`} style={{ fontSize: 13 }}>
+                        {entry.of === "memory" ? "Memories" : "Not in a thread"}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              );
+              return door ? (
+                <Pressable key={entry.id} onPress={() => router.push(door)} accessibilityRole="button" {...line}>
+                  {said}
+                </Pressable>
+              ) : (
+                <View key={entry.id} accessible {...line}>
+                  {said}
+                </View>
+              );
+            })}
+            {cardEdge}
+          </View>
+          {reminders.more > 0 ? (
+            <Text className="pt-space-2 font-core text-text-tertiary" style={{ fontSize: 13 }}>
+              and {reminders.more} more
+            </Text>
+          ) : null}
+        </View>
+      ) : null;
+    }
+    if (section.kind !== "day") return null;
     if (!dayOn(layout)) return null;
     if (dayOne) {
       return (

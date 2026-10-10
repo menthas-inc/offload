@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/reminders_labelled.v1.json",
+  "title": "reminders_labelled",
+  "description": "042. A nightly pass worked out what kind of date its member's things were: how many it labelled and how many the Core API refused. Never what they were.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["labelled", "ignored"],
+  "properties": {
+    "labelled": { "type": "integer", "minimum": 0 },
+    "ignored": { "type": "integer", "minimum": 0 }
+  }
+}

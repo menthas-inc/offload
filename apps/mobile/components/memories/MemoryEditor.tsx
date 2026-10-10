@@ -11,6 +11,11 @@
 // one sentence. A refusal keeps the sheet open with its reason under the
 // field; a write that never lands keeps it open too, and the toast offers
 // Retry.
+//
+// 042. Remind me, on a memory offload reminds about (a birthday, an
+// anniversary) or one they stopped. Written at the switch, not at Save, since
+// Save rewrites the memory; drawn first, put back with the editor's own
+// failure toast and its Retry. No Undo, as the editor has none.
 
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
@@ -19,6 +24,7 @@ import {
   MEMORY_KINDS,
   MEMORY_TEXT_CHARS,
   memoryOrigin,
+  remindSwitchShown,
   shownText,
   storedText,
   type MemoryKindId,
@@ -26,6 +32,8 @@ import {
 } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { DragSheet } from "../shell/DragSheet";
+import { Switch } from "../settings/Switch";
+import { putReminders } from "../../lib/reminders";
 import { atOpacity, useColors } from "../../lib/colors";
 import { kindColors, severs, submitMemory, typedLine } from "../../lib/memories";
 
@@ -41,6 +49,7 @@ export function MemoryEditor({
   onFailed,
   onForget,
   onGone,
+  onReminded,
 }: {
   /** The memory being changed, or null for a new one. */
   editing: MemoryView | null;
@@ -57,6 +66,8 @@ export function MemoryEditor({
   /** Forgotten elsewhere while open. The sheet has closed; nothing is said,
    *  and the list is read again. */
   onGone: () => void;
+  /** 042. Remind me was written; the list is read again. */
+  onReminded?: () => void;
 }) {
   const COLOR = useColors();
   // Stored about the person and shown to them (F4), by the rule the web's
@@ -70,6 +81,12 @@ export function MemoryEditor({
   const [busy, setBusy] = useState(false);
   const [focused, setFocused] = useState(false);
   const [gridWidth, setGridWidth] = useState(0);
+  const reminding = held !== null && remindSwitchShown(held ?? {}, true);
+  // As the server holds it: the screen hands over the memory as last read,
+  // so a reload after the switch was written lands here too.
+  const heldRemind = held?.reminders === "on";
+  const [remind, setRemind] = useState(heldRemind);
+  useEffect(() => setRemind(heldRemind), [heldRemind]);
 
   // A reason belongs to the words it refused.
   useEffect(() => setRefusal(null), [draft, kind]);
@@ -99,6 +116,17 @@ export function MemoryEditor({
     onClose();
     if (done.outcome === "gone") onGone();
     if (done.outcome === "saved") onSaved(done.toast);
+  }
+
+  async function switchRemind(next: boolean): Promise<void> {
+    if (!held) return;
+    setRemind(next);
+    if (await putReminders("memory", held.id, next)) {
+      onReminded?.();
+      return;
+    }
+    setRemind(!next);
+    onFailed(() => void switchRemind(next));
   }
 
   return (
@@ -230,6 +258,16 @@ export function MemoryEditor({
             })
           : null}
       </View>
+
+      {reminding ? (
+        <View className="mt-space-6 min-h-tap-min flex-row items-center gap-space-4">
+          <Glyph name="bell" size={17} color={COLOR.secondary} />
+          <Text className={`flex-1 font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 15 }}>
+            Remind me
+          </Text>
+          <Switch checked={remind} onChange={(next) => void switchRemind(next)} label="Remind me" />
+        </View>
+      ) : null}
 
       <View
         className={`mt-space-6 flex-row items-start rounded-md px-space-6 py-space-5 ${isAndroid ? "bg-a-c-high" : "bg-surface-fill"}`}

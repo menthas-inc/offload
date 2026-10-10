@@ -3,6 +3,7 @@
 // this re-derives them before anything is applied, because a prompt is a
 // request and this is the enforcement (the 032 pattern).
 
+import { memoriesToDate } from "../notifications/labels.js";
 import { sql } from "kysely";
 import type { Executor } from "../threads/access.js";
 import type { MemoryClass } from "../schema.js";
@@ -53,7 +54,9 @@ export function passMessages(trx: Executor, accountId: string) {
 /** Whether there is anything for a pass to read tonight. */
 export async function passOwed(trx: Executor, accountId: string): Promise<boolean> {
   const one = await passMessages(trx, accountId).select("m.id").limit(1).executeTakeFirst();
-  return one !== undefined;
+  if (one !== undefined) return true;
+  // 042. A memory nobody has dated yet, or whose words changed since.
+  return (await memoriesToDate(trx, accountId)).length > 0;
 }
 
 /** The person's own active thread notes a pass may read, newest first: the

@@ -80,6 +80,7 @@ export type JobKind =
   // coalesced additions, and the receipts read a quarter of an hour later.
   | "digest.schedule"
   | "account.digest"
+  | "reminder.own"
   | "people.notify"
   | "shared.activity"
   | "push.receipts"

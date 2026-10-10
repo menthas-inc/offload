@@ -19,7 +19,8 @@ import { emit, subjectOf } from "../analytics.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { record } from "./activity.js";
-import { digestCopy, skippedTitle, type DigestRow, type Send } from "./copy.js";
+import { cutAtWord, digestCopy, skippedTitle, type ComingRow, type DigestRow, type Send } from "./copy.js";
+import { clockOf, placed } from "./reminders.js";
 import { GONE, PushFailed, push, type PushMessage } from "./push.js";
 
 export type { Send };
@@ -30,6 +31,8 @@ export const OVERDUE_DAYS = 7;
 export const LATE_MS = 2 * 3_600_000;
 /** Rule rows are few; past this the cap is the signal to add a column. */
 export const RULE_ROWS_CAP = 200;
+/** 042. A send's body is cut here, at a word: a lock screen shows little. */
+export const BODY_CHARS = 240;
 /** The receipts are read this long after the send. */
 export const RECEIPTS_AFTER_SECONDS = 15 * 60;
 
@@ -118,6 +121,9 @@ export interface Composed {
   single: { contentId: string } | null;
   /** Whose words the send carries, and from which thread, for the record. */
   mentions: { threadId: string; aboutAccountId: string }[];
+  /** 042. The reminders that land in this send: named in its due part, or
+   *  under Coming up, and the memories named, for the record. */
+  reminders: { due: DigestRow[]; coming: ComingRow[]; memories: string[]; byWindow: Record<"long" | "short" | "day", number> };
 }
 
 interface Candidate {
@@ -181,7 +187,7 @@ function toDigestRow(row: Candidate, zone: string | null, accountId: string, day
 }
 
 /** The reminders the send names, resolved for the account now. */
-export async function composeDigest(accountId: string, send: Send, day: string): Promise<Composed> {
+export async function composeDigest(accountId: string, send: Send, day: string, now = new Date()): Promise<Composed> {
   const account = await db.selectFrom("accounts").select("time_zone").where("id", "=", accountId).executeTakeFirst();
   const zone = account?.time_zone ?? null;
   const target = send === "morning" ? day : addUtcDays(day, 1);
@@ -248,7 +254,40 @@ export async function composeDigest(accountId: string, send: Send, day: string):
     if (!source || !source.account_id || source.account_id === accountId) continue;
     named.set(`${source.thread_id}:${source.account_id}`, { threadId: source.thread_id, aboutAccountId: source.account_id });
   }
-  return { zone, today: day, rows, overdue, landingToday, single, mentions: [...named.values()] };
+  return { zone, today: day, rows, overdue, landingToday, single, mentions: [...named.values()], reminders: await remindersIn(accountId, send, day, target, now) };
+}
+
+/** 042. What offload reminds about in this send: a reminder whose day is the
+ *  send's own (today in the morning, tomorrow in the evening) is named in the
+ *  due part, anything further off under Coming up, nearest first. */
+async function remindersIn(accountId: string, send: Send, day: string, target: string, now: Date): Promise<Composed["reminders"]> {
+  const none: Composed["reminders"] = { due: [], coming: [], memories: [], byWindow: { long: 0, short: 0, day: 0 } };
+  const clock = await clockOf(accountId, now);
+  if (!clock || !clock.on) return none;
+  const here = (await placed(accountId, clock)).filter(
+    ({ slot }) => slot.at === "send" && slot.day === day && slot.send === send,
+  );
+  const out = none;
+  for (const { candidate, slot } of here.sort((a, b) => (a.slot.occurrence < b.slot.occurrence ? -1 : a.slot.occurrence > b.slot.occurrence ? 1 : 0))) {
+    out.byWindow[slot.window] += 1;
+    if (candidate.of === "memory") out.memories.push(candidate.id);
+    if (slot.occurrence === target) {
+      out.due.push({
+        id: candidate.id,
+        title: candidate.name,
+        type: candidate.type === "event" ? "event" : "task",
+        at: candidate.at && candidate.type === "event" && !candidate.allDay ? candidate.at.toISOString() : null,
+        allDay: candidate.allDay,
+        day: slot.occurrence,
+        author: null,
+        repeating: false,
+        daily: false,
+      });
+    } else {
+      out.coming.push({ id: candidate.id, name: candidate.name, day: slot.occurrence, by: candidate.kind === "deadline" || candidate.dated.anchored });
+    }
+  }
+  return out;
 }
 
 export type Outcome = "sent" | "skipped_setting" | "skipped_permission" | "empty" | "same" | "late";
@@ -273,24 +312,35 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
     .executeTakeFirst();
   if (!account) return "empty";
 
-  const composed = await composeDigest(accountId, send, day);
-  if (composed.rows.length + composed.overdue.length === 0) return "empty";
-  if (send === "evening" && sameSet(composed.rows.map((row) => row.id), composed.landingToday)) return "same";
+  const composed = await composeDigest(accountId, send, day, now);
+  const reminders = composed.reminders;
+  const reminding = reminders.due.length + reminders.coming.length > 0;
+  if (composed.rows.length + composed.overdue.length === 0 && !reminding) return "empty";
+  if (!reminding && send === "evening" && sameSet(composed.rows.map((row) => row.id), composed.landingToday)) return "same";
 
-  const copy = digestCopy(send, composed.rows, composed.overdue, composed.zone, day);
-  const counts = { send, rows: composed.rows.length, overdue: composed.overdue.length };
   const subject = await subjectOf(accountId);
-  const mentions = composed.mentions;
   const on = send === "morning" ? account.notify_due_today : account.notify_coming_tomorrow;
-  if (!on) {
-    await record(accountId, { kind: "digest", sent: false, reason: "setting", title: skippedTitle(send), body: copy.body, send, mentions });
-    await emit({ name: "digest_skipped", subjectId: subject, properties: { ...counts, reason: "setting" } });
+  // 042. Each switch holds back its own rows only: with Due today off and
+  // Reminders on, the send still names the reminders.
+  const rows = on ? composed.rows : [];
+  const overdue = on ? composed.overdue : [];
+  const counts = { send, rows: rows.length, overdue: overdue.length };
+  const mentions = on ? composed.mentions : [];
+  if (!on && !reminding) {
+    const held = digestCopy(send, composed.rows, composed.overdue, composed.zone, day);
+    await record(accountId, { kind: "digest", sent: false, reason: "setting", title: skippedTitle(send), body: held.body, send, mentions: composed.mentions });
+    await emit({ name: "digest_skipped", subjectId: subject, properties: { ...counts, rows: composed.rows.length, overdue: composed.overdue.length, reason: "setting" } });
     return "skipped_setting";
   }
+  const named = new Set(rows.map((row) => row.id));
+  const due = [...rows, ...reminders.due.filter((row) => !named.has(row.id))];
+  const drafted = digestCopy(send, due, overdue, composed.zone, day, "en", reminders.coming);
+  const copy = { title: drafted.title, body: cutAtWord(drafted.body, BODY_CHARS) };
+  const single = reminding ? null : composed.single;
 
   const tokens = await db.selectFrom("push_tokens").select(["id", "token", "platform"]).where("account_id", "=", accountId).execute();
   if (tokens.length === 0) {
-    await record(accountId, { kind: "digest", sent: false, reason: "permission", title: copy.title, body: copy.body, send, mentions });
+    await record(accountId, { kind: "digest", sent: false, reason: "permission", title: copy.title, body: copy.body, send, mentions, memories: reminders.memories });
     await emit({ name: "digest_skipped", subjectId: subject, properties: { ...counts, reason: "permission" } });
     return "skipped_permission";
   }
@@ -301,14 +351,14 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
     kind: "digest",
     send,
     ...(send === "evening" ? { day: addUtcDays(day, 1) } : {}),
-    ...(composed.single ? { contentId: composed.single.contentId } : {}),
+    ...(single ? { contentId: single.contentId } : {}),
   };
   const messages: PushMessage[] = tokens.map((one) => ({
     to: one.token,
     title: copy.title,
     body: copy.body,
     data,
-    categoryId: composed.single ? VERBS_CATEGORY : PLAIN_CATEGORY,
+    categoryId: single ? VERBS_CATEGORY : PLAIN_CATEGORY,
     channelId: CHANNELS[send],
   }));
   let tickets;
@@ -349,10 +399,15 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
     title: copy.title,
     body: copy.body,
     send,
-    contentId: composed.single?.contentId ?? null,
+    contentId: single?.contentId ?? null,
     mentions,
+    memories: reminders.memories,
   });
   await emit({ name: "digest_sent", subjectId: subject, properties: counts });
+  if (reminding) {
+    // 042. Counts by window, never a name, a date or a kind of thing.
+    await emit({ name: "reminder_sent", subjectId: subject, properties: { via: send, ...reminders.byWindow } });
+  }
   return "sent";
 }
 

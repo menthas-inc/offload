@@ -132,6 +132,9 @@ interface Props {
    *  hour with a clock for a row with a time on its day, or none for a row
    *  due that day with no hour. */
   chip?: "date" | "time" | "none" | undefined;
+  /** 042. Today's Reminders: the day an undated task is reminded against,
+   *  drawn as its date chip. */
+  by?: string | undefined;
   /** 027. A control at the trailing edge, centred on the title line: Today's
    *  + Today pill on a pick. */
   trailing?: ReactNode;
@@ -165,6 +168,7 @@ export function ContentRowView({
   handleSpace,
   thread,
   chip = "date",
+  by,
   trailing,
   ground,
   dense,
@@ -516,7 +520,7 @@ export function ContentRowView({
                 // 027. Today's marks line: the chip it asked for, the
                 // thread, then the labels the row carries there.
                 <View className="flex-row flex-wrap items-center gap-space-2">
-                  {chip === "date" ? <DateChip row={row} isReminder={row.isReminder} /> : null}
+                  {chip === "date" ? <DateChip row={row} by={by} /> : null}
                   {chip === "time" ? <HourChip row={row} /> : null}
                   {thread.name !== null ? <ThreadPill id={thread.id} name={thread.name} icon={thread.icon} hue={thread.hue} size={24} /> : null}
                   {(metaMarks ?? []).map((label) => (
@@ -527,7 +531,7 @@ export function ContentRowView({
                 </View>
               ) : marks.length > 0 ? (
                 <View className="flex-row flex-wrap items-center gap-space-2">
-                  <DateChip row={row} isReminder={row.isReminder} />
+                  <DateChip row={row} />
                   {marks.map((label) => (
                     <LabelMark key={label.id} color={label.colour} onClick={() => threadLabels?.onOpenLabel(label.id)}>
                       {label.name}
@@ -535,7 +539,7 @@ export function ContentRowView({
                   ))}
                 </View>
               ) : (
-                <DateChip row={row} isReminder={row.isReminder} />
+                <DateChip row={row} />
               )}
             </View>
             {meta && !thread ? (

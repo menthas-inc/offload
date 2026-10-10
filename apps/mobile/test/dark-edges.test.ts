@@ -79,9 +79,9 @@ describe("Today's cards", () => {
     expect(edge).toContain(`boxShadow: \`${ring("COLOR.edgeCard")}\``);
   });
 
-  it("puts it in To do's card, the one card left since If you have time went", () => {
-    expect(at(source, "<View className={card}>").length).toBe(1);
-    expect(at(source, "{cardEdge}").length).toBe(1);
+  it("puts it in To do's card and, since 042, Reminders' card, the two cards on Today", () => {
+    expect(at(source, "<View className={card}>").length).toBe(2);
+    expect(at(source, "{cardEdge}").length).toBe(2);
   });
 
   it("rings every page of open in your threads as a well", () => {

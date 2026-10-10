@@ -333,7 +333,7 @@ describe("deleting an account", () => {
     // Kinds that can name another person, and kinds that only ever name the
     // account's own rows. A new kind fails here until it is placed.
     const naming = ["digest", "request", "share", "shared_activity", "expired"];
-    const ownOnly = ["moved", "acted", "labelled", "mail", "export"];
+    const ownOnly = ["moved", "acted", "labelled", "mail", "export", "reminder"];
     const check = await sql<{ def: string }>`
       select pg_get_constraintdef(oid) as def from pg_constraint where conname = 'activity_kind_check'
     `.execute(db);

@@ -7,7 +7,8 @@
 // interruptions, read once per load and the same whichever day is shown; and
 // **the day**, one at a time, with the stepper, the next line, Where you will
 // be and To do; and on Today, **open in your threads** (2026-10-07), a page
-// per thread holding to-dos with no date. Customize Today is the second pane
+// per thread holding to-dos with no date, and **Reminders** (042), what offload
+// is reminding you about, nearest first. Customize Today is the second pane
 // beside this one, opened from the sliders in the pane head, which has no
 // title: the stepper names the day, and Today said twice was one too many.
 //
@@ -31,6 +32,7 @@ import { NeedsYou, type Card } from "../today/NeedsYou";
 import { DayStepper } from "../today/DayStepper";
 import { EventsStrip, NextLine } from "../today/EventsStrip";
 import { OpenThreads } from "../today/OpenThreads";
+import { Reminders } from "../today/Reminders";
 import { TodoCard } from "../today/TodoCard";
 import { useTodayRows } from "../today/useTodayRows";
 import { useAppearance } from "../../lib/appearance";
@@ -43,13 +45,17 @@ import {
   fetchDay,
   fetchNeeds,
   fetchOpenThreads,
-  layoutOf,
+  fetchReminders,
+  layoutOfMe,
   openThreadsOn,
   partOf,
   partsOn,
+  remindersOn,
   type Day,
+  type LayoutSection,
   type NeedsCard,
   type OpenPage,
+  type RemindersRead,
   type TodayLayout,
 } from "../../lib/today";
 import pane from "../../app/(shell)/shell.module.css";
@@ -139,7 +145,7 @@ export function TodayPane({
     () =>
       onMe((next) => {
         setMe(next);
-        setConfirmed(partsKey(layoutOf(next.todayLayoutV2)));
+        setConfirmed(partsKey(layoutOfMe(next)));
       }),
     [],
   );
@@ -251,13 +257,33 @@ export function TodayPane({
     });
   }, []);
 
+  // 042. Reminders: read with Today, again after a filing and after every
+  // write, as open in your threads is.
+  const showReminders = day === today && remindersOn(layout);
+  const [reminding, setReminding] = useState<RemindersRead | null>(null);
+  const askedReminders = useRef(0);
+  const loadReminders = useCallback(async () => {
+    if (!showReminders) return;
+    const mine = ++askedReminders.current;
+    const got = await fetchReminders();
+    if (mine !== askedReminders.current || !got) return;
+    setReminding(got);
+  }, [showReminders]);
+  useEffect(() => {
+    setReminding(null);
+    void loadReminders();
+  }, [loadReminders]);
+  useEffect(() => {
+    if (filed) void loadReminders();
+  }, [filed, loadReminders]);
+
   const labels = useMemo(
     () => new Map<string, Label>((read?.day.threadLabels ?? []).map((one) => [one.id, { ...one, count: 0 }])),
     [read],
   );
   const reload = useCallback(async () => {
-    await Promise.all([load(false), loadOpen()]);
-  }, [load, loadOpen]);
+    await Promise.all([load(false), loadOpen(), loadReminders()]);
+  }, [load, loadOpen, loadReminders]);
   const rows = useTodayRows(reload, labels);
 
   // ------------------------------------------------------------ Needs you
@@ -378,6 +404,29 @@ export function TodayPane({
         })} struck={struck} onStrike={strike} rows={rows} now={now} />
     ) : null;
 
+  // Today only, and never in place of the day-one invitation.
+  const reminders =
+    showReminders && reminding && everDumped ? <Reminders key="reminders" read={reminding} rows={rows} today={today} /> : null;
+
+  // Every kind by name: one this build does not know draws nothing, rather
+  // than whichever section the last branch happened to be, and a kind added
+  // to the type without a branch here does not compile.
+  const sectionFor = (section: LayoutSection): React.ReactNode => {
+    switch (section.kind) {
+      case "needs_you":
+        return needsYou;
+      case "day":
+        return theDay;
+      case "reminders":
+        return reminders;
+      case "open_threads":
+        return openThreads;
+      default:
+        section satisfies never;
+        return null;
+    }
+  };
+
   return (
     <>
       <PaneHead
@@ -396,9 +445,7 @@ export function TodayPane({
 
       <div className={pane.paneBody}>
         <div className={styles.today}>
-          {layout.sections.map((section) =>
-            section.kind === "needs_you" ? needsYou : section.kind === "day" ? theDay : openThreads,
-          )}
+          {layout.sections.map(sectionFor)}
         </div>
       </div>
 

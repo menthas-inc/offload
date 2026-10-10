@@ -44,6 +44,8 @@ export const ACCOUNT_LEDGER: Record<string, Entry> = {
   "people_lookups.account_id": cascade,
   "jobs.account_id": cascade,
   "push_tokens.account_id": cascade,
+  // 042. What offload worked out about their dated things, to remind them.
+  "reminder_labels.account_id": cascade,
   "today_put_offs.account_id": cascade,
   "account_limits.account_id": cascade,
   "limit_hits.account_id": cascade,

@@ -10,6 +10,7 @@ const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 import type { Invitation } from "./people";
 import type { Label } from "./labels";
 import type { LooseSummary } from "./loose";
+import type { Reminders } from "@offload/widgets";
 
 /** A request with no body.
  *
@@ -105,6 +106,9 @@ export interface Note {
   /** 028. When it was put down, which never moves. Not on every read, so a
    *  reader falls back to `writtenAt`. */
   createdAt?: string;
+  /** 042. The author's Remind me: on while offload will remind them, off
+   *  once they stopped it, null otherwise and to anybody else. */
+  reminders?: Reminders;
 }
 
 /** A hundred, matching NOTE_PROMPT_BUDGET in the Core API.
@@ -274,6 +278,9 @@ export interface ContentRow {
    *  of `@offload/widgets`, the server's own serialisation. */
   rrule: string | null;
   isReminder: boolean;
+  /** 042. The author's Remind me: on while offload will remind them, off
+   *  once they stopped it, null otherwise and to anybody else. */
+  reminders?: Reminders;
   /** 023. Written to a calendar, so its time is Google's: no When on it. */
   onCalendar: boolean;
   priority: number;
@@ -462,6 +469,9 @@ export interface ContentSnapshot {
   rrule: string | null;
   isReminder: boolean;
   labels: string[];
+  /** 042. "on" for the author's row that was asked about, label or not;
+   *  null to anybody else, which an Undo sends back as leave it alone. */
+  reminders: Reminders;
 }
 
 /** The refusals the route names; the screen is put back with one clause. */
@@ -486,6 +496,9 @@ export interface ContentPatch {
   isReminder?: boolean;
   /** 025. The row's labels as a full set. */
   labels?: string[];
+  /** 042. The author's Remind me. "off" stops every reminder for the row and
+   *  takes `isReminder` with it, server side; null leaves it alone. */
+  reminders?: "on" | "off" | null;
 }
 
 export async function editContent(
@@ -684,6 +697,7 @@ export function provisionalRow(
     rrule: null,
     onCalendar: false,
     isReminder: false,
+    reminders: null,
     priority: 0,
     priorityPinned: false,
     labels: [],

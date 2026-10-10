@@ -14,6 +14,7 @@ import { auth } from "../auth/auth.js";
 import { dayResponse, readDay } from "../today/day.js";
 import { needsCard, needsYou, putOff } from "../today/needs.js";
 import { openResponse, openThreads } from "../today/threads.js";
+import { remindersResponse, todayReminders } from "../today/reminders.js";
 
 async function currentAccountId(request: FastifyRequest): Promise<string | null> {
   const headers = new Headers();
@@ -74,6 +75,17 @@ export async function todayRoutes(app: App): Promise<void> {
       if (outcome === "bad_card") return reply.status(400).send({ error: "bad_card" as const });
       if (outcome === "not_found") return reply.status(404).send({ error: "not_found" as const });
       return reply.send({ ok: true as const });
+    },
+  );
+
+  // 042. Reminders: what has begun and not ended, nearest first.
+  app.get(
+    "/v1/today/reminders",
+    { schema: { response: { 200: remindersResponse, 401: unauthenticated } } },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.status(401).send({ error: "unauthenticated" as const });
+      return reply.send(await todayReminders(accountId));
     },
   );
 

@@ -17,8 +17,14 @@
 // replaces the cap line is the opposite kind of sentence: not "you may not add
 // another" but "these ones are not reaching offload", next to the rows that
 // resolve it.
+//
+// 042. The author's Remind me in the open note, the settings `Switch`, drawn
+// first and written second with Undo, as the text's edit is.
 
 import { useClock } from "../../lib/clock";
+import { remindSwitchShown } from "@offload/widgets";
+import { Switch } from "../Switch";
+import { setReminders } from "../../lib/reminders";
 import { useState } from "react";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
@@ -241,6 +247,23 @@ export function Notes({
     );
   }
 
+  /** 042. Remind me, from the open note. The editor stays open. */
+  function remind(note: Note, on: boolean): void {
+    void perform(
+      {
+        apply: () => patch(note.id, { reminders: on ? "on" : "off" }),
+        revert: () => patch(note.id, { reminders: note.reminders ?? null }),
+        write: () => setReminders("note", note.id, on),
+        unwrite: () => setReminders("note", note.id, !on),
+        did: "Saved",
+        failed: "Couldn't save that",
+        unfailed: "Couldn't put it back",
+      },
+      toast,
+      writes,
+    );
+  }
+
   /** No Undo: the same control, pressed again, is the undo. */
   function mute(note: Note): void {
     close();
@@ -390,6 +413,11 @@ export function Notes({
       onMove={note && canDelete(note) && !isProvisional(note.id) ? () => setMoving(note) : undefined}
       // Its words are its author's to change, on the terms delete has.
       readOnly={note !== null && !canDelete(note)}
+      remind={
+        note && remindSwitchShown(note, note.authorId === viewerId)
+          ? { on: note.reminders === "on", onChange: (on) => remind(note, on) }
+          : undefined
+      }
     />
   );
 
@@ -564,6 +592,7 @@ export function NoteEditor({
   onMove,
   readOnly = false,
   placeholder = "What is true about this thread?",
+  remind,
 }: {
   /** Somebody else's note: words to read, with Mute and no Save. The server
    *  refuses the edit, so the field never offers one. */
@@ -580,6 +609,9 @@ export function NoteEditor({
   /** 028. Not in a thread asks its own question: there is no thread for the
    *  note to be true about. */
   placeholder?: string;
+  /** 042. The author's Remind me, while offload will remind them or after
+   *  they stopped it. Absent draws nothing. */
+  remind?: { on: boolean; onChange: (on: boolean) => void } | undefined;
 }) {
   return (
     <span className={styles.noteOpen}>
@@ -601,6 +633,12 @@ export function NoteEditor({
           }
         }}
       />
+
+      {remind ? (
+        <span className={styles.editSwitch}>
+          <Switch label="Remind me" checked={remind.on} onChange={remind.onChange} />
+        </span>
+      ) : null}
 
       <span className={styles.noteActions}>
         {readOnly ? (

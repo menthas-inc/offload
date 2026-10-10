@@ -76,6 +76,7 @@ describe("AC-39 the scheduled registry", () => {
         "places.age",
         "people.daily",
         "digest.schedule",
+        "reminder.own",
         "analytics.ship",
         "embed.sweep",
         "calendar.sync",

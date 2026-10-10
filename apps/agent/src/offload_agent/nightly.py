@@ -1,6 +1,6 @@
 """032. The nightly pass. One thread, one member, one model call.
 
-It does what three jobs did, and the thing the privacy page already said it
+It does what three jobs did, and the dated the privacy page already said it
 did: it keeps the member's notes true (014's compaction), adds what their day's
 dumps show (new), and on their default thread suggests threads (028).
 
@@ -30,6 +30,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from typing import Literal
 
 import httpx
 import structlog
@@ -56,6 +57,12 @@ MESSAGE_CHARS = 500
 #: 028's candidates for suggestions, and how much of each.
 CANDIDATES = 50
 CANDIDATE_CHARS = 200
+#: 042. The member's dated things a pass labels for reminders, the dated
+#: things a to-do could be for, and how much of each. LABELS_SHOWN and
+#: ANCHORS_SHOWN in the Core API are the same numbers.
+LABEL_CAP = 30
+ANCHOR_CAP = 20
+LABEL_CHARS = 200
 
 _PROMPT = load("nightly")
 for _marker in ("learn", "propose"):
@@ -195,6 +202,48 @@ _CANDIDATES = text(
     """
 )
 
+# 042. The member's dated things no label fits yet, from the one definition
+# the daily run books on and the Core API applies against
+# (`reminders_wanted`). A day is its UTC date, a time is the member's clock.
+_WHEN = """
+    case when {at} is null then null
+         when coalesce(({attrs} ->> 'all_day')::boolean, false)
+           then to_char({at} at time zone 'UTC', 'YYYY-MM-DD')
+         else to_char({at} at time zone coalesce(cast(:zone as text), 'UTC'), 'YYYY-MM-DD HH24:MI')
+    end
+"""
+
+_TO_LABEL = text(
+    f"""
+    select w.of as of, w.id::text as id,
+           coalesce(c.type, 'note') as type,
+           coalesce(c.title, n.text) as text,
+           {_WHEN.format(at="w.at", attrs="coalesce(c.attrs, n.attrs)")} as when,
+           coalesce(c.rrule, n.rrule) as rrule,
+           coalesce(c.is_reminder, false) as asked
+      from reminders_wanted(cast(:account_id as uuid), cast(:thread_id as uuid)) w
+      left join content c on w.of = 'content' and c.id = w.id
+      left join notes n on w.of = 'note' and n.id = w.id
+     order by w.at asc nulls last, w.born desc
+     limit :limit
+    """
+)
+
+# 042. What a to-do in this thread could be for: its dated rows and notes, by
+# any member, never untrusted (`reminder_anchors`).
+_ANCHORS = text(
+    f"""
+    select a.of as of, a.id::text as id,
+           coalesce(c.title, n.text) as text,
+           {_WHEN.format(at="a.at", attrs="coalesce(c.attrs, n.attrs)")} as when
+      from reminder_anchors(cast(:thread_id as uuid)) a
+      left join content c on a.of = 'content' and c.id = a.id
+      left join notes n on a.of = 'note' and n.id = a.id
+     order by a.at asc
+     limit :limit
+    """
+)
+
 #: How a candidate's kind reads to the model.
 _KIND_WORDS = {
     "task": "to-do",
@@ -236,10 +285,21 @@ class Group(BaseModel):
     items: list[int] = Field(min_length=2, max_length=10)
 
 
+class Label(BaseModel):
+    """042. What kind of date a dated is and how much it needs beforehand."""
+
+    entry: int = Field(ge=1)
+    kind: Literal["meeting", "appointment", "occasion", "deadline", "trip", "day", "none"]
+    lead: Literal["none", "days", "weeks", "months"]
+    before: int | None = Field(default=None, ge=1)
+    name: str | None = Field(default=None, min_length=1, max_length=60)
+
+
 class _Fold(BaseModel):
     supersede: list[str] = Field(default_factory=list, max_length=200)
     remove: list[str] = Field(default_factory=list, max_length=200)
     add: list[Folded] = Field(default_factory=list, max_length=100)
+    labels: list[Label] = Field(default_factory=list, max_length=LABEL_CAP)
 
 
 class LearnPlan(_Fold):
@@ -296,6 +356,8 @@ def listing(
     messages: list[dict] | None = None,
     candidates: list[dict] | None = None,
     memories: list | None = None,
+    to_label: list[dict] | None = None,
+    anchors: list[dict] | None = None,
 ) -> str:
     """The user turn: a data label, then one JSON entry per line."""
     lines = [
@@ -346,7 +408,65 @@ def listing(
             )
             for number, row in enumerate(candidates[:CANDIDATES], start=1)
         ] or ["(nothing)"]
+    if to_label:
+        # 042. Omitted keys rather than nulls: fewer tokens, and nothing the
+        # model can read as a value it was given.
+        lines += ["", "Dated things of theirs, for reminders, nearest first:"]
+        lines += [
+            _entry(**_dated_entry(number, dated))
+            for number, dated in enumerate(to_label[:LABEL_CAP], start=1)
+        ]
+        lines += ["", "What a to-do could be for, nearest first:"]
+        lines += [
+            _entry(dated=number, text=_flat(dated["text"], LABEL_CHARS), when=dated["when"])
+            for number, dated in enumerate((anchors or [])[:ANCHOR_CAP], start=1)
+        ] or ["(nothing)"]
     return "\n".join(lines)
+
+
+_REPEATS = {"DAILY": "daily", "WEEKLY": "weekly", "MONTHLY": "monthly", "YEARLY": "yearly"}
+
+
+def _dated_entry(number: int, dated: dict) -> dict:
+    entry: dict = {
+        "entry": number,
+        "kind": _KIND_WORDS.get(dated["type"], "entry"),
+        "text": _flat(dated["text"], LABEL_CHARS),
+    }
+    if dated.get("when"):
+        entry["when"] = dated["when"]
+    rule = dated.get("rrule")
+    if rule:
+        freq = str(rule).split(";")[0].removeprefix("FREQ=")
+        entry["repeats"] = _REPEATS.get(freq, "yes")
+    if dated.get("asked"):
+        entry["asked"] = True
+    return entry
+
+
+def labels_wire(labels: list[Label], shown: list[dict], anchors: list[dict]) -> list[dict]:
+    """042. The model's numbers back to what it was shown. A number it was not
+    shown is dropped, a `before` it was not shown is dropped from its label,
+    and a dated labelled twice keeps its first label."""
+    shown = shown[:LABEL_CAP]
+    anchors = anchors[:ANCHOR_CAP]
+    out: list[dict] = []
+    seen: set[str] = set()
+    for label in labels:
+        if not 1 <= label.entry <= len(shown):
+            continue
+        dated = shown[label.entry - 1]
+        if dated["id"] in seen:
+            continue
+        seen.add(dated["id"])
+        entry: dict = {"id": dated["id"], "of": dated["of"], "kind": label.kind, "lead": label.lead}
+        if label.before is not None and 1 <= label.before <= len(anchors):
+            anchor = anchors[label.before - 1]
+            entry["before"] = {"id": anchor["id"], "of": anchor["of"]}
+        if label.name:
+            entry["name"] = label.name
+        out.append(entry)
+    return out
 
 
 def learned_wire(learned: list[Learned], shown: list[dict]) -> list[dict]:
@@ -541,6 +661,20 @@ async def handle_nightly(
             if on_default and propose
             else None
         )
+        # 042. What to label for reminders, and what a to-do could be for.
+        dated_params = {**params, "zone": member["time_zone"]}
+        to_label = list(
+            (await conn.execute(_TO_LABEL, {**dated_params, "limit": LABEL_CAP})).mappings().all()
+        )
+        anchors = (
+            list(
+                (await conn.execute(_ANCHORS, {**dated_params, "limit": ANCHOR_CAP}))
+                .mappings()
+                .all()
+            )
+            if to_label
+            else []
+        )
         # In the member's own zone: the prompt reads each date against today,
         # and UTC's today is a day off for part of every day somewhere.
         today = await today_line(conn, member["time_zone"])
@@ -559,7 +693,7 @@ async def handle_nightly(
 
     mode = mode_for(on_default=on_default, candidates=candidates)
     owns_notes = any(row["theirs"] for row in notes)
-    if not owns_notes and not messages and not candidates:
+    if not owns_notes and not messages and not candidates and not to_label:
         # Nothing of theirs to keep true and nothing new to read.
         async with engine.begin() as conn:
             await finish(conn, job.id)
@@ -573,6 +707,8 @@ async def handle_nightly(
         messages=None if on_default else (messages or []),
         candidates=candidates,
         memories=memories,
+        to_label=[dict(row) for row in to_label],
+        anchors=[dict(row) for row in anchors],
     )
     plan, usage = await _ask(client, cfg, turn, propose=mode == "propose", mode=mode)
     if plan is None:
@@ -601,6 +737,10 @@ async def handle_nightly(
         "learned": learned,
         "sent": [row["id"] for row in (candidates or [])[:CANDIDATES]],
         "groups": groups,
+        "labels": labels_wire(
+            plan.labels, [dict(row) for row in to_label], [dict(row) for row in anchors]
+        ),
+        "labelShown": [{"id": row["id"], "of": row["of"]} for row in to_label[:LABEL_CAP]],
     }
     response = await http.post(
         f"{cfg.api_url}/internal/v1/nightly-result",
@@ -623,5 +763,7 @@ async def handle_nightly(
         learned=applied.get("learned"),
         proposals=applied.get("proposals"),
         ignored=applied.get("ignored"),
+        to_label=len(to_label),
+        labelled=applied.get("labelled"),
         latency_ms=int((time.monotonic() - started) * 1000),
     )

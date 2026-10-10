@@ -2345,6 +2345,66 @@ a.settingsRow:hover,
   color: var(--text-primary);
 }
 
+/* 042. How many: a short line ending at a date, with one, two or three
+   marks before it, nearest the date first. */
+.depictCount {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  height: 100%;
+  padding: 0 14px;
+  background: var(--surface-fill);
+}
+
+.depictCount::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: var(--radius-pill);
+  background: var(--border-strong);
+}
+
+.depictMark {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--text-secondary);
+}
+
+.depictDate {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-inverse);
+}
+
+/* 042. A row of choice tiles under its title, with the pick's caption
+   under them: How many. */
+.settingsChoice {
+  padding: var(--space-3) 0;
+}
+
+.settingsChoice .tiles {
+  margin-top: var(--space-3);
+}
+
+.settingsChoice .settingsCaption {
+  margin-top: var(--space-3);
+}
+
+.tile:disabled {
+  cursor: default;
+}
+
 /* SegmentedControl: offload's only tab-like control. A track holding two to
    four segments, the selected one raised out of it. */
 .segmented {
@@ -3227,6 +3287,19 @@ a.settingsRow:hover,
   gap: var(--space-3);
   min-height: 36px;
   margin-top: var(--space-2);
+}
+
+/* 042. Remind me, the settings switch across the dialog's width: the whole
+   row is the hit area, at the tap minimum. Also the note and memory
+   editors'. */
+.editSwitch {
+  display: flex;
+  min-height: var(--tap-min);
+  margin-top: var(--space-2);
+}
+
+.editSwitch > * {
+  flex: 1;
 }
 
 .editRowLabel {
