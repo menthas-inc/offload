@@ -23,11 +23,12 @@ has cost real time in this repo.
   The `_db` tests write to a shared database and are not yours.
 - Evals, only with your spend environment sourced first, every time:
   `source ~/.offload-swarm/<your name>.sh`. Then, from `apps/agent`:
-  - `uv run python evals/run.py --subset screen --note "<what changed>"`, at
-    most twice. The screen is about $1.30.
-  - `uv run python evals/run.py --principle <N> --note "..."` for a principle
-    your change touches, to read failures. Prefer this to the screen while
-    iterating; a principle is $0.10 to $1.
+  - `uv run python evals/run.py --subset screen --concurrency 4 --note "<what changed>"`,
+    at most twice. The screen is about $1.30 and takes a few minutes.
+  - `uv run python evals/run.py --principle <N> --concurrency 4 --note "..."`
+    for a principle your change touches, to read failures. Prefer this to
+    the screen while iterating; a principle is $0.10 to $1.
+  - Always `--concurrency 4`: a dozen workers share one API rate limit.
   - `uv run python evals/compare.py <baseline record> <your record>` to read
     a run against the baseline. The baseline records are named in your task.
 - **Never** `--subset holdout`, never the full set, never `--runs 3`, never

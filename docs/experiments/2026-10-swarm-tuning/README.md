@@ -63,6 +63,25 @@ The research is in `research-orchestration.md` and
 
 ## The run
 
+Two rounds, then a final merge. A round is ideate, try, skeptic, condense.
+What a round learns is condensed by the lead into `rounds/<n>/FINDINGS.md`:
+what paid and by how much, what did not and why, dead ends, flaky cases,
+and the composite patch of the survivors. The next round's ideation agents
+and workers read it, and the next round's worktrees start from the
+composite rather than the base, so the swarm converges on what works
+instead of rediscovering it. This is the reflective loop the prompt
+optimisers run (GEPA reads failing transcripts; AlphaEvolve carries the
+parents and the inspirations in the prompt), done between rounds by one
+agent with the whole picture rather than inside every worker.
+
+| round | ideate | try | eval budget |
+| --- | --- | --- | --- |
+| 1 | 7 lenses, from the baseline | 10 to 12 workers, $2.50 each | about $28 |
+| 2 | 7 lenses, from round 1's findings and composite | 8 workers, $2.50 each | about $20 |
+| final | the merge agent | composite of both rounds, holdout then full | about $14 |
+
+Plus the baseline, about $13. The cap is $70 and the runner enforces it.
+
 **Phase 0, baseline (lead, about $13).** The full set once, the screen twice
 more for its own noise band. Base commit recorded. Subsets committed.
 
@@ -81,13 +100,18 @@ principles the change touches, read every failure against its transcript
 before believing it, and report. Never the holdout, never the full set, never
 a commit. The candidate is a patch and a RESULT.md.
 
-**Phase 3, verify and merge (lead, then one merge agent, about $25).**
-Skeptics read each surviving diff for eval tampering and production risk,
-one per candidate, read only. The merge agent applies the survivors in order
-of value onto one worktree, resolves conflicts, runs the unit suite, runs
-the holdout, drops what interacts badly, and runs the full set once at the
-end. It writes the report: before and after on screen, holdout and full,
-per surface, with what was kept, what was dropped and why.
+**Phase 3, condense (lead, between rounds).** Skeptics have read each
+surviving diff for eval tampering and production risk, one per candidate.
+The lead ranks the survivors on the Pareto front, applies them in order of
+value onto the merge worktree, runs the unit suite and the screen once, and
+writes `rounds/<n>/FINDINGS.md` and `rounds/<n>/composite.patch`. The next
+round's worktrees are made from the base with that patch applied.
+
+**Final, verify and merge (one merge agent, about $14).** From the last
+composite: the holdout once, drop what the holdout gap says is overfitted,
+the full set once, and the report: before and after on screen, holdout and
+full, per surface, with what was kept, what was dropped and why, and what
+the rounds taught about organising such a run.
 
 ## Rules every agent carries
 

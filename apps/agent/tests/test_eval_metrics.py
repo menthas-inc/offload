@@ -322,3 +322,36 @@ def test_metrics_price_a_warm_cache_beside_the_cold_one(run):
     assert m["product_cost_usd"] == pytest.approx(run._cost("claude-sonnet-5", 100, 50, 0, 8000))
     assert m["warm_cost_usd"] == pytest.approx(run._cost("claude-sonnet-5", 100, 50, 8000, 0))
     assert m["warm_cost_usd"] < m["product_cost_usd"]
+
+
+def test_compare_verdict_reads_the_warm_day_not_the_cold_screen(compare):
+    """A candidate that changes the model, the prompt or the tool list starts
+    with an empty cache, so its cold cost reads 1.3 to 1.8 against a baseline
+    screened warm. The verdict reads the warm day (round 1, 2026-10-10)."""
+    before = _record([(str(i), True, 1000, 0.02) for i in range(20)])
+    for c in before["cases"]:
+        c["warm_cost_usd"] = 0.010
+    after = _record([(str(i), True, 1000, 0.03) for i in range(20)])
+    for c in after["cases"]:
+        c["warm_cost_usd"] = 0.008
+    out = compare.compare(before, after)
+    assert out["product_cost_usd"]["ratio"] == pytest.approx(1.5)
+    assert out["daily_warm_cost_usd"]["ratio"] == pytest.approx(0.8)
+    assert out["verdict"] == "better"
+
+
+def test_a_subset_given_as_a_path_records_under_its_stem(run, tmp_path):
+    """`--subset evals/subsets/screen.json` once ran, charged, and crashed
+    writing results/<stamp>-<whole path>.json. The scope is the stem."""
+    assert run.scope_of(argparse_ns(subset="/x/y/screen.json")) == "screen"
+    assert run.scope_of(argparse_ns(subset="screen")) == "screen"
+    assert run.scope_of(argparse_ns(principle="13")) == "13"
+    assert run.scope_of(argparse_ns()) == "all"
+
+
+def argparse_ns(**kw):
+    import argparse
+
+    base = {"subset": None, "principle": None, "surface": None, "case": None}
+    base.update(kw)
+    return argparse.Namespace(**base)

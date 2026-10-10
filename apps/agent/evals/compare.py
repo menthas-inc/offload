@@ -131,12 +131,21 @@ def _verdict(out: dict, band: float) -> str:
     acc = out["accuracy"]["delta"]
     if acc < -band:
         return "worse"
-    cost = out["product_cost_usd"]["ratio"]
+    # The warm day, not the cold screen: a candidate that changes the model,
+    # the prompt or the tool list starts with an empty cache and pays every
+    # write, so its cold cost read 1.3 to 1.8 against a baseline screened
+    # warm while its warm cost fell (round 1, 2026-10-10).
+    cost = out["daily_warm_cost_usd"]["ratio"]
+    if cost is None:
+        cost = out["product_cost_usd"]["ratio"]
     lat = out["latency_ms"]["ratio"]
+    # Two baseline screens an hour apart, nothing changed: cost x0.97,
+    # median latency x1.13, accuracy 3.1 points apart (2026-10-10). Cost is
+    # near deterministic; latency is not, so its thresholds sit outside that.
     cheaper = cost is not None and cost < 0.95
-    faster = lat is not None and lat < 0.90
+    faster = lat is not None and lat < 0.80
     dearer = cost is not None and cost > 1.05
-    slower = lat is not None and lat > 1.10
+    slower = lat is not None and lat > 1.25
     if (cheaper or faster) and not dearer:
         return "better"
     if dearer or slower:

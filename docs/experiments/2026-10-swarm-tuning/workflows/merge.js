@@ -24,6 +24,6 @@ Procedure:
 4. Run the full set once, with \`--note "swarm merge"\`. Compare against the full baseline.
 5. Write ${args.reportPath}: under 1,200 words. Before and after on screen, holdout and full: accuracy, product cost, warm cost, median and p90 latency, a day's cost at the normal mix, per surface. What was kept, what was dropped and why, every eval case changed with its reason, the flakiest cases you saw, what the swarm taught about organising such a run (what the workers got right and wrong, where the budget went), and what you would try next. offload's copy rules apply: no dashes, sentence case.
 6. Leave the composed working tree in place, uncommitted. Return the report text as your final output.`,
-  { label: 'merge', phase: 'Merge' },
+  { label: 'merge', phase: 'Merge', model: 'opus' },
 )
 return report

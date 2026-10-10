@@ -7,7 +7,9 @@ export const meta = {
   ],
 }
 
-// args: { repo, baseline: {screen, full}, workers: [{name, worktree, hypothesis: {...}}] }
+// args: { repo, round, findingsPath, baseline: {screen, screen2, full}, workers: [{name, worktree, hypothesisPath}] }
+// `findings` is the condensed FINDINGS.md of the rounds before; a round two
+// worker starts from the composite of round one, applied to its worktree.
 const RESULT = {
   type: 'object',
   properties: {
@@ -51,23 +53,24 @@ const tried = await pipeline(
     agent(
       `You are swarm worker "${w.name}". Your worktree is ${w.worktree}. Work only there. Read ${w.worktree}/docs/experiments/2026-10-swarm-tuning/BRIEF.md first and follow it to the letter; it is short.
 
-Your hypothesis, from the ideation phase:
-${JSON.stringify(w.hypothesis, null, 2)}
+This is round ${args.round}. ${args.round > 1 ? `Your worktree already carries the composite of the rounds before. Read ${args.findingsPath} before you start so you do not repeat a dead end or undo a win.` : `It is the first round. What the lead has noted so far is in ${args.findingsPath}; read it first.`}
+
+Your hypothesis, from the ideation phase, is in ${w.hypothesisPath}. Read it in full: where several lenses proposed the same change, every proposal is there with its own reasoning, and you implement one coherent change from them.
 
 Baseline records to compare against (copy them into your worktree's apps/agent/evals/results/ if compare.py needs them side by side):
-- screen: ${args.baseline.screen}
+- screen: ${args.baseline.screen} (${args.baseline.screenNote})
 - full: ${args.baseline.full}
 
-Before every eval run: source ~/.offload-swarm/${w.name}.sh. Your cap is $3. Implement the hypothesis, run the unit suite without the _db tests, run the principles your change touches to read failures, then the screen once (twice only if the first was within the noise band and you changed something after). Read every failure against its transcript. Write RESULT.md and candidate.patch as the brief says. If the hypothesis turns out not to help, say so with the numbers; that is a complete result. Return the structured result only.`,
-      { label: `try:${w.name}`, phase: 'Try', schema: RESULT },
+Before every eval run: source ~/.offload-swarm/${w.name}.sh. Your cap is $${args.cap} this round, enforced by the runner, which refuses a run that would pass it. Implement the hypothesis, run the unit suite without the _db tests, run the principles your change touches to read failures, then the screen once (twice only if the first was within the noise band and you changed something after). Read every failure against its transcript. Write RESULT.md and candidate.patch as the brief says. If the hypothesis turns out not to help, say so with the numbers; that is a complete result. Return the structured result only.`,
+      { label: `try:${w.name}`, phase: 'Try', schema: RESULT, model: 'opus' },
     ),
   (result, w) =>
     result && result.implemented
       ? agent(
-          `You are a skeptic reviewing swarm candidate "${w.name}" in ${w.worktree}. Read only; change nothing; run no evals. Read ${w.worktree}/RESULT.md, ${w.worktree}/candidate.patch, and the record files it names under ${w.worktree}/apps/agent/evals/results/. The worker's own claim: ${JSON.stringify(result)}.
+          `You are a skeptic reviewing swarm candidate "${w.name}" in ${w.worktree}. Read only; change nothing; run no evals. Read ${w.worktree}/RESULT.md, ${w.worktree}/candidate.patch, and the record files it names under ${w.worktree}/apps/agent/evals/results/. The worker's own claim: ${JSON.stringify(result)}. Its hypothesis is in ${w.hypothesisPath}.
 
 Try to refute it. In particular: did any eval case get weaker in a way that makes the change pass (compare each changed case against its principle's statement in evals/principles); do the numbers in RESULT.md match the records; would the change behave differently in production than in the eval (cold versus warm cache, a tool the stub answers that production would not, a model parameter the eval does not exercise); does it touch what the privacy policy claims (a new company receiving content, a retention window, a log carrying content); does it break offload's copy rules in any prompt text (dashes, sentence case, vocabulary). Default to keep=false if you are unsure. Return the structured verdict only.`,
-          { label: `skeptic:${w.name}`, phase: 'Skeptic', schema: SKEPTIC, agentType: 'code-reviewer' },
+          { label: `skeptic:${w.name}`, phase: 'Skeptic', schema: SKEPTIC, agentType: 'code-reviewer', model: 'fable' },
         ).then((verdict) => ({ worker: w.name, result, verdict }))
       : { worker: w.name, result, verdict: null },
 )

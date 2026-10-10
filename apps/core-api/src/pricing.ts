@@ -22,6 +22,10 @@ interface Price {
 /** Micros per thousand tokens: $2 per million is 2,000. */
 export const MODEL_PRICES: Record<string, Price> = {
   "claude-haiku-4-5": { input: 1_000, output: 5_000, cacheRead: 100, cacheWrite: 1_250 },
+  // Up to a 100K prompt, which nothing here sends. Checked against the
+  // claude-api skill's table on 2026-10-10, when the nightly pass and the
+  // look moved to it.
+  "claude-haiku-5-5": { input: 100, output: 500, cacheRead: 10, cacheWrite: 125 },
   "claude-sonnet-5": { input: 2_000, output: 10_000, cacheRead: 200, cacheWrite: 2_500 },
   "claude-sonnet-5-5": { input: 2_000, output: 10_000, cacheRead: 200, cacheWrite: 2_500 },
   "claude-opus-5": { input: 5_000, output: 25_000, cacheRead: 500, cacheWrite: 6_250 },

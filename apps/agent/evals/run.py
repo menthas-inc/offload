@@ -2501,6 +2501,16 @@ def _majority(attempts: list[Result], cases: list[Case], runs: int) -> list[Resu
     return out
 
 
+def scope_of(args: argparse.Namespace) -> str:
+    """What the record and the history call this run. A subset given as a
+    path is named by its stem: the whole path once went into a file name and
+    the run crashed after it had charged."""
+    subset = getattr(args, "subset", None)
+    if subset:
+        return Path(subset).stem
+    return args.principle or args.surface or args.case or "all"
+
+
 def _subset_ids(spec: str) -> set[str]:
     path = Path(spec)
     if not path.is_file():
@@ -2814,7 +2824,7 @@ async def main() -> int:
 
     RESULTS.mkdir(exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    scope = args.subset or args.principle or args.surface or args.case or "all"
+    scope = scope_of(args)
     if cap:
         spend.append(
             cap["log"], agent=cap["agent"], scope=scope, cost_usd=spent, note=args.note or ""
