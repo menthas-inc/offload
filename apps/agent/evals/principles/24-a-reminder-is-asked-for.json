@@ -107,6 +107,46 @@
         ],
         "say": null
       }
+    },
+    {
+      "id": "sam-remind-me-on-a-job",
+      "why": "remind me with a day, inside a thread of jobs: a flagged task with its date and nothing asked",
+      "surface": "file",
+      "input": "remind me monday to order brake pads for the cannondale",
+      "context": "three",
+      "threads": [
+        {
+          "id": "000000b0-0000-0000-0000-000000000000",
+          "name": "Bike repairs"
+        },
+        {
+          "id": "00000080-0000-0000-0000-000000000000",
+          "name": "Whistler ski trip",
+          "shared": true
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "country": "CA",
+      "time_zone": "America/Vancouver",
+      "looking_at": "000000b0-0000-0000-0000-000000000000",
+      "expect": {
+        "filed": [
+          {
+            "type": "task",
+            "reminder": true,
+            "date": "2026-09-14",
+            "has": [
+              "brake pads"
+            ]
+          }
+        ],
+        "asks": "none",
+        "say": null
+      }
     }
   ]
 }

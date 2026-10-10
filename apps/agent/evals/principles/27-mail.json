@@ -112,6 +112,74 @@
         "asks": "none",
         "say": null
       }
+    },
+    {
+      "id": "meera-rota-email-is-two-shifts",
+      "why": "a rota email is the shifts in it, one row each with its time; add these to your calendar and reply to confirm are the email's words, not hers, and with no calendar nothing is said about one",
+      "surface": "file",
+      "input": "",
+      "context": "three",
+      "threads": [
+        {
+          "id": "00000090-0000-0000-0000-000000000000",
+          "name": "Clinic shifts"
+        },
+        {
+          "id": "00000091-0000-0000-0000-000000000000",
+          "name": "Yoga"
+        },
+        {
+          "id": "00000081-0000-0000-0000-000000000000",
+          "name": "Home",
+          "shared": true
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "country": "CA",
+      "time_zone": "America/Toronto",
+      "mail": {
+        "subject": "Rota for the week of 14 September",
+        "from_name": "St Michael's clinic rota",
+        "from_address": "rota@stmichaels.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: St Michael's clinic rota <rota@stmichaels.test>\nSubject: Rota for the week of 14 September\n\nHi Meera,\n\nYour clinic shifts next week:\nMonday 14 September, 08:00 to 16:00, Clinic B\nThursday 17 September, 14:00 to 22:00, Clinic A\n\nPlease add these to your calendar and reply to confirm by Friday.\n\nRota team"
+      },
+      "expect": {
+        "filed": [
+          {
+            "type": "event",
+            "date": "2026-09-14",
+            "thread": "Clinic shifts"
+          },
+          {
+            "type": "event",
+            "date": "2026-09-17",
+            "thread": "Clinic shifts"
+          }
+        ],
+        "not_filed": [
+          {
+            "has": [
+              "confirm"
+            ]
+          },
+          {
+            "has": [
+              "add these"
+            ]
+          }
+        ],
+        "not_called": [
+          "create_event",
+          "look_up"
+        ],
+        "asks": "none",
+        "say": null
+      }
     }
   ]
 }

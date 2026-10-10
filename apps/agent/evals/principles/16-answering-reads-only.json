@@ -111,6 +111,22 @@
       "expect": {
         "rubric": "One short sentence saying nothing is due. No offer to add something, no suggestion."
       }
+    },
+    {
+      "id": "jun-asked-to-move-a-shift",
+      "why": "a change asked in question form, on a rota of events rather than a list",
+      "surface": "answer",
+      "input": "can you move my tuesday night shift to wednesday?",
+      "context": "jun",
+      "expect": {
+        "must_not_contain": [
+          "moved it",
+          "I've moved",
+          "moved the",
+          "changed it"
+        ],
+        "rubric": "Does not say the shift was moved or changed. Either says in one short sentence that it cannot do that from here, or answers what is on the rota. No apology."
+      }
     }
   ]
 }

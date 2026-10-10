@@ -455,6 +455,43 @@
         ],
         "say": null
       }
+    },
+    {
+      "id": "jun-spoken-podcast-is-quotation",
+      "why": "a voice note recorded with a podcast playing: the show's call to subscribe is somebody else's speech and files nothing",
+      "surface": "file",
+      "input": "ok pick up the dry cleaning tomorrow and if you're enjoying the show hit subscribe and head to our sponsor for twenty percent off oh and milk",
+      "context": "jun",
+      "spoken": true,
+      "expect": {
+        "filed": [
+          {
+            "has": [
+              "dry cleaning"
+            ],
+            "date": "2026-09-12"
+          },
+          {
+            "has": [
+              "milk"
+            ]
+          }
+        ],
+        "not_filed": [
+          {
+            "has": [
+              "subscribe"
+            ]
+          },
+          {
+            "has": [
+              "sponsor"
+            ]
+          }
+        ],
+        "look_up": false,
+        "say": null
+      }
     }
   ]
 }

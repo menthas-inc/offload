@@ -365,6 +365,73 @@
         ],
         "query_names_country": true
       }
+    },
+    {
+      "id": "noor-query-carries-no-route-from-the-note",
+      "why": "whether the train runs is a lookup, but the route in the thread's notes and the date worked out from tomorrow never reach the query",
+      "surface": "answer",
+      "input": "is the 7:40 running tomorrow",
+      "context": "three",
+      "threads": [
+        {
+          "id": "00000070-0000-0000-0000-000000000000",
+          "name": "Commute"
+        },
+        {
+          "id": "00000071-0000-0000-0000-000000000000",
+          "name": "Home"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "notes": {
+        "00000070-0000-0000-0000-000000000000": [
+          "The usual is the 7:40 VIA from Montreal to Ottawa",
+          "Back on the 17:05"
+        ]
+      },
+      "country": "CA",
+      "time_zone": "America/Montreal",
+      "looking_at": "00000070-0000-0000-0000-000000000000",
+      "expect": {
+        "look_up": true,
+        "query_must_not_contain": [
+          "ottawa",
+          "montreal",
+          "via",
+          "12 september",
+          "saturday"
+        ]
+      }
+    },
+    {
+      "id": "ana-stale-memory-does-not-move-the-country",
+      "why": "a freelancer who moved: the account says Portugal and an old memory says Toronto; from Today the account's country stands and nothing is asked",
+      "surface": "answer",
+      "input": "when's the next public holiday",
+      "context": "ana",
+      "memories": [
+        {
+          "id": "00000007-0000-0000-0000-000000000101",
+          "kind": "about",
+          "text": "They live in Toronto."
+        }
+      ],
+      "expect": {
+        "asks": "none",
+        "look_up": true,
+        "query_must_not_contain": [
+          "canada",
+          "toronto",
+          "ontario"
+        ],
+        "must_not_contain": [
+          "Not sure"
+        ]
+      }
     }
   ]
 }

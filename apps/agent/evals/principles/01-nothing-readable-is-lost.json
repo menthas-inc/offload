@@ -222,6 +222,32 @@
       "expect": {
         "asks": "none"
       }
+    },
+    {
+      "id": "jun-spoken-filler-still-files",
+      "why": "a voice note arrives as a transcript with filler and no punctuation, and both pieces in it are filed as if typed",
+      "surface": "file",
+      "input": "um so the physio thursday at four and uh melatonin",
+      "context": "jun",
+      "spoken": true,
+      "expect": {
+        "filed_count": 2,
+        "filed": [
+          {
+            "has": [
+              "physio"
+            ],
+            "date": "2026-09-17"
+          },
+          {
+            "has": [
+              "melatonin"
+            ]
+          }
+        ],
+        "asks": "none",
+        "say": null
+      }
     }
   ]
 }

@@ -1,0 +1,132 @@
+{
+  "why": "Jun Park from the cast: a night-shift nurse in Toronto, nobody connected. Two threads of his own, the notes a shift pattern leaves, a trip with its dates in the notes, and the one health memory he asked for. The device is in Toronto, so a 3pm here is 19:00Z and the evening crosses midnight in UTC.",
+  "threads": [
+    {
+      "id": "00000050-0000-0000-0000-000000000000",
+      "name": "Night shifts"
+    },
+    {
+      "id": "00000051-0000-0000-0000-000000000000",
+      "name": "Busan trip"
+    },
+    {
+      "id": "00000003-0000-0000-0000-000000000000",
+      "name": "Miscellaneous",
+      "default": "yes"
+    }
+  ],
+  "country": "CA",
+  "time_zone": "America/Toronto",
+  "has_calendar": false,
+  "may_search": true,
+  "may_read_links": true,
+  "notes": {
+    "00000050-0000-0000-0000-000000000000": [
+      "Shifts run 7pm to 7am",
+      "Four on, four off"
+    ],
+    "00000051-0000-0000-0000-000000000000": [
+      "In Busan 14 to 21 November",
+      "Min lives near Haeundae"
+    ]
+  },
+  "rows": {
+    "00000050-0000-0000-0000-000000000000": [
+      {
+        "contentId": "j1",
+        "threadId": "00000050-0000-0000-0000-000000000000",
+        "threadName": "Night shifts",
+        "type": "event",
+        "title": "Night shift",
+        "body": null,
+        "done": true,
+        "yours": true,
+        "dueAt": null,
+        "occursAt": "2026-09-08T23:00:00Z"
+      },
+      {
+        "contentId": "j2",
+        "threadId": "00000050-0000-0000-0000-000000000000",
+        "threadName": "Night shifts",
+        "type": "event",
+        "title": "Night shift",
+        "body": null,
+        "done": false,
+        "yours": true,
+        "dueAt": null,
+        "occursAt": "2026-09-14T23:00:00Z"
+      },
+      {
+        "contentId": "j3",
+        "threadId": "00000050-0000-0000-0000-000000000000",
+        "threadName": "Night shifts",
+        "type": "event",
+        "title": "Night shift",
+        "body": null,
+        "done": false,
+        "yours": true,
+        "dueAt": null,
+        "occursAt": "2026-09-15T23:00:00Z"
+      },
+      {
+        "contentId": "j4",
+        "threadId": "00000050-0000-0000-0000-000000000000",
+        "threadName": "Night shifts",
+        "type": "task",
+        "title": "Swap the 22nd with Priya",
+        "body": null,
+        "done": false,
+        "yours": true,
+        "dueAt": null,
+        "occursAt": null
+      }
+    ],
+    "00000051-0000-0000-0000-000000000000": [
+      {
+        "contentId": "b1",
+        "threadId": "00000051-0000-0000-0000-000000000000",
+        "threadName": "Busan trip",
+        "type": "task",
+        "title": "Renew passport",
+        "body": null,
+        "done": true,
+        "yours": true,
+        "dueAt": null,
+        "occursAt": null
+      },
+      {
+        "contentId": "b2",
+        "threadId": "00000051-0000-0000-0000-000000000000",
+        "threadName": "Busan trip",
+        "type": "task",
+        "title": "Present for Min",
+        "body": null,
+        "done": false,
+        "yours": true,
+        "dueAt": null,
+        "occursAt": null
+      }
+    ]
+  },
+  "memories": [
+    {
+      "id": "00000050-0000-0000-0000-000000000101",
+      "kind": "about",
+      "text": "They are allergic to penicillin."
+    },
+    {
+      "id": "00000050-0000-0000-0000-000000000102",
+      "kind": "people",
+      "text": "Their brother is Min."
+    }
+  ],
+  "facts": {
+    "calendars": [],
+    "defaultThread": {
+      "id": "00000003-0000-0000-0000-000000000000",
+      "name": "Miscellaneous"
+    },
+    "displayName": "Jun",
+    "knowsDevicePreferences": false
+  }
+}

@@ -390,6 +390,57 @@
           "country": "TR"
         }
       }
+    },
+    {
+      "id": "jun-after-my-nights-is-not-a-date",
+      "why": "a when read against a shift pattern offload does not hold is vague, so the question closes and the message files",
+      "surface": "judge",
+      "input": "after my block of nights",
+      "question_asked": {
+        "field": "date",
+        "text": "Filed \"Call the physio\". By when?",
+        "options": [
+          {
+            "label": "by Sunday 13 September",
+            "value": "2026-09-13"
+          },
+          {
+            "label": "by 30 September",
+            "value": "2026-09-30"
+          }
+        ]
+      },
+      "expect": {
+        "answers": false
+      }
+    },
+    {
+      "id": "jun-typed-time-is-the-whole-message",
+      "why": "a day and a clock time typed back to a time question is the answer, and nothing else was said",
+      "surface": "judge",
+      "input": "wednesday 2pm",
+      "question_asked": {
+        "field": "time",
+        "text": "Filed \"Call with the union rep\". When?",
+        "options": [
+          {
+            "label": "Monday 14 September at 10:00",
+            "value": "2026-09-14T10:00"
+          },
+          {
+            "label": "Wednesday 16 September at 14:00",
+            "value": "2026-09-16T14:00"
+          }
+        ]
+      },
+      "expect": {
+        "answers": true,
+        "whole": true,
+        "value": {
+          "day": "2026-09-16",
+          "time": "14:00"
+        }
+      }
     }
   ]
 }

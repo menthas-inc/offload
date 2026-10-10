@@ -319,6 +319,28 @@
         ],
         "say": null
       }
+    },
+    {
+      "id": "jun-weekly-shift-is-one-row-with-rule",
+      "why": "a shift that comes round every week is one event with a rule, not one row per week",
+      "surface": "file",
+      "input": "night shift every friday from the 18th",
+      "context": "jun",
+      "looking_at": "00000050-0000-0000-0000-000000000000",
+      "expect": {
+        "filed_count": 1,
+        "filed": [
+          {
+            "type": "event",
+            "rrule": [
+              "FREQ=WEEKLY"
+            ],
+            "date": "2026-09-18"
+          }
+        ],
+        "asks": "none",
+        "say": null
+      }
     }
   ]
 }

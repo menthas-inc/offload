@@ -78,6 +78,8 @@ and is not committed.
 | 2026-10-06 21:58 | own-thread-uses-what-it-knows | 1 | 1/1 (100%) | $0.02 | `claude-sonnet-5` | `e3511c2b` | `3cd7874` |  |
 | 2026-10-06 22:01 | noor-the-usual-past-250 | 1 | 1/1 (100%) | $0.03 | `claude-sonnet-5` | `e3511c2b` | `3cd7874` |  |
 | 2026-10-07 16:12 | 31 | 1 | 18/18 (100%) | $0.80 | `claude-sonnet-5` | `91ff6dcb` | `f89eb787` |  |
+| 2026-10-10 17:30 | q-left-to-do | 1 | 1/1 (100%) | $0.00 | `claude-sonnet-5` | `91ff6dcb` | `5ba8ba1a` | harness smoke |
+| 2026-10-10 17:30 | terse-milk | 1 | 1/1 (100%) | $0.05 | `claude-sonnet-5` | `91ff6dcb` | `5ba8ba1a` | harness smoke |
 
 ## Full runs by principle
 

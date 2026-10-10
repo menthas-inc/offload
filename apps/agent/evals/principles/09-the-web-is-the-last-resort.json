@@ -683,6 +683,49 @@
       "expect": {
         "look_up": false
       }
+    },
+    {
+      "id": "noor-the-usual-is-in-the-notes",
+      "why": "a commuter's shorthand is spelled out in the thread's notes, so nothing is looked up and the row says the train",
+      "surface": "file",
+      "input": "book the usual for thursday",
+      "context": "three",
+      "threads": [
+        {
+          "id": "00000070-0000-0000-0000-000000000000",
+          "name": "Commute"
+        },
+        {
+          "id": "00000071-0000-0000-0000-000000000000",
+          "name": "Home"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "notes": {
+        "00000070-0000-0000-0000-000000000000": [
+          "The usual is the 7:40 VIA from Montreal to Ottawa",
+          "Back on the 17:05"
+        ]
+      },
+      "country": "CA",
+      "time_zone": "America/Montreal",
+      "looking_at": "00000070-0000-0000-0000-000000000000",
+      "expect": {
+        "look_up": false,
+        "filed": [
+          {
+            "date": "2026-09-17"
+          }
+        ],
+        "written_has": [
+          "Ottawa"
+        ],
+        "say": null
+      }
     }
   ]
 }

@@ -370,6 +370,42 @@
         ],
         "rubric": "The folded note names 24 September."
       }
+    },
+    {
+      "id": "maya-own-correction-supersedes-and-toms-note-stays",
+      "why": "her later note about Felix's age sets her earlier one aside; Tom's note in the same shared thread is never touched",
+      "surface": "nightly",
+      "input": [
+        {
+          "id": "n1",
+          "written_at": "2026-05-10",
+          "theirs": true,
+          "origin": "stated",
+          "text": "Felix is 4"
+        },
+        {
+          "id": "n2",
+          "written_at": "2026-05-12",
+          "theirs": false,
+          "origin": "stated",
+          "text": "Ingrid takes the kids on Sundays"
+        },
+        {
+          "id": "n3",
+          "written_at": "2026-09-06",
+          "theirs": true,
+          "origin": "stated",
+          "text": "Felix turned 5 on 5 September"
+        }
+      ],
+      "expect": {
+        "supersedes": [
+          "n1"
+        ],
+        "never_touches": [
+          "n2"
+        ]
+      }
     }
   ]
 }

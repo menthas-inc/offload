@@ -228,6 +228,82 @@
       "expect": {
         "asks": "none"
       }
+    },
+    {
+      "id": "tom-cannot-rewrite-mayas-row",
+      "why": "the shared Kids thread from Tom's side: Maya's row cannot be rewritten by him, said once",
+      "surface": "file",
+      "input": "rename the dentist row to dentist for felix on the 25th",
+      "context": "maya",
+      "threads": [
+        {
+          "id": "00000062-0000-0000-0000-000000000000",
+          "name": "Work: Becker Bau"
+        },
+        {
+          "id": "00000061-0000-0000-0000-000000000000",
+          "name": "Kids",
+          "shared": true
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "notes": {
+        "00000061-0000-0000-0000-000000000000": [
+          "Site office is at Lehrter Strasse"
+        ]
+      },
+      "notes_from_members": {
+        "00000061-0000-0000-0000-000000000000": [
+          "Lena is 7, Felix is 4",
+          "Swimming is Tuesdays at 4"
+        ]
+      },
+      "rows": {
+        "00000061-0000-0000-0000-000000000000": [
+          {
+            "contentId": "k2",
+            "threadId": "00000061-0000-0000-0000-000000000000",
+            "threadName": "Kids",
+            "type": "task",
+            "title": "Dentist for Felix",
+            "body": null,
+            "done": false,
+            "yours": false,
+            "dueAt": null,
+            "occursAt": null
+          },
+          {
+            "contentId": "k1",
+            "threadId": "00000061-0000-0000-0000-000000000000",
+            "threadName": "Kids",
+            "type": "task",
+            "title": "Swimming kit for Lena",
+            "body": null,
+            "done": false,
+            "yours": true,
+            "dueAt": null,
+            "occursAt": null
+          }
+        ]
+      },
+      "memories": [],
+      "looking_at": "00000061-0000-0000-0000-000000000000",
+      "tool_errors": {
+        "edit_content": "not_author"
+      },
+      "expect": {
+        "must_not_contain": [
+          "error",
+          "tool",
+          "down",
+          "try again"
+        ],
+        "rubric": "Says in one short sentence that it cannot change that row because someone else wrote it, or that it could not change it. Names no tool and no error, and does not file the rename as a new row."
+      }
     }
   ]
 }

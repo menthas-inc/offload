@@ -41,6 +41,8 @@ uv run python evals/run.py --case date-the-20th  # one case
 uv run python evals/run.py                       # everything
 uv run python evals/run.py --write-baseline      # everything, and rewrite evals/BASELINE.md
 uv run python evals/run.py --model file=claude-opus-5   # try another model on one surface
+uv run python evals/run.py --subset screen       # a fixed list of cases, evals/subsets/<name>.json
+uv run python evals/compare.py results/a.json results/b.json   # two records side by side, no model
 ```
 
 Needs `ANTHROPIC_API_KEY` in the environment. Every run writes
@@ -77,6 +79,30 @@ offload writes, no emoji, no capitalised offload, no self diagnosis, and on a
 lookup the 017 rules for the progress line. `run.py`'s docstring and the
 `_run_*` functions are the reference for the keys; the principle files are
 the examples.
+
+## Cost and latency, per case
+
+Since 2026-10-10 every record carries, per case, the calls the product made:
+`calls`, `latency_ms` (the calls end to end), `input_tokens`,
+`output_tokens`, `cache_read_tokens`, `product_cost_usd` (the product's
+price, the eval's own judge left out) and `warm_cost_usd` (the same calls
+with every cache write priced as a read, which is what a turn costs once the
+prefix is warm). `cost_usd` is still what the run spent. The record's top
+level sums them. `evals/compare.py before.json after.json` reads two records
+against each other: accuracy with a noise band, cost, latency medians and
+p90, a day's cost at the cost sheet's normal mix, and which cases flipped.
+
+**Subsets.** `evals/subsets/make.py` cuts the set into `screen` (about two
+cases per principle, the cheap first read), `holdout` (sealed; for the
+number that counts after tuning) and `train` (the rest), by a hash of each
+case id. `--subset <name>` runs one. Regenerate after adding cases;
+`make.py --check` says when the files are stale.
+
+**A spend cap across worktrees.** With `EVAL_SPEND_LOG` set, every run
+appends what it spent to that file and refuses to start when it would take
+`EVAL_AGENT` past `EVAL_AGENT_CAP_USD` or everyone past
+`EVAL_SPEND_CAP_USD`. `.claude/scripts/swarm-worktree.sh` writes the
+environment for a worker. See `docs/experiments/2026-10-swarm-tuning/`.
 
 ## Reading a run
 

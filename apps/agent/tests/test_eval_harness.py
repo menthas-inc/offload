@@ -101,3 +101,16 @@ def test_a_new_threads_icon_is_held_to_the_expectation():
     made_up = [("create_thread", {"icon": "suitcase"})]
     assert _icon_problems({"thread_icon": {"known": True}}, made_up) != []
     assert _icon_problems({}, made) == []
+
+
+def test_a_case_may_say_the_dump_was_spoken(tmp_path):
+    """021. plan_v2.md has a section on voice notes and no case could reach
+    it: the harness refused `spoken` as an unknown key."""
+    run = _run()
+    (tmp_path / "99-spoken.json").write_text(
+        '{"statement": "s", "cases": [{"id": "v", "surface": "file", '
+        '"input": "um the plumber thursday", "spoken": true, "expect": {}}]}',
+        encoding="utf-8",
+    )
+    [principle] = run.load_principles({}, [tmp_path / "99-spoken.json"])
+    assert principle.cases[0].fixture["spoken"] is True
