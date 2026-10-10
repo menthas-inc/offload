@@ -7,6 +7,7 @@ import { sql } from "kysely";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { clearStoreDemo, seedStoreDemo, signInAsSam, SAM } from "../src/seed-store-demo.js";
+import { CONSENT_VERSION } from "../src/routes/session.js";
 
 await migrate(() => {});
 
@@ -66,5 +67,15 @@ describe("the store demo", () => {
     await seedStoreDemo();
     await clearStoreDemo();
     expect(await counts()).toEqual({ people: 0, threads: 0, members: 0, rows: 0, notes: 0, memories: 0, events: 0, keys: 0, placed: 0, kinds: 0 });
+  });
+
+  // 2026-10-10: the seed carried 2026-10-07 after PR 98 moved the version to
+  // 2026-10-08, so every demo person was asked to agree again on screen.
+  it("has every person agreed to the current consent version", async () => {
+    await seedStoreDemo();
+    const versions = (
+      await sql<{ v: string }>`select distinct consent_version as v from accounts where email like '%@demo.offload.test' and consent_version is not null`.execute(db)
+    ).rows.map((r) => r.v);
+    expect(versions).toEqual([CONSENT_VERSION]);
   });
 });
