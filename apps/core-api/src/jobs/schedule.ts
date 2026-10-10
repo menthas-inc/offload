@@ -45,6 +45,7 @@ export const SCHEDULED: readonly Scheduled[] = [
   { kind: "thread.nightly", does: "The nightly pass: keeps one member's notes in one thread true.", cadence: "daily", graceMinutes: 240, runner: "worker", perAccount: true },
   { kind: "account.memories", does: "The memory pass: what offload learned about one person across their threads.", cadence: "daily", graceMinutes: 240, runner: "worker", perAccount: true },
   { kind: "account.digest", does: "Sends one account's morning or evening digest.", cadence: "daily", graceMinutes: 30, runner: "api", perAccount: true },
+  { kind: "reminder.own", does: "Sends one reminder shortly before something with a clock time.", cadence: "hourly", graceMinutes: 15, runner: "api", perAccount: true },
   { kind: "push.receipts", does: "Reads whether a push was delivered, a quarter of an hour after it was sent.", cadence: "quarter", graceMinutes: 30, runner: "api", perAccount: false },
   { kind: "shared.activity", does: "Tells a shared thread's members what somebody added, ten minutes at a time.", cadence: "quarter", graceMinutes: 30, runner: "api", perAccount: true },
   { kind: "content.purge", does: "Removes what was deleted once its Undo has passed.", ...daily },

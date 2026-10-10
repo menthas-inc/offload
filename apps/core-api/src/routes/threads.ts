@@ -10,6 +10,7 @@
 // none of them touches `thread_members` directly. Every refusal is the same
 // refusal, for the reason stated there.
 
+import { dateSet, remindersOf, remindersOfRow, setReminders } from "../notifications/labels.js";
 import { z } from "zod";
 import { fileOnRow, fileToWire, type FileOnRow } from "../blobs/wire.js";
 import { sql, type Transaction } from "kysely";
@@ -224,6 +225,8 @@ export const noteSchema = z.object({
   /** False once the author left or deleted their account, at which point every
    *  member may delete it. */
   authorIsMember: z.boolean(),
+  /** 042. The author's Remind me, null to anybody else. */
+  reminders: z.enum(["on", "off"]).nullable().default(null),
   muted: z.boolean(),
   occursAt: z.coerce.date().nullable(),
   occursEndAt: z.coerce.date().nullable(),
@@ -331,6 +334,9 @@ export const contentRow = z.object({
    *  `seriesRef`, which is occurrences a calendar already sent. */
   rrule: z.string().nullable(),
   isReminder: z.boolean(),
+  /** 042. The author's Remind me: on while offload will remind them, off once
+   *  they stopped it, null otherwise and null to anybody else. */
+  reminders: z.enum(["on", "off"]).nullable(),
   /** 023. Written to a calendar, so its time is Google's: the sheet offers no
    *  When on it and the route refuses a date or a rule, as the tool layer
    *  already did. */
@@ -564,6 +570,8 @@ export function toRow(row: RawRow, viewerId: string) {
     rrule: row.rrule,
     onCalendar: row.source_ref !== null,
     isReminder: row.is_reminder,
+    // 042. Filled in by `withPhotos`, with the labels.
+    reminders: null as "on" | "off" | null,
     priority: row.priority,
     priorityPinned: row.priority_pinned,
     // Derived rather than sending `attrs` whole, exactly as `placeId` is: the
@@ -619,6 +627,8 @@ export interface ContentSnapshot {
   isReminder: boolean;
   /** 025. The row's labels before the write, in the thread's label order. */
   labels: string[];
+  /** 042. The author's Remind me before the write; null for anybody else. */
+  reminders: "on" | "off" | null;
 }
 
 /** The nine fields a sheet may write. Absent leaves a field alone and null
@@ -643,6 +653,10 @@ export interface ContentPatch {
   isReminder?: boolean | undefined;
   /** 025. The row's labels as a full set; absent leaves them alone. */
   labels?: string[] | undefined;
+  /** 042. The author's Remind me. Off stops every reminder for good and
+   *  turns `isReminder` off with it; on is the switch or Undo putting it
+   *  back. Anybody else is refused as for a row that does not exist. */
+  reminders?: "on" | "off" | null | undefined;
 }
 
 /** Edit. Co-owned: anybody in the thread may fix a title offload got wrong,
@@ -660,7 +674,7 @@ export async function editContent(
     const ref = await requireReadable(accountId, contentId, trx);
     const before = await trx
       .selectFrom("content")
-      .select(["title", "body", "type", "due_at", "occurs_at", "occurs_end_at", "rrule", "is_reminder", "attrs", "source_ref"])
+      .select(["title", "body", "type", "due_at", "occurs_at", "occurs_end_at", "rrule", "is_reminder", "attrs", "source_ref", "account_id"])
       .where("id", "=", ref.id)
       .executeTakeFirstOrThrow();
     const wasAllDay = allDayOf(before.attrs);
@@ -679,12 +693,21 @@ export async function editContent(
       rrule: before.rrule,
       isReminder: before.is_reminder,
       labels: (await contentLabelsFor([ref.id], trx)).get(ref.id) ?? [],
+      reminders: before.account_id === accountId ? await remindersOfRow(trx, accountId, ref.id, before.is_reminder) : null,
     };
+    // 042. Asking to be reminded is the author's: anybody may turn it off,
+    // only they may turn it on, which is what Undo of their stop does.
+    if (patch.isReminder === true && !before.is_reminder && before.account_id !== accountId) throw new NotYours();
+    if (patch.reminders !== undefined && patch.reminders !== null) {
+      if (!(await setReminders(trx, { accountId, of: "content", id: ref.id, on: patch.reminders === "on" }))) throw new NotYours();
+    }
 
     const set: Record<string, unknown> = {
       ...(patch.title === undefined ? {} : { title: patch.title }),
       ...(patch.body === undefined ? {} : { body: patch.body }),
       ...(patch.isReminder === undefined ? {} : { is_reminder: patch.isReminder }),
+      // 042. A stop is the author's way out of every reminder, the asked one too.
+      ...(patch.reminders === "off" && patch.isReminder === undefined ? { is_reminder: false } : {}),
       updated_at: sql`now()`,
     };
 
@@ -756,12 +779,25 @@ export async function editContent(
     // what the nightly sort and the embedder read as the row having changed,
     // and a label is not a word of it.
     const onlyLabels = Object.keys(patch).every((key) => key === "labels" || (patch as Record<string, unknown>)[key] === undefined);
+    // 042. A switch flipped alone is not an edit of the row's words or date.
+    const onlySwitch = Object.keys(patch).every(
+      (key) => key === "reminders" || key === "isReminder" || (patch as Record<string, unknown>)[key] === undefined || (key === "reminders" && patch.reminders === null),
+    );
     if (patch.labels !== undefined) {
       await setRowLabels(trx, { accountId, via: "person" }, { kind: "content", id: ref.id, threadId: ref.threadId }, patch.labels);
     }
-    if (!onlyLabels) {
+    if (onlySwitch) {
+      // 042. A switch flipped alone is not an edit: the flag, and nothing
+      // that says the row or its thread changed.
+      if (set["is_reminder"] !== undefined) {
+        await trx.updateTable("content").set({ is_reminder: set["is_reminder"] as boolean }).where("id", "=", ref.id).execute();
+      }
+    } else if (!onlyLabels) {
       await trx.updateTable("content").set(set).where("id", "=", ref.id).execute();
       await touchThread(ref.threadId, trx);
+      // 042. Whose date and whose words these are, for the reminders they make.
+      const worded = (patch.title !== undefined && patch.title !== before.title) || (patch.body !== undefined && patch.body !== before.body);
+      await dateSet(trx, { contentId: ref.id, actorId: accountId, dated, worded });
     }
     return snapshot;
   });
@@ -1624,7 +1660,7 @@ export async function threadRoutes(app: App): Promise<void> {
           // naming a widget that no longer exists renders as though it were
           // absent, because a thread whose contents changed under a preference
           // is the normal case rather than an edge one.
-          notes: await withNoteLabels(await readableNotes(accountId, id)),
+          notes: await withNoteLabels(await readableNotes(accountId, id), db, accountId),
           noteCounts: await noteCounts(accountId, id),
           preference: {
             ...readPreference(thread.attrs),
@@ -2043,6 +2079,7 @@ export async function threadRoutes(app: App): Promise<void> {
     rrule: z.string().nullable(),
     isReminder: z.boolean(),
     labels: z.array(z.string()),
+    reminders: z.enum(["on", "off"]).nullable(),
   });
 
   // Edit. Co-owned: anybody in the thread may fix a title offload got wrong,
@@ -2066,6 +2103,9 @@ export async function threadRoutes(app: App): Promise<void> {
           isReminder: z.boolean().optional(),
           // 025. The row's labels as a full set.
           labels: z.array(z.string().uuid()).max(10).optional(),
+          // 042. The author's Remind me. Null is Undo sending back a snapshot
+          // with no switch in it, and leaves the switch alone.
+          reminders: z.enum(["on", "off"]).nullable().optional(),
         }),
         response: {
           200: z.object({ content: contentRow, previous: previousTitle }),
@@ -2348,7 +2388,7 @@ export async function threadRoutes(app: App): Promise<void> {
         const page = rows.slice(0, FOLDED_PAGE);
         const last = page[page.length - 1];
         return reply.send({
-          notes: await withNoteLabels(page),
+          notes: await withNoteLabels(page, db, accountId),
           cursor:
             rows.length > FOLDED_PAGE && last?.supersededAt
               ? last.supersededAt.toISOString()
@@ -2396,7 +2436,7 @@ export async function threadRoutes(app: App): Promise<void> {
           try {
             const result = await db.transaction().execute(async (trx) => {
               const current = await requireReadableNote(accountId, request.params.id, trx);
-              const previousLabels = (await withNoteLabels([current], trx))[0]!.labels;
+              const previousLabels = (await withNoteLabels([current], trx, accountId))[0]!.labels;
               if (labels !== undefined) {
                 await setRowLabels(trx, { accountId, via: "person" }, { kind: "note", id: current.id, threadId: current.threadId }, labels);
               }
@@ -2413,7 +2453,7 @@ export async function threadRoutes(app: App): Promise<void> {
                       trx,
                     );
               if (!edited) return null;
-              const [note] = await withNoteLabels([edited.note], trx);
+              const [note] = await withNoteLabels([edited.note], trx, accountId);
               return { note: note!, previous: edited.previous, previousLabels };
             });
             if (!result) return reply.code(409).send({ error: "duplicate" as const });
@@ -2480,7 +2520,7 @@ export async function threadRoutes(app: App): Promise<void> {
           const note = await db
             .transaction()
             .execute((trx) => restoreNote(request.params.id, accountId, trx));
-          return reply.send({ note: (await withNoteLabels([note]))[0]! });
+          return reply.send({ note: (await withNoteLabels([note], db, accountId))[0]! });
         })
     );
   }
@@ -2507,7 +2547,7 @@ export async function threadRoutes(app: App): Promise<void> {
         const accountId = await currentAccountId(request);
         if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
         const result = await reprioritiseNote(accountId, request.params.id, request.body.priority);
-        return reply.send({ ...result, note: (await withNoteLabels([result.note]))[0]! });
+        return reply.send({ ...result, note: (await withNoteLabels([result.note], db, accountId))[0]! });
       })
   );
 
@@ -2533,7 +2573,7 @@ export async function threadRoutes(app: App): Promise<void> {
           if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
           const note = await setMuted(request.params.id, accountId, request.body.muted);
-          return reply.send({ note: (await withNoteLabels([note]))[0]! });
+          return reply.send({ note: (await withNoteLabels([note], db, accountId))[0]! });
         })
     );
   }
@@ -2802,8 +2842,9 @@ export async function withPhotos<T extends { id: string; photo: unknown }>(rows:
     byContent.set(blob.content_id, fileToWire(blob));
   }
   // 025. Every row a client reads passes through here, so this is the one
-  // place a row gains its labels.
-  return withContentLabels(rows.map((row) => ({ ...row, photo: byContent.get(row.id) ?? null })));
+  // place a row gains its labels, and since 042 its author's Remind me.
+  const labelled = await withContentLabels(rows.map((row) => ({ ...row, photo: byContent.get(row.id) ?? null })));
+  return withRowReminders(labelled);
 }
 
 export const THREAD_LIMITS = { PAGE, STALE_DAYS } as const;
@@ -2842,3 +2883,14 @@ export async function openKinds(viewerId: string, threadIds: string[]): Promise<
   }
   return out;
 }
+
+/** 042. The author's Remind me on rows already shaped for one viewer: only a
+ *  row that is theirs can carry one. */
+async function withRowReminders<T extends { id: string }>(rows: T[]): Promise<T[]> {
+  const theirs = rows.filter((row) => (row as { author?: { isYou?: boolean; accountId?: string | null } }).author?.isYou);
+  const viewer = (theirs[0] as { author?: { accountId?: string | null } } | undefined)?.author?.accountId;
+  if (!viewer) return rows;
+  const found = await remindersOf(db, "content", theirs.map((row) => row.id), viewer);
+  return rows.map((row) => (found.has(row.id) ? { ...row, reminders: found.get(row.id)! } : row));
+}
+

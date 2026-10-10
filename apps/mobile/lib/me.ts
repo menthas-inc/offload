@@ -57,6 +57,9 @@ export interface Me {
   notifyComingTomorrowAt: string;
   notifyPeopleRequests: boolean;
   notifySharedActivity: boolean;
+  /** 042. Reminders, and How many: one, two or three for each date. */
+  notifyReminders: boolean;
+  notifyReminderCount: 1 | 2 | 3;
   /** The dot on the bell: Activity holds a row newer than its last opening. */
   activityNew: boolean;
   /** 026. Whether mail forwarded from the sign-in address can reach them:
@@ -71,6 +74,9 @@ export interface Me {
   /** Customize Today's layout; `todayLayout` is the same without
    *  open_threads, for builds from before it. */
   todayLayoutV2?: import("./today").Layout;
+  /** 042. The whole document, with Reminders; V2 is the same without it,
+   *  for builds from before it. */
+  todayLayoutV3?: import("./today").Layout;
 }
 
 /** Ask again, and tell every mounted `useMe`. For after a request is
@@ -258,6 +264,8 @@ export async function setNotify(patch: {
   notifyComingTomorrowAt?: string;
   notifyPeopleRequests?: boolean;
   notifySharedActivity?: boolean;
+  notifyReminders?: boolean;
+  notifyReminderCount?: 1 | 2 | 3;
 }): Promise<Me | null> {
   try {
     const updated = await request<Me>("/api/me", {

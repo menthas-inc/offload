@@ -54,6 +54,10 @@ export interface Me {
   notifyComingTomorrowAt: string;
   notifyPeopleRequests: boolean;
   notifySharedActivity: boolean;
+  /** 042. Reminders before the dates that need one, and how many for each
+   *  date: Low, Medium or High. */
+  notifyReminders: boolean;
+  notifyReminderCount: 1 | 2 | 3;
   activityNew: boolean;
   /** 026. Whether mail forwarded from the sign-in address can reach them:
    *  false for an Apple private relay address. */
@@ -74,6 +78,9 @@ export interface Me {
    *  defaults, so a kind added later is already in it. `todayLayout` is the
    *  same without open_threads, for phone builds from before it. */
   todayLayoutV2?: TodayLayout;
+  /** 042. The whole document, Reminders included. V2 is the same without
+   *  it, for builds from before it. Read through `layoutOfMe`. */
+  todayLayoutV3?: TodayLayout;
 }
 
 /** 022. Ask again and tell every mounted `useMe`, for after a request is
@@ -398,6 +405,8 @@ export async function updateNotify(patch: {
   notifyComingTomorrowAt?: string;
   notifyPeopleRequests?: boolean;
   notifySharedActivity?: boolean;
+  notifyReminders?: boolean;
+  notifyReminderCount?: 1 | 2 | 3;
 }): Promise<Me | null> {
   try {
     const response = await fetch(`${API}/api/me`, {

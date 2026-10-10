@@ -19,6 +19,7 @@ import { PROPOSAL_CANDIDATES, applyProposals } from "../loose/propose.js";
 import { applyPageRead, linkReadable } from "../places/backfill.js";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
+import { applyLabels, applyMemoryDates, LABELS_SHOWN, MEMORIES_SHOWN } from "../notifications/labels.js";
 import { sql } from "kysely";
 import type { App } from "../app.js";
 import { db } from "../db.js";
@@ -26,7 +27,7 @@ import { applyTurnLabels } from "../threads/labels.js";
 import { hashtagsIn } from "@offload/widgets";
 import { ownWords } from "../mail-in/attrs.js";
 import { recordMailTurn } from "../mail-in/activity.js";
-import { emit } from "../analytics.js";
+import { emit, subjectOf } from "../analytics.js";
 import { env } from "../env.js";
 import { ledgerRows } from "../ledger.js";
 import { beat } from "../health/heartbeat.js";
@@ -323,6 +324,25 @@ const nightlyBody = z.strictObject({
   /** 028. The default thread's candidates the worker sent, and its groups. */
   sent: z.array(z.string().uuid()).max(PROPOSAL_CANDIDATES).default([]),
   groups: z.array(z.strictObject({ name: z.string().max(200), ids: z.array(z.string().uuid()).max(20) })).max(10).default([]),
+  /** 042. What the pass worked out about the dated things it was shown, and
+   *  which those were. The Core API decides which it may write. */
+  labels: z
+    .array(
+      z.strictObject({
+        id: z.string().uuid(),
+        of: z.enum(["content", "note"]),
+        kind: z.enum(["meeting", "appointment", "occasion", "deadline", "trip", "day", "none"]),
+        lead: z.enum(["none", "days", "weeks", "months"]),
+        before: z.strictObject({ id: z.string().uuid(), of: z.enum(["content", "note"]) }).nullish(),
+        name: z.string().min(1).max(60).nullish(),
+      })
+    )
+    .max(LABELS_SHOWN)
+    .default([]),
+  labelShown: z
+    .array(z.strictObject({ id: z.string().uuid(), of: z.enum(["content", "note"]) }))
+    .max(LABELS_SHOWN)
+    .default([]),
   usage: usage.optional(),
 });
 
@@ -352,10 +372,38 @@ const memoryBody = z.strictObject({
     .array(z.strictObject({ ids: z.array(z.string().uuid()).min(2).max(10), text: z.string().min(1).max(MEMORY_TEXT_CHARS) }))
     .max(20)
     .default([]),
+  /** 042. Yearly dates on the memories the pass was shown to date. */
+  dates: z
+    .array(
+      z.strictObject({
+        id: z.string().uuid(),
+        on: z.string().refine(isMonthDay, "not a day of the year"),
+        lead: z.enum(["none", "days", "weeks", "months"]),
+        name: z.string().min(1).max(60).nullish(),
+      })
+    )
+    .max(MEMORIES_SHOWN)
+    .default([]),
+  dateShown: z.array(z.string().uuid()).max(MEMORIES_SHOWN).default([]),
   usage: usage.optional(),
 });
 
-const memoryApplied = z.object({ added: z.number(), superseded: z.number(), folded: z.number(), ignored: z.number() });
+const memoryApplied = z.object({
+  added: z.number(),
+  superseded: z.number(),
+  folded: z.number(),
+  ignored: z.number(),
+  dated: z.number(),
+  datesIgnored: z.number(),
+});
+
+/** `MM-DD` that some year has, 29 February included. */
+function isMonthDay(value: string): boolean {
+  const match = /^(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const at = new Date(Date.UTC(2000, Number(match[1]) - 1, Number(match[2])));
+  return at.getUTCMonth() === Number(match[1]) - 1 && at.getUTCDate() === Number(match[2]);
+}
 
 const nightlyApplied = z.object({
   superseded: z.number(),
@@ -364,6 +412,8 @@ const nightlyApplied = z.object({
   learned: z.number(),
   proposals: z.number(),
   ignored: z.number(),
+  labelled: z.number(),
+  labelsIgnored: z.number(),
 });
 
 export async function internalRoutes(app: App): Promise<void> {
@@ -430,7 +480,7 @@ export async function internalRoutes(app: App): Promise<void> {
       if (!payload.threadId) return reply.code(404).send({ error: "unknown_job" as const });
       const accountId = job.account_id;
       const threadId = payload.threadId;
-      const none = { superseded: 0, removed: 0, added: 0, learned: 0, proposals: 0, ignored: 0 };
+      const none = { superseded: 0, removed: 0, added: 0, learned: 0, proposals: 0, ignored: 0, labelled: 0, labelsIgnored: 0 };
 
       const outcome = await db.transaction().execute(async (trx) => {
         // Once per job: a retried post after a lost response writes nothing a
@@ -496,6 +546,10 @@ export async function internalRoutes(app: App): Promise<void> {
 
         const proposals = isDefault && payload.propose ? await applyProposals(trx, accountId, result.sent, result.groups) : 0;
 
+        // 042. Every thread, the default one too: a date is a date wherever
+        // it was put down.
+        const labelled = await applyLabels(trx, { accountId, threadId, shown: result.labelShown, entries: result.labels });
+
         if (result.usage && result.usage.length > 0) {
           await trx
             .insertInto("llm_usage")
@@ -522,11 +576,17 @@ export async function internalRoutes(app: App): Promise<void> {
           learned: taught.learned,
           proposals,
           ignored: folded.ignored + taught.ignored,
+          labelled: labelled.labelled,
+          labelsIgnored: labelled.ignored,
         };
       });
 
       // Counts, never text (OFF-1).
       console.log(JSON.stringify({ level: "info", msg: "nightly applied", ...outcome }));
+      // 042. How many things the pass labelled, never what they were.
+      if (outcome.labelled + outcome.labelsIgnored > 0) {
+        await emit({ name: "reminders_labelled", subjectId: await subjectOf(accountId), properties: { labelled: outcome.labelled, ignored: outcome.labelsIgnored } });
+      }
       return reply.send(outcome);
     }
   );
@@ -552,7 +612,7 @@ export async function internalRoutes(app: App): Promise<void> {
         .executeTakeFirst();
       if (!job?.account_id) return reply.code(404).send({ error: "unknown_job" as const });
       const accountId = job.account_id;
-      const none = { added: 0, superseded: 0, folded: 0, ignored: 0 };
+      const none = { added: 0, superseded: 0, folded: 0, ignored: 0, dated: 0, datesIgnored: 0 };
 
       const outcome = await db.transaction().execute(async (trx) => {
         // Once per job: a retried post writes nothing a second time.
@@ -560,6 +620,7 @@ export async function internalRoutes(app: App): Promise<void> {
         if (open.state !== "running") return none;
 
         const applied = await applyMemoryPass(trx, accountId, { add: result.add, supersede: result.supersede, fold: result.fold });
+        const dated = await applyMemoryDates(trx, { accountId, shown: result.dateShown, dates: result.dates });
         if (result.usage && result.usage.length > 0) {
           await trx.insertInto("llm_usage").values(ledgerRows(accountId, "account.memories", "scheduled", result.usage, result.jobId)).execute();
         }
@@ -570,7 +631,7 @@ export async function internalRoutes(app: App): Promise<void> {
           .set({ state: "done", locked_at: null, locked_by: null, error_code: null, updated_at: sql`now()` })
           .where("id", "=", result.jobId)
           .execute();
-        return applied;
+        return { ...applied, dated: dated.dated, datesIgnored: dated.ignored };
       });
 
       // Counts, never text (OFF-1).

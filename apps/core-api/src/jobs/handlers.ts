@@ -3,6 +3,7 @@
 // Handlers are pure of transport concerns: claiming, retrying, backoff and
 // scrubbing live in the runner. A handler does the work or throws.
 
+import { runOwn, scheduleOwn } from "../notifications/own.js";
 import { sweepMemories } from "../memories/store.js";
 import { layoutMemories } from "../memories/layout.js";
 import { passOwed } from "../memories/pass.js";
@@ -352,6 +353,14 @@ const contentPurge: Handler = async () => {
     // in the moment before it was deleted itself. Notes before messages for
     // the same reason, and the folded history that has run out its thirty days.
     let more = await batch("content", due);
+    // 042. A send that named a forgotten memory goes with the memory, once
+    // its Undo can no longer bring it back, and before the cascade would take
+    // only the link and leave the words.
+    await sql`
+      delete from activity where id in (
+        select m.activity_id from activity_memories m join notes n on n.id = m.note_id
+         where n.deleted_at is not null and n.purge_after is not null and n.purge_after < now())
+    `.execute(trx);
     more = (await batch("notes", due)) || more;
     more = (await batch("notes", folded)) || more;
 
@@ -776,6 +785,9 @@ const accountDaily: Handler = async () => {
                       and now()`,
                   )
               ),
+              // 042. A thing of theirs no pass has labelled, or whose words
+              // changed since: the one change a quiet account still owes.
+              sql<boolean>`exists (select 1 from reminders_wanted(accounts.id, threads.id))`,
               // **Over the budget is its own reason to run.** Activity alone
               // was the gate until the review found what it misses: a thread
               // goes over a hundred, the account goes quiet, and nothing ever
@@ -874,6 +886,7 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
          and coalesce(n.occurs_end_at, n.occurs_at, n.due_at) > ${since}
          and coalesce(n.occurs_end_at, n.occurs_at, n.due_at) <= now()
     )
+    or exists (select 1 from reminders_wanted(${accountId}::uuid, threads.id))
     or (thread_members.nightly_at is null and ${own} >= 2 and (
       select count(*) from notes n where n.scope = 'thread' and n.subject_id = threads.id
          and n.deleted_at is null and n.superseded_at is null) > ${NOTE_PROMPT_BUDGET})
@@ -988,7 +1001,16 @@ const peopleDaily: Handler = async () => {
 const digestSchedule: Handler = async () => {
   await scheduleHourly("digest.schedule");
   const placed = await scheduleDigests();
-  console.log(JSON.stringify({ level: "info", msg: "digests placed", placed }));
+  // 042. Reminders of their own falling in the same hour.
+  const own = await scheduleOwn();
+  console.log(JSON.stringify({ level: "info", msg: "digests placed", placed, own }));
+};
+
+// 042. One reminder of its own, decided again when it runs.
+const reminderOwn: Handler = async (payload, _deps, accountId) => {
+  if (!accountId) return;
+  const outcome = await runOwn(accountId, payload);
+  console.log(JSON.stringify({ level: "info", msg: "reminder", outcome }));
 };
 
 const accountDigest: Handler = async (payload, _deps, accountId) => {
@@ -1164,6 +1186,7 @@ export const handlers: Record<string, Handler> = {
   "analytics.ship": analyticsShip,
   "digest.schedule": digestSchedule,
   "account.digest": accountDigest,
+  "reminder.own": reminderOwn,
   "push.receipts": pushReceipts,
   "people.notify": peopleNotify,
   "shared.activity": sharedActivity,

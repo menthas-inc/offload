@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     "What offload collects, why, who else handles it, how long it is kept and how to get rid of it. Plus a short version at the top.",
 };
 
-const UPDATED = "8 October 2026";
+const UPDATED = "10 October 2026";
 
 const MAIL = <a href="mailto:hello@offload.club">hello@offload.club</a>;
 
@@ -142,6 +142,10 @@ export default function Privacy() {
               details it pulls out.
             </li>
             <li>
+              For anything you put in with a date, what kind of date it is and how much notice it
+              needs, which offload works out so it can remind you, and drops when the thing goes.
+            </li>
+            <li>
               Transcripts of voice notes, and descriptions of what photos, screenshots and PDFs
               show, including any words in them. The text of a PDF itself is not kept.
             </li>
@@ -204,7 +208,8 @@ export default function Privacy() {
           <ul>
             <li>
               To run offload for you: store, sort, search, answer, look things up, put places on a
-              map, send the notifications you choose, and connect the apps you choose.
+              map, send the notifications you choose, including reminders offload times before the
+              dates that need one, and connect the apps you choose.
             </li>
             <li>To keep accounts secure and stop abuse.</li>
             <li>To find out whether offload works and what it costs, from records that carry no content.</li>
@@ -458,7 +463,8 @@ export default function Privacy() {
             fault requires it, and Google user data only as section 7 allows. Our staff tools show
             no content, and their use is recorded. Our logs, analytics and monitoring are built to
             carry no content. Notifications are the exception: they carry a few words of what you
-            or a thread member wrote, to your own phone.
+            or a thread member wrote, or of what offload remembers for you, such as a birthday, to
+            your own phone.
           </p>
         </section>
 
@@ -502,7 +508,8 @@ export default function Privacy() {
           <p>
             What people put in can mention you: an event you are invited to, an email you sent that
             someone forwarded, a note with your name in it, or a memory of theirs that says who you
-            are to them. We hold that only as part of their
+            are to them, or when your birthday is, which offload can name in a reminder on their
+            phone. We hold that only as part of their
             account, for the purposes above, and the same retention and security apply. To ask
             about it, write to {MAIL}.
           </p>

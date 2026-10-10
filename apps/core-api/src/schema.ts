@@ -72,6 +72,9 @@ export interface AccountsTable {
   notify_coming_tomorrow_at: Generated<string>;
   notify_people_requests: Generated<boolean>;
   notify_shared_activity: Generated<boolean>;
+  /** 042. Reminders, and How many: 1, 2 or 3 for each date, Medium by default. */
+  notify_reminders: Generated<boolean>;
+  notify_reminder_count: Generated<number>;
   /** When Activity was last opened: the dot is a row newer than this. */
   activity_seen_at: Timestamp | null;
   /** 027. Customize Today's document; null is the defaults. Only a value
@@ -412,6 +415,8 @@ export interface PushTokensTable {
   account_id: string;
   token: string;
   platform: "ios" | "android";
+  /** 042. The phone has the channel and the door for a reminder of its own. */
+  takes_reminders: Generated<boolean>;
   created_at: Timestamp;
   last_seen_at: Timestamp;
 }
@@ -421,7 +426,7 @@ export interface PushTokensTable {
 export interface ActivityTable {
   id: Generated<string>;
   account_id: string;
-  kind: "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted" | "labelled" | "mail" | "export";
+  kind: "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted" | "labelled" | "mail" | "export" | "reminder";
   sent: boolean;
   reason: "setting" | "permission" | "design" | null;
   title: string;
@@ -441,7 +446,42 @@ export interface ActivityTable {
   /** 026. The turn Undo reverses, and the email the row opens. */
   turn_id: string | null;
   message_id: string | null;
+  /** 042. A reminder about a note goes with the note. */
+  note_id: Generated<string | null>;
   occurred_at: Timestamp;
+}
+
+/** 042. Which memories a send named, so forgetting one finds its records. */
+export interface ActivityMemoriesTable {
+  activity_id: string;
+  note_id: string;
+}
+
+export type RemindKind = "meeting" | "appointment" | "occasion" | "deadline" | "trip" | "day" | "none";
+export type RemindLead = "none" | "days" | "weeks" | "months";
+
+/** 042. What offload worked out about a dated thing so it can remind its
+ *  author. No date and no schedule: the date is always read from the thing. */
+export interface ReminderLabelsTable {
+  id: Generated<string>;
+  /** The thing's author, and the only account it reminds. */
+  account_id: string;
+  content_id: string | null;
+  /** A thread note or a memory. */
+  note_id: string | null;
+  kind: RemindKind | null;
+  lead: RemindLead | null;
+  anchor_content_id: string | null;
+  anchor_note_id: string | null;
+  name: string | null;
+  /** A memory's yearly date, `MM-DD`. */
+  yearly_on: string | null;
+  fingerprint: string | null;
+  labelled_at: Timestamp | null;
+  date_set_at: Timestamp | null;
+  held_at: Timestamp | null;
+  stopped_at: Timestamp | null;
+  created_at: Generated<Timestamp>;
 }
 
 /** 026. A DKIM signature accepted once: a hash, never the message. */
@@ -1348,6 +1388,8 @@ export interface Database {
   activity: ActivityTable;
   exports: ExportsTable;
   activity_mentions: ActivityMentionsTable;
+  activity_memories: ActivityMemoriesTable;
+  reminder_labels: ReminderLabelsTable;
   labels: LabelsTable;
   content_labels: ContentLabelsTable;
   note_labels: NoteLabelsTable;

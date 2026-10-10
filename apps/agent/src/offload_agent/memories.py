@@ -41,6 +41,8 @@ KINDS = ["account.memories"]
 MESSAGE_CAP = 60
 MESSAGE_CHARS = 500
 NOTE_CAP = 40
+#: 042. Memories a pass dates for reminders, matching MEMORIES_SHOWN.
+TO_DATE_CAP = 20
 
 _PROMPT = load("memory")
 
@@ -96,6 +98,17 @@ _NOTES = text(
     """
 )
 
+# 042. The People and About memories no date has been worked out for, from the
+# one definition the Core API applies against (`memories_to_date`).
+_TO_DATE = text(
+    """
+    select id::text as id, kind, text
+      from memories_to_date(cast(:account_id as uuid))
+     order by id
+     limit :limit
+    """
+)
+
 Kind = Literal["people", "things", "about", "patterns"]
 
 
@@ -116,12 +129,22 @@ class Fold(BaseModel):
     text: str = Field(min_length=1, max_length=200)
 
 
+class Dated(BaseModel):
+    """042. A memory's date that comes round every year."""
+
+    id: str = Field(min_length=1, max_length=40)
+    on: str = Field(pattern=r"^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$")
+    lead: Literal["none", "days", "weeks", "months"]
+    name: str = Field(min_length=1, max_length=60)
+
+
 class MemoryPlan(BaseModel):
     """What the pass proposes. `rules` is not a kind it may write."""
 
     add: list[Add] = Field(default_factory=list, max_length=5)
     supersede: list[Supersede] = Field(default_factory=list, max_length=20)
     fold: list[Fold] = Field(default_factory=list, max_length=20)
+    dates: list[Dated] = Field(default_factory=list, max_length=TO_DATE_CAP)
 
 
 def _schema(model: type[BaseModel]) -> dict:
@@ -140,7 +163,19 @@ def _entry(**fields) -> str:
     return json.dumps(fields, ensure_ascii=False)
 
 
-def listing(*, today: str | None, memories: list, notes: list, messages: list) -> str:
+def dates_wire(dates: list[Dated], shown: list[dict]) -> list[dict]:
+    """042. Only a memory it was shown, once; the Core API checks again."""
+    ids = {m["id"] for m in shown[:TO_DATE_CAP]}
+    out: list[dict] = []
+    for date in dates:
+        if date.id in ids and date.id not in {o["id"] for o in out}:
+            out.append({"id": date.id, "on": date.on, "lead": date.lead, "name": date.name})
+    return out
+
+
+def listing(
+    *, today: str | None, memories: list, notes: list, messages: list, to_date: list | None = None
+) -> str:
     """The turn, as three labelled lists of JSON entries."""
     parts = [f"Today is {today}." if today else "Today's date is not known."]
     parts.append(
@@ -169,6 +204,13 @@ def listing(*, today: str | None, memories: list, notes: list, messages: list) -
             or "(none)"
         )
     )
+    if to_date:
+        parts.append(
+            "Memories to date, for reminders:\n"
+            + "\n".join(
+                _entry(id=m["id"], kind=m["kind"], text=m["text"]) for m in to_date[:TO_DATE_CAP]
+            )
+        )
     return "\n\n".join(parts)
 
 
@@ -269,7 +311,15 @@ async def handle_memories(
         today, memories, notes, messages = await read(
             conn, job.account_id, query_embedder(cfg.voyage_api_key, http, QUERY_LONGEST)
         )
-    if not messages:
+        to_date = [
+            dict(row)
+            for row in (
+                await conn.execute(_TO_DATE, {"account_id": job.account_id, "limit": TO_DATE_CAP})
+            )
+            .mappings()
+            .all()
+        ]
+    if not messages and not to_date:
         # Nothing new of theirs since the booking.
         async with engine.begin() as conn:
             await finish(conn, job.id)
@@ -277,7 +327,9 @@ async def handle_memories(
 
     started = time.monotonic()
     plan, usage = await _ask(
-        client, cfg, listing(today=today, memories=memories, notes=notes, messages=messages)
+        client,
+        cfg,
+        listing(today=today, memories=memories, notes=notes, messages=messages, to_date=to_date),
     )
     if plan is None:
         async with engine.begin() as conn:
@@ -286,7 +338,19 @@ async def handle_memories(
 
     response = await http.post(
         f"{cfg.api_url}/internal/v1/memory-result",
-        json={"jobId": job.id, "usage": usage, **plan.model_dump()},
+        json={
+            "jobId": job.id,
+            "usage": usage,
+            # 042. A pass booked only to date memories learns nothing: with no
+            # new words of theirs there is nothing to learn from.
+            **(
+                plan.model_dump(exclude={"dates"})
+                if messages
+                else {"add": [], "supersede": [], "fold": []}
+            ),
+            "dates": dates_wire(plan.dates, to_date),
+            "dateShown": [m["id"] for m in to_date[:TO_DATE_CAP]],
+        },
         headers={"authorization": f"Bearer {cfg.internal_token}"},
         timeout=30.0,
     )
@@ -302,5 +366,7 @@ async def handle_memories(
         superseded=applied.get("superseded"),
         folded=applied.get("folded"),
         ignored=applied.get("ignored"),
+        to_date=len(to_date),
+        dated=applied.get("dated"),
         latency_ms=int((time.monotonic() - started) * 1000),
     )

@@ -20,7 +20,9 @@ import styles from "../../app/(shell)/today.module.css";
 
 const LATE_SHOWN = 3;
 
-function Row({ row, rows, chip }: { row: AgendaRow; rows: TodayRows; chip?: React.ReactNode }) {
+/** The thread page's own row with its thread's pill, as To do draws it.
+ *  042's Reminders draws the same. */
+export function TodayRow({ row, rows, chip }: { row: AgendaRow; rows: TodayRows; chip?: React.ReactNode }) {
   return (
     <ContentRowView
       row={row}
@@ -79,7 +81,7 @@ export function TodoCard({
       </h3>
       <div className={styles.rows}>
         {lateShown.map((row) => (
-          <Row key={row.id} row={row} rows={rows} />
+          <TodayRow key={row.id} row={row} rows={rows} />
         ))}
         {lateFolded > 0 ? (
           <button type="button" className={styles.fold} onClick={() => setLateOpen(true)}>
@@ -87,10 +89,10 @@ export function TodoCard({
           </button>
         ) : null}
         {timed.map((row) => (
-          <Row key={row.id} row={row} rows={rows} chip={<HourChip row={row} zone={zone} />} />
+          <TodayRow key={row.id} row={row} rows={rows} chip={<HourChip row={row} zone={zone} />} />
         ))}
         {rest.map((row) => (
-          <Row key={row.id} row={row} rows={rows} chip={null} />
+          <TodayRow key={row.id} row={row} rows={rows} chip={null} />
         ))}
         {/* The read stops at a hundred and counts the rest; they are on the
             thread pages, and the count says how many. */}

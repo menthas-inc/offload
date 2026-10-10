@@ -101,3 +101,48 @@ def test_a_new_threads_icon_is_held_to_the_expectation():
     made_up = [("create_thread", {"icon": "suitcase"})]
     assert _icon_problems({"thread_icon": {"known": True}}, made_up) != []
     assert _icon_problems({}, made) == []
+
+
+# 042. The label and date checks hold the model to what the Core API keeps.
+
+SHOWN = [
+    {"of": "content", "id": "t1", "type": "task", "text": "Get the visa"},
+    {"of": "note", "id": "t2", "type": "note", "text": "We're in Lisbon 12 to 19 November"},
+]
+
+
+def test_a_label_check_reads_a_missing_label_as_none_and_pins_kind_lead_and_before():
+    run = _run()
+    wire = [
+        {
+            "id": "t1",
+            "of": "content",
+            "kind": "deadline",
+            "lead": "months",
+            "before": {"id": "a1", "of": "note"},
+        },
+    ]
+    want = {
+        "1": {"kind": "deadline", "lead_any": ["weeks", "months"], "before": 1},
+        "2": {"kind": "trip"},
+    }
+    problems = run._label_problems(want, wire, SHOWN, [{"id": "a1"}])
+    assert problems == ["entry 2 was none, wanted kind trip"]
+
+
+def test_a_note_name_must_be_a_run_of_its_own_words():
+    run = _run()
+    wire = [{"id": "t2", "of": "note", "kind": "trip", "lead": "weeks", "name": "Your trip"}]
+    problems = run._label_problems({"2": {"kind": "trip", "named": True}}, wire, SHOWN, [])
+    assert problems == ["entry 2 named 'Your trip', not a run of its own words"]
+
+
+def test_a_date_check_pins_the_day_the_lead_and_what_is_not_dated():
+    run = _run()
+    wire = [{"id": "d1", "on": "03-14", "lead": "days", "name": "Meera's birthday"}]
+    problems = run._date_problems(
+        {"dates": {"d1": {"on": "03-14", "lead": "weeks"}}, "no_date": ["d2"]},
+        wire,
+        [{"id": "d1", "text": "Meera's birthday is 14 March."}, {"id": "d2", "text": "x"}],
+    )
+    assert problems == ["d1 lead days, wanted weeks"]

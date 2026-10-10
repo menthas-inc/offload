@@ -10,6 +10,7 @@
 // and a memory written without it would delete correctly and export as
 // nothing, which is the one way of seeing memories there is until the tab.
 
+import { remindersOf } from "../notifications/labels.js";
 import { LEARNED_CAP, MEMORY_CAP, MEMORY_TEXT_CHARS as SHARED_TEXT_CHARS, RULES_CAP } from "@offload/widgets";
 import { sql } from "kysely";
 import { db } from "../db.js";
@@ -417,6 +418,8 @@ export interface ListedMemory extends Memory {
   changed: boolean;
   source: MemorySource;
   place: { dx: number; dy: number } | null;
+  /** 042. Remind me: on while a yearly date is reminded about, off once stopped. */
+  reminders: "on" | "off" | null;
 }
 
 /** 040. Everything the tab shows, unpaginated: at most 300 by the cap. A
@@ -502,6 +505,7 @@ export async function listMemories(
     return { id, name: loose ? null : (named.get(id) ?? null), notInAThread: loose };
   };
 
+  const reminders = await remindersOf(trx, "note", rows.map((row) => row.id), accountId);
   const memories = rows.map((row): ListedMemory => {
     const attrs = attrsOf(row);
     let source: MemorySource = { type: "none" };
@@ -518,6 +522,7 @@ export async function listMemories(
       changed: attrs.changed === "tab",
       source,
       place: row.place_dx !== null && row.place_dy !== null ? { dx: row.place_dx, dy: row.place_dy } : null,
+      reminders: reminders.get(row.id) ?? null,
     };
   });
   // 040. Placed tonight or not yet: one with no place sits beside its nearest.

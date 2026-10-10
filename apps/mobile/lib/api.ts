@@ -309,8 +309,12 @@ export async function markActivitySeen(): Promise<void> {
 }
 
 
+/** What this build can take beyond the sends. 042: a reminder of its own,
+ *  since it has the channel and the door; an older build never says so. */
+const TAKES = ["reminder"] as const;
+
 export async function registerPushToken(token: string, platform: "ios" | "android"): Promise<boolean> {
-  const result = await request("/v1/push-tokens", { method: "POST", body: JSON.stringify({ token, platform }) }).catch(() => null);
+  const result = await request("/v1/push-tokens", { method: "POST", body: JSON.stringify({ token, platform, takes: TAKES }) }).catch(() => null);
   return result !== null;
 }
 

@@ -3,7 +3,7 @@
 // A push token is a delivery capability and is bound to a session: the app
 // registers its token whenever permission is granted and it launches, through
 // a route that takes no account id, and deletes it on the server before the
-// session ends. Four channels on Android with private lock-screen
+// session ends. Five channels on Android with private lock-screen
 // visibility, never renamed once they exist; the verbs category and the
 // people category on both phones, the plain digest's on iOS alone, since
 // Android refuses a category without an action. The payload is not an
@@ -30,7 +30,8 @@ export type Payload =
   | { kind: "digest"; send: "morning" | "evening"; contentId?: string }
   | { kind: "request" }
   | { kind: "share"; memberId: string }
-  | { kind: "shared_activity"; threadId: string };
+  | { kind: "shared_activity"; threadId: string }
+  | { kind: "reminder"; threadId: string; contentId?: string; noteId?: string };
 
 /** The screen a kind opens, from a fixed table. A path never travels in a
  *  payload; an id does, and the screen it opens reads that id from the
@@ -50,6 +51,14 @@ export function routeFor(data: unknown, today?: string): { pathname: string; par
     case "share": {
       const memberId = id("memberId");
       return memberId ? { pathname: "/invitations/[memberId]", params: { memberId } } : null;
+    }
+    case "reminder": {
+      // 042. A reminder of its own opens its thread, which re-reads the
+      // thing; an id it carries that is not one refuses the whole payload.
+      const bad = (key: string) => payload[key] !== undefined && id(key) === null;
+      if (bad("contentId") || bad("noteId")) return null;
+      const threadId = id("threadId");
+      return threadId ? { pathname: "/threads/[id]", params: { id: threadId } } : null;
     }
     case "shared_activity": {
       const threadId = id("threadId");

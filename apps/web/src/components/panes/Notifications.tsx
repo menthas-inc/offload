@@ -11,17 +11,29 @@
 //
 // 031: Dates, People and On your phones under headings, each hour indented
 // under its switch with the hour in a pill, and the head says when they come.
+//
+// 042: Reminders between Dates and People, a switch and How many as three
+// choice tiles that grey with it. Reminders ride in the two messages, so an
+// hour greys only when both switches that use it are off.
 
 import { useEffect, useState } from "react";
-import { Group, Row } from "./SettingsRows";
+import { DATES_CAPTION, hoursOn, REMINDER_COUNT_DEFAULT, REMINDER_COUNTS, REMINDERS_LINE } from "@offload/widgets";
+import { ChoiceTiles, Group, Row } from "./SettingsRows";
+import { CountPreview } from "./ChoicePreviews";
 import { Switch } from "../Switch";
 import { currentMe, onMe, updateNotify, type Me } from "../../lib/use-me";
 import { notifySummary } from "../../lib/settings";
 import pane from "../../app/(shell)/shell.module.css";
 
-type Switches = "notifyDueToday" | "notifyComingTomorrow" | "notifyPeopleRequests" | "notifySharedActivity";
+type Switches =
+  | "notifyDueToday"
+  | "notifyComingTomorrow"
+  | "notifyReminders"
+  | "notifyPeopleRequests"
+  | "notifySharedActivity";
 type Hours = "notifyDueTodayAt" | "notifyComingTomorrowAt";
-type Patch = Partial<Pick<Me, Switches | Hours>>;
+type Patch = Partial<Pick<Me, Switches | Hours | "notifyReminderCount">>;
+type Count = "1" | "2" | "3";
 
 export function NotificationsPane() {
   const [me, setMe] = useState<Me | null>(currentMe());
@@ -82,8 +94,18 @@ export function NotificationsPane() {
         notifyDueTodayAt: value("notifyDueTodayAt") ?? me.notifyDueTodayAt,
         notifyComingTomorrow: value("notifyComingTomorrow") === true,
         notifyComingTomorrowAt: value("notifyComingTomorrowAt") ?? me.notifyComingTomorrowAt,
+        notifyReminders: value("notifyReminders") === true,
       })
     : undefined;
+
+  const reminders = value("notifyReminders") === true;
+  const count = value("notifyReminderCount") ?? REMINDER_COUNT_DEFAULT;
+  const hours = hoursOn({
+    notifyDueToday: value("notifyDueToday") === true,
+    notifyComingTomorrow: value("notifyComingTomorrow") === true,
+    notifyReminders: reminders,
+  });
+  const caption = REMINDER_COUNTS.find((c) => c.count === count)?.caption;
 
   return (
     <>
@@ -104,11 +126,30 @@ export function NotificationsPane() {
           </div>
         ) : null}
 
-        <Group label="Dates" icon="calendar" caption="What is due, said once a day rather than one by one.">
+        <Group label="Dates" icon="calendar" caption={DATES_CAPTION}>
           {toggle("notifyDueToday", "Due today", "One message each morning.", false, true)}
-          {hour("notifyDueTodayAt", "In the morning at", value("notifyDueToday") === true)}
+          {hour("notifyDueTodayAt", "In the morning at", hours.morning)}
           {toggle("notifyComingTomorrow", "Tomorrow", "One message each evening.", false, true)}
-          {hour("notifyComingTomorrowAt", "In the evening at", value("notifyComingTomorrow") === true, true)}
+          {hour("notifyComingTomorrowAt", "In the evening at", hours.evening, true)}
+        </Group>
+
+        <Group label="Reminders" icon="bell">
+          {toggle("notifyReminders", "Reminders", REMINDERS_LINE, false, true)}
+          <div className={`${pane.settingsChoice} ${reminders ? "" : pane.settingsRowOff}`}>
+            <span className={pane.settingsTitle}>How many</span>
+            <ChoiceTiles<Count>
+              label="How many"
+              options={REMINDER_COUNTS.map((c) => ({
+                value: String(c.count) as Count,
+                label: c.label,
+                preview: <CountPreview count={c.count} />,
+              }))}
+              value={String(count) as Count}
+              onChange={(next) => void write({ notifyReminderCount: Number(next) as 1 | 2 | 3 })}
+              disabled={!reminders}
+            />
+            {caption ? <p className={pane.settingsCaption}>{caption}</p> : null}
+          </div>
         </Group>
 
         <Group label="People" icon="users" caption="When someone reaches for you.">

@@ -60,6 +60,20 @@ describe("the pane head summaries", () => {
     expect(notifySummary({ ...me, notifyDueToday: false, notifyComingTomorrow: false })).toBeUndefined();
   });
 
+  it("counts Reminders among what is on (042, AC-22)", () => {
+    const me = {
+      notifyDueToday: true,
+      notifyDueTodayAt: "08:00",
+      notifyComingTomorrow: true,
+      notifyComingTomorrowAt: "19:00",
+      notifyReminders: true,
+    };
+    expect(notifySummary(me)).toBe("Mornings at 08:00, evenings at 19:00, with reminders");
+    expect(notifySummary({ ...me, notifyComingTomorrow: false })).toBe("Mornings at 08:00, with reminders");
+    expect(notifySummary({ ...me, notifyDueToday: false, notifyComingTomorrow: false })).toBe("Reminders");
+    expect(notifySummary({ ...me, notifyReminders: false })).toBe("Mornings at 08:00, evenings at 19:00");
+  });
+
   it("has no dashes in anything it says", () => {
     const all = [
       emailNote(["google"]),

@@ -97,6 +97,8 @@ export interface MemoryView {
   changed: boolean;
   source: MemorySource;
   place: { dx: number; dy: number } | null;
+  /** 042. Remind me on a birthday or an anniversary, as the API sends it. */
+  reminders?: "on" | "off" | null;
 }
 
 export interface MemoryList {

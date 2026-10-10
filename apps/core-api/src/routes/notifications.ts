@@ -21,6 +21,8 @@ import { agendaQuery, agendaRow, everDumped, labelsOf, shapeRows, type AgendaRaw
 import { actedCopy } from "../notifications/copy.js";
 import { ACTIVITY_DAYS, listActivity, markSeen, record } from "../notifications/activity.js";
 import { isPushToken } from "../notifications/push.js";
+import { setReminders } from "../notifications/labels.js";
+import { webOrigins } from "../env.js";
 import { NotYours, memberOf, readableContent } from "../threads/access.js";
 import { undoRun } from "../threads/labels.js";
 import { Refused } from "../threads/refusals.js";
@@ -69,7 +71,7 @@ const todayResponse = z.object({
 
 const activityEntry = z.object({
   id: z.string(),
-  kind: z.enum(["digest", "request", "share", "shared_activity", "expired", "moved", "acted", "labelled", "mail", "export"]),
+  kind: z.enum(["digest", "request", "share", "shared_activity", "expired", "moved", "acted", "labelled", "mail", "export", "reminder"]),
   sent: z.boolean(),
   reason: z.enum(["setting", "permission", "design"]).nullable(),
   title: z.string(),
@@ -90,11 +92,36 @@ const activityEntry = z.object({
 });
 
 export async function notificationRoutes(app: App): Promise<void> {
+  // 042. The author's Remind me on a thread note or a memory, whose editors
+  // write their words through routes of their own; a row's goes through the
+  // row sheet's one save. Anybody but the author gets the answer a thing that
+  // does not exist gets.
+  app.put(
+    "/v1/reminders",
+    {
+      schema: {
+        body: z.strictObject({ of: z.enum(["content", "note", "memory"]), id: z.string().uuid(), on: z.boolean() }),
+        response: { 200: done, 401: unauthenticated, 403: z.object({ error: z.literal("origin") }), 404: z.object({ error: z.literal("not_found") }) },
+      },
+    },
+    async (request, reply) => {
+      const origin = request.headers.origin;
+      if (origin && !webOrigins.includes(origin)) return reply.code(403).send({ error: "origin" as const });
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+      const found = await db.transaction().execute((trx) => setReminders(trx, { accountId, ...request.body }));
+      if (!found) return reply.code(404).send({ error: "not_found" as const });
+      return reply.send({ ok: true as const });
+    },
+  );
+
   app.post(
     "/v1/push-tokens",
     {
       schema: {
-        body: z.object({ token: pushToken, platform: z.enum(["ios", "android"]) }),
+        // 042. `takes` names what this build can draw: a reminder of its own
+        // needs its channel and its door, so an older build is sent none.
+        body: z.object({ token: pushToken, platform: z.enum(["ios", "android"]), takes: z.array(z.enum(["reminder"])).max(4).optional() }),
         response: { 200: done, 401: unauthenticated, 403: z.object({ error: z.literal("not_active") }) },
       },
     },
@@ -102,11 +129,12 @@ export async function notificationRoutes(app: App): Promise<void> {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
       const { token, platform } = request.body;
+      const takesReminders = request.body.takes?.includes("reminder") ?? false;
       await db
         .insertInto("push_tokens")
-        .values({ account_id: accountId, token, platform })
+        .values({ account_id: accountId, token, platform, takes_reminders: takesReminders })
         .onConflict((oc) =>
-          oc.column("token").doUpdateSet({ account_id: accountId, platform, last_seen_at: new Date() }),
+          oc.column("token").doUpdateSet({ account_id: accountId, platform, takes_reminders: takesReminders, last_seen_at: new Date() }),
         )
         .execute();
       return { ok: true as const };

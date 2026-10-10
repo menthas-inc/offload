@@ -553,11 +553,15 @@ export function ChoiceTiles<T extends string>({
   options,
   value,
   onChange,
+  disabled = false,
 }: {
   label: string;
   options: readonly { value: T; label: string; preview: React.ReactNode }[];
   value: T;
   onChange: (value: T) => void;
+  /** 042. Inert with the switch that governs them: How many with Reminders
+   *  off. The row around them draws the grey. */
+  disabled?: boolean;
 }) {
   const group = useRef<HTMLDivElement>(null);
   const checked = Math.max(0, options.findIndex((o) => o.value === value));
@@ -580,6 +584,7 @@ export function ChoiceTiles<T extends string>({
           role="radio"
           aria-checked={option.value === value}
           tabIndex={at === checked ? 0 : -1}
+          disabled={disabled}
           className={styles.tile}
           onClick={() => onChange(option.value)}
           onKeyDown={(event) => move(event, at)}

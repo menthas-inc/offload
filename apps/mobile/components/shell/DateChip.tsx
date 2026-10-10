@@ -5,19 +5,29 @@
 // disagree about what late, soon and later are. A row with no date draws
 // nothing and asks nothing: no dashed slot, no placeholder, because principle
 // 04 made offload not ask for dates nobody gave. The bell after the words
-// reports `is_reminder` and sets nothing.
+// reports `is_reminder`, or (042) that offload will remind the author, and
+// sets nothing.
 
 import { Text, View } from "react-native";
-import { chipFor, timeIn, type ChipRow } from "@offload/widgets";
+import { bellOn, chipFor, timeIn, type ChipRow, type Reminders } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { useClock } from "../../lib/clock";
 
-export function DateChip({ row, isReminder }: { row: ChipRow; isReminder: boolean }) {
+export function DateChip({
+  row,
+  by,
+}: {
+  row: ChipRow & { isReminder?: boolean; reminders?: Reminders | undefined };
+  /** 042. Today's Reminders: an undated task's day, "By Wednesday", said in
+   *  the plain fill since the row has no date of its own. */
+  by?: string | undefined;
+}) {
   const { zone, today } = useClock();
   const COLOR = useColors();
   const chip = chipFor(row, zone, today);
-  if (!chip) return null;
+  if (!chip) return by ? <PlainChip label={by} bell={bellOn(row)} /> : null;
+  const isReminder = bellOn(row);
 
   // Late is clay, the pair a failure already uses, because a date that has
   // passed is the one state that wants finding. Soon is amber rather than
@@ -49,6 +59,26 @@ export function DateChip({ row, isReminder }: { row: ChipRow; isReminder: boolea
         {chip.label}
       </Text>
       {isReminder ? <Glyph name="bell" size={11} color={ink} /> : null}
+    </View>
+  );
+}
+
+/** 042. A date that is not a row's own, in the plain fill: the day an
+ *  undated task is reminded against, or a note's or a memory's in Today's
+ *  Reminders. */
+export function PlainChip({ label, bell = false }: { label: string; bell?: boolean }) {
+  const COLOR = useColors();
+  return (
+    <View
+      className="flex-row items-center gap-space-1 self-start rounded-xs bg-surface-fill px-space-2"
+      style={{ minHeight: 24, boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}` }}
+      accessibilityLabel={bell ? `${label}, offload will remind you` : label}
+    >
+      <Glyph name="calendar" size={12} color={COLOR.secondary} />
+      <Text className="font-core font-medium text-caption" style={{ color: COLOR.secondary, fontVariant: ["tabular-nums"], lineHeight: 16 }}>
+        {label}
+      </Text>
+      {bell ? <Glyph name="bell" size={11} color={COLOR.secondary} /> : null}
     </View>
   );
 }

@@ -20,7 +20,7 @@ import type { RowHandlers } from "../panes/ContentRowView";
 import { CreateThreadModal, type CreateChoice } from "./CreateThreadModal";
 import { perform, useWrites, type Writes } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
-import { drawnWhen } from "../../lib/when";
+import { drawnEdit, undoOf } from "../../lib/row-edit";
 import {
   completeContent,
   deleteContent,
@@ -175,19 +175,7 @@ export function useLooseRows<S extends LooseSummary>(
   }
 
   function edit(row: ContentRow, change: ContentPatch): void {
-    const drawn: Partial<ContentRow> = {};
-    if (change.title !== undefined) drawn.title = change.title;
-    if (change.isReminder !== undefined) drawn.isReminder = change.isReminder;
-    Object.assign(drawn, drawnWhen(change, zone));
-    const before: Partial<ContentRow> = {
-      title: row.title,
-      isReminder: row.isReminder,
-      dueAt: row.dueAt,
-      occursAt: row.occursAt,
-      occursEndAt: row.occursEndAt,
-      rrule: row.rrule,
-      allDay: row.allDay,
-    };
+    const { drawn, before } = drawnEdit(row, change, zone);
     let previous: ContentSnapshot | null = null;
     void perform(
       {
@@ -199,7 +187,7 @@ export function useLooseRows<S extends LooseSummary>(
             previous = result.previous;
             return true;
           }),
-        unwrite: () => (previous ? editContent(row.id, previous) : Promise.resolve(null)).then((result) => result !== null),
+        unwrite: () => (previous ? editContent(row.id, undoOf(previous)) : Promise.resolve(null)).then((result) => result !== null),
         did: "Saved",
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",

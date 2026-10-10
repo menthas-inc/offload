@@ -3,14 +3,14 @@
 // 027 Customize Today, as the web's second pane beside Today.
 //
 // Needs you, with a grip and no switch of its own, and its four kinds under
-// it, each with a switch; Your day and Open in your threads, each with a grip
-// and a switch. The sections drag to reorder, or move with the arrow keys on a focused grip. A drag or a
+// it, each with a switch; Your day, Reminders (042) and Open in your threads,
+// each with a grip and a switch. The sections drag to reorder, or move with the arrow keys on a focused grip. A drag or a
 // switch applies at once, Today beside it changing, and is written as it
 // settles, one write a gesture; a write that fails puts the pane back with
 // "Couldn't save that" and Try again. The last switch on is drawn disabled, so
 // Today is never blank. Reset returns the defaults; Done closes the pane.
 
-import { afterWrite } from "@offload/widgets";
+import { TODAY_REMINDERS, afterWrite } from "@offload/widgets";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "../Icon";
@@ -18,7 +18,7 @@ import { Switch } from "../Switch";
 import { currentMe, onMe, updateTodayLayout } from "../../lib/use-me";
 import {
   DEFAULT_LAYOUT,
-  layoutOf,
+  layoutOfMe,
   moved,
   switchesOn,
   withPart,
@@ -37,9 +37,15 @@ const KINDS: Record<NeedsPart, { name: string; line: string }> = {
   tips: { name: "Tips", line: "Ways to use offload" },
 };
 
-const SECTION_NAME: Record<LayoutSection["kind"], string> = { needs_you: "Needs you", day: "Your day", open_threads: "Open in your threads" };
-const SECTION_LINE: Record<"day" | "open_threads", string> = {
+const SECTION_NAME: Record<LayoutSection["kind"], string> = {
+  needs_you: "Needs you",
+  day: "Your day",
+  reminders: TODAY_REMINDERS.name,
+  open_threads: "Open in your threads",
+};
+const SECTION_LINE: Record<"day" | "reminders" | "open_threads", string> = {
   day: "Events and to-dos, a day at a time",
+  reminders: TODAY_REMINDERS.line,
   open_threads: "To-dos with no date, a thread at a time",
 };
 
@@ -56,7 +62,7 @@ export interface LayoutState {
  *  the write and put back when the write is refused. */
 export function useTodayLayout(): LayoutState {
   const [state, setState] = useState(() => {
-    const held = layoutOf(currentMe()?.todayLayoutV2);
+    const held = layoutOfMe(currentMe());
     return { shown: held, confirmed: held };
   });
   // Mirrored for the write's answer, which lands after later renders.
@@ -66,7 +72,7 @@ export function useTodayLayout(): LayoutState {
   useEffect(
     () =>
       onMe((me) => {
-        const held = layoutOf(me.todayLayoutV2);
+        const held = layoutOfMe(me);
         // A gesture still in flight stays drawn; the server's answer to it follows.
         setState((now) => (now.shown === now.confirmed ? { shown: held, confirmed: held } : { ...now, confirmed: held }));
       }),

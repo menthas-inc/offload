@@ -17,7 +17,7 @@ import { LabelPopover, type LabelChoice } from "../labels/LabelPopover";
 import { createLabel, deleteLabel, type Label } from "../../lib/labels";
 import { perform, useWrites } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
-import { drawnWhen } from "../../lib/when";
+import { drawnEdit, undoOf } from "../../lib/row-edit";
 import type { AgendaRow } from "../../lib/today";
 import {
   completeContent,
@@ -34,7 +34,7 @@ import pane from "../../app/(shell)/shell.module.css";
 
 export interface TodayRows {
   /** The rows as drawn: changed fields applied, taken-out rows gone. */
-  shown: (rows: AgendaRow[]) => AgendaRow[];
+  shown: <R extends AgendaRow>(rows: R[]) => R[];
   handlers: RowHandlers;
   lead: (row: ContentRow) => React.ReactNode;
   /** The modal and the label sheet, wherever the page puts them. */
@@ -138,23 +138,7 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
   }
 
   function edit(row: ContentRow, patch: ContentPatch, made: string[] = []): void {
-    const next: Partial<ContentRow> = {};
-    if (patch.labels !== undefined) next.labels = patch.labels;
-    if (patch.title !== undefined) next.title = patch.title;
-    if (patch.body !== undefined) next.body = patch.body;
-    if (patch.isReminder !== undefined) next.isReminder = patch.isReminder;
-    Object.assign(next, drawnWhen(patch, zone));
-    const before: Partial<ContentRow> = {
-      title: row.title,
-      body: row.body,
-      isReminder: row.isReminder,
-      dueAt: row.dueAt,
-      occursAt: row.occursAt,
-      occursEndAt: row.occursEndAt,
-      rrule: row.rrule,
-      allDay: row.allDay,
-      labels: row.labels,
-    };
+    const { drawn: next, before } = drawnEdit(row, patch, zone);
     const write = withMadeLabels<ContentPatch, ContentSnapshot>(
       {
         make: async (name) => {
@@ -162,7 +146,7 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
           return created.ok ? created.value.label.id : null;
         },
         edit: async (fields) => (await editContent(row.id, fields))?.previous ?? null,
-        undo: (previous) => previous,
+        undo: undoOf,
         drop: (labelId) => deleteLabel(labelId),
       },
       patch,
@@ -290,7 +274,7 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
     );
   };
 
-  const shown = (rows: AgendaRow[]) =>
+  const shown = <R extends AgendaRow>(rows: R[]): R[] =>
     rows.filter((row) => !dropped.has(row.id)).map((row) => ({ ...row, ...(drawn.get(row.id) ?? {}) }));
 
   const overlays = (

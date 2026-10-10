@@ -100,6 +100,8 @@ export function doorOf(row: ActivityEntry, at?: DoorContext): Door | null {
     case "acted":
     // 025. A sort opens the thread it sorted.
     case "labelled":
+    // 042. A reminder of its own opens the thread of the thing it named.
+    case "reminder":
       return row.threadId ? { pathname: "/threads/[id]", params: { id: row.threadId } } : null;
     default:
       return null;

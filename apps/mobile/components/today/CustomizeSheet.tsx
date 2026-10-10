@@ -1,7 +1,7 @@
 // Customize Today. 027, from `TodayParts.jsx`'s `CustomizeSheet`.
 //
-// Needs you, with a grip and its four kinds switched one by one; Your day and
-// Open in your threads, each with a grip and a switch. The sections drag to
+// Needs you, with a grip and its four kinds switched one by one; Your day,
+// Reminders (042) and Open in your threads, each with a grip and a switch. The sections drag to
 // reorder; the kinds keep
 // their order, which is the server's. A drag or a switch applies at once and
 // is written as it settles, one write per gesture, and a write that fails puts
@@ -12,6 +12,7 @@ import { useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { ReduceMotion, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { TODAY_REMINDERS } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { Switch } from "../settings/Switch";
 import { DragSheet } from "../shell/DragSheet";
@@ -24,6 +25,7 @@ import {
   moveSection,
   openThreadsOn,
   partOn,
+  remindersOn,
   setSwitch,
   type Layout,
   type Part,
@@ -40,6 +42,7 @@ const KIND: Record<Part, [string, string]> = {
 };
 const SECTION: Record<SectionSwitch, [string, string]> = {
   day: ["Your day", "Events and to-dos, a day at a time"],
+  reminders: [TODAY_REMINDERS.name, TODAY_REMINDERS.line],
   open_threads: ["Open in your threads", "To-dos with no date, a thread at a time"],
 };
 const ROW_H = 56;
@@ -110,7 +113,8 @@ export function CustomizeSheet({
   const rule = isAndroid ? "border-a-outline" : "border-border-hairline";
 
   const switchRow = (key: Part | SectionSwitch, name: string, line: string, inset: boolean) => {
-    const on = key === "day" ? dayOn(shown) : key === "open_threads" ? openThreadsOn(shown) : partOn(shown, key);
+    const on =
+      key === "day" ? dayOn(shown) : key === "reminders" ? remindersOn(shown) : key === "open_threads" ? openThreadsOn(shown) : partOn(shown, key);
     return (
       <View key={key} className={`flex-row items-center gap-space-4 ${inset ? `border-b ${rule}` : ""}`} style={{ minHeight: ROW_H, paddingLeft: inset ? 32 : 0 }}>
         <View className="flex-1 py-space-2">

@@ -7,6 +7,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const calls: string[] = [];
+const bodies: unknown[] = [];
 let answers: (() => Promise<Response>)[] = [];
 
 vi.mock("../lib/auth", () => ({
@@ -14,13 +15,15 @@ vi.mock("../lib/auth", () => ({
   authClient: { getCookie: () => "better-auth.session_token=x" },
 }));
 
-const { deletePushToken } = await import("../lib/api");
+const { deletePushToken, registerPushToken } = await import("../lib/api");
 
 beforeEach(() => {
   calls.length = 0;
   answers = [];
-  vi.stubGlobal("fetch", (url: string) => {
+  bodies.length = 0;
+  vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
     calls.push(url);
+    if (typeof init?.body === "string") bodies.push(JSON.parse(init.body));
     const next = answers.shift();
     return next ? next() : Promise.reject(new Error("no answer"));
   });
@@ -43,5 +46,13 @@ describe("deleting the token before sign-out", () => {
     answers = [down, down];
     expect(await deletePushToken("ExponentPushToken[phone]")).toBe(false);
     expect(calls).toHaveLength(4);
+  });
+});
+
+describe("042 registering the token", () => {
+  it("says this phone takes a reminder of its own, since this build has the channel and the door", async () => {
+    answers = [ok];
+    expect(await registerPushToken("ExponentPushToken[phone]", "android")).toBe(true);
+    expect(bodies).toEqual([{ token: "ExponentPushToken[phone]", platform: "android", takes: ["reminder"] }]);
   });
 });

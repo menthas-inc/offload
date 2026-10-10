@@ -18,6 +18,10 @@
 // when there is nothing in it. **Nothing here refuses a note**: a hundred is a
 // prompt budget, so what replaced the cap line says which notes are not
 // reaching offload rather than that you may not add another.
+//
+// 042. The editor draws Remind me to the note's author on a dated note offload
+// reminds about. It is folded into Save, as on the row's sheet, and takes the
+// same Undo a text edit does; a refusal puts back only the write it stopped.
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
@@ -27,7 +31,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-import { reorderPlan, type ReorderWrite } from "@offload/widgets";
+import { remindSwitchShown, reorderPlan, type ReorderWrite } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { LabelDot } from "../labels/LabelMark";
 import { useRowLabels } from "../labels/labels-context";
@@ -36,11 +40,12 @@ import { useColors } from "../../lib/colors";
 import { perform, type Reversible, type Toaster, type Writes } from "../../lib/optimistic";
 import { duplicateCopy, moveNote, movedCopy } from "../../lib/loose";
 import { useConversation } from "./conversation-context";
+import { Switch } from "../settings/Switch";
+import { noteSave } from "../../lib/reminders";
 import {
   NOTE_BUDGET,
   NOTE_CHARS,
   deleteNote,
-  editNote,
   foldedNotes,
   isProvisional,
   muteNote,
@@ -131,6 +136,8 @@ export function NotesSection({
    *  belongs to whoever is still in it, and the server enforces the same. */
   const canDelete = (note: Note): boolean =>
     note.authorId === viewerId || !note.authorIsMember;
+  /** 042. Theirs, which is who Remind me is drawn to. */
+  const mine = (note: Note): boolean => viewerId !== null && note.authorId === viewerId;
 
   const author = (note: Note): string | null => {
     if (!shared || note.authorId === null) return null;
@@ -149,27 +156,16 @@ export function NotesSection({
   const patch = (noteId: string, fields: Partial<Note>): void =>
     onNotes((current) => current.map((note) => (note.id === noteId ? { ...note, ...fields } : note)));
 
-  function save(draft: string): void {
+  /** `remind` is the editor's Remind me, when it drew one. The switch and
+   *  the words are two writes, put back apart (`noteSave`). The text alone:
+   *  a note's details are no longer drawn or edited (2026-09-29), and what is
+   *  stored there is left as it is. */
+  function save(draft: string, remind?: boolean): void {
     const text = draft.trim();
     if (text.length === 0 || !editing) return close();
     const note = editing;
-    const previous = note.text;
     close();
-    // The text alone: a note's details are no longer drawn or edited
-    // (2026-09-29), and what is stored there is left as it is.
-    void perform(
-      {
-        apply: () => patch(note.id, { text }),
-        revert: () => patch(note.id, { text: previous }),
-        write: () => editNote(note.id, text).then((result) => result !== null),
-        unwrite: () => editNote(note.id, previous).then((result) => result !== null),
-        did: "Note changed",
-        failed: "Couldn't change the note",
-        unfailed: "Couldn't put the note back",
-      },
-      toast,
-      writes,
-    );
+    void perform(noteSave(note, text, remind, (fields) => patch(note.id, fields)), toast, writes);
   }
 
   function remove(note: Note): void {
@@ -323,8 +319,8 @@ export function NotesSection({
   // The editor goes to the screen's root. The handlers are read through a ref
   // so the sheet is handed over when a note opens or closes, not on every
   // render of this section, and still acts on the notes as they are now.
-  const latest = useRef({ save, close, mute, remove, canDelete, move });
-  latest.current = { save, close, mute, remove, canDelete, move };
+  const latest = useRef({ save, close, mute, remove, canDelete, mine, move });
+  latest.current = { save, close, mute, remove, canDelete, mine, move };
   useEffect(() => {
     onSheet(
       editing ? (
@@ -332,7 +328,8 @@ export function NotesSection({
           key={editing.id}
           note={editing}
           canDelete={latest.current.canDelete(editing)}
-          onSave={(text) => latest.current.save(text)}
+          mine={latest.current.mine(editing)}
+          onSave={(text, remind) => latest.current.save(text, remind)}
           onClose={() => latest.current.close()}
           onMute={() => latest.current.mute(editing)}
           onDelete={() => latest.current.remove(editing)}
@@ -623,6 +620,7 @@ function NoteRow({
 export function NoteEditor({
   note,
   canDelete,
+  mine = false,
   onSave,
   onClose,
   onMute,
@@ -632,7 +630,10 @@ export function NoteEditor({
 }: {
   note: Note | null;
   canDelete: boolean;
-  onSave: (text: string) => void;
+  /** 042. The viewer wrote it, so Remind me is theirs to draw. */
+  mine?: boolean;
+  /** `remind` is Remind me as it stands, when the editor drew it. */
+  onSave: (text: string, remind?: boolean) => void;
   onClose: () => void;
   onMute: () => void;
   onDelete: () => void;
@@ -652,6 +653,9 @@ export function NoteEditor({
   // its author's to change, on the terms delete has, and the server refuses
   // anybody else, so the sheet never offers the edit.
   const readOnly = note !== null && !canDelete;
+  // 042. To the author, on a note offload reminds about or that they stopped.
+  const reminding = note !== null && remindSwitchShown({ reminders: note.reminders }, mine);
+  const [remind, setRemind] = useState(note?.reminders === "on");
   // Anchored to the bottom of a screen, and the plate is mounted above the
   // router. Without this it opens underneath the composer and the tabs.
 
@@ -677,6 +681,16 @@ export function NoteEditor({
             }`}
             style={{ fontSize: 15, minHeight: 76 }}
           />
+
+          {reminding ? (
+            <View className="mt-space-2 min-h-tap-min flex-row items-center gap-space-3">
+              <Glyph name="bell" size={16} color={COLOR.iconOnWell} />
+              <Text className={`flex-1 font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 15 }}>
+                Remind me
+              </Text>
+              <Switch checked={remind} onChange={setRemind} label="Remind me" />
+            </View>
+          ) : null}
 
           {onMove ? (
             <Pressable
@@ -715,7 +729,7 @@ export function NoteEditor({
             <Action label={readOnly ? "Close" : "Cancel"} onPress={onClose} />
             {readOnly ? null : (
               <Pressable
-                onPress={() => onSave(draft)}
+                onPress={() => onSave(draft, reminding ? remind : undefined)}
                 disabled={draft.trim().length === 0}
                 className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`}
                 style={{ height: 30, justifyContent: "center", opacity: draft.trim() ? 1 : 0.55 }}

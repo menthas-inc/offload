@@ -4,6 +4,7 @@
 // AC-27 Customize Today, with open in your threads (2026-10-07); AC-30 the
 // tabs.
 
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 
 const sent: { path: string; init: RequestInit | undefined }[] = [];
@@ -47,7 +48,9 @@ describe("027 AC-27 Customize Today", () => {
     expect(today.setSwitch(layout([true, true, true, true]), "day", false)).toEqual(layout([true, true, true, true], false));
     expect(today.setSwitch(layout([true, true, true, true]), "open_threads", false)).toEqual(layout([true, true, true, true], true, "needs", false));
     expect(today.openThreadsOn(layout([true, true, true, true], true, "needs", false))).toBe(false);
-    expect(today.DEFAULT_LAYOUT).toEqual(layout([true, true, true, true]));
+    // 042. Reminders sits between Your day and open in your threads.
+    const [needs, d, o] = layout([true, true, true, true]).sections;
+    expect(today.DEFAULT_LAYOUT).toEqual({ version: 1, sections: [needs, d, { kind: "reminders", on: true }, o] });
   });
 
   it("will not switch off the last switch that is on", () => {
@@ -195,3 +198,114 @@ describe("027 AC-30 the tabs under the keyboard", () => {
   });
 });
 
+
+describe("042 the Reminders section", () => {
+  const four = (reminders = true) => {
+    const base = layout([true, true, true, true]);
+    const [needs, d, o] = base.sections;
+    return { version: 1 as const, sections: [needs!, d!, { kind: "reminders" as const, on: reminders }, o!] };
+  };
+
+  it("switches, counts towards the last switch on, and moves like the others", () => {
+    expect(today.remindersOn(four())).toBe(true);
+    expect(today.remindersOn(today.setSwitch(four(), "reminders", false))).toBe(false);
+    const only = today.setSwitch(today.setSwitch(today.setSwitch(four(), "day", false), "open_threads", false), "account", false);
+    const alone = ["people", "questions", "tips"].reduce((held, part) => today.setSwitch(held, part as "people", false), only);
+    expect(today.canSwitchOff(alone, "reminders")).toBe(false);
+    expect(today.moveSection(four(), "reminders", -1).sections.map((one) => one.kind)).toEqual(["needs_you", "reminders", "day", "open_threads"]);
+  });
+
+  it("reads todayLayoutV3 first, then V2, then the defaults", () => {
+    const v2 = layout([false, true, true, true]);
+    const v3 = four(false);
+    expect(today.layoutOf({ todayLayoutV2: v2, todayLayoutV3: v3 })).toEqual(v3);
+    expect(today.layoutOf({ todayLayoutV2: v2 })).toEqual(v2);
+    expect(today.layoutOf(undefined)).toEqual(today.DEFAULT_LAYOUT);
+  });
+
+  it("reads the section, and nothing when it did not come back", async () => {
+    sent.length = 0;
+    status = 500;
+    expect(await today.fetchReminders()).toBeNull();
+    expect(sent.map((s) => s.path)).toEqual(["/v1/today/reminders"]);
+    status = 200;
+  });
+
+  it("puts rows, notes and memories in one list, nearest first", () => {
+    const row = (id: string, remindDay: string) => ({ id, remindDay, remindBy: false }) as never;
+    const other = (id: string, day: string, of: "note" | "memory" = "note") =>
+      ({ of, id, name: id, day, by: false, threadId: null, threadName: null, threadIcon: null, threadHue: null }) as const;
+    const merged = today.remindersInOrder({ rows: [row("r1", "2026-10-12"), row("r2", "2026-10-20")], others: [other("n1", "2026-10-11"), other("m1", "2026-10-12", "memory")], more: 0 });
+    expect(merged.map((entry) => entry.id)).toEqual(["n1", "r1", "m1", "r2"]);
+  });
+
+  it("opens a memory in Memories by the shared parameter, a note in its thread, and nothing for a note with no thread", () => {
+    const other = { name: "x", day: "2026-10-11", by: false, threadName: null, threadIcon: null, threadHue: null };
+    expect(today.reminderDoor({ ...other, of: "memory", id: "m1", threadId: null })).toEqual({ pathname: "/memories", params: { memory: "m1" } });
+    expect(today.reminderDoor({ ...other, of: "note", id: "n1", threadId: "t1", threadName: "Rent" })).toEqual({ pathname: "/threads/[id]", params: { id: "t1" } });
+    expect(today.reminderDoor({ ...other, of: "note", id: "n2", threadId: null })).toBeNull();
+  });
+
+  it("asks for the phone's permission when only Reminders would reach it", () => {
+    const now = new Date("2026-10-01T10:00:00Z");
+    const off = { notifyDueToday: false, notifyComingTomorrow: false, notifyPeopleRequests: false, notifySharedActivity: false };
+    expect(today.notificationsCard({ ...off, notifyReminders: true }, false, null, now)).not.toBeNull();
+    expect(today.notificationsCard({ ...off, notifyReminders: false }, false, null, now)).toBeNull();
+  });
+});
+
+describe("042 the screens", () => {
+  const read = (path: string): string => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+
+  it("draws Reminders in the layout's place, today only, never over the day-one invitation, from its own read", () => {
+    const screen = read("components/today/TodayScreen.tsx");
+    expect(screen).toMatch(/section\.kind === "reminders"/);
+    expect(screen).toMatch(/isToday && remindersOn\(layout\) && reminders && !dayOne/);
+    expect(screen).toMatch(/fetchReminders\(\)/);
+    expect(screen).toMatch(/me\?\.todayLayoutV3 \?\? me\?\.todayLayoutV2|layoutOf\(me\)/);
+  });
+
+  it("draws rows as Your day does, and notes and memories as a name, a day and a meta line", () => {
+    const screen = read("components/today/TodayScreen.tsx");
+    expect(screen).toMatch(/rows\.row\(/);
+    expect(screen).toMatch(/remindDayLabel\(/);
+    expect(screen).toMatch(/"Memories"/);
+    expect(screen).toMatch(/and \{reminders\.more\} more/);
+  });
+
+  it("says by and the day on an undated task reminded against something", () => {
+    const screen = read("components/today/TodayScreen.tsx");
+    expect(screen).toMatch(/by: entry\.remindBy && !entry\.dueAt && !entry\.occursAt \? remindDayLabel\(entry\.remindDay, today, true\) : undefined/);
+    expect(read("components/shell/ContentRow.tsx")).toMatch(/<DateChip row=\{row\} by=\{by\} \/>/);
+    expect(read("components/shell/DateChip.tsx")).toMatch(/by\?: string \| undefined/);
+  });
+
+  it("draws nothing for a kind it does not know: Your day is a branch of its own", () => {
+    const screen = read("components/today/TodayScreen.tsx");
+    expect(screen).toMatch(/if \(section\.kind !== "day"\) return null;/);
+  });
+
+  it("lists Reminders in Customize Today with the shared name and line", () => {
+    const sheet = read("components/today/CustomizeSheet.tsx");
+    expect(sheet).toMatch(/reminders: \[TODAY_REMINDERS\.name, TODAY_REMINDERS\.line\]/);
+    expect(sheet).toMatch(/remindersOn\(shown\)/);
+  });
+
+  it("opens a memory in Memories by the shared parameter", () => {
+    const memories = read("components/screens/Memories.tsx");
+    expect(memories).toMatch(/useLocalSearchParams<\{ \[MEMORY_PARAM\]\?: string \}>/);
+    expect(memories).toMatch(/params\[MEMORY_PARAM\]/);
+    expect(memories).not.toMatch(/params\.open/);
+  });
+
+  it("draws a line with no door as no button: only a line that opens something is pressable", () => {
+    const screen = read("components/today/TodayScreen.tsx");
+    expect(screen).toMatch(/const door = reminderDoor\(entry\)/);
+    expect(screen).toMatch(/door \? \(\s*<Pressable/);
+    expect(screen).not.toMatch(/params: \{ open: entry\.id \}/);
+  });
+
+  it("keeps a reminder row's own fields through the drawn rows", () => {
+    expect(read("components/today/useTodayRows.tsx")).toMatch(/live: <T extends TodayRow>\(rows: T\[\]\) => T\[\]/);
+  });
+});

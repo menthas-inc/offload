@@ -5,8 +5,9 @@
 // over them, the two cards only this phone can know about, and the day a
 // notification opens on. The screen draws from this and decides nothing.
 
-import { zoneStrip } from "@offload/widgets";
+import { MEMORY_PARAM, zoneStrip } from "@offload/widgets";
 import { request, send } from "./api";
+import { threadHref } from "./loose";
 import type { ContentRow } from "./threads";
 
 // ---------------------------------------------------------------- the day
@@ -119,13 +120,14 @@ export function zoneCard(
 /** The permission is off and a switch says something should reach this phone.
  *  Put off on this phone alone, until `putOffUntil`. */
 export function notificationsCard(
-  me: { notifyDueToday: boolean; notifyComingTomorrow: boolean; notifyPeopleRequests: boolean; notifySharedActivity: boolean },
+  me: { notifyDueToday: boolean; notifyComingTomorrow: boolean; notifyPeopleRequests: boolean; notifySharedActivity: boolean; notifyReminders?: boolean },
   permitted: boolean,
   putOffUntil: string | null,
   now: Date,
 ): DeviceCard | null {
   if (permitted) return null;
-  if (!me.notifyDueToday && !me.notifyComingTomorrow && !me.notifyPeopleRequests && !me.notifySharedActivity) return null;
+  // 042. Reminders is one of the switches that reaches this phone.
+  if (!me.notifyDueToday && !me.notifyComingTomorrow && !me.notifyPeopleRequests && !me.notifySharedActivity && !me.notifyReminders) return null;
   if (putOffUntil && new Date(putOffUntil).getTime() > now.getTime()) return null;
   return { key: "notifications", kind: "notifications" };
 }
@@ -177,6 +179,62 @@ export async function fetchOpenThreads(): Promise<OpenPage[] | null> {
   return sent.status === 200 && sent.data?.pages ? sent.data.pages : null;
 }
 
+// ---------------------------------------------------------------- reminders
+
+/** 042. A row in the section: the thread page's row, and the day it is
+ *  reminded against, with "by" for a deadline or a task for something. */
+export interface ReminderRow extends TodayRow {
+  remindDay: string;
+  remindBy: boolean;
+}
+
+/** A note or a memory: its name, its day, and its thread for a note. */
+export interface ReminderOther {
+  of: "note" | "memory";
+  id: string;
+  name: string;
+  day: string;
+  by: boolean;
+  threadId: string | null;
+  threadName: string | null;
+  threadIcon: string | null;
+  threadHue: number | null;
+}
+
+export interface TodayReminders {
+  rows: ReminderRow[];
+  others: ReminderOther[];
+  /** Begun and not drawn: the further away. */
+  more: number;
+}
+
+/** Everything whose reminders have begun, or null when it did not come back. */
+export async function fetchReminders(): Promise<TodayReminders | null> {
+  const sent = await send<TodayReminders>("/v1/today/reminders");
+  return sent.status === 200 && sent.data ? sent.data : null;
+}
+
+export type ReminderEntry = ({ of: "row" } & ReminderRow) | ReminderOther;
+
+/** Rows, notes and memories as one list, nearest first; on one day, as the
+ *  server ordered each. */
+export function remindersInOrder(reminders: TodayReminders): ReminderEntry[] {
+  const entries: { day: string; entry: ReminderEntry }[] = [
+    ...reminders.rows.map((row) => ({ day: row.remindDay, entry: { ...row, of: "row" as const } })),
+    ...reminders.others.map((other) => ({ day: other.day, entry: other })),
+  ];
+  return entries.sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0)).map((one) => one.entry);
+}
+
+/** Where a note's or a memory's line opens: a memory in Memories, a note in
+ *  its thread, and nowhere for a note with no thread, which is no button. */
+export function reminderDoor(
+  entry: ReminderOther,
+): ReturnType<typeof threadHref> | { pathname: "/memories"; params: { [MEMORY_PARAM]: string } } | null {
+  if (entry.of === "memory") return { pathname: "/memories", params: { [MEMORY_PARAM]: entry.id } };
+  return entry.threadId ? threadHref(entry.threadId, entry.threadName) : null;
+}
+
 // ---------------------------------------------------------------- the layout
 
 export type Part = "account" | "people" | "questions" | "tips";
@@ -184,9 +242,10 @@ export const PARTS: Part[] = ["account", "people", "questions", "tips"];
 type Section =
   | { kind: "needs_you"; parts: { kind: Part; on: boolean }[] }
   | { kind: "day"; on: boolean }
+  | { kind: "reminders"; on: boolean }
   | { kind: "open_threads"; on: boolean };
 /** A section with a switch of its own. */
-export type SectionSwitch = "day" | "open_threads";
+export type SectionSwitch = "day" | "reminders" | "open_threads";
 export interface Layout {
   version: 1;
   sections: Section[];
@@ -197,14 +256,16 @@ export const DEFAULT_LAYOUT: Layout = {
   sections: [
     { kind: "needs_you", parts: PARTS.map((kind) => ({ kind, on: true })) },
     { kind: "day", on: true },
+    { kind: "reminders", on: true },
     { kind: "open_threads", on: true },
   ],
 };
 
 /** What `/api/me` resolved, or the defaults before it has said. Builds
- *  before open_threads read `todayLayout`, which never names it. */
-export function layoutOf(me: { todayLayoutV2?: Layout } | null | undefined): Layout {
-  return me?.todayLayoutV2 ?? DEFAULT_LAYOUT;
+ *  before open_threads read `todayLayout`, which never names it; builds
+ *  before reminders read `todayLayoutV2` (042), which never names that. */
+export function layoutOf(me: { todayLayoutV2?: Layout; todayLayoutV3?: Layout } | null | undefined): Layout {
+  return me?.todayLayoutV3 ?? me?.todayLayoutV2 ?? DEFAULT_LAYOUT;
 }
 
 export function partOn(layout: Layout, part: Part): boolean {
@@ -219,8 +280,9 @@ function sectionOn(layout: Layout, kind: SectionSwitch): boolean {
 
 export const dayOn = (layout: Layout): boolean => sectionOn(layout, "day");
 export const openThreadsOn = (layout: Layout): boolean => sectionOn(layout, "open_threads");
+export const remindersOn = (layout: Layout): boolean => sectionOn(layout, "reminders");
 
-const isSection = (key: Part | SectionSwitch): key is SectionSwitch => key === "day" || key === "open_threads";
+const isSection = (key: Part | SectionSwitch): key is SectionSwitch => key === "day" || key === "reminders" || key === "open_threads";
 
 function onCount(layout: Layout): number {
   return layout.sections.reduce((n, section) => n + (section.kind === "needs_you" ? section.parts.filter((p) => p.on).length : Number(section.on)), 0);
