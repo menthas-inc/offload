@@ -7,14 +7,16 @@
 // declaration, read by both. The glyph and the tag rule lived twice as well,
 // byte for byte, which is the drift this package exists to stop.
 
-/** The four Android channels, ids permanent and invisible; the names are
- *  the notification titles, word for word. A channel is never renamed once a
- *  phone has created it. */
+/** The five Android channels, ids permanent and invisible; the names are
+ *  the notification titles, word for word, except Reminders (042), which is
+ *  named as its switch because its title is a time. A channel is never
+ *  renamed once a phone has created it. */
 export const CHANNELS = [
   { id: "due_today", name: "Due today" },
   { id: "coming_tomorrow", name: "Tomorrow" },
   { id: "people_requests", name: "Connection requests" },
   { id: "shared_activity", name: "Added to a shared thread" },
+  { id: "reminders", name: "Reminders" },
 ] as const;
 export type ChannelId = (typeof CHANNELS)[number]["id"];
 
@@ -22,6 +24,8 @@ export type ChannelId = (typeof CHANNELS)[number]["id"];
 export const DIGEST_CHANNEL: Record<"morning" | "evening", ChannelId> = { morning: "due_today", evening: "coming_tomorrow" };
 export const CHANNEL_REQUESTS: ChannelId = "people_requests";
 export const CHANNEL_SHARED: ChannelId = "shared_activity";
+/** 042. A reminder of its own, shortly before something with a clock time. */
+export const CHANNEL_REMINDERS: ChannelId = "reminders";
 
 /** The three categories: a one-task digest with its two verbs, a plain
  *  digest, and the people sends. */
@@ -29,7 +33,7 @@ export const VERBS_CATEGORY = "digest_verbs";
 export const PLAIN_CATEGORY = "digest";
 export const PEOPLE_CATEGORY = "people";
 
-export type ActivityKind = "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted" | "labelled" | "mail" | "export";
+export type ActivityKind = "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted" | "labelled" | "mail" | "export" | "reminder";
 export type ActivityReason = "setting" | "permission" | "design";
 
 /** The least a row of the record has to carry to be drawn. */
@@ -56,6 +60,7 @@ export function activityGlyph(row: ActivityShape): string {
   if (row.kind === "labelled") return "tag";
   if (row.kind === "mail") return "mail";
   if (row.kind === "export") return "archive";
+  if (row.kind === "reminder") return "bell";
   return "users";
 }
 

@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const categories: { id: string; actions: number }[] = [];
 const channels: string[] = [];
+const visibility: unknown[] = [];
 const failures: string[] = [];
 
 vi.mock("react-native", () => ({ Platform: { OS: "android", select: (o: Record<string, unknown>) => o["android"] } }));
@@ -21,8 +22,9 @@ vi.mock("expo-notifications", () => ({
     if (actions.length === 0) throw new Error("Invalid arguments provided for notification category. Must provide at least one action.");
     categories.push({ id, actions: actions.length });
   },
-  setNotificationChannelAsync: async (id: string) => {
+  setNotificationChannelAsync: async (id: string, options: { lockscreenVisibility?: unknown }) => {
     channels.push(id);
+    visibility.push(options.lockscreenVisibility);
   },
   getPermissionsAsync: async () => ({ status: "granted" }),
   getExpoPushTokenAsync: async () => ({ data: "ExponentPushToken[phone]" }),
@@ -40,13 +42,16 @@ const { prepare } = await import("../lib/notifications");
 beforeEach(() => {
   categories.length = 0;
   channels.length = 0;
+  visibility.length = 0;
   failures.length = 0;
 });
 
 describe("024 preparing an Android phone", () => {
-  it("makes the four channels, asks for no category without an action, and logs no failure", async () => {
+  it("makes the five channels, private on the lock screen, asks for no category without an action, and logs no failure", async () => {
     await prepare();
-    expect(channels).toEqual(["due_today", "coming_tomorrow", "people_requests", "shared_activity"]);
+    // 042 adds reminders, a notification of its own before a set time.
+    expect(channels).toEqual(["due_today", "coming_tomorrow", "people_requests", "shared_activity", "reminders"]);
+    expect(visibility).toEqual([0, 0, 0, 0, 0]);
     expect(categories.map((c) => c.id)).toEqual(["digest_verbs", "people"]);
     expect(categories.every((c) => c.actions > 0)).toBe(true);
     expect(failures).toEqual([]);

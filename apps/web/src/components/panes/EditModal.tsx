@@ -13,14 +13,21 @@
 //
 // 2026-10-07. Labels, as the phones' sheet has them: the row's labels by dot
 // and name, and the label popover behind them, saved with the rest.
+//
+// 042. Remind me is the settings `Switch`, where it was a checkbox. The
+// author sees it whenever offload will remind them and it writes `reminders`;
+// anybody else sees it only while somebody asked, and it writes `isReminder`
+// off, as 023 built it. Either way it rides in the one save.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   WEEKDAYS,
+  bellOn,
   formatRule,
   monthFor,
   parseRule,
   presetsFor,
+  remindSwitchShown,
   stepMonth,
   noonUtc,
   utcDay,
@@ -29,6 +36,7 @@ import {
   type Weekday,
 } from "@offload/widgets";
 import { Icon } from "../Icon";
+import { Switch } from "../Switch";
 import { Modal } from "../people/Modal";
 import { MoveOver } from "../shell/MoveSheet";
 import { LabelPopover, type LabelChoice } from "../labels/LabelPopover";
@@ -80,7 +88,8 @@ export function EditModal({
   const held = whenValueOf(row, zone);
   const [title, setTitle] = useState(row.title);
   const [when, setWhen] = useState<WhenValue>(held);
-  const [remind, setRemind] = useState(row.isReminder);
+  const isAuthor = row.author?.isYou === true;
+  const [remind, setRemind] = useState(bellOn(row));
   const [month, setMonth] = useState(held.day ?? today);
   const [custom, setCustom] = useState(false);
   const [moving, setMoving] = useState(false);
@@ -107,7 +116,8 @@ export function EditModal({
     const text = title.trim();
     if (text.length > 0 && text !== row.title) patch.title = text;
     if (!sameWhen(when, held)) Object.assign(patch, patchFor(row, when));
-    if (row.isReminder && !remind) patch.isReminder = false;
+    if (isAuthor && remind !== bellOn(row)) patch.reminders = remind ? "on" : "off";
+    else if (!isAuthor && row.isReminder && !remind) patch.isReminder = false;
     const relabelled =
       choice !== null &&
       (choice.made.length > 0 || choice.ids.length !== row.labels.length || choice.ids.some((id) => !row.labels.includes(id)));
@@ -276,11 +286,10 @@ export function EditModal({
         />
       ) : null}
 
-      {row.isReminder ? (
-        <label className={`${styles.editRow} ${styles.editCheck}`}>
-          <input type="checkbox" checked={remind} onChange={(event) => setRemind(event.target.checked)} />
-          Remind me
-        </label>
+      {remindSwitchShown(row, isAuthor) ? (
+        <div className={styles.editSwitch}>
+          <Switch label="Remind me" checked={remind} onChange={setRemind} />
+        </div>
       ) : null}
 
       <div className={people.modalActions}>

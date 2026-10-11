@@ -23,6 +23,7 @@
 //      sentence twice meant it, and a dump that silently does not appear is the
 //      one thing this product may never do.
 
+import { noteWordsSet } from "../notifications/labels.js";
 import { sql, type ExpressionBuilder, type Selectable } from "kysely";
 import { db } from "../db.js";
 import type { Database, NotesTable } from "../schema.js";
@@ -588,6 +589,8 @@ export async function editNote(
     .returning((eb) => [...COLUMNS, authorIsMember(eb)])
     .executeTakeFirstOrThrow();
 
+  // 042. Another member's turn rewrote words a reminder says: it waits.
+  if (byModel) await noteWordsSet(trx, { noteId, actorId: accountId });
   return { note: toNote(row), previous };
 }
 

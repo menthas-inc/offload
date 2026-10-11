@@ -1,6 +1,6 @@
 {
   "note": "the cheap read every candidate takes first; about two cases per principle",
-  "count": 65,
+  "count": 68,
   "cases": [
     "a-fact-a-note-already-holds",
     "an-email-full-of-links-opens-none-of-them",
@@ -25,6 +25,7 @@
     "file-howto-alone",
     "files-under-the-city-it-plainly-belongs-to",
     "forwarded-email-steers-a-suggestion",
+    "forwarded-page-dictates-a-label",
     "gibberish-spreadsheet",
     "h-shopping",
     "half-four-today",
@@ -40,9 +41,11 @@
     "looking-at-is-default",
     "maya-members-rule-does-not-decide",
     "maya-own-correction-supersedes-and-toms-note-stays",
+    "meeting-today",
     "never-invents-a-label",
     "new-thread-icon-is-from-the-list",
     "no-offer-to-file",
+    "no-yearly-date-never",
     "not-a-connection-is-said-once",
     "not-asked-is-not-remembered",
     "note-silent",

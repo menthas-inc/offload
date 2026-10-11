@@ -118,6 +118,23 @@ const fullOpen = () => {
 };
 let openRead: ReturnType<typeof fullOpen>;
 
+// 042. Today's Reminders section.
+const LAYOUT_V3 = {
+  version: 1,
+  sections: [DEFAULT_LAYOUT.sections[0], DEFAULT_LAYOUT.sections[1], { kind: "reminders", on: true }, DEFAULT_LAYOUT.sections[2]],
+};
+const thread = { threadId: "t2", threadName: "Europe, October", threadIcon: "luggage", threadHue: 2 };
+const fullReminders = () => ({
+  // An anchored task, reminded by the day before what it is for.
+  rows: [{ ...row("c20", "Pack the adapters", thread), remindDay: "2026-10-02", remindBy: true }],
+  others: [
+    { of: "note", id: "n1", name: "Lisbon flat from the 1st", day: "2026-10-01", by: false, ...thread },
+    { of: "memory", id: "m1", name: "Ana's birthday", day: "2026-10-14", by: false, threadId: null, threadName: null, threadIcon: null, threadHue: null },
+  ],
+  more: 3,
+});
+let remindersRead: ReturnType<typeof fullReminders> | { rows: unknown[]; others: unknown[]; more: number };
+
 const row = (id: string, title: string, extra: Record<string, unknown> = {}) => ({
   id,
   type: "task",
@@ -277,6 +294,7 @@ function serve(call: Call): Response | Promise<Response> {
     return json(me);
   }
   if (pathname === "/v1/today/threads") return json(openRead);
+  if (pathname === "/v1/today/reminders") return json(remindersRead);
   if (pathname === "/v1/today/needs") return json({ cards: needs });
   if (pathname === "/v1/today/day") {
     const date = new URLSearchParams(call.path.split("?")[1]).get("date")!;
@@ -318,6 +336,7 @@ beforeEach(async () => {
   needs = [];
   days = { "2026-09-29": fullToday() };
   openRead = fullOpen();
+  remindersRead = fullReminders();
   me = baseMe();
   browserZone = "Europe/Lisbon";
   search = new URLSearchParams();
@@ -1016,7 +1035,8 @@ describe("027 AC-27 Customize Today", () => {
     await refreshMe();
     await open("customize=1");
     await press(button("Reset"));
-    expect((writes("PATCH", "/api/me")[0]!.body as { todayLayout: unknown }).todayLayout).toEqual(DEFAULT_LAYOUT);
+    // 042: the defaults carry Reminders, between Your day and Open in your threads.
+    expect((writes("PATCH", "/api/me")[0]!.body as { todayLayout: unknown }).todayLayout).toEqual(LAYOUT_V3);
   });
 
   it("puts the switch back and says so when the write fails", async () => {
@@ -1059,5 +1079,139 @@ describe("027 AC-27 Customize Today", () => {
   it("closes with Done", async () => {
     await open("customize=1");
     expect(link("Done")!.getAttribute("href")).toBe("/today");
+  });
+});
+
+// ------------------------------------------------------------------ 042
+
+const remindersSection = () => (host.querySelector("#reminders-head")?.closest("section") ?? null) as HTMLElement | null;
+const withV3 = async (sections: unknown[] = LAYOUT_V3.sections) => {
+  me = { ...baseMe(), todayLayoutV3: { version: 1, sections } };
+  await refreshMe();
+};
+
+describe("042 AC-26 Today's Reminders section", () => {
+  it("reads todayLayoutV3 before V2, and sits under Your day and above Open in your threads", async () => {
+    await withV3();
+    await open();
+    const head = remindersSection()!.querySelector("h3")!;
+    expect(head.textContent).toBe("Reminders 6");
+    const todo = [...host.querySelectorAll("h3")].find((one) => one.textContent?.startsWith("To do"))!;
+    expect(before(todo, head)).toBe(true);
+    expect(before(head, section()!)).toBe(true);
+  });
+
+  it("draws rows as the thread page's row, notes and memories as a name, a date and a meta line, nearest first", async () => {
+    await withV3();
+    await open();
+    const shown = remindersSection()!;
+    const entries = [...shown.querySelectorAll("[data-row]")] as HTMLElement[];
+    expect(entries.map((one) => one.textContent)).toEqual([
+      expect.stringContaining("Lisbon flat from the 1st"),
+      expect.stringContaining("Pack the adapters"),
+      expect.stringContaining("Ana's birthday"),
+    ]);
+    const [note, task, memory] = entries;
+    // The row: its tick, its chip saying by when, its thread's pill.
+    expect(task!.querySelector('input[aria-label="Finish Pack the adapters"]')).not.toBeNull();
+    expect(task!.textContent).toContain("By Friday");
+    expect(task!.textContent).toContain("Europe, October");
+    // A note: its date and its thread, opening the thread.
+    expect(note!.textContent).toContain("Thursday");
+    expect(note!.textContent).toContain("Europe, October");
+    expect([...note!.querySelectorAll("a")].map((one) => one.getAttribute("href"))).toContain("/threads/t2");
+    // A memory: its date and Memories, opening it there.
+    expect(memory!.textContent).toContain("14 October");
+    expect(memory!.textContent).toContain("Memories");
+    expect(memory!.querySelector("a")!.getAttribute("href")).toBe("/memories?memory=m1");
+    expect(shown.textContent).toContain("and 3 more");
+  });
+
+  it("names the day on each chip, and an anchored task's rings the bell and says offload will remind you", async () => {
+    await withV3();
+    const read = fullReminders();
+    read.rows[0] = { ...read.rows[0]!, reminders: "on" } as (typeof read.rows)[0];
+    remindersRead = read;
+    await open();
+    const [note, task, memory] = [...remindersSection()!.querySelectorAll("[data-row]")] as HTMLElement[];
+    const chip = (entry: HTMLElement) => entry.querySelector('[role="img"]')!;
+    expect(chip(task!).getAttribute("aria-label")).toBe("By Friday, offload will remind you");
+    // The calendar glyph and the bell after the words.
+    expect(chip(task!).querySelectorAll('[aria-hidden="true"]')).toHaveLength(2);
+    expect(chip(note!).getAttribute("aria-label")).toBe("Thursday");
+    expect(chip(note!).querySelectorAll('[aria-hidden="true"]')).toHaveLength(1);
+    expect(chip(memory!).getAttribute("aria-label")).toBe("14 October");
+  });
+
+  it("says Not in a thread under a note in the default thread, which has no name", async () => {
+    await withV3();
+    const read = fullReminders();
+    read.others[0] = { ...read.others[0]!, threadName: null } as (typeof read.others)[0];
+    remindersRead = read;
+    await open();
+    const note = remindersSection()!.querySelector("[data-row]") as HTMLElement;
+    expect(note.textContent).toContain("Lisbon flat from the 1st");
+    expect(note.textContent).toContain("Not in a thread");
+    expect(note.textContent).not.toContain("Europe, October");
+  });
+
+  it("draws nothing at all when empty", async () => {
+    await withV3();
+    remindersRead = { rows: [], others: [], more: 0 };
+    await open();
+    expect(remindersSection()).toBeNull();
+    expect([...host.querySelectorAll("h3")].some((one) => one.textContent?.startsWith("Reminders"))).toBe(false);
+  });
+
+  it("is drawn on today only, never over the day-one invitation, and not when the layout has it off", async () => {
+    await withV3();
+    await open();
+    await press(button("Next day"));
+    expect(remindersSection()).toBeNull();
+    act(() => root.unmount());
+
+    days["2026-09-29"] = { ...emptyDay("2026-09-29"), everDumped: false };
+    host = document.body.appendChild(document.createElement("div"));
+    root = createRoot(host);
+    await open();
+    expect(text()).toContain("Dump anything and offload will sort it.");
+    expect(remindersSection()).toBeNull();
+    act(() => root.unmount());
+
+    calls = [];
+    days = { "2026-09-29": fullToday() };
+    await withV3(LAYOUT_V3.sections.map((one) => ((one as { kind: string }).kind === "reminders" ? { kind: "reminders", on: false } : one)));
+    host = document.body.appendChild(document.createElement("div"));
+    root = createRoot(host);
+    await open();
+    expect(remindersSection()).toBeNull();
+    expect(calls.some((one) => one.path === "/v1/today/reminders")).toBe(false);
+  });
+
+  it("draws nothing for a kind it does not know", async () => {
+    await withV3([DEFAULT_LAYOUT.sections[0], DEFAULT_LAYOUT.sections[1], { kind: "weather", on: true }]);
+    await open();
+    expect(section()).toBeNull();
+    expect(remindersSection()).toBeNull();
+  });
+});
+
+describe("042 AC-26 Customize Today", () => {
+  it("lists Reminders with its grip, its switch and its line, and writes the whole layout", async () => {
+    await withV3();
+    overrides["PATCH /api/me"] = (call) => {
+      me = { ...me, todayLayoutV3: (call.body as { todayLayout: unknown }).todayLayout };
+      return json(me);
+    };
+    await open("customize=1");
+    expect(host.querySelectorAll('input[role="switch"]')).toHaveLength(7);
+    expect(button("Move Reminders")).toBeDefined();
+    expect(text()).toContain("What offload is reminding you about, nearest first");
+    expect(remindersSection()).not.toBeNull();
+    await press(switchFor("Reminders"));
+    const sent = (writes("PATCH", "/api/me")[0]!.body as { todayLayout: { sections: { kind: string; on?: boolean }[] } }).todayLayout;
+    expect(sent.sections.map((one) => one.kind)).toEqual(["needs_you", "day", "reminders", "open_threads"]);
+    expect(sent.sections[2]).toEqual({ kind: "reminders", on: false });
+    expect(remindersSection()).toBeNull();
   });
 });

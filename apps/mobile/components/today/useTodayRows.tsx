@@ -25,12 +25,15 @@ import { perform, useWrites } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
 import { useColors } from "../../lib/colors";
 import { drawnWhen } from "../../lib/when";
+import { drawnRemind, undoPatch } from "../../lib/reminders";
 import type { Day, TodayRow } from "../../lib/today";
 import { openThreadLabel, threadHref } from "../../lib/loose";
 
 export interface RowOptions {
   border: boolean;
   chip: "date" | "time" | "none";
+  /** 042. The day an undated task is reminded against, as its chip. */
+  by?: string | undefined;
 }
 
 export function useTodayRows(
@@ -39,7 +42,7 @@ export function useTodayRows(
   toast: ToastState,
 ): {
   /** The row as drawn: with what the screen has drawn ahead of the server. */
-  live: (rows: TodayRow[]) => TodayRow[];
+  live: <T extends TodayRow>(rows: T[]) => T[];
   row: (row: TodayRow, options: RowOptions) => ReactNode;
   /** The row sheet, for a row drawn somewhere else on Today. */
   open: (row: TodayRow) => void;
@@ -145,13 +148,15 @@ export function useTodayRows(
     const next: Partial<ContentRow> = {};
     if (patch.title !== undefined) next.title = patch.title;
     if (patch.body !== undefined) next.body = patch.body;
-    if (patch.isReminder !== undefined) next.isReminder = patch.isReminder;
+    // 042. The switch's part: a stop draws isReminder off with it.
+    Object.assign(next, drawnRemind(patch));
     if (patch.labels !== undefined) next.labels = patch.labels;
     Object.assign(next, drawnWhen(patch, zone));
     const before: Partial<ContentRow> = {
       title: row.title,
       body: row.body,
       isReminder: row.isReminder,
+      reminders: row.reminders,
       dueAt: row.dueAt,
       occursAt: row.occursAt,
       occursEndAt: row.occursEndAt,
@@ -169,7 +174,7 @@ export function useTodayRows(
           const result = await editContent(row.id, fields);
           return result ? result.previous : null;
         },
-        undo: (previous) => previous,
+        undo: (previous) => undoPatch(previous),
         drop: (id) => deleteLabel(id),
       },
       patch,
@@ -206,8 +211,8 @@ export function useTodayRows(
       ]
     : [];
 
-  const live = (rows: TodayRow[]) =>
-    rows.filter((row) => !dropped.has(row.id)).map((row) => ({ ...row, ...(drawn.get(row.id) ?? {}) }) as TodayRow);
+  const live = <T extends TodayRow>(rows: T[]): T[] =>
+    rows.filter((row) => !dropped.has(row.id)).map((row) => ({ ...row, ...(drawn.get(row.id) ?? {}) }) as T);
 
   const row = (item: TodayRow, options: RowOptions) => (
     <ContentRowView
@@ -215,6 +220,7 @@ export function useTodayRows(
       row={item}
       border={options.border}
       chip={options.chip}
+      by={options.by}
       ground={COLOR.fill}
       dense
       thread={{ id: item.threadId, name: item.threadName, icon: item.threadIcon, hue: item.threadHue }}

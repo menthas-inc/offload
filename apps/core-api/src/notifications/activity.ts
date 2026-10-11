@@ -46,6 +46,9 @@ export interface ActivityRow {
   /** Whose words the row carries and from which thread, beyond the one pair
    *  the columns hold: a digest names rows across threads and members. */
   mentions?: { threadId: string; aboutAccountId: string }[];
+  /** 042. The memories whose words the row carries, so forgetting one takes
+   *  the row with it. */
+  memories?: string[];
 }
 
 /** Write one row, inside the caller's transaction where there is one. The
@@ -70,6 +73,12 @@ export async function record(accountId: string, row: ActivityRow, trx: Executor 
     })
     .returning("id")
     .executeTakeFirstOrThrow();
+  if (row.memories && row.memories.length > 0) {
+    await trx
+      .insertInto("activity_memories")
+      .values([...new Set(row.memories)].map((noteId) => ({ activity_id: inserted.id, note_id: noteId })))
+      .execute();
+  }
   const pairs = new Map((row.mentions ?? []).map((one) => [`${one.threadId}:${one.aboutAccountId}`, one]));
   if (pairs.size > 0) {
     await trx

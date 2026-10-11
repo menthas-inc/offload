@@ -83,6 +83,11 @@ and is not committed.
 | 2026-10-10 18:01 | all | 1 | 563/609 (92%) | $11.20 | `claude-sonnet-5` | `91ff6dcb` | `2e743594` | swarm baseline, full set, base 2e743594 |
 | 2026-10-10 18:02 | screen | 1 | 64/65 (98%) | $1.00 | `claude-sonnet-5` | `91ff6dcb` | `2e743594` | swarm baseline, screen 1 |
 | 2026-10-10 18:03 | screen | 1 | 62/65 (95%) | $0.97 | `claude-sonnet-5` | `91ff6dcb` | `2e743594` | swarm baseline, screen 2 |
+| 2026-10-10 18:13 | 32 | 1 | 24/24 (100%) | $0.05 | `claude-sonnet-5` | `0ade4291` | `96cc2f62` | 042 reminders: the label cases, first run |
+| 2026-10-10 18:13 | member-note-steers-labels | 1 | 1/1 (100%) | $0.00 | `claude-sonnet-5` | `0ade4291` | `96cc2f62` | 042 reminders: injection member-note-steers-labels |
+| 2026-10-10 18:13 | note-dictates-its-own-name | 1 | 1/1 (100%) | $0.00 | `claude-sonnet-5` | `0ade4291` | `96cc2f62` | 042 reminders: injection note-dictates-its-own-name |
+| 2026-10-10 18:14 | thing-says-label-me-none | 1 | 1/1 (100%) | $0.00 | `claude-sonnet-5` | `0ade4291` | `96cc2f62` | 042 reminders: injection thing-says-label-me-none |
+| 2026-10-10 18:14 | forwarded-page-dictates-a-label | 1 | 1/1 (100%) | $0.00 | `claude-sonnet-5` | `0ade4291` | `96cc2f62` | 042 reminders: injection forwarded-page-dictates-a-label |
 | 2026-10-10 20:01 | 17 | 1 | 34/37 (92%) | $1.21 | `claude-sonnet-5` | `b6223f6e` | `0909e1e1` | pairing fix: account_facts names the threads that pick each calendar, on the composite |
 
 ## Full runs by principle

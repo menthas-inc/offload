@@ -13,6 +13,7 @@
     "seed": "node --import tsx --import ./src/preload-env.ts src/seed.ts",
     "seed:admins": "node --import tsx --import ./src/preload-env.ts src/seed-admins.ts",
     "seed:cast": "node --import tsx --import ./src/preload-env.ts src/seed-cast.ts",
+    "seed:store-demo": "node --import tsx --import ./src/preload-env.ts src/seed-store-demo.ts",
     "agent:role": "node --import tsx --import ./src/preload-env.ts src/agent-role.ts"
   },
   "dependencies": {

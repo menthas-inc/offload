@@ -23,7 +23,7 @@ import { sql } from "kysely";
 import { db } from "../db.js";
 import { emit } from "../analytics.js";
 import { passThreadKeyOn } from "../blobs/keys.js";
-import { open, seal } from "../connectors/vault.js";
+import { openOrNull, seal } from "../connectors/vault.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { codeAttemptHmac } from "../admin/review-codes.js";
 import { attemptHmac } from "../routes/waitlist.js";
@@ -75,8 +75,11 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
       .execute();
     for (const grant of grants) {
       const token = grant.refresh
-        ? open(Buffer.from(grant.refresh), grant.id, "refresh_token")
-        : open(Buffer.from(grant.access), grant.id, "access_token");
+        ? openOrNull(Buffer.from(grant.refresh), grant.id, "refresh_token")
+        : openOrNull(Buffer.from(grant.access), grant.id, "access_token");
+      // One sealed under a key no longer held cannot be handed back, and is
+      // never a reason for the account to stay.
+      if (token === null) continue;
       const id = uuidv7();
       await trx
         .insertInto("pending_revocations")

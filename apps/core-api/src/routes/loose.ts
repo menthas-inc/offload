@@ -206,7 +206,7 @@ export async function looseRoutes(app: App): Promise<void> {
       if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
       return refusing(reply, async () => {
         const moved = await db.transaction().execute((trx) => moveNoteIn(trx, accountId, request.params.id, request.body.threadId));
-        const [note] = await withNoteLabels([moved.note]);
+        const [note] = await withNoteLabels([moved.note], db, accountId);
         return reply.send({ note: note!, previous: moved.previous });
       });
     }

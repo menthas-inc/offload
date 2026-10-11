@@ -19,6 +19,11 @@
 // say what each is for, each hour sits indented under the switch it belongs
 // to with the hour in a small raised pill, and On this phone says first
 // whether this phone allows them at all.
+//
+// 042: Reminders between Dates and People, a switch and How many as three
+// tiles that grey with it. Reminders ride in both sends, so each hour greys
+// only when both switches that use it are off. Its Android channel carries
+// only a reminder of its own, and is mirrored into the switch as the others.
 
 import { useCallback, useState } from "react";
 import { Linking, Platform, Pressable, Text, View } from "react-native";
@@ -28,21 +33,24 @@ import Constants from "expo-constants";
 import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Group, Row, Sections, useRowEdge } from "./Rows";
 import { Switch } from "./Switch";
+import { ChoiceTiles, CountPreview } from "./ChoiceTiles";
+import { DATES_CAPTION, REMINDER_COUNT_DEFAULT, REMINDER_COUNTS, REMINDERS_LINE, hoursOn } from "@offload/widgets";
 import { setNotify, useMe, type Me } from "../../lib/me";
 import { clockLabel } from "../../lib/when";
 import { CHANNELS, register } from "../../lib/notifications";
 
 const isAndroid = Platform.OS === "android";
 
-type Switches = "notifyDueToday" | "notifyComingTomorrow" | "notifyPeopleRequests" | "notifySharedActivity";
+type Switches = "notifyDueToday" | "notifyComingTomorrow" | "notifyPeopleRequests" | "notifySharedActivity" | "notifyReminders";
 type Hours = "notifyDueTodayAt" | "notifyComingTomorrowAt";
-type Patch = Partial<Pick<Me, Switches | Hours>>;
+type Patch = Partial<Pick<Me, Switches | Hours | "notifyReminderCount">>;
 
 const CHANNEL_OF: Record<Switches, string> = {
   notifyDueToday: "due_today",
   notifyComingTomorrow: "coming_tomorrow",
   notifyPeopleRequests: "people_requests",
   notifySharedActivity: "shared_activity",
+  notifyReminders: "reminders",
 };
 
 function dateOf(hour: string): Date {
@@ -179,6 +187,14 @@ export function NotificationsPage() {
     />
   );
 
+  const hours = hoursOn({
+    notifyDueToday: value("notifyDueToday") === true,
+    notifyComingTomorrow: value("notifyComingTomorrow") === true,
+    notifyReminders: value("notifyReminders") === true,
+  });
+  const remindersOn = value("notifyReminders") === true && !blocked.has(CHANNEL_OF.notifyReminders);
+  const count = value("notifyReminderCount") ?? REMINDER_COUNT_DEFAULT;
+
   return (
     <>
       {failed ? (
@@ -195,11 +211,28 @@ export function NotificationsPage() {
       ) : null}
 
       <Sections>
-        <Group label="Dates" icon="calendar" caption="What is due, said once a day rather than one by one.">
+        <Group label="Dates" icon="calendar" caption={DATES_CAPTION}>
           {toggle("notifyDueToday", "Due today", "One message each morning.", false, true)}
-          {hourRow("notifyDueTodayAt", "In the morning at", value("notifyDueToday") === true)}
+          {hourRow("notifyDueTodayAt", "In the morning at", hours.morning)}
           {toggle("notifyComingTomorrow", "Tomorrow", "One message each evening.", false, true)}
-          {hourRow("notifyComingTomorrowAt", "In the evening at", value("notifyComingTomorrow") === true)}
+          {hourRow("notifyComingTomorrowAt", "In the evening at", hours.evening)}
+        </Group>
+
+        <Group label="Reminders" icon="bell">
+          {toggle("notifyReminders", "Reminders", REMINDERS_LINE)}
+          <CountRow caption={REMINDER_COUNTS.find((choice) => choice.count === count)?.caption ?? ""} on={remindersOn}>
+            <ChoiceTiles
+              label="How many"
+              options={REMINDER_COUNTS.map((choice) => ({
+                value: String(choice.count),
+                label: choice.label,
+                preview: <CountPreview count={choice.count} />,
+              }))}
+              value={String(count)}
+              onChange={(next) => void write({ notifyReminderCount: Number(next) as 1 | 2 | 3 })}
+              disabled={!remindersOn}
+            />
+          </CountRow>
         </Group>
 
         <Group label="People" icon="users" caption="When someone reaches for you.">
@@ -274,6 +307,25 @@ function SwitchRow({
           {note}
         </Text>
       ) : null}
+    </View>
+  );
+}
+
+/** 042. How many, under the Reminders switch: its name, the tiles, and the
+ *  caption that follows the pick. The last row. Greyed with the switch as
+ *  an hour is, by a fade on the whole row, so the page greys one way. */
+function CountRow({ caption, on, children }: { caption: string; on: boolean; children: React.ReactNode }) {
+  const edge = useRowEdge(true);
+  const quiet = isAndroid ? "text-a-on-var" : "text-text-secondary";
+  return (
+    <View className={`gap-space-3 pb-space-4 pt-space-2 ${on ? "" : "opacity-60"} ${edge}`}>
+      <Text className={`font-core ${quiet}`} style={{ fontSize: 14.5 }}>
+        How many
+      </Text>
+      {children}
+      <Text className={`font-core ${quiet}`} style={{ fontSize: 12.5, lineHeight: 17.5 }}>
+        {caption}
+      </Text>
     </View>
   );
 }

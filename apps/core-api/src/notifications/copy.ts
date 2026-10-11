@@ -43,6 +43,17 @@ export interface DigestRow {
 
 export type Send = "morning" | "evening";
 
+/** 042. A month out or a week out, as a send's Coming up names it: always the
+ *  recipient's own, so never possessive. `by` for a deadline and a task that
+ *  belongs to another thing; every other kind is on its day. */
+export interface ComingRow {
+  id: string;
+  name: string;
+  /** The day it is about, `YYYY-MM-DD` in the account's zone. */
+  day: string;
+  by: boolean;
+}
+
 export interface Copy {
   title: string;
   body: string | null;
@@ -65,7 +76,9 @@ const CONTROL = new RegExp("[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]+", "g
 /** One line, control characters stripped, and no bound: for a whole
  *  notification's words, which its own column bounds. */
 export function oneLine(text: string): string {
-  return text.replace(CONTROL, " ").replace(/\s+/g, " ").trim();
+  // 042. Format characters too: a bidi override or a zero-width mark in a
+  // name would make a lock screen say something its words do not.
+  return text.replace(/\p{Cf}/gu, "").replace(CONTROL, " ").replace(/\s+/g, " ").trim();
 }
 
 /** One line, control characters stripped, 120 characters. */
@@ -152,13 +165,54 @@ function fromOf(overdue: DigestRow[], today: string, locale: string): string {
 }
 
 /** The title, in counts: "Three today", "Five still open", "One today, three
- *  from yesterday", "Two tomorrow". Never a person's words, 024's rule for a
- *  digest title. 2026-09-30. */
-function titleOf(send: Send, rows: DigestRow[], overdue: DigestRow[], today: string, locale: string): string {
+ *  from yesterday", "Two tomorrow", and since 042 "two coming up" after them.
+ *  Never a person's words, 024's rule for a digest title. 2026-09-30. */
+function titleOf(send: Send, rows: DigestRow[], overdue: DigestRow[], today: string, locale: string, coming = 0): string {
   const due = rows.length > 0 ? `${count(rows.length)} ${send === "morning" ? "today" : "tomorrow"}` : "";
-  if (overdue.length === 0) return capital(due);
-  if (!due) return `${capital(count(overdue.length))} still open`;
-  return `${capital(due)}, ${count(overdue.length)} from ${fromOf(overdue, today, locale)}`;
+  const ahead = coming > 0 ? `${count(coming)} coming up` : "";
+  let title: string;
+  if (overdue.length === 0) title = due;
+  else if (!due) title = `${count(overdue.length)} still open`;
+  else title = `${due}, ${count(overdue.length)} from ${fromOf(overdue, today, locale)}`;
+  return capital([title, ahead].filter(Boolean).join(", "));
+}
+
+/** 042. No dash reaches a reminder: a name is a person's words, and a dash in
+ *  one would be the one offload wrote. */
+function withoutDashes(text: string): string {
+  return text.replace(/\s*[\u2012\u2013\u2014\u2015]\s*/g, ", ").replace(/^, |, $/g, "");
+}
+
+/** A name a reminder carries: one line, 120, no dashes. */
+export function reminderName(name: string): string {
+  return clamp(withoutDashes(oneLine(name)));
+}
+
+/** 042. When a coming day is: "tomorrow", its weekday within the week, its
+ *  day and month further out. */
+function comingWhen(row: ComingRow, today: string, locale: string): string {
+  const days = Math.round((noonUtc(row.day).getTime() - noonUtc(today).getTime()) / 86_400_000);
+  const word = row.by ? "by" : "on";
+  if (days === 1) return row.by ? "by tomorrow" : "tomorrow";
+  if (days > 1 && days < 7) return `${word} ${weekdayOf(row.day, locale)}`;
+  const dayMonth = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : locale, { day: "numeric", month: "long", timeZone: "UTC" }).format(noonUtc(row.day));
+  return `${word} ${dayMonth}`;
+}
+
+/** 042. Cut at a word, ending as a sentence: a lock screen shows little, and
+ *  what is due comes first so it is what survives. */
+export function cutAtWord(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const head = text.slice(0, max - 1);
+  const at = head.lastIndexOf(" ");
+  return `${(at > 0 ? head.slice(0, at) : head).replace(/[\s,.:;]+$/, "")}.`;
+}
+
+/** 042. A reminder of its own: when in the title, never a person's words,
+ *  and what and when in the body. */
+export function ownCopy(name: string, at: Date, minutes: number, zone: string | null): { title: string; body: string } {
+  const title = minutes === 0 ? "Now" : minutes === 60 ? "In an hour" : `In ${minutes} minutes`;
+  return { title, body: `${capital(reminderName(name))} at ${hourOf(at.toISOString(), zone)}.` };
 }
 
 /** A digest's title and body. `rows` are what lands in the send's day;
@@ -172,6 +226,7 @@ export function digestCopy(
   zone: string | null,
   today: string,
   locale = "en",
+  ahead: ComingRow[] = [],
 ): { title: string; body: string } {
   const coming = rows.filter((row) => row.repeating && !row.daily);
   const seen = new Map<string, number>();
@@ -198,7 +253,13 @@ export function digestCopy(
         ? `${capital(count(late.hidden))} more.`
         : "";
   if (open) sentences.push(sentences.length > 0 ? `Still open: ${open}` : open);
-  return { title: titleOf(send, rows, overdue, today, locale), body: sentences.join(" ") };
+  // 042. What is coming, after what is due and what is still open.
+  const next = listOf(
+    ahead.map((row) => `${reminderName(row.name)} ${comingWhen(row, today, locale)}`),
+    0,
+  );
+  if (next) sentences.push(sentences.length > 0 ? `Coming up: ${next}` : capital(next));
+  return { title: titleOf(send, rows, overdue, today, locale, ahead.length), body: sentences.join(" ") };
 }
 
 /** The title of a digest that was suppressed by its switch. */

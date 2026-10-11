@@ -64,6 +64,7 @@ import {
 import { perform, useWrites, type Reversible } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
 import { drawnWhen } from "../../lib/when";
+import { drawnRemind, undoPatch } from "../../lib/reminders";
 
 /** 028's failures say Try again. */
 const RETRY = "Try again";
@@ -217,11 +218,13 @@ export function useLooseRows(
     const key = `c:${row.id}`;
     const next: Partial<ContentRow> = {};
     if (fields.title !== undefined) next.title = fields.title;
-    if (fields.isReminder !== undefined) next.isReminder = fields.isReminder;
+    // 042. The switch's part: a stop draws isReminder off with it.
+    Object.assign(next, drawnRemind(fields));
     Object.assign(next, drawnWhen(fields, zone));
     const before: Partial<ContentRow> = {
       title: row.title,
       isReminder: row.isReminder,
+      reminders: row.reminders,
       dueAt: row.dueAt,
       occursAt: row.occursAt,
       occursEndAt: row.occursEndAt,
@@ -237,7 +240,7 @@ export function useLooseRows(
           previous = (await editContent(row.id, fields))?.previous ?? null;
           return previous !== null;
         },
-        unwrite: async () => (previous ? (await editContent(row.id, previous)) !== null : false),
+        unwrite: async () => (previous ? (await editContent(row.id, undoPatch(previous))) !== null : false),
         did: "Saved",
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",

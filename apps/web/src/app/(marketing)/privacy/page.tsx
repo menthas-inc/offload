@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     "What offload collects, why, who else handles it, how long it is kept and how to get rid of it. Plus a short version at the top.",
 };
 
-const UPDATED = "7 October 2026";
+const UPDATED = "10 October 2026";
 
 const MAIL = <a href="mailto:hello@offload.club">hello@offload.club</a>;
 
@@ -142,6 +142,10 @@ export default function Privacy() {
               details it pulls out.
             </li>
             <li>
+              For anything you put in with a date, what kind of date it is and how much notice it
+              needs, which offload works out so it can remind you, and drops when the thing goes.
+            </li>
+            <li>
               Transcripts of voice notes, and descriptions of what photos, screenshots and PDFs
               show, including any words in them. The text of a PDF itself is not kept.
             </li>
@@ -187,7 +191,10 @@ export default function Privacy() {
               Records of what each request did, how long it took and what it cost, including each
               call to an AI model. These are built to hold no content.
             </li>
-            <li>Product events, such as finishing first run, tied to a random identifier rather than to your account.</li>
+            <li>
+              Product events, such as finishing first run, under a random identifier that only we can
+              link back to you, until you delete your account.
+            </li>
             <li>Records of staff access to your account, kept for security.</li>
             <li>
               If you turn notifications on, a token that identifies your phone, and a record of
@@ -201,7 +208,8 @@ export default function Privacy() {
           <ul>
             <li>
               To run offload for you: store, sort, search, answer, look things up, put places on a
-              map, send the notifications you choose, and connect the apps you choose.
+              map, send the notifications you choose, including reminders offload times before the
+              dates that need one, and connect the apps you choose.
             </li>
             <li>To keep accounts secure and stop abuse.</li>
             <li>To find out whether offload works and what it costs, from records that carry no content.</li>
@@ -266,8 +274,9 @@ export default function Privacy() {
             Each processes data only to provide its service to us, under terms that require it to
             protect that data. Two are different. Apple and Google, when you sign in with them, act
             for themselves under their own terms. Google Maps Platform, which draws maps and finds
-            places by name, receives a place&rsquo;s name from us with nothing about who asked,
-            and, while a map is on screen, your IP address and device details from your device. It
+            places by name, receives a place&rsquo;s name from us with nothing about who asked.
+            From your device while a map is on screen, it receives your IP address, device details,
+            an identifier, how the map is used, and on the phones crash and performance reports. It
             acts for itself under its own terms, which allow it to keep that and use it to improve
             its products, and it may recognise you if you are signed in to Google.
           </p>
@@ -454,7 +463,8 @@ export default function Privacy() {
             fault requires it, and Google user data only as section 7 allows. Our staff tools show
             no content, and their use is recorded. Our logs, analytics and monitoring are built to
             carry no content. Notifications are the exception: they carry a few words of what you
-            or a thread member wrote, to your own phone.
+            or a thread member wrote, or of what offload remembers for you, such as a birthday, to
+            your own phone.
           </p>
         </section>
 
@@ -498,7 +508,8 @@ export default function Privacy() {
           <p>
             What people put in can mention you: an event you are invited to, an email you sent that
             someone forwarded, a note with your name in it, or a memory of theirs that says who you
-            are to them. We hold that only as part of their
+            are to them, or when your birthday is, which offload can name in a reminder on their
+            phone. We hold that only as part of their
             account, for the purposes above, and the same retention and security apply. To ask
             about it, write to {MAIL}.
           </p>

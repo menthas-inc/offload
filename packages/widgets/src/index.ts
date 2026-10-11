@@ -397,6 +397,7 @@ export {
   CHANNELS,
   CHANNEL_REQUESTS,
   CHANNEL_SHARED,
+  CHANNEL_REMINDERS,
   DIGEST_CHANNEL,
   PEOPLE_CATEGORY,
   PLAIN_CATEGORY,
@@ -497,3 +498,6 @@ export { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive, leaveAsk, staysWith } fr
 // The composer's latch, both clients (2026-10-07).
 export { staysOpen } from "./composer.js";
 export { holdsLine, inMindLine, keepInPlace, openFor, type PageLike } from "./open-threads.js";
+// 042. Reminders: the bell, the switch, and the words both clients draw.
+export { bellOn, DATES_CAPTION, hoursOn, MEMORY_PARAM, REMINDER_COUNT_DEFAULT, REMINDER_COUNTS, REMINDERS_LINE, remindDayLabel, remindSwitchShown, TODAY_REMINDERS } from "./reminders.js";
+export type { Reminders } from "./reminders.js";

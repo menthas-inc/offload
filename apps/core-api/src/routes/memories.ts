@@ -60,6 +60,8 @@ const memoryView = z.object({
     z.object({ type: z.literal("none") }),
   ]),
   place: z.object({ dx: z.number(), dy: z.number() }).nullable(),
+  /** 042. Remind me on a birthday or an anniversary. */
+  reminders: z.enum(["on", "off"]).nullable(),
 });
 
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });

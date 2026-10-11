@@ -74,7 +74,7 @@ import { ConfirmModal } from "../people/Modal";
 import { useRouter } from "next/navigation";
 import { useClock } from "../../lib/clock";
 import { openPdfSaying } from "../../lib/dump";
-import { drawnWhen } from "../../lib/when";
+import { drawnEdit, undoOf } from "../../lib/row-edit";
 import { FilterBar } from "../labels/FilterBar";
 import { LabelPopover, type LabelChoice } from "../labels/LabelPopover";
 import { LabelList, type ListSave } from "../labels/LabelList";
@@ -360,25 +360,7 @@ export function Thread({ id, onChanged }: Props) {
    *  clock, so the page catches up once the write lands. */
   function edit(row: ContentRow, patch: ContentPatch, made: string[] = []): void {
     if (isProvisional(row.id)) return;
-    const drawn: Partial<ContentRow> = {};
-    if (patch.labels !== undefined) drawn.labels = patch.labels;
-    if (patch.title !== undefined) drawn.title = patch.title;
-    if (patch.body !== undefined) drawn.body = patch.body;
-    if (patch.isReminder !== undefined) drawn.isReminder = patch.isReminder;
-    // The dates too, read in the account's clock exactly as the route reads
-    // them, so the chip moves with the toast.
-    Object.assign(drawn, drawnWhen(patch, zone));
-    const before: Partial<ContentRow> = {
-      title: row.title,
-      body: row.body,
-      isReminder: row.isReminder,
-      dueAt: row.dueAt,
-      occursAt: row.occursAt,
-      occursEndAt: row.occursEndAt,
-      rrule: row.rrule,
-      allDay: row.allDay,
-      labels: row.labels,
-    };
+    const { drawn, before } = drawnEdit(row, patch, zone);
     // 2026-10-07. The edit dialog carries labels too, and any typed there are
     // made first, as the phones' sheet does it.
     const write = withMadeLabels<ContentPatch, ContentSnapshot>(
@@ -395,7 +377,7 @@ export function Thread({ id, onChanged }: Props) {
           }
           return result ? result.previous : null;
         },
-        undo: (previous) => previous,
+        undo: undoOf,
         drop: (labelId) => deleteLabel(labelId),
       },
       patch,

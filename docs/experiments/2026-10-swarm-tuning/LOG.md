@@ -217,3 +217,11 @@ owner's weekly Claude Code allowance, read from the app.
   pairing cases pass. The three left (`h-fact-default`,
   `aside-message-by-meaning`, `maya-kids-counts-both-members-rows`) failed
   at baseline or flip between runs. $1.21. Spend: $61.34 of $70.
+- 20:06 The pairing test passed on the shared database under a hold taken
+  in its own command. Commit `def8043b` on `feat/swarm-tuning-2026-10`
+  through the gate (32 files), pushed, pull request
+  https://github.com/menthas-inc/offload_app/pull/105 opened. The merge
+  worktree keeps the same composite uncommitted.
+- Spend at the end: $61.34 of $70. Harness: about 8.2M subagent tokens over
+  54 agents plus the lead; the weekly allowance went from 59 to about 78
+  percent.

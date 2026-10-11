@@ -15,10 +15,12 @@ const needsYou = z.object({ kind: z.literal("needs_you"), parts: z.array(part).l
 const day = z.object({ kind: z.literal("day"), on: z.boolean() }).strict();
 /** Open in your threads (design 2026-10-07): undated to-dos, a thread a page. */
 const openThreads = z.object({ kind: z.literal("open_threads"), on: z.boolean() }).strict();
-const section = z.discriminatedUnion("kind", [needsYou, day, openThreads]);
+/** 042. Reminders: what offload is reminding you about, nearest first. */
+const reminders = z.object({ kind: z.literal("reminders"), on: z.boolean() }).strict();
+const section = z.discriminatedUnion("kind", [needsYou, day, reminders, openThreads]);
 
 /** The document's shape, for a response; `todayLayout` adds the refusals. */
-export const layoutShape = z.object({ version: z.literal(1), sections: z.array(section).min(1).max(3) }).strict();
+export const layoutShape = z.object({ version: z.literal(1), sections: z.array(section).min(1).max(4) }).strict();
 
 export type TodayLayout = z.infer<typeof layoutShape>;
 type Section = TodayLayout["sections"][number];
@@ -36,6 +38,7 @@ export const todayLayout = layoutShape
 const DEFAULT_SECTIONS: Section[] = [
   { kind: "needs_you", parts: NEEDS_PARTS.map((kind) => ({ kind, on: true })) },
   { kind: "day", on: true },
+  { kind: "reminders", on: true },
   { kind: "open_threads", on: true },
 ];
 
@@ -73,13 +76,25 @@ export function partsOn(layout: TodayLayout): Set<NeedsPart> {
 /** What builds before open_threads read as `todayLayout`: they draw every
  *  section that is not Needs you as the day, so it is never sent to them. */
 export function legacyLayout(layout: TodayLayout): TodayLayout {
-  return { version: 1, sections: layout.sections.filter((one) => one.kind !== "open_threads") };
+  return { version: 1, sections: layout.sections.filter((one) => one.kind !== "open_threads" && one.kind !== "reminders") };
+}
+
+/** 042. What builds that know open_threads but not reminders read as
+ *  `todayLayoutV2`: they too draw an unknown kind as the day. */
+export function layoutV2(layout: TodayLayout): TodayLayout {
+  return { version: 1, sections: layout.sections.filter((one) => one.kind !== "reminders") };
 }
 
 /** Whether open in your threads is switched on. */
 export function openThreadsOn(layout: TodayLayout): boolean {
   const found = layout.sections.find((one) => one.kind === "open_threads");
   return found?.kind === "open_threads" ? found.on : true;
+}
+
+/** 042. Whether Reminders is switched on. */
+export function remindersOn(layout: TodayLayout): boolean {
+  const found = layout.sections.find((one) => one.kind === "reminders");
+  return found?.kind === "reminders" ? found.on : true;
 }
 
 /** Whether the day is switched on. */

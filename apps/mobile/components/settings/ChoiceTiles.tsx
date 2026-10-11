@@ -7,6 +7,10 @@
 //
 // One tap writes, as the segmented control did. A radio group to a screen
 // reader, named by the section heading above it.
+//
+// 042. `disabled` is a set whose switch is off, How many under Reminders: not
+// pressable, and announced as such. The row that holds it greys it, with the
+// fade the hours on that page use.
 
 import { Platform, Pressable, Text, View } from "react-native";
 import { useColors } from "../../lib/colors";
@@ -24,11 +28,13 @@ export function ChoiceTiles({
   options,
   value,
   onChange,
+  disabled = false,
 }: {
   label: string;
   options: Choice[];
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <View className="flex-row" style={{ gap: 10 }} accessibilityRole="radiogroup" accessibilityLabel={label}>
@@ -38,11 +44,16 @@ export function ChoiceTiles({
           <Pressable
             key={option.value}
             onPress={() => onChange(option.value)}
+            disabled={disabled}
             accessibilityRole="radio"
-            accessibilityState={{ checked: on }}
+            accessibilityState={{ checked: on, disabled }}
             accessibilityLabel={option.label}
             className={`flex-1 ${
-              on && isAndroid ? "border-blue-600 bg-surface-attention-soft" : on ? "border-ink-950 bg-surface-raised" : "border-border-lift bg-surface-raised"
+              on && isAndroid
+                ? "border-blue-600 bg-surface-attention-soft"
+                : on
+                  ? "border-ink-950 bg-surface-raised"
+                  : "border-border-lift bg-surface-raised"
             }`}
             style={{ borderRadius: isAndroid ? 18 : 14, borderWidth: on ? 2 : 1, padding: on ? 7 : 8, paddingBottom: on ? 10 : 11, gap: 9 }}
           >
@@ -52,10 +63,15 @@ export function ChoiceTiles({
             </View>
             <View className="flex-row items-center" style={{ gap: 8, paddingHorizontal: 4 }}>
               <View
-                className={`rounded-pill ${on ? (isAndroid ? "border-blue-600" : "border-ink-950") : "border-border-strong"}`}
+                className={`rounded-pill ${
+                  on ? (isAndroid ? "border-blue-600" : "border-ink-950") : "border-border-strong"
+                }`}
                 style={{ width: 18, height: 18, borderWidth: on ? 5.5 : 1.5 }}
               />
-              <Text className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 14 }}>
+              <Text
+                className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+                style={{ fontSize: 14 }}
+              >
                 {option.label}
               </Text>
             </View>
@@ -115,6 +131,24 @@ export function WeekPreview({ start }: { start: "monday" | "sunday" }) {
           </Text>
         </View>
       ))}
+    </View>
+  );
+}
+
+/** 042. How many reminders: a short line ending at a date, with one, two or
+ *  three marks before it. */
+export function CountPreview({ count }: { count: 1 | 2 | 3 }) {
+  const mark = isAndroid ? "bg-a-on-var" : "bg-text-secondary";
+  const date = isAndroid ? "bg-blue-600" : "bg-surface-inverse";
+  return (
+    <View className={`flex-1 justify-center ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`} style={{ paddingHorizontal: 12 }}>
+      <View className="flex-row items-center justify-end" style={{ gap: 12, height: 14 }}>
+        <View className="absolute bg-border-strong" style={{ left: 0, right: 7, height: 2, borderRadius: 1 }} />
+        {Array.from({ length: count }, (_, index) => (
+          <View key={index} className={`rounded-pill ${mark}`} style={{ width: 8, height: 8 }} />
+        ))}
+        <View className={date} style={{ width: 14, height: 14, borderRadius: 4 }} />
+      </View>
     </View>
   );
 }

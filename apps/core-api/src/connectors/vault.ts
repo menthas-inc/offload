@@ -80,6 +80,25 @@ export function open(sealed: Buffer, connectionId: string, field: SecretField): 
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
 }
 
+/** `open`, or null when the value does not open under the key held now.
+ *
+ *  What a rotated `CONNECTOR_VAULT_KEY` leaves behind (2026-10-08): every
+ *  sealed token fails its tag. A token offload cannot read is a grant it no
+ *  longer has, so callers treat it as one: the connection asks to be
+ *  reconnected, a disconnect or an account delete goes ahead without handing
+ *  it back to Google. Throwing instead killed every sync tick, every 15
+ *  minutes, and would have stopped those people deleting their accounts. */
+export function openOrNull(sealed: Buffer, connectionId: string, field: SecretField): string | null {
+  // Outside the catch: a key that is missing or malformed is a broken deploy,
+  // not a grant gone, and must not quietly unplug every calendar.
+  vaultKey();
+  try {
+    return open(sealed, connectionId, field);
+  } catch {
+    return null;
+  }
+}
+
 /** Whether a calendar can be connected at all.
  *
  *  **Unset is a supported state**, the same shape `GOOGLE_MAPS_API_KEY` already

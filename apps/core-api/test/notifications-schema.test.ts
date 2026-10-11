@@ -37,7 +37,8 @@ describe("024 the account's notification columns", () => {
 describe("024 push tokens", () => {
   it("bind a token to one account, in Expo's own shape, on one of the two platforms", async () => {
     const columns = await columnsOf("push_tokens");
-    expect([...columns.keys()].sort()).toEqual(["account_id", "created_at", "id", "last_seen_at", "platform", "token"]);
+    // 042 added whether the phone takes a reminder of its own.
+    expect([...columns.keys()].sort()).toEqual(["account_id", "created_at", "id", "last_seen_at", "platform", "takes_reminders", "token"]);
     const account = await db
       .insertInto("accounts")
       .values({ email: `${crypto.randomUUID()}@example.com`, state: "active", email_verified: true, analytics_subject_id: crypto.randomUUID() } as never)
@@ -60,7 +61,7 @@ describe("024 activity", () => {
   it("holds a kind from the eight, a reason from the three, and bounded words", async () => {
     const columns = await columnsOf("activity");
     expect([...columns.keys()].sort()).toEqual([
-      "about_account_id", "account_id", "body", "content_id", "id", "kind", "label_run_id", "mail_outcome", "member_id", "message_id", "occurred_at", "reason", "request_id", "send", "sent", "thread_id", "title", "turn_id", "undone_at",
+      "about_account_id", "account_id", "body", "content_id", "id", "kind", "label_run_id", "mail_outcome", "member_id", "message_id", "note_id", "occurred_at", "reason", "request_id", "send", "sent", "thread_id", "title", "turn_id", "undone_at",
     ]);
     const account = await db
       .insertInto("accounts")

@@ -11,16 +11,23 @@
 // it, so nobody goes back and forth between layers; each hands its value back
 // on Done and Save below still writes once. The details field went the same
 // day: offload is for short things, and what is stored there is left as it is.
+//
+// 042. Remind me is drawn to the author whenever offload will remind them, and
+// to anybody else while somebody asked, by the shared rule. The author's
+// switch writes `reminders`, which stops every reminder for good; anybody
+// else's writes 023's `isReminder` alone. Either is folded into the one Save.
 
 import { useCallback, useRef, useState } from "react";
 import { Keyboard, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glyph } from "../Glyph";
 import { Switch } from "../settings/Switch";
+import { remindSwitchShown } from "@offload/widgets";
 import { useColors } from "../../lib/colors";
 import { useClock } from "../../lib/clock";
 import type { ContentPatch, ContentRow } from "../../lib/threads";
 import { patchFor, repeatsLabel, sameWhen, whenLabel, whenValueOf, type WhenValue } from "../../lib/when";
+import { remindOf, remindWrite } from "../../lib/reminders";
 import { DragSheet } from "./DragSheet";
 import { CustomFor, WhenPanel, type CustomAsk } from "./WhenSheet";
 import { LabelPanel, type LabelChoice } from "../labels/LabelSheet";
@@ -53,7 +60,7 @@ export function RowEditSheet({
   const { zone } = useClock();
   const [title, setTitle] = useState(row?.title ?? "");
   const [when, setWhen] = useState<WhenValue>(() => (row ? whenValueOf(row, zone) : { day: null, time: null, endTime: null, rrule: null }));
-  const [remind, setRemind] = useState(row?.isReminder ?? false);
+  const [remind, setRemind] = useState(row ? remindOf(row, row.author.isYou) : false);
   const [picking, setPicking] = useState<"when" | "repeats" | "labels" | null>(null);
   const [choice, setChoice] = useState<LabelChoice | null>(null);
   const [custom, setCustom] = useState<CustomAsk | null>(null);
@@ -73,7 +80,7 @@ export function RowEditSheet({
     const text = title.trim();
     if (text.length > 0 && text !== row.title) patch.title = text;
     if (!sameWhen(when, held)) Object.assign(patch, patchFor(row, when));
-    if (row.isReminder && !remind) patch.isReminder = false;
+    Object.assign(patch, remindWrite(row, row.author.isYou, remind));
     const relabelled =
       choice !== null &&
       (choice.made.length > 0 || choice.ids.length !== row.labels.length || choice.ids.some((id) => !row.labels.includes(id)));
@@ -211,9 +218,9 @@ export function RowEditSheet({
           </Pressable>
         ) : null}
 
-        {/* Remind me, drawn only while the row is a reminder: the way out of
-            one, and nothing a person touches sets it. */}
-        {row.isReminder ? (
+        {/* Remind me: to the author on anything offload reminds about, to
+            anybody else only while somebody asked, and the way out of it. */}
+        {remindSwitchShown(row, row.author.isYou) ? (
           <View className="min-h-tap-min flex-row items-center gap-space-3">
             <Glyph name="bell" size={18} color={COLOR.iconOnWell} />
             <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>

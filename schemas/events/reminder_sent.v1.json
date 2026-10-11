@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/reminder_sent.v1.json",
+  "title": "reminder_sent",
+  "description": "042. Reminders reached the account's phones: in the morning or evening send, or one of its own before a clock time, and how many by window. Never a title, a name, a date or a kind of thing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["via", "long", "short", "day"],
+  "properties": {
+    "via": { "type": "string", "enum": ["morning", "evening", "own"] },
+    "long": { "type": "integer", "minimum": 0 },
+    "short": { "type": "integer", "minimum": 0 },
+    "day": { "type": "integer", "minimum": 0 }
+  }
+}

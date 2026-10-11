@@ -20,6 +20,7 @@
 //   somebody else's return byte-identical bodies. Two reasons would make this
 //   endpoint a membership oracle for any thread id a caller could guess.
 
+import { dateSet } from "../notifications/labels.js";
 import { markFor } from "../threads/icons.js";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
@@ -1704,6 +1705,8 @@ async function existing(
 
   await touchThread(ref.threadId, trx);
   await noteThread(messageId, ref.threadId, true, trx);
+  // 042. The turn is its account's: whose date this is, for its reminders.
+  await dateSet(trx, { contentId: ref.id, actorId: accountId, dated: timed, worded: call.title != null || call.body !== undefined });
 
   // 024. A date the model moved on a row that already had one is recorded,
   // quietly, in this account's Activity, with the two days it moved between.

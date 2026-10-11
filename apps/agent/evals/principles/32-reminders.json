@@ -1,0 +1,715 @@
+{
+  "statement": "The nightly pass labels each dated thing of its member's with what kind of date it is and how much it needs beforehand, and the memory pass dates a birthday or an anniversary they keep, so offload can remind them at the right moments. Things kept for keeping, routines, facts with a date and their own birthday get nothing. A note's name is copied from its own words.",
+  "why": "A table turns the two labels into reminder times, so a wrong label is a reminder at the wrong moment or one that never comes. The owner's examples are the bar: a wife's birthday a month and five days out, a meeting just before, a visa before a trip a month away.",
+  "sources": [
+    "042 AC-1 to AC-5, AC-24",
+    "nightly.md: Reminders",
+    "memory.md: Dates that come round every year",
+    "nightly.py: listing, labels_wire",
+    "memories.py: dates_wire"
+  ],
+  "cases": [
+    {
+      "id": "wife-birthday-weeks",
+      "why": "the owner's example: a partner's birthday needs a present or a plan, so weeks",
+      "surface": "memory",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "messages": [],
+        "memories": [
+          {
+            "id": "k1",
+            "kind": "people",
+            "text": "Their wife is Meera."
+          }
+        ],
+        "to_date": [
+          {
+            "id": "d1",
+            "kind": "people",
+            "text": "Meera's birthday is 14 March."
+          }
+        ]
+      },
+      "expect": {
+        "dates": {
+          "d1": {
+            "on": "03-14",
+            "lead": "weeks"
+          }
+        }
+      }
+    },
+    {
+      "id": "mum-birthday-weeks",
+      "why": "owner, 2026-10-10: a parent's birthday is weeks, like a partner's",
+      "surface": "memory",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "messages": [],
+        "memories": [
+          {
+            "id": "k1",
+            "kind": "people",
+            "text": "They call their mother Maman."
+          }
+        ],
+        "to_date": [
+          {
+            "id": "d1",
+            "kind": "people",
+            "text": "Maman's birthday is 3 June."
+          }
+        ]
+      },
+      "expect": {
+        "dates": {
+          "d1": {
+            "on": "06-03",
+            "lead": "weeks"
+          }
+        }
+      }
+    },
+    {
+      "id": "colleague-birthday-none",
+      "why": "somebody they would only message on the day",
+      "surface": "memory",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "messages": [],
+        "memories": [
+          {
+            "id": "k1",
+            "kind": "people",
+            "text": "Ravi is a colleague at Shopify."
+          }
+        ],
+        "to_date": [
+          {
+            "id": "d1",
+            "kind": "people",
+            "text": "Ravi's birthday is 2 April."
+          }
+        ]
+      },
+      "expect": {
+        "dates": {
+          "d1": {
+            "on": "04-02",
+            "lead": "none"
+          }
+        }
+      }
+    },
+    {
+      "id": "anniversary-weeks",
+      "why": "an anniversary with a partner is planned ahead",
+      "surface": "memory",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "messages": [],
+        "memories": [
+          {
+            "id": "k1",
+            "kind": "people",
+            "text": "Their wife is Meera."
+          }
+        ],
+        "to_date": [
+          {
+            "id": "d1",
+            "kind": "people",
+            "text": "Their anniversary with Meera is 20 June."
+          }
+        ]
+      },
+      "expect": {
+        "dates": {
+          "d1": {
+            "on": "06-20",
+            "lead": "weeks"
+          }
+        }
+      }
+    },
+    {
+      "id": "own-birthday-never",
+      "why": "nobody needs reminding of their own birthday",
+      "surface": "memory",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "messages": [],
+        "memories": [],
+        "to_date": [
+          {
+            "id": "d1",
+            "kind": "about",
+            "text": "Their birthday is 2 May."
+          }
+        ]
+      },
+      "expect": {
+        "no_date": [
+          "d1"
+        ]
+      }
+    },
+    {
+      "id": "no-yearly-date-never",
+      "why": "a memory with no date that comes round is not dated",
+      "surface": "memory",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "messages": [],
+        "memories": [],
+        "to_date": [
+          {
+            "id": "d1",
+            "kind": "about",
+            "text": "They work at Shopify as a designer."
+          },
+          {
+            "id": "d2",
+            "kind": "people",
+            "text": "Their wife is Meera."
+          }
+        ]
+      },
+      "expect": {
+        "no_date": [
+          "d1",
+          "d2"
+        ]
+      }
+    },
+    {
+      "id": "meeting-today",
+      "why": "the owner's example: a call today is a meeting, nothing to prepare",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Work",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "event",
+            "text": "Call with Ana about the launch",
+            "when": "2026-11-02 15:00"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "meeting",
+            "lead": "none"
+          }
+        }
+      }
+    },
+    {
+      "id": "visa-before-the-trip",
+      "why": "the owner's example: an action needed before a trip a month away, with months of official wait",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Lisbon",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "task",
+            "text": "Get the visa for Lisbon"
+          }
+        ],
+        "anchors": [
+          {
+            "of": "note",
+            "text": "We're in Lisbon 12 to 19 December",
+            "when": "2026-12-12"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "deadline",
+            "lead_any": [
+              "weeks",
+              "months"
+            ],
+            "before": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "bill-days",
+      "why": "owner, 2026-10-10: a bill is days, so it is paid before it lands",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Flat admin",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "task",
+            "text": "Pay the electricity bill",
+            "when": "2026-11-15"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "deadline",
+            "lead": "days"
+          }
+        }
+      }
+    },
+    {
+      "id": "dentist-appointment",
+      "why": "somewhere they go at a set time",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Health",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "event",
+            "text": "Dentist",
+            "when": "2026-11-05 15:00"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "appointment",
+            "lead_any": [
+              "none",
+              "days"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "concert-appointment-none",
+      "why": "owner, 2026-10-10: tickets bought, nothing to prepare",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Fun",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "event",
+            "text": "Radiohead concert, tickets bought",
+            "when": "2027-02-10 20:00"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "appointment",
+            "lead": "none"
+          }
+        }
+      }
+    },
+    {
+      "id": "passport-months",
+      "why": "a long official wait",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Admin",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "task",
+            "text": "Renew the passport before it expires",
+            "when": "2027-01-20"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "deadline",
+            "lead": "months"
+          }
+        }
+      }
+    },
+    {
+      "id": "trip-note-named",
+      "why": "a stay recorded as a note is a trip, named from its own words",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Lisbon",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "note",
+            "text": "We're in Lisbon 12 to 19 December",
+            "when": "2026-12-12"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "trip",
+            "lead_any": [
+              "days",
+              "weeks"
+            ],
+            "named": true
+          }
+        }
+      }
+    },
+    {
+      "id": "day-task",
+      "why": "something to do that day and not before",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Flat admin",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "task",
+            "text": "Call the plumber",
+            "when": "2026-11-06"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind_any": [
+              "day",
+              "deadline"
+            ],
+            "lead": "none"
+          }
+        }
+      }
+    },
+    {
+      "id": "gift-weeks",
+      "why": "a present that ships needs weeks",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Christmas",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "task",
+            "text": "Order Sam's present, it ships from Germany",
+            "when": "2026-12-20"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "deadline",
+            "lead": "weeks"
+          }
+        }
+      }
+    },
+    {
+      "id": "wedding-to-attend",
+      "why": "a wedding they go to needs an outfit and a gift",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Ana's wedding",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "event",
+            "text": "Ana and Tom's wedding",
+            "when": "2027-06-12 14:00"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind_any": [
+              "appointment",
+              "occasion"
+            ],
+            "lead_any": [
+              "weeks",
+              "months"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "stated-a-week-before",
+      "why": "what they said counts as evidence for the lead",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Pets",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "task",
+            "text": "Book the vet for Milo, remind me a week before",
+            "when": "2026-11-20"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind_any": [
+              "deadline",
+              "day"
+            ],
+            "lead_any": [
+              "days",
+              "weeks"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "weekly-routine-none",
+      "why": "owner, 2026-10-10: a routine kept without help is none",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Health",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "event",
+            "text": "Yoga",
+            "when": "2026-11-03 19:00",
+            "rrule": "FREQ=WEEKLY;BYDAY=TU"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "none"
+          }
+        }
+      }
+    },
+    {
+      "id": "receipt-none",
+      "why": "something kept for keeping",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Flat admin",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "image",
+            "text": "Receipt from the plumber, 85 euros, paid",
+            "when": "2026-11-02"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "none"
+          }
+        }
+      }
+    },
+    {
+      "id": "warranty-fact-none",
+      "why": "a fact that happens to hold a date asks nothing",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "House",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "file",
+            "text": "Dishwasher warranty, valid until 1 March 2028",
+            "when": "2028-03-01"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "none"
+          }
+        }
+      }
+    },
+    {
+      "id": "photo-kept-none",
+      "why": "a photo kept for keeping",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Car",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "image",
+            "text": "Photo of where the car is parked, level 3",
+            "when": "2026-11-02"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "none"
+          }
+        }
+      }
+    },
+    {
+      "id": "link-kept-none",
+      "why": "a link with a date that asks nothing",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Reading",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "link",
+            "text": "Article on sourdough starters, published 1 November",
+            "when": "2026-11-01"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "none"
+          }
+        }
+      }
+    },
+    {
+      "id": "undated-task-for-nothing",
+      "why": "an undated to-do that is for no dated thing is none",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Lisbon",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "task",
+            "text": "Buy bin bags"
+          }
+        ],
+        "anchors": [
+          {
+            "of": "note",
+            "text": "We're in Lisbon 12 to 19 December",
+            "when": "2026-12-12"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "none"
+          }
+        }
+      }
+    },
+    {
+      "id": "several-at-once",
+      "why": "a pass labels every thing it is shown",
+      "surface": "nightly",
+      "today": "Monday 2 November 2026",
+      "input": {
+        "thread": "Mixed",
+        "notes": [],
+        "messages": [],
+        "to_label": [
+          {
+            "type": "task",
+            "text": "Pay the rent",
+            "when": "2026-11-30"
+          },
+          {
+            "type": "event",
+            "text": "Standup",
+            "when": "2026-11-03 09:30",
+            "rrule": "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR"
+          },
+          {
+            "type": "event",
+            "text": "Flight to Lisbon",
+            "when": "2026-12-12 06:30"
+          }
+        ]
+      },
+      "expect": {
+        "labels": {
+          "1": {
+            "kind": "deadline",
+            "lead_any": [
+              "none",
+              "days"
+            ]
+          },
+          "2": {
+            "kind": "none"
+          },
+          "3": {
+            "kind_any": [
+              "appointment",
+              "trip"
+            ],
+            "lead_any": [
+              "none",
+              "days"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

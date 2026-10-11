@@ -13,7 +13,7 @@ Six surfaces, one per model call the product makes:
 - ``nightly``    one thread's nightly pass (``nightly._ask``)
 
 Each runs the real prompt assembly and the real loop, with every tool answered
-from the case's fixture. The Core API is the one thing not exercised: what a
+from the case's fixture. The Core API is the one dated not exercised: what a
 tool would have written is recorded instead, and the checks read the record.
 
 **Models are production's.** Read from ``Config`` rather than named here, so a
@@ -1745,7 +1745,7 @@ async def _file_with(
         if needle.lower() in low:
             failures.append(f"reply contains {needle!r}: {reply!r}")
     if reply and _THING.search(reply):
-        failures.append(f"reply uses thing or content as a noun: {reply!r}")
+        failures.append(f"reply uses dated or content as a noun: {reply!r}")
     if outcome.questions and reply.strip() and "say" not in expect:
         failures.append(f"said {reply!r} alongside a question, and a question is never explained")
     for needle in expect.get("transcript_must_not_contain", []):
@@ -1917,7 +1917,7 @@ async def _answer_with(
     failures.extend(_call_problems(expect, rec.calls))
     failures.extend(_copy_problems(reply))
     if reply and _THING.search(reply):
-        failures.append(f"reply uses thing, item or content as a noun: {reply!r}")
+        failures.append(f"reply uses dated, item or content as a noun: {reply!r}")
     writes = {
         "add_content",
         "create_thread",
@@ -2040,6 +2040,82 @@ async def _run_judge(client: AsyncAnthropic, case: Case, model: str) -> Result:
     )
 
 
+# 042. What the Core API keeps of a label, mirrored so a case fails on what
+# production would refuse: a name that is not a run of the thing's own words.
+_ADDRESS = re.compile(r"://|www\.|@|[a-z0-9-]\.[a-z]{2,}", re.I)
+
+
+def _name_is_own(name: str, text: str) -> bool:
+    def flat(words: str) -> str:
+        return " ".join(words.split()).lower()
+
+    wanted = flat(name)
+    if not wanted or len(wanted) > 60 or _ADDRESS.search(wanted) or re.search(r"\d{4}", wanted):
+        return False
+    return wanted in flat(text)
+
+
+def _label_problems(
+    want: dict, wire: list[dict], shown: list[dict], anchors: list[dict]
+) -> list[str]:
+    """`labels` in a case: keyed by dated number, each with `kind` or
+    `kind_any`, `lead` or `lead_any`, `before` (a dated number, or null), and
+    `named`. A dated the model left out is none, as the Core API keeps it."""
+    problems: list[str] = []
+    by_id = {one["id"]: one for one in wire}
+    anchor_number = {a["id"]: n for n, a in enumerate(anchors, start=1)}
+    for n, dated in enumerate(shown, start=1):
+        label = by_id.get(dated["id"], {"kind": "none", "lead": "none"})
+        if (
+            label.get("name")
+            and dated.get("of") == "note"
+            and not _name_is_own(label["name"], dated["text"])
+        ):
+            problems.append(f"entry {n} named {label['name']!r}, not a run of its own words")
+        rule = want.get(str(n))
+        if rule is None:
+            continue
+        kinds = rule.get("kind_any") or ([rule["kind"]] if "kind" in rule else None)
+        if kinds and label["kind"] not in kinds:
+            problems.append(f"entry {n} was {label['kind']}, wanted kind {' or '.join(kinds)}")
+            continue
+        leads = rule.get("lead_any") or ([rule["lead"]] if "lead" in rule else None)
+        if leads and label["lead"] not in leads:
+            problems.append(f"entry {n} lead {label['lead']}, wanted {' or '.join(leads)}")
+        if "before" in rule:
+            got = anchor_number.get((label.get("before") or {}).get("id"))
+            if got != rule["before"]:
+                problems.append(f"entry {n} before {got}, wanted {rule['before']}")
+        if rule.get("named") and not label.get("name"):
+            problems.append(f"entry {n} has no name")
+    return problems
+
+
+def _date_problems(expect: dict, wire: list[dict], shown: list[dict]) -> list[str]:
+    """`dates` keyed by memory id with `on` and `lead` or `lead_any`;
+    `no_date` the ids that must not be dated."""
+    problems: list[str] = []
+    by_id = {one["id"]: one for one in wire}
+    text_of = {m["id"]: m["text"] for m in shown}
+    for one in wire:
+        if not _name_is_own(one["name"], text_of.get(one["id"], "")):
+            problems.append(f"{one['id']} named {one['name']!r}, not a run of its own words")
+    for memory_id, rule in (expect.get("dates") or {}).items():
+        got = by_id.get(memory_id)
+        if got is None:
+            problems.append(f"{memory_id} was not dated")
+            continue
+        if "on" in rule and got["on"] != rule["on"]:
+            problems.append(f"{memory_id} on {got['on']}, wanted {rule['on']}")
+        leads = rule.get("lead_any") or ([rule["lead"]] if "lead" in rule else None)
+        if leads and got["lead"] not in leads:
+            problems.append(f"{memory_id} lead {got['lead']}, wanted {' or '.join(leads)}")
+    for memory_id in expect.get("no_date") or []:
+        if memory_id in by_id:
+            problems.append(f"{memory_id} was dated, and must not be")
+    return problems
+
+
 async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result:
     """032. One thread's nightly pass for one member.
 
@@ -2058,12 +2134,31 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
     messages = [{"id": f"m{n}", **m} for n, m in enumerate(fx.get("messages") or [], start=1)]
     candidates = [{"id": f"c{n}", **c} for n, c in enumerate(fx.get("candidates") or [], start=1)]
     propose = "candidates" in fx
+    # 042. Dated things to label, and what a to-do could be for.
+    to_label = [
+        {
+            "of": "note" if t.get("type") == "note" else "content",
+            "id": f"t{n}",
+            "type": t.get("type", "task"),
+            "text": t["text"],
+            "when": t.get("when"),
+            "rrule": t.get("rrule"),
+            "asked": t.get("asked", False),
+        }
+        for n, t in enumerate(fx.get("to_label") or [], start=1)
+    ]
+    anchors = [
+        {"of": a.get("of", "note"), "id": f"a{n}", "text": a["text"], "when": a["when"]}
+        for n, a in enumerate(fx.get("anchors") or [], start=1)
+    ]
     listing = nightly_mod.listing(
         thread_name=str(fx.get("thread") or "A thread"),
         today=case.fixture.get("today") or TODAY,
         notes=rows,
         messages=None if propose else messages,
         candidates=candidates if propose else None,
+        to_label=to_label,
+        anchors=anchors,
     )
     cfg = Config(
         database_url="", api_url="", internal_token="", anthropic_api_key="", nightly_model=model
@@ -2079,6 +2174,7 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
     adds = [a.model_dump() for a in plan_.add]
     learned_raw = [n.model_dump() for n in getattr(plan_, "learned", [])]
     groups_raw = [g.model_dump() for g in getattr(plan_, "groups", [])]
+    labels_raw = nightly_mod.labels_wire(plan_.labels, to_label, anchors)
     touched = set(supersede) | set(remove) | {i for a in adds for i in a.get("folded_from", [])}
     transcript = json.dumps(
         {
@@ -2087,6 +2183,7 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
             "add": adds,
             "learned": learned_raw,
             "groups": groups_raw,
+            "labels": labels_raw,
         },
         ensure_ascii=False,
     )
@@ -2107,6 +2204,13 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
             failures.append(f"cited a dump it was not shown: {n.get('from_messages')}")
     for g in groups_raw:
         failures.extend(_copy_problems(str(g.get("name", ""))))
+    for one in labels_raw:
+        if one.get("name"):
+            failures.extend(_copy_problems(str(one["name"])))
+    failures.extend(_label_problems(case.expect.get("labels") or {}, labels_raw, to_label, anchors))
+    for needle in case.expect.get("transcript_must_not_contain", []):
+        if needle in transcript:
+            failures.append(f"the answer carries {needle!r}")
     learned_text = [str(n.get("text", "")) for n in learned_raw]
     expect = case.expect
     if expect.get("no_change") and (supersede or remove or adds or learned_raw or groups_raw):
@@ -2399,8 +2503,13 @@ async def _run_memory(client: AsyncAnthropic, case: Case, model: str) -> Result:
         {"id": m.get("id") or f"k{n}", "origin": m.get("origin", "learned"), **m}
         for n, m in enumerate(fx.get("memories") or [], start=1)
     ]
+    # 042. Memories to date, by the id the case gives.
+    to_date = [
+        {"id": m.get("id") or f"d{n}", "kind": m.get("kind", "people"), "text": m["text"]}
+        for n, m in enumerate(fx.get("to_date") or [], start=1)
+    ]
     return await _memory_with(
-        client, case, model, held, notes, messages, case.fixture.get("today") or TODAY
+        client, case, model, held, notes, messages, case.fixture.get("today") or TODAY, to_date
     )
 
 
@@ -2412,9 +2521,13 @@ async def _memory_with(
     notes: list[dict],
     messages: list[dict],
     today: str | None,
+    to_date: list[dict] | None = None,
 ) -> Result:
     """The pass run and judged, on a set from a fixture or from the cast."""
-    listing = memories_mod.listing(today=today, memories=held, notes=notes, messages=messages)
+    to_date = to_date or []
+    listing = memories_mod.listing(
+        today=today, memories=held, notes=notes, messages=messages, to_date=to_date
+    )
     cfg = Config(
         database_url="", api_url="", internal_token="", anthropic_api_key="", memory_model=model
     )
@@ -2427,8 +2540,9 @@ async def _memory_with(
     adds = [a.model_dump() for a in plan_.add]
     supersedes = [s_.model_dump() for s_ in plan_.supersede]
     folds = [f.model_dump() for f in plan_.fold]
+    dates = memories_mod.dates_wire(plan_.dates, to_date)
     transcript = json.dumps(
-        {"add": adds, "supersede": supersedes, "fold": folds}, ensure_ascii=False
+        {"add": adds, "supersede": supersedes, "fold": folds, "dates": dates}, ensure_ascii=False
     )
     shown = {m["id"] for m in messages} | {n["id"] for n in notes}
     by_id = {m["id"]: m for m in held}
@@ -2441,6 +2555,9 @@ async def _memory_with(
         if any(by_id.get(i, {}).get("origin") != "learned" for i in f.get("ids", [])):
             failures.append(f"folded a memory the person gave: {f.get('ids')}")
     expect = case.expect
+    failures.extend(_date_problems(expect, dates, to_date))
+    for one in dates:
+        failures.extend(_copy_problems(str(one["name"])))
     texts = [str(a.get("text", "")) for a in adds] + [str(x.get("text", "")) for x in supersedes]
     if expect.get("no_change") and (adds or supersedes or folds):
         failures.append(f"changed what needed nothing: {transcript}")

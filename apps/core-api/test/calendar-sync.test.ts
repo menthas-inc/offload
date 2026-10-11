@@ -7,6 +7,7 @@
 // retires the ones that are gone. Deleting the whole series arrives as the
 // series itself cancelled, which no occurrence row is keyed on.
 
+import { randomBytes } from "node:crypto";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
@@ -284,5 +285,25 @@ describe("what the delta pass costs", () => {
 
     expect(calls.filter((u) => u.pathname.endsWith("/instances"))).toHaveLength(1);
     expect(await live(ids.calendarId)).toEqual(["swim_1", "swim_8", "swim_15"]);
+  });
+});
+
+describe("a secret that no longer opens", () => {
+  it("asks the person to reconnect rather than failing every tick", async () => {
+    const { connectionId } = await setup();
+    // Sealed under a key the vault no longer holds: what a rotated
+    // CONNECTOR_VAULT_KEY leaves behind. The bytes are well formed and the tag
+    // does not verify.
+    await db
+      .updateTable("connector_secrets")
+      .set({ access_token: Buffer.from(randomBytes(48)) })
+      .where("connection_id", "=", connectionId)
+      .execute();
+    google([], {});
+
+    await expect(syncConnection(connectionId)).resolves.toMatchObject({ calendars: 0 });
+    const row = await db.selectFrom("connector_connections").select("state").where("id", "=", connectionId).executeTakeFirstOrThrow();
+    expect(row.state).toBe("needs_reauth");
+    expect(calls).toEqual([]);
   });
 });

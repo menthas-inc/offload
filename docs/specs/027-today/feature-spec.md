@@ -4,6 +4,7 @@
 **Surfaces:** iOS, Android, web and the Core API. Today itself makes no model call; the one answer that would start a turn is not offered on it.
 **Depends on:** 012 and 019, whose approved calendars and `connector_events` the day reads; 018, whose questions Needs you asks; 022, whose requests and invitations Needs you carries; 023, whose zone, rule, chip, write path and strip this reads and moves; 024, whose digest door and Activity rows open Today; 025, whose marks line the rows draw; 026, whose address the tip names
 **Amended 2026-10-07** by the design handoff `handoff/APPLY-2026-10-07-open-threads.md`: *If you have time* and + Today are replaced by **Open in your threads**, Customize Today gains a third section, and the web's Today loses its page title (the owner's ask: the stepper already says Today).
+**Amended by 042 (2026-10-10):** Customize Today gains a fourth section, **Reminders**, under Your day and above Open in your threads by default, which holds what offload is reminding the person about once its reminders have begun. `/api/me` carries it in `todayLayoutV3`; `todayLayoutV2` keeps the three sections phones that know Open in your threads can draw. See `042-reminders/feature-spec.md`.
 **Amends:** 024's **Today, the agenda** and its AC-22, replaced on the new clients while 024's read keeps serving phones already installed; 023's **strip**, which becomes a Needs you card; 019's AC-10, whose drawing this does; the readme's launch line, replaced by two states; `TurnFooter`'s thread link, which becomes the shared thread pill
 
 ## Why

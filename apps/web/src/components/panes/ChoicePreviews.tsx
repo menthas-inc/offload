@@ -1,6 +1,8 @@
 // 031. What each choice tile shows: a light and a dark screen and one split
 // down the middle for System, the week with its first day filled and the
 // weekend quieter, two sizes of Aa. From `explorations/settings-v2.html`.
+// 042 adds How many: a short line ending at a date, with one, two or three
+// marks before it.
 
 import { resolved } from "@offload/tokens";
 import styles from "../../app/(shell)/shell.module.css";
@@ -71,6 +73,19 @@ export function SizePreview({ size }: { size: "normal" | "large" }) {
   return (
     <span className={styles.depictSize} style={{ fontSize: size === "large" ? 28 : 20 }}>
       Aa
+    </span>
+  );
+}
+
+/** 042. How many reminders for each date: a short line ending at a date
+ *  mark, with one, two or three marks before it. */
+export function CountPreview({ count }: { count: 1 | 2 | 3 }) {
+  return (
+    <span className={styles.depictCount}>
+      {Array.from({ length: count }, (_, at) => (
+        <span key={at} className={styles.depictMark} data-mark="" />
+      ))}
+      <span className={styles.depictDate} data-date="" />
     </span>
   );
 }

@@ -6,7 +6,7 @@
 // phone has created it.
 
 import { describe, expect, it } from "vitest";
-import { CHANNELS, DIGEST_CHANNEL, PEOPLE_CATEGORY, PLAIN_CATEGORY, VERBS_CATEGORY, activityGlyph, activityTag } from "@offload/widgets";
+import { CHANNELS, CHANNEL_REMINDERS, DIGEST_CHANNEL, PEOPLE_CATEGORY, PLAIN_CATEGORY, VERBS_CATEGORY, activityGlyph, activityTag } from "@offload/widgets";
 
 describe("the ids a phone creates once", () => {
   it("are these four channels and these three categories, and never change", () => {
@@ -15,6 +15,8 @@ describe("the ids a phone creates once", () => {
       ["coming_tomorrow", "Tomorrow"],
       ["people_requests", "Connection requests"],
       ["shared_activity", "Added to a shared thread"],
+      // 042. Named as its switch, not its title, because the title is a time.
+      ["reminders", "Reminders"],
     ]);
     expect(DIGEST_CHANNEL).toEqual({ morning: "due_today", evening: "coming_tomorrow" });
     expect([VERBS_CATEGORY, PLAIN_CATEGORY, PEOPLE_CATEGORY]).toEqual(["digest_verbs", "digest", "people"]);
@@ -54,5 +56,15 @@ describe("the row's glyph and tag, decided once for every surface", () => {
     expect(activityGlyph(mail)).toBe("mail");
     expect(activityTag(mail)).toBeNull();
     expect(activityTag({ ...mail, undone: true })).toEqual({ label: "Undone", tone: "quiet" });
+  });
+});
+
+describe("042 a reminder of its own", () => {
+  it("is a record with the bell, and Not sent only for a phone that could not take it", () => {
+    const sent = { kind: "reminder" as const, sent: true, reason: null, send: null };
+    expect(activityGlyph(sent)).toBe("bell");
+    expect(activityTag(sent)).toBeNull();
+    expect(activityTag({ ...sent, sent: false, reason: "permission" })).toEqual({ label: "Not sent", tone: "noticed" });
+    expect(CHANNEL_REMINDERS).toBe("reminders");
   });
 });

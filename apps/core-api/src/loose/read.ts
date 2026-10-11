@@ -331,7 +331,7 @@ export async function loosePage(
       : Promise.resolve([]),
     wantNotes
       ? notesNewestFirst(accountId, threadId, { before: opts.cursor, limit: limit + 1, ids: opts.only?.noteIds }).then((page) =>
-          withNoteLabels(page)
+          withNoteLabels(page, db, accountId)
         )
       : Promise.resolve([] as LooseNote[]),
   ]);

@@ -1,6 +1,6 @@
 {
   "note": "sealed: run once per merged candidate by the merge agent, never by a worker",
-  "count": 128,
+  "count": 132,
   "cases": [
     "a-rule-it-worked-out-is-not-written",
     "a-sure-home-is-filed-not-suggested",
@@ -30,6 +30,7 @@
     "asked-to-tick",
     "beach-from-today-asks-which-thread",
     "before-friday",
+    "bill-days",
     "boarding-pass-is-the-flight",
     "brackets-with-words-are-one-row",
     "calendar-not-connected-add",
@@ -37,6 +38,7 @@
     "candidate-polling",
     "cannot-do-without-apology",
     "conceptual-duplicate-folds",
+    "concert-appointment-none",
     "confirmation-files-with-its-date-and-detail",
     "count-is-a-floor-when-cut-short",
     "count-not-emoji",
@@ -50,7 +52,6 @@
     "delete-thread-points-at-my-threads",
     "does-not-repeat",
     "due-date-fact",
-    "dump-text-steers-a-suggestion",
     "empty-account",
     "end-of-month",
     "fact-default-thread",
@@ -76,6 +77,7 @@
     "look-leaves-terms-alone",
     "makes-the-label-they-name",
     "map-pin-is-a-place",
+    "member-note-steers-labels",
     "my-calendar-is-passed-on",
     "n-ask-bea",
     "n-book-flight",
@@ -88,6 +90,7 @@
     "no-thing-noun",
     "notes-give-the-dates",
     "nothing-to-label",
+    "own-birthday-never",
     "pass-never-health",
     "passed-date-set-aside",
     "pasted-email-with-instruction",
@@ -128,6 +131,7 @@
     "w-capital",
     "waiting-is-not-shared",
     "weather-no-country",
+    "wife-birthday-weeks",
     "yesno-no",
     "youtube-is-a-row-and-nothing-else"
   ]

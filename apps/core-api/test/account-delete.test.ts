@@ -333,7 +333,7 @@ describe("deleting an account", () => {
     // Kinds that can name another person, and kinds that only ever name the
     // account's own rows. A new kind fails here until it is placed.
     const naming = ["digest", "request", "share", "shared_activity", "expired"];
-    const ownOnly = ["moved", "acted", "labelled", "mail", "export"];
+    const ownOnly = ["moved", "acted", "labelled", "mail", "export", "reminder"];
     const check = await sql<{ def: string }>`
       select pg_get_constraintdef(oid) as def from pg_constraint where conname = 'activity_kind_check'
     `.execute(db);
@@ -566,6 +566,21 @@ describe("the calendar grant", () => {
     expect(asked).toEqual(["fine"]);
     const left = await db.selectFrom("pending_revocations").select(["id", "attempts"]).execute();
     expect(left).toEqual([{ id: bad, attempts: 1 }]);
+  });
+
+  it("does not stop the account going when it no longer opens", async () => {
+    const me = await person("Jo");
+    const id = await connected(me.id, "refresh-123");
+    // Sealed under a key the vault no longer holds.
+    await db
+      .updateTable("connector_secrets")
+      .set({ access_token: Buffer.from("x".repeat(48)), refresh_token: Buffer.from("y".repeat(48)) })
+      .where("connection_id", "=", id)
+      .execute();
+
+    await expect(deleteAccount(me.id)).resolves.toMatchObject({ deleted: true });
+    expect(await db.selectFrom("pending_revocations").select("id").execute()).toEqual([]);
+    expect(await db.selectFrom("accounts").select("id").where("id", "=", me.id).execute()).toEqual([]);
   });
 
   it("is given up on after seven days", async () => {

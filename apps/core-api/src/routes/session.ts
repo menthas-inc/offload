@@ -6,7 +6,7 @@
 
 import { mapsOn, setting, webMapsOn } from "../settings.js";
 import { atDailyLimit } from "../budget.js";
-import { layoutShape, legacyLayout, resolveLayout, todayLayout } from "../today/layout.js";
+import { layoutShape, layoutV2, legacyLayout, resolveLayout, todayLayout } from "../today/layout.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { sql } from "kysely";
@@ -131,6 +131,9 @@ const meResponse = z.object({
   notifyComingTomorrowAt: z.string(),
   notifyPeopleRequests: z.boolean(),
   notifySharedActivity: z.boolean(),
+  /** 042. Reminders, and How many: one, two or three for each date. */
+  notifyReminders: z.boolean(),
+  notifyReminderCount: z.number(),
   activityNew: z.boolean(),
   /** 026. Whether mail forwarded from the sign-in address can reach this
    *  account: false for an Apple private relay address, which is never the
@@ -144,8 +147,11 @@ const meResponse = z.object({
    *  open_threads (2026-10-07): every kind but that one. Remove once no build
    *  that reads it is in use. */
   todayLayout: layoutShape,
-  /** Customize Today's layout, resolved: every kind present, in order. */
+  /** Customize Today's layout, resolved, for builds from before 042's
+   *  Reminders: every kind but that one. */
   todayLayoutV2: layoutShape,
+  /** 042. Customize Today's layout, resolved: every kind present, in order. */
+  todayLayoutV3: layoutShape,
   /** The day's model budget is spent or its turns are used, so the composer is
    *  closed until the window moves (budget.ts). */
   atDailyLimit: z.boolean(),
@@ -165,7 +171,7 @@ const HOUR = /^([01]\d|2[0-3]):[0-5]\d$/;
  *  so this is the latest of the UPDATED dates in
  *  apps/web/src/app/(marketing)/privacy/page.tsx, privacy/companies/page.tsx
  *  and terms/page.tsx; test/consent.test.ts holds it there. */
-export const CONSENT_VERSION = "2026-10-07";
+export const CONSENT_VERSION = "2026-10-10";
 
 /** invited -> active, plus the consent record and the event, in one transaction.
  *
@@ -284,6 +290,8 @@ export async function meFor(accountId: string): Promise<z.infer<typeof meRespons
       "notify_coming_tomorrow_at",
       "notify_people_requests",
       "notify_shared_activity",
+      "notify_reminders",
+      "notify_reminder_count",
       "today_layout",
     ])
     .where("id", "=", accountId)
@@ -328,11 +336,14 @@ export async function meFor(accountId: string): Promise<z.infer<typeof meRespons
     notifyComingTomorrowAt: String(account.notify_coming_tomorrow_at).slice(0, 5),
     notifyPeopleRequests: account.notify_people_requests,
     notifySharedActivity: account.notify_shared_activity,
+    notifyReminders: account.notify_reminders,
+    notifyReminderCount: account.notify_reminder_count,
     activityNew: await activityNew(accountId),
     mailAvailable: !/@privaterelay\.appleid\.com$/i.test(account.email),
     signInProviders: await signInProviders(accountId),
     todayLayout: legacyLayout(resolveLayout(account.today_layout)),
-    todayLayoutV2: resolveLayout(account.today_layout),
+    todayLayoutV2: layoutV2(resolveLayout(account.today_layout)),
+    todayLayoutV3: resolveLayout(account.today_layout),
     atDailyLimit: await atDailyLimit(accountId),
   };
 }
@@ -410,6 +421,9 @@ export async function sessionRoutes(app: App): Promise<void> {
           notifyComingTomorrowAt: z.string().regex(HOUR, "not an hour").optional(),
           notifyPeopleRequests: z.boolean().optional(),
           notifySharedActivity: z.boolean().optional(),
+          /** 042. Reminders, and How many. */
+          notifyReminders: z.boolean().optional(),
+          notifyReminderCount: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
           /** 027. The whole document, refused as a 400 unless it parses. */
           todayLayout: todayLayout.optional(),
         }),
@@ -427,6 +441,7 @@ export async function sessionRoutes(app: App): Promise<void> {
       const {
         displayName, webSearch, webLinks, calendarAskFirst, country, timeZone, followDevice, keptTimeZone,
         notifyDueToday, notifyDueTodayAt, notifyComingTomorrow, notifyComingTomorrowAt, notifyPeopleRequests, notifySharedActivity,
+        notifyReminders, notifyReminderCount,
         todayLayout: layout,
       } = request.body;
       // Stored as ICU resolves the name, never as sent: the schema above has
@@ -450,6 +465,8 @@ export async function sessionRoutes(app: App): Promise<void> {
           ...(notifyComingTomorrowAt !== undefined ? { notify_coming_tomorrow_at: notifyComingTomorrowAt } : {}),
           ...(notifyPeopleRequests !== undefined ? { notify_people_requests: notifyPeopleRequests } : {}),
           ...(notifySharedActivity !== undefined ? { notify_shared_activity: notifySharedActivity } : {}),
+          ...(notifyReminders !== undefined ? { notify_reminders: notifyReminders } : {}),
+          ...(notifyReminderCount !== undefined ? { notify_reminder_count: notifyReminderCount } : {}),
           ...(layout !== undefined ? { today_layout: JSON.stringify(layout) } : {}),
           updated_at: new Date(),
         })

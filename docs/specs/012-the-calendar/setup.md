@@ -82,7 +82,7 @@ Three, in Railway on **core-api**, and the same three in `.env` for local work:
 ```
 GOOGLE_CONNECTOR_CLIENT_ID=<from step 4>
 GOOGLE_CONNECTOR_CLIENT_SECRET=<from step 4>
-CONNECTOR_VAULT_KEY=<openssl rand -base64 32>
+CONNECTOR_VAULT_KEY=<openssl rand -base64 32, generated per environment, never written here>
 ```
 
 The vault key is generated and is 32 bytes of base64. It seals the OAuth tokens

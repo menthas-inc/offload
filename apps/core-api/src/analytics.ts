@@ -45,6 +45,8 @@ export type EventName =
   | "digest_skipped"
   | "notification_sent"
   | "notification_failed"
+  | "reminder_sent"
+  | "reminders_labelled"
   // 026. The outcome of an email handed in, as an enum, and a count.
   | "mail_received"
   // 035. That one was deleted. No subject: the pseudonym went with it.

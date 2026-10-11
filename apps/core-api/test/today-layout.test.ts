@@ -28,15 +28,21 @@ const parts = (on: [boolean, boolean, boolean, boolean]) => [
   { kind: "tips", on: on[3] },
 ];
 const layout = (
-  over: Partial<{ order: "needs" | "day"; parts: [boolean, boolean, boolean, boolean]; day: boolean; open: boolean }> = {},
+  over: Partial<{ order: "needs" | "day"; parts: [boolean, boolean, boolean, boolean]; day: boolean; open: boolean; reminders: boolean }> = {},
 ) => {
   const needs = { kind: "needs_you", parts: parts(over.parts ?? [true, true, true, true]) };
   const day = { kind: "day", on: over.day ?? true };
+  // 042. Reminders sits under the day.
+  const reminders = { kind: "reminders", on: over.reminders ?? true };
   const open = { kind: "open_threads", on: over.open ?? true };
-  return { version: 1, sections: over.order === "day" ? [day, open, needs] : [needs, day, open] };
+  return { version: 1, sections: over.order === "day" ? [day, reminders, open, needs] : [needs, day, reminders, open] };
 };
-/** What builds before open_threads read: the same document without it. */
-const legacy = (value: ReturnType<typeof layout>) => ({ ...value, sections: value.sections.filter((one) => one.kind !== "open_threads") });
+/** What builds before open_threads read: the same document without it, and
+ *  since 042 without Reminders either. */
+const legacy = (value: ReturnType<typeof layout>) => ({
+  ...value,
+  sections: value.sections.filter((one) => one.kind !== "open_threads" && one.kind !== "reminders"),
+});
 
 describe("027 the layout document (AC-28)", () => {
   it("defaults to Needs you with every kind on, then the day, then open in your threads", () => {
@@ -47,7 +53,12 @@ describe("027 the layout document (AC-28)", () => {
   it("gives a stored layout that does not name a kind that kind at its default place", () => {
     expect(resolveLayout({ version: 1, sections: [{ kind: "day", on: false }] })).toEqual({
       version: 1,
-      sections: [{ kind: "needs_you", parts: parts([true, true, true, true]) }, { kind: "day", on: false }, { kind: "open_threads", on: true }],
+      sections: [
+        { kind: "needs_you", parts: parts([true, true, true, true]) },
+        { kind: "day", on: false },
+        { kind: "reminders", on: true },
+        { kind: "open_threads", on: true },
+      ],
     });
   });
 
@@ -68,7 +79,7 @@ describe("027 the layout document (AC-28)", () => {
       { version: 1, sections: [{ kind: "needs_you", parts: parts([true, true, true, true]).slice(0, 3) }, { kind: "day", on: true }] },
       { version: 1, sections: [{ kind: "needs_you", parts: [...parts([true, true, true, true]).slice(0, 3), { kind: "account", on: true }] }, { kind: "day", on: true }] },
       { ...layout(), extra: true },
-      layout({ parts: [false, false, false, false], day: false, open: false }),
+      layout({ parts: [false, false, false, false], day: false, open: false, reminders: false }),
       { version: 1, sections: [...layout().sections, { kind: "open_threads", on: true }] },
       { version: 2, sections: layout().sections },
     ];
@@ -83,8 +94,8 @@ describe("027 the layout on /api/me (AC-27)", () => {
   it("reads the resolved layout and stores only what parsed, last write winning", async () => {
     const me = await account();
     const cookie = await signIn(me);
-    const me2 = async () => (await app.inject({ method: "GET", url: "/api/me", headers: { cookie } })).json() as { todayLayout: unknown; todayLayoutV2: unknown };
-    const read = async () => (await me2()).todayLayoutV2;
+    const me2 = async () => (await app.inject({ method: "GET", url: "/api/me", headers: { cookie } })).json() as { todayLayout: unknown; todayLayoutV3: unknown };
+    const read = async () => (await me2()).todayLayoutV3;
     expect(await read()).toEqual(layout());
     // Builds before open_threads draw every section that is not Needs you as
     // the day, so their field never carries it.

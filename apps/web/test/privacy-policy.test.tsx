@@ -38,9 +38,9 @@ const terms = textOf(renderToStaticMarkup(<Terms />));
 const source = (path: string) => readFileSync(`${process.cwd()}/src/${path}`, "utf8");
 
 describe("the privacy policy, general", () => {
-  it("is titled as a privacy policy and dated 7 October 2026", () => {
+  it("is titled as a privacy policy and dated 10 October 2026", () => {
     expect(policyHtml).toMatch(/<h1[^>]*>Privacy policy<\/h1>/);
-    expect(policy).toContain("Last updated 7 October 2026");
+    expect(policy).toContain("Last updated 10 October 2026");
   });
 
   // 041. PDFs, wherever the page says what is put in, kept, made, sent to a
@@ -252,7 +252,56 @@ describe("040 the memories tab", () => {
   });
 
   it("moves both dates", () => {
-    expect(policy).toContain("Last updated 7 October 2026");
-    expect(companies).toContain("Last updated 7 October 2026");
+    // 042 moved the policy again on 10 October; the companies list stayed.
+    expect(policy).toContain("Last updated 10 October 2026");
+    expect(companies).toContain("Last updated 8 October 2026");
+  });
+});
+
+// 2026-10-08, the App Store privacy label. The label declares what the Google
+// Maps SDK's own privacy manifest says it collects, and product events as
+// linked, so both pages say the same in words.
+describe("the pages agree with the store's privacy label", () => {
+  it("say what the map collects on the phones, beyond the IP address", () => {
+    for (const page of [companies, policy]) {
+      expect(page).toContain("an identifier, how the map is used, and on the phones crash and performance reports");
+      expect(page).not.toContain("your IP address and device details");
+    }
+  });
+
+  it("say product events carry an identifier only we can link back to you, until the account goes", () => {
+    expect(policy).toContain("Product events, such as finishing first run, under a random identifier that only we can link back to you, until you delete your account.");
+    expect(policy).not.toContain("rather than to your account");
+  });
+});
+
+// 042, read by the owner on 2026-10-10 before any send code: reminders are
+// timed by what offload works out, may name a memory, and are said on the page
+// before the first one goes.
+describe("042 reminders, as the page says them", () => {
+  it("says what offload works out about a dated thing to remind about it", () => {
+    expect(policy).toContain(
+      "For anything you put in with a date, what kind of date it is and how much notice it needs, which offload works out so it can remind you, and drops when the thing goes.",
+    );
+  });
+
+  it("names the reminders among the notifications you choose", () => {
+    expect(policy).toContain("send the notifications you choose, including reminders offload times before the dates that need one");
+  });
+
+  it("says a notification may carry what offload remembers, such as a birthday", () => {
+    expect(policy).toContain(
+      "they carry a few words of what you or a thread member wrote, or of what offload remembers for you, such as a birthday, to your own phone",
+    );
+  });
+
+  it("tells somebody not on offload their birthday can be named in a reminder", () => {
+    expect(policy).toContain(
+      "or a memory of theirs that says who you are to them, or when your birthday is, which offload can name in a reminder on their phone",
+    );
+  });
+
+  it("is dated the day it changed", () => {
+    expect(source("app/(marketing)/privacy/page.tsx")).toContain('const UPDATED = "10 October 2026";');
   });
 });

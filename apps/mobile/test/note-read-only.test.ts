@@ -15,7 +15,7 @@ describe("somebody else's note, opened on a phone", () => {
 
   it("offers no Save and no count, and Close where Cancel was", () => {
     expect(source).toContain('<Action label={readOnly ? "Close" : "Cancel"} onPress={onClose} />');
-    expect(source).toMatch(/\{readOnly \? null : \(\s*<Pressable\s+onPress=\{\(\) => onSave\(draft\)\}/);
+    expect(source).toMatch(/\{readOnly \? null : \(\s*<Pressable\s+onPress=\{\(\) => onSave\(draft, reminding \? remind : undefined\)\}/);
     expect(source).toContain('{readOnly ? "" : `${draft.length}/${NOTE_CHARS}`}');
   });
 
