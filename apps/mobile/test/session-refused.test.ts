@@ -48,7 +48,7 @@ vi.stubGlobal(
   vi.fn(() => Promise.resolve(new Response(status === 204 ? null : "{}", { status }))),
 );
 
-const { request, send } = await import("../lib/api");
+const { getMe, request, send } = await import("../lib/api");
 const { onSessionRefused, onSignedOut } = await import("../lib/auth");
 
 /** Let the forget-and-tell that a refusal starts run to its end. */
@@ -144,5 +144,19 @@ describe("a refused session", () => {
     expect(deleted).toEqual([]);
     expect(told).not.toHaveBeenCalled();
     stop();
+  });
+});
+
+// The root layout and the index route both ask who is signed in at launch,
+// in the same frame. One request answers both.
+describe("launch's question", () => {
+  it("is asked once for two askers at once, and again after", async () => {
+    const calls = () => vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith("/api/me")).length;
+    const before = calls();
+    const [a, b] = await Promise.all([getMe(), getMe()]);
+    expect(a).toEqual(b);
+    expect(calls() - before).toBe(1);
+    await getMe();
+    expect(calls() - before).toBe(2);
   });
 });

@@ -100,6 +100,34 @@ describe("AC-3 signing out waits for the server", () => {
     stop();
   });
 
+  // From the security review of PR 108: a keystore or a notification centre
+  // that never answers held the old screen up, since the gate and Sign out's
+  // button wait on every listener. Each is waited on for three seconds, and
+  // the ones after it are still told.
+  it("waits on no listener longer than three seconds, and tells the rest", async () => {
+    vi.useFakeTimers();
+    let after = false;
+    const stuck = onSignedOut(() => new Promise<void>(() => undefined));
+    const next = onSignedOut(() => {
+      after = true;
+    });
+    try {
+      let done = false;
+      void accountDeleted().then(() => {
+        done = true;
+      });
+      await vi.advanceTimersByTimeAsync(2900);
+      expect(done).toBe(false);
+      await vi.advanceTimersByTimeAsync(200);
+      expect(after).toBe(true);
+      expect(done).toBe(true);
+    } finally {
+      stuck();
+      next();
+      vi.useRealTimers();
+    }
+  });
+
   it("tells them on a deleted account too, and stops when asked", async () => {
     let told = 0;
     const stop = onSignedOut(() => {

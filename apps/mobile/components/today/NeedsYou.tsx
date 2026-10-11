@@ -21,6 +21,7 @@ import { QuickReplies } from "../shell/QuickReplies";
 import { ThreadPill } from "../shell/ThreadPill";
 import type { ToastState } from "../shell/Toast";
 import { useColors } from "../../lib/colors";
+import { DEVICE_ONLY } from "../../lib/account-keys";
 import { API_URL } from "../../lib/auth";
 import { answerQuestion, undoTurn } from "../../lib/dump";
 import { setClock } from "../../lib/me";
@@ -185,6 +186,17 @@ export function NeedsYou({
       });
   };
 
+  /** An action that leaves the card where it is, a sign-in or a dialog that
+   *  may change nothing: no inert spell, and only a failure says anything. */
+  const keep = (key: string, run: () => Promise<Outcome>, failure: string, label: string) => {
+    setFailed(null);
+    void run()
+      .catch((): Outcome => "failed")
+      .then((outcome) => {
+        if (outcome === "failed") setFailed({ key, label, line: failure });
+      });
+  };
+
   const tomorrow = async (): Promise<Outcome> => {
     if (card.kind === "notifications") {
       // The phone's own midnight, on purpose: this card is a fact about the
@@ -192,7 +204,7 @@ export function NeedsYou({
       const start = new Date();
       start.setHours(24, 0, 0, 0);
       try {
-        SecureStore.setItem(NOTIFICATIONS_PUT_OFF, start.toISOString());
+        SecureStore.setItem(NOTIFICATIONS_PUT_OFF, start.toISOString(), DEVICE_ONLY);
         return "ok";
       } catch {
         return "failed";
@@ -227,10 +239,13 @@ export function NeedsYou({
           {
             label: "Turn on",
             keeps: true,
-            // The card goes once a fresh read finds this phone allowed.
+            // The card goes once a fresh read finds this phone allowed. A
+            // no is the person's answer: the card already says they are
+            // off, and the next press opens System settings.
             run: async () => {
-              if (await turnOn()) onReload();
-              return "ok";
+              const outcome = await turnOn();
+              if (outcome === "on") onReload();
+              return outcome === "failed" ? "failed" : "ok";
             },
             failed: "That didn't go through.",
           },
@@ -401,7 +416,7 @@ export function NeedsYou({
                   key={action.label}
                   disabled={inert}
                   onPress={() => {
-                    if (action.keeps) void action.run();
+                    if (action.keeps) keep(card.key, action.run, action.failed, action.label);
                     else settle(card.key, action.run, action.failed, action.label);
                   }}
                   accessibilityRole="button"

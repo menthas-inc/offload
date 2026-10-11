@@ -23,6 +23,7 @@ vi.mock("expo-secure-store", () => ({
   getItem: (key: string) => store.get(key) ?? null,
   setItem: (key: string, value: string) => void store.set(key, value),
   deleteItemAsync: (key: string) => Promise.resolve(void store.delete(key)),
+  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "afu",
 }));
 
 const labels = await import("../lib/labels");
@@ -100,11 +101,13 @@ describe("the kept pick (AC-19)", () => {
   // A key named after a thread cannot be found by a phone that no longer
   // knows the thread, so each one is listed where sign-out finds it, and
   // leaves the list when the pick goes back to All. 2026-10-11.
-  it("is listed with the account's keys, so signing out finds it", () => {
+  // Unlisted once its delete has gone through, never before (account-keys).
+  it("is listed with the account's keys, so signing out finds it", async () => {
     labels.writePick("t1", { labels: ["a"], none: false });
     labels.writePick("t2", { labels: [], none: true });
     expect(JSON.parse(store.get("offload_account_keys") ?? "[]")).toEqual(["offload_labels_t1", "offload_labels_t2"]);
     labels.writePick("t1", { labels: [], none: false });
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(JSON.parse(store.get("offload_account_keys") ?? "[]")).toEqual(["offload_labels_t2"]);
   });
 });

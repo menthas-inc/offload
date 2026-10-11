@@ -22,6 +22,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const store = new Map<string, string>();
 let storeThrows = false;
+let storeHangs = false;
 vi.mock("expo-secure-store", () => ({
   getItem: (key: string) => {
     if (storeThrows) throw new Error("keystore");
@@ -31,11 +32,12 @@ vi.mock("expo-secure-store", () => ({
     if (storeThrows) throw new Error("keystore");
     store.set(key, value);
   },
-  deleteItemAsync: (key: string) => Promise.resolve(void store.delete(key)),
+  deleteItemAsync: (key: string) => (storeHangs ? new Promise(() => undefined) : Promise.resolve(void store.delete(key))),
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "afu",
 }));
 
-// The cache folder as a set of paths, so what goes can be read back.
+// The cache folder, and the app group's container on iOS, as a set of
+// paths, so what goes can be read back. A path with nothing under it is a file.
 const disk = new Set<string>();
 vi.mock("expo-file-system", () => {
   const join = (parts: (string | { uri: string })[]) => parts.map((p) => (typeof p === "string" ? p : p.uri)).join("/");
@@ -47,8 +49,18 @@ vi.mock("expo-file-system", () => {
     get exists() {
       return [...disk].some((k) => k === this.uri || k.startsWith(this.uri + "/"));
     }
+    create() {
+      // A folder is there once something is in it.
+    }
     delete() {
       for (const k of [...disk]) if (k === this.uri || k.startsWith(this.uri + "/")) disk.delete(k);
+    }
+    list() {
+      const names = new Set([...disk].filter((k) => k.startsWith(this.uri + "/")).map((k) => k.slice(this.uri.length + 1).split("/")[0]!));
+      return [...names].map((name) => {
+        const path = `${this.uri}/${name}`;
+        return [...disk].some((k) => k.startsWith(path + "/")) ? new Directory(path) : new File(path);
+      });
     }
   }
   class File {
@@ -56,21 +68,42 @@ vi.mock("expo-file-system", () => {
     constructor(...parts: (string | { uri: string })[]) {
       this.uri = join(parts);
     }
+    get name() {
+      return this.uri.slice(this.uri.lastIndexOf("/") + 1);
+    }
     get exists() {
       return disk.has(this.uri);
     }
     delete() {
       disk.delete(this.uri);
     }
+    move(to: File) {
+      if (!disk.has(this.uri)) throw new Error("no such file");
+      disk.delete(this.uri);
+      disk.add(to.uri);
+      this.uri = to.uri;
+    }
   }
-  return { Directory, File, Paths: { cache: "cache:" } };
+  return {
+    Directory,
+    File,
+    Paths: {
+      get cache() {
+        return new Directory("cache:");
+      },
+      get appleSharedContainers() {
+        return { "group.club.offload.app": new Directory("group:") };
+      },
+    },
+  };
 });
 
 let dismissed = 0;
+let dismissHangs = false;
 vi.mock("expo-notifications", () => ({
   dismissAllNotificationsAsync: () => {
     dismissed += 1;
-    return Promise.resolve();
+    return dismissHangs ? new Promise(() => undefined) : Promise.resolve();
   },
 }));
 
@@ -89,8 +122,10 @@ vi.mock("../lib/auth", () => ({
   },
 }));
 
-const { claimDevice, onClaimed, ACCOUNT_KEYS, PHONE_KEYS } = await import("../lib/device-data");
+const { claimDevice, forgetAccountData, onClaimed, ACCOUNT_KEYS, PHONE_KEYS } = await import("../lib/device-data");
 const { keepForAccount } = await import("../lib/account-keys");
+const { copyGeneration } = await import("../lib/session-end");
+const { takeShared } = await import("../lib/shared-in");
 
 /** What an account leaves on a phone after a week of use. */
 function lived(): void {
@@ -126,6 +161,8 @@ beforeEach(() => {
   store.clear();
   disk.clear();
   storeThrows = false;
+  storeHangs = false;
+  dismissHangs = false;
   dismissed = 0;
   changed = 0;
 });
@@ -140,6 +177,82 @@ describe("the session ends on this phone", () => {
     expect([...disk]).toEqual([]);
     expect([...store.keys()].sort()).toEqual(["offload_theme", "offload_week_start"]);
     expect(dismissed).toBe(1);
+  });
+
+  // A photo, a mark or a PDF still on its way down when the folders went
+  // would make its folder again and write the last account's bytes into it.
+  // Each writer keeps what it fetched only under the generation it started in.
+  it("moves the copy's generation, so a fetch in flight keeps nothing", async () => {
+    const before = copyGeneration();
+    for (const listener of signedOut) await listener();
+    expect(copyGeneration()).toBeGreaterThan(before);
+  });
+
+  // The gate and Sign out's button wait on this. A keystore or a
+  // notification centre that never answers must not hold the last account's
+  // screen up; the stamp is already gone, so the next launch finishes it.
+  it("carries on after three seconds when a store never answers", async () => {
+    lived();
+    storeHangs = true;
+    dismissHangs = true;
+    vi.useFakeTimers();
+    try {
+      let done = false;
+      void forgetAccountData().then(() => {
+        done = true;
+      });
+      await vi.advanceTimersByTimeAsync(2900);
+      expect(done).toBe(false);
+      await vi.advanceTimersByTimeAsync(200);
+      expect(done).toBe(true);
+      expect([...disk]).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+// expo-share-intent's clear forgets the record of a share and never its
+// files: on Android it copies them to the top of the app's cache, on iOS to
+// the top of the app group's container. Verified in the library's native
+// code, 8.0.1, on 2026-10-11.
+describe("a file shared in from another app", () => {
+  it("moves into a folder of ours, out of the library's", () => {
+    disk.add("cache:/IMG_0042.jpg");
+    disk.add("group:/5E1A-UUID.pdf");
+    const photo = takeShared("cache:/IMG_0042.jpg");
+    const pdf = takeShared("group:/5E1A-UUID.pdf");
+    expect(photo).toMatch(/^cache:\/shared\/[^/]+\/IMG_0042\.jpg$/);
+    expect(pdf).toMatch(/^cache:\/shared\/[^/]+\/5E1A-UUID\.pdf$/);
+    expect(photo.split("/")[2]).not.toBe(pdf.split("/")[2]);
+    expect([...disk].sort()).toEqual([photo, pdf].sort());
+  });
+
+  it("hands the library's own file back when it cannot be moved, with a scheme", () => {
+    expect(takeShared("cache:/gone.jpg")).toBe("cache:/gone.jpg");
+    expect(takeShared("/data/user/0/cache/gone.jpg")).toBe("file:///data/user/0/cache/gone.jpg");
+  });
+
+  it("goes when the session ends, with whatever the library left behind", async () => {
+    for (const path of ["cache:/shared/k1/IMG_0042.jpg", "cache:/IMG_0043.jpg", "cache:/FILE_17.pdf", "group:/5E1A-UUID.jpg", "group:/Library/Preferences/group.plist"]) {
+      disk.add(path);
+    }
+    for (const listener of signedOut) await listener();
+    // The container's own folders are the system's: only loose files go.
+    expect([...disk]).toEqual(["group:/Library/Preferences/group.plist"]);
+  });
+
+  // Signed out, a share waits in the draft behind the gate, and the sign-in
+  // that follows finds no stamp. The draft is in memory and only ever holds
+  // what arrived since the last end, so its files stay; so does a share the
+  // library has not handed over yet.
+  it("stays in the draft through a sign-in that finds no stamp", async () => {
+    lived();
+    disk.add("cache:/shared/k1/IMG_0042.jpg");
+    disk.add("cache:/IMG_0043.jpg");
+    disk.add("group:/5E1A-UUID.jpg");
+    await claimDevice("a1");
+    expect([...disk].sort()).toEqual(["cache:/IMG_0043.jpg", "cache:/shared/k1/IMG_0042.jpg", "group:/5E1A-UUID.jpg"]);
   });
 });
 
@@ -194,6 +307,20 @@ describe("the stamp, read at launch", () => {
     ]);
   });
 
+  // The root layout and the index route both claim at launch, from one
+  // answer. Asked twice at once for the same account, the phone is claimed
+  // once: the screens are torn down once and the tail asked once.
+  it("claims once when asked twice at once", async () => {
+    lived();
+    store.set("offload_account", "a1");
+    let heard = 0;
+    const stop = onClaimed(() => (heard += 1));
+    await Promise.all([claimDevice("a2"), claimDevice("a2")]);
+    stop();
+    expect(changed).toBe(1);
+    expect(heard).toBe(1);
+  });
+
   it("never stops launch when the store cannot be read", async () => {
     lived();
     storeThrows = true;
@@ -231,6 +358,19 @@ describe("every store the app writes is accounted for", () => {
     }
   });
 
+  // A backup restored onto another phone carries a value written in the
+  // store's default class. Every key of the account's is this device's only;
+  // the session's are pinned in `auth.ts`, and how the phone draws
+  // (`appearance.ts`) holds no words of anybody's.
+  it("writes every key of the account's for this device only", () => {
+    for (const { path, text } of sources) {
+      if (path.endsWith("appearance.ts") || path.endsWith("auth.ts")) continue;
+      for (const [call] of text.matchAll(/SecureStore\.setItem(Async)?\([^;]*;/g)) {
+        expect(call, path).toMatch(/DEVICE_ONLY|AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY/);
+      }
+    }
+  });
+
   it("writes a key with a name made at runtime only through the account's own list", () => {
     for (const { path, text } of sources) {
       if (path.endsWith("account-keys.ts") || path.endsWith("auth.ts")) continue;
@@ -260,7 +400,7 @@ describe("the screens let go with it", () => {
   // start again empty (009 AC-32b).
   it("starts the conversation and the screens again when a session ends", () => {
     const layout = code("app/_layout.tsx");
-    expect(layout).toContain('import "../lib/device-data"');
+    expect(layout).toContain('from "../lib/device-data"');
     expect(layout).toMatch(/onSignedOut\(/);
     expect(layout).toMatch(/<ConversationProvider key=\{/);
     expect(layout).toContain("router.dismissAll()");
@@ -285,5 +425,21 @@ describe("the screens let go with it", () => {
     const index = code("app/index.tsx");
     expect(index).toContain("claimDevice(me.accountId)");
     expect(index.indexOf("claimDevice(")).toBeLessThan(index.indexOf('router.replace("/welcome")'));
+  });
+
+  // A cold launch from a notification, a share or a link can open a screen
+  // that is not the index route, which then never claims. The root layout is
+  // mounted under every route, so it claims too, once the server has said who
+  // is signed in.
+  it("claims from the root layout too, whatever route launch opened", () => {
+    const layout = code("app/_layout.tsx");
+    expect(layout).toMatch(/getMe\(\)\.then\(\(me\) => \{? ?if \(typeof me === "object"\) (return )?(void )?claimDevice\(me\.accountId\)/);
+  });
+
+  // The share's files are moved into a folder of ours before the draft holds
+  // them, so the draft never points at the library's copy.
+  it("moves a share's files before the draft takes them", () => {
+    const arrival = code("components/shell/ShareArrival.tsx");
+    expect(arrival).toContain("uri: takeShared(file.path)");
   });
 });

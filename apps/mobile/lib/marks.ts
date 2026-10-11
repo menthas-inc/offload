@@ -9,6 +9,7 @@
 import { Directory, File, Paths } from "expo-file-system";
 import { API_URL } from "./auth";
 import { authHeaders } from "./api";
+import { copyGeneration } from "./session-end";
 
 /** Where a mark is served from. */
 export function avatarUrl(accountId: string): string {
@@ -38,7 +39,8 @@ export function rememberMark(accountId: string, base64Png: string): void {
 
 const inFlight = new Map<string, Promise<string | null>>();
 
-/** Fetch the mark into the cache once. Only a 200 is written. */
+/** Fetch the mark into the cache once. Only a 200 is written, and only while
+ *  the copy it was fetched for is still the phone's. */
 export function fetchMark(accountId: string): Promise<string | null> {
   const file = cached(accountId);
   if (file.exists) return Promise.resolve(file.uri);
@@ -46,10 +48,12 @@ export function fetchMark(accountId: string): Promise<string | null> {
   if (running) return running;
   const started = (async () => {
     try {
+      const generation = copyGeneration();
       const headers = await authHeaders();
       const response = await fetch(avatarUrl(accountId), { headers });
       if (!response.ok) return null;
       const bytes = new Uint8Array(await response.arrayBuffer());
+      if (copyGeneration() !== generation) return null;
       new Directory(Paths.cache, "avatars").create({ idempotent: true, intermediates: true });
       file.write(bytes);
       return file.uri;

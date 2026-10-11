@@ -9,15 +9,17 @@
 // Nothing is sent until the person sends.
 //
 // Still images and PDFs, as many as the draft takes: the rest are dropped
-// with the composer's own line. The library's copy of the files is cleared as soon as
-// they are in the draft, so nothing waits on disk past this. Signed out, the
-// draft holds them behind the gate; the draft lives in memory, so a killed
-// app forgets them, and nothing sent is ever lost.
+// with the composer's own line. The library's clear forgets the share's record
+// and never its files, so each file moves into a folder of ours first
+// (`shared-in.ts`), which the end of a session clears with the rest of the
+// account. Signed out, the draft holds them behind the gate; the draft lives
+// in memory, so a killed app forgets them, and nothing sent is ever lost.
 
 import { useEffect } from "react";
 import { useShareIntent } from "expo-share-intent";
 import { useConversation } from "./conversation-context";
 import { isPdf } from "../../lib/dump";
+import { takeShared } from "../../lib/shared-in";
 
 export function ShareArrival() {
   const { addPhotos } = useConversation();
@@ -36,11 +38,7 @@ export function ShareArrival() {
     if (files.length > 0) {
       addPhotos(
         files.map((file) => ({
-          // The library hands over a bare path on Android, and the runtime's
-          // FormData wants a uri with a scheme: a path with none fails the
-          // upload as a network error, which is what the first share on a
-          // Pixel did.
-          uri: /^[a-z]+:\/\//.test(file.path) ? file.path : `file://${file.path}`,
+          uri: takeShared(file.path),
           name: file.fileName || null,
           type: file.mimeType || null,
           size: file.size,

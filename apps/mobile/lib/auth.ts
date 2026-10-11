@@ -23,6 +23,10 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import { rememberAttempt } from "./attempt";
+import { ended } from "./session-end";
+
+// Heard here by most callers; kept in `session-end.ts`, which imports nothing.
+export { onSignedOut } from "./session-end";
 
 /** The API base. A phone is not on localhost, so a device build needs the
  *  machine's LAN address here rather than a loopback that resolves to itself.
@@ -338,41 +342,12 @@ export function accountChanged(): Promise<void> {
   return ended();
 }
 
-type SignedOutListener = () => void | Promise<void>;
-const signedOut = new Set<SignedOutListener>();
-
-/** Tell each listener in the order they asked, and wait for each: forgetting
- *  the phone's copy deletes files and keys, and the gate opens after. One that
- *  fails does not stop the rest. */
-async function ended(): Promise<void> {
-  for (const listener of [...signedOut]) {
-    try {
-      await listener();
-    } catch {
-      // Whatever it held is cleared on the next launch's stamp check.
-    }
-  }
-}
-
 const signingOut = new Set<() => Promise<void>>();
 
 /** Run before the session ends, with the session still valid, for anything
  *  the server holds in this session's name. */
 export function beforeSignOut(handler: () => Promise<void>): void {
   signingOut.add(handler);
-}
-
-/** Hear the session end on this device, for anything holding a copy of who
- *  was signed in: the identity cache kept the last account's clock and name
- *  in memory for the next person on a shared phone until a screen asked
- *  again. 023, from the security review of 2026-09-22. Signed out, deleted,
- *  refused by the server, or another account found here: all four are this.
- *  Returns the way to stop. */
-export function onSignedOut(listener: SignedOutListener): () => void {
-  signedOut.add(listener);
-  return () => {
-    signedOut.delete(listener);
-  };
 }
 
 /** Who to tell when the server refuses the session this device holds. The

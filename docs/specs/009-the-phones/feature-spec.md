@@ -266,7 +266,13 @@ honour a consistency nobody asked for.
   a refused session, another account found under the phone's stamp) now remounts the
   conversation and the screens under it, forgets what the phone kept on disk and in secure
   storage (`lib/device-data.ts`), and launch checks which account the phone's copy belongs to
-  before it opens the shell.
+  before it opens the shell. *From the security review of PR 108, the same day:* the forgetting
+  covers files shared in from other apps, which the share library never deletes, and a photo,
+  mark, voice note or PDF still on its way down keeps nothing once the copy has gone; ids held in
+  memory (thread looks and washes, the PDF coming down, notifications acted on) go with it; no
+  store that fails to answer holds the old screen up for more than three seconds; and launch
+  claims the phone from the root layout as well, so a cold launch into another route checks the
+  stamp too. The account's own keys in secure storage are device-only, as AC-32a's are.
 - **AC-33** No dumped text, thread name, content title or memory reaches a log, an analytics
   event or a crash report from the device (OFF-1).
 - **AC-33a** That is enforced by one client logging module, not by everyone remembering. The

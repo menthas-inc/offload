@@ -645,13 +645,13 @@ export async function blobRoutes(app: App): Promise<void> {
       const bytes = await db.transaction().execute(async (trx) => openStored(id, rendition, await objectKeyOf(trx, id)));
       if (!bytes) return reply.code(404).send({ error: "not_found" });
 
+      // Minutes, not an hour: the server refuses on the next uncached read
+      // once somebody is taken out of a thread, and the browser's copy is the
+      // only thing that outlives that. None on a phone (`pictureCache`).
+      pictureCache(request, reply, "private, max-age=300");
       return reply
         .code(200)
         .header("Content-Type", "image/jpeg")
-        // Minutes, not an hour: the server refuses on the next uncached read
-        // once somebody is taken out of a thread, and the browser's copy is
-        // the only thing that outlives that. None on a phone (`pictureCache`).
-        .header("Cache-Control", pictureCache(request, "private, max-age=300"))
         .header("X-Content-Type-Options", "nosniff")
         .header("Content-Disposition", 'inline; filename="photo.jpg"')
         .send(bytes);

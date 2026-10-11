@@ -17,7 +17,8 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { onSignedOut, pinExistingSession } from "../lib/auth";
 // Listening from launch for the end of a session, to forget what the phone
 // kept of the account. Before anything can sign out.
-import "../lib/device-data";
+import { claimDevice } from "../lib/device-data";
+import { getMe } from "../lib/api";
 import { ConversationProvider } from "../components/shell/conversation-context";
 import { Recede, SheetStatusBar } from "../components/shell/Recede";
 import { RecordArrival } from "../components/shell/RecordArrival";
@@ -87,6 +88,16 @@ export default function RootLayout() {
   }, []);
 
   const router = useRouter();
+
+  // Whose copy the phone holds, settled from here as well as from the index
+  // route: a cold launch from a notification, a share or a link can open
+  // another route, and the index route never runs. Both ask in one frame and
+  // share the answer and the claim.
+  useEffect(() => {
+    void getMe().then((me) => {
+      if (typeof me === "object") void claimDevice(me.accountId);
+    });
+  }, []);
 
   // **A session ended on this phone: signed out, deleted, refused by the
   // server, or another account found under the stamp.** The keys and the

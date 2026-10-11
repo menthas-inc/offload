@@ -14,6 +14,7 @@ import { AppState, Platform } from "react-native";
 import { Directory, File, Paths } from "expo-file-system";
 import PdfOpen from "../modules/pdf-open";
 import { API_URL, authHeaders } from "./api";
+import { copyGeneration, onSignedOut } from "./session-end";
 
 export type Opened = "opened" | "not_yet" | "never" | "failed" | "no_viewer";
 
@@ -58,6 +59,9 @@ export function usePdfOpening(blobId: string): boolean {
   return useSyncExternalStore(onOpening, openingNow) === blobId;
 }
 
+// No spinner names a PDF of an account that has gone.
+onSignedOut(() => setOpening(null));
+
 function remove(dir: Directory): void {
   try {
     if (dir.exists) dir.delete();
@@ -90,6 +94,7 @@ export async function openPdf(
   if (!PdfOpen) return "failed";
   const dir = new Directory(pdfDirectory(), pdf.blobId);
   const file = new File(dir, fileName(title));
+  const generation = copyGeneration();
   setOpening(pdf.blobId);
   try {
     remove(dir);
@@ -98,6 +103,8 @@ export async function openPdf(
       headers: await authHeaders(),
       idempotent: true,
     });
+    // The session ended while it came down: the copy is no longer the phone's.
+    if (copyGeneration() !== generation) throw new Error("forgotten");
   } catch {
     remove(dir);
     setOpening(null);
@@ -128,10 +135,12 @@ export async function sharePdf(blobId: string, title: string | null | undefined)
   const Sharing = await import("expo-sharing");
   const dir = new Directory(pdfDirectory(), `${blobId}-share`);
   const file = new File(dir, fileName(title));
+  const generation = copyGeneration();
   try {
     remove(dir);
     dir.create({ intermediates: true });
     await File.downloadFileAsync(`${API_URL}/v1/blobs/${blobId}/pdf`, file, { headers: await authHeaders(), idempotent: true });
+    if (copyGeneration() !== generation) throw new Error("forgotten");
     await Sharing.shareAsync(file.uri, { mimeType: "application/pdf", UTI: "com.adobe.pdf" });
   } catch {
     // Backing out of the sheet, or a copy that did not come down: nothing to say.

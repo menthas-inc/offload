@@ -81,7 +81,7 @@ the same spec because the delete confirmation offers it.
 - **Nothing of it left on the phone.** The phone that deleted forgets what it
   kept of the account at the same moment: the conversation and every screen
   held in memory, its copies of photos, marks, voice notes, PDFs and picked
-  files, an export on its way to Files, the choices kept per thread, and the
+  or shared files, an export on its way to Files, the choices kept per thread, and the
   notifications it delivered. A phone that was away forgets the same the next
   time the server refuses its session, or when launch finds it holding another
   account's copy. What stays is how the phone draws: the theme and the first

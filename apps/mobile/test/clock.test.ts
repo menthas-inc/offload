@@ -9,22 +9,31 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const sent: { path: string; init: RequestInit }[] = [];
 
+/** Held answers, for a request still out when the session ends. */
+let hold = false;
+const held: (() => void)[] = [];
+const later = <T,>(value: T): Promise<T> =>
+  hold ? new Promise((resolve) => held.push(() => resolve(value))) : Promise.resolve(value);
+const ME = { accountId: "a", timeZone: "Asia/Tokyo", followDevice: true, keptTimeZone: null };
+
 vi.mock("../lib/api", () => ({
   request: async (path: string, init: RequestInit = {}) => {
     sent.push({ path, init });
-    return { accountId: "a", timeZone: "Asia/Tokyo", followDevice: true, keptTimeZone: null };
+    return later(ME);
   },
-  send: async () => ({ status: 200, data: null }),
+  send: async () => later({ status: 200, data: ME }),
 }));
 vi.mock("../lib/log", () => ({ failed: () => undefined }));
 const signedOut: (() => void)[] = [];
 vi.mock("../lib/auth", () => ({ onSignedOut: (listener: () => void) => signedOut.push(listener) }));
 
-const { currentMe, setClock } = await import("../lib/me");
+const { currentMe, ensureMe, refreshMe, setClock } = await import("../lib/me");
 const { zoneFor } = await import("../lib/clock");
 
 beforeEach(() => {
   sent.length = 0;
+  hold = false;
+  held.length = 0;
 });
 
 describe("023 AC-3 the clock's writes", () => {
@@ -52,6 +61,20 @@ describe("the identity goes with the session", () => {
     await setClock({ timeZone: "Asia/Tokyo" });
     expect(currentMe()?.timeZone).toBe("Asia/Tokyo");
     for (const listener of signedOut) listener();
+    expect(currentMe()).toBeNull();
+  });
+
+  // From the security review of PR 108: a read or a write still out when the
+  // session ended answered afterwards, and the last account's identity was
+  // back in the cache for the next one.
+  it("keeps no answer to a request that was out when the session ended", async () => {
+    for (const listener of signedOut) listener();
+    hold = true;
+    const asked = [ensureMe(), refreshMe(), setClock({ timeZone: "Asia/Tokyo" })];
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    for (const listener of signedOut) listener();
+    for (const answer of held) answer();
+    await Promise.all(asked);
     expect(currentMe()).toBeNull();
   });
 });

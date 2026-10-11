@@ -289,11 +289,11 @@ export async function peopleRoutes(app: App): Promise<void> {
         .where("deleted_at", "is", null)
         .executeTakeFirst();
       if (!exists) return reply.code(404).send({ error: "not_found" as const });
+      // A browser keeps it for good, since it never changes; a phone keeps its
+      // own copy and its HTTP stack none (`pictureCache`).
+      pictureCache(request, reply, "private, max-age=31536000, immutable");
       return reply
         .header("Content-Type", "image/png")
-        // A browser keeps it for good, since it never changes; a phone keeps
-        // its own copy and its HTTP stack none (`pictureCache`).
-        .header("Cache-Control", pictureCache(request, "private, max-age=31536000, immutable"))
         .header("X-Content-Type-Options", "nosniff")
         .send(await markOf(target));
     },

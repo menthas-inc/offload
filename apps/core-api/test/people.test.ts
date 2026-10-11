@@ -809,6 +809,7 @@ describe("the mark (AC-13, AC-31)", () => {
     });
     expect(phone.statusCode).toBe(200);
     expect(phone.headers["cache-control"]).toBe("private, no-store");
+    for (const reply of [first, phone]) expect(String(reply.headers["vary"]).toLowerCase()).toContain("sec-fetch-dest");
     const stored = await db
       .selectFrom("accounts")
       .select("avatar_png")

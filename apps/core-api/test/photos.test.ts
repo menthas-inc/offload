@@ -453,6 +453,8 @@ describe("reading a rendition", () => {
     expect(phone.headers["cache-control"]).toBe("private, no-store");
     const browser = await app.inject({ method: "GET", url: `/v1/blobs/${a}/large`, headers: { cookie, "sec-fetch-dest": "image" } });
     expect(browser.headers["cache-control"]).toBe("private, max-age=300");
+    // The answer depends on the header, so a cache between the two is told.
+    for (const reply of [phone, browser]) expect(String(reply.headers["vary"]).toLowerCase()).toContain("sec-fetch-dest");
   });
 
   it("is the dumper's before any row exists, a member's through a row, and nobody else's", async () => {
