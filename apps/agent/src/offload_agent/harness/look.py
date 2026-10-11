@@ -102,7 +102,9 @@ async def look(client, model: str, originals: list[bytes]) -> list[int]:
         started = time.monotonic()
         response = await client.messages.create(
             model=model,
-            max_tokens=512,
+            # Room for Haiku 5.5, whose tokenizer counts the same verdicts
+            # as about 30 percent more tokens.
+            max_tokens=1024,
             system=[{"type": "text", "text": _PROMPT, "cache_control": {"type": "ephemeral"}}],
             messages=messages,
             tools=[

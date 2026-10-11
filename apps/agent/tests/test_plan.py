@@ -19,14 +19,16 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, ValidationError
 
-from offload_agent.context import DumpContext, Filed, Thread, Turn
+from offload_agent.context import AnswerContext, DumpContext, Filed, Thread, Turn
 from offload_agent.harness.plan import (
+    FILE_EFFORT,
     MAX_MODEL_CALLS,
     MAX_TOOL_CALLS,
     TOOL_DEFINITION_BUDGET,
     _shape_only,
     filing_prompt,
     plan,
+    plan_answer,
 )
 from offload_agent.harness.tools import CALENDAR_TOOL_DEFS, SHARE_TOOL_DEF, TOOLS
 
@@ -403,6 +405,9 @@ async def test_no_dynamic_dispatch_on_a_model_supplied_name():
         # The same, for a call whose arguments would not validate. Field names
         # and error types travel with it; the values never do (OFF-1).
         'outcome.refused.append(f"{block.name}: {shape}")',
+        # Kept beside its validated arguments for weighing whether the
+        # response left anything to read. Only compared against literal sets.
+        "this_round.append((block.name, args.model_dump(), {}))",
         # 018. The same comparison for `ask`, which is collected on the
         # outcome and posted with the result. Reads the name, resolves nothing.
         'if block.name == "ask":',
@@ -966,6 +971,34 @@ async def test_a_turn_that_ran_out_of_room_is_asked_again_with_more():
     assert len(outcome.usage) == 3
 
 
+async def test_every_filing_call_runs_at_the_filing_effort():
+    """Most of a filing call's output is thinking, and filing is most of the
+    bill. Every call in the turn carries the same effort, so the cached prefix
+    stays one prefix, and a retry after running out of room keeps it too."""
+    model = StubModel(
+        [
+            Response(content=[], stop_reason="max_tokens"),
+            Response(
+                content=[
+                    ToolUse(
+                        id="a",
+                        name="add_content",
+                        input={"thread_id": "t1", "title": "Dentist", "type": "task"},
+                    )
+                ],
+                stop_reason="tool_use",
+            ),
+            Response(content=[TextBlock("")], stop_reason="end_turn"),
+        ]
+    )
+    await plan(model, ctx(), "m", Recorder())
+
+    assert FILE_EFFORT == "medium"
+    assert len(model.requests) == 3
+    for request in model.requests:
+        assert request["output_config"] == {"effort": "medium"}
+
+
 async def test_running_out_of_room_twice_is_a_partial_turn():
     model = StubModel(
         [
@@ -1220,8 +1253,8 @@ async def test_each_call_caches_the_conversation_so_far_and_nothing_older():
     """A turn is several calls, and each re-sent the whole conversation at full
     price; only the system prompt was cached. Each call marks its last block,
     so the next call reads everything before it at a tenth of the price.
-    One mark in the messages per call, never more: four is the API's limit,
-    and the system prompt holds one of them."""
+    One moving mark in the messages per call, never more: four is the API's
+    limit, the system prompt holds one and the account's part another."""
     model = StubModel(
         [
             Response(
@@ -1249,5 +1282,344 @@ async def test_each_call_caches_the_conversation_so_far_and_nothing_older():
             if isinstance(block, dict) and block.get("cache_control")
         ]
         last = len(request["messages"]) - 1
-        assert marked == [(last, len(request["messages"][last]["content"]) - 1)]
+        # The account's part of the turn holds the other one (test_cache_prefix).
+        account = next(
+            j for j, b in enumerate(request["messages"][0]["content"]) if b.get("cache_control")
+        )
+        assert marked == [(0, account), (last, len(request["messages"][last]["content"]) - 1)]
         assert request["messages"][last]["content"][-1]["cache_control"] == {"type": "ephemeral"}
+
+
+async def test_an_answering_turn_runs_at_medium_effort_on_every_call():
+    model = StubModel(
+        [
+            Response(
+                content=[ToolUse(id="r1", name="search", input={"query": "left"})],
+                stop_reason="tool_use",
+            ),
+            Response(content=[TextBlock("Two left.")], stop_reason="end_turn"),
+        ]
+    )
+    actx = AnswerContext(
+        question="what is left",
+        threads=[Thread(id="t1", name="Lisbon", is_default=False)],
+        has_calendar=False,
+    )
+    await plan_answer(model, actx, "claude-opus-5", Recorder())
+    assert len(model.requests) == 2
+    assert all(r["output_config"] == {"effort": "medium"} for r in model.requests)
+
+
+# The closing call. A filing turn used to end on a model call whose only job
+# was to return end_turn: two in three filing turns paid one, at about 900 ms
+# and a cached prefix each. When the last response left the model nothing new
+# to read, the loop ends the turn itself. No tool and no prompt words: the
+# round 1 done signal asked the model to say it was finished, and it paid the
+# saved calls back in thinking.
+
+
+def _say(id_="s", text="Sorry, I did not understand that one.", because="could_not_read"):
+    return ToolUse(id=id_, name="say", input={"text": text, "because": because})
+
+
+def _task(id_="a", **extra):
+    return ToolUse(
+        id=id_,
+        name="add_content",
+        input={"thread_id": "t1", "title": "Renew permit", "type": "task", **extra},
+    )
+
+
+def _closer():
+    return Response(content=[TextBlock("ignored")], stop_reason="end_turn")
+
+
+async def test_a_say_with_nothing_else_ends_the_turn_without_a_closing_call():
+    model = StubModel([Response(content=[_say()], stop_reason="tool_use"), _closer()])
+
+    outcome = await plan(model, ctx(dump="asdkjhasd"), "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 1
+    assert outcome.reply == "Sorry, I did not understand that one."
+    assert outcome.finished
+    assert len(outcome.usage) == 1
+
+
+async def test_a_could_not_do_said_before_anything_was_done_keeps_the_turn_going():
+    """ "That needs a calendar connected first" and then get on with the rest:
+    a say that comes first may have the filing still to follow."""
+    model = StubModel(
+        [
+            Response(
+                content=[
+                    _say(text="That needs a calendar connected first.", because="could_not_do")
+                ],
+                stop_reason="tool_use",
+            ),
+            Response(content=[_task(due_at="2026-09-15")], stop_reason="tool_use"),
+            _closer(),
+        ]
+    )
+    tools = Recorder()
+
+    outcome = await plan(model, ctx(), "claude-sonnet-5", tools)
+
+    assert len(tools.calls) == 1
+    assert len(outcome.landed) == 1
+
+
+async def test_an_ask_past_the_cap_keeps_the_turn_going():
+    ask = {"field": "date", "title": "Renew permit", "content_id": "c1"}
+    model = StubModel(
+        [
+            Response(content=[_task()], stop_reason="tool_use"),
+            Response(
+                content=[
+                    ToolUse(id="q1", name="ask", input=ask),
+                    ToolUse(id="q2", name="ask", input={**ask, "field": "time"}),
+                    ToolUse(id="q3", name="ask", input={**ask, "field": "span"}),
+                ],
+                stop_reason="tool_use",
+            ),
+            _closer(),
+        ]
+    )
+
+    await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 3
+
+
+async def test_a_say_the_schema_refused_keeps_the_turn_going():
+    model = StubModel(
+        [
+            Response(
+                content=[ToolUse(id="s", name="say", input={"text": "hi"})], stop_reason="tool_use"
+            ),
+            _closer(),
+        ]
+    )
+
+    await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 2
+
+
+async def test_an_event_keeps_the_turn_going_even_with_no_calendar():
+    """ "Put the dentist on my calendar" with none connected files the event,
+    then says it needs a calendar, in the next response. Found by the screen:
+    the closing call is where that sentence comes from. An event's follow-ups
+    are about the calendar whether or not there is one."""
+    event = ToolUse(
+        id="e",
+        name="add_content",
+        input={
+            "thread_id": "t1",
+            "title": "Dentist",
+            "type": "event",
+            "occurs_at": "2026-09-15T14:00:00Z",
+        },
+    )
+    model = StubModel([Response(content=[event], stop_reason="tool_use"), _closer()])
+
+    await plan(model, ctx(has_calendar=False), "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 2
+
+
+async def test_an_undated_task_keeps_the_turn_going_to_ask():
+    model = StubModel([Response(content=[_task()], stop_reason="tool_use"), _closer()])
+
+    await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 2
+
+
+async def test_a_filing_that_came_back_with_notes_keeps_the_turn_going():
+    """The notes may tighten the row: an edit, a date, a field to ask."""
+    tools = Recorder(
+        [
+            {
+                "ok": True,
+                "threadId": "t1",
+                "threadName": "Flat admin",
+                "contentId": "c1",
+                "notes": [{"text": "Prefix kids rows with KIDS", "writtenAt": "2026-09-01"}],
+            }
+        ]
+    )
+    model = StubModel(
+        [Response(content=[_task(due_at="2026-09-25")], stop_reason="tool_use"), _closer()]
+    )
+
+    await plan(model, ctx(), "claude-sonnet-5", tools)
+
+    assert len(model.requests) == 2
+
+
+async def test_notes_from_members_or_apps_keep_the_turn_going_too():
+    for key in ("notesFromMembers", "notesFromApps"):
+        tools = Recorder(
+            [
+                {
+                    "ok": True,
+                    "threadId": "t1",
+                    "contentId": "c1",
+                    key: [{"text": "x", "writtenAt": "y"}],
+                }
+            ]
+        )
+        model = StubModel(
+            [Response(content=[_task(due_at="2026-09-25")], stop_reason="tool_use"), _closer()]
+        )
+
+        await plan(model, ctx(), "claude-sonnet-5", tools)
+
+        assert len(model.requests) == 2, key
+
+
+async def test_an_event_with_a_calendar_offered_keeps_the_turn_going():
+    event = ToolUse(
+        id="e",
+        name="add_content",
+        input={
+            "thread_id": "t1",
+            "title": "Dentist",
+            "type": "event",
+            "occurs_at": "2026-09-15T14:00:00Z",
+        },
+    )
+    model = StubModel([Response(content=[event], stop_reason="tool_use"), _closer()])
+
+    await plan(model, ctx(has_calendar=True), "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 2
+
+
+async def test_an_all_day_event_with_no_end_keeps_the_turn_going():
+    event = ToolUse(
+        id="e",
+        name="add_content",
+        input={"thread_id": "t1", "title": "Stay", "type": "event", "occurs_at": "2026-10-10"},
+    )
+    model = StubModel([Response(content=[event], stop_reason="tool_use"), _closer()])
+
+    await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 2
+
+
+async def test_a_filing_into_a_labelled_thread_keeps_the_turn_going():
+    from dataclasses import replace
+
+    from offload_agent.context import LabelRef
+
+    labelled = replace(ctx(), labels=[LabelRef(id="l1", thread_id="t1", name="Kids")])
+    model = StubModel(
+        [Response(content=[_task(due_at="2026-09-25")], stop_reason="tool_use"), _closer()]
+    )
+
+    await plan(model, labelled, "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 2
+
+
+async def test_a_turn_with_photos_keeps_its_closing_call():
+    from dataclasses import replace
+
+    from offload_agent.context import Photo
+
+    with_photo = replace(ctx(), photos=[Photo(blob_id="b1", index=1)])
+    model = StubModel(
+        [Response(content=[_task(due_at="2026-09-25")], stop_reason="tool_use"), _closer()]
+    )
+
+    await plan(model, with_photo, "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 2
+
+
+async def test_a_failed_filing_keeps_the_turn_going():
+    tools = Recorder([{"ok": False, "error": "unavailable"}])
+    model = StubModel(
+        [Response(content=[_task(due_at="2026-09-25")], stop_reason="tool_use"), _closer()]
+    )
+
+    await plan(model, ctx(), "claude-sonnet-5", tools)
+
+    assert len(model.requests) == 2
+
+
+async def test_any_other_tool_in_the_response_keeps_the_turn_going():
+    model = StubModel(
+        [
+            Response(
+                content=[
+                    _task(due_at="2026-09-25"),
+                    ToolUse(id="r", name="list_thread_content", input={"thread_id": "t1"}),
+                ],
+                stop_reason="tool_use",
+            ),
+            _closer(),
+        ]
+    )
+
+    await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 2
+
+
+def test_every_tool_is_decided_for_the_loop_end():
+    """A tool added later has to be put on one side or the other."""
+    from offload_agent.harness.plan import KEEPS_THE_TURN_GOING, MAY_END_THE_TURN
+    from offload_agent.harness.tools import TOOL_NAMES
+
+    assert MAY_END_THE_TURN | KEEPS_THE_TURN_GOING == TOOL_NAMES
+    assert not MAY_END_THE_TURN & KEEPS_THE_TURN_GOING
+
+
+async def test_an_ask_only_response_keeps_the_turn_going_for_a_second_ask():
+    """The prompt allows two asks a turn and the model sends them one a
+    response, so the loop cannot end on the first (round 2 skeptic)."""
+    ask = {"field": "date", "title": "Renew permit", "content_id": "c1"}
+    model = StubModel(
+        [
+            Response(content=[_task()], stop_reason="tool_use"),
+            Response(content=[ToolUse(id="q1", name="ask", input=ask)], stop_reason="tool_use"),
+            Response(
+                content=[ToolUse(id="q2", name="ask", input={**ask, "field": "time"})],
+                stop_reason="tool_use",
+            ),
+            _closer(),
+        ]
+    )
+
+    await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 4
+
+
+async def test_a_say_after_a_read_still_waits_for_the_filing():
+    """A read counts as work but files nothing; a say after it may be the
+    calendar line the filing follows. Only landed or changed ends it."""
+    model = StubModel(
+        [
+            Response(
+                content=[ToolUse(id="r", name="list_thread_content", input={"thread_id": "t1"})],
+                stop_reason="tool_use",
+            ),
+            Response(
+                content=[
+                    _say(text="That needs a calendar connected first.", because="could_not_do")
+                ],
+                stop_reason="tool_use",
+            ),
+            Response(content=[_task(id_="b")], stop_reason="tool_use"),
+            _closer(),
+        ]
+    )
+
+    outcome = await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert len(outcome.landed) == 1
+    assert len(model.requests) == 4

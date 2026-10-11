@@ -51,13 +51,14 @@ import re
 import sys
 import time
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from anthropic import AsyncAnthropic
 
+from offload_agent import ledger
 from offload_agent import memories as memories_mod
 from offload_agent import nightly as nightly_mod
 from offload_agent import pdfs as pdfs_mod
@@ -77,6 +78,8 @@ from offload_agent.context import (
 from offload_agent.countries import name_of
 from offload_agent.harness.look import look
 from offload_agent.harness.plan import (
+    NOT_IN_A_THREAD,
+    Usage,
     classify,
     judge_answer,
     plan,
@@ -96,6 +99,9 @@ from offload_agent.worker import (
 )
 
 HERE = Path(__file__).parent
+sys.path.insert(0, str(HERE))
+import spend  # noqa: E402
+
 PRINCIPLES = HERE / "principles"
 CONTEXTS = HERE / "contexts"
 RESULTS = HERE / "results"
@@ -111,7 +117,7 @@ _DEFAULTS = {f.name: f.default for f in Config.__dataclass_fields__.values()}
 MODELS = {
     "file": _DEFAULTS["model"],
     # 041. The cheap look at an email's pictures and PDF pages.
-    "look": _DEFAULTS["sort_model"],
+    "look": _DEFAULTS["look_model"],
     "answer": _DEFAULTS["answer_model"],
     "classify": _DEFAULTS["sort_model"],
     "judge": _DEFAULTS["sort_model"],
@@ -136,11 +142,15 @@ PRICES = {
     "claude-opus-5": (5.0, 25.0),
     "claude-opus-5-5": (4.0, 20.0),
     "claude-sonnet-5": (2.0, 10.0),
+    "claude-sonnet-5-5": (2.0, 10.0),
     "claude-haiku-4-5": (1.0, 5.0),
+    # Up to a 100K prompt; beyond it is $0.50 / $2.50, which nothing here sends.
+    "claude-haiku-5-5": (0.1, 0.5),
 }
 
 
 #: A cache read as a share of input: a tenth, except Opus 5.5's twentieth.
+#: Sonnet 5.5 reads at $0.20 on $2.00, a tenth. (claude-api skill, 2026-10-06.)
 CACHE_READ_SHARE = {"claude-opus-5-5": 0.05}
 
 
@@ -265,6 +275,9 @@ _FIXTURE_KEYS = {
     # 026. A forwarded email: {subject, from_name, from_address, sent_at, note,
     # forwarded}. The dump is built from it through the worker's own `mail_of`.
     "mail",
+    # 021. The dump is a voice note's transcript: the label says so and the
+    # prompt reads it with its own rules. The input is the transcript's text.
+    "spoken",
 }
 
 
@@ -680,7 +693,7 @@ class Recorder:
         if tool == "memory":
             return self._memory(args)
         if tool == "account_facts":
-            return {"ok": True, "facts": fx.get("facts") or {}}
+            return {"ok": True, "facts": self._facts()}
         # 019. The scope is the server's, so the stub answers with every
         # calendar the fixture lists and marks none as somebody else's unless
         # the fixture says so; the model never names a calendar.
@@ -819,9 +832,7 @@ class Recorder:
                 "threadName": named.name
                 if named and not named.is_default
                 else (
-                    self.made_thread
-                    if thread_id == "new" and self.made_thread
-                    else "not in a thread"
+                    self.made_thread if thread_id == "new" and self.made_thread else NOT_IN_A_THREAD
                 ),
                 "notes": _notes_for(fx, "notes", thread_id),
                 "notesFromMembers": _notes_for(fx, "notes_from_members", thread_id),
@@ -868,18 +879,69 @@ class Recorder:
         }:
             return {"ok": True, "done": True}
         # The three answering reads.
+        # 028. Every thread name in them goes through the Core API's
+        # shownToModel: the default thread reads as "not in a thread".
         thread_id = args.get("thread_id")
-        rows = _rows_for(fx, thread_id)
+        rows = [self._shown(r) for r in _rows_for(fx, thread_id)]
         named = _thread(fx, thread_id)
         result: dict[str, Any] = {
             "threadId": thread_id,
-            "threadName": named.name if named else (rows[0].get("threadName") if rows else None),
+            "threadName": (NOT_IN_A_THREAD if named.is_default else named.name)
+            if named
+            else (rows[0].get("threadName") if rows else None),
             "truncated": bool(fx.get("truncated")),
             "rows": rows,
         }
         if tool == "search" and fx.get("asides"):
-            result["asides"] = fx["asides"]
+            result["asides"] = [self._shown(a) for a in fx["asides"]]
         return {"ok": True, "result": result}
+
+    def _shown(self, row: dict) -> dict:
+        """A row as the Core API hands it to the model: a default thread's
+        name never reaches it, by id or by the stored name a fixture wrote."""
+        default = next((t for t in _threads(self.fx) if t.is_default), None)
+        if not default or "threadName" not in row:
+            return row
+        if row.get("threadId") == default.id or row.get("threadName") == default.name:
+            return {**row, "threadName": NOT_IN_A_THREAD}
+        return row
+
+    def _facts(self) -> dict:
+        """The Core API's AccountFacts, field for field. 019 took filesInto
+        off a calendar, so a stub that passed it on answered "which calendar
+        goes into which thread" where production cannot; 028 names the
+        default thread by the prompt's words, never its stored name."""
+        fx = self.fx
+        facts = fx.get("facts") or {}
+        default = next((t for t in _threads(fx) if t.is_default), None)
+        default_id = (facts.get("defaultThread") or {}).get("id") or (
+            default.id if default else None
+        )
+        calendars = facts.get("calendars")
+        if calendars is None:
+            calendars = fx.get("calendars") or []
+
+        def threads_of(c: dict) -> list[str]:
+            # The fixture names one thread a calendar files into, as the
+            # contexts were written before 019; production names every
+            # thread this account picked it for, shown as the model sees
+            # them, so the default thread's stored name never appears.
+            into = c.get("filesInto")
+            if not into:
+                return []
+            if default is not None and into in (default.name, default.id):
+                return [NOT_IN_A_THREAD]
+            return [into]
+
+        return {
+            "displayName": facts.get("displayName"),
+            "defaultThread": {"id": default_id, "name": NOT_IN_A_THREAD} if default_id else None,
+            "calendars": sorted(
+                ({"name": c.get("name"), "threads": threads_of(c)} for c in calendars),
+                key=lambda c: c["name"] or "",
+            ),
+            "knowsDevicePreferences": False,
+        }
 
     def _look_up(self, args: dict) -> dict:
         """The real bounds, then a plausible result, so a case exercises the
@@ -938,12 +1000,104 @@ class Result:
     skipped: str | None = None
     #: With --runs, how many attempts passed out of how many.
     passes_of: tuple[int, int] | None = None
-    #: Dollars this attempt cost, every model call included.
+    #: Dollars this attempt cost, every model call included, the eval's own
+    #: judge too. What the run spends, for the budget.
     cost: float = 0.0
+    #: Every model call the product made for this case, in `call_of`'s shape.
+    #: The small calls arrive through the ledger sink `_run_one` opens; the
+    #: planner's come from its outcome. What cost and latency are read from.
+    calls: list[dict] = field(default_factory=list)
 
     @property
     def passed(self) -> bool:
         return not self.mechanical and self.judged
+
+
+def call_of(entry: Any) -> dict:
+    """One model call, whichever shape it arrived in: the planner's `Usage`
+    or the ledger's wire dict."""
+    if isinstance(entry, Usage):
+        return {
+            "model": entry.model,
+            "input_tokens": entry.input_tokens,
+            "output_tokens": entry.output_tokens,
+            "cache_read_tokens": entry.cache_read_tokens,
+            "cache_write_tokens": entry.cache_write_tokens,
+            "latency_ms": entry.latency_ms,
+        }
+    return {
+        "model": entry.get("model", ""),
+        "input_tokens": int(entry.get("inputTokens", entry.get("input_tokens", 0)) or 0),
+        "output_tokens": int(entry.get("outputTokens", entry.get("output_tokens", 0)) or 0),
+        "cache_read_tokens": int(
+            entry.get("cacheReadTokens", entry.get("cache_read_tokens", 0)) or 0
+        ),
+        "cache_write_tokens": int(
+            entry.get("cacheWriteTokens", entry.get("cache_write_tokens", 0)) or 0
+        ),
+        "latency_ms": int(entry.get("latencyMs", entry.get("latency_ms", 0)) or 0),
+    }
+
+
+def metrics_of(calls: list[dict]) -> dict:
+    """What a case cost the product and how long its calls took, end to end.
+    Latency is the sum because a turn's calls run one after another; the
+    stubbed tools between them take no time, so this is the model's share."""
+    return {
+        "calls": len(calls),
+        "latency_ms": sum(c["latency_ms"] for c in calls),
+        "input_tokens": sum(c["input_tokens"] for c in calls),
+        "output_tokens": sum(c["output_tokens"] for c in calls),
+        "cache_read_tokens": sum(c["cache_read_tokens"] for c in calls),
+        "product_cost_usd": round(
+            sum(
+                _cost(
+                    c["model"],
+                    c["input_tokens"],
+                    c["output_tokens"],
+                    c["cache_read_tokens"],
+                    c["cache_write_tokens"],
+                )
+                for c in calls
+            ),
+            5,
+        ),
+        # The same calls with every cache write priced as a read: what a turn
+        # costs once the prefix is warm, which in production is most turns.
+        # An eval run starts cold, so the cold number overstates the day.
+        "warm_cost_usd": round(
+            sum(
+                _cost(
+                    c["model"],
+                    c["input_tokens"],
+                    c["output_tokens"],
+                    c["cache_read_tokens"] + c["cache_write_tokens"],
+                    0,
+                )
+                for c in calls
+            ),
+            5,
+        ),
+    }
+
+
+def case_row(r: Result) -> dict:
+    """One case as the record writes it."""
+    return {
+        "principle": r.case.principle,
+        "id": r.case.id,
+        "why": r.case.why,
+        "surface": r.case.surface,
+        "input": r.case.input,
+        "passed": r.passed,
+        "passes_of": r.passes_of,
+        "cost_usd": round(r.cost, 4),
+        **metrics_of(r.calls),
+        "mechanical": r.mechanical,
+        "judge": r.judge_note,
+        "reply": r.reply,
+        "transcript": r.transcript,
+    }
 
 
 _BANNED_STEP = (
@@ -1560,6 +1714,7 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         photos=_photos(fx),
         pdfs=await _pdfs(fx),
         memories=_memories(fx),
+        spoken=bool(fx.get("spoken")),
     )
     return await _file_with(client, case, model, ctx, rec)
 
@@ -1705,7 +1860,16 @@ async def _file_with(
     if expect.get("rubric") and not failures:
         judged, note = await _judge(client, case, transcript)
     cost = _outcome_cost(outcome) + sum(_spent[before:])
-    return Result(case, reply, transcript, failures, judged, note, cost=cost)
+    return Result(
+        case,
+        reply,
+        transcript,
+        failures,
+        judged,
+        note,
+        cost=cost,
+        calls=[call_of(u) for u in outcome.usage],
+    )
 
 
 async def _run_answer(client: AsyncAnthropic, case: Case, model: str) -> Result:
@@ -1811,7 +1975,16 @@ async def _answer_with(
     if expect.get("rubric") and not failures and not asked_back:
         judged, note = await _judge(client, case, transcript)
     cost = _outcome_cost(outcome) + sum(_spent[before:])
-    return Result(case, reply, transcript, failures, judged, note, cost=cost)
+    return Result(
+        case,
+        reply,
+        transcript,
+        failures,
+        judged,
+        note,
+        cost=cost,
+        calls=[call_of(u) for u in outcome.usage],
+    )
 
 
 async def _run_classify(client: AsyncAnthropic, case: Case, model: str) -> Result:
@@ -2090,7 +2263,9 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
         )
         for u in usage
     ) + sum(_spent[before:])
-    return Result(case, "", transcript, failures, judged, note, cost=cost)
+    return Result(
+        case, "", transcript, failures, judged, note, cost=cost, calls=[call_of(u) for u in usage]
+    )
 
 
 # ---------------------------------------------------------------- the cast
@@ -2418,7 +2593,9 @@ async def _memory_with(
         )
         for u in usage
     )
-    return Result(case, "", transcript, failures, True, "", cost=cost)
+    return Result(
+        case, "", transcript, failures, True, "", cost=cost, calls=[call_of(u) for u in usage]
+    )
 
 
 _SURFACES = {
@@ -2443,12 +2620,25 @@ async def _run_one(
         return Result(case, "", "", [f"unknown surface {case.surface!r}"], False, "")
     model = overrides.get(case.surface) or MODELS[case.surface]
     async with gate:
-        try:
-            return await runner(client, case, model)
-        except Exception as exc:  # noqa: BLE001
-            # A harness fault in one case is that case's failure, never the
-            # run's: the first full run died on an empty thread list.
-            return Result(case, "", "", [f"harness raised {type(exc).__name__}: {exc}"], False, "")
+        # The sink the worker opens per job, opened per case: classify, judge,
+        # the reader and the look record what they used here, so a case's
+        # cost and latency are read from the calls rather than guessed at.
+        with ledger.collecting():
+            try:
+                result = await runner(client, case, model)
+            except Exception as exc:  # noqa: BLE001
+                # A harness fault in one case is that case's failure, never the
+                # run's: the first full run died on an empty thread list.
+                result = Result(
+                    case, "", "", [f"harness raised {type(exc).__name__}: {exc}"], False, ""
+                )
+            small = [call_of(e) for e in ledger.drain()]
+        result.calls = result.calls + small
+        if small and result.case.surface in ("classify", "judge", "look"):
+            # These three priced themselves by a fixed guess before the sink
+            # existed; the measured calls replace it.
+            result.cost = metrics_of(small)["product_cost_usd"]
+        return result
 
 
 # ---------------------------------------------------------------------------
@@ -2478,8 +2668,30 @@ def _majority(attempts: list[Result], cases: list[Case], runs: int) -> list[Resu
     return out
 
 
+def scope_of(args: argparse.Namespace) -> str:
+    """What the record and the history call this run. A subset given as a
+    path is named by its stem: the whole path once went into a file name and
+    the run crashed after it had charged."""
+    subset = getattr(args, "subset", None)
+    if subset:
+        return Path(subset).stem
+    return args.principle or args.surface or args.case or "all"
+
+
+def _subset_ids(spec: str) -> set[str]:
+    path = Path(spec)
+    if not path.is_file():
+        path = HERE / "subsets" / f"{spec}.json"
+    if not path.is_file():
+        print(f"no subset at {spec}")
+        raise SystemExit(2)
+    ids = json.loads(path.read_text(encoding="utf-8"))["cases"]
+    return set(ids)
+
+
 def _select(principles: list[Principle], args: argparse.Namespace) -> list[tuple[Principle, Case]]:
     picked: list[tuple[Principle, Case]] = []
+    subset = _subset_ids(args.subset) if getattr(args, "subset", None) else None
     for p in principles:
         if args.principle:
             key = args.principle
@@ -2495,11 +2707,19 @@ def _select(principles: list[Principle], args: argparse.Namespace) -> list[tuple
                 continue
             if args.case and c.id != args.case:
                 continue
+            if subset is not None and c.id not in subset:
+                continue
             if c.label_pending and not args.include_pending:
                 continue
             if c.live and not args.live:
                 continue
             picked.append((p, c))
+    if subset is not None:
+        missing = subset - {c.id for _, c in picked}
+        if missing:
+            # A typo would silently shrink the measurement.
+            print(f"subset names cases that do not exist: {', '.join(sorted(missing))}")
+            raise SystemExit(2)
     return picked
 
 
@@ -2682,6 +2902,10 @@ async def main() -> int:
     parser.add_argument("--principle", help="number or slug")
     parser.add_argument("--surface", choices=sorted(_SURFACES))
     parser.add_argument("--case", help="one case id")
+    parser.add_argument(
+        "--subset",
+        help="a subsets/<name>.json, or a path to one: run exactly the cases it lists",
+    )
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--include-pending", action="store_true")
@@ -2721,6 +2945,23 @@ async def main() -> int:
         print("ANTHROPIC_API_KEY is not set. This calls the real model.")
         return 2
 
+    cap = spend.from_env()
+    if cap:
+        counts: dict[str, int] = {}
+        for _, c in picked:
+            counts[c.surface] = counts.get(c.surface, 0) + 1
+        guess = spend.estimate(counts) * max(1, args.runs)
+        why = spend.refusal(
+            cap["log"],
+            agent=cap["agent"],
+            estimate=guess,
+            agent_cap=cap["agent_cap"],
+            total_cap=cap["total_cap"],
+        )
+        if why:
+            print(why)
+            return 3
+
     overrides = dict(kv.split("=", 1) for kv in args.model)
     models = {s: overrides.get(s, m) for s, m in MODELS.items()}
     print(
@@ -2750,7 +2991,11 @@ async def main() -> int:
 
     RESULTS.mkdir(exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    scope = args.principle or args.surface or args.case or "all"
+    scope = scope_of(args)
+    if cap:
+        spend.append(
+            cap["log"], agent=cap["agent"], scope=scope, cost_usd=spent, note=args.note or ""
+        )
     record = {
         "when": stamp,
         "scope": scope,
@@ -2763,24 +3008,16 @@ async def main() -> int:
         "passed": len(passed),
         "accuracy": round(accuracy, 3),
         "seconds": round(elapsed),
+        "agent": cap.get("agent") if cap else None,
+        # The product's cost and latency over the whole selection, which is
+        # what the optimisation run scores. `cost_usd` above is the spend.
+        **{
+            k: v
+            for k, v in metrics_of([c for r in results for c in r.calls]).items()
+            if k in ("product_cost_usd", "warm_cost_usd", "latency_ms", "calls")
+        },
         "principles": rows,
-        "cases": [
-            {
-                "principle": r.case.principle,
-                "id": r.case.id,
-                "why": r.case.why,
-                "surface": r.case.surface,
-                "input": r.case.input,
-                "passed": r.passed,
-                "passes_of": r.passes_of,
-                "cost_usd": round(r.cost, 4),
-                "mechanical": r.mechanical,
-                "judge": r.judge_note,
-                "reply": r.reply,
-                "transcript": r.transcript,
-            }
-            for r in results
-        ],
+        "cases": [case_row(r) for r in results],
     }
     (RESULTS / f"{stamp}-{scope}.json").write_text(
         json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8"
@@ -2819,9 +3056,14 @@ async def main() -> int:
         number, name = row["principle"].split(" ", 1)
         print(f"{number:<4}{name:<44}{row['passed']:>4}/{row['total']:<3}")
     where = f"results/{stamp}-{scope}.json"
+    product = metrics_of([c for r in results for c in r.calls])
+    lat = sorted(metrics_of(r.calls)["latency_ms"] for r in results)
+    median = lat[len(lat) // 2] if lat else 0
     print(
         f"\n{len(passed)}/{len(results)} = {accuracy:.0%} in {elapsed:.0f}s, "
-        f"about ${spent:.2f}, saved to {where}"
+        f"about ${spent:.2f}, saved to {where}\n"
+        f"product: ${product['product_cost_usd']:.3f} over {product['calls']} calls, "
+        f"median case latency {median} ms"
     )
     return 0 if accuracy == 1.0 else 1
 

@@ -50,6 +50,8 @@ describe("the location purpose string", () => {
     const text = config.ios?.infoPlist?.["NSLocationWhenInUseUsageDescription"];
     expect(typeof text).toBe("string");
     expect(text).toMatch(/^offload never asks for your location\./);
-    expect(text).not.toMatch(/[–—]/);
+    // Written as escapes so the gate, which refuses the characters themselves
+    // anywhere in the repo, can read this file (the same as evals/run.py).
+    expect(text).not.toMatch(/[\u2013\u2014]/);
   });
 });

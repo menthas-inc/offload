@@ -31,6 +31,7 @@ from offload_agent.harness.thread_icons import THREAD_ICON_NAMES
 # because the agent plane is not the enforcement point for anything.
 PLACE_NAME_CHARS = 120
 
+
 def _one_line_place(v: str | None) -> str | None:
     """030. A place's name is one line, as a location's title is. Corrected
     here rather than by a 400 the model cannot read."""
@@ -53,9 +54,7 @@ def _one_line_place(v: str | None) -> str | None:
 # duplicates, anchors and the until-or-count rule are the server's, and it
 # names what it refuses as `bad_rule`. The fixture both suites read is
 # packages/widgets/fixtures/rules.json.
-_RULE_PART = re.compile(
-    r"^(FREQ|INTERVAL|BYDAY|BYMONTHDAY|UNTIL|COUNT|WKST)=[A-Z0-9,+-]+$"
-)
+_RULE_PART = re.compile(r"^(FREQ|INTERVAL|BYDAY|BYMONTHDAY|UNTIL|COUNT|WKST)=[A-Z0-9,+-]+$")
 _RULE_FREQ = re.compile(r"^FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)$")
 
 
@@ -395,11 +394,41 @@ def _schema_for(model: type[BaseModel]) -> dict[str, Any]:
     every request and say nothing to the model that the field names do not.
     """
     schema = model.model_json_schema()
-    schema.pop("title", None)
-    schema.pop("$defs", None)
-    for field in schema.get("properties", {}).values():
-        field.pop("title", None)
-    return schema
+    defs = schema.pop("$defs", {})
+    return _tidy(schema, defs)
+
+
+def _tidy(node: dict[str, Any], defs: dict[str, Any]) -> dict[str, Any]:
+    """One schema node with references inlined, titles gone, nulls collapsed.
+
+    A `$ref` is replaced by its definition, since `$defs` is not sent. An
+    optional field is optional because it is not in `required`, so
+    `anyOf: [X, {type: null}]` with `default: null` becomes X: the null branch
+    said it twice, in every cached prefix. Pydantic still validates, so a null
+    the model sends anyway reads as not stated.
+    """
+    ref = node.get("$ref")
+    if isinstance(ref, str) and ref.startswith("#/$defs/"):
+        node = {
+            **defs[ref.removeprefix("#/$defs/")],
+            **{k: v for k, v in node.items() if k != "$ref"},
+        }
+    node = {k: v for k, v in node.items() if k != "title"}
+    branches = node.get("anyOf")
+    if isinstance(branches, list):
+        kept = [b for b in branches if b != {"type": "null"}]
+        if len(kept) == 1 and len(kept) < len(branches):
+            rest = {k: v for k, v in node.items() if k != "anyOf"}
+            if rest.get("default", "") is None:
+                rest.pop("default")
+            node = {**_tidy(kept[0], defs), **rest}
+        else:
+            node["anyOf"] = [_tidy(b, defs) for b in branches]
+    if isinstance(node.get("properties"), dict):
+        node["properties"] = {k: _tidy(v, defs) for k, v in node["properties"].items()}
+    if isinstance(node.get("items"), dict):
+        node["items"] = _tidy(node["items"], defs)
+    return node
 
 
 _DESCRIPTIONS = {
@@ -415,8 +444,9 @@ _DESCRIPTIONS = {
         "sent files as an image or screenshot, its number in photo, once each."
     ),
     "list_thread_content": (
-        "Read what is already in a thread, so you do not file something twice or "
-        "contradict what is there. Returns one page, newest first."
+        "Read the rows in a thread: to find one that is already there, to change "
+        "or to answer from. Not needed before filing something new. Returns one "
+        "page, newest first."
     ),
     "edit_content": (
         "Change something you filed for them: its title, body, priority, "

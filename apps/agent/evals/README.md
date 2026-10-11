@@ -6,8 +6,11 @@ them and says how to read a result; this file is the shape of what is here.
 ```
 evals/
   run.py            the harness, never the cases
+  compare.py        two records side by side: accuracy, cost, latency; no model
+  spend.py          the spend log and cap a run checks when EVAL_SPEND_LOG is set
   principles/       NN-slug.json, one principle and its cases
   contexts/         name.json, one account's fixture, shared by cases
+  subsets/          screen, holdout and train, cut by make.py; --subset runs one
   holdout/          fresh sets written for a prompt change, per /test-llm
   results/          every run's record, not committed
   BASELINE.md       the last full run, written by --write-baseline
@@ -83,6 +86,7 @@ this way the file goes, and the diff says which behaviour was dropped.
 | `fail_tools` | `{tool or tool:N: error}`, the Core API refusing | file |
 | `tool_errors` | `{tool: error}`, every call of it refused | file |
 | `question_asked` | `{field, text, options}`, the open question | judge |
+| `spoken` | `true` when the dump is a voice note written down; the input is the transcript | file |
 
 ## Expect keys
 

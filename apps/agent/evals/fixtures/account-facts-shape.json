@@ -1,0 +1,18 @@
+{
+  "why": "The Core API's AccountFacts (apps/core-api/src/search/read.ts), field by field, so the eval's account_facts stub hands the model what production hands it. 019 took filesInto off a calendar and 2026-10-10 put the threads that pick it on, by their shown names; 028 names the default thread by the words the prompt uses for it.",
+  "fields": [
+    "displayName",
+    "defaultThread",
+    "calendars",
+    "knowsDevicePreferences"
+  ],
+  "defaultThread": [
+    "id",
+    "name"
+  ],
+  "calendar": [
+    "name",
+    "threads"
+  ],
+  "notInAThread": "not in a thread"
+}

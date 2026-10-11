@@ -573,7 +573,12 @@ async def _ask(
                     "input_schema": _schema(shape),
                 }
             ],
-            tool_choice={"type": "tool", "name": "nightly"},
+            # Offered, not forced: Haiku 5.5 skips thinking on a forced tool,
+            # and without it the pass broke rules its prompt states. The
+            # prompt says to call the tool, and the repair below catches a
+            # reply without one. Low effort keeps the thinking short.
+            tool_choice={"type": "auto"},
+            output_config={"effort": "low"},
         )
         usage.append(ledger.usage_of(model, response.usage, started))
         block = next((one for one in response.content if one.type == "tool_use"), None)

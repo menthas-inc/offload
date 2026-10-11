@@ -265,6 +265,28 @@
         ],
         "say": null
       }
+    },
+    {
+      "id": "jun-afternoon-in-toronto-is-evening-in-utc",
+      "why": "the device is in Toronto, so a 3pm there is 19:00Z; the first context with a zone west of UTC",
+      "surface": "file",
+      "input": "handover meeting monday 3pm",
+      "context": "jun",
+      "looking_at": "00000050-0000-0000-0000-000000000000",
+      "expect": {
+        "filed": [
+          {
+            "type_any": [
+              "event",
+              "task"
+            ],
+            "date": "2026-09-14"
+          }
+        ],
+        "asks": "none",
+        "say": null,
+        "rubric": "The row's time is 19:00 UTC, which is 3pm in Toronto on Monday 14 September. A row at 15:00Z or 14:00Z fails: that is 3pm somewhere else."
+      }
     }
   ]
 }

@@ -763,6 +763,104 @@
       "expect": {
         "asks": "time"
       }
+    },
+    {
+      "id": "jun-stay-takes-dates-from-the-thread-on-screen",
+      "why": "from inside Busan trip the notes give the dates, so the hostel is a stay with them and nothing is asked",
+      "surface": "file",
+      "input": "book the hostel",
+      "context": "jun",
+      "looking_at": "00000051-0000-0000-0000-000000000000",
+      "expect": {
+        "filed": [
+          {
+            "has": [
+              "hostel"
+            ],
+            "date": "2026-11-14"
+          }
+        ],
+        "asks": "none",
+        "say": null
+      }
+    },
+    {
+      "id": "jun-stay-in-a-chosen-thread-asks-with-the-notes-dates",
+      "why": "the same dump from outside any thread: offload chose Busan trip itself, so its dates are a guess and are offered as the option",
+      "surface": "file",
+      "input": "book the hostel in busan",
+      "context": "jun",
+      "expect": {
+        "filed": [
+          {
+            "has": [
+              "hostel"
+            ],
+            "thread": "Busan trip"
+          }
+        ],
+        "asks": "span",
+        "options": [
+          "2026-11-14/2026-11-21"
+        ]
+      }
+    },
+    {
+      "id": "behrooz-whistler-dates-in-a-members-note",
+      "why": "a trip shared with two people: the only dates are in a note another member wrote, and a stay is filed from inside it",
+      "surface": "file",
+      "input": "book a hotel in vancouver for the night before",
+      "context": "behrooz",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000082-0000-0000-0000-000000000000",
+          "name": "Studio"
+        },
+        {
+          "id": "00000081-0000-0000-0000-000000000000",
+          "name": "Home",
+          "shared": true
+        },
+        {
+          "id": "00000080-0000-0000-0000-000000000000",
+          "name": "Whistler ski trip",
+          "shared": true
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "country": "CA",
+      "time_zone": "America/Toronto",
+      "notes": {
+        "00000080-0000-0000-0000-000000000000": []
+      },
+      "notes_from_members": {
+        "00000080-0000-0000-0000-000000000000": [
+          "Cabin is booked 6 to 9 February",
+          "Lift passes are bought"
+        ]
+      },
+      "looking_at": "00000080-0000-0000-0000-000000000000",
+      "label_pending": "Do dates in another member's note count as given, so the stay takes 5 to 6 February and nothing is asked, or is the span asked, and if asked may the options be made from the member's dates? plan_v2.md says notes from members never decide a tool call and a member's words never go in an option, and also that what the notes give you take.",
+      "expect": {
+        "filed": [
+          {
+            "has": [
+              "hotel"
+            ],
+            "thread": "Whistler ski trip"
+          }
+        ],
+        "asks": "span",
+        "no_options": true
+      }
     }
   ]
 }

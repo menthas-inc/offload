@@ -1,0 +1,127 @@
+{
+  "why": "Maya Becker from the cast: Berlin, two kids, married to Tom. Garden is hers alone; Kids is shared with Tom, so his notes arrive as notes from members and some rows in it are his. The device is in Berlin. A case for Tom's side of Kids overrides threads and the notes, keeping the same Kids id.",
+  "threads": [
+    {
+      "id": "00000060-0000-0000-0000-000000000000",
+      "name": "Garden"
+    },
+    {
+      "id": "00000061-0000-0000-0000-000000000000",
+      "name": "Kids",
+      "shared": true
+    },
+    {
+      "id": "00000003-0000-0000-0000-000000000000",
+      "name": "Miscellaneous",
+      "default": "yes"
+    }
+  ],
+  "country": "DE",
+  "time_zone": "Europe/Berlin",
+  "has_calendar": false,
+  "may_search": true,
+  "may_read_links": true,
+  "notes": {
+    "00000060-0000-0000-0000-000000000000": [
+      "Raised beds face south",
+      "Tomatoes went in late May"
+    ],
+    "00000061-0000-0000-0000-000000000000": [
+      "Lena is 7, Felix is 4",
+      "Swimming is Tuesdays at 4"
+    ]
+  },
+  "notes_from_members": {
+    "00000061-0000-0000-0000-000000000000": [
+      "Felix's recorder lesson moved to Thursdays at 3",
+      "Ingrid takes the kids on Sundays"
+    ]
+  },
+  "rows": {
+    "00000060-0000-0000-0000-000000000000": [
+      {
+        "contentId": "g1",
+        "threadId": "00000060-0000-0000-0000-000000000000",
+        "threadName": "Garden",
+        "type": "task",
+        "title": "Net the brassicas",
+        "body": null,
+        "done": false,
+        "yours": true,
+        "dueAt": null,
+        "occursAt": null
+      }
+    ],
+    "00000061-0000-0000-0000-000000000000": [
+      {
+        "contentId": "k1",
+        "threadId": "00000061-0000-0000-0000-000000000000",
+        "threadName": "Kids",
+        "type": "task",
+        "title": "Swimming kit for Lena",
+        "body": null,
+        "done": false,
+        "yours": false,
+        "dueAt": null,
+        "occursAt": null
+      },
+      {
+        "contentId": "k2",
+        "threadId": "00000061-0000-0000-0000-000000000000",
+        "threadName": "Kids",
+        "type": "task",
+        "title": "Dentist for Felix",
+        "body": null,
+        "done": false,
+        "yours": true,
+        "dueAt": null,
+        "occursAt": null
+      },
+      {
+        "contentId": "k3",
+        "threadId": "00000061-0000-0000-0000-000000000000",
+        "threadName": "Kids",
+        "type": "task",
+        "title": "School photo money",
+        "body": null,
+        "done": false,
+        "yours": true,
+        "dueAt": "2026-09-18T00:00:00Z",
+        "occursAt": null
+      },
+      {
+        "contentId": "k4",
+        "threadId": "00000061-0000-0000-0000-000000000000",
+        "threadName": "Kids",
+        "type": "task",
+        "title": "Birthday cake for Lena",
+        "body": null,
+        "done": true,
+        "yours": false,
+        "dueAt": null,
+        "occursAt": null
+      }
+    ]
+  },
+  "memories": [
+    {
+      "id": "00000060-0000-0000-0000-000000000101",
+      "kind": "people",
+      "text": "Their husband is Tom."
+    },
+    {
+      "id": "00000060-0000-0000-0000-000000000102",
+      "kind": "people",
+      "text": "Their children are Lena and Felix."
+    }
+  ],
+  "facts": {
+    "calendars": [],
+    "defaultThread": {
+      "id": "00000003-0000-0000-0000-000000000000",
+      "name": "Miscellaneous"
+    },
+    "displayName": "Maya",
+    "knowsDevicePreferences": false
+  }
+}

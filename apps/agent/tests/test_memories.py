@@ -213,7 +213,7 @@ def test_040_a_memory_in_the_first_person_is_theirs():
     assert "I'm allergic to nuts." in text
 
 
-def test_040_rules_are_one_cached_block_and_the_rest_another_uncached():
+def test_040_rules_are_one_block_and_the_rest_another():
     blocks = build_blocks(
         ctx(
             memories=[
@@ -224,9 +224,10 @@ def test_040_rules_are_one_cached_block_and_the_rest_another_uncached():
     )
     rules, known = blocks[0], blocks[1]
     assert "They write dates day first." in rules["text"] and "Meera" not in rules["text"]
-    assert rules.get("cache_control") == {"type": "ephemeral"}
     assert "Their wife is Meera." in known["text"]
-    assert "cache_control" not in known
+    # Both are the account's part of the turn; the mark sits on its last block
+    # (test_cache_prefix), not on either of these.
+    assert "cache_control" not in rules and "cache_control" not in known
 
 
 def test_040_no_rules_is_no_rules_block():

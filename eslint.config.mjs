@@ -44,6 +44,10 @@ export default [
       // it and fail main's lint for as long as the worktree existed.
       ".claude/skills/offload-design/**",
       "**/.claude/skills/offload-design/**",
+      // Workflow scripts for the Workflow tool: plain JavaScript with a
+      // top-level return, which that runtime takes and a parser does not.
+      "docs/experiments/**/workflows/**",
+      "**/docs/experiments/**/workflows/**",
       "**/.claude/worktrees/**",
       // Workflow scripts run in Claude Code's Workflow runtime, which allows a
       // top-level return; their dry-run test (test-sweep-workflows.mjs) is

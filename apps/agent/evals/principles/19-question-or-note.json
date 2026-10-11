@@ -186,6 +186,15 @@
       "expect": {
         "routes": "answer"
       }
+    },
+    {
+      "id": "jun-spoken-when-is-asking",
+      "why": "a transcript has no question mark; the words decide",
+      "surface": "classify",
+      "input": "when is my next night shift",
+      "expect": {
+        "routes": "answer"
+      }
     }
   ]
 }

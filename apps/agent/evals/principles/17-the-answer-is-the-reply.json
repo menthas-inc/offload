@@ -912,6 +912,38 @@
         "max_words": 20,
         "rubric": "Says the plumber is coming on Friday, from what they said earlier, in a sentence or less. It does not claim a time, does not say it added or changed anything, and does not talk about searching."
       }
+    },
+    {
+      "id": "jun-next-shift-is-a-sentence",
+      "why": "when is a sentence or less: the next open shift, not the rota and not a count",
+      "surface": "answer",
+      "input": "when's my next night shift",
+      "context": "jun",
+      "expect": {
+        "contains": [
+          "Monday"
+        ],
+        "max_words": 15,
+        "rubric": "Names Monday 14 September, with or without 7pm, in one sentence or less. Not a list of every shift, no count in front, and the shift already done on the 8th is not mentioned."
+      }
+    },
+    {
+      "id": "maya-kids-counts-both-members-rows",
+      "why": "a shared thread's contents belong to everybody in it: what is left counts Tom's open row with hers, with no split by who wrote what",
+      "surface": "answer",
+      "input": "what's left for the kids",
+      "context": "maya",
+      "expect": {
+        "max_words": 12,
+        "must_not_contain": [
+          "Swimming kit",
+          "Dentist for Felix",
+          "School photo",
+          "Tom's",
+          "yours"
+        ],
+        "rubric": "One count or one short line for the three open rows in Kids, Tom's swimming kit included. Does not sort them by who wrote them, does not type the titles out, and does not mention the ticked cake."
+      }
     }
   ]
 }

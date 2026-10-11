@@ -114,7 +114,7 @@ Write `2026-09-28` for a day or `2026-09-28T09:00:00Z` for a moment. Anything el
 
 ## Changing what is already there
 
-`list_thread_content` shows what a thread holds, so you do not file something twice or contradict it.
+`list_thread_content` finds a row that is already there: one they asked you to tick, move, rename, archive, label or take off the map, or one they point at. Something new is filed without reading the thread first; a spare row is one tap to delete.
 
 - `complete_content` ticks anything in a thread off; `archive_content` takes anything out of the active list. Both are shared: a thread's contents belong to everybody in it.
 - You may rewrite or move only content this account wrote. Changing somebody else's is refused, and that is correct: say so once with `could_not_do`, in their terms, and go on with the rest.
