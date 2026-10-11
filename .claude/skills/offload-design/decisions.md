@@ -11,6 +11,27 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-10 · Calendar: a section on Notifications, and the day's events in the morning message
+**Surface:** iOS, Android, web
+
+**Is:** the Notifications page gains a **Calendar** section between Reminders and People, under the `sunrise` glyph, one switch, **Today's events**, with "Today's events on the calendars you chose, in the morning message." On by default. Only events the person made or said yes or maybe to: an unanswered invite can be anybody's words. What is due and the reminders come first, the events after them. The morning hour greys only when Due today, Reminders and Calendar are all off. On Android the switch mirrors the Due today channel, since the events ride in the morning message. The morning message names the day's calendar events like any of its rows: at their hours, all-day first, counted in the title ("Three today"), with no verbs when it names one. No event gets a notification of its own.
+
+**Where the code diverged, and why.** No mock. `sunrise` because Dates already has `calendar` and the switch is about the morning message; the owner may reword the section.
+
+**Design system impact:** the kits' Notifications page wants the Calendar section; the readme's line that a digest announces reminders only, and that a calendar's events are never in one, wants "the morning also names the day's calendar events, under Calendar".
+
+### 2026-10-10 · Reminders: the Notifications section, the switch on every thing, Today's section, as built
+**Surface:** iOS, Android, web, Notifications, Today, the edit sheets
+**Raised by:** code, building 042 with no mock. Checked in the browser in both themes and on an iOS simulator.
+
+**Was:** no reminders; the bell after a date meant the digest would announce the row, and Remind me showed only while somebody had asked.
+
+**Is:** the Notifications page gains a **Reminders** section between Dates and People, under the `bell` glyph: a switch, Reminders, with "Before the dates that need one, in those two messages or just before a set time."; then **How many** as three choice tiles, Low, Medium and High, each a small picture (a short line ending at a date mark, with one, two or three marks before it, drawn from tokens), with the caption under the row following the pick ("One for each date.", "Up to two for each date.", "Up to three for each date."). Off, the tiles and the caption fade as the hour rows already do and are not pressable. The morning and evening hours grey only when both switches that use them are off. Dates' caption becomes "What is due, in one message each morning and evening." The web's page summary adds "with reminders". The **Remind me** switch shows on the row edit sheet, the note editor and the memory editor for the author whenever offload will remind them; on the web it is the settings `Switch`, where the edit dialog had a checkbox. The date chip's bell follows `bellOn`: offload will remind, or somebody asked. **Today** gains a **Reminders** section under Your day with a count in its heading, as the other sections have: rows are the thread page's row; a task with no date of its own that belongs to a trip shows a plain chip "By 18 October" with the bell; notes and memories are a line of their name, a plain date chip, and their thread's pill, "Memories", or "Not in a thread". Customize Today lists it with its grip and switch. Activity's `reminder` row draws the `bell` glyph and opens its thread. Android gains a fifth channel, Reminders, named as its switch since the notification's title is a time.
+
+**Why:** There is no mock for any of it, so every shape above is code-side. The tiles follow 031, which made every settings choice a tile; `SegmentedControl` stays for switching views. The Android tiles' selected ring uses `blue-600`, a ramp, as the existing tiles do: there is no Android accent alias. Phones and web differ in four places, logged rather than forced together: a note or memory line has a lead glyph on the web (`text-quote`, `cloudy`) and none on the phones; "and N more" sits inside the card on the web and under it on the phones; the note editor's switch is written when flipped on the web and folded into Save on the phones; the phones' Remind me row carries the bell glyph beside its label. The memory editor has no Undo, so neither does its switch. Toggling a note's switch alone toasts "Saved".
+
+**Design system impact:** the readme's line that "a `bell` after the date means the digest will announce this row" (854) wants "offload will remind you about it, or somebody asked"; the line that the flag is the model's alone (862) and that Remind me shows only "while the row is a reminder" (918) want the author's switch on anything offload reminds about, in the row sheet, the note editor and the memory editor; the kits' "no per-item pushes" wants the reminder of its own before a clock time. The kits want: the Notifications page's Reminders section with the three count tiles and their picture; Today's Reminders section with the row, the "By" chip and the note and memory lines; Customize Today's fourth section; the web edit dialog's switch; the Activity `reminder` row; and a decision on the four phone and web differences above.
+
 ### 2026-10-07 · Today: open in your threads, as built
 **Surface:** iOS, Android, web, Today
 **Raised by:** code, building the handoff of the same day. Checked in the browser, on an iOS simulator and on a Pixel.
