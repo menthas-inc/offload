@@ -9,8 +9,11 @@
 // job more than two hours late is dropped with a log line and no record.
 //
 // A date is not announced; a reminder is. Only `content` rows with
-// `is_reminder` and a date are read: no notes, no calendar's own events,
-// nothing at the moment a date passes.
+// `is_reminder` and a date are read: no notes, no calendar's own rows,
+// nothing at the moment a date passes. Since 2026-10-10 the morning also
+// names the day's events on the account's own calendars, which are what the
+// day holds rather than dates offload announces, and no event gets a
+// notification of its own.
 
 import { addUtcDays, dayIn, instantIn, occurrencesIn, parseRule, whenDayOf, type Rule } from "@offload/widgets";
 import { sql } from "kysely";
@@ -19,8 +22,9 @@ import { emit, subjectOf } from "../analytics.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { record } from "./activity.js";
-import { cutAtWord, digestCopy, skippedTitle, type ComingRow, type DigestRow, type Send } from "./copy.js";
+import { cutAtWord, digestCopy, reminderName, skippedTitle, type ComingRow, type DigestRow, type Send } from "./copy.js";
 import { clockOf, placed } from "./reminders.js";
+import { calendarOn, isWritten } from "../today/day.js";
 import { GONE, PushFailed, push, type PushMessage } from "./push.js";
 
 export type { Send };
@@ -124,6 +128,16 @@ export interface Composed {
   /** 042. The reminders that land in this send: named in its due part, or
    *  under Coming up, and the memories named, for the record. */
   reminders: { due: DigestRow[]; coming: ComingRow[]; memories: string[]; byWindow: Record<"long" | "short" | "day", number> };
+  /** 2026-10-10. The morning's events on the account's own calendars, each
+   *  with its calendar, so a record that names it goes with it, and the row
+   *  offload wrote it from when that row may be named in the same send. */
+  calendar: CalendarEvent[];
+}
+
+export interface CalendarEvent {
+  row: DigestRow;
+  calendarId: string;
+  sameAs: string | null;
 }
 
 interface Candidate {
@@ -217,8 +231,11 @@ export async function composeDigest(accountId: string, send: Send, day: string, 
     .where("content.done_at", "is", null)
     .where("content.archived_at", "is", null)
     // A calendar's own row is never announced, whatever its flag says: its
-    // words are a connected app's, and the calendar already told them.
-    .where("content.source_ref", "is", null)
+    // words are a connected app's. A row a person dumped is announced after
+    // offload writes it to a calendar too: whose words decides, not the copy.
+    // Not `source in (person, share)` alone, as 042's reads are: a forwarded
+    // email's row someone asked to be reminded about was always announced.
+    .where((eb) => eb.or([eb("content.source_ref", "is", null), eb("content.source", "in", ["person", "share"])]))
     .where("threads.deleted_at", "is", null)
     .where((eb) =>
       eb.or([
@@ -233,7 +250,7 @@ export async function composeDigest(accountId: string, send: Send, day: string, 
     .limit(RULE_ROWS_CAP + 500)
     .execute();
 
-  const rows = candidates.filter((row) => landsOn(row, zone, target)).map((row) => toDigestRow(row, zone, accountId, target));
+  const reminded = candidates.filter((row) => landsOn(row, zone, target)).map((row) => toDigestRow(row, zone, accountId, target));
   const overdue: DigestRow[] = [];
   if (send === "morning") {
     for (const row of candidates) {
@@ -244,6 +261,9 @@ export async function composeDigest(accountId: string, send: Send, day: string, 
       overdue.push(toDigestRow(row, zone, accountId, landed));
     }
   }
+  const reminders = await remindersIn(accountId, send, day, target, now);
+  const calendar = send === "morning" ? await calendarIn(accountId, day, zone, [...reminded, ...reminders.due]) : [];
+  const rows = reminded;
   const landingToday = candidates.filter((row) => landsOn(row, zone, day)).map((row) => row.id);
   const only = rows.length === 1 && overdue.length === 0 ? rows[0]! : null;
   const single = only && only.type === "task" && !only.repeating ? { contentId: only.id } : null;
@@ -254,7 +274,61 @@ export async function composeDigest(accountId: string, send: Send, day: string, 
     if (!source || !source.account_id || source.account_id === accountId) continue;
     named.set(`${source.thread_id}:${source.account_id}`, { threadId: source.thread_id, aboutAccountId: source.account_id });
   }
-  return { zone, today: day, rows, overdue, landingToday, single, mentions: [...named.values()], reminders: await remindersIn(accountId, send, day, target, now) };
+  return {
+    zone,
+    today: day,
+    rows,
+    overdue,
+    landingToday,
+    single,
+    mentions: [...named.values()],
+    reminders,
+    calendar,
+  };
+}
+
+/** The day's events, all-day first, then by the hour. Stable, so events at
+ *  the same moment keep the order they were read in. */
+function inDayOrder(rows: DigestRow[]): DigestRow[] {
+  return [...rows].sort((a, b) => {
+    if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
+    if (a.allDay) return 0;
+    return (a.at ?? "") < (b.at ?? "") ? -1 : (a.at ?? "") > (b.at ?? "") ? 1 : 0;
+  });
+}
+
+/** The day's events on the account's own calendars. One offload wrote from a
+ *  row the send may name says which, so it is named once, as the row. */
+async function calendarIn(accountId: string, day: string, zone: string | null, named: DigestRow[]): Promise<CalendarEvent[]> {
+  const events = await calendarOn(accountId, day, zone, { forSend: true });
+  if (events.length === 0) return [];
+  const ids = named.map((row) => row.id);
+  const refs =
+    ids.length === 0
+      ? []
+      : await db
+          .selectFrom("readable_content as content")
+          .select(["content.id", "content.source_ref"])
+          .where("content.viewer_account_id", "=", accountId)
+          .where("content.id", "in", ids)
+          .where("content.source_ref", "is not", null)
+          .execute();
+  return events.map((event) => ({
+      sameAs: refs.find((one) => isWritten(event, new Set([one.source_ref!])))?.id ?? null,
+      calendarId: event.calendar_id,
+      row: {
+        id: event.id,
+        // Somebody else's words on a lock screen: no dash, as 042's names.
+        title: reminderName(event.title),
+        type: "event",
+        at: event.all_day ? null : event.occurs_at.toISOString(),
+        allDay: event.all_day,
+        day,
+        author: null,
+        repeating: false,
+        daily: false,
+      },
+  }));
 }
 
 /** 042. What offload reminds about in this send: a reminder whose day is the
@@ -306,7 +380,7 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
   }
   const account = await db
     .selectFrom("accounts")
-    .select(["notify_due_today", "notify_coming_tomorrow"])
+    .select(["notify_due_today", "notify_coming_tomorrow", "notify_calendar"])
     .where("id", "=", accountId)
     .where("state", "=", "active")
     .executeTakeFirst();
@@ -315,7 +389,10 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
   const composed = await composeDigest(accountId, send, day, now);
   const reminders = composed.reminders;
   const reminding = reminders.due.length + reminders.coming.length > 0;
-  if (composed.rows.length + composed.overdue.length === 0 && !reminding) return "empty";
+  // 2026-10-10. The calendar's events follow their own switch alone, as each
+  // switch holds back only its own rows; off, they are not there at all.
+  const events = account.notify_calendar ? composed.calendar : [];
+  if (composed.rows.length + composed.overdue.length + events.length === 0 && !reminding) return "empty";
   if (!reminding && send === "evening" && sameSet(composed.rows.map((row) => row.id), composed.landingToday)) return "same";
 
   const subject = await subjectOf(accountId);
@@ -324,23 +401,28 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
   // Reminders on, the send still names the reminders.
   const rows = on ? composed.rows : [];
   const overdue = on ? composed.overdue : [];
-  const counts = { send, rows: rows.length, overdue: overdue.length };
+  const named = new Set([...rows, ...reminders.due].map((row) => row.id));
+  const calendar = events.filter((one) => one.sameAs === null || !named.has(one.sameAs));
+  const counts = { send, rows: rows.length, overdue: overdue.length, ...(calendar.length > 0 ? { events: calendar.length } : {}) };
   const mentions = on ? composed.mentions : [];
-  if (!on && !reminding) {
+  const calendars = [...new Set(calendar.map((one) => one.calendarId))];
+  if (!on && !reminding && calendar.length === 0) {
     const held = digestCopy(send, composed.rows, composed.overdue, composed.zone, day);
     await record(accountId, { kind: "digest", sent: false, reason: "setting", title: skippedTitle(send), body: held.body, send, mentions: composed.mentions });
     await emit({ name: "digest_skipped", subjectId: subject, properties: { ...counts, rows: composed.rows.length, overdue: composed.overdue.length, reason: "setting" } });
     return "skipped_setting";
   }
-  const named = new Set(rows.map((row) => row.id));
-  const due = [...rows, ...reminders.due.filter((row) => !named.has(row.id))];
+  const listed = new Set(rows.map((row) => row.id));
+  // What is due comes first, so a busy calendar never pushes it off a lock
+  // screen; the day's events follow, in the order of the day.
+  const due = [...rows, ...reminders.due.filter((row) => !listed.has(row.id)), ...inDayOrder(calendar.map((one) => one.row))];
   const drafted = digestCopy(send, due, overdue, composed.zone, day, "en", reminders.coming);
   const copy = { title: drafted.title, body: cutAtWord(drafted.body, BODY_CHARS) };
-  const single = reminding ? null : composed.single;
+  const single = reminding || calendar.length > 0 ? null : composed.single;
 
   const tokens = await db.selectFrom("push_tokens").select(["id", "token", "platform"]).where("account_id", "=", accountId).execute();
   if (tokens.length === 0) {
-    await record(accountId, { kind: "digest", sent: false, reason: "permission", title: copy.title, body: copy.body, send, mentions, memories: reminders.memories });
+    await record(accountId, { kind: "digest", sent: false, reason: "permission", title: copy.title, body: copy.body, send, mentions, memories: reminders.memories, calendars });
     await emit({ name: "digest_skipped", subjectId: subject, properties: { ...counts, reason: "permission" } });
     return "skipped_permission";
   }
@@ -402,6 +484,7 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
     contentId: single?.contentId ?? null,
     mentions,
     memories: reminders.memories,
+    calendars,
   });
   await emit({ name: "digest_sent", subjectId: subject, properties: counts });
   if (reminding) {

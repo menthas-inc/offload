@@ -79,6 +79,14 @@ describe("decided once for both clients (review, 2026-10-10)", () => {
     expect(hoursOn({ notifyDueToday: true, notifyComingTomorrow: false, notifyReminders: false })).toEqual({ morning: true, evening: false });
   });
 
+  it("the morning hour is in use by Calendar too, never the evening", async () => {
+    const { hoursOn, CALENDAR_LINE } = await import("../src/reminders.js");
+    expect(hoursOn({ notifyDueToday: false, notifyComingTomorrow: false, notifyReminders: false, notifyCalendar: true })).toEqual({ morning: true, evening: false });
+    expect(CALENDAR_LINE).not.toMatch(/[\u2013\u2014]/);
+    // The ticked calendars only, as the privacy page says "the calendars you choose".
+    expect(CALENDAR_LINE).toBe("Today's events on the calendars you chose, in the morning message.");
+  });
+
   it("a memory opens from a reminder by one name on every surface", async () => {
     const { MEMORY_PARAM } = await import("../src/reminders.js");
     expect(MEMORY_PARAM).toBe("memory");

@@ -197,6 +197,7 @@ async function mirror(target: CalendarTarget, write: WriteAction, sourceRef: str
       link: null,
       createdByMe: true,
       invitedMe: false,
+      going: true,
     });
     return;
   }
