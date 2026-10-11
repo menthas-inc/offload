@@ -161,6 +161,72 @@ export async function readDay(accountId: string, date: string, now = new Date())
   };
 }
 
+export interface CalendarCopy {
+  id: string;
+  calendar_id: string;
+  title: string;
+  occurs_at: Date;
+  occurs_end_at: Date | null;
+  all_day: boolean;
+  link: string | null;
+  source_ref: string;
+  series_ref: string | null;
+  external_id: string;
+  summary: string;
+  is_primary: boolean;
+}
+
+/** The events on a day on the account's own ticked calendars, its own part of
+ *  them only. Today draws them and the morning send names them. A send reads
+ *  narrower, since it puts a title on a lock screen unasked: only a live
+ *  grant, and only events the person made or said yes or maybe to. */
+export async function calendarOn(accountId: string, date: string, zone: string | null, { forSend = false } = {}): Promise<CalendarCopy[]> {
+  const start = instantIn(`${date}T00:00`, zone) ?? new Date(`${date}T00:00:00Z`);
+  const end = instantIn(`${addUtcDays(date, 1)}T00:00`, zone) ?? new Date(`${addUtcDays(date, 1)}T00:00:00Z`);
+  const wideFrom = new Date(start.getTime() - 86400_000);
+  const wideTo = new Date(end.getTime() + 86400_000);
+  // **Never `thread_calendars`, never `threadEvents`**: those return every
+  // member's picks, and this is the account's own calendars only.
+  let query = db
+    .selectFrom("connector_events as e")
+    .innerJoin("connector_calendars as c", "c.id", "e.calendar_id")
+    .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+    .select(["e.id", "e.calendar_id", "e.title", "e.occurs_at", "e.occurs_end_at", "e.all_day", "e.link", "e.source_ref", "e.series_ref", "c.external_id", "c.summary", "c.is_primary"])
+    .where("e.account_id", "=", accountId)
+    .where("n.account_id", "=", accountId)
+    .where("c.selected", "=", true)
+    .where("n.deleted_at", "is", null)
+    .where("e.deleted_at", "is", null)
+    // Only the account's own part of a calendar: what it created or was
+    // invited to. A calendar shared with somebody else carries their day too,
+    // and Where you will be is not where they will be. Null is not read yet.
+    .where((eb) =>
+      eb.or([
+        eb("e.created_by_me", "=", true),
+        eb("e.invited_me", "=", true),
+        eb.and([eb("e.created_by_me", "is", null), eb("e.invited_me", "is", null)]),
+      ]),
+    )
+    .where("e.occurs_at", "<", wideTo)
+    .where(sql<boolean>`coalesce(e.occurs_end_at, e.occurs_at) >= ${wideFrom}`);
+  if (forSend) query = query.where("n.state", "=", "active").where("e.going", "=", true);
+  const rows = await query.execute();
+  return rows.filter(
+    (row): row is typeof row & { occurs_at: Date } =>
+      row.occurs_at !== null &&
+      dayCovers(date, row.all_day ? utcDay(row.occurs_at) : dayIn(row.occurs_at, zone), lastDay(row.occurs_at, row.occurs_end_at, row.all_day, zone, true)),
+  );
+}
+
+/** An event offload wrote to a calendar from a row: drawn, or named, once, as
+ *  the row. A repeating row remembers the series; the copy holds its
+ *  occurrences. */
+export function isWritten(row: Pick<CalendarCopy, "source_ref" | "series_ref" | "external_id">, written: Set<string>): boolean {
+  return written.has(row.source_ref) || (row.series_ref !== null && written.has(`${row.external_id}:${row.series_ref}`));
+}
+
+const dayCovers = (date: string, first: string, last: string) => first <= date && date <= last;
+
 /** The day's events: the account's own ticked calendars, never a calendar
  *  another member picked for a thread, and every `event` row the account
  *  reads. An event offload wrote to a calendar is drawn once, as the row. */
@@ -170,31 +236,7 @@ async function eventsOn(accountId: string, date: string, start: Date, end: Date,
 
   const [owner, calendarRows, offloadRows] = await Promise.all([
     db.selectFrom("accounts").select("display_name").where("id", "=", accountId).executeTakeFirst(),
-    // **Never `thread_calendars`, never `threadEvents`**: those return every
-    // member's picks, and Today is the account's own calendars only.
-    db
-      .selectFrom("connector_events as e")
-      .innerJoin("connector_calendars as c", "c.id", "e.calendar_id")
-      .innerJoin("connector_connections as n", "n.id", "c.connection_id")
-      .select(["e.id", "e.title", "e.occurs_at", "e.occurs_end_at", "e.all_day", "e.link", "e.source_ref", "e.series_ref", "c.external_id", "c.summary", "c.is_primary"])
-      .where("e.account_id", "=", accountId)
-      .where("n.account_id", "=", accountId)
-      .where("c.selected", "=", true)
-      .where("n.deleted_at", "is", null)
-      .where("e.deleted_at", "is", null)
-      // Only the account's own part of a calendar: what it created or was
-      // invited to. A calendar shared with somebody else carries their day too,
-      // and Where you will be is not where they will be. Null is not read yet.
-      .where((eb) =>
-        eb.or([
-          eb("e.created_by_me", "=", true),
-          eb("e.invited_me", "=", true),
-          eb.and([eb("e.created_by_me", "is", null), eb("e.invited_me", "is", null)]),
-        ]),
-      )
-      .where("e.occurs_at", "<", wideTo)
-      .where(sql<boolean>`coalesce(e.occurs_end_at, e.occurs_at) >= ${wideFrom}`)
-      .execute(),
+    calendarOn(accountId, date, zone),
     agendaQuery(accountId)
       .where("content.type", "=", "event")
       .where((eb) =>
@@ -244,10 +286,7 @@ async function eventsOn(accountId: string, date: string, start: Date, end: Date,
   }
 
   for (const row of calendarRows) {
-    if (!row.occurs_at || written.has(row.source_ref)) continue;
-    // A repeating row remembers the series; the copy holds its occurrences.
-    if (row.series_ref && written.has(`${row.external_id}:${row.series_ref}`)) continue;
-    if (!covers(row.all_day ? utcDay(row.occurs_at) : dayIn(row.occurs_at, zone), lastDay(row.occurs_at, row.occurs_end_at, row.all_day, zone, true))) continue;
+    if (isWritten(row, written)) continue;
     out.push({
       id: row.id,
       source: "calendar",

@@ -74,6 +74,8 @@ export interface AccountsTable {
   notify_shared_activity: Generated<boolean>;
   /** 042. Reminders, and How many: 1, 2 or 3 for each date, Medium by default. */
   notify_reminders: Generated<boolean>;
+  /** 2026-10-10. The morning names the day's calendar events. */
+  notify_calendar: Generated<boolean>;
   notify_reminder_count: Generated<number>;
   /** When Activity was last opened: the dot is a row newer than this. */
   activity_seen_at: Timestamp | null;
@@ -455,6 +457,13 @@ export interface ActivityTable {
 export interface ActivityMemoriesTable {
   activity_id: string;
   note_id: string;
+}
+
+/** 2026-10-10. Which calendars a record named events from; the record goes
+ *  with them, by trigger. */
+export interface ActivityCalendarsTable {
+  activity_id: string;
+  calendar_id: string;
 }
 
 export type RemindKind = "meeting" | "appointment" | "occasion" | "deadline" | "trip" | "day" | "none";
@@ -1043,6 +1052,8 @@ export interface ConnectorEventsTable {
    *  declined. Null until a sync has read it. */
   created_by_me: boolean | null;
   invited_me: boolean | null;
+  /** 2026-10-10. Made it, or answered yes or maybe; null is not read yet. */
+  going: boolean | null;
   created_at: Timestamp;
   updated_at: Timestamp;
   /** 030. Where it is, once its location was looked up. */
@@ -1389,6 +1400,7 @@ export interface Database {
   exports: ExportsTable;
   activity_mentions: ActivityMentionsTable;
   activity_memories: ActivityMemoriesTable;
+  activity_calendars: ActivityCalendarsTable;
   reminder_labels: ReminderLabelsTable;
   labels: LabelsTable;
   content_labels: ContentLabelsTable;

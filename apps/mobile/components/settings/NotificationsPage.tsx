@@ -24,6 +24,10 @@
 // tiles that grey with it. Reminders ride in both sends, so each hour greys
 // only when both switches that use it are off. Its Android channel carries
 // only a reminder of its own, and is mirrored into the switch as the others.
+//
+// 2026-10-10: Calendar between Reminders and People, one switch: the morning
+// message names the day's events on the calendars the person connected. It
+// rides the morning's channel, so it mirrors that one.
 
 import { useCallback, useState } from "react";
 import { Linking, Platform, Pressable, Text, View } from "react-native";
@@ -34,14 +38,14 @@ import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from 
 import { Group, Row, Sections, useRowEdge } from "./Rows";
 import { Switch } from "./Switch";
 import { ChoiceTiles, CountPreview } from "./ChoiceTiles";
-import { DATES_CAPTION, REMINDER_COUNT_DEFAULT, REMINDER_COUNTS, REMINDERS_LINE, hoursOn } from "@offload/widgets";
+import { CALENDAR_LINE, DATES_CAPTION, REMINDER_COUNT_DEFAULT, REMINDER_COUNTS, REMINDERS_LINE, hoursOn } from "@offload/widgets";
 import { setNotify, useMe, type Me } from "../../lib/me";
 import { clockLabel } from "../../lib/when";
 import { CHANNELS, register } from "../../lib/notifications";
 
 const isAndroid = Platform.OS === "android";
 
-type Switches = "notifyDueToday" | "notifyComingTomorrow" | "notifyPeopleRequests" | "notifySharedActivity" | "notifyReminders";
+type Switches = "notifyDueToday" | "notifyComingTomorrow" | "notifyPeopleRequests" | "notifySharedActivity" | "notifyReminders" | "notifyCalendar";
 type Hours = "notifyDueTodayAt" | "notifyComingTomorrowAt";
 type Patch = Partial<Pick<Me, Switches | Hours | "notifyReminderCount">>;
 
@@ -51,6 +55,7 @@ const CHANNEL_OF: Record<Switches, string> = {
   notifyPeopleRequests: "people_requests",
   notifySharedActivity: "shared_activity",
   notifyReminders: "reminders",
+  notifyCalendar: "due_today",
 };
 
 function dateOf(hour: string): Date {
@@ -111,9 +116,12 @@ export function NotificationsPage() {
   useFocusEffect(
     useCallback(() => {
       if (!isAndroid || !me) return;
+      // One write: the morning's channel carries two switches.
+      const patch: Patch = {};
       for (const [key, channel] of Object.entries(CHANNEL_OF) as [Switches, string][]) {
-        if (blocked.has(channel) && me[key]) void write({ [key]: false });
+        if (blocked.has(channel) && me[key]) patch[key] = false;
       }
+      if (Object.keys(patch).length > 0) void write(patch);
     }, [blocked, me, write]),
   );
 
@@ -191,6 +199,7 @@ export function NotificationsPage() {
     notifyDueToday: value("notifyDueToday") === true,
     notifyComingTomorrow: value("notifyComingTomorrow") === true,
     notifyReminders: value("notifyReminders") === true,
+    notifyCalendar: value("notifyCalendar") === true,
   });
   const remindersOn = value("notifyReminders") === true && !blocked.has(CHANNEL_OF.notifyReminders);
   const count = value("notifyReminderCount") ?? REMINDER_COUNT_DEFAULT;
@@ -233,6 +242,10 @@ export function NotificationsPage() {
               disabled={!remindersOn}
             />
           </CountRow>
+        </Group>
+
+        <Group label="Calendar" icon="sunrise">
+          {toggle("notifyCalendar", "Today's events", CALENDAR_LINE, true)}
         </Group>
 
         <Group label="People" icon="users" caption="When someone reaches for you.">

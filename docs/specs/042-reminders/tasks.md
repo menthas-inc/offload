@@ -70,6 +70,13 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 - [x] **I3** Web: the Notifications page, the three editors, the Today pane with the section and Customize, and Activity driven and screenshotted in both themes.
 - [x] **I4** Three reviews in the background straight after the build (code, client, security), fixed by pass with one commit each.
 
+## J. Amended 2026-10-10: the calendar in the morning
+
+- [x] **J1** `0090_calendar_in_the_morning.sql`: `reminder_anchors`, `reminders_wanted`, `content_due_live` and `content_occurs_live` without `source_ref is null`; `scheduleOwn` and `candidatesOf` the same; the send's read by `source`. Test `apps/core-api/test/calendar-morning.test.ts`, red first. (AC-2, AC-28, OFF-4)
+- [x] **J2** The morning's events under `notify_calendar` alone, named once for a row the send names; `/api/me` `notifyCalendar`; `activity_calendars` and its triggers. Test `apps/core-api/test/calendar-morning.test.ts`, red first. (AC-29, AC-31)
+- [x] **J3** The Calendar section on both Notifications pages, `CALENDAR_LINE` and the morning hour in `hoursOn`, Android's mirror of `due_today`, Today's Notifications card. Tests `apps/web/test/reminders-notifications.test.tsx`, `apps/mobile/test/notifications-page.test.ts`, `apps/mobile/test/today.test.ts`, `packages/widgets/test/reminders.test.ts`, red first. (AC-30)
+- [x] **J4** The privacy page's sections 7 and 14, approved by the owner. Test `apps/web/test/privacy-policy.test.tsx`, red first. (AC-31, the `CLAUDE.md` policy rule)
+
 ## The owner's steps, batched
 
 - Read the four privacy page edits (A1) before E is built.

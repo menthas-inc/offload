@@ -288,7 +288,7 @@ describe("024 AC-6 and AC-8 what the job decides", () => {
   it("never announces a calendar's own row, whatever its flag says", async () => {
     const me = await account();
     const th = await thread([me]);
-    await reminder(me, th, "Standup", TODAY, { type: "event", occurs_at: new Date(`${TODAY}T08:00:00Z`), due_at: null, source_ref: "google:evt_1", attrs: { all_day: false } });
+    await reminder(me, th, "Standup", TODAY, { type: "event", occurs_at: new Date(`${TODAY}T08:00:00Z`), due_at: null, source: "calendar", source_ref: "google:evt_1", attrs: { all_day: false } });
     const composed = await composeDigest(me, "morning", TODAY);
     expect(composed.rows).toEqual([]);
   });

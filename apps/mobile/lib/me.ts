@@ -60,6 +60,8 @@ export interface Me {
   /** 042. Reminders, and How many: one, two or three for each date. */
   notifyReminders: boolean;
   notifyReminderCount: 1 | 2 | 3;
+  /** 2026-10-10. The morning names the day's calendar events. */
+  notifyCalendar: boolean;
   /** The dot on the bell: Activity holds a row newer than its last opening. */
   activityNew: boolean;
   /** 026. Whether mail forwarded from the sign-in address can reach them:
@@ -266,6 +268,7 @@ export async function setNotify(patch: {
   notifySharedActivity?: boolean;
   notifyReminders?: boolean;
   notifyReminderCount?: 1 | 2 | 3;
+  notifyCalendar?: boolean;
 }): Promise<Me | null> {
   try {
     const updated = await request<Me>("/api/me", {

@@ -15,9 +15,12 @@
 // 042: Reminders between Dates and People, a switch and How many as three
 // choice tiles that grey with it. Reminders ride in the two messages, so an
 // hour greys only when both switches that use it are off.
+//
+// 2026-10-10: Calendar between Reminders and People, one switch: the morning
+// message names the day's events on the calendars the person connected.
 
 import { useEffect, useState } from "react";
-import { DATES_CAPTION, hoursOn, REMINDER_COUNT_DEFAULT, REMINDER_COUNTS, REMINDERS_LINE } from "@offload/widgets";
+import { CALENDAR_LINE, DATES_CAPTION, hoursOn, REMINDER_COUNT_DEFAULT, REMINDER_COUNTS, REMINDERS_LINE } from "@offload/widgets";
 import { ChoiceTiles, Group, Row } from "./SettingsRows";
 import { CountPreview } from "./ChoicePreviews";
 import { Switch } from "../Switch";
@@ -29,6 +32,7 @@ type Switches =
   | "notifyDueToday"
   | "notifyComingTomorrow"
   | "notifyReminders"
+  | "notifyCalendar"
   | "notifyPeopleRequests"
   | "notifySharedActivity";
 type Hours = "notifyDueTodayAt" | "notifyComingTomorrowAt";
@@ -95,6 +99,7 @@ export function NotificationsPane() {
         notifyComingTomorrow: value("notifyComingTomorrow") === true,
         notifyComingTomorrowAt: value("notifyComingTomorrowAt") ?? me.notifyComingTomorrowAt,
         notifyReminders: value("notifyReminders") === true,
+        notifyCalendar: value("notifyCalendar") === true,
       })
     : undefined;
 
@@ -104,6 +109,7 @@ export function NotificationsPane() {
     notifyDueToday: value("notifyDueToday") === true,
     notifyComingTomorrow: value("notifyComingTomorrow") === true,
     notifyReminders: reminders,
+    notifyCalendar: value("notifyCalendar") === true,
   });
   const caption = REMINDER_COUNTS.find((c) => c.count === count)?.caption;
 
@@ -150,6 +156,10 @@ export function NotificationsPane() {
             />
             {caption ? <p className={pane.settingsCaption}>{caption}</p> : null}
           </div>
+        </Group>
+
+        <Group label="Calendar" icon="sunrise">
+          {toggle("notifyCalendar", "Today's events", CALENDAR_LINE, true)}
         </Group>
 
         <Group label="People" icon="users" caption="When someone reaches for you.">
