@@ -439,3 +439,13 @@ window.OFFLOAD_DATA.open_threads=[
   {name:"Not in a thread",loose:true,people:[],read:"offload has a thread in mind for one of these.",more:"6 notes and links",
    todos:[{title:"Renew passport",age:"3 weeks"},{title:"Call the landlord about the damp",age:"2 weeks"},{title:"Return the library books",age:"1 week"}]}
 ];
+
+/* 042 Reminders on Today, as drawn 11 October 2026. Everything due today shares one card; each
+   later thing carries its countdown and its day. */
+(function(){
+  const base=new Date(window.OFFLOAD_DATA.todayIso+"T12:00:00");
+  const day=n=>{const x=new Date(base);x.setDate(x.getDate()+n);return x.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}).replace(",","");};
+  window.OFFLOAD_DATA.reminders={todayLabel:day(0),
+    today:[{of:"row",name:"Pay the council tax",thread:"Flat"},{of:"row",name:"Pick up the dry cleaning",thread:"Flat",at:"By 18:00"},{of:"memory",name:"Sam's birthday"},{of:"note",name:"Ana lands at Gatwick",thread:"Europe, October",at:"21:40"}],
+    later:[{of:"memory",name:"Mum's birthday",when:"In 2 days",day:day(2)},{of:"row",name:"Book the boiler service",thread:"Flat",when:"In 5 days",day:day(5)},{of:"row",name:"Renew passport",thread:"Europe, October",when:"In 7 days",day:"By "+day(7)},{of:"note",name:"Car MOT",when:"In 22 days",day:day(22)}]};
+})();

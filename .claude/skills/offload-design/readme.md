@@ -851,7 +851,7 @@ because principle 04 made offload not ask for dates nobody gave.
 **The chip is coloured by nearness.** `--clay-100` on `--text-danger` for late, `--amber-100` on
 `--amber-700` for today plus three days, the plain fill after that. Amber rather than blue, since
 blue is the attention colour and would read as offload asking for something. A done row loses the
-colour whatever its date. **A `bell` after the date means the digest will announce this row**, and
+colour whatever its date. **A `bell` after the date means offload will remind you about it, or somebody asked** (042), and
 it is read-only.
 
 **The account has a default zone and a last-seen one.** When they differ, a strip on Today states
@@ -860,10 +860,10 @@ answers inside the card as tinted text buttons. Once per zone, not once per day.
 *This browser says*.
 
 **A date is not announced; a reminder is.** `is_reminder` gates both digests, so most dated rows
-are silent and **an empty digest is the normal morning**. A person can set a date but cannot ask to
-be reminded of it: the flag is the model's alone.
+are silent and **an empty digest is the normal morning**. Since 042 the author has a **Remind me** switch on anything
+offload will remind them about: the row sheet, the note editor and the memory editor.
 
-**Two sends a day, and no per-item pushes.** Today at 8:00, tomorrow at 19:00, in the account's
+**Two sends a day, and a reminder of its own only before a clock time** (042). Today at 8:00, tomorrow at 19:00, in the account's
 zone, skipped when empty. One thing is named, two to four listed, five or more counted after the
 first two. Titles are verb-free and subject-free: **Due today**, never "You have 3 tasks due".
 Another member's row is named with its author, as *Ana's ferry times*. A share reads *Ana added two to Lisbon trip*, and a request ends *Answer in My people.*
@@ -915,7 +915,7 @@ keeps "archived 20 Sep".
 **The edit sheet has no heading and no details field.** The title field is `title-3` semibold in
 `--text-primary`, then rows at 44px, each a glyph, a name, its value and a chevron: **When**
 (`calendar`), **Repeats** (`clock`), **Labels** (`tag`, the row's dots and names), and **Remind me**
-with a switch while the row is a reminder. **When, Repeats and Labels open in place**, as panels
+with a switch whenever offload will remind the author about the row (042). **When, Repeats and Labels open in place**, as panels
 inside the same sheet, and hand their value back on Done; Save below writes once. Custom repeat is
 the one that still opens its own sheet. The sheet grows by the keyboard from its foot, so its top
 never leaves the screen.
@@ -1015,14 +1015,33 @@ nothing is drawn when it is empty, which is most days. There is no heading and n
   *Sort them*. A tick strikes through in place with Undo. The web shows two pages side by side,
   stepped by arrows in the head. *As built, 7 October:* no first sentence of the thread's read
   under the name, since nothing writes a thread's read yet; it comes back when one exists.
+- **Reminders**, on Today only (042, drawn 11 October 2026 off `explorations/home-reminders.html`,
+  C2b): what offload is reminding you about, nearest first, in one column. The countdown leads in a
+  fixed 82px column, 17px semibold over the day in 12px tertiary. **Everything due today shares one
+  card** under a single *Today* in `--amber-700`, each row with its name, where it lives (thread,
+  *Memories* or *Not in a thread*, with `lasso`, `cloudy`, `text-quote` or `inbox` at 12px) and its
+  time in amber when it has one; every later thing is a card of its own, *In 2 days*, *In 7 days*.
+  The same lead glyphs on all three surfaces. **The `x` dismisses**: it turns that thing's Remind
+  me off, the stop 042 already writes, and the toast says *Won't remind you about Mum's birthday*
+  with Undo. The thing and its date stay. A row opens its thread, a memory opens it in Memories.
 - Empty sections are not drawn. No line for tomorrow.
+
+**Bands** (11 October 2026 off `explorations/today-sections.html`, direction A;
+`explorations/today-bands.html`). The sections alternate **by position** between the page and a
+full-bleed `--surface-fill` band (Android `--a-c-low`), 20px above the content and 24px below, so
+any order Customize Today keeps still alternates. Inside a band, cards step up to
+`--surface-raised`, and chips and the stepper's buttons on them step to the fill. **Reminders and
+Open in your threads head their bands at 20px semibold** with the count; Needs you and Your day
+draw no heading, since the stacked cards and the stepper's *Today* already say what they are. On
+the phones the strips still run to the screen edge; on the web a band runs to the measure's edges
+with the pane's padding inside, `--radius-lg`, since it stops short of the pane.
 
 **Threads are thread pills**, the conversation's moss chip with `lasso`, at 24px to sit on a row's
 marks line beside the date chip; a label follows it. A calendar name stays plain text.
 
 **Customize Today** opens from `sliders-horizontal` in the app bar, which only Today draws:
-Needs you, Your day, Open in your threads and What moved, each dragged to order and switched. What
-Needs you and Open in your threads hold is the server's rule, not a setting. The layout is one small document per account,
+Needs you, Your day, Reminders, Open in your threads and What moved, each dragged to order and switched. What
+Needs you, Reminders and Open in your threads hold is the server's rule, not a setting. The layout is one small document per account,
 read by the server; no model call is involved.
 
 **The forwarding tip** (026): *Forward emails to offload*, the address `over@to.offload.club` and

@@ -55,7 +55,7 @@ which is what a real viewport under about 1250px would do.
 | `index.html` | Loads the design-system bundle, `sun.js`, `data.js`, then the kit |
 | `W.jsx` | Web layout vocabulary: `WPane`, `WPaneHead`, `WBody`, `WRow`, `WSection`, `WCrumbs`, `WTile` |
 | `WApp.jsx` | The shell: pane stack and its depths, breadcrumb, composer, delete and undo, palette, `WThings`, `WCalendar` |
-| `WToday.jsx` | Today, the week strip (k1), and Open in your threads (`WThreadPages`, 7 October) |
+| `WToday.jsx` | Today, the week strip (k1), Reminders (`../mobile_app/TodayReminders.jsx`, 11 October), Open in your threads (`WThreadPages`, 7 October), and the sections in bands (`WBand`, 11 October) |
 | `WThing.jsx` | A thread, and anything inside it opened as its own pane |
 | `WMemories.jsx` | Memories, one memory, all conversations |
 | `WMisc.jsx` | Sidebar, composer and its expanded state, turns, conversation, person, first run, ⌘K |

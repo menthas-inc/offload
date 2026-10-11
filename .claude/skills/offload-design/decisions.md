@@ -32,6 +32,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Design system impact:** the readme's line that "a `bell` after the date means the digest will announce this row" (854) wants "offload will remind you about it, or somebody asked"; the line that the flag is the model's alone (862) and that Remind me shows only "while the row is a reminder" (918) want the author's switch on anything offload reminds about, in the row sheet, the note editor and the memory editor; the kits' "no per-item pushes" wants the reminder of its own before a clock time. The kits want: the Notifications page's Reminders section with the three count tiles and their picture; Today's Reminders section with the row, the "By" chip and the note and memory lines; Customize Today's fourth section; the web edit dialog's switch; the Activity `reminder` row; and a decision on the four phone and web differences above.
 
+### 2026-10-11 · Today: Reminders as C2b, and bands
+**Surface:** iOS, Android, web, Today
+**Raised by:** the product owner, off 042's Today section as built (`main` at tree `1570ee3`): `explorations/home-reminders.html` (four ways, then B and C with dismiss, then C2 with several today, C2b taken) and `explorations/today-sections.html` (five ways to separate the sections, A taken; final `explorations/today-bands.html`). Handoff: `handoff/APPLY-2026-10-11-today-bands.md`.
+
+**Was:** Reminders as one card of rows (the thread page's row for a to-do, a name, a plain chip and a pill for a note or memory), with the phones and web drawing four things differently. Every Today section a grey card on the page under a 15px heading, so the sections ran together.
+
+**Is:** **Reminders** in one column: the countdown in a fixed 82px column; everything due today in one card under a single *Today*, each row with its own time; each later thing a card of its own. Lead glyphs on every surface. An `x` on each dismisses, turning that thing's Remind me off, with Undo. **Bands**: sections alternate by position between the page and a full-bleed `--surface-fill` band; cards in a band step to raised. Reminders and Open in your threads head at 20px; Needs you and Your day draw no heading.
+
+**Considered and not taken:** for Reminders, grouped by Today / This week / Later (B), a horizontal countdown strip (C), a grid of countdown cards (C1), offload's voice in one paragraph (D), and a Today on every card (C2a). For the page: rules and 24px headings (B), white panels on a sunken page (C), a colour per section (D), a sticky index (E).
+
+**Design system impact:** `readme.md` **Today** gains Reminders and Bands, and **Dates and notifications** and **The row and its sheet** take 042's four lines (the bell, Remind me, the reminder of its own). Kits: `ui_kits/mobile_app/TodayReminders.jsx` (new, shared by all three), `TodayParts.jsx` (bands, `TPHead big`, Customize Today's Reminders row), `ui_kits/web_app/WToday.jsx` (`WBand`), `reminders` in `data.js`. No new tokens or glyphs. Of 042's four phone and web differences this settles the lead glyph (both draw it) and *and N more* (no longer drawn: the column shows them all); the note editor's write and the Remind me glyph are untouched.
+
 ### 2026-10-07 · Today: open in your threads, as built
 **Surface:** iOS, Android, web, Today
 **Raised by:** code, building the handoff of the same day. Checked in the browser, on an iOS simulator and on a Pixel.
