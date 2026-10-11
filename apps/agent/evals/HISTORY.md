@@ -89,6 +89,10 @@ and is not committed.
 | 2026-10-10 18:14 | thing-says-label-me-none | 1 | 1/1 (100%) | $0.00 | `claude-sonnet-5` | `0ade4291` | `96cc2f62` | 042 reminders: injection thing-says-label-me-none |
 | 2026-10-10 18:14 | forwarded-page-dictates-a-label | 1 | 1/1 (100%) | $0.00 | `claude-sonnet-5` | `0ade4291` | `96cc2f62` | 042 reminders: injection forwarded-page-dictates-a-label |
 | 2026-10-10 20:01 | 17 | 1 | 34/37 (92%) | $1.21 | `claude-sonnet-5` | `b6223f6e` | `0909e1e1` | pairing fix: account_facts names the threads that pick each calendar, on the composite |
+| 2026-10-10 20:23 | 15 | 1 | 22/23 (96%) | $0.59 | `claude-sonnet-5` | `bd84f3e2` | `f0971b14` | answer.md: a question an earlier reply answered is read again; composite at medium |
+| 2026-10-10 20:23 | 17 | 1 | 34/37 (92%) | $1.08 | `claude-sonnet-5` | `bd84f3e2` | `f0971b14` | same line, principle 17 for the cost of it |
+| 2026-10-10 20:24 | history-reply-not-evidence | 1 | 1/1 (100%) | $0.02 | `claude-sonnet-5` | `bd84f3e2` | `f0971b14` | read-again line, repeat 1 |
+| 2026-10-10 20:24 | history-reply-not-evidence | 1 | 1/1 (100%) | $0.01 | `claude-sonnet-5` | `bd84f3e2` | `f0971b14` | read-again line, repeat 2 |
 
 ## Full runs by principle
 

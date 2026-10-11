@@ -225,3 +225,13 @@ owner's weekly Claude Code allowance, read from the app.
 - Spend at the end: $61.34 of $70. Harness: about 8.2M subagent tokens over
   54 agents plus the lead; the weekly allowance went from 59 to about 78
   percent.
+- 20:20 The owner asked about the one principle 15 case answering at medium
+  lost, and chose to try a prompt line before deciding on the effort. The
+  prompt already said an earlier reply is evidence of nothing; the new
+  sentence says what to do: a question an earlier reply already answered
+  is read again from the rows. Principle 15 at medium: 22 of 23 (the case
+  now reads the row, 2 calls, 128 output tokens); principle 17 unchanged
+  at 34 of 37 with slightly lower cost; the case three of three on
+  reruns. Lesson, the third time this round: a rule that names the action
+  lands where a rule that names the category does not. $2.01. Spend
+  $63.35 of $70.

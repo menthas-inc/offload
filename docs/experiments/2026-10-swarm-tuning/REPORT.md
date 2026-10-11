@@ -4,7 +4,7 @@ Two rounds of a coding-agent swarm tuned offload's model calls for cost and
 latency against the principle evals. Twenty-four candidates were tried in
 their own worktrees, each read by a skeptic; nine were kept into one
 composite; the composite was verified on a sealed holdout and then the full
-set. Everything was measured, nothing was assumed. The run cost $61.34 of
+set. Everything was measured, nothing was assumed. The run cost $63.35 of
 model calls against a $70 cap and about 18 points of a weekly Claude Code
 allowance.
 
@@ -58,14 +58,15 @@ Twenty-nine cases newly fail and fifteen newly pass. They sort into:
   account picked each calendar for, and principle 17 passes 34 of 37 on
   the composite against 32 at baseline. Every answering number before
   this run was measured against the leak.
-- **Answering at medium, one stable case.** `history-reply-not-evidence`
-  fails at medium in three of three runs and passes with the effort off:
-  the model answered from its own earlier reply instead of reading. The
-  same "reads less" shape low effort showed on filing. Principle 15 is
-  otherwise held (18 of 19 with effort off, 17 of 19 at medium; the other
-  failure is the stub). ⚠️ Your call: keep medium and the 30 percent cut
-  in answering output, or set `ANSWER_EFFORT = None` in `harness/plan.py`
-  and keep the case.
+- **Answering at medium, one stable case, fixed by a line.**
+  `history-reply-not-evidence` failed at medium in three of three runs and
+  passed with the effort off: the model answered from its own earlier reply
+  instead of reading, the same "reads less" shape low effort showed on
+  filing. The prompt already called an earlier reply evidence of nothing;
+  it said what not to trust and not what to do. One sentence in
+  `answer.md`, a question an earlier reply already answered is read again
+  from the rows, fixed it at medium three of three, principle 15 at 22 of
+  23 and principle 17 unchanged at 34 of 37. Medium stays.
 - **Noise, the rest.** `thumbs-up`, `n-asks-and-dumps`, `month-no-year-next`
   and the like have flipped between baseline runs before; principle 11
   reran at 34 of 37 against the baseline's 35, principle 15's
@@ -119,7 +120,7 @@ effort low on filing by any route, a word-list gate before classify, Opus
 
 ## Follow-ups, in order
 
-1. Decide `ANSWER_EFFORT` (the pairing gap is fixed in this branch).
+1. Nothing left to decide in this branch: the pairing gap and the earlier-reply case are both fixed in it.
 2. Regenerate the cost sheet (`/cost-report`) and republish the model-calls
    page; both read the models and prompts from code and are stale now.
 3. Fund the three principle runs for Sonnet 5.5 filing.
