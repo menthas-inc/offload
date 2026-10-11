@@ -55,9 +55,11 @@ describe("open in your threads, the screens", () => {
 });
 
 describe("Today's sections on the phones (owner, 2026-10-07)", () => {
-  it("stand 24 apart, the page's gap and the day's", () => {
+  it("stand 24 apart, the day's gap; since 2026-10-11 the page's gap is the band's, 24 below and 20 above", () => {
     const screen = read("components/today/TodayScreen.tsx");
     expect(screen).toMatch(/<View key="day" className="gap-space-8">/);
-    expect(screen).toMatch(/contentContainerClassName="gap-space-8 px-gutter-screen/);
+    const band = read("components/today/Band.tsx");
+    expect(band).toMatch(/pb-space-8/);
+    expect(band).toMatch(/index === 0 \? "pt-space-3" : "pt-space-7"/);
   });
 });

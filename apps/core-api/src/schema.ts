@@ -496,6 +496,19 @@ export interface ReminderLabelsTable {
   created_at: Generated<Timestamp>;
 }
 
+/** Today's Reminders, 2026-10-11: one reminder of one thing, dismissed from
+ *  the screen it was showing on. The next reminder is untouched. */
+export interface ReminderDismissalsTable {
+  id: Generated<string>;
+  account_id: string;
+  content_id: string | null;
+  note_id: string | null;
+  /** The day the reminder is about, `YYYY-MM-DD`. */
+  occurrence: string;
+  window_name: "long" | "short" | "day";
+  created_at: Generated<Timestamp>;
+}
+
 /** 026. A DKIM signature accepted once: a hash, never the message. */
 export interface MailSignaturesTable {
   hash: Buffer;
@@ -1405,6 +1418,7 @@ export interface Database {
   activity_memories: ActivityMemoriesTable;
   activity_calendars: ActivityCalendarsTable;
   reminder_labels: ReminderLabelsTable;
+  reminder_dismissals: ReminderDismissalsTable;
   labels: LabelsTable;
   content_labels: ContentLabelsTable;
   note_labels: NoteLabelsTable;

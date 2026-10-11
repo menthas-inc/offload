@@ -55,6 +55,7 @@ import { useColors } from "../../lib/colors";
 import { domainOf, isProvisional, rowTap, type ContentRow } from "../../lib/threads";
 import { openLink } from "../../lib/links";
 import { LabelMark } from "../labels/LabelMark";
+import { useInBand } from "../today/Band";
 import { useRowLabels } from "../labels/labels-context";
 
 const REVEAL = 88;
@@ -176,6 +177,7 @@ export function ContentRowView({
   muted,
   below,
 }: Props) {
+  const inBand = useInBand();
   const COLOR = useColors();
   const router = useRouter();
   // 025. The thread's labels, from the screen that holds the thread, and the
@@ -285,7 +287,7 @@ export function ContentRowView({
     backgroundColor:
       lifted.value === 1
         ? COLOR.raised
-        : interpolateColor(mark.value, [0, 1], [ground ?? COLOR.page, COLOR.accentSoft]),
+        : interpolateColor(mark.value, [0, 1], [inBand ? COLOR.raised : (ground ?? COLOR.page), COLOR.accentSoft]),
     shadowColor: COLOR.shadowLift.color,
     shadowOffset: { width: 0, height: COLOR.shadowLift.offsetY },
     shadowRadius: COLOR.shadowLift.radius,

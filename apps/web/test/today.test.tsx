@@ -125,13 +125,17 @@ const LAYOUT_V3 = {
 };
 const thread = { threadId: "t2", threadName: "Europe, October", threadIcon: "luggage", threadHue: 2 };
 const fullReminders = () => ({
-  // An anchored task, reminded by the day before what it is for.
-  rows: [{ ...row("c20", "Pack the adapters", thread), remindDay: "2026-10-02", remindBy: true }],
+  // An anchored task, reminded by the day before what it is for; its week out
+  // has begun and its on-the-day comes on the 2nd.
+  rows: [{ ...row("c20", "Pack the adapters", thread), remindDay: "2026-10-02", remindBy: true, window: "short", next: "2026-10-02" }],
   others: [
-    { of: "note", id: "n1", name: "Lisbon flat from the 1st", day: "2026-10-01", by: false, ...thread },
-    { of: "memory", id: "m1", name: "Ana's birthday", day: "2026-10-14", by: false, threadId: null, threadName: null, threadIcon: null, threadHue: null },
+    // Two things on the day share one card: a note with a time, and a memory.
+    { of: "note", id: "n1", name: "Lisbon flat from the 1st", day: "2026-09-29", by: false, time: "21:40", window: "day", next: null, ...thread },
+    { of: "memory", id: "m2", name: "Sam's birthday", day: "2026-09-29", by: false, time: null, window: "day", next: null, threadId: null, threadName: null, threadIcon: null, threadHue: null },
+    // A month out that has begun; its week out comes on the 9th.
+    { of: "memory", id: "m1", name: "Ana's birthday", day: "2026-10-14", by: false, time: null, window: "long", next: "2026-10-09", threadId: null, threadName: null, threadIcon: null, threadHue: null },
   ],
-  more: 3,
+  more: 0,
 });
 let remindersRead: ReturnType<typeof fullReminders> | { rows: unknown[]; others: unknown[]; more: number };
 
@@ -295,6 +299,7 @@ function serve(call: Call): Response | Promise<Response> {
   }
   if (pathname === "/v1/today/threads") return json(openRead);
   if (pathname === "/v1/today/reminders") return json(remindersRead);
+  if (pathname === "/v1/today/reminders/dismiss" || pathname === "/v1/today/reminders/undismiss") return json({ ok: true });
   if (pathname === "/v1/today/needs") return json({ cards: needs });
   if (pathname === "/v1/today/day") {
     const date = new URLSearchParams(call.path.split("?")[1]).get("date")!;
@@ -1090,69 +1095,120 @@ const withV3 = async (sections: unknown[] = LAYOUT_V3.sections) => {
   await refreshMe();
 };
 
-describe("042 AC-26 Today's Reminders section", () => {
-  it("reads todayLayoutV3 before V2, and sits under Your day and above Open in your threads", async () => {
+describe("042 AC-26 Today's Reminders section (drawn 2026-10-11)", () => {
+  const countdowns = () => [...remindersSection()!.querySelectorAll("[data-countdown]")].map((one) => one.textContent);
+  const cards = () => [...remindersSection()!.querySelectorAll("[data-reminder-card]")] as HTMLElement[];
+  const entry = (name: string) => [...remindersSection()!.querySelectorAll("[data-reminder]")].find((one) => one.textContent?.includes(name)) as HTMLElement | undefined;
+
+  it("reads todayLayoutV3 before V2, and sits under Your day and above Open in your threads, headed at the band's size", async () => {
     await withV3();
     await open();
     const head = remindersSection()!.querySelector("h3")!;
-    expect(head.textContent).toBe("Reminders 6");
+    expect(head.textContent).toBe("Reminders 4");
+    expect(head.dataset["big"]).toBe("true");
     const todo = [...host.querySelectorAll("h3")].find((one) => one.textContent?.startsWith("To do"))!;
     expect(before(todo, head)).toBe(true);
     expect(before(head, section()!)).toBe(true);
   });
 
-  it("draws rows as the thread page's row, notes and memories as a name, a date and a meta line, nearest first", async () => {
+  it("one column, nearest first: everything on the day in one card under a single Today, each later thing a card of its own", async () => {
     await withV3();
     await open();
-    const shown = remindersSection()!;
-    const entries = [...shown.querySelectorAll("[data-row]")] as HTMLElement[];
-    expect(entries.map((one) => one.textContent)).toEqual([
-      expect.stringContaining("Lisbon flat from the 1st"),
-      expect.stringContaining("Pack the adapters"),
-      expect.stringContaining("Ana's birthday"),
-    ]);
-    const [note, task, memory] = entries;
-    // The row: its tick, its chip saying by when, its thread's pill.
-    expect(task!.querySelector('input[aria-label="Finish Pack the adapters"]')).not.toBeNull();
-    expect(task!.textContent).toContain("By Friday");
-    expect(task!.textContent).toContain("Europe, October");
-    // A note: its date and its thread, opening the thread.
-    expect(note!.textContent).toContain("Thursday");
-    expect(note!.textContent).toContain("Europe, October");
-    expect([...note!.querySelectorAll("a")].map((one) => one.getAttribute("href"))).toContain("/threads/t2");
-    // A memory: its date and Memories, opening it there.
-    expect(memory!.textContent).toContain("14 October");
-    expect(memory!.textContent).toContain("Memories");
-    expect(memory!.querySelector("a")!.getAttribute("href")).toBe("/memories?memory=m1");
-    expect(shown.textContent).toContain("and 3 more");
+    expect(countdowns()).toEqual(["Today", "In 3 days", "In 15 days"]);
+    const [today, task, memory] = cards();
+    expect(today!.textContent).toContain("Lisbon flat from the 1st");
+    expect(today!.textContent).toContain("Sam's birthday");
+    expect(today!.textContent).toContain("Tue 29 Sep");
+    expect(task!.textContent).toContain("Pack the adapters");
+    expect(task!.textContent).toContain("By Fri 2 Oct");
+    expect(memory!.textContent).toContain("Ana's birthday");
+    expect(memory!.textContent).toContain("Wed 14 Oct");
+    // No tick, no chip, no pill: the row opens, and that is all.
+    expect(remindersSection()!.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(remindersSection()!.textContent).not.toContain("more");
   });
 
-  it("names the day on each chip, and an anchored task's rings the bell and says offload will remind you", async () => {
+  it("says where each lives, with its time in the day's colour, and the whole row opens it", async () => {
     await withV3();
-    const read = fullReminders();
-    read.rows[0] = { ...read.rows[0]!, reminders: "on" } as (typeof read.rows)[0];
-    remindersRead = read;
     await open();
-    const [note, task, memory] = [...remindersSection()!.querySelectorAll("[data-row]")] as HTMLElement[];
-    const chip = (entry: HTMLElement) => entry.querySelector('[role="img"]')!;
-    expect(chip(task!).getAttribute("aria-label")).toBe("By Friday, offload will remind you");
-    // The calendar glyph and the bell after the words.
-    expect(chip(task!).querySelectorAll('[aria-hidden="true"]')).toHaveLength(2);
-    expect(chip(note!).getAttribute("aria-label")).toBe("Thursday");
-    expect(chip(note!).querySelectorAll('[aria-hidden="true"]')).toHaveLength(1);
-    expect(chip(memory!).getAttribute("aria-label")).toBe("14 October");
+    const note = entry("Lisbon flat from the 1st")!;
+    expect(note.textContent).toContain("Europe, October");
+    expect(note.textContent).toContain("21:40");
+    expect(note.querySelector("a")!.getAttribute("href")).toBe("/threads/t2");
+    const task = entry("Pack the adapters")!;
+    expect(task.textContent).toContain("Europe, October");
+    expect(task.querySelector("a")!.getAttribute("href")).toBe("/threads/t2");
+    const memory = entry("Ana's birthday")!;
+    expect(memory.textContent).toContain("Memories");
+    expect(memory.querySelector("a")!.getAttribute("href")).toBe("/memories?memory=m1");
   });
 
-  it("says Not in a thread under a note in the default thread, which has no name", async () => {
+  it("says Not in a thread for a row or a note in the default thread, opening what is not in a thread", async () => {
     await withV3();
     const read = fullReminders();
-    read.others[0] = { ...read.others[0]!, threadName: null } as (typeof read.others)[0];
+    read.others[0] = { ...read.others[0]!, threadName: null, threadIcon: null, threadHue: null } as (typeof read.others)[0];
+    read.rows[0] = { ...read.rows[0]!, threadName: null, threadIcon: null, threadHue: null } as unknown as (typeof read.rows)[0];
     remindersRead = read;
     await open();
-    const note = remindersSection()!.querySelector("[data-row]") as HTMLElement;
-    expect(note.textContent).toContain("Lisbon flat from the 1st");
+    const note = entry("Lisbon flat from the 1st")!;
     expect(note.textContent).toContain("Not in a thread");
     expect(note.textContent).not.toContain("Europe, October");
+    expect(note.querySelector("a")!.getAttribute("href")).toBe("/threads/loose");
+    expect(entry("Pack the adapters")!.querySelector("a")!.getAttribute("href")).toBe("/threads/loose");
+  });
+
+  it("dismiss hides this reminder, says when it comes back, and Undo puts it back", async () => {
+    await withV3();
+    await open();
+    await press(button("Dismiss Ana's birthday"));
+    expect(entry("Ana's birthday")).toBeUndefined();
+    expect(countdowns()).toEqual(["Today", "In 3 days"]);
+    expect(writes("POST", "/v1/today/reminders/dismiss").map((one) => one.body)).toEqual([{ of: "memory", id: "m1", day: "2026-10-14", window: "long" }]);
+    expect(text()).toContain("Dismissed until 9 October");
+    await press(button("Undo"));
+    expect(entry("Ana's birthday")).toBeDefined();
+    expect(writes("POST", "/v1/today/reminders/undismiss").map((one) => one.body)).toEqual([{ of: "memory", id: "m1", day: "2026-10-14", window: "long" }]);
+  });
+
+  it("a dismiss hides that reminder only: when the next window begins, the thing is back on a screen left open", async () => {
+    await withV3();
+    await open();
+    await press(button("Dismiss Ana's birthday"));
+    expect(entry("Ana's birthday")).toBeUndefined();
+    // The week out has begun; the server shows the thing as that reminder.
+    const read = fullReminders();
+    read.others[2] = { ...read.others[2]!, window: "short", next: null } as (typeof read.others)[2];
+    remindersRead = read;
+    await press(button("Next day"));
+    await press(button("Previous day"));
+    expect(entry("Ana's birthday")).toBeDefined();
+    expect(countdowns()).toEqual(["Today", "In 3 days", "In 15 days"]);
+  });
+
+  it("dismissing everything on the day takes the shared card with it, and the last thing takes the section", async () => {
+    await withV3();
+    await open();
+    await press(button("Dismiss Lisbon flat from the 1st"));
+    expect(countdowns()).toEqual(["Today", "In 3 days", "In 15 days"]);
+    expect(text()).toContain("Dismissed");
+    expect(text()).not.toContain("Dismissed until");
+    await press(button("Dismiss Sam's birthday"));
+    expect(countdowns()).toEqual(["In 3 days", "In 15 days"]);
+    expect(writes("POST", "/v1/today/reminders/dismiss").map((one) => (one.body as { of: string; window: string }).of)).toEqual(["note", "memory"]);
+    await press(button("Dismiss Pack the adapters"));
+    expect(writes("POST", "/v1/today/reminders/dismiss").at(-1)!.body).toEqual({ of: "content", id: "c20", day: "2026-10-02", window: "short" });
+    await press(button("Dismiss Ana's birthday"));
+    expect(remindersSection()).toBeNull();
+  });
+
+  it("a dismiss the server refuses comes back, with Retry", async () => {
+    await withV3();
+    overrides["POST /v1/today/reminders/dismiss"] = () => new Response(null, { status: 500 });
+    await open();
+    await press(button("Dismiss Ana's birthday"));
+    expect(entry("Ana's birthday")).toBeDefined();
+    expect(text()).toContain("Couldn't dismiss that");
+    expect(button("Retry")).toBeDefined();
   });
 
   it("draws nothing at all when empty", async () => {
@@ -1193,6 +1249,39 @@ describe("042 AC-26 Today's Reminders section", () => {
     await open();
     expect(section()).toBeNull();
     expect(remindersSection()).toBeNull();
+  });
+});
+
+describe("Today's bands (drawn 2026-10-11)", () => {
+  const bandOf = (node: Element | null) => node?.closest("[data-band]") ?? null;
+
+  it("sections alternate by drawn position: with Needs you empty, Your day is on the page and Reminders is in a band", async () => {
+    await withV3();
+    await open();
+    const day = button("Previous day")!.closest("[data-section]")!;
+    expect(bandOf(day)).toBeNull();
+    expect(bandOf(remindersSection())).not.toBeNull();
+    expect(bandOf(section())).toBeNull();
+    // Open in your threads heads its section at the band's size too.
+    expect((section()!.querySelector("h3") as HTMLElement).dataset["big"]).toBe("true");
+  });
+
+  it("a section that draws nothing takes no position, and reordering keeps the alternation", async () => {
+    await withV3();
+    remindersRead = { rows: [], others: [], more: 0 };
+    await open();
+    expect(bandOf(button("Previous day")!.closest("[data-section]"))).toBeNull();
+    expect(bandOf(section())).not.toBeNull();
+    act(() => root.unmount());
+
+    remindersRead = fullReminders();
+    await withV3([LAYOUT_V3.sections[0], LAYOUT_V3.sections[2], LAYOUT_V3.sections[1], LAYOUT_V3.sections[3]]);
+    host = document.body.appendChild(document.createElement("div"));
+    root = createRoot(host);
+    await open();
+    expect(bandOf(remindersSection())).toBeNull();
+    expect(bandOf(button("Previous day")!.closest("[data-section]"))).not.toBeNull();
+    expect(bandOf(section())).toBeNull();
   });
 });
 

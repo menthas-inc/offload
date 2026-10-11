@@ -24,7 +24,7 @@ function at(source: string, anchor: string): number[] {
 // looked for from there to the next `<`, which is the element's first child
 // or its close, so a neighbour's edge cannot stand in for it.
 const EDGES: [string, string, string, string][] = [
-  ["today/DayParts.tsx", "the stepper's well", 'rounded-pill ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}', "COLOR.edgeWell"],
+  ["today/DayParts.tsx", "the stepper's well", "rounded-pill ${groundClass(inBand)}", "COLOR.edgeWell"],
   ["today/DayParts.tsx", "the unraised event card", 'raised ? "border border-border-hairline bg-surface-raised"', "COLOR.edgeCard"],
   ["settings/Rows.tsx", "the group", 'className={`overflow-hidden ${isAndroid ? "bg-a-c-low"', "COLOR.edgeCard"],
   ["labels/Chip.tsx", "the neutral chip", '"rounded-pill"} ${fill}', "COLOR.edgeCard"],
@@ -79,9 +79,10 @@ describe("Today's cards", () => {
     expect(edge).toContain(`boxShadow: \`${ring("COLOR.edgeCard")}\``);
   });
 
-  it("puts it in To do's card and, since 042, Reminders' card, the two cards on Today", () => {
-    expect(at(source, "<View className={card}>").length).toBe(2);
-    expect(at(source, "{cardEdge}").length).toBe(2);
+  it("puts it in To do's card, on the band's ground; since 2026-10-11 Reminders draws its own cards as wells", () => {
+    expect(at(source, "<Ground className={cardShape}>").length).toBe(1);
+    expect(at(source, "{cardEdge}").length).toBe(1);
+    expect(read("today/Reminders.tsx")).toContain(`boxShadow: \`${ring("COLOR.edgeWell")}\``);
   });
 
   it("rings every page of open in your threads as a well", () => {

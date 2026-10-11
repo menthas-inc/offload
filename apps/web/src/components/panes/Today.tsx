@@ -32,7 +32,7 @@ import { NeedsYou, type Card } from "../today/NeedsYou";
 import { DayStepper } from "../today/DayStepper";
 import { EventsStrip, NextLine } from "../today/EventsStrip";
 import { OpenThreads } from "../today/OpenThreads";
-import { Reminders } from "../today/Reminders";
+import { Reminders, reminderKey } from "../today/Reminders";
 import { TodoCard } from "../today/TodoCard";
 import { useTodayRows } from "../today/useTodayRows";
 import { useAppearance } from "../../lib/appearance";
@@ -50,6 +50,7 @@ import {
   openThreadsOn,
   partOf,
   partsOn,
+  remindersInOrder,
   remindersOn,
   type Day,
   type LayoutSection,
@@ -396,7 +397,7 @@ export function TodayPane({
 
   // Today only, and never in place of the day-one invitation.
   const openThreads =
-    showOpen && open && everDumped ? (
+    showOpen && open && open.length > 0 && everDumped ? (
       <OpenThreads key="open" pages={open.map((page) => {
           // A row archived or deleted here leaves the count too, so N more holds.
           const todos = rows.shown(page.todos);
@@ -404,9 +405,26 @@ export function TodayPane({
         })} struck={struck} onStrike={strike} rows={rows} now={now} />
     ) : null;
 
-  // Today only, and never in place of the day-one invitation.
+  // Today only, and never in place of the day-one invitation. What was
+  // dismissed here stays hidden until Today is built again; a row archived
+  // or deleted here leaves too. Decided here, so an emptied section takes no
+  // band.
+  const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
+  const onGone = useCallback((key: string, hidden: boolean) => {
+    setGone((held) => {
+      const next = new Set(held);
+      if (hidden) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+  }, []);
+  const remindingShown = reminding
+    ? remindersInOrder({ rows: rows.shown(reminding.rows), others: reminding.others }).filter((entry) => !gone.has(reminderKey(entry)))
+    : [];
   const reminders =
-    showReminders && reminding && everDumped ? <Reminders key="reminders" read={reminding} rows={rows} today={today} /> : null;
+    showReminders && reminding && everDumped && remindingShown.length > 0 ? (
+      <Reminders key="reminders" entries={remindingShown} today={today} zone={zone} onGone={onGone} writes={rows.writes} />
+    ) : null;
 
   // Every kind by name: one this build does not know draws nothing, rather
   // than whichever section the last branch happened to be, and a kind added
@@ -444,8 +462,18 @@ export function TodayPane({
       />
 
       <div className={pane.paneBody}>
+        {/* Bands (design 2026-10-11): the drawn sections alternate by position
+            between the page and a band, whatever order Customize Today keeps;
+            a section that draws nothing takes no position. */}
         <div className={styles.today}>
-          {layout.sections.map(sectionFor)}
+          {layout.sections
+            .map((section) => [section.kind, sectionFor(section)] as const)
+            .filter(([, drawn]) => drawn !== null)
+            .map(([kind, drawn], index) => (
+              <div key={kind} className={styles.band} data-section={kind} data-band={index % 2 === 1 ? "true" : undefined}>
+                {drawn}
+              </div>
+            ))}
         </div>
       </div>
 

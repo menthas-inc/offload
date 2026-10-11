@@ -4,104 +4,172 @@
 // first, from the moment a thing's first reminder was due to the end of its
 // day. Today only, under Your day by default, and empty it draws nothing.
 //
-// A row is the thread page's row, as To do draws it, with its thread's pill;
-// a row with no date of its own (a task reminded against the thing it is for)
-// carries the day it is reminded against, "By Friday", with the bell when
-// offload will remind about it, as the phones draw it. A note is its name,
-// its day and its thread, opening the thread, or Not in a thread in the
-// default one; a memory is its name, its day and Memories, opening it there.
-// Past twenty, "and N more" counts the rest.
+// Drawn as the kit's column since 2026-10-11 (`TodayReminders.jsx`): the
+// countdown leads in a fixed column, everything on the day shares one card
+// under a single Today, each later thing is a card of its own, and under the
+// name is where it lives, with its time in the day's colour. No tick, no chip,
+// no pill: the whole row opens the thing, a row or a note its thread, a
+// memory Memories. The x dismisses **this reminder and nothing else** (the
+// owner): a birthday dismissed a month out comes back a week out, so the toast
+// says when, with Undo. Which entries show, and which were dismissed here, is
+// the pane's, so an emptied section takes no band.
 
 import Link from "next/link";
-import { bellOn, MEMORY_PARAM, remindDayLabel, whenOf } from "@offload/widgets";
+import { countdownLabel, dismissedLine, dismissLabel, MEMORY_PARAM, reminderDayLine, reminderKey as keyOf, reminderTimeLine, timeIn, whenOf, whereOf } from "@offload/widgets";
 import { Icon } from "../Icon";
-import { ThreadPill } from "../shell/ThreadPill";
-import { TodayRow } from "./TodoCard";
-import { remindersInOrder, type ReminderOther, type RemindersRead } from "../../lib/today";
-import type { TodayRows } from "./useTodayRows";
-import pane from "../../app/(shell)/shell.module.css";
-import labelStyles from "../labels/labels.module.css";
+import { useToast } from "../shell/Toast";
+import { perform, type Writes } from "../../lib/optimistic";
+import { dismissReminder, undismissReminder, type Dismissal, type ReminderEntry } from "../../lib/today";
 import styles from "../../app/(shell)/today.module.css";
 
-/** The day as a chip, labelled as the date chip is, with its bell. */
-function DayChip({ day, today, by, bell = false }: { day: string; today: string; by: boolean; bell?: boolean }) {
-  const label = remindDayLabel(day, today, by);
-  return (
-    <span className={pane.chip} role="img" aria-label={bell ? `${label}, offload will remind you` : label}>
-      <Icon name="calendar" size={12} />
-      {label}
-      {bell ? <Icon name="bell" size={11} /> : null}
+const LOOSE_HREF = "/threads/loose";
+
+/** One line of the column, whatever it came from. */
+interface Line {
+  key: string;
+  name: string;
+  day: string;
+  by: boolean;
+  time: string | null;
+  next: string | null;
+  href: string | null;
+  where: { icon: string; text: string };
+  which: Dismissal;
+}
+
+/** The key the pane hides a dismissed entry by: the thing, its day and the
+ *  reminder showing, as the server keys a dismissal. */
+export function reminderKey(entry: ReminderEntry): string {
+  return "row" in entry
+    ? keyOf({ of: "content", id: entry.row.id, day: entry.row.remindDay, window: entry.row.window })
+    : keyOf({ of: entry.other.of, id: entry.other.id, day: entry.other.day, window: entry.other.window });
+}
+
+function lineOf(entry: ReminderEntry, zone: string | null): Line {
+  const key = reminderKey(entry);
+  if ("row" in entry) {
+    const { row } = entry;
+    const at = row.allDay ? null : whenOf(row);
+    return {
+      key,
+      name: row.title,
+      day: row.remindDay,
+      by: row.remindBy,
+      time: at ? timeIn(new Date(at), zone, "en-GB") : null,
+      next: row.next,
+      href: row.threadName === null ? LOOSE_HREF : `/threads/${row.threadId}`,
+      where: whereOf({ of: "content", threadName: row.threadName, threadIcon: row.threadIcon }),
+      which: { of: "content", id: row.id, day: row.remindDay, window: row.window },
+    };
+  }
+  const { other } = entry;
+  const memory = other.of === "memory";
+  return {
+    key,
+    name: other.name,
+    day: other.day,
+    by: other.by,
+    time: other.time,
+    next: other.next,
+    href: memory ? `/memories?${MEMORY_PARAM}=${other.id}` : other.threadId ? (other.threadName === null ? LOOSE_HREF : `/threads/${other.threadId}`) : null,
+    where: whereOf(other),
+    which: { of: other.of, id: other.id, day: other.day, window: other.window },
+  };
+}
+
+export function Reminders({
+  entries,
+  today,
+  zone,
+  onGone,
+  writes,
+}: {
+  /** What is showing, nearest first, with what was dismissed here taken out. */
+  entries: ReminderEntry[];
+  today: string;
+  zone: string | null;
+  /** Hide or show an entry dismissed here, by its key. */
+  onGone: (key: string, gone: boolean) => void;
+  writes: Writes;
+}) {
+  const toast = useToast();
+  const lines = entries.map((entry) => lineOf(entry, zone));
+  if (lines.length === 0) return null;
+  const onDay = lines.filter((line) => line.day === today);
+  const later = lines.filter((line) => line.day !== today);
+
+  function dismiss(line: Line): void {
+    void perform(
+      {
+        apply: () => onGone(line.key, true),
+        revert: () => onGone(line.key, false),
+        write: () => dismissReminder(line.which),
+        unwrite: () => undismissReminder(line.which),
+        did: dismissedLine(line.next, today),
+        failed: "Couldn't dismiss that",
+        unfailed: "Couldn't put that back",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  // The shared card's day line is the day's, never one thing's "By".
+  const when = (line: Line, shared: boolean) => (
+    <span className={styles.remWhen} data-soon={shared || undefined}>
+      <span data-countdown>{countdownLabel(line.day, today)}</span>
+      <span className={styles.remDay}>{reminderDayLine(line.day, shared ? false : line.by)}</span>
     </span>
   );
-}
 
-function Other({ other, today }: { other: ReminderOther; today: string }) {
-  const memory = other.of === "memory";
-  const href = memory ? `/memories?${MEMORY_PARAM}=${other.id}` : other.threadId ? `/threads/${other.threadId}` : null;
-  const pill = !memory && other.threadId && other.threadName;
-  return (
-    <div className={pane.row} data-row>
-      <span className={pane.rowIcon}>
-        {/* A note's glyph is the note row's, a memory's the Memories tab's. */}
-        <Icon name={memory ? "cloudy" : "text-quote"} size={18} />
-      </span>
-      <span className={pane.rowText}>
-        <span className={pane.rowLine}>
-          {href ? (
-            <Link href={href} className={pane.rowTitle}>
-              {other.name}
-            </Link>
-          ) : (
-            <span className={pane.rowTitle}>{other.name}</span>
-          )}
-          <span className={labelStyles.marks}>
-            <DayChip day={other.day} today={today} by={other.by} />
-            {pill ? (
-              <ThreadPill
-                id={other.threadId!}
-                name={other.threadName!}
-                icon={other.threadIcon ?? "lasso"}
-                hue={other.threadHue ?? 1}
-                size={24}
-              />
-            ) : null}
+  const body = (line: Line) => (
+    <>
+      <span className={styles.remText}>
+        {line.href ? (
+          <Link href={line.href} className={styles.remName}>
+            {line.name}
+          </Link>
+        ) : (
+          <span className={styles.remName}>{line.name}</span>
+        )}
+        <span className={styles.remWhere}>
+          <span className={styles.remWhereIcon}>
+            <Icon name={line.where.icon} size={12} />
           </span>
+          {line.where.text}
+          {line.time ? <span className={styles.remTime}>{`· ${reminderTimeLine(line.time, line.by)}`}</span> : null}
         </span>
-        {memory ? <span className={pane.rowMeta}>Memories</span> : pill ? null : <span className={pane.rowMeta}>Not in a thread</span>}
       </span>
-    </div>
+      <button type="button" className={styles.remDismiss} aria-label={dismissLabel(line.name)} onClick={() => dismiss(line)}>
+        <Icon name="x" size={16} />
+      </button>
+    </>
   );
-}
-
-export function Reminders({ read, rows, today }: { read: RemindersRead; rows: TodayRows; today: string }) {
-  // A row archived or deleted here leaves the list, and the count with it.
-  const entries = remindersInOrder({ rows: rows.shown(read.rows), others: read.others });
-  if (entries.length === 0) return null;
-  const count = entries.length + read.more;
 
   return (
     <section className={styles.daySection} aria-labelledby="reminders-head">
-      <h3 className={styles.head} id="reminders-head">
-        Reminders <em className={styles.headCount}>{count}</em>
+      <h3 className={`${styles.head} ${styles.headBig}`} id="reminders-head" data-big="true">
+        Reminders <em className={styles.headCount}>{lines.length}</em>
       </h3>
-      <div className={styles.rows}>
-        {entries.map((entry) =>
-          "row" in entry ? (
-            <TodayRow
-              key={entry.row.id}
-              row={entry.row}
-              rows={rows}
-              chip={
-                whenOf(entry.row) ? undefined : (
-                  <DayChip day={entry.row.remindDay} today={today} by={entry.row.remindBy} bell={bellOn(entry.row)} />
-                )
-              }
-            />
-          ) : (
-            <Other key={`${entry.other.of}:${entry.other.id}`} other={entry.other} today={today} />
-          ),
-        )}
-        {read.more > 0 ? <p className={styles.foldNote}>and {read.more} more</p> : null}
+      <div className={styles.remColumn}>
+        {onDay.length > 0 ? (
+          <div className={`${styles.remCard} ${styles.remShared}`} data-reminder-card>
+            <div className={styles.remSharedWhen}>{when(onDay[0]!, true)}</div>
+            <div className={styles.remRows}>
+              {onDay.map((line) => (
+                <div key={line.key} className={styles.remRow} data-reminder>
+                  {body(line)}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {later.map((line) => (
+          <div key={line.key} className={`${styles.remCard} ${styles.remRow}`} data-reminder-card data-reminder>
+            {when(line, false)}
+            {body(line)}
+          </div>
+        ))}
       </div>
     </section>
   );

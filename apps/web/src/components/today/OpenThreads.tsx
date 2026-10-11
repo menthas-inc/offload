@@ -83,7 +83,7 @@ export function OpenThreads({
   return (
     <section className={styles.daySection} aria-labelledby="open-threads-head">
       <div className={styles.openHead}>
-        <h3 className={styles.head} id="open-threads-head">
+        <h3 className={`${styles.head} ${styles.headBig}`} id="open-threads-head" data-big="true">
           Open in your threads <em className={styles.headCount}>{count}</em>
         </h3>
         <span className={styles.openSteps}>

@@ -14,6 +14,7 @@ import { firstNameOf } from "../../lib/people";
 import { openLink } from "../../lib/links";
 import type { TodayEvent } from "../../lib/today";
 import { threadHref } from "../../lib/loose";
+import { groundClass, useInBand } from "./Band";
 
 const isAndroid = Platform.OS === "android";
 
@@ -33,6 +34,7 @@ export function DayStepper({
   onNext: () => void;
 }) {
   const COLOR = useColors();
+  const inBand = useInBand();
   const chevron = (icon: string, label: string, disabled: boolean, onPress: () => void) => (
     <Pressable
       onPress={onPress}
@@ -47,7 +49,7 @@ export function DayStepper({
       {/* Drawn at 40 inside the 44 target, as the kit's stepper is. Its
           edge is Dark theme: edges (design decisions, 2026-10-07). */}
       <View
-        className={`items-center justify-center rounded-pill ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
+        className={`items-center justify-center rounded-pill ${groundClass(inBand)}`}
         style={{ width: 40, height: 40, boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}
       >
         <Glyph name={icon} size={18} color={COLOR.ink} />
@@ -92,10 +94,16 @@ export function NextLine({ events, now, isToday, zone }: { events: TodayEvent[];
   );
 }
 
-export function SectionHead({ title, count }: { title: string; count?: number }) {
+/** A section's head. `big` is the band's size (design 2026-10-11): Reminders
+ *  and Open in your threads head at 20; Where you will be and To do keep 15. */
+export function SectionHead({ title, count, big = false }: { title: string; count?: number; big?: boolean }) {
   return (
-    <View className="flex-row items-baseline gap-space-3 pb-space-2">
-      <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 15 }} accessibilityRole="header">
+    <View className={`flex-row items-baseline gap-space-3 ${big ? "" : "pb-space-2"}`} style={big ? { paddingBottom: 10 } : undefined}>
+      <Text
+        className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+        style={big ? { fontSize: 20, lineHeight: 24, letterSpacing: -0.2 } : { fontSize: 15 }}
+        accessibilityRole="header"
+      >
         {title}
       </Text>
       {count !== undefined ? (
@@ -121,6 +129,7 @@ export function EventsStrip({
   zone: string | null;
 }) {
   const router = useRouter();
+  const inBand = useInBand();
   const COLOR = useColors();
   const next = nextLine(events as LineEvent[], now, isToday, zone);
   if (events.length === 0) return null;
@@ -145,7 +154,7 @@ export function EventsStrip({
                 : null;
           const body = (
             <View
-              className={`gap-space-1 ${raised ? "border border-border-hairline bg-surface-raised" : isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
+              className={`gap-space-1 ${raised ? "border border-border-hairline bg-surface-raised" : groundClass(inBand)}`}
               style={[
                 { width: 128, paddingHorizontal: 12, paddingVertical: 10, borderRadius: isAndroid ? 16 : 14 },
                 raised

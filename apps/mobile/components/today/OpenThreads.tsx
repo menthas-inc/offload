@@ -27,6 +27,7 @@ import { perform, type Writes } from "../../lib/optimistic";
 import { completeContent } from "../../lib/threads";
 import type { OpenPage, TodayRow } from "../../lib/today";
 import type { ToastState } from "../shell/Toast";
+import { groundClass, useInBand } from "./Band";
 import { SectionHead } from "./DayParts";
 
 const isAndroid = Platform.OS === "android";
@@ -55,10 +56,11 @@ export function OpenThreads({
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [shown, setShown] = useState(0);
+  const inBand = useInBand();
   if (pages.length === 0) return null;
   const page = width - 2 * GUTTER - 32;
   const count = pages.reduce((sum, one) => sum + one.count, 0);
-  const ground = isAndroid ? "bg-a-c-low" : "bg-surface-fill";
+  const ground = groundClass(inBand);
   const ink = isAndroid ? "text-a-on" : "text-text-primary";
   const rule = isAndroid ? "border-a-outline" : "border-border-hairline";
 
@@ -80,7 +82,7 @@ export function OpenThreads({
 
   return (
     <View>
-      <SectionHead title="Open in your threads" count={count} />
+      <SectionHead title="Open in your threads" count={count} big />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -122,7 +124,7 @@ export function OpenThreads({
                       {one.people.map((person, n) => (
                         <View
                           key={person.accountId}
-                          className={`items-center justify-center rounded-pill bg-surface-attention-soft ${isAndroid ? "border-a-c-low" : "border-surface-fill"}`}
+                          className={`items-center justify-center rounded-pill bg-surface-attention-soft ${inBand ? "border-surface-raised" : isAndroid ? "border-a-c-low" : "border-surface-fill"}`}
                           // A 22 disc with a 2pt ring in the page's ground, overlapping 5.
                           style={{ width: 26, height: 26, marginLeft: n ? -9 : 0, borderWidth: 2 }}
                         >

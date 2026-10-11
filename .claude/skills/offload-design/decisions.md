@@ -32,6 +32,24 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Design system impact:** the readme's line that "a `bell` after the date means the digest will announce this row" (854) wants "offload will remind you about it, or somebody asked"; the line that the flag is the model's alone (862) and that Remind me shows only "while the row is a reminder" (918) want the author's switch on anything offload reminds about, in the row sheet, the note editor and the memory editor; the kits' "no per-item pushes" wants the reminder of its own before a clock time. The kits want: the Notifications page's Reminders section with the three count tiles and their picture; Today's Reminders section with the row, the "By" chip and the note and memory lines; Customize Today's fourth section; the web edit dialog's switch; the Activity `reminder` row; and a decision on the four phone and web differences above.
 
+### 2026-10-11 · Today: Reminders and bands, as built
+**Surface:** iOS, Android, web, Today
+**Raised by:** code, building `handoff/APPLY-2026-10-11-today-bands.md` on `feat/today-bands`, checked in the browser.
+
+**Was:** the handoff's dismiss, which writes the thing's Remind me off and says *Won't remind you about Mum's birthday*; the countdown and the time in `--amber-700`; `lasso` on every row's where-line.
+
+**Is:**
+- **Dismiss hides one reminder, not the thing** (the owner, 2026-10-11): the `x` hides the reminder that was showing, for that occurrence and window, and the thing comes back with its next reminder, whose notification still goes. A birthday dismissed a month out comes back a week out. Remind me is untouched; stopping stays in the three editors. The toast says when it comes back, *Dismissed until Friday*, *Dismissed until 25 November*, *Dismissed until tomorrow*, or *Dismissed* when it was the last, with Undo.
+- The countdown and the time are `--text-noticed`, the alias `--amber-700` already has; the ramp is not consumed directly.
+- A row's where-line draws its thread's own icon (037), as every thread mark does since 7 October, with `lasso` as the fallback. A note draws `text-quote` whatever its thread, as the kit does.
+- On the web the name is one link covering its row with the dismiss above it, so the whole row opens and the `x` is a control of its own; on the phones the row is a button with the `x` inside it. The hit area is 44 on both.
+- The first section's top is `--space-3` on the phones (the handoff) and the band's 20 on the web (the kit's `WBand`).
+- A card in a band is `--surface-raised` on Android as well as iOS, as the kit's `--tp-card` is, rather than Material's `a-c-high`; a dark Pixel look decides whether that stays.
+
+**Why:** the owner's call on what a dismiss means; two rules that already hold elsewhere.
+
+**Design system impact:** `readme.md` **Today**, the Reminders bullet: the dismiss sentence and the toast line want the per-reminder meaning and *Dismissed until ...*; `--amber-700` wants `--text-noticed`. `ui_kits/mobile_app/TodayReminders.jsx`: the toast's copy, and the thread's icon on a row's where-line. `handoff/APPLY-2026-10-11-today-bands.md` §2 is superseded on the write and the toast.
+
 ### 2026-10-11 · Today: Reminders as C2b, and bands
 **Surface:** iOS, Android, web, Today
 **Raised by:** the product owner, off 042's Today section as built (`main` at tree `1570ee3`): `explorations/home-reminders.html` (four ways, then B and C with dismiss, then C2 with several today, C2b taken) and `explorations/today-sections.html` (five ways to separate the sections, A taken; final `explorations/today-bands.html`). Handoff: `handoff/APPLY-2026-10-11-today-bands.md`.
