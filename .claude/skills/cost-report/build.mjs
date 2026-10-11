@@ -46,12 +46,16 @@ const c = {
   sort: grab(`${AGENT}/config.py`, /^\s*sort_model: str = "([^"]+)"/m, "sort model", String),
   answer: grab(`${AGENT}/config.py`, /^\s*answer_model: str = "([^"]+)"/m, "answer model", String),
   nightly: grab(`${AGENT}/config.py`, /^\s*nightly_model: str = "([^"]+)"/m, "nightly model", String),
+  look: grab(`${AGENT}/config.py`, /^\s*look_model: str = "([^"]+)"/m, "look model", String),
+  memory: grab(`${AGENT}/config.py`, /^\s*memory_model: str = "([^"]+)"/m, "memory model", String),
   maxPrompt: grab(`${AGENT}/config.py`, /max_prompt_tokens: int = ([\d_]+)/, "prompt budget"),
   running: grab(`${AGENT}/config.py`, /per_account_running: int = (\d+)/, "jobs per account"),
   voiceRate: grab(`${AGENT}/config.py`, /assemblyai_micros_per_second: float = ([\d.]+)/, "ledger voice rate"),
   maxCalls: grab(`${AGENT}/harness/plan.py`, /^MAX_MODEL_CALLS = (\d+)/m, "model calls per turn"),
   maxOut: grab(`${AGENT}/harness/plan.py`, /^MAX_OUTPUT_TOKENS = (\d+)/m, "output tokens per call"),
   maxTools: grab(`${AGENT}/harness/plan.py`, /^MAX_TOOL_CALLS = (\d+)/m, "tool calls per turn"),
+  fileEffort: grab(`${AGENT}/harness/plan.py`, /^FILE_EFFORT = "(\w+)"/m, "filing effort", String),
+  answerEffort: grab(`${AGENT}/harness/plan.py`, /^ANSWER_EFFORT = "(\w+)"/m, "answering effort", String),
   searches: grab(`${AGENT}/worker.py`, /SEARCHES = (\d+)/, "searches per turn"),
   reads: grab(`${AGENT}/worker.py`, /READS = (\d+)/, "reads per turn"),
   budget: grab("apps/core-api/src/budget.ts", /DAILY_MODEL_BUDGET_MICROS = ([\d_]+)/, "daily model budget"),
@@ -61,8 +65,11 @@ const c = {
   voicePerDay: grab("apps/core-api/src/blobs/audio.ts", /DAILY_VOICE_NOTES = (\d+)/, "voice notes per day"),
   voiceMsPerDay: grab("apps/core-api/src/blobs/audio.ts", /DAILY_VOICE_MS = ([\d *]+);/, "voice ms per day", num),
   voiceMaxMs: grab("apps/core-api/src/blobs/audio.ts", /MAX_DURATION_MS = ([\d_]+)/, "longest voice note"),
-  mailHour: grab("apps/core-api/src/mail-in/receive.ts", /HOURLY_MAIL = (\d+)/, "emails per hour"),
-  mailDay: grab("apps/core-api/src/mail-in/receive.ts", /DAILY_MAIL = (\d+)/, "emails per day"),
+  mailHour: grab("apps/core-api/src/mail-in/caps.ts", /HOURLY_MAIL = (\d+)/, "emails per hour"),
+  mailDay: grab("apps/core-api/src/mail-in/caps.ts", /DAILY_MAIL = (\d+)/, "emails per day"),
+  // 041. A PDF counts toward the day's photos; the model reads its first pages.
+  pdfsPerDump: grab("apps/core-api/src/blobs/photos.ts", /MAX_PDFS = (\d+)/, "PDFs per dump"),
+  pdfPages: grab(`${AGENT}/pdfs.py`, /^CUT_PAGES = (\d+)/m, "PDF pages the model reads"),
   nightlyThreads: grab("apps/core-api/src/jobs/handlers.ts", /NIGHTLY_THREADS = (\d+)/, "nightly passes per member"),
 };
 // Optional constants: present once the code has them, absent before.
@@ -108,16 +115,19 @@ if (!/speech_models?/.test(transcribe)) findings.push({ severity: "warning", tit
 if (!existsSync(join(ROOT, `${AGENT}/ledger.py`))) findings.push({ severity: "warning", title: "Some model calls are never ledgered",
   body: "The classifier, the open-question judge, the mail image look, the reader's tokens and every embedding cost money and write no ledger row. Cache writes are not recorded either. A ledger total is a floor.",
   ref: "apps/agent/src/offload_agent/harness/plan.py, look.py, reader.py" });
-if (!/thinking/.test(harness)) findings.push({ severity: "info", title: "Thinking is left at each model's default",
-  body: "stack.md says adaptive thinking with an effort level; the code sends neither, so Sonnet 5 and Opus 5 think adaptively at their default effort inside the output budget. Effort is the first cost lever after caching.",
+if (!/output_config/.test(harness)) findings.push({ severity: "info", title: "No effort setting anywhere",
+  body: "stack.md says adaptive thinking with an effort level; the code sends no effort, so filing and answering think at each model's default inside the output budget. Effort is the first cost lever after caching.",
   ref: "docs/tech/stack.md; harness/plan.py" });
 {
-  const haikuMin = prices.anthropic.models["claude-haiku-4-5"].minCacheTokens;
-  const short = ["classify", "reader"].filter((k) => c.sort?.value === "claude-haiku-4-5" && promptChars[k] != null
-    && model.promptTokens(promptChars[k], assumptions.turn) < haikuMin);
-  if (short.length) findings.push({ severity: "info", title: "The Haiku prompts are too short to cache",
-    body: `Haiku 4.5 caches nothing under ${haikuMin.toLocaleString("en-US")} tokens. The ${short.length > 1 ? "classifier and reader prompts are" : short[0] === "classify" ? "classifier prompt is" : "reader prompt is"} shorter, so cache_control does nothing there and every call pays full input.`,
-    ref: short.map((k) => `${promptDir}/${k}.md`).join(", ") });
+  // The small calls mark their prompt for the cache; one under its model's
+  // minimum caches nothing and pays full input, with no error.
+  const small = { classify: c.sort, judge: c.sort, reader: c.sort, look: c.look };
+  const short = Object.entries(small).filter(([k, m]) => m && promptChars[k] != null && prices.anthropic.models[m.value]
+    && model.promptTokens(promptChars[k], assumptions.turn) < prices.anthropic.models[m.value].minCacheTokens);
+  if (short.length) findings.push({ severity: "info", title: "The small prompts are too short to cache",
+    body: short.map(([k, m]) => `${k} on ${m.value} is under its ${prices.anthropic.models[m.value].minCacheTokens.toLocaleString("en-US")} token minimum`).join("; ")
+      + ". cache_control does nothing there and every call pays full input, which is how the sheet prices them.",
+    ref: short.map(([k]) => `${promptDir}/${k}.md`).join(", ") });
 }
 if (!srcHasLangfuse) findings.push({ severity: "info", title: "Langfuse is not wired", body: "stack.md names it for LLM observability; no service code calls it, so it costs nothing today and the report carries it at $0.", ref: "docs/tech/stack.md" });
 
@@ -171,7 +181,9 @@ for (const [k, v] of Object.entries(prices)) {
 }
 
 const code = {
-  models: { file: c.file?.value, sort: c.sort?.value, answer: c.answer?.value, nightly: c.nightly?.value },
+  models: { file: c.file?.value, sort: c.sort?.value, answer: c.answer?.value, nightly: c.nightly?.value, look: c.look?.value, memory: c.memory?.value },
+  pdfsPerDump: c.pdfsPerDump?.value ?? null,
+  pdfPages: c.pdfPages?.value ?? null,
   nightlyThreads: c.nightlyThreads?.value ?? null,
   promptChars,
   budgetMicros: c.budget?.value,
@@ -194,6 +206,11 @@ const input = { prices, code, assumptions, options: { ...assumptions.options, wh
 {
   const f = model.fleet(input, 1000, "mau");
   if (!f.parts.googleMaps || !(f.parts.googleMaps.loads > 0)) throw new Error("the fleet has no Google Maps part");
+  // 038 and 041. Every model call the worker makes has a unit here, and the
+  // fleet pays for each: a memory pass a night, a PDF in a filing turn.
+  for (const k of ["memory", "filePdfPerPage", "look", "pdfLook"]) if (!(f.units[k] > 0)) throw new Error(`no unit cost for ${k}`);
+  const normal = f.profiles.find((p) => p.fk === "heavy" && p.bk === "normal").row.counts;
+  if (!(normal.memoryPasses > 0) || !(normal.pdfs > 0)) throw new Error("a heavy normal month has no memory passes or no PDFs");
 }
 // 030. Google Maps bills by tier past a free monthly cap; check the tier
 // arithmetic against the price list before trusting a fleet figure.

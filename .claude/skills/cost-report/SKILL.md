@@ -41,9 +41,10 @@ secrets through shell variables). Never print it.
 
 ## What is read from the code every run
 
-Models per tier, the prompt budget, calls and output per turn, searches and
-reads per turn, the daily model budget, every photo, voice and mail cap, the
-ledger's voice rate, the size of every prompt, and the eval history. The
+Models per tier, the effort filing and answering run at, the prompt budget,
+calls and output per turn, searches and reads per turn, the daily model budget,
+every photo, PDF, voice and mail cap, the ledger's voice rate, the size of every
+prompt, and the eval history. The
 findings are checks: the one about the budget never tripping goes away by
 itself when `worker.py` stops writing `costMicros: 0`.
 
@@ -53,8 +54,11 @@ A turn is priced from tokens: the system prompt and tools as a cached prefix
 (read when warm, written when cold), the context and any images uncached on every
 call, and output. How warm the prefix is comes from fleet size, because the
 prefix is the same for every account: the chance another turn touched it in the
-last five minutes. Haiku's prompts are under its 4,096-token cache minimum and
-pay full input. The two calibration checks in the page compare the model, shaped
+last five minutes. The small prompts are under their models' cache minimums and
+pay full input. The night is one pass per thread touched on the nightly model
+and one memory pass per account on the memory model, each prompt written once a
+night and read by every pass after. A PDF's first pages ride inside the cached
+conversation of the filing turn, priced per page. The two calibration checks in the page compare the model, shaped
 like the evals, with what the evals measured, and shaped like production with the
 per-dump range measured on 2026-09-17.
 
