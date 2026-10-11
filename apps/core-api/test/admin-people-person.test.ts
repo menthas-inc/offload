@@ -220,11 +220,12 @@ describe("AC-18 a person", () => {
     await photo(ana, 1000);
     await voice(ana, 5000);
     await sql`insert into connector_connections (account_id, provider, external_account_email, last_sync_at) values (${ana}, 'google', 'second@example.test', now())`.execute(db);
-    await sql`insert into push_tokens (account_id, token, platform) values (${ana}, 'ExponentPushToken[aaaaaaaaaaaaaaaaaaaaaa]', 'ios')`.execute(db);
-    await sql`insert into push_tokens (account_id, token, platform) values (${ana}, 'ExponentPushToken[bbbbbbbbbbbbbbbbbbbbbb]', 'android')`.execute(db);
-    await sql`insert into push_tokens (account_id, token, platform) values (${ana}, 'ExponentPushToken[cccccccccccccccccccccc]', 'android')`.execute(db);
     await signIn(ana);
     await signIn(ana);
+    const live = sql`(select id from sessions where account_id = ${ana} limit 1)`;
+    await sql`insert into push_tokens (account_id, session_id, token, platform) values (${ana}, ${live}, 'ExponentPushToken[aaaaaaaaaaaaaaaaaaaaaa]', 'ios')`.execute(db);
+    await sql`insert into push_tokens (account_id, session_id, token, platform) values (${ana}, ${live}, 'ExponentPushToken[bbbbbbbbbbbbbbbbbbbbbb]', 'android')`.execute(db);
+    await sql`insert into push_tokens (account_id, session_id, token, platform) values (${ana}, ${live}, 'ExponentPushToken[cccccccccccccccccccccc]', 'android')`.execute(db);
     await sql`insert into sessions (account_id, token, expires_at) values (${ana}, 'expired', now() - interval '1 day')`.execute(db);
 
     const res = await get(support.cookie, `/people/${ana}`);

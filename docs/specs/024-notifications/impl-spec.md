@@ -33,7 +33,7 @@ Two tables, `push_tokens` and `activity`, seven columns on `accounts`, two job k
 
 ### Tokens
 
-1. `POST /v1/push-tokens` `{ token, platform }`: `Expo.isExpoPushToken` or 400; upsert on the token, setting `account_id` to the session's, `platform`, `last_seen_at`. `DELETE /v1/push-tokens` `{ token }`: deletes the row if it is the session's. The app calls the delete before `authClient.signOut()`.
+1. `POST /v1/push-tokens` `{ token, platform }`: `Expo.isExpoPushToken` or 400; upsert on the token, setting `account_id` to the session's, `platform`, `last_seen_at`. `DELETE /v1/push-tokens` `{ token }`: deletes the row if it is the session's. The app calls the delete before `authClient.signOut()`. Amended 2026-10-11 (`0091`): the row names the session that registered it, `session_id` referencing `sessions` on delete cascade, set on insert and on the re-bind, so a revoke, a sign-out and the nightly purge of an expired session each take the token; every send reads its tokens through `notifications/tokens.ts`, which joins the session and refuses one that has expired, covering the day before the purge. Tokens registered before `0091` named no session and were deleted; the phones register again on launch and on Today.
 
 ### Activity
 
@@ -86,6 +86,7 @@ create table push_tokens (
   last_seen_at timestamptz not null default now()
 );
 create index push_tokens_account_idx on push_tokens (account_id);
+-- 0091 (2026-10-11) adds session_id uuid not null references sessions (id) on delete cascade.
 
 create table activity (
   id               uuid primary key default uuid_v7(),

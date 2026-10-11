@@ -26,6 +26,7 @@ import { cutAtWord, digestCopy, reminderName, skippedTitle, type ComingRow, type
 import { clockOf, placed } from "./reminders.js";
 import { calendarOn, isWritten } from "../today/day.js";
 import { GONE, PushFailed, push, type PushMessage } from "./push.js";
+import { liveTokens } from "./tokens.js";
 
 export type { Send };
 
@@ -420,7 +421,7 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
   const copy = { title: drafted.title, body: cutAtWord(drafted.body, BODY_CHARS) };
   const single = reminding || calendar.length > 0 ? null : composed.single;
 
-  const tokens = await db.selectFrom("push_tokens").select(["id", "token", "platform"]).where("account_id", "=", accountId).execute();
+  const tokens = await liveTokens(accountId).execute();
   if (tokens.length === 0) {
     await record(accountId, { kind: "digest", sent: false, reason: "permission", title: copy.title, body: copy.body, send, mentions, memories: reminders.memories, calendars });
     await emit({ name: "digest_skipped", subjectId: subject, properties: { ...counts, reason: "permission" } });

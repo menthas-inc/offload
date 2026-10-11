@@ -138,7 +138,9 @@ Deletion:
 - **AC-7** Calendar connections are revoked at Google. A failed revoke does
   not stop the deletion and is retried without the account.
 - **AC-8** Every session stops working at once on every device, and no push
-  or email other than the deletion notice is sent afterwards.
+  or email other than the deletion notice is sent afterwards. (Amended
+  2026-10-11: a push token also goes with the session that registered it, so
+  ending one session from Signed in on takes that phone's token with it.)
 - **AC-9** The last staff owner is refused, with the line above.
 - **AC-10** Signing in afterwards with the same identity finds no account.
 - **AC-11** `offload.club/delete-account` renders the same for every visitor,

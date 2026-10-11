@@ -4,7 +4,8 @@
 // A push token is a delivery capability and is bound to a session: the route
 // takes no account id, and a token already held by another account is
 // re-bound, so a phone that changes hands or accounts never receives the last
-// account's words. No read returns a token. Activity is readable by its own
+// account's words. The row names the session that registered it and goes when
+// that session ends, however it ends (0091). No read returns a token. Activity is readable by its own
 // account only. The verbs resolve the account from the session and the row
 // through the same membership predicate as the sheet's write.
 
@@ -126,15 +127,18 @@ export async function notificationRoutes(app: App): Promise<void> {
       },
     },
     async (request, reply) => {
-      const accountId = await currentAccountId(request);
-      if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
+      const session = (await auth.api.getSession({ headers: fetchHeaders(request) }))?.session;
+      if (!session) return reply.status(401).send({ error: "unauthenticated" });
+      const { userId: accountId, id: sessionId } = session;
       const { token, platform } = request.body;
       const takesReminders = request.body.takes?.includes("reminder") ?? false;
       await db
         .insertInto("push_tokens")
-        .values({ account_id: accountId, token, platform, takes_reminders: takesReminders })
+        .values({ account_id: accountId, session_id: sessionId, token, platform, takes_reminders: takesReminders })
         .onConflict((oc) =>
-          oc.column("token").doUpdateSet({ account_id: accountId, platform, takes_reminders: takesReminders, last_seen_at: new Date() }),
+          oc
+            .column("token")
+            .doUpdateSet({ account_id: accountId, session_id: sessionId, platform, takes_reminders: takesReminders, last_seen_at: new Date() }),
         )
         .execute();
       return { ok: true as const };
