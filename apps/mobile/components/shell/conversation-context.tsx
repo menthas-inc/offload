@@ -28,7 +28,8 @@ import { useAudioRecorder } from "expo-audio";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { openPdf as openPdfOnPhone, sharePdf, sweepPdfs } from "../../lib/pdf-open";
-import { onSignedOut } from "../../lib/auth";
+import { onClaimed } from "../../lib/device-data";
+import { tailAsker } from "../../lib/conversation-tail";
 import { plainText } from "@offload/markup";
 import {
   DailyLimit,
@@ -721,12 +722,16 @@ export function ConversationProvider({
   }, [settle, springTo]);
 
   // The conversation as the database has it, so reopening the app does not look
-  // like a fresh account.
-  useEffect(() => {
-    void (async () => {
+  // like a fresh account. Asked on mount and again when launch claims the
+  // phone: after a sign-out this mounts with nobody signed in, and the person
+  // who signs in next would otherwise find their conversation empty until a
+  // relaunch (`lib/conversation-tail.ts`).
+  const [askTail] = useState(() =>
+    tailAsker(async () => {
       try {
         const tail = await fetchCurrent();
-        if (tail.length === 0) return;
+        if (tail === null) return false;
+        if (tail.length === 0) return true;
         setTurns(
           tail.map((message) => ({
             id: message.id,
@@ -762,11 +767,17 @@ export function ConversationProvider({
         setLive((current) => current ?? { title: "" });
         const last = tail[tail.length - 1]?.createdAt;
         if (closedAt.current === null) closedAt.current = last ? Date.parse(last) : Date.now();
+        return true;
       } catch (error) {
         failed("conversation.tail", error);
+        return false;
       }
-    })();
-  }, []);
+    }),
+  );
+  useEffect(() => {
+    askTail();
+    return onClaimed(() => askTail());
+  }, [askTail]);
 
   // The poll stops when the app goes away and asks at once when it comes back.
   // Otherwise every backgrounded turn pays a full interval before the tick
@@ -1124,11 +1135,9 @@ export function ConversationProvider({
     [notify],
   );
 
-  // 041. A copy a kill or a viewer left behind goes on launch and on sign-out.
-  useEffect(() => {
-    sweepPdfs();
-    onSignedOut(sweepPdfs);
-  }, []);
+  // 041. A copy a kill or a viewer left behind goes on launch; a session's
+  // end takes the folder with the rest of the account (`device-data.ts`).
+  useEffect(() => sweepPdfs(), []);
 
   const removePhoto = useCallback((key: string) => {
     setPhotos((current) => current.filter((photo) => photo.key !== key));

@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "club.offload.app",
+      "icon": "./assets/icon-ios.png",
       "supportsTablet": false,
       "usesAppleSignIn": true,
       "infoPlist": {

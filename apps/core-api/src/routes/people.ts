@@ -13,6 +13,7 @@ import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
 import { emit, subjectOf } from "../analytics.js";
 import { markOf } from "../accounts/avatar.js";
+import { pictureCache } from "../blobs/cache.js";
 import { visibleTo } from "../people/access.js";
 import {
   LOOKUP_FLOOR_MS,
@@ -288,9 +289,11 @@ export async function peopleRoutes(app: App): Promise<void> {
         .where("deleted_at", "is", null)
         .executeTakeFirst();
       if (!exists) return reply.code(404).send({ error: "not_found" as const });
+      // A browser keeps it for good, since it never changes; a phone keeps its
+      // own copy and its HTTP stack none (`pictureCache`).
+      pictureCache(request, reply, "private, max-age=31536000, immutable");
       return reply
         .header("Content-Type", "image/png")
-        .header("Cache-Control", "private, max-age=31536000, immutable")
         .header("X-Content-Type-Options", "nosniff")
         .send(await markOf(target));
     },

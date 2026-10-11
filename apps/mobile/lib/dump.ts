@@ -639,9 +639,11 @@ export function awaitAnswer(
 
 /** The current conversation, so reopening the app does not look like a fresh
  *  account. */
-export async function fetchCurrent(): Promise<TailMessage[]> {
+/** The current conversation's messages, or null when nothing answered: signed
+ *  out, offline, or refused, which the caller asks again about. */
+export async function fetchCurrent(): Promise<TailMessage[] | null> {
   const { data } = await send<{ messages: TailMessage[] }>("/v1/conversations/current");
-  return data?.messages ?? [];
+  return data ? (data.messages ?? []) : null;
 }
 
 /** Take back a whole turn: what you dumped, what offload filed, and what it

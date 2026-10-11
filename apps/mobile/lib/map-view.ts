@@ -2,6 +2,7 @@
 
 import * as SecureStore from "expo-secure-store";
 import { nameList } from "@offload/widgets";
+import { DEVICE_ONLY } from "./account-keys";
 
 /** List or Map. Not `MapView`, which is react-native-maps' component. */
 export type MapChoice = "list" | "map";
@@ -31,7 +32,7 @@ export function writeView(threadId: string, view: MapChoice): void {
   const ids = kept().filter((id) => id !== threadId);
   if (view === "map") ids.push(threadId);
   try {
-    SecureStore.setItem(KEY, JSON.stringify(ids.slice(-MAP_VIEWS_KEPT)));
+    SecureStore.setItem(KEY, JSON.stringify(ids.slice(-MAP_VIEWS_KEPT)), DEVICE_ONLY);
   } catch {
     // Not kept: the thread opens on List next time, which is a fine default.
   }

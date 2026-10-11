@@ -23,6 +23,7 @@ import { env } from "../env.js";
 import { unwrap, wrap } from "../crypto/keys.js";
 import { mintObjectKey, objectKeyOf } from "../blobs/keys.js";
 import { objectKey, objectStore, RENDITIONS, type Rendition } from "../blobs/store.js";
+import { pictureCache } from "../blobs/cache.js";
 import {
   MAX_PDFS,
   MAX_PHOTO_BYTES,
@@ -644,13 +645,13 @@ export async function blobRoutes(app: App): Promise<void> {
       const bytes = await db.transaction().execute(async (trx) => openStored(id, rendition, await objectKeyOf(trx, id)));
       if (!bytes) return reply.code(404).send({ error: "not_found" });
 
+      // Minutes, not an hour: the server refuses on the next uncached read
+      // once somebody is taken out of a thread, and the browser's copy is the
+      // only thing that outlives that. None on a phone (`pictureCache`).
+      pictureCache(request, reply, "private, max-age=300");
       return reply
         .code(200)
         .header("Content-Type", "image/jpeg")
-        // Minutes, not an hour: the server refuses on the next uncached read
-        // once somebody is taken out of a thread, and the browser's copy is
-        // the only thing that outlives that.
-        .header("Cache-Control", "private, max-age=300")
         .header("X-Content-Type-Options", "nosniff")
         .header("Content-Disposition", 'inline; filename="photo.jpg"')
         .send(bytes);

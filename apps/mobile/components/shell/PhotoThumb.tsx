@@ -18,6 +18,7 @@ import { Image, type ImageStyle, type StyleProp } from "react-native";
 import { Directory, File, Paths } from "expo-file-system";
 import { authHeaders } from "../../lib/api";
 import { photoUrl } from "../../lib/dump";
+import { copyGeneration } from "../../lib/session-end";
 
 /** Where a rendition lives on this device once fetched. */
 function cached(blobId: string, rendition: "thumb" | "large"): File {
@@ -26,14 +27,17 @@ function cached(blobId: string, rendition: "thumb" | "large"): File {
 
 /** Fetch a rendition into the cache, or say why not. Only a 200 is written,
  *  so a 404 for renditions not made yet never leaves a JSON body on disk
- *  wearing a picture's name. */
-async function fetchRendition(blobId: string, rendition: "thumb" | "large"): Promise<string | null> {
+ *  wearing a picture's name, and only while the copy it was fetched for is
+ *  still the phone's: one that lands after a session ended is dropped. */
+export async function fetchRendition(blobId: string, rendition: "thumb" | "large"): Promise<string | null> {
   const file = cached(blobId, rendition);
   if (file.exists) return file.uri;
+  const generation = copyGeneration();
   const headers = await authHeaders();
   const response = await fetch(photoUrl(blobId, rendition), { headers });
   if (!response.ok) return null;
   const bytes = new Uint8Array(await response.arrayBuffer());
+  if (copyGeneration() !== generation) return null;
   new Directory(Paths.cache, "photos").create({ idempotent: true, intermediates: true });
   file.write(bytes);
   return file.uri;

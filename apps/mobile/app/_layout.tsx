@@ -14,7 +14,11 @@ import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { onSessionRefused, pinExistingSession } from "../lib/auth";
+import { onSignedOut, pinExistingSession } from "../lib/auth";
+// Listening from launch for the end of a session, to forget what the phone
+// kept of the account. Before anything can sign out.
+import { claimDevice } from "../lib/device-data";
+import { getMe } from "../lib/api";
 import { ConversationProvider } from "../components/shell/conversation-context";
 import { Recede, SheetStatusBar } from "../components/shell/Recede";
 import { RecordArrival } from "../components/shell/RecordArrival";
@@ -85,9 +89,36 @@ export default function RootLayout() {
 
   const router = useRouter();
 
-  // A session the server refused. The keys are already gone by the time this
-  // fires; the shell's part is to show the gate, which decides the rest.
-  useEffect(() => onSessionRefused(() => router.replace("/")), [router]);
+  // Whose copy the phone holds, settled from here as well as from the index
+  // route: a cold launch from a notification, a share or a link can open
+  // another route, and the index route never runs. Both ask in one frame and
+  // share the answer and the claim.
+  useEffect(() => {
+    void getMe().then((me) => {
+      if (typeof me === "object") void claimDevice(me.accountId);
+    });
+  }, []);
+
+  // **A session ended on this phone: signed out, deleted, refused by the
+  // server, or another account found under the stamp.** The keys and the
+  // phone's copy are already gone by the time this hears it. The conversation
+  // lives above the router, so going to the gate never reached it, and on
+  // 2026-10-11 an iPhone showed the next account the last one's turns, chips
+  // and a photo. Counting the ends and keying the provider on the count starts
+  // it, and every screen under it, again empty (009 AC-32b).
+  const [ends, setEnds] = useState(0);
+  useEffect(() => onSignedOut(() => setEnds((n) => n + 1)), []);
+
+  // Then the gate, from here and only here: after the new tree has mounted,
+  // since this parent's effect runs after its children's, so the navigation
+  // is never sent to a navigator that is being replaced. Nothing stays under
+  // the gate either: the stack goes down to one screen and that one is
+  // replaced.
+  useEffect(() => {
+    if (ends === 0) return;
+    if (router.canDismiss()) router.dismissAll();
+    router.replace("/");
+  }, [ends, router]);
 
   // 024. The categories and channels once per launch, then the token when
   // permission was granted, then whatever notification opened the app and
@@ -139,7 +170,7 @@ export default function RootLayout() {
             yours. It lived in the tabs layout first, and a thread route sits
             outside that group, so opening one threw the moment the screen
             asked for it. */}
-        <ConversationProvider>
+        <ConversationProvider key={ends}>
         {/* 020. A photo shared from another app lands in the composer. Above
             the router, like the conversation it lands in, and before the gate
             so a share while signed out waits in the draft behind it. */}
