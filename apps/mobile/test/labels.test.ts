@@ -96,6 +96,17 @@ describe("the kept pick (AC-19)", () => {
     store.set("offload_labels_t1", "{not json");
     expect(labels.readPick("t1")).toEqual({ labels: [], none: false });
   });
+
+  // A key named after a thread cannot be found by a phone that no longer
+  // knows the thread, so each one is listed where sign-out finds it, and
+  // leaves the list when the pick goes back to All. 2026-10-11.
+  it("is listed with the account's keys, so signing out finds it", () => {
+    labels.writePick("t1", { labels: ["a"], none: false });
+    labels.writePick("t2", { labels: [], none: true });
+    expect(JSON.parse(store.get("offload_account_keys") ?? "[]")).toEqual(["offload_labels_t1", "offload_labels_t2"]);
+    labels.writePick("t1", { labels: [], none: false });
+    expect(JSON.parse(store.get("offload_account_keys") ?? "[]")).toEqual(["offload_labels_t2"]);
+  });
 });
 
 describe("a # pick travels with the dump (AC-14)", () => {

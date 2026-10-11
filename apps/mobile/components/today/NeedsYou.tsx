@@ -9,7 +9,7 @@
 // when it holds something.
 
 import { useEffect, useRef, useState } from "react";
-import { Linking, Platform, Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { ReduceMotion, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import * as Clipboard from "expo-clipboard";
@@ -25,6 +25,7 @@ import { API_URL } from "../../lib/auth";
 import { answerQuestion, undoTurn } from "../../lib/dump";
 import { setClock } from "../../lib/me";
 import { acceptInvitation, answerRequest, firstNameOf, nameOf } from "../../lib/people";
+import { turnOn } from "../../lib/notifications";
 import { putOff, stackView, type Card } from "../../lib/today";
 
 const isAndroid = Platform.OS === "android";
@@ -222,7 +223,18 @@ export function NeedsYou({
           { label: `Keep ${zoneCity(card.account)}`, run: async () => outcomeOf((await setClock({ keptTimeZone: card.device })) !== null), failed: "Couldn't save that." },
         ];
       case "notifications":
-        return [{ label: "Turn on", keeps: true, run: async () => outcomeOf(await Linking.openSettings().then(() => true, () => false)), failed: "That didn't go through." }];
+        return [
+          {
+            label: "Turn on",
+            keeps: true,
+            // The card goes once a fresh read finds this phone allowed.
+            run: async () => {
+              if (await turnOn()) onReload();
+              return "ok";
+            },
+            failed: "That didn't go through.",
+          },
+        ];
       case "request":
         return [
           { label: "Accept", run: async () => outcomeOf(await answerRequest(card.requestId, "accept")), failed: "That didn't go through." },

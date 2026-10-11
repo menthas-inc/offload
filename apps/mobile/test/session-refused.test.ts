@@ -49,7 +49,7 @@ vi.stubGlobal(
 );
 
 const { request, send } = await import("../lib/api");
-const { onSessionRefused } = await import("../lib/auth");
+const { onSessionRefused, onSignedOut } = await import("../lib/auth");
 
 /** Let the forget-and-tell that a refusal starts run to its end. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -71,6 +71,23 @@ describe("a refused session", () => {
 
     expect(deleted.sort()).toEqual(["offload_cookie", "offload_session_data"]);
     expect(told).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  // 2026-10-11. A refused session is a session ended on this phone, whether
+  // the account was signed out elsewhere or deleted on the web: what the
+  // phone kept of it goes, exactly as at a sign-out.
+  it("forgets what the phone kept of the account, as a sign-out does", async () => {
+    status = 401;
+    let forgotten = 0;
+    const stop = onSignedOut(() => {
+      forgotten += 1;
+    });
+
+    await request("/api/me");
+    await settle();
+
+    expect(forgotten).toBe(1);
     stop();
   });
 

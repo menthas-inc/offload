@@ -260,7 +260,13 @@ honour a consistency nobody asked for.
   `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`.
 - **AC-32b** Signing out resets the navigation tree and in-memory state, not only the two stored
   keys. Once the phones hold threads, a second account signing in on a shared device must not see
-  a frame of the first one's thread names before the first fetch resolves.
+  a frame of the first one's thread names before the first fetch resolves. *As built
+  2026-10-11:* it did not. The conversation lives above the router and kept the last account's
+  turns, chips and a photo for the next one. Every end of a session (sign-out, a deleted account,
+  a refused session, another account found under the phone's stamp) now remounts the
+  conversation and the screens under it, forgets what the phone kept on disk and in secure
+  storage (`lib/device-data.ts`), and launch checks which account the phone's copy belongs to
+  before it opens the shell.
 - **AC-33** No dumped text, thread name, content title or memory reaches a log, an analytics
   event or a crash report from the device (OFF-1).
 - **AC-33a** That is enforced by one client logging module, not by everyone remembering. The

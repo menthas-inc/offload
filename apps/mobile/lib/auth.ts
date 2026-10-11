@@ -319,7 +319,7 @@ export async function signOut(): Promise<void> {
   // this device, so anything added later is added here rather than at a call
   // site that would not know to.
   await Promise.all(SESSION_KEYS.map((key) => forget(key)));
-  for (const listener of signedOut) listener();
+  await ended();
 }
 
 /** 035. The account behind this session no longer exists: the server has
@@ -328,10 +328,32 @@ export async function signOut(): Promise<void> {
  *  at the end of a sign-out. */
 export async function accountDeleted(): Promise<void> {
   await Promise.all(SESSION_KEYS.map((key) => forget(key)));
-  for (const listener of signedOut) listener();
+  await ended();
 }
 
-const signedOut = new Set<() => void>();
+/** The phone holds another account's copy under this session: the stamp in
+ *  `device-data.ts` named somebody else. The session is the new account's and
+ *  stays; everything holding the old one's hears it as a sign-out. */
+export function accountChanged(): Promise<void> {
+  return ended();
+}
+
+type SignedOutListener = () => void | Promise<void>;
+const signedOut = new Set<SignedOutListener>();
+
+/** Tell each listener in the order they asked, and wait for each: forgetting
+ *  the phone's copy deletes files and keys, and the gate opens after. One that
+ *  fails does not stop the rest. */
+async function ended(): Promise<void> {
+  for (const listener of [...signedOut]) {
+    try {
+      await listener();
+    } catch {
+      // Whatever it held is cleared on the next launch's stamp check.
+    }
+  }
+}
+
 const signingOut = new Set<() => Promise<void>>();
 
 /** Run before the session ends, with the session still valid, for anything
@@ -343,9 +365,14 @@ export function beforeSignOut(handler: () => Promise<void>): void {
 /** Hear the session end on this device, for anything holding a copy of who
  *  was signed in: the identity cache kept the last account's clock and name
  *  in memory for the next person on a shared phone until a screen asked
- *  again. 023, from the security review of 2026-09-22. */
-export function onSignedOut(listener: () => void): void {
+ *  again. 023, from the security review of 2026-09-22. Signed out, deleted,
+ *  refused by the server, or another account found here: all four are this.
+ *  Returns the way to stop. */
+export function onSignedOut(listener: SignedOutListener): () => void {
   signedOut.add(listener);
+  return () => {
+    signedOut.delete(listener);
+  };
 }
 
 /** Who to tell when the server refuses the session this device holds. The
@@ -370,6 +397,9 @@ let refusing: Promise<void> | null = null;
 export function sessionRefused(): Promise<void> {
   refusing ??= (async () => {
     await Promise.all(SESSION_KEYS.map((key) => forget(key)));
+    // The account may be gone, deleted on the web, and either way this phone
+    // now holds a copy for nobody.
+    await ended();
     for (const listener of refusedListeners) listener();
   })().finally(() => {
     refusing = null;

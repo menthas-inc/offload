@@ -28,6 +28,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useColorScheme } from "nativewind";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { getMe, lastRetryAfter, stillAsking } from "../lib/api";
+import { claimDevice } from "../lib/device-data";
 import { LAUNCH_COPY, failureOf, nextWait, type LaunchFailure } from "../lib/launch";
 import { useColors } from "../lib/colors";
 import { Spinner } from "../components/Spinner";
@@ -66,28 +67,35 @@ export default function Index() {
   useEffect(() => {
     let live = true;
 
-    void getMe().then((me) => {
-      if (!live) return;
-      if (me === "signed-out") router.replace("/sign-in");
-      else if (me === "unreachable") {
-        // Held, not blank: a screen that never changes is indistinguishable
-        // from a broken app, which cost an afternoon on a device once. The
-        // gate is not the answer to that either, since it says signed out.
-        setHolding(true);
-        void SplashScreen.hideAsync();
-        void Network.getNetworkStateAsync()
-          .then((state) => state.isInternetReachable ?? state.isConnected ?? null)
-          .catch(() => null)
-          .then((online) => {
-            if (live) setFailure(failureOf(online));
-          });
-      }
-      // Not `needsFirstRun` alone. An account that finished first run before
-      // there was a name to give still has one thing to answer, and it is
-      // asked on the same screen rather than left for Settings to be found.
-      else if (stillAsking(me)) router.replace("/welcome");
-      else router.replace(day ? { pathname: "/today", params: { day } } : "/today");
-    });
+    void getMe()
+      // Whose copy the phone holds is settled before the shell draws: another
+      // account's goes first, and nothing of it reaches a screen.
+      .then(async (me) => {
+        if (typeof me === "object") await claimDevice(me.accountId);
+        return me;
+      })
+      .then((me) => {
+        if (!live) return;
+        if (me === "signed-out") router.replace("/sign-in");
+        else if (me === "unreachable") {
+          // Held, not blank: a screen that never changes is indistinguishable
+          // from a broken app, which cost an afternoon on a device once. The
+          // gate is not the answer to that either, since it says signed out.
+          setHolding(true);
+          void SplashScreen.hideAsync();
+          void Network.getNetworkStateAsync()
+            .then((state) => state.isInternetReachable ?? state.isConnected ?? null)
+            .catch(() => null)
+            .then((online) => {
+              if (live) setFailure(failureOf(online));
+            });
+        }
+        // Not `needsFirstRun` alone. An account that finished first run before
+        // there was a name to give still has one thing to answer, and it is
+        // asked on the same screen rather than left for Settings to be found.
+        else if (stillAsking(me)) router.replace("/welcome");
+        else router.replace(day ? { pathname: "/today", params: { day } } : "/today");
+      });
 
     // The handover, if the answer has not come by then.
     const timer = setTimeout(() => {

@@ -12,7 +12,7 @@
 // below, re-reads every id from the server on arrival, and ignores anything
 // else.
 
-import { Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { CHANNELS, PEOPLE_CATEGORY, PLAIN_CATEGORY, VERBS_CATEGORY, dayIn } from "@offload/widgets";
@@ -131,6 +131,29 @@ export async function register(): Promise<void> {
     if (await registerPushToken(token, Platform.OS)) registered = token;
   } catch (error) {
     failed("notifications.register", error);
+  }
+}
+
+/** Today's Turn on. A phone that can still be asked is asked, since iOS
+ *  shows no Notifications row in System settings until an app has asked
+ *  once. System settings only when asking cannot help: refused for good, or
+ *  on Android 13 and later, granted but switched off in the system. True
+ *  once this phone allows them. */
+export async function turnOn(): Promise<boolean> {
+  try {
+    const held = await Notifications.getPermissionsAsync();
+    const askable = held.canAskAgain && !held.granted;
+    if (held.status !== "granted" && !askable) {
+      await Linking.openSettings();
+      return false;
+    }
+    const answer = held.status === "granted" ? held : await Notifications.requestPermissionsAsync();
+    if (answer.status !== "granted") return false;
+    await register();
+    return true;
+  } catch (error) {
+    failed("notifications.turnOn", error);
+    return false;
   }
 }
 

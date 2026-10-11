@@ -29,18 +29,12 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { authHeaders } from "../../lib/api";
 import { voiceUrl, type VoiceOnWire } from "../../lib/dump";
-import { mmss, playbackDirectory, sweepRecordings } from "../../lib/recorder";
+import { mmss, playbackDirectory } from "../../lib/recorder";
 
 /** Past this many characters the transcript folds, roughly four lines. */
 export const FOLD_AT = 280;
 
 const BARS = 32;
-
-/** Forget every device copy of a note, heard or not yet sent. Sign-out
- *  calls this; launch runs the same sweep. */
-export function forgetPlayback(): void {
-  sweepRecordings();
-}
 
 export function SentVoice({
   durationMs,

@@ -173,6 +173,17 @@ body `{ "confirm": "delete" }`.
   session and replace the stack with the gate, which reads a one-shot notice
   held in memory (`takeDeletedNotice`) rather than a route parameter: the
   phones' gate is not a route. A reload loses the line and nothing else.
+  *Amended 2026-10-11 (AC-8a).* Clearing the session tells every
+  `onSignedOut` listener and waits for each. `lib/device-data.ts` deletes the
+  account's cache folders, its secure-storage keys (fixed names listed there,
+  names made at runtime through `lib/account-keys.ts`), the stamp and the
+  delivered notifications. The root layout keys `ConversationProvider` on the
+  count of session ends, so the conversation and every screen under it mount
+  again empty, then dismisses the stack and replaces it with the gate. Launch
+  checks the stamp (`claimDevice`) before it routes into the shell, then says
+  so (`onClaimed`), and a conversation whose tail found nobody signed in when
+  it mounted asks again (`lib/conversation-tail.ts`), so a person signing back
+  in without a relaunch sees their conversation.
 - **Web:** the Account pane gains the danger panel, in `--surface-danger-soft`,
   `--border-danger` and `--text-danger` rather than the kit's ramps; the
   dialog follows the existing dialog component. On 204: `/sign-in?deleted=1`.
@@ -181,7 +192,8 @@ body `{ "confirm": "delete" }`.
   `/sign-in` and the three steps from there in words. Sign-in carries no
   `next`, and adding one is a redirect parameter on the gate for the sake of
   one page; the page instructs rather than routes.
-- A 401 on any other device already lands on sign-in; no new handling.
+- A 401 on any other device already lands on sign-in, and since 2026-10-11
+  forgets that phone's copy the same way.
 
 ## Part B: export
 
