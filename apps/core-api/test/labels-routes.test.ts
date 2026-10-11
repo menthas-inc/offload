@@ -227,10 +227,15 @@ describe("reading (AC-18, AC-22, AC-27)", () => {
     await row(me, t, "Done task", { done_at: new Date(now - day) });
     const carriedDone = await row(me, t, "Done, carried", { done_at: new Date(now - day) });
     await row(me, t, "Last week", { type: "event", occurs_at: new Date(now - 7 * day) });
+    // A minute ago, or the day's first instant when a minute ago was still
+    // yesterday: the account has no zone, so its day is UTC's, and run in
+    // the first minute after midnight this was yesterday's event (gate,
+    // 2026-10-11 00:00 UTC).
+    const endedAt = Math.max(now - 60 * 1000, Date.UTC(new Date(now).getUTCFullYear(), new Date(now).getUTCMonth(), new Date(now).getUTCDate()));
     await row(me, t, "Ended a minute ago", {
       type: "event",
-      occurs_at: new Date(now - 2 * 60 * 1000),
-      occurs_end_at: new Date(now - 60 * 1000),
+      occurs_at: new Date(endedAt - 60 * 1000),
+      occurs_end_at: new Date(endedAt),
     });
     await row(me, t, "Next week", { type: "event", occurs_at: new Date(now + 7 * day) });
     await row(me, t, "Weekly since spring", { type: "event", occurs_at: new Date(now - 90 * day), rrule: "FREQ=WEEKLY" });
