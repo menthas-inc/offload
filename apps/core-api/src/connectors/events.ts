@@ -39,6 +39,8 @@ export interface MappedEvent {
   link: string | null;
   createdByMe: boolean | null;
   invitedMe: boolean | null;
+  /** 2026-10-10. Made it, or answered yes or maybe. */
+  going: boolean | null;
 }
 
 /** 027. The account that read the event: its connected address, and whether
@@ -51,7 +53,7 @@ export interface Reader {
 /** Whose the event is. Created by the account (Google names its address, or
  *  marks the creator as the primary calendar it was read from), or on the
  *  guest list as the account itself without having declined. */
-export function whoseOf(event: GoogleEvent, reader: Reader): { createdByMe: boolean; invitedMe: boolean } {
+export function whoseOf(event: GoogleEvent, reader: Reader): { createdByMe: boolean; invitedMe: boolean; going: boolean } {
   const creator = event.creator ?? { email: null, self: false };
   // Google's `self` says the entry is the calendar this copy was read from,
   // which on a calendar somebody shares with you is them. It counts only on
@@ -62,7 +64,10 @@ export function whoseOf(event: GoogleEvent, reader: Reader): { createdByMe: bool
   const byACalendar = creator.email !== null && /@([a-z0-9.-]+\.)?calendar\.google\.com$/i.test(creator.email);
   const createdByMe = isMe(creator.email, creator.self) || byACalendar;
   const invitedMe = event.attendees.some((guest) => guest.response !== "declined" && isMe(guest.email, guest.self));
-  return { createdByMe, invitedMe };
+  // 2026-10-10. An invite anybody can send lands unanswered; only a yes or a
+  // maybe makes its title something the morning may name.
+  const going = createdByMe || event.attendees.some((guest) => (guest.response === "accepted" || guest.response === "tentative") && isMe(guest.email, guest.self));
+  return { createdByMe, invitedMe, going };
 }
 
 function sameAddress(a: string | null, b: string): boolean {
@@ -83,7 +88,7 @@ function organizedByReader(event: GoogleEvent, reader: Reader | undefined): bool
  *  OFF-4 is about. The organiser is kept because the trust rule cannot be
  *  computed without it. */
 export function mapEvent(event: GoogleEvent, calendarExternalId: string, reader?: Reader): MappedEvent {
-  const whose = reader ? whoseOf(event, reader) : { createdByMe: null, invitedMe: null };
+  const whose = reader ? whoseOf(event, reader) : { createdByMe: null, invitedMe: null, going: null };
   const organizerIsMe = organizedByReader(event, reader);
   return {
     ...whose,
@@ -129,6 +134,7 @@ export async function upsertEvent(
       link: mapped.link,
       created_by_me: mapped.createdByMe,
       invited_me: mapped.invitedMe,
+      going: mapped.going,
     })
     .onConflict((oc) =>
       oc.columns(["calendar_id", "source_ref"]).doUpdateSet((eb) => ({
@@ -144,6 +150,7 @@ export async function upsertEvent(
         link: eb.ref("excluded.link"),
         created_by_me: eb.ref("excluded.created_by_me"),
         invited_me: eb.ref("excluded.invited_me"),
+        going: eb.ref("excluded.going"),
         // **Brought back, not just updated.** A row retired by reconciliation
         // or by a cancellation stays soft-deleted otherwise, so an event that
         // Google returns again, because a series' end moved back out or the

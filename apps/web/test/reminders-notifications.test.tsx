@@ -10,7 +10,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DATES_CAPTION, REMINDER_COUNTS, REMINDERS_LINE } from "@offload/widgets";
+import { CALENDAR_LINE, DATES_CAPTION, REMINDER_COUNTS, REMINDERS_LINE } from "@offload/widgets";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
@@ -113,7 +113,7 @@ const hourInput = (host: HTMLElement, title: string) =>
 describe("the Reminders section (042, AC-22)", () => {
   it("sits between Dates and People, a switch with its line", async () => {
     const host = await render();
-    expect(headings(host)).toEqual(["Dates", "Reminders", "People", "On your phones"]);
+    expect(headings(host)).toEqual(["Dates", "Reminders", "Calendar", "People", "On your phones"]);
     const reminders = section(host, "Reminders");
     expect(reminders.textContent).toContain(REMINDERS_LINE);
     const row = rowTitled(host, "Reminders");
@@ -179,5 +179,26 @@ describe("the Reminders section (042, AC-22)", () => {
   it("counts Reminders in the head's summary", async () => {
     const host = await render({ notifyDueToday: false, notifyComingTomorrow: false, notifyReminders: true });
     expect(host.querySelector("p")?.textContent).toBe("Reminders");
+  });
+});
+
+describe("the Calendar section (2026-10-10)", () => {
+  it("sits between Reminders and People, one switch with its line, on until changed", async () => {
+    const host = await render({ notifyCalendar: true });
+    expect(headings(host)).toEqual(["Dates", "Reminders", "Calendar", "People", "On your phones"]);
+    expect(section(host, "Calendar").textContent).toContain(CALENDAR_LINE);
+    expect(switchIn(rowTitled(host, "Today's events")).checked).toBe(true);
+  });
+
+  it("writes the switch", async () => {
+    const host = await render({ notifyCalendar: true });
+    await act(async () => switchIn(rowTitled(host, "Today's events")).click());
+    expect(patches).toEqual([{ notifyCalendar: false }]);
+  });
+
+  it("keeps the morning hour in use on its own, never the evening", async () => {
+    const host = await render({ notifyDueToday: false, notifyComingTomorrow: false, notifyReminders: false, notifyCalendar: true });
+    expect(hourInput(host, "In the morning at").disabled).toBe(false);
+    expect(hourInput(host, "In the evening at").disabled).toBe(true);
   });
 });

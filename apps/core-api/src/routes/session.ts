@@ -134,6 +134,9 @@ const meResponse = z.object({
   /** 042. Reminders, and How many: one, two or three for each date. */
   notifyReminders: z.boolean(),
   notifyReminderCount: z.number(),
+  /** 2026-10-10. Calendar: the morning names the day's events on the
+   *  account's own calendars. */
+  notifyCalendar: z.boolean(),
   activityNew: z.boolean(),
   /** 026. Whether mail forwarded from the sign-in address can reach this
    *  account: false for an Apple private relay address, which is never the
@@ -292,6 +295,7 @@ export async function meFor(accountId: string): Promise<z.infer<typeof meRespons
       "notify_shared_activity",
       "notify_reminders",
       "notify_reminder_count",
+      "notify_calendar",
       "today_layout",
     ])
     .where("id", "=", accountId)
@@ -338,6 +342,7 @@ export async function meFor(accountId: string): Promise<z.infer<typeof meRespons
     notifySharedActivity: account.notify_shared_activity,
     notifyReminders: account.notify_reminders,
     notifyReminderCount: account.notify_reminder_count,
+    notifyCalendar: account.notify_calendar,
     activityNew: await activityNew(accountId),
     mailAvailable: !/@privaterelay\.appleid\.com$/i.test(account.email),
     signInProviders: await signInProviders(accountId),
@@ -424,6 +429,7 @@ export async function sessionRoutes(app: App): Promise<void> {
           /** 042. Reminders, and How many. */
           notifyReminders: z.boolean().optional(),
           notifyReminderCount: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+          notifyCalendar: z.boolean().optional(),
           /** 027. The whole document, refused as a 400 unless it parses. */
           todayLayout: todayLayout.optional(),
         }),
@@ -441,7 +447,7 @@ export async function sessionRoutes(app: App): Promise<void> {
       const {
         displayName, webSearch, webLinks, calendarAskFirst, country, timeZone, followDevice, keptTimeZone,
         notifyDueToday, notifyDueTodayAt, notifyComingTomorrow, notifyComingTomorrowAt, notifyPeopleRequests, notifySharedActivity,
-        notifyReminders, notifyReminderCount,
+        notifyReminders, notifyReminderCount, notifyCalendar,
         todayLayout: layout,
       } = request.body;
       // Stored as ICU resolves the name, never as sent: the schema above has
@@ -467,6 +473,7 @@ export async function sessionRoutes(app: App): Promise<void> {
           ...(notifySharedActivity !== undefined ? { notify_shared_activity: notifySharedActivity } : {}),
           ...(notifyReminders !== undefined ? { notify_reminders: notifyReminders } : {}),
           ...(notifyReminderCount !== undefined ? { notify_reminder_count: notifyReminderCount } : {}),
+          ...(notifyCalendar !== undefined ? { notify_calendar: notifyCalendar } : {}),
           ...(layout !== undefined ? { today_layout: JSON.stringify(layout) } : {}),
           updated_at: new Date(),
         })

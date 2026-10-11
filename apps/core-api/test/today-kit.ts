@@ -103,7 +103,7 @@ export async function calendarEvent(
   cal: { id: string; external: string },
   title: string,
   at: string,
-  over: { end?: string | null; allDay?: boolean; sourceRef?: string; link?: string | null; createdByMe?: boolean | null; invitedMe?: boolean | null } = {},
+  over: { end?: string | null; allDay?: boolean; sourceRef?: string; link?: string | null; createdByMe?: boolean | null; invitedMe?: boolean | null; going?: boolean | null } = {},
 ): Promise<string> {
   const row = await db
     .insertInto("connector_events")
@@ -119,6 +119,8 @@ export async function calendarEvent(
       link: over.link === undefined ? null : over.link,
       created_by_me: over.createdByMe === undefined ? true : over.createdByMe,
       invited_me: over.invitedMe === undefined ? false : over.invitedMe,
+      // 2026-10-10. Going follows created by me unless a test says otherwise.
+      going: over.going === undefined ? (over.createdByMe === undefined ? true : over.createdByMe) : over.going,
     } as never)
     .returning("id")
     .executeTakeFirstOrThrow();

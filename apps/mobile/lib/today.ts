@@ -120,14 +120,15 @@ export function zoneCard(
 /** The permission is off and a switch says something should reach this phone.
  *  Put off on this phone alone, until `putOffUntil`. */
 export function notificationsCard(
-  me: { notifyDueToday: boolean; notifyComingTomorrow: boolean; notifyPeopleRequests: boolean; notifySharedActivity: boolean; notifyReminders?: boolean },
+  me: { notifyDueToday: boolean; notifyComingTomorrow: boolean; notifyPeopleRequests: boolean; notifySharedActivity: boolean; notifyReminders?: boolean; notifyCalendar?: boolean },
   permitted: boolean,
   putOffUntil: string | null,
   now: Date,
 ): DeviceCard | null {
   if (permitted) return null;
-  // 042. Reminders is one of the switches that reaches this phone.
-  if (!me.notifyDueToday && !me.notifyComingTomorrow && !me.notifyPeopleRequests && !me.notifySharedActivity && !me.notifyReminders) return null;
+  // 042. Reminders is one of the switches that reaches this phone, and since
+  // 2026-10-10 Calendar.
+  if (!me.notifyDueToday && !me.notifyComingTomorrow && !me.notifyPeopleRequests && !me.notifySharedActivity && !me.notifyReminders && !me.notifyCalendar) return null;
   if (putOffUntil && new Date(putOffUntil).getTime() > now.getTime()) return null;
   return { key: "notifications", kind: "notifications" };
 }

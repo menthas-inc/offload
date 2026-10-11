@@ -42,7 +42,7 @@ Two passes that already run nightly write a **label** per dated thing: the threa
 
 `needsLabel(account, thread)` is one SQL predicate shared by the booking, the worker's read and `applyLabels`:
 
-- a row of the account's in the thread, `source = 'person'` or `'share'`, `source_ref is null`, its message not untrusted and not from mail, calendar or browser, not done, archived or deleted, **and either** dated with its effective date today or later, **or** an undated open task created in the last 30 days, in a thread that holds a dated thing it could be for;
+- a row of the account's in the thread, `source = 'person'` or `'share'`, whether or not offload has written it to a calendar (`source_ref` no longer counts since 0090, amended 2026-10-10), its message not untrusted and not from mail, calendar or browser, not done, archived or deleted, **and either** dated with its effective date today or later, **or** an undated open task created in the last 30 days, in a thread that holds a dated thing it could be for;
 - or a thread note of the account's, not untrusted, not deleted, superseded or muted, dated today or later;
 - **and** no label row for it, or a label whose `fingerprint` differs from `remind_fingerprint(...)` now; never one with `stopped_at` set.
 
@@ -56,7 +56,7 @@ Two passes that already run nightly write a **label** per dated thing: the threa
 
 ### Placing and sending
 
-**The sends** (`notifications/digest.ts`). `composeDigest` gains `remindersIn(trx, accountId, send, day)`: when `notify_reminders` is on, read the account's candidates (below) and keep each whose `plan()` places a window in this send on this day. The due part is 024's rows, those held back by a switch removed, plus the on-the-day reminders without a clock time (morning) or the evening-before reminders (evening), deduplicated by thing id with 024's rows first. Coming up is the month and week outs. `runDigest` sends when either is non-empty; the not-sent-by-setting record is written only when 024's rows had something and nothing at all is sent.
+**The sends** (`notifications/digest.ts`). Since 2026-10-10 the send's read takes a row with `source_ref` when its `source` is person or share, and the morning's due part also names the day's events on the account's own calendars under `notify_calendar`; see the amendment below. `composeDigest` gains `remindersIn(trx, accountId, send, day)`: when `notify_reminders` is on, read the account's candidates (below) and keep each whose `plan()` places a window in this send on this day. The due part is 024's rows, those held back by a switch removed, plus the on-the-day reminders without a clock time (morning) or the evening-before reminders (evening), deduplicated by thing id with 024's rows first. Coming up is the month and week outs. `runDigest` sends when either is non-empty; the not-sent-by-setting record is written only when 024's rows had something and nothing at all is sent.
 
 **Candidates**, one read per send, per account:
 
@@ -113,7 +113,7 @@ In order: the next occurrence (a rule's first at or after today; weekly or more 
 
 ### The person's controls
 
-- `PATCH /api/me` takes `notifyReminders` and `notifyReminderCount`. Nothing queued needs deleting: every job re-runs `plan()`.
+- `PATCH /api/me` takes `notifyReminders` and `notifyReminderCount`, and since 2026-10-10 `notifyCalendar`. Nothing queued needs deleting: every job re-runs `plan()`.
 - `PATCH /v1/content/:id` takes `reminders: "on" | "off"`, folded into the row sheet's one save and its Undo snapshot; a thread note or a memory is switched through `PUT /v1/reminders` `{ of: "content" | "note" | "memory", id, on }`, since their editors write their words through routes of their own. Both go through `setReminders`, author-only (the row's or the note's author while an accepted member, the memory's own account), and anybody else gets the 404 a thing that does not exist gets. `"off"` upserts the label with `stopped_at = now()` and, on a row with `is_reminder`, sets it false in the same write; `"on"` clears `stopped_at`, and is how Undo puts it back. Neither ever sets `is_reminder` true. Undo on the row puts back `is_reminder` through the existing snapshot.
 
 ## Data model
@@ -132,14 +132,14 @@ In order: the next occurrence (a rule's first at or after today; weekly or more 
 What follows:
 
 - **Pagination:** none. Every read is capped (500 a send, 30 and 20 a pass) and ordered nearest first; nothing lists labels to a person.
-- **Indexes:** `reminder_labels (account_id) where stopped_at is null and held_at is null and kind is not null and kind <> 'none'` for the send read; unique `(content_id)` and unique `(note_id)` for the joins and the upsert; `content (occurs_at)` and `content (due_at)` partial on `deleted_at is null and done_at is null and archived_at is null and source_ref is null` for the hourly own pass, which today's `content_reminder_*_idx` do not cover since they require `is_reminder`; `notes (occurs_at) where scope = 'thread' and deleted_at is null` likewise.
+- **Indexes:** `reminder_labels (account_id) where stopped_at is null and held_at is null and kind is not null and kind <> 'none'` for the send read; unique `(content_id)` and unique `(note_id)` for the joins and the upsert; `content (occurs_at)` and `content (due_at)` partial on `deleted_at is null and done_at is null and archived_at is null` for the hourly own pass (0089 also required `source_ref is null`; 0090 dropped it, so a dumped row offload wrote to a calendar is read too, amended 2026-10-10), which today's `content_reminder_*_idx` do not cover since they require `is_reminder`; `notes (occurs_at) where scope = 'thread' and deleted_at is null` likewise.
 - **Normalisation:** nothing is denormalised. A label holds no date: the date is read from its thing at send time, so nothing has to be kept in step when a date moves. `fingerprint` is the one derived column, recomputed in SQL by one function wherever it is compared.
 - **Partitioning:** none.
 - **Scale note:** the hourly own pass reads across accounts. At ten thousand active accounts it is about ten thousand rows an hour on two indexes; past that, placement moves to a per-account read at each morning send plus a sweep for things dumped since.
 
 ### Schema
 
-`0089_reminders.sql`, taken on the board 2026-10-10, as built:
+`0089_reminders.sql`, taken on the board 2026-10-10, as built. Its four `source_ref is null` clauses, in `reminder_anchors`, `reminders_wanted`, `content_due_live` and `content_occurs_live`, were taken out by `0090_calendar_in_the_morning.sql` the same day; the block below is 0089 as it was (amended 2026-10-10).
 
 ```sql
 -- 0089 Reminders (042).
@@ -337,7 +337,7 @@ $$;
 
 - `GET` reads of rows (thread, Today, loose, search), notes and memories gain `reminders: "on" | "off" | null`, non-null only for the author and only for a thing with a label whose kind is not `none`: `"off"` when stopped, `"on"` otherwise. One SQL fragment, `remindersOf(viewer)`, joined by key in each read. The bell draws on `reminders === "on" || isReminder`; the switch draws for the author when `reminders` is non-null, and for anybody while `isReminder`.
 - `PATCH /v1/content/:id`: `reminders: "on" | "off"`, and `previous.reminders` for Undo. `PUT /v1/reminders` `{ of, id, on }` for a note or a memory. Author-only; anybody else gets 404.
-- `GET /api/me` and `PATCH /api/me`: `notifyReminders: boolean`, `notifyReminderCount: 1 | 2 | 3`.
+- `GET /api/me` and `PATCH /api/me`: `notifyReminders: boolean`, `notifyReminderCount: 1 | 2 | 3`, and `notifyCalendar: boolean` (amended 2026-10-10).
 - `POST /v1/push-tokens`: optional `takes: ["reminder"]`, written to `takes_reminders`; a token registered without it is set false, so a re-registration from an older build turns it off.
 - `GET /v1/activity`: entries of kind `reminder` with `threadId` and `contentId` or `noteId`.
 - `GET /v1/today/reminders` → `{ rows: (AgendaRow & { remindDay, remindBy })[], others: [{ of: "note" | "memory", id, name, day, by, threadId, threadName, threadIcon, threadHue }], more: number }`, each list nearest first.
@@ -408,7 +408,7 @@ What a task could be for:
 - **The privacy gate** is the merge: the web and the API deploy together, and the page's four edits, `UPDATED` and `CONSENT_VERSION` are pinned by tests.
 - **An undated task** is worth a pass only in a thread that holds a dated thing it could be for, so a new to-do in an ordinary list books nothing.
 - **From the implementation review:** `dateSet` holds on a non-author's words as well as their date and records `date_set_at` on the hold; `noteWordsSet` does the same for a note another member's turn rewrote; `editContent` refuses `isReminder: true` from a non-author and treats a switch flipped alone as no edit (no `updated_at`, no thread activity); the Undo snapshot's `reminders` reads on for an asked row; `content.purge` deletes the `activity` rows `activity_memories` names before it purges the notes; `reminder_anchors` requires `source in ('person', 'share')`; `oneLine` strips `\p{Cf}`; `applyMemoryDates` refuses an About memory naming their own birthday; `plan()` honours an asked clock time on a kind whose table has no day; the model-facing listing key is `entry`, not the retired noun.
-- **Shared on both clients:** `bellOn`, `remindSwitchShown`, `hoursOn`, `REMINDER_COUNT_DEFAULT`, `MEMORY_PARAM` and the copy constants in `packages/widgets/src/reminders.ts`.
+- **Shared on both clients:** `bellOn`, `remindSwitchShown`, `hoursOn`, `REMINDER_COUNT_DEFAULT`, `MEMORY_PARAM`, `CALENDAR_LINE` (2026-10-10) and the copy constants in `packages/widgets/src/reminders.ts`.
 
 ## Prompt budget, per OFF-8
 
@@ -453,9 +453,19 @@ None new. Expo Push and the receipts job are 024's. No open decision in `docs/te
 - **Two members both dumped the same trip**: each has their own thing and their own reminders.
 - **The zone changes** between placement and run: the job re-runs `plan()` and drops a slot that moved.
 - **An unlabelled timed row dumped at 21:50 for 22:10**: the default is 21:40, already past, so nothing goes.
-- **A send with only Coming up and Due today off** goes on `due_today`'s channel as before; a person who switched that channel off in the system has the account switch mirrored off, and the send still goes for Reminders, which is the 024 behaviour for a channel the system blocks: the system drops it. Recorded as sent, the limit 024 accepted.
+- **A send with only Coming up, or only the day's calendar events, and Due today off** goes on `due_today`'s channel as before; a person who switched that channel off in the system has the account switch mirrored off, and the send still goes for Reminders, which is the 024 behaviour for a channel the system blocks: the system drops it. Recorded as sent, the limit 024 accepted.
 - **A phone that knows Open in your threads but not Reminders** reads V2 and draws no Reminders section; its Customize cannot move it; a layout it saves keeps Reminders at its default place.
 - **An old phone** registers without `takes`, gets the sends with Coming up in their words, and no notification of its own.
+
+## Amended 2026-10-10: the calendar in the morning
+
+The owner's tweak of 2026-10-10 to 024 and 042. The feature spec's section of the same name says what; this is how.
+
+- **`0090_calendar_in_the_morning.sql`** redefines `reminder_anchors` and `reminders_wanted` with `c.source in ('person', 'share')` and without `c.source_ref is null`, and recreates `content_due_live` and `content_occurs_live` partial on `deleted_at is null and done_at is null and archived_at is null` alone. `scheduleOwn`'s account read (`notifications/own.ts`) and `candidatesOf` (`notifications/reminders.ts`) drop the same clause and keep `source in ('person', 'share')`. A calendar's own row has `source = 'calendar'` and is still never labelled, an anchor or reminded about.
+- **The send.** `composeDigest`'s read takes `source_ref is null or source in ('person', 'share')`, so a dumped row offload wrote to a calendar is named as a reminder. The morning's due part also carries the day's events from `today/day.ts` `calendarOn`, the account's own ticked calendars and its own part of them; `runDigest` drops them when `notify_calendar` is off, leaves out an event written from a row the send names (024's rows or `remindersIn`'s due part), sorts the due part all-day first then by the hour, and sends with no verbs when it names one.
+- **The switch.** `accounts.notify_calendar boolean not null default true`; `/api/me` `notifyCalendar`; `hoursOn` takes an optional `notifyCalendar` for the morning hour; `CALENDAR_LINE` in `@offload/widgets`; the Calendar group on both Notifications pages between Reminders and People; `CHANNEL_OF.notifyCalendar = "due_today"` on the phones; the phones' Notifications card on Today counts it.
+- **Activity.** `activity_calendars (activity_id, calendar_id)` and the trigger function `activity_with_calendar()`, `before delete` and `after update of selected` to false on `connector_calendars`, delete a record that named a calendar's events with that calendar.
+- **Tests:** `apps/core-api/test/calendar-morning.test.ts` (a written dumped row labelled and an anchor where a calendar's own row is neither, its reminder of its own, its naming in the morning; the events, the switch, the record leaving with the calendar), `apps/web/test/reminders-notifications.test.tsx`, `apps/mobile/test/notifications-page.test.ts`, `apps/mobile/test/today.test.ts`, `packages/widgets/test/reminders.test.ts`, `apps/web/test/privacy-policy.test.tsx`.
 
 ## What waits for the build
 

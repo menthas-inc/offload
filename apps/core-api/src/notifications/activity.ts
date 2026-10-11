@@ -49,12 +49,17 @@ export interface ActivityRow {
   /** 042. The memories whose words the row carries, so forgetting one takes
    *  the row with it. */
   memories?: string[];
+  /** The calendars whose events the row names, so disconnecting or unticking
+   *  one takes the row with it. 2026-10-10. */
+  calendars?: string[];
 }
 
-/** Write one row, inside the caller's transaction where there is one. The
- *  title and body are clamped to what the columns hold, so a writer that
+/** Write one row, inside the caller's transaction where there is one, or one
+ *  of its own: the row and the links that let a purge find it land together.
+ *  The title and body are clamped to what the columns hold, so a writer that
  *  hands in a whole paragraph stores a bounded one rather than failing. */
 export async function record(accountId: string, row: ActivityRow, trx: Executor = db): Promise<string> {
+  if (!trx.isTransaction) return trx.transaction().execute((tx) => record(accountId, row, tx));
   const inserted = await trx
     .insertInto("activity")
     .values({
@@ -78,6 +83,24 @@ export async function record(accountId: string, row: ActivityRow, trx: Executor 
       .insertInto("activity_memories")
       .values([...new Set(row.memories)].map((noteId) => ({ activity_id: inserted.id, note_id: noteId })))
       .execute();
+  }
+  if (row.calendars && row.calendars.length > 0) {
+    const wanted = [...new Set(row.calendars)];
+    // Only the calendars still there, each held until this commits, so a
+    // disconnect waits and its trigger then finds the row. One already gone
+    // took what it gave offload with it, and the row is not kept.
+    const linked = await trx
+      .insertInto("activity_calendars")
+      .columns(["activity_id", "calendar_id"])
+      .expression((eb) =>
+        eb.selectFrom("connector_calendars").select([eb.val(inserted.id).as("activity_id"), "id"]).where("id", "in", wanted).forKeyShare(),
+      )
+      .returning("calendar_id")
+      .execute();
+    if (linked.length < wanted.length) {
+      await trx.deleteFrom("activity").where("id", "=", inserted.id).execute();
+      return inserted.id;
+    }
   }
   const pairs = new Map((row.mentions ?? []).map((one) => [`${one.threadId}:${one.aboutAccountId}`, one]));
   if (pairs.size > 0) {

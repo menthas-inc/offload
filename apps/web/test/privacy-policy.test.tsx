@@ -289,9 +289,15 @@ describe("042 reminders, as the page says them", () => {
     expect(policy).toContain("send the notifications you choose, including reminders offload times before the dates that need one");
   });
 
-  it("says a notification may carry what offload remembers, such as a birthday", () => {
+  it("says a notification may carry what offload remembers, such as a birthday, and the day's calendar events", () => {
     expect(policy).toContain(
-      "they carry a few words of what you or a thread member wrote, or of what offload remembers for you, such as a birthday, to your own phone",
+      "they carry a few words of what you or a thread member wrote, of what offload remembers for you, such as a birthday, or the titles of the day's events on a calendar you connected, which somebody who invited you may have written, to your own phone",
+    );
+  });
+
+  it("names the morning notification among the uses of Google calendar data (2026-10-10)", () => {
+    expect(policy).toContain(
+      "to file and answer from it, to name the day's events in your morning notification, and to add, change or delete events when you ask",
     );
   });
 
