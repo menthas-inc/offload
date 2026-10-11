@@ -419,6 +419,9 @@ export interface PushTokensTable {
   platform: "ios" | "android";
   /** 042. The phone has the channel and the door for a reminder of its own. */
   takes_reminders: Generated<boolean>;
+  /** 0091. The session that registered it; the token goes when it ends. Never
+   *  read out of this table by anything but a send's join. */
+  session_id: string;
   created_at: Timestamp;
   last_seen_at: Timestamp;
 }

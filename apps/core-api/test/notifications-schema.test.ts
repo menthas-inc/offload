@@ -37,22 +37,24 @@ describe("024 the account's notification columns", () => {
 describe("024 push tokens", () => {
   it("bind a token to one account, in Expo's own shape, on one of the two platforms", async () => {
     const columns = await columnsOf("push_tokens");
-    // 042 added whether the phone takes a reminder of its own.
-    expect([...columns.keys()].sort()).toEqual(["account_id", "created_at", "id", "last_seen_at", "platform", "takes_reminders", "token"]);
+    // 042 added whether the phone takes a reminder of its own, 0091 the
+    // session that registered it.
+    expect([...columns.keys()].sort()).toEqual(["account_id", "created_at", "id", "last_seen_at", "platform", "session_id", "takes_reminders", "token"]);
     const account = await db
       .insertInto("accounts")
       .values({ email: `${crypto.randomUUID()}@example.com`, state: "active", email_verified: true, analytics_subject_id: crypto.randomUUID() } as never)
       .returning("id")
       .executeTakeFirstOrThrow();
+    const session = (await sql<{ id: string }>`insert into sessions (account_id, token, expires_at) values (${account.id}, ${crypto.randomUUID()}, now() + interval '1 hour') returning id`.execute(db)).rows[0]!.id;
     await expect(
-      sql`insert into push_tokens (account_id, token, platform) values (${account.id}, 'not-a-token', 'ios')`.execute(db),
+      sql`insert into push_tokens (account_id, session_id, token, platform) values (${account.id}, ${session}, 'not-a-token', 'ios')`.execute(db),
     ).rejects.toThrow(/check/);
     await expect(
-      sql`insert into push_tokens (account_id, token, platform) values (${account.id}, 'ExponentPushToken[abc]', 'web')`.execute(db),
+      sql`insert into push_tokens (account_id, session_id, token, platform) values (${account.id}, ${session}, 'ExponentPushToken[abc]', 'web')`.execute(db),
     ).rejects.toThrow(/check/);
-    await sql`insert into push_tokens (account_id, token, platform) values (${account.id}, 'ExponentPushToken[abc]', 'ios')`.execute(db);
+    await sql`insert into push_tokens (account_id, session_id, token, platform) values (${account.id}, ${session}, 'ExponentPushToken[abc]', 'ios')`.execute(db);
     await expect(
-      sql`insert into push_tokens (account_id, token, platform) values (${account.id}, 'ExponentPushToken[abc]', 'android')`.execute(db),
+      sql`insert into push_tokens (account_id, session_id, token, platform) values (${account.id}, ${session}, 'ExponentPushToken[abc]', 'android')`.execute(db),
     ).rejects.toThrow(/unique|duplicate/);
   });
 });

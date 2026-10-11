@@ -20,6 +20,7 @@ import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { record } from "./activity.js";
 import { ownCopy } from "./copy.js";
 import { GONE, PushFailed, push, type PushMessage } from "./push.js";
+import { liveTokens } from "./tokens.js";
 import { clockOf, placed } from "./reminders.js";
 
 /** More than this past its moment, a reminder is dropped rather than sent:
@@ -110,12 +111,7 @@ export async function runOwn(accountId: string, raw: Record<string, unknown>, no
   const where = { threadId: candidate.threadId, ...(candidate.of === "content" ? { contentId: candidate.id } : {}) };
   const subject = await subjectOf(accountId);
 
-  const tokens = await db
-    .selectFrom("push_tokens")
-    .select(["id", "token"])
-    .where("account_id", "=", accountId)
-    .where("takes_reminders", "=", true)
-    .execute();
+  const tokens = await liveTokens(accountId).where("push_tokens.takes_reminders", "=", true).execute();
   if (tokens.length === 0) {
     const id = await record(accountId, { kind: "reminder", sent: false, reason: "permission", ...copy, ...where });
     if (candidate.of === "note") await db.updateTable("activity").set({ note_id: candidate.id }).where("id", "=", id).execute();

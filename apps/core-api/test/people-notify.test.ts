@@ -35,7 +35,12 @@ async function account(over: Record<string, unknown> = {}): Promise<string> {
 
 async function token(accountId: string): Promise<string> {
   const value = `ExponentPushToken[${uuidv7().replace(/-/g, "").slice(-16)}]`;
-  await db.insertInto("push_tokens").values({ account_id: accountId, token: value, platform: "android" }).execute();
+  const session = await db
+    .insertInto("sessions")
+    .values({ account_id: accountId, token: uuidv7(), expires_at: new Date(Date.now() + 60 * 60 * 1000) })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  await db.insertInto("push_tokens").values({ account_id: accountId, session_id: session.id, token: value, platform: "android" }).execute();
   return value;
 }
 
@@ -61,6 +66,21 @@ describe("024 AC-7 a connection request", () => {
     await db.updateTable("connection_requests").set({ withdrawn_at: new Date() }).where("id", "=", request.id).execute();
     expect(await notifyPerson({ kind: "request", requestId: request.id })).toBe("gone");
     expect(memory.sent).toHaveLength(1);
+  });
+
+  it("reaches no phone whose session has expired, and records that as not sent by permission", async () => {
+    const ana = await account({ display_name: "Ana" });
+    const sam = await account({ display_name: "Sam" });
+    await token(sam);
+    await db.updateTable("sessions").set({ expires_at: new Date(Date.now() - 60_000) }).where("account_id", "=", sam).execute();
+    const request = await db
+      .insertInto("connection_requests")
+      .values({ from_account_id: ana, to_account_id: sam, delivered: true, expires_at: sql`now() + interval '30 days'` } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await notifyPerson({ kind: "request", requestId: request.id });
+    expect(memory.sent).toEqual([]);
+    expect(await activityOf(sam)).toEqual([{ kind: "request", sent: false, reason: "permission", title: "Ana wants to connect", body: "Answer in My people." }]);
   });
 
   it("is not sent when it was never delivered, or when the switch is off", async () => {

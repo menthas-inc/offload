@@ -135,9 +135,14 @@ export async function label(
 
 export async function token(accountId: string, takesReminders = true): Promise<string> {
   const value = `ExponentPushToken[${uuidv7().replace(/-/g, "").slice(-16)}]`;
+  const session = await db
+    .insertInto("sessions")
+    .values({ account_id: accountId, token: uuidv7(), expires_at: new Date(Date.now() + 60 * 60 * 1000) })
+    .returning("id")
+    .executeTakeFirstOrThrow();
   await db
     .insertInto("push_tokens")
-    .values({ account_id: accountId, token: value, platform: "ios", takes_reminders: takesReminders } as never)
+    .values({ account_id: accountId, session_id: session.id, token: value, platform: "ios", takes_reminders: takesReminders } as never)
     .execute();
   return value;
 }
