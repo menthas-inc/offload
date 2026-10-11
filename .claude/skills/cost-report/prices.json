@@ -1,9 +1,17 @@
 {
   "_read_me": "Vendor prices the cost report uses. Every figure carries its source and the day it was checked; the build warns on anything checked more than 45 days ago. Update a figure by checking the source again, never from memory.",
   "anthropic": {
-    "checked": "2026-10-02",
+    "checked": "2026-10-11",
     "source": "https://platform.claude.com/docs/en/about-claude/pricing",
     "models": {
+      "claude-haiku-5-5": {
+        "in": 0.1,
+        "out": 0.5,
+        "cacheWrite5m": 0.125,
+        "cacheRead": 0.01,
+        "toolSystemTokens": 286,
+        "minCacheTokens": 512
+      },
       "claude-haiku-4-5": {
         "in": 1.0,
         "out": 5.0,
@@ -24,7 +32,7 @@
         "in": 2.0,
         "out": 10.0,
         "cacheWrite5m": 2.5,
-        "cacheRead": 0.2,
+        "cacheRead": 0.1,
         "toolSystemTokens": 286,
         "minCacheTokens": 512
       },
@@ -48,7 +56,7 @@
     "unit": "USD per million tokens",
     "webSearchPer1k": 10.0,
     "webFetch": 0,
-    "notes": "Claude 4.7 and later count about 30% more tokens for the same text. Web fetch costs tokens only. minCacheTokens is the shortest prefix that caches; a shorter one silently does not."
+    "notes": "Claude 4.7 and later count about 30% more tokens for the same text. Web fetch costs tokens only. minCacheTokens is the shortest prefix that caches; a shorter one silently does not. Haiku 5.5 is priced by prompt length: over 100,000 tokens in one request it is five times these figures. Nothing offload sends it comes near that. Cache hits on Opus 5.5 and Sonnet 5.5 are 0.05x the base input, the rest 0.1x."
   },
   "voyage": {
     "checked": "2026-10-02",
@@ -59,12 +67,12 @@
     "notes": "The free 200M tokens are per account, once."
   },
   "assemblyai": {
-    "checked": "2026-10-02",
+    "checked": "2026-10-11",
     "source": "https://www.assemblyai.com/pricing",
     "universal35ProPerHour": 0.21,
     "universal2PerHour": 0.15,
     "used": "universal35ProPerHour",
-    "notes": "transcribe.py sends no speech model, so AssemblyAI's default applies, which is now Universal-3.5 Pro. The EU region is the same price. The ledger prices voice at $0.15 an hour (config.py), the old rate."
+    "notes": "transcribe.py asks for universal-2 by name (speech_models, 2026-10-02), so that is the rate; the build switches `used` from the code. The EU region is the same price. The ledger prices voice at $0.15 an hour (config.py), the same rate."
   },
   "r2": {
     "checked": "2026-10-02",
