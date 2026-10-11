@@ -5,16 +5,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const store = new Map<string, string>();
+const classes = new Map<string, unknown>();
 let broken = false;
 vi.mock("expo-secure-store", () => ({
   getItem: (key: string) => {
     if (broken) throw new Error("locked");
     return store.get(key) ?? null;
   },
-  setItem: (key: string, value: string) => {
+  setItem: (key: string, value: string, options?: { keychainAccessible?: unknown }) => {
     if (broken) throw new Error("locked");
     store.set(key, value);
+    classes.set(key, options?.keychainAccessible);
   },
+  deleteItemAsync: async () => undefined,
+  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "afu-device-only",
 }));
 
 const { MAP_VIEWS_KEPT, readView, writeView, mapsReady, barTools, emptyLine } = await import("../lib/map-view");
@@ -25,6 +29,13 @@ beforeEach(() => {
 });
 
 describe("the List or Map choice", () => {
+  // Thread ids are the account's: a backup restored onto another phone
+  // carries nothing of them (security review of PR 108).
+  it("is kept for this device only", () => {
+    writeView("t1", "map");
+    expect(classes.get("offload_map_views")).toBe("afu-device-only");
+  });
+
   it("is List until a thread is left on Map, per thread", () => {
     expect(readView("t1")).toBe("list");
     writeView("t1", "map");

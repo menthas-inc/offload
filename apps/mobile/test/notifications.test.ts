@@ -133,6 +133,23 @@ describe("024 AC-6 the verbs", () => {
   });
 });
 
+// From the security review of PR 108: what this launch acted on is a list of
+// the last account's notification ids, and goes with its session.
+describe("the responses acted on", () => {
+  it("are forgotten when the session ends", async () => {
+    const { ended } = await import("../lib/session-end");
+    const response = {
+      actionIdentifier: "done",
+      notification: { request: { identifier: "kept", content: { data: { kind: "digest", send: "morning", contentId: THREAD } } } },
+    } as never;
+    await respond(response, () => undefined);
+    const before = sent.length;
+    await ended();
+    await respond(response, () => undefined);
+    expect(sent.length - before).toBe(1);
+  });
+});
+
 describe("024 AC-11 the token", () => {
   it("is registered when permitted, with the platform and no account id, and never when the permission was refused", async () => {
     await register();

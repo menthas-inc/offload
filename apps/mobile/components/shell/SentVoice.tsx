@@ -29,18 +29,13 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { authHeaders } from "../../lib/api";
 import { voiceUrl, type VoiceOnWire } from "../../lib/dump";
-import { mmss, playbackDirectory, sweepRecordings } from "../../lib/recorder";
+import { mmss, playbackDirectory } from "../../lib/recorder";
+import { copyGeneration } from "../../lib/session-end";
 
 /** Past this many characters the transcript folds, roughly four lines. */
 export const FOLD_AT = 280;
 
 const BARS = 32;
-
-/** Forget every device copy of a note, heard or not yet sent. Sign-out
- *  calls this; launch runs the same sweep. */
-export function forgetPlayback(): void {
-  sweepRecordings();
-}
 
 export function SentVoice({
   durationMs,
@@ -207,10 +202,13 @@ export function VoiceNotePlayer({
   async function source(): Promise<string | null> {
     if (voice.localUri) return voice.localUri;
     if (loaded) return loaded;
+    const generation = copyGeneration();
     const headers = await authHeaders();
     const response = await fetch(voiceUrl(voice.blobId), { headers });
     if (!response.ok) return null;
     const bytes = new Uint8Array(await response.arrayBuffer());
+    // The session ended while it came down: the copy is no longer the phone's.
+    if (copyGeneration() !== generation) return null;
     const dir = playbackDirectory();
     dir.create({ idempotent: true, intermediates: true });
     const type = response.headers.get("content-type") ?? "audio/mp4";

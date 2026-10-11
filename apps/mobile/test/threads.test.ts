@@ -109,3 +109,27 @@ describe("what a tap on a row does (2026-09-29)", () => {
     expect(threads.rowTap(row({ canDelete: false }))).toBe("actions");
   });
 });
+
+// 037's looks are named by thread id. From the security review of PR 108:
+// they go with the session, so the next account's composer never draws a
+// thread of the last one's.
+describe("the looks of threads this session read", () => {
+  it("are forgotten when the session ends", async () => {
+    const { ended } = await import("../lib/session-end");
+    reply = { status: 200, data: { id: "t9", icon: "book", hue: 120 } };
+    await threads.fetchThread("t9");
+    expect(threads.threadLookOf("t9")).toEqual({ icon: "book", hue: 120 });
+    await ended();
+    expect(threads.threadLookOf("t9")).toBeUndefined();
+  });
+});
+
+// A wash is keyed by thread id. Rendering one needs Skia, so this reads the
+// source for the same rule.
+describe("the washes this session rendered", () => {
+  it("are forgotten when the session ends", async () => {
+    const { readFileSync } = await import("node:fs");
+    const text = readFileSync(new URL("../lib/threadWash.ts", import.meta.url), "utf8");
+    expect(text).toMatch(/onSignedOut\(\(\) => done\.clear\(\)\)/);
+  });
+});

@@ -22,7 +22,6 @@ import { useSignOut } from "../../components/settings/useSignOut";
 import { DeleteAccountSheet } from "../../components/settings/DeleteAccountSheet";
 import { StorageSection } from "../../components/settings/StorageSection";
 import { YourCopy } from "../../components/settings/YourCopy";
-import { forgetPlayback } from "../../components/shell/SentVoice";
 import { fetchCountries, saveName, setClock, setCountry, setWebAccess, useMe } from "../../lib/me";
 import { NotificationsPage } from "../../components/settings/NotificationsPage";
 import { approveCalendar, disconnect, setAskFirst, useCalendars } from "../../lib/calendars";
@@ -284,12 +283,11 @@ function Account({ toast }: { toast: ToastState }) {
             setDeleting(false);
             router.push({ pathname: "/settings/[page]", params: { page: "privacy" } });
           }}
-          onDeleted={() => {
-            // The session is already forgotten here. Voice notes being heard
-            // go with it, as at sign-out, and the gate says what happened.
-            forgetPlayback();
-            router.replace("/");
-          }}
+          // The session and the phone's copy of the account are already
+          // forgotten here, voice notes included, and the root layout takes
+          // the phone to the gate, which says what happened. The sheet only
+          // closes.
+          onDeleted={() => setDeleting(false)}
         />
       ) : null}
     </>

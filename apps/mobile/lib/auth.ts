@@ -23,6 +23,10 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import { rememberAttempt } from "./attempt";
+import { ended } from "./session-end";
+
+// Heard here by most callers; kept in `session-end.ts`, which imports nothing.
+export { onSignedOut } from "./session-end";
 
 /** The API base. A phone is not on localhost, so a device build needs the
  *  machine's LAN address here rather than a loopback that resolves to itself.
@@ -319,7 +323,7 @@ export async function signOut(): Promise<void> {
   // this device, so anything added later is added here rather than at a call
   // site that would not know to.
   await Promise.all(SESSION_KEYS.map((key) => forget(key)));
-  for (const listener of signedOut) listener();
+  await ended();
 }
 
 /** 035. The account behind this session no longer exists: the server has
@@ -328,24 +332,22 @@ export async function signOut(): Promise<void> {
  *  at the end of a sign-out. */
 export async function accountDeleted(): Promise<void> {
   await Promise.all(SESSION_KEYS.map((key) => forget(key)));
-  for (const listener of signedOut) listener();
+  await ended();
 }
 
-const signedOut = new Set<() => void>();
+/** The phone holds another account's copy under this session: the stamp in
+ *  `device-data.ts` named somebody else. The session is the new account's and
+ *  stays; everything holding the old one's hears it as a sign-out. */
+export function accountChanged(): Promise<void> {
+  return ended();
+}
+
 const signingOut = new Set<() => Promise<void>>();
 
 /** Run before the session ends, with the session still valid, for anything
  *  the server holds in this session's name. */
 export function beforeSignOut(handler: () => Promise<void>): void {
   signingOut.add(handler);
-}
-
-/** Hear the session end on this device, for anything holding a copy of who
- *  was signed in: the identity cache kept the last account's clock and name
- *  in memory for the next person on a shared phone until a screen asked
- *  again. 023, from the security review of 2026-09-22. */
-export function onSignedOut(listener: () => void): void {
-  signedOut.add(listener);
 }
 
 /** Who to tell when the server refuses the session this device holds. The
@@ -370,6 +372,9 @@ let refusing: Promise<void> | null = null;
 export function sessionRefused(): Promise<void> {
   refusing ??= (async () => {
     await Promise.all(SESSION_KEYS.map((key) => forget(key)));
+    // The account may be gone, deleted on the web, and either way this phone
+    // now holds a copy for nobody.
+    await ended();
     for (const listener of refusedListeners) listener();
   })().finally(() => {
     refusing = null;

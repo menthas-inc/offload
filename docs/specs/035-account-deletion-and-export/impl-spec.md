@@ -173,6 +173,33 @@ body `{ "confirm": "delete" }`.
   session and replace the stack with the gate, which reads a one-shot notice
   held in memory (`takeDeletedNotice`) rather than a route parameter: the
   phones' gate is not a route. A reload loses the line and nothing else.
+  *Amended 2026-10-11 (AC-8a).* Clearing the session tells every
+  `onSignedOut` listener (`lib/session-end.ts`) and waits for each, at most
+  three seconds apiece, so a store that never answers cannot hold the old
+  screen up. `lib/device-data.ts` deletes the account's cache folders, its
+  secure-storage keys (fixed names listed there, names made at runtime through
+  `lib/account-keys.ts`, each unlisted only once its delete has gone through,
+  all written device-only), the stamp and the delivered notifications, within
+  the same three seconds. It also deletes the files shared in from other apps:
+  `lib/shared-in.ts` moves each into the cache's `shared` folder before the
+  draft takes it, because expo-share-intent's clear forgets the share and
+  never its files, and the loose files the library leaves at the top of the
+  cache (Android) and of the app group's container (iOS) go too. It moves a
+  copy generation first, and every writer that fetches into the cache
+  (renditions, marks, voice, PDFs) keeps what came down only under the
+  generation it started in. Ids held in memory go with the session: thread
+  looks and washes, the PDF coming down, notifications acted on, and an
+  identity answered after the end. The root layout keys `ConversationProvider` on the
+  count of session ends, so the conversation and every screen under it mount
+  again empty, then dismisses the stack and replaces it with the gate. Launch
+  checks the stamp (`claimDevice`) before it routes into the shell, then says
+  so (`onClaimed`), and a conversation whose tail found nobody signed in when
+  it mounted asks again (`lib/conversation-tail.ts`), so a person signing back
+  in without a relaunch sees their conversation. The root layout claims too,
+  from the same `/api/me` answer, so a cold launch from a notification, a
+  share or a link that never reaches the index route still checks the stamp;
+  the two claims for one account are one. A launch that finds no stamp keeps
+  the `shared` folder, where a file shared behind the gate waits in the draft.
 - **Web:** the Account pane gains the danger panel, in `--surface-danger-soft`,
   `--border-danger` and `--text-danger` rather than the kit's ramps; the
   dialog follows the existing dialog component. On 204: `/sign-in?deleted=1`.
@@ -181,7 +208,8 @@ body `{ "confirm": "delete" }`.
   `/sign-in` and the three steps from there in words. Sign-in carries no
   `next`, and adding one is a redirect parameter on the gate for the sake of
   one page; the page instructs rather than routes.
-- A 401 on any other device already lands on sign-in; no new handling.
+- A 401 on any other device already lands on sign-in, and since 2026-10-11
+  forgets that phone's copy the same way.
 
 ## Part B: export
 

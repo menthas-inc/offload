@@ -25,7 +25,7 @@ vi.mock("../lib/api", () => ({
 // nothing here uploads, so it is stood in for rather than loaded.
 vi.mock("expo-file-system", () => ({ File: class {} }));
 
-const { awaitAnswer, fetchAnswer } = await import("../lib/dump");
+const { awaitAnswer, fetchAnswer, fetchCurrent } = await import("../lib/dump");
 
 beforeEach(() => {
   calls.length = 0;
@@ -116,6 +116,19 @@ describe("the poll", () => {
 
     await tick(1000);
     expect(seen).toEqual([]);
+  });
+});
+
+// 2026-10-11. The conversation asks for its tail when it mounts, and after a
+// sign-out it mounts signed out. An empty tail and no answer were the same
+// empty list, so it could not tell "nothing yet" from "ask again once
+// somebody is signed in".
+describe("the conversation's tail", () => {
+  it("is null when nothing answered, and a list when the server did", async () => {
+    answer = null;
+    expect(await fetchCurrent()).toBeNull();
+    (answer as unknown) = { messages: [] };
+    expect(await fetchCurrent()).toEqual([]);
   });
 });
 

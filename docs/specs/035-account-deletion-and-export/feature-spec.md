@@ -78,6 +78,15 @@ the same spec because the delete confirmation offers it.
   line above the buttons in the ordinary text colour: *Your account is
   deleted.* The same identity signing in later is a stranger and gets the
   no-invite screen.
+- **Nothing of it left on the phone.** The phone that deleted forgets what it
+  kept of the account at the same moment: the conversation and every screen
+  held in memory, its copies of photos, marks, voice notes, PDFs and picked
+  or shared files, an export on its way to Files, the choices kept per thread, and the
+  notifications it delivered. A phone that was away forgets the same the next
+  time the server refuses its session, or when launch finds it holding another
+  account's copy. What stays is how the phone draws: the theme and the first
+  day of the week. *Added 2026-10-11, after an iPhone on 0.2.0 (18) showed a
+  new account the deleted one's whole conversation.*
 - **On the web without the app.** `offload.club/delete-account` is a public
   page, the same for every visitor, that says what deleting does and what
   stays, and leads through sign-in to the confirmation. It asks for no email.
@@ -139,6 +148,10 @@ Deletion:
   not stop the deletion and is retried without the account.
 - **AC-8** Every session stops working at once on every device, and no push
   or email other than the deletion notice is sent afterwards.
+- **AC-8a** After a delete, the phone that made it holds nothing of the
+  account, in memory or on disk, and nothing of it draws for whoever signs in
+  next. A phone that was away lets go of the same on its next refused request
+  or its next launch. *Added 2026-10-11.*
 - **AC-9** The last staff owner is refused, with the line above.
 - **AC-10** Signing in afterwards with the same identity finds no account.
 - **AC-11** `offload.club/delete-account` renders the same for every visitor,

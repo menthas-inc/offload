@@ -7,6 +7,7 @@
 import * as SecureStore from "expo-secure-store";
 import { ALL_LABELS, isAll, type LabelPick } from "@offload/widgets";
 import { send } from "./api";
+import { dropForAccount, keepForAccount } from "./account-keys";
 
 export interface Label {
   id: string;
@@ -73,7 +74,8 @@ export function refusalLine(error: LabelRefusal | null, name?: string): string {
 // ---------------------------------------------------------------- the pick
 
 /** The filter bar's pick, per thread, on this phone and nowhere else. All is
- *  not stored, and anything unreadable reads as All. */
+ *  not stored, and anything unreadable reads as All. Written through the
+ *  account's list, so signing out finds a key named after a thread. */
 const pickKey = (threadId: string) => `offload_labels_${threadId}`;
 
 export function readPick(threadId: string): LabelPick {
@@ -92,8 +94,8 @@ export function readPick(threadId: string): LabelPick {
 
 export function writePick(threadId: string, pick: LabelPick): void {
   try {
-    if (isAll(pick)) void SecureStore.deleteItemAsync(pickKey(threadId));
-    else SecureStore.setItem(pickKey(threadId), JSON.stringify(pick));
+    if (isAll(pick)) dropForAccount(pickKey(threadId));
+    else keepForAccount(pickKey(threadId), JSON.stringify(pick));
   } catch {
     // A pick that is not kept is still the pick on screen.
   }

@@ -794,11 +794,22 @@ describe("the mark (AC-13, AC-31)", () => {
     const first = await app.inject({
       method: "GET",
       url: `/v1/avatars/${ana}.png`,
-      headers: { cookie: mine },
+      headers: { cookie: mine, "sec-fetch-dest": "image" },
     });
     expect(first.statusCode).toBe(200);
     expect(first.headers["content-type"]).toBe("image/png");
     expect(first.headers["cache-control"]).toContain("immutable");
+    // 2026-10-11. A phone keeps its own copy, which it forgets at sign-out;
+    // its HTTP stack is told to keep none, since nothing on the phone can
+    // clear that one.
+    const phone = await app.inject({
+      method: "GET",
+      url: `/v1/avatars/${ana}.png`,
+      headers: { cookie: mine },
+    });
+    expect(phone.statusCode).toBe(200);
+    expect(phone.headers["cache-control"]).toBe("private, no-store");
+    for (const reply of [first, phone]) expect(String(reply.headers["vary"]).toLowerCase()).toContain("sec-fetch-dest");
     const stored = await db
       .selectFrom("accounts")
       .select("avatar_png")
