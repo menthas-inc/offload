@@ -200,7 +200,8 @@ async def test_a_good_answer_comes_back_parsed_and_paid_for():
     result, usage = await nightly._ask(model, Cfg(), "a listing", propose=False)
     assert result is not None and result.supersede == ["x"]
     assert usage[0]["model"] == "claude-haiku-4-5"
-    assert model.requests[0]["tool_choice"] == {"type": "tool", "name": "nightly"}
+    assert model.requests[0]["tool_choice"] == {"type": "auto"}
+    assert model.requests[0]["output_config"] == {"effort": "low"}
 
 
 async def test_an_unparseable_answer_gets_one_repair_sent_as_a_tool_result():
@@ -260,13 +261,36 @@ def test_the_worker_runs_the_pass_and_none_of_the_retired_kinds():
         assert retired not in KINDS
 
 
-async def test_the_pass_runs_on_sonnet_5_and_caches_its_prompt():
-    """The owner's choice on 2026-10-02, from the nightly principles: Haiku 23 of
-    26, Sonnet 5 26 of 26. Sonnet caches from 1,024 tokens and the prompt is
-    above that and the same for every pass in a night's run."""
+async def test_the_pass_runs_on_haiku_5_5_thinks_and_caches_its_prompt():
+    """Haiku 5.5 skips thinking on a forced tool, and forced it folded another
+    member's note and filed a learned fact as a fold. So the tool is offered,
+    the prompt says to call it, and effort is low. It caches from 512 tokens,
+    and the prompt is above that and the same for every pass in a night's run."""
     from offload_agent.config import Config
 
-    assert Config.__dataclass_fields__["nightly_model"].default == "claude-sonnet-5"
+    assert Config.__dataclass_fields__["nightly_model"].default == "claude-haiku-5-5"
     model = StubModel([Response(content=[ToolUse("a", "nightly", plan())])])
     await nightly._ask(model, Cfg(), "a listing", propose=False)
     assert model.requests[0]["system"][0]["cache_control"] == {"type": "ephemeral"}
+    assert model.requests[0]["tool_choice"] == {"type": "auto"}
+    assert model.requests[0]["output_config"] == {"effort": "low"}
+    # Haiku 5.5 refuses any sampling parameter but its default.
+    assert not {"temperature", "top_p", "top_k"} & set(model.requests[0])
+
+
+async def test_the_memory_pass_stays_on_sonnet_5_forced():
+    """Swarm round 1, 2026-10-10: on Haiku 5.5 the memory pass answered nothing
+    where a memory was due, 5 of 6 forced and 4 of 6 offered. Sonnet 5 had 6
+    of 6, so it stays until a cast run says otherwise."""
+    from offload_agent import memories
+    from offload_agent.config import Config
+
+    assert Config.__dataclass_fields__["memory_model"].default == "claude-sonnet-5"
+
+    class MemoryCfg:
+        memory_model = "claude-sonnet-5"
+
+    model = StubModel([Response(content=[ToolUse("a", "memory", {"add": []})])])
+    await memories._ask(model, MemoryCfg(), "a listing")
+    assert model.requests[0]["tool_choice"] == {"type": "tool", "name": "memory"}
+    assert "output_config" not in model.requests[0]

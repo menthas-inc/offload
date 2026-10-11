@@ -47,9 +47,11 @@ The design system at `.claude/skills/offload-design/` specifies five, all at hig
 
   | Tier | Model | ID | Cost per 1M in / out | Used for |
   | --- | --- | --- | --- | --- |
-  | `sort` | Claude Haiku 4.5 | `claude-haiku-4-5` | $1 / $5 | The small calls beside a turn: question or note, reading a link, looking at an email's pictures |
-  | `converse` | Claude Sonnet 5 | `claude-sonnet-5` | $2 / $10 | Filing a dump, which is the planner's loop, and the nightly pass |
-  | `reason` | Claude Opus 5 | `claude-opus-5` | $5 / $25 | Hard retrieval and cross-thread reasoning, anything the cheaper tiers failed at. Measured for the filing turn on 2026-09-17 (255 of 274 eval cases to Sonnet's 242, and it asks back where Sonnet does not) and not adopted, on cost |
+  | `sort` | Claude Haiku 4.5 | `claude-haiku-4-5` | $1 / $5 | The small calls beside a turn: question or note, a typed answer, reading a link |
+  | `look` | Claude Haiku 5.5 | `claude-haiku-5-5` | $0.10 / $0.50 | Looking at an email's pictures and PDF pages, off the reply path (swarm tuning, 2026-10-10) |
+  | `converse` | Claude Sonnet 5 | `claude-sonnet-5` | $2 / $10 | Filing a dump, which is the planner's loop, at `effort: medium` since 2026-10-10 (about 85 percent of its output was thinking; medium held the evals and cut latency about a quarter). The memory pass. |
+  | `nightly` | Claude Haiku 5.5 | `claude-haiku-5-5` | $0.10 / $0.50 | The nightly pass, with the tool offered rather than forced and `effort: low`: 27 of 27 nightly cases at a twentieth of Sonnet's price (2026-10-10). Forcing the tool on this model skips its thinking and loses cases. |
+  | `reason` | Claude Opus 5 | `claude-opus-5` | $5 / $25 | Answering, at `effort: medium` since 2026-10-10 (output down 30 percent, principle 17 held; Opus 5.5 at medium and Sonnet 5.5 were both measured and refused). Hard retrieval and cross-thread reasoning, anything the cheaper tiers failed at. Measured for the filing turn on 2026-09-17 (255 of 274 eval cases to Sonnet's 242, and it asks back where Sonnet does not) and not adopted, on cost |
 
   *Corrected 2026-10-04 against `apps/agent/src/offload_agent/config.py`: filing moved from a one-shot `sort` call to the planner on Sonnet (`architecture.md`), answering runs on `reason`, and `sort` is what is left for the calls that are one small decision.* Every dump still pays for one `sort` call, the question-or-note verdict, which is why that tier stays a plain structured call.
 - **Thinking and effort:** adaptive thinking (`thinking: {type: "adaptive"}`) on `converse` and `reason`, with `output_config.effort` as the depth control. `budget_tokens` does not exist on these models and returns a 400. `sort` is a plain structured call with no thinking.

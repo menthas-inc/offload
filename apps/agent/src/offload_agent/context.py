@@ -255,6 +255,9 @@ class DumpContext:
     #: 038. What offload knows about them, at most fifty. Bounded by the query,
     #: never trimmed by `fit`.
     memories: list[Memory] = field(default_factory=list)
+    #: Above fifty the memories were chosen for this turn's words, so they
+    #: change every turn and sit after the cache mark rather than before it.
+    memories_by_query: bool = False
 
     @property
     def may_look_up(self) -> bool:
@@ -645,6 +648,9 @@ async def load(
     )
     switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
 
+    memories, by_query = await memories_chosen(
+        conn, account_id, memory_words, embedder, started=memory_query
+    )
     return DumpContext(
         dump=mail.dump if mail else (dump_row.text or ""),
         mail=mail,
@@ -687,7 +693,8 @@ async def load(
             for m in (dump_row.mentions or [])
             if isinstance(m, dict) and m.get("accountId") and m.get("name")
         ][:10],
-        memories=await memories_for(conn, account_id, memory_words, embedder, started=memory_query),
+        memories=memories,
+        memories_by_query=by_query,
     )
 
 
@@ -785,6 +792,7 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         mail=ctx.mail,
         # 038. Bounded at fifty by the query, never trimmed here.
         memories=ctx.memories,
+        memories_by_query=ctx.memories_by_query,
     )
 
 
@@ -827,6 +835,7 @@ def fit_answer(ctx: "AnswerContext", ceiling: int) -> "AnswerContext":
         looking_at_notes=notes,
         # 038. Bounded at fifty by the query, never trimmed here.
         memories=ctx.memories,
+        memories_by_query=ctx.memories_by_query,
     )
 
 
@@ -1040,15 +1049,32 @@ async def memories_for(
     started: asyncio.Future | None = None,
     wait: float = QUERY_SECONDS,
 ) -> list[Memory]:
+    """The memories alone, for a caller that does not cache them."""
+    memories, _ = await memories_chosen(
+        conn, account_id, query, embedder, started=started, wait=wait
+    )
+    return memories
+
+
+async def memories_chosen(
+    conn: AsyncConnection,
+    account_id: str,
+    query: str,
+    embedder: Embedder | None,
+    *,
+    started: asyncio.Future | None = None,
+    wait: float = QUERY_SECONDS,
+) -> tuple[list[Memory], bool]:
     """040. The memories a call is given, at most fifty: every rule, then the
     person's own nearest `query`, then offload's learned nearest. Fifty or
     fewer are all given and nothing is embedded; with no vector within `wait`
     of asking (a query `started` early has had the load as well), the newest
-    stand in and the turn goes on."""
+    stand in and the turn goes on. The flag says whether the set was chosen
+    for this turn, which decides where the prompt puts it against the cache."""
     params = {"account_id": account_id}
     if await _count(conn, account_id) <= MEMORIES_IN_PROMPT:
         rows = (await conn.execute(_MEMORIES, {**params, "limit": MEMORIES_IN_PROMPT})).all()
-        return [_memory(r) for r in rows]
+        return [_memory(r) for r in rows], False
 
     rules = [
         _memory(r) for r in (await conn.execute(_RULES, {**params, "limit": RULES_IN_PROMPT})).all()
@@ -1067,7 +1093,7 @@ async def memories_for(
         rows = (await conn.execute(_NEAREST, {**room, "query": vector})).all()
     else:
         rows = (await conn.execute(_NEWEST, room)).all()
-    return rules + [_memory(r) for r in rows]
+    return rules + [_memory(r) for r in rows], True
 
 
 async def memories_of(conn: AsyncConnection, account_id: str) -> list[Memory]:
@@ -1135,6 +1161,8 @@ class AnswerContext:
     #: 038. What offload knows about them, at most fifty; "what do you
     #: remember about me" is answered from it.
     memories: list[Memory] = field(default_factory=list)
+    #: The same as on a dump: chosen for the question's words, past the mark.
+    memories_by_query: bool = False
 
     @property
     def may_look_up(self) -> bool:
@@ -1267,6 +1295,9 @@ async def load_answer(
 
     calendar = await conn.execute(_HAS_CALENDAR, {"account_id": account_id})
 
+    memories, by_query = await memories_chosen(
+        conn, account_id, memory_words, embedder, started=memory_query
+    )
     return AnswerContext(
         question=question,
         threads=threads,
@@ -1280,7 +1311,8 @@ async def load_answer(
         country_override=country_override,
         looking_at=looking_at,
         looking_at_notes=looking_at_notes,
-        memories=await memories_for(conn, account_id, memory_words, embedder, started=memory_query),
+        memories=memories,
+        memories_by_query=by_query,
     )
 
 

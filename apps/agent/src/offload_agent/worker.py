@@ -691,9 +691,7 @@ def _tool_caller(
             and lookups is not None
             and _in_the_dump(str(args["url"]), lookups[2].links)
         ):
-            read_location = (
-                cfg.maps_on and lookups[2].maps_on and lookups[2].may_read_links
-            )
+            read_location = cfg.maps_on and lookups[2].maps_on and lookups[2].may_read_links
             if read_location or not args.get("image_url"):
                 meta = await page(http, str(args["url"]), read_location=read_location)
                 if meta.image and not args.get("image_url"):
@@ -1556,7 +1554,7 @@ async def _run_look(
     failed = False
     if fetched:
         try:
-            indices = await look(anthropic, cfg.sort_model, [b for _, b in fetched])
+            indices = await look(anthropic, cfg.look_model, [b for _, b in fetched])
             keep = [fetched[i][0] for i in indices]
         except LookFailed:
             failed = True

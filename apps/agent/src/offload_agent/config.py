@@ -76,6 +76,12 @@ class Config:
     # stack.md describes as being for "hard retrieval and cross-thread
     # reasoning", written down before this feature existed.
     sort_model: str = "claude-haiku-4-5"
+    # 026 and 041. The look at an email's pictures and a PDF's first page: one
+    # forced call with a list of verdicts. Haiku 5.5 accepts the forced tool
+    # and answers it without thinking, at a twentieth of Haiku 4.5's price.
+    # Swarm round 1 and 2, 2026-10-10: principle 31 held. Classify and the
+    # reader stay on `sort_model`, where Haiku 5.5 was slower on every dump.
+    look_model: str = "claude-haiku-5-5"
     # Opus 5 still. Opus 5.5 was measured on 2026-10-02 on the 112 answering
     # cases, same code: 98 passed against Opus 5's 109, for 30% less. Nothing
     # it was sent is one it refuses, so the gap is behaviour: past the word
@@ -84,13 +90,16 @@ class Config:
     # defaults to medium; /test-llm against 5.5 is what would earn the switch.
     answer_model: str = "claude-opus-5"
     # 032. The nightly pass: compaction, what the day's dumps add, and on the
-    # default thread the threads to suggest. Sonnet 5, the owner's choice on
-    # 2026-10-02 from the nightly principles: Haiku passed 23 of 26 and its
-    # misses restated rows as notes, Sonnet 5 passed 26 of 26, at twice the
-    # price per token, about a cent a pass.
-    nightly_model: str = "claude-sonnet-5"
+    # default thread the threads to suggest. On 2026-10-02 Haiku 4.5 passed 23
+    # of 26 (its misses restated rows as notes) and Sonnet 5 26 of 26. Haiku
+    # 5.5 is a twentieth of Sonnet 5's price per token; the forced tool call
+    # skips thinking on it, and forced it folded another member's note, so
+    # nightly.py offers the tool at low effort instead. Swarm round 1,
+    # 2026-10-10: 27 of 27 offered, 24 of 27 forced, Sonnet 5 26 of 27.
+    nightly_model: str = "claude-haiku-5-5"
     # 038. The memory pass: what offload learned about one person across their
-    # threads. The nightly pass's model until an eval says otherwise.
+    # threads. Sonnet 5: on Haiku 5.5 it answered nothing where a memory was
+    # due, 5 of 6 forced and 4 of 6 offered, against Sonnet 5's 6 of 6.
     memory_model: str = "claude-sonnet-5"
 
     @classmethod

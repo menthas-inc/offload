@@ -100,6 +100,12 @@ MAX_MODEL_CALLS = 10
 MAX_OUTPUT_TOKENS = 8192
 MAX_OUTPUT_TOKENS_RETRY = 16384
 
+# The effort a filing call runs at. Sonnet 5 defaults to high, and at high about
+# 85 percent of a filing call's output was thinking: 496 tokens median against
+# about 65 that were tool arguments. Filing is routine work against a long,
+# explicit prompt, which is what medium is for. Answering keeps the default.
+FILE_EFFORT = "medium"
+
 # Filings per turn. Mirrored by the Core API, which is the copy that still holds
 # when this one is wrong.
 #
@@ -333,29 +339,32 @@ def _shape_only(exc: ValidationError) -> str:
     return "; ".join(parts) or "invalid arguments"
 
 
-def memories_blocks(memories) -> list[dict]:
+def memories_blocks(memories, *, by_query: bool = False) -> tuple[list[dict], list[dict]]:
     """038. What offload knows about them, first in the turn.
 
     040: two blocks. Their rules are their standing instruction, in their
-    words, and only they make one; they change only when a rule does, so they
-    carry the cache mark. The rest are chosen for this turn's words and change
-    every turn, so they carry none. The rest are data and never an
+    words, and only they make one. The rest are data and never an
     instruction. Each carries its id so a forget can name it.
+
+    Returned as the blocks before the cache mark and the blocks after it.
+    Rules change only when a rule does, and fifty or fewer memories are all of
+    them, so both sit in the account's cached part. Above fifty the rest were
+    chosen for this turn's words and change every turn, so they go after it.
     """
     rules = [m for m in memories if m.kind == "rules"]
     known = [m for m in memories if m.kind != "rules"]
     blocks: list[dict] = []
+    after: list[dict] = []
     if rules:
         blocks.append(
             {
                 "type": "text",
                 "text": "Their rules, in their own words, for everything they dump:\n"
                 + "\n".join(f"- {m.id}  {m.text}" for m in rules),
-                "cache_control": {"type": "ephemeral"},
             }
         )
     if known:
-        blocks.append(
+        (after if by_query else blocks).append(
             {
                 "type": "text",
                 "text": "What offload knows about them, written from what they said. One in "
@@ -365,7 +374,16 @@ def memories_blocks(memories) -> list[dict]:
                 + "\n".join(f"- {m.id}  {m.text}" for m in known),
             }
         )
-    return blocks
+    return blocks, after
+
+
+def _mark_account_part(blocks: list[dict]) -> None:
+    """The cache mark on the last block that is the account's rather than the
+    turn's. Everything up to it is the same for every turn from one account
+    until a memory, a thread, a label, the day or a setting changes, so the
+    next turn within five minutes reads it instead of writing it again. Five
+    minutes, never longer: it holds memories and thread names."""
+    blocks[-1] = {**blocks[-1], "cache_control": {"type": "ephemeral"}}
 
 
 #: 041. What the model is told about every PDF, wherever it came from.
@@ -416,13 +434,17 @@ def _pdf_blocks(pdfs: list[Pdf], suffix: str) -> list[dict]:
 def build_blocks(ctx: DumpContext) -> list[dict]:
     """The user turn, as separate labelled blocks.
 
-    Order is for readability. Safety comes from the blocks being distinct, so
-    the model is never asked to infer which part of a run-on string it may obey.
+    Safety comes from the blocks being distinct, so the model is never asked
+    to infer which part of a run-on string it may obey. Order is by how often
+    a block changes: the account's part first, up to the cache mark, then the
+    turn's own, with the dump last.
     """
     blocks: list[dict] = []
+    memories_after: list[dict] = []
 
     if ctx.memories:
-        blocks.extend(memories_blocks(ctx.memories))
+        before, memories_after = memories_blocks(ctx.memories, by_query=ctx.memories_by_query)
+        blocks.extend(before)
 
     if ctx.threads:
         lines = [_thread_line(thread) for thread in ctx.threads]
@@ -461,6 +483,38 @@ def build_blocks(ctx: DumpContext) -> list[dict]:
                 ),
             }
         )
+
+    if ctx.today:
+        # A model has no clock. Without this "the 3rd" in late December becomes
+        # this year rather than next, which is a wrong date on somebody's
+        # calendar and the kind of error nobody reports because it looks like a
+        # typo they made.
+        blocks.append(
+            {
+                "type": "text",
+                "text": f"Today is {ctx.today}, {clock_line(ctx.time_zone)}. This is our data.",
+            }
+        )
+
+    # **Where they are, or that nobody knows.** A model has no location either,
+    # and a search takes its assumptions from nowhere: asked for the next bank
+    # holiday it answered Columbus Day from three American sources, which is
+    # correct somewhere and wrong for the person who asked. Saying the absence
+    # out loud is the half that matters, because silence reads as "anywhere" and
+    # the model picks.
+    blocks.append(
+        {
+            "type": "text",
+            "text": (
+                f"They are in {name_of(ctx.country) or ctx.country}."
+                if ctx.country
+                else "You do not know what country they are in. They have not said."
+            ),
+        }
+    )
+
+    _mark_account_part(blocks)
+    blocks.extend(memories_after)
 
     if ctx.looking_at:
         blocks.append(
@@ -520,35 +574,6 @@ def build_blocks(ctx: DumpContext) -> list[dict]:
                 "text": "People they picked with @ in this dump. This is our data:\n" + picked,
             }
         )
-
-    if ctx.today:
-        # A model has no clock. Without this "the 3rd" in late December becomes
-        # this year rather than next, which is a wrong date on somebody's
-        # calendar and the kind of error nobody reports because it looks like a
-        # typo they made.
-        blocks.append(
-            {
-                "type": "text",
-                "text": f"Today is {ctx.today}, {clock_line(ctx.time_zone)}. This is our data.",
-            }
-        )
-
-    # **Where they are, or that nobody knows.** A model has no location either,
-    # and a search takes its assumptions from nowhere: asked for the next bank
-    # holiday it answered Columbus Day from three American sources, which is
-    # correct somewhere and wrong for the person who asked. Saying the absence
-    # out loud is the half that matters, because silence reads as "anywhere" and
-    # the model picks.
-    blocks.append(
-        {
-            "type": "text",
-            "text": (
-                f"They are in {name_of(ctx.country) or ctx.country}."
-                if ctx.country
-                else "You do not know what country they are in. They have not said."
-            ),
-        }
-    )
 
     if ctx.turns:
         history = "\n".join(f"{t.role}: {t.text}" for t in ctx.turns)
@@ -755,6 +780,9 @@ async def plan(
         # **Trailing text is ignored here.** A filing turn says nothing unless
         # it calls `say`, which is almost never: see the note on `SAY_TOOL`.
         reply_from_say=True,
+        effort=FILE_EFFORT,
+        labelled=frozenset(label.thread_id for label in ctx.labels),
+        has_media=bool(ctx.photos or ctx.pdfs),
     )
 
 
@@ -785,6 +813,9 @@ async def _run(
     tools: list[dict],
     filed: int,
     reply_from_say: bool = False,
+    effort: str | None = None,
+    labelled: frozenset[str] = frozenset(),
+    has_media: bool = False,
 ) -> Outcome:
     """The loop. Everything that differs between the two callers is an argument,
     so there is one place where a tool result becomes a model turn."""
@@ -796,9 +827,14 @@ async def _run(
     # refuse a memory and cannot see for itself: the reader runs here.
     read_web = False
 
+    # The same on every call of the turn: effort is part of what the cache
+    # matches, so changing it mid-turn would re-pay the prefix.
+    extra = {"output_config": {"effort": effort}} if effort else {}
+
     for _ in range(MAX_MODEL_CALLS):
         started = time.monotonic()
         response = await client.messages.create(
+            **extra,
             model=model,
             max_tokens=max_tokens,
             # cache_control on the frozen prompt, the only part of this call
@@ -882,6 +918,11 @@ async def _run(
             return _hold_to_the_reason(outcome)
 
         results: list[dict] = []
+        # What this response did, for deciding whether its results leave the
+        # model anything to read. Counts first, so a refusal in this response
+        # is told apart from one in an earlier response.
+        this_round: list[tuple[str, dict, dict]] = []
+        troubles_before = len(outcome.refused) + len(outcome.failed) + len(outcome.declined)
         for block in response.content:
             if block.type != "tool_use":
                 continue
@@ -919,6 +960,10 @@ async def _run(
                 results.append(_result(block.id, {"ok": False, "error": shape}, error=True))
                 continue
 
+            # Only a name the closed set and the schema both accepted, and only
+            # compared against literal sets when the response is weighed.
+            this_round.append((block.name, args.model_dump(), {}))
+
             if block.name == "ask":
                 # 018. Like `say`, it writes nothing here and never crosses to
                 # the Core API on its own. **The cap is code, not prompt**: the
@@ -929,6 +974,7 @@ async def _run(
                     )
                     continue
                 outcome.questions.append(args.model_dump())
+                this_round[-1][2]["ok"] = True
                 results.append(_result(block.id, {"ok": True, "done": True}, error=False))
                 continue
 
@@ -939,6 +985,7 @@ async def _run(
                 said = args.model_dump()
                 outcome.reply = str(said["text"]).strip() or None
                 outcome.because = said.get("because")
+                this_round[-1][2]["ok"] = True
                 results.append(_result(block.id, {"ok": True, "done": True}, error=False))
                 continue
 
@@ -1016,7 +1063,23 @@ async def _run(
                         content_id=body.get("contentId"),
                     )
                 )
+            if isinstance(body, dict):
+                this_round[-1][2].update(body)
             results.append(_result(block.id, body, error=not body.get("ok")))
+
+        # **Nothing left to read, so no call to read it.** See `_nothing_left_to_read`.
+        troubles = len(outcome.refused) + len(outcome.failed) + len(outcome.declined)
+        if (
+            reply_from_say
+            and troubles == troubles_before
+            and _nothing_left_to_read(
+                this_round,
+                outcome,
+                labelled=labelled,
+                has_media=has_media,
+            )
+        ):
+            return _hold_to_the_reason(outcome)
 
         # Explicit branch per tool would go here if either had a client-side
         # half. Neither does: both are one POST, and the dispatch that matters
@@ -1028,6 +1091,96 @@ async def _run(
     # and the caller reports a partial turn the person can finish.
     outcome.out_of_calls = True
     return _hold_to_the_reason(outcome)
+
+
+#: The tools a response may hold and still be the last of a filing turn. Every
+#: other tool keeps the turn going, and the test that enumerates `TOOL_NAMES`
+#: makes a tool added later land on one side or the other on purpose.
+MAY_END_THE_TURN = frozenset({"say", "ask", "add_content", "add_note"})
+KEEPS_THE_TURN_GOING = TOOL_NAMES - MAY_END_THE_TURN
+
+#: The second tier, a switch so it can be measured apart from the first: a
+#: response of clean writes that cannot want a follow-up ends the turn too.
+# Off in the round 2 composite: the skeptic found three guard gaps the evals
+# cannot show (a split dump cut after a say, account rules unguarded, a
+# second ask lost). Tier one alone halved principle 24's calls.
+END_AFTER_CLEAN_WRITES = False
+
+#: The say reasons that mean the turn had nothing to file, so a say carrying
+#: one cannot be followed by a filing it was waiting on.
+_NOTHING_TO_FOLLOW = frozenset({"could_not_read", "nothing_to_file"})
+
+
+def _nothing_left_to_read(
+    this_round: list[tuple[str, dict, dict]],
+    outcome: Outcome,
+    *,
+    labelled: frozenset[str],
+    has_media: bool,
+) -> bool:
+    """Would the next model call read anything it has not already seen.
+
+    **Two in three filing turns ended on a call whose only job was to return
+    end_turn**: about 900 ms and a cached prefix each, after a response whose
+    results told the model nothing. The round 1 done signal asked the model to
+    say it was finished and paid the saved calls back in thinking, so the loop
+    decides instead, from the results, and the prompt does not change.
+
+    Tier one: every call was `say` or `ask`, each accepted. Both return
+    {ok, done} and write nothing. A `say` that comes before anything was done
+    is the exception, unless its reason means there was nothing to file:
+    "that needs a calendar connected first" is followed by the filing.
+
+    Tier two (`END_AFTER_CLEAN_WRITES`): filings and asks only, every one ok,
+    and nothing in the results or the rows that the prompt's follow-ups read.
+    Notes and tasks only, no thread notes came back, no labels in the thread,
+    every task dated unless an ask beside it names the row, and no photos or
+    PDFs in the turn. Events keep their closing call: see below.
+    """
+    if not this_round or any(not body.get("ok") for _, _, body in this_round):
+        return False
+    names = {name for name, _, _ in this_round}
+    if not names <= MAY_END_THE_TURN:
+        return False
+
+    if names <= {"say"}:
+        # A say before anything landed or changed may be followed by the
+        # filing it was waiting on ("that needs a calendar connected first"),
+        # unless its reason says there was nothing to file. `worked` is not
+        # the test: a read counts there, and a say after a read can still
+        # precede the filing.
+        said_first = (
+            not outcome.landed and not outcome.changed and outcome.because not in _NOTHING_TO_FOLLOW
+        )
+        return not said_first
+    if "ask" in names:
+        # The prompt allows two asks a turn and the model sends them one a
+        # response, so an ask-only response may be followed by the second.
+        return False
+
+    if not END_AFTER_CLEAN_WRITES or has_media:
+        return False
+    asked_about = {args.get("content_id") for name, args, _ in this_round if name == "ask"}
+    for name, args, body in this_round:
+        if name not in {"add_content", "add_note"}:
+            continue
+        if body.get("notes") or body.get("notesFromMembers") or body.get("notesFromApps"):
+            return False
+        if str(args.get("thread_id", "")) in labelled:
+            return False
+        if name == "add_note":
+            continue
+        # Tasks only. An event's follow-ups are about the calendar whether
+        # or not there is one: `create_event` when one is offered, and "that
+        # needs a calendar connected first" when they asked for one and none
+        # is, which the model says in the response after the filing. Links,
+        # locations and pictures: a link may be a stay that wants its span.
+        if args.get("type") != "task":
+            return False
+        dated = bool(args.get("due_at") or args.get("occurs_at"))
+        if not dated and body.get("contentId") not in asked_about:
+            return False
+    return True
 
 
 def _hold_to_the_reason(outcome: Outcome) -> Outcome:
@@ -1088,6 +1241,11 @@ _CLASSIFY_PROMPT = load("classify")
 
 
 _ANSWER_PROMPT = load("answer")
+
+#: Answering's effort. Opus 5 defaults to high; most of an answer's output was
+#: thinking (about 123 tokens against 37 visible), and the reply is short and
+#: read from what the tools return, so medium is asked for explicitly.
+ANSWER_EFFORT = "medium"
 
 
 class Question(BaseModel):
@@ -1252,6 +1410,7 @@ async def plan_answer(
         blocks=build_answer_blocks(ctx),
         tools=tools,
         filed=0,
+        effort=ANSWER_EFFORT,
     )
 
 
@@ -1262,10 +1421,12 @@ def build_answer_blocks(ctx: AnswerContext) -> list[dict]:
     asked to infer which part of a run-on string it may obey.
     """
     blocks: list[dict] = []
+    memories_after: list[dict] = []
 
     # 038. What offload knows about them, first and cached, as on a dump.
     if ctx.memories:
-        blocks.extend(memories_blocks(ctx.memories))
+        before, memories_after = memories_blocks(ctx.memories, by_query=ctx.memories_by_query)
+        blocks.extend(before)
 
     # **Where they are, or that nobody knows.** The answering path needs this as
     # much as the filing one and had it for a while without it: a model has no
@@ -1320,6 +1481,10 @@ def build_answer_blocks(ctx: AnswerContext) -> list[dict]:
                 ),
             }
         )
+
+    # The account's part ends here, as on a dump.
+    _mark_account_part(blocks)
+    blocks.extend(memories_after)
 
     if ctx.looking_at:
         # 018. Where they asked from. A thread about a trip puts them somewhere,

@@ -78,6 +78,7 @@ from offload_agent.context import (
 from offload_agent.countries import name_of
 from offload_agent.harness.look import look
 from offload_agent.harness.plan import (
+    NOT_IN_A_THREAD,
     Usage,
     classify,
     judge_answer,
@@ -116,7 +117,7 @@ _DEFAULTS = {f.name: f.default for f in Config.__dataclass_fields__.values()}
 MODELS = {
     "file": _DEFAULTS["model"],
     # 041. The cheap look at an email's pictures and PDF pages.
-    "look": _DEFAULTS["sort_model"],
+    "look": _DEFAULTS["look_model"],
     "answer": _DEFAULTS["answer_model"],
     "classify": _DEFAULTS["sort_model"],
     "judge": _DEFAULTS["sort_model"],
@@ -692,7 +693,7 @@ class Recorder:
         if tool == "memory":
             return self._memory(args)
         if tool == "account_facts":
-            return {"ok": True, "facts": fx.get("facts") or {}}
+            return {"ok": True, "facts": self._facts()}
         # 019. The scope is the server's, so the stub answers with every
         # calendar the fixture lists and marks none as somebody else's unless
         # the fixture says so; the model never names a calendar.
@@ -831,9 +832,7 @@ class Recorder:
                 "threadName": named.name
                 if named and not named.is_default
                 else (
-                    self.made_thread
-                    if thread_id == "new" and self.made_thread
-                    else "not in a thread"
+                    self.made_thread if thread_id == "new" and self.made_thread else NOT_IN_A_THREAD
                 ),
                 "notes": _notes_for(fx, "notes", thread_id),
                 "notesFromMembers": _notes_for(fx, "notes_from_members", thread_id),
@@ -880,18 +879,69 @@ class Recorder:
         }:
             return {"ok": True, "done": True}
         # The three answering reads.
+        # 028. Every thread name in them goes through the Core API's
+        # shownToModel: the default thread reads as "not in a thread".
         thread_id = args.get("thread_id")
-        rows = _rows_for(fx, thread_id)
+        rows = [self._shown(r) for r in _rows_for(fx, thread_id)]
         named = _thread(fx, thread_id)
         result: dict[str, Any] = {
             "threadId": thread_id,
-            "threadName": named.name if named else (rows[0].get("threadName") if rows else None),
+            "threadName": (NOT_IN_A_THREAD if named.is_default else named.name)
+            if named
+            else (rows[0].get("threadName") if rows else None),
             "truncated": bool(fx.get("truncated")),
             "rows": rows,
         }
         if tool == "search" and fx.get("asides"):
-            result["asides"] = fx["asides"]
+            result["asides"] = [self._shown(a) for a in fx["asides"]]
         return {"ok": True, "result": result}
+
+    def _shown(self, row: dict) -> dict:
+        """A row as the Core API hands it to the model: a default thread's
+        name never reaches it, by id or by the stored name a fixture wrote."""
+        default = next((t for t in _threads(self.fx) if t.is_default), None)
+        if not default or "threadName" not in row:
+            return row
+        if row.get("threadId") == default.id or row.get("threadName") == default.name:
+            return {**row, "threadName": NOT_IN_A_THREAD}
+        return row
+
+    def _facts(self) -> dict:
+        """The Core API's AccountFacts, field for field. 019 took filesInto
+        off a calendar, so a stub that passed it on answered "which calendar
+        goes into which thread" where production cannot; 028 names the
+        default thread by the prompt's words, never its stored name."""
+        fx = self.fx
+        facts = fx.get("facts") or {}
+        default = next((t for t in _threads(fx) if t.is_default), None)
+        default_id = (facts.get("defaultThread") or {}).get("id") or (
+            default.id if default else None
+        )
+        calendars = facts.get("calendars")
+        if calendars is None:
+            calendars = fx.get("calendars") or []
+
+        def threads_of(c: dict) -> list[str]:
+            # The fixture names one thread a calendar files into, as the
+            # contexts were written before 019; production names every
+            # thread this account picked it for, shown as the model sees
+            # them, so the default thread's stored name never appears.
+            into = c.get("filesInto")
+            if not into:
+                return []
+            if default is not None and into in (default.name, default.id):
+                return [NOT_IN_A_THREAD]
+            return [into]
+
+        return {
+            "displayName": facts.get("displayName"),
+            "defaultThread": {"id": default_id, "name": NOT_IN_A_THREAD} if default_id else None,
+            "calendars": sorted(
+                ({"name": c.get("name"), "threads": threads_of(c)} for c in calendars),
+                key=lambda c: c["name"] or "",
+            ),
+            "knowsDevicePreferences": False,
+        }
 
     def _look_up(self, args: dict) -> dict:
         """The real bounds, then a plausible result, so a case exercises the

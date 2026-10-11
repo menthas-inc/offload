@@ -593,7 +593,7 @@ const result = z.union([
     facts: z.object({
       displayName: z.string().nullable(),
       defaultThread: z.object({ id: z.string(), name: z.string() }).nullable(),
-      calendars: z.array(z.object({ name: z.string() })),
+      calendars: z.array(z.object({ name: z.string(), threads: z.array(z.string()) })),
       // Stated rather than omitted. The model is told there is nothing to know
       // here, so it answers "I do not know that" instead of guessing.
       knowsDevicePreferences: z.literal(false),
@@ -756,7 +756,7 @@ type Outcome =
       facts: {
         displayName: string | null;
         defaultThread: { id: string; name: string } | null;
-        calendars: { name: string }[];
+        calendars: { name: string; threads: string[] }[];
         knowsDevicePreferences: false;
       };
     }

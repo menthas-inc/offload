@@ -131,4 +131,8 @@ prompt says.
 
 ## Results
 
-Filled in by the merge agent's report, `REPORT.md`.
+In `REPORT.md`. Nine changes kept of twenty-four tried; on the sealed
+holdout accuracy up 0.8 points, warm day cost x0.78, p90 latency halved;
+on the full set accuracy inside the band, cost x0.65, median latency
+x0.84. The log of everything that happened is `LOG.md`; the per-round
+findings are `rounds/1/FINDINGS.md` and `rounds/2/FINDINGS.md`.

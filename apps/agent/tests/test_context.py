@@ -219,6 +219,7 @@ def test_fitting_a_context_keeps_every_field_it_was_given():
                 id="00000004-0000-0000-0000-000000000000", thread_id=threads[0].id, name="Istanbul"
             )
         ],
+        memories_by_query=True,
     )
     MISSING = dataclasses.MISSING
     for field in dataclasses.fields(DumpContext):

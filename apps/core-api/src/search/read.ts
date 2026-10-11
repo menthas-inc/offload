@@ -528,9 +528,12 @@ async function asidesFor(accountId: string, options: SearchOptions): Promise<Asi
 export interface AccountFacts {
   displayName: string | null;
   defaultThread: { id: string; name: string } | null;
-  /** 019. The approved calendars, by name. Where an event lands is the
-   *  thread's question, not a fact about the account. */
-  calendars: { name: string }[];
+  /** 019. The approved calendars, by name, each with the threads this
+   *  account has picked it for, by the names the model is shown. Where an
+   *  event lands is the thread's pick; which threads pick a calendar is a
+   *  fact the account can be asked about, and from 019 until 2026-10-10 no
+   *  tool carried it, so the answer was a confident guess. */
+  calendars: { name: string; threads: string[] }[];
   /** Device preferences are absent on purpose and the prompt says so. Theme and
    *  text size live in SecureStore and localStorage, deliberately, so they can
    *  be read before first paint; the server has never held them and a copy kept
@@ -570,11 +573,39 @@ export async function accountFacts(accountId: string): Promise<AccountFacts> {
       "connector_connections.id",
       "connector_calendars.connection_id",
     )
-    .select(["connector_calendars.summary as summary", "connector_calendars.is_primary as is_primary"])
+    .select([
+      "connector_calendars.id as id",
+      "connector_calendars.summary as summary",
+      "connector_calendars.is_primary as is_primary",
+    ])
     .where("connector_connections.account_id", "=", accountId)
     .where("connector_connections.deleted_at", "is", null)
     .where("connector_calendars.selected", "=", true)
     .execute();
+
+  // This account's own picks: a pick is one member's, so another member's
+  // pick in a shared thread is theirs to be asked about.
+  const picks = calendars.length
+    ? await db
+        .selectFrom("thread_calendars")
+        .innerJoin("threads", "threads.id", "thread_calendars.thread_id")
+        .select([
+          "thread_calendars.calendar_id as calendar_id",
+          shownToModel("threads.id", "threads.name", accountId).as("thread_name"),
+        ])
+        .where("thread_calendars.account_id", "=", accountId)
+        .where(
+          "thread_calendars.calendar_id",
+          "in",
+          calendars.map((c) => c.id),
+        )
+        .where("threads.deleted_at", "is", null)
+        .execute()
+    : [];
+  const threadsOf = new Map<string, string[]>();
+  for (const pick of picks) {
+    threadsOf.set(pick.calendar_id, [...(threadsOf.get(pick.calendar_id) ?? []), pick.thread_name]);
+  }
 
   return {
     displayName: account?.display_name ?? null,
@@ -582,7 +613,12 @@ export async function accountFacts(accountId: string): Promise<AccountFacts> {
       account?.thread_id && account.thread_name
         ? { id: account.thread_id, name: NOT_IN_A_THREAD }
         : null,
-    calendars: calendars.map((c) => ({ name: calendarName(c, account?.display_name ?? null) })),
+    calendars: calendars
+      .map((c) => ({
+        name: calendarName(c, account?.display_name ?? null),
+        threads: (threadsOf.get(c.id) ?? []).sort(),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
     knowsDevicePreferences: false,
   };
 }
