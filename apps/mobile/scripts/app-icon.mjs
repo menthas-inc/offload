@@ -9,15 +9,18 @@
 // build time.
 
 import sharp from "sharp";
+import { resolved } from "@offload/tokens";
 
 const OUT = "./assets/icon-ios.png";
 const SIZE = 1024;
 const SCALE = 1.45;
 const t = 96 - 48 * SCALE; // keeps the mark's 96 box centred on the 192 tile
+const tile = resolved.light["surface-raised"];
+const ink = resolved.light["text-primary"];
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="${SIZE}" height="${SIZE}"><rect width="192" height="192" fill="#FFFFFF"/><g transform="translate(${t} ${t}) scale(${SCALE})"><circle cx="48" cy="21" r="10" fill="#0B0B0B"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></g></svg>`;
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="${SIZE}" height="${SIZE}"><rect width="192" height="192" fill="${tile}"/><g transform="translate(${t} ${t}) scale(${SCALE})"><circle cx="48" cy="21" r="10" fill="${ink}"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="${ink}" stroke-width="10" stroke-linecap="round"/></g></svg>`;
 
-await sharp(Buffer.from(svg)).resize(SIZE, SIZE).flatten({ background: "#FFFFFF" }).removeAlpha().png().toFile(OUT);
+await sharp(Buffer.from(svg)).resize(SIZE, SIZE).flatten({ background: tile }).removeAlpha().png().toFile(OUT);
 const meta = await sharp(OUT).metadata();
 if (meta.width !== SIZE || meta.height !== SIZE || meta.hasAlpha) throw new Error(`app-icon: ${OUT} came out wrong`);
 console.log(`app-icon: ${OUT} at ${SCALE}`);
