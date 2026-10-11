@@ -95,6 +95,13 @@ describe("027 AC-6, AC-7 the device cards", () => {
     expect(today.notificationsCard(me, false, "2026-10-02T00:00:00Z", now)).toBeNull();
     expect(today.notificationsCard(me, false, "2026-10-01T09:00:00Z", now)).not.toBeNull();
   });
+
+  it("counts Calendar as a switch that reaches this phone (2026-10-10)", () => {
+    const now = new Date("2026-10-01T10:00:00Z");
+    const off = { notifyDueToday: false, notifyComingTomorrow: false, notifyPeopleRequests: false, notifySharedActivity: false, notifyReminders: false };
+    expect(today.notificationsCard(off, false, null, now)).toBeNull();
+    expect(today.notificationsCard({ ...off, notifyCalendar: true }, false, null, now)).not.toBeNull();
+  });
 });
 
 describe("027 AC-4, AC-11 the stack", () => {

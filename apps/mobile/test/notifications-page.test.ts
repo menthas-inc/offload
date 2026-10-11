@@ -92,3 +92,37 @@ describe("the account", () => {
     expect(me).toMatch(/notifyReminderCount\?: 1 \| 2 \| 3;/);
   });
 });
+
+describe("the Calendar section (2026-10-10)", () => {
+  const page = read("components/settings/NotificationsPage.tsx");
+
+  it("sits between Reminders and People, one switch with the shared line", () => {
+    const reminders = page.indexOf('label="Reminders"');
+    const calendar = page.indexOf('label="Calendar"');
+    const people = page.indexOf('label="People"');
+    expect(calendar).toBeGreaterThan(reminders);
+    expect(people).toBeGreaterThan(calendar);
+    expect(page).toMatch(/toggle\("notifyCalendar", "Today's events", CALENDAR_LINE/);
+  });
+
+  it("rides the morning's channel, so a morning switched off in the system shows it off", () => {
+    expect(page).toMatch(/notifyCalendar: "due_today"/);
+  });
+
+  it("mirrors a blocked channel into every switch it carries in one write", () => {
+    const mirror = page.slice(page.indexOf("The account switch follows the system's answer"), page.indexOf("function openChannel"));
+    expect(mirror).toMatch(/const patch: Patch = \{\};/);
+    expect(mirror.match(/write\(/g)).toHaveLength(1);
+  });
+
+  it("keeps the morning hour in use, from the shared rule", () => {
+    expect(page).toMatch(/notifyCalendar: value\("notifyCalendar"\) === true/);
+    expect(hoursOn({ notifyDueToday: false, notifyComingTomorrow: false, notifyReminders: false, notifyCalendar: true })).toEqual({ morning: true, evening: false });
+  });
+
+  it("is carried on the account and written through setNotify", () => {
+    const me = read("lib/me.ts");
+    expect(me).toMatch(/notifyCalendar: boolean;/);
+    expect(me).toMatch(/notifyCalendar\?: boolean;/);
+  });
+});

@@ -46,7 +46,7 @@ async function accountsDue(now: Date): Promise<string[]> {
        and (
          exists (select 1 from content c
                   where c.account_id = a.id and c.deleted_at is null and c.done_at is null
-                    and c.archived_at is null and c.source_ref is null
+                    and c.archived_at is null and c.source in ('person', 'share')
                     and coalesce((c.attrs ->> 'all_day')::boolean, false) = false
                     and ((c.type = 'event' and c.occurs_at between ${from}::timestamptz and ${to}::timestamptz)
                          or (c.type <> 'event' and c.due_at between ${from}::timestamptz and ${to}::timestamptz)

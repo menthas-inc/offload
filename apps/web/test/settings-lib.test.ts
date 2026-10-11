@@ -60,6 +60,12 @@ describe("the pane head summaries", () => {
     expect(notifySummary({ ...me, notifyDueToday: false, notifyComingTomorrow: false })).toBeUndefined();
   });
 
+  it("counts Calendar among what is on (2026-10-10)", () => {
+    const off = { notifyDueToday: false, notifyDueTodayAt: "08:00", notifyComingTomorrow: false, notifyComingTomorrowAt: "19:00" };
+    expect(notifySummary({ ...off, notifyCalendar: true })).toBe("Today's events");
+    expect(notifySummary({ ...off, notifyDueToday: true, notifyCalendar: true })).toBe("Mornings at 08:00, with today's events");
+  });
+
   it("counts Reminders among what is on (042, AC-22)", () => {
     const me = {
       notifyDueToday: true,

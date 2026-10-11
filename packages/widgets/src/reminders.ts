@@ -1,5 +1,7 @@
 // 042. What both clients draw for reminders, decided once, so the phones and
 // the web cannot disagree about when the bell shows or what a choice says.
+// Since 2026-10-10 also the Calendar switch's line and the hours it uses,
+// since it rides in the same morning message.
 
 import { addDays } from "./days.js";
 
@@ -62,15 +64,21 @@ export function remindDayLabel(day: string, today: string, by: boolean): string 
 /** How many until the account says otherwise: Medium, as the column's default. */
 export const REMINDER_COUNT_DEFAULT = 2;
 
-/** Whether each hour is in use: the morning hour by Due today or Reminders,
- *  the evening hour by Tomorrow or Reminders. An hour greys only when both
- *  switches that use it are off. */
-export function hoursOn(me: { notifyDueToday: boolean; notifyComingTomorrow: boolean; notifyReminders: boolean }): {
+/** Whether each hour is in use: the morning hour by Due today, Reminders or
+ *  Calendar, the evening hour by Tomorrow or Reminders. An hour greys only
+ *  when every switch that uses it is off. */
+export function hoursOn(me: { notifyDueToday: boolean; notifyComingTomorrow: boolean; notifyReminders: boolean; notifyCalendar?: boolean }): {
   morning: boolean;
   evening: boolean;
 } {
-  return { morning: me.notifyDueToday || me.notifyReminders, evening: me.notifyComingTomorrow || me.notifyReminders };
+  return {
+    morning: me.notifyDueToday || me.notifyReminders || me.notifyCalendar === true,
+    evening: me.notifyComingTomorrow || me.notifyReminders,
+  };
 }
+
+/** 2026-10-10. The Calendar switch's line on the Notifications page. */
+export const CALENDAR_LINE = "Today's events on the calendars you chose, in the morning message.";
 
 /** The query parameter that opens one memory in Memories, from Today's
  *  Reminders section, on the phones and the web alike. */
