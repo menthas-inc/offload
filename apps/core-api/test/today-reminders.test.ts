@@ -265,7 +265,7 @@ describe("the routes", () => {
     const body = { of: "content", id: form, day: soon, window: "short" };
     expect((await app.inject({ method: "POST", url: "/v1/today/reminders/dismiss", payload: body })).statusCode).toBe(401);
     const cookie = await signIn(me);
-    const post = (url: string, payload: unknown) => app.inject({ method: "POST", url, headers: { cookie }, payload });
+    const post = (url: string, payload: Record<string, unknown>) => app.inject({ method: "POST", url, headers: { cookie }, payload });
     expect((await post("/v1/today/reminders/dismiss", { ...body, extra: 1 })).statusCode).toBe(400);
     expect((await post("/v1/today/reminders/dismiss", { ...body, window: "week" })).statusCode).toBe(400);
     expect((await post("/v1/today/reminders/dismiss", { ...body, day: "2026-11-04T00:00" })).statusCode).toBe(400);
