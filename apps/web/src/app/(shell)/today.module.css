@@ -9,8 +9,33 @@
 .today {
   display: flex;
   flex-direction: column;
+}
+
+/* Bands (design 2026-10-11, the kit's `WBand`). Each drawn section sits in
+   one; by position they alternate between the page and a `--surface-fill`
+   band that runs to the measure's edges with the pane's padding inside, and
+   radius-lg since it stops short of the pane. Inside a band, cards step up
+   to raised, and chips and the stepper's buttons on them step to the fill,
+   so nothing matches its ground. The three properties are what the kit's
+   cards read; every card below consumes one with its page value as the
+   fallback. */
+.band {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-7);
-  padding: var(--space-7) 0 0;
+  margin: 0 calc(-1 * var(--space-8));
+  padding: var(--space-7) var(--space-8) var(--space-8);
+  border-radius: var(--radius-lg);
+  --tp-card: var(--surface-fill);
+  --tp-on-card: var(--surface-raised);
+  --tp-btn: var(--surface-fill);
+}
+
+.band[data-band] {
+  background: var(--surface-fill);
+  --tp-card: var(--surface-raised);
+  --tp-on-card: var(--surface-fill);
+  --tp-btn: var(--surface-raised);
 }
 
 .day {
@@ -261,7 +286,7 @@
   width: 40px;
   height: 40px;
   border-radius: var(--radius-pill);
-  background: var(--surface-fill);
+  background: var(--tp-btn, var(--surface-fill));
   box-shadow: inset 0 0 0 1px var(--edge-well);
 }
 
@@ -326,6 +351,14 @@
   color: var(--text-primary);
 }
 
+/* Reminders and Open in your threads head their bands at the kit's 20px;
+   Where you will be and To do keep the 15px subhead. */
+.headBig {
+  padding-bottom: 10px;
+  font-size: calc(20px * var(--type-scale));
+  letter-spacing: -0.01em;
+}
+
 .headCount {
   font-style: normal;
   font-weight: var(--weight-regular);
@@ -361,7 +394,7 @@
   width: 128px;
   padding: 10px 12px;
   border-radius: var(--radius-md);
-  background: var(--surface-fill);
+  background: var(--tp-card, var(--surface-fill));
   box-shadow: inset 0 0 0 1px var(--edge-well);
   color: var(--text-primary);
   text-decoration: none;
@@ -414,12 +447,12 @@ a.event:hover {
   flex-direction: column;
   padding: 0 var(--space-5);
   border-radius: var(--radius-lg);
-  background: var(--surface-fill);
+  background: var(--tp-card, var(--surface-fill));
   box-shadow: inset 0 0 0 1px var(--edge-card);
 }
 
 .rows .hourChip {
-  background: var(--surface-raised);
+  background: var(--tp-on-card, var(--surface-raised));
 }
 
 /* Tighter than the thread page at the checkbox, so a title has the width:
@@ -747,7 +780,7 @@ a.event:hover {
   flex-direction: column;
   overflow: hidden;
   border-radius: var(--radius-lg);
-  background: var(--surface-fill);
+  background: var(--tp-card, var(--surface-fill));
   box-shadow: inset 0 0 0 1px var(--edge-well);
 }
 
@@ -798,7 +831,7 @@ a.event:hover {
   border-radius: var(--radius-pill);
   background: var(--surface-attention-soft);
   color: var(--blue-700);
-  box-shadow: 0 0 0 2px var(--surface-fill);
+  box-shadow: 0 0 0 2px var(--tp-card, var(--surface-fill));
   font: var(--weight-semibold) calc(10px * var(--type-scale)) / 1 var(--font-core);
 }
 
@@ -873,4 +906,157 @@ a.event:hover {
 
 .openDoor:hover {
   text-decoration: underline;
+}
+
+/* ------------------------------------------------------------ Reminders
+   The kit's column (design 2026-10-11, `TodayReminders.jsx`): the countdown
+   in a fixed 82px column, everything on the day in one card under one Today,
+   each later thing a card of its own, the dismiss at the right. The whole
+   row opens the thing: the name is the link and covers its row, and the
+   dismiss sits above it. The day's colour is `--text-noticed`, the alias
+   the kit's `--amber-700` has. */
+
+.remColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.remCard {
+  position: relative;
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: center;
+  padding: 12px 10px 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--tp-card, var(--surface-fill));
+  box-shadow: inset 0 0 0 1px var(--edge-well);
+}
+
+/* Everything on the day: one Today at the top left, a row per thing. */
+.remShared {
+  grid-template-columns: 82px minmax(0, 1fr);
+  align-items: start;
+  padding: 0 0 0 14px;
+}
+
+.remSharedWhen {
+  padding-top: 12px;
+}
+
+.remRows {
+  display: flex;
+  flex-direction: column;
+}
+
+.remRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: center;
+}
+
+.remRows > .remRow {
+  padding: 12px 10px 12px 0;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+}
+
+.remRows > .remRow:last-child {
+  box-shadow: none;
+}
+
+.remCard.remRow {
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+}
+
+.remWhen {
+  display: block;
+  font: var(--weight-semibold) calc(17px * var(--type-scale)) / 1.15 var(--font-core);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.remWhen[data-soon] {
+  color: var(--text-noticed);
+}
+
+.remDay {
+  display: block;
+  margin-top: 2px;
+  font: var(--weight-regular) calc(12px * var(--type-scale)) / 1.3 var(--font-core);
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.remText {
+  min-width: 0;
+}
+
+.remName {
+  display: block;
+  font: var(--weight-medium) calc(15px * var(--type-scale)) / 1.35 var(--font-core);
+  color: var(--text-primary);
+  text-decoration: none;
+  text-wrap: pretty;
+}
+
+a.remName::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+a.remName:hover {
+  text-decoration: underline;
+}
+
+.remWhere {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 3px;
+  font: var(--weight-regular) calc(12.5px * var(--type-scale)) / 1.2 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.remWhereIcon {
+  display: flex;
+  color: var(--icon-on-well);
+}
+
+.remTime {
+  font-weight: var(--weight-medium);
+  color: var(--text-noticed);
+}
+
+/* Drawn 40 round, a 44 target. Above the name's link. */
+.remDismiss {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: -4px -4px -4px 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--icon-on-well);
+  cursor: pointer;
+}
+
+.remDismiss::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+}
+
+.remDismiss:hover {
+  background: var(--state-hover);
 }

@@ -64,7 +64,7 @@ function NeedsYou({items,and,onThread}){
 }
 
 function DayStepper({day,onPrev,onNext,first}){
-  const b={width:40,height:40,borderRadius:"var(--radius-pill)",border:"none",background:"var(--surface-fill)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"var(--text-primary)"};
+  const b={width:40,height:40,borderRadius:"var(--radius-pill)",border:"none",background:"var(--tp-btn, var(--surface-fill))",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"var(--text-primary)"};
   return <div style={{display:"flex",alignItems:"center",gap:4}}>
     <button type="button" aria-label="Previous day" onClick={onPrev} disabled={first} style={{...b,opacity:first?.35:1}}><TPIcon name="chevron-left" size={18}/></button>
     <div style={{flex:1,textAlign:"center"}}><div style={{font:"var(--weight-semibold) 20px/1.2 var(--font-core)",letterSpacing:"-.01em"}}>{day.name}</div>
@@ -72,8 +72,8 @@ function DayStepper({day,onPrev,onNext,first}){
     <button type="button" aria-label="Next day" onClick={onNext} style={b}><TPIcon name="chevron-right" size={18}/></button></div>;
 }
 
-function TPHead({children,n,hint}){
-  return <div style={{display:"flex",alignItems:"baseline",gap:8,paddingBottom:6,font:"var(--weight-semibold) 15px/1.2 var(--font-core)"}}>{children}
+function TPHead({children,n,hint,big}){
+  return <div style={{display:"flex",alignItems:"baseline",gap:8,paddingBottom:big?10:6,font:"var(--weight-semibold) "+(big?20:15)+"px/1.2 var(--font-core)",letterSpacing:big?"-.01em":0}}>{children}
     {n!=null?<em style={{fontStyle:"normal",fontWeight:400,fontSize:13,color:"var(--text-tertiary)"}}>{n}</em>:null}
     {hint?<span style={{marginLeft:"auto",font:"var(--weight-regular) 12.5px/1 var(--font-core)",color:"var(--text-tertiary)"}}>{hint}</span>:null}</div>;
 }
@@ -84,7 +84,7 @@ function TodoRow({it,last,onThread,add,onAdd,onOpen}){
     <div><b style={{display:"block",font:"var(--weight-medium) 15px/20px var(--font-core)"}}>{it.title}</b>
       <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginTop:3,font:"var(--weight-regular) 13px/18px var(--font-core)",color:"var(--text-secondary)"}}>
         {it.late?chip("var(--clay-100)","var(--text-danger)","calendar",it.late):null}
-        {it.at?chip("var(--surface-raised)","var(--text-secondary)","clock",it.at):null}
+        {it.at?chip("var(--tp-on-card, var(--surface-raised))","var(--text-secondary)","clock",it.at):null}
         {it.thread?<ThreadPill name={it.thread} onOpen={onThread}/>:null}
         {it.label&&TPLabel?<TPLabel color={it.label[0]}>{it.label[1]}</TPLabel>:null}</div></div>
     {add?<button type="button" onClick={e=>{e.stopPropagation();onAdd()}} style={{alignSelf:"center",height:28,display:"inline-flex",alignItems:"center",gap:3,padding:"0 10px",borderRadius:"var(--radius-pill)",border:"none",boxShadow:"inset 0 0 0 1px var(--border-strong)",background:"var(--surface-raised)",font:"var(--weight-medium) 12.5px/1 var(--font-core)",cursor:"pointer"}}><TPIcon name="plus" size={13}/>Today</button>:null}
@@ -95,10 +95,14 @@ function TodayBody({and,onThread,quiet}){
   const [d,setD]=React.useState(0);
   const [editing,setEditing]=React.useState(null);
   const day=TP_DATA.days[d];
-  const cardBg=and?"var(--a-c-low, var(--surface-fill))":"var(--surface-fill)";const r=and?16:"var(--radius-lg)";
+  const band=and?"var(--a-c-low, var(--surface-fill))":"var(--surface-fill)";const cardBg="var(--tp-card)";const r=and?16:"var(--radius-lg)";
   const todo=day.todo;
-  return <div style={{display:"flex",flexDirection:"column",gap:16,padding:"var(--space-3) var(--gutter-screen) var(--space-9)"}}>
-    {quiet?null:<NeedsYou items={TP_DATA.needs} and={and} onThread={onThread}/>}
+  /* Bands (11 October 2026, readme: Today). Sections alternate by position between the page and a
+     full-bleed band; inside a band, cards step up to raised and chips and buttons on them step down
+     to the fill. Needs you and Your day draw no heading. */
+  const S=[];
+  if(!quiet)S.push(["needs",<NeedsYou items={TP_DATA.needs} and={and} onThread={onThread}/>]);
+  S.push(["day",<>
     <DayStepper day={day} first={d===0} onPrev={()=>setD(Math.max(0,d-1))} onNext={()=>setD(Math.min(TP_DATA.days.length-1,d+1))}/>
     {day.ev.length?<>
       <div style={{font:"var(--weight-semibold) 20px/1.25 var(--font-core)",letterSpacing:"-.01em"}}>{day.next[0]}<span style={{color:"var(--blue-600)"}}>{day.next[1]}</span></div>
@@ -110,7 +114,11 @@ function TodayBody({and,onThread,quiet}){
             <b style={{font:"var(--weight-medium) 14px/1.3 var(--font-core)"}}>{e.title}</b>
             {e.thread?<span><ThreadPill name={e.thread} onOpen={onThread}/></span>:<span style={{font:"var(--weight-regular) 12px/1.3 var(--font-core)",color:"var(--text-tertiary)"}}>{e.s}</span>}</div>)}</div></div></>:null}
     {todo.length?<div><TPHead n={todo.length}>To do</TPHead><div style={{borderRadius:r,background:cardBg,overflow:"hidden"}}>{todo.map((it,i)=><TodoRow key={it.title} it={it} last={i===todo.length-1} onThread={onThread} onOpen={()=>setEditing(it)}/>)}</div></div>:null}
-    {d===0?<ThreadPages and={and} onThread={onThread}/>:null}
+  </>]);
+  if(d===0){S.push(["reminders",<Reminders and={and} onThread={onThread}/>]);S.push(["open",<ThreadPages and={and} onThread={onThread}/>]);}
+  return <div style={{display:"flex",flexDirection:"column",paddingBottom:"var(--space-9)"}}>
+    {S.map(([k,el],i)=>{const b=i%2===1;return <section key={k} style={{display:"flex",flexDirection:"column",gap:16,padding:(i===0?"var(--space-3)":"20px")+" var(--gutter-screen) 24px",background:b?band:"transparent",
+      "--tp-card":b?"var(--surface-raised)":band,"--tp-on-card":b?"var(--surface-fill)":"var(--surface-raised)","--tp-btn":b?"var(--surface-raised)":"var(--surface-fill)"}}>{el}</section>;})}
     {editing?<RowEditSheet it={editing} and={and} onClose={()=>setEditing(null)}/>:null}
   </div>;
 }
@@ -126,10 +134,10 @@ function ThreadPages({and,onThread,start}){
   React.useEffect(()=>{const el=ref.current;if(el&&start&&el.children[start])el.scrollLeft=el.children[start].offsetLeft-el.children[0].offsetLeft;},[start]);
   if(!P.length)return null;
   const total=P.reduce((n,p)=>n+p.todos.length,0);
-  const bg=and?"var(--a-c-low, var(--surface-fill))":"var(--surface-fill)";const r=and?16:"var(--radius-lg)";
+  const bg="var(--tp-card, "+(and?"var(--a-c-low, var(--surface-fill))":"var(--surface-fill)")+")";const r=and?16:"var(--radius-lg)";
   const onScroll=e=>{const el=e.currentTarget;const w=el.children[1]?el.children[1].offsetLeft-el.children[0].offsetLeft:1;setPg(Math.round(el.scrollLeft/w));};
   const line="inset 0 1px 0 var(--border-hairline)";
-  return <div><TPHead n={total}>Open in your threads</TPHead>
+  return <div><TPHead big n={total}>Open in your threads</TPHead>
     <div ref={ref} onScroll={onScroll} style={{display:"flex",gap:8,overflowX:"auto",scrollSnapType:"x mandatory",scrollPaddingLeft:"var(--gutter-screen)",margin:"0 calc(var(--gutter-screen) * -1)",padding:"0 var(--gutter-screen)",scrollbarWidth:"none"}}>
       {P.map(p=><div key={p.name} style={{flex:"0 0 calc(100% - 32px)",scrollSnapAlign:"start",borderRadius:r,background:bg,boxShadow:"inset 0 0 0 1px var(--edge-well)",overflow:"hidden",display:"flex",flexDirection:"column"}}>
         <div role="button" tabIndex={0} onClick={()=>!p.loose&&onThread&&onThread(p.name)} style={{padding:"14px 14px 10px",cursor:"pointer"}}>
@@ -152,7 +160,7 @@ function ThreadPages({and,onThread,start}){
 }
 
 function CustomizeSheet({and,onClose}){
-  const [rows,setRows]=React.useState([["Needs you","Requests, questions, account issues, tips",true],["Your day","Events and to-dos, a day at a time",true],["Open in your threads","To-dos with no date, a thread at a time",true],["What moved","Shared threads, since you last looked",false]]);
+  const [rows,setRows]=React.useState([["Needs you","Requests, questions, account issues, tips",true],["Your day","Events and to-dos, a day at a time",true],["Reminders","What offload is reminding you about, nearest first",true],["Open in your threads","To-dos with no date, a thread at a time",true],["What moved","Shared threads, since you last looked",false]]);
   const sw=(on,i)=><button type="button" role="switch" aria-checked={on} onClick={()=>setRows(rs=>rs.map((r,j)=>j===i?[r[0],r[1],!r[2]]:r))}
     style={{width:and?52:44,height:and?32:26,borderRadius:99,border:"none",position:"relative",flex:"0 0 auto",cursor:"pointer",background:on?"var(--moss-600)":(and?"transparent":"var(--ink-200)"),boxShadow:!on&&and?"inset 0 0 0 2px var(--a-on-var, var(--text-secondary))":"none"}}>
     <i style={{position:"absolute",top:and?(on?4:8):3,[on?"right":"left"]:and?(on?4:8):3,width:and?(on?24:16):20,height:and?(on?24:16):20,borderRadius:99,background:on||!and?"#fff":"var(--a-on-var, var(--text-secondary))"}}/></button>;

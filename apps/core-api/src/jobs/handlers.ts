@@ -363,6 +363,9 @@ const contentPurge: Handler = async () => {
     `.execute(trx);
     more = (await batch("notes", due)) || more;
     more = (await batch("notes", folded)) || more;
+    // A reminder dismissed on Today (2026-10-11) is about one day; a week
+    // after that day the row is for nothing, so it goes.
+    await sql`delete from reminder_dismissals where occurrence < to_char(now() - interval '7 days', 'YYYY-MM-DD')`.execute(trx);
 
     if (!more) {
       more = await batch("messages", due);

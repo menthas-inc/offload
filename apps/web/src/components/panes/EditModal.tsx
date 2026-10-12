@@ -176,7 +176,9 @@ export function EditModal({
           </div>
 
           {/* Time, an inline block: All day, then a time field at five-minute
-              steps, disabled while All day is on. */}
+              steps, drawn only while the row has a time (the owner,
+              2026-10-12): a disabled 09:00 beside All day read as a time the
+              row had. */}
           <div className={styles.editRow}>
             <span className={styles.editRowLabel}>Time</span>
             <label className={styles.editCheck}>
@@ -191,18 +193,19 @@ export function EditModal({
               />
               All day
             </label>
-            <input
-              type="time"
-              step={300}
-              className={styles.editTime}
-              value={when.time ?? "09:00"}
-              disabled={!when.day || when.time === null}
-              onChange={(event) => {
-                const time = event.target.value || null;
-                setWhen({ ...when, time, endTime: isEvent && time ? (when.endTime ?? anHourAfter(time)) : null });
-              }}
-              aria-label="Time"
-            />
+            {when.day && when.time !== null ? (
+              <input
+                type="time"
+                step={300}
+                className={styles.editTime}
+                value={when.time}
+                onChange={(event) => {
+                  const time = event.target.value || null;
+                  setWhen({ ...when, time, endTime: isEvent && time ? (when.endTime ?? anHourAfter(time)) : null });
+                }}
+                aria-label="Time"
+              />
+            ) : null}
           </div>
           {isEvent && when.time ? (
             <div className={styles.editRow}>

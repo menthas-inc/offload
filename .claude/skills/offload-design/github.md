@@ -4,6 +4,20 @@ path:
 
 ## Last sync
 
+date: 2026-10-11T16:25:02Z
+
+Read `main` (tree `1570ee3`) for 042 Reminders on Today: `docs/specs/042-reminders/at-merge.md`, `apps/mobile/components/today/TodayScreen.tsx`, `apps/web/src/components/today/Reminders.tsx`. Nothing copied.
+
+### Updated in this project
+
+- **Today: Reminders (C2b) and bands**: `explorations/home-reminders.html`, `explorations/today-sections.html`, `explorations/today-bands.html`
+- `ui_kits/mobile_app/TodayReminders.jsx` (shared by all three kits), bands in `TodayParts.jsx` and `WToday.jsx`
+- `handoff/APPLY-2026-10-11-today-bands.md`, `handoff/today-bands-standalone.html`; `readme.md` **Today** and 042's four readme lines; `decisions.md` one entry
+
+## Sync history
+
+### 2026-10-07T23:06:00Z
+
 date: 2026-10-07T23:06:00Z
 
 Read `main` (tree `fb195f4`; 18 commits past `60d4e15`, none touching tokens) for the dark theme: `packages/tokens/src/generate.mjs`
@@ -94,7 +108,7 @@ shared log, with this project's thread marks entry kept), and read `apps/web/src
 | Reaching the web | `components/conversation/`, the kits' conversation files, `explorations/reaching-the-web-options.html` | `docs/specs/016-reaching-the-web/`, `docs/specs/017-saying-what-it-is-doing/`, `apps/mobile/components/shell/Conversation.tsx` |
 | Answering | `components/answering/`, the kits' conversation files, `explorations/answering-options.html` | `apps/core-api/src/search/`, `apps/agent/src/offload_agent/`, `docs/specs/013-answering/` |
 | Immersive conversation | `explorations/immersive-conversation.html`, `explorations/immersive-conversation-decisions.html`, `handoff/APPLY-2026-09-29-conversation-sheet.md` | `apps/mobile/components/shell/Conversation.tsx`, `Plate.tsx`, `Shell.tsx`, `RowEditSheet.tsx`, `labels/LabelSheet.tsx`, `lib/motion.ts` |
-| Today | `explorations/today.html`, `handoff/APPLY-2026-10-01-today.md` | `apps/mobile/components/screens/Today.tsx`, `apps/web/src/components/panes/Today.tsx`, `TodayAgenda.tsx` |
+| Today | `explorations/today.html`, `explorations/today-bands.html`, `handoff/APPLY-2026-10-01-today.md`, `handoff/APPLY-2026-10-11-today-bands.md` | `apps/mobile/components/today/TodayScreen.tsx`, `apps/web/src/components/panes/Today.tsx`, `apps/web/src/components/today/Reminders.tsx`, `TodayAgenda.tsx` |
 | Labels | `explorations/labels.html`, `handoff/APPLY-2026-09-26-labels.md`, `components/core/LabelMark*`, `Chip` | `apps/mobile/components/shell/ContentRow.tsx`, `apps/web/src/components/panes/ContentRowView.tsx`, `apps/mobile/components/screens/Thread.tsx`, `apps/web/src/components/panes/Thread.tsx`, `TodayAgenda.tsx`, `Activity.tsx`, `Composer.tsx` |
 | Dates and notifications | `explorations/due-dates-and-notifications.html`, `handoff/APPLY-2026-09-22-dates.md` | `DateChip.tsx`, `WhenSheet.tsx`, `CustomRepeatSheet.tsx`, `ZoneStrip.tsx`, `Activity.tsx`, `NotificationsPage.tsx`, `packages/widgets/src/rrule.ts` |
 | A thread's map | `explorations/maps.html`, `handoff/APPLY-2026-10-02-maps.md` | `apps/mobile/components/screens/Thread.tsx`, `apps/mobile/components/shell/Widgets.tsx`, `apps/web/src/components/panes/Thread.tsx`, `apps/web/src/components/panes/Widgets.tsx`, `packages/widgets/src/index.ts`, `apps/core-api/src/places/resolve.ts`, `apps/agent/src/offload_agent/og.py` |

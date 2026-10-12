@@ -7,10 +7,14 @@
 // something. The page opens on Today every time; the day shown is never kept.
 //
 // 042. Reminders, on Today only: what offload is reminding about, nearest
-// first. Rows are Your day's rows with their thread; a note or a memory is its
-// name, its day and where it lives. Empty, it draws nothing. A section kind
+// first, as the kit's column since 2026-10-11 (`Reminders.tsx`), with a
+// dismiss that hides one reminder. Empty, it draws nothing. A section kind
 // this build does not know draws nothing either: Your day is its own branch,
 // never the fall-through.
+//
+// Bands (2026-10-11): each drawn section sits in a `Band`; by position they
+// alternate between the page and a full-bleed band, and a section that draws
+// nothing takes no position.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, AppState, Platform, Pressable, Text, View } from "react-native";
@@ -19,8 +23,8 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { addUtcDays, afterWrite, dayIn, dayName, keepInPlace, nothingLine, remindDayLabel, TODAY_REMINDERS } from "@offload/widgets";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { addUtcDays, afterWrite, dayIn, dayName, keepInPlace, nothingLine } from "@offload/widgets";
 import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { GearDot } from "../people/GearDot";
 import { Glyph } from "../Glyph";
@@ -41,7 +45,6 @@ import {
   notificationsCard,
   onTodayReset,
   openThreadsOn,
-  reminderDoor,
   remindersInOrder,
   remindersOn,
   saveLayout,
@@ -59,13 +62,13 @@ import {
 import { useConversation } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
 import { BellDot } from "../shell/BellDot";
-import { PlainChip } from "../shell/DateChip";
-import { ThreadPill } from "../shell/ThreadPill";
 import { ToastHost, useToast } from "../shell/Toast";
 import { NeedsYou, NOTIFICATIONS_PUT_OFF } from "./NeedsYou";
+import { Band, Ground } from "./Band";
 import { DayStepper, EventsStrip, NextLine, SectionHead } from "./DayParts";
 import { CustomizeSheet } from "./CustomizeSheet";
 import { OpenThreads } from "./OpenThreads";
+import { Reminders, reminderKey } from "./Reminders";
 import { useTodayRows } from "./useTodayRows";
 
 const isAndroid = Platform.OS === "android";
@@ -91,7 +94,6 @@ export default function TodayScreen() {
   const weekStart = useWeekStart();
   const { setDraft, filed } = useConversation();
   const toast = useToast();
-  const router = useRouter();
   const params = useLocalSearchParams<{ day?: string }>();
 
   const onScroll = useAnimatedScrollHandler((event) => {
@@ -153,10 +155,24 @@ export default function TodayScreen() {
   // 042. Reminders: read with Today and again after every write, as open in
   // your threads is.
   const [reminders, setReminders] = useState<TodayReminders | null>(null);
+  // Dismissed here: hidden until Today is built again, which the server's
+  // read then agrees with.
+  const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
+  const onGone = useCallback((key: string, hidden: boolean) => {
+    setGone((held) => {
+      const next = new Set(held);
+      if (hidden) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+  }, []);
   const askedReminders = useRef(0);
   const loadReminders = useCallback((fresh: boolean) => {
     const ask = ++askedReminders.current;
-    if (fresh) setReminders(null);
+    if (fresh) {
+      setReminders(null);
+      setGone(new Set());
+    }
     void fetchReminders().then((next) => {
       if (ask !== askedReminders.current || !next) return;
       setReminders(next);
@@ -329,7 +345,8 @@ export default function TodayScreen() {
     });
 
   const ink = isAndroid ? "text-a-on" : "text-text-primary";
-  const card = `overflow-hidden ${isAndroid ? "rounded-a-lg bg-a-c-low" : "rounded-lg bg-surface-fill"}`;
+  // The ground is the band's (`Ground`), so a card in a band steps up.
+  const cardShape = `overflow-hidden ${isAndroid ? "rounded-a-lg" : "rounded-lg"}`;
   // Dark theme: edges (design decisions, 2026-10-07). A layer over the rows
   // rather than a shadow on the card, since each row paints the card's fill
   // under its swipe and would cover it.
@@ -391,7 +408,7 @@ export default function TodayScreen() {
         {todo.length > 0 ? (
           <View>
             <SectionHead title="To do" count={todoCount} />
-            <View className={card}>
+            <Ground className={cardShape}>
               {lateShown.map((row, index) => rows.row(row, { border: index < todo.length - 1 || lateHidden > 0, chip: "date" }))}
               {lateHidden > 0 ? (
                 <Pressable
@@ -408,7 +425,7 @@ export default function TodayScreen() {
                 rows.row(row, { border: lateShown.length + index < todo.length - 1, chip }),
               )}
               {cardEdge}
-            </View>
+            </Ground>
             {notDrawn > 0 ? (
               <Text className="pt-space-2 font-core text-text-tertiary" style={{ fontSize: 13 }}>
                 and {notDrawn} more
@@ -422,22 +439,24 @@ export default function TodayScreen() {
 
   const dayOne = day && !day.everDumped && isToday;
 
-  // 042. One list, nearest first; a row archived or deleted here leaves it.
+  // 042. One list, nearest first; a row archived or deleted here leaves it,
+  // and so does a reminder dismissed here.
   const reminding = (() => {
     if (!reminders) return [];
     const live = new Map(rows.live(reminders.rows).map((row) => [row.id, row]));
-    return remindersInOrder(reminders).flatMap((entry): ReminderEntry[] => {
-      if (entry.of !== "row") return [entry];
-      const row = live.get(entry.id);
-      return row ? [{ ...entry, ...row, of: "row" }] : [];
-    });
+    return remindersInOrder(reminders)
+      .flatMap((entry): ReminderEntry[] => {
+        if (entry.of !== "row") return [entry];
+        const row = live.get(entry.id);
+        return row ? [{ ...entry, ...row, of: "row" }] : [];
+      })
+      .filter((entry) => !gone.has(reminderKey(entry)));
   })();
-  const quietInk = isAndroid ? "text-a-on-var" : "text-text-secondary";
 
   const sections = layout.sections.map((section) => {
     if (section.kind === "open_threads") {
       // Today only, and never over the day-one invitation.
-      return isToday && openThreadsOn(layout) && open && !dayOne ? (
+      return isToday && openThreadsOn(layout) && open && open.length > 0 && !dayOne ? (
         <OpenThreads
           key="open"
           pages={open.map((page) => {
@@ -458,61 +477,7 @@ export default function TodayScreen() {
     if (section.kind === "reminders") {
       // Today only, never over the day-one invitation, and nothing when empty.
       return isToday && remindersOn(layout) && reminders && !dayOne && reminding.length > 0 ? (
-        <View key="reminders">
-          <SectionHead title={TODAY_REMINDERS.name} count={reminding.length + reminders.more} />
-          <View className={card}>
-            {reminding.map((entry, index) => {
-              const border = index < reminding.length - 1;
-              if (entry.of === "row") {
-                return rows.row(entry, {
-                  border,
-                  chip: "date",
-                  by: entry.remindBy && !entry.dueAt && !entry.occursAt ? remindDayLabel(entry.remindDay, today, true) : undefined,
-                });
-              }
-              const when = remindDayLabel(entry.day, today, entry.by);
-              // A note with no thread opens nothing, so it is a line and no button.
-              const door = reminderDoor(entry);
-              const line = {
-                accessibilityLabel: `${entry.name}, ${when}`,
-                className: `flex-row items-start gap-space-4 px-space-5 py-space-4 ${border ? `border-b ${isAndroid ? "border-a-outline" : "border-border-hairline"}` : ""}`,
-                style: { minHeight: 56 },
-              };
-              const said = (
-                <View className="flex-1 items-start gap-space-1">
-                  <Text className={`self-stretch font-core font-medium ${ink}`} style={{ fontSize: 15.5, lineHeight: 21 }}>
-                    {entry.name}
-                  </Text>
-                  <View className="flex-row flex-wrap items-center gap-space-2">
-                    <PlainChip label={when} />
-                    {entry.of === "note" && entry.threadId && entry.threadName ? (
-                      <ThreadPill id={entry.threadId} name={entry.threadName} icon={entry.threadIcon} hue={entry.threadHue} size={24} />
-                    ) : (
-                      <Text className={`font-core ${quietInk}`} style={{ fontSize: 13 }}>
-                        {entry.of === "memory" ? "Memories" : "Not in a thread"}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-              );
-              return door ? (
-                <Pressable key={entry.id} onPress={() => router.push(door)} accessibilityRole="button" {...line}>
-                  {said}
-                </Pressable>
-              ) : (
-                <View key={entry.id} accessible {...line}>
-                  {said}
-                </View>
-              );
-            })}
-            {cardEdge}
-          </View>
-          {reminders.more > 0 ? (
-            <Text className="pt-space-2 font-core text-text-tertiary" style={{ fontSize: 13 }}>
-              and {reminders.more} more
-            </Text>
-          ) : null}
-        </View>
+        <Reminders key="reminders" entries={reminding} today={today} zone={zone} onGone={onGone} toast={toast} writes={rows.writes} />
       ) : null;
     }
     if (section.kind !== "day") return null;
@@ -570,8 +535,15 @@ export default function TodayScreen() {
         </View>
       </View>
 
-      <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerClassName="gap-space-8 px-gutter-screen pt-space-3 pb-space-8">
-        {sections}
+      <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerClassName="pb-space-8">
+        {layout.sections
+          .map((section, index) => [section.kind, sections[index] ?? null] as const)
+          .filter(([, drawn]) => drawn !== null)
+          .map(([kind, drawn], index) => (
+            <Band key={kind} index={index}>
+              {drawn}
+            </Band>
+          ))}
         <PlateSpace />
       </Animated.ScrollView>
       {rows.sheets}

@@ -1,10 +1,12 @@
 // Today, open in your threads (design 2026-10-07). Replaces If you have time.
 //
 // A page per thread holding open to-dos with no date (a rule always has one), every one
-// the account reads, whoever filed it. The thread whose oldest such to-do is
-// oldest comes first, and each page carries its oldest four and how many it
-// holds. Not in a thread is always last, and only when it holds one. The
-// server's rule, not a setting; no model call.
+// the account reads, whoever filed it. The pages come in My threads' order,
+// last activity first, and each page carries its first four in the thread
+// page's own order, by priority then newest first (the owner, 2026-10-12;
+// before that, oldest thread and oldest to-dos first). Not in a thread is
+// always last, and only when it holds one. The server's rule, not a setting;
+// no model call.
 
 import { sql } from "kysely";
 import { z } from "zod";
@@ -38,18 +40,19 @@ export const openPage = z.object({
 export type OpenPage = z.infer<typeof openPage>;
 export const openResponse = z.object({ pages: z.array(openPage), count: z.number() });
 
-type Ranked = AgendaRaw & { rank: string; held: string; oldest: Date };
+type Ranked = AgendaRaw & { rank: string; held: string; moved: Date };
 
-/** The oldest four of each thread's open undated to-dos, with the thread's
- *  count and its oldest, in one read. */
+/** The first four of each thread's open undated to-dos in the thread page's
+ *  order (`sinkDone`: priority, then newest first), with the thread's count
+ *  and when it last moved, in one read. */
 function ranked(accountId: string) {
   const open = agendaQuery(accountId)
     .where("content.type", "=", "task")
     .where("content.due_at", "is", null)
     .select([
-      sql<string>`row_number() over (partition by content.thread_id order by content.created_at, content.id)`.as("rank"),
+      sql<string>`row_number() over (partition by content.thread_id order by content.priority desc, content.id desc)`.as("rank"),
       sql<string>`count(*) over (partition by content.thread_id)`.as("held"),
-      sql<Date>`min(content.created_at) over (partition by content.thread_id)`.as("oldest"),
+      sql<Date>`threads.last_activity_at`.as("moved"),
     ]);
   return db.selectFrom(open.as("open")).selectAll().where("open.rank", "<=", String(OPEN_ROWS));
 }
@@ -63,7 +66,7 @@ export async function openThreads(accountId: string): Promise<z.infer<typeof ope
   if (looseId) threaded = threaded.where("open.threadId", "<>", looseId);
   const [inThreads, inLoose] = await Promise.all([
     threaded
-      .orderBy("open.oldest")
+      .orderBy("open.moved", "desc")
       .orderBy("open.threadId")
       .orderBy("open.rank")
       // Every page holds one row at least, so this reaches the last page.

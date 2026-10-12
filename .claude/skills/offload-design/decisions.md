@@ -32,6 +32,60 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Design system impact:** the readme's line that "a `bell` after the date means the digest will announce this row" (854) wants "offload will remind you about it, or somebody asked"; the line that the flag is the model's alone (862) and that Remind me shows only "while the row is a reminder" (918) want the author's switch on anything offload reminds about, in the row sheet, the note editor and the memory editor; the kits' "no per-item pushes" wants the reminder of its own before a clock time. The kits want: the Notifications page's Reminders section with the three count tiles and their picture; Today's Reminders section with the row, the "By" chip and the note and memory lines; Customize Today's fourth section; the web edit dialog's switch; the Activity `reminder` row; and a decision on the four phone and web differences above.
 
+### 2026-10-12 · Open in your threads keeps the orders the person already knows
+**Surface:** iOS, Android, web, Today
+**Raised by:** the owner, from use.
+
+**Was:** the pages ordered by the thread whose oldest open to-do is oldest, and each page's four to-dos oldest first.
+
+**Is:** the pages in My threads' order, last activity first, and each page's to-dos in the thread page's own order, by priority then newest first. Not in a thread stays last.
+
+**Why:** two orders for the same threads and the same rows, one of them seen nowhere else.
+
+**Design system impact:** `readme.md` **Today**, the Open in your threads bullet: "Threads with the oldest open to-do first" and "oldest first" want these two orders. `TodayParts.jsx` `ThreadPages` and `WToday.jsx` `WThreadPages` draw fixtures, so nothing moves there.
+
+### 2026-10-12 · The When sheet draws no clock while All day is on
+**Surface:** iOS, Android, web
+**Raised by:** the owner, from use: an all-day row's sheet showed a greyed 9:00, which read as a time the row had.
+
+**Was:** the phones' When block kept the hour row (Android) or the wheel (iOS) under All day at 0.4 opacity, "so the hour you had stays visible; touching it turns All day back off"; the web dialog kept a disabled time field at 09:00.
+
+**Is:** the hour row, the wheel and the web's time field exist only while the row has a time. All day on is the switch alone; switching it off brings the hour back at 9:00 as before.
+
+**Why:** a greyed clock is still a clock, and the value it showed was never the row's.
+
+**Design system impact:** `TodayParts.jsx` `RowEditSheet` and the When sheet's time block, and the web edit dialog: no hour drawn while All day is on. `readme.md` says nothing of the greyed hour, so nothing moves there.
+
+### 2026-10-11 · Today: Reminders and bands, as built
+**Surface:** iOS, Android, web, Today
+**Raised by:** code, building `handoff/APPLY-2026-10-11-today-bands.md` on `feat/today-bands`, checked in the browser.
+
+**Was:** the handoff's dismiss, which writes the thing's Remind me off and says *Won't remind you about Mum's birthday*; the countdown and the time in `--amber-700`; `lasso` on every row's where-line.
+
+**Is:**
+- **Dismiss hides one reminder, not the thing** (the owner, 2026-10-11): the `x` hides the reminder that was showing, for that occurrence and window, and the thing comes back with its next reminder, whose notification still goes. A birthday dismissed a month out comes back a week out. Remind me is untouched; stopping stays in the three editors. The toast says when it comes back, *Dismissed until Friday*, *Dismissed until 25 November*, *Dismissed until tomorrow*, or *Dismissed* when it was the last, with Undo.
+- The countdown and the time are `--text-noticed`, the alias `--amber-700` already has; the ramp is not consumed directly.
+- A row's where-line draws its thread's own icon (037), as every thread mark does since 7 October, with `lasso` as the fallback. A note draws `text-quote` whatever its thread, as the kit does.
+- On the web the name is one link covering its row with the dismiss above it, so the whole row opens and the `x` is a control of its own; on the phones the row is a button with the `x` inside it. The hit area is 44 on both.
+- The first section's top is `--space-3` on the phones (the handoff) and the band's 20 on the web (the kit's `WBand`).
+- A card in a band is `--surface-raised` on Android as well as iOS, as the kit's `--tp-card` is, rather than Material's `a-c-high`; a dark Pixel look decides whether that stays.
+
+**Why:** the owner's call on what a dismiss means; two rules that already hold elsewhere.
+
+**Design system impact:** `readme.md` **Today**, the Reminders bullet: the dismiss sentence and the toast line want the per-reminder meaning and *Dismissed until ...*; `--amber-700` wants `--text-noticed`. `ui_kits/mobile_app/TodayReminders.jsx`: the toast's copy, and the thread's icon on a row's where-line. `handoff/APPLY-2026-10-11-today-bands.md` §2 is superseded on the write and the toast.
+
+### 2026-10-11 · Today: Reminders as C2b, and bands
+**Surface:** iOS, Android, web, Today
+**Raised by:** the product owner, off 042's Today section as built (`main` at tree `1570ee3`): `explorations/home-reminders.html` (four ways, then B and C with dismiss, then C2 with several today, C2b taken) and `explorations/today-sections.html` (five ways to separate the sections, A taken; final `explorations/today-bands.html`). Handoff: `handoff/APPLY-2026-10-11-today-bands.md`.
+
+**Was:** Reminders as one card of rows (the thread page's row for a to-do, a name, a plain chip and a pill for a note or memory), with the phones and web drawing four things differently. Every Today section a grey card on the page under a 15px heading, so the sections ran together.
+
+**Is:** **Reminders** in one column: the countdown in a fixed 82px column; everything due today in one card under a single *Today*, each row with its own time; each later thing a card of its own. Lead glyphs on every surface. An `x` on each dismisses, turning that thing's Remind me off, with Undo. **Bands**: sections alternate by position between the page and a full-bleed `--surface-fill` band; cards in a band step to raised. Reminders and Open in your threads head at 20px; Needs you and Your day draw no heading.
+
+**Considered and not taken:** for Reminders, grouped by Today / This week / Later (B), a horizontal countdown strip (C), a grid of countdown cards (C1), offload's voice in one paragraph (D), and a Today on every card (C2a). For the page: rules and 24px headings (B), white panels on a sunken page (C), a colour per section (D), a sticky index (E).
+
+**Design system impact:** `readme.md` **Today** gains Reminders and Bands, and **Dates and notifications** and **The row and its sheet** take 042's four lines (the bell, Remind me, the reminder of its own). Kits: `ui_kits/mobile_app/TodayReminders.jsx` (new, shared by all three), `TodayParts.jsx` (bands, `TPHead big`, Customize Today's Reminders row), `ui_kits/web_app/WToday.jsx` (`WBand`), `reminders` in `data.js`. No new tokens or glyphs. Of 042's four phone and web differences this settles the lead glyph (both draw it) and *and N more* (no longer drawn: the column shows them all); the note editor's write and the Remind me glyph are untouched.
+
 ### 2026-10-07 · Today: open in your threads, as built
 **Surface:** iOS, Android, web, Today
 **Raised by:** code, building the handoff of the same day. Checked in the browser, on an iOS simulator and on a Pixel.

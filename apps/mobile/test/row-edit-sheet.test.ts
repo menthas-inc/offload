@@ -20,3 +20,13 @@ describe("the row's sheet", () => {
     expect(source).toMatch(/\.join\(", "\) \|\| "None"\}/);
   });
 });
+
+describe("the When sheet (owner, 2026-10-12)", () => {
+  const sheet = readFileSync(new URL("../components/shell/WhenSheet.tsx", import.meta.url), "utf8");
+
+  it("draws no clock while All day is on: the hour rows and the wheel exist only with a time", () => {
+    expect(sheet).not.toMatch(/clockLabel\(time \?\? "09:00"\)/);
+    expect(sheet).not.toMatch(/opacity: time === null \? 0\.4/);
+    expect(sheet).toMatch(/time !== null \? \(/);
+  });
+});
