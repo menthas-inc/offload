@@ -165,9 +165,11 @@ export function EventsStrip({
               <Text className="font-core font-semibold text-text-secondary" style={{ fontSize: 12, fontVariant: ["tabular-nums"] }}>
                 {eventRange(event, zone)}
               </Text>
+              {/* A past event's title takes the finished row's treatment (the
+                  owner, 2026-10-12): tertiary ink and a 1px strike, never dimmed. */}
               <Text
-                className={`font-core font-medium ${past ? "text-text-secondary" : isAndroid ? "text-a-on" : "text-text-primary"}`}
-                style={{ fontSize: 14, lineHeight: 18 }}
+                className={`font-core font-medium ${past ? "text-text-tertiary" : isAndroid ? "text-a-on" : "text-text-primary"}`}
+                style={{ fontSize: 14, lineHeight: 18, ...(past ? { textDecorationLine: "line-through" as const } : {}) }}
                 numberOfLines={2}
               >
                 {event.title}

@@ -63,3 +63,12 @@ describe("Today's sections on the phones (owner, 2026-10-07)", () => {
     expect(band).toMatch(/index === 0 \? "pt-space-3" : "pt-space-7"/);
   });
 });
+
+describe("Where you will be: a past event (owner, 2026-10-12)", () => {
+  it("is struck through as a finished row is, tertiary ink and a hairline strike, never dimmed", () => {
+    const parts = readFileSync(new URL("../components/today/DayParts.tsx", import.meta.url), "utf8");
+    expect(parts).toMatch(/past \? "text-text-tertiary"/);
+    expect(parts).toMatch(/past \? \{ textDecorationLine: "line-through" as const \}/);
+    expect(parts).not.toMatch(/past \? "text-text-secondary"/);
+  });
+});

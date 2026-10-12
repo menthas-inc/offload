@@ -32,6 +32,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Design system impact:** the readme's line that "a `bell` after the date means the digest will announce this row" (854) wants "offload will remind you about it, or somebody asked"; the line that the flag is the model's alone (862) and that Remind me shows only "while the row is a reminder" (918) want the author's switch on anything offload reminds about, in the row sheet, the note editor and the memory editor; the kits' "no per-item pushes" wants the reminder of its own before a clock time. The kits want: the Notifications page's Reminders section with the three count tiles and their picture; Today's Reminders section with the row, the "By" chip and the note and memory lines; Customize Today's fourth section; the web edit dialog's switch; the Activity `reminder` row; and a decision on the four phone and web differences above.
 
+### 2026-10-12 · A past event on Today is struck through
+**Surface:** iOS, Android, web, Today
+**Raised by:** the owner, from use: on Today's Where you will be, the morning's events still read as live in the afternoon.
+
+**Was:** the kit's past event at 50% opacity, which 027 changed to the title in `--text-secondary` and nothing else, since the opacity took the calendar's name below legible.
+
+**Is:** a past event's title takes the finished row's treatment, `--text-tertiary` with a 1px strike, never dimmed; the time, the calendar's name and the pill are unchanged. Both themes, since the ink and the strike are the same alias. On the web the title is an `<s>`.
+
+**Why:** the rule for a thing that is over already exists, and secondary ink alone did not say it.
+
+**Design system impact:** `TodayParts.jsx` the events strip: `opacity:e.past?.5:1` wants the title in tertiary with a 1px strike; `readme.md` **Today**, "past ones faded" wants "past ones struck through".
+
 ### 2026-10-12 · Open in your threads keeps the orders the person already knows
 **Surface:** iOS, Android, web, Today
 **Raised by:** the owner, from use.

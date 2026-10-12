@@ -424,10 +424,13 @@ a.event:hover {
   overflow: hidden;
 }
 
-/* A past event dims its title and nothing else, so the calendar's name under
-   it stays legible. */
+/* A past event's title takes the finished row's treatment (the owner,
+   2026-10-12): tertiary ink and a 1px strike, never dimmed, so it reads as
+   over in both themes and the calendar's name under it stays legible. */
 .event[data-past="true"] .eventTitle {
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .eventCalendar,
