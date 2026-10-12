@@ -12,14 +12,13 @@
 // beside it, from one piece of state.
 
 import { useEffect, useState, type ReactNode } from "react";
-import { useRouter } from "expo-router";
 import { ContentRowView } from "../shell/ContentRow";
 import { RowEditSheet } from "../shell/RowEditSheet";
-import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
+import { MoveSheet } from "../shell/MoveSheet";
 import { ConfirmSheet } from "../people/ConfirmSheet";
 import { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive } from "@offload/widgets";
 import type { ToastState } from "../shell/Toast";
-import { completeContent, deleteContent, editContent, fetchThread, setArchived, type ContentPatch, type ContentRow, type ContentSnapshot } from "../../lib/threads";
+import { completeContent, deleteContent, editContent, fetchThread, moveContent, setArchived, type ContentPatch, type ContentRow, type ContentSnapshot } from "../../lib/threads";
 import { createLabel, deleteLabel, withMadeLabels, type Label } from "../../lib/labels";
 import { perform, useWrites } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
@@ -27,7 +26,6 @@ import { useColors } from "../../lib/colors";
 import { drawnWhen } from "../../lib/when";
 import { drawnRemind, undoPatch } from "../../lib/reminders";
 import type { Day, TodayRow } from "../../lib/today";
-import { openThreadLabel, threadHref } from "../../lib/loose";
 
 export interface RowOptions {
   border: boolean;
@@ -50,14 +48,13 @@ export function useTodayRows(
   writes: ReturnType<typeof useWrites>;
   sheets: ReactNode;
 } {
-  const router = useRouter();
   const COLOR = useColors();
   const { zone } = useClock();
   const [drawn, setDrawn] = useState<Map<string, Partial<TodayRow>>>(new Map());
   const [dropped, setDropped] = useState<Set<string>>(new Set());
   const [renaming, setRenaming] = useState<TodayRow | null>(null);
   const [labels, setLabels] = useState<Label[] | undefined>(undefined);
-  const [acting, setActing] = useState<TodayRow | null>(null);
+  const [moving, setMoving] = useState<TodayRow | null>(null);
   useEffect(() => {
     setDrawn(new Map());
     setDropped(new Set());
@@ -195,21 +192,25 @@ export function useTodayRows(
     );
   }
 
-  const actions: RowAction[] = acting
-    ? [
-        { label: "Edit", icon: "pencil", run: () => setRenaming(acting) },
-        ...(acting.photo
-          ? []
-          : [{ label: acting.doneAt ? "Mark not done" : "Mark done", icon: acting.doneAt ? "rewind" : "check", run: () => tick(acting) }]),
-        // 028. A row not in a thread opens Not in a thread.
-        { label: openThreadLabel(acting.threadName), icon: "message-circle", run: () => router.push(threadHref(acting.threadId, acting.threadName)) },
-        ...(acting.archivedAt
-          ? [{ label: "Put back in the thread", icon: "rewind", run: () => askArchive(acting) }]
-          : acting.canDelete
-            ? [{ label: "Delete", icon: "trash-2", danger: true, run: () => remove(acting) }]
-            : [{ label: "Archive", icon: "archive", run: () => askArchive(acting) }]),
-      ]
-    : [];
+  /** 2026-10-12. Move, from the row's sheet. A row moved from Today is still
+   *  due today, so it keeps its place and changes its pill at the press; the
+   *  pill comes back if the server refuses, and Undo is the same move back. */
+  function move(row: TodayRow, to: { id: string; name: string }): void {
+    setMoving(null);
+    void perform(
+      {
+        apply: () => patchRow(row.id, { threadId: to.id, threadName: to.name, threadIcon: null, threadHue: null }),
+        revert: () => patchRow(row.id, { threadId: row.threadId, threadName: row.threadName, threadIcon: row.threadIcon, threadHue: row.threadHue }),
+        write: async () => (await moveContent(row.id, to.id)) !== null,
+        unwrite: async () => (await moveContent(row.id, row.threadId)) !== null,
+        did: `Moved to ${to.name}`,
+        failed: "Couldn't move that",
+        unfailed: "Couldn't put it back",
+      },
+      toast,
+      writes,
+    );
+  }
 
   const live = <T extends TodayRow>(rows: T[]): T[] =>
     rows.filter((row) => !dropped.has(row.id)).map((row) => ({ ...row, ...(drawn.get(row.id) ?? {}) }) as T);
@@ -232,7 +233,6 @@ export function useTodayRows(
       }
       onToggle={item.type === "task" ? () => tick(item) : undefined}
       onEdit={() => setRenaming(item)}
-      onActions={() => setActing(item)}
       onDelete={() => remove(item)}
     />
   );
@@ -256,8 +256,16 @@ export function useTodayRows(
           if (held.canDelete && held.archivedAt === null) remove(held);
           else askArchive(held);
         }}
+        onMove={(row) => setMoving(row as TodayRow)}
       />
-      <RowActionSheet open={acting !== null} actions={actions} onClose={() => setActing(null)} />
+      <MoveSheet
+        open={moving !== null}
+        exceptThreadId={moving?.threadId ?? null}
+        onClose={() => setMoving(null)}
+        onPick={(thread) => {
+          if (moving) move(moving, thread);
+        }}
+      />
       <ConfirmSheet
         open={archiving !== null}
         title={archiveAsk(archiving?.title ?? "")}

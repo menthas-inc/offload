@@ -66,7 +66,10 @@ describe("028 the screens", () => {
     expect(tick).toMatch(/did: "Ticked off"/);
   });
 
-  it("labels Today's way to a row's thread by whether it has one", () => {
-    expect(read("components/today/useTodayRows.tsx")).toMatch(/label: openThreadLabel\(acting\.threadName\)/);
+  it("a row's way to its thread is its pill, named by the thread; a row not in a thread carries none (the action sheet went 2026-10-12)", () => {
+    const row = read("components/shell/ContentRow.tsx");
+    expect(row).toMatch(/thread && thread\.name !== null/);
+    expect(row).toMatch(/accessibilityActions: \[\{ name: "openThread", label: `Open \$\{thread\.name\}` \}\]/);
+    expect(read("components/today/useTodayRows.tsx")).not.toMatch(/openThreadLabel/);
   });
 });

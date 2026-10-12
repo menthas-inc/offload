@@ -72,3 +72,11 @@ describe("Where you will be: a past event (owner, 2026-10-12)", () => {
     expect(parts).not.toMatch(/past \? "text-text-secondary"/);
   });
 });
+
+describe("the thread pill on a card (owner, 2026-10-12)", () => {
+  it("never grows past the card it sits on: the name is cut inside the pill", () => {
+    const pill = readFileSync(new URL("../components/shell/ThreadPill.tsx", import.meta.url), "utf8");
+    expect(pill).toMatch(/maxWidth: "100%"/);
+    expect(pill).toMatch(/flexShrink: 1/);
+  });
+});

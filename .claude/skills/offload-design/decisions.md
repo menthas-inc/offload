@@ -32,6 +32,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Design system impact:** the readme's line that "a `bell` after the date means the digest will announce this row" (854) wants "offload will remind you about it, or somebody asked"; the line that the flag is the model's alone (862) and that Remind me shows only "while the row is a reminder" (918) want the author's switch on anything offload reminds about, in the row sheet, the note editor and the memory editor; the kits' "no per-item pushes" wants the reminder of its own before a clock time. The kits want: the Notifications page's Reminders section with the three count tiles and their picture; Today's Reminders section with the row, the "By" chip and the note and memory lines; Customize Today's fourth section; the web edit dialog's switch; the Activity `reminder` row; and a decision on the four phone and web differences above.
 
+### 2026-10-12 · One way into a row: the sheet holds Move, and the long press goes
+**Surface:** iOS, Android
+**Raised by:** the owner, from use: a tap opened the row's sheet (When, Edit, Labels, Delete) and a long press opened a second menu with Move in it, and nothing on the row said so.
+
+**Was:** the readme's rule that a swipe deletes and a long press opens `RowActionSheet` with everything beyond edit and the way out (Move, When, Labels, Mark done, Open thread), and that somebody else's row opened that menu on a tap instead of the sheet.
+
+**Is:** the row's one sheet gains a **Move** row after Labels, drawn to whoever may move the row (`canMove`); it closes the sheet and opens the thread list, on Today, in a thread and in Not in a thread. The long press is gone from every content row, a tap opens the sheet for every row, and the photo viewer's More opens the same sheet. Mark done is the tick on the row; a thread opens from its pill or the page. The long name on a thread pill is cut inside the pill rather than running past an event card.
+
+**Why:** a gesture is something you have to remember; the owner's own argument from 2026-09-11 for drawing the row's tools, now applied to the last thing a gesture alone carried.
+
+**Design system impact:** `readme.md` **The row and its sheet**: "the long press still opens `RowActionSheet`" and the 2026-09 rule that anything beyond edit and the way out goes behind a `RowActionSheet` on a phone want the one sheet; `TodayParts.jsx` `RowEditSheet` wants a Move row after Labels. `RowActionSheet` stays as a component for the thread head's More.
+
 ### 2026-10-12 · A past event on Today is struck through
 **Surface:** iOS, Android, web, Today
 **Raised by:** the owner, from use: on Today's Where you will be, the morning's events still read as live in the afternoon.

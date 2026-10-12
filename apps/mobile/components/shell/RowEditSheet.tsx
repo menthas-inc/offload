@@ -43,6 +43,7 @@ export function RowEditSheet({
   onSave,
   onRemove,
   labels,
+  onMove,
 }: {
   row: ContentRow | null;
   onClose: () => void;
@@ -55,6 +56,9 @@ export function RowEditSheet({
   labels?: Label[] | undefined;
   /** The way out, in the sheet that already has the row open. */
   onRemove: (row: ContentRow) => void;
+  /** 2026-10-12. Move, for whoever may move the row: the sheet closes and the
+   *  screen opens its thread list. Absent where nothing can be moved. */
+  onMove?: (row: ContentRow) => void;
 }) {
   const COLOR = useColors();
   const { zone } = useClock();
@@ -214,6 +218,25 @@ export function RowEditSheet({
                 {[...carried.map((label) => label.name), ...(choice?.made ?? [])].join(", ") || "None"}
               </Text>
             </View>
+            <Glyph name="chevron-right" size={18} color={COLOR.iconOnWell} />
+          </Pressable>
+        ) : null}
+
+        {/* Move, to another thread, from the one sheet (the owner,
+            2026-10-12): it was behind a long press the tap never hinted at. */}
+        {row.canMove && onMove ? (
+          <Pressable
+            onPress={() => {
+              onClose();
+              onMove(row);
+            }}
+            className="min-h-tap-min flex-row items-center gap-space-3"
+            accessibilityRole="button"
+          >
+            <Glyph name="layers" size={18} color={COLOR.iconOnWell} />
+            <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
+              Move
+            </Text>
             <Glyph name="chevron-right" size={18} color={COLOR.iconOnWell} />
           </Pressable>
         ) : null}
