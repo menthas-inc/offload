@@ -5,7 +5,8 @@
 // A set takes its tallest page's height and each foot sits at the bottom.
 //
 // A page: the thread's icon, name and the people sharing it, which open the
-// thread; up to four to-dos, oldest first, with how long each has been open;
+// thread; up to four to-dos in the thread page's order, pages in My threads'
+// order (2026-10-12), with how long each has been open;
 // then N more and Open thread. Not in a thread is last, with offload's line
 // when it has a thread in mind and Sort them. A tick strikes the row through in
 // place with Undo, and the row leaves the page the next time Today is built.

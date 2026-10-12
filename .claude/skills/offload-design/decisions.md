@@ -32,6 +32,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Design system impact:** the readme's line that "a `bell` after the date means the digest will announce this row" (854) wants "offload will remind you about it, or somebody asked"; the line that the flag is the model's alone (862) and that Remind me shows only "while the row is a reminder" (918) want the author's switch on anything offload reminds about, in the row sheet, the note editor and the memory editor; the kits' "no per-item pushes" wants the reminder of its own before a clock time. The kits want: the Notifications page's Reminders section with the three count tiles and their picture; Today's Reminders section with the row, the "By" chip and the note and memory lines; Customize Today's fourth section; the web edit dialog's switch; the Activity `reminder` row; and a decision on the four phone and web differences above.
 
+### 2026-10-12 · Open in your threads keeps the orders the person already knows
+**Surface:** iOS, Android, web, Today
+**Raised by:** the owner, from use.
+
+**Was:** the pages ordered by the thread whose oldest open to-do is oldest, and each page's four to-dos oldest first.
+
+**Is:** the pages in My threads' order, last activity first, and each page's to-dos in the thread page's own order, by priority then newest first. Not in a thread stays last.
+
+**Why:** two orders for the same threads and the same rows, one of them seen nowhere else.
+
+**Design system impact:** `readme.md` **Today**, the Open in your threads bullet: "Threads with the oldest open to-do first" and "oldest first" want these two orders. `TodayParts.jsx` `ThreadPages` and `WToday.jsx` `WThreadPages` draw fixtures, so nothing moves there.
+
 ### 2026-10-12 · The When sheet draws no clock while All day is on
 **Surface:** iOS, Android, web
 **Raised by:** the owner, from use: an all-day row's sheet showed a greyed 9:00, which read as a time the row had.

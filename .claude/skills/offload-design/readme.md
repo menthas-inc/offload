@@ -1010,7 +1010,8 @@ nothing is drawn when it is empty, which is most days. There is no heading and n
   it replaces *If you have time*): the to-dos with **no date**, a page per thread, swiped, the next
   page peeking and dots under. A page: the thread's own icon and its name at 17px semibold with the
   people sharing it; up to four to-dos, oldest first, each with how long it has been open; then
-  *N more* and *Open thread*. Threads with the oldest open to-do first; **Not in a thread** last, when
+  *N more* and *Open thread*. Threads with the oldest open to-do first (*as built, 12 October: the pages in My
+  threads' order and the to-dos in the thread page's order, see decisions*); **Not in a thread** last, when
   it holds a to-do, with offload's line when it has a thread in mind for one, what else it holds and
   *Sort them*. A tick strikes through in place with Undo. The web shows two pages side by side,
   stepped by arrows in the head. *As built, 7 October:* no first sentence of the thread's read

@@ -4,7 +4,8 @@
 // only, after To do: a page per thread holding open to-dos with no date, two
 // side by side in the pane's measure, stepped by two with the arrows in the
 // head, each disabled at its end. A page: the thread's icon, name and the
-// people sharing it, which open the thread; up to four to-dos, oldest first,
+// people sharing it, which open the thread; up to four to-dos in the thread
+// page's order (pages in My threads' order, since 2026-10-12),
 // with how long each has been open; then N more and Open thread. Not in a
 // thread is last, with offload's line when it has a thread in mind and Sort
 // them. A tick strikes the row through in place with Undo, and the row leaves

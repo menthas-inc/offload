@@ -57,27 +57,33 @@ async function looseThread(accountId: string): Promise<string> {
 }
 
 describe("open in your threads: the pages", () => {
-  it("draws a page per thread with open undated to-dos, the thread with the oldest one first, four rows each, oldest first", async () => {
+  it("draws a page per thread with open undated to-dos, in My threads' order, four rows each in the thread page's order", async () => {
     const me = await account();
     const flat = await thread([me], "Flat");
     const trip = await thread([me], "Europe, October");
     const dated = await thread([me], "Only dated");
+    // My threads orders by last activity, newest first: Flat moved last.
+    await db.updateTable("threads").set({ last_activity_at: new Date(Date.now() - 60_000) } as never).where("id", "=", flat).execute();
+    await db.updateTable("threads").set({ last_activity_at: new Date(Date.now() - 3_600_000) } as never).where("id", "=", trip).execute();
     await aged(await task(me, flat, "Fix the tap", null), 30);
-    await aged(await task(me, trip, "Book the Sintra train", null), 90);
+    // The thread page's To do: by priority, then newest first.
+    const sintra = await task(me, trip, "Book the Sintra train", null);
+    await aged(sintra, 90);
     for (const [title, ago] of [["Viva Viagem cards", 80], ["Orsay tickets", 70], ["Adapters", 60], ["Hotel in Paris", 50]] as const) {
       await aged(await task(me, trip, title, null), ago);
     }
+    await db.updateTable("content").set({ priority: 3 } as never).where("id", "=", sintra).execute();
     await task(me, trip, "Dated", TODAY);
     await task(me, dated, "Has a day", addUtcDays(TODAY, 3));
 
     const read = await open(await signIn(me));
     expect(shape(read.pages)).toEqual([
-      ["Europe, October", ["Book the Sintra train", "Viva Viagem cards", "Orsay tickets", "Adapters"], 5],
       ["Flat", ["Fix the tap"], 1],
+      ["Europe, October", ["Book the Sintra train", "Hotel in Paris", "Adapters", "Orsay tickets"], 5],
     ]);
     expect(read.count).toBe(6);
-    expect(read.pages[0]!.threadId).toBe(trip);
-    expect(read.pages[0]!.loose).toBeNull();
+    expect(read.pages[1]!.threadId).toBe(trip);
+    expect(read.pages[1]!.loose).toBeNull();
   });
 
   it("leaves out done, archived and deleted rows, what is not a to-do, and threads the person is not in", async () => {
@@ -108,6 +114,8 @@ describe("open in your threads: the pages", () => {
     const me = await account();
     for (let n = 0; n < OPEN_PAGES + 2; n++) {
       const t = await thread([me], `Thread ${n}`);
+      // Thread 0 moved last, so it comes first as it does on My threads.
+      await db.updateTable("threads").set({ last_activity_at: new Date(Date.now() - n * 60_000) } as never).where("id", "=", t).execute();
       await aged(await task(me, t, `To-do ${n}`, null), 100 - n);
     }
     const read = await open(await signIn(me));
@@ -135,7 +143,8 @@ describe("open in your threads: Not in a thread", () => {
     const read = await open(await signIn(me));
     expect(shape(read.pages)).toEqual([
       ["Flat", ["Fix the tap"], 1],
-      [null, ["Renew passport", "Call the landlord"], 2],
+      // In the thread page's order: newest first.
+      [null, ["Call the landlord", "Renew passport"], 2],
     ]);
     expect(read.pages[1]!.threadId).toBe(loose);
     expect(read.pages[1]!.loose).toEqual({ inMind: 1, holds: { link: 2 } });
