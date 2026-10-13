@@ -604,3 +604,15 @@ with answering on Opus 5; the merge worktree's nine verification runs are
 folded into cases.jsonl and history.jsonl and HISTORY.md regenerated;
 stack.md's model table and the decisions entry are written. Next: the
 gate, the push, the pull request body.
+
+## 2026-10-13 18:40, merged main and opened the pull request
+
+The branch was 39 behind main (PR 105 had been merged in the meantime);
+merged origin/main in: only HISTORY.md and history.jsonl conflicted,
+resolved by union and regeneration; plan_v2.md and tools.py auto-merged
+(another session's calendar change). The gate blocked the merge on two em
+dashes that are main's own test fixtures (a regex and a date range in
+packages/widgets tests), so the lead ran what the gate runs by hand: lint
+clean, the shared suite green (2,470 core-api tests, 8 tasks), the agent
+suite 1,293 green, subsets regenerated (main added two cases), then
+finished the merge. Pushed; pull request opened. Spend $39.6 of $70.

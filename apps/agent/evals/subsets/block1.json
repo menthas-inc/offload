@@ -19,7 +19,9 @@
     "n-wifi-fact",
     "named-thread-from-today",
     "new-thread-is-worth-a-sentence",
+    "no-calendar-appointment-is-a-row",
     "no-country-dump-files-without",
+    "off-the-map",
     "past-month-no-year",
     "pasted-confirmation",
     "preserve-truncated",
@@ -29,8 +31,6 @@
     "read-wifi",
     "reads-and-answers",
     "rule-applied-to-own-filing",
-    "scope-default-is-one",
-    "waiting-is-reported-as-waiting",
     "when-i-get-a-chance"
   ]
 }
