@@ -136,3 +136,7 @@ holdout accuracy up 0.8 points, warm day cost x0.78, p90 latency halved;
 on the full set accuracy inside the band, cost x0.65, median latency
 x0.84. The log of everything that happened is `LOG.md`; the per-round
 findings are `rounds/1/FINDINGS.md` and `rounds/2/FINDINGS.md`.
+
+## Before the next run
+
+Read `LEARNINGS.md`: what the two runs taught, one entry per thing that cost time or money, with what the framework now does about it. `REPORT.md` and `REPORT-v2.md` are the two runs' results; `rounds/v2/PLAN.md` is the second run's checklist and the lead's procedure as it was actually followed.

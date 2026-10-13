@@ -2100,6 +2100,12 @@ async def _answer_with(
     before = len(_spent)
     if expect.get("rubric") and not failures and not asked_back:
         judged, note = await _judge(client, case, transcript)
+    # After the judge, which reads the reply as the person would: what the
+    # loop did to the turn, so every cut and every send back can be read.
+    if getattr(outcome, "sent_back", False):
+        transcript += "\n(sent back once: the search found nothing)"
+    if getattr(outcome, "unshaped", None):
+        transcript += f"\n(reshaped from: {outcome.unshaped!r})"
     cost = _outcome_cost(outcome) + sum(_spent[before:])
     return Result(
         case,

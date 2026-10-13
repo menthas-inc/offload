@@ -15,10 +15,10 @@ def test_filing_runs_on_haiku_5_5():
     assert default == "claude-haiku-5-5"
 
 
-def test_answering_stays_on_opus_5():
-    """answer.md was rewritten for a small model in the second swarm run and
-    Haiku 5.5 reads it well (principle 17 at 36 of 37), but on the sealed
-    holdout it answered 31 of 35 against Opus 5's 35 of 35, so Opus stays
-    until the owner takes the switch (2026-10-13)."""
+def test_answering_runs_on_haiku_5_5():
+    """answer.md was rewritten for a small model in the second swarm run; on
+    the sealed holdout Haiku 5.5 answered 31 of 35 against Opus 5's 35 of
+    35 at about a thirtieth of the cost, and the owner took the switch on
+    2026-10-13. Opus 5 stays a one-line fallback."""
     default = {f.name: f.default for f in fields(Config)}["answer_model"]
-    assert default == "claude-opus-5"
+    assert default == "claude-haiku-5-5"

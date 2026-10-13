@@ -97,3 +97,19 @@ classified, thing. Short, friendly, not emphatic, not apologetic.
 
 Be fast. Read the files your lever touches, not the repo. Four to six tool
 calls of orientation is plenty. Finish inside your cap and stop.
+
+## Learned the hard way, so it is here
+
+- If the session's permission system refuses an eval command, write
+  RESULT.md with the exact commands and stop. The lead runs them under your
+  spend name. Do not retry and do not route around it.
+- Read a record only with `--paired --prompts <the base hashes in your
+  brief>` and `--surface <yours>` when your change touches one surface. A
+  read against your worktree's own log at the newest hash is your own run
+  read against itself.
+- Your one-sentence statement in RESULT.md says what the patch does, not
+  what the hypothesis hoped. A blind skeptic refuses the gap between them.
+- A probe (`--model surface=id`, no code change) is a complete result. If
+  your hypothesis is a model, run the probe before writing a line.
+- Never a rubric's sentence in a prompt, never a rule aimed at one case:
+  both are refused on sight, and the second moves the whole surface.

@@ -616,3 +616,57 @@ packages/widgets tests), so the lead ran what the gate runs by hand: lint
 clean, the shared suite green (2,470 core-api tests, 8 tasks), the agent
 suite 1,293 green, subsets regenerated (main added two cases), then
 finished the merge. Pushed; pull request opened. Spend $39.6 of $70.
+
+## 2026-10-13 19:40, the owner's calls and round 4
+
+The owner took the switch (answering on Haiku 5.5), asked for a try at
+closing the four-case holdout gap with prompt tuning, a pull request for
+the privacy page, the learnings folded into the framework, and the
+housekeeping done by the lead once the pull requests exist.
+
+Done: config.py answers on Haiku 5.5 with a red-first pin; pull request
+117 (privacy section 5 names the name and the calendars on every answering
+call, dated 13 October, 39 page tests green) from a worktree reset to main;
+LEARNINGS.md, the brief's "learned the hard way" section and the procedure's
+"as the second run actually ran it"; 35 swarm worktrees and branches
+removed, the four in use kept.
+
+Round 4, three workers from the branch head with the switch, 22 minutes,
+0.65M harness tokens, $4 of evals: answer-haiku-rules refused itself
+(literal lines changed wording, not tool choices; it measured Haiku's
+run-to-run spread on 16 and 17 as 5 to 7 and 33 to 36 across six
+near-identical runs, as large as the gap), answer-haiku-shapes refused
+itself (fixed the cases it named, lost others on 17), answer-haiku-mechanical
+kept by the lead against its skeptic's refusal, which was about the lead's
+model switch riding in the patch: three loop guards with red-first tests
+(a reply that begins with a fixed line is cut to it; bold over more than
+two words loses its markers; a turn whose searches found nothing with
+look_up offered and unused is sent back once), 17 at 36 of 37, 18 at 14 of
+14, 11 at 7 of 7, two of the four holdout misses closed deterministically.
+The guards (plan.py, run.py, tests/test_answer_guards.py) are on the branch;
+principle 09, the holdout once and the full set are running on it.
+
+## 2026-10-13 20:30, the guards on the holdout
+
+Principle 09 on the branch (guards, Haiku answering): 51 of 56, z +0.62;
+the five flips are Haiku filing lookups and the two answer cases the
+skeptic named pass. Holdout once with the guards: 124 of 132, z +1.19,
+answer 33 of 35 (31 before the guards, Opus 35), file 67 of 73, warm day
+x0.11, latency x0.79. answer-selfharm and answer-term-dates now pass;
+answer-last-train-theirs newly fails; weather-no-country still asks. The
+switch ships with the guards. The model-calls page and the cost sheet are
+rebuilt from the branch (the page's anchors for the answer, classify and
+filing prompts realigned to the rewrites and to main's merge; the media
+block moved its two sections to the end); the model-calls page is
+published, the cost sheet after the full set finishes.
+
+## 2026-10-13 21:00, the full set with the guards, and the branch
+
+Full set, filing and answering on Haiku 5.5 with the three guards: 560 of
+639, z +0.17 against the history, warm day x0.10, median latency x0.74;
+answering 103 of 121 (108 before the guards, 115 on Opus 5; the history
+expects 104.7 +/- 3.2, z -0.55), while the holdout went 31 to 33 of 35.
+Both moves are inside Haiku's spread on these cases; the guards stay for
+the two shapes they fix deterministically. $45 spent of $70. The owner
+dropped the privacy pull request (the current wording covers it); PR 116
+needs main merged in again (PR 115 landed after the last merge).

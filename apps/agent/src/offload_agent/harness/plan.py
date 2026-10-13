@@ -249,6 +249,11 @@ class Landed:
 @dataclass
 class Outcome:
     reply: str | None
+    #: Swarm v2 round 4. What the model wrote when the answering loop reshaped
+    #: it, for the eval's transcript only: never posted and never logged.
+    unshaped: str | None = None
+    #: An answering turn sent back once to look up what its search did not find.
+    sent_back: bool = False
     landed: list[Landed] = field(default_factory=list)
     usage: list[Usage] = field(default_factory=list)
     #: Tools that were refused or unavailable. Kept because a turn where
@@ -917,12 +922,17 @@ async def _run(
     labelled: frozenset[str] = frozenset(),
     has_media: bool = False,
     notes_carried: str | None = None,
+    answering: bool = False,
 ) -> Outcome:
     """The loop. Everything that differs between the two callers is an argument,
     so there is one place where a tool result becomes a model turn."""
     messages: list[dict] = [{"role": "user", "content": blocks}]
     outcome = Outcome(reply=None)
     offered = {t["name"] for t in tools}
+    # Swarm v2 round 4. Whether an answering turn searched, and whether any of
+    # its searches found a row: one that found none may be sent back once.
+    searched = False
+    search_found = False
     max_tokens = MAX_OUTPUT_TOKENS
     # 038. Whether this turn has read the web, which the Core API needs to
     # refuse a memory and cannot see for itself: the reader runs here.
@@ -1022,6 +1032,29 @@ async def _run(
             # answering turn the trailing text is the answer.
             if reply_from_say and outcome.failed and not outcome.reply:
                 return _hold_to_the_reason(outcome)
+            # **An empty search is not a no while the web is still there.**
+            # Haiku searched for a school term's start, found nothing, and
+            # answered that it was not in their threads, where the prompt says
+            # a public date nothing readable holds is `look_up`'s. Sent back
+            # once with one line; the second reply stands, so a question about
+            # something of theirs still ends as it would have.
+            if (
+                answering
+                and not outcome.sent_back
+                and searched
+                and not search_found
+                and not read_web
+                and not outcome.questions
+                and "look_up" in offered
+                and text
+                and _fixed_line(text) is None
+            ):
+                outcome.sent_back = True
+                messages.append({"role": "assistant", "content": response.content})
+                messages.append(
+                    {"role": "user", "content": [{"type": "text", "text": EMPTY_SEARCH_LINE}]}
+                )
+                continue
             outcome.reply = outcome.reply or text or None
             return _hold_to_the_reason(outcome)
 
@@ -1182,6 +1215,13 @@ async def _run(
             if isinstance(body, dict):
                 this_round[-1][2].update(body)
             results.append(_result(block.id, body, error=not body.get("ok")))
+
+        # A search that came back with no rows, read from the round's record
+        # rather than the model's tool name.
+        for name, _, body in this_round:
+            if name == "search" and body.get("ok"):
+                searched = True
+                search_found = search_found or bool(_rows_of(body))
 
         # **Nothing left to read, so no call to read it.** See `_nothing_left_to_read`.
         troubles = len(outcome.refused) + len(outcome.failed) + len(outcome.declined)
@@ -1549,7 +1589,7 @@ async def plan_answer(
     # server refuses any other field from this path. Its own definition says so.
     tools = tools + [ANSWER_ASK_TOOL]
 
-    return await _run(
+    outcome = await _run(
         client,
         model,
         call_tool,
@@ -1558,6 +1598,83 @@ async def plan_answer(
         tools=tools,
         filed=0,
         effort=ANSWER_EFFORT,
+        answering=True,
+    )
+    if outcome.reply is not None:
+        shaped = shape_answer(outcome.reply)
+        if shaped != outcome.reply:
+            outcome.unshaped, outcome.reply = outcome.reply, shaped
+    return outcome
+
+
+# Swarm v2 round 4: the reply shapes the answering loop holds in code. Answering
+# on Haiku 5.5 missed four of thirty five sealed cases, every one the shape of
+# the reply rather than what was read; these are the shapes a loop can hold.
+
+#: The fixed replies answer.md quotes. Each is the whole reply.
+NOT_SURE = "Not sure."
+NOTHING_YET = "Nothing yet."
+ON_THEIR_DEVICE = "That lives on your device, so offload does not see it."
+FIXED_LINES = (NOT_SURE, REFUSED_SUBJECT, NOTHING_YET, ON_THEIR_DEVICE)
+for _line in FIXED_LINES:
+    if f"`{_line}`" not in _ANSWER_PROMPT:
+        raise RuntimeError(f"answer.md no longer quotes the fixed line {_line!r}")
+
+#: Said once to a turn that searched, found nothing, and was ending without the
+#: lookup it was offered.
+EMPTY_SEARCH_LINE = (
+    "Your search found nothing. If the question is a public date, a timetable or a "
+    "forecast their plans need, call look_up now. If it is something of theirs, or "
+    "not offload's question, give the same reply again."
+)
+
+_BOLD = re.compile(r"(?<!\\)\*\*(?=\S)(.+?)(?<=\S)(?<!\\)\*\*")
+_LIST_LINE = re.compile(r"^\s*(?:- |\d+\. )")
+
+
+def _rows_of(body: dict) -> list:
+    """What a read found: its rows, and a search's asides, the notes and
+    messages found by meaning, which are answers too."""
+    result = body.get("result")
+    if not isinstance(result, dict):
+        return []
+    return [*(result.get("rows") or []), *(result.get("asides") or [])]
+
+
+def _fixed_line(text: str) -> str | None:
+    """The fixed line a reply begins with, or None. A curly apostrophe is the
+    same line."""
+    plain = text.strip().replace("\u2019", "'")
+    for line in FIXED_LINES:
+        if plain == line or (plain.startswith(line) and plain[len(line)].isspace()):
+            return line
+    return None
+
+
+def _unbold(text: str, *, keep_short: bool) -> str:
+    def one(m: re.Match) -> str:
+        if keep_short and len(m.group(1).split()) <= 2:
+            return m.group(0)
+        return m.group(1)
+
+    return _BOLD.sub(one, text)
+
+
+def shape_answer(reply: str) -> str:
+    """A reply held to the shapes answer.md asks for and a small model misses.
+
+    - A fixed line is the whole reply: anything after it is cut.
+    - Bold is for the one or two words a sentence turns on: a longer span loses
+      it, and so does a list where every item carries it.
+    """
+    line = _fixed_line(reply)
+    if line is not None:
+        return line
+    lines = reply.split("\n")
+    listed = [i for i, ln in enumerate(lines) if _LIST_LINE.match(ln)]
+    every_item = len(listed) >= 2 and all(_BOLD.search(lines[i]) for i in listed)
+    return "\n".join(
+        _unbold(ln, keep_short=not (every_item and i in listed)) for i, ln in enumerate(lines)
     )
 
 

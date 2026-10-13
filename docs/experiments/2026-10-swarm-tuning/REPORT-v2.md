@@ -150,6 +150,37 @@ two-read response in sixteen); Haiku 5.5 answering at effort high (closes
   prompt; the rest are the next prompt round, which this run shows pays
   (five cases on answering for one rewrite).
 
+
+## Round 4: closing the gap, after the owner took the switch
+
+The owner chose answering on Haiku 5.5 and asked for one try at the four
+holdout misses. Three workers from the branch head: reply-shape rules as
+literal lines (refused itself: the lines changed Haiku's wording, not its
+tool choices, and it measured Haiku's run-to-run spread on principles 16
+and 17 as 5 to 7 and 33 to 36 across six near-identical runs, as large as
+the gap); a reply-shapes section by question kind (refused itself: fixed
+the cases it named and lost others); and three guards in the answering
+loop, red-first (a reply that begins with a fixed line is cut to it; bold
+over more than two words loses its markers; a turn whose searches found
+nothing with look_up offered and unused is sent back once). The guards
+went in. On the sealed holdout, answering on Haiku 5.5:
+
+| | before the guards | with the guards | Opus 5 |
+| --- | --- | --- | --- |
+| holdout, all | 121/132 | 124/132 (z +1.19) | 124/132 |
+| answer surface | 31/35 | 33/35 | 35/35 |
+| warm day against the base | x0.11 | x0.11 | x0.22 |
+| median latency against the base | x0.83 | x0.79 | x0.83 |
+
+Two of the four misses closed deterministically (the refused-subject line
+now stands alone; the diary question reaches look_up after the empty
+search); one new one appeared (a train time answered from the wrong
+thread), and the forecast without a country still asks. The remaining two
+are inside Haiku's own spread on these cases. The lesson the workers
+wrote down: a small model's tool choices do not move with literal lines;
+what can be enforced in the loop is enforced there, and the holdout is
+the only read that can see a one-case gain.
+
 ## What the swarm taught, this time
 
 - **The screen is not the holdout.** The lead ran the screen after every
