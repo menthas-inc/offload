@@ -278,6 +278,25 @@ export async function confirmPending(accountId: string, pendingId: string): Prom
     await remember(pending.content_id, target.externalId, done.sourceRef);
   }
 
+  // 2026-10-13. The proposals this one stood for: the same calendar and the
+  // same reason, so the verdict the person just agreed to is theirs too. One
+  // that fails is left open, as a row with no event, and the rest go on.
+  for (const other of await alikeOpen(pending, accountId)) {
+    const also = reviveWrite(other.payload);
+    if (!also) continue;
+    try {
+      const went = await performWrite(target, also, verdict);
+      await db
+        .updateTable("connector_pending_writes")
+        .set({ confirmed_at: new Date(), payload: JSON.stringify({}) })
+        .where("id", "=", other.id)
+        .execute();
+      if (went.sourceRef && also.action === "create") await remember(other.content_id, target.externalId, went.sourceRef);
+    } catch (error) {
+      console.warn(JSON.stringify({ at: "calendar.confirm", outcome: "failed", error_type: error instanceof Error ? error.name : typeof error, sibling: true }));
+    }
+  }
+
   return true;
 }
 
@@ -540,11 +559,21 @@ export function reviveWrite(payload: unknown): WriteAction | null {
 }
 
 export async function declinePending(accountId: string, pendingId: string): Promise<boolean> {
+  const pending = await db
+    .selectFrom("connector_pending_writes")
+    .select(["id", "action", "message_id", "calendar_id", "payload"])
+    .where("id", "=", pendingId)
+    .where("account_id", "=", accountId)
+    .where("confirmed_at", "is", null)
+    .where("declined_at", "is", null)
+    .executeTakeFirst();
+  if (!pending) return false;
+  // 2026-10-13. The proposals this one stood for are declined with it.
+  const ids = [pending.id, ...(await alikeOpen(pending, accountId)).map((other) => other.id)];
   const result = await db
     .updateTable("connector_pending_writes")
     .set({ declined_at: new Date() })
-    .where("id", "=", pendingId)
-    .where("account_id", "=", accountId)
+    .where("id", "in", ids)
     .where("confirmed_at", "is", null)
     .where("declined_at", "is", null)
     .executeTakeFirst();
@@ -621,9 +650,48 @@ export async function waitingFor(
     // The action travels so the control can say what the tap does: "Add it"
     // under a proposal to remove an event was the label for every one of them.
     const action = row.action === "edit" || row.action === "delete" ? row.action : "create";
-    found.set(row.message_id, { id: row.id, because: becauseOf(row.payload), action });
+    const more = rows.filter((other) => alike(row, other)).length;
+    found.set(row.message_id, { id: row.id, because: becauseOf(row.payload, more + 1), action });
   }
   return found;
+}
+
+/** 2026-10-13. The proposals one tap answers: creates on one message, to one
+ *  calendar, for one reason, with no guests. Eight classes filed in one turn
+ *  made eight proposals on one message, the screen drew the newest, and the
+ *  other seven had no control and sat until the purge. One control stands
+ *  for all of them, its line counts them, and the tap agrees to or declines
+ *  every one. Guests keep a proposal of their own: who is told is on its
+ *  line, and that line names one event's guests. */
+type PendingShape = { id: string; action: string; message_id: string | null; calendar_id: string; payload: unknown };
+function alike(head: PendingShape, other: PendingShape): boolean {
+  if (head.id === other.id || head.action !== "create" || other.action !== "create") return false;
+  if (!head.message_id || head.message_id !== other.message_id || head.calendar_id !== other.calendar_id) return false;
+  const a = reviveWrite(head.payload);
+  const b = reviveWrite(other.payload);
+  if (a?.action !== "create" || b?.action !== "create") return false;
+  if ((a.draft.attendees ?? []).length > 0 || (b.draft.attendees ?? []).length > 0) return false;
+  return reasonOf(head.payload) === reasonOf(other.payload);
+}
+
+function reasonOf(payload: unknown): string | null {
+  return (payload as { because?: string } | null)?.because ?? null;
+}
+
+/** The open proposals a tap on `head` also answers. */
+async function alikeOpen(head: PendingShape, accountId: string): Promise<Array<PendingShape & { content_id: string | null }>> {
+  if (!head.message_id) return [];
+  const rows = await db
+    .selectFrom("connector_pending_writes")
+    .select(["id", "action", "message_id", "calendar_id", "payload", "content_id"])
+    .where("message_id", "=", head.message_id)
+    .where("account_id", "=", accountId)
+    .where("confirmed_at", "is", null)
+    .where("declined_at", "is", null)
+    .where("expires_at", ">", new Date())
+    .orderBy("created_at", "asc")
+    .execute();
+  return rows.filter((row) => alike(head, row));
 }
 
 /** Who finds out, in the words the screen shows.
@@ -632,7 +700,7 @@ export async function waitingFor(
  *  proposal that sat for an hour still describes itself the way the code does
  *  now. Guests are named because the person is about to be told which of their
  *  guests this reaches. */
-function becauseOf(payload: unknown): string {
+function becauseOf(payload: unknown, count = 1): string {
   const write = reviveWrite(payload);
   const guests =
     write?.action === "create"
@@ -657,7 +725,9 @@ function becauseOf(payload: unknown): string {
           ? reason
           : "shared_calendar",
   };
-  return outwardLine(verdict, cadenceOf(write)) ?? "Everyone on this calendar will see it.";
+  const line = outwardLine(verdict, cadenceOf(write)) ?? "Everyone on this calendar will see it.";
+  // 2026-10-13. How many the one tap agrees to, when it is more than one.
+  return count > 1 ? `${line} ${count} events.` : line;
 }
 
 /** 023. What a series says about itself on the line, read off the draft's

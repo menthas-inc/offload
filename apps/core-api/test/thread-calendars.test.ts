@@ -1438,21 +1438,49 @@ describe("AC-11 where a write goes", () => {
     expect(google.createEvent).not.toHaveBeenCalled();
   });
 
-  it("a row another member wrote, or one this turn did not file, is refused", async () => {
+  it("a row another member wrote is refused", async () => {
     const me = await account();
     const other = await account("Tom Reilly");
     const t = await thread(me);
     await join(other, t);
     await pick(t, await calendar(await connection(me)), me);
-    const { jobId, messageId } = await dump(me, t);
+    const { jobId } = await dump(me, t);
     const theirs = await row(other, t, "Dentist", null);
-    const earlier = await row(me, t, "Dentist", null);
-    for (const contentId of [theirs, earlier]) {
-      const result = (await tool({ tool: "create_event", jobId, toolCallId: "w1", contentId })).json() as Record<string, unknown>;
-      expect(result).toEqual({ ok: false, error: "unknown_content" });
-    }
+    const result = (await tool({ tool: "create_event", jobId, toolCallId: "w1", contentId: theirs })).json() as Record<string, unknown>;
+    expect(result).toEqual({ ok: false, error: "unknown_content" });
     expect(google.createEvent).not.toHaveBeenCalled();
-    void messageId;
+  });
+
+  it("a row filed by an earlier turn goes on the calendar when they ask (the owner, 2026-10-13)", async () => {
+    // "Please submit the rest": seven classes filed by an earlier turn were
+    // each refused as unknown_content, because create_event took only a row
+    // its own turn had filed. The row is theirs and has a time, and the turn
+    // asking is the one any question hangs off.
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await pick(t, await calendar(n), me);
+    const earlier = await dump(me, t);
+    const contentId = await row(me, t, "Glass blowing class", earlier.messageId, "2026-12-07T18:00:00Z");
+    const { jobId } = await dump(me, t, earlier.conversationId);
+    const result = (await tool({ tool: "create_event", jobId, toolCallId: "w1", contentId })).json() as Record<string, unknown>;
+    expect(result).toMatchObject({ ok: true, written: true });
+    expect(google.createEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("an earlier turn's row that needs asking about hangs its question off the turn asking", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "Home" });
+    await calendar(n, { summary: "Family" });
+    const earlier = await dump(me, t);
+    const contentId = await row(me, t, "Glass blowing class", earlier.messageId, "2026-12-07T18:00:00Z");
+    const now = await dump(me, t, earlier.conversationId);
+    const result = (await tool({ tool: "create_event", jobId: now.jobId, toolCallId: "w1", contentId })).json() as Record<string, unknown>;
+    expect(result).toEqual({ ok: true, asked: true });
+    const q = await db.selectFrom("questions").select(["message_id", "target_content_id"]).executeTakeFirstOrThrow();
+    expect(q).toEqual({ message_id: now.messageId, target_content_id: contentId });
   });
 
   it("a row with no time is refused", async () => {
@@ -1592,6 +1620,114 @@ describe("AC-11, AC-17 a tapped calendar answer", () => {
     const pending = await db.selectFrom("connector_pending_writes").select("message_id").executeTakeFirstOrThrow();
     expect(pending.message_id).toBe(body.messageId);
     expect(google.createEvent).not.toHaveBeenCalled();
+  });
+
+  it("the tap's rows on a shared calendar are one proposal, and agreeing to it writes every one (the owner, 2026-10-13)", async () => {
+    // The tap wrote the first row as a proposal with a control, and the seven
+    // others as proposals with none: one event reached the calendar and the
+    // rest sat until the purge.
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "Home", participants: 3 });
+    await calendar(n, { summary: "Family", participants: 3 });
+    google.countParticipants.mockResolvedValue(3);
+    const { jobId, messageId, turnId } = await dump(me, t);
+    const ids: string[] = [];
+    for (const day of ["2026-11-30", "2026-12-07", "2026-12-14"]) {
+      ids.push(await row(me, t, "Glass blowing class", messageId, `${day}T18:00:00Z`));
+    }
+    for (const [i, contentId] of ids.entries()) {
+      await tool({ tool: "create_event", jobId, toolCallId: `g${i}`, contentId });
+    }
+    const q = await db.selectFrom("questions").select("id").where("turn_id", "=", turnId).executeTakeFirstOrThrow();
+    const cookie = await signIn(me);
+    const response = await app.inject({ method: "POST", url: `/v1/questions/${q.id}/answer`, headers: { cookie }, payload: { option: 0 } });
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as { waiting: { id: string; because: string } | null };
+    expect(body.waiting?.because).toBe("Everyone on this calendar will see it. 3 events.");
+    expect(google.createEvent).not.toHaveBeenCalled();
+
+    const pressed = await app.inject({ method: "POST", url: `/api/calendar/pending/${body.waiting!.id}/confirm`, headers: { cookie } });
+    expect(pressed.statusCode).toBe(200);
+    expect(google.createEvent).toHaveBeenCalledTimes(3);
+    const written = await db.selectFrom("content").select(["id", "source_ref"]).where("id", "in", ids).execute();
+    expect(written.every((one) => one.source_ref?.includes(":evt-"))).toBe(true);
+    const open = await db.selectFrom("connector_pending_writes").select("id").where("confirmed_at", "is", null).execute();
+    expect(open).toHaveLength(0);
+  });
+
+  it("rows a turn proposed together on one calendar are one proposal, agreed to or declined with one tap", async () => {
+    // The same eight classes through a thread with one pick: eight proposals
+    // on one message, and the screen draws one control, so seven had no way
+    // to be agreed to.
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await pick(t, await calendar(n, { participants: 3 }), me);
+    google.countParticipants.mockResolvedValue(3);
+    const cookie = await signIn(me);
+    const propose = async () => {
+      const { jobId, messageId } = await dump(me, t);
+      const ids: string[] = [];
+      for (const day of ["2026-11-30", "2026-12-07", "2026-12-14"]) {
+        ids.push(await row(me, t, "Glass blowing class", messageId, `${day}T18:00:00Z`));
+      }
+      for (const [i, contentId] of ids.entries()) {
+        const result = (await tool({ tool: "create_event", jobId, toolCallId: `g${i}`, contentId })).json() as Record<string, unknown>;
+        expect(result).toMatchObject({ ok: true, waitingForThem: true });
+      }
+      await db.updateTable("messages").set({ state: "answered" }).where("id", "=", messageId).execute();
+      const one = (await get(`/v1/messages/${messageId}`, cookie)).json() as { waiting: { id: string; because: string } | null };
+      expect(one.waiting?.because).toBe("Everyone on this calendar will see it. 3 events.");
+      return { ids, waitingId: one.waiting!.id };
+    };
+
+    const agreed = await propose();
+    const pressed = await app.inject({ method: "POST", url: `/api/calendar/pending/${agreed.waitingId}/confirm`, headers: { cookie } });
+    expect(pressed.statusCode).toBe(200);
+    expect(google.createEvent).toHaveBeenCalledTimes(3);
+    const written = await db.selectFrom("content").select("source_ref").where("id", "in", agreed.ids).execute();
+    expect(written.every((one) => one.source_ref?.includes(":evt-"))).toBe(true);
+
+    google.createEvent.mockClear();
+    const declined = await propose();
+    const refused = await app.inject({ method: "POST", url: `/api/calendar/pending/${declined.waitingId}/decline`, headers: { cookie } });
+    expect(refused.statusCode).toBe(200);
+    expect(google.createEvent).not.toHaveBeenCalled();
+    const open = await db.selectFrom("connector_pending_writes").select("id").where("confirmed_at", "is", null).where("declined_at", "is", null).execute();
+    expect(open).toHaveLength(0);
+  });
+
+  it("a proposal Google refuses on the tap stays open on its own, and the rest are written", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await pick(t, await calendar(n, { participants: 3 }), me);
+    google.countParticipants.mockResolvedValue(3);
+    const { jobId, messageId } = await dump(me, t);
+    const ids: string[] = [];
+    for (const day of ["2026-11-30", "2026-12-07", "2026-12-14"]) {
+      ids.push(await row(me, t, "Glass blowing class", messageId, `${day}T18:00:00Z`));
+    }
+    for (const [i, contentId] of ids.entries()) await tool({ tool: "create_event", jobId, toolCallId: `g${i}`, contentId });
+    await db.updateTable("messages").set({ state: "answered" }).where("id", "=", messageId).execute();
+    const cookie = await signIn(me);
+    const one = (await get(`/v1/messages/${messageId}`, cookie)).json() as { waiting: { id: string } | null };
+    let calls = 0;
+    google.createEvent.mockImplementation(async () => {
+      calls += 1;
+      if (calls === 2) throw new Error("Google said no");
+      return `evt-${calls}`;
+    });
+    const pressed = await app.inject({ method: "POST", url: `/api/calendar/pending/${one.waiting!.id}/confirm`, headers: { cookie } });
+    expect(pressed.statusCode).toBe(200);
+    expect(google.createEvent).toHaveBeenCalledTimes(3);
+    const written = await db.selectFrom("content").select("source_ref").where("id", "in", ids).execute();
+    expect(written.filter((r) => r.source_ref).length).toBe(2);
+    const open = await db.selectFrom("connector_pending_writes").select("id").where("confirmed_at", "is", null).where("declined_at", "is", null).execute();
+    expect(open).toHaveLength(1);
+    google.createEvent.mockImplementation(async () => `evt-${Math.random().toString(36).slice(2, 8)}`);
   });
 
   it("a write Google refuses reopens the question, takes the pick back, and is 502", async () => {

@@ -607,6 +607,12 @@ class Recorder:
         #: 041. The PDF indexes filed, each once.
         self.pdfs_filed: set[int] = set()
         self.content_timed: dict[str, bool] = {}
+        #: 2026-10-13. A fixture row is a row an earlier turn filed, and the
+        #: server takes any of the account's own: timed ones go on, the rest
+        #: are refused `no_time`, as a row this turn filed would be.
+        for fixture_row in _rows_for(self.fx, None):
+            row_id = str(fixture_row.get("contentId"))
+            self.content_timed[row_id] = bool(fixture_row.get("occursAt"))
         self.refused_time_once = False
         #: Title of every row this turn added, by the id handed back, so an
         #: edit naming that id can be read as the title's final state.
@@ -733,7 +739,8 @@ class Recorder:
         if tool == "create_event":
             # The row's thread decides. `calendar_write` in a fixture says what
             # the server would say: written (the default), asked, noCalendar.
-            if not str(args.get("content_id") or "").startswith("c"):
+            content_id = str(args.get("content_id") or "")
+            if not content_id.startswith("c") and content_id not in self.content_timed:
                 return {"ok": False, "error": "unknown_content"}
             if not self.content_timed.get(str(args.get("content_id"))):
                 return {"ok": False, "error": "no_time"}
