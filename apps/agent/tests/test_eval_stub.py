@@ -86,3 +86,30 @@ def test_no_answering_read_names_the_default_thread(case):
     ]:
         said = json.dumps(_call(case, tool, args))
         assert f'"{default.name}"' not in said, (tool, said)
+
+
+def _case_with_rows(rows: list[dict]):
+    return RUN.Case(
+        id="rows",
+        why="",
+        surface="file",
+        input="add the rest",
+        expect={},
+        principle="08",
+        fixture={"rows": rows, "looking_at": "00000013-0000-0000-0000-000000000000"},
+    )
+
+
+def test_a_fixture_row_is_a_row_create_event_can_take():
+    # 2026-10-13. The Core API takes any row of the account's own, whichever
+    # turn filed it; the stub refused every id it had not handed out itself,
+    # so no case could see "add the rest" about rows already in the thread.
+    case = _case_with_rows(
+        [
+            {"contentId": "e1", "type": "event", "title": "Class", "occursAt": "2026-11-30T18:00"},
+            {"contentId": "e2", "type": "task", "title": "Loose", "occursAt": None},
+        ]
+    )
+    assert _call(case, "create_event", {"content_id": "e1"}).get("ok") is True
+    assert _call(case, "create_event", {"content_id": "e2"})["error"] == "no_time"
+    assert _call(case, "create_event", {"content_id": "e9"})["error"] == "unknown_content"

@@ -2708,7 +2708,12 @@ export async function answerCalendarQuestion(
   }
 
   return {
-    envelope: await envelopeFor({ id: outcome.pendingId, because: outcome.line, kind: "calendar" }),
+    // 2026-10-13. Read back rather than built from the one outcome: the other
+    // rows the tap was about are proposals on the same message, and the
+    // control stands for all of them.
+    envelope: await envelopeFor(
+      (await anyWaitingFor([settled.message.id])).get(settled.message.id) ?? { id: outcome.pendingId, because: outcome.line, kind: "calendar" }
+    ),
     applied: true,
     failed: false,
   };
