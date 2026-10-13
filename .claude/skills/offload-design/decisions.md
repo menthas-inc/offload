@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-13 · An answer's dated rows say their date
+**Surface:** iOS, Android, web
+**Raised by:** the owner, from use: an answer listing eight rows all called "Glass blowing class" with nothing to tell them apart.
+
+**Was:** the clients drew an answer's row as its title alone; the kit's `AnswerResult` has carried a `meta` line under the title since the component was drawn, and nothing filled it.
+
+**Is:** a dated row in an answer draws its date under the title as that meta line, in the words the row's own chip uses: "Due Thu 15" and "Wed 21" within a fortnight, "30 Nov" beyond, with the time in the account's clock when the row has one, and the end of a span after "to" in the same words as its start. An undated row draws none. Decided once in `@offload/widgets` for the three surfaces.
+
+**Why:** the date is the one thing that tells rows with the same title apart, and the kit already had the line for it.
+
+**Design system impact:** none to the component; `AnswerResult.prompt.md`'s example could show a date in `meta` beside "you, added 6 Aug".
+
 ### 2026-10-10 · Calendar: a section on Notifications, and the day's events in the morning message
 **Surface:** iOS, Android, web
 

@@ -521,3 +521,4 @@ export {
   whereOf,
 } from "./reminders.js";
 export type { Reminders } from "./reminders.js";
+export { foundMeta, type FoundDated } from "./found.js";

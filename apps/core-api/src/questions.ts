@@ -530,6 +530,13 @@ async function forbidden(trx: Trx, threadId: string, accountId: string, field: F
 
 // ---------------------------------------------------------------- the calendar question
 
+/** The calendar question for several rows filed in one turn: the first row's
+ *  title and how many more ride on the same tap, within the text's bound. */
+function renderMore(title: string, more: number): string {
+  const room = QUESTION_TEXT_CHARS - `Filed "" and ${more} more. Which calendar?`.length;
+  return `Filed "${clip(title, Math.min(40, room))}" and ${more} more. Which calendar?`;
+}
+
 /** 019. Which of the person's calendars a row goes on, raised by the server
  *  from inside `create_event` when the row's thread has several writable
  *  calendars picked, or none yet while the account has approved some.
@@ -576,6 +583,43 @@ export async function raiseCalendarQuestion(
   }
   if (options.length === 0) return false;
   options.push({ label: ESCAPE_LABEL, value: null });
+
+  // 2026-10-13. A turn that files eight classes calls `create_event` eight
+  // times, and every raise took the same ordinal, so the second to eighth
+  // were dropped on conflict and the tap wrote one event. A later raise in
+  // the turn that offers the same calendars for the same kind of answer
+  // joins the open question instead: the row rides on `previous_value.also`,
+  // the text counts it, and the tap writes every one.
+  const open = await trx
+    .selectFrom("questions")
+    .select(["id", "options", "previous_value", "target_content_id"])
+    .where("turn_id", "=", message.turn_id)
+    .where("field", "=", "calendar")
+    .where("state", "in", ["open", "pending"])
+    .executeTakeFirst();
+  if (open) {
+    const held = (open.previous_value as { picks?: boolean; named?: boolean; person?: string; also?: string[] } | null) ?? {};
+    const sameAnswer =
+      (held.picks === true) === (input.onAnswer === "pick") &&
+      (held.named === true) === (input.onAnswer === "write") &&
+      (held.person ?? null) === (input.person ?? null);
+    const offered = (values: StoredOption[]) => values.map((o) => o.value).filter((v): v is string => v !== null).sort().join(",");
+    if (!sameAnswer || offered(open.options as StoredOption[]) !== offered(options)) return false;
+    if (open.target_content_id === input.contentId) return true;
+    const also = [...(held.also ?? []).filter((id) => id !== input.contentId), input.contentId];
+    const first = open.target_content_id
+      ? await trx.selectFrom("content").select("title").where("id", "=", open.target_content_id).executeTakeFirst()
+      : undefined;
+    const text = input.person
+      ? renderText("calendar", first?.title ?? input.title, input.person)
+      : renderMore(first?.title ?? input.title, also.length);
+    await trx
+      .updateTable("questions")
+      .set({ previous_value: JSON.stringify({ ...held, also }), text })
+      .where("id", "=", open.id)
+      .execute();
+    return true;
+  }
 
   const text = renderText("calendar", input.title, input.person ?? undefined);
   await storeQuestions(
