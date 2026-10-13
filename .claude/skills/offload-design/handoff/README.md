@@ -293,3 +293,66 @@ should be in version control so a fresh clone has a working bundle and a working
 
 Then: consume the real tokens rather than copying values, and when code has to diverge, code
 wins and the change gets one entry in `decisions.md`.
+
+## Today: Reminders and bands, added 2026-10-11
+
+042's Reminders section is redrawn as a countdown column with a dismiss, and Today's sections alternate between the
+page and a full-bleed band. `handoff/APPLY-2026-10-11-today-bands.md` is the build,
+`handoff/today-bands-standalone.html` the reference, **Today** in `readme.md` the lasting statement.
+
+## Today: open in your threads, added 2026-10-07
+
+Today's *If you have time* becomes **Open in your threads**: a page per thread with its undated to-dos, swiped on the
+phones and two side by side on the web. `handoff/APPLY-2026-10-07-open-threads.md` is the build,
+`handoff/home-thread-pages-standalone.html` the reference, **Today** in `readme.md` the lasting statement.
+
+## The thinking row, added 2026-10-07
+
+The conversation's working state becomes one row: the Splash drop, the model's phrase, and a Stop pill from ten
+seconds. `handoff/APPLY-2026-10-07-thinking.md` is the build, `handoff/thinking-standalone.html` the reference,
+`ui_kits/thinking_row/` the kit copy, **The thinking row** in `readme.md` the lasting statement.
+
+## The Memories tab, added 2026-10-06
+
+038's fast follow: a Memories tab on all three surfaces with a List | Map switch. `handoff/APPLY-2026-10-06-memories.md`
+is the build order, `handoff/memories-standalone.html` the clickable reference (iOS / Android / Web),
+`ui_kits/memories_tab/` the kit copy, and **The Memories tab** in `readme.md` the lasting statement. Code work:
+six kinds become five, add and change on `store.ts`, and embeddings with a nightly layout for the map.
+
+## Known drift in the design files
+
+One item left, and it is deliberate.
+
+**"space" survives in props and data keys.** The screen files are now `ThreadScreen.jsx`,
+`ThreadsScreen.jsx`, `M3ThreadScreen.jsx` and `M3ThreadsScreen.jsx`, and their exported symbols
+match. Below that, the prototype fixture still calls the collection `D.spaces`, passes it as a
+`space` prop, and keys the second tab `"spaces"`. Renaming those in the kits means touching the
+shared `data.js` that all three read, which risks the one thing the kits are for, which is
+showing consistent content across platforms.
+
+**Use thread everywhere when you build.** The data model is yours to name and it should be named
+`thread` from the first commit: table, field, route, type, prop. Treat the fixture's key names as
+prototype residue, not as a schema to inherit.
+
+## Setting this up as a working loop
+
+`handoff/CONTRIBUTING.md` is the working agreement and it belongs in the repository.
+
+**Step one, before any code.** Download the whole design system project, not just this
+`handoff/` folder, and commit it into the repository at:
+
+```
+.claude/skills/offload-design/
+```
+
+That is where Claude Code looks for project skills. The folder already carries a `SKILL.md`,
+so once it is committed, Claude Code discovers the design system on its own and reads the real
+tokens instead of working from memory. Committing it anywhere else still works as a reference,
+it just stops being automatic.
+
+Commit the whole tree, including `_ds_bundle.js`, `_ds_manifest.json` and
+`_adherence.oxlintrc.json`. Those three are generated and must never be hand-edited, but they
+should be in version control so a fresh clone has a working bundle and a working lint config.
+
+Then: consume the real tokens rather than copying values, and when code has to diverge, code
+wins and the change gets one entry in `decisions.md`.

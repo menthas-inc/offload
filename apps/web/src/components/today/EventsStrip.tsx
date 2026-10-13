@@ -31,7 +31,9 @@ function EventCard({ event, next, now, zone }: { event: TodayEvent; next: boolea
   const body = (
     <>
       <span className={styles.eventWhen}>{eventRange(event, zone)}</span>
-      <span className={styles.eventTitle}>{event.title}</span>
+      {/* A past event's title is struck through, as a finished row's is (the
+          owner, 2026-10-12): an <s>, so the strike is the element's own. */}
+      {past ? <s className={styles.eventTitle}>{event.title}</s> : <span className={styles.eventTitle}>{event.title}</span>}
       {event.source === "offload" && event.threadId && event.threadName ? (
         <>
           {event.authorName ? <span className={styles.eventWhose}>{firstNameOf({ displayName: event.authorName })}&apos;s</span> : null}

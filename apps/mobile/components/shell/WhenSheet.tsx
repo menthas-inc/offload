@@ -312,44 +312,31 @@ export function WhenPanel({
             </Text>
             <Switch checked={time === null} onChange={setAllDay} label="All day" />
           </View>
-          {isAndroid ? (
-            // No inline wheel on Android: the hour is a row that opens the
-            // system's own dialog, and while All day is on it shows the
-            // last hour greyed, which keeps the same promise in Material's
-            // shape.
-            <Pressable
-              onPress={() => (time === null ? setAllDay(false) : openAndroidClock("start"))}
-              className="min-h-tap-min flex-row items-center"
-              style={{ opacity: time === null ? 0.45 : 1 }}
-              accessibilityRole="button"
-              accessibilityLabel="Time"
-            >
-              <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
-                {isEvent ? "Starts" : "Time"}
-              </Text>
-              <Text className={`font-core ${quiet}`} style={{ fontSize: 15 }}>
-                {clockLabel(time ?? "09:00")}
-              </Text>
-            </Pressable>
-          ) : (
-            // The system's wheel at five-minute steps, greyed rather than
-            // removed while All day is on, so the hour you had stays
-            // visible; touching it turns All day back off.
-            <View style={{ opacity: time === null ? 0.4 : 1 }}>
-              <Pressable onPress={() => time === null && setAllDay(false)} disabled={time !== null}>
-                <View pointerEvents={time === null ? "none" : "auto"}>
-                  <DateTimePicker
-                    mode="time"
-                    display="spinner"
-                    minuteInterval={5}
-                    value={pickerDate(time)}
-                    onChange={onTime}
-                    style={{ height: 132 }}
-                  />
-                </View>
+          {/* The hour exists only with a time (the owner, 2026-10-12): while
+              All day is on there is no clock to show, and a greyed 9:00 read
+              as a time the row had. The switch is the way back. */}
+          {time !== null ? (
+            isAndroid ? (
+              // No inline wheel on Android: the hour is a row that opens the
+              // system's own dialog.
+              <Pressable
+                onPress={() => openAndroidClock("start")}
+                className="min-h-tap-min flex-row items-center"
+                accessibilityRole="button"
+                accessibilityLabel="Time"
+              >
+                <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
+                  {isEvent ? "Starts" : "Time"}
+                </Text>
+                <Text className={`font-core ${quiet}`} style={{ fontSize: 15 }}>
+                  {clockLabel(time)}
+                </Text>
               </Pressable>
-            </View>
-          )}
+            ) : (
+              // The system's wheel at five-minute steps.
+              <DateTimePicker mode="time" display="spinner" minuteInterval={5} value={pickerDate(time)} onChange={onTime} style={{ height: 132 }} />
+            )
+          ) : null}
           {isEvent && time ? (
             <>
               <Pressable

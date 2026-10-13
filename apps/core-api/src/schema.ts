@@ -419,6 +419,9 @@ export interface PushTokensTable {
   platform: "ios" | "android";
   /** 042. The phone has the channel and the door for a reminder of its own. */
   takes_reminders: Generated<boolean>;
+  /** 0091. The session that registered it; the token goes when it ends. Never
+   *  read out of this table by anything but a send's join. */
+  session_id: string;
   created_at: Timestamp;
   last_seen_at: Timestamp;
 }
@@ -490,6 +493,19 @@ export interface ReminderLabelsTable {
   date_set_at: Timestamp | null;
   held_at: Timestamp | null;
   stopped_at: Timestamp | null;
+  created_at: Generated<Timestamp>;
+}
+
+/** Today's Reminders, 2026-10-11: one reminder of one thing, dismissed from
+ *  the screen it was showing on. The next reminder is untouched. */
+export interface ReminderDismissalsTable {
+  id: Generated<string>;
+  account_id: string;
+  content_id: string | null;
+  note_id: string | null;
+  /** The day the reminder is about, `YYYY-MM-DD`. */
+  occurrence: string;
+  window_name: "long" | "short" | "day";
   created_at: Generated<Timestamp>;
 }
 
@@ -1402,6 +1418,7 @@ export interface Database {
   activity_memories: ActivityMemoriesTable;
   activity_calendars: ActivityCalendarsTable;
   reminder_labels: ReminderLabelsTable;
+  reminder_dismissals: ReminderDismissalsTable;
   labels: LabelsTable;
   content_labels: ContentLabelsTable;
   note_labels: NoteLabelsTable;

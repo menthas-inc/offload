@@ -14,7 +14,7 @@ import { auth } from "../auth/auth.js";
 import { dayResponse, readDay } from "../today/day.js";
 import { needsCard, needsYou, putOff } from "../today/needs.js";
 import { openResponse, openThreads } from "../today/threads.js";
-import { remindersResponse, todayReminders } from "../today/reminders.js";
+import { dismissal, dismissReminder, remindersResponse, todayReminders, undismissReminder } from "../today/reminders.js";
 
 async function currentAccountId(request: FastifyRequest): Promise<string | null> {
   const headers = new Headers();
@@ -86,6 +86,30 @@ export async function todayRoutes(app: App): Promise<void> {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" as const });
       return reply.send(await todayReminders(accountId));
+    },
+  );
+
+  // 2026-10-11. The x on a card: this reminder hidden, the thing untouched;
+  // and Undo. Both say 404 for anything that is not showing on Today.
+  app.post(
+    "/v1/today/reminders/dismiss",
+    { schema: { body: dismissal, response: { 200: ok, 400: badRequest, 401: unauthenticated, 404: notFound } } },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.status(401).send({ error: "unauthenticated" as const });
+      if (!(await dismissReminder(accountId, request.body))) return reply.status(404).send({ error: "not_found" as const });
+      return reply.send({ ok: true as const });
+    },
+  );
+
+  app.post(
+    "/v1/today/reminders/undismiss",
+    { schema: { body: dismissal, response: { 200: ok, 400: badRequest, 401: unauthenticated, 404: notFound } } },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.status(401).send({ error: "unauthenticated" as const });
+      if (!(await undismissReminder(accountId, request.body))) return reply.status(404).send({ error: "not_found" as const });
+      return reply.send({ ok: true as const });
     },
   );
 

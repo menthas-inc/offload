@@ -1,10 +1,10 @@
-// A piece of content in a thread, and the two gestures that act on it.
+// A piece of content in a thread, and the gestures that act on it.
 //
-// **A swipe deletes; a long press opens the rest.** No kit draws a content row
-// action on any platform, and this is the answer the design system took: the
-// swipe does the one thing `SwipeRow` is built for, and the sheet lists what
-// this account may actually do, which is how the authorship split is handled
-// without a gesture map that is wrong for half the rows.
+// **A swipe deletes; a tap opens the row's one sheet.** Until 2026-10-12 a
+// long press opened a second menu with what the sheet lacked (Move), and a
+// tap on somebody else's row opened that menu instead of the sheet. The owner
+// found the split confusing, so the sheet holds everything and the long press
+// is gone: one way in, for every row.
 //
 // **And since 2026-09-11 the row draws what the web row draws**: edit, and one
 // way out. Three ways to the same action, which the rule above deliberately
@@ -55,6 +55,7 @@ import { useColors } from "../../lib/colors";
 import { domainOf, isProvisional, rowTap, type ContentRow } from "../../lib/threads";
 import { openLink } from "../../lib/links";
 import { LabelMark } from "../labels/LabelMark";
+import { useInBand } from "../today/Band";
 import { useRowLabels } from "../labels/labels-context";
 
 const REVEAL = 88;
@@ -90,9 +91,8 @@ interface Props {
   row: ContentRow;
   border: boolean;
   onDelete: () => void;
-  onActions: () => void;
-  /** The row's edit sheet, which a tap opens: its fields, labels, and the
-   *  way out. */
+  /** The row's one sheet, which a tap opens: its fields, labels, Move, and
+   *  the way out. */
   onEdit: () => void;
   /** Arrived while somebody was looking at the screen, so it is marked for a
    *  moment rather than simply being there. */
@@ -158,7 +158,6 @@ export function ContentRowView({
   arrived,
   onOpenPhoto,
   onDelete,
-  onActions,
   onEdit,
   onToggle,
   note,
@@ -176,6 +175,7 @@ export function ContentRowView({
   muted,
   below,
 }: Props) {
+  const inBand = useInBand();
   const COLOR = useColors();
   const router = useRouter();
   // 025. The thread's labels, from the screen that holds the thread, and the
@@ -192,12 +192,12 @@ export function ContentRowView({
   // owns the page and a domain is not.
   const domain = domainOf(row.url);
   // A link with an address is a door: the row opens the page. Anything else
-  // opens its sheet, or the actions for a row that is somebody else's.
+  // opens its sheet, whoever's row it is.
   const tap = rowTap(row);
   const door = tap === "open";
-  const sheet = row.canDelete ? onEdit : onActions;
+  const sheet = onEdit;
   // A row drawn at the press, before the server has it. It looks like the row
-  // it is about to be and offers nothing: no swipe, no long press, no tools,
+  // it is about to be and offers nothing: no swipe, no tools,
   // because there is nothing to act on until the write lands and the id is
   // real. The handle and the tools keep their space and lose their presence,
   // so the row does not reflow when the id arrives, which is the readme's own
@@ -205,7 +205,7 @@ export function ContentRowView({
   const provisional = isProvisional(row.id);
   const hidden = provisional ? { opacity: 0 } : null;
   const dx = useSharedValue(0);
-  // Called from two UI-thread gesture worklets below (pan.onEnd, long.onStart)
+  // Called from the UI-thread gesture worklet below (pan.onEnd)
   // and its return value is read synchronously there. Without the directive
   // it is a plain JS-thread closure, and Reanimated proxies it as a remote
   // function: reading its result synchronously from the UI thread throws
@@ -243,19 +243,12 @@ export function ContentRowView({
         : settle();
     });
 
-  const long = Gesture.LongPress()
-    .enabled(!provisional)
-    .minDuration(320)
-    .onStart(() => {
-      dx.value = settle();
-      runOnJS(onActions)();
-    });
 
   // The drag. Vertical only, from the handle, after a hold. The row follows
   // the finger and, while it does, sits raised over its neighbours; on release
   // it snaps home and the list re-sorts under it, so the travel is never
   // animated twice. `onDrop` is a plain function and is called through
-  // `runOnJS`, the same rule `onActions` follows above.
+  // `runOnJS`.
   const dy = useSharedValue(0);
   const lifted = useSharedValue(0);
   const onDrop = reorder?.onDrop;
@@ -285,7 +278,7 @@ export function ContentRowView({
     backgroundColor:
       lifted.value === 1
         ? COLOR.raised
-        : interpolateColor(mark.value, [0, 1], [ground ?? COLOR.page, COLOR.accentSoft]),
+        : interpolateColor(mark.value, [0, 1], [inBand ? COLOR.raised : (ground ?? COLOR.page), COLOR.accentSoft]),
     shadowColor: COLOR.shadowLift.color,
     shadowOffset: { width: 0, height: COLOR.shadowLift.offsetY },
     shadowRadius: COLOR.shadowLift.radius,
@@ -328,7 +321,7 @@ export function ContentRowView({
         </Text>
       </Animated.View>
 
-      <GestureDetector gesture={Gesture.Simultaneous(pan, long)}>
+      <GestureDetector gesture={pan}>
         <Animated.View
           style={sliding}
           // 2026-09-26. Top-aligned, and every lead and tool is centred on the
@@ -472,7 +465,7 @@ export function ContentRowView({
             onPress={door ? () => void openLink(row.url) : sheet}
             accessibilityRole={door ? "link" : "button"}
             accessibilityLabel={door ? `Open ${domain ?? row.title}` : undefined}
-            accessibilityHint={door ? undefined : row.canDelete ? "Edit, label or delete" : "Actions"}
+            accessibilityHint={door ? undefined : row.canDelete ? "Edit, label, move or delete" : "Edit, label or archive"}
             // 027. The thread pill inside is unreachable to a screen reader
             // once the row is one element, so the row carries it as an action.
             {...(thread && thread.name !== null

@@ -96,6 +96,13 @@ export interface FoundRow {
   title: string;
   body: string | null;
   done: boolean;
+  /** 2026-10-13. The row's dates, so rows that share a title can be told
+   *  apart: the card draws them under the title. */
+  dueAt: string | null;
+  occursAt: string | null;
+  occursEndAt: string | null;
+  allDay: boolean;
+  rrule: string | null;
   /** 020. The row's photo, when it has one. */
   /** 020, 041. The row's photo or PDF. */
   photo: {

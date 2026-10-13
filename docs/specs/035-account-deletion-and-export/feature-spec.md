@@ -147,7 +147,9 @@ Deletion:
 - **AC-7** Calendar connections are revoked at Google. A failed revoke does
   not stop the deletion and is retried without the account.
 - **AC-8** Every session stops working at once on every device, and no push
-  or email other than the deletion notice is sent afterwards.
+  or email other than the deletion notice is sent afterwards. (Amended
+  2026-10-11: a push token also goes with the session that registered it, so
+  ending one session from Signed in on takes that phone's token with it.)
 - **AC-8a** After a delete, the phone that made it holds nothing of the
   account, in memory or on disk, and nothing of it draws for whoever signs in
   next. A phone that was away lets go of the same on its next refused request

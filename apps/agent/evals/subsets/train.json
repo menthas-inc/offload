@@ -1,6 +1,6 @@
 {
   "note": "everything else; run by principle to read failures and tune",
-  "count": 421,
+  "count": 423,
   "cases": [
     "a-birthday-is-a-memory",
     "a-correction",
@@ -80,6 +80,7 @@
     "date-question-offers-two",
     "date-the-20th",
     "date-vague",
+    "dated-appointment-no-calendar-words",
     "dated-fold-keeps-date",
     "day-name-on-that-day",
     "day-task",
@@ -376,6 +377,7 @@
     "span-offers-guessed-thread-dates",
     "span-one-day",
     "stated-a-week-before",
+    "stay-in-thread-moved-with-calendar-none-picked",
     "step-injection",
     "step-says-what-not-how",
     "task-bin-bags",

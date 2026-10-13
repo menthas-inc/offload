@@ -266,6 +266,11 @@ const foundResults = z.array(
         title: z.string(),
         body: z.string().nullable(),
         done: z.boolean(),
+        dueAt: z.string().nullable(),
+        occursAt: z.string().nullable(),
+        occursEndAt: z.string().nullable(),
+        allDay: z.boolean(),
+        rrule: z.string().nullable(),
         photo: fileOnRow.nullable(),
       })
     ),
@@ -2445,6 +2450,10 @@ export async function answerCalendarQuestion(
     if (!picked || picked.value === null) return null;
     const calendarId = picked.value;
     const picksOnAnswer = (question.previous_value as { picks?: boolean } | null)?.picks === true;
+    // 2026-10-13. The other rows filed in the same turn that this tap is also
+    // about: written after the first, each through the same test.
+    const also = (question.previous_value as { also?: unknown } | null)?.also;
+    const alsoIds = Array.isArray(also) ? also.filter((id): id is string => typeof id === "string") : [];
     // They named a calendar and the name did not settle on one: the tap is
     // about this event, so it needs no pick in the thread and makes none.
     const named = (question.previous_value as { named?: boolean } | null)?.named === true;
@@ -2468,6 +2477,19 @@ export async function answerCalendarQuestion(
     // would otherwise pick their calendar into a thread they are no longer
     // in, and nobody left could take it out.
     const stillMember = row ? await memberOf(accountId, row.thread_id, trx) : false;
+    const siblings =
+      row && alsoIds.length > 0
+        ? await trx
+            .selectFrom("content")
+            .select(["id", "thread_id", "title", "occurs_at", "occurs_end_at", "source_ref"])
+            .where("id", "in", alsoIds)
+            .where("thread_id", "=", row.thread_id)
+            .where("account_id", "=", accountId)
+            .where("deleted_at", "is", null)
+            .where("source_ref", "is", null)
+            .where("occurs_at", "is not", null)
+            .execute()
+        : [];
     const calendar = await trx
       .selectFrom("connector_calendars as c")
       .innerJoin("connector_connections as n", "n.id", "c.connection_id")
@@ -2522,7 +2544,7 @@ export async function answerCalendarQuestion(
     const writable = calendar && (calendar.accessRole === "owner" || calendar.accessRole === "writer");
     if (!row || !stillMember || !calendar || !writable || !stillPicked || row.source_ref || !row.occurs_at) {
       await closeQuestion(trx, question.id, accountId, message.id);
-      return { question, message, turnId, row: null as null, calendarId, picksOnAnswer };
+      return { question, message, turnId, row: null as null, siblings: [], calendarId, picksOnAnswer };
     }
 
     await trx
@@ -2533,7 +2555,7 @@ export async function answerCalendarQuestion(
         answered_option: input.option,
         answered_message_id: message.id,
         answer_turn_id: turnId,
-        previous_value: JSON.stringify({ picks: picksOnAnswer, named, calendar: calendarId }),
+        previous_value: JSON.stringify({ picks: picksOnAnswer, named, calendar: calendarId, ...(alsoIds.length > 0 ? { also: alsoIds } : {}) }),
       })
       .where("id", "=", question.id)
       .execute();
@@ -2553,7 +2575,7 @@ export async function answerCalendarQuestion(
       .where("id", "=", question.conversation_id)
       .execute();
 
-    return { question, message, turnId, row, calendarId, picksOnAnswer };
+    return { question, message, turnId, row, siblings, calendarId, picksOnAnswer };
   });
   if (!settled) return null;
 
@@ -2653,6 +2675,29 @@ export async function answerCalendarQuestion(
     console.warn(JSON.stringify({ at: "calendar.answer", outcome: "refused", reason: outcome.reason }));
     await reopen();
     return { envelope: await envelopeFor(null), applied: false, failed: true };
+  }
+
+  // 2026-10-13. The rest of the rows the question was about, each through the
+  // same test as the first. One that is refused or fails is left as a row
+  // with no event, as a model's own call would have left it; the first write
+  // stands and the tap is not reopened for it.
+  for (const sibling of settled.siblings) {
+    const draft: WriteAction = {
+      action: "create",
+      draft: {
+        title: sibling.title,
+        startsAt: sibling.occurs_at as Date,
+        endsAt: sibling.occurs_end_at ?? new Date((sibling.occurs_at as Date).getTime() + 60 * 60 * 1000),
+        location: null,
+        attendees: [],
+      },
+    };
+    try {
+      const went = await writeThroughTool(accountId, settled.calendarId, draft, settled.message.id, sibling.id);
+      if (went.kind === "refused") console.warn(JSON.stringify({ at: "calendar.answer", outcome: "refused", reason: went.reason, sibling: true }));
+    } catch (error) {
+      console.warn(JSON.stringify({ at: "calendar.answer", outcome: "failed", error_type: error instanceof Error ? error.name : typeof error, sibling: true }));
+    }
   }
 
   if (outcome.kind === "written") {

@@ -55,9 +55,28 @@ describe("open in your threads, the screens", () => {
 });
 
 describe("Today's sections on the phones (owner, 2026-10-07)", () => {
-  it("stand 24 apart, the page's gap and the day's", () => {
+  it("stand 24 apart, the day's gap; since 2026-10-11 the page's gap is the band's, 24 below and 20 above", () => {
     const screen = read("components/today/TodayScreen.tsx");
     expect(screen).toMatch(/<View key="day" className="gap-space-8">/);
-    expect(screen).toMatch(/contentContainerClassName="gap-space-8 px-gutter-screen/);
+    const band = read("components/today/Band.tsx");
+    expect(band).toMatch(/pb-space-8/);
+    expect(band).toMatch(/index === 0 \? "pt-space-3" : "pt-space-7"/);
+  });
+});
+
+describe("Where you will be: a past event (owner, 2026-10-12)", () => {
+  it("is struck through as a finished row is, tertiary ink and a hairline strike, never dimmed", () => {
+    const parts = readFileSync(new URL("../components/today/DayParts.tsx", import.meta.url), "utf8");
+    expect(parts).toMatch(/past \? "text-text-tertiary"/);
+    expect(parts).toMatch(/past \? \{ textDecorationLine: "line-through" as const \}/);
+    expect(parts).not.toMatch(/past \? "text-text-secondary"/);
+  });
+});
+
+describe("the thread pill on a card (owner, 2026-10-12)", () => {
+  it("never grows past the card it sits on: the name is cut inside the pill", () => {
+    const pill = readFileSync(new URL("../components/shell/ThreadPill.tsx", import.meta.url), "utf8");
+    expect(pill).toMatch(/maxWidth: "100%"/);
+    expect(pill).toMatch(/flexShrink: 1/);
   });
 });

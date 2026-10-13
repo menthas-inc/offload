@@ -654,9 +654,11 @@ describe("DELETE /api/me", () => {
 
   it("sends one notice to the address, from a job that names no account, and nothing else", async () => {
     const me = await person("Jo");
-    await db.insertInto("push_tokens").values({ account_id: me.id, token: "ExponentPushToken[x]", platform: "ios" }).execute();
+    const cookie = await signIn(me.id);
+    const session = await db.selectFrom("sessions").select("id").where("account_id", "=", me.id).executeTakeFirstOrThrow();
+    await db.insertInto("push_tokens").values({ account_id: me.id, session_id: session.id, token: "ExponentPushToken[x]", platform: "ios" }).execute();
     await db.deleteFrom("jobs").execute();
-    expect((await send(await signIn(me.id), { confirm: "delete" })).statusCode).toBe(204);
+    expect((await send(cookie, { confirm: "delete" })).statusCode).toBe(204);
 
     const jobs = await db.selectFrom("jobs").select(["kind", "account_id", "payload"]).execute();
     expect(jobs.map((job) => job.kind)).toEqual(["email.account_deleted"]);

@@ -697,6 +697,44 @@ describe("013 an answering turn carries rows and files nothing", () => {
     expect(found[0]!.rows.map((r) => r.title)).toEqual(["Book the flat", "Find a restaurant"]);
   });
 
+  it("carries each row's dates, so rows that share a title can be told apart (2026-10-13)", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    const stay = await db
+      .insertInto("content")
+      .values({
+        thread_id: lisbon,
+        account_id: ana,
+        title: "Glass blowing class",
+        type: "event",
+        occurs_at: new Date("2026-11-30T12:00:00Z"),
+        occurs_end_at: new Date("2026-12-01T12:00:00Z"),
+        attrs: { all_day: true },
+        rrule: "FREQ=WEEKLY;COUNT=8",
+      } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const due = await db
+      .insertInto("content")
+      .values({ thread_id: lisbon, account_id: ana, title: "Book the flat", type: "task", due_at: new Date("2026-12-05T18:00:00Z") } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const { jobId } = await dump(ana, "when are the classes");
+    await post({
+      outcome: "answered",
+      jobId,
+      replyText: "Eight of them.",
+      usage: goodUsage,
+      found: [{ threadId: lisbon, truncated: false, contentIds: [stay.id, due.id] }],
+    });
+    const reply = await db.selectFrom("messages").select("id").where("role", "=", "offload").executeTakeFirstOrThrow();
+    const rows = ((await foundFor([reply.id], ana)).get(reply.id) ?? [])[0]!.rows;
+    expect(rows.map((r) => [r.title, r.occursAt, r.occursEndAt, r.allDay, r.rrule, r.dueAt])).toEqual([
+      ["Glass blowing class", "2026-11-30T12:00:00.000Z", "2026-12-01T12:00:00.000Z", true, "FREQ=WEEKLY;COUNT=8", null],
+      ["Book the flat", null, null, false, null, "2026-12-05T18:00:00.000Z"],
+    ]);
+  });
+
   it("resolves the rows against the reply, not the message being watched", async () => {
     // **The bug this exists for.** A client watches the message it sent and
     // holds that id. The reply is a different row, and the rows an answer
