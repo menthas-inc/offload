@@ -725,11 +725,16 @@ describe("027 AC-16, AC-17 and AC-19 the next line and the strip", () => {
     expect(text()).toContain("All day");
   });
 
-  it("dims a past event's title, and names another member's event as theirs", async () => {
+  it("strikes a past event's title through as a finished row is (the owner, 2026-10-12), and names another member's event as theirs", async () => {
     await open();
     const standup = [...host.querySelectorAll("[data-event]")].find((one) => one.textContent?.includes("Standup"))!;
     expect(standup.getAttribute("data-past")).toBe("true");
+    // The title is an <s>: struck through by the element itself, so the
+    // strike holds with no stylesheet and reads as "no longer current".
+    expect(standup.querySelector("s")?.textContent).toBe("Standup");
     const dinner = [...host.querySelectorAll("[data-event]")].find((one) => one.textContent?.includes("Dinner, Sam"))!;
+    expect(dinner.getAttribute("data-past")).toBeNull();
+    expect(dinner.querySelector("s")).toBeNull();
     expect(dinner.textContent).toContain("Ana's");
   });
 

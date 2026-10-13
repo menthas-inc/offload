@@ -44,10 +44,12 @@ export function ThreadPill({
       accessibilityRole="link"
       accessibilityLabel={`Open ${name}`}
       className="flex-row items-center self-start rounded-pill bg-surface-accent-soft"
-      style={{ minHeight: height, gap: 6, paddingLeft: small ? 4 : 6, paddingRight: small ? 10 : 12 }}
+      // Never wider than what it sits on: a long name is cut inside the pill
+      // rather than running past an event card's edge (the owner, 2026-10-12).
+      style={{ minHeight: height, maxWidth: "100%", gap: 6, paddingLeft: small ? 4 : 6, paddingRight: small ? 10 : 12 }}
     >
       <ThreadIcon icon={icon ?? ""} hue={hue ?? 1} seed={id} size={18} round />
-      <Text className="font-core font-medium text-text-accent" style={{ fontSize: 12.5 }} numberOfLines={1}>
+      <Text className="font-core font-medium text-text-accent" style={{ fontSize: 12.5, flexShrink: 1 }} numberOfLines={1}>
         {name}
       </Text>
     </Pressable>

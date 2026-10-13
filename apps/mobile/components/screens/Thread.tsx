@@ -130,7 +130,6 @@ export default function Thread() {
   const [rows, setRows] = useState<ContentRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
-  const [acting, setActing] = useState<ContentRow | null>(null);
   const [renaming, setRenaming] = useState<ContentRow | null>(null);
   // 020. The photo open in the viewer, by row id, and the row a move sheet
   // is up for. The viewer pages through every photo row on the page.
@@ -140,7 +139,6 @@ export default function Thread() {
   // appearing silently in the middle of a list.
   const [arrived, setArrived] = useState<Set<string>>(new Set());
   // 023. The row whose When sheet is open on its own, from the action sheet.
-  const [timing, setTiming] = useState<ContentRow | null>(null);
   const { zone, today } = useClock();
   // 019. The calendars sheet, and a counter bumped when the picks change so
   // the rail reads the calendars again.
@@ -878,67 +876,6 @@ export default function Thread() {
   }));
   const viewerIndex = viewing ? photoRows.findIndex((row) => row.id === viewing) : -1;
 
-  const actions: RowAction[] = acting
-    ? [
-        // Edit leads, because renaming is the commonest thing to want and the
-        // one this sheet did not offer: the only way to fix a title was on the
-        // web.
-        // 023. When sits above Edit and carries its value where the other
-        // rows carry nothing; a row on a calendar keeps its time, which is
-        // Google's, and does not offer it.
-        ...(!acting.onCalendar
-          ? [{ label: "When", icon: "calendar", value: whenLabel(whenValueOf(acting, zone)), run: () => setTiming(acting) }]
-          : []),
-        { label: "Edit", icon: "pencil", run: () => setRenaming(acting) },
-        // 2026-09-29. The row no longer draws the tag tool, and somebody
-        // else's row opens this sheet rather than the edit one, so labels
-        // are here too.
-        { label: "Labels", icon: "tag", run: () => setLabelling(acting) },
-        // 020. The first move control the product has drawn, on the row's own
-        // sheet. The author's, like delete, because both change who can see
-        // something.
-        ...(acting.canMove ? [{ label: "Move", icon: "layers", run: () => setMoving(acting) }] : []),
-        // A picture is not done or not done.
-        ...(acting.photo
-          ? []
-          : [
-              {
-                label: acting.doneAt ? "Mark not done" : "Mark done",
-                icon: acting.doneAt ? "rewind" : "check",
-                run: () => tick(acting),
-              },
-            ]),
-        // One way out, never two. Your own content offers Delete; somebody
-        // else's, in a shared thread, offers Archive, because OFF-3 says you
-        // may not destroy what another person wrote and a thread still has to
-        // be tidyable by the people in it. Putting something back is neither,
-        // so an archived row always offers it whoever is looking.
-        ...(acting.archivedAt
-          ? [
-              {
-                label: "Put back in the thread",
-                icon: "rewind",
-                run: () => askArchive(acting),
-              },
-            ]
-          : acting.canDelete
-            ? [
-                {
-                  label: "Delete",
-                  icon: "trash-2",
-                  danger: true,
-                  run: () => remove(acting),
-                },
-              ]
-            : [
-                {
-                  label: "Archive",
-                  icon: "archive",
-                  run: () => askArchive(acting),
-                },
-              ]),
-      ]
-    : [];
 
 
   // 030. With the switch in the bar, the label and calendar tools go to the
@@ -1067,7 +1004,6 @@ export default function Thread() {
             notes={shownNotes}
             calendars={{ anyPicked: !filtering && thread.calendars?.anyPicked === true, version: calendarsVersion }}
             onDelete={remove}
-            onActions={setActing}
             onEdit={setRenaming}
             onToggle={tick}
           />
@@ -1081,7 +1017,6 @@ export default function Thread() {
             hideDone={thread.preference.hideDone}
             onFold={fold}
             onDelete={remove}
-            onActions={setActing}
             onEdit={setRenaming}
             onOpenPhoto={(row: ContentRow) => openFileOf(row)}
             onToggle={tick}
@@ -1146,7 +1081,6 @@ export default function Thread() {
             border
             arrived={false}
             onDelete={() => remove(series.row)}
-            onActions={() => setActing(series.row)}
             onEdit={() => setRenaming(series.row)}
             note={
               cadenceLabel(series.everyDays)
@@ -1163,7 +1097,6 @@ export default function Thread() {
             border={i < rest.length - 1}
             arrived={arrived.has(row.id)}
             onDelete={() => remove(row)}
-            onActions={() => setActing(row)}
             onEdit={() => setRenaming(row)}
             onOpenPhoto={() => openFileOf(row)}
           />
@@ -1264,7 +1197,7 @@ export default function Thread() {
           index={viewerIndex}
           onIndex={(index) => setViewing(photoRows[index]?.id ?? null)}
           onClose={() => setViewing(null)}
-          onMore={setActing}
+          onMore={setRenaming}
         />
       ) : null}
 
@@ -1292,32 +1225,10 @@ export default function Thread() {
           if (row.canDelete && row.archivedAt === null) remove(row);
           else askArchive(row);
         }}
+        onMove={(row) => setMoving(row)}
       />
 
-      {/* 023. The When sheet on its own, from the action sheet's row: here it
-          writes on Save and on Clear, since there is no edit sheet to hand
-          back to. */}
-      {timing ? (
-        <WhenSheet
-          key={timing.id}
-          open
-          title={timing.title}
-          isEvent={timing.type === "event"}
-          initial={whenValueOf(timing, zone)}
-          onClose={() => setTiming(null)}
-          onSave={(value) => {
-            const row = timing;
-            setTiming(null);
-            if (!sameWhen(value, whenValueOf(row, zone))) edit(row, patchFor(row, value));
-          }}
-        />
-      ) : null}
 
-      <RowActionSheet
-        open={acting !== null}
-        actions={actions}
-        onClose={() => setActing(null)}
-      />
       {/* The head's More: what the web keeps under its ellipsis, in its order.
           The calendars are reachable both ways, as there. */}
       <RowActionSheet
