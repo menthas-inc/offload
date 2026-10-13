@@ -34,7 +34,7 @@
     "mailauth": "^7.1.0",
     "mailparser": "^3.9.32",
     "nodemailer": "^10.0.13",
-    "pdfjs-dist": "^5.7.284",
+    "pdfjs-dist": "^6.2.108",
     "pg": "^8.13.1",
     "pngjs": "7.0.0",
     "svix": "^2.6.1",
