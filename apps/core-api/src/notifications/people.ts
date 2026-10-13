@@ -18,6 +18,7 @@ import type { Database } from "../schema.js";
 import { record } from "./activity.js";
 import { additionsCopy, requestCopy, shareCopy, type Copy } from "./copy.js";
 import { GONE, PushFailed, push, type PushMessage } from "./push.js";
+import { liveTokens } from "./tokens.js";
 
 export const ADDITIONS_BUCKET_SECONDS = 10 * 60;
 export { CHANNEL_REQUESTS, CHANNEL_SHARED };
@@ -56,7 +57,7 @@ async function sendTo(
   channelId: string,
   kind: "request" | "share" | "shared_activity",
 ): Promise<boolean> {
-  const tokens = await db.selectFrom("push_tokens").select("token").where("account_id", "=", accountId).execute();
+  const tokens = await liveTokens(accountId).execute();
   if (tokens.length === 0) return false;
   const messages: PushMessage[] = tokens.map((one) => ({
     to: one.token,

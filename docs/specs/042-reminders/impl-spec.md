@@ -111,6 +111,8 @@ In order: the next occurrence (a rule's first at or after today; weekly or more 
 
 **The layout** (`today/layout.ts`). A fourth kind, `{ kind: "reminders", on }`, in `DEFAULT_SECTIONS` between `day` and `open_threads`; `layoutShape` allows four sections; `remindersOn()` beside `openThreadsOn()`. `resolveParsed` already places a missing kind straight after the kind before it in the default order, so a stored layout without it gains it after Your day. `/api/me` follows the precedent of 2026-10-07 one step further: `todayLayout` without `open_threads` or `reminders` (the oldest builds), `todayLayoutV2` without `reminders` (builds that know Open in your threads, which draw any other kind as Your day, `TodayScreen.tsx:407`), and `todayLayoutV3`, the whole document. `PATCH /api/me` still takes `todayLayout` with the wider schema; a layout written by a V2 build has no `reminders` and resolves with it at its default place, the same loss 2026-10-07 accepted for Open in your threads.
 
+**Dismiss, 2026-10-11.** `reminder_dismissals` (migration 0092): `account_id`, `content_id` or `note_id`, `occurrence` (`YYYY-MM-DD`), `window_name`, unique per thing, occurrence and window, cascading with the thing and the account, in the ledger. `todayReminders` groups the planned slots per thing, takes the last that has begun as the one showing and the first still to come as `next`, drops anything dismissed for that thing, occurrence and window, and no longer caps at 20. `dismissReminder` re-derives what is showing and refuses anything else; `undismissReminder` deletes the row. A moved date is a new occurrence, so a dismissal on the old one no longer applies. Nothing is written to `reminder_labels`.
+
 ### The person's controls
 
 - `PATCH /api/me` takes `notifyReminders` and `notifyReminderCount`, and since 2026-10-10 `notifyCalendar`. Nothing queued needs deleting: every job re-runs `plan()`.
@@ -340,7 +342,8 @@ $$;
 - `GET /api/me` and `PATCH /api/me`: `notifyReminders: boolean`, `notifyReminderCount: 1 | 2 | 3`, and `notifyCalendar: boolean` (amended 2026-10-10).
 - `POST /v1/push-tokens`: optional `takes: ["reminder"]`, written to `takes_reminders`; a token registered without it is set false, so a re-registration from an older build turns it off.
 - `GET /v1/activity`: entries of kind `reminder` with `threadId` and `contentId` or `noteId`.
-- `GET /v1/today/reminders` → `{ rows: (AgendaRow & { remindDay, remindBy })[], others: [{ of: "note" | "memory", id, name, day, by, threadId, threadName, threadIcon, threadHue }], more: number }`, each list nearest first.
+- `GET /v1/today/reminders` → `{ rows: (AgendaRow & { remindDay, remindBy, window, next })[], others: [{ of: "note" | "memory", id, name, day, by, time, threadId, threadName, threadIcon, threadHue, window, next }], more: number }`, each list nearest first. *2026-10-11:* `window` is the reminder showing (`long`, `short`, `day`), `next` the day its next reminder comes or null, `time` the thing's `HH:MM` or null; `more` is always 0 and stays for phones built before.
+- `POST /v1/today/reminders/dismiss` and `POST /v1/today/reminders/undismiss`, body `{ of: "content" | "note" | "memory", id, day, window }` strict → `{ ok: true }`, 404 for anything not showing to this account on that day in that window (the dismiss) or never dismissed (the undo). *2026-10-11.*
 - `GET /api/me`: `todayLayoutV3`; `todayLayoutV2` loses nothing it has today.
 
 ### Internal

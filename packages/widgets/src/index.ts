@@ -500,5 +500,25 @@ export { staysOpen } from "./composer.js";
 export { holdsLine, inMindLine, keepInPlace, openFor, type PageLike } from "./open-threads.js";
 // 042. Reminders: the bell, the switch, and the words both clients draw; and
 // the Calendar switch's line (2026-10-10).
-export { bellOn, CALENDAR_LINE, DATES_CAPTION, hoursOn, MEMORY_PARAM, REMINDER_COUNT_DEFAULT, REMINDER_COUNTS, REMINDERS_LINE, remindDayLabel, remindSwitchShown, TODAY_REMINDERS } from "./reminders.js";
+export {
+  bellOn,
+  CALENDAR_LINE,
+  countdownLabel,
+  DATES_CAPTION,
+  dismissedLine,
+  dismissLabel,
+  hoursOn,
+  MEMORY_PARAM,
+  REMINDER_COUNT_DEFAULT,
+  REMINDER_COUNTS,
+  reminderDayLine,
+  reminderKey,
+  reminderTimeLine,
+  REMINDERS_LINE,
+  remindDayLabel,
+  remindSwitchShown,
+  TODAY_REMINDERS,
+  whereOf,
+} from "./reminders.js";
 export type { Reminders } from "./reminders.js";
+export { foundMeta, type FoundDated } from "./found.js";

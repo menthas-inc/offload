@@ -82,6 +82,14 @@ case "$commits" in
     if [ -n "$LINT_CMD" ]; then
       step "BLOCKED by pre-commit gate: lint failed." "$LINT_CMD"
     fi
+    # CI's `pnpm typecheck` compiles the test folders too, and a package's own
+    # `tsc -p tsconfig.json` does not: a test with a type error passed every
+    # local check and went red on CI (2026-10-11). The gate runs what CI runs.
+    TYPECHECK_CMD="${PROJECT_TYPECHECK_CMD:-}"
+    if [ -d node_modules ] && [ -z "$TYPECHECK_CMD" ] && [ -f package.json ] && grep -q '"typecheck"' package.json; then TYPECHECK_CMD="pnpm typecheck"; fi
+    if [ -n "$TYPECHECK_CMD" ]; then
+      step "BLOCKED by pre-commit gate: typecheck failed, as CI's would." "$TYPECHECK_CMD"
+    fi
     # What lint cannot see and CI checks: a class, a CSS module class or an icon
     # name that exists nowhere. Each renders as nothing and fails nothing else.
     if [ -d node_modules ] && [ -f .claude/scripts/dead-classes.mjs ]; then

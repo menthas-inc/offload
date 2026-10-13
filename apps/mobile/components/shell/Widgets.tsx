@@ -46,7 +46,6 @@ export function Widgets({
   hideDone,
   onFold,
   onDelete,
-  onActions,
   onEdit,
   onOpenPhoto,
   onToggle,
@@ -61,7 +60,6 @@ export function Widgets({
   hideDone?: boolean | undefined;
   onFold: (next: boolean) => void;
   onDelete: (row: ContentRow) => void;
-  onActions: (row: ContentRow) => void;
   onEdit: (row: ContentRow) => void;
   /** 020. A tile in Files, or a photo row's tile, opens the viewer. */
   onOpenPhoto: (row: ContentRow) => void;
@@ -86,7 +84,6 @@ export function Widgets({
           arrived={arrived}
           onEdit={onEdit}
           onDelete={onDelete}
-          onActions={onActions}
           onOpenPhoto={onOpenPhoto}
           onToggle={onToggle}
           onReorder={onReorder}
@@ -104,7 +101,6 @@ function WidgetBlock({
   threadName,
   arrived,
   onDelete,
-  onActions,
   onEdit,
   onOpenPhoto,
   onToggle,
@@ -117,7 +113,6 @@ function WidgetBlock({
   threadName: string;
   arrived?: Set<string> | undefined;
   onDelete: (row: ContentRow) => void;
-  onActions: (row: ContentRow) => void;
   onEdit: (row: ContentRow) => void;
   onOpenPhoto: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
@@ -294,7 +289,6 @@ function WidgetBlock({
               border={index < shown.length - 1 && !(ruled && index === left.length - 1)}
               arrived={arrived?.has(row.id) ?? false}
               onDelete={() => onDelete(row)}
-              onActions={() => onActions(row)}
               onEdit={() => onEdit(row)}
               onOpenPhoto={() => onOpenPhoto(row)}
               onToggle={widget.kind === "todo" ? () => onToggle(row) : undefined}

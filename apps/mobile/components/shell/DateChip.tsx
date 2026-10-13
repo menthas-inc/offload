@@ -13,6 +13,7 @@ import { bellOn, chipFor, timeIn, type ChipRow, type Reminders } from "@offload/
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { useClock } from "../../lib/clock";
+import { onCardClass, useInBand } from "../today/Band";
 
 export function DateChip({
   row,
@@ -89,12 +90,13 @@ export function PlainChip({ label, bell = false }: { label: string; bell?: boole
 export function HourChip({ row }: { row: ChipRow }) {
   const { zone } = useClock();
   const COLOR = useColors();
+  const inBand = useInBand();
   const at = row.type === "event" ? row.occursAt : row.dueAt;
   if (!at) return null;
   const hour = timeIn(new Date(at), zone, "en-GB");
   return (
     <View
-      className="flex-row items-center gap-space-1 self-start rounded-xs bg-surface-raised px-space-2"
+      className={`flex-row items-center gap-space-1 self-start rounded-xs px-space-2 ${onCardClass(inBand)}`}
       style={{ minHeight: 24 }}
       accessibilityLabel={`At ${hour}`}
     >

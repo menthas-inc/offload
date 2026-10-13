@@ -149,7 +149,7 @@ export async function seedMarked(): Promise<Marked> {
   await sql`
     insert into sessions (account_id, token, expires_at, ip_address, user_agent)
     values (${accountId}, ${TOKEN}, now() + interval '1 day', ${TOKEN}, ${TOKEN})`.execute(db);
-  await sql`insert into push_tokens (account_id, token, platform) values (${accountId}, ${PUSH_TOKEN}, 'ios')`.execute(db);
+  await sql`insert into push_tokens (account_id, session_id, token, platform) select ${accountId}, id, ${PUSH_TOKEN}, 'ios' from sessions where token = ${TOKEN}`.execute(db);
   await sql`update account_keys set wrapped_dek = ${token} where account_id = ${accountId}`.execute(db);
   await sql`update thread_keys set wrapped_tk = ${token} where account_id = ${accountId}`.execute(db);
 

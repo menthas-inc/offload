@@ -1542,6 +1542,41 @@ describe("AC-11, AC-17 a tapped calendar answer", () => {
     expect(picks.map((p) => p.calendar_id)).toEqual([family]);
   });
 
+  it("rows filed in one turn share one question, and the tap writes every one of them (the owner, 2026-10-13)", async () => {
+    // Eight glass blowing classes were filed and asked about; only the first
+    // reached the calendar, because every raise in the turn took the same
+    // ordinal and the rest were dropped on conflict.
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "Home" });
+    const family = await calendar(n, { summary: "Family" });
+    const { jobId, messageId, turnId } = await dump(me, t);
+    const ids: string[] = [];
+    for (const day of ["2026-11-30", "2026-12-07", "2026-12-14"]) {
+      ids.push(await row(me, t, "Glass blowing class", messageId, `${day}T18:00:00Z`));
+    }
+    for (const [i, contentId] of ids.entries()) {
+      const result = (await tool({ tool: "create_event", jobId, toolCallId: `g${i}`, contentId })).json() as Record<string, unknown>;
+      expect(result).toEqual({ ok: true, asked: true });
+    }
+    const questions = await db.selectFrom("questions").selectAll().where("turn_id", "=", turnId).execute();
+    expect(questions).toHaveLength(1);
+    const q = questions[0]!;
+    expect(q.target_content_id).toBe(ids[0]);
+    expect(q.text).toBe('Filed "Glass blowing class" and 2 more. Which calendar?');
+    expect(q.previous_value).toEqual({ picks: true, also: [ids[1], ids[2]] });
+
+    // Family, Home, Not that: the tap writes all three and picks once.
+    const response = await app.inject({ method: "POST", url: `/v1/questions/${q.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 0 } });
+    expect(response.statusCode).toBe(200);
+    expect(google.createEvent).toHaveBeenCalledTimes(3);
+    const written = await db.selectFrom("content").select(["id", "source_ref"]).where("id", "in", ids).execute();
+    expect(written.every((one) => one.source_ref?.includes(":evt-"))).toBe(true);
+    const picks = await db.selectFrom("thread_calendars").select("calendar_id").where("thread_id", "=", t).execute();
+    expect(picks.map((p) => p.calendar_id)).toEqual([family]);
+  });
+
   it("a calendar that needs the person's say-so turns the tap into a proposal on their own turn", async () => {
     const me = await account();
     const t = await thread(me);

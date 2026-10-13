@@ -277,30 +277,65 @@ export async function fetchOpenThreads(): Promise<OpenPage[] | null> {
 
 // ---------------------------------------------------------------- Reminders
 
+export type ReminderWindow = "long" | "short" | "day";
+
+/** 2026-10-11. Which of the thing's reminders is showing, and the day its
+ *  next one comes, so a dismiss can name the one reminder it hides. */
+interface Showing {
+  window: ReminderWindow;
+  next: string | null;
+}
+
 /** 042. A row whose reminders have begun: the day it is reminded against, and
  *  whether that is "by" (a deadline, or a task that belongs to something). */
-export interface ReminderRow extends AgendaRow {
+export interface ReminderRow extends AgendaRow, Showing {
   remindDay: string;
   remindBy: boolean;
 }
 
 /** A note or a memory whose reminders have begun. A memory has no thread. */
-export interface ReminderOther {
+export interface ReminderOther extends Showing {
   of: "note" | "memory";
   id: string;
   name: string;
   day: string;
   by: boolean;
+  /** `HH:MM` in the account's zone when the thing has a clock time. */
+  time: string | null;
   threadId: string | null;
   threadName: string | null;
   threadIcon: string | null;
   threadHue: number | null;
 }
 
+/** One reminder, as the screen showed it. */
+export interface Dismissal {
+  of: "content" | "note" | "memory";
+  id: string;
+  day: string;
+  window: ReminderWindow;
+}
+
+async function postDismissal(path: "dismiss" | "undismiss", which: Dismissal): Promise<boolean> {
+  try {
+    const response = await fetch(`${API}/v1/today/reminders/${path}`, { ...json, method: "POST", body: JSON.stringify(which) });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** The x on a card: this reminder hidden, the thing and its next reminder
+ *  untouched. True when it landed. */
+export const dismissReminder = (which: Dismissal): Promise<boolean> => postDismissal("dismiss", which);
+
+/** Undo. */
+export const undismissReminder = (which: Dismissal): Promise<boolean> => postDismissal("undismiss", which);
+
 export interface RemindersRead {
   rows: ReminderRow[];
   others: ReminderOther[];
-  /** Begun and not drawn: the further away. */
+  /** Always 0 since 2026-10-11: the column shows everything that has begun. */
   more: number;
 }
 

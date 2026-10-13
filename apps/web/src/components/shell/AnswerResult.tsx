@@ -16,10 +16,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { DEFAULT_THREAD_ICON } from "@offload/widgets";
+import { DEFAULT_THREAD_ICON, foundMeta } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { ThreadIcon } from "../ThreadIcon";
 import { PhotoThumb } from "./PhotoThumb";
+import { useClock } from "../../lib/clock";
 import type { FoundResult, FoundRow } from "../../lib/dump";
 import styles from "../../app/(shell)/answer.module.css";
 
@@ -88,6 +89,7 @@ function Result({
   shown: number;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const { zone, today } = useClock();
   const drawn = expanded ? result.rows : result.rows.slice(0, shown);
   // The honest remainder of what actually arrived, never of what exists. A
   // truncated read did not fetch the rest, so there is nothing to expand into
@@ -107,7 +109,7 @@ function Result({
       </Link>
 
       {drawn.map((row) => (
-        <div key={row.contentId} className={`${styles.row} ${row.done ? styles.done : ""}`}>
+        <div key={row.contentId} className={`${styles.row} ${row.done ? styles.done : ""}`} data-row>
           {onToggle && tickable(row.type) ? (
             <button
               type="button"
@@ -144,6 +146,13 @@ function Result({
           )}
           <span className={styles.body}>
             <b className={styles.title}>{row.title}</b>
+            {/* 2026-10-13. The date under the title, in the chip's words: eight
+                rows called Glass blowing class are told apart by nothing else. */}
+            {foundMeta(row, zone, today) ? (
+              <span className={styles.meta} data-meta>
+                {foundMeta(row, zone, today)}
+              </span>
+            ) : null}
           </span>
         </div>
       ))}

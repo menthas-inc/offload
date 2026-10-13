@@ -3,7 +3,7 @@
 // Since 2026-10-10 also the Calendar switch's line and the hours it uses,
 // since it rides in the same morning message.
 
-import { addDays } from "./days.js";
+import { addDays, daysBetween } from "./days.js";
 
 /** The author's Remind me as the API sends it: on while offload will remind
  *  them, off once they stopped it, null otherwise and to anybody else. */
@@ -83,3 +83,62 @@ export const CALENDAR_LINE = "Today's events on the calendars you chose, in the 
 /** The query parameter that opens one memory in Memories, from Today's
  *  Reminders section, on the phones and the web alike. */
 export const MEMORY_PARAM = "memory";
+
+// ---------------------------------------------------------------- Today's column (drawn 2026-10-11)
+
+/** The countdown that leads a card in Today's Reminders: Today, Tomorrow,
+ *  then In N days. A day already here is Today, never a count below zero. */
+export function countdownLabel(day: string, today: string): string {
+  const ahead = daysBetween(today, day);
+  if (ahead <= 0) return "Today";
+  if (ahead === 1) return "Tomorrow";
+  return `In ${ahead} days`;
+}
+
+const SHORT_DAY = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+
+/** Under the countdown: "Tue 13 Oct", or "By Sun 18 Oct" for a deadline or a
+ *  task reminded against the thing it is for. */
+export function reminderDayLine(day: string, by: boolean): string {
+  const said = SHORT_DAY.format(new Date(`${day}T12:00:00Z`)).replace(",", "");
+  return by ? `By ${said}` : said;
+}
+
+/** After where it lives, when the thing has a clock time: "21:40", or "By
+ *  18:00" for a deadline. */
+export function reminderTimeLine(time: string, by: boolean): string {
+  return by ? `By ${time}` : time;
+}
+
+/** The dismiss's accessible name. */
+export function dismissLabel(name: string): string {
+  return `Dismiss ${name}`;
+}
+
+/** The toast after a dismiss, with Undo beside it. A dismiss hides the one
+ *  reminder that was showing, not the thing (the owner, 2026-10-11), so the
+ *  line says when the thing's next reminder brings it back; with none to
+ *  come, it says only that it is gone. */
+export function dismissedLine(next: string | null, today: string): string {
+  if (!next) return "Dismissed";
+  if (next <= today) return "Dismissed until later today";
+  const when = remindDayLabel(next, today, false);
+  return `Dismissed until ${when === "Tomorrow" ? "tomorrow" : when}`;
+}
+
+/** Where a reminder's thing lives, under its name: a row's thread with the
+ *  thread's own icon (`lasso` when it has none), `inbox` and Not in a thread
+ *  for a row in the default thread; `text-quote` for a note whatever its
+ *  thread; `cloudy` and Memories for a memory. Decided once. */
+export function whereOf(thing: { of: "content" | "note" | "memory"; threadName: string | null; threadIcon: string | null }): { icon: string; text: string } {
+  if (thing.of === "memory") return { icon: "cloudy", text: "Memories" };
+  if (thing.of === "note") return { icon: "text-quote", text: thing.threadName ?? "Not in a thread" };
+  return thing.threadName === null ? { icon: "inbox", text: "Not in a thread" } : { icon: thing.threadIcon ?? "lasso", text: thing.threadName };
+}
+
+/** The key a dismissed reminder is hidden by on the screen: the thing, its
+ *  day and the reminder showing, as the server keys a dismissal. A key with
+ *  the thing alone would hide its next reminder too on a screen left open. */
+export function reminderKey(which: { of: "content" | "note" | "memory"; id: string; day: string; window: string }): string {
+  return `${which.of}:${which.id}:${which.day}:${which.window}`;
+}
