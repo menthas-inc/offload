@@ -26,5 +26,13 @@
   {
     "key": "small",
     "prompt": "The small calls: classify, judge_answer, reader.py, harness/look.py, nightly.py, memories.py and their prompts (classify.md, judge.md, reader.md, look.md, nightly.md, memory.md). Read each call site for model, max_tokens, tool_choice, thinking, cache_control, what context it is sent, and how often it runs (worker.py; the cost sheet's mix in .claude/skills/cost-report/assumptions.json: every text dump pays a classify, two threads a night get a nightly pass). Questions: what is sent that the call does not need; is the nightly pass sent whole threads it will not change; are the reader's web pages trimmed; does look send full resolution images; which of these would Haiku 5.5 make nearly free. Propose per call changes, each with the principle that tests it (19, 14, 09, 31, 21, 28, 29)."
+  },
+  {
+    "key": "wildcard",
+    "prompt": "An open brief. The goal: the cheapest and fastest version of each of offload's model calls that still passes the principle evals, any layer, any file under apps/agent. You are not given a lens; find where the money and the seconds go yourself. Start from the baseline summary's tokens per call, calls per case and latency per surface, then read whatever the numbers point at. The non-goals bound you; nothing else does. Propose what the seven named lenses (caching, effort, model, prompt, structure, answer, small) would each be too narrow to see: a change that crosses two of them, or a layer none of them names (the worker's dump path, the context loaders, the tool results' size, retries, the ledger, concurrency)."
+  },
+  {
+    "key": "junior",
+    "prompt": "You are new to this codebase and to tuning model calls, and that is the point: say what looks wasteful to someone reading it for the first time. Read apps/agent/src/offload_agent/worker.py, harness/plan.py, context.py and the prompts folder once, plainly, and ask of every model call: why is this sent, who reads it, what happens if it is shorter or skipped, why is this called twice. Do not read the research file. Do not use the vocabulary of caching or effort unless the code uses it. Propose the things an experienced person would have stopped seeing, in plain words, each with the file and the line it points at and the principle that would notice if it broke."
   }
 ]

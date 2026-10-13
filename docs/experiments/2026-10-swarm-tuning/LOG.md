@@ -260,3 +260,28 @@ owner's weekly Claude Code allowance, read from the app.
   rewrite before the next run.
 - The v2 protocol in the report now reads its accuracy band from the
   history (calibration drops from $4 to $1.3) and has no product proposer.
+- 2026-10-13, 12:40. The owner asked for the flaky-cases hand-off
+  (`handoff-flaky-cases.md`, for a separate session), the previous run's
+  artifacts removed, and the next run started as proposed. Artifacts:
+  another session had already removed the 25 swarm worktrees and their
+  branches; the shared swarm folder is archived as
+  `~/.offload-swarm-run1-2026-10-10` (spend log, baseline records, env
+  files) and a fresh `~/.offload-swarm` will be made for v2. The v2 plan
+  and its implementation checklist are `rounds/v2/PLAN.md`.
+
+## 2026-10-13 14:30, v2 mechanics built
+
+Red tests first, then: race blocks (`block1` 30, `block2` 30, `block3` 52,
+from the train cases, the twelve flaky ids left out via `subsets/flaky.json`);
+`noise.py` pooling several prompts hashes with `--since` and a prior for a
+case the base has seen once (block1 at the base hashes read se 0 without it,
+27.4 +/- 1.5 with it; the screen 62.7 +/- 1.3 of 66 known); `compare.py
+--paired` with the gate line; `prefix.py` (filing prefix 35,216 chars of
+prompt plus 14,562 of tools, about 12,400 tokens); `swarm-dedup.py` (TF-IDF
+cosine, union find); `swarm-findings.py` (append and render); the lenses
+`wildcard` and `junior`; the ideation schema with a disconfirming test and
+threshold per hypothesis and a blind split; the try workflow with the
+exclusion list, claim board lines, the prefix gate, block1 on the worker's
+stake and a blind skeptic; the brief and the worktree script to match.
+Ruff format touched ten unrelated test files; reverted. 762 agent tests
+pass. Nothing has been spent.

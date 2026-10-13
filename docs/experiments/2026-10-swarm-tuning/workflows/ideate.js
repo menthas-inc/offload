@@ -4,8 +4,10 @@ export const meta = {
   phases: [{ title: 'Ideate', detail: 'one lens per agent, no model calls' }],
 }
 
-// args: { repo, round, baselineSummary, findings, lenses: [{key, prompt}] }
-// `findings` is the condensed FINDINGS.md of the rounds before, or empty on round one.
+// args: { repo, round, baselineSummary, findings, nonGoals, blind: [keys], lenses: [{key, prompt}] }
+// `findings` is the rendered findings of the rounds before, or empty on round one.
+// A lens whose key is in `blind` is briefed without the findings, whatever the
+// round: half the lenses in round two, so the anchor's cost can be counted.
 const HYPOTHESES = {
   type: 'object',
   properties: {
@@ -23,12 +25,14 @@ const HYPOTHESES = {
           expected_cost: { type: 'string', description: 'direction and rough size per affected surface' },
           expected_latency: { type: 'string' },
           principles_at_risk: { type: 'array', items: { type: 'string' } },
+          disconfirming_test: { type: 'string', description: 'the one measurement that would show this hypothesis wrong: which subset or principle, which number' },
+          threshold: { type: 'string', description: 'the number that measurement must beat for the change to be kept, e.g. warm day x0.90 or better with accuracy z >= -1.96 on block1' },
           evidence: { type: 'string', description: 'what in the code, the baseline, the findings or the research says this will pay' },
           builds_on: { type: 'string', description: 'which earlier finding or candidate this refines, combines or corrects; empty if new' },
           effort: { type: 'string', description: 'small | medium | large' },
           independent_of: { type: 'string', description: 'which other levers this composes with cleanly' },
         },
-        required: ['title', 'lever', 'change', 'files', 'surfaces', 'expected_cost', 'expected_latency', 'principles_at_risk', 'evidence', 'builds_on', 'effort'],
+        required: ['title', 'lever', 'change', 'files', 'surfaces', 'expected_cost', 'expected_latency', 'principles_at_risk', 'disconfirming_test', 'threshold', 'evidence', 'builds_on', 'effort'],
       },
     },
     not_worth_it: { type: 'array', items: { type: 'string' }, description: 'levers in this lens you looked at and rejected, with why' },
@@ -47,11 +51,14 @@ Read only. Do not edit anything. Do not run evals/run.py (it calls the real mode
 Baseline, measured on the unchanged app:
 ${args.baselineSummary}
 
-${args.findings ? `What the rounds before this one found. Build on it: refine what worked, combine what composes, drop what was tried and did not pay unless you can say what was wrong with the attempt.\n\n${args.findings}` : 'This is the first round. Nothing has been tried yet.'}
+${args.findings && !(args.blind || []).includes(lens.key) ? `What the rounds before this one found. Build on it: refine what worked, combine what composes, drop what was tried and did not pay unless you can say what was wrong with the attempt.\n\n${args.findings}` : 'Propose from the code and the numbers. You are not told what was tried before.'}
+
+Non-goals, which bound every proposal:
+${args.nonGoals}
 
 Your lens: ${lens.prompt}
 
-Propose up to ${args.round > 1 ? 'four' : 'six'} hypotheses in this lens, ranked by expected payoff per effort. In a later round, prefer the specific follow-ups the findings propose over new ideas unless a new idea is clearly larger. Each must be concrete enough that a worker with no other context can implement it in one session: name the files, the exact parameter or passage, and the surfaces it touches. Ground the expected effect in the baseline numbers (tokens per call, calls per case, cache reads, latency) and say which principles' cases would catch a regression. Say what each hypothesis builds on from the findings, if anything. Prefer levers that compose with other lenses' levers. Name what you rejected and why. Return the structured result only.`,
+Propose up to ${args.round > 1 ? 'four' : 'six'} hypotheses in this lens, ranked by expected payoff per effort. In a later round, prefer the specific follow-ups the findings propose over new ideas unless a new idea is clearly larger. Each must be concrete enough that a worker with no other context can implement it in one session: name the files, the exact parameter or passage, and the surfaces it touches. Ground the expected effect in the baseline numbers (tokens per call, calls per case, cache reads, latency) and say which principles' cases would catch a regression. Name the disconfirming test: the one measurement that would show the hypothesis wrong, and the threshold it must beat to be kept; a worker runs exactly that. Say what each hypothesis builds on from the findings, if anything. Prefer levers that compose with other lenses' levers. Name what you rejected and why. Return the structured result only.`,
       { label: `ideate:${lens.key}`, phase: 'Ideate', schema: HYPOTHESES, model: 'opus' },
     ),
   ),

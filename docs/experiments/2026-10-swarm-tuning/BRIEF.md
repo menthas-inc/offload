@@ -16,6 +16,11 @@ has cost real time in this repo.
 - **Never commit, never push, never stash.** Your candidate is the working
   tree. A `git commit` here runs a gate that truncates a shared database.
 - **Never run `pnpm`.** The agent's suite is `uv run pytest`.
+- **Say what you touch.** `python3 .claude/scripts/board.py as <your name>`
+  once, then `board.py say "claimed: <files>"` before your first edit and
+  `board.py say "done: <files>, interface changed: <yes or no>"` after
+  RESULT.md. The lead reads the board before composing; two candidates that
+  changed one function's signature are found there, not in a merge.
 
 ## What you may run
 
@@ -23,18 +28,26 @@ has cost real time in this repo.
   The `_db` tests write to a shared database and are not yours.
 - Evals, only with your spend environment sourced first, every time:
   `source ~/.offload-swarm/<your name>.sh`. Then, from `apps/agent`:
-  - `uv run python evals/run.py --subset screen --concurrency 4 --note "<what changed>"`,
-    at most twice. The screen is about $1.30 and takes a few minutes.
+  - `uv run python evals/run.py --subset block1 --concurrency 4 --note "<what changed>"`,
+    once. Block1 is thirty cases, about $0.60, a few minutes. It is the
+    first block of a race: the lead's pool buys block2 and block3 for a
+    candidate the gate keeps, so you do not.
+  - `uv run python evals/prefix.py --against ~/.offload-swarm/prefix-base.json`
+    before block1: no model, a second. A prefix that grew when your change
+    is only prompt or tool text is a refusal; report it and stop.
   - `uv run python evals/run.py --principle <N> --concurrency 4 --note "..."`
     for a principle your change touches, to read failures. Prefer this to
     the screen while iterating; a principle is $0.10 to $1.
   - Always `--concurrency 4`: a dozen workers share one API rate limit.
-  - `uv run python evals/compare.py <baseline record> <your record>` to read
-    a run against the baseline. The baseline records are named in your task.
-- **Never** `--subset holdout`, never the full set, never `--runs 3`, never
-  `--live`. Never open `evals/subsets/holdout.json`. Your cap is $3 and the
-  runner refuses past it; a refusal is the end of your eval budget, not a
-  thing to work around.
+  - `uv run python evals/compare.py <base block1 record> <your record> --paired`
+    to read a run. The `paired` line is your accuracy against the history of
+    every run of those cases, in standard errors; the `gate` line is the
+    verdict. One base run is the cost and latency reference only.
+- **Never** `--subset screen`, `block2`, `block3` or `holdout`, never the
+  full set, never `--runs 3`, never `--live`. Never open
+  `evals/subsets/holdout.json`. Your cap is $1.60 and the runner refuses
+  past it; a refusal is the end of your eval budget, not a thing to work
+  around.
 
 ## What counts
 
@@ -71,8 +84,10 @@ classified, thing. Short, friendly, not emphatic, not apologetic.
 
 1. `RESULT.md` at the root of your worktree, under 600 words:
    - the hypothesis in one sentence and what you actually changed;
-   - the numbers: screen before and after, and any principle runs, as
-     `compare.py` printed them, with the record file names;
+   - the disconfirming test you were given, as run, its number against the
+     threshold;
+   - the numbers: block1 as `compare.py --paired` printed it, the prefix
+     ratio, and any principle runs, with the record file names;
    - every eval case you changed, with the reason;
    - what you learned, including what did not work;
    - risks you see for production that the evals cannot show.

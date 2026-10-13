@@ -27,6 +27,7 @@ import argparse
 import json
 import sys
 from collections import defaultdict
+from collections.abc import Iterable
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -62,14 +63,23 @@ def load(log: Path = CASES) -> list[dict]:
 
 
 def rates(
-    rows: list[dict], prompts: str | None = None, models: dict | None = None
+    rows: list[dict],
+    prompts: str | Iterable[str] | None = None,
+    models: dict | None = None,
+    since: str | None = None,
 ) -> dict[str, tuple[int, int]]:
-    """Per case: (passed, appeared) over the runs that match."""
+    """Per case: (passed, appeared) over the runs that match. `prompts` is one
+    hash or several (the base of a run can be two hashes apart on one line
+    that touched one surface); `since` is a run stamp, for a fix that made
+    earlier runs another app's (the pairing fix of 2026-10-10)."""
+    hashes = {prompts} if isinstance(prompts, str) else set(prompts or [])
     out: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     for r in rows:
-        if prompts and r.get("prompts") != prompts:
+        if hashes and r.get("prompts") not in hashes:
             continue
         if models and any(r.get("models", {}).get(k) != v for k, v in models.items()):
+            continue
+        if since and r.get("when", "") < since:
             continue
         for i in r.get("passed", []):
             out[i][0] += 1
@@ -79,11 +89,26 @@ def rates(
     return {k: (v[0], v[1]) for k, v in out.items()}
 
 
-def band(case_ids: list[str], rates_: dict[str, tuple[int, int]]) -> dict:
+def band(
+    case_ids: list[str],
+    rates_: dict[str, tuple[int, int]],
+    prior: dict[str, tuple[int, int]] | None = None,
+    weight: float = 2.0,
+) -> dict:
     """What the history expects of these cases: the pass count, its standard
-    error, and the rate, over the cases the history knows."""
+    error, and the rate, over the cases the history knows. With a `prior`
+    (the same cases' rates over every prompts version), a case's rate on
+    these prompts is shrunk towards it with the weight of `weight` runs: a
+    case seen once is a coin seen once, not a certainty (2026-10-13)."""
     known = [i for i in case_ids if i in rates_ and rates_[i][1] > 0]
-    ps = [rates_[i][0] / rates_[i][1] for i in known]
+    ps = []
+    for i in known:
+        k, n = rates_[i]
+        if prior and i in prior and prior[i][1] > 0:
+            p0 = prior[i][0] / prior[i][1]
+            ps.append((k + weight * p0) / (n + weight))
+        else:
+            ps.append(k / n)
     expected = sum(ps)
     var = sum(p * (1 - p) for p in ps)
     return {
@@ -104,11 +129,15 @@ def flakiest(
     return sorted(seen, key=lambda iv: abs(iv[1][0] / iv[1][1] - 0.5))
 
 
-def against(run: dict, rates_: dict[str, tuple[int, int]]) -> dict:
+def against(
+    run: dict,
+    rates_: dict[str, tuple[int, int]],
+    prior: dict[str, tuple[int, int]] | None = None,
+) -> dict:
     """A run read against each case's history: observed passes minus the
     expected count, in standard errors, over the cases the history knows."""
     ids = [c["id"] for c in run.get("cases", []) if c["id"] in rates_]
-    b = band(ids, rates_)
+    b = band(ids, rates_, prior=prior)
     observed = sum(1 for c in run.get("cases", []) if c["id"] in rates_ and c.get("passed"))
     z = (observed - b["expected"]) / b["se"] if b["se"] else 0.0
     return {
@@ -123,17 +152,25 @@ def against(run: dict, rates_: dict[str, tuple[int, int]]) -> dict:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--log", default=str(CASES))
-    parser.add_argument("--prompts", help="only runs on this prompts hash")
+    parser.add_argument("--prompts", help="only runs on these prompts hashes, comma separated")
+    parser.add_argument("--since", help="only runs stamped at or after this (YYYYMMDD-HHMMSS)")
     parser.add_argument(
         "--model", action="append", default=[], help="surface=model, only runs with it"
     )
     parser.add_argument("--subset", help="a subsets/<name>.json or a path: the band for its cases")
     parser.add_argument("--against", help="a results record: read it against the history")
+    parser.add_argument(
+        "--prior",
+        action="store_true",
+        help="shrink each case's rate towards its rate over every prompts version",
+    )
     parser.add_argument("--top", type=int, default=20)
     args = parser.parse_args(argv[1:])
     rows = load(Path(args.log))
     models = dict(kv.split("=", 1) for kv in args.model) or None
-    r = rates(rows, prompts=args.prompts, models=models)
+    hashes = args.prompts.split(",") if args.prompts else None
+    r = rates(rows, prompts=hashes, models=models, since=args.since)
+    prior = rates(rows) if args.prior else None
     print(
         f"{len(rows)} runs, {len(r)} cases seen"
         + (f", prompts {args.prompts}" if args.prompts else "")
@@ -143,7 +180,7 @@ def main(argv: list[str]) -> int:
         if not path.is_file():
             path = HERE / "subsets" / f"{args.subset}.json"
         ids = json.loads(path.read_text(encoding="utf-8"))["cases"]
-        b = band(ids, r)
+        b = band(ids, r, prior=prior)
         print(
             f"{path.stem}: {b['known']} of {b['cases']} cases known; expected "
             f"{b['expected']:.1f} passes, se {b['se']:.1f} ({b['expected_rate'] * 100:.1f}% "
@@ -151,7 +188,7 @@ def main(argv: list[str]) -> int:
         )
     if args.against:
         run = json.loads(Path(args.against).read_text(encoding="utf-8"))
-        a = against(run, r)
+        a = against(run, r, prior=prior)
         print(
             f"{Path(args.against).name}: {a['observed']} passed of {a['cases']} known cases, "
             f"history expected {a['expected']:.1f} +/- {a['se']:.1f}: z = {a['z']:+.2f}"

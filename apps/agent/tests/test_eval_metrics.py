@@ -355,3 +355,38 @@ def argparse_ns(**kw):
     base = {"subset": None, "principle": None, "surface": None, "case": None}
     base.update(kw)
     return argparse.Namespace(**base)
+
+
+def test_a_candidate_is_gated_against_the_history_not_against_one_run(compare):
+    """Paired: the candidate's pass count on its cases against what the
+    history expects of those same cases. Kept when accuracy is no worse than
+    about two standard errors and the warm day or the latency moved past
+    the band. One baseline run is the cost and latency reference only."""
+    rates = {str(i): (9, 10) for i in range(30)}
+    before = _record([(str(i), True, 1000, 0.02) for i in range(30)])
+    after = _record([(str(i), i > 1, 700, 0.012) for i in range(30)])
+    for rec in (before, after):
+        for c in rec["cases"]:
+            c["warm_cost_usd"] = c["product_cost_usd"] / 2
+    out = compare.compare(before, after)
+    p = compare.paired(after, rates)
+    assert p["observed"] == 28 and p["expected"] == pytest.approx(27.0)
+    assert p["z"] == pytest.approx((28 - 27) / (30 * 0.09) ** 0.5)
+    g = compare.gate(out, p)
+    assert g["kept"] is True
+    fell = _record([(str(i), i > 7, 700, 0.012) for i in range(30)])
+    assert compare.gate(out, compare.paired(fell, rates))["kept"] is False
+    nothing_moved = compare.compare(before, before)
+    assert compare.gate(nothing_moved, p)["kept"] is False
+    assert compare.gate(out, compare.paired(after, {}))["kept"] is False
+
+
+def test_the_gate_reads_as_one_line(compare):
+    rates = {str(i): (9, 10) for i in range(30)}
+    before = _record([(str(i), True, 1000, 0.02) for i in range(30)])
+    after = _record([(str(i), True, 700, 0.012) for i in range(30)])
+    out = compare.compare(before, after)
+    out["paired"] = compare.paired(after, rates)
+    out["gate"] = compare.gate(out, out["paired"])
+    text = compare.render(out)
+    assert "paired" in text and "z = " in text and "gate      kept" in text

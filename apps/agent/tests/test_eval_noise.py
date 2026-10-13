@@ -99,3 +99,34 @@ def test_a_candidate_run_is_read_against_each_case_history(noise):
     z = noise.against(run, rates)
     assert z["observed"] == 2 and z["expected"] == pytest.approx(2.4)
     assert z["z"] == pytest.approx((2 - 2.4) / (0.34**0.5))
+
+
+def test_rates_can_pool_several_prompts_hashes_and_start_from_a_date(noise, tmp_path):
+    """The base of the second run is two hashes apart on one answering line,
+    and the pairing fix of 2026-10-10 made ten cases' earlier runs another
+    app's: the band pools the hashes it is told to, from the run it is told."""
+    log = tmp_path / "cases.jsonl"
+    noise.record(log, _record("20261001-000000", "aaaa", [("x", False)]))
+    noise.record(log, _record("20261010-000000", "aaaa", [("x", True)]))
+    noise.record(log, _record("20261011-000000", "bbbb", [("x", True)]))
+    noise.record(log, _record("20261012-000000", "cccc", [("x", False)]))
+    rows = noise.load(log)
+    assert noise.rates(rows, prompts=["aaaa", "bbbb"])["x"] == (2, 3)
+    assert noise.rates(rows, prompts=["aaaa", "bbbb"], since="20261010")["x"] == (2, 2)
+
+
+def test_a_case_seen_once_on_these_prompts_borrows_its_pooled_rate_as_a_prior(noise):
+    """Block1 at the base hash: thirty cases seen once each, all passed, so
+    the band read se 0 and any failure was infinitely unlikely. A case's
+    rate on these prompts is shrunk towards its rate over every version,
+    with the weight of two runs, so a thin history still has a width."""
+    rates = {"a": (1, 1), "b": (1, 1)}
+    prior = {"a": (8, 10), "b": (5, 10)}
+    band = noise.band(["a", "b"], rates, prior=prior, weight=2.0)
+    pa = (1 + 2 * 0.8) / 3
+    pb = (1 + 2 * 0.5) / 3
+    assert band["expected"] == pytest.approx(pa + pb)
+    assert band["se"] == pytest.approx((pa * (1 - pa) + pb * (1 - pb)) ** 0.5)
+    assert noise.band(["a", "b"], rates)["se"] == 0.0
+    run = {"cases": [{"id": "a", "passed": True}, {"id": "b", "passed": False}]}
+    assert noise.against(run, rates, prior=prior)["expected"] == pytest.approx(pa + pb)
