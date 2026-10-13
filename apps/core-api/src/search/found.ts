@@ -33,6 +33,13 @@ export interface FoundResult {
     title: string;
     body: string | null;
     done: boolean;
+    /** 2026-10-13. The row's dates, so rows that share a title can be told
+     *  apart: an answer draws them under the title. */
+    dueAt: string | null;
+    occursAt: string | null;
+    occursEndAt: string | null;
+    allDay: boolean;
+    rrule: string | null;
     /** 020. The row's photo, when it has one, as the thread page sends it. */
     photo: FileOnRow | null;
   }[];
@@ -65,6 +72,11 @@ export async function foundFor(
     title: string;
     body: string | null;
     done_at: Date | null;
+    due_at: Date | null;
+    occurs_at: Date | null;
+    occurs_end_at: Date | null;
+    all_day: boolean;
+    rrule: string | null;
     blob_id: string | null;
     blob_kind: "image" | "audio" | "pdf" | null;
     blob_width: number | null;
@@ -81,6 +93,8 @@ export async function foundFor(
            case when t.id = (select a.default_thread_id from accounts a where a.id = ${accountId}::uuid) then null else t.icon end as thread_icon,
            case when t.id = (select a.default_thread_id from accounts a where a.id = ${accountId}::uuid) then null else t.hue end as thread_hue,
            c.type as type, c.title as title, c.body as body, c.done_at as done_at,
+           c.due_at as due_at, c.occurs_at as occurs_at, c.occurs_end_at as occurs_end_at,
+           coalesce((c.attrs ->> 'all_day')::boolean, false) as all_day, c.rrule as rrule,
            p.id::text as blob_id, p.kind as blob_kind, p.width as blob_width, p.height as blob_height,
            p.pages as blob_pages, p.renditions_at as blob_renditions_at, p.clean_at as blob_clean_at,
            p.unreadable_at as blob_unreadable_at
@@ -131,6 +145,11 @@ export async function foundFor(
       title: row.title,
       body: row.body ? row.body.slice(0, ANSWER_ROW_CHARS) : null,
       done: row.done_at !== null,
+      dueAt: row.due_at ? new Date(row.due_at).toISOString() : null,
+      occursAt: row.occurs_at ? new Date(row.occurs_at).toISOString() : null,
+      occursEndAt: row.occurs_end_at ? new Date(row.occurs_end_at).toISOString() : null,
+      allDay: row.all_day,
+      rrule: row.rrule,
       photo: row.blob_id
         ? fileToWire({
             id: row.blob_id,
