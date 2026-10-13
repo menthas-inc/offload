@@ -50,6 +50,12 @@ def record(log: Path, rec: dict, agent: str | None = None) -> None:
             c["id"] for c in rec.get("cases", []) if not c.get("passed") and not errored(c)
         ),
         "errored": sorted(c["id"] for c in rec.get("cases", []) if errored(c)),
+        # With --runs, every attempt: passes of attempts, by case.
+        "attempts": {
+            c["id"]: list(c["passes_of"])
+            for c in rec.get("cases", [])
+            if c.get("passes_of") and not errored(c)
+        },
     }
     log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("a", encoding="utf-8") as handle:
@@ -106,13 +112,14 @@ def rates(
         if since and r.get("when", "") < since:
             continue
         ran = r.get("models", {})
-        for i in r.get("passed", []):
-            if _on_model(i, ran, on):
-                out[i][0] += 1
-                out[i][1] += 1
-        for i in r.get("failed", []):
-            if _on_model(i, ran, on):
-                out[i][1] += 1
+        attempts = r.get("attempts") or {}
+        passed = set(r.get("passed", []))
+        for i in [*passed, *r.get("failed", [])]:
+            if not _on_model(i, ran, on):
+                continue
+            k, n = attempts.get(i, (1 if i in passed else 0, 1))
+            out[i][0] += k
+            out[i][1] += n
     return {k: (v[0], v[1]) for k, v in out.items()}
 
 

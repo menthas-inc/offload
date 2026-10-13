@@ -735,6 +735,15 @@
       "input": "when is fathers day this year",
       "expect": {
         "look_up": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2027-03-19",
+          "title": "Father's Day"
+        },
+        "sources": [
+          "example.pt"
+        ]
       }
     },
     {
@@ -755,6 +764,15 @@
       "input": "when do schools break up for christmas",
       "expect": {
         "look_up": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2026-12-18",
+          "title": "Christmas holidays"
+        },
+        "sources": [
+          "example.pt"
+        ]
       }
     },
     {
@@ -765,6 +783,15 @@
       "input": "find out when the carnival parade is",
       "expect": {
         "look_up": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2027-02-09",
+          "title": "Carnival parade"
+        },
+        "sources": [
+          "example.pt"
+        ]
       }
     },
     {
@@ -776,6 +803,15 @@
       "expect": {
         "look_up": true,
         "files_something": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2027-02-09",
+          "title": "Shrove Tuesday"
+        },
+        "sources": [
+          "example.pt"
+        ]
       }
     },
     {
@@ -787,6 +823,15 @@
       "expect": {
         "look_up": true,
         "files_something": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2027-02-06",
+          "title": "Carnival"
+        },
+        "sources": [
+          "example.pt"
+        ]
       }
     },
     {
@@ -798,6 +843,15 @@
       "expect": {
         "look_up": true,
         "files_something": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2027-05-27",
+          "title": "Corpus Christi"
+        },
+        "sources": [
+          "example.pt"
+        ]
       }
     },
     {

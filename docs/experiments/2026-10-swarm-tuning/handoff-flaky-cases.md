@@ -178,3 +178,52 @@ Case faults found on the way:
 
 The held-out cases are folded into principle 09. The decision log entry for
 `docs/tech/decisions.md` is to be written on main.
+
+## Second round: what code can hold, 2026-10-13
+
+The owner's calls: a query word outside the dump is dropped and the rest is
+searched; a filing turn's country is the account's, whatever the thread on
+screen is about.
+
+- **The query guard drops, not refuses.** `_within_the_dump` keeps the words
+  `_from_the_dump` would pass, in order, and refuses only when none of the
+  person's own words is left. What leaves is the same set as before. The
+  eval stub does the same and records the model's query as `composed`.
+- **Filing is sent back once to look up.** A dump that says "check when",
+  "find out", "when is", "what time" or "is there", ended with a row or
+  `Not sure.` and no lookup, gets one line. A turn that still has not looked
+  keeps what it said first: the first run let a second reply explain itself.
+- **Classify reads a question with a dump after it in code** and files it
+  without a call.
+- **The judge reads a bare day of the month in code**, the next one on or
+  after today, with no call.
+- **Answering is sent back once** for a reply that calls their rows things or
+  items, and for a public day answered with nothing read and no lookup.
+  `answer.md` now names calendar events as a set that is not content rows,
+  so an event is named with its time.
+- `noise.py` counts every attempt of a `--runs` run; `compare.py --aim
+  accuracy` keeps a fix that rose one standard error over the history.
+- Realistic lookup results for the bank holiday case and the six moveable
+  day cases: the stub's 25 October for carnival drew a reply about the search.
+
+| run, production models | read against history |
+| --- | --- |
+| 08 filing | 35 of 38, z +1.91 |
+| 09 filing | 64 of 70, z +0.36 |
+| 11 filing | 29 of 30, z +2.48 |
+| 12 filing | 4 of 5, z +1.11 |
+| classify | 21 of 21, z +1.16 |
+| judge | 19 of 19, z +1.72 |
+| answer | 112 of 121, z +1.82 |
+| screen | 65 of 68, z +0.97 |
+
+Measured before two fixes, which are covered by tests only: the first reply
+kept after a send-back, and the stub results for the moveable days.
+
+Still open: `h-diary-election` answers `Can't search that.` (an election date
+is the diary by refused-subjects.md); `i-ferry` and `weather-for-a-plan` ignore
+the send-back one run in three; answering on Haiku still answers some public
+dates from a found row or leaves a lookup's empty result as `Not sure.`
+(`country-picked`, `answer-term-dates`); `no-country-not-sure` asks for the
+country where the case wants `Not sure.`, which may be the case disagreeing
+with 018's one allowed question.

@@ -130,6 +130,14 @@ and is not committed.
 | 2026-10-13 18:09 | ask-first-write-waits-as-waiting | 3 | 1/1 (100%) | $0.02 | `claude-haiku-5-5` | `a9ddd73d` | `173af6ce` | flaky-evals: judge without the label |
 | 2026-10-13 18:10 | block1 | 1 | 19/19 (100%) | $0.02 | `claude-haiku-5-5` | `a9ddd73d` | `173af6ce` | flaky-evals: preservation, lookup rule iteration 1 |
 | 2026-10-13 18:10 | block2 | 1 | 17/19 (90%) | $0.02 | `claude-haiku-5-5` | `a9ddd73d` | `173af6ce` | flaky-evals: preservation, lookup rule iteration 1 |
+| 2026-10-13 18:45 | 08 | 1 | 35/38 (92%) | $0.15 | `claude-haiku-5-5` | `22a95fe0` | `565503cd` | flaky-evals: code checks and answering round |
+| 2026-10-13 18:46 | 09 | 1 | 64/70 (91%) | $0.06 | `claude-haiku-5-5` | `22a95fe0` | `565503cd` | flaky-evals: code checks and answering round |
+| 2026-10-13 18:46 | 11 | 1 | 29/30 (97%) | $0.02 | `claude-haiku-5-5` | `22a95fe0` | `565503cd` | flaky-evals: code checks and answering round |
+| 2026-10-13 18:46 | 12 | 1 | 4/5 (80%) | $0.00 | `claude-haiku-5-5` | `22a95fe0` | `565503cd` | flaky-evals: code checks and answering round |
+| 2026-10-13 18:46 | classify | 1 | 21/21 (100%) | $0.01 | `claude-haiku-5-5` | `22a95fe0` | `565503cd` | flaky-evals: code checks and answering round |
+| 2026-10-13 18:46 | judge | 1 | 19/19 (100%) | $0.03 | `claude-haiku-5-5` | `22a95fe0` | `565503cd` | flaky-evals: code checks and answering round |
+| 2026-10-13 18:47 | answer | 1 | 112/121 (93%) | $0.95 | `claude-haiku-5-5` | `22a95fe0` | `565503cd` | flaky-evals: code checks and answering round |
+| 2026-10-13 18:48 | screen | 1 | 65/68 (96%) | $0.19 | `claude-haiku-5-5` | `22a95fe0` | `565503cd` | flaky-evals: code checks and answering round |
 
 ## Full runs by principle
 

@@ -356,15 +356,53 @@ def _from_the_dump(text: str, dump: str, country: str | None = None) -> bool:
     Still coarse on purpose. The failure mode is a refused lookup that was fine,
     which costs a lookup; the other direction costs somebody their address.
     """
+    _, haystack = _allowed(dump, country)
+    return all(_passes(w, haystack) for w in _words(text))
+
+
+def _within_the_dump(text: str, dump: str, country: str | None = None) -> str | None:
+    """The query with every word the bound would refuse dropped, in order, or
+    None when none of the person's own words is left.
+
+    The owner's call, 2026-10-13: a query that strayed by one word ("march
+    saturday route Portugal") was refused whole and the model retried in their
+    words, a model call spent every time. **It cannot widen what leaves**: each
+    word kept passes `_from_the_dump`'s own test, so the result is the same set
+    of words the bound allowed before, only fewer of them. A query left with
+    nothing they wrote, only filler and a country, carries nothing to search
+    for and is refused as before.
+    """
+    theirs, haystack = _allowed(dump, country)
+    kept = [w for w in _words(text) if _passes(w, haystack)]
+    if not any(w in theirs or _same_word(w, theirs) for w in kept):
+        return None
+    return " ".join(kept)
+
+
+def _words(text: str) -> list[str]:
+    return re.findall(r"[a-z0-9]+", _APOSTROPHE.sub("", text).lower())
+
+
+def _passes(word: str, haystack: set[str]) -> bool:
+    return (
+        word in haystack
+        or word in _FILLER
+        or _a_year_from_today(word)
+        or _same_word(word, haystack)
+    )
+
+
+def _allowed(dump: str, country: str | None) -> tuple[set[str], set[str]]:
+    """What they wrote, and that plus their country."""
     # An apostrophe joins rather than splits: "mother's" and "mothers" are
     # one word, where the split left a bare "s" the dump never held.
     dump = _APOSTROPHE.sub("", dump)
-    text = _APOSTROPHE.sub("", text)
     haystack = set(re.findall(r"[a-z0-9]+", dump.lower()))
     # "the 22nd" in the dump admits "22" in the query. The token is theirs and
     # only its shape changes, the allowance `_same_word` makes for letters. A
     # number they did not write is still refused.
     haystack |= set(re.findall(r"\b(\d{1,2})(?:st|nd|rd|th)\b", dump.lower()))
+    theirs = set(haystack)
 
     # **Their own country, when they have set one.** It is not in the dump and it
     # has to reach the query, because a bank holiday with no country attached has
@@ -380,10 +418,7 @@ def _from_the_dump(text: str, dump: str, country: str | None = None) -> bool:
         named = name_of(country)
         if named:
             haystack |= set(re.findall(r"[a-z0-9]+", named.lower()))
-    return all(
-        w in haystack or w in _FILLER or _a_year_from_today(w) or _same_word(w, haystack)
-        for w in re.findall(r"[a-z0-9]+", text.lower())
-    )
+    return theirs, haystack
 
 
 #: How much of a word has to match before two spellings count as one word.
@@ -497,7 +532,8 @@ async def _look_up(
             budget.record(label="other", kind="search", outcome="refused_bound")
             log.info("lookup refused", why="search off")
             return _declined("searching is switched off")
-        if not _from_the_dump(question or "", budget.dump, budget.country):
+        kept = _within_the_dump(question or "", budget.dump, budget.country)
+        if kept is None:
             budget.record(label="other", kind="search", outcome="refused_bound")
             # **The refusal says how to recover.** The loop hands this back to
             # the model, which can try again; "ask using only words from what
@@ -510,6 +546,8 @@ async def _look_up(
         if budget.left() == 0:
             budget.record(label="other", kind="search", outcome="refused_bound")
             return _declined("limit_reached")
+        # The words that passed, and only those, are what is searched.
+        question = kept
 
     # **Before the reader, and only once the bounds have passed.** A step for a
     # lookup that was about to be refused would put a line on screen for work

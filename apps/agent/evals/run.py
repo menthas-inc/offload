@@ -94,9 +94,9 @@ from offload_agent.worker import (
     Lookups,
     _author_the_answer_line,
     _declined_if_argument,
-    _from_the_dump,
     _in_the_dump,
     _reply_as_sent,
+    _within_the_dump,
     fit_documents,
     parse_answer,
 )
@@ -964,10 +964,16 @@ class Recorder:
         """The real bounds, then a plausible result, so a case exercises the
         ordinary path. A stub that always succeeds hid the flagship case of
         016; a stub that always fails made every reply a self-diagnosis."""
-        self.looked.append(args)
         question = (args.get("question") or "").strip()
         url = (args.get("url") or "").strip()
-        if question and not _from_the_dump(question, self.dump, self.country):
+        # What leaves is what the checks read: the words the bound kept, as
+        # production sends them (2026-10-13). The model's own query rides
+        # beside it for a reader of the record.
+        kept = _within_the_dump(question, self.dump, self.country) if question else None
+        self.looked.append(
+            {**args, "question": kept or question, "composed": question} if question else args
+        )
+        if question and kept is None:
             self.refused_bound.append(question)
             return {
                 "ok": False,

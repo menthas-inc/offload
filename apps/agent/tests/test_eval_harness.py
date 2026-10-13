@@ -266,3 +266,15 @@ def test_a_subset_naming_a_case_that_does_not_exist_still_stops(tmp_path):
     p = _principle(run, [_case(run, "a", "file")])
     with pytest.raises(SystemExit):
         run._select([p], _args(subset=str(sub)))
+
+
+def test_the_stub_searches_the_kept_words_as_production_does():
+    """The march cases failed on a refusal production no longer makes."""
+    run = _run()
+    dump = "is the march on saturday going past the office"
+    rec = _recorder(run, dump)
+    out = rec._look_up({"question": "march saturday route Portugal", "want": ["date"]})
+    assert out["ok"] is True
+    assert not rec.refused_bound
+    assert rec.looked[-1]["question"] == "march saturday portugal"
+    assert rec.looked[-1]["composed"] == "march saturday route Portugal"

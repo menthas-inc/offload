@@ -1864,7 +1864,6 @@ async def test_notes_the_turn_did_not_load_still_come_back():
     assert sent["notes"] == _CARRIED["notes"]
 
 
-
 # Classify answers in one word, read in code. No tool, so no forced
 # `tool_choice` preamble or schema on the way in and no JSON on the way out.
 
@@ -1911,3 +1910,88 @@ async def test_anything_but_asking_files():
     for reply in replies:
         _, verdict = await _classify(reply)
         assert not (verdict.asking and verdict.confident), reply
+
+
+# 2026-10-13. Classify on Haiku 4.5 routed "did the plumber come? need to chase
+# him tomorrow" to answering in about one run in three, where 019 says a
+# message that both asks and dumps is a dump. More than a question is read in
+# code: it files, and no model is asked.
+
+
+async def test_a_question_with_a_dump_after_it_files_without_a_model_call():
+    from offload_agent.harness.plan import classify
+
+    for text in (
+        "did the plumber come? need to chase him tomorrow",
+        "is it worth getting the bigger fridge? think about it",
+    ):
+        client = _OneWordClient([TextBlock("asking")])
+        verdict = await classify(client, text, "claude-haiku-4-5")
+        assert not verdict.asking, text
+        assert client.calls == [], text
+
+
+async def test_a_question_whose_tail_continues_it_is_still_asked():
+    from offload_agent.harness.plan import classify
+
+    for text in (
+        "where is the wifi password? the one for the flat",
+        "is the cabin far from the station? or the beach",
+        "what is left from lisbon?",
+        "https://example.com/a?b=c what is this",
+    ):
+        client = _OneWordClient([TextBlock("asking")])
+        verdict = await classify(client, text, "claude-haiku-4-5")
+        assert verdict.asking, text
+        assert len(client.calls) == 1, text
+
+
+# 2026-10-13. The judge on Haiku 4.5 said "the 10th" answered nothing in about
+# one run in three, although judge.md gives that exact example. A bare day of
+# the month is read in code, the next one on or after today, and no model is
+# asked.
+
+
+async def _judge_bare(text, field="span", today="Friday 11 September 2026"):
+    from offload_agent.harness.plan import judge_answer
+
+    client = _OneWordClient([TextBlock("")])
+    verdict = await judge_answer(
+        client,
+        text,
+        field=field,
+        question="Which dates?",
+        options=[],
+        today=today,
+        model="claude-haiku-4-5",
+    )
+    return verdict, client.calls
+
+
+async def test_a_bare_day_of_the_month_is_read_in_code_as_the_next_one():
+    verdict, calls = await _judge_bare("the 10th")
+    assert calls == []
+    assert (verdict.answers, verdict.whole, verdict.day) == (True, True, "2026-10-10")
+    verdict, calls = await _judge_bare("20th", field="date")
+    assert calls == [] and verdict.day == "2026-09-20"
+    verdict, _ = await _judge_bare("the 11th", field="date")
+    assert verdict.day == "2026-09-11"
+
+
+async def test_a_day_a_month_does_not_have_is_skipped_to_the_next_that_does():
+    verdict, _ = await _judge_bare("the 31st", field="date", today="Thursday 1 October 2026")
+    assert verdict.day == "2026-10-31"
+    verdict, _ = await _judge_bare("the 31st", field="date", today="Sunday 1 November 2026")
+    assert verdict.day == "2026-12-31"
+
+
+async def test_anything_more_than_a_day_still_goes_to_the_judge():
+    for text, field in (
+        ("the 10th, and book the cab", "span"),
+        ("10", "date"),
+        ("the 10th", "time"),
+    ):
+        _, calls = await _judge_bare(text, field=field)
+        assert len(calls) == 1, text
+    _, calls = await _judge_bare("the 10th", today=None)
+    assert len(calls) == 1

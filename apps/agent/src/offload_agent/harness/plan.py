@@ -27,6 +27,7 @@ import json
 import re
 import time
 from dataclasses import dataclass, field
+from datetime import date, datetime
 from typing import Any, Protocol
 
 import structlog
@@ -252,7 +253,8 @@ class Outcome:
     #: Swarm v2 round 4. What the model wrote when the answering loop reshaped
     #: it, for the eval's transcript only: never posted and never logged.
     unshaped: str | None = None
-    #: An answering turn sent back once to look up what its search did not find.
+    #: A turn sent back once to look up: an answering turn whose search found
+    #: nothing, or a filing turn whose dump asked to find something out.
     sent_back: bool = False
     landed: list[Landed] = field(default_factory=list)
     usage: list[Usage] = field(default_factory=list)
@@ -880,6 +882,7 @@ async def plan(
         # **Trailing text is ignored here.** A filing turn says nothing unless
         # it calls `say`, which is almost never: see the note on `SAY_TOOL`.
         reply_from_say=True,
+        asks_to_find_out=_asks_to_find_out(ctx.dump),
         effort=FILE_EFFORT,
         labelled=frozenset(label.thread_id for label in ctx.labels),
         has_media=bool(ctx.photos or ctx.pdfs),
@@ -923,6 +926,8 @@ async def _run(
     has_media: bool = False,
     notes_carried: str | None = None,
     answering: bool = False,
+    asks_to_find_out: bool = False,
+    about_the_world: bool = False,
 ) -> Outcome:
     """The loop. Everything that differs between the two callers is an argument,
     so there is one place where a tool result becomes a model turn."""
@@ -934,6 +939,18 @@ async def _run(
     searched = False
     search_found = False
     max_tokens = MAX_OUTPUT_TOKENS
+    # 2026-10-13. Whether an answering turn was already asked to reword.
+    reworded = False
+    # 2026-10-13. What a filing turn had said when it was sent back to look
+    # something up. The send-back may add a lookup, never a commentary: a turn
+    # that still has not looked when it ends says what it said first.
+    before_check: list = []
+
+    def finish() -> Outcome:
+        if before_check and not read_web:
+            outcome.reply, outcome.because = before_check[0]
+        return _hold_to_the_reason(outcome)
+
     # 038. Whether this turn has read the web, which the Core API needs to
     # refuse a memory and cannot see for itself: the reader runs here.
     read_web = False
@@ -977,7 +994,7 @@ async def _run(
                 max_tokens = MAX_OUTPUT_TOKENS_RETRY
                 continue
             outcome.out_of_calls = True
-            return _hold_to_the_reason(outcome)
+            return finish()
 
         # Every call, not just the first. A turn that used three calls and
         # billed one understates every turn that used a tool (AC-20).
@@ -1014,8 +1031,18 @@ async def _run(
             # the calendar." reached the person as the reply, which is the
             # sentence the prompt exists to stop. Done is silent whatever the
             # tool.
+            # **A dump that asks to find something out, ended without
+            # looking.** Haiku 5.5 filed "check when the polls open" into a
+            # row's body and said "Not sure." to when the clocks change, search
+            # on and no lookup tried (2026-10-13). Sent back once with one
+            # line; the second reply stands, so a chore that only says check
+            # ends as it would have.
+            if reply_from_say and _owes_a_lookup(outcome, asks_to_find_out, read_web, offered):
+                before_check.append((outcome.reply, outcome.because))
+                _send_back_to_look(outcome, messages, response.content, [])
+                continue
             if reply_from_say and (outcome.reply or outcome.landed or outcome.changed):
-                return _hold_to_the_reason(outcome)
+                return finish()
             # **A model refusal can come back empty.** Asked how to make a
             # pipe bomb, the filing model stopped with `refusal` and no content
             # at all, and the turn was silent: the one case the prompt says
@@ -1023,7 +1050,7 @@ async def _run(
             # owed, so the loop says it. Found by the full run, 2026-10-02.
             if response.stop_reason == "refusal" and not outcome.reply and not text:
                 outcome.reply = REFUSED_SUBJECT
-                return _hold_to_the_reason(outcome)
+                return finish()
             # **And trailing text after a failure is the failure explained.**
             # Every add refused, and the model ended with "I tried to file this
             # but it did not go through." Trailing text reaches the reply so a
@@ -1031,7 +1058,7 @@ async def _run(
             # what happened and offers the retry. Filing turns only: on an
             # answering turn the trailing text is the answer.
             if reply_from_say and outcome.failed and not outcome.reply:
-                return _hold_to_the_reason(outcome)
+                return finish()
             # **An empty search is not a no while the web is still there.**
             # Haiku searched for a school term's start, found nothing, and
             # answered that it was not in their threads, where the prompt says
@@ -1055,8 +1082,30 @@ async def _run(
                     {"role": "user", "content": [{"type": "text", "text": EMPTY_SEARCH_LINE}]}
                 )
                 continue
+            # **Two more shapes, each sent back once, 2026-10-13.** A reply
+            # that calls what they put in a thing or an item, which answer.md
+            # forbids first; and a public day answered from memory, with
+            # nothing read and no lookup, where the prompt says a fact about
+            # the world is never worked out from memory.
+            if answering and text and _fixed_line(text) is None:
+                line = None
+                if not reworded and _THING_NOUN.search(text):
+                    reworded, line = True, REWORD_LINE
+                elif (
+                    about_the_world
+                    and not outcome.sent_back
+                    and not read_web
+                    and not outcome.found
+                    and not outcome.questions
+                    and "look_up" in offered
+                ):
+                    outcome.sent_back, line = True, WORLD_LINE
+                if line is not None:
+                    messages.append({"role": "assistant", "content": response.content})
+                    messages.append({"role": "user", "content": [{"type": "text", "text": line}]})
+                    continue
             outcome.reply = outcome.reply or text or None
-            return _hold_to_the_reason(outcome)
+            return finish()
 
         results: list[dict] = []
         # What this response did, for deciding whether its results leave the
@@ -1235,7 +1284,13 @@ async def _run(
                 has_media=has_media,
             )
         ):
-            return _hold_to_the_reason(outcome)
+            # The same guard as at the end of a turn: a lone "Not sure." ends
+            # here, before the model is called again.
+            if _owes_a_lookup(outcome, asks_to_find_out, read_web, offered):
+                before_check.append((outcome.reply, outcome.because))
+                _send_back_to_look(outcome, messages, response.content, results)
+                continue
+            return finish()
 
         # Explicit branch per tool would go here if either had a client-side
         # half. Neither does: both are one POST, and the dispatch that matters
@@ -1246,7 +1301,7 @@ async def _run(
     # Out of round trips. Not an error: whatever is in `landed` is committed,
     # and the caller reports a partial turn the person can finish.
     outcome.out_of_calls = True
-    return _hold_to_the_reason(outcome)
+    return finish()
 
 
 #: The tools a response may hold and still be the last of a filing turn. Every
@@ -1439,6 +1494,10 @@ async def classify(client: AsyncAnthropic, text: str, model: str) -> Question:
     wrong call files rather than loses: the worst case is a row somebody
     archives, never a note that went nowhere.
     """
+    if _tells_after_asking(text):
+        # More than a question: a dump. Read in code, so no call is spent on
+        # a message whose route the rule already decides (2026-10-13).
+        return Question(asking=False, confident=True)
     started = time.monotonic()
     # **One word in text, read in code.** A forced tool cost a preamble and a
     # schema on the way in and a JSON object on the way out, about 40 percent
@@ -1472,6 +1531,45 @@ async def classify(client: AsyncAnthropic, text: str, model: str) -> Question:
     # turns every question into a filed note and nothing says so. Recorded in
     # `docs/tech/decisions.md`.
     return Question(asking=False, confident=False)
+
+
+#: How a tail that only continues the question opens: "the one for the flat",
+#: "or the beach". Anything else after the last question mark is something
+#: they are telling.
+_CONTINUES = frozenset(
+    [
+        "the",
+        "a",
+        "an",
+        "or",
+        "and",
+        "for",
+        "in",
+        "at",
+        "on",
+        "of",
+        "from",
+        "about",
+        "with",
+        "to",
+        "this",
+        "that",
+        "which",
+    ]
+)
+_LINK = re.compile(r"\b(?:https?://|www\.)\S+", re.IGNORECASE)
+
+
+def _tells_after_asking(text: str) -> bool:
+    """A question followed by something to keep: "did the plumber come? need to
+    chase him tomorrow". The 019 rule, read in code: a message that both asks
+    and dumps is a dump. Two words or more after the last question mark, not
+    opening like more of the question. A link's own question mark is not one."""
+    plain = _LINK.sub(" ", text)
+    if "?" not in plain:
+        return False
+    words = re.findall(r"[a-z0-9']+", plain.rsplit("?", 1)[1].lower())
+    return len(words) >= 2 and words[0] not in _CONTINUES
 
 
 #: Room for one word and a full stop, and nothing that could be a sentence.
@@ -1519,6 +1617,36 @@ class Judgement(BaseModel):
 _JUDGE_PROMPT = load("judge")
 
 
+_BARE_DAY = re.compile(r"^\s*(?:on\s+)?(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)\s*[.!]?\s*$", re.I)
+_BARE_THE_DAY = re.compile(r"^\s*(?:on\s+)?the\s+(\d{1,2})\s*[.!]?\s*$", re.I)
+
+
+def _bare_day_of_month(text: str, today: str | None) -> str | None:
+    """ "the 10th" on its own: the next 10th on or after today, as judge.md
+    says, or None for anything else. A bare number is not one: "10" could be
+    days, or an hour."""
+    match = _BARE_DAY.match(text) or _BARE_THE_DAY.match(text)
+    if not match or not today:
+        return None
+    try:
+        anchor = datetime.strptime(today, "%A %d %B %Y").date()
+    except ValueError:
+        return None
+    n = int(match.group(1))
+    year, month = anchor.year, anchor.month
+    for _ in range(13):
+        try:
+            candidate = date(year, month, n)
+        except ValueError:
+            candidate = None
+        if candidate is not None and candidate >= anchor:
+            return candidate.isoformat()
+        month += 1
+        if month > 12:
+            year, month = year + 1, 1
+    return None
+
+
 async def judge_answer(
     client: AsyncAnthropic,
     text: str,
@@ -1532,6 +1660,12 @@ async def judge_answer(
     """018. One small call, before the classifier, on the message and the
     question alone. It fails safe: anything unparseable is not an answer, and
     a not-an-answer closes the question and files the message as usual."""
+    if field in ("date", "span"):
+        day = _bare_day_of_month(text, today)
+        if day is not None:
+            # judge.md's own rule, read in code: no call, and no coin toss on
+            # the case it gives as its example (2026-10-13).
+            return Judgement(answers=True, whole=True, day=day)
     labels = ", ".join(str(o.get("label", "")) for o in options) or "none"
     values = ", ".join(str(o.get("value", "")) for o in options) or "none"
     prompt = (
@@ -1599,6 +1733,7 @@ async def plan_answer(
         filed=0,
         effort=ANSWER_EFFORT,
         answering=True,
+        about_the_world=_about_the_world(ctx.question),
     )
     if outcome.reply is not None:
         shaped = shape_answer(outcome.reply)
@@ -1619,6 +1754,83 @@ FIXED_LINES = (NOT_SURE, REFUSED_SUBJECT, NOTHING_YET, ON_THEIR_DEVICE)
 for _line in FIXED_LINES:
     if f"`{_line}`" not in _ANSWER_PROMPT:
         raise RuntimeError(f"answer.md no longer quotes the fixed line {_line!r}")
+
+#: 2026-10-13. Sent once to a filing turn whose dump asked to find something
+#: out and that ended without looking it up.
+CHECK_LINE = (
+    "They asked you to find something out and you have not looked it up. If it "
+    "is a fact about a day, a time, a timetable or the weather, call look_up now "
+    "and put what comes back on what you filed. If it is not, end the turn and "
+    "say nothing."
+)
+
+#: Words a dump uses when its point is a fact it does not have yet. A chore
+#: that only says "check the boiler" is not one: the guard is narrow on purpose,
+#: and a false alarm costs one call and changes nothing.
+_FIND_OUT = re.compile(
+    r"\b(?:find out|look up|check (?:when|if|whether|what|that|it|its|it's|the time)"
+    r"|when (?:is|are|do|does|did|will|was)|what time|is there|are there"
+    r"|do the|does the|will it)\b"
+)
+
+
+def _asks_to_find_out(dump: str) -> bool:
+    return bool(_FIND_OUT.search(dump.lower().replace("\u2019", "'")))
+
+
+def _owes_a_lookup(outcome: Outcome, asks: bool, looked: bool, offered: set[str]) -> bool:
+    """A filing turn whose dump asked to find something out, ending with a row
+    or a "Not sure." and no lookup tried, while one was on offer. Once."""
+    return (
+        asks
+        and not outcome.sent_back
+        and not looked
+        and "look_up" in offered
+        and not outcome.questions
+        and bool(outcome.landed or outcome.reply == NOT_SURE)
+    )
+
+
+def _send_back_to_look(
+    outcome: Outcome, messages: list[dict], content: list, results: list[dict]
+) -> None:
+    outcome.sent_back = True
+    # A "Not sure." said before the lookup is not the reply any more: the
+    # second response says what it says, or nothing.
+    if outcome.reply == NOT_SURE:
+        outcome.reply, outcome.because = None, None
+    messages.append({"role": "assistant", "content": content})
+    messages.append({"role": "user", "content": [*results, {"type": "text", "text": CHECK_LINE}]})
+
+
+#: 2026-10-13. Said once to an answer that called their rows things or items.
+REWORD_LINE = (
+    "Say that again without the words thing, item or content: reword around "
+    "them, or let a count stand on its own."
+)
+_THING_NOUN = re.compile(r"\b(?:things?|items?|contents?)\b", re.IGNORECASE)
+
+#: 2026-10-13. Said once to an answer about a public day that read nothing and
+#: did not look it up.
+WORLD_LINE = (
+    "You answered a fact about the world without looking it up. If it is a "
+    "public date, a timetable, a strike or the weather, call look_up now. If it "
+    "is something of theirs, give the same reply again."
+)
+
+#: What a question about a public day is about. Narrow on purpose: a question
+#: about their own rows never names these, and a false alarm costs one call.
+_ABOUT_THE_WORLD = re.compile(
+    r"\b(?:bank holidays?|public holidays?|holidays?|strikes?|clocks? (?:change|go)"
+    r"|weather|forecast|rain|snow|opening hours|timetable|last (?:train|bus|ferry|boat)"
+    r"|polls?|elections?|term (?:starts?|ends?)|half term)\b",
+    re.IGNORECASE,
+)
+
+
+def _about_the_world(question: str) -> bool:
+    return bool(_ABOUT_THE_WORLD.search(question))
+
 
 #: Said once to a turn that searched, found nothing, and was ending without the
 #: lookup it was offered.

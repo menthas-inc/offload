@@ -137,7 +137,7 @@ A question that is not offload's by that test, with nothing else in the dump: `s
 
 <!-- include: shared/query-shape -->
 
-When you do not know their country and the fact depends on it: file what there is to file, undated, and say nothing. Only a dump that is nothing but the question gets `Not sure.`
+Their country is the one in their settings, whatever place the thread on screen is about: a trip abroad does not change it. When you do not know their country and the fact depends on it: file what there is to file, undated, and say nothing. Only a dump that is nothing but the question gets `Not sure.`
 
 Three lookups is the budget for the turn. After that, file what you can.
 

@@ -210,3 +210,20 @@ def test_production_maps_each_case_to_its_surface_model(noise, tmp_path):
     )
     on = noise.production_on(tmp_path, {"file": "haiku-5-5", "classify": "haiku-4-5"})
     assert on == {"a": ("file", "haiku-5-5"), "b": ("classify", "haiku-4-5")}
+
+
+def test_every_attempt_of_a_repeated_run_counts_in_the_history(noise, tmp_path):
+    """--runs 3 kept only the majority: three coins thrown, one written down."""
+    log = tmp_path / "cases.jsonl"
+    rec = _record("1", "aaaa", [])
+    rec["cases"] = [
+        {"id": "x", "passed": True, "passes_of": [2, 3]},
+        {"id": "y", "passed": False, "passes_of": [1, 3]},
+        {"id": "z", "passed": True, "passes_of": None},
+    ]
+    noise.record(log, rec)
+    row = noise.load(log)[0]
+    assert row["passed"] == ["x", "z"] and row["failed"] == ["y"]
+    assert row["attempts"] == {"x": [2, 3], "y": [1, 3]}
+    r = noise.rates(noise.load(log))
+    assert r["x"] == (2, 3) and r["y"] == (1, 3) and r["z"] == (1, 1)
