@@ -72,7 +72,7 @@ the code path a real turn takes up to the Core API boundary.
 | `answer` | `plan_answer` | a question | `reply`, `contains`, `must_not_contain`, `max_words`, `asks`, `look_up`, `rubric` |
 | `classify` | `classify` | a message | `routes`: `answer` or `file` |
 | `judge` | `judge_answer` | a typed reply to an open question | `answers`, `whole`, `value` |
-| `nightly` | the nightly pass (032), which took over compaction | a thread's notes and the day's dumps | `no_change`, `folds`, `supersedes`, `never_touches`, `adds`, `learns`, `learned_has`, `learned_lacks`, `rubric` |
+| `nightly` | the nightly pass (032), which took over compaction | a thread's notes and the day's dumps | `no_change`, `folds`, `one_left`, `supersedes`, `never_touches`, `adds`, `learns`, `learned_has`, `learned_lacks`, `rubric` |
 
 Every surface also gets the checks that hold everywhere: no dash in anything
 offload writes, no emoji, no capitalised offload, no self diagnosis, and on a

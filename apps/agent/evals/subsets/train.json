@@ -1,6 +1,6 @@
 {
   "note": "everything else; run by principle to read failures and tune",
-  "count": 424,
+  "count": 425,
   "cases": [
     "a-birthday-is-a-memory",
     "a-correction",
@@ -88,6 +88,7 @@
     "default-thread-silent",
     "delete-content-not-thread",
     "delete-note",
+    "delete-the-note-that-is-a-row",
     "delete-thread-then-file-rest",
     "dentist-appointment",
     "done-is-found",

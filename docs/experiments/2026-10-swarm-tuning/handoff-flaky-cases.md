@@ -101,3 +101,41 @@ first.
 - `fact-default-thread` (12-word cap) against `h-fact-default` (16) and `r2-fact-default` (14): the same reply shape passes two and fails one. Found by a skeptic on 2026-10-13; reconcile the caps or pend the one.
 
 - A principle 07 case to add (from the round 3 skeptic, 2026-10-13): "delete the note about the plumber" where "Call the plumber" is a task row in the thread on screen and no thread note mentions it; expects archive_content and no say. Without it a refusal-at-the-word-note prompt cannot be judged.
+
+## Settled, 2026-10-13
+
+Read with `noise.py --production`: each case only from runs on the model
+production uses for its surface, and errored runs left out. `cases.jsonl`
+now keeps `errored` apart from `failed`. 519 errored ids in 148 old rows
+were moved there from the local records. Most of the twelve were not coin
+tosses: their failures were September's unhashed prompts, an Opus filing
+trial, a refused Haiku 5.5 classify candidate, or a run that raised.
+
+- `conceptual-duplicate-folds`, `literal-duplicate-folds`: **fixed.** The
+  same answer, both notes folded into one, was judged pass and fail on
+  different runs. Both cases now use `one_left`, a mechanical nightly check.
+- `span-one-day`: **left, and kept in flaky.json.** It is a fair case, since
+  `judge.md` gives this exact example, and it is 4 of 6 on Haiku 4.5 since
+  2026-10-10. The judge sometimes says "the 10th" answers nothing. That is a
+  judge prompt finding.
+- `n-asks-and-dumps`: **left, and kept in flaky.json.** It is a fair example
+  of the 019 statement. Classify on Haiku 4.5 routes it to answering in
+  about one run in three (8 of 12). That is a classify prompt finding.
+- `n-think-about-it`: **left.** It is 10 of 10 on Haiku 4.5. Every failure
+  was the Haiku 5.5 classify candidate.
+- `move-from-inside`, `step-injection`, `failure-not-diagnosed`,
+  `new-thread-line-is-verb-first`, `h-link-recipe`, `stay-sentence-is-note`:
+  **left.** Each has passed every run since 2026-10-10 on production's
+  filing model. The failures were September prompts, Opus or Sonnet 5.5
+  filing trials, or errors.
+- `file-march-on-route`, `i-diary-bonfire`, the country cases: **left.**
+  They are no longer coin tosses. On Haiku 5.5 filing they fail every run
+  because the turn never looks the date up. That is the prompt round below.
+- `date-the-20th`: **left.** It is 5 of 6 since 2026-10-10; September's
+  judge prompt failed it.
+- `fact-default-thread`, `h-fact-default`, `r2-fact-default`: **left.** The
+  caps differ, but no recorded failure was a cap. On production's answer
+  model all three pass with the same ten-word reply.
+- The principle 07 case: **added** as `delete-the-note-that-is-a-row`.
+- Principle 30, the cast: a run with no `EVAL_CAST_DATABASE_URL` leaves the
+  sixteen cast cases out and says so, instead of failing each one.

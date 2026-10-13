@@ -60,7 +60,10 @@
         }
       ],
       "expect": {
-        "rubric": "Passes when exactly one of n1 and n2 is superseded and nothing is added, or when both are folded into one new note. Which of the two survives does not matter. Anything else fails."
+        "one_left": [
+          "n1",
+          "n2"
+        ]
       }
     },
     {
@@ -94,7 +97,10 @@
         "never_touches": [
           "n3"
         ],
-        "rubric": "Ends with one note saying Ana is doing the electrics: either one of n1 and n2 is superseded, or both are folded into one. The deposit note is untouched."
+        "one_left": [
+          "n1",
+          "n2"
+        ]
       }
     },
     {

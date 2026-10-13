@@ -9,6 +9,7 @@
     "ask-gift-date",
     "ask-landlord-time",
     "calendar-not-connected-move",
+    "country-agrees",
     "country-neither",
     "date-next-weekend",
     "dated-appointment-no-calendar-words",
@@ -23,14 +24,13 @@
     "jun-weekly-shift-is-one-row-with-rule",
     "k-plan-times",
     "maya-members-note-is-a-fact-to-use",
+    "named-thread-from-today",
+    "new-thread-line-is-verb-first",
     "no-new-knowledge",
-    "noor-query-carries-no-route-from-the-note",
     "partial-not-claimed",
     "q-already-added",
     "scope-default-is-one",
-    "step-says-what-not-how",
     "text-size-unknown",
-    "thing-says-label-me-none",
-    "words-override-screen"
+    "thing-says-label-me-none"
   ]
 }

@@ -146,3 +146,69 @@ def test_a_date_check_pins_the_day_the_lead_and_what_is_not_dated():
         [{"id": "d1", "text": "Meera's birthday is 14 March."}, {"id": "d2", "text": "x"}],
     )
     assert problems == ["d1 lead days, wanted weeks"]
+
+
+# 2026-10-13, the flaky-cases hand-off.
+
+
+def _args(**kw):
+    import argparse
+
+    base = dict(
+        principle=None, surface=None, case=None, subset=None, include_pending=False, live=False
+    )
+    return argparse.Namespace(**{**base, **kw})
+
+
+def _principle(run, cases):
+    return run.Principle(
+        number=30,
+        slug="the-cast",
+        statement="",
+        why="",
+        sources=[],
+        surfaces=[],
+        cases=cases,
+        path=Path("30-the-cast.json"),
+    )
+
+
+def _case(run, cid, surface):
+    return run.Case(
+        id=cid, why="", surface=surface, input="x", expect={}, principle="30", fixture={}
+    )
+
+
+def test_cast_cases_are_skipped_not_failed_without_a_cast_database(monkeypatch):
+    """Sixteen cast cases failed every run with 'the cast needs
+    EVAL_CAST_DATABASE_URL', before any model was called."""
+    run = _run()
+    monkeypatch.delenv("EVAL_CAST_DATABASE_URL", raising=False)
+    p = _principle(run, [_case(run, "a", "cast-file"), _case(run, "b", "file")])
+    assert [c.id for _, c in run._select([p], _args())] == ["b"]
+
+
+def test_cast_cases_run_when_a_cast_database_is_set(monkeypatch):
+    run = _run()
+    monkeypatch.setenv("EVAL_CAST_DATABASE_URL", "postgresql://x/offload_cast")
+    p = _principle(run, [_case(run, "a", "cast-file"), _case(run, "b", "file")])
+    assert [c.id for _, c in run._select([p], _args())] == ["a", "b"]
+
+
+def test_one_left_passes_a_fold_of_both_or_one_set_aside():
+    """The nightly duplicate cases: the same answer, both notes folded into
+    one, was judged pass in one run and fail in the next."""
+    run = _run()
+    fold = [{"text": "Ana is doing the electrics", "folded_from": ["n1", "n2"]}]
+    assert run._one_left(["n1", "n2"], [], [], fold) is None
+    assert run._one_left(["n1", "n2"], ["n1"], [], fold) is None
+    assert run._one_left(["n1", "n2"], ["n2"], [], []) is None
+    assert run._one_left(["n1", "n2"], [], ["n1"], []) is None
+
+
+def test_one_left_fails_both_standing_both_gone_or_a_partial_fold():
+    run = _run()
+    assert run._one_left(["n1", "n2"], [], [], [])
+    assert run._one_left(["n1", "n2"], ["n1", "n2"], [], [])
+    assert run._one_left(["n1", "n2"], [], [], [{"text": "x", "folded_from": ["n1"]}])
+    assert run._one_left(["n1", "n2"], ["n1"], [], [{"text": "x", "folded_from": ["n2"]}])

@@ -1,6 +1,6 @@
 {
   "note": "the race's third block: the lead's pool, for a candidate block2 kept",
-  "count": 52,
+  "count": 53,
   "cases": [
     "a-correction",
     "a-one-off-date-is-a-row",
@@ -48,6 +48,7 @@
     "rows-empty",
     "rule-is-a-note",
     "school-letter-is-a-task-by-its-date",
+    "step-says-what-not-how",
     "thread-note-not-in-query",
     "three-photos-one-line-one-set",
     "tidy-set-untouched",
