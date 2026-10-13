@@ -12,6 +12,7 @@
 import { Image } from "react-native";
 import { BlendMode, ClipOp, PaintStyle, Skia, type SkImage } from "@shopify/react-native-skia";
 import { washFilter, washKey, washRect, type WashSpec } from "./threadWashMath";
+import { onSignedOut } from "./session-end";
 
 export interface WashInput extends WashSpec {
   wash: { x: number; y: number; angle: number };
@@ -22,6 +23,8 @@ export interface WashInput extends WashSpec {
 /** Enough for a long list and Edit thread on top of it, and bounded. */
 const KEPT = 400;
 const done = new Map<string, string>();
+// Keyed by thread id: they go with the session.
+onSignedOut(() => done.clear());
 let texture: Promise<SkImage | null> | null = null;
 
 function loadTexture(): Promise<SkImage | null> {

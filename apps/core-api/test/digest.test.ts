@@ -70,8 +70,14 @@ async function reminder(accountId: string, threadId: string, title: string, day:
   return row.id;
 }
 
+/** A phone's token, registered by a session of its own that is still live. */
 async function token(accountId: string, token = `ExponentPushToken[${uuidv7().replace(/-/g, "").slice(-16)}]`): Promise<string> {
-  await db.insertInto("push_tokens").values({ account_id: accountId, token, platform: "ios" }).execute();
+  const session = await db
+    .insertInto("sessions")
+    .values({ account_id: accountId, token: uuidv7(), expires_at: new Date(Date.now() + 60 * 60 * 1000) })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  await db.insertInto("push_tokens").values({ account_id: accountId, session_id: session.id, token, platform: "ios" }).execute();
   return token;
 }
 
@@ -234,6 +240,16 @@ describe("024 AC-6 and AC-8 what the job decides", () => {
     expect(await activityOf(phoneless)).toEqual([{ kind: "digest", sent: false, reason: "permission", title: "One today", body: "Pay the rent.", send: "morning", content_id: null }]);
   });
 
+  it("reaches no phone whose session has expired, and records that as not sent by permission", async () => {
+    const me = await account();
+    await reminder(me, await thread([me]), "Pay the rent", TODAY);
+    await token(me);
+    await db.updateTable("sessions").set({ expires_at: new Date(Date.now() - 60_000) }).where("account_id", "=", me).execute();
+    expect(await runDigest(me, "morning", TODAY, at(`${TODAY}T07:00:00Z`), at(`${TODAY}T07:00:10Z`))).toBe("skipped_permission");
+    expect(memory.sent).toEqual([]);
+    expect(await activityOf(me)).toEqual([{ kind: "digest", sent: false, reason: "permission", title: "One today", body: "Pay the rent.", send: "morning", content_id: null }]);
+  });
+
   it("drops a job more than two hours late without a send or a record", async () => {
     const me = await account();
     await reminder(me, await thread([me]), "Pay the rent", TODAY);
@@ -288,7 +304,7 @@ describe("024 AC-6 and AC-8 what the job decides", () => {
   it("never announces a calendar's own row, whatever its flag says", async () => {
     const me = await account();
     const th = await thread([me]);
-    await reminder(me, th, "Standup", TODAY, { type: "event", occurs_at: new Date(`${TODAY}T08:00:00Z`), due_at: null, source_ref: "google:evt_1", attrs: { all_day: false } });
+    await reminder(me, th, "Standup", TODAY, { type: "event", occurs_at: new Date(`${TODAY}T08:00:00Z`), due_at: null, source: "calendar", source_ref: "google:evt_1", attrs: { all_day: false } });
     const composed = await composeDigest(me, "morning", TODAY);
     expect(composed.rows).toEqual([]);
   });

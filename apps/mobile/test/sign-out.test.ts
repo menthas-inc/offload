@@ -48,7 +48,7 @@ vi.mock("better-auth/react", () => ({
   }),
 }));
 
-const { onSignedOut, signOut, SignOutFailed } = await import("../lib/auth");
+const { accountChanged, accountDeleted, onSignedOut, signOut, SignOutFailed } = await import("../lib/auth");
 
 beforeEach(() => {
   deleted.length = 0;
@@ -84,6 +84,72 @@ describe("AC-3 signing out waits for the server", () => {
     });
     await signOut();
     expect(told).toBe(1);
+  });
+
+  // 2026-10-11. What the phone keeps of the account is forgotten by a
+  // listener that has files and keys to delete, so sign-out resolves only
+  // once it has, and the gate never opens over a copy still being cleared.
+  it("waits for whoever forgets the phone's copy before it resolves", async () => {
+    let forgotten = false;
+    const stop = onSignedOut(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      forgotten = true;
+    });
+    await signOut();
+    expect(forgotten).toBe(true);
+    stop();
+  });
+
+  // From the security review of PR 108: a keystore or a notification centre
+  // that never answers held the old screen up, since the gate and Sign out's
+  // button wait on every listener. Each is waited on for three seconds, and
+  // the ones after it are still told.
+  it("waits on no listener longer than three seconds, and tells the rest", async () => {
+    vi.useFakeTimers();
+    let after = false;
+    const stuck = onSignedOut(() => new Promise<void>(() => undefined));
+    const next = onSignedOut(() => {
+      after = true;
+    });
+    try {
+      let done = false;
+      void accountDeleted().then(() => {
+        done = true;
+      });
+      await vi.advanceTimersByTimeAsync(2900);
+      expect(done).toBe(false);
+      await vi.advanceTimersByTimeAsync(200);
+      expect(after).toBe(true);
+      expect(done).toBe(true);
+    } finally {
+      stuck();
+      next();
+      vi.useRealTimers();
+    }
+  });
+
+  it("tells them on a deleted account too, and stops when asked", async () => {
+    let told = 0;
+    const stop = onSignedOut(() => {
+      told += 1;
+    });
+    await accountDeleted();
+    stop();
+    await accountDeleted();
+    expect(told).toBe(1);
+  });
+
+  // The stamp found another account's copy: the session is the new one's
+  // and stays, and everything holding the old one's is told.
+  it("tells them when another account is found here, and keeps the session", async () => {
+    let told = 0;
+    const stop = onSignedOut(() => {
+      told += 1;
+    });
+    await accountChanged();
+    expect(told).toBe(1);
+    expect(deleted).toEqual([]);
+    stop();
   });
 
   it("leaves the session alone when the call fails, and says so", async () => {

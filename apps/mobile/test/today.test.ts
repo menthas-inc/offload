@@ -95,6 +95,13 @@ describe("027 AC-6, AC-7 the device cards", () => {
     expect(today.notificationsCard(me, false, "2026-10-02T00:00:00Z", now)).toBeNull();
     expect(today.notificationsCard(me, false, "2026-10-01T09:00:00Z", now)).not.toBeNull();
   });
+
+  it("counts Calendar as a switch that reaches this phone (2026-10-10)", () => {
+    const now = new Date("2026-10-01T10:00:00Z");
+    const off = { notifyDueToday: false, notifyComingTomorrow: false, notifyPeopleRequests: false, notifySharedActivity: false, notifyReminders: false };
+    expect(today.notificationsCard(off, false, null, now)).toBeNull();
+    expect(today.notificationsCard({ ...off, notifyCalendar: true }, false, null, now)).not.toBeNull();
+  });
 });
 
 describe("027 AC-4, AC-11 the stack", () => {
@@ -234,13 +241,27 @@ describe("042 the Reminders section", () => {
   it("puts rows, notes and memories in one list, nearest first", () => {
     const row = (id: string, remindDay: string) => ({ id, remindDay, remindBy: false }) as never;
     const other = (id: string, day: string, of: "note" | "memory" = "note") =>
-      ({ of, id, name: id, day, by: false, threadId: null, threadName: null, threadIcon: null, threadHue: null }) as const;
+      ({ of, id, name: id, day, by: false, time: null, window: "long", next: null, threadId: null, threadName: null, threadIcon: null, threadHue: null }) as const;
     const merged = today.remindersInOrder({ rows: [row("r1", "2026-10-12"), row("r2", "2026-10-20")], others: [other("n1", "2026-10-11"), other("m1", "2026-10-12", "memory")], more: 0 });
     expect(merged.map((entry) => entry.id)).toEqual(["n1", "r1", "m1", "r2"]);
   });
 
+  it("dismisses one reminder, and undoes it, by what was on the screen", async () => {
+    sent.length = 0;
+    const which = { of: "memory" as const, id: "m1", day: "2026-11-30", window: "long" as const };
+    expect(await today.dismissReminder(which)).toBe(true);
+    expect(await today.undismissReminder(which)).toBe(true);
+    expect(sent.map((s) => [s.path, s.init?.method, s.init?.body])).toEqual([
+      ["/v1/today/reminders/dismiss", "POST", JSON.stringify(which)],
+      ["/v1/today/reminders/undismiss", "POST", JSON.stringify(which)],
+    ]);
+    status = 404;
+    expect(await today.dismissReminder(which)).toBe(false);
+    status = 200;
+  });
+
   it("opens a memory in Memories by the shared parameter, a note in its thread, and nothing for a note with no thread", () => {
-    const other = { name: "x", day: "2026-10-11", by: false, threadName: null, threadIcon: null, threadHue: null };
+    const other = { name: "x", day: "2026-10-11", by: false, time: null, window: "long" as const, next: null, threadName: null, threadIcon: null, threadHue: null };
     expect(today.reminderDoor({ ...other, of: "memory", id: "m1", threadId: null })).toEqual({ pathname: "/memories", params: { memory: "m1" } });
     expect(today.reminderDoor({ ...other, of: "note", id: "n1", threadId: "t1", threadName: "Rent" })).toEqual({ pathname: "/threads/[id]", params: { id: "t1" } });
     expect(today.reminderDoor({ ...other, of: "note", id: "n2", threadId: null })).toBeNull();
@@ -265,19 +286,45 @@ describe("042 the screens", () => {
     expect(screen).toMatch(/me\?\.todayLayoutV3 \?\? me\?\.todayLayoutV2|layoutOf\(me\)/);
   });
 
-  it("draws rows as Your day does, and notes and memories as a name, a day and a meta line", () => {
+  it("draws the section as the kit's column (2026-10-11): the countdown, the name, where it lives, and the dismiss", () => {
     const screen = read("components/today/TodayScreen.tsx");
-    expect(screen).toMatch(/rows\.row\(/);
-    expect(screen).toMatch(/remindDayLabel\(/);
-    expect(screen).toMatch(/"Memories"/);
-    expect(screen).toMatch(/and \{reminders\.more\} more/);
+    expect(screen).toMatch(/<Reminders\b/);
+    expect(screen).not.toMatch(/and \{reminders\.more\} more/);
+    const column = read("components/today/Reminders.tsx");
+    expect(column).toMatch(/countdownLabel\(/);
+    expect(column).toMatch(/reminderDayLine\(/);
+    expect(column).toMatch(/reminderTimeLine\(/);
+    // Where it lives is decided once, in widgets, for the phones and the web.
+    expect(column).toMatch(/whereOf\(/);
+    expect(column).not.toMatch(/"Memories"|"Not in a thread"/);
+    expect(column).toMatch(/dismissLabel\(/);
+    expect(column).toMatch(/dismissedLine\(/);
+    expect(column).toMatch(/dismissReminder\(/);
+    expect(column).toMatch(/undismissReminder\(/);
+    expect(column).toMatch(/unwrite: \(\) => undismissReminder\(/);
+    // No thread page row, no chip, no pill: the row opens, and that is all.
+    expect(column).not.toMatch(/rows\.row\(/);
+    expect(column).not.toMatch(/PlainChip|ThreadPill|DateChip/);
+    // A dismiss hides that reminder only, so the key carries the day and the window.
+    expect(column).toMatch(/keyOf\(\{ of: "content", id: entry\.id, day: entry\.remindDay, window: entry\.window \}\)/);
+    // Everything on the day shares one card under one Today.
+    expect(column).toMatch(/entry\.day === today|day === today/);
   });
 
-  it("says by and the day on an undated task reminded against something", () => {
+  it("wraps each drawn section in a band by position, and heads Reminders and Open in your threads at the band's size", () => {
     const screen = read("components/today/TodayScreen.tsx");
-    expect(screen).toMatch(/by: entry\.remindBy && !entry\.dueAt && !entry\.occursAt \? remindDayLabel\(entry\.remindDay, today, true\) : undefined/);
-    expect(read("components/shell/ContentRow.tsx")).toMatch(/<DateChip row=\{row\} by=\{by\} \/>/);
-    expect(read("components/shell/DateChip.tsx")).toMatch(/by\?: string \| undefined/);
+    expect(screen).toMatch(/<Band\b/);
+    expect(screen).not.toMatch(/contentContainerClassName="gap-space-8 px-gutter-screen pt-space-3 pb-space-8"/);
+    const band = read("components/today/Band.tsx");
+    expect(band).toMatch(/export function Band\(/);
+    expect(band).toMatch(/export function useInBand\(/);
+    expect(band).toMatch(/isAndroid \? "bg-a-c-low" : "bg-surface-fill"/);
+    const parts = read("components/today/DayParts.tsx");
+    expect(parts).toMatch(/big\?: boolean/);
+    expect(parts).toMatch(/useInBand\(\)/);
+    expect(read("components/today/OpenThreads.tsx")).toMatch(/<SectionHead title="Open in your threads" count=\{count\} big \/>/);
+    expect(read("components/today/OpenThreads.tsx")).toMatch(/useInBand\(\)/);
+    expect(read("components/shell/DateChip.tsx")).toMatch(/useInBand\(\)/);
   });
 
   it("draws nothing for a kind it does not know: Your day is a branch of its own", () => {
@@ -299,10 +346,10 @@ describe("042 the screens", () => {
   });
 
   it("draws a line with no door as no button: only a line that opens something is pressable", () => {
-    const screen = read("components/today/TodayScreen.tsx");
-    expect(screen).toMatch(/const door = reminderDoor\(entry\)/);
-    expect(screen).toMatch(/door \? \(\s*<Pressable/);
-    expect(screen).not.toMatch(/params: \{ open: entry\.id \}/);
+    const column = read("components/today/Reminders.tsx");
+    expect(column).toMatch(/door: reminderDoor\(entry\)/);
+    expect(column).toMatch(/line\.door \? \(\s*<Pressable/);
+    expect(column).not.toMatch(/params: \{ open: entry\.id \}/);
   });
 
   it("keeps a reminder row's own fields through the drawn rows", () => {

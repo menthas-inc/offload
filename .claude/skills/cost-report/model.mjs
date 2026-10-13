@@ -63,11 +63,14 @@ export function models(code, options) {
     answer: options.answerModel && options.answerModel !== "from-code" ? options.answerModel : code.models.answer,
     sort: code.models.sort,
     nightly: code.models.nightly,
+    // 026 and 041, the look; 038, the memory pass. Neither is swept.
+    look: code.models.look ?? code.models.sort,
+    memory: code.models.memory ?? code.models.nightly,
   };
 }
 
 // Unit costs: what one of each action costs, given how warm each cached prefix
-// is. `warm` is { file, answer, nightly } between 0 and 1.
+// is. `warm` is { file, answer, nightly, memory } between 0 and 1.
 export function units({ prices, code, assumptions, options }, warm) {
   const t = assumptions.turn;
   const md = models(code, options);
@@ -77,6 +80,7 @@ export function units({ prices, code, assumptions, options }, warm) {
   const filePrefix = pt("plan_v2") + tools(md.file, t.file.toolTokens);
   const answerPrefix = pt("answer") + tools(md.answer, t.answer.toolTokens);
   const nightlyPrefix = pt("nightly") + tools(md.nightly, t.nightly.toolTokens);
+  const memoryPrefix = pt("memory") + tools(md.memory, t.memory.toolTokens);
   const fileTurn = (extraCtx = 0, images = 0) =>
     turnCost({ prices, model: md.file, prefix: filePrefix, ctx: t.file.contextTokens + extraCtx, growth: t.file.growthPerCall,
       out: t.file.outputPerCall, calls: t.file.calls, images, imageTokens: t.imageTokens, warm: warm.file, conversation: code.cachesConversation });
@@ -93,10 +97,13 @@ export function units({ prices, code, assumptions, options }, warm) {
   const readerPrompt = pt("reader");
 
   return {
-    prefixes: { file: filePrefix, answer: answerPrefix, nightly: nightlyPrefix },
+    prefixes: { file: filePrefix, answer: answerPrefix, nightly: nightlyPrefix, memory: memoryPrefix },
     models: md,
     fileText: fileTurn(),
     filePhotoPerPhoto: fileTurn(0, 1) - fileTurn(),
+    // 041. A PDF's first pages go in as a document block, text and picture
+    // per page, inside the conversation the turn caches.
+    filePdfPerPage: fileTurn(t.pdfTokensPerPage) - fileTurn(),
     fileMailExtra: fileTurn(t.mailBodyTokens) - fileTurn(),
     fileWhatsappExtra: fileTurn(300) - fileTurn(),
     answer: turnCost({ prices, model: md.answer, prefix: answerPrefix, ctx: t.answer.contextTokens, growth: t.answer.growthPerCall,
@@ -106,10 +113,17 @@ export function units({ prices, code, assumptions, options }, warm) {
     // the member's dumps since their last pass are the uncached input.
     nightly: turnCost({ prices, model: md.nightly, prefix: nightlyPrefix, ctx: t.nightly.notesTokens + t.nightly.messagesTokens, growth: 0,
       out: t.nightly.output, calls: 1, warm: warm.nightly }),
+    // 038. One call per account a night it said anything: the memories held,
+    // its own notes and the day's messages are the uncached input.
+    memory: turnCost({ prices, model: md.memory, prefix: memoryPrefix, ctx: t.memory.memoriesTokens + t.memory.notesTokens + t.memory.messagesTokens,
+      growth: 0, out: t.memory.output, calls: 1, warm: warm.memory }),
     search: oneCall({ prices, model: md.sort, input: readerPrompt + t.readerSearch.resultTokens, out: t.readerSearch.output })
       + oneCall({ prices, model: md.sort, input: t.readerSearch.shapeIn, out: t.readerSearch.shapeOut }) + searchFee,
     read: oneCall({ prices, model: md.sort, input: readerPrompt + t.readerRead.pageTokens, out: t.readerRead.output }),
-    mailLook: oneCall({ prices, model: md.sort, input: 500 + t.mailLook.candidates * t.mailLook.tokensPerImage, out: t.mailLook.output }),
+    // 026 and 041. The look at a forwarded email's pictures, a PDF attachment
+    // among them as its first page, on the look model.
+    look: oneCall({ prices, model: md.look, input: pt("look") + t.mailLook.candidates * t.mailLook.tokensPerImage, out: t.mailLook.output }),
+    pdfLook: oneCall({ prices, model: md.look, input: pt("look") + t.mailLook.tokensPerImage, out: t.mailLook.output }),
     voicePerSecond: voicePerHour / 3600,
     receipt,
     embedPerToken: prices.voyage["voyage-4"] / M,
@@ -130,8 +144,12 @@ export function personMonth(input, u, frequencyKey, behaviourKey) {
   const wa = options.whatsapp ? b.whatsappSends : 0;
 
   // Per active day, then times days.
-  const fileTurns = b.textDumps + b.photoDumps + b.voiceNotes + b.mailForwards + wa;
+  const pdfDumps = b.pdfDumps ?? 0;
+  const fileTurns = b.textDumps + b.photoDumps + pdfDumps + b.voiceNotes + b.mailForwards + wa;
   const photos = b.photoDumps * b.photosPerPhotoDump;
+  // 041. At most the code's PDFs per dump, each read to the code's page cap.
+  const pdfs = pdfDumps * Math.min(b.pdfsPerPdfDump ?? 1, input.code.pdfsPerDump ?? Infinity);
+  const pdfPages = pdfs * Math.min(b.pagesPerPdf ?? 1, input.code.pdfPages ?? Infinity);
   const classified = b.textDumps + b.questions + b.voiceNotes + wa;
   // The daily turn cap, when the code has one: turns past it are refused
   // before they cost anything, so everything a turn drives scales down.
@@ -141,7 +159,8 @@ export function personMonth(input, u, frequencyKey, behaviourKey) {
     turnShare * (
       fileTurns * u.fileText +
       photos * u.filePhotoPerPhoto +
-      b.mailForwards * (u.fileMailExtra + u.mailLook) +
+      pdfPages * u.filePdfPerPage +
+      b.mailForwards * (u.fileMailExtra + u.look) +
       wa * u.fileWhatsappExtra +
       b.questions * u.answer +
       classified * u.classify +
@@ -162,18 +181,18 @@ export function personMonth(input, u, frequencyKey, behaviourKey) {
     }
   }
   // The night's passes come after, and neither the budget nor the turn count
-  // holds them back.
-  claudeDay += nightlyPasses(input, b) * u.nightly;
+  // holds them back: one per thread touched, and the account's memory pass.
+  claudeDay += nightlyPasses(input, b) * u.nightly + u.memory;
 
   const receiptsDay = Math.min(wa * (1 + assumptions.whatsapp.extraReceiptsPerSend), assumptions.whatsapp.receiptCapPerAccountPerDay);
   const whatsappDay = receiptsDay * u.receipt;
 
   // Storage: what a month adds, held for monthsKept months, priced as the
   // steady-state monthly bill for one person's last year of things.
-  const mbAddedDay = photos * (s.photoOriginal + s.photoLarge + s.photoThumb) + b.voiceNotes * b.voiceSeconds * s.voicePerSecond + b.mailForwards * s.mailImage;
+  const mbAddedDay = photos * (s.photoOriginal + s.photoLarge + s.photoThumb) + pdfs * s.pdf + b.voiceNotes * b.voiceSeconds * s.voicePerSecond + b.mailForwards * s.mailImage;
   const gbMonth = (mbAddedDay * days) / 1024;
   const r2 = gbMonth * s.monthsKept * prices.r2.storagePerGbMonth;
-  const classA = ((photos * 3 + b.voiceNotes + b.mailForwards) * days * prices.r2.classAPerMillion) / M;
+  const classA = ((photos * 3 + pdfs * 4 + b.voiceNotes + b.mailForwards) * days * prices.r2.classAPerMillion) / M;
   const classB = ((b.photoViews * 2) * days * prices.r2.classBPerMillion) / M;
   const egressGb = gbMonth + (b.photoViews * s.photoViewMb * days) / 1024;
   const egress = egressGb * prices.railway.egressPerGb;
@@ -193,8 +212,8 @@ export function personMonth(input, u, frequencyKey, behaviourKey) {
     capped,
     counts: {
       turns: (fileTurns + b.questions) * days,
-      fileTurns: fileTurns * days, answers: b.questions * days, nightlyPasses: nightlyPasses(input, b) * days,
-      receipts: receiptsDay * days, voiceSeconds: b.voiceNotes * b.voiceSeconds * days, photos: photos * days,
+      fileTurns: fileTurns * days, answers: b.questions * days, nightlyPasses: nightlyPasses(input, b) * days, memoryPasses: days,
+      receipts: receiptsDay * days, voiceSeconds: b.voiceNotes * b.voiceSeconds * days, photos: photos * days, pdfs: pdfs * days,
       emails: b.mailForwards * days, gbAdded: gbMonth, egressGb,
       // 030. A web map load is a Dynamic Maps load; a new place and a place
       // shown after its coordinates aged out are each one Place Details call.
@@ -230,16 +249,17 @@ export function population(assumptions, level, basis) {
 // since the system block is the same for everybody.
 export function warmth(input, mau) {
   const { assumptions } = input;
-  const perDay = { file: 0, answer: 0, nightly: 0 };
+  const perDay = { file: 0, answer: 0, nightly: 0, memory: 0 };
   for (const [fk, fShare] of Object.entries(assumptions.fleet.frequencyMix)) {
     for (const [bk, bShare] of Object.entries(assumptions.fleet.behaviourMix)) {
       const b = assumptions.behaviour[bk].perActiveDay;
       const days = assumptions.frequency[fk].activeDays;
       const people = mau * fShare * bShare;
       const wa = input.options.whatsapp ? b.whatsappSends : 0;
-      perDay.file += (people * days * (b.textDumps + b.photoDumps + b.voiceNotes + b.mailForwards + wa)) / MONTH;
+      perDay.file += (people * days * (b.textDumps + b.photoDumps + (b.pdfDumps ?? 0) + b.voiceNotes + b.mailForwards + wa)) / MONTH;
       perDay.answer += (people * days * b.questions) / MONTH;
       perDay.nightly += (people * days * nightlyPasses(input, b)) / MONTH;
+      perDay.memory += (people * days) / MONTH;
     }
   }
   const seconds = assumptions.turn.activeHoursPerDay * 3600;
@@ -249,6 +269,8 @@ export function warmth(input, mau) {
   // so each prompt variant is written once a night and read by every pass after.
   const variants = assumptions.turn.nightly.promptVariants;
   w.nightly = perDay.nightly > 0 ? Math.max(0, 1 - variants / perDay.nightly) : 0;
+  // The memory pass has one prompt, written once a night.
+  w.memory = perDay.memory > 0 ? Math.max(0, 1 - 1 / perDay.memory) : 0;
   return w;
 }
 
@@ -391,5 +413,5 @@ export function evalLike(input) {
   const shaped = { ...input, assumptions: { ...input.assumptions, turn: { ...t,
     file: { ...t.file, contextTokens: e.contextTokens, calls: e.calls, growthPerCall: e.growthPerCall },
     answer: { ...t.answer, contextTokens: e.contextTokens, calls: e.calls, growthPerCall: e.growthPerCall } } } };
-  return units(shaped, { file: 1, answer: 1, nightly: 1 });
+  return units(shaped, { file: 1, answer: 1, nightly: 1, memory: 1 });
 }

@@ -8,6 +8,8 @@ import { buildApp, type App } from "../src/app.js";
 import { db, closeDb } from "../src/db.js";
 import { env } from "../src/env.js";
 import { enqueue } from "../src/jobs/queue.js";
+import { handlers } from "../src/jobs/handlers.js";
+import { MemoryMailer } from "../src/mail/mailer.js";
 import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
 
@@ -162,5 +164,73 @@ describe("033 AC-20 a phone registers only for an active account", () => {
     });
     expect(response.statusCode).toBe(403);
     expect(await tokensOf(id)).toHaveLength(0);
+  });
+});
+
+// A session that ends on the server cannot delete its own token: the phone
+// has already wiped itself and the route needs a live session. The token goes
+// with the session that registered it, and a send reaches no token whose
+// session has expired (security finding 2026-10-11).
+describe("024 AC-11 a push token follows the session that registered it", () => {
+  async function session(accountId: string, expiresAt = new Date(Date.now() + 60 * 60 * 1000)) {
+    const token = uuidv7();
+    const row = await db.insertInto("sessions").values({ account_id: accountId, token, expires_at: expiresAt }).returning("id").executeTakeFirstOrThrow();
+    return { id: row.id, token, cookie: `better-auth.session_token=${token}.${await makeSignature(token, env.BETTER_AUTH_SECRET)}` };
+  }
+  const register = (cookie: string) =>
+    app.inject({ method: "POST", url: "/v1/push-tokens", headers: { cookie, "content-type": "application/json" }, payload: { token: TOKEN, platform: "ios" } });
+
+  it("goes when that session is ended from Signed in on", async () => {
+    const me = await account();
+    const phone = await session(me);
+    const web = await session(me);
+    expect((await register(phone.cookie)).statusCode).toBe(200);
+    const revoked = await app.inject({
+      method: "POST",
+      url: "/api/auth/revoke-session",
+      headers: { cookie: web.cookie, origin: env.WEB_URL, "content-type": "application/json" },
+      payload: { token: phone.token },
+    });
+    expect(revoked.statusCode).toBe(200);
+    expect(await db.selectFrom("sessions").select("id").where("id", "=", phone.id).execute()).toEqual([]);
+    expect(await tokensOf(me)).toEqual([]);
+  });
+
+  it("goes when that session signs out, or is purged once expired", async () => {
+    const me = await account();
+    const phone = await session(me);
+    await register(phone.cookie);
+    const out = await app.inject({ method: "POST", url: "/api/auth/sign-out", headers: { cookie: phone.cookie, origin: env.WEB_URL, "content-type": "application/json" }, payload: {} });
+    expect(out.statusCode).toBe(200);
+    expect(await tokensOf(me)).toEqual([]);
+
+    const again = await session(me);
+    await register(again.cookie);
+    await db.updateTable("sessions").set({ expires_at: new Date(Date.now() - 2 * 86_400_000) }).where("id", "=", again.id).execute();
+    await handlers["jobs.purge"]!({}, { mailer: new MemoryMailer() }, null);
+    expect(await tokensOf(me)).toEqual([]);
+  });
+
+  it("moves to the session that registers it next, so the old one ending leaves it", async () => {
+    const me = await account();
+    const before = await session(me);
+    const after = await session(me);
+    await register(before.cookie);
+    await register(after.cookie);
+    await db.deleteFrom("sessions").where("id", "=", before.id).execute();
+    expect(await tokensOf(me)).toHaveLength(1);
+  });
+
+  it("is refused without a session at the column", async () => {
+    const me = await account();
+    await expect(db.insertInto("push_tokens").values({ account_id: me, token: TOKEN, platform: "ios" } as never).execute()).rejects.toThrow(/session_id/);
+  });
+
+  it("never sends the session's id back", async () => {
+    const me = await account();
+    const phone = await session(me);
+    const response = await register(phone.cookie);
+    expect(response.body).not.toContain(phone.id);
+    expect(response.json()).toEqual({ ok: true });
   });
 });

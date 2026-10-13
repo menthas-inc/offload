@@ -11,7 +11,8 @@
     "test": "vitest run --passWithNoTests",
     "build": "echo \"built by EAS, not by turbo\" && exit 0",
     "icons": "node scripts/icons.mjs",
-    "splash": "node scripts/splash.mjs"
+    "splash": "node scripts/splash.mjs",
+    "app-icon": "node scripts/app-icon.mjs"
   },
   "dependencies": {
     "@better-auth/expo": "^1.7.5",

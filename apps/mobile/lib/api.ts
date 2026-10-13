@@ -6,6 +6,7 @@
 // answer to that question is one that can disagree with the server's.
 
 import { authClient, API_URL, sessionRefused } from "./auth";
+import { within } from "./within";
 
 export interface Me {
   accountId: string;
@@ -40,28 +41,6 @@ export interface Me {
  *  finish it and then see the policy or the terms move. */
 export function stillAsking(me: Me): boolean {
   return me.needsFirstRun || me.needsName || me.needsConsent;
-}
-
-/** Race a promise against a deadline, resolving to a fallback instead of
- *  hanging.
- *
- *  Used on the secure-storage read below. Nothing about "look up a stored
- *  cookie" should be able to stop the app forever, and on a device it did:
- *  every screen sat blank because the read never settled and the fetch that
- *  depended on it therefore never happened. A slow or unavailable keystore is
- *  a reason to be signed out, not a reason to show nothing. */
-async function within<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((resolve) => {
-        timer = setTimeout(() => resolve(fallback), ms);
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
 }
 
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T | null> {
@@ -241,17 +220,26 @@ export { API_URL };
  *  for nine minutes with every service healthy, and when this was `request`,
  *  that null sent a phone with a good session to the gate. Anything but a 401
  *  or the account is the app not hearing an answer, and launch holds. */
-export async function getMe(): Promise<Me | "signed-out" | "unreachable"> {
-  retryAfter = null;
-  try {
-    const { status, data, retryAfter: wait } = await send<Me>("/api/me");
-    if (status === 401) return "signed-out";
-    if (!data) retryAfter = wait ?? null;
-    return data ?? "unreachable";
-  } catch {
-    return "unreachable";
-  }
+export function getMe(): Promise<Me | "signed-out" | "unreachable"> {
+  // The root layout and the index route both ask at launch, in one frame:
+  // one request answers both.
+  asking ??= (async () => {
+    retryAfter = null;
+    try {
+      const { status, data, retryAfter: wait } = await send<Me>("/api/me");
+      if (status === 401) return "signed-out" as const;
+      if (!data) retryAfter = wait ?? null;
+      return data ?? ("unreachable" as const);
+    } catch {
+      return "unreachable" as const;
+    } finally {
+      asking = null;
+    }
+  })();
+  return asking;
 }
+
+let asking: Promise<Me | "signed-out" | "unreachable"> | null = null;
 
 /** 027. The seconds a `Retry-After` asked for on launch's last unanswered
  *  read, which launch waits at least as long as. */

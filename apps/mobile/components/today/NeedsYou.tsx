@@ -9,7 +9,7 @@
 // when it holds something.
 
 import { useEffect, useRef, useState } from "react";
-import { Linking, Platform, Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { ReduceMotion, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import * as Clipboard from "expo-clipboard";
@@ -21,10 +21,12 @@ import { QuickReplies } from "../shell/QuickReplies";
 import { ThreadPill } from "../shell/ThreadPill";
 import type { ToastState } from "../shell/Toast";
 import { useColors } from "../../lib/colors";
+import { DEVICE_ONLY } from "../../lib/account-keys";
 import { API_URL } from "../../lib/auth";
 import { answerQuestion, undoTurn } from "../../lib/dump";
 import { setClock } from "../../lib/me";
 import { acceptInvitation, answerRequest, firstNameOf, nameOf } from "../../lib/people";
+import { turnOn } from "../../lib/notifications";
 import { putOff, stackView, type Card } from "../../lib/today";
 
 const isAndroid = Platform.OS === "android";
@@ -184,6 +186,17 @@ export function NeedsYou({
       });
   };
 
+  /** An action that leaves the card where it is, a sign-in or a dialog that
+   *  may change nothing: no inert spell, and only a failure says anything. */
+  const keep = (key: string, run: () => Promise<Outcome>, failure: string, label: string) => {
+    setFailed(null);
+    void run()
+      .catch((): Outcome => "failed")
+      .then((outcome) => {
+        if (outcome === "failed") setFailed({ key, label, line: failure });
+      });
+  };
+
   const tomorrow = async (): Promise<Outcome> => {
     if (card.kind === "notifications") {
       // The phone's own midnight, on purpose: this card is a fact about the
@@ -191,7 +204,7 @@ export function NeedsYou({
       const start = new Date();
       start.setHours(24, 0, 0, 0);
       try {
-        SecureStore.setItem(NOTIFICATIONS_PUT_OFF, start.toISOString());
+        SecureStore.setItem(NOTIFICATIONS_PUT_OFF, start.toISOString(), DEVICE_ONLY);
         return "ok";
       } catch {
         return "failed";
@@ -222,7 +235,21 @@ export function NeedsYou({
           { label: `Keep ${zoneCity(card.account)}`, run: async () => outcomeOf((await setClock({ keptTimeZone: card.device })) !== null), failed: "Couldn't save that." },
         ];
       case "notifications":
-        return [{ label: "Turn on", keeps: true, run: async () => outcomeOf(await Linking.openSettings().then(() => true, () => false)), failed: "That didn't go through." }];
+        return [
+          {
+            label: "Turn on",
+            keeps: true,
+            // The card goes once a fresh read finds this phone allowed. A
+            // no is the person's answer: the card already says they are
+            // off, and the next press opens System settings.
+            run: async () => {
+              const outcome = await turnOn();
+              if (outcome === "on") onReload();
+              return outcome === "failed" ? "failed" : "ok";
+            },
+            failed: "That didn't go through.",
+          },
+        ];
       case "request":
         return [
           { label: "Accept", run: async () => outcomeOf(await answerRequest(card.requestId, "accept")), failed: "That didn't go through." },
@@ -389,7 +416,7 @@ export function NeedsYou({
                   key={action.label}
                   disabled={inert}
                   onPress={() => {
-                    if (action.keeps) void action.run();
+                    if (action.keeps) keep(card.key, action.run, action.failed, action.label);
                     else settle(card.key, action.run, action.failed, action.label);
                   }}
                   accessibilityRole="button"

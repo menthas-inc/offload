@@ -125,6 +125,15 @@ describe("the reminder, when it runs", () => {
     expect(await db.selectFrom("activity").select("id").where("account_id", "=", me).execute()).toEqual([]);
   });
 
+  it("reaches no phone whose session has expired", async () => {
+    const me = await account();
+    await token(me);
+    await db.updateTable("sessions").set({ expires_at: new Date(Date.now() - 60_000) }).where("account_id", "=", me).execute();
+    const { payload } = await placedFor(me);
+    expect(await runOwn(me, payload, at)).toBe("skipped_permission");
+    expect(memoryPush.sent).toEqual([]);
+  });
+
   it("with no phone that takes one, is recorded as not sent by permission", async () => {
     const me = await account();
     await token(me, false);

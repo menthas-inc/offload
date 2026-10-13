@@ -13,6 +13,7 @@
 import { typedAddress } from "./typed-row";
 import type { Label } from "./labels";
 import { send } from "./api";
+import { onSignedOut } from "./session-end";
 import type { Invitation } from "./people";
 import type { LooseSummary } from "./loose";
 import type { Reminders, Sortable, ThreadLook } from "@offload/widgets";
@@ -334,6 +335,7 @@ export async function fetchThread(id: string): Promise<ThreadBundle | null> {
  *  that names a thread by id with no read of its own: the composer's *In
  *  thread* chip, raised from a thread already on screen. */
 const looks = new Map<string, { icon: string; hue: number }>();
+onSignedOut(() => looks.clear());
 
 export const threadLookOf = (id: string): { icon: string; hue: number } | undefined => looks.get(id);
 

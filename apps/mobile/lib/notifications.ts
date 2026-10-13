@@ -12,12 +12,13 @@
 // below, re-reads every id from the server on arrival, and ignores anything
 // else.
 
-import { Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { CHANNELS, PEOPLE_CATEGORY, PLAIN_CATEGORY, VERBS_CATEGORY, dayIn } from "@offload/widgets";
 import { actOnNotification, deletePushToken, registerPushToken } from "./api";
 import { beforeSignOut } from "./auth";
+import { onSignedOut } from "./session-end";
 import { dayOfPush } from "./today";
 import { failed } from "./log";
 
@@ -134,6 +135,30 @@ export async function register(): Promise<void> {
   }
 }
 
+/** Today's Turn on. A phone that can still be asked is asked, since iOS
+ *  shows no Notifications row in System settings until an app has asked
+ *  once. System settings only when asking cannot help: refused for good, or
+ *  on Android 13 and later, granted but switched off in the system. On once
+ *  this phone allows them; off when it still does not, which is the person's
+ *  answer and not a failure; failed when the call did not go through. */
+export async function turnOn(): Promise<"on" | "off" | "failed"> {
+  try {
+    const held = await Notifications.getPermissionsAsync();
+    const askable = held.canAskAgain && !held.granted;
+    if (held.status !== "granted" && !askable) {
+      await Linking.openSettings();
+      return "off";
+    }
+    const answer = held.status === "granted" ? held : await Notifications.requestPermissionsAsync();
+    if (answer.status !== "granted") return "off";
+    await register();
+    return "on";
+  } catch (error) {
+    failed("notifications.turnOn", error);
+    return "failed";
+  }
+}
+
 /** The token goes before the session does. */
 beforeSignOut(async () => {
   if (registered) await deletePushToken(registered);
@@ -150,6 +175,8 @@ export function registeredToken(): string | null {
  *  Tomorrow moves a date by a day each time it is asked. A refused write is
  *  taken out again, so tapping the verb once more is a retry. */
 const handled = new Set<string>();
+// The last account's notification ids go with its session.
+onSignedOut(() => handled.clear());
 
 /** The platform keeps the last response across launches; once it has been
  *  acted on it is cleared, so the next launch does not act on it again. */

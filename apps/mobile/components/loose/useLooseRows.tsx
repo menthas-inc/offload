@@ -20,7 +20,6 @@ import { useRouter } from "expo-router";
 import { dayIn } from "@offload/widgets";
 import { ContentRowView } from "../shell/ContentRow";
 import { RowEditSheet } from "../shell/RowEditSheet";
-import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
 import { MoveSheet } from "../shell/MoveSheet";
 import { NoteEditor } from "../shell/Notes";
 import { PhotoViewer } from "../shell/PhotoViewer";
@@ -92,7 +91,6 @@ export function useLooseRows(
   const [drawn, setDrawn] = useState<Map<string, Partial<ContentRow> & Partial<Note>>>(new Map());
   const [renaming, setRenaming] = useState<ContentRow | null>(null);
   const [noting, setNoting] = useState<Note | null>(null);
-  const [acting, setActing] = useState<LooseEntry | null>(null);
   const [moving, setMoving] = useState<LooseEntry | null>(null);
   const [viewing, setViewing] = useState<ContentRow | null>(null);
   const [creating, setCreating] = useState<string | null>(null);
@@ -384,28 +382,6 @@ export function useLooseRows(
 
   // ------------------------------------------------------------ the sheets
 
-  const actions: RowAction[] = !acting
-    ? []
-    : acting.kind === "note"
-      ? [
-          { label: "Edit", icon: "pencil", run: () => setNoting(acting.note) },
-          { label: "Move", icon: "layers", run: () => setMoving(acting) },
-          { label: "Delete", icon: "trash-2", danger: true, run: () => remove(acting) },
-        ]
-      : acting.row.archivedAt
-        ? [{ label: "Put back", icon: "rewind", run: () => restore(acting.row) }]
-        : [
-            { label: "Edit", icon: "pencil", run: () => setRenaming(acting.row) },
-            ...(acting.row.canMove ? [{ label: "Move", icon: "layers", run: () => setMoving(acting) }] : []),
-            ...(acting.row.photo
-              ? []
-              : [
-                  { label: "Mark done", icon: "check", run: () => tick(acting.row) },
-                ]),
-            acting.row.canDelete
-              ? { label: "Delete", icon: "trash-2", danger: true, run: () => remove(acting) }
-              : { label: "Archive", icon: "archive", run: () => archive(acting.row) },
-          ];
 
   const live = (entries: LooseEntry[]): LooseEntry[] =>
     entries
@@ -433,7 +409,6 @@ export function useLooseRows(
         titleLines={1}
         muted={entry.kind === "note" && entry.note.muted}
         onEdit={() => (entry.kind === "note" ? setNoting(entry.note) : setRenaming(entry.row))}
-        onActions={() => setActing(entry)}
         onDelete={() => remove(entry)}
         onOpenPhoto={
           entry.kind === "content" && entry.row.photo
@@ -474,7 +449,7 @@ export function useLooseRows(
           index={0}
           onIndex={() => undefined}
           onClose={() => setViewing(null)}
-          onMore={(one) => setActing({ kind: "content", row: one, suggestion: null })}
+          onMore={(one) => setRenaming(one)}
         />
       ) : null}
       <RowEditSheet
@@ -485,6 +460,7 @@ export function useLooseRows(
           setRenaming(null);
           if (Object.keys(fields).length > 0) edit(saved, fields);
         }}
+        onMove={(held) => setMoving({ kind: "content", row: held, suggestion: null })}
         onRemove={(held) => {
           setRenaming(null);
           if (held.archivedAt) restore(held);
@@ -517,7 +493,6 @@ export function useLooseRows(
           }}
         />
       ) : null}
-      <RowActionSheet open={acting !== null} actions={actions} onClose={() => setActing(null)} />
       {/* The server leaves the default thread out of the list, so nothing
           here is moved into not being in a thread by hand. */}
       <MoveSheet

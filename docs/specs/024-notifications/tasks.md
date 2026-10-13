@@ -12,6 +12,7 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 - [x] **B1** `0058_notifications.sql` as the impl-spec writes it; `schema.ts`; the drift test; no agent grant. Red first. (DATA-1)
 - [x] **B2** `POST` and `DELETE /v1/push-tokens`: the pattern, the upsert binding to the session, the re-bind on conflict, delete only the session's. Test `tokens.test.ts`, red first. (AC-11, SEC-2)
+- [x] **B2a** 2026-10-11, a security finding: `0091` binds a token to the session that registered it, on delete cascade, and the three sends read through `liveTokens`, which refuses an expired session. Tests in `tokens.test.ts`, `digest.test.ts`, `people-notify.test.ts` and `reminders-own.test.ts`, red first. (AC-11, SEC-2)
 - [x] **B3** `/api/me`: the six `notify*` fields and `activityNew`; the patch with `HH:MM` hours; a changed hour, switch or zone deletes the account's queued digest jobs. Test. (AC-14, AC-1)
 
 ## C. API: the sends
@@ -66,3 +67,11 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 - [x] **J1** Accepted as is by the owner on 2026-09-26. The hour rows' label follows the locale while the Android picker follows the device's 24-hour setting, so a phone set to 24 hours reads "8:00 AM" and opens a 24-hour dial. Matching them needs `expo-localization`, a native module, so it waits for a build that carries it.
 - [x] **J2** Closed with the feature on 2026-09-26: the platform default stands. A send that arrives while the app is in front is delivered and recorded but not shown, the platform default on both phones since the app sets no notification handler. Decide whether a digest should show a banner over an open app.
 - [x] **T-2026-09-30** Tweak: the digest title in counts, overdue rows named as "Still open:", and an Activity digest row drawing its words and opening Today on both clients. Tests `copy.test.ts`, `digest.test.ts`, mobile and web `labels.test.ts`, red first. (AC-2, AC-5, AC-18)
+
+## K. Amended 2026-10-10: the calendar in the morning
+
+- [x] **K1** `0090_calendar_in_the_morning.sql`: `notify_calendar`, `activity_calendars` and the two triggers on `connector_calendars`; `schema.ts`; `/api/me` `notifyCalendar` read and patched. Test `apps/core-api/test/calendar-morning.test.ts`, red first. (AC-25, AC-28, OFF-4)
+- [x] **K2** `calendarOn` and `isWritten` lifted out of Today's read; `composeDigest` and `runDigest` name the morning's events under Calendar alone, all-day first then by the hour, once for a row the send names, no verbs, counts only in analytics, the record linked to its calendars; a dumped row offload wrote to a calendar stays announced. Test `apps/core-api/test/calendar-morning.test.ts`, with `digest.test.ts`'s calendar row marked `source: "calendar"`. (AC-4, AC-6, AC-24 to AC-27)
+- [x] **K3** The Calendar section on both Notifications pages between Reminders and People, `CALENDAR_LINE` and `hoursOn` in `@offload/widgets`, Android's mirror of `due_today`, and Today's Notifications card counting it. Tests `apps/web/test/reminders-notifications.test.tsx`, `apps/mobile/test/notifications-page.test.ts`, `apps/mobile/test/today.test.ts`, `packages/widgets/test/reminders.test.ts`, red first. (AC-25)
+- [x] **K4** The privacy page's sections 7 and 14, approved by the owner before the code. Test `apps/web/test/privacy-policy.test.tsx`, red first. (AC-29, the `CLAUDE.md` policy rule)
+- [x] K5. Review fixes: only events the person is going to (`connector_events.going`), only a live grant, titles through `reminderName`, the record and its links in one transaction, due rows first, `events` on `digest_sent`. `apps/core-api/test/calendar-morning.test.ts`, `apps/core-api/test/calendar-events.test.ts`. AC-30.

@@ -81,7 +81,8 @@ export function playbackDirectory(): Directory {
 }
 
 /** Delete whatever a kill left behind, in both directories: a note never
- *  sent and a note fetched to be heard. Called on launch and on sign-out. */
+ *  sent and a note fetched to be heard. Called on launch; a session's end
+ *  takes both folders with the rest of the account (`device-data.ts`). */
 export function sweepRecordings(): void {
   for (const dir of [recordingsDirectory(), playbackDirectory()]) {
     try {

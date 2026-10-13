@@ -3,6 +3,9 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     setupFiles: ["./test/setup.ts"],
+    // Migrates once before any file is loaded, so the first file to build the
+    // app never meets an empty database (test/global-setup.ts says why).
+    globalSetup: ["./test/global-setup.ts"],
     // These tests talk to the real database on purpose. A mock cannot tell you
     // whether a partial unique index does what the migration says it does.
     fileParallelism: false,

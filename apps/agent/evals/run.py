@@ -757,6 +757,12 @@ class Recorder:
                 return {"ok": True, "noCalendar": True}
             return {"ok": True, "written": True, "sourceRef": "evt-1"}
         if tool in {"edit_event", "delete_event"}:
+            # 2026-10-13. The Core API answers `unknown_event` to a ref it does
+            # not hold, and a stub that wrote anything let the model pass a
+            # row's id here: the fixture's events, and one this turn created.
+            known = {e.get("sourceRef") for e in fx.get("events") or []} | {"evt-1"}
+            if args.get("source_ref") not in known:
+                return {"ok": False, "error": "unknown_event"}
             because = fx.get("calendar_waits")
             if because:
                 return {"ok": True, "waitingForThem": True, "because": because}

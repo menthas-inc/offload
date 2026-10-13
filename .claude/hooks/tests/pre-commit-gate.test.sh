@@ -53,5 +53,16 @@ printf 'import { test } from "node:test";\nimport assert from "node:assert";\nte
 check "failing harness node test" 2 "harness tests failed" 0
 rm "$tmp/docs/specs/broken.test.mjs"
 
+# CI runs `pnpm typecheck`, which also compiles the test folders, and the gate
+# did not: a test file with a type error went through the gate and went red on
+# CI (2026-10-11, PR 111). A failing typecheck blocks like a failing suite.
+check_type() {
+  local name="$1" cmd="$2" out code
+  out="$(cd "$tmp" && printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$tmp" PROJECT_TEST_CMD="true" PROJECT_TYPECHECK_CMD="$cmd" bash "$gate" 2>&1 >/dev/null)"; code=$?
+  if [ "$code" != 2 ]; then echo "FAIL $name: exit $code, wanted 2"; fails=$((fails+1)); fi
+  if ! grep -qF "typecheck failed" <<< "$out"; then echo "FAIL $name: no 'typecheck failed' in the output"; fails=$((fails+1)); fi
+}
+check_type "failing typecheck" 'python3 -c "import sys; print(\"test/x.test.ts(1,1): error TS2322\"); sys.exit(2)"'
+
 [ "$fails" = 0 ] && echo "pre-commit-gate: all passed"
 exit "$fails"

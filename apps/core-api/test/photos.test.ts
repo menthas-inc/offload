@@ -440,12 +440,30 @@ describe("the worker's routes", () => {
 });
 
 describe("reading a rendition", () => {
+  // 2026-10-11. The phones keep their own copy in a folder they forget at
+  // sign-out, and their HTTP stack keeps another in a cache nothing on the
+  // phone can clear (iOS's URLCache). Anything that does not say it is a
+  // browser is told to keep none.
+  it("is kept by nothing on a phone, and by a browser for five minutes", async () => {
+    const me = await person();
+    const { cookie, blobIds } = await dumped(me);
+    const [a] = blobIds;
+    const phone = await app.inject({ method: "GET", url: `/v1/blobs/${a}/thumb`, headers: { cookie } });
+    expect(phone.statusCode).toBe(200);
+    expect(phone.headers["cache-control"]).toBe("private, no-store");
+    const browser = await app.inject({ method: "GET", url: `/v1/blobs/${a}/large`, headers: { cookie, "sec-fetch-dest": "image" } });
+    expect(browser.headers["cache-control"]).toBe("private, max-age=300");
+    // The answer depends on the header, so a cache between the two is told.
+    for (const reply of [phone, browser]) expect(String(reply.headers["vary"]).toLowerCase()).toContain("sec-fetch-dest");
+  });
+
   it("is the dumper's before any row exists, a member's through a row, and nobody else's", async () => {
     const me = await person();
     const { cookie, blobIds, jobId } = await dumped(me);
     const [a] = blobIds;
 
-    const mine = await app.inject({ method: "GET", url: `/v1/blobs/${a}/thumb`, headers: { cookie } });
+    // A browser says it is one, in a header its pages cannot set.
+    const mine = await app.inject({ method: "GET", url: `/v1/blobs/${a}/thumb`, headers: { cookie, "sec-fetch-dest": "image" } });
     expect(mine.statusCode).toBe(200);
     expect(mine.headers["content-type"]).toBe("image/jpeg");
     expect(mine.headers["cache-control"]).toBe("private, max-age=300");

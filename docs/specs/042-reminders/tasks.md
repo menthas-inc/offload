@@ -6,7 +6,7 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 - [x] **A1** The four privacy page edits in `feature-spec.md`, "What a reminder carries away", into `apps/web/src/app/(marketing)/privacy/page.tsx` in the worktree, with `UPDATED` and `CONSENT_VERSION` moved and the page test extended, red first. **The owner reads them before any send code is written.** (AC-18, OFF-1, the `CLAUDE.md` policy rule)
 - [x] **A2** Amend in their own specs: 027's sections (a fourth, Reminders, under Your day); 024's "two sends a day, no per-item pushes" and "notes are never announced"; 023's Remind me switch; 038's "a remembered birthday reaches the model only". (AC-25, DEV-2)
-- [~] **A3** Written in `at-merge.md`; lands on `main` with the merge. At merge, on `main`: a `docs/tech/decisions.md` entry (labels and a table, compose-at-send, the author alone, a date the author set, the name as a run of own text, the token capability) and the reversible allowlist entry for labelling; a design `decisions.md` entry with Design system impact naming Today's Reminders section (no mock: its place, its row and its two plain lines, its Customize name and line), the tiles, the `reminder` row, the switch's reach in three editors, the web `Switch`, the Dates caption, the `reminders` channel's name, and the readme's lines on the bell (854), the flag (862), "while the row is a reminder" (918) and "no per-item pushes". (AC-25, OFF-6, OFF-7)
+- [x] **A3** Landed on `main` from `at-merge.md` in its own pull request after the merge, 2026-10-10. At merge, on `main`: a `docs/tech/decisions.md` entry (labels and a table, compose-at-send, the author alone, a date the author set, the name as a run of own text, the token capability) and the reversible allowlist entry for labelling; a design `decisions.md` entry with Design system impact naming Today's Reminders section (no mock: its place, its row and its two plain lines, its Customize name and line), the tiles, the `reminder` row, the switch's reach in three editors, the web `Switch`, the Dates caption, the `reminders` channel's name, and the readme's lines on the bell (854), the flag (862), "while the row is a reminder" (918) and "no per-item pushes". (AC-25, OFF-6, OFF-7)
 
 ## B. API: schema
 
@@ -69,6 +69,13 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 - [x] **I2** iOS simulator: inject the payloads the server builds for a morning send with Coming up and a notification of its own; tap through to the thread; the Notifications page, the three editors and Today with the Reminders section at 200% text, and Customize Today moving and switching it. Screenshots.
 - [x] **I3** Web: the Notifications page, the three editors, the Today pane with the section and Customize, and Activity driven and screenshotted in both themes.
 - [x] **I4** Three reviews in the background straight after the build (code, client, security), fixed by pass with one commit each.
+
+## J. Amended 2026-10-10: the calendar in the morning
+
+- [x] **J1** `0090_calendar_in_the_morning.sql`: `reminder_anchors`, `reminders_wanted`, `content_due_live` and `content_occurs_live` without `source_ref is null`; `scheduleOwn` and `candidatesOf` the same; the send's read by `source`. Test `apps/core-api/test/calendar-morning.test.ts`, red first. (AC-2, AC-28, OFF-4)
+- [x] **J2** The morning's events under `notify_calendar` alone, named once for a row the send names; `/api/me` `notifyCalendar`; `activity_calendars` and its triggers. Test `apps/core-api/test/calendar-morning.test.ts`, red first. (AC-29, AC-31)
+- [x] **J3** The Calendar section on both Notifications pages, `CALENDAR_LINE` and the morning hour in `hoursOn`, Android's mirror of `due_today`, Today's Notifications card. Tests `apps/web/test/reminders-notifications.test.tsx`, `apps/mobile/test/notifications-page.test.ts`, `apps/mobile/test/today.test.ts`, `packages/widgets/test/reminders.test.ts`, red first. (AC-30)
+- [x] **J4** The privacy page's sections 7 and 14, approved by the owner. Test `apps/web/test/privacy-policy.test.tsx`, red first. (AC-31, the `CLAUDE.md` policy rule)
 
 ## The owner's steps, batched
 

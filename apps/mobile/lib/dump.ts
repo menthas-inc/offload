@@ -96,6 +96,13 @@ export interface FoundRow {
   title: string;
   body: string | null;
   done: boolean;
+  /** 2026-10-13. The row's dates, so rows that share a title can be told
+   *  apart: the card draws them under the title. */
+  dueAt: string | null;
+  occursAt: string | null;
+  occursEndAt: string | null;
+  allDay: boolean;
+  rrule: string | null;
   /** 020. The row's photo, when it has one. */
   /** 020, 041. The row's photo or PDF. */
   photo: {
@@ -639,9 +646,11 @@ export function awaitAnswer(
 
 /** The current conversation, so reopening the app does not look like a fresh
  *  account. */
-export async function fetchCurrent(): Promise<TailMessage[]> {
+/** The current conversation's messages, or null when nothing answered: signed
+ *  out, offline, or refused, which the caller asks again about. */
+export async function fetchCurrent(): Promise<TailMessage[] | null> {
   const { data } = await send<{ messages: TailMessage[] }>("/v1/conversations/current");
-  return data?.messages ?? [];
+  return data ? (data.messages ?? []) : null;
 }
 
 /** Take back a whole turn: what you dumped, what offload filed, and what it

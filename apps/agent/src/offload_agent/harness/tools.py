@@ -451,10 +451,11 @@ _DESCRIPTIONS = {
     ),
     "edit_content": (
         "Change something you filed for them: its title, body, priority, "
-        "or its time. Only content this account wrote. A row that `create_event` "
-        "refused as `no_time` gets its time here and is then put on the "
-        "calendar with the same id: never file it a second time. A row already "
-        "on a calendar changes its time through `edit_event`."
+        "or its time, whatever its type, an event row included. Only content "
+        "this account wrote. A row that `create_event` refused as `no_time` "
+        "gets its time here and is then put on the calendar with the same id: "
+        "never file it a second time. `edit_event` is only for an event "
+        "`find_events` returned, by its `source_ref`, never a row's id."
     ),
     "move_content": (
         "Put a piece of content in a different thread. Only content this account "

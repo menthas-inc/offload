@@ -57,7 +57,6 @@ interface Props {
   rows: ContentRow[];
   notes: Note[];
   onDelete: (row: ContentRow) => void;
-  onActions: (row: ContentRow) => void;
   onEdit: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
   /** 019. Whether any member has picked a calendar here, which is what puts
@@ -72,7 +71,6 @@ export function Timeline({
   notes,
   calendars,
   onDelete,
-  onActions,
   onEdit,
   onToggle,
 }: Props) {
@@ -563,7 +561,6 @@ export function Timeline({
           border={index < dayRows.length - 1}
           arrived={false}
           onDelete={() => onDelete(row)}
-          onActions={() => onActions(row)}
           onEdit={() => onEdit(row)}
           onToggle={row.type === "task" ? () => onToggle(row) : undefined}
           // 023. The row's own chip says the day and the hour now, on the

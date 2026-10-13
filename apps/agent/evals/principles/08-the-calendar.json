@@ -883,6 +883,89 @@
           }
         ]
       }
+    },
+    {
+      "id": "stay-in-thread-moved-without-calendar",
+      "why": "2026-10-13: a stay filed as an event row in a thread was asked to move to next week and offload answered that a calendar needs connecting first; a dated row in a thread is edited like any row, and the calendar sentence is for things on a calendar",
+      "surface": "file",
+      "input": "Chiara is staying Wed-Sun 21-25th not this week, update it please",
+      "context": "behrooz",
+      "today": "Tuesday 13 October 2026",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "rows": [
+        {
+          "contentId": "e1",
+          "threadId": "00000013-0000-0000-0000-000000000000",
+          "threadName": "Flat admin",
+          "type": "event",
+          "title": "Chiara staying",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-10-14",
+          "occursEndAt": "2026-10-18"
+        }
+      ],
+      "expect": {
+        "called": [
+          "edit_content"
+        ],
+        "not_called": [
+          "add_content",
+          "add_note"
+        ],
+        "calls_with": [
+          {
+            "tool": "edit_content",
+            "args": {
+              "content_id": "e1"
+            }
+          }
+        ],
+        "rubric": "Moves the existing row with edit_content on e1: occurs_at on 21 October 2026 and occurs_end_at on 25 October 2026. Files no new row. Says nothing about calendars, Settings or connecting anything; done is silent, or at most one short line that it moved."
+      }
+    },
+    {
+      "id": "stay-in-thread-moved-with-calendar-none-picked",
+      "why": "2026-10-13: with a calendar approved but none picked in the thread, a stay filed as an event row was answered with the calendar sentence; a dated row in a thread is edited like any row, and a thread with no pick is not an account with no calendar",
+      "surface": "file",
+      "input": "Chiara is staying Wed-Sun 21-25th not this week, update it please",
+      "context": "calendar",
+      "today": "Tuesday 13 October 2026",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "rows": [
+        {
+          "contentId": "e1",
+          "threadId": "00000013-0000-0000-0000-000000000000",
+          "threadName": "Flat admin",
+          "type": "event",
+          "title": "Chiara staying",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-10-14",
+          "occursEndAt": "2026-10-18"
+        }
+      ],
+      "expect": {
+        "called": [
+          "edit_content"
+        ],
+        "not_called": [
+          "add_content",
+          "add_note",
+          "create_event"
+        ],
+        "calls_with": [
+          {
+            "tool": "edit_content",
+            "args": {
+              "content_id": "e1"
+            }
+          }
+        ],
+        "rubric": "Moves the existing row with edit_content on e1: occurs_at on 21 October 2026 and occurs_end_at on 25 October 2026. Files no new row. Says nothing about calendars, Settings or connecting anything; done is silent, or at most one short line that it moved."
+      }
     }
   ]
 }

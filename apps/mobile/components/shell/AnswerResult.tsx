@@ -16,7 +16,9 @@ import { Platform, Pressable, Text, View } from "react-native";
 import { Glyph } from "../Glyph";
 import { ThreadIcon } from "../ThreadIcon";
 import { PhotoThumb } from "./PhotoThumb";
+import { foundMeta } from "@offload/widgets";
 import { useColors } from "../../lib/colors";
+import { useClock } from "../../lib/clock";
 import type { FoundResult, FoundRow } from "../../lib/dump";
 import { foundFoot, foundHead } from "../../lib/loose";
 
@@ -90,6 +92,7 @@ function Result({
   onOpenThread?: ((threadId: string, threadName: string | null) => void) | undefined;
 }) {
   const colors = useColors();
+  const { zone, today } = useClock();
   // No expand state on the phones. Show more is a web affordance in a pane that
   // can grow; here the tail is the thread, which is where the rest lives and
   // where somebody can actually work through them.
@@ -199,6 +202,13 @@ function Result({
             >
               {row.title}
             </Text>
+            {/* 2026-10-13. The date under the title, in the chip's words: eight
+                rows called Glass blowing class are told apart by nothing else. */}
+            {foundMeta(row, zone, today) ? (
+              <Text className="font-core text-text-secondary" style={{ fontSize: 12.5, lineHeight: 17.5, marginTop: 2 }}>
+                {foundMeta(row, zone, today)}
+              </Text>
+            ) : null}
           </View>
         </View>
       ))}

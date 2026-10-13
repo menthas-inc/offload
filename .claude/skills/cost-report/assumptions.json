@@ -25,6 +25,9 @@
         "textDumps": 4,
         "photoDumps": 0.6,
         "photosPerPhotoDump": 1.5,
+        "pdfDumps": 0.1,
+        "pdfsPerPdfDump": 1,
+        "pagesPerPdf": 3,
         "voiceNotes": 0.3,
         "voiceSeconds": 40,
         "questions": 1,
@@ -47,6 +50,9 @@
         "textDumps": 12,
         "photoDumps": 3,
         "photosPerPhotoDump": 2,
+        "pdfDumps": 0.5,
+        "pdfsPerPdfDump": 1.2,
+        "pagesPerPdf": 5,
         "voiceNotes": 3,
         "voiceSeconds": 75,
         "questions": 10,
@@ -66,8 +72,11 @@
       "note": "scripted, sits on every cap the code has, and sends dumps where the code has none",
       "perActiveDay": {
         "textDumps": 500,
-        "photoDumps": 20,
+        "photoDumps": 10,
         "photosPerPhotoDump": 10,
+        "pdfDumps": 50,
+        "pdfsPerPdfDump": 2,
+        "pagesPerPdf": 10,
         "voiceNotes": 100,
         "voiceSeconds": 36,
         "questions": 200,
@@ -81,25 +90,25 @@
         "placesSaved": 100,
         "placeRefreshes": 100
       },
-      "_why": "Caps from code: 200 photos a day, 100 voice notes and 3,600 seconds a day, 100 emails a day, 3 searches and 3 reads a turn. WhatsApp's 200 a day is 029's planned cap. Dumps and questions have no cap of their own, so 500 and 200 a day stand in for a script running slowly; the daily turn count and budget hold it back where the code has them. A row typed into a section costs nothing."
+      "_why": "Caps from code: 200 photos a day, and since 041 a PDF counts as a photo, so 100 photos and 50 dumps of 2 PDFs sit on it together; a PDF is read to 10 pages and is the dearest thing a dump can carry. 100 voice notes and 3,600 seconds a day, 100 emails a day, 3 searches and 3 reads a turn. WhatsApp's 200 a day is 029's planned cap. Dumps and questions have no cap of their own, so 500 and 200 a day stand in for a script running slowly; the daily turn count and budget hold it back where the code has them. A row typed into a section costs nothing."
     }
   },
   "turn": {
-    "_read_me": "What one model turn looks like. Calibrated against the principle evals (small contexts) and the 2026-09-17 decision's per-dump range (production contexts).",
+    "_read_me": "What one model turn looks like. Calibrated against the principle evals (small contexts) and the 2026-09-17 decision's per-dump range (production contexts). Output per call and calls per filing turn were cut on 2026-10-11 by what the swarm measured on 2026-10-10: filing at effort medium wrote 17% less, answering at medium 30% less, and a filing turn ends after a say-only response instead of paying a closing call two turns in three.",
     "tokenizerFactor": 1.3,
     "charsPerToken": 4,
     "file": {
-      "calls": 2.5,
+      "calls": 2.2,
       "contextTokens": 4500,
       "growthPerCall": 600,
-      "outputPerCall": 450,
+      "outputPerCall": 375,
       "toolTokens": 1800
     },
     "answer": {
       "calls": 2,
       "contextTokens": 4000,
       "growthPerCall": 1500,
-      "outputPerCall": 300,
+      "outputPerCall": 210,
       "toolTokens": 1400
     },
     "classify": {
@@ -113,6 +122,14 @@
       "toolTokens": 700,
       "output": 900,
       "promptVariants": 3
+    },
+    "memory": {
+      "_read_me": "038. One pass per account a night it said anything of its own. Up to 50 memories held, 40 of its notes in threads only it is in, and its messages since the last pass, at most 60 of 500 characters; a few on a usual day. One fixed prompt, cached across the night.",
+      "memoriesTokens": 1500,
+      "notesTokens": 1200,
+      "messagesTokens": 1500,
+      "toolTokens": 600,
+      "output": 500
     },
     "readerSearch": {
       "resultTokens": 8000,
@@ -131,6 +148,8 @@
     },
     "mailBodyTokens": 3000,
     "imageTokens": 1600,
+    "pdfTokensPerPage": 2000,
+    "_pdfWhy": "041. A PDF page is sent as text and as a picture, which Anthropic prices at about 1,500 to 3,000 tokens a page; the first pages of each PDF, to the code's cap, inside the cached conversation.",
     "embedTokensPerDump": 1200,
     "embedTokensPerQuestion": 60,
     "activeHoursPerDay": 14,
@@ -142,10 +161,11 @@
     }
   },
   "storage": {
-    "_read_me": "Bytes per kept thing, in MB. A photo is three R2 objects: the original, a 2048px rendition and a 400px thumb.",
+    "_read_me": "Bytes per kept thing, in MB. A photo is three R2 objects: the original, a 2048px rendition and a 400px thumb. A PDF (041) is four: the original, the clean copy, the cut first pages, and page 1 drawn large and small.",
     "photoOriginal": 2.5,
     "photoLarge": 0.5,
     "photoThumb": 0.04,
+    "pdf": 3.5,
     "voicePerSecond": 0.004,
     "mailImage": 0.3,
     "dbPerDump": 0.012,

@@ -48,8 +48,8 @@ vi.stubGlobal(
   vi.fn(() => Promise.resolve(new Response(status === 204 ? null : "{}", { status }))),
 );
 
-const { request, send } = await import("../lib/api");
-const { onSessionRefused } = await import("../lib/auth");
+const { getMe, request, send } = await import("../lib/api");
+const { onSessionRefused, onSignedOut } = await import("../lib/auth");
 
 /** Let the forget-and-tell that a refusal starts run to its end. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -71,6 +71,23 @@ describe("a refused session", () => {
 
     expect(deleted.sort()).toEqual(["offload_cookie", "offload_session_data"]);
     expect(told).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  // 2026-10-11. A refused session is a session ended on this phone, whether
+  // the account was signed out elsewhere or deleted on the web: what the
+  // phone kept of it goes, exactly as at a sign-out.
+  it("forgets what the phone kept of the account, as a sign-out does", async () => {
+    status = 401;
+    let forgotten = 0;
+    const stop = onSignedOut(() => {
+      forgotten += 1;
+    });
+
+    await request("/api/me");
+    await settle();
+
+    expect(forgotten).toBe(1);
     stop();
   });
 
@@ -127,5 +144,19 @@ describe("a refused session", () => {
     expect(deleted).toEqual([]);
     expect(told).not.toHaveBeenCalled();
     stop();
+  });
+});
+
+// The root layout and the index route both ask who is signed in at launch,
+// in the same frame. One request answers both.
+describe("launch's question", () => {
+  it("is asked once for two askers at once, and again after", async () => {
+    const calls = () => vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith("/api/me")).length;
+    const before = calls();
+    const [a, b] = await Promise.all([getMe(), getMe()]);
+    expect(a).toEqual(b);
+    expect(calls() - before).toBe(1);
+    await getMe();
+    expect(calls() - before).toBe(2);
   });
 });

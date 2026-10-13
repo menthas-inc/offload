@@ -60,6 +60,8 @@ export interface Me {
   /** 042. Reminders, and How many: one, two or three for each date. */
   notifyReminders: boolean;
   notifyReminderCount: 1 | 2 | 3;
+  /** 2026-10-10. The morning names the day's calendar events. */
+  notifyCalendar: boolean;
   /** The dot on the bell: Activity holds a row newer than its last opening. */
   activityNew: boolean;
   /** 026. Whether mail forwarded from the sign-in address can reach them:
@@ -82,9 +84,10 @@ export interface Me {
 /** Ask again, and tell every mounted `useMe`. For after a request is
  *  answered, so the dot goes on every screen that draws it. */
 export async function refreshMe(): Promise<void> {
+  const since = ends;
   try {
     const { data } = await send<Me>("/api/me");
-    if (data) announce(data);
+    if (data) announce(data, since);
   } catch (error) {
     failed("me.refresh", error);
   }
@@ -105,13 +108,21 @@ const listeners = new Set<Listener>();
 let cached: Me | null = null;
 let asking: Promise<void> | null = null;
 
+/** Sessions ended since launch. A request reads it before it goes out, and
+ *  an answer that comes back after an end is the last account's: kept by
+ *  nothing, told to nobody. */
+let ends = 0;
+
 // The cache goes with the session, so the next person on this phone never
 // draws a date in the last one's clock.
 onSignedOut(() => {
   cached = null;
+  asking = null;
+  ends += 1;
 });
 
-function announce(me: Me): void {
+function announce(me: Me, since: number): void {
+  if (since !== ends) return;
   cached = me;
   for (const listener of listeners) listener(me);
 }
@@ -132,15 +143,19 @@ export function onMe(listener: Listener): () => void {
  *  caller shares one request in flight. */
 export function ensureMe(): Promise<void> {
   if (cached) return Promise.resolve();
-  asking ??= send<Me>("/api/me")
+  if (asking) return asking;
+  const since = ends;
+  const mine: Promise<void> = send<Me>("/api/me")
     .then(({ data }) => {
-      if (data) announce(data);
+      if (data) announce(data, since);
     })
     .catch((error) => failed("me.ensure", error))
     .finally(() => {
-      asking = null;
+      // A session's end lets go of it, and a later ask may be out by now.
+      if (asking === mine) asking = null;
     });
-  return asking;
+  asking = mine;
+  return mine;
 }
 
 /** Null while it is being asked, and null if the ask failed.
@@ -153,11 +168,13 @@ export function useMe(): Me | null {
 
   useEffect(() => {
     let live = true;
+    const since = ends;
     void (async () => {
       try {
         const { data } = await send<Me>("/api/me");
-        if (data) cached = data;
-        if (live && data) setMe(data);
+        if (!data || since !== ends) return;
+        cached = data;
+        if (live) setMe(data);
       } catch (error) {
         failed("me.fetch", error);
       }
@@ -188,6 +205,7 @@ export async function fetchCountries(): Promise<{ code: string; name: string }[]
 /** Saying where you are. Null clears it, which is a real state: offload then
  *  tells the model it does not know rather than assuming. */
 export async function setCountry(country: string | null): Promise<Me | null> {
+  const since = ends;
   try {
     const updated = await request<Me>("/api/me", {
       method: "PATCH",
@@ -195,7 +213,7 @@ export async function setCountry(country: string | null): Promise<Me | null> {
       body: JSON.stringify({ country }),
     });
     if (!updated) return null;
-    announce(updated);
+    announce(updated, since);
     return updated;
   } catch (error) {
     failed("me.setCountry", error);
@@ -215,6 +233,7 @@ export async function setCountry(country: string | null): Promise<Me | null> {
 export async function setWebAccess(
   patch: { webSearch?: boolean; webLinks?: boolean },
 ): Promise<Me | null> {
+  const since = ends;
   try {
     const updated = await request<Me>("/api/me", {
       method: "PATCH",
@@ -222,7 +241,7 @@ export async function setWebAccess(
       body: JSON.stringify(patch),
     });
     if (!updated) return null;
-    announce(updated);
+    announce(updated, since);
     return updated;
   } catch (error) {
     failed("me.setWebAccess", error);
@@ -241,6 +260,7 @@ export async function setClock(patch: {
   followDevice?: boolean;
   keptTimeZone?: string | null;
 }): Promise<Me | null> {
+  const since = ends;
   try {
     const updated = await request<Me>("/api/me", {
       method: "PATCH",
@@ -248,7 +268,7 @@ export async function setClock(patch: {
       body: JSON.stringify(patch),
     });
     if (!updated) return null;
-    announce(updated);
+    announce(updated, since);
     return updated;
   } catch (error) {
     failed("me.setClock", error);
@@ -266,7 +286,9 @@ export async function setNotify(patch: {
   notifySharedActivity?: boolean;
   notifyReminders?: boolean;
   notifyReminderCount?: 1 | 2 | 3;
+  notifyCalendar?: boolean;
 }): Promise<Me | null> {
+  const since = ends;
   try {
     const updated = await request<Me>("/api/me", {
       method: "PATCH",
@@ -274,7 +296,7 @@ export async function setNotify(patch: {
       body: JSON.stringify(patch),
     });
     if (!updated) return null;
-    announce(updated);
+    announce(updated, since);
     return updated;
   } catch (error) {
     failed("me.setNotify", error);
@@ -292,6 +314,7 @@ export async function setNotify(patch: {
  *  Null on a refusal or a failure. The screen says what happened next to the
  *  control that retries it; it does not work out which one it was. */
 export async function saveName(displayName: string): Promise<Me | null> {
+  const since = ends;
   try {
     const updated = await request<Me>("/api/me", {
       method: "PATCH",
@@ -300,7 +323,7 @@ export async function saveName(displayName: string): Promise<Me | null> {
     });
     if (!updated) return null;
 
-    announce(updated);
+    announce(updated, since);
     return updated;
   } catch (error) {
     failed("me.saveName", error);
@@ -316,6 +339,7 @@ export async function saveName(displayName: string): Promise<Me | null> {
  *  the person straight back to the question with nothing said. That identity
  *  is handed to every mounted `useMe` either way, as a saved name is. */
 export async function giveConsent(): Promise<boolean> {
+  const since = ends;
   try {
     const updated = await request<Me>("/api/consent", {
       method: "POST",
@@ -323,7 +347,7 @@ export async function giveConsent(): Promise<boolean> {
       body: JSON.stringify({ readPolicy: true, agreeToProcessing: true }),
     });
     if (!updated) return false;
-    announce(updated);
+    announce(updated, since);
     return !updated.needsConsent;
   } catch (error) {
     failed("me.giveConsent", error);

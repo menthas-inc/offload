@@ -120,14 +120,15 @@ export function zoneCard(
 /** The permission is off and a switch says something should reach this phone.
  *  Put off on this phone alone, until `putOffUntil`. */
 export function notificationsCard(
-  me: { notifyDueToday: boolean; notifyComingTomorrow: boolean; notifyPeopleRequests: boolean; notifySharedActivity: boolean; notifyReminders?: boolean },
+  me: { notifyDueToday: boolean; notifyComingTomorrow: boolean; notifyPeopleRequests: boolean; notifySharedActivity: boolean; notifyReminders?: boolean; notifyCalendar?: boolean },
   permitted: boolean,
   putOffUntil: string | null,
   now: Date,
 ): DeviceCard | null {
   if (permitted) return null;
-  // 042. Reminders is one of the switches that reaches this phone.
-  if (!me.notifyDueToday && !me.notifyComingTomorrow && !me.notifyPeopleRequests && !me.notifySharedActivity && !me.notifyReminders) return null;
+  // 042. Reminders is one of the switches that reaches this phone, and since
+  // 2026-10-10 Calendar.
+  if (!me.notifyDueToday && !me.notifyComingTomorrow && !me.notifyPeopleRequests && !me.notifySharedActivity && !me.notifyReminders && !me.notifyCalendar) return null;
   if (putOffUntil && new Date(putOffUntil).getTime() > now.getTime()) return null;
   return { key: "notifications", kind: "notifications" };
 }
@@ -181,20 +182,31 @@ export async function fetchOpenThreads(): Promise<OpenPage[] | null> {
 
 // ---------------------------------------------------------------- reminders
 
+export type ReminderWindow = "long" | "short" | "day";
+
+/** 2026-10-11. Which of the thing's reminders is showing, and the day its
+ *  next one comes, so a dismiss can name the one reminder it hides. */
+interface Showing {
+  window: ReminderWindow;
+  next: string | null;
+}
+
 /** 042. A row in the section: the thread page's row, and the day it is
  *  reminded against, with "by" for a deadline or a task for something. */
-export interface ReminderRow extends TodayRow {
+export interface ReminderRow extends TodayRow, Showing {
   remindDay: string;
   remindBy: boolean;
 }
 
 /** A note or a memory: its name, its day, and its thread for a note. */
-export interface ReminderOther {
+export interface ReminderOther extends Showing {
   of: "note" | "memory";
   id: string;
   name: string;
   day: string;
   by: boolean;
+  /** `HH:MM` in the account's zone when the thing has a clock time. */
+  time: string | null;
   threadId: string | null;
   threadName: string | null;
   threadIcon: string | null;
@@ -204,9 +216,29 @@ export interface ReminderOther {
 export interface TodayReminders {
   rows: ReminderRow[];
   others: ReminderOther[];
-  /** Begun and not drawn: the further away. */
+  /** Always 0 since 2026-10-11: the column shows everything that has begun. */
   more: number;
 }
+
+/** One reminder, as the screen showed it. */
+export interface Dismissal {
+  of: "content" | "note" | "memory";
+  id: string;
+  day: string;
+  window: ReminderWindow;
+}
+
+async function postDismissal(path: "dismiss" | "undismiss", which: Dismissal): Promise<boolean> {
+  const sent = await send(`/v1/today/reminders/${path}`, { method: "POST", body: JSON.stringify(which) });
+  return sent.status === 200;
+}
+
+/** The x on a card: this reminder hidden, the thing and its next reminder
+ *  untouched. True when it landed. */
+export const dismissReminder = (which: Dismissal): Promise<boolean> => postDismissal("dismiss", which);
+
+/** Undo. */
+export const undismissReminder = (which: Dismissal): Promise<boolean> => postDismissal("undismiss", which);
 
 /** Everything whose reminders have begun, or null when it did not come back. */
 export async function fetchReminders(): Promise<TodayReminders | null> {

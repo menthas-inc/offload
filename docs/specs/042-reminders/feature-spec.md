@@ -11,6 +11,8 @@
 - **The meaning of *reminder*.** 024 used it for a row whose `is_reminder` the model set because somebody said "remind me". From here a reminder is a mention offload decides to make before a date. `is_reminder` stays, as the record that they asked: it still puts a row in every member's sends as 024 built, and a row the person asked about with a clock time is reminded about at that time.
 - **023's Remind me switch** is drawn to a thing's author whenever offload will remind them about it, not only when somebody asked.
 
+**Amended 2026-10-10, the calendar in the morning:** a row a person dumped keeps its reminders after offload writes it to a calendar, the morning send also names today's events on the account's own calendars under a new switch, Calendar, and the morning hour is in use while that switch is on. See the section of that name near the end.
+
 ## Why
 
 offload knows when things are and never says so ahead of time. The two sends of 024 name what is due today and tomorrow, and only rows somebody asked to be reminded of. A wife's birthday in four weeks, a visa needed before a trip and a meeting at three are silent until it is too late to act, or never mentioned at all. The person dumped them so they would not have to hold them in their head.
@@ -32,7 +34,7 @@ A **reminder** is one mention, before a date, of one thing, made because offload
 3. **A memory with a yearly date**: a birthday or an anniversary in People, or a date that recurs in About. The person's own birthday is never reminded about.
 4. **A task with no date that has to happen before a dated thing in the same thread**: "get the visa" in a thread whose note says the trip starts 12 November. For reminders only, the task is due **the day before** that thing starts. Its own date stays empty, it draws no chip, and Your day does not list it; Today's Reminders section does, once its reminders have begun. That thing's date moves and so do the reminders; it goes, and so do they.
 
-**Only the author's, and only their own words.** A thing is reminded about only to the account that authored it, and only when it came from that person: never a calendar's own row (the calendar reminds about its own events), never anything from a forwarded email, a calendar, a browser capture or a dump marked untrusted, never anything another member authored. Also never: a date already past, a link, photo, screenshot, PDF or file kept for keeping, a note that is a fact with a date and asks nothing ("the house was built in 1931"), and an invoice already paid.
+**Only the author's, and only their own words.** A thing is reminded about only to the account that authored it, and only when it came from that person: never a calendar's own row (the calendar reminds about its own events), never anything from a forwarded email, a calendar, a browser capture or a dump marked untrusted, never anything another member authored. A row the person dumped stays theirs after offload writes it to a calendar: what decides is whose words it is, not whether a calendar holds a copy (amended 2026-10-10). Also never: a date already past, a link, photo, screenshot, PDF or file kept for keeping, a note that is a fact with a date and asks nothing ("the house was built in 1931"), and an invoice already paid.
 
 ### The two labels
 
@@ -118,7 +120,7 @@ A row with a clock time in the next 24 hours that no pass has labelled gets its 
 
 **One morning and one evening notification, as now, plus one shortly before something with a clock time.** *(Owner, 2026-10-10.)*
 
-- **The today part** of the morning send names 024's rows due today and every on-the-day reminder without a clock time, each once. **The tomorrow part** of the evening send names 024's rows due tomorrow and every reminder the table puts on the evening before. Due today and Tomorrow switch off 024's rows only; with a switch off and Reminders on, the part still names the reminders, and nothing is recorded as not sent for the rows the switch held back.
+- **The today part** of the morning send names 024's rows due today and every on-the-day reminder without a clock time, each once. **The tomorrow part** of the evening send names 024's rows due tomorrow and every reminder the table puts on the evening before. Due today and Tomorrow switch off 024's rows only; with a switch off and Reminders on, the part still names the reminders, and nothing is recorded as not sent for the rows the switch held back. Since 2026-10-10 the morning's today part also names the day's events on the account's own calendars, which follow the Calendar switch alone in the same way.
 - **Coming up**, after the part, names every month out and week out that lands in the send.
 - **Each send goes when it has anything to say**, at the hour it always went. A thing is named once in a send, whichever part claims it first.
 
@@ -152,8 +154,9 @@ Today gains a fourth section, **Reminders**, the home of what Coming up names. *
 - **What it holds.** Every thing of the person's whose reminders have begun and whose date has not passed: from the moment its first reminder at their How many was due, to the end of its day. A birthday a month out on Medium appears on the morning of its month-out reminder and stays until the birthday is over. Nearest first.
 - **Not twice.** A row Your day draws for today is not repeated here. A note or a memory is drawn here on its day too, since Your day never holds them.
 - **Not tied to the notifications.** It follows the table and How many whether Reminders is on or off on the Notifications page, so somebody who wants no notifications still sees what is coming. Stopping a thing takes it off.
-- **Each entry.** A row is the thread page's own row, as Your day and Open in your threads draw it, with its chip, its tick and its controls, and its thread's name as the meta line. A note is its name and date with its thread's name, opening the thread. A memory is its name and date with the meta line "Memories", opening it in Memories. An anchored task's chip says "by" and the date it is reminded against.
-- **At most 20**, with "and N more" under them as Open in your threads does; the rest are the further away.
+- **Each entry** *(redrawn 2026-10-11, the design's C2b; this replaces the row, the chip and the pill of the first build)*. One column, nearest first. The countdown leads: **Today**, **Tomorrow**, **In N days**, with the day under it, "Tue 13 Oct", or "By Sun 18 Oct" for a deadline or a task reminded against the thing it is for. Then the name, and under it where it lives: the thread's name with its icon for a row, with `text-quote` for a note, "Memories" for a memory, "Not in a thread" for either in the default thread; and the thing's time after it, "· 21:40", "· By 18:00" for a deadline. **Everything on the day shares one card** under a single Today; every later thing is a card of its own. No tick, no chip, no pill: the whole row opens the thing, a row or a note its thread, a memory in Memories.
+- **Dismiss** *(owner, 2026-10-11)*. An `x` on every row hides **that reminder and nothing else**: the one of the thing's reminders that was showing, for that occurrence. A birthday dismissed a month out comes back a week out, and its week-out notification still goes. The thing, its date and its Remind me are untouched; nothing is written to the labels. The toast says when it comes back, "Dismissed until Friday", "Dismissed until 25 November", or "Dismissed" when this was its last, with **Undo**. The same dismiss on a phone and on the web is one dismiss. A dismissal is a row of ids, a day and a window, deleted with its thing and with the account.
+- **Everything that has begun is drawn**; nothing is held back as "and N more" *(2026-10-11; the column shows them all)*.
 - **Empty, it draws nothing**, no heading and no line, as Needs you does. It is drawn on today only, and never over the day-one invitation.
 - **On the web** the Today pane draws the same section in the same place, from the same read.
 
@@ -183,10 +186,11 @@ People
 
 - **Reminders off** sends none and records none: the person chose it.
 - **How many** is three choice tiles, as 031 made every settings choice, each a small picture of what you get: a short line ending at a date, with one, two or three marks before it. The names are Low, Medium and High, the caption under the row follows the pick, "One for each date.", "Up to two for each date.", "Up to three for each date.", and the tiles grey with the switch.
-- **The two hours** grey only when both switches that use them are off: the morning hour when Due today and Reminders are, the evening hour when Tomorrow and Reminders are.
+- **The two hours** grey only when every switch that uses them is off: the morning hour when Due today, Reminders and Calendar are, the evening hour when Tomorrow and Reminders are. *Calendar added to the morning hour on 2026-10-10.*
 - **The Dates caption** stops saying everything comes once a day, since a set time now can have its own.
 - **Android** gains a fifth channel, `reminders`, named Reminders, private on the lock screen like the others, carrying only a notification of its own. The two sends keep their channels whatever they say. The page mirrors the channel's system state into the switch, as 024 does. Unlike 024's channels its name is the switch's, not the notification's title, because the title is a time.
 - **The web** carries the same section and sends nothing. Its settings summary counts Reminders among what is on.
+- **Calendar**, since 2026-10-10, is a section of its own after Reminders and before People, one row, "Today's events", with the line "Today's events on the calendars you connected, in the morning message.", on by default. It has no channel of its own: on Android it mirrors `due_today`, which the morning message rides.
 
 **On one thing**: the author sees the **Remind me** switch wherever the thing is edited, the row's edit sheet, the note editor and the memory editor, whenever offload will remind them about it, and the date chip's bell marks the same rows. Switching it off **stops** every reminder for that thing for good: the pass never labels it again, and nothing turns it back on but the same switch. On a row the person asked about it also turns off `is_reminder`, so the row leaves the sends as it does today. It never turns `is_reminder` on. A member who is not the author sees the switch only while `is_reminder` is on, exactly as 023 built it, and it writes that alone. *(Owner, 2026-10-10.)*
 
@@ -199,6 +203,7 @@ The switch is drawn first and written second, with the editor's own failure line
 - With no phone to take it, a reminder that would have gone on its own is recorded as not sent, `--text-noticed`, opening the Notifications page, as 024's sends are.
 - Nothing is recorded about what offload decided not to remind you of. A label is not news.
 - **What forgetting takes with it.** A record whose words named a memory is deleted when that memory is forgotten and its Undo has passed, at the purge, as a record naming another member's words is when they leave (024). *At the purge rather than the forget since the implementation review, 2026-10-10: Undo of a forget must destroy nothing.* A record of a thing's own reminder goes when the person's membership of its thread ends.
+- A record whose words named a calendar's events goes when that calendar is disconnected or unticked (amended 2026-10-10).
 
 ### What a reminder carries away
 
@@ -208,6 +213,8 @@ The words of a reminder leave as a digest's do: through Expo's push service and 
 - **Section 4**: "send the notifications you choose" becomes "send the notifications you choose, including reminders offload times before the dates that need one".
 - **Section 14**: "they carry a few words of what you or a thread member wrote, to your own phone" becomes "they carry a few words of what you or a thread member wrote, or of what offload remembers for you, such as a birthday, to your own phone".
 - **Section 17**: "or a memory of theirs that says who you are to them" gains ", or when your birthday is, which offload can name in a reminder on their phone".
+
+On 2026-10-10, with the owner's approval, section 14's sentence gained the calendar: they carry a few words of what you or a thread member wrote, of what offload remembers for you, such as a birthday, "or the titles of the day's events on a calendar you connected, which somebody who invited you may have written", to your own phone; and section 7 adds "to name the day's events in your morning notification" to the uses of calendar data.
 
 `UPDATED` and `CONSENT_VERSION` move. No label, kind, lead, name or date reaches an analytics event, a log line, a trace, a job's payload or its error (OFF-1): events carry the window, the kind as an enum, counts and outcomes, keyed on the account's pseudonym.
 
@@ -225,7 +232,7 @@ A switch or a tile is drawn first and written second, with "Couldn't save that" 
 
 **Labels**
 - **AC-1** The nightly pass labels every dated row and dated note authored by its member in the thread that has no label, or whose title, text, type or date column changed since, with one of the seven kinds and one of the four leads, and an undated open task of theirs with an anchor that is a dated row or note in the same thread, or none; the Core API re-derives the set it may label and the anchors it may name from the database and drops anything outside them, one entry at a time.
-- **AC-2** Nothing from mail, a calendar, a browser capture or an untrusted dump, and nothing another member authored, is shown to the pass for labelling or reminded about; a stopped thing is never shown again.
+- **AC-2** Nothing from mail, a calendar, a browser capture or an untrusted dump, and nothing another member authored, is shown to the pass for labelling or reminded about; a stopped thing is never shown again. A calendar's own row is from a calendar; a row the person dumped that offload wrote to a calendar is not (amended 2026-10-10, AC-28).
 - **AC-3** The pass is shown at most 30 things to label and 20 anchors a thread a night, nearest date first, each at most 200 characters.
 - **AC-4** The memory pass writes a month and day and a lead on a People or About memory that states a yearly date, never on the person's own birthday, and the kind of every such memory is `occasion`.
 - **AC-5** A name for a note or a memory is accepted only as a run of the thing's own text, at most 60 characters, one line, with no address and no four digits in a row; otherwise the thing is named by its first 60 characters cut at a word.
@@ -255,7 +262,7 @@ A switch or a tile is drawn first and written second, with "Couldn't save that" 
 **The phones and the web**
 - **AC-22** The Notifications page carries the Reminders section on all three surfaces, How many as three tiles with their pictures and the caption as written, the hours greyed as stated, the Dates caption reworded; Android creates the `reminders` channel with private lock-screen visibility, never renames it, and mirrors it into the switch; the web summary counts Reminders.
 - **AC-23** Activity draws a `reminder` row with the `bell` glyph opening the thread, and the sends' rows with their words; a record naming a memory is deleted when the forgotten memory is purged.
-- **AC-26** Today carries a Reminders section, by default under Your day and above Open in your threads, listed in Customize Today with a grip and a switch on all three surfaces; it holds each thing whose first reminder at the person's How many is due and whose date has not passed, nearest first, at most 20 with the count of the rest, not repeating a row Your day draws today, whatever the Notifications switch says; rows are the thread page's row, notes and memories their name, date and meta; empty, it draws nothing.
+- **AC-26** Today carries a Reminders section, by default under Your day and above Open in your threads, listed in Customize Today with a grip and a switch on all three surfaces; it holds each thing whose first reminder at the person's How many is due and whose date has not passed, nearest first, not repeating a row Your day draws today, whatever the Notifications switch says; empty, it draws nothing. *Amended 2026-10-11:* every entry is drawn as the column above, with its countdown, its day, where it lives and its time; everything on the day shares one card; the `x` dismisses that one reminder, with Undo, and the API refuses a dismiss of anything not showing to that account.
 - **AC-27** Phones that know Open in your threads but not Reminders never receive a layout naming it: `/api/me` keeps `todayLayoutV2` without it and adds `todayLayoutV3`; a layout an older phone writes back keeps Reminders at its default place.
 
 **The prompt and the evals**
@@ -264,12 +271,18 @@ A switch or a tile is drawn first and written second, with "Couldn't save that" 
 **Docs**
 - **AC-25** 024's two rules, 023's switch, 027's sections and 038's birthday sentences are amended in their specs; `docs/tech/decisions.md` carries the decision and the reversible allowlist entry for labelling; the design `decisions.md` carries an entry whose Design system impact names the readme's lines on the bell and the flag.
 
+**The calendar in the morning (amended 2026-10-10)**
+- **AC-28** A row whose source is the person or a share keeps its label, can be a task's anchor, gets its reminder of its own and is named in the sends after offload writes it to a calendar; a calendar's own row is none of these. `reminder_anchors`, `reminders_wanted`, the hourly own pass and the send's read decide by `source`, never by `source_ref`.
+- **AC-29** The morning send names the day's events on the account's own calendars, following the Calendar switch alone: with Due today off and Calendar on they are still named; with Calendar off they are not there; an event offload wrote from a row the send names is named once, as the row.
+- **AC-30** The Notifications page carries Calendar between Reminders and People on all three surfaces, one switch, "Today's events", with its line, on by default; the morning hour is in use while any of Due today, Reminders or Calendar is on, from the shared `hoursOn`; on Android the switch mirrors `due_today`.
+- **AC-31** A record in Activity that named a calendar's events is deleted when that calendar is disconnected or unticked; section 7 and section 14 of the privacy page say the calendar's part, pinned by the page test.
+
 ## Out of scope
 
 - A person choosing when to be reminded, snoozing, or asking for another reminder on one thing.
 - Reminding another member, or assigning a thing to a person.
 - Web push, email reminders, and quiet hours as a setting.
-- Reminders about a calendar's own events.
+- Reminders about a calendar's own events. The morning names the day's events since 2026-10-10, as what the day holds, never as a reminder of their own.
 - Showing the labels, or a screen listing everything that will ever be reminded about. Today's section holds what has begun, not the whole future.
 - Reminding about something overdue beyond what 024's morning send already names.
 - Buttons on a reminder.
@@ -304,6 +317,16 @@ Three reviews on 2026-10-10. What changed:
 Deliberately not changed:
 
 - **Memory Undo.** The memory editor has none today; the switch takes Undo where the editor already has it, rather than 042 adding Undo to 040's editor.
+
+## Amended 2026-10-10: the calendar in the morning
+
+Decided by the owner on 2026-10-10, as a tweak to 024 and 042.
+
+- **Whose words decides.** A row a person dumped, with source person or share, keeps its reminders and its naming in the morning after offload writes it to a calendar. What decides is whose words it is (`source`), not whether a calendar holds a copy (`source_ref`). A calendar's own row is still never announced or reminded about.
+- **The morning names the day's events** on the account's own ticked calendars, its own part of them (created or invited), at their hours, all-day first then by the hour, alongside dates and reminders, counted in the title like any row. Only the morning; the evening never names them; no event ever gets a notification of its own; a send that names one carries no verbs. An event offload wrote from a row is named once: skipped when that row is named in the same send, otherwise named by its calendar copy.
+- **Calendar**, a switch of its own on the Notifications page between Reminders and People, one row "Today's events", on by default. The events follow it alone, as this spec made each switch hold back only its own rows. The morning hour is in use while any of Due today, Reminders or Calendar is on. On Android it mirrors `due_today`.
+- **The titles leave with the calendar.** A record in Activity that named a calendar's events goes when that calendar is disconnected or unticked, because the privacy page says what a connected calendar gave offload is deleted on disconnect.
+- **The privacy page** changed with the owner's approval, in sections 7 and 14, as "What a reminder carries away" now says.
 
 ## Grounding
 
