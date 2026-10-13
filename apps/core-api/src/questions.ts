@@ -686,8 +686,34 @@ export async function raisePersonQuestion(
   if (options.length < 2) return false;
   options.push({ label: ESCAPE_LABEL, value: null });
 
+  // 018 AC-16 (2026-10-13). The same "which Sam" raised again in the turn,
+  // for another thread, joins the open question: the thread rides on
+  // `also`, the sentence counts it, and the tap shares every one. Before
+  // this the second raise was dropped on conflict and its thread overwrote
+  // the first's.
+  const open = await trx
+    .selectFrom("questions")
+    .select(["id", "text", "options", "previous_value"])
+    .where("turn_id", "=", message.turn_id)
+    .where("field", "=", "person")
+    .where("state", "in", ["open", "pending"])
+    .executeTakeFirst();
+  if (open) {
+    const held = (open.previous_value as { share?: string; also?: string[] } | null) ?? {};
+    const sameValues = (open.options as StoredOption[]).map((o) => o.value).join(",") === options.map((o) => o.value).join(",");
+    if (!sameValues) return false;
+    if (held.share === input.threadId || (held.also ?? []).includes(input.threadId)) return true;
+    const also = [...(held.also ?? []), input.threadId];
+    await trx
+      .updateTable("questions")
+      .set({ previous_value: JSON.stringify({ ...held, also }), text: countMore(open.text.replace(/ and \d+ more/, ""), also.length) })
+      .where("id", "=", open.id)
+      .execute();
+    return true;
+  }
+
   const text = renderText("person", input.threadName, clip(input.word, 16));
-  await storeQuestions(
+  const [id] = await storeQuestions(
     trx,
     [{ field: "person", text, options, targetContentId: null, targetNoteId: null }],
     {
@@ -698,11 +724,11 @@ export async function raisePersonQuestion(
       derivedFromUntrusted: false,
     },
   );
+  if (!id) return false;
   await trx
     .updateTable("questions")
     .set({ previous_value: JSON.stringify({ share: input.threadId }) })
-    .where("turn_id", "=", message.turn_id)
-    .where("field", "=", "person")
+    .where("id", "=", id)
     .execute();
   return true;
 }
@@ -733,7 +759,7 @@ export async function storeQuestions(
     turnId: string;
     derivedFromUntrusted: boolean;
   },
-): Promise<void> {
+): Promise<string[]> {
   // One open per conversation. A question still open from an earlier turn in
   // this conversation closes now: the next turn closes the last one whatever
   // it says, and this is the next turn.
@@ -745,30 +771,93 @@ export async function storeQuestions(
     .where("turn_id", "<>", ctx.turnId)
     .execute();
 
-  for (const [i, row] of rows.entries()) {
-    await trx
+  // 018 AC-16 (2026-10-13). After the turn's own: a second question raised
+  // in a turn took ordinal 1 and was dropped on conflict, so a share's
+  // "which Sam" after a calendar's "which calendar" was never asked.
+  const before = await trx
+    .selectFrom("questions")
+    .select(({ fn }) => fn.count<number>("id").as("n"))
+    .where("turn_id", "=", ctx.turnId)
+    .executeTakeFirstOrThrow();
+  const already = Number(before.n);
+
+  const ids: string[] = [];
+  for (const [i, row] of joinIdentical(rows).entries()) {
+    // The table takes two a turn (AC-7, a check on `ordinal`), so a third is
+    // dropped as it was, rather than failing the transaction it rides in.
+    if (already + i >= MAX_QUESTIONS) break;
+    const inserted = await trx
       .insertInto("questions")
       .values({
         account_id: ctx.accountId,
         conversation_id: ctx.conversationId,
         message_id: ctx.messageId,
         turn_id: ctx.turnId,
-        ordinal: i + 1,
+        ordinal: already + i + 1,
         field: row.field,
         target_content_id: row.targetContentId,
         target_note_id: row.targetNoteId,
         text: row.text,
         options: JSON.stringify(row.options),
-        state: i === 0 ? "open" : "pending",
+        state: already === 0 && i === 0 ? "open" : "pending",
+        previous_value: row.also.length > 0 ? JSON.stringify({ also: row.also }) : null,
         derived_from_untrusted: ctx.derivedFromUntrusted,
       })
       .onConflict((oc) => oc.columns(["turn_id", "ordinal"]).doNothing())
-      .execute();
+      .returning("id")
+      .executeTakeFirst();
+    if (inserted) ids.push(inserted.id);
     // 028. offload asked where this goes, so it does not also suggest.
     if (row.field === "thread" && row.targetContentId) {
       await trx.deleteFrom("suggestions").where("content_id", "=", row.targetContentId).execute();
     }
   }
+  return ids;
+}
+
+/** 018 AC-16. The same question about several rows is one question: the
+ *  same field, the same sentence and the same values, each about a row of
+ *  its own. The first row is the question's target, the rest ride on `also`,
+ *  and the sentence counts them. Two sentences that differ are two
+ *  questions, since the person can tell them apart and may answer apart. */
+function joinIdentical(rows: Validated[]): Array<Validated & { also: string[] }> {
+  // Compared on the sentence as asked, since a joined one already counts.
+  const out: Array<Validated & { also: string[]; asked: string }> = [];
+  for (const row of rows) {
+    const same = row.targetContentId
+      ? out.find((have) => have.targetContentId && sameQuestion({ ...have, text: have.asked }, row) && have.targetContentId !== row.targetContentId)
+      : undefined;
+    if (same) {
+      same.also.push(row.targetContentId!);
+      same.text = countMore(same.asked, same.also.length);
+    } else {
+      out.push({ ...row, also: [], asked: row.text });
+    }
+  }
+  return out.map(({ asked: _asked, ...row }) => row);
+}
+
+function sameQuestion(a: { field: Field; text: string; options: StoredOption[] }, b: { field: Field; text: string; options: StoredOption[] }): boolean {
+  const values = (options: StoredOption[]) => options.map((o) => o.value ?? "").join("\u0000");
+  return a.field === b.field && a.text === b.text && values(a.options) === values(b.options);
+}
+
+/** The sentence with how many more rows ride on the same tap, after the
+ *  row's title: `Filed "Dentist" and 2 more. By when?`. Every template
+ *  with a title slot quotes it first, so the count goes after the quote.
+ *  Clipped at the title when the count would not fit. A sentence with no
+ *  quoted title (the country's) is returned as it is: it names no row, so
+ *  there is nothing to count. */
+export function countMore(text: string, more: number): string {
+  const open = text.indexOf('"');
+  const close = open === -1 ? -1 : text.indexOf('"', open + 1);
+  if (close === -1) return text;
+  const suffix = ` and ${more} more`;
+  let title = text.slice(open + 1, close);
+  const rest = text.slice(close + 1);
+  const room = QUESTION_TEXT_CHARS - (open + 2 + suffix.length + rest.length);
+  if (title.length > room) title = clip(title, Math.max(8, room));
+  return `${text.slice(0, open)}"${title}"${suffix}${rest}`;
 }
 
 // ---------------------------------------------------------------- read
@@ -886,6 +975,19 @@ async function promotePending(trx: Trx, settledId: string, answeringMessageId: s
 
 // ---------------------------------------------------------------- apply
 
+/** 018 AC-16. The ids a question is also about, as stored before the answer:
+ *  rows for a field question, threads for a person question. */
+function alsoIds(held: unknown): string[] {
+  const also = (held as { also?: unknown } | null)?.also;
+  return Array.isArray(also) ? also.filter((id): id is string => typeof id === "string") : [];
+}
+
+/** What the answer kept of each of the others, for Undo. */
+function alsoRows(held: Record<string, unknown>): Array<Record<string, unknown>> {
+  const also = held["also"];
+  return Array.isArray(also) ? also.filter((a): a is Record<string, unknown> => typeof a === "object" && a !== null) : [];
+}
+
 export type Applied =
   | { applied: true; field: Field; threadId: string | null }
   | { applied: false; reason: "not_open" | "gone" | "already_set" | "bad_value" | "no_target" };
@@ -953,7 +1055,8 @@ export async function applyAnswer(
   // no longer happen closes the question: they are not connected any more,
   // the thread went, or the person is already in.
   if (field === "person") {
-    const threadId = (q.previous_value as { share?: string } | null)?.share;
+    const held = q.previous_value as { share?: string; also?: string[] } | null;
+    const threadId = held?.share;
     if (!threadId) return { applied: false, reason: "no_target" };
     const result = await shareThread(trx, accountId, threadId, parsed["person"]!);
     if (!result.ok) {
@@ -961,7 +1064,17 @@ export async function applyAnswer(
       await promotePending(trx, q.id, by.answeredMessageId);
       return { applied: false, reason: result.error === "already_in" || result.error === "waiting" ? "already_set" : "gone" };
     }
-    await settle({ previous_value: JSON.stringify({ share: threadId, member: result.memberId }) });
+    // 018 AC-16. The other threads the question was about, each through the
+    // same checks; one that cannot be shared any more is left as it is.
+    const also: Array<{ share: string; member: string }> = [];
+    for (const other of alsoIds(held)) {
+      const went = await shareThread(trx, accountId, other, parsed["person"]!);
+      if (went.ok) {
+        also.push({ share: other, member: went.memberId });
+        await landedIn(trx, by.answeredMessageId, other);
+      }
+    }
+    await settle({ previous_value: JSON.stringify({ share: threadId, member: result.memberId, ...(also.length > 0 ? { also } : {}) }) });
     // The turn wears the thread's pill, as a date's does: the tap changed
     // the thread, and the pill is the way to the sheet where the share now
     // waits. Seen missing on the simulator, a chip answered by nothing.
@@ -1044,7 +1157,27 @@ export async function applyAnswer(
     await trx.updateTable("content").set({ ...set, updated_at: sql`now()` }).where("id", "=", row.id).execute();
     await touchThread(row.thread_id, trx);
     await landedIn(trx, by.answeredMessageId, row.thread_id);
-    await settle({ previous_value: JSON.stringify(previous) });
+    // 018 AC-16. The other rows the question was about, the same way; one
+    // filled by hand since, gone, or no longer theirs to answer for is left.
+    const also: Array<{ id: string; due_at: Date | null; occurs_at: Date | null; occurs_end_at: Date | null }> = [];
+    for (const otherId of alsoIds(q.previous_value)) {
+      const other = await trx
+        .selectFrom("content")
+        .select(["id", "thread_id", "type", "due_at", "occurs_at", "occurs_end_at", "updated_at"])
+        .where("id", "=", otherId)
+        .where("account_id", "=", accountId)
+        .where("deleted_at", "is", null)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!other || !(await memberOf(accountId, other.thread_id, trx))) continue;
+      const patch = contentPatch(field, parsed, other);
+      if (patch === null) continue;
+      await trx.updateTable("content").set({ ...patch, updated_at: sql`now()` }).where("id", "=", other.id).execute();
+      await touchThread(other.thread_id, trx);
+      await landedIn(trx, by.answeredMessageId, other.thread_id);
+      also.push({ id: other.id, due_at: other.due_at, occurs_at: other.occurs_at, occurs_end_at: other.occurs_end_at });
+    }
+    await settle({ previous_value: JSON.stringify({ ...previous, ...(also.length > 0 ? { also } : {}) }) });
     await promotePending(trx, q.id, by.answeredMessageId);
     return { applied: true, field, threadId: row.thread_id };
   }
@@ -1161,11 +1294,12 @@ export async function restoreAnswers(trx: Trx, accountId: string, answerTurnId: 
     // message: the row is withdrawn the way the sheet's x withdraws it, and
     // only while it is still waiting.
     if (typeof previous["share"] === "string") {
-      if (typeof previous["member"] === "string") {
+      const members = [previous["member"], ...alsoRows(previous).map((a) => a["member"])].filter((m): m is string => typeof m === "string");
+      if (members.length > 0) {
         await trx
           .updateTable("thread_members")
           .set({ state: "expired", responded_at: sql`now()`, preview: null })
-          .where("id", "=", previous["member"])
+          .where("id", "in", members)
           .where("invited_by", "=", accountId)
           .where("state", "=", "pending")
           .execute();
@@ -1191,17 +1325,28 @@ export async function restoreAnswers(trx: Trx, accountId: string, answerTurnId: 
       }
       continue;
     }
-    const back = {
-      due_at: (previous["due_at"] as string | null) ?? null,
-      occurs_at: (previous["occurs_at"] as string | null) ?? null,
-      occurs_end_at: (previous["occurs_end_at"] as string | null) ?? null,
-    };
+    const backOf = (held: Record<string, unknown>) => ({
+      due_at: (held["due_at"] as string | null) ?? null,
+      occurs_at: (held["occurs_at"] as string | null) ?? null,
+      occurs_end_at: (held["occurs_end_at"] as string | null) ?? null,
+    });
+    const back = backOf(previous);
     if (q.target_content_id) {
       await trx
         .updateTable("content")
         .set({ ...back, updated_at: sql`now()` })
         .where("id", "=", q.target_content_id)
         .execute();
+      // 018 AC-16. The other rows the one tap filled.
+      for (const other of alsoRows(previous)) {
+        if (typeof other["id"] !== "string") continue;
+        await trx
+          .updateTable("content")
+          .set({ ...backOf(other), updated_at: sql`now()` })
+          .where("id", "=", other["id"])
+          .where("account_id", "=", accountId)
+          .execute();
+      }
     } else if (q.target_note_id) {
       await trx.updateTable("notes").set({ ...back, updated_at: sql`now()` }).where("id", "=", q.target_note_id).execute();
     }

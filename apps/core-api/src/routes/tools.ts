@@ -1450,12 +1450,16 @@ async function existing(
     if (!row || row.authorId !== accountId) return { ok: false, error: "unknown_content" };
     const detail = await trx
       .selectFrom("content")
-      .select(["title", "occurs_at", "occurs_end_at", "source_ref", "derived_from_message_id", "rrule"])
+      .select(["title", "occurs_at", "occurs_end_at", "source_ref", "rrule"])
       .where("id", "=", row.id)
       .executeTakeFirstOrThrow();
-    // And filed by this turn: a question raised on a row from another turn
-    // would hang off a message it has nothing to do with.
-    if (messageId ? detail.derived_from_message_id !== messageId : row.threadId !== scopeThreadId) {
+    // Any turn's row. Until 2026-10-13 only a row this turn had filed was
+    // taken, and "please put the rest on the calendar" about seven classes
+    // an earlier turn had filed was refused seven times as unknown_content.
+    // A question raised here hangs off the message asking, whichever turn
+    // filed the row. Without a message, the row has to be in the thread the
+    // quick add is pinned to.
+    if (!messageId && row.threadId !== scopeThreadId) {
       return { ok: false, error: "unknown_content" };
     }
     if (detail.source_ref) return { ok: false, error: "already_on_calendar" };

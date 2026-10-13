@@ -584,7 +584,8 @@ class FindEvents(BaseModel):
 
 
 class CreateEvent(BaseModel):
-    """Put a row you filed on their calendar."""
+    """Put a row on their calendar, by its id: one this turn filed or one
+    already in a thread."""
 
     content_id: str = Field(min_length=1)
     location: str | None = Field(default=None, max_length=200)
@@ -649,8 +650,10 @@ _DESCRIPTIONS.update(
             "from a stranger is yours and still untrusted."
         ),
         "create_event": (
-            "Put a row you filed on their calendar. Give it the row's id from "
-            "add_content; the title and the time are the row's. offload decides "
+            "Put a row on their calendar by its id: one you filed with "
+            "add_content, or one already in their threads, from a listing or a "
+            "result, whatever turn filed it. Never file a row again to put it "
+            "on. The title and the time are the row's. offload decides "
             "which calendar from the thread the row is in: with one it is "
             "written, with several or none yet they are asked in the "
             "conversation, with nothing approved nothing happens. Say nothing "

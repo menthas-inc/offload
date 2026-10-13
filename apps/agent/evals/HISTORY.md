@@ -104,6 +104,7 @@ and is not committed.
 | 2026-10-13 13:46 | block2 | 1 | 28/30 (93%) | $0.53 | `claude-sonnet-5` | `bd84f3e2` | `19b25e1f` | v2 base block2, 19b25e1f |
 | 2026-10-13 13:57 | screen | 1 | 64/68 (94%) | $1.17 | `claude-sonnet-5` | `40b3099a` | `19b25e1f` | v2 round 1 composite screen (8 candidates), on 19b25e1f |
 | 2026-10-13 13:59 | screen | 1 | 66/68 (97%) | $0.34 | `claude-haiku-5-5` | `40b3099a` | `19b25e1f` | v2 round 1 composite screen with filing on Haiku 5.5 |
+| 2026-10-13 14:31 | 08 | 1 | 40/43 (93%) | $1.35 | `claude-sonnet-5` | `ec0931f5` | `ce47a53c` | earlier rows go on the calendar by id, 018 AC-25 and 019 AC-11 joins |
 | 2026-10-13 15:00 | screen | 1 | 62/68 (91%) | $0.53 | `claude-haiku-5-5` | `2bc7abea` | `ad719c92` | v2 round 2 composite screen (round 1 composite plus five), on ad719c92 |
 | 2026-10-13 15:02 | screen | 1 | 64/68 (94%) | $0.31 | `claude-haiku-5-5` | `2bc7abea` | `ad719c92` | v2 round 2 composite without effort low, bisect screen |
 | 2026-10-13 15:24 | screen | 1 | 61/68 (90%) | $0.16 | `claude-haiku-5-5` | `786655b5` | `ad719c92` | v2 final composite screen: rounds 1 to 3, filing and answering on Haiku 5.5 |
