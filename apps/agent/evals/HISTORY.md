@@ -98,6 +98,7 @@ and is not committed.
 | 2026-10-13 11:11 | stay-in-thread-moved-with-calendar-none-picked | 1 | 1/1 (100%) | $0.06 | `claude-sonnet-5` | `7152c916` | `00c94de8` |  |
 | 2026-10-13 11:11 | stay-in-thread-moved-without-calendar | 1 | 0/1 (0%) | $0.05 | `claude-sonnet-5` | `7152c916` | `00c94de8` |  |
 | 2026-10-13 11:11 | stay-in-thread-moved-without-calendar | 2 | 1/1 (100%) | $0.04 | `claude-sonnet-5` | `7152c916` | `00c94de8` |  |
+| 2026-10-13 14:31 | 08 | 1 | 40/43 (93%) | $1.35 | `claude-sonnet-5` | `ec0931f5` | `ce47a53c` | earlier rows go on the calendar by id, 018 AC-25 and 019 AC-11 joins |
 
 ## Full runs by principle
 
