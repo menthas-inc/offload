@@ -98,6 +98,18 @@ number that counts after tuning) and `train` (the rest), by a hash of each
 case id. `--subset <name>` runs one. Regenerate after adding cases;
 `make.py --check` says when the files are stale.
 
+**The noise band comes from history, not from reruns.** Every run appends
+its passed and failed case ids to `evals/cases.jsonl` (committed). Each
+case is a coin with its own pass rate over the runs it appeared in, so any
+subset has an expected pass count and a standard error without running
+anything: `uv run python evals/noise.py --subset screen --prompts <hash>`.
+Pool runs on the same prompts hash and models (another prompt is another
+app and biases the rate); the set's own changes move the noise little, which
+is why the log is pooled across them. `--against <record>` reads one run
+paired against each case's history and prints the z. `--top` lists the
+cases nearest a coin toss: a case at 50 percent over ten runs is not a
+measurement of anything and belongs on the pending list or in a rewrite.
+
 **A spend cap across worktrees.** With `EVAL_SPEND_LOG` set, every run
 appends what it spent to that file and refuses to start when it would take
 `EVAL_AGENT` past `EVAL_AGENT_CAP_USD` or everyone past

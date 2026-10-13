@@ -100,6 +100,7 @@ from offload_agent.worker import (
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
+import noise  # noqa: E402
 import spend  # noqa: E402
 
 PRINCIPLES = HERE / "principles"
@@ -3024,6 +3025,8 @@ async def main() -> int:
     )
 
     record_history(record, note=args.note or "")
+    # Every case's outcome, pooled across runs, is the noise band: see noise.py.
+    noise.record(noise.CASES, record, agent=record.get("agent"))
     if args.write_baseline:
         path = _write_baseline(rows, results, models)
         print(f"wrote {path}")

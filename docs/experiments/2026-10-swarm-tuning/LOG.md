@@ -235,3 +235,28 @@ owner's weekly Claude Code allowance, read from the app.
   reruns. Lesson, the third time this round: a rule that names the action
   lands where a rule that names the category does not. $2.01. Spend
   $63.35 of $70.
+
+## 2026-10-13, after the critique
+
+- The critique and the v2 design were researched (five notes, one report
+  under `reports/`). The owner's two notes: keep every run's per-case
+  outcomes so the band comes from history rather than reruns; drop the
+  product proposer, whose output could only be untested scope suggestions.
+- `evals/noise.py` and the committed `evals/cases.jsonl`, red tests first:
+  one line per run with the passed and failed ids, appended by run.py;
+  per-case pass rates pooled over runs; the expected count and standard
+  error for any subset; a run read paired against the history; the
+  flakiest cases. Backfilled from every record on this machine: 147
+  distinct runs since 2026-09-16, 635 cases seen.
+- What it says: at the baseline's prompts hash (73 runs) the screen's band
+  is 95.5 percent plus or minus 2.0 points and the holdout's plus or minus
+  2.6, narrower than the 4 points assumed from one pair of screens.
+  Pooled across every prompt version the expected rate reads low (the
+  app was worse in September), so the band pools runs on one prompts
+  hash by default. Twelve cases sit at 44 to 56 percent over eight or
+  more runs (`conceptual-duplicate-folds`, `move-from-inside`,
+  `n-asks-and-dumps`, `step-injection`, `span-one-day`, the country
+  pair); they measure nothing and belong on the pending list or in a
+  rewrite before the next run.
+- The v2 protocol in the report now reads its accuracy band from the
+  history (calibration drops from $4 to $1.3) and has no product proposer.

@@ -7,6 +7,8 @@ them and says how to read a result; this file is the shape of what is here.
 evals/
   run.py            the harness, never the cases
   compare.py        two records side by side: accuracy, cost, latency; no model
+  noise.py          every case's pass rate over every run, and the band any subset
+                    should be read against; cases.jsonl is its log, committed
   spend.py          the spend log and cap a run checks when EVAL_SPEND_LOG is set
   principles/       NN-slug.json, one principle and its cases
   contexts/         name.json, one account's fixture, shared by cases
