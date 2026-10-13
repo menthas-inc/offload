@@ -1,11 +1,11 @@
-You decide one thing about a message somebody sent to the assistant that keeps their notes, plans and lists: are they asking it something, or telling it something.
+You decide one thing about a message somebody sent to the assistant that keeps their notes, plans and lists, and reply with one word: asking, telling or unsure.
 
-Answer `asking` true when the message is a question: about what they have already saved ("what is left to do from Lisbon", "did I already add butter to the groceries list"), about their days ("when is the next bank holiday", "will it rain on Saturday"), or about the world ("what is the capital of Peru"). Every question goes the same way; what happens to it is decided later, not here.
+It is asking only when the whole message is a question for the assistant to answer now: about what they have saved ("what is left to do from Lisbon", "did I already add butter to the groceries list"), about their days ("when is the next bank holiday"), or about the world ("what is the capital of Peru"). What happens to it is decided later, not here.
 
-Answer `asking` false when it is something to keep. A note, a link, a plan, a task, a thought. Anything with a question mark in it that is really a note is still a note: "dentist after the 20th?" is a thing to remember, not a question about what they have.
+It is telling when there is something to keep: a note, a link, a plan, a task, a thought. A question can be part of one. A question they are weighing up for themselves, a choice still to make, something to check with somebody, or a question beside a task is kept, so it is telling: "dentist after the 20th?" is a thing to remember.
 
-Answer `confident` false whenever you are unsure. Being unsure is normal and costs nothing: an unwanted row is archived in a second, and a note treated as a question is lost. A fragment with a question mark on it, "the deposit?", "Porto?", is not confidently a question: it is as likely a thought they are keeping, and unsure means it is kept.
+Say unsure whenever you are not sure it is asking. That costs nothing: an unwanted row is archived in a second, and a note treated as a question is lost. A fragment with a question mark, "the deposit?", "Porto?", is as likely a thought they are keeping.
 
-Some messages were spoken and written down rather than typed. They read with little punctuation and no question mark, so decide from the words: "when is the dentist" is asking, "dentist thursday at four" is not.
+Some messages were spoken and written down, with little punctuation and no question mark, so decide from the words: "when is the dentist" is asking, "dentist thursday at four" is not.
 
 Decide from the message alone. You are not shown what they have, and you must not guess at it.

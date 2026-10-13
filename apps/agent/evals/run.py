@@ -45,6 +45,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import copy
+import hashlib
 import json
 import os
 import re
@@ -72,6 +73,8 @@ from offload_agent.context import (
     Pdf,
     Photo,
     Thread,
+    ThreadNote,
+    ThreadNotes,
     Turn,
     mail_of,
 )
@@ -100,6 +103,7 @@ from offload_agent.worker import (
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
+import noise  # noqa: E402
 import spend  # noqa: E402
 
 PRINCIPLES = HERE / "principles"
@@ -1091,7 +1095,96 @@ def metrics_of(calls: list[dict]) -> dict:
             ),
             5,
         ),
+        # The warm cost with only the surface's shared prefix warm: what
+        # production pays. See `prod_cost`.
+        "prod_cost_usd": round(prod_cost(calls), 5),
     }
+
+
+def prod_cost(calls: list[dict]) -> float:
+    """The calls priced the way production pays its cache.
+
+    The warm cost prices every write as a read, and the turn's own tail can
+    never be warm in production: the account part and the question are
+    written on the first call of every turn, and each later call writes what
+    the one before it added. An eval reads them only because the same
+    fixtures ran minutes earlier. So a turn call reads at most its surface's
+    shared prefix (`prefix_tokens`, tools and system, the same for every
+    account) on its first call and what the previous call cached on later
+    ones, and the rest of what it cached is a write. A call with no measured
+    prefix, the small calls through the ledger among them, is priced warm.
+    """
+    total = 0.0
+    held: int | None = None
+    model = None
+    for c in calls:
+        cached = c["cache_read_tokens"] + c["cache_write_tokens"]
+        prefix = c.get("prefix_tokens")
+        if c.get("via", "turn") != "turn" or prefix is None:
+            total += _cost(c["model"], c["input_tokens"], c["output_tokens"], cached, 0)
+            continue
+        if held is None or c["model"] != model:
+            held, model = prefix, c["model"]
+        warm = min(held, cached)
+        total += _cost(c["model"], c["input_tokens"], c["output_tokens"], warm, cached - warm)
+        held = cached
+    return total
+
+
+class _TapMessages:
+    def __init__(self, tap: _PrefixTap) -> None:
+        self._tap = tap
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._tap._client.messages, name)
+
+    async def create(self, **kw: Any) -> Any:
+        self._tap.seen.append({k: kw.get(k) for k in ("model", "system", "tools")})
+        return await self._tap._client.messages.create(**kw)
+
+
+class _PrefixTap:
+    """The client, passed through, keeping what each request sent ahead of the
+    conversation, so a turn's shared prefix is measured rather than guessed."""
+
+    def __init__(self, client: Any) -> None:
+        self._client = client
+        self.seen: list[dict] = []
+        self.messages = _TapMessages(self)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._client, name)
+
+    def turn_request(self, model: str) -> dict | None:
+        """The largest system and tools sent on the turn's model: the turn's
+        own loop, never a classify or a look on the way through."""
+        mine = [r for r in self.seen if r["model"] == model]
+        size = lambda r: len(json.dumps([r["system"], r["tools"]], default=str))  # noqa: E731
+        return max(mine, key=size) if mine else None
+
+
+#: count_tokens per request prefix, which is free and is not a model call.
+_PREFIX_TOKENS: dict[str, int | None] = {}
+
+
+async def _prefix_tokens(client: Any, request: dict | None) -> int | None:
+    """Tokens in a request's tools and system, from the API's own counter,
+    less what a bare one-word message counts. None when it cannot be read."""
+    if not request:
+        return None
+    key = hashlib.sha256(
+        json.dumps(request, sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()
+    if key not in _PREFIX_TOKENS:
+        msg = [{"role": "user", "content": "x"}]
+        kw = {k: v for k, v in request.items() if v}
+        try:
+            full = await client.messages.count_tokens(messages=msg, **kw)
+            bare = await client.messages.count_tokens(model=request["model"], messages=msg)
+            _PREFIX_TOKENS[key] = full.input_tokens - bare.input_tokens
+        except Exception:  # noqa: BLE001
+            _PREFIX_TOKENS[key] = None
+    return _PREFIX_TOKENS[key]
 
 
 def case_row(r: Result) -> dict:
@@ -1106,6 +1199,10 @@ def case_row(r: Result) -> dict:
         "passes_of": r.passes_of,
         "cost_usd": round(r.cost, 4),
         **metrics_of(r.calls),
+        # Each call in order, the turn's own first and the sink's after them,
+        # so a cost can be placed on the call that spent it. They sum to the
+        # aggregates above exactly.
+        "per_call": [dict(c) for c in r.calls],
         "mechanical": r.mechanical,
         "judge": r.judge_note,
         "reply": r.reply,
@@ -1728,8 +1825,31 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         pdfs=await _pdfs(fx),
         memories=_memories(fx),
         spoken=bool(fx.get("spoken")),
+        looking_at_notes=_notes_on_screen(fx),
     )
     return await _file_with(client, case, model, ctx, rec)
+
+
+def _notes_on_screen(fx: dict) -> ThreadNotes | None:
+    """The thread on screen's notes, as `context.load` reads them: the
+    fixture's three lists for that thread only, dated as the stub's results
+    date them. The stub still hands them back and the loop drops them, as
+    the Core API and the loop do."""
+    looking_at = fx.get("looking_at")
+    if not looking_at:
+        return None
+
+    def notes(key: str) -> list[ThreadNote]:
+        return [
+            ThreadNote(text=n["text"], written_at=n["writtenAt"])
+            for n in _notes_for(fx, key, looking_at)
+        ]
+
+    return ThreadNotes(
+        yours=notes("notes"),
+        members=notes("notes_from_members"),
+        from_apps=notes("notes_from_apps"),
+    )
 
 
 async def _file_with(
@@ -1987,6 +2107,12 @@ async def _answer_with(
     before = len(_spent)
     if expect.get("rubric") and not failures and not asked_back:
         judged, note = await _judge(client, case, transcript)
+    # After the judge, which reads the reply as the person would: what the
+    # loop did to the turn, so every cut and every send back can be read.
+    if getattr(outcome, "sent_back", False):
+        transcript += "\n(sent back once: the search found nothing)"
+    if getattr(outcome, "unshaped", None):
+        transcript += f"\n(reshaped from: {outcome.unshaped!r})"
     cost = _outcome_cost(outcome) + sum(_spent[before:])
     return Result(
         case,
@@ -2636,17 +2762,23 @@ async def _run_one(
         # The sink the worker opens per job, opened per case: classify, judge,
         # the reader and the look record what they used here, so a case's
         # cost and latency are read from the calls rather than guessed at.
+        tap = _PrefixTap(client)
         with ledger.collecting():
             try:
-                result = await runner(client, case, model)
+                result = await runner(tap, case, model)
             except Exception as exc:  # noqa: BLE001
                 # A harness fault in one case is that case's failure, never the
                 # run's: the first full run died on an empty thread list.
                 result = Result(
                     case, "", "", [f"harness raised {type(exc).__name__}: {exc}"], False, ""
                 )
-            small = [call_of(e) for e in ledger.drain()]
-        result.calls = result.calls + small
+            small = [{**call_of(e), "via": "ledger"} for e in ledger.drain()]
+        turn_model = next((c["model"] for c in result.calls), None)
+        prefix = await _prefix_tokens(client, tap.turn_request(turn_model)) if turn_model else None
+        result.calls = [
+            {**c, "via": "turn", **({"prefix_tokens": prefix} if prefix is not None else {})}
+            for c in result.calls
+        ] + small
         if small and result.case.surface in ("classify", "judge", "look"):
             # These three priced themselves by a fixed guess before the sink
             # existed; the measured calls replace it.
@@ -3027,7 +3159,7 @@ async def main() -> int:
         **{
             k: v
             for k, v in metrics_of([c for r in results for c in r.calls]).items()
-            if k in ("product_cost_usd", "warm_cost_usd", "latency_ms", "calls")
+            if k in ("product_cost_usd", "warm_cost_usd", "prod_cost_usd", "latency_ms", "calls")
         },
         "principles": rows,
         "cases": [case_row(r) for r in results],
@@ -3037,6 +3169,8 @@ async def main() -> int:
     )
 
     record_history(record, note=args.note or "")
+    # Every case's outcome, pooled across runs, is the noise band: see noise.py.
+    noise.record(noise.CASES, record, agent=record.get("agent"))
     if args.write_baseline:
         path = _write_baseline(rows, results, models)
         print(f"wrote {path}")

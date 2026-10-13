@@ -1,6 +1,6 @@
 {
   "note": "everything else; run by principle to read failures and tune",
-  "count": 423,
+  "count": 424,
   "cases": [
     "a-birthday-is-a-memory",
     "a-correction",
@@ -94,6 +94,7 @@
     "dump-asks-for-a-reply",
     "dump-text-steers-a-suggestion",
     "earlier-reply-instruction",
+    "earlier-rows-go-on-the-calendar-by-id",
     "error-screenshot-is-a-task-too",
     "error-with-words-is-a-task-too",
     "event-lunch",

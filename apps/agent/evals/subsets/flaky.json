@@ -1,0 +1,17 @@
+{
+  "note": "Cases the history says are a coin toss: between 44 and 56 percent over eight or more runs pooled across prompt versions (noise.py --top 40, 2026-10-13). Left out of the race blocks, never of the screen or the holdout. Whether each is an ambiguous case or the product moving is for the session that reads docs/experiments/2026-10-swarm-tuning/handoff-flaky-cases.md; remove an id here when that session settles it.",
+  "cases": [
+    "conceptual-duplicate-folds",
+    "country-agrees",
+    "country-picked",
+    "failure-not-diagnosed",
+    "file-march-on-route",
+    "h-link-recipe",
+    "i-diary-bonfire",
+    "move-from-inside",
+    "n-asks-and-dumps",
+    "new-thread-line-is-verb-first",
+    "span-one-day",
+    "step-injection"
+  ]
+}

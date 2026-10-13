@@ -261,3 +261,39 @@ def test_an_apostrophe_is_not_a_word():
     assert _from_the_dump("mother's day Portugal", "book a table for mothers day", "PT")
     assert _from_the_dump("mothers day", "book a table for mother’s day")
     assert not _from_the_dump("mother's address", "book a table for mothers day")
+
+
+# ---------------------------------------------------------------- want shapes
+
+
+def test_a_want_sent_as_one_escaped_string_becomes_its_names():
+    """Swarm run 2026-10: a third of url lookups across every eval record sent
+    `want` as one string carrying the list's own quotes, `["title\\",\\"place"]`.
+    The reader matched no name in it and fell back to `fact`, so the model sent
+    the same url again with a clean list: one more planner call and one more
+    page fetch for every pasted link it happened on. These are the shapes the
+    records hold."""
+    from offload_agent.harness.tools import LookUp
+
+    def want(value):
+        return LookUp.model_validate({"url": "https://x.example/a", "want": value}).want
+
+    assert want(['title","place","dates_range']) == ["title", "place", "dates_range"]
+    assert want(['title","place"']) == ["title", "place"]
+    assert want(['title", "place", "dates_range", "price']) == [
+        "title",
+        "place",
+        "dates_range",
+        "price",
+    ]
+    assert want(["title,price"]) == ["title", "price"]
+    assert want(['title"]']) == ["title"]
+    assert want('title","date","place') == ["title", "date", "place"]
+
+
+def test_a_clean_want_passes_untouched():
+    from offload_agent.harness.tools import LookUp
+
+    for value in (["title", "place"], ["dates_range"], [], ["image", "title"]):
+        assert LookUp.model_validate({"url": "https://x.example/a", "want": value}).want == value
+    assert LookUp.model_validate({"question": "q", "want": "date"}).want == ["date"]

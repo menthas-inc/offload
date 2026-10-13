@@ -63,12 +63,13 @@ class Config:
     # How long a claimed job may sit untouched before another worker takes it
     # for gone. See `queue.STALE_AFTER_SECONDS`.
     stale_after_seconds: int = 900
-    # Sonnet, kept on cost (2026-09-17). Opus was measured on the principle
-    # evals with the same prompt and did better, 255 of 274 filing cases to
-    # 242 and asking back where Sonnet did not, at about 1.7 times the price
-    # per dump. The prefix was cut instead; the model decision is open in
-    # decisions.md.
-    model: str = "claude-sonnet-5"
+    # Haiku 5.5 since the second swarm run (2026-10-13): with the same prompt
+    # it held the principle evals (block1 28 of 30, block2 26 of 30, 13 at 50
+    # of 56, 01 at 17 of 17, the screen at 66 of 68 against 67) at about a
+    # quarter of the warm day and a p90 filing latency of x0.77. Sonnet 5 was
+    # kept on cost over Opus on 2026-09-17 (255 of 274 to 242); the holdout
+    # decides whether Haiku stays. The model decision is in decisions.md.
+    model: str = "claude-haiku-5-5"
     # The tiers stack.md routes by, named here rather than at a call site.
     #
     # `sort` for the question-or-note call: it is one boolean and every dump
@@ -88,7 +89,14 @@ class Config:
     # caps, a softened "I couldn't find", an offer to file, and one refused
     # subject answered. The prompts were tuned on Opus 5 and its effort
     # defaults to medium; /test-llm against 5.5 is what would earn the switch.
-    answer_model: str = "claude-opus-5"
+    # Haiku 5.5 since 2026-10-13, the owner's call after the second swarm run,
+    # with answer.md rewritten for a small model: on the sealed holdout it
+    # answered 31 of 35 against Opus 5's 35 of 35 at about a thirtieth of the
+    # cost per question, every miss copy-shaped (markup, a paragraph after a
+    # fixed line, a diary question that stopped after an empty search). The
+    # rewrite costs Opus nothing (principle 17 at 35 of 37 either way), so
+    # Opus 5 is a one-line fallback. The run's record is in decisions.md.
+    answer_model: str = "claude-haiku-5-5"
     # 032. The nightly pass: compaction, what the day's dumps add, and on the
     # default thread the threads to suggest. On 2026-10-02 Haiku 4.5 passed 23
     # of 26 (its misses restated rows as notes) and Sonnet 5 26 of 26. Haiku

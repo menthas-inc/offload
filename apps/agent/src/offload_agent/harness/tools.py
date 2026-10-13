@@ -19,6 +19,7 @@ screen that reads it. It was drafted for 006 and held back, because a tool
 shipped a version ahead of its storage is a tool that cannot work.
 """
 
+import copy
 import re
 from typing import Any, Literal
 
@@ -440,12 +441,12 @@ _DESCRIPTIONS = {
     "add_content": (
         "File one piece of what they dumped into a thread, by thread id. Call it "
         "once per separable piece. Anything with no obvious home goes in their "
-        "default thread. Set a date only when they gave you one. A photo they "
+        "default thread. Every date they gave goes on it, none they did not. A photo they "
         "sent files as an image or screenshot, its number in photo, once each."
     ),
     "list_thread_content": (
         "Read the rows in a thread: to find one that is already there, to change "
-        "or to answer from. Not needed before filing something new. Returns one "
+        "or to answer from. Rows, never notes. Never before filing. Returns one "
         "page, newest first."
     ),
     "edit_content": (
@@ -909,6 +910,10 @@ TOOL_NAMES = frozenset(SCHEMAS)
 # blocks, which is three integrations it does not have to grow.
 
 
+# What a `want` name is never made of, so a list sent as one string splits back.
+_WANT_SEPARATORS = re.compile(r"[\s\"',\[\]]+")
+
+
 class LookUp(BaseModel):
     """Find out one thing from the web."""
 
@@ -935,8 +940,25 @@ class LookUp(BaseModel):
         of names, one of them sent on its own is unambiguous, and the alternative
         is refusing a turn over a pair of brackets. The refusal is still there
         for anything that is not a string or a list.
+
+        **The second shape, found across every eval record in October.** A
+        third of url lookups sent the list's own punctuation inside one name,
+        `["title\\",\\"place"]`. Nothing refused it: the reader matched no
+        name, fell back to `fact`, and the model sent the same url again with a
+        clean list, one more planner call and one more page fetch per pasted
+        link. A name never holds a quote, a comma, a bracket or a space, so
+        splitting on them leaves a clean list exactly as it was.
         """
-        return [value] if isinstance(value, str) else value
+        names = [value] if isinstance(value, str) else value
+        if not isinstance(names, list):
+            return names
+        out: list[object] = []
+        for name in names:
+            if isinstance(name, str):
+                out.extend(part for part in _WANT_SEPARATORS.split(name) if part)
+            else:
+                out.append(name)
+        return out
 
     # 017. What to put on screen while this runs.
     #
@@ -1025,3 +1047,30 @@ ASK_TOOL = {
 }
 
 TOOL_NAMES = frozenset(SCHEMAS)
+
+
+# Swarm v2 round 2. The answering turn's `ask`, which says only what that turn
+# may ask. The filing description is about the row just filed, its dates, its
+# span and a thread pick, none of which an answering turn may ask; the server
+# refuses every field but country from there, and answer.md says `ask` is for
+# the country and nothing else. Sending the filing text meant reading a
+# contradiction in the cached prefix of every answering call. Same name, and
+# the same `Ask` validates it, so the loop and the server see no difference.
+def _answer_ask_schema() -> dict[str, Any]:
+    schema = copy.deepcopy(ASK_TOOL["input_schema"])
+    schema["properties"]["field"]["enum"] = ["country"]
+    # Country fills no row, so there is no row to name, and the model's
+    # docstring is the filing path's.
+    schema["properties"].pop("content_id", None)
+    schema.pop("description", None)
+    return schema
+
+
+ANSWER_ASK_TOOL = {
+    "name": "ask",
+    "description": (
+        "Ask which country they are in: exactly two options, each `value` a "
+        "two letter code. The wording is written for you."
+    ),
+    "input_schema": _answer_ask_schema(),
+}
