@@ -14,6 +14,7 @@ import json
 
 from offload_agent.harness.plan import Judgement, Question
 from offload_agent.harness.tools import (
+    ANSWER_ASK_TOOL,
     ANSWER_CALENDAR_TOOL_DEFS,
     ANSWER_TOOLS,
     ASK_TOOL,
@@ -36,6 +37,7 @@ ALL = [
     SHARE_TOOL_DEF,
     SAY_TOOL,
     ASK_TOOL,
+    ANSWER_ASK_TOOL,
     LOOK_UP_TOOL,
     {"name": "Question", "input_schema": _schema_for(Question)},
     {"name": "Judgement", "input_schema": _schema_for(Judgement)},

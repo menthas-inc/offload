@@ -41,6 +41,12 @@ def measure() -> dict[str, dict[str, int]]:
             "chars": len(plan.filing_prompt(False)),
             "tools_chars": _chars(plain_tools),
         },
+        # A turn that carries a photo or a PDF: the text turn's prefix plus the
+        # media rules as a second system block.
+        "file_media": {
+            "chars": len(plan.filing_prompt(False)) + len(plan.MEDIA_PROMPT),
+            "tools_chars": _chars(plain_tools),
+        },
         "answer": {"chars": len(plan._ANSWER_PROMPT), "tools_chars": _chars(answer_tools)},
         "classify": {"chars": len(plan._CLASSIFY_PROMPT), "tools_chars": 0},
         "judge": {"chars": len(plan._JUDGE_PROMPT), "tools_chars": 0},

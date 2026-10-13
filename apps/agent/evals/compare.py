@@ -66,6 +66,8 @@ def _block(before: list[dict], after: list[dict]) -> dict:
     lat_a = [c.get("latency_ms") or 0 for c in after]
     warm_b = sum(c.get("warm_cost_usd") or 0.0 for c in before)
     warm_a = sum(c.get("warm_cost_usd") or 0.0 for c in after)
+    prod_b = sum(_prod(c) for c in before)
+    prod_a = sum(_prod(c) for c in after)
     return {
         "cases": len(before),
         "accuracy": {"before": acc_b, "after": acc_a, "delta": acc_a - acc_b},
@@ -78,6 +80,11 @@ def _block(before: list[dict], after: list[dict]) -> dict:
             "before": warm_b,
             "after": warm_a,
             "ratio": (warm_a / warm_b) if warm_b else None,
+        },
+        "prod_cost_usd": {
+            "before": prod_b,
+            "after": prod_a,
+            "ratio": (prod_a / prod_b) if prod_b else None,
         },
         "latency_ms": {
             "median_before": _median(lat_b),
@@ -106,12 +113,18 @@ DAY = {
 }
 
 
+def _prod(c: dict) -> float:
+    """A case's prod cost; a record from before it existed reads as warm."""
+    v = c.get("prod_cost_usd")
+    return v if v is not None else (c.get("warm_cost_usd") or 0.0)
+
+
 def _daily(rows: list[dict], key: str = "product_cost_usd") -> float:
     """Dollars a day costs at the production mix, from the mean case cost of
     each surface. A surface with no case in the run contributes nothing."""
     by: dict[str, list[float]] = defaultdict(list)
     for c in rows:
-        by[c["surface"]].append(c.get(key) or 0.0)
+        by[c["surface"]].append(_prod(c) if key == "prod_cost_usd" else (c.get(key) or 0.0))
     return sum(DAY[s] * (sum(costs) / len(costs)) for s, costs in by.items() if s in DAY and costs)
 
 
@@ -144,6 +157,16 @@ def compare(before: dict, after: dict, band: float = NOISE_BAND) -> dict:
         "before": warm_b,
         "after": warm_a,
         "ratio": (warm_a / warm_b) if warm_b else None,
+    }
+    # Only the shared prefix warm, every per-turn write paid: read beside the
+    # warm day, never gated on (round 2, 2026-10-13).
+    prod_b, prod_a = _daily(rows_b, "prod_cost_usd"), _daily(rows_a, "prod_cost_usd")
+    measured = all(any("prod_cost_usd" in c for c in rows) for rows in (rows_b, rows_a))
+    out["daily_prod_cost_usd"] = {
+        "before": prod_b,
+        "after": prod_a,
+        "ratio": (prod_a / prod_b) if prod_b and measured else None,
+        "measured": measured,
     }
     out["models"] = {"before": before.get("models"), "after": after.get("models")}
     out["band"] = band
@@ -256,6 +279,38 @@ def gate(out: dict, paired_: dict, surface: str | None = None) -> dict:
     return {"kept": False, "why": "neither cost nor latency moved past the band"}
 
 
+def per_call(record: dict) -> dict[str, dict]:
+    """Where each surface spends its output, from the record's per-call rows:
+    the share of the turn's output on its first call, and the second call's
+    cache write against the first call's output, which says whether the first
+    call's thinking is written to the cache again. Only the turn's own calls;
+    the sink's small calls are counted apart."""
+    out: dict[str, dict] = {}
+    for c in record.get("cases", []):
+        rows = c.get("per_call")
+        if rows is None:
+            continue
+        turn = [r for r in rows if r.get("via", "turn") == "turn"]
+        s = out.setdefault(
+            c.get("surface", "?"),
+            {"cases": 0, "looped": 0, "calls": 0, "first": 0, "total": 0, "w2": 0, "o1": 0},
+        )
+        s["cases"] += 1
+        s["calls"] += len(turn)
+        if not turn:
+            continue
+        s["first"] += turn[0]["output_tokens"]
+        s["total"] += sum(r["output_tokens"] for r in turn)
+        if len(turn) > 1:
+            s["looped"] += 1
+            s["w2"] += turn[1]["cache_write_tokens"]
+            s["o1"] += turn[0]["output_tokens"]
+    for s in out.values():
+        s["first_call_output_share"] = s["first"] / s["total"] if s["total"] else None
+        s["second_write_over_first_output"] = s["w2"] / s["o1"] if s["o1"] else None
+    return out
+
+
 def _pct(x: float) -> str:
     return f"{x * 100:.1f}%"
 
@@ -295,6 +350,19 @@ def render(out: dict) -> str:
             if out["daily_warm_cost_usd"]["ratio"] is not None
             else ""
         ),
+        f"prod day  ${out['daily_prod_cost_usd']['before']:.4f} -> "
+        f"${out['daily_prod_cost_usd']['after']:.4f}"
+        + (
+            f"  (x{out['daily_prod_cost_usd']['ratio']:.2f}"
+            if out["daily_prod_cost_usd"]["ratio"] is not None
+            else "  (no prod cost before, read as warm"
+        )
+        + (
+            f", x{out['daily_prod_cost_usd']['after'] / out['daily_warm_cost_usd']['after']:.2f}"
+            " of the warm day, per-turn cache writes paid)"
+            if out["daily_warm_cost_usd"]["after"]
+            else ")"
+        ),
         f"verdict   {out['verdict']}",
     ]
     if out.get("paired"):
@@ -320,6 +388,19 @@ def render(out: dict) -> str:
             f"{(f'{cost:.2f}' if cost is not None else '-'):>8}"
             f"{(f'{lat:.2f}' if lat is not None else '-'):>11}"
         )
+    if out.get("per_call"):
+        lines += [
+            "",
+            f"{'per call':<14}{'cases':>6}{'looped':>8}{'calls':>7}"
+            f"{'out on 1st':>12}{'write 2 / out 1':>17}",
+        ]
+        for s, p in out["per_call"].items():
+            share, w = p["first_call_output_share"], p["second_write_over_first_output"]
+            lines.append(
+                f"{s:<14}{p['cases']:>6}{p['looped']:>8}{p['calls']:>7}"
+                f"{(_pct(share) if share is not None else '-'):>12}"
+                f"{(f'{w:.2f}' if w is not None else '-'):>17}"
+            )
     if out["flipped"]["to_fail"]:
         lines += ["", "now failing: " + ", ".join(out["flipped"]["to_fail"])]
     if out["flipped"]["to_pass"]:
@@ -349,6 +430,7 @@ def main(argv: list[str]) -> int:
     before = json.loads(Path(paths[0]).read_text(encoding="utf-8"))
     after = json.loads(Path(paths[1]).read_text(encoding="utf-8"))
     out = compare(before, after)
+    out["per_call"] = per_call(after)
     if "--paired" in argv:
         hashes = (_flag(argv, "--prompts") or before.get("prompts") or "").split(",")
         log = Path(_flag(argv, "--log") or noise.CASES)

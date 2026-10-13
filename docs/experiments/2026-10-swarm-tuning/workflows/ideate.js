@@ -5,6 +5,8 @@ export const meta = {
 }
 
 // args: { repo, round, baselineSummary, findings, nonGoals, blind: [keys], lenses: [{key, prompt}] }
+// or, from round 2: { round, blind: [keys], lenses: [{key}], briefs: {briefed, blind, lenses} } where the
+// three are file paths the agent reads (the arguments were 38 KB inline).
 // `findings` is the rendered findings of the rounds before, or empty on round one.
 // A lens whose key is in `blind` is briefed without the findings, whatever the
 // round: half the lenses in round two, so the anchor's cost can be counted.
@@ -44,7 +46,9 @@ phase('Ideate')
 const results = await parallel(
   args.lenses.map((lens) => () =>
     agent(
-      `You are the ${lens.key} lens in the ideation phase of round ${args.round} of a swarm tuning offload's model calls for cost and latency. Read ${args.repo}/docs/experiments/2026-10-swarm-tuning/README.md and BRIEF.md first (the rules), then ${args.repo}/docs/experiments/2026-10-swarm-tuning/research-prompt-optimisation.md for the evidence base.
+      args.briefs
+        ? `You are the ${lens.key} lens in the ideation phase of round ${args.round} of a swarm tuning offload's model calls for cost and latency. Read your brief first and follow it: ${(args.blind || []).includes(lens.key) ? args.briefs.blind : args.briefs.briefed}. Your lens is the entry "${lens.key}" in ${args.briefs.lenses}; read it and work only in it. Return the structured result only.`
+        : `You are the ${lens.key} lens in the ideation phase of round ${args.round} of a swarm tuning offload's model calls for cost and latency. Read ${args.repo}/docs/experiments/2026-10-swarm-tuning/README.md and BRIEF.md first (the rules), then ${args.repo}/docs/experiments/2026-10-swarm-tuning/research-prompt-optimisation.md for the evidence base.
 
 Read only. Do not edit anything. Do not run evals/run.py (it calls the real model). You may run --list, read code, read prompts, read the baseline records named below, and run small scripts that read files.
 

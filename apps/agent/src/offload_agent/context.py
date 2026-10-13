@@ -191,6 +191,24 @@ def mail_of(text: str, attrs: dict) -> Mail:
 
 
 @dataclass(frozen=True)
+class ThreadNote:
+    text: str
+    #: ISO, as the Core API dates a note in a filing's result.
+    written_at: str
+
+
+@dataclass(frozen=True)
+class ThreadNotes:
+    """The three lists a filing's result carries, split the way the Core API's
+    `notesForPrompt` splits them: theirs, other members', and those derived
+    from a connected app. The split is the containment."""
+
+    yours: list[ThreadNote] = field(default_factory=list)
+    members: list[ThreadNote] = field(default_factory=list)
+    from_apps: list[ThreadNote] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class DumpContext:
     dump: str
     turns: list[Turn]
@@ -258,6 +276,11 @@ class DumpContext:
     #: Above fifty the memories were chosen for this turn's words, so they
     #: change every turn and sit after the cache mark rather than before it.
     memories_by_query: bool = False
+    #: The notes of the thread on screen, loaded with the turn so a rule there
+    #: applies to the first filing rather than to an edit after it. None when
+    #: there is no thread on screen or they were not loaded; then a filing's
+    #: result is the only place they arrive. Bounded as a result's are.
+    looking_at_notes: ThreadNotes | None = None
 
     @property
     def may_look_up(self) -> bool:
@@ -648,6 +671,12 @@ async def load(
     )
     switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
 
+    looking_at_notes = (
+        await notes_on_screen(conn, str(dump_row.looking_at_id), account_id)
+        if dump_row.looking_at_id
+        else None
+    )
+
     memories, by_query = await memories_chosen(
         conn, account_id, memory_words, embedder, started=memory_query
     )
@@ -695,7 +724,51 @@ async def load(
         ][:10],
         memories=memories,
         memories_by_query=by_query,
+        looking_at_notes=looking_at_notes,
     )
+
+
+#: The Core API's `NOTE_PROMPT_BUDGET`: what one filing's result would carry.
+NOTES_ON_SCREEN = 100
+
+# The Core API's `notesForPrompt`, read here so the turn carries what the
+# first filing into the thread would have handed back. The thread is the one
+# `_DUMP` resolved for this account, membership checked there.
+_NOTES_ON_SCREEN = text(
+    """
+    select n.text, n.updated_at, (n.account_id = :account_id) as theirs,
+           n.derived_from_untrusted as from_app
+      from notes n
+     where n.scope = 'thread'
+       and n.subject_id = :thread_id
+       and n.deleted_at is null
+       and n.superseded_at is null
+       and n.muted_at is null
+     order by n.updated_at desc
+     limit :limit
+    """
+)
+
+
+async def notes_on_screen(conn: AsyncConnection, thread_id: str, account_id: str) -> ThreadNotes:
+    """Newest first so the budget keeps what is current, then oldest first so
+    the newer of two that disagree is the one read last."""
+    rows = (
+        await conn.execute(
+            _NOTES_ON_SCREEN,
+            {"thread_id": thread_id, "account_id": account_id, "limit": NOTES_ON_SCREEN},
+        )
+    ).all()
+    out = ThreadNotes()
+    for r in reversed(rows):
+        note = ThreadNote(text=r.text, written_at=r.updated_at.isoformat())
+        if r.from_app:
+            out.from_apps.append(note)
+        elif r.theirs:
+            out.yours.append(note)
+        else:
+            out.members.append(note)
+    return out
 
 
 # Four characters a token is the usual rough figure for English. Deliberately
@@ -788,6 +861,9 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         # 041. The same: two PDFs at most, cut to ten pages, is the bound.
         pdfs=ctx.pdfs,
         spoken=ctx.spoken,
+        # Bounded as a filing's result is, by the hundred the query takes, and
+        # never trimmed: a rule dropped here is a rule the first filing breaks.
+        looking_at_notes=ctx.looking_at_notes,
         # 026. Bounded by its own clamps, never trimmed here.
         mail=ctx.mail,
         # 038. Bounded at fifty by the query, never trimmed here.

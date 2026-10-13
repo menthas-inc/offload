@@ -137,6 +137,94 @@ def test_a_result_carries_its_calls_and_the_record_writes_them(run):
     assert "product_cost_usd" in row and "input_tokens" in row
 
 
+def test_the_record_keeps_a_row_per_call_that_sums_to_the_case(run):
+    """A case's sums hide which call spent them: the record keeps each call in
+    order too, and the rows add up to the case exactly (2026-10-13)."""
+    case = run.Case(id="c", why="", surface="file", input="x", expect={}, principle="1", fixture={})
+    first = run.Usage(
+        model="claude-sonnet-5",
+        input_tokens=900,
+        output_tokens=400,
+        cache_read_tokens=0,
+        cache_write_tokens=6000,
+        latency_ms=3100,
+    )
+    second = run.Usage(
+        model="claude-sonnet-5",
+        input_tokens=120,
+        output_tokens=60,
+        cache_read_tokens=6000,
+        cache_write_tokens=500,
+        latency_ms=900,
+    )
+    r = run.Result(case, "", "", [], True, "", calls=[run.call_of(first), run.call_of(second)])
+    row = run.case_row(r)
+    rows = row["per_call"]
+    assert [c["output_tokens"] for c in rows] == [400, 60]
+    for key in ("input_tokens", "output_tokens", "cache_read_tokens", "latency_ms"):
+        assert sum(c[key] for c in rows) == row[key]
+    assert rows[1]["cache_write_tokens"] == 500
+    assert rows[0]["model"] == "claude-sonnet-5"
+
+
+def test_a_small_call_from_the_sink_is_marked_apart_from_the_turns_own(run, monkeypatch):
+    """The turn's calls come first and the sink's after them, though the reader
+    ran in the middle of the loop. Each row says which it was, so call 2 means
+    the turn's second call."""
+    from offload_agent import ledger
+
+    case = run.Case(id="c", why="", surface="stub", input="x", expect={}, principle="1", fixture={})
+
+    async def stub(client, case, model):
+        ledger.record({"model": "claude-haiku-4-5", "inputTokens": 50, "latencyMs": 400})
+        return run.Result(
+            case, "", "", [], True, "", calls=[run.call_of({"model": "m", "latencyMs": 7})]
+        )
+
+    monkeypatch.setitem(run._SURFACES, "stub", stub)
+    monkeypatch.setitem(run.MODELS, "stub", "m")
+    import asyncio
+
+    r = asyncio.run(run._run_one(None, case, asyncio.Semaphore(1), {}))
+    assert [c["via"] for c in run.case_row(r)["per_call"]] == ["turn", "ledger"]
+
+
+def test_compare_reads_where_a_surface_spends_its_output(compare):
+    """Per surface, the share of the turn's output on its first call, and the
+    second call's cache write against the first call's output: whether the
+    first call's thinking is written to the cache again."""
+
+    def call(out, write=0, via="turn"):
+        return {
+            "model": "m",
+            "input_tokens": 0,
+            "output_tokens": out,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": write,
+            "latency_ms": 0,
+            "via": via,
+        }
+
+    record = {
+        "cases": [
+            {"id": "a", "surface": "file", "per_call": [call(300, 4000), call(100, 600)]},
+            {
+                "id": "b",
+                "surface": "file",
+                "per_call": [call(100), call(100, 200), call(50, via="ledger")],
+            },
+            {"id": "c", "surface": "answer", "per_call": [call(80)]},
+        ]
+    }
+    out = compare.per_call(record)
+    assert out["file"]["cases"] == 2
+    assert out["file"]["looped"] == 2
+    assert out["file"]["first_call_output_share"] == pytest.approx(400 / 600)
+    assert out["file"]["second_write_over_first_output"] == pytest.approx(800 / 400)
+    assert out["answer"]["looped"] == 0
+    assert out["answer"]["second_write_over_first_output"] is None
+
+
 # ---------------------------------------------------------------------------
 # Subsets
 
@@ -454,3 +542,132 @@ def test_a_candidate_run_is_not_its_own_history(compare, tmp_path):
     }
     rates_ = compare.history_for(after, log, prompts=["aaaa"])
     assert rates_["c"] == (0, 1)
+
+
+def test_metrics_price_per_turn_writes_as_production_pays_them(run):
+    """The warm day prices every cache write as a read, the turn's own tail
+    included, and that tail can never be warm in production: the account part
+    and the question are written on the first call of every turn, and each
+    later call writes what the one before it added. `prod_cost_usd` keeps only
+    the surface's shared prefix warm (round 2, 2026-10-13).
+
+    Two calls on Opus 5 ($5 in, $25 out, read at a tenth, write at 1.25x),
+    shared prefix P = 1,000. The eval read 1,200 on call 0 because the same
+    fixture ran minutes earlier; production reads P and writes the 200 past
+    it. Call 1 reads the 1,200 call 0 cached and writes its own 300."""
+    calls = [
+        {
+            **run.call_of(
+                {
+                    "model": "claude-opus-5",
+                    "inputTokens": 4,
+                    "outputTokens": 50,
+                    "cacheReadTokens": 1200,
+                    "cacheWriteTokens": 0,
+                }
+            ),
+            "via": "turn",
+            "prefix_tokens": 1000,
+        },
+        {
+            **run.call_of(
+                {
+                    "model": "claude-opus-5",
+                    "inputTokens": 2,
+                    "outputTokens": 30,
+                    "cacheReadTokens": 1200,
+                    "cacheWriteTokens": 300,
+                }
+            ),
+            "via": "turn",
+            "prefix_tokens": 1000,
+        },
+    ]
+    m = run.metrics_of(calls)
+    # call 0: 4 x 5 + 1000 x 0.5 + 200 x 6.25 + 50 x 25 = 3,020
+    # call 1: 2 x 5 + 1200 x 0.5 + 300 x 6.25 + 30 x 25 = 3,235
+    assert run.prod_cost(calls) == pytest.approx(6255 / 1e6)
+    assert m["prod_cost_usd"] == pytest.approx(6255 / 1e6, abs=1e-5)
+    # call 0: 20 + 600 + 1250 = 1,870; call 1: 10 + 750 + 750 = 1,510
+    assert m["warm_cost_usd"] == pytest.approx(3380 / 1e6)
+
+
+def test_prod_cost_is_the_warm_cost_where_the_prefix_is_unknown_or_shared(run):
+    """A call with no measured prefix (an older record, a small call through
+    the ledger) is priced warm, never guessed at. A prefix larger than what
+    the call cached is clamped to it: nothing is a write that was not sent."""
+    ledger = {
+        **run.call_of({"model": "claude-haiku-4-5", "inputTokens": 900, "outputTokens": 10}),
+        "via": "ledger",
+    }
+    shared = {
+        **run.call_of(
+            {
+                "model": "claude-haiku-5-5",
+                "inputTokens": 300,
+                "outputTokens": 40,
+                "cacheReadTokens": 4152,
+            }
+        ),
+        "via": "turn",
+        "prefix_tokens": 5000,
+    }
+    unknown = {
+        **run.call_of(
+            {
+                "model": "claude-opus-5",
+                "inputTokens": 2,
+                "outputTokens": 40,
+                "cacheReadTokens": 7000,
+            }
+        ),
+        "via": "turn",
+    }
+    for calls in ([ledger], [shared], [unknown]):
+        m = run.metrics_of(calls)
+        assert m["prod_cost_usd"] == pytest.approx(m["warm_cost_usd"])
+
+
+def test_a_turn_prefix_is_the_largest_request_on_the_turn_model(run):
+    """The tap keeps what each request sent before the conversation; the
+    turn's shared prefix is its largest system and tools on the turn's model,
+    so a classify or a look on the way through is never taken for it."""
+    tap = run._PrefixTap(object())
+    tap.seen = [
+        {"model": "claude-haiku-4-5", "system": "x" * 5000, "tools": []},
+        {"model": "claude-haiku-5-5", "system": "short", "tools": []},
+        {"model": "claude-haiku-5-5", "system": "the filing prompt", "tools": [{"name": "a"}]},
+    ]
+    assert tap.turn_request("claude-haiku-5-5")["system"] == "the filing prompt"
+    assert tap.turn_request("claude-opus-5") is None
+
+
+def test_compare_prints_a_prod_day_and_gates_on_the_warm_one(compare):
+    """The prod day is read beside the warm day; the gate is unchanged."""
+    before = _record([(str(i), True, 1000, 0.02) for i in range(20)])
+    for c in before["cases"]:
+        c["warm_cost_usd"] = 0.010
+        c["prod_cost_usd"] = 0.013
+    out = compare.compare(before, before)
+    assert out["daily_prod_cost_usd"]["before"] == pytest.approx(
+        out["daily_warm_cost_usd"]["before"] * 1.3
+    )
+    assert out["surfaces"][before["cases"][0]["surface"]]["prod_cost_usd"][
+        "before"
+    ] == pytest.approx(0.26)
+    assert "prod day" in compare.render(out)
+
+
+def test_compare_gives_no_prod_ratio_against_a_record_without_one(compare):
+    """A base recorded before the prod cost existed reads as warm, and a ratio
+    of prod over that is a pricing change, not a candidate's: none is given."""
+    before = _record([(str(i), True, 1000, 0.02) for i in range(20)])
+    for c in before["cases"]:
+        c["warm_cost_usd"] = 0.010
+    after = _record([(str(i), True, 1000, 0.02) for i in range(20)])
+    for c in after["cases"]:
+        c["warm_cost_usd"] = 0.010
+        c["prod_cost_usd"] = 0.013
+    out = compare.compare(before, after)
+    assert out["daily_prod_cost_usd"]["ratio"] is None
+    assert "no prod cost before" in compare.render(out)

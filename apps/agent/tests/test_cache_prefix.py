@@ -147,3 +147,84 @@ async def test_a_call_never_sends_more_than_four_marks():
     await plan_answer(model2, answer_ctx(memories_by_query=True), "claude-opus-5", Recorder())
     for request in model.requests + model2.requests:
         assert _marks(request) <= 4
+
+
+# The burst that broke the mark: a dump filed into the third thread from
+# another screen. The next dump's threads come back with that one first, and
+# its labels with the on-screen thread's first. Neither is the account's
+# context changing, so neither may move a byte before the mark.
+BURST = [
+    Thread(id="t1", name="Flat admin", is_default=True),
+    Thread(id="t2", name="Lisbon trip", is_default=False),
+    Thread(id="t3", name="Groceries", is_default=False),
+]
+BURST_LABELS = [
+    LabelRef(id="l1", thread_id="t2", name="flights"),
+    LabelRef(id="l2", thread_id="t3", name="weekly"),
+    LabelRef(id="l3", thread_id="t2", name="hotels"),
+]
+
+
+def recent_first(order: list[str]) -> list[Thread]:
+    by_id = {t.id: t for t in BURST}
+    return [by_id[i] for i in order]
+
+
+def labels_first(thread_id: str) -> list[LabelRef]:
+    return sorted(BURST_LABELS, key=lambda label: label.thread_id != thread_id)
+
+
+def test_a_burst_across_threads_and_screens_keeps_the_dump_prefix():
+    first = build_blocks(
+        dump_ctx(
+            threads=recent_first(["t2", "t1", "t3"]), labels=labels_first("t2"), looking_at=BURST[1]
+        )
+    )
+    second = build_blocks(
+        dump_ctx(
+            threads=recent_first(["t3", "t2", "t1"]), labels=labels_first("t3"), looking_at=BURST[2]
+        )
+    )
+    assert prefix(first) == prefix(second)
+
+
+def test_a_burst_across_threads_and_screens_keeps_the_answer_prefix():
+    first = build_answer_blocks(
+        answer_ctx(threads=recent_first(["t2", "t1", "t3"]), looking_at=BURST[1])
+    )
+    second = build_answer_blocks(
+        answer_ctx(threads=recent_first(["t3", "t2", "t1"]), looking_at=BURST[2])
+    )
+    assert prefix(first) == prefix(second)
+
+
+def test_recency_is_still_said_after_the_mark():
+    # Recency is a filing signal: where an unlabelled dump goes.
+    blocks = build_blocks(dump_ctx(threads=recent_first(["t3", "t2", "t1"])))
+    before = "\n".join(b["text"] for b in prefix(blocks))
+    after = "\n".join(b.get("text", "") for b in blocks[len(prefix(blocks)) :])
+    assert "most recent" not in before
+    assert "t3, t2, t1" in after
+
+
+def test_a_question_carries_no_recency_line():
+    # Nothing in answering reads it, and after the mark it is written fresh on
+    # every question. The threads are listed once, in the cached part.
+    blocks = build_answer_blocks(answer_ctx(threads=recent_first(["t3", "t2", "t1"])))
+    text = "\n".join(b.get("text", "") for b in blocks)
+    assert "most recent use" not in text
+    assert "t3, t2, t1" not in text
+
+
+async def test_a_turn_with_a_photo_never_sends_more_than_four_marks():
+    from offload_agent.context import Photo
+
+    model = StubModel([Response(content=[TextBlock("ok")], stop_reason="end_turn")])
+    await plan(
+        model,
+        dump_ctx(memories_by_query=True, photos=[Photo(blob_id="b1", index=1, large=b"x")]),
+        "claude-sonnet-5",
+        Recorder(),
+    )
+    assert _marks(model.requests[0]) <= 4
+    assert len(model.requests[0]["system"]) == 2

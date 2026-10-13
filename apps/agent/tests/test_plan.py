@@ -1578,16 +1578,50 @@ def test_every_tool_is_decided_for_the_loop_end():
     assert not MAY_END_THE_TURN & KEEPS_THE_TURN_GOING
 
 
-async def test_an_ask_only_response_keeps_the_turn_going_for_a_second_ask():
-    """The prompt allows two asks a turn and the model sends them one a
-    response, so the loop cannot end on the first (round 2 skeptic)."""
+async def test_an_ask_only_response_naming_a_landed_row_ends_the_turn():
+    """The prompt puts every question in one response, after every filing, so
+    an ask-only response about a row that landed has nothing left to read."""
     ask = {"field": "date", "title": "Renew permit", "content_id": "c1"}
     model = StubModel(
         [
             Response(content=[_task()], stop_reason="tool_use"),
             Response(content=[ToolUse(id="q1", name="ask", input=ask)], stop_reason="tool_use"),
+            _closer(),
+        ]
+    )
+
+    outcome = await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 2
+    assert outcome.finished
+    assert len(outcome.questions) == 1
+
+
+async def test_an_ask_naming_a_row_that_never_landed_keeps_the_turn_going():
+    ask = {"field": "date", "title": "Renew permit", "content_id": "c9"}
+    model = StubModel(
+        [
+            Response(content=[_task()], stop_reason="tool_use"),
+            Response(content=[ToolUse(id="q1", name="ask", input=ask)], stop_reason="tool_use"),
+            _closer(),
+        ]
+    )
+
+    await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert len(model.requests) == 3
+
+
+async def test_an_ask_beside_a_filing_keeps_the_turn_going_without_tier_two():
+    from offload_agent.harness import plan as plan_module
+
+    assert plan_module.END_AFTER_CLEAN_WRITES is False
+    ask = {"field": "date", "title": "Renew permit", "content_id": "c1"}
+    model = StubModel(
+        [
+            Response(content=[_task()], stop_reason="tool_use"),
             Response(
-                content=[ToolUse(id="q2", name="ask", input={**ask, "field": "time"})],
+                content=[ToolUse(id="q1", name="ask", input=ask), _task(id_="b")],
                 stop_reason="tool_use",
             ),
             _closer(),
@@ -1596,7 +1630,7 @@ async def test_an_ask_only_response_keeps_the_turn_going_for_a_second_ask():
 
     await plan(model, ctx(), "claude-sonnet-5", Recorder())
 
-    assert len(model.requests) == 4
+    assert len(model.requests) == 3
 
 
 async def test_a_say_after_a_read_still_waits_for_the_filing():
@@ -1623,3 +1657,257 @@ async def test_a_say_after_a_read_still_waits_for_the_filing():
 
     assert len(outcome.landed) == 1
     assert len(model.requests) == 4
+
+
+# The account's facts are read before the first call, not by it. Asked which
+# calendars offload reads, the model used to spend a whole call asking for a
+# small, account-stable payload and a second one writing a two word reply.
+
+_FACTS = {
+    "displayName": "Sam",
+    "defaultThread": {"id": "t0", "name": "not in a thread"},
+    "calendars": [{"name": "Work", "threads": ["Lisbon"]}],
+    "knowsDevicePreferences": False,
+}
+
+
+def _answer_ctx() -> AnswerContext:
+    return AnswerContext(
+        question="which calendars do you read",
+        threads=[Thread(id="t1", name="Lisbon", is_default=False)],
+        has_calendar=True,
+    )
+
+
+async def test_an_answering_turn_carries_the_account_facts_in_the_accounts_part():
+    model = StubModel([Response(content=[TextBlock("Work.")], stop_reason="end_turn")])
+    caller = Recorder([{"ok": True, "facts": _FACTS}])
+    await plan_answer(model, _answer_ctx(), "claude-opus-5", caller)
+
+    assert [c[0] for c in caller.calls] == ["account_facts"]
+    blocks = model.requests[0]["messages"][0]["content"]
+    mark = next(i for i, b in enumerate(blocks) if b.get("cache_control"))
+    holding = [i for i, b in enumerate(blocks) if '"Work"' in b.get("text", "")]
+    assert holding == [mark], "the facts are the last block of the account's cached part"
+    assert "setting" in blocks[mark]["text"]
+    assert "not something offload remembers" in blocks[mark]["text"]
+    # Swarm v2 round 2: the facts are already in the turn, so the read is not
+    # offered again. Its definition was cached prefix on every call and the
+    # prompt already says to reach for it only when the facts are not there.
+    assert "account_facts" not in [t["name"] for t in model.requests[0]["tools"]]
+
+
+async def test_a_failed_facts_read_keeps_the_account_facts_tool():
+    model = StubModel([Response(content=[TextBlock("Not sure.")], stop_reason="end_turn")])
+    caller = Recorder([{"ok": False, "error": "unavailable"}])
+    await plan_answer(model, _answer_ctx(), "claude-opus-5", caller)
+    assert "account_facts" in [t["name"] for t in model.requests[0]["tools"]]
+
+
+async def test_the_answering_turn_offers_an_ask_that_only_asks_which_country():
+    """The answer path's `ask` says what the answer path does. The filing
+    path's description is about the row just filed, dates, spans and thread
+    picks, none of which an answering turn may ask, and the server refuses
+    them from here anyway."""
+    from offload_agent.harness.tools import ASK_TOOL
+
+    model = StubModel([Response(content=[TextBlock("Work.")], stop_reason="end_turn")])
+    await plan_answer(
+        model, _answer_ctx(), "claude-opus-5", Recorder([{"ok": True, "facts": _FACTS}])
+    )
+    ask = next(t for t in model.requests[0]["tools"] if t["name"] == "ask")
+    assert ask["input_schema"]["properties"]["field"]["enum"] == ["country"]
+    assert "country" in ask["description"]
+    assert len(ask["description"]) < len(ASK_TOOL["description"]) / 2
+
+
+async def test_a_failed_facts_read_sends_no_facts_block():
+    model = StubModel([Response(content=[TextBlock("Not sure.")], stop_reason="end_turn")])
+    caller = Recorder([{"ok": False, "error": "unavailable"}])
+    await plan_answer(model, _answer_ctx(), "claude-opus-5", caller)
+
+    texts = [b.get("text", "") for b in model.requests[0]["messages"][0]["content"]]
+    assert not any("Their account as offload holds it" in t for t in texts)
+
+
+async def test_a_facts_read_that_raises_still_answers():
+    class Broken(Recorder):
+        async def __call__(self, tool, tool_call_id, args):
+            if tool == "account_facts":
+                raise RuntimeError("network")
+            return await super().__call__(tool, tool_call_id, args)
+
+    model = StubModel([Response(content=[TextBlock("Not sure.")], stop_reason="end_turn")])
+    outcome = await plan_answer(model, _answer_ctx(), "claude-opus-5", Broken())
+    assert outcome.reply == "Not sure."
+
+
+async def test_the_photo_and_pdf_rules_are_sent_only_with_a_photo_or_a_pdf():
+    """The swarm's media block. A text turn does not re-read the rules for
+    pictures and PDFs on every call; a turn that carries one reads them as a
+    second system block after the common prompt, which stays byte-identical so
+    both kinds of turn share one cached prefix."""
+    from dataclasses import replace
+
+    from offload_agent.context import Pdf, Photo
+
+    sent = {}
+    for name, over in (
+        ("text", {}),
+        ("photo", {"photos": [Photo(blob_id="b1", index=1)]}),
+        ("pdf", {"pdfs": [Pdf(blob_id="b2", index=1, pages=2)]}),
+    ):
+        model = StubModel([Response(content=[TextBlock("")], stop_reason="end_turn")])
+        await plan(model, replace(ctx(), **over), "m", Recorder())
+        sent[name] = model.requests[0]["system"]
+
+    assert len(sent["text"]) == 1
+    assert "## Photos" not in sent["text"][0]["text"]
+    assert "## PDFs" not in sent["text"][0]["text"]
+    for name in ("photo", "pdf"):
+        common, media = sent[name]
+        assert common == sent["text"][0]
+        assert media["text"].startswith("## Photos")
+        assert "## PDFs" in media["text"]
+        assert "<!--" not in media["text"]
+
+
+def _on_screen(notes):
+    from dataclasses import replace
+
+    from offload_agent.context import ThreadNotes
+
+    return replace(
+        ctx(),
+        looking_at=Thread(id="t1", name="Flat admin", is_default=True),
+        looking_at_notes=notes if notes is not None else ThreadNotes(),
+    )
+
+
+_CARRIED = {
+    "notes": [{"text": "Titles are three words", "writtenAt": "2026-09-01T09:00:00.000Z"}],
+    "notesFromMembers": [{"text": "a member line", "writtenAt": "2026-09-01T09:00:00.000Z"}],
+    "notesFromApps": [{"text": "an app line", "writtenAt": "2026-09-01T09:00:00.000Z"}],
+}
+
+
+async def test_a_filing_into_the_thread_on_screen_does_not_hand_its_notes_back_twice(monkeypatch):
+    """The turn already carries them, so the result drops them: the tokens move
+    rather than double, and where clean writes end the turn, the closing call a
+    result's notes forced goes too."""
+    from offload_agent.context import ThreadNote, ThreadNotes
+    from offload_agent.harness import plan as planning
+
+    monkeypatch.setattr(planning, "END_AFTER_CLEAN_WRITES", True)
+
+    notes = ThreadNotes(yours=[ThreadNote(text="Titles are three words", written_at="2026-09-01")])
+    model = StubModel(
+        [Response(content=[_task(due_at="2026-10-01")], stop_reason="tool_use"), _closer()]
+    )
+    tools = Recorder(
+        [{"ok": True, "threadId": "t1", "threadName": "Flat admin", "contentId": "c1", **_CARRIED}]
+    )
+
+    outcome = await plan(model, _on_screen(notes), "claude-sonnet-5", tools)
+
+    assert len(model.requests) == 1
+    assert outcome.finished
+
+
+async def test_a_dropped_result_carries_no_notes_keys_to_the_model():
+    from offload_agent.context import ThreadNotes
+
+    model = StubModel(
+        [
+            Response(content=[_task(), _task(id_="b", thread_id="t2")], stop_reason="tool_use"),
+            _closer(),
+        ]
+    )
+    tools = Recorder(
+        [
+            {
+                "ok": True,
+                "threadId": "t1",
+                "threadName": "Flat admin",
+                "contentId": "c1",
+                **_CARRIED,
+            },
+            {"ok": True, "threadId": "t2", "threadName": "Other", "contentId": "c2", **_CARRIED},
+        ]
+    )
+
+    await plan(model, _on_screen(ThreadNotes()), "claude-sonnet-5", tools)
+
+    sent = model.requests[1]["messages"][-1]["content"]
+    on_screen, other = (json.loads(b["content"]) for b in sent)
+    assert not {"notes", "notesFromMembers", "notesFromApps"} & set(on_screen)
+    # Another thread's notes are not in the turn, so they still come back.
+    assert other["notes"] == _CARRIED["notes"]
+
+
+async def test_notes_the_turn_did_not_load_still_come_back():
+    model = StubModel([Response(content=[_task()], stop_reason="tool_use"), _closer()])
+    tools = Recorder(
+        [{"ok": True, "threadId": "t1", "threadName": "Flat admin", "contentId": "c1", **_CARRIED}]
+    )
+    plain = ctx()
+    from dataclasses import replace
+
+    await plan(
+        model,
+        replace(plain, looking_at=Thread(id="t1", name="Flat admin", is_default=True)),
+        "claude-sonnet-5",
+        tools,
+    )
+
+    sent = json.loads(model.requests[1]["messages"][-1]["content"][0]["content"])
+    assert sent["notes"] == _CARRIED["notes"]
+
+
+
+# Classify answers in one word, read in code. No tool, so no forced
+# `tool_choice` preamble or schema on the way in and no JSON on the way out.
+
+
+class _OneWordClient:
+    def __init__(self, reply: list):
+        self.reply = reply
+        self.calls: list[dict] = []
+        self.messages = self
+
+    async def create(self, **kwargs):
+        self.calls.append(kwargs)
+        return Response(self.reply, Usage(400, 2))
+
+
+async def _classify(reply: list):
+    from offload_agent.harness.plan import classify
+
+    client = _OneWordClient(reply)
+    verdict = await classify(client, "when is the dentist", "claude-haiku-4-5")
+    return client.calls[0], verdict
+
+
+async def test_classify_sends_no_tool_and_asks_for_one_word():
+    call, _ = await _classify([TextBlock("asking")])
+    assert "tools" not in call and "tool_choice" not in call
+    assert call["max_tokens"] <= 8
+
+
+async def test_classify_reads_its_one_word():
+    for word, routes in (
+        ("asking", (True, True)),
+        ("Asking.", (True, True)),
+        (" telling\n", (False, True)),
+        ("unsure", (False, False)),
+    ):
+        _, verdict = await _classify([TextBlock(word)])
+        assert (verdict.asking, verdict.confident) == routes, word
+
+
+async def test_anything_but_asking_files():
+    refusal = [TextBlock("I cannot help with that")]
+    replies = ([TextBlock("maybe asking")], [TextBlock("")], [], refusal)
+    for reply in replies:
+        _, verdict = await _classify(reply)
+        assert not (verdict.asking and verdict.confident), reply

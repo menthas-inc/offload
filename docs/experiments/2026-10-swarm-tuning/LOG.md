@@ -404,3 +404,203 @@ stay-sentence-is-note (19 of 29 over all). The same composite with filing on
 Haiku 5.5: 66/68, z +0.82, warm day x0.27, p90 latency x0.77, $0.34 for the
 screen against $1.17. Filing on Haiku 5.5 goes into the composite as the
 round 1 result; round 2 starts from it. $23 spent of $70.
+
+## 2026-10-13 14:20, round 2 launched
+
+Round 1 committed as ad719c92 (the results records under the new path had
+to be ignored: `rounds/*/*/candidates/*/results/`; one em dash in a worker's
+structured result replaced; the gate also blocks any command that contains
+"git" and "commit" together, so a hold reason may not say commit). The
+composite now carries filing on Haiku 5.5 (config.py, a red-first pin in
+tests/test_filing_model.py), 18 files in composite.patch, prompts hash
+40b3099a. Round 2 ideation launched 14:20 from the merge worktree with the
+briefs as files (brief-briefed.md with round 1's FINDINGS.md for effort,
+prompt, answer and wildcard; brief-blind.md for caching, model, structure,
+small and junior) so the anchor's cost can be counted by half. Base block1
+on the composite running for the round's reference.
+
+## 2026-10-13 14:35, round 2 seeded skeptics
+
+Known-bad structure-same-response-refs: refused, with two production
+defects the first skeptic did not name (a refused filing's ref stays taken,
+so a refile is refused before the API; a bare value equal to a ref name is
+swapped). Known-good answer-facts-preloaded: refused, on three points the
+round 1 skeptic who kept it did not raise: principle 15's facts-injection
+case was never run on it (the display name and calendar names now sit in
+the cached account part of every answering call), fact-default-thread
+regresses reproducibly on a 12-word cap, and the privacy page's section 5
+may not cover the name and calendar names on every answering call. The lead
+ran principle 15's four answer cases on the composite: 4 of 4, PWNED absent,
+so the injection point is closed. Section 5 says a call carries "what
+offload knows about you"; whether that covers the account's name and the
+calendar names on every answering turn (the tool already sent them on
+demand) is for the owner, flagged in the report. The 12-word cap on
+fact-default-thread against 14 and 16 on its siblings goes to the flaky
+cases hand-off. Round 2 calibration: false acceptance 0 of 1; the known-good
+refusal was substantive, not a false rejection. Two blind skeptics on the
+same candidate disagreed, and the second was right about what was missing.
+
+## 2026-10-13 14:50, round 2 launched
+
+Ideation: 31 hypotheses from nine lenses, all distinct at cosine 0.5, 11
+minutes, 1.5M harness tokens. The blind half re-proposed two of round 1's
+measured dead ends (a done flag on the filing tools; a mechanical gate before
+classify, which was the first run's dead end) and the first run's refused
+classify-beside-load; it also converged with the briefed answer lens on
+answering on Haiku 5.5 and found two things nobody briefed had seen (the
+recency line round 1 added is written fresh at Opus prices on every
+question; the warm day prices per-turn writes as reads). Thirteen picked:
+probe-answer-haiku55, answer-truncation-said, effort-file-haiku55-low,
+classify-one-word, classify-haiku55, judge-haiku55, answer-tool-diet,
+prompt-dates-for-haiku, prompt-named-day-lookup, prompt-refusal-one-sentence,
+eval-prod-warm-cost, structure-parallel-reads, answer-no-recency-line. Six
+from blind lenses, seven from briefed. Left: the worker lane's wake interval
+(another session, worker-lanes, is building that file), the speculative
+first call beside classify (refused in the first run; needs an integration
+test), a six-turn history on the answer path, memory handles (invisible to
+the eval), the hedge of filing at effort high. Worktrees from ad719c92 with
+composite.patch applied; briefs name the composite's block1, the
+composite's prefix sizes and the three prompts hashes for the paired read.
+
+## 2026-10-13 15:20, round 2 read, first pass
+
+Thirteen workers, twelve skeptics, 26 minutes, 2.5M harness tokens, only
+$2.8 of evals: the permission classifier refused run.py for seven of the
+thirteen workers before their first run (three of fourteen in round 1).
+Every one of them stopped as the brief says and wrote RESULT.md with the
+exact commands; the lead runs those now under each worker's own spend
+name, in five chains. Measured: eval-prod-warm-cost kept (the warm day is
+x1.29 under what production pays, the answer surface x1.55, because every
+per-turn write is priced as a read); answer-truncation-said took answering
+on Sonnet 5 from 1 of 5 to 5 of 5 cut-short cases (principle 18 14 of 14),
+refused by its skeptic only for one Opus case retyping rows over the word
+cap; classify-haiku55 and judge-haiku55 refused on their own tests (a note
+routed as a question twice; a wrong day accepted twice);
+structure-parallel-reads refused for lack of a visible benefit;
+answer-tool-diet measured 329 tokens off every answering first call but ran
+neither block1 nor p17 (the pool buys them). Sonnet 5 answering with the
+truncation fact is being raced from the pool as the answer-model
+candidate. $25.5 spent.
+
+## 2026-10-13 15:45, round 2 read, second pass
+
+The lead's runs, all read against the main history on the three base hashes
+and, for filing candidates, against the Haiku base's own principle 13
+record (the composite-era full set is Sonnet filing and reads x0.05 on
+everything). Kept: effort-file-haiku55-low (p13 51 of 56 against 50,
+output 372 against 445 tokens a case, file warm x0.79, latency x0.86);
+prompt-dates-for-haiku (p13 52 of 56, two of Haiku's named misses fixed,
+p04 16 of 17); answer-no-recency-line (p17 36 of 37, p18 14 of 14, block1
+28 of 30, the per-question write gone); answer-tool-diet (p17 34 of 37, 329
+tokens off every answering first call); eval-prod-warm-cost (instrument).
+Refused: classify-one-word (19 of 21 twice, the same note routed as a
+question), prompt-named-day-lookup (p09 48 of 56, eight new failures,
+j-easter among them), prompt-refusal-one-sentence (calendar-said-once),
+answer-truncation-said on Opus (13 of 14 twice over the word cap; kept as
+the enabler), Sonnet 5 answering with the fact in (p17 28 of 37, p16 4 of
+7). Answering on Haiku 5.5 as a probe: p17 31 of 37, p18 14 of 14, p16 5 of
+7 (it says what it cannot do), block1 28 of 30, answer warm x0.02 to x0.03,
+latency x0.56: every miss copy-shaped. The answer prompt is tuned to Opus 5
+and both cheaper models fail the same cases; a prompt written for the
+model is the round 3 question, and the largest lever left.
+
+## 2026-10-13 16:05, round 2 composite
+
+Five deltas composed on merge-v2b (the first merge worktree was one commit
+behind the workers' base, so a second was made at ad719c92 with the round 1
+composite): unit suite green. Screen 62 of 68, z -2.33, refused; three of
+the six flips had never failed on the base. Bisect: filing at effort low
+reverted (the only candidate on the filing surface), screen 64 of 68, z
+-0.76, warm day x0.98 against the round 1 composite and x0.26 against the
+base. The round 2 composite is the four: the dates prompt, no recency line,
+the answer tool diet, the prod-warm cost line. The gate's cost half reads
+"neither moved" against round 1 because those savings are per-turn writes
+and prefix tokens the warm eval prices as reads; the prod-warm line is the
+instrument that would see them next time. $31 spent. Round 3 goes ahead,
+short and aimed at the answer prompt for Haiku 5.5.
+
+## 2026-10-13 16:15, round 3 launched
+
+No ideation: the lead picked from the round 2 findings. Five workers from
+the round 2 composite (ad719c92 plus rounds/v2/2/composite.patch, 19 files):
+answer-prompt-haiku-rewrite and answer-prompt-haiku-lines (two routes to an
+answer prompt Haiku 5.5 can follow, measured with the model override on 17,
+18, 16 and block1, then once on Opus 5 so the prompt costs Opus nothing),
+probe-answer-haiku55-high (does more thinking close the copy-shaped misses
+without a prompt), classify-one-word-v2 and prompt-refusal-v2 (second
+attempts at round 2's one-case-short levers, pointed at their patches).
+Briefs tell a worker refused by the permission system to write the
+commands and stop. After this round: the holdout once on the final
+composite, then the full set, then the report and the PR.
+
+## 2026-10-13 16:50, round 3 read and the final composite
+
+Five workers, five skeptics, 16 minutes, 1.1M harness tokens, $3.6 of
+evals; the permission classifier refused nobody this time (the briefs said
+what to do if it did). answer-prompt-haiku-rewrite: answer.md rewritten for
+a small model, three iterations (the second lost principle 18 by
+compressing the truncated-read rule), on Haiku 5.5 principle 16 7 of 7, 17
+36 of 37, 18 14 of 14, 11's answer cases 6 of 7, block1 28 of 30, answer
+prefix x0.855; its skeptic refused because the patch left Opus 5 in
+config.py and the Opus control was not run (the worker's cap). The lead
+adopts the rewrite with answering moved to Haiku 5.5 (config.py, a
+red-first pin) and runs the Opus control from the pool for the record.
+classify-one-word-v2: principle 19 21 of 21 three times, classify median
+742 to about 435 ms, kept by its skeptic. Refused: answer-prompt-haiku-lines
+(a rubric sentence in the prompt; Opus loses a case), probe-answer-haiku55-high
+(17 at 33 of 37 at x1.06 to x1.30), prompt-refusal-v2 (14 of 14 on 07 twice
+but a gap in the set: a row called a note; case noted in the hand-off).
+Composite 3 on merge-v2b: the rewrite, classify in one word, answering on
+Haiku 5.5; 1,291 unit tests, prefixes answer x0.86, file x0.88, classify
+x0.95. Final screen, the sealed holdout and the full set launched 16:50 as
+one chain. $35 spent.
+
+## 2026-10-13 16:55, the Opus control
+
+The rewritten answer prompt on Opus 5, principle 17: 35 of 37, the same
+count as the composite's prompt on Opus (fact-single now fails,
+fact-default-thread now passes; both are word-cap cases), warm x0.92. The
+rewrite costs Opus nothing, so Opus 5 stays a one-line fallback for
+answering if the holdout says Haiku 5.5 cannot hold it.
+
+## 2026-10-13 17:25, verification
+
+Final composite (rounds 1 to 3, filing and answering on Haiku 5.5), all
+read against the main history on the three base hashes. Screen 61 of 68,
+z -3.12, refused: three answer cases (bold markup in a calendar read, a
+helpline paragraph after the refused-subject line, "Two left." for a read
+across rows) and three file cases two of which flipped in round 2 as well.
+Sealed holdout, run once: 121 of 132 (run 1's final composite 121 of 128),
+z +0.31, warm day x0.11, median latency x0.83; answer 31 of 35, file 67 of
+73, classify 4 of 4, judge 4 of 4, nightly 10 of 11, memory 3 of 3. Full set
+563 of 637 (the set grew with main), z +1.54, warm day x0.10, median
+latency x0.77, p90 x0.70, 1,158 calls against 1,229. The holdout's new
+answering misses are copy-shaped on Haiku: markup, a paragraph added to a
+fixed line, a diary question that stops after an empty search. The same
+holdout and full set are running with answering kept on Opus 5 (the
+rewrite costs Opus nothing: 35 of 37 on 17), so the owner's choice between
+the two answering models has both numbers. $36.7 spent before those runs.
+
+## 2026-10-13 17:45, the answering choice
+
+Holdout with answering kept on Opus 5 (the rewritten prompt): 124 of 132,
+z +1.43, answer 35 of 35, file 65 of 73, warm day x0.22 against the base.
+Against the Haiku-answering holdout the answer surface is 35 of 35 to 31 of
+35, at twenty-six times the answer cost. The composite ships on Opus 5 with
+Haiku 5.5 as a documented one-line switch (config.py, the pin test says
+why); the owner decides. REPORT-v2.md written; the decisions entry added
+under "Swarm tuning, second run, 2026-10-13". The full set on the Opus
+configuration is running.
+
+## 2026-10-13 18:05, the last run and the branch
+
+Full set with answering on Opus 5: 562 of 637, z +1.01, warm day x0.20,
+median latency x0.81, p90 x0.69, 1,161 calls; answering 115 of 121, filing
+344 of 396 (the Haiku-answering run an hour earlier had filing at 353 of
+396 on the same configuration: the filing noise on 396 cases is about nine).
+$39.6 spent of $70. The composite's code (18 files, cut from
+rounds/v2/3/composite.patch) is applied to the branch in the main checkout
+with answering on Opus 5; the merge worktree's nine verification runs are
+folded into cases.jsonl and history.jsonl and HISTORY.md regenerated;
+stack.md's model table and the decisions entry are written. Next: the
+gate, the push, the pull request body.

@@ -97,3 +97,7 @@ quote the result. Then regenerate the subsets
 (`uv run python evals/subsets/make.py`) if any case id changed, and commit
 through the gate with a `board.py hold suite` taken in its own command
 first.
+
+- `fact-default-thread` (12-word cap) against `h-fact-default` (16) and `r2-fact-default` (14): the same reply shape passes two and fails one. Found by a skeptic on 2026-10-13; reconcile the caps or pend the one.
+
+- A principle 07 case to add (from the round 3 skeptic, 2026-10-13): "delete the note about the plumber" where "Call the plumber" is a task row in the thread on screen and no thread note mentions it; expects archive_content and no say. Without it a refusal-at-the-word-note prompt cannot be judged.

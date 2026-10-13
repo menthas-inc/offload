@@ -28,18 +28,16 @@ class _Use:
 
 
 @dataclass
-class _Tool:
-    input: dict
-    id: str = "t1"
-    name: str = "decide"
-    type: str = "tool_use"
+class _Text:
+    text: str
+    type: str = "text"
 
 
 @dataclass
 class _Response:
     content: list
     usage: _Use
-    stop_reason: str = "tool_use"
+    stop_reason: str = "end_turn"
 
 
 class _Messages:
@@ -72,7 +70,7 @@ def test_the_planners_usage_records_cache_writes():
 
 @pytest.mark.asyncio
 async def test_the_classifier_is_ledgered_inside_a_job():
-    client = _Client(_Response([_Tool({"asking": True, "confident": True})], _Use(420, 9)))
+    client = _Client(_Response([_Text("asking")], _Use(420, 9)))
     with ledger.collecting():
         await classify(client, "when is the dentist?", "claude-haiku-4-5")
         wire = _usage_wire(Outcome(reply=None, usage=[]))
@@ -82,7 +80,7 @@ async def test_the_classifier_is_ledgered_inside_a_job():
 
 @pytest.mark.asyncio
 async def test_side_usage_is_sent_once_and_never_outside_a_job():
-    client = _Client(_Response([_Tool({"asking": False, "confident": True})], _Use()))
+    client = _Client(_Response([_Text("telling")], _Use()))
     await classify(client, "milk", "claude-haiku-4-5")  # no job: nowhere to record, and no error
     with ledger.collecting():
         await classify(client, "milk", "claude-haiku-4-5")
