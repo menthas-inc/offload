@@ -23,6 +23,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Design system impact:** none to the component; `AnswerResult.prompt.md`'s example could show a date in `meta` beside "you, added 6 Aug".
 
+### 2026-10-13 · One question, one control, for the rows a turn asked about together
+**Surface:** iOS, Android, web
+**Raised by:** the owner, from use: "please submit the rest" about seven glass blowing classes put one more event on the calendar.
+
+**Was:** a question offload raised about several rows in one turn was drawn once and answered for one row, and the rest were dropped; eight calendar proposals on one message drew one control and left seven with no way to be agreed to; "which Sam" asked for a second thread overwrote the first.
+
+**Is:** the same question about several rows is one question, and its sentence counts them after the row's title: *Filed "Glass blowing class" and 7 more. Which calendar?*, *Filed "Dentist" and 1 more. By when?*, *Share "Lisbon trip" and 1 more with which Sam?*. The tap applies to every row, and Undo puts every one back. Proposals a turn made together on one calendar for one reason, with no guests, are one control, and its line counts them: *Everyone on this calendar will see it. 8 events.* Confirming writes every one, declining declines every one. Sentences that differ are separate questions, since the person can tell them apart and may answer apart.
+
+**Why:** 018 AC-25 and 019 AC-11. A person asked once and should be asked once; a control that stands for eight things has to say so before the tap.
+
+**Design system impact:** none to the components; the question chip and the proposal card draw the same strings, longer. `AskChips.prompt.md` and the calendar proposal example could each show the counted form.
+
 ### 2026-10-10 · Calendar: a section on Notifications, and the day's events in the morning message
 **Surface:** iOS, Android, web
 
