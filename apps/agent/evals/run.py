@@ -1986,12 +1986,14 @@ async def _file_with(
         failures.append("filed nothing and said nothing")
 
     transcript = _transcript(rec.calls, reply, outcome.questions, rec.results)
-    if outcome.because:
-        transcript += f"  (because {outcome.because})"
     judged, note = True, ""
     before = len(_spent)
     if expect.get("rubric") and not failures:
         judged, note = await _judge(client, case, transcript)
+    # The record's label, after the judge: the person never sees it, and the
+    # judge once failed a correct line for it (2026-10-13).
+    if outcome.because:
+        transcript += f"  (because {outcome.because})"
     cost = _outcome_cost(outcome) + sum(_spent[before:])
     return Result(
         case,
@@ -2888,7 +2890,9 @@ def _select(principles: list[Principle], args: argparse.Namespace) -> list[tuple
     if cast_left:
         print(f"{len(cast_left)} cast cases left out: EVAL_CAST_DATABASE_URL is not set")
     if subset is not None:
-        missing = subset - {c.id for _, c in picked} - cast_left
+        # Against every case, not the picked ones: a --surface or a pending
+        # label narrowing a subset is not a typo in it.
+        missing = subset - {c.id for p in principles for c in p.cases}
         if missing:
             # A typo would silently shrink the measurement.
             print(f"subset names cases that do not exist: {', '.join(sorted(missing))}")

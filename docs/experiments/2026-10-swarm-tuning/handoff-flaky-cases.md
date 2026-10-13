@@ -139,3 +139,42 @@ trial, a refused Haiku 5.5 classify candidate, or a run that raised.
 - The principle 07 case: **added** as `delete-the-note-that-is-a-row`.
 - Principle 30, the cast: a run with no `EVAL_CAST_DATABASE_URL` leaves the
   sixteen cast cases out and says so, instead of failing each one.
+
+## The prompt round, Haiku 5.5 filing, 2026-10-13
+
+Haiku 5.5 filed most of the lookup cases without looking up: a bare question
+about a day got `Not sure.`, a public day named by what happens on it was
+filed undated, and a plan with "check" was filed without checking.
+`plan_v2.md` now opens its lookup section with the decision and its four
+kinds, then what is never looked up. The "not offload's" line now says a
+question about a day passes that test even when it is the whole dump.
+
+| run, filing surface | before | after |
+| --- | --- | --- |
+| principle 09 | 47 of 52 | 49 of 52 (z +1.32 on history) |
+| principle 11 | 25 of 30 | 27 of 30 (z +0.90) |
+| principle 12 | 3 of 5 | 4 of 5 |
+| held-out, 18 cases written first | 16 of 18 | 18 of 18 |
+| screen, all surfaces | 62 of 68 | 64 of 68 |
+| block1 / block2 filing | | 19 of 19 (z +0.58), 17 of 19 (z +2.04) |
+| nine lookup cases, three runs each | 0 of 3 each in the full runs | 21 of 27 |
+
+Still open, each without company: `polls-open` writes "check when the polls
+open" into the row body instead of checking (1 of 3); `thread-note-not-in-query`
+says `Not sure.` inside the Istanbul thread (1 of 3); the march cases add
+"route" to the query, are refused by the bound, and retry in their words.
+`file-country-from-account` asks for a date after its lookup.
+
+Case faults found on the way:
+
+- The three 08 scope cases asked to move a standup "to 10" that the fixture
+  has at 10 Lisbon time. Haiku said so; Sonnet passed by rewriting the same
+  time. They move it to 11 now, and pass on Haiku.
+- The judge was shown the harness's `(because ...)` label after the last
+  line and failed `ask-first-write-waits-as-waiting` for it. The label is
+  added after the judge now: 3 of 3.
+- `--subset` with `--surface` stopped on "subset names cases that do not
+  exist". It checks against every case now.
+
+The held-out cases are folded into principle 09. The decision log entry for
+`docs/tech/decisions.md` is to be written on main.
