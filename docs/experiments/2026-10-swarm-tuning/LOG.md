@@ -269,7 +269,7 @@ owner's weekly Claude Code allowance, read from the app.
   files) and a fresh `~/.offload-swarm` will be made for v2. The v2 plan
   and its implementation checklist are `rounds/v2/PLAN.md`.
 
-## 2026-10-13 14:30, v2 mechanics built
+## 2026-10-13 13:05, v2 mechanics built (commit 19b25e1f)
 
 Red tests first, then: race blocks (`block1` 30, `block2` 30, `block3` 52,
 from the train cases, the twelve flaky ids left out via `subsets/flaky.json`);
@@ -285,3 +285,122 @@ exclusion list, claim board lines, the prefix gate, block1 on the worker's
 stake and a blind skeptic; the brief and the worktree script to match.
 Ruff format touched ten unrelated test files; reverted. 762 agent tests
 pass. Nothing has been spent.
+
+## 2026-10-13 13:10, v2 calibration
+
+Fresh `~/.offload-swarm` (spend log, `lead.sh` cap $40, `pool.sh` cap $24,
+`prefix-base.json`). One warm-up case ($0.04), then block1 on the base:
+29/30, $0.64, history expected 26.9 +/- 1.5 (z +1.41). Then the screen:
+67/68, $0.96, history 64.4 +/- 1.6 (z +1.67), median latency 3.7 s, warm
+day $0.0737; against run 1's last composite screen the cold cost reads
+x0.61 only because that one was cold and this one warm, which is what the
+warm-up is for. The only screen failure: maya-members-rule-does-not-decide.
+Base records in `~/.offload-swarm/baseline/` (block1, screen, and run 1's
+final full as `full.json`). $1.64 spent. Ideation of round 1 running: nine
+lenses. State and dashboard updated.
+
+## 2026-10-13 13:40, v2 round 1 launched
+
+Ideation: nine lenses, 40 hypotheses, 37 distinct at cosine 0.5 (dedup
+grouped the stable account part three ways and classify through structured
+output twice), 17 minutes. Fourteen picked, each with the lead's one-sentence
+statement, its lens's disconfirming test and threshold, and the other
+thirteen titles as its exclusion list: cache-stable-account,
+effort-answer-reply-low, eval-per-call-usage, model-file-sonnet55-v3,
+model-answer-sonnet5, small-structured-output, answer-facts-preloaded,
+structure-same-response-refs, structure-notes-on-screen,
+structure-ask-ends-turn, structure-lookup-want-repair,
+prompt-no-preread-notes, prompt-media-block, probe-file-haiku55. Left for
+round 2 or as findings: classify on Haiku 5.5 on top of structured output,
+the filing tools' own cache mark, answering with deferred tools (a beta),
+the reader's shaping call and the memory aliases (invisible to the eval),
+reading a link in code before the planner (large). Briefs are files under
+rounds/v2/1/briefs/, one per worker, because the workflow's arguments were
+38 KB with everything inline. Worktrees from 19b25e1f at a $1.60 cap each;
+try.js launched 13:40. A seed worktree at 2e743594 for the two calibration
+candidates.
+
+## 2026-10-13 13:50, seeded skeptics (round 1 calibration)
+
+Two run 1 candidates replayed blind to a Fable skeptic, same brief as the
+real ones, 4 minutes, 133k harness tokens. Known-bad prompt-prune: refused,
+correctly, with the strongest reading yet (the new lookup order lengthens the
+chain it set out to shorten; no screen case exercises a rewritten rule; the
+three-lookup budget line vanished while the code still enforces it).
+Known-good model-nightly-haiku55: refused as stated, because the hypothesis
+said nightly and memory with the forced tool and the merged patch is nightly
+only, tool offered, effort low; and because the Core API had no price row
+for Haiku 5.5. Both are true, and the flip condition it named is exactly what
+run 1's lead did (narrowed it, then the price row in round 2). So: false
+acceptance 0 of 1; false rejection 0 of 1 on the strict reading, 1 of 1 on
+the loose one. The lesson for the lead: a candidate's statement must say
+what the patch does, not what the lens hoped, or a blind skeptic refuses the
+gap. Verdicts in rounds/v2/1/seeds.json.
+
+## 2026-10-13 14:05, round 1 read
+
+Fourteen workers and thirteen skeptics, 18 minutes, 2.6M harness tokens,
+$11.2 of evals ($12.83 total). Workers' gate on block1: four kept, seven
+refused, three not run. Skeptics: three kept (answer-facts-preloaded, P17
+calls 2.13 to 1.00, latency x0.45, z +3.52; structure-lookup-want-repair,
+46 of 46 malformed wants repaired, 0 of 136 clean ones touched;
+eval-per-call-usage, an instrument), ten refused, every refusal with a flip
+condition. Dead ends: effort-answer-reply-low (output x0.91 against x0.85
+needed), structure-same-response-refs (the model never used the ref),
+small-structured-output (classify slower, one hedge case lost). Refused
+with a condition the pool can buy: cache-stable-account (one 10/10 case
+flipped; rerun 04 cold), prompt-media-block (prefix x0.86, warm x0.95 on
+one block1; a second block1 and p23), model-file-sonnet55-v3 (needs 13
+and a rerun of 01+08), structure-notes-on-screen (05 calls x0.83 but
+warm day flat on block1). model-answer-sonnet5: aggregate z -0.21 at warm
+x0.43 but principle 18 alone z -2.06 (the cut-short caveat dropped); a
+prompt change for Sonnet 5 is a round 2 hypothesis. Three workers were
+refused by the session's permission classifier when they ran run.py and
+stopped as the brief says (structure-ask-ends-turn, prompt-no-preread-notes,
+probe-file-haiku55); the lead runs their block1 and principle runs now under
+their own spend names. Race launched 14:05: base block2, then block2 for the
+four survivors from the pool, p23 for media-block, p04 for cache-stable.
+Seeded skeptics in the same run: see 13:50. Collect done into
+rounds/v2/1/candidates/.
+
+## 2026-10-13 14:45, the race and the composite
+
+Two flaws in the mechanics, found by reading: (1) every worker's paired z was
+self-referential, because a worktree's cases.jsonl lacks the calibration
+runs and holds the candidate's own run, so the expected count was the
+candidate's own count shrunk to the prior (every z read +0.43 or +1.59).
+compare.py now leaves a run out of the history it is read against, and
+`.claude/scripts/swarm-read.sh` reads against the main checkout's log on
+both base hashes. (2) A 30-case block is an accuracy check; a lever on one
+surface (answering, the judge) reads "neither moved" on the whole block
+while its own cases halved. The gate takes `--surface`. (3) zsh does not
+split an unquoted variable, so the Haiku probe's first race chain never ran.
+
+Pool reads, all against the main history: answer-facts-preloaded (P17 z
++3.19, latency x0.58, warm x0.75; block2 answer x0.87), lookup-want-repair
+(block2 x0.93, P13 z +2.32), prompt-media-block (block2 x0.87, prefix x0.86;
+its second p23 z -0.13), cache-stable-account (block2 z +1.65, p04 passed the
+flipped case), ask-ends-turn (p13 calls 2.39 against 2.57, 53/56 as base),
+no-preread-notes (p05 calls 2.53 against 2.76, z +0.59), notes-on-screen
+(p05 z +2.39, warm x0.84, containment 15 of 15 in the thread on screen),
+Sonnet 5.5 filing refused (p08 z -0.55, cancel-many-by-description again;
+latency x0.91 to x1.00 on principle runs). Filing on Haiku 5.5, the probe,
+held everywhere the pool bought: block1 28/30, block2 26/30, p13 50/56, p01
+17/17, warm day x0.20 to x0.28, latency x0.75 to x0.86.
+
+Composed on merge-v2: eight code patches, two needed hands (both added
+tests/test_cache_prefix.py and appended to test_plan.py; notes-on-screen and
+no-preread edited the same Thread notes sentence, merged as one sentence
+with both facts). 1276 unit tests green, prefix file x0.88. Screen running
+14:45. $20.6 spent of $70 (pool $5.6).
+
+## 2026-10-13 14:00, composite screens
+
+Composite of eight on the base: 64/68 (base 67/68), z -0.76 against the
+history, warm day x0.93, latency flat, cold cost x1.11 (changed prompts
+start cold). Flipped: asked-for-a-calendar-with-none-connected-says-once
+(7 of 13 on these prompts), forwarded-email-steers-a-suggestion (10 of 11),
+stay-sentence-is-note (19 of 29 over all). The same composite with filing on
+Haiku 5.5: 66/68, z +0.82, warm day x0.27, p90 latency x0.77, $0.34 for the
+screen against $1.17. Filing on Haiku 5.5 goes into the composite as the
+round 1 result; round 2 starts from it. $23 spent of $70.

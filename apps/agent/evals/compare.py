@@ -2,6 +2,7 @@
 
     uv run python evals/compare.py results/<before>.json results/<after>.json
     uv run python evals/compare.py <before> <after> --paired [--prompts h1,h2] [--since stamp]
+    uv run python evals/compare.py <before> <after> --paired --surface answer  # one surface
 
 Reads the per-case rows `run.py` writes and compares only the cases both runs
 have, so a subset against a full run reads as the subset. The verdict is a
@@ -63,6 +64,8 @@ def _block(before: list[dict], after: list[dict]) -> dict:
     cost_a = sum(c.get("product_cost_usd") or 0.0 for c in after)
     lat_b = [c.get("latency_ms") or 0 for c in before]
     lat_a = [c.get("latency_ms") or 0 for c in after]
+    warm_b = sum(c.get("warm_cost_usd") or 0.0 for c in before)
+    warm_a = sum(c.get("warm_cost_usd") or 0.0 for c in after)
     return {
         "cases": len(before),
         "accuracy": {"before": acc_b, "after": acc_a, "delta": acc_a - acc_b},
@@ -70,6 +73,11 @@ def _block(before: list[dict], after: list[dict]) -> dict:
             "before": cost_b,
             "after": cost_a,
             "ratio": (cost_a / cost_b) if cost_b else None,
+        },
+        "warm_cost_usd": {
+            "before": warm_b,
+            "after": warm_a,
+            "ratio": (warm_a / warm_b) if warm_b else None,
         },
         "latency_ms": {
             "median_before": _median(lat_b),
@@ -190,10 +198,24 @@ def paired(
     return a
 
 
-def gate(out: dict, paired_: dict) -> dict:
+def history_for(
+    after: dict, log: Path, prompts: list[str] | None, since: str | None = None
+) -> dict[str, tuple[int, int]]:
+    """The per-case history a candidate is read against: the runs on the base
+    prompts, without the candidate's own run. A worktree's copy of the log
+    holds the run that was just written, and reading a run against itself
+    gave every worker a z near the prior (2026-10-13)."""
+    rows = [r for r in noise.load(log) if r.get("when") != after.get("when")]
+    return noise.rates(rows, prompts=prompts, since=since)
+
+
+def gate(out: dict, paired_: dict, surface: str | None = None) -> dict:
     """Kept when accuracy is no worse against the history and the warm day
     or the latency moved past the band without the other getting dearer.
-    No history on the cases is a refusal, not a pass."""
+    No history on the cases is a refusal, not a pass. With a `surface`, the
+    cost and latency are that surface's own (a lever that touches only
+    answering is invisible in a block that is mostly filing); accuracy
+    stays paired over every case."""
     if not paired_.get("known"):
         return {"kept": False, "why": "no history on these cases; run noise.py --subset first"}
     if not paired_["no_worse"]:
@@ -201,20 +223,30 @@ def gate(out: dict, paired_: dict) -> dict:
             "kept": False,
             "why": f"accuracy fell: z = {paired_['z']:+.2f} against the history",
         }
-    cost = out["daily_warm_cost_usd"]["ratio"]
-    if cost is None:
-        cost = out["product_cost_usd"]["ratio"]
-    lat = out["latency_ms"]["ratio"]
+    if surface:
+        blk = out["surfaces"].get(surface)
+        if not blk:
+            return {"kept": False, "why": f"no {surface} cases in both runs"}
+        cost = blk["warm_cost_usd"]["ratio"]
+        if cost is None:
+            cost = blk["product_cost_usd"]["ratio"]
+        lat = blk["latency_ms"]["ratio"]
+    else:
+        cost = out["daily_warm_cost_usd"]["ratio"]
+        if cost is None:
+            cost = out["product_cost_usd"]["ratio"]
+        lat = out["latency_ms"]["ratio"]
     cheaper = cost is not None and cost < 0.95
     faster = lat is not None and lat < 0.80
     dearer = cost is not None and cost > 1.05
     slower = lat is not None and lat > 1.25
+    what = f"{surface} warm cost" if surface else "warm day"
     if dearer:
-        return {"kept": False, "why": f"warm day dearer: x{cost:.2f}"}
+        return {"kept": False, "why": f"{what} dearer: x{cost:.2f}"}
     if cheaper or faster:
         gains = []
         if cheaper:
-            gains.append(f"warm day x{cost:.2f}")
+            gains.append(f"{what} x{cost:.2f}")
         if faster:
             gains.append(f"latency x{lat:.2f}")
         why = f"accuracy no worse (z = {paired_['z']:+.2f}), " + ", ".join(gains)
@@ -320,11 +352,11 @@ def main(argv: list[str]) -> int:
     if "--paired" in argv:
         hashes = (_flag(argv, "--prompts") or before.get("prompts") or "").split(",")
         log = Path(_flag(argv, "--log") or noise.CASES)
-        rows = noise.load(log)
-        rates_ = noise.rates(rows, prompts=[h for h in hashes if h], since=_flag(argv, "--since"))
+        rows = [r for r in noise.load(log) if r.get("when") != after.get("when")]
+        rates_ = history_for(after, log, [h for h in hashes if h], since=_flag(argv, "--since"))
         out["paired"] = paired(after, rates_, prior=noise.rates(rows))
         out["paired"]["prompts"] = hashes
-        out["gate"] = gate(out, out["paired"])
+        out["gate"] = gate(out, out["paired"], surface=_flag(argv, "--surface"))
     if "--json" in argv:
         print(json.dumps(out, indent=2))
     else:

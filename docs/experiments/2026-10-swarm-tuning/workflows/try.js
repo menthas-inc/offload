@@ -7,7 +7,11 @@ export const meta = {
   ],
 }
 
-// args: { repo, round, cap, nonGoals, prefixBase, baseline: {block1, block1Note, full}, workers: [{name, worktree, hypothesisPath, statement, disconfirmingTest, threshold, exclusions: [titles]}] }
+// args: { repo, round, cap, briefsDir, baseline: {block1}, workers: [{name, worktree, statement}] }
+// The worker's brief file (briefsDir/<name>.md, written by the lead from
+// hypotheses.json) carries the hypothesis, the disconfirming test and
+// threshold, the non-goals, the exclusion list, the board lines and the
+// records; the workflow passes only what the skeptic also needs.
 // A worker sees only its own hypothesis and the titles of the other picks
 // (so it does not drift into them); it is not shown the findings. The
 // skeptic is blind: the patch, the records and the hypothesis statement,
@@ -56,27 +60,7 @@ const tried = await pipeline(
   args.workers,
   (w) =>
     agent(
-      `You are swarm worker "${w.name}". Your worktree is ${w.worktree}. Work only there. Read ${w.worktree}/docs/experiments/2026-10-swarm-tuning/BRIEF.md first and follow it to the letter; it is short.
-
-Your hypothesis is in ${w.hypothesisPath}; read it in full. In one sentence: ${w.statement}
-
-The disconfirming test, which you run and report whatever it says: ${w.disconfirmingTest}
-The threshold it must beat for the change to be kept: ${w.threshold}
-
-Non-goals, which bound you:
-${args.nonGoals}
-
-Other workers in this round hold these; do not drift into them, and if your change needs one of them say so in RESULT.md instead of making it:
-${(w.exclusions || []).map((t) => '- ' + t).join('\n')}
-
-First and last thing: from your worktree root, \`python3 .claude/scripts/board.py as ${w.name}\` once, then \`python3 .claude/scripts/board.py say "claimed: <the files you will change>"\` before you edit, and \`python3 .claude/scripts/board.py say "done: <files>, interface changed: <yes or no, which>"\` when RESULT.md is written.
-
-Records to compare against:
-- base block1: ${args.baseline.block1} (${args.baseline.block1Note})
-- base full set: ${args.baseline.full}
-- base prefix sizes: ${args.prefixBase}
-
-Before every eval run: source ~/.offload-swarm/${w.name}.sh. Your cap is $${args.cap}, enforced by the runner. Implement the hypothesis, run the unit suite without the _db tests, run \`uv run python evals/prefix.py --against ${args.prefixBase}\` (a grown prefix with nothing else changed is a refusal: stop and report it), run the principles your change touches to read failures, then block1 once: \`uv run python evals/run.py --subset block1 --concurrency 4 --note "${w.name}"\`, and read it with \`uv run python evals/compare.py ${args.baseline.block1} <your record> --paired\`. Read every failure against its transcript. Write RESULT.md and candidate.patch as the brief says. If the hypothesis turns out not to help, say so with the numbers; that is a complete result. Return the structured result only.`,
+      `You are swarm worker "${w.name}". Your brief is ${args.briefsDir}/${w.name}.md: read it first and follow it; it names your worktree, your hypothesis, the disconfirming test, the non-goals, the other workers' scope, the board lines, the records to compare against and the commands to run. Work only in your worktree. Return the structured result only.`,
       { label: `try:${w.name}`, phase: 'Try', schema: RESULT, model: 'opus' },
     ),
   (result, w) =>
