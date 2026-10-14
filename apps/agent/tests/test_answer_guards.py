@@ -250,3 +250,131 @@ async def test_a_search_that_found_asides_is_not_empty():
     assert outcome.reply == "In 2024."
     assert not outcome.sent_back
     assert len(model.requests) == 2
+
+
+# 2026-10-13. Two more shapes Haiku 5.5 answering missed across several cases:
+# a reply that called what they put in a thing or an item, which answer.md
+# forbids in its first paragraph, and a public day answered from memory with no
+# read and no lookup ("No, Monday is not a bank holiday in Portugal").
+
+from dataclasses import replace  # noqa: E402
+
+from offload_agent.harness.plan import REWORD_LINE, WORLD_LINE  # noqa: E402
+
+
+async def _asked(question, *responses, outcomes=None, may_search=True):
+    model = StubModel(list(responses))
+    caller = Recorder([_FACTS, *(outcomes or [])])
+    ctx = replace(_ctx(may_search=may_search), question=question)
+    outcome = await plan_answer(model, ctx, "claude-haiku-5-5", caller)
+    return outcome, model
+
+
+async def test_a_reply_that_calls_their_rows_things_is_sent_back_once():
+    outcome, model = await _asked(
+        "what is left for lisbon", _says("One thing is still open."), _says("One left.")
+    )
+    assert outcome.reply == "One left."
+    assert REWORD_LINE in _last_user_text(model.requests[1])
+
+
+async def test_the_reworded_reply_stands_even_if_it_slips_again():
+    outcome, model = await _asked(
+        "what is left for lisbon", _says("Two items left."), _says("Two items left.")
+    )
+    assert outcome.reply == "Two items left."
+    assert len(model.requests) == 2
+
+
+async def test_nothing_or_anything_is_not_the_word():
+    outcome, model = await _asked("anything for lisbon", _says("Nothing yet for Lisbon."))
+    assert len(model.requests) == 1
+
+
+async def test_a_public_day_answered_with_no_read_and_no_lookup_is_sent_back_once():
+    outcome, model = await _asked(
+        "is monday a bank holiday",
+        _says("No, Monday is not a bank holiday in Portugal."),
+        _look_up(),
+        _says("No."),
+        outcomes=[_LOOKED],
+    )
+    assert outcome.reply == "No."
+    assert WORLD_LINE in _last_user_text(model.requests[1])
+
+
+async def test_a_question_about_their_own_rows_is_not_sent_back():
+    outcome, model = await _asked("what is left for lisbon", _says("One left."))
+    assert len(model.requests) == 1
+
+
+async def test_a_fixed_line_on_a_public_day_stands():
+    """Not sure. is right when their country is unknown."""
+    outcome, model = await _asked("will it rain on saturday", _says("Not sure."))
+    assert outcome.reply == "Not sure."
+    assert len(model.requests) == 1
+
+
+async def test_a_public_day_is_not_sent_back_when_searching_is_off():
+    outcome, model = await _asked("is monday a bank holiday", _says("No."), may_search=False)
+    assert len(model.requests) == 1
+
+
+# 2026-10-14. The soft lines were ignored about one run in three: a term start
+# searched, came back empty, was sent back, and still said nothing was found.
+# A public day that read nothing is sent back with the lookup forced; and a
+# country question asked from Today, where answer.md says to answer for the
+# account's country or say Not sure., becomes Not sure.
+
+
+def _forced(request) -> str | None:
+    choice = request.get("tool_choice") or {}
+    return choice.get("name") if choice.get("type") == "tool" else None
+
+
+async def test_a_public_day_sent_back_is_made_to_look_it_up():
+    outcome, model = await _asked(
+        "when does the school term start in october",
+        _search(),
+        _says("Nothing you have put in mentions a school term."),
+        _look_up(),
+        _says("Monday 5 October."),
+        outcomes=[_EMPTY, _LOOKED],
+    )
+    assert outcome.reply == "Monday 5 October."
+    assert [_forced(r) for r in model.requests] == [None, None, "look_up", None]
+    assert WORLD_LINE in _last_user_text(model.requests[2])
+
+
+async def test_a_question_of_theirs_keeps_the_soft_line():
+    outcome, model = await _asked(
+        "when is the dentist",
+        _search(),
+        _says("I don't have the dentist."),
+        _says("I don't have the dentist."),
+        outcomes=[_EMPTY],
+    )
+    assert all(_forced(r) is None for r in model.requests)
+
+
+async def test_a_country_question_from_today_is_not_sure():
+    ask = Response(
+        content=[
+            ToolUse(
+                id="q",
+                name="ask",
+                input={
+                    "field": "country",
+                    "title": "Country",
+                    "options": [
+                        {"label": "Portugal", "value": "PT"},
+                        {"label": "UK", "value": "GB"},
+                    ],
+                },
+            )
+        ],
+        stop_reason="tool_use",
+    )
+    outcome, model = await _asked("when's the next bank holiday", ask, _says(""))
+    assert outcome.questions == []
+    assert outcome.reply == "Not sure."

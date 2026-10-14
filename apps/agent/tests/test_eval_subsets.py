@@ -48,7 +48,8 @@ def test_the_blocks_are_the_sizes_the_race_advances_by(subsets):
 
 def test_the_blocks_leave_out_the_cases_that_measure_nothing(make, subsets):
     flaky = set(json.loads(make.FLAKY.read_text(encoding="utf-8"))["cases"])
-    assert len(flaky) >= 12
+    assert flaky
+    assert flaky <= {c["id"] for c in make._cases()}
     for b in ("block1", "block2", "block3"):
         assert not (set(subsets[b]) & flaky)
 

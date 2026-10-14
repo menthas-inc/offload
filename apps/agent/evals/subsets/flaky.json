@@ -1,17 +1,7 @@
 {
-  "note": "Cases the history says are a coin toss: between 44 and 56 percent over eight or more runs pooled across prompt versions (noise.py --top 40, 2026-10-13). Left out of the race blocks, never of the screen or the holdout. Whether each is an ambiguous case or the product moving is for the session that reads docs/experiments/2026-10-swarm-tuning/handoff-flaky-cases.md; remove an id here when that session settles it.",
+  "note": "Cases that flip inside one configuration: read on production's model for their surface, errored runs left out (noise.py --production, 2026-10-13). Left out of the race blocks, never of the screen or the holdout. The hand-off's twelve were mostly September prompts, an Opus filing trial, a Haiku 5.5 classify candidate and runs that errored. Both left here are fair cases the product wobbles on: the judge reads 'the 10th' as no date although judge.md gives that exact example, and classify routes a message that asks and dumps to answering although the 019 statement says it files. Remove an id when its prompt is fixed.",
   "cases": [
-    "conceptual-duplicate-folds",
-    "country-agrees",
-    "country-picked",
-    "failure-not-diagnosed",
-    "file-march-on-route",
-    "h-link-recipe",
-    "i-diary-bonfire",
-    "move-from-inside",
     "n-asks-and-dumps",
-    "new-thread-line-is-verb-first",
-    "span-one-day",
-    "step-injection"
+    "span-one-day"
   ]
 }

@@ -23,7 +23,7 @@
     },
     {
       "id": "answer-strike-theirs",
-      "why": "a strike on a day they travel decides the day",
+      "why": "a strike on a day they travel decides the day (the stub's answer did not fit the question, so Not sure. was the honest reply; a fitting one since 2026-10-14)",
       "surface": "answer",
       "input": "is there a rail strike on the 22nd",
       "context": "behrooz",
@@ -31,6 +31,15 @@
         "look_up": true,
         "must_not_contain": [
           "not sure"
+        ]
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2026-09-22",
+          "fact": "A national rail strike is called for 22 September"
+        },
+        "sources": [
+          "cp.pt"
         ]
       }
     },

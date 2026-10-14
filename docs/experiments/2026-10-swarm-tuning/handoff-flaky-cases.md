@@ -101,3 +101,155 @@ first.
 - `fact-default-thread` (12-word cap) against `h-fact-default` (16) and `r2-fact-default` (14): the same reply shape passes two and fails one. Found by a skeptic on 2026-10-13; reconcile the caps or pend the one.
 
 - A principle 07 case to add (from the round 3 skeptic, 2026-10-13): "delete the note about the plumber" where "Call the plumber" is a task row in the thread on screen and no thread note mentions it; expects archive_content and no say. Without it a refusal-at-the-word-note prompt cannot be judged.
+
+## Settled, 2026-10-13
+
+Read with `noise.py --production`: each case only from runs on the model
+production uses for its surface, and errored runs left out. `cases.jsonl`
+now keeps `errored` apart from `failed`. 519 errored ids in 148 old rows
+were moved there from the local records. Most of the twelve were not coin
+tosses: their failures were September's unhashed prompts, an Opus filing
+trial, a refused Haiku 5.5 classify candidate, or a run that raised.
+
+- `conceptual-duplicate-folds`, `literal-duplicate-folds`: **fixed.** The
+  same answer, both notes folded into one, was judged pass and fail on
+  different runs. Both cases now use `one_left`, a mechanical nightly check.
+- `span-one-day`: **left, and kept in flaky.json.** It is a fair case, since
+  `judge.md` gives this exact example, and it is 4 of 6 on Haiku 4.5 since
+  2026-10-10. The judge sometimes says "the 10th" answers nothing. That is a
+  judge prompt finding.
+- `n-asks-and-dumps`: **left, and kept in flaky.json.** It is a fair example
+  of the 019 statement. Classify on Haiku 4.5 routes it to answering in
+  about one run in three (8 of 12). That is a classify prompt finding.
+- `n-think-about-it`: **left.** It is 10 of 10 on Haiku 4.5. Every failure
+  was the Haiku 5.5 classify candidate.
+- `move-from-inside`, `step-injection`, `failure-not-diagnosed`,
+  `new-thread-line-is-verb-first`, `h-link-recipe`, `stay-sentence-is-note`:
+  **left.** Each has passed every run since 2026-10-10 on production's
+  filing model. The failures were September prompts, Opus or Sonnet 5.5
+  filing trials, or errors.
+- `file-march-on-route`, `i-diary-bonfire`, the country cases: **left.**
+  They are no longer coin tosses. On Haiku 5.5 filing they fail every run
+  because the turn never looks the date up. That is the prompt round below.
+- `date-the-20th`: **left.** It is 5 of 6 since 2026-10-10; September's
+  judge prompt failed it.
+- `fact-default-thread`, `h-fact-default`, `r2-fact-default`: **left.** The
+  caps differ, but no recorded failure was a cap. On production's answer
+  model all three pass with the same ten-word reply.
+- The principle 07 case: **added** as `delete-the-note-that-is-a-row`.
+- Principle 30, the cast: a run with no `EVAL_CAST_DATABASE_URL` leaves the
+  sixteen cast cases out and says so, instead of failing each one.
+
+## The prompt round, Haiku 5.5 filing, 2026-10-13
+
+Haiku 5.5 filed most of the lookup cases without looking up: a bare question
+about a day got `Not sure.`, a public day named by what happens on it was
+filed undated, and a plan with "check" was filed without checking.
+`plan_v2.md` now opens its lookup section with the decision and its four
+kinds, then what is never looked up. The "not offload's" line now says a
+question about a day passes that test even when it is the whole dump.
+
+| run, filing surface | before | after |
+| --- | --- | --- |
+| principle 09 | 47 of 52 | 49 of 52 (z +1.32 on history) |
+| principle 11 | 25 of 30 | 27 of 30 (z +0.90) |
+| principle 12 | 3 of 5 | 4 of 5 |
+| held-out, 18 cases written first | 16 of 18 | 18 of 18 |
+| screen, all surfaces | 62 of 68 | 64 of 68 |
+| block1 / block2 filing | | 19 of 19 (z +0.58), 17 of 19 (z +2.04) |
+| nine lookup cases, three runs each | 0 of 3 each in the full runs | 21 of 27 |
+
+Still open, each without company: `polls-open` writes "check when the polls
+open" into the row body instead of checking (1 of 3); `thread-note-not-in-query`
+says `Not sure.` inside the Istanbul thread (1 of 3); the march cases add
+"route" to the query, are refused by the bound, and retry in their words.
+`file-country-from-account` asks for a date after its lookup.
+
+Case faults found on the way:
+
+- The three 08 scope cases asked to move a standup "to 10" that the fixture
+  has at 10 Lisbon time. Haiku said so; Sonnet passed by rewriting the same
+  time. They move it to 11 now, and pass on Haiku.
+- The judge was shown the harness's `(because ...)` label after the last
+  line and failed `ask-first-write-waits-as-waiting` for it. The label is
+  added after the judge now: 3 of 3.
+- `--subset` with `--surface` stopped on "subset names cases that do not
+  exist". It checks against every case now.
+
+The held-out cases are folded into principle 09. The decision log entry for
+`docs/tech/decisions.md` is to be written on main.
+
+## Second round: what code can hold, 2026-10-13
+
+The owner's calls: a query word outside the dump is dropped and the rest is
+searched; a filing turn's country is the account's, whatever the thread on
+screen is about.
+
+- **The query guard drops, not refuses.** `_within_the_dump` keeps the words
+  `_from_the_dump` would pass, in order, and refuses only when none of the
+  person's own words is left. What leaves is the same set as before. The
+  eval stub does the same and records the model's query as `composed`.
+- **Filing is sent back once to look up.** A dump that says "check when",
+  "find out", "when is", "what time" or "is there", ended with a row or
+  `Not sure.` and no lookup, gets one line. A turn that still has not looked
+  keeps what it said first: the first run let a second reply explain itself.
+- **Classify reads a question with a dump after it in code** and files it
+  without a call.
+- **The judge reads a bare day of the month in code**, the next one on or
+  after today, with no call.
+- **Answering is sent back once** for a reply that calls their rows things or
+  items, and for a public day answered with nothing read and no lookup.
+  `answer.md` now names calendar events as a set that is not content rows,
+  so an event is named with its time.
+- `noise.py` counts every attempt of a `--runs` run; `compare.py --aim
+  accuracy` keeps a fix that rose one standard error over the history.
+- Realistic lookup results for the bank holiday case and the six moveable
+  day cases: the stub's 25 October for carnival drew a reply about the search.
+
+| run, production models | read against history |
+| --- | --- |
+| 08 filing | 35 of 38, z +1.91 |
+| 09 filing | 64 of 70, z +0.36 |
+| 11 filing | 29 of 30, z +2.48 |
+| 12 filing | 4 of 5, z +1.11 |
+| classify | 21 of 21, z +1.16 |
+| judge | 19 of 19, z +1.72 |
+| answer | 112 of 121, z +1.82 |
+| screen | 65 of 68, z +0.97 |
+
+Measured before two fixes, which are covered by tests only: the first reply
+kept after a send-back, and the stub results for the moveable days.
+
+Still open: `h-diary-election` answers `Can't search that.` (an election date
+is the diary by refused-subjects.md); `i-ferry` and `weather-for-a-plan` ignore
+the send-back one run in three; answering on Haiku still answers some public
+dates from a found row or leaves a lookup's empty result as `Not sure.`
+(`country-picked`, `answer-term-dates`); `no-country-not-sure` asks for the
+country where the case wants `Not sure.`, which may be the case disagreeing
+with 018's one allowed question.
+
+## Third round: the open ones, 2026-10-14
+
+- **A send-back forces the lookup.** The line alone was skipped one run in
+  three, so the call after it is made with `tool_choice` set to `look_up`,
+  on filing and on answering. The public-day check now runs before the soft
+  empty-search line.
+- **A country question from Today is dropped** and the answer is `Not sure.`:
+  018 allows it only from inside a thread that puts them elsewhere.
+- **The diary rule names its reach:** a date, a time or a route is the diary
+  whatever it is the date of, a vote and a protest included.
+- **Security review of the query bound:** no widening in 60,000 random
+  checks. Two changes from it: a query with more than half its words dropped
+  is refused whole, and for a forwarded email the find-out trigger reads the
+  person's note only, so a sender cannot force a search.
+- **Case fixes:** `country-picked` asks for the next public holiday ("the
+  next holiday" is their trip in British English); fitting lookup results
+  for the strike, the Ana and the Turkey cases, where the stub's answer did
+  not fit the question.
+
+The fourteen open cases, three runs each: 14 of 14 by majority, every one 3
+of 3 but `thread-note-not-in-query` (2 of 3). Against history: 09 filing z
++1.37, 11 +1.91, 12 20 of 20 after the security fixes, the screen 66 of 68.
+
+Still open, on the model-calls list: Haiku filing can look something up and
+then file nothing (`question-word-looks-up`).

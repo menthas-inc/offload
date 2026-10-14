@@ -59,7 +59,7 @@ def test_an_old_year_does_not_pass():
 
 
 def test_the_stem_is_a_prefix_match_and_that_is_accepted():
-    """"card" in the dump does let "cardiff" through, and that is not a hole.
+    """ "card" in the dump does let "cardiff" through, and that is not a hole.
 
     Four letters of shared prefix is a blunt stand-in for a stemmer, so it lets
     some genuinely different words past. Written down rather than tightened,
@@ -127,3 +127,71 @@ def test_their_own_country_may_be_added_to_a_query():
 
 def test_the_country_does_not_open_the_bound_to_anything_else():
     assert not _from_the_dump("ana de sousa address", "when is the next bank holiday", "Portugal")
+
+
+# 2026-10-13, the owner's call: a word the bound would refuse is dropped and
+# the rest is searched, rather than the whole lookup refused and the model
+# left to retry. What leaves is still only their words, the filler and their
+# country, which is exactly what the bound allowed before.
+
+from offload_agent.worker import _within_the_dump  # noqa: E402
+
+
+def test_a_word_they_did_not_write_is_dropped_and_the_rest_kept_in_order():
+    dump = "is the march on saturday going past the office"
+    assert _within_the_dump("march saturday route Portugal", dump, "PT") == (
+        "march saturday portugal"
+    )
+
+
+def test_a_query_that_passes_is_sent_as_it_was():
+    dump = "book the restaurant for mothers day"
+    assert _within_the_dump("when is mothers day", dump) == "when is mothers day"
+
+
+def test_a_query_with_none_of_their_words_left_is_still_refused():
+    assert _within_the_dump("ana de sousa address", "when is the next bank holiday", "PT") is None
+    assert _within_the_dump("when is it Portugal", "check the boiler", "PT") is None
+
+
+async def test_the_lookup_searches_the_kept_words_instead_of_refusing(monkeypatch):
+    from types import SimpleNamespace
+
+    from offload_agent import reader
+    from offload_agent.worker import Lookups, _look_up
+
+    asked = []
+
+    async def fake_read(client, model, **kw):
+        asked.append(kw["question"])
+        return SimpleNamespace(
+            searches=1,
+            fetches=0,
+            usage=[],
+            failed=False,
+            found=SimpleNamespace(sources=[], label="other", unsure=True, fields={}),
+        )
+
+    monkeypatch.setattr(reader, "read", fake_read)
+    budget = Lookups(
+        "is the march on saturday going past the office",
+        may_search=True,
+        may_read_links=False,
+        country="PT",
+    )
+    await _look_up(
+        None,
+        SimpleNamespace(sort_model="m"),
+        budget,
+        {"question": "march saturday route Portugal", "want": ["fact"]},
+    )
+    assert asked == ["march saturday portugal"]
+
+
+def test_a_query_mostly_from_somewhere_else_is_refused_whole():
+    """Security review, 2026-10-14: a query whose words mostly are not theirs
+    was composed from something other than the dump, which is the signal the
+    all-or-nothing bound used to act on. More than half dropped is refused."""
+    dump = "dinner in lisbon on friday"
+    assert _within_the_dump("ana de sousa home address lisbon", dump, "PT") is None
+    assert _within_the_dump("dinner lisbon friday route", dump, "PT") == "dinner lisbon friday"

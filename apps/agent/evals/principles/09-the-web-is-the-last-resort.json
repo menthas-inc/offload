@@ -726,6 +726,257 @@
         ],
         "say": null
       }
+    },
+    {
+      "id": "bare-fathers-day",
+      "why": "nothing but a question about when a moveable day falls (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "when is fathers day this year",
+      "expect": {
+        "look_up": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2027-03-19",
+          "title": "Father's Day"
+        },
+        "sources": [
+          "example.pt"
+        ]
+      }
+    },
+    {
+      "id": "bare-republic-day",
+      "why": "nothing but a question whether a date is a holiday (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "is the 5th of october a holiday",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "bare-schools-break",
+      "why": "nothing but a question about term dates (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "when do schools break up for christmas",
+      "expect": {
+        "look_up": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2026-12-18",
+          "title": "Christmas holidays"
+        },
+        "sources": [
+          "example.pt"
+        ]
+      }
+    },
+    {
+      "id": "bare-find-out-parade",
+      "why": "nothing but a find out, about an event (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "find out when the carnival parade is",
+      "expect": {
+        "look_up": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2027-02-09",
+          "title": "Carnival parade"
+        },
+        "sources": [
+          "example.pt"
+        ]
+      }
+    },
+    {
+      "id": "named-shrove",
+      "why": "a moveable day with a plan and no question (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "pancakes with the kids on shrove tuesday",
+      "expect": {
+        "look_up": true,
+        "files_something": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2027-02-09",
+          "title": "Shrove Tuesday"
+        },
+        "sources": [
+          "example.pt"
+        ]
+      }
+    },
+    {
+      "id": "named-carnival",
+      "why": "a moveable weekend with a plan and no question (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "carnival weekend away, book the train",
+      "expect": {
+        "look_up": true,
+        "files_something": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2027-02-06",
+          "title": "Carnival"
+        },
+        "sources": [
+          "example.pt"
+        ]
+      }
+    },
+    {
+      "id": "named-corpus",
+      "why": "a moveable holiday with a plan and no question (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "picnic at the river on corpus christi",
+      "expect": {
+        "look_up": true,
+        "files_something": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2027-05-27",
+          "title": "Corpus Christi"
+        },
+        "sources": [
+          "example.pt"
+        ]
+      }
+    },
+    {
+      "id": "check-lido",
+      "why": "a plan and an explicit check of opening hours (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "swim at the lido tomorrow, check when it opens",
+      "expect": {
+        "look_up": true,
+        "files_something": true
+      }
+    },
+    {
+      "id": "check-market",
+      "why": "a plan and an explicit check that it is still on (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "flea market saturday, check it is still on",
+      "expect": {
+        "look_up": true,
+        "files_something": true
+      }
+    },
+    {
+      "id": "find-out-ferry",
+      "why": "a plan and an explicit find out about a timetable (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "boat trip to the caves on sunday, find out when the last boat leaves",
+      "expect": {
+        "look_up": true,
+        "files_something": true
+      }
+    },
+    {
+      "id": "not-ours-bechamel",
+      "why": "a how-to that is not offload's (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "how do you make bechamel",
+      "expect": {
+        "look_up": false,
+        "say": "Not sure.",
+        "filed": "none"
+      }
+    },
+    {
+      "id": "not-ours-phone",
+      "why": "a recommendation that is not offload's (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "what is the best phone to buy",
+      "expect": {
+        "look_up": false,
+        "say": "Not sure.",
+        "filed": "none"
+      }
+    },
+    {
+      "id": "not-ours-tides",
+      "why": "an explanation that is not offload's (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "explain how tides work",
+      "expect": {
+        "look_up": false,
+        "say": "Not sure.",
+        "filed": "none"
+      }
+    },
+    {
+      "id": "arith-23rd",
+      "why": "a numbered day and a time are arithmetic (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "dentist on the 23rd at 3",
+      "expect": {
+        "look_up": false,
+        "files_something": true
+      }
+    },
+    {
+      "id": "arith-tomorrow",
+      "why": "tomorrow is arithmetic (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "call the bank tomorrow morning",
+      "expect": {
+        "look_up": false,
+        "files_something": true
+      }
+    },
+    {
+      "id": "arith-weeks",
+      "why": "a count of weeks is arithmetic (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "gym induction in two weeks on tuesday",
+      "expect": {
+        "look_up": false,
+        "files_something": true
+      }
+    },
+    {
+      "id": "plain-rent",
+      "why": "a plain todo on a weekday (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "pay the rent on friday",
+      "expect": {
+        "look_up": false,
+        "files_something": true
+      }
+    },
+    {
+      "id": "plain-list",
+      "why": "a shopping list (held out for the Haiku lookup rule, 2026-10-13)",
+      "surface": "file",
+      "context": "three",
+      "input": "eggs, flour, lemons",
+      "expect": {
+        "look_up": false,
+        "files_something": true
+      }
     }
   ]
 }

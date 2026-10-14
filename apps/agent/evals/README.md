@@ -115,10 +115,14 @@ nothing, or `{contains, must_not_contain, max_words}`, `say_not`, `asks`,
 
 **judge**: `answers`, `whole`, `value` as `{day, to, time, tag, country}`.
 
-**nightly**: `no_change`, `folds`, `supersedes`, `never_touches`, `adds`,
-`learns`, `learned_has`, `learned_lacks`, `groups`, `rubric`. Removing a
+**nightly**: `no_change`, `folds`, `one_left`, `supersedes`, `never_touches`,
+`adds`, `learns`, `learned_has`, `learned_lacks`, `groups`, `rubric`. Removing a
 person's note, touching another member's, or citing a dump it was not shown
-is always a failure.
+is always a failure. `one_left` names notes that say one thing: they pass
+folded into one new note, or with all but one set aside and none folded.
+
+**cast**: the cast surfaces need `EVAL_CAST_DATABASE_URL`. Without it a run
+leaves them out and says how many, rather than failing each one.
 
 Everywhere: a dash, an emoji, a capitalised offload, or a self diagnosis in
 anything offload wrote fails the case; on a lookup, the progress line is held

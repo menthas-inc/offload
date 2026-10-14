@@ -130,3 +130,100 @@ def test_a_case_seen_once_on_these_prompts_borrows_its_pooled_rate_as_a_prior(no
     assert noise.band(["a", "b"], rates)["se"] == 0.0
     run = {"cases": [{"id": "a", "passed": True}, {"id": "b", "passed": False}]}
     assert noise.against(run, rates, prior=prior)["expected"] == pytest.approx(pa + pb)
+
+
+# 2026-10-13, the flaky-cases hand-off: most of the "coin tosses" were runs
+# that errored (a dropped connection, an empty credit balance, a missing cast
+# database) counted as failures, and runs on models production does not use.
+
+
+def test_a_case_that_raised_is_kept_as_errored_not_failed(noise, tmp_path):
+    log = tmp_path / "cases.jsonl"
+    rec = _record("1", "aaaa", [("x", True), ("y", False)])
+    rec["cases"].append(
+        {"id": "z", "passed": False, "mechanical": ["raised APIConnectionError: Connection error."]}
+    )
+    rec["cases"].append(
+        {"id": "w", "passed": False, "mechanical": ["harness raised RuntimeError: no db"]}
+    )
+    noise.record(log, rec)
+    row = noise.load(log)[0]
+    assert row["failed"] == ["y"]
+    assert row["errored"] == ["w", "z"]
+
+
+def test_an_errored_case_counts_as_neither_pass_nor_fail(noise, tmp_path):
+    log = tmp_path / "cases.jsonl"
+    rec = _record("1", "aaaa", [("x", True)])
+    rec["cases"].append({"id": "x2", "passed": False, "mechanical": ["raised Boom: no"]})
+    noise.record(log, rec)
+    noise.record(log, _record("2", "aaaa", [("x2", True)]))
+    assert noise.rates(noise.load(log))["x2"] == (1, 1)
+
+
+def test_a_case_is_read_only_from_runs_on_the_model_its_surface_uses(noise):
+    rows = [
+        {
+            "when": "1",
+            "models": {"classify": "haiku-4-5", "file": "sonnet-5"},
+            "passed": ["c", "f"],
+            "failed": [],
+        },
+        {
+            "when": "2",
+            "models": {"classify": "haiku-5-5", "file": "sonnet-5"},
+            "passed": ["f"],
+            "failed": ["c"],
+        },
+        {
+            "when": "3",
+            "models": {"classify": "haiku-4-5", "file": "haiku-5-5"},
+            "passed": ["c"],
+            "failed": ["f"],
+        },
+    ]
+    on = {"c": ("classify", "haiku-4-5"), "f": ("file", "haiku-5-5")}
+    r = noise.rates(rows, on=on)
+    assert r["c"] == (2, 2)
+    assert r["f"] == (0, 1)
+
+
+def test_a_run_without_the_surface_in_its_models_is_not_that_model(noise):
+    """September's rows name the nightly pass `compact`; they are not
+    evidence about today's nightly model."""
+    rows = [{"when": "1", "models": {"compact": "haiku-4-5"}, "passed": [], "failed": ["n"]}]
+    assert "n" not in noise.rates(rows, on={"n": ("nightly", "haiku-5-5")})
+
+
+def test_production_maps_each_case_to_its_surface_model(noise, tmp_path):
+    import json
+
+    (tmp_path / "01-x.json").write_text(
+        json.dumps(
+            {
+                "cases": [
+                    {"id": "a", "surface": "file"},
+                    {"id": "b", "surface": "classify"},
+                ]
+            }
+        )
+    )
+    on = noise.production_on(tmp_path, {"file": "haiku-5-5", "classify": "haiku-4-5"})
+    assert on == {"a": ("file", "haiku-5-5"), "b": ("classify", "haiku-4-5")}
+
+
+def test_every_attempt_of_a_repeated_run_counts_in_the_history(noise, tmp_path):
+    """--runs 3 kept only the majority: three coins thrown, one written down."""
+    log = tmp_path / "cases.jsonl"
+    rec = _record("1", "aaaa", [])
+    rec["cases"] = [
+        {"id": "x", "passed": True, "passes_of": [2, 3]},
+        {"id": "y", "passed": False, "passes_of": [1, 3]},
+        {"id": "z", "passed": True, "passes_of": None},
+    ]
+    noise.record(log, rec)
+    row = noise.load(log)[0]
+    assert row["passed"] == ["x", "z"] and row["failed"] == ["y"]
+    assert row["attempts"] == {"x": [2, 3], "y": [1, 3]}
+    r = noise.rates(noise.load(log))
+    assert r["x"] == (2, 3) and r["y"] == (1, 3) and r["z"] == (1, 1)

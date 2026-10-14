@@ -3,6 +3,7 @@
     uv run python evals/compare.py results/<before>.json results/<after>.json
     uv run python evals/compare.py <before> <after> --paired [--prompts h1,h2] [--since stamp]
     uv run python evals/compare.py <before> <after> --paired --surface answer  # one surface
+    uv run python evals/compare.py <before> <after> --paired --aim accuracy   # a fix, not a saving
 
 Reads the per-case rows `run.py` writes and compares only the cases both runs
 have, so a subset against a full run reads as the subset. The verdict is a
@@ -36,6 +37,10 @@ import noise  # noqa: E402
 #: Standard errors a candidate's pass count may sit below the history's
 #: expectation and still be read as no worse: one sided, about p = 0.025.
 GATE_Z = 1.96
+#: With aim="accuracy": how far above the history a fix has to land. One
+#: standard error, because a fix is read on the cases it was aimed at and a
+#: single run of them rarely clears two (2026-10-13).
+GATE_Z_RISE = 1.0
 
 #: Points of accuracy one run moves by on its own. Below this, two runs are the
 #: same run; measured as about four points on the full set, wider on a subset.
@@ -232,7 +237,7 @@ def history_for(
     return noise.rates(rows, prompts=prompts, since=since)
 
 
-def gate(out: dict, paired_: dict, surface: str | None = None) -> dict:
+def gate(out: dict, paired_: dict, surface: str | None = None, aim: str = "cost") -> dict:
     """Kept when accuracy is no worse against the history and the warm day
     or the latency moved past the band without the other getting dearer.
     No history on the cases is a refusal, not a pass. With a `surface`, the
@@ -266,6 +271,17 @@ def gate(out: dict, paired_: dict, surface: str | None = None) -> dict:
     what = f"{surface} warm cost" if surface else "warm day"
     if dearer:
         return {"kept": False, "why": f"{what} dearer: x{cost:.2f}"}
+    if aim == "accuracy":
+        # A fix aimed at accuracy: kept when it rose past the noise and
+        # nothing got dearer or slower past its band.
+        if slower:
+            return {"kept": False, "why": f"slower: x{lat:.2f}"}
+        if paired_["z"] >= GATE_Z_RISE:
+            return {"kept": True, "why": f"accuracy rose: z = {paired_['z']:+.2f}"}
+        return {
+            "kept": False,
+            "why": f"accuracy did not rise past the noise: z = {paired_['z']:+.2f}",
+        }
     if cheaper or faster:
         gains = []
         if cheaper:
@@ -438,7 +454,12 @@ def main(argv: list[str]) -> int:
         rates_ = history_for(after, log, [h for h in hashes if h], since=_flag(argv, "--since"))
         out["paired"] = paired(after, rates_, prior=noise.rates(rows))
         out["paired"]["prompts"] = hashes
-        out["gate"] = gate(out, out["paired"], surface=_flag(argv, "--surface"))
+        out["gate"] = gate(
+            out,
+            out["paired"],
+            surface=_flag(argv, "--surface"),
+            aim=_flag(argv, "--aim") or "cost",
+        )
     if "--json" in argv:
         print(json.dumps(out, indent=2))
     else:

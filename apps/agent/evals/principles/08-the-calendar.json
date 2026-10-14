@@ -30,9 +30,9 @@
     },
     {
       "id": "scope-one-from-words",
-      "why": "this week's standup is one occurrence",
+      "why": "this week's standup is one occurrence (the fixture's standup is at 10 Lisbon time, so the move is to 11; at 10 it was no move at all, 2026-10-13)",
       "surface": "file",
-      "input": "move this week's standup to 10",
+      "input": "move this week's standup to 11",
       "context": "calendar",
       "expect": {
         "calls_with": [
@@ -47,9 +47,9 @@
     },
     {
       "id": "scope-following-from-words",
-      "why": "from now on is this one and every one after",
+      "why": "from now on is this one and every one after (the fixture's standup is at 10 Lisbon time, so the move is to 11; at 10 it was no move at all, 2026-10-13)",
       "surface": "file",
-      "input": "standup is at 10 from now on",
+      "input": "standup is at 11 from now on",
       "context": "calendar",
       "expect": {
         "calls_with": [
@@ -64,9 +64,9 @@
     },
     {
       "id": "scope-default-is-one",
-      "why": "no words about scope means one",
+      "why": "no words about scope means one (the fixture's standup is at 10 Lisbon time, so the move is to 11; at 10 it was no move at all, 2026-10-13)",
       "surface": "file",
-      "input": "move the standup to 10",
+      "input": "move the standup to 11",
       "context": "calendar",
       "expect": {
         "calls_with": [

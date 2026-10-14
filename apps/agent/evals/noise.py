@@ -6,6 +6,7 @@ rather than from running the set again.
     uv run python evals/noise.py --subset screen      # the band for a subset
     uv run python evals/noise.py --prompts 91ff6dcb   # runs on those prompts only
     uv run python evals/noise.py --against results/<record>.json   # a run read paired
+    uv run python evals/noise.py --production --top 40   # on the models production runs
 
 `cases.jsonl` is committed, one line per run: when, scope, commit, the
 prompts hash, the models, the agent, and the passed and failed case ids.
@@ -45,11 +46,29 @@ def record(log: Path, rec: dict, agent: str | None = None) -> None:
         "models": rec.get("models") or {},
         "agent": agent or rec.get("agent") or "",
         "passed": sorted(c["id"] for c in rec.get("cases", []) if c.get("passed")),
-        "failed": sorted(c["id"] for c in rec.get("cases", []) if not c.get("passed")),
+        "failed": sorted(
+            c["id"] for c in rec.get("cases", []) if not c.get("passed") and not errored(c)
+        ),
+        "errored": sorted(c["id"] for c in rec.get("cases", []) if errored(c)),
+        # With --runs, every attempt: passes of attempts, by case.
+        "attempts": {
+            c["id"]: list(c["passes_of"])
+            for c in rec.get("cases", [])
+            if c.get("passes_of") and not errored(c)
+        },
     }
     log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def errored(case: dict) -> bool:
+    """A case that never reached a verdict: the API or the harness raised
+    (a dropped connection, an empty credit balance, no cast database). It says
+    nothing about the product, so it is kept apart from the failures."""
+    if case.get("passed"):
+        return False
+    return any(m.startswith(("raised ", "harness raised ")) for m in case.get("mechanical") or [])
 
 
 def load(log: Path = CASES) -> list[dict]:
@@ -62,16 +81,27 @@ def load(log: Path = CASES) -> list[dict]:
     return rows
 
 
+def _on_model(case_id: str, ran: dict, on: dict[str, tuple[str, str]] | None) -> bool:
+    if not on or case_id not in on:
+        return True
+    surface, model = on[case_id]
+    return ran.get(surface) == model
+
+
 def rates(
     rows: list[dict],
     prompts: str | Iterable[str] | None = None,
     models: dict | None = None,
     since: str | None = None,
+    on: dict[str, tuple[str, str]] | None = None,
 ) -> dict[str, tuple[int, int]]:
     """Per case: (passed, appeared) over the runs that match. `prompts` is one
     hash or several (the base of a run can be two hashes apart on one line
     that touched one surface); `since` is a run stamp, for a fix that made
-    earlier runs another app's (the pairing fix of 2026-10-10)."""
+    earlier runs another app's (the pairing fix of 2026-10-10). `on` maps a
+    case to (surface, model): that case is read only from runs whose model
+    for its surface is that one, which is how a swarm candidate's model stops
+    counting against production's (2026-10-13). Errored ids are never counted."""
     hashes = {prompts} if isinstance(prompts, str) else set(prompts or [])
     out: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     for r in rows:
@@ -81,12 +111,27 @@ def rates(
             continue
         if since and r.get("when", "") < since:
             continue
-        for i in r.get("passed", []):
-            out[i][0] += 1
-            out[i][1] += 1
-        for i in r.get("failed", []):
-            out[i][1] += 1
+        ran = r.get("models", {})
+        attempts = r.get("attempts") or {}
+        passed = set(r.get("passed", []))
+        for i in [*passed, *r.get("failed", [])]:
+            if not _on_model(i, ran, on):
+                continue
+            k, n = attempts.get(i, (1 if i in passed else 0, 1))
+            out[i][0] += k
+            out[i][1] += n
     return {k: (v[0], v[1]) for k, v in out.items()}
+
+
+def production_on(principles: Path, models: dict[str, str]) -> dict[str, tuple[str, str]]:
+    """Each case in the principle files, mapped to its surface and the model
+    production runs that surface on: the `on` that `rates` takes."""
+    out: dict[str, tuple[str, str]] = {}
+    for path in sorted(principles.glob("*.json")):
+        for c in json.loads(path.read_text(encoding="utf-8")).get("cases", []):
+            if c.get("surface") in models:
+                out[c["id"]] = (c["surface"], models[c["surface"]])
+    return out
 
 
 def band(
@@ -164,16 +209,27 @@ def main(argv: list[str]) -> int:
         action="store_true",
         help="shrink each case's rate towards its rate over every prompts version",
     )
+    parser.add_argument(
+        "--production",
+        action="store_true",
+        help="read each case only from runs on production's model for its surface",
+    )
     parser.add_argument("--top", type=int, default=20)
     args = parser.parse_args(argv[1:])
     rows = load(Path(args.log))
     models = dict(kv.split("=", 1) for kv in args.model) or None
     hashes = args.prompts.split(",") if args.prompts else None
-    r = rates(rows, prompts=hashes, models=models, since=args.since)
+    on = None
+    if args.production:
+        from run import MODELS  # the agent's Config, read the way run.py reads it
+
+        on = production_on(HERE / "principles", MODELS)
+    r = rates(rows, prompts=hashes, models=models, since=args.since, on=on)
     prior = rates(rows) if args.prior else None
     print(
         f"{len(rows)} runs, {len(r)} cases seen"
         + (f", prompts {args.prompts}" if args.prompts else "")
+        + (", each on production's model for its surface" if args.production else "")
     )
     if args.subset:
         path = Path(args.subset)

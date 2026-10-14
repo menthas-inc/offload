@@ -94,9 +94,9 @@ from offload_agent.worker import (
     Lookups,
     _author_the_answer_line,
     _declined_if_argument,
-    _from_the_dump,
     _in_the_dump,
     _reply_as_sent,
+    _within_the_dump,
     fit_documents,
     parse_answer,
 )
@@ -964,10 +964,16 @@ class Recorder:
         """The real bounds, then a plausible result, so a case exercises the
         ordinary path. A stub that always succeeds hid the flagship case of
         016; a stub that always fails made every reply a self-diagnosis."""
-        self.looked.append(args)
         question = (args.get("question") or "").strip()
         url = (args.get("url") or "").strip()
-        if question and not _from_the_dump(question, self.dump, self.country):
+        # What leaves is what the checks read: the words the bound kept, as
+        # production sends them (2026-10-13). The model's own query rides
+        # beside it for a reader of the record.
+        kept = _within_the_dump(question, self.dump, self.country) if question else None
+        self.looked.append(
+            {**args, "question": kept or question, "composed": question} if question else args
+        )
+        if question and kept is None:
             self.refused_bound.append(question)
             return {
                 "ok": False,
@@ -1986,12 +1992,14 @@ async def _file_with(
         failures.append("filed nothing and said nothing")
 
     transcript = _transcript(rec.calls, reply, outcome.questions, rec.results)
-    if outcome.because:
-        transcript += f"  (because {outcome.because})"
     judged, note = True, ""
     before = len(_spent)
     if expect.get("rubric") and not failures:
         judged, note = await _judge(client, case, transcript)
+    # The record's label, after the judge: the person never sees it, and the
+    # judge once failed a correct line for it (2026-10-13).
+    if outcome.because:
+        transcript += f"  (because {outcome.because})"
     cost = _outcome_cost(outcome) + sum(_spent[before:])
     return Result(
         case,
@@ -2255,6 +2263,21 @@ def _date_problems(expect: dict, wire: list[dict], shown: list[dict]) -> list[st
     return problems
 
 
+def _one_left(group: list[str], supersede: list, remove: list, adds: list[dict]) -> str | None:
+    """Notes that say one thing end as one: every one of them folded into a
+    single new note, or all but one set aside and none of them folded. A
+    folded note replaces the notes it lists (`nightly.Folded`), which a judge
+    read two ways on the same answer (2026-10-13)."""
+    ids = set(group)
+    if any(ids <= set(a.get("folded_from", [])) for a in adds):
+        return None
+    gone = ids & (set(supersede) | set(remove))
+    cited = ids & {i for a in adds for i in a.get("folded_from", [])}
+    if len(gone) == len(ids) - 1 and not cited:
+        return None
+    return f"{sorted(ids)} did not end as one note"
+
+
 async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result:
     """032. One thread's nightly pass for one member.
 
@@ -2366,6 +2389,10 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
         want = set(expect["folds"])
         if not any(want <= set(a.get("folded_from", [])) for a in adds):
             failures.append(f"did not fold {sorted(want)} into one note: {transcript}")
+    if "one_left" in expect:
+        problem = _one_left(expect["one_left"], supersede, remove, adds)
+        if problem:
+            failures.append(f"{problem}: {transcript}")
     if "learns" in expect and len(learned_raw) != expect["learns"]:
         got = len(learned_raw)
         failures.append(f"learned {got} notes, wanted {expect['learns']}: {transcript}")
@@ -2837,6 +2864,10 @@ def _subset_ids(spec: str) -> set[str]:
 def _select(principles: list[Principle], args: argparse.Namespace) -> list[tuple[Principle, Case]]:
     picked: list[tuple[Principle, Case]] = []
     subset = _subset_ids(args.subset) if getattr(args, "subset", None) else None
+    # Without a cast database a cast case cannot start, and it used to count
+    # as a failure in every run (2026-10-13): left out instead, and said once.
+    no_cast = not os.environ.get("EVAL_CAST_DATABASE_URL")
+    cast_left: set[str] = set()
     for p in principles:
         if args.principle:
             key = args.principle
@@ -2858,9 +2889,16 @@ def _select(principles: list[Principle], args: argparse.Namespace) -> list[tuple
                 continue
             if c.live and not args.live:
                 continue
+            if no_cast and c.surface.startswith("cast-"):
+                cast_left.add(c.id)
+                continue
             picked.append((p, c))
+    if cast_left:
+        print(f"{len(cast_left)} cast cases left out: EVAL_CAST_DATABASE_URL is not set")
     if subset is not None:
-        missing = subset - {c.id for _, c in picked}
+        # Against every case, not the picked ones: a --surface or a pending
+        # label narrowing a subset is not a typo in it.
+        missing = subset - {c.id for p in principles for c in p.cases}
         if missing:
             # A typo would silently shrink the measurement.
             print(f"subset names cases that do not exist: {', '.join(sorted(missing))}")

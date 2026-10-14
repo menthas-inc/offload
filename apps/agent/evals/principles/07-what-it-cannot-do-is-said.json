@@ -304,6 +304,75 @@
         ],
         "rubric": "Says in one short sentence that it cannot change that row because someone else wrote it, or that it could not change it. Names no tool and no error, and does not file the rename as a new row."
       }
+    },
+    {
+      "id": "delete-the-note-that-is-a-row",
+      "why": "they say note for a row: 'Call the plumber' is a task on screen and no note mentions it, so the delete is an archive of that row and nothing is said (round 3 skeptic, 2026-10-13)",
+      "surface": "file",
+      "input": "delete the note about the plumber",
+      "context": "shared",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "rows": {
+        "00000013-0000-0000-0000-000000000000": [
+          {
+            "contentId": "c-deposit",
+            "threadId": "00000013-0000-0000-0000-000000000000",
+            "threadName": "Flat admin",
+            "type": "task",
+            "title": "Chase the deposit",
+            "body": null,
+            "done": false,
+            "yours": true,
+            "dueAt": null,
+            "occursAt": null
+          },
+          {
+            "contentId": "c-paint",
+            "threadId": "00000013-0000-0000-0000-000000000000",
+            "threadName": "Flat admin",
+            "type": "task",
+            "title": "paint",
+            "body": null,
+            "done": false,
+            "yours": false,
+            "dueAt": null,
+            "occursAt": null
+          },
+          {
+            "contentId": "c-brackets",
+            "threadId": "00000013-0000-0000-0000-000000000000",
+            "threadName": "Flat admin",
+            "type": "task",
+            "title": "oak brackets 30cm matte black",
+            "body": null,
+            "done": false,
+            "yours": true,
+            "dueAt": null,
+            "occursAt": null
+          },
+          {
+            "contentId": "c-plumber",
+            "threadId": "00000013-0000-0000-0000-000000000000",
+            "threadName": "Flat admin",
+            "type": "task",
+            "title": "Call the plumber",
+            "body": null,
+            "done": false,
+            "yours": true,
+            "dueAt": null,
+            "occursAt": null
+          }
+        ]
+      },
+      "expect": {
+        "called": [
+          "archive_content"
+        ],
+        "not_called": [
+          "add_note"
+        ],
+        "say": null
+      }
     }
   ]
 }

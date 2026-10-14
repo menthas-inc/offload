@@ -671,3 +671,24 @@ def test_compare_gives_no_prod_ratio_against_a_record_without_one(compare):
     out = compare.compare(before, after)
     assert out["daily_prod_cost_usd"]["ratio"] is None
     assert "no prod cost before" in compare.render(out)
+
+
+def test_an_accuracy_fix_is_gated_on_accuracy_rising(compare):
+    """The gate refused every fix that did not move cost or latency, so a
+    prompt round aimed at accuracy could not pass it (2026-10-13). With
+    aim="accuracy" it is kept when accuracy rose at least one standard error
+    over the history and neither cost nor latency got worse past its band."""
+    rates = {str(i): (5, 10) for i in range(30)}
+    rows = [(str(i), i < 22, 1000, 0.02) for i in range(30)]
+    before = _record([(str(i), i < 15, 1000, 0.02) for i in range(30)])
+    after = _record(rows)
+    out = compare.compare(before, after)
+    p = compare.paired(after, rates)
+    assert p["z"] > 1
+    assert compare.gate(out, p)["kept"] is False
+    assert compare.gate(out, p, aim="accuracy")["kept"] is True
+    flat = compare.paired(_record([(str(i), i < 16, 1000, 0.02) for i in range(30)]), rates)
+    assert compare.gate(out, flat, aim="accuracy")["kept"] is False
+    dear = _record([(str(i), i < 22, 1000, 0.05) for i in range(30)])
+    out_dear = compare.compare(before, dear)
+    assert compare.gate(out_dear, compare.paired(dear, rates), aim="accuracy")["kept"] is False
