@@ -882,7 +882,10 @@ async def plan(
         # **Trailing text is ignored here.** A filing turn says nothing unless
         # it calls `say`, which is almost never: see the note on `SAY_TOOL`.
         reply_from_say=True,
-        asks_to_find_out=_asks_to_find_out(ctx.dump),
+        # The person's own words only: for a forwarded email the dump is
+        # somebody else's too, and a sender must not be able to force a
+        # search by writing "find out" (security review, 2026-10-14).
+        asks_to_find_out=_asks_to_find_out(ctx.mail.note if ctx.mail else ctx.dump),
         effort=FILE_EFFORT,
         labelled=frozenset(label.thread_id for label in ctx.labels),
         has_media=bool(ctx.photos or ctx.pdfs),
@@ -945,6 +948,10 @@ async def _run(
     # something up. The send-back may add a lookup, never a commentary: a turn
     # that still has not looked when it ends says what it said first.
     before_check: list = []
+    # 2026-10-14. The tool the next call must make, once: a send-back to look
+    # something up forces the lookup, because the line alone was skipped one
+    # run in three. The forced call skips thinking, which a lookup does not need.
+    force_next: list[str] = []
 
     def finish() -> Outcome:
         if before_check and not read_web:
@@ -970,8 +977,10 @@ async def _run(
 
     for _ in range(MAX_MODEL_CALLS):
         started = time.monotonic()
+        forced = {"tool_choice": {"type": "tool", "name": force_next.pop()}} if force_next else {}
         response = await client.messages.create(
             **extra,
+            **forced,
             model=model,
             max_tokens=max_tokens,
             system=system_blocks,
@@ -1040,6 +1049,7 @@ async def _run(
             if reply_from_say and _owes_a_lookup(outcome, asks_to_find_out, read_web, offered):
                 before_check.append((outcome.reply, outcome.because))
                 _send_back_to_look(outcome, messages, response.content, [])
+                force_next.append("look_up")
                 continue
             if reply_from_say and (outcome.reply or outcome.landed or outcome.changed):
                 return finish()
@@ -1059,6 +1069,31 @@ async def _run(
             # answering turn the trailing text is the answer.
             if reply_from_say and outcome.failed and not outcome.reply:
                 return finish()
+            # **Two more shapes, each sent back once, 2026-10-13.** A reply
+            # that calls what they put in a thing or an item, which answer.md
+            # forbids first; and a public day answered from memory or from an
+            # empty read, with no lookup, where the prompt says a fact about
+            # the world is never worked out from memory. The public day goes
+            # first and forces the lookup (2026-10-14): the soft empty-search
+            # line below was skipped one run in three.
+            if answering and text and _fixed_line(text) is None:
+                line = None
+                if not reworded and _THING_NOUN.search(text):
+                    reworded, line = True, REWORD_LINE
+                elif (
+                    about_the_world
+                    and not outcome.sent_back
+                    and not read_web
+                    and not outcome.found
+                    and not outcome.questions
+                    and "look_up" in offered
+                ):
+                    outcome.sent_back, line = True, WORLD_LINE
+                    force_next.append("look_up")
+                if line is not None:
+                    messages.append({"role": "assistant", "content": response.content})
+                    messages.append({"role": "user", "content": [{"type": "text", "text": line}]})
+                    continue
             # **An empty search is not a no while the web is still there.**
             # Haiku searched for a school term's start, found nothing, and
             # answered that it was not in their threads, where the prompt says
@@ -1082,28 +1117,6 @@ async def _run(
                     {"role": "user", "content": [{"type": "text", "text": EMPTY_SEARCH_LINE}]}
                 )
                 continue
-            # **Two more shapes, each sent back once, 2026-10-13.** A reply
-            # that calls what they put in a thing or an item, which answer.md
-            # forbids first; and a public day answered from memory, with
-            # nothing read and no lookup, where the prompt says a fact about
-            # the world is never worked out from memory.
-            if answering and text and _fixed_line(text) is None:
-                line = None
-                if not reworded and _THING_NOUN.search(text):
-                    reworded, line = True, REWORD_LINE
-                elif (
-                    about_the_world
-                    and not outcome.sent_back
-                    and not read_web
-                    and not outcome.found
-                    and not outcome.questions
-                    and "look_up" in offered
-                ):
-                    outcome.sent_back, line = True, WORLD_LINE
-                if line is not None:
-                    messages.append({"role": "assistant", "content": response.content})
-                    messages.append({"role": "user", "content": [{"type": "text", "text": line}]})
-                    continue
             outcome.reply = outcome.reply or text or None
             return finish()
 
@@ -1289,6 +1302,7 @@ async def _run(
             if _owes_a_lookup(outcome, asks_to_find_out, read_web, offered):
                 before_check.append((outcome.reply, outcome.because))
                 _send_back_to_look(outcome, messages, response.content, results)
+                force_next.append("look_up")
                 continue
             return finish()
 
@@ -1735,6 +1749,14 @@ async def plan_answer(
         answering=True,
         about_the_world=_about_the_world(ctx.question),
     )
+    if ctx.looking_at is None and any(q.get("field") == "country" for q in outcome.questions):
+        # 018 lets an answer ask which country only from inside a thread that
+        # puts them somewhere else; Haiku 5.5 asked from Today (2026-10-14).
+        # The question is dropped, and with nothing else to say the reply is
+        # the line answer.md gives an unknown country.
+        outcome.questions = [q for q in outcome.questions if q.get("field") != "country"]
+        if not outcome.questions:
+            outcome.reply = NOT_SURE
     if outcome.reply is not None:
         shaped = shape_answer(outcome.reply)
         if shaped != outcome.reply:

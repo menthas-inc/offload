@@ -362,7 +362,7 @@ def _from_the_dump(text: str, dump: str, country: str | None = None) -> bool:
 
 def _within_the_dump(text: str, dump: str, country: str | None = None) -> str | None:
     """The query with every word the bound would refuse dropped, in order, or
-    None when none of the person's own words is left.
+    None when none of the person's own words is left or most were dropped.
 
     The owner's call, 2026-10-13: a query that strayed by one word ("march
     saturday route Portugal") was refused whole and the model retried in their
@@ -373,8 +373,15 @@ def _within_the_dump(text: str, dump: str, country: str | None = None) -> str | 
     for and is refused as before.
     """
     theirs, haystack = _allowed(dump, country)
-    kept = [w for w in _words(text) if _passes(w, haystack)]
+    words = _words(text)
+    kept = [w for w in words if _passes(w, haystack)]
     if not any(w in theirs or _same_word(w, theirs) for w in kept):
+        return None
+    # **Mostly from somewhere else is refused whole** (security review,
+    # 2026-10-14). A stray word is a slip; a query whose words mostly are not
+    # theirs was composed from something other than the dump, and that was
+    # the signal the all-or-nothing bound acted on.
+    if (len(words) - len(kept)) * 2 > len(words):
         return None
     return " ".join(kept)
 

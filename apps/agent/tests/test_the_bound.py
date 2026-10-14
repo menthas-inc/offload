@@ -186,3 +186,12 @@ async def test_the_lookup_searches_the_kept_words_instead_of_refusing(monkeypatc
         {"question": "march saturday route Portugal", "want": ["fact"]},
     )
     assert asked == ["march saturday portugal"]
+
+
+def test_a_query_mostly_from_somewhere_else_is_refused_whole():
+    """Security review, 2026-10-14: a query whose words mostly are not theirs
+    was composed from something other than the dump, which is the signal the
+    all-or-nothing bound used to act on. More than half dropped is refused."""
+    dump = "dinner in lisbon on friday"
+    assert _within_the_dump("ana de sousa home address lisbon", dump, "PT") is None
+    assert _within_the_dump("dinner lisbon friday route", dump, "PT") == "dinner lisbon friday"

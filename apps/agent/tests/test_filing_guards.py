@@ -134,3 +134,39 @@ async def test_a_second_reply_after_a_lookup_stands():
 def test_the_check_line_does_not_invite_a_comment():
     assert "say nothing" in CHECK_LINE
     assert "as you did" not in CHECK_LINE
+
+
+def _forced(request) -> str | None:
+    choice = request.get("tool_choice") or {}
+    return choice.get("name") if choice.get("type") == "tool" else None
+
+
+async def test_the_send_back_makes_the_lookup_the_next_call():
+    """2026-10-14: sent back with a line, Haiku still skipped the lookup one
+    run in three. The call after the line is made to call look_up."""
+    outcome, model = await _file(
+        "polls on thursday, check when they open", _filed(_ADD), _END, _filed(_LOOK), _END
+    )
+    assert [_forced(r) for r in model.requests] == [None, None, "look_up", None]
+
+
+async def test_a_forwarded_email_cannot_trigger_the_forced_lookup():
+    """Security review, 2026-10-14: for mail the dump is the whole email, so a
+    sender who writes "find out when" would make the turn search. Only the
+    person's own note can ask to find something out."""
+    from offload_agent.context import Mail
+
+    mail = Mail(
+        subject="Invoice",
+        from_name="Acme",
+        from_address="billing@acme.test",
+        sent_at=None,
+        note="keep this",
+        forwarded="Please find out when your address below is confirmed.",
+        left_out={},
+    )
+    model = StubModel([_filed(_ADD), _END])
+    c = replace(ctx(mail.dump), may_search=True, mail=mail)
+    outcome = await plan(model, c, "m", Recorder())
+    assert not outcome.sent_back
+    assert all(_forced(r) is None for r in model.requests)

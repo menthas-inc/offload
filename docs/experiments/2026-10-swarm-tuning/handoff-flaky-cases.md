@@ -227,3 +227,29 @@ dates from a found row or leaves a lookup's empty result as `Not sure.`
 (`country-picked`, `answer-term-dates`); `no-country-not-sure` asks for the
 country where the case wants `Not sure.`, which may be the case disagreeing
 with 018's one allowed question.
+
+## Third round: the open ones, 2026-10-14
+
+- **A send-back forces the lookup.** The line alone was skipped one run in
+  three, so the call after it is made with `tool_choice` set to `look_up`,
+  on filing and on answering. The public-day check now runs before the soft
+  empty-search line.
+- **A country question from Today is dropped** and the answer is `Not sure.`:
+  018 allows it only from inside a thread that puts them elsewhere.
+- **The diary rule names its reach:** a date, a time or a route is the diary
+  whatever it is the date of, a vote and a protest included.
+- **Security review of the query bound:** no widening in 60,000 random
+  checks. Two changes from it: a query with more than half its words dropped
+  is refused whole, and for a forwarded email the find-out trigger reads the
+  person's note only, so a sender cannot force a search.
+- **Case fixes:** `country-picked` asks for the next public holiday ("the
+  next holiday" is their trip in British English); fitting lookup results
+  for the strike, the Ana and the Turkey cases, where the stub's answer did
+  not fit the question.
+
+The fourteen open cases, three runs each: 14 of 14 by majority, every one 3
+of 3 but `thread-note-not-in-query` (2 of 3). Against history: 09 filing z
++1.37, 11 +1.91, 12 20 of 20 after the security fixes, the screen 66 of 68.
+
+Still open, on the model-calls list: Haiku filing can look something up and
+then file nothing (`question-word-looks-up`).

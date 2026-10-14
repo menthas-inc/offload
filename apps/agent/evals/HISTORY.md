@@ -138,6 +138,16 @@ and is not committed.
 | 2026-10-13 18:46 | judge | 1 | 19/19 (100%) | $0.03 | `claude-haiku-5-5` | `22a95fe0` | `565503cd` | flaky-evals: code checks and answering round |
 | 2026-10-13 18:47 | answer | 1 | 112/121 (93%) | $0.95 | `claude-haiku-5-5` | `22a95fe0` | `565503cd` | flaky-evals: code checks and answering round |
 | 2026-10-13 18:48 | screen | 1 | 65/68 (96%) | $0.19 | `claude-haiku-5-5` | `22a95fe0` | `565503cd` | flaky-evals: code checks and answering round |
+| 2026-10-14 11:07 | open | 3 | 11/14 (79%) | $0.07 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: open cases round |
+| 2026-10-14 11:08 | 09 | 1 | 67/70 (96%) | $0.06 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: open cases round |
+| 2026-10-14 11:09 | 11 | 1 | 29/30 (97%) | $0.02 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: open cases round |
+| 2026-10-14 11:09 | 12 | 1 | 5/5 (100%) | $0.01 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: open cases round |
+| 2026-10-14 11:09 | 08 | 1 | 5/5 (100%) | $0.04 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: open cases round |
+| 2026-10-14 11:09 | 11 | 1 | 6/7 (86%) | $0.00 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: open cases round |
+| 2026-10-14 11:09 | 12 | 1 | 15/15 (100%) | $0.03 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: open cases round |
+| 2026-10-14 11:10 | screen | 1 | 66/68 (97%) | $0.21 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: open cases round |
+| 2026-10-14 11:11 | stub3 | 3 | 3/3 (100%) | $0.02 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: fitting stub results |
+| 2026-10-14 11:12 | 12 | 1 | 20/20 (100%) | $0.04 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: provenance after the security fixes |
 
 ## Full runs by principle
 

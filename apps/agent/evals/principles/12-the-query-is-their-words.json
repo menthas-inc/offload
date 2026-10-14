@@ -238,9 +238,9 @@
     },
     {
       "id": "country-picked",
-      "why": "34: case 32 answered Turkey re-runs for Turkey",
+      "why": "34: case 32 answered Turkey re-runs for Turkey (asked as 'the next holiday', it was answered with their own trip, which is a fair reading in British English; the case is about the country, 2026-10-14) (the stub's answer did not fit the question, so Not sure. was the honest reply; a fitting one since 2026-10-14)",
       "surface": "answer",
-      "input": "when's the next holiday",
+      "input": "when's the next public holiday",
       "context": "behrooz",
       "looking_at": "00000014-0000-0000-0000-000000000000",
       "notes": {
@@ -263,9 +263,12 @@
       },
       "lookup_result": {
         "fields": {
-          "date": "2026-10-05",
+          "date": "2026-10-29",
           "title": "Republic Day"
-        }
+        },
+        "sources": [
+          "example.tr"
+        ]
       }
     },
     {
@@ -418,7 +421,7 @@
     },
     {
       "id": "ana-stale-memory-does-not-move-the-country",
-      "why": "a freelancer who moved: the account says Portugal and an old memory says Toronto; from Today the account's country stands and nothing is asked",
+      "why": "a freelancer who moved: the account says Portugal and an old memory says Toronto; from Today the account's country stands and nothing is asked (the stub's answer did not fit the question, so Not sure. was the honest reply; a fitting one since 2026-10-14)",
       "surface": "answer",
       "input": "when's the next public holiday",
       "context": "ana",
@@ -439,6 +442,15 @@
         ],
         "must_not_contain": [
           "Not sure"
+        ]
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2026-10-05",
+          "title": "Implantação da República"
+        },
+        "sources": [
+          "example.pt"
         ]
       }
     }

@@ -318,3 +318,63 @@ async def test_a_fixed_line_on_a_public_day_stands():
 async def test_a_public_day_is_not_sent_back_when_searching_is_off():
     outcome, model = await _asked("is monday a bank holiday", _says("No."), may_search=False)
     assert len(model.requests) == 1
+
+
+# 2026-10-14. The soft lines were ignored about one run in three: a term start
+# searched, came back empty, was sent back, and still said nothing was found.
+# A public day that read nothing is sent back with the lookup forced; and a
+# country question asked from Today, where answer.md says to answer for the
+# account's country or say Not sure., becomes Not sure.
+
+
+def _forced(request) -> str | None:
+    choice = request.get("tool_choice") or {}
+    return choice.get("name") if choice.get("type") == "tool" else None
+
+
+async def test_a_public_day_sent_back_is_made_to_look_it_up():
+    outcome, model = await _asked(
+        "when does the school term start in october",
+        _search(),
+        _says("Nothing you have put in mentions a school term."),
+        _look_up(),
+        _says("Monday 5 October."),
+        outcomes=[_EMPTY, _LOOKED],
+    )
+    assert outcome.reply == "Monday 5 October."
+    assert [_forced(r) for r in model.requests] == [None, None, "look_up", None]
+    assert WORLD_LINE in _last_user_text(model.requests[2])
+
+
+async def test_a_question_of_theirs_keeps_the_soft_line():
+    outcome, model = await _asked(
+        "when is the dentist",
+        _search(),
+        _says("I don't have the dentist."),
+        _says("I don't have the dentist."),
+        outcomes=[_EMPTY],
+    )
+    assert all(_forced(r) is None for r in model.requests)
+
+
+async def test_a_country_question_from_today_is_not_sure():
+    ask = Response(
+        content=[
+            ToolUse(
+                id="q",
+                name="ask",
+                input={
+                    "field": "country",
+                    "title": "Country",
+                    "options": [
+                        {"label": "Portugal", "value": "PT"},
+                        {"label": "UK", "value": "GB"},
+                    ],
+                },
+            )
+        ],
+        stop_reason="tool_use",
+    )
+    outcome, model = await _asked("when's the next bank holiday", ask, _says(""))
+    assert outcome.questions == []
+    assert outcome.reply == "Not sure."
