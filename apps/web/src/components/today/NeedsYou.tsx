@@ -11,6 +11,12 @@
 // meant for the first card cannot land on it. A write that fails puts the card
 // back with that action's own line, and the action it failed becomes Try
 // again. The clock puts a card off until tomorrow; the web has no swipe.
+//
+// A question with no values to tap, a date, span or time, is answered by
+// typing, so it is drawn as any other card, one row: Answer makes the
+// conversation that asked the current one and the composer opens on it with
+// the question's invitation, and stays until that answer closes the question;
+// Dismiss is 018's way out by its index.
 
 import { useRef, useState } from "react";
 import { zoneCity, stackView } from "@offload/widgets";
@@ -19,7 +25,7 @@ import { QuickReplies } from "../shell/QuickReplies";
 import { ThreadPill } from "../shell/ThreadPill";
 import { useToast } from "../shell/Toast";
 import { useThreads } from "../shell/threads-context";
-import { answerQuestion, undoTurn } from "../../lib/dump";
+import { answerQuestion, resumeQuestion, undoTurn, RESUME_COMPOSER } from "../../lib/dump";
 import { acceptInvitation, answerRequestOutcome, firstNameOf, nameOf } from "../../lib/people";
 import { putOff, type NeedsCard } from "../../lib/today";
 import { connectUrl } from "../../lib/use-calendars";
@@ -215,7 +221,19 @@ export function NeedsYou({ cards, load }: { cards: Card[]; load: number }) {
           tone: "attention",
           title: one.question.text,
           why: one.threadId && one.threadName ? <ThreadPill id={one.threadId} name={one.threadName} icon={one.threadIcon ?? "lasso"} hue={one.threadHue ?? 1} size={24} /> : null,
-          actions: [],
+          actions: typedOnly(one)
+            ? [
+                {
+                  label: "Answer",
+                  keeps: true,
+                  run: async () => {
+                    await typeAnswer(one);
+                    return "ok";
+                  },
+                },
+                { ...answer(one, one.question.options.findIndex((option) => option.kind === "plain")), label: "Dismiss" },
+              ]
+            : [],
           clock: true,
         };
       case "tip":
@@ -281,6 +299,29 @@ export function NeedsYou({ cards, load }: { cards: Card[]; load: number }) {
     };
   }
 
+  /** No option is a value: the conversation answers it by typing. */
+  function typedOnly(on: Extract<Card, { kind: "question" }>): boolean {
+    return on.question.options.every((option) => option.kind === "plain");
+  }
+
+  /** Answer, for a question only typing answers. Not a settle: the card stays
+   *  until the typed answer closes the question, and goes now only if the
+   *  question already closed somewhere else. */
+  async function typeAnswer(on: Extract<Card, { kind: "question" }>): Promise<void> {
+    if (Date.now() < inertUntil.current) return;
+    setFailed(null);
+    const outcome = await resumeQuestion(on.question.id);
+    if (outcome === "ok") {
+      window.dispatchEvent(new CustomEvent(RESUME_COMPOSER));
+      return;
+    }
+    if (outcome === "gone") {
+      settle(on.key);
+      return;
+    }
+    setFailed({ key: on.key, label: "Answer", line: FAILED });
+  }
+
   const failure = failed?.key === card.key ? failed : null;
   const labelOf = (action: Action) => (failure?.label === action.label ? "Try again" : action.label);
 
@@ -313,7 +354,7 @@ export function NeedsYou({ cards, load }: { cards: Card[]; load: number }) {
             {failure.line}
           </p>
         ) : null}
-        {card.kind === "question" ? (
+        {card.kind === "question" && !typedOnly(card) ? (
           <div className={styles.cardReplies}>
             <QuickReplies
               options={card.question.options}

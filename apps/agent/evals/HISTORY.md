@@ -148,6 +148,8 @@ and is not committed.
 | 2026-10-14 11:10 | screen | 1 | 66/68 (97%) | $0.21 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: open cases round |
 | 2026-10-14 11:11 | stub3 | 3 | 3/3 (100%) | $0.02 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: fitting stub results |
 | 2026-10-14 11:12 | 12 | 1 | 20/20 (100%) | $0.04 | `claude-haiku-5-5` | `22a95fe0` | `1906c911` | flaky-evals: provenance after the security fixes |
+| 2026-10-15 14:00 | 27 | 1 | 6/8 (75%) | $0.02 | `claude-haiku-5-5` | `22a95fe0` | `a7c51898` | PR 119: earlier email masked, own conversation; two new mail cases |
+| 2026-10-15 14:01 | an-earlier-email-is-not-filed-again | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `22a95fe0` | `a7c51898` | PR 119: the case's date in the account's clock |
 
 ## Full runs by principle
 

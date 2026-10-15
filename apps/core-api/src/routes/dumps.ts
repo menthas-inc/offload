@@ -903,38 +903,45 @@ export async function takeDump(
     // The join and the insert in one statement each, inside one
     // transaction, so two dumps a millisecond apart cannot disagree about
     // whether they were within the window.
-    const recent = await trx
-      .selectFrom("conversations")
-      .select("id")
-      .where("account_id", "=", accountId)
-      .where("deleted_at", "is", null)
-      // Closing the composer ends the conversation, so the next dump starts a
-      // new one however soon it arrives. Six hours of silence was the only
-      // thing that used to end one, which meant somebody who deliberately put
-      // a conversation away and began a new subject got answers about the old
-      // one.
-      .where("ended_at", "is", null)
-      .where(
-        sql<boolean>`last_message_at > now() - interval '${sql.raw(CONVERSATION_GAP)}'`,
-      )
-      .orderBy("last_message_at", "desc")
-      .limit(1)
-      .executeTakeFirst();
+    //
+    // 026, amended 2026-10-15. **An email joins nothing and nothing joins
+    // it.** Each one is a conversation of its own, ended as it opens: two
+    // forwarded minutes apart shared one, and the second turn filed the first
+    // again from the history. Answer on Today is the one way back into it.
+    const recent = mail
+      ? undefined
+      : await trx
+          .selectFrom("conversations")
+          .select("id")
+          .where("account_id", "=", accountId)
+          .where("deleted_at", "is", null)
+          // Closing the composer ends the conversation, so the next dump starts a
+          // new one however soon it arrives. Six hours of silence was the only
+          // thing that used to end one, which meant somebody who deliberately put
+          // a conversation away and began a new subject got answers about the old
+          // one.
+          .where("ended_at", "is", null)
+          .where(
+            sql<boolean>`last_message_at > now() - interval '${sql.raw(CONVERSATION_GAP)}'`,
+          )
+          .orderBy("last_message_at", "desc")
+          .limit(1)
+          .executeTakeFirst();
 
     const conversationId =
       recent?.id ??
       (
         await trx
           .insertInto("conversations")
-          .values({ account_id: accountId })
+          .values(mail ? { account_id: accountId, ended_at: sql`now()` } : { account_id: accountId })
           .returning("id")
           .executeTakeFirstOrThrow()
       ).id;
 
     // 018. A question closes with its conversation. A new conversation is the
     // old one ending, so anything still open there closes now, and its chips
-    // are gone on the next load.
-    if (!recent) await closeOpenQuestions(trx, { accountId, exceptConversationId: conversationId });
+    // are gone on the next load. An email's conversation ends nobody's.
+    if (!recent && !mail) await closeOpenQuestions(trx, { accountId, exceptConversationId: conversationId });
     // And the one open in this conversation, if any, rides on the job so the
     // worker reads the message as a possible answer before anything else.
     // 026. Never for an email: somebody else's words are not the person's
@@ -1854,6 +1861,68 @@ export async function dumpRoutes(app: App): Promise<void> {
         "question answered",
       );
       return reply.send(outcome.envelope);
+    },
+  );
+
+  // 027, 2026-10-15. Answer on a Today card whose question only typing can
+  // answer: a date, span or time with no values to offer. The conversation
+  // that asked becomes the current one again, so the composer opens on it with
+  // the question and its invitation, and the next dump is read against the
+  // question first through 018's own path. Nothing new rides on the dump.
+  //
+  // **Whatever was live ends, as closing the composer ends it**, and its open
+  // question closes with it, which is 018's rule for a new conversation.
+  // `last_message_at` is what makes a conversation current, so it moves here
+  // although no message was written; nothing else reads it.
+  app.post(
+    "/v1/questions/:id/resume",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: { 200: z.object({ conversationId: z.string() }), 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+      const conversationId = await db.transaction().execute(async (trx) => {
+        const asked = await trx
+          .selectFrom("questions")
+          .innerJoin("conversations", "conversations.id", "questions.conversation_id")
+          .select("questions.conversation_id")
+          .where("questions.id", "=", request.params.id)
+          .where("questions.account_id", "=", accountId)
+          .where("questions.state", "=", "open")
+          // Only what typing answers; a question with values is tapped.
+          .where("questions.field", "in", ["date", "span", "time"])
+          // The question's account is not held to its conversation's by the
+          // schema, so the conversation is checked as the account's too.
+          .where("conversations.account_id", "=", accountId)
+          .where("conversations.deleted_at", "is", null)
+          .executeTakeFirst();
+        if (!asked) return null;
+        await trx
+          .updateTable("conversations")
+          .set({ ended_at: sql`now()` })
+          .where("account_id", "=", accountId)
+          .where("id", "<>", asked.conversation_id)
+          .where("deleted_at", "is", null)
+          .where("ended_at", "is", null)
+          .where(sql<boolean>`last_message_at > now() - interval '${sql.raw(CONVERSATION_GAP)}'`)
+          .execute();
+        await closeOpenQuestions(trx, { accountId, exceptConversationId: asked.conversation_id });
+        await trx
+          .updateTable("conversations")
+          .set({ ended_at: null, last_message_at: sql`now()` })
+          .where("id", "=", asked.conversation_id)
+          .where("account_id", "=", accountId)
+          .execute();
+        return asked.conversation_id;
+      });
+
+      if (!conversationId) return reply.code(404).send({ error: "not_found" as const });
+      return reply.send({ conversationId });
     },
   );
 

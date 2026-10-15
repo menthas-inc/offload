@@ -1482,6 +1482,27 @@ describe("018 asking back", () => {
     expect(person.state).toBe("answered");
   });
 
+  it("never asks for what the row already has: a day, a time, an end (2026-10-15)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const ask = async (field: "date" | "time" | "span", set: Record<string, unknown>) => {
+      const { jobId, turnId } = await dump(accountId, `row ${field} ${JSON.stringify(set)}`);
+      const contentId = await filedTask(accountId, threadId, jobId, `Row ${field}`);
+      if (Object.keys(set).length > 0) await db.updateTable("content").set(set as never).where("id", "=", contentId).execute();
+      await turnResult({ outcome: "answered", jobId, usage: [usage], questions: [{ field, title: `Row ${field}`, contentId, options: [] }] });
+      return (await question(accountId, turnId)).length;
+    };
+    const at = new Date("2026-10-23T23:30:00Z");
+    expect(await ask("date", { due_at: at })).toBe(0);
+    expect(await ask("date", { type: "event", occurs_at: at })).toBe(0);
+    expect(await ask("time", { type: "event", occurs_at: at, attrs: JSON.stringify({}) })).toBe(0);
+    expect(await ask("span", { type: "event", occurs_at: at, occurs_end_at: new Date("2026-10-25T10:00:00Z") })).toBe(0);
+    // A day with no hour still has a time to ask for, and a row with nothing
+    // still has everything.
+    expect(await ask("time", { type: "event", occurs_at: at, attrs: JSON.stringify({ all_day: true }) })).toBe(1);
+    expect(await ask("date", {})).toBe(1);
+  });
+
   it("refuses a tag question outright (025), a country question on a filing turn, and a repeated post does not double", async () => {
     const accountId = await account();
     const threadId = await thread(accountId, "Music");

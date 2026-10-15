@@ -703,6 +703,23 @@ export function invitation(question: QuestionOnWire): string {
   }
 }
 
+/** 027. Today's Answer, heard by the composer, which is nobody's child: load
+ *  the current conversation again and take the focus. */
+export const RESUME_COMPOSER = "offload:resume-composer";
+
+/** 027. Make the conversation that asked a question the current one, so a
+ *  question only typing answers can be answered from Today. A 404 is a
+ *  question already closed. */
+export async function resumeQuestion(id: string): Promise<"ok" | "gone" | "failed"> {
+  try {
+    const response = await fetch(`${API}/v1/questions/${id}/resume`, { method: "POST", credentials: "include" });
+    if (response.ok) return "ok";
+    return response.status === 404 ? "gone" : "failed";
+  } catch {
+    return "failed";
+  }
+}
+
 /** The current conversation, so a reload does not look like a fresh account.
  *
  *  Without this the composer came up empty every time and AC-1's promise, that

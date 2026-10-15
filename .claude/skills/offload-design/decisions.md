@@ -11,6 +11,30 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-15 · A forwarded email is a conversation of its own
+**Surface:** iOS, Android, web
+**Raised by:** the owner, after two emails forwarded minutes apart were filed as one.
+
+**Was:** an email joined whatever conversation was live, the person's or another email's. It drew in the composer as a *Forwarded* bubble between the person's own dumps, and the next dump closed its question.
+
+**Is:** each email is a conversation of its own, ended as it opens. It does not draw in the composer while the person types; it is reached from its Activity row, and from Today, where Answer opens the composer on that one email and its question. An email's question stays on Today until it is answered, dismissed or undone, whatever the person dumps meanwhile, so ten emails are ten cards.
+
+**Why:** an email is a dump made somewhere else, at a moment nobody had the composer open. Sharing a conversation with other emails or with the person's typing only mixed them up.
+
+**Design system impact:** none to the components. The kits' conversation examples that show a forwarded email between typed dumps (`LiveConversation.jsx`, `WConversation`) could show it alone, as Answer opens it.
+
+### 2026-10-15 · A question only typing answers gets Answer and Dismiss on Today
+**Surface:** iOS, Android, web
+**Raised by:** the owner, from use: a forwarded email's *Which day and time?* on Today with nothing to press but *Not that*.
+
+**Was:** 027 drew a question card as `QuickReplies` and left a typed answer out of scope, so a `date`, `span` or `time` question with no values drew *Not that* and the clock and could only be dismissed. In the conversation the same question is answered by typing, with the placeholder as the invitation.
+
+**Is:** such a card is not `QuickReplies`. It draws as every other card does, one row: **Answer**, a 34px pill filled ink, then **Dismiss**, then the clock at the right. Dismiss is 018's *Not that*, sent by its index; beside Answer it is the card's way out, and two rows of controls on one card read as two decisions (the owner). Answer opens the composer on the conversation that asked: the email's turn and the question in view, the question's typed invitation in the field (*Which day and time? e.g. Friday at 5pm*), focused. On the phones the conversation sheet rises with the keyboard. The card stays until the answer closes the question. A card with values to tap is unchanged and draws no Answer.
+
+**Why:** a card that asks something must offer a way to answer it. Filling Answer does not break the rule that no option is a primary: it is not a value, it is the way to the field. Questions with values to tap keep `QuickReplies` and *Not that*.
+
+**Design system impact:** no component changes. `mobile_app/TodayParts.jsx`'s `NeedsYou` and the web kit's question card could draw a typed-only question as the action row with Answer and Dismiss. `readme.md`'s Today section: a question card is `QuickReplies` when it has values, and the ordinary action row, Answer and Dismiss, when it has none.
+
 ### 2026-10-13 · An answer's dated rows say their date
 **Surface:** iOS, Android, web
 **Raised by:** the owner, from use: an answer listing eight rows all called "Glass blowing class" with nothing to tell them apart.

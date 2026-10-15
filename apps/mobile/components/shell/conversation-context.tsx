@@ -39,6 +39,7 @@ import {
   cancelTurn,
   endConversation,
   fetchCurrent,
+  type TailMessage,
   resumeDump,
   sendDump,
   undoTurn,
@@ -321,6 +322,11 @@ export interface Conversation {
    *  False when there is none to bring back: never one, or one put away for
    *  thirty minutes, which this ends so the next dump starts a new one. */
   raise: (options?: { focus?: boolean }) => boolean;
+  /** 027. Today's Answer made the conversation that asked a question the
+   *  current one: load it in place of whatever was here and open it with the
+   *  field focused, where the question's invitation is. False when there was
+   *  nothing to load. */
+  resumeConversation: () => Promise<boolean>;
   /** Put the sheet away, keeping the conversation: the thread pill, an
    *  answer's thread. A pin goes, since a pin put away is a pin dismissed. */
   lower: () => void;
@@ -395,6 +401,38 @@ export interface Conversation {
   /** 022. Say it from a screen that is about to go: Leave from a thread's
    *  More pops the screen, and the toast has to outlive it. */
   notify: (message: string, action?: Notice["action"]) => void;
+}
+
+/** The tail as turns, for the load and for Today's Answer. */
+function turnsOfTail(tail: TailMessage[]): Turn[] {
+  return tail.map((message) => ({
+    id: message.id,
+    from: message.role === "person" ? "you" : "offload",
+    text: message.text ?? "",
+    photos: message.photos ?? [],
+    voice: message.voice ?? null,
+    mail: message.mail ?? null,
+    state: message.state,
+    turnId: message.turnId,
+    // Survives a reload, which is the point: somebody who backgrounds
+    // the app mid-decision comes back to the same question rather than
+    // to a reply about something that never happened.
+    waiting: message.waiting ?? null,
+    question: message.question ?? null,
+    // Same reason. An answer reopened tomorrow draws the rows as they
+    // are now, because the server resolves them rather than storing a
+    // copy taken when the answer was written.
+    found: message.found ?? [],
+    // **And the footer, which a cold start used to empty.** Every
+    // settled turn came back with no Done mark, no thread pill and no
+    // source chip, because the tail carried none of the three. `did` is
+    // derived here from the same record the pills come from, never from
+    // the reply.
+    threads: message.threads ?? [],
+    sources: message.sources ?? [],
+    labels: message.labels ?? [],
+    did: turnDid(message),
+  }));
 }
 
 const UNDO_MS = 8000;
@@ -705,6 +743,24 @@ export function ConversationProvider({
     [bringBack],
   );
 
+  const resumeConversation = useCallback(async (): Promise<boolean> => {
+    const tail = await fetchCurrent().catch(() => null);
+    if (!tail || tail.length === 0) return false;
+    // The conversation on screen goes whole, its polls with it: one landing
+    // later would write its answer over the turns loaded here.
+    for (const poll of polls.current.values()) poll.cancel();
+    polls.current.clear();
+    setWorking(null);
+    setWriting(false);
+    setTurns(turnsOfTail(tail));
+    setLive((current) => current ?? { title: "" });
+    closedAt.current = null;
+    setOpen(true);
+    springTo(true);
+    setFocusRequest((n) => n + 1);
+    return true;
+  }, [springTo]);
+
   /** The sheet is at its closed edge: now say so. Both reasons it was up end
    *  together (`settled`): clearing only the pin once left a conversation
    *  that had opened underneath it "up" with the sheet off the screen. */
@@ -732,36 +788,7 @@ export function ConversationProvider({
         const tail = await fetchCurrent();
         if (tail === null) return false;
         if (tail.length === 0) return true;
-        setTurns(
-          tail.map((message) => ({
-            id: message.id,
-            from: message.role === "person" ? "you" : "offload",
-            text: message.text ?? "",
-            photos: message.photos ?? [],
-            voice: message.voice ?? null,
-            mail: message.mail ?? null,
-            state: message.state,
-            turnId: message.turnId,
-            // Survives a reload, which is the point: somebody who backgrounds
-            // the app mid-decision comes back to the same question rather than
-            // to a reply about something that never happened.
-            waiting: message.waiting ?? null,
-            question: message.question ?? null,
-            // Same reason. An answer reopened tomorrow draws the rows as they
-            // are now, because the server resolves them rather than storing a
-            // copy taken when the answer was written.
-            found: message.found ?? [],
-            // **And the footer, which a cold start used to empty.** Every
-            // settled turn came back with no Done mark, no thread pill and no
-            // source chip, because the tail carried none of the three. `did` is
-            // derived here from the same record the pills come from, never from
-            // the reply.
-            threads: message.threads ?? [],
-            sources: message.sources ?? [],
-            labels: message.labels ?? [],
-            did: turnDid(message),
-          })),
-        );
+        setTurns(turnsOfTail(tail));
         // A conversation to come back to, put away as of its last message:
         // the thirty minute rule reads this after a cold start.
         setLive((current) => current ?? { title: "" });
@@ -1625,6 +1652,7 @@ export function ConversationProvider({
         closePhoto: () => setPhotoOpen(null),
         focusRequest,
         raise,
+        resumeConversation,
         lower,
         settle,
         raiseFor,

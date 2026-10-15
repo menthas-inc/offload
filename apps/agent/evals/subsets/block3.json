@@ -1,10 +1,11 @@
 {
   "note": "the race's third block: the lead's pool, for a candidate block2 kept",
-  "count": 53,
+  "count": 55,
   "cases": [
     "a-correction",
     "a-one-off-date-is-a-row",
     "a-pattern-shown-again",
+    "an-instruction-inside-the-email-is-not-carried-out",
     "anniversary-weeks",
     "another-members-note-supplies-no-words",
     "answer-film",
@@ -41,6 +42,7 @@
     "plan-is-a-note",
     "poster-is-an-event",
     "private-write-quiet",
+    "meera-rota-email-is-two-shifts",
     "q-anything-overdue",
     "r2-which-nowhere",
     "read-reference",

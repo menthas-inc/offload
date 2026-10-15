@@ -24,6 +24,8 @@ import {
   DumpTooLong,
   endConversation,
   fetchCurrent,
+  RESUME_COMPOSER,
+  type TailMessage,
   resumeDump,
   sendDump,
   undoTurn,
@@ -342,44 +344,76 @@ export function Composer({
     return () => window.removeEventListener(FILL_COMPOSER, fill);
   }, []);
 
+  /** The tail as turns, for the load and for Today's Answer. */
+  function turnsOf(messages: TailMessage[]): Turn[] {
+    return messages.map((message) => ({
+      id: message.id,
+      from: message.role === "person" ? "you" : "offload",
+      text: message.text ?? "",
+      photos: message.photos ?? [],
+      voice: message.voice ?? null,
+      mail: message.mail ?? null,
+      state: message.state,
+      turnId: message.turnId,
+      since: Date.now(),
+      // **Both of these were dropped here, and the server had always sent
+      // them.** A reload turned an answer back into its sentence with no
+      // rows beside it, and left a reply saying offload is waiting with
+      // nothing to answer it, which is the dead end 012 exists to remove.
+      // The phones drew the same answer correctly, which is what made this
+      // a web bug rather than a server one.
+      found: message.found,
+      waiting: message.waiting,
+      question: message.question ?? null,
+      // **And the footer.** Same sentence as the two above: the server has
+      // always resolved these on the other two reads, and a reload emptied
+      // every settled turn's footer without them. `did` comes from the
+      // record the pills come from, never from the reply.
+      threads: message.threads,
+      sources: message.sources,
+      labels: message.labels,
+      did: turnDid(message),
+    }));
+  }
+
+  /** Which read of the conversation is the latest. The mount's and Answer's
+   *  are two reads of one thing, and a slower first one landing second put
+   *  the conversation Answer had just opened back to the one before. */
+  const reads = useRef(0);
+
+  // 027. Today's Answer made the conversation that asked a question the
+  // current one: load it in place of whatever is on screen, keep the draft,
+  // and take the focus so the invitation is where the typing goes.
+  useEffect(() => {
+    const resume = () => {
+      const read = ++reads.current;
+      void fetchCurrent().then((messages) => {
+        if (read !== reads.current) return;
+        for (const cancel of cancels.current.values()) cancel();
+        cancels.current.clear();
+        lastSaid.current = lastSaidOf(messages);
+        setTurns(turnsOf(messages));
+        for (const message of messages) {
+          if (message.role !== "person" || message.state !== "seen") continue;
+          watch(message.id, message.turnId);
+        }
+        input.current?.focus();
+      });
+    };
+    window.addEventListener(RESUME_COMPOSER, resume);
+    return () => window.removeEventListener(RESUME_COMPOSER, resume);
+  }, []);
+
   // Rebuild the conversation on load and pick up anything still unanswered. A
   // dump sent just before the tab closed is in the database either way; this is
   // what makes it visible again.
   useEffect(() => {
     let live = true;
+    const read = ++reads.current;
     void fetchCurrent().then((messages) => {
-      if (!live || messages.length === 0) return;
+      if (!live || read !== reads.current || messages.length === 0) return;
       lastSaid.current = lastSaidOf(messages);
-      setTurns(
-        messages.map((message) => ({
-          id: message.id,
-          from: message.role === "person" ? "you" : "offload",
-          text: message.text ?? "",
-          photos: message.photos ?? [],
-          voice: message.voice ?? null,
-          mail: message.mail ?? null,
-          state: message.state,
-          turnId: message.turnId,
-          since: Date.now(),
-          // **Both of these were dropped here, and the server had always sent
-          // them.** A reload turned an answer back into its sentence with no
-          // rows beside it, and left a reply saying offload is waiting with
-          // nothing to answer it, which is the dead end 012 exists to remove.
-          // The phones drew the same answer correctly, which is what made this
-          // a web bug rather than a server one.
-          found: message.found,
-          waiting: message.waiting,
-          question: message.question ?? null,
-          // **And the footer.** Same sentence as the two above: the server has
-          // always resolved these on the other two reads, and a reload emptied
-          // every settled turn's footer without them. `did` comes from the
-          // record the pills come from, never from the reply.
-          threads: message.threads,
-          sources: message.sources,
-          labels: message.labels,
-          did: turnDid(message),
-        })),
-      );
+      setTurns(turnsOf(messages));
       // No toast on hydration. The eight seconds belongs to the moment offload
       // answered, and a reload an hour later is not that moment.
       for (const message of messages) {

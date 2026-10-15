@@ -376,11 +376,28 @@ _LANDED = text(
 # somebody else named carries `derived_from_untrusted`, and what the prompt
 # reads of it is that they picked a shared calendar, never the words its owner
 # chose. The client draws the real text; the prompt does not.
+#
+# 026, amended 2026-10-15. An earlier forwarded email reads as a line we write
+# and the titles of what it filed, never its body. Its body is somebody else's
+# words, labelled as such only on the turn it arrived on; here it read as
+# `person:`, so a second email forwarded minutes later filed the first one
+# again, and anything written inside it reached later turns as the person's
+# own request (SEC-1). And only what came before the turn's own message: an
+# email that arrived after a message but before its job ran was in its tail.
 _TURNS = text(
     """
     select m.role,
            case when m.derived_from_untrusted
                 then '(picked a calendar shared with them)'
+                when m.source in ('mail', 'gmail')
+                then '(forwarded an email'
+                     || coalesce(', filed: ' || (
+                          select string_agg(c.title, ', ' order by c.created_at)
+                            from content c
+                           where c.derived_from_message_id = m.id
+                             and c.account_id = :account_id
+                             and c.deleted_at is null), '')
+                     || ')'
                 else said(m.text, m.transcript) end as text,
            (select count(*) from blobs b
              where b.message_id = m.id and b.kind = 'image' and b.deleted_at is null) as photos,
@@ -400,7 +417,8 @@ _TURNS = text(
            or exists (select 1 from blobs b
                        where b.message_id = m.id and b.kind in ('image', 'pdf')
                          and b.deleted_at is null))
-      and m.id <> :exclude_id
+      and (m.created_at, m.id) < (select x.created_at, x.id from messages x
+                                   where x.id = :exclude_id)
     order by m.created_at desc
     limit :limit
     """

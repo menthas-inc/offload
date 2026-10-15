@@ -27,7 +27,8 @@ import { answerQuestion, undoTurn } from "../../lib/dump";
 import { setClock } from "../../lib/me";
 import { acceptInvitation, answerRequest, firstNameOf, nameOf } from "../../lib/people";
 import { turnOn } from "../../lib/notifications";
-import { putOff, stackView, type Card } from "../../lib/today";
+import { putOff, resumeQuestion, stackView, typedOnly, type Card } from "../../lib/today";
+import { useConversation } from "../shell/conversation-context";
 
 const isAndroid = Platform.OS === "android";
 const WEB = process.env["EXPO_PUBLIC_WEB_URL"] ?? "https://offload.club";
@@ -132,6 +133,7 @@ export function NeedsYou({
   onReload: () => void;
 }) {
   const COLOR = useColors();
+  const { resumeConversation } = useConversation();
   const [gone, setGone] = useState<Set<string>>(new Set());
   const [failed, setFailed] = useState<{ key: string; label: string; line: string } | null>(null);
   const [inert, setInert] = useState(false);
@@ -282,7 +284,31 @@ export function NeedsYou({
           { label: "Got it", run: () => putOff(card.key, true), failed: "That didn't go through." },
         ];
       case "question":
-        return [];
+        // Values are tapped through QuickReplies below. A question only
+        // typing answers is drawn as any other card, one row: Answer opens
+        // the conversation that asked, and stays until the typed answer
+        // closes the question; Dismiss is 018's way out by its index.
+        if (!typedOnly(card.question.options)) return [];
+        return [
+          {
+            label: "Answer",
+            keeps: true,
+            run: async () => {
+              const outcome = await resumeQuestion(card.question.id);
+              if (outcome === "gone") {
+                setGone((held) => new Set(held).add(card.key));
+                return "ok";
+              }
+              return outcome === "ok" && (await resumeConversation()) ? "ok" : "failed";
+            },
+            failed: "That didn't go through.",
+          },
+          {
+            label: "Dismiss",
+            run: answerWrite(card, card.question.options.findIndex((option) => option.kind === "plain")),
+            failed: "That didn't go through.",
+          },
+        ];
     }
   })();
 
@@ -292,28 +318,25 @@ export function NeedsYou({
 
   /** 018's answer by option, with 018's Undo on a value, and a question
    *  already closed somewhere else let go with nothing to retry. */
-  const answer = (on: Extract<Card, { kind: "question" }>, index: number) => {
+  function answerWrite(on: Extract<Card, { kind: "question" }>, index: number): () => Promise<Outcome> {
     const option = on.question.options[index]!;
-    settle(
-      on.key,
-      async () => {
-        const { status, sent } = await answerQuestion(on.question.id, index);
-        if (status === 404 || status === 409) return "gone";
-        if (!sent) return "failed";
-        if (option.kind === "value") {
-          toast.show(option.label, {
-            label: "Undo",
-            onPress: async () => {
-              if (!(await undoTurn(sent.turnId).catch(() => false))) toast.show("Couldn't undo that");
-            },
-          });
-        }
-        return "ok";
-      },
-      "That didn't go through.",
-      option.label,
-    );
-  };
+    return async () => {
+      const { status, sent } = await answerQuestion(on.question.id, index);
+      if (status === 404 || status === 409) return "gone";
+      if (!sent) return "failed";
+      if (option.kind === "value") {
+        toast.show(option.label, {
+          label: "Undo",
+          onPress: async () => {
+            if (!(await undoTurn(sent.turnId).catch(() => false))) toast.show("Couldn't undo that");
+          },
+        });
+      }
+      return "ok";
+    };
+  }
+  const answer = (on: Extract<Card, { kind: "question" }>, index: number) =>
+    settle(on.key, answerWrite(on, index), "That didn't go through.", on.question.options[index]!.label);
   const swipe = Gesture.Pan()
     .enabled(canPutOff && !inert)
     .activeOffsetX([-16, 16])
@@ -397,7 +420,7 @@ export function NeedsYou({
             </Text>
           ) : null}
 
-          {question ? (
+          {question && !typedOnly(question.question.options) ? (
             // The conversation's own QuickReplies: no option filled, Not
             // that alone on its line with the clock beside it.
             <View className="mt-space-4">
