@@ -1857,6 +1857,68 @@ export async function dumpRoutes(app: App): Promise<void> {
     },
   );
 
+  // 027, 2026-10-15. Answer on a Today card whose question only typing can
+  // answer: a date, span or time with no values to offer. The conversation
+  // that asked becomes the current one again, so the composer opens on it with
+  // the question and its invitation, and the next dump is read against the
+  // question first through 018's own path. Nothing new rides on the dump.
+  //
+  // **Whatever was live ends, as closing the composer ends it**, and its open
+  // question closes with it, which is 018's rule for a new conversation.
+  // `last_message_at` is what makes a conversation current, so it moves here
+  // although no message was written; nothing else reads it.
+  app.post(
+    "/v1/questions/:id/resume",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: { 200: z.object({ conversationId: z.string() }), 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+      const conversationId = await db.transaction().execute(async (trx) => {
+        const asked = await trx
+          .selectFrom("questions")
+          .innerJoin("conversations", "conversations.id", "questions.conversation_id")
+          .select("questions.conversation_id")
+          .where("questions.id", "=", request.params.id)
+          .where("questions.account_id", "=", accountId)
+          .where("questions.state", "=", "open")
+          // Only what typing answers; a question with values is tapped.
+          .where("questions.field", "in", ["date", "span", "time"])
+          // The question's account is not held to its conversation's by the
+          // schema, so the conversation is checked as the account's too.
+          .where("conversations.account_id", "=", accountId)
+          .where("conversations.deleted_at", "is", null)
+          .executeTakeFirst();
+        if (!asked) return null;
+        await trx
+          .updateTable("conversations")
+          .set({ ended_at: sql`now()` })
+          .where("account_id", "=", accountId)
+          .where("id", "<>", asked.conversation_id)
+          .where("deleted_at", "is", null)
+          .where("ended_at", "is", null)
+          .where(sql<boolean>`last_message_at > now() - interval '${sql.raw(CONVERSATION_GAP)}'`)
+          .execute();
+        await closeOpenQuestions(trx, { accountId, exceptConversationId: asked.conversation_id });
+        await trx
+          .updateTable("conversations")
+          .set({ ended_at: null, last_message_at: sql`now()` })
+          .where("id", "=", asked.conversation_id)
+          .where("account_id", "=", accountId)
+          .execute();
+        return asked.conversation_id;
+      });
+
+      if (!conversationId) return reply.code(404).send({ error: "not_found" as const });
+      return reply.send({ conversationId });
+    },
+  );
+
   // Finish a turn that stopped partway.
   //
   // A fresh job against the same message, not a fresh dump. The planner is

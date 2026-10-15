@@ -100,3 +100,11 @@ Every task starts with its failing test, run and seen red for the reason the tas
 - [x] **T7.3** `@offload/widgets` `open-threads.ts`: `openFor`, `inMindLine`, `holdsLine`, `keepInPlace`. *(AC-23)*
 - [x] **T7.4** Web: the section after To do, two up with the chevrons, people, ages, N more, Open thread, Not in a thread's line and Sort them, the tick with Undo kept in place through a re-read, the row sheet, nothing on another day, with nothing open or switched off; Customize's third row; no page title. *(AC-22, AC-23, AC-27)*
 - [x] **T7.5** Phones: the pages with the peek, the snap and the dots, the tick, the row sheet, Customize's third row, the edge in dark. *(AC-22, AC-23, AC-27)*
+
+## Amended 2026-10-15: Answer
+
+- [x] **T8.1** `POST /v1/questions/:id/resume`, red first (`today-answer.test.ts`): the conversation that asked becomes current with its question; the next dump's job carries `openQuestionId` and the question stays open; the live conversation ends and its question closes; a settled question or another account's is `404` and changes nothing; a question pointing at another account's conversation is `404` and that conversation is untouched; a `thread` question is `404`. *(AC-39)*
+- [x] **T8.2** Web, red first: *Answer* and *Dismiss* in one row with the clock only when no option is a value, Dismiss answers the plain option, it posts the resume and dispatches `RESUME_COMPOSER` with the card kept, a `404` lets the card go (`today.test.tsx`); the composer loads the conversation that asked and holds its invitation, focused (`composer-resume.test.tsx`). Checked in the browser on a local account. *(AC-9, AC-39)*
+- [x] **T8.3** Phones, red first (`today.test.ts`): `resumeQuestion`'s three outcomes, `typedOnly`, and the card's Answer and Dismiss and the context wired. *(AC-39)*
+- [ ] **T8.4** Device pass on both phones: the sheet opens on the conversation that asked with the invitation and the keyboard up. *(AC-39)*
+

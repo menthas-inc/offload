@@ -163,6 +163,23 @@ describe("027 AC-12 the writes, and open in your threads", () => {
     expect(await today.putOff("question:q")).toBe("ok");
   });
 
+  it("makes the conversation that asked a typed-only question current, for Answer (2026-10-15)", async () => {
+    sent.length = 0;
+    status = 200;
+    expect(await today.resumeQuestion("q")).toBe("ok");
+    expect(sent.map((s) => [s.path, s.init?.method])).toEqual([["/v1/questions/q/resume", "POST"]]);
+    status = 404;
+    expect(await today.resumeQuestion("q")).toBe("gone");
+    status = 500;
+    expect(await today.resumeQuestion("q")).toBe("failed");
+    status = 200;
+  });
+
+  it("offers Answer only where no option is a value", () => {
+    expect(today.typedOnly([{ label: "Not that", kind: "plain" }])).toBe(true);
+    expect(today.typedOnly([{ label: "Saturday", kind: "value" }, { label: "Not that", kind: "plain" }])).toBe(false);
+  });
+
   it("reads open in your threads, and nothing when it did not come back", async () => {
     sent.length = 0;
     expect(await today.fetchOpenThreads()).toBeNull();
@@ -272,6 +289,26 @@ describe("042 the Reminders section", () => {
     const off = { notifyDueToday: false, notifyComingTomorrow: false, notifyPeopleRequests: false, notifySharedActivity: false };
     expect(today.notificationsCard({ ...off, notifyReminders: true }, false, null, now)).not.toBeNull();
     expect(today.notificationsCard({ ...off, notifyReminders: false }, false, null, now)).toBeNull();
+  });
+});
+
+describe("027 Answer on a question card (2026-10-15)", () => {
+  const read = (path: string): string => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+
+  it("draws Answer on a typed-only question, which opens the conversation that asked", () => {
+    const card = read("components/today/NeedsYou.tsx");
+    expect(card).toMatch(/typedOnly\(card\.question\.options\)/);
+    // One row, as every other card: Answer, then Dismiss, which is 018's way out.
+    expect(card).toMatch(/label: "Answer"/);
+    expect(card).toMatch(/label: "Dismiss"/);
+    expect(card).toMatch(/resumeConversation\(/);
+    const context = read("components/shell/conversation-context.tsx");
+    expect(context).toMatch(/resumeConversation: \(\) => Promise<boolean>/);
+    // The conversation on screen before goes whole: its polls too, or one
+    // landing later rewrites the resumed conversation's turns.
+    const resume = context.slice(context.indexOf("const resumeConversation"), context.indexOf("const resumeConversation") + 900);
+    expect(resume).toMatch(/polls\.current\.values\(\)\) poll\.cancel\(\)/);
+    expect(resume).toMatch(/polls\.current\.clear\(\)/);
   });
 });
 

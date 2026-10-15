@@ -322,6 +322,7 @@ const { refreshMe } = await import("../src/lib/use-me");
 const { ToastProvider, ToastHost } = await import("../src/components/shell/Toast");
 const { default: TodayRoute } = await import("../src/app/(shell)/today/page");
 const { TODAY_RESET } = await import("../src/lib/today");
+const { RESUME_COMPOSER } = await import("../src/lib/dump");
 
 // ------------------------------------------------------------------ the page
 
@@ -620,6 +621,55 @@ describe("027 AC-4 to AC-10 the cards", () => {
     expect(text()).toContain("Saturday");
     await press(undo);
     expect(writes("POST", "/v1/turns/turn1/undo")).toHaveLength(1);
+  });
+
+  it("offers Answer on a question only typing answers, which opens the composer on the conversation that asked", async () => {
+    const typed = card.question(true);
+    typed.question = { ...typed.question, field: "time", text: 'Filed "Odyssey 70mm". Which day and time?', options: [{ label: "Not that", kind: "plain" }] };
+    needs = [typed];
+    const opened = vi.fn();
+    window.addEventListener(RESUME_COMPOSER, opened);
+    overrides["POST /v1/questions/q1/resume"] = () => json({ conversationId: "v1" });
+    await open();
+    const answer = button("Answer");
+    expect(answer).toBeDefined();
+    // One row, as every other card: Answer filled, Dismiss beside it, the clock.
+    expect(answer!.hasAttribute("data-filled")).toBe(true);
+    expect(answer!.nextElementSibling).toBe(button("Dismiss")!);
+    expect(button("Dismiss")!.nextElementSibling).toBe(button("Tomorrow")!);
+    expect(button("Not that")).toBeUndefined();
+    await press(answer);
+    expect(writes("POST", "/v1/questions/q1/resume")).toHaveLength(1);
+    expect(opened).toHaveBeenCalledTimes(1);
+    // The card stays until the answer closes the question.
+    expect(needsYou()).not.toBeNull();
+    window.removeEventListener(RESUME_COMPOSER, opened);
+  });
+
+  it("dismisses a question only typing answers through 018's way out", async () => {
+    const typed = card.question(true);
+    typed.question = { ...typed.question, field: "time", options: [{ label: "Not that", kind: "plain" }] };
+    needs = [typed];
+    await open();
+    await press(button("Dismiss"));
+    expect(writes("POST", "/v1/questions/q1/answer")[0]!.body).toEqual({ option: 0 });
+    expect(needsYou()).toBeNull();
+  });
+
+  it("lets a question card go when Answer finds it already closed", async () => {
+    const typed = card.question(true);
+    typed.question = { ...typed.question, field: "time", options: [{ label: "Not that", kind: "plain" }] };
+    needs = [typed];
+    overrides["POST /v1/questions/q1/resume"] = () => json({ error: "not_found" }, 404);
+    await open();
+    await press(button("Answer"));
+    expect(needsYou()).toBeNull();
+  });
+
+  it("offers no Answer when the question has values to tap", async () => {
+    needs = [card.question()];
+    await open();
+    expect(button("Answer")).toBeUndefined();
   });
 
   it("says a question came from an email", async () => {

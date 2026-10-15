@@ -158,6 +158,19 @@ export async function putOff(card: string, forGood?: boolean): Promise<"ok" | "g
   return sent.status === 200 ? "ok" : sent.status === 404 ? "gone" : "failed";
 }
 
+/** A question only typing answers: no option is a value, so the card offers
+ *  Answer and the composer takes the words. */
+export function typedOnly(options: { label: string; kind: "value" | "plain" }[]): boolean {
+  return options.every((option) => option.kind === "plain");
+}
+
+/** Make the conversation that asked the current one, for Answer. A 404 is a
+ *  question already closed. */
+export async function resumeQuestion(id: string): Promise<"ok" | "gone" | "failed"> {
+  const sent = await send<{ conversationId: string }>(`/v1/questions/${id}/resume`, { method: "POST" });
+  return sent.status === 200 ? "ok" : sent.status === 404 ? "gone" : "failed";
+}
+
 // ---------------------------------------------------------------- open in your threads
 
 /** A page (design 2026-10-07): a thread's open to-dos with no date, its oldest
