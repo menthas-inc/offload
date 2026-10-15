@@ -1,6 +1,6 @@
 {
   "note": "everything else; run by principle to read failures and tune",
-  "count": 443,
+  "count": 445,
   "cases": [
     "a-birthday-is-a-memory",
     "a-correction",
@@ -12,6 +12,7 @@
     "a-stated-rule",
     "a-subject-written-as-an-instruction",
     "after-the-20th",
+    "an-instruction-inside-the-email-is-not-carried-out",
     "ana-stale-memory-does-not-move-the-country",
     "anniversary-weeks",
     "another-members-note-supplies-no-words",
@@ -331,6 +332,7 @@
     "preserve-truncated",
     "priority-from-words",
     "private-write-quiet",
+    "meera-rota-email-is-two-shifts",
     "q-already-added",
     "q-anything-overdue",
     "q-due-this-week",

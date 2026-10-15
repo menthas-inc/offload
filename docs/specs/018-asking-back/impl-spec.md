@@ -235,3 +235,7 @@ question: {
 - **OFF-8.** The answering path's new tail is bounded by the same `fit()` ceiling as filing. One open question per conversation bounds what the envelope carries. Nothing here grows with account age.
 - **DATA-1.** The schema above precedes the code.
 - **DEV-1.** One tool, one table, one client route, two internal routes, two prompt sections. The judge call reuses `classify`'s shape.
+
+## Amended 2026-10-15: never ask what the row already has
+
+`validateAsked` refuses a question whose target row already holds the answer, as `already_known`: a `date` on a row with `due_at` or `occurs_at`, a `time` on a row with `occurs_at` that is not `all_day`, a `span` on a row with `occurs_end_at`. All or nothing as every refusal is, and logged as the field and the reason only. A forwarded ticket was asked *Which day and time?* about a row the owner believed carried both; the tap path already refused to write over a set field, and this stops the question being asked at all.

@@ -4,7 +4,8 @@
   "sources": [
     "026 AC-11, AC-13, AC-14",
     "026: What happens to an email",
-    "plan_v2.md: What you are reading"
+    "plan_v2.md: What you are reading",
+    "026 amended 2026-10-15: an earlier email in the conversation"
   ],
   "cases": [
     {
@@ -178,6 +179,82 @@
           "look_up"
         ],
         "asks": "none",
+        "say": null
+      }
+    },
+    {
+      "id": "an-earlier-email-is-not-filed-again",
+      "why": "two emails forwarded minutes apart share a conversation; the earlier one reads as what it filed, and the second turn files only its own email (2026-10-15: the second filed both)",
+      "surface": "file",
+      "input": "",
+      "context": "behrooz",
+      "history": [
+        {
+          "role": "person",
+          "text": "(forwarded an email, filed: Odyssey 70mm, 2 adult tickets)"
+        },
+        {
+          "role": "offload",
+          "text": "Added to Miscellaneous."
+        }
+      ],
+      "mail": {
+        "subject": "New event: Lunatico @ Tue Oct 20, 2026 9pm - 10pm (EDT)",
+        "from_name": "Meera",
+        "from_address": "meera@example.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Meera <meera@example.test>\nSubject: New event: Lunatico @ Tue Oct 20, 2026 9pm - 10pm (EDT)\n\nYou have been invited to attend an event named Lunatico on Tuesday Oct 20, 2026 9pm - 10pm (Eastern Time - New York).\nWhen: Tuesday Oct 20, 2026 9pm - 10pm (Eastern Time - New York)\nGuests: View all guest info\nInvitation from Google Calendar"
+      },
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_content",
+            "date": "2026-10-20",
+            "has": [
+              "lunatico"
+            ]
+          }
+        ],
+        "not_filed": [
+          {
+            "has": [
+              "odyssey"
+            ]
+          }
+        ],
+        "filed_max": 1,
+        "look_up": false,
+        "say": null
+      }
+    },
+    {
+      "id": "a-ticket-email-files-its-show-time",
+      "why": "a ticket is the showing it is for: the day and time in the forwarded body go on the row, and nothing is asked (2026-10-15: asked which day and time)",
+      "surface": "file",
+      "input": "",
+      "context": "behrooz",
+      "mail": {
+        "subject": "Your tickets for The Odyssey",
+        "from_name": "Regal",
+        "from_address": "tickets@regal.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Regal <tickets@regal.test>\nSubject: Your tickets for The Odyssey\n\nThanks for your purchase!\n\nThe Odyssey: The IMAX 70mm Experience\nRegal Union Square, Screen 4\nFriday, October 23, 2026 at 7:30 PM\nTickets: 2 Adult\nSeats: G11, G12\nConfirmation: 8841-2290\n\nArrive 20 minutes early for 70mm presentations."
+      },
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_content",
+            "type_any": [
+              "event"
+            ],
+            "date": "2026-10-23",
+            "has": [
+              "odyssey"
+            ]
+          }
+        ],
+        "asks": "none",
+        "look_up": false,
         "say": null
       }
     }

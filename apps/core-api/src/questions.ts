@@ -269,7 +269,10 @@ export type Refusal =
   // 020. The one condition under which where a row goes may be asked did
   // not hold: the dump had words, a thread was on screen, the turn wrote
   // more than the photo, or the photo is not in the default thread.
-  | "thread_condition";
+  | "thread_condition"
+  // 2026-10-15. A date, time or end the row already has: offload asked a
+  // forwarded ticket's day and time while the row carried it.
+  | "already_known";
 
 interface Validated {
   field: Field;
@@ -277,6 +280,26 @@ interface Validated {
   options: StoredOption[];
   targetContentId: string | null;
   targetNoteId: string | null;
+}
+
+/** Whether the row already holds what the question would ask for: a day for
+ *  `date`, an hour for `time` (a day with no hour still has one to ask), an
+ *  end for `span`. */
+function alreadyKnown(
+  field: Field,
+  row: { due_at: Date | null; occurs_at: Date | null; occurs_end_at: Date | null; attrs: unknown },
+): boolean {
+  const allDay = (row.attrs as { all_day?: boolean } | null)?.all_day === true;
+  switch (field) {
+    case "date":
+      return row.due_at !== null || row.occurs_at !== null;
+    case "time":
+      return row.occurs_at !== null && !allDay;
+    case "span":
+      return row.occurs_end_at !== null;
+    default:
+      return false;
+  }
 }
 
 /** Turn what the worker posted into rows, or say why not. All or nothing: a
@@ -291,7 +314,7 @@ export async function validateAsked(
 
   const landed = await trx
     .selectFrom("content")
-    .select(["id", "thread_id", "type", "title"])
+    .select(["id", "thread_id", "type", "title", "due_at", "occurs_at", "occurs_end_at", "attrs"])
     .where("derived_from_message_id", "=", ctx.messageId)
     .where("account_id", "=", ctx.accountId)
     .where("deleted_at", "is", null)
@@ -323,6 +346,7 @@ export async function validateAsked(
       if (!q.contentId) return { ok: false, reason: "no_target", field: q.field };
       const content = landed.find((row) => row.id === q.contentId);
       const note = landedNotes.find((row) => row.id === q.contentId);
+      if (content && alreadyKnown(q.field, content)) return { ok: false, reason: "already_known", field: q.field };
       if (content) {
         targetContentId = content.id;
         threadId = content.thread_id;
