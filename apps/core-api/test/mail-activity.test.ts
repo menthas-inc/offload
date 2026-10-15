@@ -235,9 +235,16 @@ describe("/api/me says whether mail can reach this account (AC-18)", () => {
   });
 });
 
+/** What Answer's resume does to an email's conversation. */
+const reopen = () => db.updateTable("conversations").set({ ended_at: null }).where("account_id", "=", jo).execute();
+
 describe("the conversation draws an email as one (AC-5)", () => {
   it("carries the subject on a mail message and null on anything else", async () => {
     await forwarded("Your appointment is confirmed");
+    // 2026-10-15. An email's conversation is ended as it opens, so it is not
+    // the current one until Answer on Today makes it so.
+    expect((await as(app, await signIn(jo)).get("/v1/conversations/current")).json().messages).toEqual([]);
+    await reopen();
     const tail = (await as(app, await signIn(jo)).get("/v1/conversations/current")).json();
     const [message] = tail.messages;
     expect(message.mail).toEqual({ subject: "Your appointment is confirmed", note: "Flights on 3 and 10 October. A PDF is attached." });
@@ -253,6 +260,7 @@ describe("the conversation shows the person's note, not the forwarded header", (
   it("carries the note above the forwarded part", async () => {
     const body = "for the trip\r\n\r\n---------- Forwarded message ---------\r\nFrom: a@b.test\r\n\r\nFlights.";
     await forwarded("Booking LX3K9", body);
+    await reopen();
     const tail = (await as(app, await signIn(jo)).get("/v1/conversations/current")).json();
     expect(tail.messages[0].mail).toEqual({ subject: "Booking LX3K9", note: "for the trip" });
   });

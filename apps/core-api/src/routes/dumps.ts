@@ -903,38 +903,45 @@ export async function takeDump(
     // The join and the insert in one statement each, inside one
     // transaction, so two dumps a millisecond apart cannot disagree about
     // whether they were within the window.
-    const recent = await trx
-      .selectFrom("conversations")
-      .select("id")
-      .where("account_id", "=", accountId)
-      .where("deleted_at", "is", null)
-      // Closing the composer ends the conversation, so the next dump starts a
-      // new one however soon it arrives. Six hours of silence was the only
-      // thing that used to end one, which meant somebody who deliberately put
-      // a conversation away and began a new subject got answers about the old
-      // one.
-      .where("ended_at", "is", null)
-      .where(
-        sql<boolean>`last_message_at > now() - interval '${sql.raw(CONVERSATION_GAP)}'`,
-      )
-      .orderBy("last_message_at", "desc")
-      .limit(1)
-      .executeTakeFirst();
+    //
+    // 026, amended 2026-10-15. **An email joins nothing and nothing joins
+    // it.** Each one is a conversation of its own, ended as it opens: two
+    // forwarded minutes apart shared one, and the second turn filed the first
+    // again from the history. Answer on Today is the one way back into it.
+    const recent = mail
+      ? undefined
+      : await trx
+          .selectFrom("conversations")
+          .select("id")
+          .where("account_id", "=", accountId)
+          .where("deleted_at", "is", null)
+          // Closing the composer ends the conversation, so the next dump starts a
+          // new one however soon it arrives. Six hours of silence was the only
+          // thing that used to end one, which meant somebody who deliberately put
+          // a conversation away and began a new subject got answers about the old
+          // one.
+          .where("ended_at", "is", null)
+          .where(
+            sql<boolean>`last_message_at > now() - interval '${sql.raw(CONVERSATION_GAP)}'`,
+          )
+          .orderBy("last_message_at", "desc")
+          .limit(1)
+          .executeTakeFirst();
 
     const conversationId =
       recent?.id ??
       (
         await trx
           .insertInto("conversations")
-          .values({ account_id: accountId })
+          .values(mail ? { account_id: accountId, ended_at: sql`now()` } : { account_id: accountId })
           .returning("id")
           .executeTakeFirstOrThrow()
       ).id;
 
     // 018. A question closes with its conversation. A new conversation is the
     // old one ending, so anything still open there closes now, and its chips
-    // are gone on the next load.
-    if (!recent) await closeOpenQuestions(trx, { accountId, exceptConversationId: conversationId });
+    // are gone on the next load. An email's conversation ends nobody's.
+    if (!recent && !mail) await closeOpenQuestions(trx, { accountId, exceptConversationId: conversationId });
     // And the one open in this conversation, if any, rides on the job so the
     // worker reads the message as a possible answer before anything else.
     // 026. Never for an email: somebody else's words are not the person's

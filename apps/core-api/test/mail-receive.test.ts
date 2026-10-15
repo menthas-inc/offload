@@ -11,6 +11,8 @@ import { resetObjectStore } from "../src/blobs/store.js";
 import { DAILY_MODEL_BUDGET_MICROS, DAILY_TURNS } from "../src/budget.js";
 import { clearSettingsCache } from "../src/settings.js";
 import { wipe } from "./labels-kit.js";
+import { takeDump } from "../src/routes/dumps.js";
+import { uuidv7 } from "../src/uuid.js";
 import { DOMAIN, person, raw, resolver, signed } from "./mail-kit.js";
 
 await migrate(() => {});
@@ -194,6 +196,61 @@ describe("the job (AC-5)", () => {
   });
 });
 
+
+describe("an email's own conversation (2026-10-15)", () => {
+  const conversation = (id: string) =>
+    db.selectFrom("conversations").select(["id", "ended_at"]).where("id", "=", id).executeTakeFirstOrThrow();
+  const ask = (message: { id: string; conversation_id: string; turn_id: string }) =>
+    db
+      .insertInto("questions")
+      .values({
+        account_id: jo, conversation_id: message.conversation_id, message_id: message.id, turn_id: message.turn_id,
+        ordinal: 1, options: JSON.stringify([]), field: "time", text: "When?", state: "open",
+      } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+  const state = async (id: string) =>
+    (await db.selectFrom("questions").select("state").where("id", "=", id).executeTakeFirstOrThrow()).state;
+
+  it("is new for every email and already ended, so nothing joins it", async () => {
+    const typed = await takeDump(jo, "films to see this month", uuidv7());
+    await receive(await signed(raw({ body: "first" })));
+    await receive(await signed(raw({ body: "second" })));
+    const mails = (await messages()).filter((m) => m.source === "mail");
+    expect(mails).toHaveLength(2);
+    expect(new Set([typed.conversationId, ...mails.map((m) => m.conversation_id)]).size).toBe(3);
+    for (const m of mails) expect((await conversation(m.conversation_id)).ended_at).not.toBeNull();
+    // The person's next words go on in their own conversation, not an email's.
+    const next = await takeDump(jo, "and popcorn", uuidv7());
+    expect(next.conversationId).toBe(typed.conversationId);
+  });
+
+  it("closes no question: not the person's open one, not another email's", async () => {
+    const typed = await takeDump(jo, "meeting with the landlord", uuidv7());
+    const [said] = await messages();
+    const theirs = await ask(said!);
+    await receive(await signed(raw({ body: "first" })));
+    const first = await ask((await messages()).find((m) => m.source === "mail")!);
+    await receive(await signed(raw({ body: "second" })));
+    expect(await state(theirs.id)).toBe("open");
+    expect(await state(first.id)).toBe("open");
+    expect(typed.conversationId).toBe(said!.conversation_id);
+  });
+
+  it("keeps its question open when the person starts something new, until it is answered", async () => {
+    await receive(await signed(raw({ body: "first" })));
+    const emailed = await ask((await messages()).find((m) => m.source === "mail")!);
+    // A conversation of the person's own that ended, then a new one.
+    const typed = await takeDump(jo, "milk", uuidv7());
+    const said = (await messages()).find((m) => m.conversation_id === typed.conversationId)!;
+    const theirs = await ask(said);
+    await db.updateTable("conversations").set({ ended_at: sql`now()` }).where("id", "=", typed.conversationId).execute();
+    await takeDump(jo, "something else entirely", uuidv7());
+    expect(await state(emailed.id)).toBe("open");
+    // The person's own question still closes with its conversation, as 018 says.
+    expect(await state(theirs.id)).toBe("closed");
+  });
+});
 
 describe("the person's own words (026, 025's bounds)", () => {
   it("are the whole text, or a forwarded email's note alone", async () => {

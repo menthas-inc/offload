@@ -941,7 +941,16 @@ export async function closeOpenQuestions(
     .set({ state: "closed", settled_at: sql`now()` })
     .where("state", "in", ["open", "pending"]);
   if ("conversationId" in where) q = q.where("conversation_id", "=", where.conversationId);
-  else q = q.where("account_id", "=", where.accountId).where("conversation_id", "<>", where.exceptConversationId);
+  else {
+    // 2026-10-15. An email's question is not the person's conversation
+    // ending: it has its own conversation and its Activity row, and ten
+    // forwarded emails are ten questions that one new dump would otherwise
+    // close. It closes when it is answered, dismissed or its turn undone.
+    q = q
+      .where("account_id", "=", where.accountId)
+      .where("conversation_id", "<>", where.exceptConversationId)
+      .where(sql<boolean>`not exists (select 1 from messages m where m.id = questions.message_id and m.source = 'mail')`);
+  }
   await q.execute();
 }
 

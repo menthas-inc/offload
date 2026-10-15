@@ -132,4 +132,14 @@ describe("Answer on a question card", () => {
     const thread = await question(me, { field: "thread" });
     expect((await resume(cookie, thread)).statusCode).toBe(404);
   });
+
+  it("leaves every other email's question open", async () => {
+    const me = await account();
+    const cookie = await signIn(me);
+    const id = await question(me, { source: "mail", untrusted: true, field: "time" });
+    const other = await question(me, { source: "mail", untrusted: true, field: "date" });
+    await resume(cookie, id);
+    const left = await db.selectFrom("questions").select("state").where("id", "=", other).executeTakeFirstOrThrow();
+    expect(left.state).toBe("open");
+  });
 });

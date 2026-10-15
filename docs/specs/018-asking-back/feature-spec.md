@@ -177,3 +177,4 @@ Reason 1 changes nothing the privacy page says: an answer is a value applied to 
 ## Amended 2026-10-15: never ask what the row already has
 
 - **AC-26** offload never asks for a day, a time or an end the row it asks about already holds; the server refuses such a question whatever the model sent. A day with no hour can still be asked its time.
+- **AC-27** A question raised from a forwarded email is not closed when the person's next dump starts a new conversation (026 AC-25): it has its own conversation and its Activity row, and closes when answered, dismissed or undone.

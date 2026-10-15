@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-15 · A forwarded email is a conversation of its own
+**Surface:** iOS, Android, web
+**Raised by:** the owner, after two emails forwarded minutes apart were filed as one.
+
+**Was:** an email joined whatever conversation was live, the person's or another email's. It drew in the composer as a *Forwarded* bubble between the person's own dumps, and the next dump closed its question.
+
+**Is:** each email is a conversation of its own, ended as it opens. It does not draw in the composer while the person types; it is reached from its Activity row, and from Today, where Answer opens the composer on that one email and its question. An email's question stays on Today until it is answered, dismissed or undone, whatever the person dumps meanwhile, so ten emails are ten cards.
+
+**Why:** an email is a dump made somewhere else, at a moment nobody had the composer open. Sharing a conversation with other emails or with the person's typing only mixed them up.
+
+**Design system impact:** none to the components. The kits' conversation examples that show a forwarded email between typed dumps (`LiveConversation.jsx`, `WConversation`) could show it alone, as Answer opens it.
+
 ### 2026-10-15 · A question only typing answers gets Answer and Dismiss on Today
 **Surface:** iOS, Android, web
 **Raised by:** the owner, from use: a forwarded email's *Which day and time?* on Today with nothing to press but *Not that*.
