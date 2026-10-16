@@ -104,13 +104,14 @@ When
   Pay the rent
   September 2026                 <  >
   [month grid]                          today outlined, the pick filled
-            Time      All day    v
+            All day             [ ]
+            Time            9:00      while All day is off
   clock     Repeats   Never      v
   [Clear]  [Save]
 ```
 
 - **The grid is the front door.** Today is outlined, the pick is filled: two facts, two marks. Leading and trailing days are `--text-tertiary` and still tappable. The week starts on the day the preference says. Cells are `min-height` 40px and grow at large text.
-- **Time, revealed in place, and the wheel is the platform's.** All day is a switch above the hour. On iOS the hour is the system's inline wheel at five-minute steps, greyed rather than removed while All day is on, so the hour you had stays visible, and tapping it turns All day off. On Android there is no inline wheel: the hour is a row that opens the system's time dialog, and while All day is on the row shows the last hour greyed, which keeps the same promise in Material's own shape. On the web it is a time field at five-minute steps, disabled while All day is on. Each reads the locale, so a 12-hour account gets am and pm without this spec saying so. **Setting a time opens Ends at** on an event, defaulting to an hour later; the row is absent on everything else, because a due date has no end.
+- **Time is one row, the All day switch, and the hour is the platform's** (the owner, 2026-10-16; until then a Time row disclosed All day and the hour, and since 2026-10-12 no hour was drawn while All day was on). All day is always drawn, dimmed until a day is picked. While it is off the hour sits under it, labelled Time, or Starts on an event: on iOS the system's compact picker, a pill that opens the wheel at five-minute steps; on Android a row that opens the system's time dialog; on the web a time field at five-minute steps. While it is on there is no hour row, and switching it off brings the hour back at 9:00. Each reads the locale, so a 12-hour account gets am and pm without this spec saying so. **Setting a time opens Ends at** on an event, defaulting to an hour later; the row is absent on everything else, because a due date has no end.
 - **Repeats, revealed in place.** The seven presets above, each naming what it inherited from the picked date. Custom is the one row that navigates, to its own sheet, which hands a rule back with **Cancel** and **Done** rather than writing the row. Repeats carries `clock` on both sheets, one row one glyph; the design drew two.
 - **Clear is a first-class control**, and clears the date, the hour and the rule together. Today there is no way to remove a date at all; this is the one thing the sheet must not ship without. Clear is an edit, not a delete: any member may do it, as any member may fix a title.
 - **Who writes.** Opened from the edit sheet, When hands back and the edit sheet's Save writes. Opened on its own, from the action sheet, it writes on Save and on Clear, drawn first and sent second with the same words as the edit sheet.
@@ -173,7 +174,7 @@ The sheets
 
 - **AC-17** The edit sheet on the phones and the edit modal on the web carry title, details, When, Repeats and, while the row is a reminder, Remind me; When and Repeats show their values; Save writes every changed field in one request; Cancel and Escape write nothing; the web's inline title field goes for content rows.
 - **AC-18** The When sheet opens on the grid with today outlined and the pick filled; leading and trailing days are tappable; the grid steps months; the week starts on the preference; opened from the edit sheet it hands back, opened from the action sheet it writes.
-- **AC-19** Time reveals in place: All day above the hour; on iOS an inline five-minute wheel greyed while All day is on and turning it off when touched; on Android a row opening the system dialog with the last hour greyed while All day is on; on the web a five-minute time field disabled while All day is on. On an event, setting an hour reveals Ends at defaulting to an hour later; Ends at is absent on every other type.
+- **AC-19** Time is one row, the All day switch, with the hour under it only while it is off: on iOS the compact five-minute picker, on Android a row opening the system dialog, on the web a five-minute time field. On an event, setting an hour reveals Ends at defaulting to an hour later; Ends at is absent on every other type.
 - **AC-20** Repeats reveals the seven presets under `clock`, each naming what it inherited from the picked date and rewriting when the date changes; Monthly is the nth weekday with the fifth read as last; Custom opens its own sheet and hands a rule back without writing.
 - **AC-21** Custom offers the interval and unit, the weekday set for weeks, the anchor choice for months, and the three endings; Done returns a rule in the grammar; Cancel returns nothing.
 - **AC-22** Clear removes the date, the hour and the rule together, handed back inside the edit sheet and written on its own from the action sheet; a cleared row draws no chip; Undo puts all three back.

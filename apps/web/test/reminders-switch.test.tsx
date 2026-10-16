@@ -110,7 +110,8 @@ async function draw(node: React.ReactNode) {
 }
 
 // The dialog draws into a portal, so these look in the whole document.
-const remindSwitch = () => document.querySelector<HTMLInputElement>('input[role="switch"]');
+const remindSwitch = () =>
+  [...document.querySelectorAll<HTMLInputElement>('input[role="switch"]')].find((one) => one.closest("label")?.textContent === "Remind me") ?? null;
 const checkboxes = () => document.querySelectorAll('input[type="checkbox"]:not([role="switch"])');
 const button = (name: string) =>
   [...document.querySelectorAll("button")].find((b) => b.getAttribute("aria-label") === name || b.textContent?.trim() === name) as

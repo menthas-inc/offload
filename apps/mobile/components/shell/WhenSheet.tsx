@@ -123,6 +123,45 @@ export function CustomFor({ ask, onClose }: { ask: CustomAsk | null; onClose: ()
   );
 }
 
+/** An hour under All day: the system's compact picker on iOS, a row that
+ *  opens the system's dialog on Android, at five-minute steps either way. */
+function HourRow({
+  label,
+  time,
+  onPick,
+  onAndroid,
+  ink,
+  quiet,
+}: {
+  label: string;
+  time: string;
+  onPick: (event: DateTimePickerEvent, picked?: Date) => void;
+  onAndroid: () => void;
+  ink: string;
+  quiet: string;
+}) {
+  if (isAndroid) {
+    return (
+      <Pressable onPress={onAndroid} className="min-h-tap-min flex-row items-center" accessibilityRole="button" accessibilityLabel={label}>
+        <Text className={`flex-1 font-core ${ink}`} style={{ fontSize: 15 }}>
+          {label}
+        </Text>
+        <Text className={`font-core ${quiet}`} style={{ fontSize: 15 }}>
+          {clockLabel(time)}
+        </Text>
+      </Pressable>
+    );
+  }
+  return (
+    <View className="min-h-tap-min flex-row items-center">
+      <Text className={`flex-1 font-core ${ink}`} style={{ fontSize: 15 }}>
+        {label}
+      </Text>
+      <DateTimePicker mode="time" display="compact" minuteInterval={5} value={pickerDate(time)} onChange={onPick} accessibilityLabel={label} />
+    </View>
+  );
+}
+
 /** The When sheet's body and foot, with no sheet around it. */
 export function WhenPanel({
   title,
@@ -157,8 +196,7 @@ export function WhenPanel({
   const [endTime, setEndTime] = useState<string | null>(initial.endTime);
   const [rrule, setRule] = useState<string | null>(initial.rrule);
   const [month, setMonth] = useState<string>(initial.day ?? today);
-  const [block, setBlock] = useState<"time" | "repeats" | null>(focus === "repeats" ? "repeats" : null);
-  const [ends, setEnds] = useState(false);
+  const [block, setBlock] = useState<"repeats" | null>(focus === "repeats" ? "repeats" : null);
 
   // Opened for Repeats, the sheet lands on that block rather than the grid:
   // the row reports where it is and the sheet scrolls there once, unanimated.
@@ -288,83 +326,21 @@ export function WhenPanel({
         </View>
       ))}
 
-      {/* Time, revealed in place. */}
-      <Pressable
-        onPress={() => day && setBlock(block === "time" ? null : "time")}
-        disabled={!day}
-        accessibilityRole="button"
-        className="mt-space-3 min-h-tap-min flex-row items-center gap-space-3"
-        style={{ opacity: day ? 1 : 0.45 }}
-      >
+      {/* Time is one row, the All day switch (the owner, 2026-10-16). While
+          it is off the hour sits under it, and on an event the end; while it
+          is on there is no clock to show (2026-10-12). iOS draws the system's
+          compact picker, Android a row that opens the system's dialog. */}
+      <View className="mt-space-3 min-h-tap-min flex-row items-center" style={{ opacity: day ? 1 : 0.45 }}>
         <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
-          Time
+          All day
         </Text>
-        <Text className={`font-core ${quiet}`} style={{ fontSize: 15 }}>
-          {time ? clockLabel(time) : "All day"}
-        </Text>
-        <Glyph name="chevron-down" size={18} color={COLOR.iconOnWell} />
-      </Pressable>
-      {block === "time" && day ? (
-        <View className="pb-space-2">
-          <View className="min-h-tap-min flex-row items-center">
-            <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
-              All day
-            </Text>
-            <Switch checked={time === null} onChange={setAllDay} label="All day" />
-          </View>
-          {/* The hour exists only with a time (the owner, 2026-10-12): while
-              All day is on there is no clock to show, and a greyed 9:00 read
-              as a time the row had. The switch is the way back. */}
-          {time !== null ? (
-            isAndroid ? (
-              // No inline wheel on Android: the hour is a row that opens the
-              // system's own dialog.
-              <Pressable
-                onPress={() => openAndroidClock("start")}
-                className="min-h-tap-min flex-row items-center"
-                accessibilityRole="button"
-                accessibilityLabel="Time"
-              >
-                <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
-                  {isEvent ? "Starts" : "Time"}
-                </Text>
-                <Text className={`font-core ${quiet}`} style={{ fontSize: 15 }}>
-                  {clockLabel(time)}
-                </Text>
-              </Pressable>
-            ) : (
-              // The system's wheel at five-minute steps.
-              <DateTimePicker mode="time" display="spinner" minuteInterval={5} value={pickerDate(time)} onChange={onTime} style={{ height: 132 }} />
-            )
-          ) : null}
-          {isEvent && time ? (
-            <>
-              <Pressable
-                onPress={() => (isAndroid ? openAndroidClock("end") : setEnds(!ends))}
-                className="min-h-tap-min flex-row items-center gap-space-3"
-                accessibilityRole="button"
-              >
-                <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
-                  Ends at
-                </Text>
-                <Text className={`font-core ${quiet}`} style={{ fontSize: 15 }}>
-                  {clockLabel(endTime ?? anHourAfter(time))}
-                </Text>
-                <Glyph name={isAndroid ? "chevron-right" : "chevron-down"} size={18} color={COLOR.iconOnWell} />
-              </Pressable>
-              {ends && !isAndroid ? (
-                <DateTimePicker
-                  mode="time"
-                  display="spinner"
-                  minuteInterval={5}
-                  value={pickerDate(endTime ?? anHourAfter(time))}
-                  onChange={onEnd}
-                  style={{ height: 132 }}
-                />
-              ) : null}
-            </>
-          ) : null}
-        </View>
+        <Switch checked={time === null} onChange={setAllDay} label="All day" disabled={!day} />
+      </View>
+      {day && time !== null ? (
+        <HourRow label={isEvent ? "Starts" : "Time"} time={time} onPick={onTime} onAndroid={() => openAndroidClock("start")} ink={rowInk} quiet={quiet} />
+      ) : null}
+      {day && isEvent && time !== null ? (
+        <HourRow label="Ends at" time={endTime ?? anHourAfter(time)} onPick={onEnd} onAndroid={() => openAndroidClock("end")} ink={rowInk} quiet={quiet} />
       ) : null}
 
       {/* Repeats, revealed in place. */}
