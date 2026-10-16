@@ -29,6 +29,17 @@ describe("the When sheet (owner, 2026-10-12)", () => {
     expect(sheet).not.toMatch(/opacity: time === null \? 0\.4/);
     expect(sheet).toMatch(/time !== null \? \(/);
   });
+
+  // 2026-10-16 (the owner). Time was a row that disclosed All day and then a
+  // second Time row, and said "All day" as if it were an hour. It is one row,
+  // the All day switch, and while it is off the hour sits under it.
+  it("is one All day row with no disclosure, and the hour under it while it is off", () => {
+    expect(sheet).not.toMatch(/block === "time"/);
+    expect(sheet).not.toMatch(/: "All day"\}/);
+    expect(sheet).toMatch(/<Switch checked=\{time === null\} onChange=\{setAllDay\} label="All day" disabled=\{!day\} \/>/);
+    expect(sheet).toMatch(/display="compact"/);
+    expect(sheet).not.toMatch(/display="spinner"/);
+  });
 });
 
 describe("one way into a row's sheet (owner, 2026-10-12)", () => {

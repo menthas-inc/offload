@@ -175,25 +175,23 @@ export function EditModal({
             )}
           </div>
 
-          {/* Time, an inline block: All day, then a time field at five-minute
-              steps, drawn only while the row has a time (the owner,
-              2026-10-12): a disabled 09:00 beside All day read as a time the
-              row had. */}
-          <div className={styles.editRow}>
-            <span className={styles.editRowLabel}>Time</span>
-            <label className={styles.editCheck}>
-              <input
-                type="checkbox"
-                checked={when.time === null}
-                disabled={!when.day}
-                onChange={(event) => {
-                  if (event.target.checked) setWhen({ ...when, time: null, endTime: null });
-                  else setWhen({ ...when, time: "09:00", endTime: isEvent ? "10:00" : null });
-                }}
-              />
-              All day
-            </label>
-            {when.day && when.time !== null ? (
+          {/* Time is one row, the All day switch (the owner, 2026-10-16),
+              and the hour a row of its own under it only while the row has
+              one (2026-10-12): a disabled 09:00 read as a time it had. */}
+          <div className={styles.editSwitch}>
+            <Switch
+              label="All day"
+              checked={when.time === null}
+              disabled={!when.day}
+              onChange={(on) => {
+                if (on) setWhen({ ...when, time: null, endTime: null });
+                else setWhen({ ...when, time: "09:00", endTime: isEvent ? "10:00" : null });
+              }}
+            />
+          </div>
+          {when.day && when.time !== null ? (
+            <div className={styles.editRow}>
+              <span className={styles.editRowLabel}>{isEvent ? "Starts" : "Time"}</span>
               <input
                 type="time"
                 step={300}
@@ -205,8 +203,8 @@ export function EditModal({
                 }}
                 aria-label="Time"
               />
-            ) : null}
-          </div>
+            </div>
+          ) : null}
           {isEvent && when.time ? (
             <div className={styles.editRow}>
               <span className={styles.editRowLabel}>Ends at</span>
