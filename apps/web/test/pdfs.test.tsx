@@ -104,12 +104,12 @@ describe("the chip", () => {
   });
 
   it("draws a PDF with the paperclip, says PDF in its name, and has the lines", async () => {
-    const host = await render(<AttachChip name="Boarding_pass_TAP_LIS_14OCT.pdf" kind="pdf" error="locked_pdf" onRemove={() => {}} />);
+    const host = await render(<AttachChip name="Boarding_pass_TAP_LIS_14OCT.pdf" file={file("Boarding_pass_TAP_LIS_14OCT.pdf", "application/pdf")} kind="pdf" error="locked_pdf" onRemove={() => {}} />);
     expect(host.querySelector('[aria-label="PDF, Boarding_pass_TAP_LIS_14OCT.pdf"]')).not.toBeNull();
     expect(host.innerHTML).toContain("paperclip.svg");
     expect(host.textContent).toContain("Boarding_…_14OCT.pdf");
     expect(host.textContent).toContain("Only unlocked PDFs.");
-    const photo = await render(<AttachChip name="a.docx" kind="image" error="not_a_photo" onRemove={() => {}} />);
+    const photo = await render(<AttachChip name="a.docx" file={file("a.docx", "")} kind="image" error="not_a_photo" onRemove={() => {}} />);
     expect(photo.textContent).toContain("Only photos and PDFs.");
   });
 });

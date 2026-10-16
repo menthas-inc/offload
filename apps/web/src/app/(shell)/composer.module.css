@@ -950,27 +950,51 @@
   align-items: center;
   gap: 5px;
   max-width: 100%;
-  min-height: 26px;
+  min-height: 28px;
   padding: 0 4px 0 8px;
   border-radius: var(--radius-pill);
-  background: var(--surface-raised);
-  border: 1px solid var(--border-hairline);
+  background: var(--surface-attention);
+  border: 1px solid var(--surface-attention);
 }
 
+/* A photo shows a little of itself where the glyph was. */
+.chip:has(.chipThumb) {
+  padding-left: 3px;
+}
+
+.chipThumb {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+}
+
+/* Refused: the quiet chip, so its danger line stays readable. */
 .chip[data-error] {
+  background: var(--surface-raised);
   border-color: var(--border-danger);
+}
+
+.chip[data-error] .chipGlyph,
+.chip[data-error] .chipRemove {
+  color: var(--text-tertiary);
+}
+
+.chip[data-error] .chipName {
+  color: var(--text-secondary);
 }
 
 .chipGlyph {
   display: inline-flex;
-  color: var(--text-tertiary);
+  color: var(--text-on-solid);
 }
 
 .chipName {
   font-family: var(--font-core);
   font-size: var(--size-caption);
   line-height: 1.2;
-  color: var(--text-secondary);
+  color: var(--text-on-solid);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -984,7 +1008,7 @@
   white-space: nowrap;
 }
 
-/* A plain glyph, not an IconButton: a 44px hit area inside a 26px chip bleeds
+/* A plain glyph, not an IconButton: a 44px hit area inside a 28px chip bleeds
    its hover pill out past the chip's own edge. */
 .chipRemove {
   display: inline-flex;
@@ -997,12 +1021,16 @@
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--text-tertiary);
+  color: var(--text-on-solid);
   cursor: pointer;
-  transition: background var(--transition-ui), color var(--transition-ui);
+  transition: background var(--transition-ui), color var(--transition-ui), opacity var(--transition-ui);
 }
 
 .chipRemove:hover {
+  opacity: 0.75;
+}
+
+.chip[data-error] .chipRemove:hover {
   background: var(--surface-fill);
   color: var(--text-primary);
 }
@@ -1014,6 +1042,10 @@
 
 .chipRemove:disabled:hover {
   background: transparent;
+  opacity: 0.4;
+}
+
+.chip[data-error] .chipRemove:disabled:hover {
   color: var(--text-tertiary);
 }
 

@@ -1,12 +1,15 @@
 // A photo waiting in the composer, from ui_kits/mobile_app/Composer.jsx.
 //
-// The image glyph, the name clipped at twenty characters, and a remove
+// Ink blue with white words, and a photo shows a little of itself where the
+// kit draws the image glyph (owner, 2026-10-16: it should stand out against
+// the field). A refused file keeps the kit's quiet chip and its danger border,
+// so its line stays readable. The name clipped at twenty characters, and a remove
 // control that is a plain glyph rather than an IconButton: a 44px hit area
-// inside a 26px chip bleeds its hover pill past the chip's own edge, so the
+// inside a 28px chip bleeds its hover pill past the chip's own edge, so the
 // glyph is 18px and the hit area comes from hitSlop. One line beside the name
 // when the photo was refused on the device, the failure table's own words.
 
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { clipMiddle } from "../../lib/dump";
@@ -22,12 +25,15 @@ const LINES: Record<Exclude<ChipError, null>, string> = {
 
 export function AttachChip({
   name,
+  uri,
   kind = "image",
   error,
   disabled,
   onRemove,
 }: {
   name: string;
+  /** The draft's own file, drawn small in place of the glyph. */
+  uri: string;
   /** 041. A PDF draws the paperclip, clips its name in the middle so its end
    *  survives, and says it is a PDF to a screen reader. */
   kind?: "image" | "pdf";
@@ -39,16 +45,22 @@ export function AttachChip({
   const COLOR = useColors();
   const pdf = kind === "pdf";
   const shown = pdf ? clipMiddle(name) : name.length > 20 ? `${name.slice(0, 20)}…` : name;
+  const quiet = Boolean(error);
+  const ink = quiet ? COLOR.iconOnWell : COLOR.onBrand;
   return (
     <View
-      className={`flex-row items-center gap-space-1 rounded-pill border bg-surface-raised ${
-        error ? "border-border-danger" : "border-border-hairline"
+      className={`flex-row items-center gap-space-1 rounded-pill ${
+        error ? "border bg-surface-raised border-border-danger" : "bg-surface-attention"
       }`}
-      style={{ minHeight: 26, paddingLeft: 8, paddingRight: 4, maxWidth: "100%" }}
+      style={{ minHeight: 28, paddingLeft: pdf || quiet ? 8 : 3, paddingRight: 4, maxWidth: "100%" }}
     >
-      <Glyph name={pdf ? "paperclip" : "image"} size={13} color={COLOR.iconOnWell} />
+      {pdf || quiet ? (
+        <Glyph name={pdf ? "paperclip" : "image"} size={13} color={ink} />
+      ) : (
+        <Image source={{ uri }} accessible={false} style={{ width: 22, height: 22, borderRadius: 11 }} />
+      )}
       <Text
-        className="font-core text-text-secondary"
+        className={`font-core ${quiet ? "text-text-secondary" : "text-text-on-solid"}`}
         style={{ fontSize: 12.5, lineHeight: 15 }}
         numberOfLines={1}
         accessibilityLabel={`${pdf ? "PDF" : "Photo"}, ${name}`}
@@ -73,7 +85,7 @@ export function AttachChip({
         className="items-center justify-center rounded-pill"
         style={{ width: 18, height: 18, opacity: disabled ? 0.4 : 1 }}
       >
-        <Glyph name="x" size={12} color={COLOR.iconOnWell} />
+        <Glyph name="x" size={12} color={ink} />
       </Pressable>
     </View>
   );
