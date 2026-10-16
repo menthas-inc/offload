@@ -67,6 +67,7 @@ import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import type { PhotoOnWire } from "../../lib/dump";
 import { putKeyboardAway } from "../../lib/keyboard";
 import { threadHref } from "../../lib/loose";
+import { atEnd, sentBy, yours } from "../../lib/transcript-follow";
 
 /** 020. The viewer for a sent message's photos, mounted by the shell above
  *  the sheet. No row yet, so no tools: the Files grid is where a photo's row
@@ -194,7 +195,8 @@ export function Conversation() {
   const native = useMemo(() => Gesture.Native(), []);
   const listRef = useAnimatedRef<Animated.ScrollView>();
   const offset = useSharedValue(0);
-  const scroll: SheetScroll = { offset, ref: listRef, native };
+  const first = useSharedValue(0);
+  const scroll: SheetScroll = { offset, first, ref: listRef, native };
 
   const drag = { y: sheetY, travel: sheetTravel, held, goal: sheetGoal, onCloseStart: leave, onClosed: settle };
   const grab = useSheetDrag(drag);
@@ -289,17 +291,57 @@ function PinnedTarget({ pin }: { pin: Pin }) {
 
 function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
   const { turns, writing, finish, openPhoto, openPdf, retry, recording } = useConversation();
-  const { ref, offset, native } = scroll;
+  const { ref, offset, first, native } = scroll;
 
-  // Opened at its end, and kept there as turns arrive.
-  const atEnd = useRef(false);
+  // **Opened at its end, and kept there while the reader is.** Followed on
+  // every change of the content's size, not once per turn: a turn scrolled to
+  // before its photo or the thinking row had a height left the row half under
+  // the composer. Only the reader's own scroll decides whether they are at the
+  // end, so a reply never moves someone who has scrolled up, and sending
+  // something always brings them back.
+  const following = useSharedValue(true);
+  const driven = useSharedValue(false);
+  const inset = useSharedValue(0);
+  const opened = useRef(false);
+  const toEnd = useCallback(() => {
+    ref.current?.scrollToEnd({ animated: opened.current });
+    opened.current = true;
+  }, [ref]);
+
+  const sent = useRef(yours(turns));
   useEffect(() => {
-    ref.current?.scrollToEnd({ animated: atEnd.current });
-    atEnd.current = true;
-  }, [turns.length, writing, ref]);
+    const before = sent.current;
+    sent.current = yours(turns);
+    if (!sentBy(before, turns)) return;
+    following.value = true;
+    toEnd();
+  }, [turns, following, toEnd]);
 
-  const onScroll = useAnimatedScrollHandler((event) => {
-    offset.value = event.contentOffset.y;
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      offset.value = event.contentOffset.y;
+      if (!driven.value) return;
+      following.value = atEnd({
+        offset: event.contentOffset.y,
+        layout: event.layoutMeasurement.height,
+        content: event.contentSize.height,
+        inset: inset.value,
+      });
+    },
+    onBeginDrag: () => {
+      driven.value = true;
+    },
+    // A release with no fling has no momentum to end, and a scroll of ours
+    // read as the reader's would stop following halfway to the end.
+    onEndDrag: () => {
+      driven.value = false;
+    },
+    onMomentumBegin: () => {
+      driven.value = true;
+    },
+    onMomentumEnd: () => {
+      driven.value = false;
+    },
   });
 
   // The transcript's scroll view, carrying the gesture the sheet's drag
@@ -348,6 +390,17 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
       offset={bottom}
       onScroll={onScroll}
       scrollEventThrottle={16}
+      // Its content grows, or its window shrinks as a long draft grows the
+      // composer: either way the end moves.
+      onContentSizeChange={() => {
+        if (following.value) toEnd();
+      }}
+      onLayout={() => {
+        if (following.value) toEnd();
+      }}
+      onContentInsetChange={(insets) => {
+        inset.value = insets.bottom;
+      }}
       // The sheet takes a drag down from the top; a bounce there would move
       // the two at once.
       bounces={false}
@@ -356,53 +409,63 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
       style={{ flex: 1 }}
       // A short conversation sits on the composer, as a chat does.
       contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
-      contentContainerClassName="gap-space-4 px-gutter-screen pb-space-4"
+      contentContainerClassName="px-gutter-screen pb-space-4"
     >
-      {turns.map((turn) =>
-        turn.from === "you" ? (
-          <Fragment key={turn.id}>
-            <Yours
-              turn={turn}
-              // **Only when nothing answered it.** The footer belongs to the turn,
-              // and the turn ends at the reply when there is one: drawn on the
-              // sent bubble regardless, the sources for an answer sat above the
-              // answer they were sources for.
-              footer={!replied.has(turn.id) && !turn.question}
-              onFinish={() => void finish(turn.id)}
-              onOpenPhoto={(index) => openPhoto(turn.id, index)}
-              onOpenPdf={(pdf) => openPdf(pdf, pdf.name)}
-              onRetry={() => retry(turn.id)}
-              recording={recording}
-            />
-            {/* 018. A turn that filed silently and asked back has no reply
-                bubble to hold the question, so the question gets one of its
-                own, in place: offload's sentence and the chips, nothing else.
-                After the footer, as on web, in the turn's order: what
-                happened, then what is still open. The sent bubble hands its
-                footer down so the footer can sit between them. */}
-            {!replied.has(turn.id) && turn.question ? (
-              <>
-                <TurnFooter turn={turn} />
+      {/* The turns in one box, so the sheet knows where the first one sits:
+          below it is history, above it the empty space a drag down puts the
+          sheet away from. */}
+      <View
+        className="gap-space-4"
+        onLayout={(event) => {
+          first.value = event.nativeEvent.layout.y;
+        }}
+      >
+        {turns.map((turn) =>
+          turn.from === "you" ? (
+            <Fragment key={turn.id}>
+              <Yours
+                turn={turn}
+                // **Only when nothing answered it.** The footer belongs to the turn,
+                // and the turn ends at the reply when there is one: drawn on the
+                // sent bubble regardless, the sources for an answer sat above the
+                // answer they were sources for.
+                footer={!replied.has(turn.id) && !turn.question}
+                onFinish={() => void finish(turn.id)}
+                onOpenPhoto={(index) => openPhoto(turn.id, index)}
+                onOpenPdf={(pdf) => openPdf(pdf, pdf.name)}
+                onRetry={() => retry(turn.id)}
+                recording={recording}
+              />
+              {/* 018. A turn that filed silently and asked back has no reply
+                  bubble to hold the question, so the question gets one of its
+                  own, in place: offload's sentence and the chips, nothing else.
+                  After the footer, as on web, in the turn's order: what
+                  happened, then what is still open. The sent bubble hands its
+                  footer down so the footer can sit between them. */}
+              {!replied.has(turn.id) && turn.question ? (
+                <>
+                  <TurnFooter turn={turn} />
+                  <Bubble>
+                    <Question turn={turn} first />
+                  </Bubble>
+                </>
+              ) : null}
+              {/* 019. A tapped calendar answer that turned into a proposal: the
+                  control sits on the person's own turn, in a bubble of its own,
+                  because the turn that asked has no reply to hold it. As on
+                  web. */}
+              {!replied.has(turn.id) && turn.waiting ? (
                 <Bubble>
-                  <Question turn={turn} first />
+                  <Waiting turn={turn} />
                 </Bubble>
-              </>
-            ) : null}
-            {/* 019. A tapped calendar answer that turned into a proposal: the
-                control sits on the person's own turn, in a bubble of its own,
-                because the turn that asked has no reply to hold it. As on
-                web. */}
-            {!replied.has(turn.id) && turn.waiting ? (
-              <Bubble>
-                <Waiting turn={turn} />
-              </Bubble>
-            ) : null}
-          </Fragment>
-        ) : (
-          <Theirs key={turn.id} turn={turn} sent={answered.get(turn.id) ?? null} />
-        ),
-      )}
-      {writing ? <Thinking /> : null}
+              ) : null}
+            </Fragment>
+          ) : (
+            <Theirs key={turn.id} turn={turn} sent={answered.get(turn.id) ?? null} />
+          ),
+        )}
+        {writing ? <Thinking /> : null}
+      </View>
     </KeyboardChatScrollView>
   );
 }
