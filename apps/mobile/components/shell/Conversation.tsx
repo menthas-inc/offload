@@ -194,7 +194,8 @@ export function Conversation() {
   const native = useMemo(() => Gesture.Native(), []);
   const listRef = useAnimatedRef<Animated.ScrollView>();
   const offset = useSharedValue(0);
-  const scroll: SheetScroll = { offset, ref: listRef, native };
+  const first = useSharedValue(0);
+  const scroll: SheetScroll = { offset, first, ref: listRef, native };
 
   const drag = { y: sheetY, travel: sheetTravel, held, goal: sheetGoal, onCloseStart: leave, onClosed: settle };
   const grab = useSheetDrag(drag);
@@ -289,7 +290,7 @@ function PinnedTarget({ pin }: { pin: Pin }) {
 
 function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
   const { turns, writing, finish, openPhoto, openPdf, retry, recording } = useConversation();
-  const { ref, offset, native } = scroll;
+  const { ref, offset, first, native } = scroll;
 
   // Opened at its end, and kept there as turns arrive.
   const atEnd = useRef(false);
@@ -356,53 +357,63 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
       style={{ flex: 1 }}
       // A short conversation sits on the composer, as a chat does.
       contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
-      contentContainerClassName="gap-space-4 px-gutter-screen pb-space-4"
+      contentContainerClassName="px-gutter-screen pb-space-4"
     >
-      {turns.map((turn) =>
-        turn.from === "you" ? (
-          <Fragment key={turn.id}>
-            <Yours
-              turn={turn}
-              // **Only when nothing answered it.** The footer belongs to the turn,
-              // and the turn ends at the reply when there is one: drawn on the
-              // sent bubble regardless, the sources for an answer sat above the
-              // answer they were sources for.
-              footer={!replied.has(turn.id) && !turn.question}
-              onFinish={() => void finish(turn.id)}
-              onOpenPhoto={(index) => openPhoto(turn.id, index)}
-              onOpenPdf={(pdf) => openPdf(pdf, pdf.name)}
-              onRetry={() => retry(turn.id)}
-              recording={recording}
-            />
-            {/* 018. A turn that filed silently and asked back has no reply
-                bubble to hold the question, so the question gets one of its
-                own, in place: offload's sentence and the chips, nothing else.
-                After the footer, as on web, in the turn's order: what
-                happened, then what is still open. The sent bubble hands its
-                footer down so the footer can sit between them. */}
-            {!replied.has(turn.id) && turn.question ? (
-              <>
-                <TurnFooter turn={turn} />
+      {/* The turns in one box, so the sheet knows where the first one sits:
+          below it is history, above it the empty space a drag down puts the
+          sheet away from. */}
+      <View
+        className="gap-space-4"
+        onLayout={(event) => {
+          first.value = event.nativeEvent.layout.y;
+        }}
+      >
+        {turns.map((turn) =>
+          turn.from === "you" ? (
+            <Fragment key={turn.id}>
+              <Yours
+                turn={turn}
+                // **Only when nothing answered it.** The footer belongs to the turn,
+                // and the turn ends at the reply when there is one: drawn on the
+                // sent bubble regardless, the sources for an answer sat above the
+                // answer they were sources for.
+                footer={!replied.has(turn.id) && !turn.question}
+                onFinish={() => void finish(turn.id)}
+                onOpenPhoto={(index) => openPhoto(turn.id, index)}
+                onOpenPdf={(pdf) => openPdf(pdf, pdf.name)}
+                onRetry={() => retry(turn.id)}
+                recording={recording}
+              />
+              {/* 018. A turn that filed silently and asked back has no reply
+                  bubble to hold the question, so the question gets one of its
+                  own, in place: offload's sentence and the chips, nothing else.
+                  After the footer, as on web, in the turn's order: what
+                  happened, then what is still open. The sent bubble hands its
+                  footer down so the footer can sit between them. */}
+              {!replied.has(turn.id) && turn.question ? (
+                <>
+                  <TurnFooter turn={turn} />
+                  <Bubble>
+                    <Question turn={turn} first />
+                  </Bubble>
+                </>
+              ) : null}
+              {/* 019. A tapped calendar answer that turned into a proposal: the
+                  control sits on the person's own turn, in a bubble of its own,
+                  because the turn that asked has no reply to hold it. As on
+                  web. */}
+              {!replied.has(turn.id) && turn.waiting ? (
                 <Bubble>
-                  <Question turn={turn} first />
+                  <Waiting turn={turn} />
                 </Bubble>
-              </>
-            ) : null}
-            {/* 019. A tapped calendar answer that turned into a proposal: the
-                control sits on the person's own turn, in a bubble of its own,
-                because the turn that asked has no reply to hold it. As on
-                web. */}
-            {!replied.has(turn.id) && turn.waiting ? (
-              <Bubble>
-                <Waiting turn={turn} />
-              </Bubble>
-            ) : null}
-          </Fragment>
-        ) : (
-          <Theirs key={turn.id} turn={turn} sent={answered.get(turn.id) ?? null} />
-        ),
-      )}
-      {writing ? <Thinking /> : null}
+              ) : null}
+            </Fragment>
+          ) : (
+            <Theirs key={turn.id} turn={turn} sent={answered.get(turn.id) ?? null} />
+          ),
+        )}
+        {writing ? <Thinking /> : null}
+      </View>
     </KeyboardChatScrollView>
   );
 }

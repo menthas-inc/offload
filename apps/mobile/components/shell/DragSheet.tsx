@@ -39,7 +39,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { atOpacity, useColors } from "../../lib/colors";
-import { backPull, closes, dragTo, PAST, progress, SLOP } from "../../lib/sheet";
+import { atHistoryStart, backPull, closes, dragTo, PAST, progress, SLOP } from "../../lib/sheet";
 import { closeSpring, openSpring } from "../../lib/motion";
 import { useSheetBack } from "../../lib/sheet-back";
 import { useScreenSheet } from "./conversation-context";
@@ -54,14 +54,18 @@ export const OFFSCREEN = 10_000;
 /** A list inside a sheet, for the drag to take over when it is at its top. */
 export interface SheetScroll {
   offset: SharedValue<number>;
+  /** How far down its content the list's first entry sits: the empty space
+   *  above a short list that sits at its foot, 0 for a long one. */
+  first: SharedValue<number>;
   ref: AnimatedRef<Animated.ScrollView>;
   native: GestureType;
 }
 
 /** The pan that moves a sheet. One per region: the grabber strip always
  *  takes the drag; a list takes it only from its top and moving down, and
- *  holds the list at its top while the sheet moves, so the two never scroll
- *  at once.
+ *  holds the list where it was while the sheet moves, so the two never scroll
+ *  at once. Its top is where its first entry shows, which for a short list
+ *  lifted by the keyboard is not 0.
  *
  *  `onCloseStart` runs on release, before the spring (put the keyboard away,
  *  bring the plate back); `onClosed` once the sheet is off the screen. */
@@ -92,11 +96,18 @@ export function useSheetDrag({
   // object cannot be copied onto the UI thread.
   const listed = scroll !== undefined;
   const listOffset = scroll?.offset;
+  const listFirst = scroll?.first;
   const listRef = scroll?.ref;
+  const listHeld = useSharedValue(0);
   const start = useSharedValue(0);
   const anchor = useSharedValue(0);
   const engaged = useSharedValue(false);
   const last = useSharedValue(0);
+
+  const atTop = (): boolean => {
+    "worklet";
+    return atHistoryStart(listOffset?.value ?? 0, listFirst?.value ?? 0);
+  };
 
   let pan = Gesture.Pan()
     .activeOffsetY([-SLOP, SLOP])
@@ -104,8 +115,9 @@ export function useSheetDrag({
       last.value = event.translationY;
       anchor.value = event.translationY;
       // From a list, only once it is at its top and the finger is going down.
-      engaged.value = !listed || ((listOffset?.value ?? 0) <= 0 && event.translationY > 0);
+      engaged.value = !listed || (atTop() && event.translationY > 0);
       if (!engaged.value) return;
+      listHeld.value = listOffset?.value ?? 0;
       cancelAnimation(y);
       start.value = y.value;
       held.value = 1;
@@ -116,8 +128,9 @@ export function useSheetDrag({
       if (!engaged.value) {
         const down = event.translationY > last.value;
         last.value = event.translationY;
-        if (!listed || (listOffset?.value ?? 0) > 0 || !down) return;
+        if (!listed || !atTop() || !down) return;
         engaged.value = true;
+        listHeld.value = listOffset?.value ?? 0;
         cancelAnimation(y);
         start.value = y.value;
         anchor.value = event.translationY;
@@ -126,7 +139,7 @@ export function useSheetDrag({
         if (onGrab) runOnJS(onGrab)();
       }
       y.value = dragTo(start.value, event.translationY, anchor.value);
-      if (listRef) scrollTo(listRef, 0, 0, false);
+      if (listRef) scrollTo(listRef, 0, listHeld.value, false);
     })
     .onEnd((event) => {
       if (!engaged.value) return;
