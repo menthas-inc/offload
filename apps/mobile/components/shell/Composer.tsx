@@ -454,6 +454,7 @@ export function Composer({
                 <AttachChip
                   key={photo.key}
                   name={photo.name}
+                  uri={photo.uri}
                   kind={photo.kind}
                   error={photo.error}
                   disabled={sending || writing}

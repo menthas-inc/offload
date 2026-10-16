@@ -4208,3 +4208,12 @@ exactly like "I refreshed and I cannot see your change".
 **Why:** going-public 17c. An auditor wants who has access, and the log beside it, as files they can keep.
 
 **Design system impact:** the admin kit has no export control. Add an "Export CSV" small secondary button to the page head of the Staff and Audit screens in `ui_kits/admin`, and a two-date range dialog on Audit, using the existing `Field` and dialog patterns. No new component.
+
+### 2026-10-16 · The attachment chip is ink blue and shows the photo
+**Surface:** web, mobile
+
+**Was:** `AttachChip` on `--surface-raised` with a hairline border, the image glyph, and the name in `--text-secondary`.
+**Is:** `--surface-attention` with `--text-on-solid` for the name and the remove glyph, white in both themes. A photo draws itself as a 22px round thumbnail where the glyph was; a PDF keeps the paperclip. The chip is 28px tall. A refused file keeps the old quiet chip with its `--border-danger` edge, so its danger line stays readable.
+**Why:** the owner, on a Pixel: a file waiting in the composer should stand out against the field, and seeing the photo says which one it is. This is blue used for something other than *this needs you*, chosen deliberately: a file in the draft is waiting on the person to send it.
+
+**Design system impact:** `AttachChip` in `ui_kits/mobile_app/Composer.jsx` and `ui_kits/android_app/M3Composer.jsx`: the fill, the white words, the thumbnail for a photo, 28px. The readme's line that ink blue only means *this needs you* should name the waiting attachment as an allowed use, or the owner should say it is not.
