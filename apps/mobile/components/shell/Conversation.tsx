@@ -67,6 +67,7 @@ import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import type { PhotoOnWire } from "../../lib/dump";
 import { putKeyboardAway } from "../../lib/keyboard";
 import { threadHref } from "../../lib/loose";
+import { atEnd, sentBy, yours } from "../../lib/transcript-follow";
 
 /** 020. The viewer for a sent message's photos, mounted by the shell above
  *  the sheet. No row yet, so no tools: the Files grid is where a photo's row
@@ -292,15 +293,55 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
   const { turns, writing, finish, openPhoto, openPdf, retry, recording } = useConversation();
   const { ref, offset, first, native } = scroll;
 
-  // Opened at its end, and kept there as turns arrive.
-  const atEnd = useRef(false);
-  useEffect(() => {
-    ref.current?.scrollToEnd({ animated: atEnd.current });
-    atEnd.current = true;
-  }, [turns.length, writing, ref]);
+  // **Opened at its end, and kept there while the reader is.** Followed on
+  // every change of the content's size, not once per turn: a turn scrolled to
+  // before its photo or the thinking row had a height left the row half under
+  // the composer. Only the reader's own scroll decides whether they are at the
+  // end, so a reply never moves someone who has scrolled up, and sending
+  // something always brings them back.
+  const following = useSharedValue(true);
+  const driven = useSharedValue(false);
+  const inset = useSharedValue(0);
+  const opened = useRef(false);
+  const toEnd = useCallback(() => {
+    ref.current?.scrollToEnd({ animated: opened.current });
+    opened.current = true;
+  }, [ref]);
 
-  const onScroll = useAnimatedScrollHandler((event) => {
-    offset.value = event.contentOffset.y;
+  const sent = useRef(yours(turns));
+  useEffect(() => {
+    const before = sent.current;
+    sent.current = yours(turns);
+    if (!sentBy(before, turns)) return;
+    following.value = true;
+    toEnd();
+  }, [turns, following, toEnd]);
+
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      offset.value = event.contentOffset.y;
+      if (!driven.value) return;
+      following.value = atEnd({
+        offset: event.contentOffset.y,
+        layout: event.layoutMeasurement.height,
+        content: event.contentSize.height,
+        inset: inset.value,
+      });
+    },
+    onBeginDrag: () => {
+      driven.value = true;
+    },
+    // A release with no fling has no momentum to end, and a scroll of ours
+    // read as the reader's would stop following halfway to the end.
+    onEndDrag: () => {
+      driven.value = false;
+    },
+    onMomentumBegin: () => {
+      driven.value = true;
+    },
+    onMomentumEnd: () => {
+      driven.value = false;
+    },
   });
 
   // The transcript's scroll view, carrying the gesture the sheet's drag
@@ -349,6 +390,17 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
       offset={bottom}
       onScroll={onScroll}
       scrollEventThrottle={16}
+      // Its content grows, or its window shrinks as a long draft grows the
+      // composer: either way the end moves.
+      onContentSizeChange={() => {
+        if (following.value) toEnd();
+      }}
+      onLayout={() => {
+        if (following.value) toEnd();
+      }}
+      onContentInsetChange={(insets) => {
+        inset.value = insets.bottom;
+      }}
       // The sheet takes a drag down from the top; a bounce there would move
       // the two at once.
       bounces={false}
