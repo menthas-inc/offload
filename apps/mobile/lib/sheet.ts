@@ -55,6 +55,17 @@ export function closes(y: number, velocity: number, travel: number): boolean {
   return velocity > FLICK || (velocity > -FLICK && y > travel * CLOSE_AT);
 }
 
+/** Whether a list inside a sheet shows the start of what it holds, so a drag
+ *  down belongs to the sheet. `first` is how far down the list's content its
+ *  first entry sits: 0 for a long list, the empty space above a short one
+ *  that sits at its foot. **Not `offset <= 0`**: with the keyboard up a short
+ *  conversation is scrolled by the keyboard's height, and scrolling that back
+ *  only moves its turns behind the composer. */
+export function atHistoryStart(offset: number, first: number): boolean {
+  "worklet";
+  return offset <= first + 1;
+}
+
 /** 1 open, 0 closed. Closed until the sheet has a size. */
 export function progress(y: number, travel: number): number {
   "worklet";

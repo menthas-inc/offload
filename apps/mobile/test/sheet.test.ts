@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { backPull, closes, dragTo, progress, recede, startsFresh, STALE_MS } from "../lib/sheet";
+import { atHistoryStart, backPull, closes, dragTo, progress, recede, startsFresh, STALE_MS } from "../lib/sheet";
 
 describe("dragTo", () => {
   it("follows the finger from where the drag took hold, with no jump", () => {
@@ -79,5 +79,33 @@ describe("startsFresh", () => {
 
   it("never starts fresh on a conversation that is open", () => {
     expect(startsFresh(null, now)).toBe(false);
+  });
+});
+
+// The owner, 2026-10-16: a short conversation leaves most of the sheet empty,
+// so a drag down from that empty space is how it gets put away. With the
+// keyboard up the transcript is lifted by the keyboard's height, and that
+// lift was read as history to scroll back through: the drag scrolled the
+// turns down behind the composer instead of moving the sheet.
+describe("atHistoryStart", () => {
+  it("is at the start of a long conversation scrolled to its top", () => {
+    expect(atHistoryStart(0, 0)).toBe(true);
+  });
+
+  it("is not partway through a long conversation", () => {
+    expect(atHistoryStart(300, 0)).toBe(false);
+  });
+
+  it("is at the start of a short conversation lifted by the keyboard", () => {
+    // 336 of lift, the first turn 420 down the empty list.
+    expect(atHistoryStart(336, 420)).toBe(true);
+  });
+
+  it("is not when the lift hides turns above the top", () => {
+    expect(atHistoryStart(336, 200)).toBe(false);
+  });
+
+  it("allows for a scroll that stops a fraction short", () => {
+    expect(atHistoryStart(0.5, 0)).toBe(true);
   });
 });
