@@ -190,6 +190,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/with-share-relaunch.js",
       "expo-secure-store",
       [
         "expo-share-intent",
