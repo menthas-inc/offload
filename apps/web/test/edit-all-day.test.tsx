@@ -38,9 +38,20 @@ function render(node: React.ReactNode) {
   act(() => root!.render(node));
 }
 const timeField = () => document.querySelector('input[aria-label="Time"]') as HTMLInputElement | null;
-const allDayBox = () => [...document.querySelectorAll('input[type="checkbox"]')].find((one) => one.parentElement?.textContent?.includes("All day")) as HTMLInputElement;
+const allDayBox = () => [...document.querySelectorAll('input[role="switch"]')].find((one) => one.closest("label")?.textContent === "All day") as HTMLInputElement;
 
 describe("the edit dialog's time", () => {
+  // 2026-10-16 (the owner). One row, the All day switch; the hour is a row
+  // of its own under it while the switch is off, with nothing labelled Time
+  // above the switch.
+  it("is the All day switch, with no Time label on its row", () => {
+    render(<EditModal row={timed} onClose={() => {}} onSave={() => {}} />);
+    const row = allDayBox().closest("div")!;
+    expect(row.textContent).toContain("All day");
+    expect(row.textContent).not.toContain("Time");
+    expect(timeField()?.closest("div")).not.toBe(row);
+  });
+
   it("draws no time field on an all-day row, only the All day tick", () => {
     render(<EditModal row={allDay} onClose={() => {}} onSave={() => {}} />);
     expect(allDayBox().checked).toBe(true);

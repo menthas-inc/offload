@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-16 · Time in the When sheet is one row, the All day switch
+**Surface:** iOS, Android, web
+**Raised by:** the owner, from a device screenshot: Time was a row that said "All day" as if it were an hour, opened onto an All day switch, and then drew a second Time row under it.
+
+**Was:** on the phones a Time row with a chevron disclosed All day and the hour (an inline wheel on iOS, a dialog row on Android), and while All day was on its value read "All day". On the web a Time label carried an All day checkbox and the time field on one line.
+
+**Is:** All day is a switch row, always drawn, dimmed until a day is picked. While it is off the hour sits under it: the system's compact picker on iOS (a pill that opens the wheel at five-minute steps), a row opening the system dialog on Android, a time field on the web. It is labelled Time on a to-do and Starts on an event, which also gets Ends at. While All day is on there is no hour row at all.
+
+**Why:** the disclosure and the "All day" value said one fact three times; the switch says it once.
+
+**Design system impact:** `TodayParts.jsx` `RowEditSheet`'s When block and the web edit dialog: All day as a switch row, the hour under it only while it is off, no Time disclosure. `readme.md` says nothing of the time block, so nothing moves there.
+
 ### 2026-10-15 · A forwarded email is a conversation of its own
 **Surface:** iOS, Android, web
 **Raised by:** the owner, after two emails forwarded minutes apart were filed as one.
