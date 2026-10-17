@@ -119,6 +119,65 @@ if (unresolved.length) {
   );
 }
 
+// ------------------------------------------------------------------ Android
+//
+// Android is a real fork, not a skin. The design system's Android kit defines a
+// platform scope that replaces three things: the Material surface roles (--a-*,
+// derived from offload's own neutrals so the brand still owns the palette),
+// Material's shape scale in place of offload's radii, and taller bars.
+//
+// Those live in the kit's index.html rather than in tokens/, so they are read
+// from there rather than retyped. A hex typed into the app is the thing OFF-7
+// exists to prevent, and "it was only for Android" is how that starts.
+//
+// Emitted with an `a-` prefix into the same preset, always defined rather than
+// swapped at runtime: the Android screens are separate files by platform
+// extension, so each set is only reachable from the surface it belongs to.
+
+// Read before anything is written, so every output below is written once and
+// complete. A second pass that patched the files the first had written is how
+// the Android scope went missing twice.
+const ANDROID_KIT = join(here, "../../../.claude/skills/offload-design/ui_kits/android_app/index.html");
+
+function parsePlatformScope(html) {
+  const light = {};
+  const dark = {};
+  const scopes = html.matchAll(/\[data-platform="android"\](\[data-theme="dark"\])?\s*\{([^}]*)\}/g);
+  for (const [, isDark, body] of scopes) {
+    const target = isDark ? dark : light;
+    for (const [, name, value] of body.matchAll(DECL_RE)) target[name.slice(2)] = value.trim();
+  }
+  return { light, dark };
+}
+
+const android = parsePlatformScope(readFileSync(ANDROID_KIT, "utf8"));
+
+if (Object.keys(android.light).length === 0) {
+  throw new Error(
+    "No Android platform tokens parsed. The Android kit's scope moved or changed shape; " +
+      "fix this generator rather than hand-copying values into the app."
+  );
+}
+
+/** Android values resolve against the light theme's variables, since the scope
+ *  references them (--a-surface is var(--surface-page)). A reference to nothing
+ *  fails here, as it does in resolve(): left as written it is not a colour, and
+ *  the token would leave the stylesheet and the preset without a word. */
+const resolveAndroid = (source, base) =>
+  Object.fromEntries(
+    Object.entries(source).map(([name, value]) => [
+      name,
+      value.replace(/var\(\s*(--[a-z0-9-]+)\s*\)/gi, (_, ref) => {
+        const resolved = base[ref.slice(2)];
+        if (resolved === undefined) throw new Error(`Android token --${name} references ${ref}, which does not exist.`);
+        return resolved;
+      }),
+    ])
+  );
+
+const androidLight = resolveAndroid(android.light, resolvedLight);
+const androidDark = resolveAndroid({ ...android.light, ...android.dark }, resolvedDark);
+
 const tokens = {
   light,
   dark,
@@ -126,6 +185,7 @@ const tokens = {
   resolved: { light: resolvedLight, dark: resolvedDark },
   sources: files,
   generatedFrom: ".claude/skills/offload-design/tokens",
+  android: { light: androidLight, dark: androidDark },
 };
 
 mkdirSync(OUT_DIR, { recursive: true });
@@ -214,11 +274,18 @@ const colorNames = Object.keys(resolvedLight).filter(
   (name) => toChannels(resolvedLight[name]) !== null
 );
 
+// Colours join the channel variables so `bg-a-c-low` works and swaps with the
+// theme like every other colour. The surface roles are already named a-*, so
+// they are used as-is: prefixing again gives a-a-surface.
+const androidColors = Object.keys(androidLight).filter((n) => toChannels(androidLight[n]) !== null);
+
 // Dark is resolved against itself, so a dark-only alias points at the dark
-// ramp rather than inheriting light's value through the fallback.
-const channelLines = (source) =>
-  colorNames
+// ramp rather than inheriting light's value through the fallback. It states
+// only what differs from light, which every theme falls back to.
+const channelLines = (names, source, base) =>
+  names
     .filter((name) => source[name] !== undefined && toChannels(source[name]) !== null)
+    .filter((name) => !base || toChannels(source[name]) !== toChannels(base[name]))
     .map((name) => `  --c-${name}: ${toChannels(source[name])};`);
 
 const NATIVEWIND_CSS = [
@@ -239,13 +306,13 @@ const NATIVEWIND_CSS = [
     // Tailwind preset's rgb(var(--c-x) / <alpha-value>) colours, which do not
     // care which layer declared them.
     ":root {",
-    ...channelLines(resolvedLight),
+    ...channelLines(androidColors, androidLight),
+    ...channelLines(colorNames, resolvedLight),
     "}",
     "",
     ".dark:root {",
-    // Dark only redefines what it actually changes, so a token the design
-    // system leaves alone stays alone rather than being restated identically.
-    ...channelLines(resolvedDark),
+    ...channelLines(androidColors, androidDark, androidLight),
+    ...channelLines(colorNames, resolvedDark, resolvedLight),
     "}",
     "",
   ].join("\n");
@@ -262,9 +329,10 @@ writeFileSync(join(OUT_DIR, "nativewind.css"), NATIVEWIND_CSS);
 const MOBILE_CSS = join(here, "../../../apps/mobile/global.css");
 try {
   writeFileSync(MOBILE_CSS, NATIVEWIND_CSS);
-} catch {
-  // The mobile app is not always present, a web-only checkout for instance.
-  // Its absence is not a reason for the token build to fail.
+} catch (error) {
+  // No mobile app, a web-only checkout for instance, is not a reason to fail.
+  // Any other failure leaves the app on a stale stylesheet, so it is one.
+  if (error.code !== "ENOENT") throw error;
 }
 
 /** Strip a token prefix, so `radius-sm` becomes `sm` under borderRadius. Only
@@ -316,8 +384,33 @@ const preset = {
   },
 };
 
+// The Android half joins the same preset, always defined rather than swapped at
+// runtime: each set is only reachable from the surface it belongs to.
+const androidHeights = Object.fromEntries(
+  Object.entries(androidLight)
+    // -height anywhere in the name, not only at the end: row-height-lg is a
+    // height too and a suffix test silently drops it.
+    .filter(([n]) => n.includes("-height"))
+    .map(([n, v]) => [`a-${n}`, v])
+);
+preset.colors = {
+  ...preset.colors,
+  ...Object.fromEntries(androidColors.map((n) => [n, `rgb(var(--c-${n}) / <alpha-value>)`])),
+};
+preset.borderRadius = {
+  ...preset.borderRadius,
+  ...Object.fromEntries(
+    Object.entries(androidLight)
+      .filter(([n]) => n.startsWith("radius-"))
+      .map(([n, v]) => [`a-${n.slice("radius-".length)}`, v])
+  ),
+};
+preset.height = { ...heights, ...androidHeights };
+preset.minHeight = { ...heights, ...androidHeights };
+
+const presetFile = join(OUT_DIR, "tailwind-preset.cjs");
 writeFileSync(
-  join(OUT_DIR, "tailwind-preset.cjs"),
+  presetFile,
   "// Generated from the design system. Do not edit: run `pnpm tokens`.\n" +
     "//\n" +
     "// .cjs, not .js: this package is type: module, and a Tailwind config is\n" +
@@ -330,142 +423,8 @@ writeFileSync(
 
 console.log(
   `nativewind: ${colorNames.length} colours as channels, ` +
-    `${Object.keys(preset.spacing).length} spacing, ${Object.keys(preset.height).length} heights`
-);
-
-// ------------------------------------------------------------------ Android
-//
-// Android is a real fork, not a skin. The design system's Android kit defines a
-// platform scope that replaces three things: the Material surface roles (--a-*,
-// derived from offload's own neutrals so the brand still owns the palette),
-// Material's shape scale in place of offload's radii, and taller bars.
-//
-// Those live in the kit's index.html rather than in tokens/, so they are read
-// from there rather than retyped. A hex typed into the app is the thing OFF-7
-// exists to prevent, and "it was only for Android" is how that starts.
-//
-// Emitted with an `a-` prefix into the same preset, always defined rather than
-// swapped at runtime: the Android screens are separate files by platform
-// extension, so each set is only reachable from the surface it belongs to.
-
-const ANDROID_KIT = join(here, "../../../.claude/skills/offload-design/ui_kits/android_app/index.html");
-
-function parsePlatformScope(html) {
-  const light = {};
-  const dark = {};
-  const scopes = html.matchAll(/\[data-platform="android"\](\[data-theme="dark"\])?\s*\{([^}]*)\}/g);
-  for (const [, isDark, body] of scopes) {
-    const target = isDark ? dark : light;
-    for (const [, name, value] of body.matchAll(DECL_RE)) target[name.slice(2)] = value.trim();
-  }
-  return { light, dark };
-}
-
-const android = parsePlatformScope(readFileSync(ANDROID_KIT, "utf8"));
-
-if (Object.keys(android.light).length === 0) {
-  throw new Error(
-    "No Android platform tokens parsed. The Android kit's scope moved or changed shape; " +
-      "fix this generator rather than hand-copying values into the app."
-  );
-}
-
-/** Android values resolve against the light theme's variables, since the scope
- *  references them (--a-surface is var(--surface-page)). */
-const resolveAndroid = (source, base) =>
-  Object.fromEntries(
-    Object.entries(source).map(([name, value]) => [
-      name,
-      value.replace(/var\(\s*(--[a-z0-9-]+)\s*\)/gi, (_, ref) => base[ref.slice(2)] ?? ref),
-    ])
-  );
-
-const androidLight = resolveAndroid(android.light, resolvedLight);
-const androidDark = resolveAndroid({ ...android.light, ...android.dark }, resolvedDark);
-
-tokens.android = { light: androidLight, dark: androidDark };
-writeFileSync(join(OUT_DIR, "tokens.json"), JSON.stringify(tokens, null, 2) + "\n");
-
-// Colours join the channel variables so `bg-a-c-low` works and swaps with the
-// theme like every other colour.
-const androidColors = Object.keys(androidLight).filter((n) => toChannels(androidLight[n]) !== null);
-
-/** The surface roles are already named a-*, so they are used as-is. Prefixing
- *  again gives a-a-surface, which is nobody's idea of a class name. */
-const insertInto = (css, selector, lines) => {
-  // Anchored to the start of a line and tolerant of indentation. The previous
-  // pattern hard-coded two leading spaces, which was right while the variables
-  // sat inside @layer base and silently matched nothing the moment that
-  // wrapper came off: String.replace() with no match is not an error, so the
-  // whole Android scope vanished from the stylesheet without a word. Every
-  // a- class on the Android screens resolved to an undefined variable, which
-  // is why the gate came out in system greys instead of the design's.
-  const pattern = new RegExp(`^([ \\t]*)\\${selector} \\{\\n`, "m");
-  if (!pattern.test(css)) {
-    throw new Error(
-      `Could not find "${selector} {" in the generated stylesheet. The Android ` +
-        `scope would be dropped silently, so this fails instead.`
-    );
-  }
-  return css.replace(pattern, (m, indent) => m + lines(indent).join("\n") + "\n");
-};
-
-let androidCss = readFileSync(join(OUT_DIR, "nativewind.css"), "utf8");
-androidCss = insertInto(androidCss, ":root", (indent) =>
-  androidColors.map((n) => `${indent}  --c-${n}: ${toChannels(androidLight[n])};`)
-);
-androidCss = insertInto(androidCss, ".dark:root", (indent) =>
-  androidColors
-    .filter((n) => toChannels(androidDark[n]) !== null)
-    .map((n) => `${indent}  --c-${n}: ${toChannels(androidDark[n])};`)
-);
-
-writeFileSync(join(OUT_DIR, "nativewind.css"), androidCss);
-// And into the app, again. The first write above happened before the Android
-// scope existed, so stopping there left the app with the stylesheet minus
-// every a- variable, which is the bug this block just fixed one layer up.
-try {
-  writeFileSync(MOBILE_CSS, androidCss);
-} catch {
-  /* mobile app may be absent */
-}
-
-const androidPreset = {
-  colors: Object.fromEntries(
-    androidColors.map((n) => [n, `rgb(var(--c-${n}) / <alpha-value>)`])
-  ),
-  borderRadius: Object.fromEntries(
-    Object.entries(androidLight)
-      .filter(([n]) => n.startsWith("radius-"))
-      .map(([n, v]) => [`a-${n.slice("radius-".length)}`, v])
-  ),
-  // -height anywhere in the name, not only at the end: row-height-lg is a
-  // height too and a suffix test silently drops it.
-  height: Object.fromEntries(
-    Object.entries(androidLight)
-      .filter(([n]) => n.includes("-height"))
-      .map(([n, v]) => [`a-${n}`, v])
-  ),
-};
-androidPreset.minHeight = androidPreset.height;
-
-const presetFile = join(OUT_DIR, "tailwind-preset.cjs");
-const merged = readFileSync(presetFile, "utf8").replace(
-  /module\.exports = \{ theme: \{ extend: ([\s\S]*)\} \};\n$/,
-  (_, body) => {
-    const extend = JSON.parse(body);
-    for (const key of Object.keys(androidPreset)) {
-      extend[key] = { ...(extend[key] ?? {}), ...androidPreset[key] };
-    }
-    return "module.exports = { theme: { extend: " + JSON.stringify(extend, null, 2) + " } };\n";
-  }
-);
-writeFileSync(presetFile, merged);
-
-console.log(
-  `android: ${androidColors.length} surface roles, ` +
-    `${Object.keys(androidPreset.borderRadius).length} radii, ` +
-    `${Object.keys(androidPreset.height).length} heights`
+    `${Object.keys(preset.spacing).length} spacing, ${Object.keys(heights).length} heights; ` +
+    `android: ${androidColors.length} surface roles, ${Object.keys(androidHeights).length} heights`
 );
 
 // Every colour the preset offers must have a variable behind it.

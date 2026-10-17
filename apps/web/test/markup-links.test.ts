@@ -46,6 +46,8 @@ describe("a link is refused when a URL parser would read it as somewhere else", 
     ["trailing space", "/settings/apps "],
     ["climbing out of the app", "/../../evil"],
     ["climbing from inside", "/threads/../../evil"],
+    ["climbing with encoded dots, which a browser decodes", "/threads/%2e%2e/settings"],
+    ["climbing with encoded capitals", "/threads/%2E%2E/settings"],
   ];
 
   for (const [name, href] of hostile) {

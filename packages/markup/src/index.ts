@@ -101,6 +101,8 @@ function addressable(href: string): boolean {
   // route, but a link that resolves somewhere other than where it reads is the
   // same class of surprise this function exists to refuse.
   if (href.split("/").includes("..")) return false;
+  // A browser decodes `%2e%2e` into `..` before it resolves the path.
+  if (/%2e/i.test(href)) return false;
   return true;
 }
 
@@ -314,7 +316,12 @@ export function parse(text: string): Block[] {
   }
 
   if (blocks.length === 0) return [{ kind: "paragraph", lines: [[{ kind: "text", text }]] }];
-  return blocks.slice(0, MAX_BLOCKS);
+  if (blocks.length <= MAX_BLOCKS) return blocks;
+  // Past the cap, the rest run on as one last paragraph rather than being dropped.
+  const rest = blocks
+    .slice(MAX_BLOCKS - 1)
+    .flatMap((block) => (block.kind === "bullets" || block.kind === "numbers" ? block.items : block.lines));
+  return [...blocks.slice(0, MAX_BLOCKS - 1), { kind: "paragraph", lines: rest }];
 }
 
 /** Whether a reply uses anything beyond one plain paragraph.
