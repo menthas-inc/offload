@@ -7,6 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
+import { withPhotos } from "../src/routes/threads.js";
 import { account, label, memory, note, row, signIn, thread, wipe } from "./reminders-kit.js";
 
 await migrate(() => {});
@@ -52,6 +53,18 @@ describe("a row's reminders", () => {
     const hers = new Map((await rowsOf(await signIn(ana), t)).map((r) => [r.id, r.reminders]));
     expect(hers.get(party)).toBeNull();
     expect(hers.get(stopped)).toBeNull();
+  });
+
+  it("are read for the session's account, never for an id a row carries", async () => {
+    const me = await account();
+    const ana = await account();
+    const t = await thread([me, ana]);
+    const party = await row(me, t, "Surprise party", { day: SOON });
+    await label(me, { contentId: party }, { kind: "appointment", lead: "weeks" });
+    // A row that says it is the viewer's but names somebody else.
+    const shaped = { id: party, photo: null, author: { isYou: true, accountId: ana } };
+    const [read] = await withPhotos([shaped], me);
+    expect((read as { reminders?: unknown }).reminders).toBe("on");
   });
 });
 

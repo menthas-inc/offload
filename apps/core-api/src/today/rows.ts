@@ -77,6 +77,7 @@ export function agendaQuery(accountId: string) {
 export async function shapeRows(rows: AgendaRaw[], accountId: string): Promise<AgendaRow[]> {
   return (await withPhotos(
     rows.map((row) => ({ ...toRow(row, accountId), threadId: row.threadId, threadName: row.threadName, threadIcon: row.threadIcon, threadHue: row.threadHue })),
+    accountId,
   )) as unknown as AgendaRow[];
 }
 

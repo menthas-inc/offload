@@ -161,6 +161,30 @@ describe("what the Core API keeps", () => {
     expect(byThing.get(rent)?.name).toBeNull();
   });
 
+  it("a pass naming another account's note reads none of its words and writes nothing", async () => {
+    const me = await account();
+    const ana = await account();
+    const t = await thread([me]);
+    const hers = await note(ana, await thread([ana]), "Ana's dentist on Friday", { day: SOON });
+    const seen: unknown[] = [];
+    const watched = db.withPlugin({
+      transformQuery: (args) => args.node,
+      transformResult: async (args) => {
+        seen.push(...args.result.rows);
+        return args.result;
+      },
+    });
+    const result = await applyLabels(watched, {
+      accountId: me,
+      threadId: t,
+      shown: [],
+      entries: [{ of: "note", id: hers, kind: "appointment", lead: "days", name: "dentist" }],
+    });
+    expect(result).toEqual({ labelled: 0, ignored: 1 });
+    expect(JSON.stringify(seen)).not.toContain("dentist");
+    expect(await labels()).toEqual([]);
+  });
+
   it("whatever it was shown and left out is none, so it is not asked again every night", async () => {
     const me = await account();
     const t = await thread([me]);

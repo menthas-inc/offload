@@ -348,8 +348,11 @@ const contentPurge: Handler = async () => {
 
     // **A folded note is the one row here that is due without being deleted.**
     // 014's daily job sets a note aside rather than destroying it, and gives
-    // offload's own thirty days of history before it goes. A person's carries
-    // no `purge_after`, so this predicate never matches one however old it is.
+    // offload's own thirty days of history before it goes. A person's thread
+    // note carries no `purge_after`, so this never matches one however old it
+    // is. An account-scope memory is different: any replaced one goes thirty
+    // days later whoever wrote it, the person's own included, because the
+    // privacy policy's section 13 says so (memories/pass.ts sets the date).
     const folded = sql<boolean>`deleted_at is null and superseded_at is not null
       and purge_after is not null and purge_after < now()`;
 

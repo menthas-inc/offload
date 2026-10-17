@@ -120,7 +120,7 @@ revoke all on schema public from offload_agent;
 grant usage on schema public to offload_agent;
 grant select (country, default_thread_id, id, memories_at, state, time_zone, web_links_enabled, web_search_enabled) on table public.accounts to offload_agent;
 grant select on table public.app_settings to offload_agent;
-grant select (created_at, deleted_at, duration_ms, id, kind, measured_ms, message_id, provider_ref, renditions_at) on table public.blobs to offload_agent;
+grant select (clean_at, created_at, deleted_at, duration_ms, id, kind, measured_ms, message_id, pages, provider_ref, renditions_at) on table public.blobs to offload_agent;
 grant select on table public.connections to offload_agent;
 grant select (connection_id, selected) on table public.connector_calendars to offload_agent;
 grant select (account_id, deleted_at, id, state) on table public.connector_connections to offload_agent;
@@ -139,6 +139,7 @@ grant select, insert, update, delete on table public.note_chunks to offload_agen
 grant select on table public.notes to offload_agent;
 grant update (embedded_at, embedding, embedding_model) on table public.notes to offload_agent;
 grant select on table public.questions to offload_agent;
+grant select on table public.reminder_labels to offload_agent;
 grant select (content_id, note_id) on table public.suggestions to offload_agent;
 grant select on table public.thread_members to offload_agent;
 grant select on table public.threads to offload_agent;

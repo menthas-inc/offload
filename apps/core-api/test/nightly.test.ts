@@ -345,6 +345,20 @@ describe("AC-12 and AC-14 the default thread, and applying once", () => {
     expect((await post({ jobId: id })).statusCode).toBe(404);
   });
 
+  it("still writes the ledger for a member who left while the pass was with the model", async () => {
+    const ana = await account("Ana");
+    const trip = await thread(ana, "Lisbon in October");
+    const id = await job(ana, trip);
+    await db.updateTable("thread_members").set({ state: "left" }).where("account_id", "=", ana).execute();
+    const call = { inputTokens: 100, outputTokens: 10, cacheReadTokens: 0, cacheWriteTokens: 0, latencyMs: 5 };
+    expect((await post({ jobId: id, usage: [{ model: "claude-haiku-4-5", ...call }, { model: "claude-haiku-4-5", ...call }] })).statusCode).toBe(200);
+    const ledger = await db.selectFrom("llm_usage").select(["account_id", "job_kind", "job_id"]).where("job_id", "=", id).execute();
+    expect(ledger).toEqual([
+      { account_id: ana, job_kind: "thread.nightly", job_id: id },
+      { account_id: ana, job_kind: "thread.nightly", job_id: id },
+    ]);
+  });
+
   it("writes the ledger under the member as a nightly pass, and logs no words", async () => {
     const ana = await account("Ana");
     const trip = await thread(ana, "Lisbon in October");

@@ -164,7 +164,7 @@ async function contentNewestFirst(
   if (opts.types) query = query.where("content.type", "in", opts.types);
   if (opts.ids) query = query.where("content.id", "in", opts.ids);
   const rows = (await query.execute()) as RawRow[];
-  return withPhotos(rows.map((row) => toRow(row, accountId)));
+  return withPhotos(rows.map((row) => toRow(row, accountId)), accountId);
 }
 
 /** Drawable suggestions for these targets, keyed by target id. A suggestion

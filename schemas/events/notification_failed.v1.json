@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "required": ["kind", "status", "code"],
   "properties": {
-    "kind": { "type": "string", "enum": ["digest", "request", "share", "shared_activity"] },
+    "kind": { "type": "string", "enum": ["digest", "reminder", "request", "share", "shared_activity"] },
     "status": { "type": "integer", "minimum": 0 },
     "code": { "type": "string", "maxLength": 64, "pattern": "^[A-Za-z_]+$" }
   }
