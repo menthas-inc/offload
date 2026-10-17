@@ -47,7 +47,7 @@ import people from "../people/people.module.css";
 import { useAppearance } from "../../lib/appearance";
 import { useClock } from "../../lib/clock";
 import type { ContentPatch, ContentRow, ThreadRow } from "../../lib/threads";
-import { anHourAfter, patchFor, repeatsLabel, sameWhen, whenValueOf, type WhenValue } from "../../lib/when";
+import { NOTHING, anHourAfter, patchFor, repeatsLabel, sameWhen, whenLabel, whenValueOf, type WhenValue } from "../../lib/when";
 
 const UNITS: { freq: Freq; one: string; many: string }[] = [
   { freq: "DAILY", one: "day", many: "days" },
@@ -92,6 +92,8 @@ export function EditModal({
   const [remind, setRemind] = useState(bellOn(row));
   const [month, setMonth] = useState(held.day ?? today);
   const [custom, setCustom] = useState(false);
+  // 2026-10-17. The grid picks the first day, or while this is on the last.
+  const [pickingEnd, setPickingEnd] = useState(false);
   const [moving, setMoving] = useState(false);
   const [choice, setChoice] = useState<LabelChoice | null>(null);
   const [labelling, setLabelling] = useState(false);
@@ -105,10 +107,16 @@ export function EditModal({
   const chosenPreset = presets.find((preset) => preset.rule && preset.rule === when.rrule);
 
   function pickDay(iso: string): void {
+    if (!grid.inMonth(iso)) setMonth(iso);
+    // A last day on or before the first is one day again.
+    if (pickingEnd && when.day) {
+      setPickingEnd(false);
+      setWhen({ ...when, endDay: iso > when.day ? iso : null });
+      return;
+    }
     const index = presets.findIndex((preset) => preset.rule && preset.rule === when.rrule);
     const rrule = index >= 0 ? (presetsFor(iso)[index]?.rule ?? null) : when.rrule;
-    setWhen({ ...when, day: iso, rrule });
-    if (!grid.inMonth(iso)) setMonth(iso);
+    setWhen({ ...when, day: iso, endDay: when.endDay && when.endDay > iso ? when.endDay : null, rrule });
   }
 
   function save(): void {
@@ -125,6 +133,10 @@ export function EditModal({
     if (Object.keys(patch).length === 0 && !relabelled) return onClose();
     onSave(row, patch, relabelled ? choice.made : []);
   }
+
+  // A rule drops the span, so the grid draws none beside one.
+  const endDay = when.rrule ? null : when.endDay;
+  const between = (iso: string): boolean => Boolean(when.day && endDay && iso > when.day && iso < endDay);
 
   if (moving && onMove) {
     return <MoveOver exceptThreadId={threadId} onClose={() => setMoving(false)} onPick={(thread) => onMove(row, thread)} />;
@@ -164,9 +176,10 @@ export function EditModal({
                 <button
                   key={one.iso}
                   type="button"
-                  className={`${styles.editDay} ${one.iso === when.day ? styles.editDayOn : ""} ${one.today ? styles.editDayToday : ""} ${grid.inMonth(one.iso) ? "" : styles.editDayOut}`}
+                  className={`${styles.editDay} ${one.iso === when.day || one.iso === endDay ? styles.editDayOn : ""} ${between(one.iso) ? styles.editDayBetween : ""} ${one.today ? styles.editDayToday : ""} ${grid.inMonth(one.iso) ? "" : styles.editDayOut}`}
                   onClick={() => pickDay(one.iso)}
-                  aria-pressed={one.iso === when.day}
+                  aria-pressed={one.iso === when.day || one.iso === endDay}
+                  data-between={between(one.iso) ? "true" : undefined}
                   aria-label={dayName(one.iso)}
                 >
                   {one.dom}
@@ -174,6 +187,23 @@ export function EditModal({
               )),
             )}
           </div>
+
+          {/* The last day, picked on the same grid (2026-10-17). */}
+          {/* Not on a repeating row: the chip has no words for a repeating span. */}
+          {when.day && !when.rrule ? (
+            <div className={styles.editRow}>
+              <span className={styles.editRowLabel}>Last day</span>
+              <button
+                type="button"
+                className={`${styles.editLastDay} ${pickingEnd ? styles.editLastDayOn : ""}`}
+                onClick={() => setPickingEnd(!pickingEnd)}
+                aria-pressed={pickingEnd}
+                aria-label={`Last day, ${pickingEnd ? "pick on the grid" : when.endDay ? dayName(when.endDay) : "same day"}`}
+              >
+                {pickingEnd ? "Pick on the grid" : when.endDay ? whenLabel({ ...NOTHING, day: when.endDay }) : "Same day"}
+              </button>
+            </div>
+          ) : null}
 
           {/* Time is one row, the All day switch (the owner, 2026-10-16),
               and the hour a row of its own under it only while the row has
@@ -295,7 +325,10 @@ export function EditModal({
 
       <div className={people.modalActions}>
         {!row.onCalendar && when.day ? (
-          <button type="button" className={`${people.ghost} ${styles.editClear}`} onClick={() => setWhen({ day: null, time: null, endTime: null, rrule: null })}>
+          <button type="button" className={`${people.ghost} ${styles.editClear}`} onClick={() => {
+            setPickingEnd(false);
+            setWhen(NOTHING);
+          }}>
             Clear
           </button>
         ) : null}

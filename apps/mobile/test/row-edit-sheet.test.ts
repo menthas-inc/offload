@@ -11,7 +11,7 @@ const source = readFileSync(new URL("../components/shell/RowEditSheet.tsx", impo
 
 describe("the row's sheet", () => {
   it("says Never for Repeats with no date", () => {
-    expect(repeatsLabel({ day: null, time: null, endTime: null, rrule: null })).toBe("Never");
+    expect(repeatsLabel({ day: null, endDay: null, time: null, endTime: null, rrule: null })).toBe("Never");
     expect(source).toContain("{repeatsLabel(when)}");
     expect(source).not.toMatch(/when\.day \? repeatsLabel\(when\) : ""/);
   });
@@ -39,6 +39,48 @@ describe("the When sheet (owner, 2026-10-12)", () => {
     expect(sheet).toMatch(/<Switch checked=\{time === null\} onChange=\{setAllDay\} label="All day" disabled=\{!day\} \/>/);
     expect(sheet).toMatch(/display="compact"/);
     expect(sheet).not.toMatch(/display="spinner"/);
+  });
+});
+
+// 2026-10-17 (the owner). offload could date a row across days and a person
+// could not. A Last day row under the grid picks the span's end on the grid.
+describe("the When sheet's last day", () => {
+  const sheet = readFileSync(new URL("../components/shell/WhenSheet.tsx", import.meta.url), "utf8");
+
+  it("holds a last day, offers it once there is a day, and picks it on the same grid", () => {
+    expect(sheet).toMatch(/const \[endDay, setEndDay\] = useState<string \| null>\(initial\.endDay\)/);
+    expect(sheet).toMatch(/accessibilityLabel=\{`Last day, /);
+    expect(sheet).toMatch(/\{day && !rrule \? \(/);
+    expect(sheet).toMatch(/if \(pickingEnd && day\)/);
+    expect(sheet).toMatch(/const current: WhenValue = \{ day, endDay: day && !rrule \? endDay : null,/);
+  });
+
+  it("clears to nothing through the one empty value, never a literal that forgets a field", () => {
+    expect(sheet).toMatch(/onSave\(NOTHING\)/);
+    expect(source).not.toMatch(/\{ day: null, time: null, endTime: null, rrule: null \}/);
+  });
+});
+
+// 2026-10-17 (the owner). A photo can ride on the to-do it became; the to-do
+// keeps its checkbox and draws the photo beside it.
+describe("a to-do carrying a photo", () => {
+  it("draws the checkbox and the photo that opens the viewer", () => {
+    const row = readFileSync(new URL("../components/shell/ContentRow.tsx", import.meta.url), "utf8");
+    expect(row).toMatch(/\{onToggle && row\.photo && !row\.archivedAt \? \(/);
+  });
+});
+
+// 2026-10-17 (the owner). Archive is back on your own rows, beside Delete.
+describe("the sheet's ways out", () => {
+  it("offers Archive beside Delete on your own live row, and every screen wires it", () => {
+    const foot = readFileSync(new URL("../components/shell/SheetFoot.tsx", import.meta.url), "utf8");
+    expect(foot).toMatch(/also\?: \{ label: string; icon\?: string; onPress: \(\) => void \} \| undefined;/);
+    // Archive first and Delete beside it, as the web's tools end on the trash.
+    expect(foot.indexOf("{also ? (")).toBeLessThan(foot.indexOf("{lead ? ("));
+    expect(source).toMatch(/also=\{\s*row\.canDelete && !row\.archivedAt && onArchive/);
+    for (const file of ["components/today/useTodayRows.tsx", "components/loose/useLooseRows.tsx", "components/screens/Thread.tsx"]) {
+      expect(readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), file).toMatch(/onArchive=\{/);
+    }
   });
 });
 

@@ -242,7 +242,8 @@ export async function listAgenda(
     ])
     .where("content.viewer_account_id", "=", accountId)
     .where("content.deleted_at", "is", null)
-    .where("content.archived_at", "is", null)
+    // 2026-10-17. Archived rows too, after the live ones: a window of dates is
+    // an ask about that time, and what has passed archives itself.
     // **The thread's own lifecycle, which the predicate deliberately does not
     // carry.** `readable_content` answers "may they see it", never "does it
     // still exist": `restore` depends on that. So every reader states its own
@@ -260,6 +261,7 @@ export async function listAgenda(
   if (options.done === false) query = query.where("content.done_at", "is", null);
 
   const rows = await query
+    .orderBy(sql`content.archived_at is not null`, "asc")
     .orderBy(sql.raw(`content.${column}`), "asc")
     .limit(ANSWER_RESULTS + 1)
     .execute();
@@ -289,13 +291,19 @@ export async function listAgenda(
  */
 const RRF_K = 60;
 
-function fuse(arms: string[][]): string[] {
+/** 2026-10-17. An archived row's arms count as if each of its ranks came
+ *  after a whole live shortlist: a live match wins, and a strong archived
+ *  match still beats a live row the meaning arm only found nearby. */
+const ARCHIVED_BEHIND = SHORTLIST;
+
+function fuse(arms: string[][], archivedArms: string[][] = []): string[] {
   const score = new Map<string, number>();
-  for (const arm of arms) {
+  const add = (arm: string[], behind: number) =>
     arm.forEach((id, index) => {
-      score.set(id, (score.get(id) ?? 0) + 1 / (RRF_K + index + 1));
+      score.set(id, (score.get(id) ?? 0) + 1 / (RRF_K + behind + index + 1));
     });
-  }
+  for (const arm of arms) add(arm, 0);
+  for (const arm of archivedArms) add(arm, ARCHIVED_BEHIND);
   return [...score.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
 }
 
@@ -310,33 +318,41 @@ export interface SearchOptions {
 }
 
 export async function search(accountId: string, options: SearchOptions): Promise<Result> {
-  const text = await sql<{ id: string }>`
-    select c.id::text as id
-    from readable_content c
-    join threads t on t.id = c.thread_id
-    where c.viewer_account_id = ${accountId}::uuid
-      and c.deleted_at is null and c.archived_at is null
-      and t.deleted_at is null
-      and c.search_text @@ websearch_to_tsquery('simple', ${options.query})
-    order by ts_rank(c.search_text, websearch_to_tsquery('simple', ${options.query})) desc,
-             c.created_at desc
-    limit ${SHORTLIST}
-  `.execute(db);
-
-  const vector = options.queryVector
-    ? await sql<{ id: string }>`
-        select c.id::text as id
-        from content_chunks ch
-        join readable_content c on c.id = ch.content_id
-        join threads t on t.id = c.thread_id
-        where c.viewer_account_id = ${accountId}::uuid
-          and c.deleted_at is null and c.archived_at is null
-          and t.deleted_at is null
-          and ch.embedding is not null
-        order by ch.embedding <=> ${options.queryVector}::halfvec(1024), c.created_at desc
-        limit ${SHORTLIST}
-      `.execute(db)
-    : { rows: [] as { id: string }[] };
+  // 2026-10-17 (the owner). Archived rows are found too, behind the live
+  // ones: archive takes a row off the list, never out of reach, and what has
+  // passed archives itself. Each arm runs once per pile, so neither pile's
+  // shortlist crowds out the other's.
+  // Which pile an arm reads, said as every other reader says it.
+  const pile = (archived: boolean) => (archived ? sql`c.archived_at is not null` : sql`c.archived_at is null`);
+  const textArm = async (archived: boolean) =>
+    sql<{ id: string }>`
+      select c.id::text as id
+      from readable_content c
+      join threads t on t.id = c.thread_id
+      where c.viewer_account_id = ${accountId}::uuid
+        and c.deleted_at is null and ${pile(archived)}
+        and t.deleted_at is null
+        and c.search_text @@ websearch_to_tsquery('simple', ${options.query})
+      order by ts_rank(c.search_text, websearch_to_tsquery('simple', ${options.query})) desc,
+               c.created_at desc
+      limit ${SHORTLIST}
+    `.execute(db);
+  const vectorArm = async (archived: boolean) =>
+    options.queryVector
+      ? sql<{ id: string }>`
+          select c.id::text as id
+          from content_chunks ch
+          join readable_content c on c.id = ch.content_id
+          join threads t on t.id = c.thread_id
+          where c.viewer_account_id = ${accountId}::uuid
+            and c.deleted_at is null and ${pile(archived)}
+            and t.deleted_at is null
+            and ch.embedding is not null
+          order by ch.embedding <=> ${options.queryVector}::halfvec(1024), c.created_at desc
+          limit ${SHORTLIST}
+        `.execute(db)
+      : { rows: [] as { id: string }[] };
+  const [text, vector, oldText, oldVector] = await Promise.all([textArm(false), vectorArm(false), textArm(true), vectorArm(true)]);
 
   // Read before the early return below. A question whose answer lives in a
   // standing rule matches no content at all, and returning nothing there would
@@ -344,7 +360,10 @@ export async function search(accountId: string, options: SearchOptions): Promise
   // looking like an empty corpus.
   const asides = await asidesFor(accountId, options);
 
-  const ranked = fuse([text.rows.map((r) => r.id), vector.rows.map((r) => r.id)]);
+  const ranked = fuse(
+    [text.rows.map((r) => r.id), vector.rows.map((r) => r.id)],
+    [oldText.rows.map((r) => r.id), oldVector.rows.map((r) => r.id)],
+  );
   const wanted = ranked.slice(0, ANSWER_RESULTS + 1);
   if (wanted.length === 0) {
     return { threadId: null, threadName: null, truncated: false, rows: [], asides };

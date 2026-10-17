@@ -386,7 +386,7 @@ async function follow(accountId: string, write: WriteAction, messageId: string |
 async function putBack(accountId: string, rows: string[], calendarExternalId: string, sourceRef: string | null): Promise<void> {
   for (const id of rows) {
     try {
-      await setArchived(accountId, id, false);
+      await setArchived(accountId, id, false, { byPerson: false });
       if (!sourceRef) continue;
       await db
         .updateTable("content")

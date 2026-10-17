@@ -517,16 +517,35 @@ describe("the row", () => {
     const wrap = await db.selectFrom("blob_keys").selectAll().where("blob_id", "=", blobIds[0]!).where("scope", "=", "thread").executeTakeFirstOrThrow();
     expect(wrap.scope_id).toBe(build);
 
-    // The same photo twice, an index past the end, and a task with a photo.
+    // The same photo twice, an index past the end, and a link with a photo.
     expect((await tool({ tool: "add_content", jobId, toolCallId: "c2", threadId: build, title: "Again", type: "image", photo: 1 })).json()).toEqual({ ok: false, error: "unknown_photo" });
     expect((await tool({ tool: "add_content", jobId, toolCallId: "c3", threadId: build, title: "Third", type: "image", photo: 3 })).json()).toEqual({ ok: false, error: "unknown_photo" });
-    expect((await tool({ tool: "add_content", jobId, toolCallId: "c4", threadId: build, title: "Buy", type: "task", photo: 2 })).json()).toEqual({ ok: false, error: "unknown_photo" });
+    expect((await tool({ tool: "add_content", jobId, toolCallId: "c4", threadId: build, title: "A page", type: "link", url: "https://example.com", photo: 2 })).json()).toEqual({ ok: false, error: "unknown_photo" });
 
     // The page carries the photo, ready, and never the coordinate.
     const page = await app.inject({ method: "GET", url: `/v1/threads/${build}/content`, headers: { cookie: await signIn(me.id) } });
     const shaped = page.json().rows.find((r: { id: string }) => r.id === row.id);
     expect(shaped.photo).toEqual({ blobId: blobIds[0], kind: "image", width: 640, height: 480, ready: true });
     expect(JSON.stringify(page.json())).not.toContain("38.71");
+  });
+
+  // 2026-10-17 (the owner). A photo that becomes one row of what is in it is
+  // carried by that row, as a voice note is, rather than a second row beside it.
+  it("goes on the event, the stay, the place or the to-do it became, and counts as filed", async () => {
+    const me = await person();
+    const { jobId, blobIds, messageId } = await dumped(me, "", { files: ["receipt.jpg", "plain.jpg"] });
+    const build = await thread(me.id, "Bookshelf build");
+    const event = await tool({ tool: "add_content", jobId, toolCallId: "e1", threadId: build, title: "Rubrik webinar", type: "event", occursAt: "2026-10-21T17:00:00Z", photo: 1 });
+    expect(event.json().ok).toBe(true);
+    const task = await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId: build, title: "Pay the bill", type: "task", photo: 2 });
+    expect(task.json().ok).toBe(true);
+    const links = await db.selectFrom("content_blobs").select(["content_id", "blob_id"]).where("blob_id", "in", blobIds).orderBy("blob_id").execute();
+    expect(links.map((one) => one.content_id).sort()).toEqual([event.json().contentId, task.json().contentId].sort());
+
+    const res = await turnResult({ outcome: "answered", jobId, usage: goodUsage });
+    expect(res.statusCode).toBe(200);
+    const rows = await db.selectFrom("content").select("type").where("derived_from_message_id", "=", messageId).execute();
+    expect(rows.map((one) => one.type).sort()).toEqual(["event", "task"]);
   });
 
   it("files what the turn did not, with a plain title, before the turn settles", async () => {

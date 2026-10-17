@@ -24,7 +24,7 @@ import { Switch } from "../settings/Switch";
 import { useColors } from "../../lib/colors";
 import { useWeekStart } from "../../lib/appearance";
 import { useClock } from "../../lib/clock";
-import { anHourAfter, clockLabel, repeatsLabel, type WhenValue } from "../../lib/when";
+import { NOTHING, anHourAfter, clockLabel, repeatsLabel, whenLabel, type WhenValue } from "../../lib/when";
 import { DragSheet } from "./DragSheet";
 import { CustomRepeatSheet } from "./CustomRepeatSheet";
 import { SheetFoot } from "./SheetFoot";
@@ -192,6 +192,10 @@ export function WhenPanel({
   const weekStart = useWeekStart();
 
   const [day, setDay] = useState<string | null>(initial.day);
+  // 2026-10-17. A span's last day, picked on the same grid while
+  // `pickingEnd` is on.
+  const [endDay, setEndDay] = useState<string | null>(initial.endDay);
+  const [pickingEnd, setPickingEnd] = useState(false);
   const [time, setTime] = useState<string | null>(initial.time);
   const [endTime, setEndTime] = useState<string | null>(initial.endTime);
   const [rrule, setRule] = useState<string | null>(initial.rrule);
@@ -211,12 +215,20 @@ export function WhenPanel({
 
   const grid = useMemo(() => monthFor(month, [], today, weekStart), [month, today, weekStart]);
   const presets: Preset[] = useMemo(() => (day ? presetsFor(day) : []), [day]);
-  const current: WhenValue = { day, time, endTime: isEvent ? endTime : null, rrule: day ? rrule : null };
+  const current: WhenValue = { day, endDay: day && !rrule ? endDay : null, time, endTime: isEvent ? endTime : null, rrule: day ? rrule : null };
 
   // The presets read off the picked day and rewrite when it changes; a rule
   // chosen from them follows the day, a Custom one is kept as it was.
   const chosenPreset = presets.find((preset) => preset.rule && preset.rule === rrule);
   const pickDay = (iso: string): void => {
+    // A last day on or before the first is one day again.
+    if (pickingEnd && day) {
+      setPickingEnd(false);
+      setEndDay(iso > day ? iso : null);
+      if (!grid.inMonth(iso)) setMonth(iso);
+      return;
+    }
+    setEndDay(endDay && endDay > iso ? endDay : null);
     const wasPreset = presets.find((preset) => preset.rule && preset.rule === rrule);
     setDay(iso);
     if (wasPreset) {
@@ -294,7 +306,8 @@ export function WhenPanel({
       {grid.weeks.map((week) => (
         <View key={week.key} className="flex-row">
           {week.days.map((one) => {
-            const picked = one.iso === day;
+            const picked = one.iso === day || one.iso === current.endDay;
+            const between = Boolean(day && current.endDay && one.iso > day && one.iso < current.endDay);
             return (
               <Pressable
                 key={one.iso}
@@ -306,7 +319,7 @@ export function WhenPanel({
                 style={{ minHeight: 40 }}
               >
                 <View
-                  className={`items-center justify-center rounded-pill ${picked ? "bg-surface-inverse" : ""}`}
+                  className={`items-center justify-center rounded-pill ${picked ? "bg-surface-inverse" : between ? "bg-surface-fill" : ""}`}
                   style={{
                     minWidth: 34,
                     minHeight: 34,
@@ -326,11 +339,31 @@ export function WhenPanel({
         </View>
       ))}
 
+      {/* The last day, picked on the same grid (2026-10-17). Not on a
+          repeating row: the chip has no words for a repeating span. */}
+      {day && !rrule ? (
+        <Pressable
+          onPress={() => setPickingEnd(!pickingEnd)}
+          accessibilityRole="button"
+          accessibilityState={{ selected: pickingEnd }}
+          accessibilityLabel={`Last day, ${pickingEnd ? "pick on the grid" : endDay ? whenLabel({ ...NOTHING, day: endDay }) : "same day"}`}
+          className="mt-space-3 min-h-tap-min flex-row items-center"
+        >
+          <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
+            Last day
+          </Text>
+          {/* Android has no accent ink in this sheet: its own ink, heavier. */}
+          <Text className={`font-core ${pickingEnd ? (isAndroid ? "font-medium text-a-on" : "text-text-accent") : quiet}`} style={{ fontSize: 15 }}>
+            {pickingEnd ? "Pick on the grid" : endDay ? whenLabel({ ...NOTHING, day: endDay }) : "Same day"}
+          </Text>
+        </Pressable>
+      ) : null}
+
       {/* Time is one row, the All day switch (the owner, 2026-10-16). While
           it is off the hour sits under it, and on an event the end; while it
           is on there is no clock to show (2026-10-12). iOS draws the system's
           compact picker, Android a row that opens the system's dialog. */}
-      <View className="mt-space-3 min-h-tap-min flex-row items-center" style={{ opacity: day ? 1 : 0.45 }}>
+      <View className={`${day ? "" : "mt-space-3 "}min-h-tap-min flex-row items-center`} style={{ opacity: day ? 1 : 0.45 }}>
         <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
           All day
         </Text>
@@ -400,7 +433,7 @@ export function WhenPanel({
 
       {/* Clear where Delete sits, Cancel and Save on the right. */}
       <SheetFoot
-        lead={{ label: "Clear", danger: true, onPress: () => onSave({ day: null, time: null, endTime: null, rrule: null }) }}
+        lead={{ label: "Clear", danger: true, onPress: () => onSave(NOTHING) }}
         onCancel={onCancel}
         onConfirm={() => onSave(current)}
         confirm={confirm}

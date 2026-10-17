@@ -39,6 +39,10 @@ The **volume and access** section is required whenever the feature adds or chang
 
 If the feature puts anything into a model prompt, say what bounds it (OFF-8). Ground every choice in `docs/tech/`. If the feature depends on one of the open decisions at the bottom of `docs/tech/decisions.md`, say so explicitly rather than assuming an answer.
 
+Design it the ponytail way. Run every new piece (table, endpoint, job, dependency, abstraction, config) down the `ponytail` ladder and stop at the first rung that holds: not needed, already in this codebase, platform or stdlib, an installed dependency, new code. Add a short **Reuse and skips** section: each new piece with its rung (name the path or package), then what you deliberately left out. A limit you knowingly accept names its upgrade trigger, and the code for it will carry a `shortcut:` comment.
+
+Then run `project-lead` on the impl-spec as the tech lead review. Fold its concerns into the spec, or say why not.
+
 ## 6. Tasks
 Write `docs/specs/NNN-slug/tasks.md`: ordered testable tasks (setup, foundational, feature, tests), each citing the acceptance criteria and principles it satisfies. Split by track (API, Mobile, Web) where the feature touches the clients.
 

@@ -1,6 +1,6 @@
 {
   "note": "everything else; run by principle to read failures and tune",
-  "count": 445,
+  "count": 446,
   "cases": [
     "a-birthday-is-a-memory",
     "a-correction",
@@ -56,6 +56,7 @@
     "beach-inside-a-trip-asks-nothing",
     "bill-is-a-task-with-amount-and-by-when",
     "booking-email-is-a-stay-with-dates",
+    "brackets-with-words-are-one-row",
     "business-card-is-findable",
     "by-with-date-asks-nothing",
     "calendar-named-by-who-it-is-shared-with",

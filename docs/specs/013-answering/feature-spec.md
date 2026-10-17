@@ -3,6 +3,8 @@
 **Status:** drafted 2026-09-09, revised after review the same day
 **Surfaces:** web, iOS, Android, and the agent plane
 
+**Amended 2026-10-17 (the owner):** search and a window of dates read archived rows too, ranked after the live ones, so what has passed and archived itself is still found; a thread's list stays the live list. The as-built note is in `docs/tech/decisions.md` under *Tidying, 2026-10-17*.
+
 ## Why
 
 offload files what you dump in and cannot find it again. The model reads one

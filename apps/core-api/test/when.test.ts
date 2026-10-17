@@ -13,7 +13,7 @@ describe("023 AC-19 the end an event is offered", () => {
     expect(anHourAfter("09:00")).toBe("10:00");
     expect(anHourAfter("22:55")).toBe("23:55");
     expect(anHourAfter("23:30")).toBe("23:55");
-    const patch = patchFor({ type: "event" }, { day: "2026-10-01", time: "23:30", endTime: anHourAfter("23:30"), rrule: null });
+    const patch = patchFor({ type: "event" }, { day: "2026-10-01", endDay: null, time: "23:30", endTime: anHourAfter("23:30"), rrule: null });
     expect(patch.occursAt).toBe("2026-10-01T23:30:00");
     expect(patch.occursEndAt).toBe("2026-10-01T23:55:00");
   });
@@ -50,7 +50,7 @@ describe("023 what Save draws before the server answers", () => {
       isReminder: false,
     };
     const value = whenValueOf(row, "Europe/Lisbon");
-    expect(value).toEqual({ day: "2026-10-01", time: "09:00", endTime: "10:00", rrule: null });
+    expect(value).toEqual({ day: "2026-10-01", endDay: null, time: "09:00", endTime: "10:00", rrule: null });
     expect(drawnWhen(patchFor(row, value), "Europe/Lisbon")).toMatchObject({
       occursAt: "2026-10-01T08:00:00.000Z",
       occursEndAt: "2026-10-01T09:00:00.000Z",

@@ -31,6 +31,8 @@ import { PdfOpening } from "./PdfOpening";
 import { useConversation } from "./conversation-context";
 import { QUICK_ADD_CHARS, TYPED_ROW_PLACEHOLDER } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
+import { useFolds } from "../../lib/folds";
+import type { FoldSection } from "@offload/widgets";
 
 const isAndroid = Platform.OS === "android";
 
@@ -121,6 +123,9 @@ function WidgetBlock({
   const COLOR = useColors();
   const { raiseFor } = useConversation();
   const [allDone, setAllDone] = useState(false);
+  const [folds, setFold] = useFolds();
+  const section: FoldSection = widget.kind;
+  const folded = folds[section];
   // Only To do earns the fold: `doneAt` is only ever set on a task, so a
   // files section has nothing to hide and never draws the control.
   //
@@ -161,27 +166,38 @@ function WidgetBlock({
   return (
     <View>
       <View className="flex-row items-center gap-space-3 px-gutter-screen pb-space-3 pt-space-7">
-        <Text
-          className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
-          style={{ fontSize: 21 }}
-        >
-          {HEADINGS[widget.kind]}
-        </Text>
-        <View
-          className={`rounded-pill px-space-3 py-space-1 ${
-            isAndroid ? "bg-a-c" : "bg-surface-fill"
-          }`}
+        {/* 2026-10-17. The heading folds the section, kept on the phone;
+            Files starts folded. */}
+        <Pressable
+          onPress={() => setFold(section, !folded)}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: !folded }}
+          className="flex-row items-center gap-space-3"
         >
           <Text
-            className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
-            style={{ fontSize: 12 }}
+            className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+            style={{ fontSize: 21 }}
           >
-            {/* What is live in the section, not what it holds: "To do 3" is
-                how many are left, and the finished ones have their own count
-                on the fold. The kit draws exactly this. */}
-            {liveCount(widget.rows as readonly Sortable[])}
+            {HEADINGS[widget.kind]}
           </Text>
-        </View>
+          <View
+            className={`rounded-pill px-space-3 py-space-1 ${
+              isAndroid ? "bg-a-c" : "bg-surface-fill"
+            }`}
+          >
+            <Text
+              className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+              style={{ fontSize: 12 }}
+            >
+              {/* What is live in the section, not what it holds: "To do 3" is
+                  how many are left, and the finished ones have their own count
+                  on the fold. The kit draws exactly this. */}
+              {liveCount(widget.rows as readonly Sortable[])}
+            </Text>
+          </View>
+          <Glyph name={folded ? "chevron-right" : "chevron-down"} size={18} color={COLOR.iconOnWell} />
+        </Pressable>
 
         {/* One wrapper carrying the trailing margin, so the toggle and the +
             bunch together at the edge instead of each pushing on its own.
@@ -191,6 +207,7 @@ function WidgetBlock({
             do opposite things: one hides finished work, the other adds work.
             Reported as pressing the wrong one. They are 22px now and a full
             gutter apart, and the hit areas no longer touch. */}
+        {folded ? null : (
         <View className="ml-auto flex-row items-center gap-space-6">
           {widget.kind === "todo" && done.length > 0 ? (
             <>
@@ -256,8 +273,11 @@ function WidgetBlock({
           </Pressable>
           )}
         </View>
+        )}
       </View>
 
+      {folded ? null : (
+      <>
       {/* 020. Files is the kit's grid: three columns of square tiles, each
           the photo itself with no treatment, or the type glyph until the
           renditions exist. A tap opens the viewer, which is where the row's
@@ -315,6 +335,8 @@ function WidgetBlock({
           </Text>
         </Pressable>
       ) : null}
+      </>
+      )}
     </View>
   );
 }

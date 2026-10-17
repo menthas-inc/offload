@@ -249,6 +249,11 @@ export function useTodayRows(
           setRenaming(null);
           if (threadId) edit(saved, patch, made, threadId);
         }}
+        onArchive={() => {
+          const held = renaming;
+          setRenaming(null);
+          if (held) askArchive(held);
+        }}
         onRemove={() => {
           const held = renaming;
           setRenaming(null);

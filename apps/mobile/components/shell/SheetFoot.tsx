@@ -15,6 +15,7 @@ const SLOP = { top: 8, bottom: 8, left: 4, right: 4 };
 
 export function SheetFoot({
   lead,
+  also,
   onCancel,
   onConfirm,
   confirm,
@@ -22,6 +23,9 @@ export function SheetFoot({
 }: {
   /** Delete, Archive, Put back or Clear. Danger draws it in clay. */
   lead?: { label: string; icon?: string; danger?: boolean; onPress: () => void } | undefined;
+  /** 2026-10-17. A second way out, drawn before the lead: Archive, then
+   *  Delete, on your own row, as the web's tools end on the trash. */
+  also?: { label: string; icon?: string; onPress: () => void } | undefined;
   onCancel: () => void;
   onConfirm: () => void;
   /** Save where it writes, Done where it hands back to a sheet that will. */
@@ -32,9 +36,25 @@ export function SheetFoot({
   const COLOR = useColors();
   const quiet = isAndroid ? "text-a-on-var" : "text-text-secondary";
   return (
-    // Three pills that wrap at a large text size rather than pushing the
-    // confirming one past the edge; whatever drops keeps to the right.
+    // Three pills, or four with Archive before Delete, that wrap at a large
+    // text size rather than pushing the confirming one past the edge;
+    // whatever drops keeps to the right.
     <View className="mt-space-4 flex-row flex-wrap items-center justify-end gap-space-4">
+      {also ? (
+        <Pressable
+          onPress={also.onPress}
+          hitSlop={SLOP}
+          accessibilityRole="button"
+          accessibilityLabel={also.label}
+          className={`${lead ? "" : "mr-auto "}flex-row items-center gap-space-2 rounded-pill border border-border-hairline px-space-5`}
+          style={{ minHeight: 30, justifyContent: "center" }}
+        >
+          {also.icon ? <Glyph name={also.icon} size={14} color={COLOR.iconOnWell} /> : null}
+          <Text className={`font-core font-medium ${quiet}`} style={{ fontSize: 13 }}>
+            {also.label}
+          </Text>
+        </Pressable>
+      ) : null}
       {lead ? (
         <Pressable
           onPress={lead.onPress}

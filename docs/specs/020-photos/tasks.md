@@ -2,6 +2,8 @@
 
 Ordered. Each cites the acceptance criteria it serves and the principles it satisfies. The share sheet is its own track and ships on its own if the extension fights back. Anything under `docs/tech/`, `docs/constitution/` or `.claude/skills/offload-design/` is written on `main`, never in the feature worktree.
 
+**Amended 2026-10-17 (the owner):** done in one PR with the rest of the owner's tidying asks, each behind a test that was seen red first; the feature-spec's note of the same date says what changed.
+
 ## A. Setup and record
 
 - [x] **A1** Migration `0050_photos.sql` (was 0049; a calendar branch took that number the same week): `blobs`, `blob_keys`, `content_blobs`, `place_reverse`, the indexes in the impl-spec, `questions.field` gaining `thread`, `readable_content` recreated, the worker role's grants. *(AC-14, AC-26, AC-37; DATA-1, OFF-3)*

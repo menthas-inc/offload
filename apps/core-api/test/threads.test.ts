@@ -1427,6 +1427,25 @@ describe("023 the when field on the edit", () => {
     expect(row.rrule).toBeNull();
   });
 
+  // 2026-10-17. The sheets' last day: a to-do's span is occurs_at to
+  // occurs_end_at with the due day on the last, as the model writes it.
+  it("takes a to-do's span, and dropping its last day takes its first with it", async () => {
+    const me = await account();
+    const th = await thread(me, "Flat admin");
+    const id = await task(me, th);
+    await editContent(me, id, { occursAt: "2026-10-17", occursEndAt: "2026-10-20", dueAt: "2026-10-20", allDay: true });
+    let row = await held(id);
+    expect([row.occurs_at?.toISOString(), row.occurs_end_at?.toISOString(), row.due_at?.toISOString()]).toEqual([
+      "2026-10-17T12:00:00.000Z",
+      "2026-10-20T12:00:00.000Z",
+      "2026-10-20T12:00:00.000Z",
+    ]);
+    expect(allDayOf(row.attrs)).toBe(true);
+    await editContent(me, id, { dueAt: "2026-10-17", occursAt: null, allDay: true });
+    row = await held(id);
+    expect([row.occurs_at, row.occurs_end_at, row.due_at?.toISOString()]).toEqual([null, null, "2026-10-17T12:00:00.000Z"]);
+  });
+
   it("refuses a date, All day and a rule on a row that is on a calendar", async () => {
     const me = await account();
     const th = await thread(me, "Flat admin");

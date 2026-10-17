@@ -57,6 +57,7 @@ import {
 } from "../../lib/threads";
 import { DragSheet } from "./DragSheet";
 import { MoveSheet } from "./MoveSheet";
+import { useFolds } from "../../lib/folds";
 
 const isAndroid = Platform.OS === "android";
 
@@ -110,6 +111,9 @@ export function NotesSection({
 }: Props) {
   const { zone } = useClock();
   const COLOR = useColors();
+  // 2026-10-17. The section folds from its heading, kept on the phone.
+  const [folds, setFold] = useFolds();
+  const sectionFolded = folds.notes;
   const { raiseFor } = useConversation();
   const [editing, setEditing] = useState<Note | null>(null);
   // 028. The note whose move sheet is up.
@@ -366,26 +370,36 @@ export function NotesSection({
   return (
     <>
       <View className="flex-row items-center gap-space-3 px-gutter-screen pb-space-3 pt-space-7">
-        <Text
-          className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
-          style={{ fontSize: 21 }}
+        {/* 2026-10-17. The heading folds the section, kept on the phone. */}
+        <Pressable
+          onPress={() => setFold("notes", !sectionFolded)}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: !sectionFolded }}
+          className="flex-row items-center gap-space-3"
         >
-          Notes
-        </Text>
-        {notes.length > 0 ? (
-          <View
-            className={`rounded-pill px-space-3 py-space-1 ${
-              isAndroid ? "bg-a-c" : "bg-surface-fill"
-            }`}
+          <Text
+            className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+            style={{ fontSize: 21 }}
           >
-            <Text
-              className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
-              style={{ fontSize: 12 }}
+            Notes
+          </Text>
+          {notes.length > 0 ? (
+            <View
+              className={`rounded-pill px-space-3 py-space-1 ${
+                isAndroid ? "bg-a-c" : "bg-surface-fill"
+              }`}
             >
-              {notes.length}
-            </Text>
-          </View>
-        ) : null}
+              <Text
+                className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+                style={{ fontSize: 12 }}
+              >
+                {notes.length}
+              </Text>
+            </View>
+          ) : null}
+          <Glyph name={sectionFolded ? "chevron-right" : "chevron-down"} size={18} color={COLOR.iconOnWell} />
+        </Pressable>
 
         {/* The way in, once the section already draws. A thread with no notes
             and no folded history draws nothing here, per the early return
@@ -396,6 +410,7 @@ export function NotesSection({
             *adding* moved: editing an existing note still opens the sheet
             below, since that needs mute, delete and a second field the
             composer has no room for. */}
+        {sectionFolded ? null : (
         <Pressable
           onPress={() =>
             raiseFor({
@@ -414,8 +429,11 @@ export function NotesSection({
         >
           <Glyph name="plus" size={22} color={COLOR.iconOnWell} />
         </Pressable>
+        )}
       </View>
 
+      {sectionFolded ? null : (
+      <>
       <View className="px-gutter-screen">
         {notes.map((note, index) => row(note, index < notes.length - 1))}
       </View>
@@ -448,7 +466,8 @@ export function NotesSection({
           {folded ? folded.map((note, index) => row(note, index < folded.length - 1, true)) : null}
         </View>
       ) : null}
-
+      </>
+      )}
     </>
   );
 }

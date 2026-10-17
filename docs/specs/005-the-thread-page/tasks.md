@@ -3,6 +3,8 @@
 > Ordered. Each task is one thing (QUAL-2) and names the criteria it is done against.
 > A, B and C are shippable on their own and close the privacy gap; D adds the writes.
 
+**Amended 2026-10-17 (the owner):** done in one PR with the rest of the owner's tidying asks, each behind a test that was seen red first; the feature-spec's note of the same date says what changed.
+
 ## A. Schema and reads
 
 - [x] **A1** `0013_archive.sql`: `content.archived_at`, plus the two partial indexes.

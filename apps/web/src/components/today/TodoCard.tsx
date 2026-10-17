@@ -27,6 +27,7 @@ export function TodayRow({ row, rows, chip }: { row: AgendaRow; rows: TodayRows;
     <ContentRowView
       row={row}
       lead={rows.lead(row)}
+      checkbox={row.type === "task"}
       meta={null}
       handlers={rows.handlers}
       // 028. A row not in a thread draws no pill.
