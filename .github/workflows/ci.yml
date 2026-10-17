@@ -11,9 +11,16 @@
 name: CI
 
 on:
+  # The merge to main still starts the job, and the job skips straight to
+  # green (the scope step says why): Railway waits for a commit's checks
+  # before it deploys, so the commit needs one.
   push:
     branches: [main]
+  # 2026-10-17 (the owner, on the Actions budget). Not on a draft: a pull
+  # request is opened as a draft while it is still changing, and the one run
+  # that counts starts when it is marked ready.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
   # A new push supersedes the run in flight for the same ref. Nothing here is
@@ -23,6 +30,8 @@ concurrency:
 
 jobs:
   check:
+    # A skipped job reports success, and a draft cannot be merged anyway.
+    if: github.event_name == 'push' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -62,15 +71,57 @@ jobs:
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # The merge commit and its first parent, the base: enough to say
+          # what the pull request changed.
+          fetch-depth: 2
+
+      # What this change can affect (2026-10-17, the owner, on the Actions
+      # budget). `run` is false for the merge to main, which is the tree the
+      # pull request already ran on (main requires a branch to be up to date
+      # before it merges), and for a change that touches only what no check
+      # reads. `web` is whether the web build and its CSP check can move.
+      #
+      # Inert means read by nothing CI runs, checked on 2026-10-17: lint reads
+      # the design system's rule file, the token generator its tokens and kits,
+      # and the agent's tests the eval files, so none of those are here. Add to
+      # the list only what nothing reads.
+      - name: Scope
+        id: scope
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "web=false" >> "$GITHUB_OUTPUT"
+            echo "The merge to main: its tree ran every check on the pull request."
+            exit 0
+          fi
+          run=false
+          web=false
+          while IFS= read -r f; do
+            case "$f" in
+              docs/*.md|store/*|CLAUDE.md|README.md|.github/workflows/README.md|.claude/agents/*.md|.claude/commands/*.md|.claude/skills/offload-design/decisions.md) ;;
+              *) run=true ;;
+            esac
+            case "$f" in
+              .claude/skills/offload-design/decisions.md) ;;
+              apps/web/*|packages/*|.claude/skills/offload-design/*|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|turbo.json|eslint.config.mjs|tsconfig*.json|.github/workflows/*) web=true ;;
+            esac
+          done < <(git diff --name-only HEAD^1 HEAD)
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "web=$web" >> "$GITHUB_OUTPUT"
+          echo "run=$run web=$web"
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        if: steps.scope.outputs.run == 'true'
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: steps.scope.outputs.run == 'true'
         with:
           node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+        if: steps.scope.outputs.run == 'true'
 
       # Known advisories are Dependabot's job, switched on 2026-09-22 with the
       # actions above pinned to commits so it can bump them. `pnpm audit --prod`
@@ -80,28 +131,37 @@ jobs:
       # Generated from the design system's CSS, and nothing that imports a
       # token compiles without it.
       - run: pnpm tokens
+        if: steps.scope.outputs.run == 'true'
 
       - run: pnpm lint
+        if: steps.scope.outputs.run == 'true'
 
       # What lint and the compiler both wave through: a utility class the
       # theme has no rule for, a CSS module class defined nowhere, and an icon
       # name that is not in the set. Each renders as nothing and fails nothing.
       # They read the generated preset, so they run after `pnpm tokens`.
       - run: node .claude/scripts/dead-classes.mjs
+        if: steps.scope.outputs.run == 'true'
       - run: node .claude/scripts/dead-css.mjs
+        if: steps.scope.outputs.run == 'true'
       - run: node .claude/scripts/dead-icons.mjs
+        if: steps.scope.outputs.run == 'true'
 
       - run: pnpm typecheck
+        if: steps.scope.outputs.run == 'true'
 
       # Migrations first and on their own, so a broken migration fails as a
       # broken migration rather than as forty confusing test failures.
       - run: pnpm db:migrate
+        if: steps.scope.outputs.run == 'true'
 
       # Against the schema the migrations just produced, with the volumes the
       # admin waitlist page actually pages through.
       - run: pnpm db:seed
+        if: steps.scope.outputs.run == 'true'
 
       - run: pnpm test
+        if: steps.scope.outputs.run == 'true'
 
       # The agent plane, which `pnpm test` cannot see.
       #
@@ -115,21 +175,27 @@ jobs:
       # through tests/conftest.py, and the live Voyage test skips itself here
       # because CI has no key.
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        if: steps.scope.outputs.run == 'true'
         with:
           version: "0.5.x"
       - run: uv sync --frozen
+        if: steps.scope.outputs.run == 'true'
         working-directory: apps/agent
       - run: uv run pytest -q
+        if: steps.scope.outputs.run == 'true'
         working-directory: apps/agent
       - run: uv run ruff check .
+        if: steps.scope.outputs.run == 'true'
         working-directory: apps/agent
 
       - run: pnpm build
+        if: steps.scope.outputs.run == 'true' && steps.scope.outputs.web == 'true'
 
       # The web's content security policy, against the built app: every script
       # in every page carries the nonce its header names. `pnpm test` skips it
       # because it builds and starts the app. A page that ships prerendered
       # passes every other gate here and runs none of its scripts in a browser.
       - run: pnpm -C apps/web exec vitest run test/csp-built.test.ts
+        if: steps.scope.outputs.run == 'true' && steps.scope.outputs.web == 'true'
         env:
           WEB_CSP_TEST: "1"

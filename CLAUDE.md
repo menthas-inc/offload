@@ -84,6 +84,7 @@ Short list, kept short. Each one cost real time in this repo.
 - Stack, architecture, decisions, CI/CD: `docs/tech/`
 - Design system, and the design decision log: `.claude/skills/offload-design/`
 - Workflows: `.claude/commands/` and `/plan-feature`, `/implement`, `/tweak`, `/review`
+- Pull requests open as drafts (`gh pr create --draft`) and go `gh pr ready` when done: CI runs only on a ready pull request, because the Actions budget is small (`docs/tech/ci-cd.md`).
 - The repo sweep: `/sweep`, in its own worktree. A SessionStart hook says when it is due (`.claude/scripts/sweep_due.py`); reports in `docs/sweeps/`.
 - Reviewer personas: `.claude/agents/`
 - Mechanical gates: `.claude/hooks/` (secrets, pre-commit tests and lint, design guard)

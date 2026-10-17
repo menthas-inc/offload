@@ -92,4 +92,4 @@ The design system at `.claude/skills/offload-design/` specifies five, all at hig
 - **Test runners:** Vitest (TypeScript), pytest (Python). <!-- referenced by the pre-commit gate -->
 - **Lint and format:** ESLint (TypeScript), Ruff (Python). No Prettier: it was planned and never added. The design system's `_adherence.oxlintrc.json` is wired into the ESLint flat config at the repo root, read at run time rather than copied, so a design sync propagates with no edit. It enforces the token and component-prop rules. See the entry in `decisions.md`. <!-- referenced by the lint-warn hook -->
 - **Type checking:** `tsc`. Nothing type-checks the Python plane yet; pyright was planned and never added.
-- **CI:** GitHub Actions, one workflow that runs every check on every push and pull request.
+- **CI:** GitHub Actions, one workflow that runs every check once a pull request is ready, skipping what a change cannot affect (`ci-cd.md`).
