@@ -248,7 +248,7 @@ Check before pasting: the Google line is true only while going-public item 1 is 
 
 Apple counts data collected by third-party SDKs in the app. Two SDKs declare data in their own privacy manifests, read from `node_modules/react-native-maps/ios/`:
 - **Google Maps SDK** (`AirGoogleMaps/Resources/GoogleMapsPrivacy.bundle/PrivacyInfo.xcprivacy`, shipped because the phones use `PROVIDER_GOOGLE`, `components/map/ThreadMap.tsx`): Crash data, Performance data, Product interaction and Device ID, not linked, Analytics (Device ID also App functionality); User ID, linked, Analytics. None for tracking.
-- **react-native-maps** (`ios/PrivacyInfo.xcprivacy`): Precise location, not linked, App functionality. This is for showing the user's own position on a map, which offload never does: no location permission string in `app.json`, no `showsUserLocation` anywhere. It will appear in Xcode's privacy report; it does not apply.
+- **react-native-maps** (`ios/PrivacyInfo.xcprivacy`): Precise location, not linked, App functionality. This is for showing the user's own position on a map, which offload never does: no `showsUserLocation` anywhere. `app.json` carries an `NSLocationWhenInUseUsageDescription` only because the map SDK links the location API (PR 100), and its text says offload never asks for your location. It will appear in Xcode's privacy report; it does not apply.
 
 Purposes, in Apple's words: App functionality, Analytics, Product personalization, Developer's advertising or marketing, Third-party advertising, Other purposes. Only the first two are used below.
 

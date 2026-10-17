@@ -11,6 +11,20 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-17 · Finish it and a turn's Undo say when they did not happen
+**Surface:** iOS, Android, web
+**Raised by:** the sweep of 2026-10-17 and the ponytail cleanup before it: both controls could fail with nothing on screen.
+
+**Was:** Finish it on a stopped turn did nothing at all when the resume was refused (the day's cap, offline, already resumed elsewhere). Undo on a turn took the turn off the screen first and left it gone when the server refused, so it came back only on a reload.
+
+**Is:** a refused Finish it shows a toast, *Couldn't finish that*, with Retry; the day's cap shows the line the composer already shows for it, and a turn another device already resumed simply carries on. A refused Undo puts the turn back where it was and shows the existing *Couldn't put that back* with Retry.
+
+**Why:** offload says what happened and offers the way forward next to a control that acts on it; a control that silently does nothing reads as broken.
+
+On the phones the toast now tells a screen reader: a failure (its action is Retry or Try again) is an assertive live region with the alert role, as the kit's contract and the web already had it, and the bar is at least the 44-point tap height with Retry taking its full height.
+
+**Design system impact:** one new line, *Couldn't finish that*, in the failure-line set beside *Couldn't put that back*. `Toast` on the phones now matches its contract's failure role, and its bar's minimum height is `tap-min`; worth a line in the component's notes.
+
 ### 2026-10-17 · Archive is back on your own rows, beside Delete
 **Surface:** iOS, Android, web
 **Raised by:** the owner: archive is how somebody tidies away what they no longer use, and on their own rows only Delete was offered.
