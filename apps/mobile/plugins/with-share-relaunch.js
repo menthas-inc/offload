@@ -30,7 +30,7 @@ const FORGET = `    ${MARK}
 
 const KEEP = `
     addOnNewIntentListener { next ->
-      if (next.type != null) {
+      if (next.action == Intent.ACTION_SEND || next.action == Intent.ACTION_SEND_MULTIPLE) {
         ExpoShareIntentSingleton.intent = next
         ExpoShareIntentSingleton.isPending = true
       }

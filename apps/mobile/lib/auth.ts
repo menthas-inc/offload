@@ -324,7 +324,11 @@ export async function signOut(): Promise<void> {
   // Only now. This is the one place that knows what a session is made of on
   // this device, so anything added later is added here rather than at a call
   // site that would not know to.
-  await Promise.all(SESSION_KEYS.map((key) => forget(key)));
+  // And the chunks read before the call: the plugin wrote `{}` over the marker
+  // that said where they were.
+  const now = (await Promise.all(SESSION_KEYS.map((key) => chunked(key)))).flat();
+  const keys = new Set([...now, ...held.flat().map(([key]) => key)]);
+  await Promise.all([...keys].map((key) => SecureStore.deleteItemAsync(key).catch(() => undefined)));
   await ended();
 }
 
@@ -393,8 +397,14 @@ export function sessionRefused(): Promise<void> {
  *  is the plugin's and not a guess. */
 async function chunked(key: string): Promise<string[]> {
   const stored = await SecureStore.getItemAsync(key).catch(() => null);
-  const count = stored?.startsWith("ba-chunks:") ? Number(stored.slice("ba-chunks:".length)) : 0;
-  return [key, ...Array.from({ length: Number.isInteger(count) && count > 0 ? count : 0 }, (_, i) => `${key}.${i}`)];
+  if (!stored?.startsWith("ba-chunks:")) return [key];
+  // 1.7 writes `ba-chunks:N:S[:F]`: N chunks under `<key>.S.i`, and F left
+  // under the other slot for recovery. A bare `ba-chunks:N` is `<key>.i`.
+  const [count, slot, fallback] = stored.slice("ba-chunks:".length).split(":").map(Number);
+  const range = (prefix: string, n: number | undefined) =>
+    Array.from({ length: Number.isInteger(n) && n! > 0 ? Math.min(n!, 100) : 0 }, (_, i) => `${prefix}.${i}`);
+  if (slot !== 0 && slot !== 1) return [key, ...range(key, count)];
+  return [key, ...range(`${key}.${slot}`, count), ...range(`${key}.${1 - slot}`, fallback)];
 }
 
 async function forget(key: string): Promise<void> {

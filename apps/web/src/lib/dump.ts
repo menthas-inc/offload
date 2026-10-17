@@ -453,7 +453,8 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     credentials: "include",
   });
   if (!response) return null;
-  const body = (await response.json()) as {
+  // A captive portal answers 200 with a page: no answer, not a throw.
+  const body = (await response.json().catch(() => null)) as {
     state: MessageState;
     reply: string | null;
     threads?: TouchedThread[];
@@ -467,7 +468,8 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     found?: FoundResult[];
     voice?: VoiceOnWire | null;
     photos?: PhotoOnWire[];
-  };
+  } | null;
+  if (!body) return null;
   return {
     state: body.state,
     reply: body.reply,
@@ -546,7 +548,8 @@ export function awaitAnswer(
   // which means a perfectly healthy wait ends in `error` regularly. Asking is
   // the only way to tell the two apart.
   const ask = (): void => {
-    void fetchAnswer(messageId).then((answer) => {
+    // A throw is a miss like any other, or the poll would never ask again.
+    void fetchAnswer(messageId).catch(() => null).then((answer) => {
       if (done) return;
       if (answer && isFinal(answer.state)) {
         settle(answer);
@@ -732,13 +735,16 @@ export async function undoTurn(turnId: string): Promise<boolean> {
  *  Not a re-send. The dump is still where it was and some of it is already
  *  filed; this asks offload to do the rest, and returns the same envelope a
  *  new dump does so the composer waits for it the same way. */
-export async function resumeDump(messageId: string): Promise<Sent | null> {
-  const response = await reach(`${API}/v1/dumps/${messageId}/resume`, {
+export async function resumeDump(messageId: string): Promise<Sent | "daily_limit" | "not_finishable" | "failed"> {
+  const response = await fetch(`${API}/v1/dumps/${messageId}/resume`, {
     method: "POST",
     credentials: "include",
-  });
-  if (!response) return null;
-  return (await response.json()) as Sent;
+  }).catch(() => null);
+  if (response?.status === 429) return "daily_limit";
+  // Finished, or resumed from another device, since this screen drew it.
+  if (response?.status === 409) return "not_finishable";
+  const sent = response?.ok ? ((await response.json().catch(() => null)) as Sent | null) : null;
+  return sent ?? "failed";
 }
 
 /** End the current conversation, because somebody closed the composer.

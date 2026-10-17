@@ -1597,13 +1597,22 @@ export function ConversationProvider({
   }, [undoable, undoTurnShown]);
 
   const finish = useCallback(
-    async (messageId: string): Promise<void> => {
+    async function again(messageId: string): Promise<void> {
       const sent = await resumeDump(messageId);
-      if (!sent) return;
+      if (sent === "daily_limit") return setRefusedToday(true);
+      if (sent === "failed") return notify("Couldn't finish that", { label: "Retry", onPress: () => void again(messageId) });
+      if (sent === "not_finishable") {
+        // Settled elsewhere: ask what it is now. Every shown turn carries a
+        // turnId (the tail requires one), so none means it left the screen
+        // and there is nothing on it to correct.
+        const turnId = shownTurns.current.find((turn) => turn.id === messageId)?.turnId;
+        if (turnId) watch(messageId, turnId);
+        return;
+      }
       setWriting(true);
       watch(sent.messageId, sent.turnId);
     },
-    [watch],
+    [watch, notify],
   );
 
   const close = end;

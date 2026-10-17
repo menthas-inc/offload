@@ -49,6 +49,12 @@ describe("a share into an offload Android had killed", () => {
     expect(out).toContain("import expo.modules.shareintent.ExpoShareIntentSingleton");
   });
 
+  it("keeps only a share, not any typed intent another app sends", () => {
+    const keep = onCreate.slice(onCreate.indexOf("addOnNewIntentListener"));
+    expect(keep).toContain("next.action == Intent.ACTION_SEND || next.action == Intent.ACTION_SEND_MULTIPLE");
+    expect(keep).not.toContain("next.type != null");
+  });
+
   it("writes it once however often prebuild runs", () => {
     expect(shareRelaunch(out)).toBe(out);
   });

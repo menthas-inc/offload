@@ -33,9 +33,15 @@ vi.mock("expo-file-system", () => ({ File: class {} }));
 
 /** How many requests reject before one answers. */
 let offline = 0;
+/** How many requests a captive portal answers, 200 with a page, before one answers. */
+let portal = 0;
 vi.stubGlobal(
   "fetch",
   vi.fn(() => {
+    if (portal > 0) {
+      portal -= 1;
+      return Promise.resolve(new Response("<html>Sign in to the wifi</html>", { status: 200 }));
+    }
     if (offline > 0) {
       offline -= 1;
       return Promise.reject(new TypeError("Network request failed"));
@@ -49,6 +55,7 @@ const { awaitAnswer, undoTurn } = await import("../lib/dump");
 
 beforeEach(() => {
   offline = 0;
+  portal = 0;
 });
 
 describe("a fetch that throws", () => {
@@ -67,6 +74,29 @@ describe("a fetch that throws", () => {
     vi.useFakeTimers();
     try {
       offline = 1;
+      const seen: string[] = [];
+      awaitAnswer("m1", (answer) => seen.push(answer.state));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(seen).toEqual([]);
+      await vi.advanceTimersByTimeAsync(1500);
+      expect(seen).toEqual(["answered"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("a 200 that is not JSON", () => {
+  it("is no data from send and from upload", async () => {
+    portal = 2;
+    expect(await send("/v1/messages/m1")).toEqual({ status: 200, data: null });
+    expect(await upload("/v1/blobs", new FormData())).toEqual({ status: 200, data: null });
+  });
+
+  it("does not stop the answer poll, which settles on a later answer", async () => {
+    vi.useFakeTimers();
+    try {
+      portal = 1;
       const seen: string[] = [];
       awaitAnswer("m1", (answer) => seen.push(answer.state));
       await vi.advanceTimersByTimeAsync(0);

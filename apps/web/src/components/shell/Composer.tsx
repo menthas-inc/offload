@@ -946,7 +946,17 @@ export function Composer({
    *  would file that part twice. */
   async function finish(messageId: string): Promise<void> {
     const sent = await resumeDump(messageId);
-    if (!sent) return;
+    if (sent === "daily_limit") return setRefusedToday(true);
+    if (sent === "failed") {
+      toast.show("Couldn't finish that", { label: "Retry", onPress: () => void finish(messageId) });
+      return;
+    }
+    if (sent === "not_finishable") {
+      // Settled elsewhere: ask what it is now rather than draw it again.
+      setTurns((current) => current.filter((turn) => turn.id !== `${messageId}-reply`));
+      watch(messageId, shownTurns.current.find((turn) => turn.id === messageId)?.turnId);
+      return;
+    }
     setTurns((current) =>
       current
         .filter((turn) => turn.id !== `${messageId}-reply`)

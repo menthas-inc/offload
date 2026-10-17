@@ -126,14 +126,14 @@ export function dismissedLine(next: string | null, today: string): string {
   return `Dismissed until ${when === "Tomorrow" ? "tomorrow" : when}`;
 }
 
-/** Where a reminder's thing lives, under its name: a row's thread with the
- *  thread's own icon (`lasso` when it has none), `inbox` and Not in a thread
- *  for a row in the default thread; `text-quote` for a note whatever its
- *  thread; `cloudy` and Memories for a memory. Decided once. */
-export function whereOf(thing: { of: "content" | "note" | "memory"; threadName: string | null; threadIcon: string | null }): { icon: string; text: string } {
-  if (thing.of === "memory") return { icon: "cloudy", text: "Memories" };
-  if (thing.of === "note") return { icon: "text-quote", text: thing.threadName ?? "Not in a thread" };
-  return thing.threadName === null ? { icon: "inbox", text: "Not in a thread" } : { icon: thing.threadIcon ?? "lasso", text: thing.threadName };
+/** Where what a reminder is about lives, under its name: a row's thread with
+ *  the thread's own icon (`lasso` when it has none), `inbox` and Not in a
+ *  thread for a row in the default thread; `text-quote` for a note whatever
+ *  its thread; `cloudy` and Memories for a memory. Decided once. */
+export function whereOf(which: { of: "content" | "note" | "memory"; threadName: string | null; threadIcon: string | null }): { icon: string; text: string } {
+  if (which.of === "memory") return { icon: "cloudy", text: "Memories" };
+  if (which.of === "note") return { icon: "text-quote", text: which.threadName ?? "Not in a thread" };
+  return which.threadName === null ? { icon: "inbox", text: "Not in a thread" } : { icon: which.threadIcon ?? "lasso", text: which.threadName };
 }
 
 /** The key a dismissed reminder is hidden by on the screen: the thing, its

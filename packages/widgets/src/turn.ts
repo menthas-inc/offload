@@ -62,15 +62,30 @@ export function answeredWaiting<T extends { id: string; from: "you" | "offload";
 /** Take a turn back on screen first. It leaves the list on the press and
  *  comes back when the server refuses or cannot be reached, since the rows
  *  it filed are still there. False tells the caller to say so and offer
- *  Retry. */
-export async function undoShown<T extends { turnId?: string | undefined }>(
+ *  Retry.
+ *
+ *  `draw` takes an updater, because the list moves while the undo travels: a
+ *  turn sent or answered meanwhile has to survive the refusal, so only the
+ *  removed rows go back, each after the row it followed. */
+export async function undoShown<T extends { id: string; turnId?: string | undefined }>(
   turnId: string,
   turns: readonly T[],
-  draw: (turns: T[]) => void,
+  draw: (update: (current: T[]) => T[]) => void,
   undo: (turnId: string) => Promise<boolean>,
 ): Promise<boolean> {
-  draw(turns.filter((turn) => turn.turnId !== turnId));
+  draw((current) => current.filter((turn) => turn.turnId !== turnId));
   if (await undo(turnId).catch(() => false)) return true;
-  draw([...turns]);
+  draw((current) => {
+    const back = [...current];
+    turns.forEach((turn, at) => {
+      if (turn.turnId !== turnId || back.some((other) => other.id === turn.id)) return;
+      const before = turns
+        .slice(0, at)
+        .reverse()
+        .find((prior) => back.some((other) => other.id === prior.id));
+      back.splice(before ? back.findIndex((other) => other.id === before.id) + 1 : 0, 0, turn);
+    });
+    return back;
+  });
   return false;
 }

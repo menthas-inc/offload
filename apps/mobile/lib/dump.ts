@@ -526,7 +526,8 @@ export function awaitAnswer(
 
   const ask = async (): Promise<void> => {
     if (done) return;
-    const answer = await fetchAnswer(messageId);
+    // A throw is a miss like any other, or the poll would never ask again.
+    const answer = await fetchAnswer(messageId).catch(() => null);
     if (done) return;
 
     if (answer && isFinal(answer.state)) {
@@ -614,9 +615,12 @@ export async function cancelTurn(turnId: string): Promise<boolean> {
  *
  *  Not a re-send. The dump is still where it was and some of it is already
  *  filed; this asks offload to do the rest. */
-export async function resumeDump(messageId: string): Promise<Sent | null> {
-  const { data } = await send<Sent>(`/v1/dumps/${messageId}/resume`, { method: "POST" });
-  return data;
+export async function resumeDump(messageId: string): Promise<Sent | "daily_limit" | "not_finishable" | "failed"> {
+  const { status, data } = await send<Sent>(`/v1/dumps/${messageId}/resume`, { method: "POST" });
+  if (status === 429) return "daily_limit";
+  // Finished, or resumed from another device, since this screen drew it.
+  if (status === 409) return "not_finishable";
+  return data ?? "failed";
 }
 
 /** End the current conversation, because somebody closed the sheet.
