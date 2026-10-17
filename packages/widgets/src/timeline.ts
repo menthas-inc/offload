@@ -86,10 +86,8 @@ export interface RailRow {
  *  every one. */
 export const MAX_DOTS = 4;
 
-import { dayIn, utcDay } from "./days.js";
+import { DAY_MS, addDays, dayIn, daysBetween, utcDay, weekdayIndex } from "./days.js";
 import { occurrencesIn, parseRule, type Rule } from "./rrule.js";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The local calendar day a timestamp falls on, as `YYYY-MM-DD`.
  *
@@ -111,13 +109,8 @@ export function dayAt(iso: string): Date {
   return new Date(year ?? 1970, (month ?? 1) - 1, day ?? 1, 12, 0, 0, 0);
 }
 
-function addDays(iso: string, days: number): string {
-  return localDay(new Date(dayAt(iso).getTime() + days * DAY_MS));
-}
-
 function startOfWeek(iso: string, weekStart: WeekStart): string {
-  const at = dayAt(iso);
-  const offset = weekStart === "monday" ? (at.getDay() + 6) % 7 : at.getDay();
+  const offset = weekStart === "monday" ? weekdayIndex(iso) : (weekdayIndex(iso) + 1) % 7;
   return addDays(iso, -offset);
 }
 
@@ -264,15 +257,10 @@ function isOn(one: Dated, iso: string): boolean {
   if (iso < one.from) return false;
   // Straight to the day in question rather than walking there from whenever
   // the rule began, so an old rule still answers for today.
-  const length = spanOf(one);
+  const length = daysBetween(one.from, one.to);
   return occurrencesIn(one.rule, one.from, addDays(iso, -length), iso).some(
     (at) => iso >= at && iso <= addDays(at, length),
   );
-}
-
-/** How many days one occurrence covers. */
-function spanOf(one: Dated): number {
-  return Math.round((dayAt(one.to).getTime() - dayAt(one.from).getTime()) / DAY_MS);
 }
 
 /** Every day that carries something, as a map from day to its dots.
@@ -300,9 +288,7 @@ function dotsByDay(
   };
 
   for (const one of dated) {
-    const length = Math.round(
-      (dayAt(one.to).getTime() - dayAt(one.from).getTime()) / DAY_MS,
-    );
+    const length = daysBetween(one.from, one.to);
 
     if (!one.rule) {
       for (let day = one.from; day <= one.to; day = addDays(day, 1)) put(day, one);
@@ -374,7 +360,7 @@ export function weeksSpanned(
   const first = startOfWeek(known[0] && known[0] < today ? known[0] : today, weekStart);
   const lastKnown = known[known.length - 1];
   const last = startOfWeek(lastKnown && lastKnown > today ? lastKnown : today, weekStart);
-  return Math.round((dayAt(last).getTime() - dayAt(first).getTime()) / (7 * DAY_MS)) + 1;
+  return daysBetween(first, last) / 7 + 1;
 }
 
 /** The rail, as weeks.

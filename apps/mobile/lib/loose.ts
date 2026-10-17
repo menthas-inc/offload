@@ -9,12 +9,12 @@
 // a test can see them: which chips show, what the All link says, the meta
 // line, the count in words, the name a create will take.
 
-import { chipOf, countInWords, noonUtc, type ChipKey, type Face, type Suggestion, type ThreadRef } from "@offload/widgets";
+import { chipOf, countWord, noonUtc, type ChipKey, type Face, type Suggestion, type ThreadRef } from "@offload/widgets";
 import { send } from "./api";
 import { withPlaceId, type ContentRow, type Note } from "./threads";
 
 // The chip table and the words a suggestion says are shared with the web.
-export { chipOf, countInWords, sharedHint, suggestionName } from "@offload/widgets";
+export { chipOf, countWord, sharedHint, suggestionName } from "@offload/widgets";
 export type { ChipKey, Face, Suggestion, ThreadRef } from "@offload/widgets";
 
 // ------------------------------------------------------------------ types
@@ -191,7 +191,7 @@ export const duplicateCopy = (thread: string): string => `That's already in ${th
 // ------------------------------------------------------------ create sheet
 
 export function createLine(count: number): string {
-  return `These ${countInWords(count)} look like they belong together.`;
+  return `These ${countWord(count)} look like they belong together.`;
 }
 
 export const NAME_CHARS = 60;

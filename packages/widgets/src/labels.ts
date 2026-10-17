@@ -71,7 +71,8 @@ function sentenceCount(n: number): string {
   return word ? word.charAt(0).toUpperCase() + word.slice(1) : String(n);
 }
 
-/** A count in words up to nine, a number past that, for mid-sentence. */
+/** A count in words up to nine, a number past that, for mid-sentence: labels
+ *  and *These three look like they belong together.* alike (2026-10-17). */
 export function countWord(n: number): string {
   return WORDS[n] ?? String(n);
 }

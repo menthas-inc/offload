@@ -10,7 +10,7 @@ import { chipOf, type ChipKey, type Suggestion, type ThreadRef } from "@offload/
 import type { ContentPage, ContentRow, Note } from "./threads";
 
 // The chip table and the words a suggestion says are shared with the phones.
-export { chipOf, countInWords, sharedHint, suggestionName } from "@offload/widgets";
+export { chipOf, countWord, sharedHint, suggestionName } from "@offload/widgets";
 export type { ChipKey, Face, Suggestion, ThreadRef } from "@offload/widgets";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";

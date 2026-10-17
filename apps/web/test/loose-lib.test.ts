@@ -9,7 +9,7 @@ import {
   allLabel,
   chipOf,
   chipsShown,
-  countInWords,
+  countWord,
   createFromProposal,
   dismissSuggestion,
   fetchLoose,
@@ -109,8 +109,8 @@ describe("the words (AC-8, AC-9, AC-20, AC-24)", () => {
     expect(allLabel(4, "todo")).toBe("All 4 to-dos");
   });
 
-  it("counts two to ten in words", () => {
-    expect([2, 3, 4, 5, 6, 7, 8, 9, 10].map(countInWords)).toEqual([
+  it("counts two to nine in words", () => {
+    expect([2, 3, 4, 5, 6, 7, 8, 9, 10].map(countWord)).toEqual([
       "two",
       "three",
       "four",
@@ -119,9 +119,8 @@ describe("the words (AC-8, AC-9, AC-20, AC-24)", () => {
       "seven",
       "eight",
       "nine",
-      "ten",
+      "10",
     ]);
-    expect(countInWords(11)).toBe("11");
   });
 
   it("gives a type it does not know no chip, as the phones do", () => {

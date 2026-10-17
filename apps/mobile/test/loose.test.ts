@@ -179,9 +179,9 @@ describe("T3.5 suggestions", () => {
 });
 
 describe("T3.6 the create sheet", () => {
-  it("counts in words from two to ten", () => {
-    expect([2, 3, 10].map(loose.countInWords)).toEqual(["two", "three", "ten"]);
-    expect(loose.countInWords(11)).toBe("11");
+  it("counts in words from two to nine", () => {
+    expect([2, 3, 9].map(loose.countWord)).toEqual(["two", "three", "nine"]);
+    expect(loose.countWord(10)).toBe("10");
     expect(loose.createLine(3)).toBe("These three look like they belong together.");
     expect(loose.createLine(2)).toBe("These two look like they belong together.");
   });

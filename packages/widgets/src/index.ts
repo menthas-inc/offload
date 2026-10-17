@@ -31,6 +31,8 @@
 // that decides what a thread looks like, and four clients disagreeing about
 // that is a drift problem with a date on it rather than a risk.
 //
+import { DAY_MS } from "./days.js";
+
 /** **The timeline is not one of these, and was until 015.** It stopped being a
  *  widget when it stopped being a list: it is a rail of weeks at the top of the
  *  thread, drawn whether or not the thread has a single date on it, which is the
@@ -173,14 +175,13 @@ export function splitRepeating<T extends Sortable>(
  *  Rounded to whole days before comparing, because an occurrence that crosses a
  *  daylight saving boundary is an hour out and is still weekly. */
 function cadenceOf(dated: readonly Sortable[]): number | null {
-  const DAY = 24 * 60 * 60 * 1000;
   let every: number | null = null;
 
   for (let i = 1; i < dated.length; i += 1) {
     const a = dated[i - 1]!.occursAt;
     const b = dated[i]!.occursAt;
     if (!a || !b) return null;
-    const gap = Math.round((Date.parse(b) - Date.parse(a)) / DAY);
+    const gap = Math.round((Date.parse(b) - Date.parse(a)) / DAY_MS);
     if (gap <= 0) return null;
     if (every === null) every = gap;
     else if (every !== gap) return null;
@@ -427,7 +428,7 @@ export {
   withMadeLabels,
 } from "./labels.js";
 export type { LabelPick } from "./labels.js";
-export { GOOGLE_EVENT_LINK, afterWrite, dayName, eventMeta, eventPast, eventRange, nextLine, nothingLine, retryDelay, stackView, type LineEvent, type WeekStart } from "./today.js";
+export { GOOGLE_EVENT_LINK, afterWrite, dayName, eventMeta, eventPast, eventRange, nextLine, nothingLine, retryDelay, stackView, type LineEvent } from "./today.js";
 // 030. A thread's map: point colours and shapes, count dots, the opening fit,
 // and the hand-off to Google Maps.
 export {
@@ -491,7 +492,7 @@ export * from "./memories.js";
 export { shownText, storedText, toSecondPerson, toThirdPerson } from "./voice.js";
 
 // 028. Not in a thread: the chip table and the words a suggestion says.
-export { chipOf, countInWords, sharedHint, suggestionName } from "./loose.js";
+export { chipOf, sharedHint, suggestionName } from "./loose.js";
 export type { ChipEntry, ChipKey, Face, Suggestion, ThreadRef } from "./loose.js";
 // 2026-10-07. What a shared thread asks before archiving in it or leaving it.
 export { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive, leaveAsk, staysWith } from "./shared-confirm.js";

@@ -20,6 +20,7 @@ import {
   utcDay,
   weekdayIndex,
 } from "./days.js";
+import { nameList } from "./labels.js";
 
 export const WEEKDAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] as const;
 export type Weekday = (typeof WEEKDAYS)[number];
@@ -228,6 +229,8 @@ function untilDay(rule: Rule): string | null {
  *  for this month. */
 function take(rule: Rule, anchor: string, from: string, end: string | null, limit: number): string[] {
   const out: string[] = [];
+  // The window cap bounds a call; a COUNT of up to 999 still needs every step.
+  const cap = Math.max(RULE_STEP_CAP, limit);
   const push = (day: string): boolean => {
     if (end !== null && day > end) return false;
     if (day >= from && day >= anchor && out[out.length - 1] !== day) out.push(day);
@@ -241,7 +244,7 @@ function take(rule: Rule, anchor: string, from: string, end: string | null, limi
     const step = rule.freq === "DAILY" ? rule.interval : 7 * rule.interval;
     const behind = daysBetween(anchor, start);
     let k = behind <= 0 ? 1 : Math.max(1, Math.ceil(behind / step));
-    for (let steps = 0; steps < RULE_STEP_CAP; steps += 1, k += 1) {
+    for (let steps = 0; steps < cap; steps += 1, k += 1) {
       if (!push(addDays(anchor, k * step))) break;
     }
     return out;
@@ -257,7 +260,7 @@ function take(rule: Rule, anchor: string, from: string, end: string | null, limi
       .byDay!.map((day) => (WEEKDAYS.indexOf(day) - WEEKDAYS.indexOf(wkst) + 7) % 7)
       .sort((a, b) => a - b);
     let k = Math.max(0, Math.floor(daysBetween(base, start) / span) - 1);
-    for (let steps = 0; steps < RULE_STEP_CAP; steps += 1, k += 1) {
+    for (let steps = 0; steps < cap; steps += 1, k += 1) {
       const weekStart = addDays(base, k * span);
       let more = true;
       for (const offset of offsets) {
@@ -275,8 +278,9 @@ function take(rule: Rule, anchor: string, from: string, end: string | null, limi
     const { year, month, dom } = partsOf(anchor);
     const startParts = partsOf(start);
     const monthsBehind = (startParts.year - year) * 12 + (startParts.month - month);
-    let k = Math.max(1, Math.floor(monthsBehind / rule.interval) - 1);
-    for (let steps = 0; steps < RULE_STEP_CAP; steps += 1, k += 1) {
+    // From the anchor's own month: a later day in it is the second occurrence.
+    let k = Math.max(0, Math.floor(monthsBehind / rule.interval) - 1);
+    for (let steps = 0; steps < cap; steps += 1, k += 1) {
       const total = month - 1 + k * rule.interval;
       const y = year + Math.floor(total / 12);
       const m = (total % 12) + 1;
@@ -290,7 +294,7 @@ function take(rule: Rule, anchor: string, from: string, end: string | null, limi
 
   const { year, month, dom } = partsOf(anchor);
   let k = Math.max(1, Math.floor((partsOf(start).year - year) / rule.interval) - 1);
-  for (let steps = 0; steps < RULE_STEP_CAP; steps += 1, k += 1) {
+  for (let steps = 0; steps < cap; steps += 1, k += 1) {
     const y = year + k * rule.interval;
     if (!push(dayOf(y, month, Math.min(dom, lastDayOfMonth(y, month))))) break;
   }
@@ -363,11 +367,6 @@ function dayAndMonth(day: string, locale: string | undefined, month: "long" | "s
   }).format(noonUtc(day));
 }
 
-function list(names: string[]): string {
-  if (names.length <= 1) return names[0] ?? "";
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-}
-
 const WEEKDAYS_ONLY: readonly Weekday[] = ["MO", "TU", "WE", "TH", "FR"];
 
 /** The cadence line, and the presets' own labels. */
@@ -381,7 +380,7 @@ export function describeRule(rule: Rule, anchor: string, locale?: string): strin
     case "WEEKLY": {
       const days = rule.byDay?.length ? rule.byDay : [weekdayOfDay(anchor)];
       const weekdays = days.length === 5 && days.every((day, at) => day === WEEKDAYS_ONLY[at]);
-      const on = weekdays ? "weekdays" : list(days.map((day) => weekdayName(day, locale)));
+      const on = weekdays ? "weekdays" : nameList(days.map((day) => weekdayName(day, locale)));
       words = every
         ? `Every ${rule.interval} weeks on ${on}`
         : weekdays

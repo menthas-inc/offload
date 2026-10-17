@@ -58,14 +58,6 @@ export function chipOf(entry: ChipEntry): ChipKey | null {
   return entry.kind === "note" ? "note" : (CHIP_OF_TYPE[entry.row.type] ?? null);
 }
 
-const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
-
-/** *These three look like they belong together.* A proposal holds two to
- *  ten. */
-export function countInWords(n: number): string {
-  return WORDS[n] ?? String(n);
-}
-
 /** The suggestion button's accessible name: the action, never the label. */
 export function suggestionName(title: string, suggestion: Suggestion): string {
   return suggestion.kind === "move"
