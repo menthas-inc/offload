@@ -1225,6 +1225,10 @@ export default function Thread() {
           if (row.canDelete && row.archivedAt === null) remove(row);
           else askArchive(row);
         }}
+        onArchive={(row) => {
+          setRenaming(null);
+          askArchive(row);
+        }}
         onMove={(row) => setMoving(row)}
       />
 

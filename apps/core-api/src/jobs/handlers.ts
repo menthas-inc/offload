@@ -41,6 +41,7 @@ import { healthHandlers } from "../health/jobs.js";
 import { deleteAccount, LastOwner } from "../accounts/delete.js";
 import { audit } from "../admin/audit.js";
 import { billingHandlers } from "../billing/jobs.js";
+import { archivePassed } from "../threads/passed.js";
 
 export type Handler = (
   payload: Record<string, unknown>,
@@ -1115,6 +1116,16 @@ const placesAge: Handler = async () => {
   console.log(JSON.stringify({ level: "info", msg: "places aged", ...swept }));
 };
 
+/** 2026-10-17. What has passed archives itself, on the hour, since a day
+ *  ends at a different hour in every zone. Counts only in the log. */
+const contentPassed: Handler = async () => {
+  await scheduleHourly("content.passed");
+  const swept = await archivePassed();
+  console.log(JSON.stringify({ level: "info", msg: "passed archived", ...swept }));
+  // A batch at a time, as content.purge: the next one now while there is more.
+  if (swept.more) await enqueue({ kind: "content.passed", payload: {}, priority: PRIORITY.background });
+};
+
 /** 030. A calendar's event locations looked up, a batch at a time. Ids and
  *  counts in the log, never a location. */
 const eventLocate: Handler = async (payload) => {
@@ -1180,6 +1191,7 @@ export const handlers: Record<string, Handler> = {
   "location.resolve": locationResolve,
   "places.refresh": placesRefresh,
   "places.age": placesAge,
+  "content.passed": contentPassed,
   "event.locate": eventLocate,
   "maps.backfill": mapsBackfill,
   "blob.purge": blobPurge,

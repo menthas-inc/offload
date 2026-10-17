@@ -4,6 +4,8 @@
 >
 > Revised after the review panel. What changed is at the bottom.
 
+**Amended 2026-10-17 (the owner):** To do, Files and Notes fold from their heading, Files folded at first, kept per device for the account across threads. On the web a row's title opens the edit dialog rather than the detail pane. Your own row offers Archive beside Delete. What has passed (an event, a stay, a ticket, never a to-do) moves to the archived pile on its own once its last day is over, and search and a question about a window of dates still find it, after what is live. Logged in both decision logs.
+
 ## Why
 
 004 made offload file what you dump. Nothing can look at what it filed.

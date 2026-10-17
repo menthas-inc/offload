@@ -8,8 +8,8 @@
 // package exists to prevent, and the one helper each sheet reimplemented on
 // its own is where the first defect was.
 
-import { instantIn, noonUtc } from "./days.js";
-import { chipFor, whenDayOf, whenOf, type ChipRow } from "./nearness.js";
+import { dayIn, instantIn, noonUtc, utcDay } from "./days.js";
+import { chipFor, spanOf, whenDayOf, whenOf, type ChipRow } from "./nearness.js";
 import { describeRule, parseRule } from "./rrule.js";
 
 /** The date fields of the person-facing edit, as the route takes them:
@@ -25,15 +25,17 @@ export interface WhenPatch {
 export interface WhenValue {
   /** `YYYY-MM-DD`, or null for no date at all. */
   day: string | null;
+  /** `YYYY-MM-DD` after `day`, the last day of a span, or null for one day. */
+  endDay: string | null;
   /** `HH:MM`, twenty-four hour, in the account's clock; null is all day. */
   time: string | null;
-  /** `HH:MM` on the same day, events only, once there is a time. */
+  /** `HH:MM` on the last day, events only, once there is a time. */
   endTime: string | null;
   /** The canonical rule, or null. */
   rrule: string | null;
 }
 
-export const NOTHING: WhenValue = { day: null, time: null, endTime: null, rrule: null };
+export const NOTHING: WhenValue = { day: null, endDay: null, time: null, endTime: null, rrule: null };
 
 /** The wall clock of an instant in a zone, `HH:MM`. */
 export function timeHM(iso: string, zone: string | null): string {
@@ -48,7 +50,16 @@ export function timeHM(iso: string, zone: string | null): string {
   return `${hour === "24" ? "00" : hour}:${minute}`;
 }
 
-/** What a row holds, as the sheet opens on it. */
+/** The calendar day of one of a row's instants, read as `whenDayOf` reads. */
+function dayOfInstant(iso: string, allDay: boolean, zone: string | null): string {
+  const at = new Date(iso);
+  return allDay ? utcDay(at) : dayIn(at, zone);
+}
+
+/** What a row holds, as the sheet opens on it. A span opens on its first
+ *  day: an event's is when it happens, anything else's is `occurs_at`, with
+ *  its due day on the last (2026-10-17). A repeating row has no span, as
+ *  `spanOf` reads it. */
 export function whenValueOf(
   row: ChipRow & { occursEndAt: string | null; rrule: string | null },
   zone: string | null,
@@ -57,29 +68,48 @@ export function whenValueOf(
   if (!day) return NOTHING;
   const at = whenOf(row)!;
   const time = row.allDay ? null : timeHM(at, zone);
-  const endTime =
-    row.type === "event" && time && row.occursEndAt ? timeHM(row.occursEndAt, zone) : null;
-  return { day, time, endTime, rrule: row.rrule };
+  if (row.type === "event") {
+    const end = row.occursEndAt ? dayOfInstant(row.occursEndAt, row.allDay, zone) : null;
+    const endTime = time && row.occursEndAt ? timeHM(row.occursEndAt, zone) : null;
+    return { day, endDay: end && end > day && !row.rrule ? end : null, time, endTime, rrule: row.rrule };
+  }
+  const span = spanOf(row, zone);
+  if (span) return { day: span.start, endDay: span.end, time, endTime: null, rrule: row.rrule };
+  return { day, endDay: null, time, endTime: null, rrule: row.rrule };
 }
 
 /** The patch one value becomes, for the row's type. Null clears, and the
- *  server clears the end and the rule with the day. */
-export function patchFor(row: { type: string }, value: WhenValue): WhenPatch {
+ *  server clears the end and the rule with the day. A span on anything but
+ *  an event is `occurs_at` to `occurs_end_at` with the due day on the last;
+ *  `occursEndAt` is what the row held, so a span that goes takes its start
+ *  with it and a row that never had one is left as it was. */
+export function patchFor(row: { type: string; occursEndAt?: string | null }, value: WhenValue): WhenPatch {
   const event = row.type === "event";
-  if (!value.day) return event ? { occursAt: null } : { dueAt: null };
-  const at = value.time ? `${value.day}T${value.time}:00` : value.day;
+  const hadSpan = !event && Boolean(row.occursEndAt);
+  if (!value.day) return event ? { occursAt: null } : hadSpan ? { dueAt: null, occursAt: null } : { dueAt: null };
+  const on = (day: string, time: string | null): string => (time ? `${day}T${time}:00` : day);
+  const at = on(value.day, value.time);
+  // A rule and a last day never travel together: the chip has no words for a
+  // repeating span.
+  const endDay = value.rrule ? null : value.endDay;
   const patch: WhenPatch = { allDay: !value.time, rrule: value.rrule };
   if (event) {
     patch.occursAt = at;
-    patch.occursEndAt = value.time && value.endTime ? `${value.day}T${value.endTime}:00` : null;
+    const last = endDay ?? value.day;
+    patch.occursEndAt = value.time ? (value.endTime ? on(last, value.endTime) : endDay ? on(last, value.time) : null) : endDay;
+  } else if (endDay) {
+    patch.occursAt = at;
+    patch.occursEndAt = on(endDay, value.time);
+    patch.dueAt = patch.occursEndAt;
   } else {
     patch.dueAt = at;
+    if (hadSpan) patch.occursAt = null;
   }
   return patch;
 }
 
 export function sameWhen(a: WhenValue, b: WhenValue): boolean {
-  return a.day === b.day && a.time === b.time && a.endTime === b.endTime && a.rrule === b.rrule;
+  return a.day === b.day && a.endDay === b.endDay && a.time === b.time && a.endTime === b.endTime && a.rrule === b.rrule;
 }
 
 /** A clock time as the locale says it, from `HH:MM`. */
@@ -97,13 +127,15 @@ export function clockLabel(time: string, locale?: string): string {
     .trim();
 }
 
-/** The When row's value: "Fri 25, 9:00", "Fri 25", or nothing. */
+/** The When row's value: "Fri 25, 9:00", "Fri 25", "Sat 17 to Tue 20", or
+ *  nothing. A span names its days and leaves the hours to their rows. */
 export function whenLabel(value: WhenValue, locale?: string): string {
   if (!value.day) return "";
-  const day = new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", timeZone: "UTC" }).format(
-    noonUtc(value.day),
-  );
-  return value.time ? `${day}, ${clockLabel(value.time, locale)}` : day;
+  // Composed, as the chip composes it: some locales put the day first.
+  const words = (day: string): string =>
+    `${new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(noonUtc(day))} ${noonUtc(day).getUTCDate()}`;
+  if (value.endDay) return `${words(value.day)} to ${words(value.endDay)}`;
+  return value.time ? `${words(value.day)}, ${clockLabel(value.time, locale)}` : words(value.day);
 }
 
 /** The Repeats row's value. */
@@ -154,7 +186,8 @@ export function drawnWhen(patch: WhenPatch, zone: string | null): WhenPatch {
   if (occursEndAt !== undefined) out.occursEndAt = occursEndAt;
   if (patch.allDay !== undefined) out.allDay = patch.allDay;
   if (patch.rrule !== undefined) out.rrule = patch.rrule;
-  if (patch.dueAt === null || patch.occursAt === null) out.rrule = null;
+  // The anchor going takes the rule; a to-do's span going is not its anchor.
+  if (patch.dueAt === null || (patch.occursAt === null && patch.dueAt === undefined)) out.rrule = null;
   if (patch.occursAt === null) out.occursEndAt = null;
   return out;
 }

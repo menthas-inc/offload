@@ -383,6 +383,7 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
           key={one.id}
           row={row}
           handlers={handlers}
+          checkbox={row.type === "task"}
           lead={
             row.type === "task" ? (
               <input

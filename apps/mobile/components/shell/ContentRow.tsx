@@ -451,6 +451,32 @@ export function ContentRowView({
             </View>
             )
           )}
+          {/* 2026-10-17. A to-do carrying the photo it became keeps its
+              checkbox and draws the photo beside it, opening the viewer. */}
+          {onToggle && row.photo && !row.archivedAt ? (
+            <Pressable
+              onPress={onOpenPhoto}
+              hitSlop={4}
+              accessibilityLabel={`Open ${row.title}`}
+              accessibilityRole="button"
+              className="overflow-hidden rounded-sm"
+            >
+              <PhotoThumb
+                blobId={row.photo.blobId}
+                ready={row.photo.ready}
+                style={{ width: PICTURE, height: PICTURE }}
+                className="rounded-sm"
+                fallback={
+                  <View
+                    className={`items-center justify-center rounded-sm ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
+                    style={{ width: PICTURE, height: PICTURE, boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}
+                  >
+                    <Glyph name="image" size={18} color={COLOR.iconOnWell} />
+                  </View>
+                }
+              />
+            </Pressable>
+          ) : null}
           {/* 21 September design: a link's row is a door. Tapping it opens
               the page, the one row in the product whose content lives
               somewhere else; it was a detail screen with the page a second

@@ -109,9 +109,39 @@ describe("027 AC-26 the thread pill", () => {
     const pill = host.querySelector('a[href="/threads/t1"]')!;
     expect(pill).not.toBeNull();
     expect(pill.getAttribute("data-size")).toBe("24");
-    const title = host.querySelector('a[href="/content/c1?from=thread"]')!;
-    expect(title).not.toBeNull();
+    const title = [...host.querySelectorAll("button")].find((one) => one.textContent === "Renew the bike insurance")!;
+    expect(title).not.toBeUndefined();
     expect(title.contains(pill)).toBe(false);
     expect(pill.contains(title)).toBe(false);
+  });
+
+  // 2026-10-17 (the owner). A row's title opens the edit dialog, as a tap
+  // opens the edit sheet on the phones; it used to open where the row came
+  // from, which is not what somebody clicking a to-do wants.
+  // 2026-10-17 (the owner). A photo can ride on the to-do it became. The
+  // to-do keeps its checkbox and draws the photo beside it.
+  it("keeps a to-do's checkbox and draws the photo it carries beside it", async () => {
+    const task = { ...row, type: "task", photo: { blobId: "b1", kind: "image", width: 10, height: 10, ready: true } } as unknown as Row;
+    const host = await render(<ContentRowView row={task} lead={<input type="checkbox" aria-label="Done" />} checkbox meta={null} handlers={handlers} />);
+    expect(host.querySelector('input[aria-label="Done"]')).not.toBeNull();
+    expect(host.querySelector('button[aria-label="Open Renew the bike insurance"]')).not.toBeNull();
+  });
+
+  it("draws the photo in place of a to-do's type tile where there is no checkbox", async () => {
+    const task = { ...row, type: "task", photo: { blobId: "b1", kind: "image", width: 10, height: 10, ready: true } } as unknown as Row;
+    const host = await render(<ContentRowView row={task} lead={<span data-tile />} meta={null} handlers={handlers} />);
+    expect(host.querySelector("[data-tile]")).toBeNull();
+    expect(host.querySelector('button[aria-label="Open Renew the bike insurance"]')).not.toBeNull();
+  });
+
+  it("opens the edit dialog from the row's title, and never the row's history", async () => {
+    const edited: string[] = [];
+    const host = await render(
+      <ContentRowView row={row} lead={null} meta={null} handlers={{ ...handlers, onEdit: (one: { id: string }) => void edited.push(one.id) }} />,
+    );
+    expect(host.querySelector('a[href^="/content/"]')).toBeNull();
+    const title = [...host.querySelectorAll("button")].find((one) => one.textContent === "Renew the bike insurance")!;
+    title.click();
+    expect(edited).toEqual(["c1"]);
   });
 });

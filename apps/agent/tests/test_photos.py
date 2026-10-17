@@ -149,11 +149,15 @@ def test_tail_reads_a_photo_message_as_titles_and_never_an_image():
 # ---------------------------------------------------------------- the tools
 
 
-def test_add_content_takes_a_photo_index_on_a_picture_only():
+def test_add_content_takes_a_photo_index_on_a_picture_or_the_row_it_became():
     row = AddContent(thread_id="t", title="Receipt", type="screenshot", photo=2)
     assert row.photo == 2
+    # 2026-10-17. A photo that becomes one event, stay, place or to-do is
+    # carried by that row, not filed beside it.
+    for kind in ("event", "location", "task"):
+        assert AddContent(thread_id="t", title="Rubrik webinar", type=kind, photo=1).photo == 1
     with pytest.raises(ValidationError):
-        AddContent(thread_id="t", title="Buy milk", type="task", photo=1)
+        AddContent(thread_id="t", title="A page", type="link", url="https://example.com", photo=1)
     with pytest.raises(ValidationError):
         AddContent(thread_id="t", title="Receipt", type="image", photo=11)
     with pytest.raises(ValidationError):

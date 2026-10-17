@@ -96,6 +96,11 @@ class CreateThread(BaseModel):
         return v if isinstance(v, str) and v in THREAD_ICON_NAMES else None
 
 
+#: 2026-10-17. The rows a photo can be: a picture of its own, or the one
+#: event, location or task it is all for. The Core API holds the same set.
+_PHOTO_ROWS = ("image", "screenshot", "event", "location", "task")
+
+
 class AddContent(BaseModel):
     """Put one piece of what somebody dumped into a thread."""
 
@@ -161,8 +166,9 @@ class AddContent(BaseModel):
     # 020. Which of the message's photos this row is, by its number in the
     # order they were shown, one-based. An index rather than an id, so a
     # photo can only be named on the message it arrived with; the Core API
-    # resolves it against that message's own photos. Only on an image or a
-    # screenshot, and each photo once. The range is held in the validator
+    # resolves it against that message's own photos. On an image or a
+    # screenshot, or since 2026-10-17 the one event, location or task the
+    # picture is all for; each photo once. The range is held in the validator
     # below rather than the schema: the two bounds cost ten tokens of tool
     # definition on every call, and the prompt already says one to ten.
     photo: int | None = None
@@ -189,8 +195,12 @@ class AddContent(BaseModel):
 
     @model_validator(mode="after")
     def photo_is_a_picture(self) -> "AddContent":
-        if self.photo is not None and self.type not in ("image", "screenshot"):
-            raise ValueError("photo goes only on an image or a screenshot")
+        # 2026-10-17. A photo that became one event, stay, place or to-do is
+        # carried by that row rather than filed beside it.
+        if self.photo is not None and self.type not in _PHOTO_ROWS:
+            raise ValueError(
+                "photo goes on an image, a screenshot, or the event, location or task it became"
+            )
         if self.photo is not None and not 1 <= self.photo <= 10:
             raise ValueError("photo is a number from 1 to 10")
         if self.pdf is not None and self.type != "file":
@@ -442,7 +452,8 @@ _DESCRIPTIONS = {
         "File one piece of what they dumped into a thread, by thread id. Call it "
         "once per separable piece. Anything with no obvious home goes in their "
         "default thread. Every date they gave goes on it, none they did not. A photo they "
-        "sent files as an image or screenshot, its number in photo, once each."
+        "sent goes on one row, its number in photo, once each: the event, location or "
+        "task it is all for, or else an image or screenshot of its own."
     ),
     "list_thread_content": (
         "Read the rows in a thread: to find one that is already there, to change "

@@ -37,6 +37,7 @@ export function LooseRow({ entry, rows }: { entry: LooseEntry; rows: LooseRows }
       <ContentRowView
         row={row}
         handlers={rows.handlers}
+        checkbox={row.type === "task"}
         lead={
           row.type === "task" ? (
             <input

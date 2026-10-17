@@ -96,6 +96,8 @@ describe("AC-39 the scheduled registry", () => {
         // 035 added two, after the impl-spec was written.
         "export.sweep",
         "connector.revoke",
+        // 2026-10-17, what has passed archiving itself.
+        "content.passed",
       ].sort()
     );
   });

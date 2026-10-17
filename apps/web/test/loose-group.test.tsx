@@ -259,7 +259,8 @@ describe("the rows (AC-9 to AC-11)", () => {
     await draw();
     expect(said()).not.toContain("Photo · ");
     expect(said()).not.toContain("Note · ");
-    expect(host.querySelector('a[href="/content/c2?from=thread"]')!.textContent).toBe("Miso aubergine, a recipe");
+    expect([...host.querySelectorAll("button")].some((one) => one.textContent === "Miso aubergine, a recipe")).toBe(true);
+    expect(host.querySelector('a[href^="/content/"]')).toBeNull();
     expect(host.querySelector('a[href^="/threads/t"]')).toBeNull();
     expect(host.querySelector('[aria-label^="Label "]')).toBeNull();
   });

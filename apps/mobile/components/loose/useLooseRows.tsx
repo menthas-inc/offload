@@ -461,6 +461,10 @@ export function useLooseRows(
           if (Object.keys(fields).length > 0) edit(saved, fields);
         }}
         onMove={(held) => setMoving({ kind: "content", row: held, suggestion: null })}
+        onArchive={(held) => {
+          setRenaming(null);
+          archive(held);
+        }}
         onRemove={(held) => {
           setRenaming(null);
           if (held.archivedAt) restore(held);

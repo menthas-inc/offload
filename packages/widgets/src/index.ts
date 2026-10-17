@@ -368,7 +368,7 @@ export {
 } from "./rrule.js";
 export type { Freq, ParsedRule, Preset, Rule, RuleRefusal, Weekday } from "./rrule.js";
 export { addDays as addUtcDays, dayIn, daysBetween, instantIn, noonUtc, putDown, utcDay } from "./days.js";
-export { SOON_DAYS, changeToken, chipFor, nearness, timeIn, whenDayOf, whenOf } from "./nearness.js";
+export { SOON_DAYS, changeToken, chipFor, nearness, spanOf, timeIn, whenDayOf, whenOf } from "./nearness.js";
 export type { Chip, ChipRow, Nearness } from "./nearness.js";
 
 // 023. The zone list, the city a person reads, and when the strip shows.
@@ -522,3 +522,7 @@ export {
 } from "./reminders.js";
 export type { Reminders } from "./reminders.js";
 export { foundMeta, type FoundDated } from "./found.js";
+
+// 2026-10-17. The thread's sections fold, Files folded at first.
+export { FOLDED_AT_FIRST, foldsFrom, foldsWith } from "./folds.js";
+export type { FoldSection, Folds } from "./folds.js";

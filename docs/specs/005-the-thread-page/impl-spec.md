@@ -2,6 +2,8 @@
 
 > How. The what and the why are in `feature-spec.md`.
 
+**Amended 2026-10-17 (the owner):** the as-built is in `feature-spec.md`'s note of the same date and in the code it names.
+
 ## Shape
 
 ```

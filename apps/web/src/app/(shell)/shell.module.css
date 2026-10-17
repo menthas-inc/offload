@@ -490,6 +490,38 @@
   color: var(--text-primary);
 }
 
+/* 2026-10-17. A thread's section folds from its heading: the words, the count
+   and a chevron are one control, drawn as the heading is. */
+.sectionFold {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* A 44px target by a hit area with no paint, as Mail's Copy is, so the
+   heading keeps its height at every text size. */
+.sectionFold::after {
+  content: "";
+  position: absolute;
+  inset: calc((1lh - var(--tap-min)) / 2) 0;
+}
+
+.sectionFoldGlyph {
+  color: var(--text-tertiary);
+}
+
+.sectionFold:hover .sectionFoldGlyph {
+  color: var(--text-secondary);
+}
+
 /* The count, as a Badge beside the title.
  *
  * Solid attention by default and soft accent where the kit asks for it. Which
@@ -714,6 +746,15 @@
   color: var(--text-primary);
   text-decoration: none;
   overflow-wrap: anywhere;
+}
+
+/* The title as the button that opens the edit dialog, drawn as the link was. */
+.rowTitleButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: start;
+  cursor: pointer;
 }
 
 .rowMeta {
@@ -3261,6 +3302,12 @@ a.settingsRow:hover,
   cursor: pointer;
 }
 
+/* 2026-10-17. The days inside a span, between its two filled ends. Before
+   the hover, so a day in the span still answers the pointer. */
+.editDayBetween {
+  background: var(--surface-fill);
+}
+
 .editDay:hover {
   background: var(--state-hover);
 }
@@ -3279,6 +3326,7 @@ a.settingsRow:hover,
 .editDayOut {
   color: var(--text-tertiary);
 }
+
 
 .editRow {
   display: flex;
@@ -3318,7 +3366,8 @@ a.settingsRow:hover,
 
 .editTime,
 .editSelect,
-.editNumber {
+.editNumber,
+.editLastDay {
   min-height: 32px;
   padding: 0 var(--space-3);
   border: 1px solid var(--border-hairline);
@@ -3326,6 +3375,16 @@ a.settingsRow:hover,
   background: var(--surface-card);
   font: var(--weight-regular) calc(14px * var(--type-scale)) / 1 var(--font-core);
   color: var(--text-primary);
+}
+
+/* 2026-10-17. The span's last day, drawn as the select beside it is;
+   outlined while the grid is picking it. */
+.editLastDay {
+  cursor: pointer;
+}
+
+.editLastDayOn {
+  border-color: var(--border-focus);
 }
 
 .editNumber {

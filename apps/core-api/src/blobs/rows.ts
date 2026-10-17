@@ -61,8 +61,14 @@ async function filedIds(trx: Trx, messageId: string): Promise<Set<string>> {
   return new Set(rows.map((row) => row.blob_id));
 }
 
-/** The photo an `add_content` names, or null for any reason: not a picture
- *  row, an index past the end, or a photo this turn already filed. */
+/** The rows a photo can be: a picture of its own, or since 2026-10-17 the one
+ *  event, stay, place or to-do it became, which carries it as a voice note's
+ *  row carries nothing beside it. */
+const PHOTO_ROWS = new Set(["image", "screenshot", "event", "location", "task"]);
+
+/** The photo an `add_content` names, or null for any reason: a row that
+ *  cannot carry one, an index past the end, or a photo this turn already
+ *  filed. */
 export async function photoForRow(
   trx: Trx,
   messageId: string | null,
@@ -70,7 +76,7 @@ export async function photoForRow(
   type: string,
 ): Promise<MessagePhoto | null> {
   if (!messageId) return null;
-  if (type !== "image" && type !== "screenshot") return null;
+  if (!PHOTO_ROWS.has(type)) return null;
   const photos = await photosOf(trx, messageId);
   const photo = photos[index - 1];
   if (!photo) return null;

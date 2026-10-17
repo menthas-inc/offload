@@ -34,6 +34,8 @@ import {
   type ReorderWrite,
   type Widget,
 } from "../../lib/widgets";
+import { useFolds } from "../../lib/folds";
+import type { FoldSection } from "@offload/widgets";
 import { QUICK_ADD_CHARS, TYPED_ROW_PLACEHOLDER } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
 
@@ -109,6 +111,11 @@ function WidgetBlock({
 }) {
   const [allDone, setAllDone] = useState(false);
   const [adding, setAdding] = useState(false);
+  // 2026-10-17. The section folds from its heading, kept in this browser;
+  // Files starts folded. Folding with the add field open is its Cancel.
+  const [folds, setFold] = useFolds();
+  const section: FoldSection = widget.kind;
+  const folded = folds[section];
   // Only To do earns the fold: `doneAt` is only ever set on a task, so a
   // files section has nothing to hide and never draws the control.
   //
@@ -164,12 +171,18 @@ function WidgetBlock({
   return (
     <section>
       <h2 className={styles.section}>
-        {HEADINGS[widget.kind]}
-        {/* What is live in the section, not what it holds: "To do 3" is how
-            many are left, and the finished ones have their own count on the
-            fold. The kit draws exactly this. */}
-        <em className={styles.sectionCount}>{liveCount(widget.rows)}</em>
-        <div className={styles.sectionControls}>
+        <button type="button" className={styles.sectionFold} aria-expanded={!folded} onClick={() => {
+            setAdding(false);
+            setFold(section, !folded);
+          }}>
+          {HEADINGS[widget.kind]}
+          {/* What is live in the section, not what it holds: "To do 3" is how
+              many are left, and the finished ones have their own count on the
+              fold. The kit draws exactly this. */}
+          <em className={styles.sectionCount}>{liveCount(widget.rows)}</em>
+          <Icon name={folded ? "chevron-right" : "chevron-down"} size={15} className={styles.sectionFoldGlyph} />
+        </button>
+        {folded ? null : <div className={styles.sectionControls}>
           {widget.kind === "todo" && done.length > 0 ? (
             <>
               {/* One control, count and chevron together: "5 done" is the
@@ -213,9 +226,10 @@ function WidgetBlock({
               <Icon name="plus" size={15} />
             </button>
           ) : null}
-        </div>
+        </div>}
       </h2>
 
+      {folded ? null : <>
       {adding ? (
         <QuickAdd
           onAdd={(text) => {
@@ -273,6 +287,7 @@ function WidgetBlock({
           ) : null}
         </>
       ) : null}
+      </>}
     </section>
   );
 }
@@ -385,6 +400,7 @@ function Row({
       handlers={handlers}
       reorder={reorder}
       handleSpace={widget === "todo" && done}
+      checkbox={widget === "todo"}
       lead={
         widget === "todo" ? (
           // A checkbox rather than a type tile: the one row in the product you

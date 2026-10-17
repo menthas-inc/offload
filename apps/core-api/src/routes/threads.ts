@@ -820,6 +820,9 @@ export async function setArchived(
   accountId: string,
   contentId: string,
   archived: boolean,
+  // 2026-10-17. A person putting a row back keeps it out of the hourly pass
+  // over what has passed; offload's own Undo of a calendar removal does not.
+  { byPerson = true }: { byPerson?: boolean } = {},
 ): Promise<void> {
   // Restore is the Undo for delete as well as for archive, so it has to be able
   // to find a row inside its eight second window. Archive must not: archiving
@@ -849,6 +852,9 @@ export async function setArchived(
       .set({
         archived_at: archived ? sql`now()` : null,
         ...(archived ? {} : { deleted_at: null, purge_after: null }),
+        // 2026-10-17. Put back by a person, so the hourly pass over what has
+        // passed leaves it where they put it.
+        ...(!archived && byPerson && before.archived_at !== null ? { attrs: sql`coalesce(attrs, '{}'::jsonb) || '{"put_back": true}'::jsonb` } : {}),
         updated_at: sql`now()`,
       })
       .where("id", "=", ref.id)

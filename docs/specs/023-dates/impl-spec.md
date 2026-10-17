@@ -2,6 +2,8 @@
 
 **Status:** drafted 2026-09-22, revised the same day after the three reviews and the constitution gate (PASS)
 
+**Amended 2026-10-17 (the owner):** the as-built is in `feature-spec.md`'s note of the same date and in the code it names.
+
 ## The shape in one paragraph
 
 Three columns on `accounts` give the product one clock. One column on `content` and `notes` replaces two, holding a recurrence rule in a closed grammar that one shared module parses, formats, describes and expands for every surface, with the server's serialisation as the only thing ever stored. The existing person-facing edit route grows from two fields to nine and learns the difference between absent and null. The clients draw every timed date in the account's zone and every bare day as a date, draw a chip from one shared nearness function, and grow one sheet into three on the phones and one inline field into a modal on the web. The filing prompt reads today in the account's zone and writes a rule instead of an enum. Nothing new is fetched: the thread page already carries every field the chip and the sheets need.

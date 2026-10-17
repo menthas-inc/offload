@@ -48,6 +48,7 @@ export const SCHEDULED: readonly Scheduled[] = [
   { kind: "reminder.own", does: "Sends one reminder shortly before something with a clock time.", cadence: "hourly", graceMinutes: 15, runner: "api", perAccount: true },
   { kind: "push.receipts", does: "Reads whether a push was delivered, a quarter of an hour after it was sent.", cadence: "quarter", graceMinutes: 30, runner: "api", perAccount: false },
   { kind: "shared.activity", does: "Tells a shared thread's members what somebody added, ten minutes at a time.", cadence: "quarter", graceMinutes: 30, runner: "api", perAccount: true },
+  { kind: "content.passed", does: "Archives events, stays and tickets once their last day is over, with the photos of the same dump.", cadence: "hourly", graceMinutes: 20, runner: "api", perAccount: false },
   { kind: "content.purge", does: "Removes what was deleted once its Undo has passed.", ...daily },
   { kind: "voice.forget", does: "Deletes a transcript at the transcription company once it has been read.", cadence: "daily", graceMinutes: 120, runner: "worker", perAccount: false },
   { kind: "blob.locate", does: "Names the town a photo was taken in.", ...daily },

@@ -25,14 +25,16 @@ import { Directory, File, Paths } from "expo-file-system";
 import * as Notifications from "expo-notifications";
 import { accountChanged, onSignedOut } from "./auth";
 import { DEVICE_ONLY, forgetAccountKeys } from "./account-keys";
+import { forgetFolds } from "./folds";
 import { copyForgotten } from "./session-end";
 import { SHARED } from "./shared-in";
 import { within } from "./within";
 
 /** Fixed names in secure storage that belong to the account: the threads left
- *  on Map, and Today's put-off of the notifications card. Names made at
- *  runtime are in `account-keys.ts`; the session's own are `auth.ts`'s. */
-export const ACCOUNT_KEYS = ["offload_map_views", "offload_today_notifications_until"] as const;
+ *  on Map, Today's put-off of the notifications card, and the section folds.
+ *  Names made at runtime are in `account-keys.ts`; the session's own are
+ *  `auth.ts`'s. */
+export const ACCOUNT_KEYS = ["offload_map_views", "offload_today_notifications_until", "offload_section_folds"] as const;
 
 /** Kept. How this phone draws, chosen on it: the theme and the first day of
  *  the week. Neither holds a word of anybody's. */
@@ -100,6 +102,7 @@ async function forgetCopy(): Promise<void> {
     (async () => {
       await Promise.all([...ACCOUNT_KEYS, STAMP].map((key) => SecureStore.deleteItemAsync(key).catch(() => undefined)));
       await forgetAccountKeys();
+      forgetFolds();
       // A delivered notification carries a few words of what was dumped.
       await Notifications.dismissAllNotificationsAsync().catch(() => undefined);
     })().catch(() => undefined),

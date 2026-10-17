@@ -313,14 +313,23 @@ describe("the reads go through the predicate rather than restating it", () => {
     expect(agenda.rows).toEqual([]);
   });
 
-  it("excludes archived rows from every read", async () => {
+  // 2026-10-17 (the owner). What has passed archives itself, and archive takes
+  // a row off the list, never out of reach: "nothing expires on a clock,
+  // because finding something from years ago is the point". Search and a
+  // window of dates read archived rows too, behind the live ones; a thread's
+  // list is the live list.
+  it("keeps archived rows off a thread's list and finds them by search and by date, behind the live ones", async () => {
     const ana = await account();
     const lisbon = await thread(ana, "Lisbon trip");
-    const id = await add(lisbon, ana, "Old news");
-    await db.updateTable("content").set({ archived_at: sql`now()` }).where("id", "=", id).execute();
+    const old = await add(lisbon, ana, "Ferry tickets to Cacilhas", { type: "event", occursAt: new Date("2026-09-10T09:00:00Z") });
+    await add(lisbon, ana, "Ferry tickets for Sunday", { type: "event", occursAt: new Date("2026-09-12T09:00:00Z") });
+    await db.updateTable("content").set({ archived_at: sql`now()` }).where("id", "=", old).execute();
 
-    expect((await listContent(ana, { threadId: lisbon }))?.rows).toEqual([]);
-    expect((await search(ana, { query: "Old news" })).rows).toEqual([]);
+    expect((await listContent(ana, { threadId: lisbon }))?.rows.map((r) => r.title)).toEqual(["Ferry tickets for Sunday"]);
+    expect((await search(ana, { query: "ferry tickets" })).rows.map((r) => r.title)).toEqual(["Ferry tickets for Sunday", "Ferry tickets to Cacilhas"]);
+    expect((await search(ana, { query: "Cacilhas" })).rows.map((r) => r.title)).toEqual(["Ferry tickets to Cacilhas"]);
+    const week = await listAgenda(ana, { fromIso: "2026-09-08T00:00:00Z", toIso: "2026-09-14T23:59:59Z", when: "occurs" });
+    expect(week.rows.map((r) => r.title)).toEqual(["Ferry tickets for Sunday", "Ferry tickets to Cacilhas"]);
   });
 });
 

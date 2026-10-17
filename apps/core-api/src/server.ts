@@ -57,6 +57,8 @@ await startHourly("export.sweep");
 // 030. Google's thirty days on place coordinates, and the Undo records
 // nothing can use any more. SQL only; it asks Google nothing.
 await startDaily("places.age");
+// 2026-10-17. What has passed archives itself, on the hour.
+await startHourly("content.passed");
 // 030. The one pass over what existed before the map, at the first boot with
 // the map on. The pass marks itself as run (backfill.ts), since this key
 // lasts only as long as the job row; every row it books is marked as well.
