@@ -1295,3 +1295,14 @@ A swarm of coding agents tuned the model calls for cost and latency against the 
 - ⚠️ **Open:** Sonnet 5.5 for filing. Latency x0.76 reproduced twice at medium and the broken-paste regression is fixed by one sentence, but the candidate was never run on principles 01, 13 and 08 in full (about $2) and was refused three times as under-tested. Fund the runs or shelve.
 - ⚠️ **Open:** a one hour TTL on the frozen tools and system prefix. Warm cost flat, accuracy unchanged, the production gain depends on the gap between turns per model, which only the ledger can say (the worker's query is in `rounds/2/candidates/caching-ttl-1h/RESULT.md`), and the Core API strips the 1h write field so the ledger would under-price. Not before both are done.
 - Dead ends, measured so nobody retries them: prose pruning for cost (token count is not the lever); a model-emitted end-of-turn signal; effort low on filing by any route; a word-list gate in front of classify (files real questions silently, English only); Opus 5.5 for answering with these prompts; a second tier of loop ending that reads the results of writes.
+
+## CI minutes, 2026-10-17
+
+The owner's Actions budget was nearly gone at about 2,600 minutes in seventeen days: 185 pull request runs and 83 runs on the merge to `main`, about ten and a half minutes each, six of them the core-api suite file by file.
+
+- ✅ **No re-run on the merge to `main`.** The job still starts and skips every step to green: `main` requires a branch to be up to date before it merges (`strict` on the required check), so the merged tree is the one the pull request ran, and Railway's "Wait for CI" on the three repo services needs a completed check on the commit to deploy it. A workflow with no run on `main` might have left Railway waiting.
+- ✅ **No run on a draft.** The job's `if` skips it, which GitHub reports as success, and a draft cannot be merged. Pull requests open as drafts while they are still changing; marking one ready runs the check that counts.
+- ✅ **A change that no check reads skips to green**, and the web build and CSP check run only when something they read changed. The inert list was checked against what lint, the token generator and the tests read; the eval files are not inert, since the agent's tests read them.
+- ⚠️ **Open:** the core-api suite in parallel, a database per worker from a migrated template. About ten and a half minutes to seven on GitHub's two-core runner, and the local commit gate with it. Left for later by the owner.
+
+**Design system impact:** none.
