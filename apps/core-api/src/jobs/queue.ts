@@ -33,6 +33,8 @@ export type JobKind =
   | "export.sweep"
   | "dump.answer"
   | "content.purge"
+  // 2026-10-17. What has passed archives itself, hourly.
+  | "content.passed"
   | "location.resolve"
   | "calendar.sync"
   | "calendar.supervise"

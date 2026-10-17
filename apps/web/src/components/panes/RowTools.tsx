@@ -97,7 +97,8 @@ export function RowTools({
 }: {
   title: string;
   archived: boolean;
-  /** Yours, or nobody's. Decides which of the two ways out is drawn. */
+  /** Yours, or nobody's: Archive and Delete, where anybody else's row has
+   *  Archive alone. */
   canDelete: boolean;
   /** 025. A row with no label draws the tag tool, whoever wrote it. */
   onLabel?: ((anchor: HTMLElement) => void) | undefined;
@@ -107,10 +108,10 @@ export function RowTools({
 }) {
   return (
     <span className={styles.rowTools}>
-      {/* 025. **The stated exception to "two controls, never three"**, and the
-          only one: a row carrying no label draws `tag` first, because it is
-          the one control that says labels exist. A labelled row draws its
-          marks and the usual two. */}
+      {/* 025. A row carrying no label draws `tag` first, because it is the
+          one control that says labels exist; a labelled row draws its marks
+          instead. "Two controls, never three" went for your own rows on
+          2026-10-17, which carry Archive beside Delete. */}
       {onLabel ? (
         <button
           type="button"
@@ -133,7 +134,19 @@ export function RowTools({
 
       {/* An archived row always offers the way back, whoever is looking:
           putting something back is not destructive and is not the author's
-          alone. */}
+          alone. 2026-10-17 (the owner): your own row offers Archive beside
+          Delete, for tidying away what is not in use without losing it. */}
+      {!archived && canDelete ? (
+        <button
+          type="button"
+          className={styles.tool}
+          aria-label={`Archive ${title}`}
+          title="Archive"
+          onClick={onArchive}
+        >
+          <Icon name="archive" size={15} />
+        </button>
+      ) : null}
       {archived ? (
         <button
           type="button"

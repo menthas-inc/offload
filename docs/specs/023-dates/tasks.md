@@ -2,6 +2,8 @@
 
 Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open, `[~]` in progress, `[x]` done. Every task with behaviour starts with its test seen red (QUAL-1). The API track first, the shared module beside it, the agent after the routes, the two client tracks in parallel after that, the documents that are shared state on `main` at merge.
 
+**Amended 2026-10-17 (the owner):** done in one PR with the rest of the owner's tidying asks, each behind a test that was seen red first; the feature-spec's note of the same date says what changed.
+
 ## A. The documents
 
 - [x] **A1** The product owner reads the privacy page clause in `feature-spec.md`, "The privacy page, as it will read", before the zone code is written; the clause goes into `apps/web/src/app/(marketing)/privacy/page.tsx` in the worktree, to land with the feature. (the `CLAUDE.md` policy rule)

@@ -20,7 +20,6 @@
 // that destroys something, and the eight seconds afterwards is a safety net
 // rather than the whole safety story.
 
-import Link from "next/link";
 import { Icon } from "../Icon";
 import { DateChip } from "../shell/DateChip";
 import { PhotoThumb } from "../shell/PhotoThumb";
@@ -75,6 +74,7 @@ export interface RowHandlers {
 export function ContentRowView({
   row,
   lead,
+  checkbox = false,
   meta,
   handlers,
   reorder,
@@ -86,6 +86,9 @@ export function ContentRowView({
   row: ContentRow;
   /** The tile, the checkbox, whatever leads this row where it is shown. */
   lead: React.ReactNode;
+  /** 2026-10-17. The lead is a to-do's checkbox, so a photo the row carries
+   *  is drawn beside it rather than in its place. */
+  checkbox?: boolean | undefined;
   meta: React.ReactNode;
   handlers: RowHandlers;
   /** The row can be dragged to a new place in its list. Only To do offers it:
@@ -239,6 +242,21 @@ export function ContentRowView({
           loading="lazy"
           referrerPolicy="no-referrer"
         />
+      ) : row.photo && !row.archivedAt && checkbox ? (
+        // 2026-10-17. A to-do carrying the photo it became keeps its
+        // checkbox and draws the photo beside it; where its lead is a type
+        // tile the photo takes the tile's place, as on any row.
+        <>
+          {lead}
+          <button
+            type="button"
+            className={styles.rowThumbButton}
+            aria-label={`Open ${row.title}`}
+            onClick={() => handlers.onOpenPhoto?.(row)}
+          >
+            <PhotoThumb blobId={row.photo.blobId} ready={row.photo.ready} alt="" className={styles.rowThumb} fallback={<Icon name="image" size={16} />} />
+          </button>
+        </>
       ) : row.photo && !row.archivedAt ? (
         // 020. The photo itself, in the same slot and at the same size the
         // link row's picture takes, and the one part of the row that opens the
@@ -299,9 +317,12 @@ export function ContentRowView({
             </span>
           </a>
         ) : (
-          <Link href={`/content/${row.id}?from=thread`} className={styles.rowTitle}>
+          // 2026-10-17 (the owner). The title opens the edit dialog, as a tap
+          // opens the edit sheet on the phones. It opened where the row came
+          // from, which is not what somebody clicking a to-do is after.
+          <button type="button" className={`${styles.rowTitle} ${styles.rowTitleButton}`} onClick={() => handlers.onEdit(row)}>
             {row.title}
-          </Link>
+          </button>
         )}
           {/* 025. The marks line: the date chip, then the row's labels,
               wrapping. A row with neither draws nothing. */}

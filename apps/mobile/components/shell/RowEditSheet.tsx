@@ -26,7 +26,7 @@ import { remindSwitchShown } from "@offload/widgets";
 import { useColors } from "../../lib/colors";
 import { useClock } from "../../lib/clock";
 import type { ContentPatch, ContentRow } from "../../lib/threads";
-import { patchFor, repeatsLabel, sameWhen, whenLabel, whenValueOf, type WhenValue } from "../../lib/when";
+import { NOTHING, patchFor, repeatsLabel, sameWhen, whenLabel, whenValueOf, type WhenValue } from "../../lib/when";
 import { remindOf, remindWrite } from "../../lib/reminders";
 import { DragSheet } from "./DragSheet";
 import { CustomFor, WhenPanel, type CustomAsk } from "./WhenSheet";
@@ -42,6 +42,7 @@ export function RowEditSheet({
   onClose,
   onSave,
   onRemove,
+  onArchive,
   labels,
   onMove,
 }: {
@@ -56,6 +57,8 @@ export function RowEditSheet({
   labels?: Label[] | undefined;
   /** The way out, in the sheet that already has the row open. */
   onRemove: (row: ContentRow) => void;
+  /** 2026-10-17. Archive, beside Delete on your own row. */
+  onArchive?: ((row: ContentRow) => void) | undefined;
   /** 2026-10-12. Move, for whoever may move the row: the sheet closes and the
    *  screen opens its thread list. Absent where nothing can be moved. */
   onMove?: (row: ContentRow) => void;
@@ -63,7 +66,7 @@ export function RowEditSheet({
   const COLOR = useColors();
   const { zone } = useClock();
   const [title, setTitle] = useState(row?.title ?? "");
-  const [when, setWhen] = useState<WhenValue>(() => (row ? whenValueOf(row, zone) : { day: null, time: null, endTime: null, rrule: null }));
+  const [when, setWhen] = useState<WhenValue>(() => (row ? whenValueOf(row, zone) : NOTHING));
   const [remind, setRemind] = useState(row ? remindOf(row, row.author.isYou) : false);
   const [picking, setPicking] = useState<"when" | "repeats" | "labels" | null>(null);
   const [choice, setChoice] = useState<LabelChoice | null>(null);
@@ -263,6 +266,9 @@ export function RowEditSheet({
             danger: row.canDelete && !row.archivedAt,
             onPress: () => onRemove(row),
           }}
+          also={
+            row.canDelete && !row.archivedAt && onArchive ? { label: "Archive", icon: "archive", onPress: () => onArchive(row) } : undefined
+          }
           onCancel={onClose}
           onConfirm={save}
           confirm="Save"

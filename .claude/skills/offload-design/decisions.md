@@ -11,6 +11,68 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-17 · Archive is back on your own rows, beside Delete
+**Surface:** iOS, Android, web
+**Raised by:** the owner: archive is how somebody tidies away what they no longer use, and on their own rows only Delete was offered.
+
+**Was:** "two controls, never three": your own row offered Delete, somebody else's Archive, an archived one Put back (2026-09-05).
+
+**Is:** your own live row offers Archive and Delete. On the web the row's tools are pencil, `archive`, then `trash-2`; on the phones the edit sheet's foot carries Archive then Delete on the left, Delete still in clay, so both surfaces end on the destructive one. Somebody else's row is unchanged (Archive alone), an archived row still says Put back, and the swipe still deletes.
+
+**Why:** Delete is for what should not exist; Archive is for what is done with. Both are real on your own rows.
+
+**Design system impact:** `readme.md`'s row-actions rule: your own row has edit, archive and delete; this reverses the 2026-09-05 entry for your own rows only. `SheetFoot` gains an optional second way out beside the lead. Web kit rows that draw `tools={["archive","trash-2"]}` now match the code.
+
+### 2026-10-17 · A photo that became a row is drawn on that row
+**Surface:** iOS, Android, web
+**Raised by:** the owner, from a screenshot of an RSVP filed as two rows, a photo and an event, and of movie tickets the same way.
+
+**Was:** every photo was a picture row of its own, and what was in it was filed beside it, so a ticket was a photo row and an event row.
+
+**Is:** when all a picture is for is one event, stay, place or to-do, that row carries it and there is no picture row. The row's lead is the photo, as a picture row's is, and tapping it opens the viewer. A to-do keeps its checkbox and draws the photo beside it. A photo kept for itself (a list, a chat, a receipt, a meme) is still a picture row. Files holds pictures of their own only: a row lifted into a widget leaves the list, so an event in Files would be an untitled square with no date.
+
+**Why:** a ticket and the event it is for are one thing; two rows was clutter, and a voice note never got a row beside what it said either.
+
+**Design system impact:** the kits' event and to-do rows (`ThreadScreen.jsx`, `WThing.jsx`, `TodayParts.jsx`) may show a photo in the lead slot, and a to-do row a photo after its checkbox. 020's "the photo lands in Files, always" now reads "on a row, always".
+
+### 2026-10-17 · A row's title opens the edit dialog on the web
+**Surface:** web
+**Raised by:** the owner: clicking a to-do opened where it came from, which is not what somebody clicking a to-do wants.
+
+**Was:** a row's title was a link to `/content/<id>`, the detail pane with "Where this came from".
+
+**Is:** the title opens the edit dialog, as a tap opens the edit sheet on the phones. A link row's title still opens the page; a photo's tile still opens the viewer. The detail route stays for links that already point at it.
+
+**Why:** parity with the phones, and the edit is the commoner reason to click a row.
+
+**Design system impact:** `WThing.jsx`'s row title opens the edit dialog rather than `WTask`.
+
+### 2026-10-17 · To do, Files and Notes fold, and Files starts folded
+**Surface:** iOS, Android, web
+**Raised by:** the owner: photos take too much of the page.
+
+**Was:** only To do's finished rows folded (`hideDone`, on the server, per thread).
+
+**Is:** the heading of To do, Files and Notes is one control, the words, the count and a chevron (`chevron-down` open, `chevron-right` folded) in `--text-tertiary`. Folded, the section is its heading alone: no rows, no `+`, no done fold. Files starts folded, the others open. What a section was left as is kept on the device for the account, across threads (`offload_section_folds` on the phone, forgotten at sign-out with the account's keys; `offload:folds` in the browser, kept as the browser keeps the theme). Folding a section with its add field or a note's editor open is that editor's Cancel. The heading keeps its height: the target grows by a hit area, not by the box. The done fold is unchanged inside an open To do.
+
+**Why:** a page of photos pushes everything else down, and somebody who folds Files wants it folded in the next thread too.
+
+**Design system impact:** the section header in `ThreadWidgets.jsx`, `M3ThreadWidgets.jsx` and the web thread pane gains the fold chevron after the count, and the folded state.
+
+### 2026-10-17 · When has a last day
+**Surface:** iOS, Android, web
+**Raised by:** the owner: offload could date a row across days, the 17th to the 20th, and a person could not.
+
+**Was:** the When block held one day; an event's end was a time on the same day, and saving an edit to a multi-day event moved its end onto its first day.
+
+**Is:** a *Last day* row under the grid, *Same day* until set. Pressing it outlines it and reads *Pick on the grid*; the next day picked after the first is the last, one on or before the first is one day again. The grid fills both ends and draws the days between on `--surface-fill`. An event spans the days; a to-do's span keeps its due day on the last. Not offered while the row repeats, since the chip has no words for a repeating span; a rule and a last day are never saved together. A to-do whose due day is not its span's last day, as a phone from before this moves it, draws no span. The chip reads *Sat 17 to Tue 20*, *12 to 15 Nov* or *30 Nov to 2 Dec* before it starts, *Until Tue 20* (*Ends today*) on an event and *Due Tue 20* on a to-do while it is on, and is late only once the last day has gone. The When row's value reads the same.
+
+**Why:** the structure the model could write had to be correctable by a person.
+
+An answer's dated row (2026-10-13) reads its chip, so its "to" line now holds only before a span starts; on the way it reads *Until Tue 20*.
+
+**Design system impact:** `TodayParts.jsx` `RowEditSheet`'s When block and the web edit dialog: the Last day row and the span on the grid. The chip's span words go in the readme's chip section. A span's chip names no hour.
+
 ### 2026-10-16 · Time in the When sheet is one row, the All day switch
 **Surface:** iOS, Android, web
 **Raised by:** the owner, from a device screenshot: Time was a row that said "All day" as if it were an hour, opened onto an All day switch, and then drew a second Time row under it.

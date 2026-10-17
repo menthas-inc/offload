@@ -22,6 +22,7 @@
 // first and written second with Undo, as the text's edit is.
 
 import { useClock } from "../../lib/clock";
+import { useFolds } from "../../lib/folds";
 import { remindSwitchShown } from "@offload/widgets";
 import { Switch } from "../Switch";
 import { setReminders } from "../../lib/reminders";
@@ -113,6 +114,11 @@ export function Notes({
   const [over, setOver] = useState<string | null>(null);
   // 028. The note whose Move sheet is open.
   const [moving, setMoving] = useState<Note | null>(null);
+  // 2026-10-17. The section folds from its heading, kept in this browser.
+  // An open editor holds it open, since the editor is inside, and folding
+  // is the editor's Cancel.
+  const [folds, setFold] = useFolds();
+  const sectionFolded = folds.notes && !adding && editingId === null;
 
   const shared = members.length > 1;
   const editing = notes.find((note) => note.id === editingId) ?? null;
@@ -496,15 +502,22 @@ export function Notes({
   return (
     <>
       <h2 className={styles.section}>
-        Notes
-        {/* No zero. Writing the first one is the only way to see this section
-            with nothing in it, and a count of none beside the editor you are
-            typing into is the same noise as an empty heading. */}
-        {notes.length > 0 ? <em className={styles.sectionCount}>{notes.length}</em> : null}
+        <button type="button" className={styles.sectionFold} aria-expanded={!sectionFolded} onClick={() => {
+          onAdding(false);
+          setEditingId(null);
+          setFold("notes", !sectionFolded);
+        }}>
+          Notes
+          {/* No zero. Writing the first one is the only way to see this section
+              with nothing in it, and a count of none beside the editor you are
+              typing into is the same noise as an empty heading. */}
+          {notes.length > 0 ? <em className={styles.sectionCount}>{notes.length}</em> : null}
+          <Icon name={sectionFolded ? "chevron-right" : "chevron-down"} size={15} className={styles.sectionFoldGlyph} />
+        </button>
         {/* The way in, once the section already draws. A thread with none of
             its own still draws nothing here, per the note above the early
             return: the pane head's More menu is the way in for that case. */}
-        {adding ? null : (
+        {adding || sectionFolded ? null : (
           <button
             type="button"
             className={styles.sectionAdd}
@@ -521,6 +534,7 @@ export function Notes({
         )}
       </h2>
 
+      {sectionFolded ? null : <>
       <div className={styles.notes}>
         {notes.map((note, index) => {
           if (editingId === note.id) {
@@ -570,6 +584,7 @@ export function Notes({
           ) : null}
         </>
       ) : null}
+      </>}
 
       {moving ? (
         <MoveOver exceptThreadId={threadId} onClose={() => setMoving(null)} onPick={(thread) => move(moving, thread)} />

@@ -4,7 +4,6 @@
 // words the row's own chip uses, with the end of a span after it. Decided
 // once for the phones and the web.
 
-import { dayIn, daysBetween, noonUtc, partsOf, utcDay } from "./days.js";
 import { chipFor } from "./nearness.js";
 
 /** What an answer's row carries of its dates. Done is not read: the tick
@@ -18,23 +17,8 @@ export interface FoundDated {
   rrule: string | null;
 }
 
-/** The chip's own rule for a day: within a fortnight the weekday and the
- *  day, "Sun 25"; further out the day and the month, "25 Oct". */
-const NEAR_DAYS = 14;
-function dayWords(day: string, today: string, locale?: string): string {
-  const near = Math.abs(daysBetween(today, day)) <= NEAR_DAYS;
-  if (near) return `${new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(noonUtc(day))} ${partsOf(day).dom}`;
-  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(noonUtc(day));
-}
-
 /** The meta line under an answer's row, or null for a row with no date. A
- *  span says where it ends, in the same words as where it starts. */
+ *  span's chip says where it ends (2026-10-17), so the line is the chip's. */
 export function foundMeta(row: FoundDated, zone: string | null | undefined, today: string, locale?: string): string | null {
-  const chip = chipFor({ ...row, doneAt: null }, zone, today, locale);
-  if (!chip) return null;
-  if (row.type !== "event" || !row.occursEndAt) return chip.label;
-  const end = new Date(row.occursEndAt);
-  const endDay = row.allDay ? utcDay(end) : dayIn(end, zone);
-  if (endDay <= chip.day) return chip.label;
-  return `${chip.label} to ${dayWords(endDay, today, locale)}`;
+  return chipFor({ ...row, doneAt: null }, zone, today, locale)?.label ?? null;
 }
