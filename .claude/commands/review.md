@@ -5,7 +5,7 @@ argument-hint: [scope: diff | path | feature NNN-slug] (default: uncommitted dif
 Deep review of: **$ARGUMENTS** (default: the current uncommitted diff).
 
 Run the panel in parallel and synthesize. Do not review inline yourself:
-- `code-reviewer`, correctness, edge cases, quality.
+- `code-reviewer`, ponytail-review: bugs, scale, tests, speed, lean.
 - `client-reviewer`, design-system fidelity, UX, parity, API contract divergence. Skip only if the change touches nothing client-facing.
 - `security-reviewer`, authorization, input handling, prompt injection, secrets, encryption, egress.
 

@@ -21,7 +21,7 @@ Two hats, applied together.
 - Volume and access: does the spec state records per account, fan-out, growth, and the queries each screen needs, and do its pagination, index and denormalisation choices actually follow from those numbers? A missing or hand-waved section here is a finding, because it is the one that turns into a refactor rather than a fix.
 - Context growth (OFF-8): does anything this feature adds to a prompt grow with account age?
 - Does it hold as the account count grows by an order of magnitude? Flag anything that only works at toy scale, without demanding infrastructure we decided not to build yet.
-- Simplicity and altitude (DEV-1, DEV-3): the smallest, most boring approach that works. Call out speculative complexity and premature optimization.
+- Simplicity and altitude (DEV-1, DEV-3): apply the `ponytail` ladder to the design, not just the code. For each new table, endpoint, job, dependency, abstraction or config: does it need to exist, and does existing code, the platform or an installed dependency already do it? On an impl-spec, check its **Reuse and skips** section against the repo; a wrong rung, or a new piece missing from the list, is a finding. Call out speculative complexity and premature optimization, but never trade away validation at trust boundaries, data-loss handling, security or accessibility.
 - Fit: aligns with `decisions.md`, or silently diverges? A silent divergence is the thing you are here to catch.
 - Open decisions: `decisions.md` ends with a list of open calls. If this spec depends on one, say so plainly rather than letting it be assumed.
 
