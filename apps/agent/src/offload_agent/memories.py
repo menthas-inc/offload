@@ -19,7 +19,7 @@ from __future__ import annotations
 import datetime
 import json
 import time
-from typing import Literal
+from typing import Annotated, Literal
 
 import httpx
 import structlog
@@ -127,6 +127,7 @@ Kind = Literal["people", "things", "about", "patterns"]
 # An id is any short string here and at the Core API, which matches each entry
 # against the rows the pass was shown and ignores one that names none of them.
 
+
 class Add(BaseModel):
     kind: Kind
     text: str = Field(min_length=1, max_length=200)
@@ -140,7 +141,9 @@ class Supersede(BaseModel):
 
 
 class Fold(BaseModel):
-    ids: list[str] = Field(min_length=2, max_length=10)
+    ids: list[Annotated[str, Field(min_length=1, max_length=40)]] = Field(
+        min_length=2, max_length=10
+    )
     text: str = Field(min_length=1, max_length=200)
 
 

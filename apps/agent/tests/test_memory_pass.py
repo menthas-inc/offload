@@ -21,6 +21,14 @@ def test_it_cannot_write_a_rule_or_more_than_five():
     assert MemoryPlan.model_validate({}).add == []
 
 
+def test_a_fold_id_longer_than_the_api_takes_is_refused_here():
+    """The Core API caps a pass id at 64; one longer 400s the whole result."""
+    with pytest.raises(ValidationError):
+        MemoryPlan.model_validate({"fold": [{"ids": ["m1", "m" * 65], "text": "x"}]})
+    with pytest.raises(ValidationError):
+        MemoryPlan.model_validate({"fold": [{"ids": ["m1", ""], "text": "x"}]})
+
+
 def test_the_turn_is_entries_and_bounded():
     turn = listing(
         today="Monday 5 October 2026",

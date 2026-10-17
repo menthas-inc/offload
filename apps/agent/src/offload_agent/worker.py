@@ -16,6 +16,7 @@ import signal
 import time
 import uuid
 from collections.abc import Awaitable, Callable
+from contextvars import ContextVar
 from datetime import date, datetime, timedelta
 
 import httpx
@@ -135,6 +136,12 @@ async def _post_result(
     raise ReportFailed(str(type(last).__name__)) from last
 
 
+#: What the running job's lookups were, set by its lane. A timeout cancels
+#: the job's task, whose budget is a local, and the paid rows still go in the
+#: failure report. The task's context is a copy; the dict is the same one.
+_SPENT: ContextVar[dict | None] = ContextVar("job_spent", default=None)
+
+
 class Lookups:
     """The turn's own web budget, and the record of what it spent it on.
 
@@ -179,6 +186,8 @@ class Lookups:
         self.reads = 0
         self.sources: list[dict] = []
         self.rows: list[dict] = []
+        if (spent := _SPENT.get()) is not None:
+            spent["lookups"] = self.rows
 
     def left(self) -> int:
         return max(0, self.SEARCHES - self.searches)
@@ -1028,6 +1037,9 @@ def _usage_wire(outcome: Outcome | None) -> list[dict]:
     return planner + ledger.drain()
 
 
+USAGE_ON_CANCEL_SECONDS = 10
+
+
 async def handle(
     job: ClaimedJob,
     *,
@@ -1038,7 +1050,18 @@ async def handle(
 ) -> None:
     """One job, with a ledger sink open for the small calls it makes."""
     with ledger.collecting():
-        await _handle(job, cfg=cfg, engine=engine, anthropic=anthropic, http=http)
+        try:
+            await _handle(job, cfg=cfg, engine=engine, anthropic=anthropic, http=http)
+        except asyncio.CancelledError:
+            # The lane's timeout, after a call was made: still paid for. A
+            # dump's failure carries no usage on any path, so only the rest.
+            # Bounded: the lane cannot retry until this returns, and the lock
+            # goes stale a minute after the timeout fired.
+            if job.kind != "dump.answer":
+                with contextlib.suppress(TimeoutError):
+                    async with asyncio.timeout(USAGE_ON_CANCEL_SECONDS):
+                        await post_usage(http, cfg, job.id)
+            raise
 
 
 async def _handle(
@@ -2213,6 +2236,8 @@ async def _lane(
             # mechanism: a coroutine being awaited cannot be interrupted, and
             # a task can. Cancelling it raises at the next await, which
             # inside an Anthropic call is the socket read.
+            spent: dict = {}
+            _SPENT.set(spent)
             running = asyncio.create_task(
                 handle(job, cfg=cfg, engine=engine, anthropic=anthropic, http=http)
             )
@@ -2227,7 +2252,14 @@ async def _lane(
             except TimeoutError:
                 log.error("job timed out", job_id=job.id, kind=job.kind)
                 if job.kind == "dump.answer":
-                    await _give_up_or_retry(job, "timeout", cfg=cfg, engine=engine, http=http)
+                    await _give_up_or_retry(
+                        job,
+                        "timeout",
+                        cfg=cfg,
+                        engine=engine,
+                        http=http,
+                        lookups=spent.get("lookups"),
+                    )
                 else:
                     async with engine.begin() as conn:
                         await retry_or_die(conn, job, "timeout", delay_seconds=300)

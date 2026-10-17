@@ -314,6 +314,86 @@ async def test_a_turn_that_outlives_its_lock_fails_and_the_lane_carries_on(monke
     assert ran == ["job-11", "job-12"]
 
 
+async def test_a_turn_timed_out_after_its_searches_still_reports_them(monkeypatch):
+    """The searches were paid for whether or not the turn finished."""
+    from offload_agent import worker as worker_mod
+
+    async def handle(job, **_):
+        budget = worker_mod.Lookups("x", may_search=True, may_read_links=False)
+        budget.record(label="search", kind="search", outcome="ok", cost_micros=10_000)
+        await asyncio.sleep(30)
+
+    config = dataclasses.replace(cfg(), stale_after_seconds=61)
+    posted = await _run_lane(monkeypatch, [_job("job-13", attempts=5)], handle, config)
+
+    assert posted == [
+        {
+            "outcome": "failed",
+            "jobId": "job-13",
+            "reason": "timeout",
+            "lookups": [
+                {"label": "search", "kind": "search", "outcome": "ok", "costMicros": 10_000}
+            ],
+        }
+    ]
+
+
+@pytest.mark.parametrize("kind", ["account.memories", "thread.nightly"])
+async def test_a_background_pass_timed_out_after_its_call_still_posts_usage(monkeypatch, kind):
+    """A pass cut off by the lane's timeout after its model call: the call was
+    paid for, and the ledger that gates scheduled work has to count it."""
+    from offload_agent import ledger
+    from offload_agent import worker as worker_mod
+
+    assert kind in worker_mod.KINDS
+    order: list[str] = []
+    real = worker_mod.handle
+
+    async def _handle(job, **_):
+        ledger.record({"model": "m", "inputTokens": 1, "outputTokens": 1})
+        await asyncio.sleep(30)
+
+    async def retry_or_die(_conn, job, reason, delay_seconds=0):
+        order.append(f"retry {reason}")
+
+    monkeypatch.setattr(worker_mod, "_handle", _handle)
+    monkeypatch.setattr(worker_mod, "retry_or_die", retry_or_die)
+    config = dataclasses.replace(cfg(), stale_after_seconds=61)
+    posted = await _run_lane(monkeypatch, [_job("job-14", kind=kind)], real, config)
+
+    assert posted == [
+        {"jobId": "job-14", "usage": [{"model": "m", "inputTokens": 1, "outputTokens": 1}]}
+    ]
+    assert order == ["retry timeout"]
+
+
+async def test_a_usage_post_under_cancel_is_bounded(monkeypatch):
+    """The usage post runs after the lane's timeout fired and before it can
+    retry; an unbounded one could run the job past its stale lock."""
+    from offload_agent import worker as worker_mod
+
+    async def _handle(job, **_):
+        await asyncio.sleep(30)
+
+    async def post_usage(*_):
+        await asyncio.sleep(30)
+
+    monkeypatch.setattr(worker_mod, "_handle", _handle)
+    monkeypatch.setattr(worker_mod, "post_usage", post_usage)
+    monkeypatch.setattr(worker_mod, "USAGE_ON_CANCEL_SECONDS", 0.05, raising=False)
+    task = asyncio.create_task(
+        worker_mod.handle(
+            _job("job-15", kind="thread.nightly"), cfg=cfg(), engine=None, anthropic=None, http=None
+        )
+    )
+    await asyncio.sleep(0)
+    task.cancel()
+    done, _ = await asyncio.wait({task}, timeout=1)
+    assert task in done
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+
 async def test_the_cancel_listener_reconnects_when_its_connection_drops(monkeypatch):
     """A dropped connection used to leave `listen` waiting on `stop` for good,
     so Stop did nothing until the worker restarted."""

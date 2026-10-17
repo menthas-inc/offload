@@ -378,12 +378,16 @@ _LANDED = text(
 # chose. The client draws the real text; the prompt does not.
 #
 # 026, amended 2026-10-15. An earlier forwarded email reads as a line we write
-# and the titles of what it filed, never its body. Its body is somebody else's
-# words, labelled as such only on the turn it arrived on; here it read as
-# `person:`, so a second email forwarded minutes later filed the first one
-# again, and anything written inside it reached later turns as the person's
-# own request (SEC-1). And only what came before the turn's own message: an
-# email that arrived after a message but before its job ran was in its tail.
+# and how many rows it filed, never its body, and never their titles either:
+# the model wrote those from the body, so they are its author's words too.
+# Its body is somebody else's words, labelled as such only on the turn it
+# arrived on; here it read as `person:`, so a second email forwarded minutes
+# later filed the first one again, and anything written inside it reached
+# later turns as the person's own request (SEC-1). And only what came before
+# the turn's own message: an email that arrived after a message but before
+# its job ran was in its tail. A message from a calendar or the browser is
+# somebody else's words the same way, and the other untrusted readers already
+# leave out all four sources.
 _TURNS = text(
     """
     select m.role,
@@ -391,13 +395,15 @@ _TURNS = text(
                 then '(picked a calendar shared with them)'
                 when m.source in ('mail', 'gmail')
                 then '(forwarded an email'
-                     || coalesce(', filed: ' || (
-                          select string_agg(c.title, ', ' order by c.created_at)
+                     || coalesce(', filed ' || (
+                          select nullif(count(*), 0)::text
                             from content c
                            where c.derived_from_message_id = m.id
                              and c.account_id = :account_id
                              and c.deleted_at is null), '')
                      || ')'
+                when m.source in ('calendar', 'browser')
+                then '(added from somewhere else)'
                 else said(m.text, m.transcript) end as text,
            (select count(*) from blobs b
              where b.message_id = m.id and b.kind = 'image' and b.deleted_at is null) as photos,
@@ -406,6 +412,7 @@ _TURNS = text(
            (select string_agg(c.title, ', ' order by c.created_at)
               from content c
              where c.derived_from_message_id = m.id
+               and m.source not in ('mail', 'gmail', 'calendar', 'browser')
                and c.deleted_at is null
                and exists (select 1 from content_blobs cb where cb.content_id = c.id)
            ) as photo_titles

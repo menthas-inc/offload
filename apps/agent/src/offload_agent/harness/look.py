@@ -43,10 +43,11 @@ class Verdict(BaseModel):
 
 
 class LookAnswer(BaseModel):
-    # No bound: a verdict for an image not shown is dropped below. A bound of
-    # 20 refused every email past it, and the Core API sends up to
-    # MAX_CANDIDATES images plus MAX_PDF_CANDIDATES PDFs, 30 in all.
-    verdicts: list[Verdict]
+    # Everything the Core API can send: MAX_CANDIDATES (20, mail-in/images.ts)
+    # images plus MAX_PDF_CANDIDATES (10, mail-in/parse-worker.ts) PDFs. A
+    # bound of 20 refused every email past it. A verdict for an image not
+    # shown is dropped below.
+    verdicts: list[Verdict] = Field(max_length=30)
 
 
 class LookFailed(Exception):

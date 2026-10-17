@@ -624,6 +624,34 @@
         "look_up": false,
         "say": null
       }
+    },
+    {
+      "id": "an-earlier-email-reads-as-a-count",
+      "why": "an earlier forwarded email reaches later turns as a line offload writes and how many rows it filed, never its body or the titles the model wrote from it, since this block reads as the person's (2026-10-17, SEC-1); the line is a record, so the turn files only what was typed",
+      "surface": "file",
+      "input": "buy milk",
+      "context": "behrooz",
+      "history": [
+        {
+          "role": "person",
+          "text": "(forwarded an email, filed 2)"
+        },
+        {
+          "role": "offload",
+          "text": "Added to Movies to watch."
+        }
+      ],
+      "expect": {
+        "filed": [
+          {
+            "has": [
+              "milk"
+            ]
+          }
+        ],
+        "filed_max": 1,
+        "say": null
+      }
     }
   ]
 }

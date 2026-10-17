@@ -16,6 +16,13 @@ def test_an_email_with_thirty_attachments_keeps_its_verdicts():
     assert len(answer.verdicts) == 30
 
 
+def test_a_thirty_first_verdict_is_refused():
+    """30 is everything the Core API can send (OFF-5)."""
+    verdicts = [{"index": i, "keep": True} for i in range(31)]
+    with pytest.raises(ValidationError):
+        LookAnswer.model_validate({"verdicts": verdicts})
+
+
 def _add(when: str) -> dict:
     return {"thread_id": "t", "title": "Rent", "type": "task", "due_at": when}
 

@@ -184,14 +184,14 @@
     },
     {
       "id": "an-earlier-email-is-not-filed-again",
-      "why": "two emails forwarded minutes apart share a conversation; the earlier one reads as what it filed, and the second turn files only its own email (2026-10-15: the second filed both). 9pm in New York is 2am on the 21st in the account's Lisbon clock",
+      "why": "two emails forwarded minutes apart share a conversation; the earlier one reads as how many rows it filed, never their titles, which the model wrote from somebody else's email (2026-10-17), and the second turn files only its own email (2026-10-15: the second filed both). 9pm in New York is 2am on the 21st in the account's Lisbon clock",
       "surface": "file",
       "input": "",
       "context": "behrooz",
       "history": [
         {
           "role": "person",
-          "text": "(forwarded an email, filed: Odyssey 70mm, 2 adult tickets)"
+          "text": "(forwarded an email, filed 2)"
         },
         {
           "role": "offload",
