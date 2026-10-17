@@ -9,6 +9,8 @@
 // body, so no token and no words reach `jobs.last_error` or a log line.
 
 import { Expo } from "expo-server-sdk";
+import { emit } from "../analytics.js";
+import { db } from "../db.js";
 import { env, isProduction } from "../env.js";
 
 /** One message to one token. `data` is the closed payload the app maps to a
@@ -140,6 +142,42 @@ export function createPush(
 export function push(): PushTransport {
   shared ??= createPush();
   return shared;
+}
+
+/** The receipts are read this long after a send. */
+export const RECEIPTS_AFTER_SECONDS = 15 * 60;
+
+/** Send to an account's phones, one message per token row. A device the
+ *  service says is gone loses its token, and any other refusal is emitted
+ *  with its code. The job fails only when a refusal left no phone reached:
+ *  a retry sends again to every phone, so failing after one took it would
+ *  send that phone the same thing again. Returns what was accepted, by the
+ *  token's row id, for the receipts. */
+export async function deliver(
+  tokens: readonly { id: string; token: string }[],
+  messages: PushMessage[],
+  subjectId: string | null,
+  kind: string,
+): Promise<{ id: string; tokenId: string }[]> {
+  let tickets: PushTicket[];
+  try {
+    tickets = await push().send(messages);
+  } catch (error) {
+    if (error instanceof PushFailed) {
+      await emit({ name: "notification_failed", subjectId, properties: { kind, status: error.status, code: error.code } });
+    }
+    throw error;
+  }
+  const gone = tickets.filter((ticket) => !ticket.ok && ticket.code === GONE).map((ticket) => ticket.token);
+  if (gone.length > 0) await db.deleteFrom("push_tokens").where("token", "in", gone).execute();
+  const idOf = new Map(tokens.map((one) => [one.token, one.id]));
+  const delivered = tickets.flatMap((ticket) => (ticket.ok && idOf.has(ticket.token) ? [{ id: ticket.id, tokenId: idOf.get(ticket.token)! }] : []));
+  const refused = tickets.find((ticket) => !ticket.ok && ticket.code !== GONE);
+  if (refused && !refused.ok) {
+    await emit({ name: "notification_failed", subjectId, properties: { kind, status: 200, code: refused.code } });
+    if (delivered.length === 0) throw new PushFailed(200, refused.code);
+  }
+  return delivered;
 }
 
 export function isPushToken(token: string): boolean {

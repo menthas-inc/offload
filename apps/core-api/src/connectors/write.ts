@@ -26,6 +26,9 @@ import { accessTokenFor, markNeedsReauth } from "./tokens.js";
 import { sourceRefFor, upsertEvent } from "./events.js";
 import { syncNow } from "./sync.js";
 
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+
 export interface CalendarTarget {
   calendarId: string;
   externalId: string;
@@ -264,7 +267,7 @@ async function writeToGoogle(
         accessToken,
         target.externalId,
         seriesId,
-        { recurrence: truncate(series.recurrence, existing.startsAt) },
+        { recurrence: truncate(series.recurrence, existing.startsAt, series.allDay) },
         verdict.notify
       );
     } else {
@@ -281,29 +284,33 @@ async function writeToGoogle(
   // New series first, then truncate the old, so a failure between the two
   // calls leaves a visible duplicate rather than a silent hole: a missing
   // standup is neither obvious nor fixable and a duplicate is both.
+  let existing: Awaited<ReturnType<typeof getEvent>> = null;
   if (write.scope === "following") {
-    const existing = await getEvent(accessToken, target.externalId, eventId);
+    existing = await getEvent(accessToken, target.externalId, eventId);
     const seriesId = existing?.seriesId ?? eventId;
     const series = seriesId === eventId ? existing : await getEvent(accessToken, target.externalId, seriesId);
+    // shortcut: a counted rule cannot be split without counting the
+    // occurrences before the split, and a copied COUNT runs past the old end,
+    // so it moves this occurrence alone. Count them via instances if asked for.
+    const counted = series?.recurrence.some((line) => line.startsWith("RRULE:") && line.includes("COUNT=")) ?? false;
 
-    if (existing?.startsAt && series?.recurrence.length) {
+    if (existing?.startsAt && series?.startsAt && series.recurrence.length && !counted) {
       const startsAt = write.patch.startsAt ?? existing.startsAt;
-      const endsAt =
-        write.patch.endsAt ??
-        new Date(startsAt.getTime() + 60 * 60 * 1000);
+      const span = (series.endsAt?.getTime() ?? series.startsAt.getTime() + HOUR) - series.startsAt.getTime();
 
+      // The old series moved, with the change on top: its title, length, place
+      // and guests, and its rule as it was, so an UNTIL ends both on one day.
       await createEvent(
         accessToken,
         target.externalId,
         {
-          title: write.patch.title ?? "Untitled",
+          title: write.patch.title ?? series.title,
           startsAt,
-          endsAt,
-          location: write.patch.location ?? null,
-          timezone: target.timezone,
-          // The rule the old series carried, with its end removed so the new
-          // one runs on. Read rather than assumed: writing FREQ=WEEKLY because
-          // most things are weekly turns a monthly event into a weekly one.
+          endsAt: write.patch.endsAt ?? new Date(startsAt.getTime() + span),
+          allDay: series.allDay,
+          location: write.patch.location === undefined ? series.location : write.patch.location,
+          attendees: write.patch.attendees ?? series.attendees,
+          timezone: series.timezone ?? target.timezone,
           recurrence: series.recurrence,
         },
         verdict.notify
@@ -313,7 +320,7 @@ async function writeToGoogle(
         accessToken,
         target.externalId,
         seriesId,
-        { recurrence: truncate(series.recurrence, existing.startsAt) },
+        { recurrence: truncate(series.recurrence, existing.startsAt, series.allDay) },
         verdict.notify
       );
 
@@ -328,11 +335,23 @@ async function writeToGoogle(
   const patch: Record<string, unknown> = {};
   if (write.patch.title !== undefined) patch["summary"] = write.patch.title;
   if (write.patch.location !== undefined) patch["location"] = write.patch.location;
-  if (write.patch.startsAt) {
-    patch["start"] = { dateTime: write.patch.startsAt.toISOString(), ...(target.timezone ? { timeZone: target.timezone } : {}) };
-  }
-  if (write.patch.endsAt) {
-    patch["end"] = { dateTime: write.patch.endsAt.toISOString(), ...(target.timezone ? { timeZone: target.timezone } : {}) };
+  const moving = write.patch.startsAt || write.patch.endsAt ? (existing ?? (await getEvent(accessToken, target.externalId, eventId))) : null;
+  if (moving?.allDay && moving.startsAt) {
+    // An all-day event is a date at both ends, the end exclusive, and Google
+    // refuses a time against a date. A move keeps how many days it spans.
+    const day = (at: Date) => at.toISOString().slice(0, 10);
+    const startsAt = write.patch.startsAt ?? moving.startsAt;
+    const span = Math.max(DAY, (moving.endsAt?.getTime() ?? 0) - moving.startsAt.getTime());
+    const endsAt = write.patch.endsAt && day(write.patch.endsAt) > day(startsAt) ? write.patch.endsAt : new Date(startsAt.getTime() + span);
+    patch["start"] = { date: day(startsAt) };
+    patch["end"] = { date: day(endsAt) };
+  } else {
+    if (write.patch.startsAt) {
+      patch["start"] = { dateTime: write.patch.startsAt.toISOString(), ...(target.timezone ? { timeZone: target.timezone } : {}) };
+    }
+    if (write.patch.endsAt) {
+      patch["end"] = { dateTime: write.patch.endsAt.toISOString(), ...(target.timezone ? { timeZone: target.timezone } : {}) };
+    }
   }
   if (write.patch.attendees) patch["attendees"] = write.patch.attendees.map((email) => ({ email }));
 

@@ -20,6 +20,8 @@ export interface RunnerOptions {
 export class JobRunner {
   private running = false;
   private timer: NodeJS.Timeout | undefined;
+  /** The tick the loop is running, so `stop()` can wait for it. */
+  private current: Promise<boolean> | undefined;
   private readonly workerId = `api-${process.pid}`;
 
   constructor(private readonly options: RunnerOptions) {}
@@ -70,21 +72,27 @@ export class JobRunner {
       if (!this.running) return;
       let worked = false;
       try {
-        worked = await this.tick();
+        this.current = this.tick();
+        worked = await this.current;
       } catch (error) {
         this.options.log?.("error", { err: String(error).slice(0, 120) }, "runner tick failed");
       }
       // Drain greedily while there is work, then back off. A queue that is
       // empty most of the time should not poll a database every 50ms.
-      this.timer = setTimeout(() => void loop(), worked ? 0 : idle);
+      if (this.running) this.timer = setTimeout(() => void loop(), worked ? 0 : idle);
     };
 
     void loop();
   }
 
-  stop(): void {
+  /** Resolves once the job in flight is recorded. Shutdown closes the pool
+   *  next, and a send that landed without its row completed goes stale and
+   *  is sent again fifteen minutes later. */
+  async stop(): Promise<void> {
     this.running = false;
     if (this.timer) clearTimeout(this.timer);
+    // The loop logs a tick that threw; here it only has to have ended.
+    await this.current?.catch(() => false);
   }
 }
 

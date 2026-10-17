@@ -16,14 +16,15 @@ on its own line, so words inside one cannot pass for another.
 
 from __future__ import annotations
 
+import datetime
 import json
 import time
-from typing import Annotated, Literal
+from typing import Literal
 
 import httpx
 import structlog
 from anthropic import AsyncAnthropic
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from sqlalchemy import text
 
 from offload_agent import ledger
@@ -122,29 +123,23 @@ _TO_DATE = text(
 
 Kind = Literal["people", "things", "about", "patterns"]
 
-# The Core API's `z.string().uuid()`. The plan is posted whole, so one id it
-# refuses is a 400 that loses every write in the pass; refused here, the repair
-# turn can mend it. A date's id needs none: `dates_wire` keeps only ids shown.
-_UUID = (
-    r"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
-    r"|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-)
-
+# An id is any short string here and at the Core API, which matches each entry
+# against the rows the pass was shown and ignores one that names none of them.
 
 class Add(BaseModel):
     kind: Kind
     text: str = Field(min_length=1, max_length=200)
-    cites: str = Field(pattern=_UUID)
+    cites: str = Field(min_length=1, max_length=40)
 
 
 class Supersede(BaseModel):
-    id: str = Field(pattern=_UUID)
+    id: str = Field(min_length=1, max_length=40)
     text: str = Field(min_length=1, max_length=200)
-    cites: str = Field(pattern=_UUID)
+    cites: str = Field(min_length=1, max_length=40)
 
 
 class Fold(BaseModel):
-    ids: list[Annotated[str, Field(pattern=_UUID)]] = Field(min_length=2, max_length=10)
+    ids: list[str] = Field(min_length=2, max_length=10)
     text: str = Field(min_length=1, max_length=200)
 
 
@@ -155,6 +150,13 @@ class Dated(BaseModel):
     on: str = Field(pattern=r"^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$")
     lead: Literal["none", "days", "weeks", "months"]
     name: str = Field(min_length=1, max_length=60)
+
+    @field_validator("on")
+    @classmethod
+    def _a_day_some_year_has(cls, value: str) -> str:
+        # 2000 is a leap year, so 02-29 stands; 02-30 raises, as the route would.
+        datetime.date(2000, int(value[:2]), int(value[3:]))
+        return value
 
 
 class MemoryPlan(BaseModel):

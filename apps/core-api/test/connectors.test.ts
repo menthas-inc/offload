@@ -4,7 +4,7 @@
 // hand: another account's calendar, an old client's field, an un-tick that has
 // to reach every thread, and a disconnect that has to leave nothing behind.
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeSignature } from "better-auth/crypto";
 import { buildApp, type App } from "../src/app.js";
 import { db, closeDb } from "../src/db.js";
@@ -16,6 +16,7 @@ import { worksInBackground } from "../src/accounts/active.js";
 import { handlers } from "../src/jobs/handlers.js";
 import { MemoryMailer } from "../src/mail/mailer.js";
 import { grantsAcl } from "../src/connectors/google.js";
+import { sealState } from "../src/connectors/state.js";
 
 await migrate(() => {});
 
@@ -382,5 +383,35 @@ describe("turning a calendar on syncs it", () => {
     await syncNow(n);
     await syncNow(n);
     expect(await queued()).toBe(before + 1);
+  });
+});
+
+describe("connecting reads the calendar list once", () => {
+  it("finds the primary and fills the calendars from one read", async () => {
+    const owner = await account();
+    const cookie = await signIn(owner);
+    const listed: string[] = [];
+    const real = globalThis.fetch;
+    const spy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Response.json({ access_token: "a", refresh_token: "r", expires_in: 3600, scope: "x" });
+      }
+      if (url.includes("/calendarList")) {
+        listed.push(url);
+        return Response.json({ items: [{ id: "jo@g.com", summary: "jo@g.com", accessRole: "owner", primary: true }] });
+      }
+      return real(input, init);
+    });
+    try {
+      const state = sealState({ accountId: owner, verifier: "v", landing: "settings" }, Date.now());
+      const response = await app.inject({ method: "GET", url: `/api/connectors/google/callback?state=${encodeURIComponent(state)}&code=abc`, headers: { cookie } });
+      expect(response.headers.location).toBe(`${env.WEB_URL}/settings/apps?calendar=connected`);
+      expect(listed).toHaveLength(1);
+      const calendars = await db.selectFrom("connector_calendars").select("external_id").execute();
+      expect(calendars.map((c) => c.external_id)).toEqual(["jo@g.com"]);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

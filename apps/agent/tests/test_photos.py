@@ -202,7 +202,8 @@ def test_add_content_takes_a_photo_index_on_a_picture_or_the_row_it_became():
 
 
 def test_ask_takes_the_thread_field():
-    q = Ask(field="thread", title="The beach", content_id="c", options=[{"value": "t1"}])
+    row = "3f2b1c4e-8a9d-4e5f-9a1b-2c3d4e5f6a7b"
+    q = Ask(field="thread", title="The beach", content_id=row, options=[{"value": "t1"}])
     assert q.field == "thread"
     with pytest.raises(ValidationError):
-        Ask(field="where", title="The beach", content_id="c")
+        Ask(field="where", title="The beach", content_id=row)

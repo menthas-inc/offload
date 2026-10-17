@@ -25,9 +25,11 @@ export function untilFor(splitAt: Date): string {
  *
  *  `COUNT` and `UNTIL` cannot both be present, so a rule that counts loses the
  *  count: it is being given an end date instead, which is the same intent
- *  expressed the way this split needs. */
-export function truncate(recurrence: string[], splitAt: Date): string[] {
-  const until = untilFor(splitAt);
+ *  expressed the way this split needs. An all-day series ends on a date, the
+ *  day before the split, because a rule's end must be the same kind of value
+ *  as its start. */
+export function truncate(recurrence: string[], splitAt: Date, allDay = false): string[] {
+  const until = allDay ? untilFor(splitAt).slice(0, 8) : untilFor(splitAt);
   return recurrence.map((line) => {
     if (!line.startsWith("RRULE:")) return line;
     const parts = line
@@ -36,14 +38,4 @@ export function truncate(recurrence: string[], splitAt: Date): string[] {
       .filter((part) => part && !part.startsWith("UNTIL=") && !part.startsWith("COUNT="));
     return `RRULE:${[...parts, `UNTIL=${until}`].join(";")}`;
   });
-}
-
-/** A deterministic id for the series a split creates.
- *
- *  **A split is two calls and can fail between them.** Ordered new-series-first
- *  so a failure leaves a visible duplicate rather than a silent hole: a missing
- *  standup is neither obvious nor fixable, and a duplicate is both. This id is
- *  what lets a retry recognise its own work instead of posting a third one. */
-export function splitUid(originalUid: string, splitAt: Date): string {
-  return `offload-${splitAt.toISOString().slice(0, 19).replace(/[-:]/g, "")}-${originalUid}`;
 }

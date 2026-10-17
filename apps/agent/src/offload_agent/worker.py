@@ -1803,7 +1803,9 @@ def _web_wire(budget: "Lookups | None") -> dict:
 
     seen: dict[str, dict] = {}
     for source in budget.sources:
-        seen.setdefault(source["domain"], source)
+        # The route's rule: https only, at most 2000 characters.
+        if source["url"].startswith("https://") and len(source["url"]) <= 2000:
+            seen.setdefault(source["domain"], source)
 
     return {
         "sources": list(seen.values())[:MAX_SOURCES],
@@ -2359,8 +2361,8 @@ async def _handle_answer(
                 **_web_wire(budget),
                 # The rows the answer showed, as ids. The reply resolves them
                 # when it is read, so a row ticked or deleted later is never
-                # stale in an old answer.
-                "found": outcome.found,
+                # stale in an old answer. Three, the turn-result route's cap.
+                "found": outcome.found[:3],
                 **({"questions": _questions_wire(outcome)} if outcome.questions else {}),
             },
         )

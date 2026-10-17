@@ -43,8 +43,9 @@ import { uuidv7 } from "../uuid.js";
 import { appleClientSecret, appleConfigured } from "./apple.js";
 import { cleanNameLossy } from "../accounts/name.js";
 
-/** 15 minutes. Bounds how long a disabled account keeps working, so it is a
- *  security parameter rather than a tuning knob. */
+/** 15 minutes. How often a live session's expiry is pushed out. It does not
+ *  bound a disabled account: disabling deletes the account's sessions, and
+ *  `session.create.after` deletes one that commits after that. */
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 
 const cookieDomain = env.COOKIE_DOMAIN === "localhost" ? undefined : env.COOKIE_DOMAIN;
@@ -392,6 +393,17 @@ export const auth = betterAuth({
           return allowed ? { data: session } : false;
         },
         after: async (session) => {
+          // D4: disabling an account deletes its sessions, and a sign-in that
+          // passed the check above can still commit its row after that delete.
+          // Nothing would remove it, and it would hold for thirty days. This
+          // runs after the commit, so asking again here closes the race.
+          // (An update hook cannot do this: Better Auth hands it only the
+          // patch, which carries no account id.)
+          if (!(await maySignIn(session.userId))) {
+            await db.deleteFrom("sessions").where("id", "=", session.id).execute();
+            return;
+          }
+
           // first_sign_in fires once per account, ever. "Is this the only
           // session row?" is the cheap version of that and it is wrong the
           // moment someone signs in on a second device while the first is
@@ -428,18 +440,6 @@ export const auth = betterAuth({
           } catch {
             // Best effort. The field is empty and the screen still asks.
           }
-        },
-      },
-
-      // D4: disabling an account stops a live session at its next refresh
-      // rather than at token expiry. Better Auth refreshes a session every
-      // updateAge, which is where a session that should have died gets its
-      // extension, so that is where the state is checked again.
-      update: {
-        before: async (session) => {
-          const accountId = session.userId;
-          if (!accountId) return { data: session };
-          return (await maySignIn(accountId)) ? { data: session } : false;
         },
       },
     },

@@ -249,6 +249,29 @@ describe("024 review of 2026-09-22: what the send is composed from, and what fai
     expect(await db.selectFrom("push_tokens").select("id").where("account_id", "=", sam).execute()).toHaveLength(1);
   });
 
+  it("one phone refused and one reached: no throw, so a retry does not reach the first phone again", async () => {
+    const ana = await account({ display_name: "Ana" });
+    const sam = await account({ display_name: "Sam" });
+    await token(sam);
+    const refusing = await token(sam);
+    const request = await db
+      .insertInto("connection_requests")
+      .values({ from_account_id: ana, to_account_id: sam, delivered: true, expires_at: sql`now() + interval '30 days'` } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const send = memory.send;
+    memory.send = async (messages) =>
+      messages.map((message, i) =>
+        message.to === refusing ? { token: message.to, ok: false as const, code: "MismatchSenderId" } : { token: message.to, ok: true as const, id: `t${i}` },
+      );
+    try {
+      expect(await notifyPerson({ kind: "request", requestId: request.id })).toBe("sent");
+    } finally {
+      memory.send = send;
+    }
+    expect((await activityOf(sam)).map((row) => row.sent)).toEqual([true]);
+  });
+
   it("the addition job is enqueued inside the caller's transaction, so a rolled-back insert leaves no job", async () => {
     const ana = await account();
     const thread = await db.insertInto("threads").values({ name: "Lisbon trip" } as never).returning("id").executeTakeFirstOrThrow();

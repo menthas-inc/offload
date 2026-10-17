@@ -21,27 +21,6 @@ def test_it_cannot_write_a_rule_or_more_than_five():
     assert MemoryPlan.model_validate({}).add == []
 
 
-def test_an_id_the_core_api_would_refuse_is_refused_here():
-    """The Core API takes only UUIDs, and one it refuses is a 400 for the whole
-    pass. Refused here, it goes back to the model in the repair turn."""
-    for plan in (
-        {"add": [{"kind": "about", "text": "x", "cites": "m1"}]},
-        {"supersede": [{"id": "a", "text": "x", "cites": CITE}]},
-        {"supersede": [{"id": CITE, "text": "x", "cites": "m1"}]},
-        {"fold": [{"ids": [CITE, "b"], "text": "x"}]},
-    ):
-        with pytest.raises(ValidationError):
-            MemoryPlan.model_validate(plan)
-    plan = MemoryPlan.model_validate(
-        {
-            "add": [{"kind": "about", "text": "x", "cites": CITE}],
-            "supersede": [{"id": CITE, "text": "x", "cites": CITE}],
-            "fold": [{"ids": [CITE, CITE.upper()], "text": "x"}],
-        }
-    )
-    assert plan.model_dump()["add"][0]["cites"] == CITE
-
-
 def test_the_turn_is_entries_and_bounded():
     turn = listing(
         today="Monday 5 October 2026",

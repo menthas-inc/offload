@@ -23,6 +23,7 @@ import { isBareDate, parseWhen, plausible } from "../src/threads/dates.js";
 import { LIST_PAGE } from "../src/routes/tools.js";
 import { completeContent, reprioritise, setPreference } from "../src/routes/threads.js";
 import { readPreference } from "../src/threads/widgets.js";
+import { archivePassed } from "../src/threads/passed.js";
 
 await migrate(() => {});
 
@@ -827,5 +828,82 @@ describe("dates a model actually writes", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ ok: false, error: "bad_date" });
     expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(0);
+  });
+});
+
+describe("dates and archives the tools get right (2026-10-17)", () => {
+  it("refuses a day that does not exist, in every form, rather than rolling it over", () => {
+    // `new Date` reads 30 February as 2 March, and a date the person never
+    // said is worse than a refusal the model can correct.
+    for (const day of ["2026-02-30", "2026-02-29", "2026-04-31", "2026-13-01", "2026-00-10"]) {
+      expect(parseWhen(day)).toBeNull();
+      expect(parseWhen(`${day}T09:00:00`)).toBeNull();
+      expect(parseWhen(`${day}T09:00:00`, "America/New_York")).toBeNull();
+      expect(parseWhen(`${day}T09:00:00Z`)).toBeNull();
+      expect(parseWhen(`${day}T09:00:00+03:00`)).toBeNull();
+    }
+    expect(parseWhen("2028-02-29")?.toISOString()).toBe("2028-02-29T12:00:00.000Z");
+    expect(parseWhen("2026-04-30T09:00:00Z")?.toISOString()).toBe("2026-04-30T09:00:00.000Z");
+    expect(parseWhen("2026-12-31T23:30:00-05:00")?.toISOString()).toBe("2027-01-01T04:30:00.000Z");
+    expect(parseWhen("2026-10-20 15:00", "America/New_York")?.toISOString()).toBe("2026-10-20T19:00:00.000Z");
+  });
+
+  it("refuses an edit that would leave an event ending before it starts", async () => {
+    // Fri 19:00 to 21:00, moved to Saturday with only a start: stored as is,
+    // the end stays on Friday and the hourly pass archives it a day early.
+    const me = await account();
+    const t = await thread(me, "Weekend");
+    const id = (await db
+      .insertInto("content")
+      .values({
+        account_id: me, thread_id: t, title: "Concert", type: "event",
+        occurs_at: new Date("2026-10-23T19:00:00Z"), occurs_end_at: new Date("2026-10-23T21:00:00Z"),
+      })
+      .returning("id").executeTakeFirstOrThrow()).id;
+    const { jobId } = await dumpFor(me);
+
+    const response = await tool({
+      tool: "edit_content", jobId, toolCallId: "t1", contentId: id, occursAt: "2026-10-24T19:00:00Z",
+    });
+    expect(response.json()).toEqual({ ok: false, error: "bad_date" });
+    const after = await db.selectFrom("content").select(["occurs_at", "occurs_end_at"]).where("id", "=", id).executeTakeFirstOrThrow();
+    expect(after.occurs_at?.toISOString()).toBe("2026-10-23T19:00:00.000Z");
+    expect(after.occurs_end_at?.toISOString()).toBe("2026-10-23T21:00:00.000Z");
+  });
+
+  it("a row the model puts back stays put through the hourly pass, as a person's does", async () => {
+    const me = await account();
+    const t = await thread(me, "Weekend");
+    const id = (await db
+      .insertInto("content")
+      .values({
+        account_id: me, thread_id: t, title: "Concert ticket", type: "event",
+        occurs_at: new Date(Date.now() - 3 * 24 * 3600 * 1000), archived_at: new Date(),
+      })
+      .returning("id").executeTakeFirstOrThrow()).id;
+    const { jobId } = await dumpFor(me);
+
+    expect((await tool({
+      tool: "archive_content", jobId, toolCallId: "t1", contentId: id, archived: false,
+    })).json()).toEqual({ ok: true, done: true });
+    await archivePassed();
+
+    const after = await db.selectFrom("content").select(["archived_at", "attrs"]).where("id", "=", id).executeTakeFirstOrThrow();
+    expect(after.archived_at).toBeNull();
+    expect((after.attrs as Record<string, unknown>)["put_back"]).toBe(true);
+  });
+
+  it("a note due on a day is a day", async () => {
+    const me = await account();
+    const t = await thread(me, "Flat admin");
+    const { jobId } = await dumpFor(me);
+
+    const out = (await tool({
+      tool: "add_note", jobId, toolCallId: "t1", threadId: t, text: "Rent is due", dueAt: "2026-10-20",
+    })).json() as { ok: boolean };
+    expect(out.ok).toBe(true);
+    const note = await db.selectFrom("notes").select(["due_at", "attrs"]).where("subject_id", "=", t).executeTakeFirstOrThrow();
+    expect(note.due_at?.toISOString()).toBe("2026-10-20T12:00:00.000Z");
+    expect((note.attrs as Record<string, unknown> | null)?.["all_day"]).toBe(true);
   });
 });

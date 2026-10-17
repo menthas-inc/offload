@@ -98,7 +98,7 @@ export interface VendorRow {
 
 /** What the worker writes when the model let a job down, and when the
  *  transcription company did. From the closed set in `jobs/errors.ts`. */
-const MODEL_CODES = ["model_error", "invalid_output", "timeout", "nightly_error", "nightly_unparseable", "link_place_error"];
+const MODEL_CODES = ["model_error", "invalid_output", "timeout", "nightly_error", "nightly_unparseable", "memory_error", "memory_unparseable", "link_place_error"];
 const TRANSCRIPTION_CODES = ["transcription_failed", "forget_error"];
 
 /** The companies with no ledger of their own, and the jobs that call them.

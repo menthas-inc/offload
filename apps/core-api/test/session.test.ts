@@ -15,7 +15,7 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { completeFirstRun, CONSENT_VERSION } from "../src/routes/session.js";
-import { readCookie, seal, unseal, unsealAttempt } from "../src/auth/attempt.js";
+import { readCookie, seal, unsealAttempt } from "../src/auth/attempt.js";
 import { uuidv7 } from "../src/uuid.js";
 
 await migrate(() => {});
@@ -149,23 +149,23 @@ describe("the refused address a no-invite screen shows", () => {
   const now = 1_700_000_000_000;
 
   it("round trips", () => {
-    expect(unseal(seal("ana@example.com", now), now + 1000)).toBe("ana@example.com");
+    expect(unsealAttempt(seal("ana@example.com", now), now + 1000)?.email).toBe("ana@example.com");
   });
 
   it("refuses a tampered address", () => {
     const sealed = seal("ana@example.com", now);
     const [, expiresAt, mac] = sealed.split(".");
     const forged = `${Buffer.from("admin@example.com").toString("base64url")}.${expiresAt}.${mac}`;
-    expect(unseal(forged, now)).toBeNull();
+    expect(unsealAttempt(forged, now)).toBeNull();
   });
 
   it("refuses a tampered expiry", () => {
     const [encoded, , mac] = seal("ana@example.com", now).split(".");
-    expect(unseal(`${encoded}.${now + 999_999_999}.${mac}`, now)).toBeNull();
+    expect(unsealAttempt(`${encoded}.${now + 999_999_999}.${mac}`, now)).toBeNull();
   });
 
   it("expires", () => {
-    expect(unseal(seal("ana@example.com", now), now + 11 * 60 * 1000)).toBeNull();
+    expect(unsealAttempt(seal("ana@example.com", now), now + 11 * 60 * 1000)).toBeNull();
   });
 
   it("reads a cookie that is not valid percent-encoding as no cookie, not as a 500", () => {
@@ -178,7 +178,7 @@ describe("the refused address a no-invite screen shows", () => {
     const sealed = seal("ana@example.com", now, "disabled");
     expect(unsealAttempt(sealed, now)).toEqual({ email: "ana@example.com", reason: "disabled" });
     // The address alone still reads, for whoever asks for that.
-    expect(unseal(sealed, now)).toBe("ana@example.com");
+    expect(unsealAttempt(sealed, now)?.email).toBe("ana@example.com");
     // The reason cannot be added to, or taken off, a cookie that was not sealed with it.
     const [encoded, expiresAt, , mac] = sealed.split(".");
     expect(unsealAttempt(`${encoded}.${expiresAt}.${mac}`, now)).toBeNull();
@@ -195,7 +195,7 @@ describe("the refused address a no-invite screen shows", () => {
   });
 
   it("refuses malformed input rather than throwing", () => {
-    for (const value of ["", "a", "a.b", "a.b.c.d"]) expect(unseal(value, now)).toBeNull();
+    for (const value of ["", "a", "a.b", "a.b.c.d"]) expect(unsealAttempt(value, now)).toBeNull();
   });
 });
 
@@ -212,6 +212,13 @@ describe("AC-2 the avatar's two letters come from one rule", () => {
 
   it("takes two letters from a single name", () => {
     expect(initialsOf("Prince")).toBe("PR");
+  });
+
+  it("never splits a character in two", () => {
+    // A letter outside the basic plane is two UTF-16 units, and half of one is
+    // not a letter anywhere it is drawn.
+    expect(initialsOf("\u{1D49C}na Bo")).toBe("\u{1D49C}B");
+    expect(initialsOf("\u{1D49C}\u{1D49D}x")).toBe("\u{1D49C}\u{1D49D}");
   });
 
   it("invents nothing where there is no name", () => {

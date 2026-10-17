@@ -62,6 +62,7 @@ import {
 } from "../questions.js";
 import { foundFor } from "../search/found.js";
 import { memberOf } from "../threads/access.js";
+import { calendarSpan } from "../threads/dates.js";
 import { MAX_PDFS, MAX_PHOTOS } from "../blobs/photos.js";
 import { fileOnMessage, fileOnRow, fileToWire, type FileOnMessage } from "../blobs/wire.js";
 import { OverBudget, requireBudget } from "../budget.js";
@@ -2536,7 +2537,7 @@ export async function answerCalendarQuestion(
     const row = question.target_content_id
       ? await trx
           .selectFrom("content")
-          .select(["id", "thread_id", "title", "occurs_at", "occurs_end_at", "source_ref"])
+          .select(["id", "thread_id", "title", "occurs_at", "occurs_end_at", "source_ref", "attrs"])
           .where("id", "=", question.target_content_id)
           .where("deleted_at", "is", null)
           .forUpdate()
@@ -2550,7 +2551,7 @@ export async function answerCalendarQuestion(
       row && alsoIds.length > 0
         ? await trx
             .selectFrom("content")
-            .select(["id", "thread_id", "title", "occurs_at", "occurs_end_at", "source_ref"])
+            .select(["id", "thread_id", "title", "occurs_at", "occurs_end_at", "source_ref", "attrs"])
             .where("id", "in", alsoIds)
             .where("thread_id", "=", row.thread_id)
             .where("account_id", "=", accountId)
@@ -2688,8 +2689,7 @@ export async function answerCalendarQuestion(
     action: "create",
     draft: {
       title: row.title,
-      startsAt: row.occurs_at as Date,
-      endsAt: row.occurs_end_at ?? new Date((row.occurs_at as Date).getTime() + 60 * 60 * 1000),
+      ...calendarSpan(row.occurs_at as Date, row.occurs_end_at, row.attrs),
       location: null,
       attendees: [],
     },
@@ -2755,8 +2755,7 @@ export async function answerCalendarQuestion(
       action: "create",
       draft: {
         title: sibling.title,
-        startsAt: sibling.occurs_at as Date,
-        endsAt: sibling.occurs_end_at ?? new Date((sibling.occurs_at as Date).getTime() + 60 * 60 * 1000),
+        ...calendarSpan(sibling.occurs_at as Date, sibling.occurs_end_at, sibling.attrs),
         location: null,
         attendees: [],
       },

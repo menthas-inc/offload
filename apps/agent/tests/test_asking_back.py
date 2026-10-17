@@ -23,12 +23,14 @@ from offload_agent.worker import _questions_wire, describe_value, parse_answer
 
 from .test_plan import Recorder, Response, StubModel, TextBlock, ToolUse, ctx
 
+ROW = "3f2b1c4e-8a9d-4e5f-9a1b-2c3d4e5f6a7b"
+
 
 def ask(id_: str, **overrides) -> ToolUse:
     args = {
         "field": "span",
         "title": "Alfama flat",
-        "content_id": "c1",
+        "content_id": ROW,
         "options": [],
     }
     args.update(overrides)
@@ -39,15 +41,15 @@ def ask(id_: str, **overrides) -> ToolUse:
 
 
 def test_the_schema_is_values_and_a_title_and_nothing_free():
-    Ask.model_validate({"field": "date", "title": "gift for Ana", "content_id": "c1"})
+    Ask.model_validate({"field": "date", "title": "gift for Ana", "content_id": ROW})
     with pytest.raises(ValidationError):
-        Ask.model_validate({"field": "kind", "title": "x", "content_id": "c1"})
+        Ask.model_validate({"field": "kind", "title": "x", "content_id": ROW})
     with pytest.raises(ValidationError):
         Ask.model_validate(
             {
                 "field": "date",
                 "title": "x",
-                "content_id": "c1",
+                "content_id": ROW,
                 "options": [{"label": "a", "value": "a"}] * 5,
             }
         )
@@ -56,7 +58,7 @@ def test_the_schema_is_values_and_a_title_and_nothing_free():
             {
                 "field": "date",
                 "title": "x",
-                "content_id": "c1",
+                "content_id": ROW,
                 "options": [{"label": "l" * 25, "value": "a"}],
             }
         )
@@ -89,7 +91,7 @@ async def test_two_questions_are_kept_and_the_third_is_refused():
             Response(content=[TextBlock("")], stop_reason="end_turn"),
         ]
     )
-    tools = Recorder()
+    tools = Recorder([{"ok": True, "threadId": "t1", "threadName": "Flat admin", "contentId": ROW}])
     outcome = await plan(model, ctx(), "claude-sonnet-5", tools)
 
     assert len(outcome.questions) == MAX_QUESTIONS

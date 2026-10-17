@@ -260,7 +260,8 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
   for (const entry of plan.fold) {
     const olds = entry.ids.map((id) => byId.get(id));
     // Offload's own only: two of the person's sentences are theirs to merge.
-    if (olds.length < 2 || olds.some((old) => !old || old.origin !== "learned" || retired.has(old.id))) {
+    // Two different ones: [A, A] would rewrite A with no citation.
+    if (new Set(entry.ids).size < 2 || olds.some((old) => !old || old.origin !== "learned" || retired.has(old.id))) {
       out.ignored += 1;
       continue;
     }

@@ -17,7 +17,7 @@ import { enqueue, PRIORITY } from "../jobs/queue.js";
 import type { Database } from "../schema.js";
 import { record } from "./activity.js";
 import { additionsCopy, requestCopy, shareCopy, type Copy } from "./copy.js";
-import { GONE, PushFailed, push, type PushMessage } from "./push.js";
+import { deliver, type PushMessage } from "./push.js";
 import { liveTokens } from "./tokens.js";
 
 export const ADDITIONS_BUCKET_SECONDS = 10 * 60;
@@ -49,7 +49,8 @@ export async function noteAddition(threadId: string, authorId: string, at = new 
 }
 
 /** Send one copy to every token an account holds, dropping the tokens the
- *  service says are gone. Returns whether anything reached a phone. */
+ *  service says are gone (`deliver`). Returns whether anything reached a
+ *  phone. */
 async function sendTo(
   accountId: string,
   copy: Copy,
@@ -68,26 +69,9 @@ async function sendTo(
     channelId,
   }));
   const subject = await subjectOf(accountId);
-  let tickets;
-  try {
-    tickets = await push().send(messages);
-  } catch (error) {
-    if (error instanceof PushFailed) {
-      await emit({ name: "notification_failed", subjectId: subject, properties: { kind, status: error.status, code: error.code } });
-    }
-    throw error;
-  }
-  const gone = tickets.filter((ticket) => !ticket.ok && ticket.code === GONE).map((ticket) => ticket.token);
-  if (gone.length > 0) await db.deleteFrom("push_tokens").where("token", "in", gone).execute();
-  // A gone device drops its token; any other refusal fails the job with its
-  // code, so a send the service did not take is never recorded as sent.
-  const refused = tickets.find((ticket) => !ticket.ok && ticket.code !== GONE);
-  if (refused && !refused.ok) {
-    await emit({ name: "notification_failed", subjectId: subject, properties: { kind, status: 200, code: refused.code } });
-    throw new PushFailed(200, refused.code);
-  }
+  const delivered = await deliver(tokens, messages, subject, kind);
   await emit({ name: "notification_sent", subjectId: subject, properties: { kind } });
-  return tickets.some((ticket) => ticket.ok);
+  return delivered.length > 0;
 }
 
 /** A request or a share, checked at send time: still open, still delivered,

@@ -490,3 +490,50 @@ async def test_a_job_past_its_attempts_reports_the_failure_without_running_the_t
 
     assert touched == []
     assert posted == [{"outcome": "failed", "jobId": "j", "reason": "model_error"}]
+
+
+async def test_an_answer_that_read_four_times_posts_at_most_three_found(monkeypatch):
+    """The turn-result route caps `found` at three; a fourth read used to be a
+    400 that lost the finished answer."""
+    import contextlib
+    from types import SimpleNamespace
+
+    from offload_agent import worker as worker_mod
+    from offload_agent.harness.plan import Outcome
+    from offload_agent.queue import ClaimedJob
+
+    posted: list[dict] = []
+
+    class Engine:
+        @contextlib.asynccontextmanager
+        async def connect(self):
+            yield None
+
+    async def load_answer(*_a, **_k):
+        return None
+
+    async def plan_answer(*_a, **_k):
+        found = [{"threadId": None, "truncated": False, "contentIds": []} for _ in range(4)]
+        return Outcome(reply="Here.", found=found)
+
+    async def post(_http, _cfg, body, **_):
+        posted.append(body)
+
+    ctx = SimpleNamespace(
+        may_search=False, may_read_links=False, country_in_effect=None, today=None
+    )
+    monkeypatch.setattr(worker_mod.ctx_mod, "load_answer", load_answer)
+    monkeypatch.setattr(worker_mod.ctx_mod, "fit_answer", lambda loaded, _max: ctx)
+    monkeypatch.setattr(worker_mod, "plan_answer", plan_answer)
+    monkeypatch.setattr(worker_mod, "_post_result", post)
+
+    job = ClaimedJob(
+        id="j", kind="dump.answer", payload={}, account_id="a", attempts=1, max_attempts=5
+    )
+    async with httpx.AsyncClient() as http:
+        await worker_mod._handle_answer(
+            job, question="q", cfg=cfg(), engine=Engine(), anthropic=None, http=http
+        )
+
+    assert posted[0]["outcome"] == "answered"
+    assert len(posted[0]["found"]) == 3

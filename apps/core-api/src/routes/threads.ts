@@ -822,70 +822,80 @@ export async function setArchived(
   archived: boolean,
   // 2026-10-17. A person putting a row back keeps it out of the hourly pass
   // over what has passed; offload's own Undo of a calendar removal does not.
+  options: { byPerson?: boolean } = {},
+): Promise<void> {
+  await db.transaction().execute((trx) => setArchivedIn(trx, accountId, contentId, archived, options));
+}
+
+/** The archive itself, inside a transaction the caller owns. The model's
+ *  archive tool runs it inside the turn's, so both paths take the same steps. */
+export async function setArchivedIn(
+  trx: Transaction<Database>,
+  accountId: string,
+  contentId: string,
+  archived: boolean,
   { byPerson = true }: { byPerson?: boolean } = {},
 ): Promise<void> {
   // Restore is the Undo for delete as well as for archive, so it has to be able
   // to find a row inside its eight second window. Archive must not: archiving
   // something already on its way out is meaningless.
-  const ref = await requireReadable(accountId, contentId, db, !archived);
-  await db.transaction().execute(async (trx) => {
-    const before = await trx
-      .selectFrom("content")
-      .select(["deleted_at", "archived_at", "derived_from_message_id"])
-      .where("id", "=", ref.id)
-      .executeTakeFirstOrThrow();
+  const ref = await requireReadable(accountId, contentId, trx, !archived);
+  const before = await trx
+    .selectFrom("content")
+    .select(["deleted_at", "archived_at", "derived_from_message_id"])
+    .where("id", "=", ref.id)
+    .executeTakeFirstOrThrow();
 
-    // Undoing a delete is the author's, like the delete was. Un-archiving is
-    // co-owned, and this route serves both, so the row says which it is: a
-    // deleted row put back by somebody who did not write it is somebody
-    // else's contribution restored against its author's decision, the
-    // inverse of OFF-3 (security review 2026-09-22, M1).
-    if (!archived && before.deleted_at !== null && ref.authorId !== accountId && !unowned(ref)) {
-      throw new NotYours();
-    }
-    // Counted iff live. Both transitions read this once so a second archive of
-    // an archived row, or a restore of one already back, moves nothing.
-    const wasLive = before.deleted_at === null && before.archived_at === null;
+  // Undoing a delete is the author's, like the delete was. Un-archiving is
+  // co-owned, and this route serves both, so the row says which it is: a
+  // deleted row put back by somebody who did not write it is somebody
+  // else's contribution restored against its author's decision, the
+  // inverse of OFF-3 (security review 2026-09-22, M1).
+  if (!archived && before.deleted_at !== null && ref.authorId !== accountId && !unowned(ref)) {
+    throw new NotYours();
+  }
+  // Counted iff live. Both transitions read this once so a second archive of
+  // an archived row, or a restore of one already back, moves nothing.
+  const wasLive = before.deleted_at === null && before.archived_at === null;
 
+  await trx
+    .updateTable("content")
+    .set({
+      archived_at: archived ? sql`now()` : null,
+      ...(archived ? {} : { deleted_at: null, purge_after: null }),
+      // 2026-10-17. Put back by a person, so the hourly pass over what has
+      // passed leaves it where they put it.
+      ...(!archived && byPerson && before.archived_at !== null ? { attrs: sql`coalesce(attrs, '{}'::jsonb) || '{"put_back": true}'::jsonb` } : {}),
+      updated_at: sql`now()`,
+    })
+    .where("id", "=", ref.id)
+    .execute();
+  // 036. What the delete took comes back with the row: its files, and the
+  // message it came from with that message's own files and reply.
+  if (!archived && before.deleted_at !== null) {
+    await restoreFilesOfRow(trx, ref.id, before.deleted_at);
+    await restoreSourceOfRow(trx, before.derived_from_message_id);
+  }
+
+  // Restoring puts the count back. Without this an undo restores the row and
+  // leaves the header saying one fewer, which is AC-8 broken by the undo path
+  // rather than by the delete.
+  if (archived && wasLive) {
     await trx
-      .updateTable("content")
-      .set({
-        archived_at: archived ? sql`now()` : null,
-        ...(archived ? {} : { deleted_at: null, purge_after: null }),
-        // 2026-10-17. Put back by a person, so the hourly pass over what has
-        // passed leaves it where they put it.
-        ...(!archived && byPerson && before.archived_at !== null ? { attrs: sql`coalesce(attrs, '{}'::jsonb) || '{"put_back": true}'::jsonb` } : {}),
-        updated_at: sql`now()`,
-      })
-      .where("id", "=", ref.id)
+      .updateTable("threads")
+      .set({ content_count: sql`greatest(content_count - 1, 0)` })
+      .where("id", "=", ref.threadId)
       .execute();
-    // 036. What the delete took comes back with the row: its files, and the
-    // message it came from with that message's own files and reply.
-    if (!archived && before.deleted_at !== null) {
-      await restoreFilesOfRow(trx, ref.id, before.deleted_at);
-      await restoreSourceOfRow(trx, before.derived_from_message_id);
-    }
+  } else if (!archived && !wasLive) {
+    await trx
+      .updateTable("threads")
+      .set({ content_count: sql`content_count + 1` })
+      .where("id", "=", ref.threadId)
+      .execute();
+  }
 
-    // Restoring puts the count back. Without this an undo restores the row and
-    // leaves the header saying one fewer, which is AC-8 broken by the undo path
-    // rather than by the delete.
-    if (archived && wasLive) {
-      await trx
-        .updateTable("threads")
-        .set({ content_count: sql`greatest(content_count - 1, 0)` })
-        .where("id", "=", ref.threadId)
-        .execute();
-    } else if (!archived && !wasLive) {
-      await trx
-        .updateTable("threads")
-        .set({ content_count: sql`content_count + 1` })
-        .where("id", "=", ref.threadId)
-        .execute();
-    }
-
-    await touchThread(ref.threadId, trx);
-    await holdFloor(trx, { contentId: ref.id });
-  });
+  await touchThread(ref.threadId, trx);
+  await holdFloor(trx, { contentId: ref.id });
 }
 
 /** Move. The author's, like delete, because both change who can see something. */

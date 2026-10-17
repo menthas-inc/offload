@@ -1044,7 +1044,8 @@ class Ask(BaseModel):
     #: The row's own title, echoed into the template. Never a sentence.
     title: str = Field(min_length=1, max_length=60)
     #: The row the answer fills, from the contentId a filing returned.
-    #: Absent only for country, which fills nothing.
+    #: Absent only for country, which fills nothing. The Core API drops a
+    #: question whose id names no row it landed, so no shape check here.
     content_id: str | None = None
     #: Up to four values. A date or a span with nothing to offer sends none;
     #: the way out is added by the server.

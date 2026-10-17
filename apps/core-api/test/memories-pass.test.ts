@@ -222,6 +222,39 @@ describe("what a pass may write", () => {
     expect((await memoriesForPrompt(ana)).map((m) => m.text).sort()).toEqual(["Their daughter Leila is 4.", "They live in Montreal."]);
   });
 
+  it("ignores an entry that cites something by a name rather than an id, and keeps the rest of the pass", async () => {
+    // Each entry is checked on its own: one id the model got wrong is that
+    // entry ignored, not the whole night's pass refused at the door.
+    const ana = await account("Ana");
+    const one = await said(ana, "Leila is 4");
+    const jobId = await passJob(ana);
+    const result = await post({
+      jobId,
+      add: [
+        { kind: "people", text: "Their daughter Leila is 4.", cites: one },
+        { kind: "people", text: "Something nobody said.", cites: "m3" },
+      ],
+      supersede: [{ id: "k1", text: "Anything.", cites: one }],
+      fold: [{ ids: ["k1", "k2"], text: "Anything." }],
+    });
+    expect(result.json()).toMatchObject({ added: 1, superseded: 0, folded: 0 });
+  });
+
+  it("refuses a fold that names one memory twice, and leaves it as it was", async () => {
+    const ana = await account("Ana");
+    const one = await said(ana, "Leila is 4");
+    const learned = await db
+      .insertInto("notes")
+      .values({ account_id: ana, scope: "account", subject_id: ana, kind: "people", text: "Leila is their daughter.", origin: "learned", derived_from_message_id: one })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const jobId = await passJob(ana);
+    const result = await post({ jobId, fold: [{ ids: [learned.id, learned.id], text: "Their daughter Leila is 4." }] });
+    expect(result.json()).toMatchObject({ folded: 0, ignored: 1 });
+    const row = await db.selectFrom("notes").select(["text", "superseded_at"]).where("id", "=", learned.id).executeTakeFirstOrThrow();
+    expect(row).toEqual({ text: "Leila is their daughter.", superseded_at: null });
+  });
+
   it("does not supersede the person's own memory citing something they said before it", async () => {
     const ana = await account("Ana");
     const before = await said(ana, "we used to live in Ottawa", { hoursAgo: 3 });

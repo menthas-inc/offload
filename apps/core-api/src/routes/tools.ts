@@ -40,7 +40,7 @@ import { dayLabel, movedCopy } from "../notifications/copy.js";
 import { noteAddition } from "../notifications/people.js";
 import { accountFacts, listAgenda, listContent, search } from "../search/read.js";
 import { env } from "../env.js";
-import { isBareDate, parseWhen, plausible } from "../threads/dates.js";
+import { calendarSpan, isBareDate, parseWhen, plausible } from "../threads/dates.js";
 import {
   NOTE_BODY_CHARS,
   NOTE_TEXT_CHARS,
@@ -59,10 +59,9 @@ import {
   type Executor,
 } from "../threads/access.js";
 import {
-  editContent,
   moveContent,
   editThread,
-  setArchived,
+  setArchivedIn,
   setPreference,
 } from "./threads.js";
 import { calendarOfEvent, findEvents, summarise, writeThroughTool } from "../connectors/tool-calls.js";
@@ -986,9 +985,9 @@ async function markSawApps(jobId: string): Promise<void> {
 /** The three date fields, parsed once, refused as data rather than as a 400.
  *
  *  A malformed argument is a decision this endpoint makes, and the worker
- *  retries transport failures rather than decisions. Shared by `add_content`
- *  and `add_note` because two copies of a date policy is how two tools end up
- *  disagreeing about what a plausible year is.
+ *  retries transport failures rather than decisions. Shared by `add_content`,
+ *  `edit_content`, `add_note` and `edit_event` because two copies of a date
+ *  policy is how two tools end up disagreeing about what a plausible year is.
  *
  *  Null means refuse. `parseWhen` is deliberately generous about shape; see
  *  `../threads/dates.ts` for the production failure that taught us
@@ -1203,7 +1202,6 @@ async function existing(
   scopeThreadId: string | null,
 ): Promise<Outcome> {
   if (call.tool === "rename_thread") {
-    await requireMember(accountId, call.threadId, trx);
     await editThread(accountId, call.threadId, { name: call.name }, trx);
     return { ok: true, done: true };
   }
@@ -1372,7 +1370,8 @@ async function existing(
           occursAt: when.occursAt,
           occursEndAt: when.occursEndAt,
           dueAt: when.dueAt,
-          allDay: isBareDate(call.occursAt),
+          // A day when the date it carries has no time: its occurrence, else when it is due.
+          allDay: isBareDate(call.occursAt ?? call.dueAt),
           fromMessageId: messageId,
         },
         trx,
@@ -1433,8 +1432,18 @@ async function existing(
   }
 
   if (call.tool === "find_events") {
+    // Read as every other date a model writes, in their clock. A bare day
+    // bounds a window from its start, as it did when this read midnight UTC.
+    const zone = await zoneOf(accountId, trx);
+    const bound = (raw: string) => {
+      const at = parseWhen(isBareDate(raw) ? `${raw.trim()}T00:00:00` : raw, zone);
+      return at && plausible(at) ? at : null;
+    };
+    const from = bound(call.fromIso);
+    const to = bound(call.toIso);
+    if (!from || !to) return { ok: false, error: "bad_date" };
     await markSawApps(call.jobId);
-    const found = await findEvents(await turnScope(accountId, scopeThreadId), new Date(call.fromIso), new Date(call.toIso));
+    const found = await findEvents(await turnScope(accountId, scopeThreadId), from, to);
     return {
       ok: true,
       events: found.map((e) => ({ sourceRef: e.sourceRef, title: e.title, startsAt: e.startsAt, untrusted: e.untrusted, yours: e.yours })),
@@ -1450,7 +1459,7 @@ async function existing(
     if (!row || row.authorId !== accountId) return { ok: false, error: "unknown_content" };
     const detail = await trx
       .selectFrom("content")
-      .select(["title", "occurs_at", "occurs_end_at", "source_ref", "rrule"])
+      .select(["title", "occurs_at", "occurs_end_at", "source_ref", "rrule", "attrs"])
       .where("id", "=", row.id)
       .executeTakeFirstOrThrow();
     // Any turn's row. Until 2026-10-13 only a row this turn had filed was
@@ -1469,8 +1478,7 @@ async function existing(
       action: "create",
       draft: {
         title: detail.title,
-        startsAt: detail.occurs_at,
-        endsAt: detail.occurs_end_at ?? new Date(detail.occurs_at.getTime() + 60 * 60 * 1000),
+        ...calendarSpan(detail.occurs_at, detail.occurs_end_at, detail.attrs),
         location: call.location ?? null,
         attendees: call.guests ?? [],
         // 023. A repeating row goes up as the series it is, in the rule's
@@ -1537,6 +1545,9 @@ async function existing(
   if (call.tool === "edit_event" || call.tool === "delete_event") {
     const calendarId = await calendarOfEvent(accountId, call.sourceRef);
     if (!calendarId) return { ok: false, error: "unknown_event" };
+    // The new times, read as add_content reads them.
+    const when = call.tool === "edit_event" ? parseDates({ occursAt: call.startsAt, occursEndAt: call.endsAt }, await zoneOf(accountId, trx)) : null;
+    if (call.tool === "edit_event" && when === null) return { ok: false, error: "bad_date" };
     const write: WriteAction =
       call.tool === "edit_event"
         ? {
@@ -1545,8 +1556,8 @@ async function existing(
             scope: call.scope,
             patch: {
               ...(call.title == null ? {} : { title: call.title }),
-              ...(call.startsAt == null ? {} : { startsAt: new Date(call.startsAt) }),
-              ...(call.endsAt == null ? {} : { endsAt: new Date(call.endsAt) }),
+              ...(when?.occursAt ? { startsAt: when.occursAt } : {}),
+              ...(when?.occursEndAt ? { endsAt: when.occursEndAt } : {}),
               ...(call.location == null ? {} : { location: call.location }),
             },
           }
@@ -1583,30 +1594,9 @@ async function existing(
   }
 
   if (call.tool === "archive_content") {
-    // Only the transition writes, so archiving twice moves the count once.
-    // `readableContent` above never returns a deleted row, so a row here is
-    // live iff it is not archived, and `content_count` is what is live.
-    const changed = await trx
-      .updateTable("content")
-      .set({
-        archived_at: call.archived ? sql`now()` : null,
-        updated_at: sql`now()`,
-      })
-      .where("id", "=", ref.id)
-      .where("archived_at", call.archived ? "is" : "is not", null)
-      .executeTakeFirst();
-    if (Number(changed.numUpdatedRows) > 0) {
-      await trx
-        .updateTable("threads")
-        .set({
-          content_count: call.archived
-            ? sql`greatest(content_count - 1, 0)`
-            : sql`content_count + 1`,
-        })
-        .where("id", "=", ref.threadId)
-        .execute();
-    }
-    await touchThread(ref.threadId, trx);
+    // The person's archive, step for step: the count, `put_back` on a row
+    // put back so the hourly pass leaves it, and the share proposal re-checked.
+    await setArchivedIn(trx as Transaction<Database>, accountId, ref.id, call.archived);
     await noteThread(messageId, ref.threadId, true, trx);
     return { ok: true, done: true };
   }
@@ -1651,10 +1641,16 @@ async function existing(
   if (timed) {
     const held = await trx
       .selectFrom("content")
-      .select(["source_ref", "type", "title", "due_at", "occurs_at", "attrs"])
+      .select(["source_ref", "type", "title", "due_at", "occurs_at", "occurs_end_at", "attrs"])
       .where("id", "=", ref.id)
       .executeTakeFirstOrThrow();
     if (held.source_ref) return { ok: false, error: "already_on_calendar" };
+    // The span as the row will hold it, half from this call and half stored,
+    // refused as the person's route refuses it: an end left before a moved
+    // start is a row the hourly pass archives early.
+    const startsAfter = call.occursAt == null ? held.occurs_at : when.occursAt;
+    const endsAfter = call.occursEndAt == null ? held.occurs_end_at : when.occursEndAt;
+    if (endsAfter && (!startsAfter || endsAfter < startsAfter)) return { ok: false, error: "bad_date" };
     before = held;
     const given = held.type === "event" ? call.occursAt : call.dueAt;
     if (given != null) allDayGiven = isBareDate(given);

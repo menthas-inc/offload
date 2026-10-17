@@ -163,15 +163,26 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
 
 const ROLES = new Set(["owner", "writer", "reader", "freeBusyReader"]);
 
+/** Every calendar, every page, hidden ones included. The refresh deletes what
+ *  this does not return, with its picks and its copy, so a calendar left off
+ *  by Google's defaults (a hundred a page, hidden ones omitted) is lost. */
 export async function listCalendars(accessToken: string): Promise<GoogleCalendar[]> {
-  const response = await fetch(`${API}/users/me/calendarList?minAccessRole=freeBusyReader`, {
-    headers: { authorization: `Bearer ${accessToken}` },
-  });
-  if (response.status === 401) throw new GrantRevoked();
-  if (!response.ok) throw new Error(`google calendarList ${response.status}`);
+  const items: Array<Record<string, unknown>> = [];
+  let pageToken: string | null = null;
+  do {
+    const params = new URLSearchParams({ minAccessRole: "freeBusyReader", showHidden: "true", maxResults: "250" });
+    if (pageToken) params.set("pageToken", pageToken);
+    const response = await fetch(`${API}/users/me/calendarList?${params.toString()}`, {
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    if (response.status === 401) throw new GrantRevoked();
+    if (!response.ok) throw new Error(`google calendarList ${response.status}`);
+    const body = (await response.json()) as { items?: Array<Record<string, unknown>>; nextPageToken?: string };
+    items.push(...(body.items ?? []));
+    pageToken = body.nextPageToken ?? null;
+  } while (pageToken);
 
-  const body = (await response.json()) as { items?: Array<Record<string, unknown>> };
-  return (body.items ?? []).map((item) => {
+  return items.map((item) => {
     const role = String(item["accessRole"] ?? "reader");
     return {
       externalId: String(item["id"] ?? ""),
@@ -512,44 +523,41 @@ export async function deleteEvent(
 }
 
 /** One occurrence, as Google holds it. Read before a write so the outward test
- *  can see who was already invited. */
+ *  can see who was already invited, and before a split so the new series is
+ *  the old one moved rather than a guess at it.
+ *
+ *  **Absent and unreadable are not the same answer.** A failed read throws:
+ *  answering null told the outward test there were no attendees, which made
+ *  an invited event look private and skipped the confirmation. The caller
+ *  fails closed. */
 export async function getEvent(
   accessToken: string,
   calendarId: string,
   eventId: string
-): Promise<{
-  attendees: string[];
-  seriesId: string | null;
-  startsAt: Date | null;
-  /** The series' own rule lines. Needed to end a series without inventing one:
-   *  guessing FREQ=WEEKLY would rewrite a monthly event as a weekly one. */
-  recurrence: string[];
-} | null> {
-  try {
-    const event = await call(
-      accessToken,
-      "GET",
-      `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`
-    );
-    const start = event["start"] as Record<string, unknown> | undefined;
-    const when = typeof start?.["dateTime"] === "string" ? String(start["dateTime"]) : null;
-    return {
-      attendees: ((event["attendees"] as Array<Record<string, unknown>>) ?? [])
-        .map((a) => String(a["email"] ?? ""))
-        .filter(Boolean),
-      seriesId: typeof event["recurringEventId"] === "string" ? event["recurringEventId"] : null,
-      startsAt: when ? new Date(when) : null,
-      recurrence: Array.isArray(event["recurrence"])
-        ? (event["recurrence"] as unknown[]).map(String)
-        : [],
-    };
-  } catch (error) {
-    // **Absent and unreadable are not the same answer**, and collapsing them
-    // was a hole. `call` returns `{}` for a 404 on a delete and throws
-    // otherwise, so anything reaching here is a failure to read rather than an
-    // event that is not there. Returning null told the outward test there were
-    // no attendees, which made an invited event look private and skipped the
-    // confirmation. It throws now and the caller fails closed.
-    throw error;
-  }
+): Promise<
+  | (Pick<GoogleEvent, "seriesId" | "startsAt" | "endsAt" | "allDay" | "timezone" | "title" | "location"> & {
+      attendees: string[];
+      /** The series' own rule lines. Needed to end a series without inventing one:
+       *  guessing FREQ=WEEKLY would rewrite a monthly event as a weekly one. */
+      recurrence: string[];
+    })
+  | null
+> {
+  const item = await call(
+    accessToken,
+    "GET",
+    `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`
+  );
+  const event = eventOf(item);
+  return {
+    attendees: event.attendees.map((a) => a.email ?? "").filter(Boolean),
+    seriesId: event.seriesId,
+    startsAt: event.startsAt,
+    endsAt: event.endsAt,
+    allDay: event.allDay,
+    timezone: event.timezone,
+    title: event.title,
+    location: event.location,
+    recurrence: Array.isArray(item["recurrence"]) ? (item["recurrence"] as unknown[]).map(String) : [],
+  };
 }

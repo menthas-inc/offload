@@ -87,6 +87,16 @@ describe("AC-5 what a name is allowed to be", () => {
     }
   });
 
+  it("refuses control and direction characters", () => {
+    // A NUL is a byte Postgres refuses, which made a 500 of a typo, and a
+    // direction override makes a name read backwards to everybody in a shared
+    // thread.
+    for (const name of ["Ana\u0000", "Ana\u0007", "Ana\u007f", "Ana\u0085", "\u202eevil", "Ana\u202a", "Ana\u2066", "Ana\u2069"]) {
+      expect(cleanName(name)).toBeNull();
+    }
+    expect(cleanName("Zoë Ó Briain")).toBe("Zoë Ó Briain");
+  });
+
   it("refuses past sixty, measured after trimming", () => {
     expect(cleanName("a".repeat(NAME_MAX))).toHaveLength(NAME_MAX);
     expect(cleanName("a".repeat(NAME_MAX + 1))).toBeNull();

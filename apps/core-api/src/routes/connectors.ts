@@ -16,7 +16,6 @@ import {
   GrantRevoked,
   grantsAcl,
   listCalendars,
-  revoke,
 } from "../connectors/google.js";
 import { calendarName, refreshCalendars } from "../connectors/calendars.js";
 import { openState, pkce, sealState, LANDINGS, type Landing } from "../connectors/state.js";
@@ -219,9 +218,9 @@ export async function connectorRoutes(app: App): Promise<void> {
         });
 
         // The list, the colours and the participant counts, from the one
-        // function the full pass also runs. Every calendar comes in unticked:
-        // connecting is not consenting to all of them.
-        if (connectionId) await refreshCalendars(connectionId, tokens.accessToken);
+        // function the full pass also runs, handed the list read above. Every
+        // calendar comes in unticked: connecting is not consenting to all of them.
+        if (connectionId) await refreshCalendars(connectionId, tokens.accessToken, calendars);
 
         return reply.redirect(landingUrl(opened.landing, "connected"));
       } catch (error) {

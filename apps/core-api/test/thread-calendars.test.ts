@@ -759,6 +759,95 @@ describe("AC-11 where a write goes", () => {
     expect(found.events.map((e) => [e.title, e.startsAt])).toEqual([["Dentist appointment", new Date(STARTS).toISOString()]]);
   });
 
+  it("a time with no zone is read in the account's clock, for a change and for a read", async () => {
+    // add_content reads "15:00" in their zone; edit_event and find_events
+    // read it in the server's, which is UTC in production. Tokyo, so the
+    // answer differs from both UTC and the clock of whoever runs this.
+    const me = await account();
+    const t = await thread(me);
+    await db.updateTable("accounts").set({ time_zone: "Asia/Tokyo" }).where("id", "=", me).execute();
+    await pick(t, await calendar(await connection(me), { externalId: "cal-mine" }), me);
+    const turn = await readTurn(me, t);
+
+    const found = (await tool({
+      tool: "find_events", jobId: turn.jobId, toolCallId: "z1", fromIso: "2026-09-23T00:30:00", toIso: "2026-09-23T01:30:00",
+    })).json() as { events: Array<{ title: string }> };
+    expect(found.events.map((e) => e.title)).toEqual(["Dentist appointment"]);
+
+    const moved = (await tool({
+      tool: "edit_event", jobId: turn.jobId, toolCallId: "z2", sourceRef: turn.sourceRef, scope: "one",
+      startsAt: "2026-10-20T15:00", endsAt: "2026-10-20T16:00",
+    })).json() as Record<string, unknown>;
+    expect(moved["written"]).toBe(true);
+    const [, , , patch] = google.patchEvent.mock.calls[0] as unknown as [string, string, string, Record<string, { dateTime?: string }>];
+    expect(patch["start"]?.dateTime).toBe("2026-10-20T06:00:00.000Z");
+    expect(patch["end"]?.dateTime).toBe("2026-10-20T07:00:00.000Z");
+  });
+
+  it("a day name where a date goes is refused by name, never a 500", async () => {
+    const me = await account();
+    const t = await thread(me);
+    await pick(t, await calendar(await connection(me)), me);
+    const turn = await readTurn(me, t);
+
+    const read = await tool({ tool: "find_events", jobId: turn.jobId, toolCallId: "y1", fromIso: "Friday", toIso: "2026-09-28T00:00:00Z" });
+    expect([read.statusCode, read.json()]).toEqual([200, { ok: false, error: "bad_date" }]);
+    const change = await tool({
+      tool: "edit_event", jobId: turn.jobId, toolCallId: "y2", sourceRef: turn.sourceRef, scope: "one", startsAt: "Friday",
+    });
+    expect([change.statusCode, change.json()]).toEqual([200, { ok: false, error: "bad_date" }]);
+    expect(google.patchEvent).not.toHaveBeenCalled();
+  });
+
+  it("an all-day row goes up as days, its end the day after its last", async () => {
+    // Stored at noon UTC with attrs.all_day, it went to Google as a one-hour
+    // event at noon UTC. Google's all-day end is exclusive.
+    const me = await account();
+    const t = await thread(me);
+    await pick(t, await calendar(await connection(me)), me);
+    const { jobId, messageId } = await dump(me, t);
+    const days = async (title: string, end: string | null) =>
+      (await db
+        .insertInto("content")
+        .values({
+          account_id: me, thread_id: t, type: "event", title, derived_from_message_id: messageId,
+          occurs_at: new Date("2026-10-24T12:00:00Z"), occurs_end_at: end ? new Date(end) : null,
+          attrs: JSON.stringify({ all_day: true }),
+        })
+        .returning("id").executeTakeFirstOrThrow()).id;
+    await tool({ tool: "create_event", jobId, toolCallId: "a1", contentId: await days("Lisbon weekend", "2026-10-25T12:00:00Z") });
+    await tool({ tool: "create_event", jobId, toolCallId: "a2", contentId: await days("Market day", null) });
+
+    const drafts = google.createEvent.mock.calls.map((c) => (c as unknown as [string, string, { allDay?: boolean; startsAt: Date; endsAt: Date }])[2]);
+    expect(drafts.map((d) => [d.allDay, d.startsAt.toISOString().slice(0, 10), d.endsAt.toISOString().slice(0, 10)])).toEqual([
+      [true, "2026-10-24", "2026-10-26"],
+      [true, "2026-10-24", "2026-10-25"],
+    ]);
+  });
+
+  it("an all-day row a tapped calendar puts up goes as days too", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    await calendar(n, { summary: "Home" });
+    await calendar(n, { summary: "Work" });
+    const { jobId, messageId } = await dump(me, t);
+    const contentId = (await db
+      .insertInto("content")
+      .values({
+        account_id: me, thread_id: t, type: "event", title: "Market day", derived_from_message_id: messageId,
+        occurs_at: new Date("2026-10-24T12:00:00Z"), attrs: JSON.stringify({ all_day: true }),
+      })
+      .returning("id").executeTakeFirstOrThrow()).id;
+    expect((await tool({ tool: "create_event", jobId, toolCallId: "b1", contentId })).json()).toEqual({ ok: true, asked: true });
+    const q = await db.selectFrom("questions").select("id").where("target_content_id", "=", contentId).executeTakeFirstOrThrow();
+
+    const response = await app.inject({ method: "POST", url: `/v1/questions/${q.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 0 } });
+    expect(response.statusCode).toBe(200);
+    const [, , draft] = google.createEvent.mock.calls[0] as unknown as [string, string, { allDay?: boolean; startsAt: Date; endsAt: Date }];
+    expect([draft.allDay, draft.startsAt.toISOString().slice(0, 10), draft.endsAt.toISOString().slice(0, 10)]).toEqual([true, "2026-10-24", "2026-10-25"]);
+  });
+
   it("after a read, a removal Undo cannot take back still waits, and says why in its own words", async () => {
     // "This and all following" ends a series. Nothing is kept that could put
     // a year of it back, so a turn that read a calendar puts it to them.

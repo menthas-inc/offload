@@ -1330,6 +1330,14 @@ def _task(id_="a", **extra):
     )
 
 
+#: A row id in the shape `ask` takes, returned for the first filing by `_landed`.
+ROW = "3f2b1c4e-8a9d-4e5f-9a1b-2c3d4e5f6a7b"
+
+
+def _landed() -> Recorder:
+    return Recorder([{"ok": True, "threadId": "t1", "threadName": "Flat admin", "contentId": ROW}])
+
+
 def _closer():
     return Response(content=[TextBlock("ignored")], stop_reason="end_turn")
 
@@ -1369,7 +1377,7 @@ async def test_a_could_not_do_said_before_anything_was_done_keeps_the_turn_going
 
 
 async def test_an_ask_past_the_cap_keeps_the_turn_going():
-    ask = {"field": "date", "title": "Renew permit", "content_id": "c1"}
+    ask = {"field": "date", "title": "Renew permit", "content_id": ROW}
     model = StubModel(
         [
             Response(content=[_task()], stop_reason="tool_use"),
@@ -1385,7 +1393,7 @@ async def test_an_ask_past_the_cap_keeps_the_turn_going():
         ]
     )
 
-    await plan(model, ctx(), "claude-sonnet-5", Recorder())
+    await plan(model, ctx(), "claude-sonnet-5", _landed())
 
     assert len(model.requests) == 3
 
@@ -1581,7 +1589,7 @@ def test_every_tool_is_decided_for_the_loop_end():
 async def test_an_ask_only_response_naming_a_landed_row_ends_the_turn():
     """The prompt puts every question in one response, after every filing, so
     an ask-only response about a row that landed has nothing left to read."""
-    ask = {"field": "date", "title": "Renew permit", "content_id": "c1"}
+    ask = {"field": "date", "title": "Renew permit", "content_id": ROW}
     model = StubModel(
         [
             Response(content=[_task()], stop_reason="tool_use"),
@@ -1590,7 +1598,7 @@ async def test_an_ask_only_response_naming_a_landed_row_ends_the_turn():
         ]
     )
 
-    outcome = await plan(model, ctx(), "claude-sonnet-5", Recorder())
+    outcome = await plan(model, ctx(), "claude-sonnet-5", _landed())
 
     assert len(model.requests) == 2
     assert outcome.finished
@@ -1598,7 +1606,7 @@ async def test_an_ask_only_response_naming_a_landed_row_ends_the_turn():
 
 
 async def test_an_ask_naming_a_row_that_never_landed_keeps_the_turn_going():
-    ask = {"field": "date", "title": "Renew permit", "content_id": "c9"}
+    ask = {"field": "date", "title": "Renew permit", "content_id": ROW}
     model = StubModel(
         [
             Response(content=[_task()], stop_reason="tool_use"),
@@ -1616,7 +1624,7 @@ async def test_an_ask_beside_a_filing_keeps_the_turn_going_without_tier_two():
     from offload_agent.harness import plan as plan_module
 
     assert plan_module.END_AFTER_CLEAN_WRITES is False
-    ask = {"field": "date", "title": "Renew permit", "content_id": "c1"}
+    ask = {"field": "date", "title": "Renew permit", "content_id": ROW}
     model = StubModel(
         [
             Response(content=[_task()], stop_reason="tool_use"),
@@ -1628,7 +1636,7 @@ async def test_an_ask_beside_a_filing_keeps_the_turn_going_without_tier_two():
         ]
     )
 
-    await plan(model, ctx(), "claude-sonnet-5", Recorder())
+    await plan(model, ctx(), "claude-sonnet-5", _landed())
 
     assert len(model.requests) == 3
 

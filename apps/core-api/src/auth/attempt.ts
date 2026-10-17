@@ -137,11 +137,6 @@ export function unsealAttempt(value: string, now: number): { email: string; reas
   return { email: Buffer.from(encoded, "base64url").toString("utf8"), reason: (reason as AttemptReason | undefined) ?? null };
 }
 
-/** The address alone. */
-export function unseal(value: string, now: number): string | null {
-  return unsealAttempt(value, now)?.email ?? null;
-}
-
 export function readCookie(header: string | undefined, name: string): string | null {
   if (!header) return null;
   for (const pair of header.split(";")) {

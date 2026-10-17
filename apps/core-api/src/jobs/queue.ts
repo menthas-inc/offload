@@ -10,6 +10,7 @@ import { db } from "./../db.js";
 import type { Database } from "./../schema.js";
 import type { Kysely, Transaction } from "kysely";
 import { codeOf } from "./errors.js";
+import { databaseNow } from "./clock.js";
 
 /** Every kind anything enqueues, across both runners.
  *
@@ -311,13 +312,15 @@ export async function scheduleDaily(kind: JobKind, at = new Date()): Promise<voi
   });
 }
 
-/** Kick the daily chain off at boot, for today rather than tomorrow.
- *
- *  Safe to call on every instance and every restart: the key is the day. */
 /** 024. The hourly placer re-arms itself on the hour, keyed on the hour so a
- *  second instance or a restart collapses into the row that exists. */
-export async function scheduleHourly(kind: JobKind, at = new Date()): Promise<void> {
-  const next = new Date(Math.floor(at.getTime() / 3_600_000) * 3_600_000 + 3_600_000);
+ *  second instance or a restart collapses into the row that exists.
+ *
+ *  Counted on the database's clock, the one that claimed the row: on Node's,
+ *  a few milliseconds behind, the row booked for 11:00 reads as 10:59:59.995,
+ *  the next hour comes out as its own key, and the chain ends there. */
+export async function scheduleHourly(kind: JobKind, at?: Date): Promise<void> {
+  const from = at ?? (await databaseNow());
+  const next = new Date(Math.floor(from.getTime() / 3_600_000) * 3_600_000 + 3_600_000);
   await enqueue({
     kind,
     payload: {},
@@ -339,6 +342,9 @@ export async function startHourly(kind: JobKind, at = new Date()): Promise<void>
   });
 }
 
+/** Kick the daily chain off at boot, for today rather than tomorrow.
+ *
+ *  Safe to call on every instance and every restart: the key is the day. */
 export async function startDaily(kind: JobKind, at = new Date()): Promise<void> {
   await enqueue({
     kind,

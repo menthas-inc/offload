@@ -5,11 +5,11 @@
 // **Placed an hour ahead, decided when it runs.** The hourly pass finds the
 // accounts with something timed in the next two hours, asks `plan()` which of
 // their reminders fall in the coming hour, and enqueues one job each, keyed
-// on the thing, the occurrence and the window so a restart or a second
-// instance places it once. The job holds ids, a day and an instant and never
-// a word (OFF-1); when it runs it reads the thing again and plans it again,
-// and sends only if the same moment still comes out, so a tick, a moved date,
-// a stop or a membership ended needs nothing cancelled.
+// on the thing and the instant so a restart or a second instance places it
+// once. The job holds ids, a day and an instant and never a word (OFF-1);
+// when it runs it reads the thing again and plans it again, and sends only if
+// the same moment still comes out, so a tick, a moved date, a stop or a
+// membership ended needs nothing cancelled.
 
 import { sql } from "kysely";
 import { CHANNEL_REMINDERS } from "@offload/widgets";
@@ -19,7 +19,7 @@ import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { record } from "./activity.js";
 import { ownCopy } from "./copy.js";
-import { GONE, PushFailed, push, type PushMessage } from "./push.js";
+import { deliver, RECEIPTS_AFTER_SECONDS, type PushMessage } from "./push.js";
 import { liveTokens } from "./tokens.js";
 import { clockOf, placed } from "./reminders.js";
 
@@ -27,7 +27,6 @@ import { clockOf, placed } from "./reminders.js";
  *  a reminder late is worse than none. */
 export const OWN_LATE_MS = 15 * 60_000;
 const HOUR_MS = 3_600_000;
-const RECEIPTS_AFTER_SECONDS = 15 * 60;
 
 export interface OwnPayload {
   of: "content" | "note";
@@ -55,7 +54,7 @@ async function accountsDue(now: Date): Promise<string[]> {
          or exists (select 1 from notes n
                      where n.account_id = a.id and n.scope = 'thread' and n.deleted_at is null
                        and coalesce((n.attrs ->> 'all_day')::boolean, false) = false
-                       and (n.occurs_at between ${from}::timestamptz and ${to}::timestamptz or n.rrule is not null))
+                       and (coalesce(n.occurs_at, n.due_at) between ${from}::timestamptz and ${to}::timestamptz or n.rrule is not null))
        )
   `.execute(db);
   return result.rows.map((row) => row.id);
@@ -78,7 +77,9 @@ export async function scheduleOwn(now = new Date()): Promise<number> {
         payload: payload as unknown as Record<string, unknown>,
         priority: PRIORITY.scheduled,
         runAfter: slot.instant,
-        idempotencyKey: `reminder.own:${candidate.id}:${slot.occurrence}:${slot.window}`,
+        // On the instant: a thing moved later the same day is a new moment,
+        // and the old job finds nothing at its own when it runs.
+        idempotencyKey: `reminder.own:${candidate.id}:${slot.instant.toISOString()}`,
         maxAttempts: 2,
       });
       count += 1;
@@ -120,24 +121,7 @@ export async function runOwn(accountId: string, raw: Record<string, unknown>, no
 
   const data = { kind: "reminder", threadId: candidate.threadId, ...(candidate.of === "content" ? { contentId: candidate.id } : { noteId: candidate.id }) };
   const messages: PushMessage[] = tokens.map((one) => ({ to: one.token, title: copy.title, body: copy.body, data, channelId: CHANNEL_REMINDERS }));
-  let tickets;
-  try {
-    tickets = await push().send(messages);
-  } catch (error) {
-    if (error instanceof PushFailed) {
-      await emit({ name: "notification_failed", subjectId: subject, properties: { kind: "reminder", status: error.status, code: error.code } });
-    }
-    throw error;
-  }
-  const gone = tickets.filter((ticket) => !ticket.ok && ticket.code === GONE).map((ticket) => ticket.token);
-  if (gone.length > 0) await db.deleteFrom("push_tokens").where("token", "in", gone).execute();
-  const refused = tickets.find((ticket) => !ticket.ok && ticket.code !== GONE);
-  if (refused && !refused.ok) {
-    await emit({ name: "notification_failed", subjectId: subject, properties: { kind: "reminder", status: 200, code: refused.code } });
-    throw new PushFailed(200, refused.code);
-  }
-  const idOf = new Map(tokens.map((one) => [one.token, one.id]));
-  const delivered = tickets.flatMap((ticket) => (ticket.ok && idOf.has(ticket.token) ? [{ id: ticket.id, tokenId: idOf.get(ticket.token)! }] : []));
+  const delivered = await deliver(tokens, messages, subject, "reminder");
   if (delivered.length > 0) {
     await enqueue({
       kind: "push.receipts",
@@ -145,7 +129,7 @@ export async function runOwn(accountId: string, raw: Record<string, unknown>, no
       payload: { tickets: delivered },
       priority: PRIORITY.background,
       runAfterSeconds: RECEIPTS_AFTER_SECONDS,
-      idempotencyKey: `push.receipts:${accountId}:reminder:${payload.id}:${payload.occurrence}`,
+      idempotencyKey: `push.receipts:${accountId}:reminder:${payload.id}:${payload.at}`,
     });
   }
   const id = await record(accountId, { kind: "reminder", sent: true, ...copy, ...where });

@@ -428,6 +428,37 @@ describe("deleting an account", () => {
     expect(await db.selectFrom("accounts").select("id").where("id", "=", me.id).execute()).toHaveLength(0);
   });
 
+  // A disabled owner cannot open the panel, so it is not somebody the panel
+  // still has. The admin paths count it the same way.
+  it("refuses the last working owner when the other owner is disabled", async () => {
+    const me = await person("Jo");
+    const sam = await person("Sam");
+    await db.insertInto("staff").values({ account_id: me.id, role: "owner", created_at: new Date() }).execute();
+    await db.insertInto("staff").values({ account_id: sam.id, role: "owner", created_at: new Date() }).execute();
+    await db.updateTable("accounts").set({ state: "disabled" }).where("id", "=", sam.id).execute();
+    await expect(deleteAccount(me.id)).rejects.toBeInstanceOf(LastOwner);
+    expect(await db.selectFrom("accounts").select("id").where("id", "=", me.id).execute()).toHaveLength(1);
+
+    // And the disabled one can still go while a working owner stays.
+    await expect(deleteAccount(sam.id)).resolves.toMatchObject({ deleted: true });
+  });
+
+  // The scheduled delete reads the mark before it calls this, unlocked, so a
+  // cancel can land in between. The mark is read again under the lock.
+  it("deletes nothing when asked to delete only a marked account and the mark was cleared", async () => {
+    const me = await person("Jo");
+    await db.updateTable("accounts").set({ delete_after: sql`now() - interval '1 minute'` }).where("id", "=", me.id).execute();
+    await db.updateTable("accounts").set({ delete_after: null }).where("id", "=", me.id).execute();
+    await expect(deleteAccount(me.id, { onlyIfMarked: true })).resolves.toEqual({ deleted: false, email: null });
+    expect(await db.selectFrom("accounts").select("id").where("id", "=", me.id).execute()).toHaveLength(1);
+  });
+
+  it("deletes a marked account whose time has come when asked to delete only a marked one", async () => {
+    const me = await person("Jo");
+    await db.updateTable("accounts").set({ delete_after: sql`now() - interval '1 minute'` }).where("id", "=", me.id).execute();
+    await expect(deleteAccount(me.id, { onlyIfMarked: true })).resolves.toMatchObject({ deleted: true });
+  });
+
   // The decision "nobody else is in it" is only good while the thread is
   // locked: accepting a share locks the thread row, so the delete has to as
   // well, or it deletes a thread somebody joined while it was deciding.

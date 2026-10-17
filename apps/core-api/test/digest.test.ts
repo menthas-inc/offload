@@ -340,6 +340,29 @@ describe("024 review of 2026-09-22: what fails a send, and what a cap drops", ()
     expect(await db.selectFrom("jobs").select("id").where("kind", "=", "push.receipts").execute()).toEqual([]);
   });
 
+  it("one phone refused and one reached: no throw, the send is recorded, and the receipt is read for the one that took it", async () => {
+    const me = await account();
+    await reminder(me, await thread([me]), "Pay the rent", TODAY);
+    const took = await token(me);
+    const refusing = await token(me);
+    const send = memory.send;
+    memory.send = async (messages) =>
+      messages.map((message, i) =>
+        message.to === refusing ? { token: message.to, ok: false as const, code: "MismatchSenderId" } : { token: message.to, ok: true as const, id: `t${i}` },
+      );
+    try {
+      expect(await runDigest(me, "morning", TODAY, at(`${TODAY}T07:00:00Z`), at(`${TODAY}T07:00:10Z`))).toBe("sent");
+    } finally {
+      memory.send = send;
+    }
+    expect((await activityOf(me)).map((row) => row.sent)).toEqual([true]);
+    const failed = await db.selectFrom("analytics_events").select("properties").where("name", "=", "notification_failed").execute();
+    expect(failed.map((event) => event.properties)).toEqual([{ kind: "digest", status: 200, code: "MismatchSenderId" }]);
+    const receipts = await db.selectFrom("jobs").select("payload").where("kind", "=", "push.receipts").where("account_id", "=", me).execute();
+    const tokenId = await db.selectFrom("push_tokens").select("id").where("token", "=", took).executeTakeFirstOrThrow();
+    expect(receipts.map((job) => job.payload)).toEqual([{ tickets: [{ id: expect.any(String), tokenId: tokenId.id }] }]);
+  });
+
   // The verbs are for a task due today. A lone overdue row is named since
   // 2026-09-30, and still carries none: Tomorrow on a row a week late would
   // be a second date change the notification never offered.
