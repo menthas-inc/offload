@@ -18,7 +18,7 @@
 import { useEffect } from "react";
 import { useShareIntent } from "expo-share-intent";
 import { useConversation } from "./conversation-context";
-import { isPdf } from "../../lib/dump";
+import { isPdf } from "@offload/widgets";
 import { takeShared } from "../../lib/shared-in";
 
 export function ShareArrival() {

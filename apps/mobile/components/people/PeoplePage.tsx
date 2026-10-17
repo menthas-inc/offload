@@ -37,12 +37,13 @@ import {
   type PeoplePage as Page,
   type RequestCard as Card,
 } from "../../lib/people";
+import { useClock } from "../../lib/clock";
 
 const isAndroid = Platform.OS === "android";
 
 /** "Pending since 4 Aug". */
-export function sinceLabel(iso: string): string {
-  return `Pending since ${dayMonth(iso)}`;
+export function sinceLabel(iso: string, zone: string | null): string {
+  return `Pending since ${dayMonth(iso, zone)}`;
 }
 
 function sharedNote(row: ConnectionRow): string {
@@ -73,6 +74,7 @@ function usePeople() {
 export function PeoplePage() {
   const router = useRouter();
   const { page, failed, load } = usePeople();
+  const { zone } = useClock();
   const [withdrawing, setWithdrawing] = useState<Card | null>(null);
   const [busy, setBusy] = useState(false);
   const [withdrawFailed, setWithdrawFailed] = useState(false);
@@ -166,7 +168,7 @@ export function PeoplePage() {
               <PersonRow
                 key={card.id}
                 person={card}
-                note={sinceLabel(card.since)}
+                note={sinceLabel(card.since, zone)}
                 pill="Withdraw"
                 onPress={() => {
                   setWithdrawFailed(false);

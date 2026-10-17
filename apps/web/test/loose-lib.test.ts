@@ -303,7 +303,7 @@ describe("the calls (AC-12, AC-16, AC-20 to AC-23, AC-32)", () => {
 
 describe("a turn that filed only where no thread is named (AC-27)", () => {
   it("still draws Done, with no pill", async () => {
-    const { turnDid } = await import("../src/lib/dump");
+    const { turnDid } = await import("@offload/widgets");
     // 028: Done is what the server says was filed, loose included; a move's
     // source in `changed` alone is not a filing.
     expect(turnDid({ threads: [], changed: ["tdefault"], filed: true })).toBe(true);
@@ -314,7 +314,7 @@ describe("a turn that filed only where no thread is named (AC-27)", () => {
   });
 
   it("offers Undo for anything the turn changed, filed or not", async () => {
-    const { turnUndoable } = await import("../src/lib/dump");
+    const { turnUndoable } = await import("@offload/widgets");
     // A move out of a thread, or a delete, files nothing and still changed
     // something a person may want back.
     expect(turnUndoable({ threads: [], changed: ["tsource"], filed: false })).toBe(true);

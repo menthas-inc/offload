@@ -15,18 +15,15 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { MAX_PDFS, clipMiddle, isPdf, takeFiles } from "@offload/widgets";
 import {
-  MAX_PDFS,
   PhotoRefused,
-  clipMiddle,
   draftName,
-  isPdf,
   openPdf,
   openPdfSaying,
   pdfUrl,
   retryPdf,
   refuseFile,
-  takeFiles,
   uploadPhoto,
 } from "../src/lib/dump";
 import { AttachChip } from "../src/components/shell/AttachChip";

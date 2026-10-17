@@ -30,6 +30,7 @@ import {
   stateOfLookup,
   type Found,
 } from "../../lib/people";
+import { useClock } from "../../lib/clock";
 
 const isAndroid = Platform.OS === "android";
 
@@ -42,9 +43,9 @@ export type StepState =
   | { kind: "failed" };
 
 /** "Pending since 4 Aug". */
-function since(iso: string | null): string {
+function since(iso: string | null, zone: string | null): string {
   if (!iso) return "Pending";
-  return `Pending since ${dayMonth(iso)}`;
+  return `Pending since ${dayMonth(iso, zone)}`;
 }
 
 /** The step's state and its three writes. `onChanged` runs after anything
@@ -178,6 +179,7 @@ function FoundRow({
 }) {
   const router = useRouter();
   const COLOR = useColors();
+  const { zone } = useClock();
   const first = firstNameOf(found);
   const trailing = (() => {
     if (dismissed) return <Value>Not now</Value>;
@@ -187,7 +189,7 @@ function FoundRow({
       case "connected":
         return <Value>Already connected</Value>;
       case "you_asked":
-        return <Value>{since(found.since)}</Value>;
+        return <Value>{since(found.since, zone)}</Value>;
       case "asked_you":
         return (
           <View className="flex-row items-center gap-space-2">

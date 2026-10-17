@@ -185,3 +185,11 @@ export function withMadeLabels<P extends { labels?: string[] }, S>(
     },
   };
 }
+
+/** The words a label refusal says, beside the control that was pressed. */
+export function refusalLine(error: string | null, name?: string): string {
+  if (error === "label_taken") return `${name ?? "That"} is already a label here.`;
+  if (error === "label_limit") return "A thread holds ten labels.";
+  if (error === "label_gone") return "That label was deleted.";
+  return "Couldn't save that.";
+}

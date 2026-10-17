@@ -32,14 +32,11 @@ import {
   cancelTurn,
   uploadPhoto,
   refuseFile,
-  takeFiles,
   draftName,
-  isPdf,
   openPdfSaying,
   settledPhotos,
   PhotoRefused,
   UnknownBlob,
-  MAX_PHOTOS,
   type Answer,
   type FoundResult,
   type FoundRow,
@@ -49,9 +46,6 @@ import {
   type Sent,
   type WaitingOn,
   type TouchedThread,
-  answeredWaiting,
-  turnDid,
-  turnUndoable,
   uploadVoice,
   VoiceRefused,
   type VoiceOnWire,
@@ -65,7 +59,7 @@ import { DayUsed } from "./DayUsed";
 import { BAR_PITCH_PX, Recorder, recorderSupported, type Recording } from "../../lib/recorder";
 import { Mentions, mentionQuery, withMention } from "../people/Mentions";
 import { HashList } from "../labels/HashList";
-import { labelQuery, staysOpen } from "@offload/widgets";
+import { MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, staysOpen, takeFiles, turnDid, turnUndoable, undoShown } from "@offload/widgets";
 import { fetchThread } from "../../lib/threads";
 import type { Label } from "../../lib/labels";
 import { SHARE_LINE, answerShare, fetchPeople, nameOf, type Person } from "../../lib/people";
@@ -220,6 +214,9 @@ export function Composer({
     input.current?.focus();
   }
   const [turns, setTurns] = useState<Turn[]>([]);
+  // The turns as drawn, for an Undo pressed from a toast made renders ago.
+  const shownTurns = useRef(turns);
+  shownTurns.current = turns;
   // When the conversation was last spoken to, for the thirty minute window.
   const lastSaid = useRef<number | null>(null);
   // Only while a send is out, and only to hold the photos still: the words
@@ -966,10 +963,12 @@ export function Composer({
   }
 
   async function undo(turnId: string): Promise<void> {
-    // Optimistic, and safe to be: the rows are soft-deleted server-side and a
-    // failed call leaves the conversation as the database has it on next load.
-    setTurns((current) => current.filter((turn) => turn.turnId !== turnId));
-    await undoTurn(turnId);
+    // Optimistic: the turn goes on the press and comes back if the server
+    // refuses, since what it filed is still filed.
+    if (!(await undoShown(turnId, shownTurns.current, setTurns, undoTurn))) {
+      toast.show("Couldn't put that back", { label: "Retry", onPress: () => undo(turnId) });
+      return;
+    }
     // Undo touches the same threads the turn did, and the screen showing one
     // of them has to lose the rows again. The ids are not carried on the undo
     // itself, so this asks every open screen to refetch rather than naming

@@ -6,6 +6,8 @@
 // answer by asking for it. The stream is an optimisation over polling, and the
 // fallback is what makes it safe to be one.
 
+import { MAX_PHOTO_BYTES, answerPollMs, isFinal, isPdf } from "@offload/widgets";
+import { reach } from "./threads";
 import { timeZoneHeader } from "./time-zone";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
@@ -244,13 +246,6 @@ export interface PhotoOnWire {
   localUrl?: string;
 }
 
-/** Per message, photos and PDFs together, and the server holds the same
- *  number. */
-export const MAX_PHOTOS = 10;
-/** 041. Per message, inside the ten. */
-export const MAX_PDFS = 2;
-/** Per photo. The server holds the same number and refuses by bytes. */
-export const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 /** What the product takes. Checked by extension too, because a browser
  *  reports an empty type for HEIC. */
 const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
@@ -260,15 +255,6 @@ export function isPhoto(file: File): boolean {
   return PHOTO_TYPES.has(file.type.toLowerCase()) || (file.type === "" && PHOTO_EXTENSIONS.test(file.name));
 }
 
-/** 041. A PDF by its type, or by its name when the browser reports none. The
- *  server reads the bytes; this only spares a request. */
-export function isPdf(file: File): boolean {
-  const type = file.type.toLowerCase();
-  // Some systems hand a .pdf over as bytes of no type; the server reads the
-  // bytes either way.
-  return type === "application/pdf" || ((type === "" || type === "application/octet-stream") && /\.pdf$/i.test(file.name));
-}
-
 /** Why a photo or a PDF was refused on the device, or null when it may go.
  *  The one line each is the failure table's. A locked PDF is the server's to
  *  find. */
@@ -276,34 +262,6 @@ export function refuseFile(file: File): "too_big" | "not_a_photo" | null {
   if (!isPhoto(file) && !isPdf(file)) return "not_a_photo";
   if (file.size > MAX_PHOTO_BYTES) return "too_big";
   return null;
-}
-
-/** 041. Which of the incoming files a draft holding `current` takes: ten in
- *  all, two of them PDFs, in the order given, and the line for what it left. */
-export function takeFiles(
-  current: { kind: "image" | "pdf" }[],
-  incoming: File[],
-): { taken: File[]; line: "Ten at a time." | "Two PDFs at a time." | null } {
-  let room = MAX_PHOTOS - current.length;
-  let pdfRoom = MAX_PDFS - current.filter((one) => one.kind === "pdf").length;
-  const taken: File[] = [];
-  let line: "Ten at a time." | "Two PDFs at a time." | null = null;
-  for (const one of incoming) {
-    if (room <= 0) {
-      line ??= "Ten at a time.";
-      continue;
-    }
-    if (isPdf(one)) {
-      if (pdfRoom <= 0) {
-        line ??= "Two PDFs at a time.";
-        continue;
-      }
-      pdfRoom--;
-    }
-    room--;
-    taken.push(one);
-  }
-  return { taken, line };
 }
 
 /** The name a chip shows: the file's own, or "Photo", "Photo 2", "PDF",
@@ -316,14 +274,6 @@ export function draftName(file: File, current: { kind: "image" | "pdf"; named: b
   const n = current.filter((one) => one.kind === kind && !one.named).length;
   const word = kind === "pdf" ? "PDF" : "Photo";
   return n === 0 ? word : `${word} ${n + 1}`;
-}
-
-/** 041. A long name clipped in the middle, so its end, which is usually what
- *  tells two PDFs apart, survives. */
-export function clipMiddle(name: string, max = 20): string {
-  if (name.length <= max) return name;
-  const tail = Math.ceil((max - 1) / 2);
-  return `${name.slice(0, max - 1 - tail)}…${name.slice(name.length - tail)}`;
 }
 
 /** 036. Which ceiling a 429 on an upload was: everything kept, or the day's.
@@ -461,10 +411,7 @@ export interface VoiceOnWire {
   localUrl?: string;
 }
 
-/** The recorders stop themselves here, and the server refuses past it. */
-export const MAX_VOICE_MS = 600_000;
-/** Bars over the whole note. The server holds the same number. */
-export const WAVEFORM_BARS = 32;
+export { WAVEFORM_BARS } from "@offload/widgets";
 
 export class VoiceRefused extends Error {
   constructor(readonly reason: "too_big" | "not_a_voice_note" | "daily_limit" | "storage_full" | "unavailable") {
@@ -502,10 +449,10 @@ export function voiceUrl(blobId: string): string {
 
 /** Ask once. The fallback, and the thing the stream is an optimisation over. */
 export async function fetchAnswer(messageId: string): Promise<Answer | null> {
-  const response = await fetch(`${API}/v1/messages/${messageId}`, {
+  const response = await reach(`${API}/v1/messages/${messageId}`, {
     credentials: "include",
   });
-  if (!response.ok) return null;
+  if (!response) return null;
   const body = (await response.json()) as {
     state: MessageState;
     reply: string | null;
@@ -553,10 +500,13 @@ export function awaitAnswer(
   onTranscript?: (text: string) => void,
 ): () => void {
   let done = false;
+  let misses = 0;
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
   const settle = (answer: Answer): void => {
     if (done) return;
     done = true;
+    clearTimeout(timer);
     source.close();
     onAnswer(answer);
   };
@@ -595,32 +545,37 @@ export function awaitAnswer(
   // server bounds every stream to five minutes so the session gets rechecked,
   // which means a perfectly healthy wait ends in `error` regularly. Asking is
   // the only way to tell the two apart.
-  source.addEventListener("error", () => {
-    if (done) return;
+  const ask = (): void => {
     void fetchAnswer(messageId).then((answer) => {
-      if (!answer) return;
-      if (
-        answer.state === "answered" ||
-        answer.state === "partial" ||
-        answer.state === "failed" ||
-        // 017. A stopped turn is over. Without this the reconnect loop would
-        // keep asking about a turn nobody is working on.
-        answer.state === "cancelled"
-      )
+      if (done) return;
+      if (answer && isFinal(answer.state)) {
         settle(answer);
+        return;
+      }
       // 017. The reconnect path also catches the current step up, which is what
       // AC-6 asks for: the stream is the fast route and this is the one that
       // survives a dropped socket. 021: and the transcript, the same way.
-      else {
+      if (answer) {
         onStep?.(answer.step ?? null);
         if (answer.voice?.transcribed) onTranscript?.(answer.voice.transcript ?? "");
       }
-      // Still thinking: the browser reconnects the EventSource on its own.
+      // Still thinking: the browser reconnects the EventSource on its own,
+      // unless a reconnect was refused, which closes it for good. Then this
+      // asks on the phones' cadence until the turn settles.
+      if (source.readyState === EventSource.CLOSED) {
+        misses += 1;
+        timer = setTimeout(ask, answerPollMs(misses));
+      }
     });
+  };
+  source.addEventListener("error", () => {
+    if (done) return;
+    ask();
   });
 
   return () => {
     done = true;
+    clearTimeout(timer);
     source.close();
   };
 }
@@ -726,10 +681,10 @@ export async function resumeQuestion(id: string): Promise<"ok" | "gone" | "faile
  *  a dump sent before losing connectivity is there on next load, was true of
  *  the database and false of the product. */
 export async function fetchCurrent(): Promise<TailMessage[]> {
-  const response = await fetch(`${API}/v1/conversations/current`, {
+  const response = await reach(`${API}/v1/conversations/current`, {
     credentials: "include",
   });
-  if (!response.ok) return [];
+  if (!response) return [];
   const body = (await response.json()) as { messages: TailMessage[] };
   return body.messages;
 }
@@ -763,11 +718,11 @@ export async function cancelTurn(turnId: string): Promise<boolean> {
 }
 
 export async function undoTurn(turnId: string): Promise<boolean> {
-  const response = await fetch(`${API}/v1/turns/${turnId}/undo`, {
+  const response = await reach(`${API}/v1/turns/${turnId}/undo`, {
     method: "POST",
     credentials: "include",
   });
-  if (!response.ok) return false;
+  if (!response) return false;
   const body = (await response.json()) as { undone: boolean };
   return body.undone;
 }
@@ -778,11 +733,11 @@ export async function undoTurn(turnId: string): Promise<boolean> {
  *  filed; this asks offload to do the rest, and returns the same envelope a
  *  new dump does so the composer waits for it the same way. */
 export async function resumeDump(messageId: string): Promise<Sent | null> {
-  const response = await fetch(`${API}/v1/dumps/${messageId}/resume`, {
+  const response = await reach(`${API}/v1/dumps/${messageId}/resume`, {
     method: "POST",
     credentials: "include",
   });
-  if (!response.ok) return null;
+  if (!response) return null;
   return (await response.json()) as Sent;
 }
 
@@ -823,39 +778,4 @@ export async function answerPending(
   } catch {
     return false;
   }
-}
-
-/** Whether a settled turn filed something, which is what draws the footer's
- *  Done. 028: what lands only where no thread is named draws no pill, so
- *  `threads` can be empty on a turn that filed; the server's `filed` says so.
- *  A move's source in `changed` alone is not a filing. */
-export function turnDid(answer: { threads?: TouchedThread[]; changed?: string[]; filed?: boolean }): boolean {
-  return (answer.threads?.length ?? 0) > 0 || answer.filed === true;
-}
-
-/** Whether a settled turn offers Undo: anything it filed, and anything else
- *  it changed. A move out of a thread or a delete files nothing and is still
- *  a write somebody may want back, so this is wider than Done. */
-export function turnUndoable(answer: { threads?: TouchedThread[]; changed?: string[]; filed?: boolean }): boolean {
-  return turnDid(answer) || (answer.changed?.length ?? 0) > 0;
-}
-
-/** The turns once a proposal has been answered.
- *
- *  The control goes either way, from the reply and from the message that was
- *  sent, since either may be the one carrying it. A calendar write they
- *  agreed to is something the turn did, so the message that was sent wears
- *  Done from the press, as it does after a reload, where the server counts a
- *  confirmed write. Without this the control went and nothing said the thing
- *  had happened. */
-export function answeredWaiting<T extends { id: string; from: "you" | "offload"; turnId?: string; did?: boolean }>(
-  turns: T[],
-  answered: { id: string; turnId?: string },
-  agreed: boolean,
-): T[] {
-  return turns.map((turn) => {
-    const same = turn.id === answered.id || (answered.turnId !== undefined && turn.turnId === answered.turnId);
-    if (!same) return turn;
-    return { ...turn, waiting: null, ...(agreed && turn.from === "you" ? { did: true } : {}) };
-  });
 }

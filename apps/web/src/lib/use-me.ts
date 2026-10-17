@@ -332,14 +332,15 @@ export async function fetchCountries(): Promise<{ code: string; name: string }[]
   }
 }
 
-/** Saying where you are. Null clears it, which is a real state. */
-export async function updateCountry(country: string | null): Promise<Me | null> {
+/** One write to the account, held and announced once the server has it.
+ *  Null on a refusal or a failure. */
+async function patchMe(body: object): Promise<Me | null> {
   try {
     const response = await fetch(`${API}/api/me`, {
       method: "PATCH",
       credentials: "include",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ country }),
+      body: JSON.stringify(body),
     });
     if (!response.ok) return null;
     const me = (await response.json()) as Me;
@@ -349,6 +350,11 @@ export async function updateCountry(country: string | null): Promise<Me | null> 
   } catch {
     return null;
   }
+}
+
+/** Saying where you are. Null clears it, which is a real state. */
+export async function updateCountry(country: string | null): Promise<Me | null> {
+  return patchMe({ country });
 }
 
 /** The account's clock. 023.
@@ -362,41 +368,13 @@ export async function updateClock(patch: {
   followDevice?: boolean;
   keptTimeZone?: string | null;
 }): Promise<Me | null> {
-  try {
-    const response = await fetch(`${API}/api/me`, {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    if (!response.ok) return null;
-    const me = (await response.json()) as Me;
-    cached = me;
-    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
-    return me;
-  } catch {
-    return null;
-  }
+  return patchMe(patch);
 }
 
 /** 027. Customize Today's layout, the whole document, one write a gesture.
  *  Null on a refusal or a failure, and the pane puts itself back. */
 export async function updateTodayLayout(todayLayout: TodayLayout): Promise<Me | null> {
-  try {
-    const response = await fetch(`${API}/api/me`, {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ todayLayout }),
-    });
-    if (!response.ok) return null;
-    const me = (await response.json()) as Me;
-    cached = me;
-    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
-    return me;
-  } catch {
-    return null;
-  }
+  return patchMe({ todayLayout });
 }
 
 /** The switches and the hours. 024. One field a call. */
@@ -411,43 +389,14 @@ export async function updateNotify(patch: {
   notifyReminderCount?: 1 | 2 | 3;
   notifyCalendar?: boolean;
 }): Promise<Me | null> {
-  try {
-    const response = await fetch(`${API}/api/me`, {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    if (!response.ok) return null;
-    const me = (await response.json()) as Me;
-    cached = me;
-    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
-    return me;
-  } catch {
-    return null;
-  }
+  return patchMe(patch);
 }
 
 export async function updateWebAccess(patch: {
   webSearch?: boolean;
   webLinks?: boolean;
 }): Promise<Me | null> {
-  try {
-    const response = await fetch(`${API}/api/me`, {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    if (!response.ok) return null;
-
-    const me = (await response.json()) as Me;
-    cached = me;
-    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
-    return me;
-  } catch {
-    return null;
-  }
+  return patchMe(patch);
 }
 
 /** Setting your name. 011.
@@ -460,20 +409,5 @@ export async function updateWebAccess(patch: {
  *  Null on a refusal or a failure. The screen says what happened; it does not
  *  guess which one it was. */
 export async function updateName(displayName: string): Promise<Me | null> {
-  try {
-    const response = await fetch(`${API}/api/me`, {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ displayName }),
-    });
-    if (!response.ok) return null;
-
-    const me = (await response.json()) as Me;
-    cached = me;
-    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
-    return me;
-  } catch {
-    return null;
-  }
+  return patchMe({ displayName });
 }

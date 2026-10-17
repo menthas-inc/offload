@@ -7,6 +7,8 @@
 // declaration, read by both. The glyph and the tag rule lived twice as well,
 // byte for byte, which is the drift this package exists to stop.
 
+import { addDays, dayIn } from "./days.js";
+
 /** The five Android channels, ids permanent and invisible; the names are
  *  the notification titles, word for word, except Reminders (042), which is
  *  named as its switch because its title is a time. A channel is never
@@ -76,4 +78,13 @@ export function activityTag(row: ActivityShape): { label: "Not sent" | "Undone";
   if (row.kind === "export") return null;
   if (row.sent) return null;
   return { label: "Not sent", tone: row.reason === "design" ? "quiet" : "noticed" };
+}
+
+/** 027. The day an evening digest opens on: the day it named, the day after
+ *  it went out in the account's zone, while that day is still ahead. Null
+ *  opens Today, as a morning digest always does. */
+export function digestDay(row: { send: "morning" | "evening" | null; occurredAt: string }, zone: string | null, today: string): string | null {
+  if (row.send !== "evening") return null;
+  const named = addDays(dayIn(new Date(row.occurredAt), zone), 1);
+  return named > today ? named : null;
 }

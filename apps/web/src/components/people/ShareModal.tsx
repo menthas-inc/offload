@@ -32,11 +32,12 @@ import {
   type ShareSheet,
 } from "../../lib/people";
 import styles from "./people.module.css";
+import { useClock } from "../../lib/clock";
 
 const SEARCH_PAST = 8;
 
-function sinceLabel(iso: string): string {
-  return `in since ${dayMonth(iso)}`;
+function sinceLabel(iso: string, zone: string | null): string {
+  return `in since ${dayMonth(iso, zone)}`;
 }
 
 const REFUSAL: Record<ShareRefusal, string> = {
@@ -72,6 +73,7 @@ export function ShareModal({
   const [x, setX] = useState<{ person: Person; member: boolean; added?: { count: number; titles: string[] } } | null>(null);
   const [xBusy, setXBusy] = useState(false);
   const [xFailed, setXFailed] = useState(false);
+  const { zone } = useClock();
 
   const load = useCallback(async () => {
     const next = await fetchShareSheet(threadId);
@@ -145,7 +147,7 @@ export function ShareModal({
   }
 
   const lifted = [
-    ...others.map((m) => ({ key: m.accountId, person: m, kind: "member" as const, meta: sinceLabel(m.since), added: m.added })),
+    ...others.map((m) => ({ key: m.accountId, person: m, kind: "member" as const, meta: sinceLabel(m.since, zone), added: m.added })),
     ...(sheet?.waiting ?? []).map((w) => ({ key: w.memberId, person: w, kind: "waiting" as const, meta: "waiting", added: undefined })),
   ];
   const rows = [

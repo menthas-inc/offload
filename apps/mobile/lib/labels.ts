@@ -9,6 +9,8 @@ import { ALL_LABELS, isAll, type LabelPick } from "@offload/widgets";
 import { send } from "./api";
 import { dropForAccount, keepForAccount } from "./account-keys";
 
+export { refusalLine } from "@offload/widgets";
+
 export interface Label {
   id: string;
   name: string;
@@ -62,14 +64,6 @@ export const labelRows = (id: string, input: { add: Rows; remove: Rows; name?: s
     method: "POST",
     ...body(input),
   });
-
-/** The words a refusal says, beside the control that was pressed. */
-export function refusalLine(error: LabelRefusal | null, name?: string): string {
-  if (error === "label_taken") return `${name ?? "That"} is already a label here.`;
-  if (error === "label_limit") return "A thread holds ten labels.";
-  if (error === "label_gone") return "That label was deleted.";
-  return "Couldn't save that.";
-}
 
 // ---------------------------------------------------------------- the pick
 

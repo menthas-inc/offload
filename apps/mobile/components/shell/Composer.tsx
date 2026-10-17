@@ -31,7 +31,8 @@ import {
   View,
 } from "react-native";
 import { useKeepAwake } from "expo-keep-awake";
-import { invitation, MAX_PHOTOS } from "../../lib/dump";
+import { MAX_PHOTOS } from "@offload/widgets";
+import { invitation } from "../../lib/dump";
 import { mmss, SAMPLE_MS } from "../../lib/recorder";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";

@@ -15,7 +15,7 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "../Icon";
-import { clipMiddle } from "../../lib/dump";
+import { clipMiddle } from "@offload/widgets";
 import styles from "../../app/(shell)/composer.module.css";
 
 export type ChipError = "too_big" | "not_a_photo" | "locked_pdf" | null;

@@ -66,8 +66,10 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
 
   // Bounded too. A request with no timeout on a phone is a request that can
   // outlive the screen that asked for it.
+  // A fetch that throws, as React Native's does at once offline, is no answer
+  // too, the same as one the timeout beat.
   const response = await within(
-    fetch(`${API_URL}${path}`, { ...init, headers }),
+    fetch(`${API_URL}${path}`, { ...init, headers }).catch(() => null as unknown as Response),
     15000,
     null as unknown as Response
   );
@@ -148,8 +150,10 @@ export async function send<T>(path: string, init: RequestInit = {}): Promise<Sen
     ...(reachesTheModel(path) ? timeZoneHeader() : {}),
   };
 
+  // A fetch that throws, as React Native's does at once offline, is no answer
+  // too, the same as one the timeout beat.
   const response = await within(
-    fetch(`${API_URL}${path}`, { ...init, headers }),
+    fetch(`${API_URL}${path}`, { ...init, headers }).catch(() => null as unknown as Response),
     15000,
     null as unknown as Response
   );
@@ -192,7 +196,7 @@ export async function authHeaders(): Promise<Record<string, string>> {
 export async function upload<T>(path: string, form: FormData): Promise<Sent<T>> {
   const headers = await authHeaders();
   const response = await within(
-    fetch(`${API_URL}${path}`, { method: "POST", body: form, headers }),
+    fetch(`${API_URL}${path}`, { method: "POST", body: form, headers }).catch(() => null as unknown as Response),
     60000,
     null as unknown as Response,
   );

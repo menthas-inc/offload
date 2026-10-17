@@ -12,7 +12,7 @@
 import { Image, Pressable, Text, View } from "react-native";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
-import { clipMiddle } from "../../lib/dump";
+import { clipMiddle } from "@offload/widgets";
 
 export type ChipError = "too_big" | "not_a_photo" | "locked_pdf" | null;
 

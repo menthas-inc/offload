@@ -202,23 +202,29 @@ export async function fetchCountries(): Promise<{ code: string; name: string }[]
   return data?.countries ?? [];
 }
 
-/** Saying where you are. Null clears it, which is a real state: offload then
- *  tells the model it does not know rather than assuming. */
-export async function setCountry(country: string | null): Promise<Me | null> {
+/** One write to the account, handed to every mounted `useMe` once the
+ *  server has it. Null on a refusal or a failure, logged under `where`. */
+async function patchMe(where: string, body: object): Promise<Me | null> {
   const since = ends;
   try {
     const updated = await request<Me>("/api/me", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ country }),
+      body: JSON.stringify(body),
     });
     if (!updated) return null;
     announce(updated, since);
     return updated;
   } catch (error) {
-    failed("me.setCountry", error);
+    failed(where, error);
     return null;
   }
+}
+
+/** Saying where you are. Null clears it, which is a real state: offload then
+ *  tells the model it does not know rather than assuming. */
+export async function setCountry(country: string | null): Promise<Me | null> {
+  return patchMe("me.setCountry", { country });
 }
 
 /** Turning a switch. 016.
@@ -233,20 +239,7 @@ export async function setCountry(country: string | null): Promise<Me | null> {
 export async function setWebAccess(
   patch: { webSearch?: boolean; webLinks?: boolean },
 ): Promise<Me | null> {
-  const since = ends;
-  try {
-    const updated = await request<Me>("/api/me", {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    if (!updated) return null;
-    announce(updated, since);
-    return updated;
-  } catch (error) {
-    failed("me.setWebAccess", error);
-    return null;
-  }
+  return patchMe("me.setWebAccess", patch);
 }
 
 /** The account's clock. 023.
@@ -260,20 +253,7 @@ export async function setClock(patch: {
   followDevice?: boolean;
   keptTimeZone?: string | null;
 }): Promise<Me | null> {
-  const since = ends;
-  try {
-    const updated = await request<Me>("/api/me", {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    if (!updated) return null;
-    announce(updated, since);
-    return updated;
-  } catch (error) {
-    failed("me.setClock", error);
-    return null;
-  }
+  return patchMe("me.setClock", patch);
 }
 
 /** The switches and the hours. 024. One field a call, as every setter here. */
@@ -288,20 +268,7 @@ export async function setNotify(patch: {
   notifyReminderCount?: 1 | 2 | 3;
   notifyCalendar?: boolean;
 }): Promise<Me | null> {
-  const since = ends;
-  try {
-    const updated = await request<Me>("/api/me", {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    if (!updated) return null;
-    announce(updated, since);
-    return updated;
-  } catch (error) {
-    failed("me.setNotify", error);
-    return null;
-  }
+  return patchMe("me.setNotify", patch);
 }
 
 /** Setting your name. 011.
@@ -314,21 +281,7 @@ export async function setNotify(patch: {
  *  Null on a refusal or a failure. The screen says what happened next to the
  *  control that retries it; it does not work out which one it was. */
 export async function saveName(displayName: string): Promise<Me | null> {
-  const since = ends;
-  try {
-    const updated = await request<Me>("/api/me", {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ displayName }),
-    });
-    if (!updated) return null;
-
-    announce(updated, since);
-    return updated;
-  } catch (error) {
-    failed("me.saveName", error);
-    return null;
-  }
+  return patchMe("me.saveName", { displayName });
 }
 
 /** The two ticks again, for an active account whose consent is on an older

@@ -5,7 +5,7 @@
 // re-rendered. What each row opens, and which glyph and tag it carries, is
 // decided here once so the screen only draws.
 
-import { activityGlyph, activityTag, addUtcDays, dayIn, type ActivityKind, type ActivityReason } from "@offload/widgets";
+import { activityGlyph, activityTag, digestDay, type ActivityKind, type ActivityReason } from "@offload/widgets";
 import { fetchActivity, markActivitySeen, send } from "./api";
 
 export type { ActivityKind };
@@ -85,8 +85,8 @@ export function doorOf(row: ActivityEntry, at?: DoorContext): Door | null {
     // 2026-09-30: a digest opens Today, as its notification does.
     case "digest": {
       // 027. The evening send named the day after it went out.
-      const named = row.send === "evening" && at ? addUtcDays(dayIn(new Date(row.occurredAt), at.zone), 1) : null;
-      return named && named > at!.today ? { pathname: "/today", params: { day: named } } : { pathname: "/today" };
+      const day = at ? digestDay(row, at.zone, at.today) : null;
+      return day ? { pathname: "/today", params: { day } } : { pathname: "/today" };
     }
     case "request":
       return { pathname: "/settings/people" };

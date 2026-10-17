@@ -37,8 +37,10 @@ export async function signOut(): Promise<void> {
   const expired = Symbol("expired");
 
   const outcome = await Promise.race([
+    // An HTTP error resolves as `{ error }` rather than rejecting; a 401 means
+    // the session is already gone, which is what was asked for.
     authClient.signOut().then(
-      () => "done" as const,
+      (result) => (result?.error && result.error.status !== 401 ? ("failed" as const) : ("done" as const)),
       () => "failed" as const,
     ),
     new Promise<typeof expired>((resolve) => setTimeout(() => resolve(expired), PATIENCE_MS)),

@@ -28,6 +28,7 @@ import {
   type Found,
 } from "../../lib/people";
 import styles from "./people.module.css";
+import { useClock } from "../../lib/clock";
 
 type State =
   | { kind: "empty" }
@@ -37,9 +38,9 @@ type State =
   | { kind: "limited" }
   | { kind: "failed" };
 
-function since(iso: string | null): string {
+function since(iso: string | null, zone: string | null): string {
   if (!iso) return "Pending";
-  return `Pending since ${dayMonth(iso)}`;
+  return `Pending since ${dayMonth(iso, zone)}`;
 }
 
 export function NewConnectionBody({
@@ -56,6 +57,7 @@ export function NewConnectionBody({
   onLeave?: (() => void) | undefined;
 }) {
   const router = useRouter();
+  const { zone } = useClock();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<State>({ kind: "empty" });
   const [sending, setSending] = useState(false);
@@ -199,7 +201,7 @@ export function NewConnectionBody({
             {dismissed ? <span className={styles.personValue}>Not now</span> : null}
             {!dismissed && found.relation === "you" ? <span className={styles.personValue}>That&rsquo;s you</span> : null}
             {!dismissed && found.relation === "connected" ? <span className={styles.personValue}>Already connected</span> : null}
-            {!dismissed && found.relation === "you_asked" ? <span className={styles.personValue}>{since(found.since)}</span> : null}
+            {!dismissed && found.relation === "you_asked" ? <span className={styles.personValue}>{since(found.since, zone)}</span> : null}
             {!dismissed && found.relation === "asked_you" ? (
               <span className={styles.cardChips}>
                 <button type="button" className={styles.chip} onClick={() => void answer(found, "accept")} disabled={sending}>
