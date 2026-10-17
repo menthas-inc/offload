@@ -1310,3 +1310,14 @@ Six changes the owner asked for in one message, shipped in one PR.
 - ✅ **Section folds are a device preference**, one value per client store, the defaults in `@offload/widgets` (`folds.ts`). The To do done fold stays on the server.
 
 **Design system impact:** the visual parts are logged in the design system's `decisions.md` under the same date. The auto-archive has none of its own: a passed row moves to the thread's archived pile, which already exists.
+
+## CI minutes, 2026-10-17
+
+The owner's Actions budget was nearly gone at about 2,600 minutes in seventeen days: 185 pull request runs and 83 runs on the merge to `main`, about ten and a half minutes each, six of them the core-api suite file by file.
+
+- ✅ **No re-run on the merge to `main`.** The job still starts and skips every step to green: `main` requires a branch to be up to date before it merges (`strict` on the required check), so the merged tree is the one the pull request ran, and Railway's "Wait for CI" on the three repo services needs a completed check on the commit to deploy it. A workflow with no run on `main` might have left Railway waiting.
+- ✅ **No run on a draft.** The job's `if` skips it, which GitHub reports as success, and a draft cannot be merged. Pull requests open as drafts while they are still changing; marking one ready runs the check that counts.
+- ✅ **A change that no check reads skips to green**, and the web build and CSP check run only when something they read changed. The inert list was checked against what lint, the token generator and the tests read; the eval files are not inert, since the agent's tests read them.
+- ⚠️ **Open:** the core-api suite in parallel, a database per worker from a migrated template. About ten and a half minutes to seven on GitHub's two-core runner, and the local commit gate with it. Left for later by the owner.
+
+**Design system impact:** none.
