@@ -528,8 +528,8 @@ _DUMP = text(
            m.attrs->'mentions' as mentions,
            case when m.source = 'mail' then m.attrs->'mail' end as mail,
            -- 040. Whether the words are the person's own, for the memory query.
-           (m.source = 'mail' or (m.source = 'person' and not m.derived_from_untrusted))
-             as own_words,
+           -- A mail message's are its note alone, read from `mail` above.
+           (m.source = 'person' and not m.derived_from_untrusted) as own_words,
            lt.id as looking_at_id,
            case when lt.id = a.default_thread_id then 'not in a thread' else lt.name end
              as looking_at_name
@@ -1116,7 +1116,7 @@ def query_words(said: str | None, *, mail: Mail | None = None, trusted: bool = T
     Mail, pages and other people's words never go to the embedding provider as
     a query, and never choose what a prompt carries."""
     if mail is not None:
-        said = mail.note
+        said, trusted = mail.note, True
     if not trusted or not said:
         return ""
     return said.strip()[:QUERY_CHARS]

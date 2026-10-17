@@ -78,7 +78,7 @@ export async function applyLabels(
   const texts = new Map(
     noteIds.length === 0
       ? []
-      : (await trx.selectFrom("notes").select(["id", "text"]).where("id", "in", noteIds).execute()).map(
+      : (await trx.selectFrom("notes").select(["id", "text"]).where("id", "in", noteIds).where("account_id", "=", input.accountId).execute()).map(
           (n) => [n.id, n.text],
         ),
   );

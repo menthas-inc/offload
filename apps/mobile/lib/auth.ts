@@ -407,9 +407,23 @@ async function chunked(key: string): Promise<string[]> {
   return [key, ...range(`${key}.${slot}`, count), ...range(`${key}.${1 - slot}`, fallback)];
 }
 
+/** Every chunk the plugin can have written under a key, whatever its marker
+ *  says now: each of its three prefixes probed upward until a miss, as the
+ *  plugin probes for orphans itself. A deleted account or a refused session
+ *  has no snapshot from before the plugin cleared the marker. */
+async function probed(key: string): Promise<string[]> {
+  const keys: string[] = [];
+  for (const prefix of [key, `${key}.0`, `${key}.1`]) {
+    for (let i = 0; (await SecureStore.getItemAsync(`${prefix}.${i}`).catch(() => null)) !== null; i++) {
+      keys.push(`${prefix}.${i}`);
+    }
+  }
+  return keys;
+}
+
 async function forget(key: string): Promise<void> {
-  const keys = await chunked(key);
-  await Promise.all(keys.map((k) => SecureStore.deleteItemAsync(k).catch(() => undefined)));
+  const keys = new Set([...(await chunked(key)), ...(await probed(key))]);
+  await Promise.all([...keys].map((k) => SecureStore.deleteItemAsync(k).catch(() => undefined)));
 }
 
 /** What is stored under a key and its chunks, to be put back exactly. */
