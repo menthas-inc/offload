@@ -765,6 +765,9 @@ const embedSweep: Handler = async () => {
  */
 const accountDaily: Handler = async () => {
   await scheduleDaily("account.daily");
+  // 038. For every account, quiet ones too: what the privacy page says of a
+  // memory whose source is gone holds whether or not they came back today.
+  await sweepMemories();
 
   const since = new Date(Date.now() - 25 * 60 * 60 * 1000);
   const accounts = await db
@@ -962,11 +965,10 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
     }
   }
 
-  // 038. What offload knows about the person across their threads: a learned
-  // memory whose source is gone goes with it, then one pass when they said
-  // anything of their own since the last. Booked after the thread passes and
-  // not waiting on them: it reads their notes as they are when it runs.
-  await sweepMemories(accountId);
+  // 038. What offload knows about the person across their threads: one pass
+  // when they said anything of their own since the last. Booked after the
+  // thread passes and not waiting on them: it reads their notes as they are
+  // when it runs.
   if (mayBook && (await passOwed(db, accountId))) {
     await enqueue({
       kind: "account.memories",

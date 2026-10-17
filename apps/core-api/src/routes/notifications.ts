@@ -15,6 +15,7 @@ import { addUtcDays, dayIn, occurrencesIn, parseRule, timeHM, utcDay, whenDayOf 
 import { sql } from "kysely";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
+import { currentAccountId, fetchHeaders } from "../auth/current-account.js";
 import { db } from "../db.js";
 import { undoMailRow } from "../mail-in/activity.js";
 import { zoneOf } from "../accounts/zone.js";
@@ -28,20 +29,6 @@ import { NotYours, memberOf, readableContent } from "../threads/access.js";
 import { undoRun } from "../threads/labels.js";
 import { Refused } from "../threads/refusals.js";
 import { completeContent, contentRow, editContent, toRow, withPhotos, type RawRow } from "./threads.js";
-
-function fetchHeaders(request: FastifyRequest): Headers {
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(request.headers)) {
-    if (value === undefined) continue;
-    headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
-  }
-  return headers;
-}
-
-async function currentAccountId(request: FastifyRequest): Promise<string | null> {
-  const result = await auth.api.getSession({ headers: fetchHeaders(request) });
-  return result?.session.userId ?? null;
-}
 
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 const done = z.object({ ok: z.literal(true) });

@@ -13,7 +13,7 @@ import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { record } from "../notifications/activity.js";
 import { expiredCopy } from "../notifications/copy.js";
 import { initialsOf } from "../accounts/initials.js";
-import { blockedEitherWay, connected, pairOf, relationOf, type Executor, type Relation } from "./access.js";
+import { blockedEitherWay, connected, connectionsOf, pairOf, relationOf, type Executor, type Relation } from "./access.js";
 import { markOf } from "../accounts/avatar.js";
 
 /** Thirty an hour. The lookup answers whether an address has an account,
@@ -389,19 +389,7 @@ export async function requestsFor(accountId: string, trx: Executor = db): Promis
 export async function people(accountId: string): Promise<PeoplePage> {
   const requestsForYou = await requestsFor(accountId);
 
-  const connectionRows = await db
-    .selectFrom("connections")
-    .innerJoin("accounts", (join) =>
-      join.on(
-        sql<boolean>`accounts.id = case when connections.account_a = ${accountId} then connections.account_b else connections.account_a end`,
-      ),
-    )
-    .select(["accounts.id as id", "accounts.display_name as display_name"])
-    .where((eb) => eb.or([eb("connections.account_a", "=", accountId), eb("connections.account_b", "=", accountId)]))
-    .where("accounts.state", "=", "active")
-    .where("accounts.deleted_at", "is", null)
-    .orderBy("accounts.display_name")
-    .execute();
+  const connectionRows = (await connectionsOf(accountId)).map((row) => ({ id: row.accountId, display_name: row.displayName }));
   // The threads shared with each connection, in one query for the page
   // rather than one per row: every live thread the viewer is in, joined to
   // the connections who are in it too, most recently active first, then

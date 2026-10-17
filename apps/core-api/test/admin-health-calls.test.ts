@@ -103,6 +103,12 @@ describe("AC-43 model calls", () => {
     expect(body.kinds[0].points[22]).toMatchObject({ calls: 1, p50: 250, p95: 250 });
   });
 
+  it("lists a ledger kind whose calls all failed, with its failures", async () => {
+    await stat(1, "thread.nightly", "failed", 3);
+    const body = await get("/health/calls?range=7d");
+    expect(body.kinds.map((one: Kind) => [one.kind, one.calls, one.failures])).toEqual([["thread.nightly", 0, 3]]);
+  });
+
   it("is empty when no model was called", async () => {
     expect((await get("/health/calls")).kinds).toEqual([]);
   });
@@ -140,6 +146,12 @@ describe("AC-43 vendors", () => {
     expect(one(all, "model")).toEqual({ vendor: "model", recorded: true, calls: 2, failures: 2 });
     expect(one(all, "transcription")).toEqual({ vendor: "transcription", recorded: true, calls: 1, failures: 1 });
     expect(one(await vendors("30d"), "model").failures).toBe(3);
+  });
+
+  it("does not count a link place failure against the model, which it never calls", async () => {
+    await call("dump.answer", 100);
+    await failedJob("link.place", "link_place_error");
+    expect(one(await vendors(), "model")).toEqual({ vendor: "model", recorded: true, calls: 1, failures: 0 });
   });
 
   it("counts search and reads from the lookups and their outcomes", async () => {

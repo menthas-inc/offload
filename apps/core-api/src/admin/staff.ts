@@ -13,6 +13,7 @@
 
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { auth } from "../auth/auth.js";
+import { fetchHeaders } from "../auth/current-account.js";
 import { db } from "../db.js";
 import type { AuditKind } from "./audit.js";
 import { panelOpen } from "./panel.js";
@@ -29,13 +30,7 @@ export interface Staff {
 }
 
 export async function currentStaff(request: FastifyRequest): Promise<Staff | null> {
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(request.headers)) {
-    if (value === undefined) continue;
-    headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
-  }
-
-  const session = await auth.api.getSession({ headers });
+  const session = await auth.api.getSession({ headers: fetchHeaders(request) });
   if (!session) return null;
 
   const row = await db

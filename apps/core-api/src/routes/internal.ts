@@ -213,6 +213,8 @@ const body = z.discriminatedUnion("outcome", [
     /** An enum, never the exception. An error message can carry the dumped
      *  text, and this value reaches an analytics event (OFF-1). */
     reason: z.enum(["model_error", "invalid_output", "timeout", "transcription_failed"]),
+    /** A turn that searched before it failed still paid for the search. */
+    lookups,
     usage: usage.optional(),
   }),
   /** 017. Somebody stopped it. No reply and no reason: the reply would be
@@ -597,8 +599,13 @@ export async function internalRoutes(app: App): Promise<void> {
         if (result.usage && result.usage.length > 0) {
           await trx.insertInto("llm_usage").values(ledgerRows(accountId, "account.memories", "scheduled", result.usage, result.jobId)).execute();
         }
-        // After everything this pass wrote, so the next reads what came since.
-        await trx.updateTable("accounts").set({ memories_at: sql`clock_timestamp()` }).where("id", "=", accountId).execute();
+        // When the worker claimed the job, before it read: a message sent
+        // while the model ran is after this, so the next pass reads it.
+        await trx
+          .updateTable("accounts")
+          .set({ memories_at: sql`(select locked_at from jobs where id = ${result.jobId})` })
+          .where("id", "=", accountId)
+          .execute();
         await trx
           .updateTable("jobs")
           .set({ state: "done", locked_at: null, locked_by: null, error_code: null, updated_at: sql`now()` })
@@ -610,6 +617,36 @@ export async function internalRoutes(app: App): Promise<void> {
       // Counts, never text (OFF-1).
       console.log(JSON.stringify({ level: "info", msg: "memories applied", ...outcome }));
       return reply.send(outcome);
+    }
+  );
+
+  // A nightly or memory pass that paid for its calls and ended without a
+  // result: an unusable answer, or a failure after the call. The worker posts
+  // what the calls used before it releases the job, so the ledger, which
+  // gates scheduled work, counts them. Only while the job runs: a pass that
+  // posted its result has closed it and written its usage there.
+  app.post(
+    "/internal/v1/usage",
+    { schema: { body: z.strictObject({ jobId: z.string().uuid(), usage }), response: { 200: ok, 401: refused, 404: refused } } },
+    async (request, reply) => {
+      const { jobId, usage: calls } = request.body;
+      const written = await db.transaction().execute(async (trx) => {
+        const job = await trx
+          .selectFrom("jobs")
+          .select(["account_id", "kind"])
+          .where("id", "=", jobId)
+          .where("kind", "in", ["thread.nightly", "account.memories"])
+          .where("state", "=", "running")
+          .forUpdate()
+          .executeTakeFirst();
+        if (!job?.account_id) return false;
+        if (calls.length > 0) {
+          await trx.insertInto("llm_usage").values(ledgerRows(job.account_id, job.kind, "scheduled", calls, jobId)).execute();
+        }
+        return true;
+      });
+      if (!written) return reply.code(404).send({ error: "unknown_job" as const });
+      return reply.send({ status: "written" as const });
     }
   );
 
@@ -865,25 +902,6 @@ export async function internalRoutes(app: App): Promise<void> {
             }
           }
 
-          if (result.lookups?.length) {
-            await trx
-              .insertInto("lookups")
-              .values(
-                result.lookups.map((lookup) => ({
-                  account_id: accountId,
-                  // Validated against the closed set here as well as in the
-                  // worker. A set enforced in one place is a set until there
-                  // is a second writer, and the whole design of this table is
-                  // that the column can never become free text.
-                  label: LOOKUP_LABELS.has(lookup.label) ? lookup.label : "other",
-                  kind: lookup.kind,
-                  outcome: lookup.outcome,
-                  cost_micros: lookup.costMicros,
-                })),
-              )
-              .execute();
-          }
-
           // 020. Every photo lands in Files, and the server is what holds
           // that: a photo the turn did not file gets a row now, with a plain
           // title, in the thread on screen or the default. Before the
@@ -969,6 +987,28 @@ export async function internalRoutes(app: App): Promise<void> {
           await trx
             .insertInto("llm_usage")
             .values(ledgerRows(accountId, "dump.answer", "interactive", calls, result.jobId))
+            .execute();
+        }
+
+        // What the turn searched and read, on every outcome that carries it:
+        // a failed turn paid for its lookups too.
+        const searched = "lookups" in result ? (result.lookups ?? []) : [];
+        if (searched.length) {
+          await trx
+            .insertInto("lookups")
+            .values(
+              searched.map((lookup) => ({
+                account_id: accountId,
+                // Validated against the closed set here as well as in the
+                // worker. A set enforced in one place is a set until there
+                // is a second writer, and the whole design of this table is
+                // that the column can never become free text.
+                label: LOOKUP_LABELS.has(lookup.label) ? lookup.label : "other",
+                kind: lookup.kind,
+                outcome: lookup.outcome,
+                cost_micros: lookup.costMicros,
+              })),
+            )
             .execute();
         }
 

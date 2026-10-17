@@ -11,7 +11,8 @@ import { handlers } from "../src/jobs/handlers.js";
 import { MemoryMailer } from "../src/mail/mailer.js";
 import { uuidv7 } from "../src/uuid.js";
 import { clearSettingsCache } from "../src/settings.js";
-import { LEARNED_MEMORY_CAP, memoriesForPrompt, remember } from "../src/memories/store.js";
+import { capLock, LEARNED_MEMORY_CAP, memoriesForPrompt, remember } from "../src/memories/store.js";
+import { applyMemoryPass, passOwed } from "../src/memories/pass.js";
 import { account, join, note, thread, wipe } from "./loose-kit.js";
 
 await migrate(() => {});
@@ -325,5 +326,102 @@ describe("what a pass may write", () => {
     await post({ jobId, add: [{ kind: "people", text: "Their wife is Meera.", cites: from }] });
     expect(spy.mock.calls.flat().join(" ")).not.toContain("Meera");
     spy.mockRestore();
+  });
+
+  it("keeps the person's own memory theirs when a later word of theirs replaces it", async () => {
+    const ana = await account("Ana");
+    const earlier = await said(ana, "remember we live in Toronto", { hoursAgo: 30 });
+    const asked = await db.transaction().execute((trx) => remember(trx, { accountId: ana, messageId: earlier, text: "They live in Toronto.", kind: "about" }));
+    if (!asked.ok) throw new Error("not kept");
+    const moved = await said(ana, "we moved to Montreal last week");
+    const jobId = await passJob(ana);
+    expect((await post({ jobId, supersede: [{ id: asked.id, text: "They live in Montreal.", cites: moved }] })).json()).toMatchObject({ superseded: 1 });
+    expect((await memoriesForPrompt(ana)).map((m) => [m.text, m.origin])).toEqual([["They live in Montreal.", "stated"]]);
+    const learned = await db
+      .selectFrom("notes")
+      .select(sql<number>`count(*)::int`.as("n"))
+      .where("subject_id", "=", ana)
+      .where("origin", "=", "learned")
+      .where("deleted_at", "is", null)
+      .where("superseded_at", "is", null)
+      .executeTakeFirstOrThrow();
+    expect(learned.n).toBe(0);
+  });
+
+  it("waits for the cap lock every other writer takes", async () => {
+    const ana = await account("Ana");
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let locked!: () => void;
+    const isLocked = new Promise<void>((resolve) => (locked = resolve));
+    const holder = db.transaction().execute(async (trx) => {
+      await capLock(trx, ana);
+      locked();
+      await held;
+    });
+    await isLocked;
+    const attempt = db.transaction().execute(async (trx) => {
+      await sql`set local lock_timeout = '200ms'`.execute(trx);
+      return applyMemoryPass(trx, ana, { add: [], supersede: [], fold: [] });
+    });
+    try {
+      await expect(attempt).rejects.toThrow(/lock timeout/);
+    } finally {
+      release();
+      await holder;
+    }
+  });
+});
+
+describe("a replaced memory goes after thirty days, on an account with nothing else going on", () => {
+  const age = (id: string, days: number) =>
+    db
+      .updateTable("notes")
+      .set({
+        superseded_at: sql`superseded_at - make_interval(days => ${days})`,
+        purge_after: sql`purge_after - make_interval(days => ${days})`,
+      } as never)
+      .where("id", "=", id)
+      .execute();
+
+  it("is purged by content.purge at 31 days, and kept at 29", async () => {
+    const ana = await account("Ana");
+    const one = await said(ana, "we live in Toronto", { hoursAgo: 3 });
+    const learned = (text: string) =>
+      db
+        .insertInto("notes")
+        .values({ account_id: ana, scope: "account", subject_id: ana, kind: "about", text, origin: "learned", derived_from_message_id: one })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+    const home = await learned("They live in Toronto.");
+    const work = await learned("They work in Toronto.");
+    const moved = await said(ana, "we moved to Montreal, both of us work there now");
+    const jobId = await passJob(ana);
+    const result = await post({
+      jobId,
+      supersede: [
+        { id: home.id, text: "They live in Montreal.", cites: moved },
+        { id: work.id, text: "They work in Montreal.", cites: moved },
+      ],
+    });
+    expect(result.json()).toMatchObject({ superseded: 2 });
+    await age(home.id, 31);
+    await age(work.id, 29);
+
+    await handlers["content.purge"]!({}, { mailer: new MemoryMailer() }, null);
+    const left = await db.selectFrom("notes").select("id").where("id", "in", [home.id, work.id]).execute();
+    expect(left).toEqual([{ id: work.id }]);
+  });
+});
+
+describe("when a pass reads from", () => {
+  it("leaves a message sent while the pass ran owed to the next one", async () => {
+    const ana = await account("Ana");
+    await said(ana, "my wife is Meera", { hoursAgo: 2 });
+    const jobId = await passJob(ana);
+    await db.updateTable("jobs").set({ locked_at: sql`now() - interval '1 minute'` } as never).where("id", "=", jobId).execute();
+    await said(ana, "we moved to Montreal", { hoursAgo: 0 });
+    expect((await post({ jobId })).statusCode).toBe(200);
+    expect(await passOwed(db, ana)).toBe(true);
   });
 });

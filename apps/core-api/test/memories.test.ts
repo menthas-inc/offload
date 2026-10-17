@@ -9,6 +9,7 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
 import {
+  addMemory,
   answerMemory,
   forget,
   memoriesForPrompt,
@@ -17,7 +18,10 @@ import {
   restoreForgotten,
   settleByMemory,
   sweepMemories,
+  undoAnswered,
 } from "../src/memories/store.js";
+import { handlers } from "../src/jobs/handlers.js";
+import { MemoryMailer } from "../src/mail/mailer.js";
 import { pendingEmbeds } from "../src/search/sweep.js";
 
 await migrate(() => {});
@@ -187,6 +191,35 @@ describe("the one write path", () => {
     expect(await db.selectFrom("memory_forgotten").select("message_id").execute()).toEqual([]);
   });
 
+  it("Undo on a forget leaves one copy when the same words were said again since", async () => {
+    const me = await account();
+    const said = await message(me);
+    const kept = await db.transaction().execute((trx) => remember(trx, { accountId: me, messageId: said, text: "Their wife is Meera.", kind: "people" }));
+    if (!kept.ok) throw new Error("not kept");
+    const asking = await message(me, "forget that Meera is my wife");
+    await db.transaction().execute((trx) => forget(trx, { accountId: me, messageId: asking, memoryId: kept.id }));
+    const again = await message(me, "remember Meera is my wife");
+    const readded = await db.transaction().execute((trx) => remember(trx, { accountId: me, messageId: again, text: "Their wife is Meera.", kind: "people" }));
+    expect(readded.ok).toBe(true);
+
+    await db.transaction().execute((trx) => restoreForgotten(trx, me, [asking]));
+    expect((await memoriesForPrompt(me)).map((m) => m.text)).toEqual(["Their wife is Meera."]);
+  });
+
+  it("Undo on a forget never makes a twenty-first rule", async () => {
+    const me = await account();
+    const rules: string[] = [];
+    for (let i = 0; i < 20; i += 1) rules.push(await learned(me, `Rule ${i}.`, null));
+    await db.updateTable("notes").set({ kind: "rules", origin: "stated" }).where("id", "in", rules).execute();
+    const asking = await message(me, "forget that rule");
+    await db.transaction().execute((trx) => forget(trx, { accountId: me, messageId: asking, memoryId: rules[0]! }));
+    const added = await db.transaction().execute((trx) => addMemory(trx, { accountId: me, text: "Work things go in Work.", kind: "rules" }));
+    expect(added.ok).toBe(true);
+
+    expect(await db.transaction().execute((trx) => restoreForgotten(trx, me, [asking]))).toBe(0);
+    expect((await memoriesForPrompt(me)).filter((m) => m.kind === "rules")).toHaveLength(20);
+  });
+
   it("never forgets another account's memory", async () => {
     const me = await account();
     const other = await account("Sam Ibekwe");
@@ -215,21 +248,21 @@ describe("what a prompt is given", () => {
   });
 });
 
-describe("a calendar shared with somebody, answered once", () => {
-  async function calendarRow(accountId: string): Promise<string> {
-    const n = await db
-      .insertInto("connector_connections")
-      .values({ account_id: accountId, provider: "google", external_account_email: `${uuidv7()}@g.com` })
-      .returning("id")
-      .executeTakeFirstOrThrow();
-    const c = await db
-      .insertInto("connector_calendars")
-      .values({ connection_id: n.id, external_id: `cal-${uuidv7()}`, summary: "P**B", access_role: "owner", selected: true, participants: 2 })
-      .returning("id")
-      .executeTakeFirstOrThrow();
-    return c.id;
-  }
+async function calendarRow(accountId: string): Promise<string> {
+  const n = await db
+    .insertInto("connector_connections")
+    .values({ account_id: accountId, provider: "google", external_account_email: `${uuidv7()}@g.com` })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  const c = await db
+    .insertInto("connector_calendars")
+    .values({ connection_id: n.id, external_id: `cal-${uuidv7()}`, summary: "P**B", access_role: "owner", selected: true, participants: 2 })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  return c.id;
+}
 
+describe("a calendar shared with somebody, answered once", () => {
   it("is remembered by name, without the calendar's name, and the next answer replaces it", async () => {
     const me = await account();
     const first = await calendarRow(me);
@@ -258,7 +291,7 @@ describe("the daily sweep", () => {
     await learned(me, "They live in Montreal.", kept);
     await learned(me, "Their car is a Civic.", gone);
     await db.updateTable("messages").set({ deleted_at: new Date() }).where("id", "=", gone).execute();
-    await sweepMemories(me);
+    await sweepMemories();
     expect((await memoriesForPrompt(me)).map((m) => m.text)).toEqual(["They live in Montreal."]);
   });
 
@@ -266,7 +299,7 @@ describe("the daily sweep", () => {
     const me = await account();
     const old = await learned(me, "They live in Toronto.", null);
     await db.updateTable("notes").set({ superseded_at: new Date(Date.now() - 31 * 86400_000) }).where("id", "=", old).execute();
-    await sweepMemories(me);
+    await sweepMemories();
     const row = await db.selectFrom("notes").select(["deleted_at", "purge_after"]).where("id", "=", old).executeTakeFirstOrThrow();
     expect(row.deleted_at).not.toBeNull();
     expect(row.purge_after).not.toBeNull();
@@ -280,9 +313,43 @@ describe("038 security review: any replaced memory goes after 30 days", () => {
     const asked = await db.transaction().execute((trx) => remember(trx, { accountId: me, messageId: said, text: "They live in Toronto.", kind: "about" }));
     if (!asked.ok) throw new Error("not kept");
     await db.updateTable("notes").set({ superseded_at: new Date(Date.now() - 31 * 86400_000) }).where("id", "=", asked.id).execute();
-    await sweepMemories(me);
+    await sweepMemories();
     const row = await db.selectFrom("notes").select(["deleted_at"]).where("id", "=", asked.id).executeTakeFirstOrThrow();
     expect(row.deleted_at).not.toBeNull();
+  });
+});
+
+describe("040 privacy: a replaced memory goes after thirty days, on any account", () => {
+  it("puts an answer the next answer replaced on the thirty-day clock, and its Undo takes it off", async () => {
+    const me = await account();
+    const [one, two] = [uuidv7(), uuidv7()];
+    const first = await calendarRow(me);
+    const second = await calendarRow(me);
+    await db.transaction().execute((trx) => answerMemory(trx, { accountId: me, name: "Meera", calendarId: first, answeredIn: one }));
+    await db.transaction().execute((trx) => answerMemory(trx, { accountId: me, name: "Meera", calendarId: second, answeredIn: two }));
+    const old = await db.selectFrom("notes").select(["id", "purge_after"]).where("subject_id", "=", me).where("superseded_at", "is not", null).executeTakeFirstOrThrow();
+    expect(old.purge_after).not.toBeNull();
+    const days = (old.purge_after!.getTime() - Date.now()) / 86400_000;
+    expect(days).toBeGreaterThan(29.9);
+    expect(days).toBeLessThanOrEqual(30);
+
+    await db.transaction().execute((trx) => undoAnswered(trx, me, [two]));
+    const back = await db.selectFrom("notes").select(["superseded_at", "purge_after"]).where("id", "=", old.id).executeTakeFirstOrThrow();
+    expect(back).toEqual({ superseded_at: null, purge_after: null });
+  });
+
+  it("removes a learned memory whose message was purged in the daily run, on an account with no activity", async () => {
+    const started = new Date();
+    const me = await account();
+    const said = await message(me, "my car is a civic");
+    const id = await learned(me, "Their car is a Civic.", said);
+    await db.deleteFrom("messages").where("id", "=", said).execute();
+
+    await handlers["account.daily"]!({}, { mailer: new MemoryMailer() }, null);
+    await handlers["content.purge"]!({}, { mailer: new MemoryMailer() }, null);
+    expect(await db.selectFrom("notes").select("id").where("id", "=", id).execute()).toEqual([]);
+    // The daily run books itself for tomorrow; this test's booking goes.
+    await db.deleteFrom("jobs").where("kind", "=", "account.daily").where("created_at", ">=", started).execute();
   });
 });
 

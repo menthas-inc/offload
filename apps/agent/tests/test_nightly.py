@@ -310,3 +310,19 @@ async def test_the_memory_pass_stays_on_sonnet_5_forced():
     await memories._ask(model, MemoryCfg(), "a listing")
     assert model.requests[0]["tool_choice"] == {"type": "tool", "name": "memory"}
     assert "output_config" not in model.requests[0]
+
+
+async def test_two_bad_answers_are_still_recorded_for_the_ledger():
+    """So a pass that ends unparseable can post what it paid for."""
+    from offload_agent import ledger
+
+    bad = {"supersede": "not a list"}
+    model = StubModel(
+        [
+            Response(content=[ToolUse("a", "nightly", bad)]),
+            Response(content=[ToolUse("b", "nightly", bad)]),
+        ]
+    )
+    with ledger.collecting():
+        await nightly._ask(model, Cfg(), "a listing", propose=False)
+        assert len(ledger.drain()) == 2

@@ -613,26 +613,6 @@ export async function peopleAdminRoutes(app: App): Promise<void> {
     },
   );
 
-  // Opening a person's page, recorded once per staff member, person and day.
-  // The reads record it themselves now; this stays for a page that still posts.
-  app.post(
-    "/people/:id/viewed",
-    {
-      config: { audit: "person.viewed" },
-      schema: { params: idParams, response: { 200: z.object({ status: z.literal("recorded") }), 404: notFound } },
-    },
-    async (request, reply) => {
-      const found = await db.transaction().execute(async (tx) => {
-        const target = await tx.selectFrom("accounts").select("id").where("id", "=", request.params.id).where(onPeople("accounts")).executeTakeFirst();
-        // The unique index makes the second one today a no-op.
-        if (target) await audit(tx, { staff: request.staff!, kind: "person.viewed", targetAccountId: target.id });
-        return target !== undefined;
-      });
-      if (!found) return reply.status(404).send({ error: "not-found" as const });
-      return reply.send({ status: "recorded" as const });
-    },
-  );
-
   // One account.
   app.get("/people/:id", { schema: { params: idParams, response: { 200: person, 404: notFound, 410: gone } } }, async (request, reply) => {
     const id = request.params.id;

@@ -23,6 +23,10 @@
 // failed attempt's `run_after` has been moved to its retry, so its wait
 // reads 0; the waits worth plotting are the `done` rows'.
 //
+// **Closed two minutes after it ends.** `updated_at` is when the writing
+// transaction began, so a turn that began at 12:59:59 and committed after 13:00
+// would land in an hour already rolled up, and be skipped from then on.
+//
 // **Idempotent.** An hour that is closed never gains a row, so an hour that
 // already has history is skipped, and the upsert makes two instances writing
 // the same hour write the same thing.
@@ -32,7 +36,9 @@ import { db } from "../db.js";
 
 export const ROLLUP_LOOKBACK_HOURS = 48;
 
-export async function rollup(): Promise<number> {
+/** `at` stands in for the clock in tests; the job passes nothing. */
+export async function rollup(at?: Date): Promise<number> {
+  const now = at ? sql`${at}::timestamptz` : sql`now()`;
   const result = await sql`
     insert into job_stats_hourly (hour, kind, outcome, count, wait_ms_sum, wait_ms_p95, run_ms_sum, run_ms_p95)
     select
@@ -50,8 +56,8 @@ export async function rollup(): Promise<number> {
         case when locked_at is null then 0
              else least(2000000000, greatest(0, extract(epoch from (updated_at - locked_at)) * 1000)) end as run_ms
       from jobs
-      where updated_at >= date_trunc('hour', now(), 'UTC') - make_interval(hours => ${ROLLUP_LOOKBACK_HOURS})
-        and updated_at < date_trunc('hour', now(), 'UTC')
+      where updated_at >= date_trunc('hour', ${now}, 'UTC') - make_interval(hours => ${ROLLUP_LOOKBACK_HOURS})
+        and updated_at < date_trunc('hour', ${now} - interval '2 minutes', 'UTC')
         and state <> 'running'
         and (state in ('done', 'dead', 'failed') or (error_code is not null and retried_at is null))
         and not exists (select 1 from job_stats_hourly done where done.hour = date_trunc('hour', jobs.updated_at, 'UTC'))

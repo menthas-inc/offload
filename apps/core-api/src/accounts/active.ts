@@ -9,7 +9,7 @@
 // for an account in the background.
 
 import type { FastifyInstance } from "fastify";
-import { auth } from "../auth/auth.js";
+import { currentAccountId } from "../auth/current-account.js";
 import { sql, type RawBuilder } from "kysely";
 import { db } from "../db.js";
 import type { Executor } from "../threads/access.js";
@@ -77,15 +77,11 @@ export function refuseWritesBeforeConsent(app: FastifyInstance): void {
     // read.
     if (path.startsWith("/v1/admin/")) return;
 
-    const headers = new Headers();
-    for (const [key, value] of Object.entries(request.headers)) {
-      if (value !== undefined) headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
-    }
-    const session = await auth.api.getSession({ headers });
-    if (!session) return;
+    const accountId = await currentAccountId(request);
+    if (!accountId) return;
     // The row, not the session user's copy of it: a session cache turned on
     // later would make that a cookie read, stale both ways across first run.
-    if (await isActive(session.session.userId)) return;
+    if (await isActive(accountId)) return;
     // A string, so no route's response schema is consulted.
     return reply.code(403).type("application/json; charset=utf-8").send('{"error":"not_active"}');
   });

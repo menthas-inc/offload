@@ -369,6 +369,43 @@ describe("AC-12 and AC-14 the default thread, and applying once", () => {
   });
 });
 
+// A pass whose answer was unusable, or that failed after its calls, still
+// paid for them, and the ledger is what gates scheduled work.
+describe("a pass that ends without a result", () => {
+  const spent = (jobId: string) =>
+    app.inject({
+      method: "POST",
+      url: "/internal/v1/usage",
+      headers: { authorization: `Bearer ${env.INTERNAL_SERVICE_TOKEN}` },
+      payload: { jobId, usage: [{ model: "claude-haiku-4-5", inputTokens: 100, outputTokens: 10, cacheReadTokens: 0, cacheWriteTokens: 0, latencyMs: 5 }] },
+    });
+  const ledgerOf = (jobId: string) =>
+    db.selectFrom("llm_usage").select(["account_id", "job_kind", "category", "job_id"]).where("job_id", "=", jobId).execute();
+
+  it("writes what its calls used while the job runs", async () => {
+    const ana = await account("Ana");
+    const trip = await thread(ana, "Lisbon in October");
+    const id = await job(ana, trip);
+    expect((await spent(id)).statusCode).toBe(200);
+    expect(await ledgerOf(id)).toEqual([{ account_id: ana, job_kind: "thread.nightly", category: "scheduled", job_id: id }]);
+  });
+
+  it("refuses a job that is not running, and a job of another kind", async () => {
+    const ana = await account("Ana");
+    const trip = await thread(ana, "Lisbon in October");
+    const done = await job(ana, trip);
+    await db.updateTable("jobs").set({ state: "done" }).where("id", "=", done).execute();
+    const other = await job(ana, trip);
+    await db.updateTable("jobs").set({ kind: "dump.answer" }).where("id", "=", other).execute();
+    for (const id of [done, other]) {
+      const response = await spent(id);
+      expect(response.statusCode).toBe(404);
+      expect(response.json()).toEqual({ error: "unknown_job" });
+      expect(await ledgerOf(id)).toEqual([]);
+    }
+  });
+});
+
 describe("AC-7 the daily run books one pass per thread and member", () => {
   async function daily(me: string) {
     await handlers["account.daily.run"]!({}, { mailer: new MemoryMailer() }, me);

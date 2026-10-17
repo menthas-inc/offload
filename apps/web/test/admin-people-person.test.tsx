@@ -421,17 +421,6 @@ describe("a person's page", () => {
     expect(host.textContent).toContain("No cap has refused them in 30 days.");
   });
 
-  it("records that the page was opened, once, by a POST after it loads", async () => {
-    api();
-    const host = await open();
-    const viewed = () => writes().filter((call) => call.path === "/people/p1/viewed");
-    expect(viewed()).toHaveLength(1);
-    expect(viewed()[0]!.init).toMatchObject({ method: "POST", credentials: "include" });
-    await click(button(host, "Refresh"));
-    await settle();
-    expect(viewed()).toHaveLength(1);
-  });
-
   it("records nothing when the person did not load", async () => {
     api({ status: { person: 404 } });
     await open();

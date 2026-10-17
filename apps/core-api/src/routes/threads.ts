@@ -16,7 +16,7 @@ import { fileOnRow, fileToWire, type FileOnRow } from "../blobs/wire.js";
 import { sql, type Transaction } from "kysely";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
-import { auth } from "../auth/auth.js";
+import { currentAccountId } from "../auth/current-account.js";
 import { DEFAULT_THREAD_ICON, formatRule, isThreadIcon, parseRule, pickThreadIcon, utcDay } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";
 import { Refused } from "../threads/refusals.js";
@@ -91,20 +91,6 @@ const PAGE = 30;
  *  than stored, because it is a function of time rather than a property of the
  *  thread, which is 001's own reasoning for not storing it. */
 const STALE_DAYS = 30;
-
-function fetchHeaders(request: FastifyRequest): Headers {
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(request.headers)) {
-    if (value === undefined) continue;
-    headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
-  }
-  return headers;
-}
-
-async function currentAccountId(request: FastifyRequest): Promise<string | null> {
-  const result = await auth.api.getSession({ headers: fetchHeaders(request) });
-  return result?.session.userId ?? null;
-}
 
 /** Wraps a handler so a `NotYours` becomes the one refusal rather than a 500.
  *  Written once so no endpoint can forget, and so no endpoint can accidentally

@@ -16,7 +16,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { sql } from "kysely";
 import type { App } from "../app.js";
-import { auth } from "../auth/auth.js";
+import { currentAccountId } from "../auth/current-account.js";
 import { timeZoneOf } from "../time-zone.js";
 import { adoptZone } from "../accounts/zone.js";
 import { webOrigins } from "../env.js";
@@ -116,22 +116,6 @@ const STREAM_SESSION_MS = 15_000;
  *  proxy from closing the stream first and making it look like a failure. */
 const STREAM_LIFETIME_MS = 300_000;
 
-function fetchHeaders(request: FastifyRequest): Headers {
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(request.headers)) {
-    if (value === undefined) continue;
-    headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
-  }
-  return headers;
-}
-
-async function currentAccountId(
-  request: FastifyRequest,
-): Promise<string | null> {
-  const result = await auth.api.getSession({ headers: fetchHeaders(request) });
-  return result?.session.userId ?? null;
-}
-
 const dumpBody = z
   .object({
     /** Empty is allowed only alongside photos; the refinement below says so. */
@@ -209,8 +193,8 @@ const dumpResponse = z.object({
    *  tap's own turn wears the Done mark and the pill at once rather than
    *  after a reload. Empty for the way out, which changed nothing. */
   threads: touchedThreads.optional(),
-  /** On a calendar answer's response: the tap put the event on a calendar.
-   *  What draws Done when the row's thread has no pill to name. */
+  /** On an answer's response: the tap changed the row, or put the event on a
+   *  calendar. What draws Done when the row's thread has no pill to name. */
   filed: z.boolean().optional(),
   /** 019. On a calendar answer's response: the proposal the tap turned into,
    *  when the calendar needed the person's say-so, drawn on their own turn. */
@@ -400,69 +384,6 @@ const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 // two mix refusals ride the same status for the same reason.
 const unknownBlob = z.object({ error: z.enum(["unknown_blob", "one_voice_note", "too_many_photos", "too_many_pdfs"]) });
 
-/** The reply to a person's message, if it has been answered.
- *
- *  Matched on turn_id rather than by taking the newest offload message in the
- *  conversation: with two dumps in flight the newest is not necessarily the
- *  answer to this one, and showing somebody the wrong answer under their
- *  message is worse than showing none. */
-/** Which threads a turn's content landed in, deduplicated, in the order it
- *  filed them. One indexed lookup on `content(derived_from_message_id)`.
- *
- *  From the rows, never from the reply. offload naming a thread it did not
- *  write to is the failure 004 exists to prevent, so the composer's links come
- *  from the record of what happened rather than from the sentence describing
- *  it. If the two ever disagree, the links are right and the sentence is a bug.
- */
-/** Where a turn's content is now, and every thread it changed.
- *
- *  Two lists because they answer different questions and one of them is a claim
- *  surface. `landed` is what the reply's pills may name and what earns the Done
- *  mark: the turn's content is in these threads. `changed` is every thread
- *  whose contents moved, which the screen needs in order to reload and which
- *  includes the thread a move took something *out of*.
- *
- *  The content join stays for messages written before `message_threads`
- *  existed. Their turns filed rather than edited, because filing was the only
- *  thing that left a record, so the older answer is still the right one for
- *  them. */
-/** What a turn read from the web, for the chip under it.
- *
- *  Scoped by account like everything else, and read at the turn rather than at
- *  the reply: an ordinary filing turn writes no reply and may still have read
- *  something. Ordered by when it was read, and capped, because six chips under
- *  a one-sentence reply is a footnote section. */
-export async function sourcesFor(
-  turnId: string,
-  accountId: string,
-): Promise<{ domain: string; url: string }[]> {
-  return db
-    .selectFrom("turn_sources")
-    .select(["domain", "url"])
-    .where("turn_id", "=", turnId)
-    .where("account_id", "=", accountId)
-    .orderBy("created_at")
-    // **Twelve, the same number the worker sends and the schema accepts.** Six
-    // here made the chip's count a lie: a turn that read seven places drew
-    // three chips and "and 3 more", which says six. The count is the one part
-    // of that row making a claim about how many places were read, so the read
-    // has to see all of them; the client is what decides how many to draw.
-    .limit(12)
-    .execute();
-}
-
-/** Where each of a page of messages filed, in one query.
- *
- *  The per-message `threadsFor` is right for a single turn and wrong for a page:
- *  fifty messages is fifty round trips on every open, which is the reasoning
- *  `foundFor` already carries. Only what landed, never `changed`: a pill saying
- *  a turn went somewhere it only moved something out of would be untrue. */
-/** 020. The photos a message carries, for the thumbnails beside it.
- *
- *  The name rides along because the reader here is always the dumper: a
- *  conversation is private, so every message this returns is theirs. `ready`
- *  is whether the renditions exist yet; until they do the client draws the
- *  glyph. Never the coordinate, never the device. */
 /** 021. The voice note each message carries, with the transcript as the
  *  message holds it. One per message at most. */
 export async function voiceForAll(
@@ -500,6 +421,12 @@ export async function voiceForAll(
   return out;
 }
 
+/** 020. The photos a message carries, for the thumbnails beside it.
+ *
+ *  The name rides along because the reader here is always the dumper: a
+ *  conversation is private, so every message this returns is theirs. `ready`
+ *  is whether the renditions exist yet; until they do the client draws the
+ *  glyph. Never the coordinate, never the device. */
 export async function photosForAll(
   messageIds: string[],
   accountId: string,
@@ -537,6 +464,12 @@ export async function photosForAll(
   return out;
 }
 
+/** Where each of a page of messages filed, in one query.
+ *
+ *  The per-message `threadsFor` is right for a single turn and wrong for a page:
+ *  fifty messages is fifty round trips on every open, which is the reasoning
+ *  `foundFor` already carries. Only what landed, never `changed`: a pill saying
+ *  a turn went somewhere it only moved something out of would be untrue. */
 export async function threadsForAll(
   messageIds: string[],
   accountId: string,
@@ -603,7 +536,16 @@ export async function threadsForAll(
   return out;
 }
 
-/** What each of a page of turns read, in one query. Same reasoning. */
+/** What each of a page of turns read, for the chip under it, in one query,
+ *  for the same reason.
+ *
+ *  Scoped by account like everything else, and read at the turn rather than at
+ *  the reply: an ordinary filing turn writes no reply and may still have read
+ *  something. Ordered by when it was read, and uncapped: the chip's "and N
+ *  more" is a claim about how many places were read, so the read sees all of
+ *  them and the client decides how many to draw. One read for the single
+ *  message and the page, so a turn finished twice counts the same after a
+ *  reload. */
 export async function sourcesForAll(
   turnIds: string[],
   accountId: string,
@@ -627,6 +569,24 @@ export async function sourcesForAll(
   return out;
 }
 
+/** Where a turn's content is now, and every thread it changed.
+ *
+ *  Two lists because they answer different questions and one of them is a claim
+ *  surface. `landed` is what the reply's pills may name and what earns the Done
+ *  mark: the turn's content is in these threads. `changed` is every thread
+ *  whose contents moved, which the screen needs in order to reload and which
+ *  includes the thread a move took something *out of*.
+ *
+ *  The content join stays for messages written before `message_threads`
+ *  existed. Their turns filed rather than edited, because filing was the only
+ *  thing that left a record, so the older answer is still the right one for
+ *  them.
+ *
+ *  From the rows, never from the reply. offload naming a thread it did not
+ *  write to is the failure 004 exists to prevent, so the composer's links come
+ *  from the record of what happened rather than from the sentence describing
+ *  it. If the two ever disagree, the links are right and the sentence is a bug.
+ */
 export async function threadsFor(
   messageId: string,
   accountId: string,
@@ -679,6 +639,12 @@ export async function threadsFor(
   return { landed, changed: [...changed], filed: any };
 }
 
+/** The reply to a person's message, if it has been answered.
+ *
+ *  Matched on turn_id rather than by taking the newest offload message in the
+ *  conversation: with two dumps in flight the newest is not necessarily the
+ *  answer to this one, and showing somebody the wrong answer under their
+ *  message is worse than showing none. */
 async function replyFor(
   turnId: string,
   accountId: string,
@@ -704,14 +670,6 @@ async function replyFor(
   return row ?? null;
 }
 
-/** What an open stream should do right now.
- *
- *  Extracted from the stream itself so it can be tested: Better Auth signs its
- *  session cookie, so driving the endpoint from a test would mean replicating
- *  that signing, which is a test that breaks when the library changes rather
- *  than when the behaviour does. The authorization around this is covered by
- *  its own 401 and 404 cases; this is the part with the states in it.
- */
 export interface TouchedThread {
   id: string;
   name: string;
@@ -756,6 +714,14 @@ export type StreamStep =
   | { do: "step"; text: string; transcript: string | null }
   | { do: "wait"; transcript: string | null };
 
+/** What an open stream should do right now.
+ *
+ *  Extracted from the stream itself so it can be tested: Better Auth signs its
+ *  session cookie, so driving the endpoint from a test would mean replicating
+ *  that signing, which is a test that breaks when the library changes rather
+ *  than when the behaviour does. The authorization around this is covered by
+ *  its own 401 and 404 cases; this is the part with the states in it.
+ */
 export async function streamStep(
   messageId: string,
   accountId: string,
@@ -782,10 +748,10 @@ export async function streamStep(
   if (!current) return { do: "close" };
   const transcript = current.transcribed_at ? (current.transcript ?? "") : null;
   if (current.state === "answered" || current.state === "partial") {
-    const [reply, touched, sources, labelled] = await Promise.all([
+    const [reply, touched, read, labelled] = await Promise.all([
       replyFor(current.turn_id, accountId),
       threadsFor(messageId, accountId),
-      sourcesFor(current.turn_id, accountId),
+      sourcesForAll([current.turn_id], accountId),
       labelsForTurns([current.turn_id], accountId),
     ]);
     return {
@@ -796,12 +762,13 @@ export async function streamStep(
       threads: touched.landed,
       changed: touched.changed,
       filed: touched.filed,
-      sources,
+      sources: read.get(current.turn_id) ?? [],
       // 025. The labels the turn applied, for the footer's marks.
       labels: labelled.get(current.turn_id) ?? [],
     };
   }
   if (current.state === "failed") return { do: "failed" };
+  if (current.state === "cancelled") return { do: "close" };
 
   // **After the settlements, never before.** A worker can post its last step and
   // its result close enough together that one wake sees both, and a step drawn
@@ -1331,7 +1298,7 @@ export async function dumpRoutes(app: App): Promise<void> {
         changed: settled ? touched.changed : [],
         // Read at the turn rather than at the reply: a filing turn writes no
         // reply and may still have read something.
-        sources: settled ? await sourcesFor(message.turn_id, accountId) : [],
+        sources: settled ? ((await sourcesForAll([message.turn_id], accountId)).get(message.turn_id) ?? []) : [],
         // 025. What the turn applied, once it has settled.
         labels: settled ? ((await labelsForTurns([message.turn_id], accountId)).get(message.turn_id) ?? []) : [],
         // 017. Null on anything settled, so a client polling after the answer
@@ -1836,6 +1803,8 @@ export async function dumpRoutes(app: App): Promise<void> {
           200: dumpResponse,
           401: unauthenticated,
           404: notFound,
+          // A country answer re-runs the turn, and the day is used.
+          429: dailyLimit,
           // 019. A calendar answer's write did not go through. The question
           // is open again and the client draws the failure line with the
           // chips still there.
@@ -1848,7 +1817,13 @@ export async function dumpRoutes(app: App): Promise<void> {
       if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
       const timeZone = timeZoneOf(request);
-      const outcome = await answerQuestion(accountId, request.params.id, request.body.option, timeZone);
+      let outcome;
+      try {
+        outcome = await answerQuestion(accountId, request.params.id, request.body.option, timeZone);
+      } catch (error) {
+        if (error instanceof OverBudget) return reply.code(429).send({ error: "daily_limit" as const, scope: error.scope });
+        throw error;
+      }
       if (!outcome) return reply.code(404).send({ error: "not_found" as const });
       if ("calendar" in outcome) {
         const answered = await answerCalendarQuestion(accountId, { ...outcome.calendar, timeZone });
@@ -1937,13 +1912,21 @@ export async function dumpRoutes(app: App): Promise<void> {
     {
       schema: {
         params: z.object({ messageId: z.string().uuid() }),
-        response: { 200: dumpResponse, 401: unauthenticated, 404: notFound, 409: notFinishable },
+        response: { 200: dumpResponse, 401: unauthenticated, 404: notFound, 409: notFinishable, 429: dailyLimit },
       },
     },
     async (request, reply) => {
       const accountId = await currentAccountId(request);
       if (!accountId)
         return reply.code(401).send({ error: "unauthenticated" as const });
+
+      // A resume is a model turn like a dump, so the day's cap holds it too.
+      try {
+        await requireBudget(accountId);
+      } catch (error) {
+        if (error instanceof OverBudget) return reply.code(429).send({ error: "daily_limit" as const, scope: error.scope });
+        throw error;
+      }
 
       const message = await db
         .selectFrom("messages")
@@ -1965,12 +1948,15 @@ export async function dumpRoutes(app: App): Promise<void> {
 
       const state = await db.transaction().execute(async (trx) => {
         // Back to seen, so the composer's existing wait path applies unchanged
-        // and turn-result's idempotency guard has something to match.
-        await trx
+        // and turn-result's idempotency guard has something to match. Guarded
+        // on the state, so of two resumes at once only one starts a planner.
+        const moved = await trx
           .updateTable("messages")
           .set({ state: "seen" })
           .where("id", "=", message.id)
-          .execute();
+          .where("state", "in", ["partial", "failed"])
+          .executeTakeFirst();
+        if (Number(moved.numUpdatedRows) === 0) return null;
 
         // 021. The open question, as the original enqueue carried it: a
         // spoken answer whose transcription failed once is still read as an
@@ -1992,6 +1978,7 @@ export async function dumpRoutes(app: App): Promise<void> {
 
         return "seen" as const;
       });
+      if (!state) return reply.code(409).send({ error: "not_finishable" as const });
 
       return reply.send({
         messageId: message.id,
@@ -2003,17 +1990,6 @@ export async function dumpRoutes(app: App): Promise<void> {
   );
 }
 
-/** Undo one turn: what they dumped, everything derived from it, and what
- *  offload said about it.
- *
- *  Exported for the same reason `takeDump` is. Better Auth signs its session
- *  cookie, so a test cannot reach a session-scoped route by pretending, and the
- *  properties worth asserting here are properties of the transaction. The route
- *  owns the session check; this owns the write.
- *
- *  Returns null when the turn is not this account's or does not exist, which
- *  are one answer for the same reason the tool endpoint has one refusal.
- */
 /** Stop a turn that is taking too long. 017.
  *
  *  Extracted from the route for the reason `undoTurn` is: Better Auth signs the
@@ -2078,15 +2054,38 @@ export async function cancelTurn(
     for (const job of jobs) {
       await sql`select pg_notify(${"offload_cancel"}, ${job.id})`.execute(trx);
     }
+
+    // **No job left to settle it, so the state is written here.** Otherwise the
+    // worker posts `cancelled` and the turn settles through the one path every
+    // other outcome takes. A job the worker reaped as dead never will, and the
+    // message would read as thinking for good, with resume refusing it.
+    if (jobs.length === 0) {
+      const settled = await trx
+        .updateTable("messages")
+        .set({ state: "cancelled" })
+        .where("id", "=", message.id)
+        .where("state", "in", ["seen", "queued"])
+        .executeTakeFirst();
+      if (Number(settled.numUpdatedRows) > 0) {
+        await sql`select pg_notify(${"offload_answer"}, ${message.id})`.execute(trx);
+      }
+    }
   });
 
-  // **The state is not written here.** The worker posts `cancelled` and the
-  // turn settles through the one path every other outcome takes, so a cancel
-  // cannot leave a message in a state no `turn-result` produced. If the worker
-  // is already gone, the job is marked and the turn settles from that.
   return { state: "cancelled", stopped: true };
 }
 
+/** Undo one turn: what they dumped, everything derived from it, and what
+ *  offload said about it.
+ *
+ *  Exported for the same reason `takeDump` is. Better Auth signs its session
+ *  cookie, so a test cannot reach a session-scoped route by pretending, and the
+ *  properties worth asserting here are properties of the transaction. The route
+ *  owns the session check; this owns the write.
+ *
+ *  Returns null when the turn is not this account's or does not exist, which
+ *  are one answer for the same reason the tool endpoint has one refusal.
+ */
 export async function undoTurn(
   accountId: string,
   turnId: string,
@@ -2348,6 +2347,7 @@ export async function answerQuestion(
     turnId: string;
     question: QuestionOnWire | null;
     threads: TouchedThread[];
+    filed: boolean;
   };
   field: string;
   applied: boolean;
@@ -2382,6 +2382,9 @@ export async function answerQuestion(
     const turnId = randomUUID();
     const escape = picked.value === null;
     const country = question.field === "country" && !escape;
+    // Only the country answer starts a model turn, so only it meets the cap.
+    // Thrown inside the transaction, so the question stays open for tomorrow.
+    if (country) await requireBudget(accountId, trx);
     // 019. A calendar answer reaches Google, which cannot happen inside this
     // transaction: it settles here and writes on its own path afterwards.
     if (question.field === "calendar" && !escape) {
@@ -2456,13 +2459,27 @@ export async function answerQuestion(
         state: country && applied ? ("seen" as const) : ("answered" as const),
         turnId,
         question: await openQuestionOn(trx, accountId, message.id),
+        // The default thread draws no pill (028), so a loose row's answer
+        // names nothing and `filed` draws its Done, as the calendar path does.
         threads: await trx
           .selectFrom("message_threads")
           .innerJoin("threads", "threads.id", "message_threads.thread_id")
           .select(["threads.id as id", "threads.name as name", "threads.icon as icon", "threads.hue as hue"])
           .where("message_threads.message_id", "=", message.id)
           .where("message_threads.landed", "=", true)
+          .where((eb) =>
+            eb.not(
+              eb.exists(
+                eb
+                  .selectFrom("accounts")
+                  .select("accounts.id")
+                  .where("accounts.id", "=", accountId)
+                  .whereRef("accounts.default_thread_id", "=", "threads.id"),
+              ),
+            ),
+          )
           .execute(),
+        filed: applied,
       },
       field: question.field,
       applied,

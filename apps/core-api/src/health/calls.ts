@@ -18,6 +18,10 @@ export interface CallsOfKind {
   points: Array<{ at: Date; calls: number; failures: number; p50: number | null; p95: number | null }>;
 }
 
+/** The job kinds that write `llm_usage`, so one whose calls all failed still
+ *  has a row. */
+const LEDGER_KINDS = ["dump.answer", "thread.nightly", "account.memories"];
+
 /** Calls and latency per job kind per bucket from `llm_usage`, and failures
  *  per kind per bucket from the job history (failed and dead together).
  *  Busiest first. Every model call the ledger has, transcription included:
@@ -42,7 +46,7 @@ export async function modelCalls(range: Range): Promise<CallsOfKind[]> {
     select kinds.kind, buckets.at,
            coalesce(calls.calls, 0) as calls, calls.p50, calls.p95,
            coalesce(failures.failures, 0) as failures
-    from (select distinct kind from calls) kinds
+    from (select kind from calls union select kind from failures where kind = any(${sql.val(LEDGER_KINDS)})) kinds
     cross join buckets
     left join calls on calls.kind = kinds.kind and calls.at = buckets.at
     left join failures on failures.kind = kinds.kind and failures.at = buckets.at
@@ -98,7 +102,7 @@ export interface VendorRow {
 
 /** What the worker writes when the model let a job down, and when the
  *  transcription company did. From the closed set in `jobs/errors.ts`. */
-const MODEL_CODES = ["model_error", "invalid_output", "timeout", "nightly_error", "nightly_unparseable", "memory_error", "memory_unparseable", "link_place_error"];
+const MODEL_CODES = ["model_error", "invalid_output", "timeout", "nightly_error", "nightly_unparseable", "memory_error", "memory_unparseable"];
 const TRANSCRIPTION_CODES = ["transcription_failed", "forget_error"];
 
 /** The companies with no ledger of their own, and the jobs that call them.

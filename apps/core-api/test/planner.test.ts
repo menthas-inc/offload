@@ -1122,6 +1122,20 @@ describe("016 what a turn read", () => {
     expect(Object.keys(tally)).toEqual(["domain", "day", "count"]);
   });
 
+  it("records the lookups of a turn that failed after searching", async () => {
+    const accountId = await account();
+    const { jobId } = await dump(accountId);
+    const posted = await turnResult({
+      outcome: "failed",
+      jobId,
+      reason: "model_error",
+      lookups: [{ label: "when_is", kind: "search", outcome: "used", costMicros: 10000 }],
+    });
+    expect(posted.statusCode).toBe(200);
+    const rows = await db.selectFrom("lookups").select(["label", "cost_micros"]).where("account_id", "=", accountId).execute();
+    expect(rows).toEqual([{ label: "when_is", cost_micros: 10000 }]);
+  });
+
   it("holds no query and no page text anywhere", async () => {
     // The one that would hurt. Nothing about what was asked, or what came
     // back, may be reconstructible from any of the three tables (OFF-1).

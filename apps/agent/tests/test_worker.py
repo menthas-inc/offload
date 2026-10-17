@@ -5,6 +5,7 @@ has been called and paid for, and everything after that has to avoid throwing
 the answer away or leaving the job locked.
 """
 
+import contextlib
 import dataclasses
 import json
 
@@ -537,3 +538,169 @@ async def test_an_answer_that_read_four_times_posts_at_most_three_found(monkeypa
 
     assert posted[0]["outcome"] == "answered"
     assert len(posted[0]["found"]) == 3
+
+
+class _Unusable:
+    """A model that answers in words every time, so a pass has nothing to apply."""
+
+    def __init__(self):
+        self.messages = self
+
+    async def create(self, **_kwargs):
+        from types import SimpleNamespace
+
+        return SimpleNamespace(
+            content=[SimpleNamespace(type="text", text="no")],
+            usage=SimpleNamespace(input_tokens=100, output_tokens=20),
+        )
+
+
+class _Engine:
+    """Reads nothing and holds no rows; the release is stubbed where it is called."""
+
+    class _Conn:
+        async def execute(self, *_a, **_k):
+            from types import SimpleNamespace
+
+            return SimpleNamespace(mappings=lambda: SimpleNamespace(all=lambda: []))
+
+    @contextlib.asynccontextmanager
+    async def connect(self):
+        yield self._Conn()
+
+    @contextlib.asynccontextmanager
+    async def begin(self):
+        yield None
+
+
+async def test_a_pass_with_an_unusable_answer_posts_what_it_paid_for_before_release(monkeypatch):
+    """The two calls were paid for either way, and the ledger is what gates
+    scheduled work: it has to hear about them before the job is let go."""
+    from offload_agent import memories as memories_mod
+    from offload_agent.queue import ClaimedJob
+    from offload_agent.worker import handle
+
+    events: list[tuple] = []
+
+    async def read(*_a, **_k):
+        return "Today", [], [], [{"id": "m", "text": "hi"}]
+
+    async def retry_or_die(_conn, _job, code, **_k):
+        events.append(("release", code))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        events.append(("post", request.url.path, json.loads(request.read().decode())))
+        return httpx.Response(200, json={"status": "written"})
+
+    monkeypatch.setattr(memories_mod, "read", read)
+    monkeypatch.setattr(memories_mod, "listing", lambda **_k: "a listing")
+    monkeypatch.setattr(memories_mod, "retry_or_die", retry_or_die)
+
+    job = ClaimedJob(
+        id="j", kind="account.memories", payload={}, account_id="a", attempts=1, max_attempts=3
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        await handle(job, cfg=cfg(), engine=_Engine(), anthropic=_Unusable(), http=http)
+
+    assert [e[:2] for e in events] == [
+        ("post", "/internal/v1/usage"),
+        ("release", "memory_unparseable"),
+    ]
+    assert events[0][2]["jobId"] == "j" and len(events[0][2]["usage"]) == 2
+
+
+async def test_a_pass_that_fails_after_its_call_posts_its_usage_and_a_failed_post_changes_nothing(
+    monkeypatch,
+):
+    from offload_agent import ledger
+    from offload_agent import worker as worker_mod
+    from offload_agent.queue import ClaimedJob
+
+    events: list[tuple] = []
+    entry = {
+        "model": "m",
+        "inputTokens": 1,
+        "outputTokens": 1,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "latencyMs": 1,
+    }
+
+    async def handle_nightly(*_a, **_k):
+        ledger.record(entry)
+        raise RuntimeError("after the call")
+
+    async def retry_or_die(_conn, _job, code, **_k):
+        events.append(("release", code))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        events.append(("post", request.url.path))
+        return httpx.Response(503)
+
+    monkeypatch.setattr(worker_mod, "handle_nightly", handle_nightly)
+    monkeypatch.setattr(worker_mod, "retry_or_die", retry_or_die)
+
+    job = ClaimedJob(
+        id="j", kind="thread.nightly", payload={}, account_id="a", attempts=1, max_attempts=3
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        await worker_mod.handle(job, cfg=cfg(), engine=_Engine(), anthropic=None, http=http)
+
+    assert events[0] == ("post", "/internal/v1/usage")
+    assert events[-1] == ("release", "nightly_error")
+
+
+async def test_a_question_that_failed_after_searching_reports_the_lookups(monkeypatch):
+    """The search was paid for; a failed turn that drops it undercounts it."""
+    from types import SimpleNamespace
+
+    from offload_agent import worker as worker_mod
+    from offload_agent.queue import ClaimedJob
+
+    posted: list[dict] = []
+    row = {"label": "weather", "kind": "search", "outcome": "used", "costMicros": 10000}
+
+    class Searched(worker_mod.Lookups):
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            self.rows.append(row)
+
+    @contextlib.asynccontextmanager
+    async def connect():
+        yield None
+
+    async def load_answer(*_a, **_k):
+        return None
+
+    async def plan_answer(*_a, **_k):
+        raise RuntimeError("after the search")
+
+    async def post(_http, _cfg, body, **_):
+        posted.append(body)
+
+    ctx = SimpleNamespace(may_search=True, may_read_links=False, country_in_effect=None, today=None)
+    monkeypatch.setattr(worker_mod, "Lookups", Searched)
+    monkeypatch.setattr(worker_mod.ctx_mod, "load_answer", load_answer)
+    monkeypatch.setattr(worker_mod.ctx_mod, "fit_answer", lambda loaded, _max: ctx)
+    monkeypatch.setattr(worker_mod, "plan_answer", plan_answer)
+    monkeypatch.setattr(worker_mod, "_post_result", post)
+
+    job = ClaimedJob(
+        id="j", kind="dump.answer", payload={}, account_id="a", attempts=1, max_attempts=5
+    )
+    async with httpx.AsyncClient() as http:
+        await worker_mod._handle_answer(
+            job,
+            question="q",
+            cfg=cfg(),
+            engine=SimpleNamespace(connect=connect),
+            anthropic=None,
+            http=http,
+        )
+
+    assert posted[-1] == {
+        "outcome": "failed",
+        "jobId": "j",
+        "reason": "model_error",
+        "lookups": [row],
+    }

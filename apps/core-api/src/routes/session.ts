@@ -12,7 +12,7 @@ import { z } from "zod";
 import { sql } from "kysely";
 import type { App } from "../app.js";
 import { COUNTRIES, isCountry } from "../countries.js";
-import { auth } from "../auth/auth.js";
+import { currentAccountId } from "../auth/current-account.js";
 import { ATTEMPT_COOKIE, readCookie, unsealAttempt } from "../auth/attempt.js";
 import { db } from "../db.js";
 import { initialsOf } from "../accounts/initials.js";
@@ -24,23 +24,6 @@ import { deleteAccount, LastOwner } from "../accounts/delete.js";
 import { resolveTimeZone } from "../time-zone.js";
 import { adoptZone } from "../accounts/zone.js";
 import { activityNew } from "../notifications/activity.js";
-
-function fetchHeaders(request: FastifyRequest): Headers {
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(request.headers)) {
-    if (value === undefined) continue;
-    headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
-  }
-  return headers;
-}
-
-/** The signed-in account id, or null. Reads the session through Better Auth
- *  rather than the sessions table directly, so cookie signing and expiry are
- *  checked by the thing that issued them. */
-async function currentAccountId(request: FastifyRequest): Promise<string | null> {
-  const result = await auth.api.getSession({ headers: fetchHeaders(request) });
-  return result?.session.userId ?? null;
-}
 
 /** Declared on every authenticated route, because the type provider narrows
  *  reply.send() to the shapes the schema names and an undeclared 401 does not

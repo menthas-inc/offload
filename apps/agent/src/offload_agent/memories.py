@@ -38,6 +38,7 @@ from offload_agent.context import (
     today_line,
 )
 from offload_agent.embed import query_embedder
+from offload_agent.nightly import post_usage
 from offload_agent.prompt_files import load
 from offload_agent.queue import ClaimedJob, finish, retry_or_die
 
@@ -259,6 +260,8 @@ async def _ask(
             tool_choice={"type": "tool", "name": "memory"},
         )
         usage.append(ledger.usage_of(model, response.usage, started))
+        # Into the job's sink too, so an unusable pass still posts it.
+        ledger.record(usage[-1])
         block = next((one for one in response.content if one.type == "tool_use"), None)
         if block is None:
             if attempt == 0:
@@ -355,6 +358,7 @@ async def handle_memories(
         listing(today=today, memories=memories, notes=notes, messages=messages, to_date=to_date),
     )
     if plan is None:
+        await post_usage(http, cfg, job.id)
         async with engine.begin() as conn:
             await retry_or_die(conn, job, "memory_unparseable", delay_seconds=3600)
         return

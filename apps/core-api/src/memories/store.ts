@@ -69,7 +69,7 @@ async function saying(trx: Executor, accountId: string, text: string, except: st
  *  refuses. One writer at a time per account, so two adds cannot both see 299. */
 /** One writer at a time per account for anything a cap or a duplicate check
  *  decides, held to the end of the caller's transaction. */
-async function capLock(trx: Executor, accountId: string): Promise<void> {
+export async function capLock(trx: Executor, accountId: string): Promise<void> {
   await sql`select pg_advisory_xact_lock(hashtext(${accountId}), hashtext('memory:cap'))`.execute(trx);
 }
 
@@ -252,24 +252,51 @@ export async function forget(
   return { ok: true, id: row.id };
 }
 
-/** The turn's Undo: memories these messages forgot come back, and their
- *  sources may teach again. */
+/** Either Undo puts one forgotten memory back, and its source may teach
+ *  again. Never a second copy of words said again since, and an Undo never
+ *  makes room by retiring another memory: at a cap it stays forgotten. */
+async function putBack(
+  trx: Executor,
+  accountId: string,
+  row: { id: string; kind: string; text: string; derived_from_message_id: string | null },
+  marker: "forgot_in" | "forgot_by",
+): Promise<boolean> {
+  await capLock(trx, accountId);
+  if (await saying(trx, accountId, row.text)) return false;
+  const counts = await active(trx, accountId)
+    .select([sql<number>`count(*)::int`.as("all"), sql<number>`(count(*) filter (where kind = 'rules'))::int`.as("rules")])
+    .executeTakeFirstOrThrow();
+  if (counts.all >= MEMORY_CAP || (row.kind === "rules" && counts.rules >= RULES_CAP)) return false;
+  await trx
+    .updateTable("notes")
+    .set({ deleted_at: null, purge_after: null, attrs: sql`attrs - ${marker}::text`, updated_at: sql`now()` })
+    .where("id", "=", row.id)
+    .execute();
+  if (row.derived_from_message_id) {
+    await trx
+      .deleteFrom("memory_forgotten")
+      .where("account_id", "=", accountId)
+      .where("message_id", "=", row.derived_from_message_id)
+      .execute();
+  }
+  return true;
+}
+
+/** The turn's Undo: memories these messages forgot come back, as many as fit. */
 export async function restoreForgotten(trx: Executor, accountId: string, messageIds: string[]): Promise<number> {
   if (messageIds.length === 0) return 0;
-  const back = await trx
-    .updateTable("notes")
-    .set({ deleted_at: null, purge_after: null, attrs: sql`attrs - 'forgot_in'`, updated_at: sql`now()` })
+  const rows = await trx
+    .selectFrom("notes")
+    .select(["id", "kind", "text", "derived_from_message_id"])
     .where("scope", "=", "account")
     .where("subject_id", "=", accountId)
     .where("deleted_at", "is not", null)
     .where(sql<boolean>`attrs->>'forgot_in' in (${sql.join(messageIds)})`)
-    .returning(["id", "derived_from_message_id"])
+    .orderBy("created_at")
     .execute();
-  const sources = back.map((row) => row.derived_from_message_id).filter((id): id is string => id !== null);
-  if (sources.length > 0) {
-    await trx.deleteFrom("memory_forgotten").where("account_id", "=", accountId).where("message_id", "in", sources).execute();
-  }
-  return back.length;
+  let back = 0;
+  for (const row of rows) if (await putBack(trx, accountId, row, "forgot_in")) back += 1;
+  return back;
 }
 
 /** 040. The tab's Undo, by id, while the forgotten memory waits for its
@@ -277,7 +304,7 @@ export async function restoreForgotten(trx: Executor, accountId: string, message
 export async function restoreMemory(trx: Executor, accountId: string, id: string): Promise<boolean> {
   const row = await trx
     .selectFrom("notes")
-    .select(["kind", "text", "derived_from_message_id"])
+    .select(["id", "kind", "text", "derived_from_message_id"])
     .where("id", "=", id)
     .where("scope", "=", "account")
     .where("subject_id", "=", accountId)
@@ -288,26 +315,7 @@ export async function restoreMemory(trx: Executor, accountId: string, id: string
     .where("purge_after", ">", sql<Date>`now()`)
     .executeTakeFirst();
   if (!row) return false;
-  if (await saying(trx, accountId, row.text)) return false;
-  // An Undo never makes room by retiring another memory: at the cap it is refused.
-  await capLock(trx, accountId);
-  const counts = await active(trx, accountId)
-    .select([sql<number>`count(*)::int`.as("all"), sql<number>`(count(*) filter (where kind = 'rules'))::int`.as("rules")])
-    .executeTakeFirstOrThrow();
-  if (counts.all >= MEMORY_CAP || (row.kind === "rules" && counts.rules >= RULES_CAP)) return false;
-  await trx
-    .updateTable("notes")
-    .set({ deleted_at: null, purge_after: null, attrs: sql`attrs - 'forgot_by'`, updated_at: sql`now()` })
-    .where("id", "=", id)
-    .execute();
-  if (row.derived_from_message_id) {
-    await trx
-      .deleteFrom("memory_forgotten")
-      .where("account_id", "=", accountId)
-      .where("message_id", "=", row.derived_from_message_id)
-      .execute();
-  }
-  return true;
+  return putBack(trx, accountId, row, "forgot_by");
 }
 
 /** 040. Typed in the tab: kept as typed, the person's own, with no source.
@@ -561,7 +569,7 @@ export async function answerMemory(
   await sql`select pg_advisory_xact_lock(hashtext(${input.accountId}), hashtext(${"memory:" + key}))`.execute(trx);
   const replaced = await trx
     .updateTable("notes")
-    .set({ superseded_at: sql`now()`, updated_at: sql`now()` })
+    .set({ superseded_at: sql`now()`, purge_after: sql`now() + make_interval(days => ${SUPERSEDED_PURGE_DAYS})`, updated_at: sql`now()` })
     .where("scope", "=", "account")
     .where("subject_id", "=", input.accountId)
     .where("origin", "=", "answered")
@@ -606,7 +614,7 @@ export async function undoAnswered(trx: Executor, accountId: string, messageIds:
   if (back.length > 0) {
     await trx
       .updateTable("notes")
-      .set({ superseded_at: null, updated_at: sql`now()` })
+      .set({ superseded_at: null, purge_after: null, updated_at: sql`now()` })
       .where("id", "in", back)
       .where("scope", "=", "account")
       .where("subject_id", "=", accountId)
@@ -640,15 +648,15 @@ export async function settleByMemory<C extends { id: string }>(
   return candidates.find((calendar) => calendar.id === rows[0]!.calendar_id) ?? null;
 }
 
-/** In the daily run. A learned memory whose source is gone goes with it, and
- *  any memory replaced a month ago is purged, as 014's folds are: what the
- *  privacy page says of a replaced memory holds whoever wrote it. */
-export async function sweepMemories(accountId: string, trx: Executor = db): Promise<void> {
+/** Once a day for every account, active or quiet: a learned memory whose
+ *  source is gone goes with it. A replaced memory carries its own thirty-day
+ *  `purge_after` and goes with `content.purge`; the first update here is for
+ *  one replaced before it did. */
+export async function sweepMemories(trx: Executor = db): Promise<void> {
   await trx
     .updateTable("notes")
     .set({ deleted_at: sql`now()`, purge_after: sql`now()`, updated_at: sql`now()` })
     .where("scope", "=", "account")
-    .where("subject_id", "=", accountId)
     .where("deleted_at", "is", null)
     .where("superseded_at", "<", sql<Date>`now() - make_interval(days => ${SUPERSEDED_PURGE_DAYS})`)
     .execute();
@@ -656,7 +664,6 @@ export async function sweepMemories(accountId: string, trx: Executor = db): Prom
     .updateTable("notes")
     .set({ deleted_at: sql`now()`, purge_after: sql`now()`, updated_at: sql`now()` })
     .where("scope", "=", "account")
-    .where("subject_id", "=", accountId)
     .where("origin", "=", "learned")
     .where("deleted_at", "is", null)
     .where((eb) =>

@@ -590,6 +590,9 @@ async def _ask(
             output_config={"effort": "low"},
         )
         usage.append(ledger.usage_of(model, response.usage, started))
+        # Into the job's sink too, so a pass that ends without a result can
+        # still post what it paid for (`post_usage`).
+        ledger.record(usage[-1])
         block = next((one for one in response.content if one.type == "tool_use"), None)
         if block is None:
             log.warning("nightly answered without a plan", attempt=attempt)
@@ -628,6 +631,26 @@ async def _ask(
                     },
                 ]
     return None, usage
+
+
+async def post_usage(http: httpx.AsyncClient, cfg: Config, job_id: str) -> None:
+    """What a pass that ends without a result paid for, posted before its job
+    is released, so the ledger that gates scheduled work counts it. Best
+    effort: a post that fails changes nothing about the job."""
+    usage = ledger.drain()
+    if not usage:
+        return
+    try:
+        response = await http.post(
+            f"{cfg.api_url}/internal/v1/usage",
+            json={"jobId": job_id, "usage": usage},
+            headers={"authorization": f"Bearer {cfg.internal_token}"},
+            timeout=30.0,
+        )
+        response.raise_for_status()
+    except Exception as exc:  # noqa: BLE001
+        # The type, never the value.
+        log.warning("usage not recorded", job_id=job_id, error=type(exc).__name__)
 
 
 async def handle_nightly(
@@ -729,6 +752,7 @@ async def handle_nightly(
     )
     plan, usage = await _ask(client, cfg, turn, propose=mode == "propose", mode=mode)
     if plan is None:
+        await post_usage(http, cfg, job.id)
         async with engine.begin() as conn:
             await retry_or_die(conn, job, "nightly_unparseable", delay_seconds=3600)
         return

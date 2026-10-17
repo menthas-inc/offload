@@ -16,11 +16,14 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "kysely";
+import { makeSignature } from "better-auth/crypto";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
+import { DAILY_MODEL_BUDGET_MICROS } from "../src/budget.js";
 import {
+  answerQuestion,
   cancelTurn,
   sourcesForAll,
   streamStep,
@@ -1088,5 +1091,135 @@ describe("the conversation's footer survives a reload", () => {
     const id = await account();
     expect((await threadsForAll([], id)).size).toBe(0);
     expect((await sourcesForAll([], id)).size).toBe(0);
+  });
+});
+
+describe("a turn's state holds under two presses and a used day", () => {
+  async function signIn(accountId: string): Promise<string> {
+    const token = uuidv7();
+    await db.insertInto("sessions").values({ account_id: accountId, token, expires_at: new Date(Date.now() + 3_600_000) }).execute();
+    return `better-auth.session_token=${token}.${await makeSignature(token, env.BETTER_AUTH_SECRET)}`;
+  }
+
+  async function spendTheDay(accountId: string): Promise<void> {
+    await db
+      .insertInto("llm_usage")
+      .values({ account_id: accountId, job_kind: "dump.answer", category: "interactive", model: "claude-sonnet-5", cost_micros: DAILY_MODEL_BUDGET_MICROS })
+      .execute();
+  }
+
+  const queuedFor = (messageId: string) =>
+    db
+      .selectFrom("jobs")
+      .select("id")
+      .where("kind", "=", "dump.answer")
+      .where("state", "=", "queued")
+      .where(sql<string>`payload ->> 'messageId'`, "=", messageId)
+      .execute();
+
+  const resume = (messageId: string, cookie: string) =>
+    app.inject({ method: "POST", url: `/v1/dumps/${messageId}/resume`, headers: { cookie } });
+
+  it("starts one planner when a partial turn is resumed twice at once", async () => {
+    const id = await account();
+    const { messageId, jobId } = await dump(id, "dentist and the boiler");
+    await post({ outcome: "partial", jobId, replyText: "Added the dentist.", usage: goodUsage });
+    const cookie = await signIn(id);
+
+    const both = await Promise.all([resume(messageId, cookie), resume(messageId, cookie)]);
+    expect(both.map((r) => r.statusCode).sort()).toEqual([200, 409]);
+    expect(await queuedFor(messageId)).toHaveLength(1);
+  });
+
+  it("refuses a resume once the day is used, and leaves the turn as it was", async () => {
+    const id = await account();
+    const { messageId, jobId } = await dump(id, "dentist and the boiler");
+    await post({ outcome: "partial", jobId, replyText: "Added the dentist.", usage: goodUsage });
+    await spendTheDay(id);
+
+    const res = await resume(messageId, await signIn(id));
+    expect(res.statusCode).toBe(429);
+    expect(res.json()).toEqual({ error: "daily_limit", scope: "account" });
+    expect(await queuedFor(messageId)).toHaveLength(0);
+    const message = await db.selectFrom("messages").select("state").where("id", "=", messageId).executeTakeFirstOrThrow();
+    expect(message.state).toBe("partial");
+  });
+
+  it("refuses the country re-run once the day is used, and leaves the question open", async () => {
+    const id = await account();
+    await db.updateTable("accounts").set({ country: "US" }).where("id", "=", id).execute();
+    const { jobId, turnId } = await dump(id, "when is the next bank holiday");
+    await post({
+      outcome: "answered",
+      jobId,
+      replyText: "Which country?",
+      usage: goodUsage,
+      found: [],
+      questions: [{ field: "country", title: "x", options: [{ label: "US", value: "US" }, { label: "TR", value: "TR" }] }],
+    });
+    const question = await db.selectFrom("questions").select("id").where("turn_id", "=", turnId).executeTakeFirstOrThrow();
+    await spendTheDay(id);
+
+    const res = await app.inject({
+      method: "POST",
+      url: `/v1/questions/${question.id}/answer`,
+      headers: { cookie: await signIn(id) },
+      payload: { option: 1 },
+    });
+    expect(res.statusCode).toBe(429);
+    expect(res.json()).toEqual({ error: "daily_limit", scope: "account" });
+    const after = await db.selectFrom("questions").select("state").where("id", "=", question.id).executeTakeFirstOrThrow();
+    expect(after.state).toBe("open");
+  });
+
+  it("Stop ends a turn whose job has already gone dead", async () => {
+    const id = await account();
+    const { messageId, turnId, jobId } = await dump(id, "when does the tip close");
+    // Reaped by the worker: no process will ever post this turn's result.
+    await db.updateTable("jobs").set({ state: "dead" }).where("id", "=", jobId).execute();
+
+    expect(await cancelTurn(id, turnId)).toEqual({ state: "cancelled", stopped: true });
+    const message = await db.selectFrom("messages").select("state").where("id", "=", messageId).executeTakeFirstOrThrow();
+    expect(message.state).toBe("cancelled");
+  });
+
+  it("closes a stream watching a cancelled turn", async () => {
+    const id = await account();
+    const { messageId } = await dump(id, "hello");
+    await db.updateTable("messages").set({ state: "cancelled" }).where("id", "=", messageId).execute();
+    expect(await streamStep(messageId, id)).toEqual({ do: "close" });
+  });
+
+  it("answering a date on a loose row names no thread and says it filed", async () => {
+    const id = await account();
+    const loose = await db
+      .insertInto("threads")
+      .values({ created_by_account_id: id, name: "Miscellaneous", always_on: true, updated_at: new Date() })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await db.insertInto("thread_members").values({ thread_id: loose.id, account_id: id, state: "accepted" }).execute();
+    await db.updateTable("accounts").set({ default_thread_id: loose.id }).where("id", "=", id).execute();
+
+    const { jobId, turnId } = await dump(id, "renew the passport");
+    const filed = await app.inject({
+      method: "POST",
+      url: "/internal/v1/tool-call",
+      headers: { authorization: `Bearer ${env.INTERNAL_SERVICE_TOKEN}` },
+      payload: { tool: "add_content", type: "task", jobId, toolCallId: "t1", threadId: loose.id, title: "Renew the passport" },
+    });
+    const soon = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+    await post({
+      outcome: "answered",
+      jobId,
+      usage: goodUsage,
+      questions: [{ field: "date", title: "Renew the passport", contentId: filed.json().contentId, options: [{ value: soon(3) }, { value: soon(9) }] }],
+    });
+    const question = await db.selectFrom("questions").select("id").where("turn_id", "=", turnId).executeTakeFirstOrThrow();
+
+    const answered = await answerQuestion(id, question.id, 0);
+    if (!answered || !("envelope" in answered)) throw new Error("no envelope");
+    expect(answered.applied).toBe(true);
+    expect(answered.envelope.threads).toEqual([]);
+    expect(answered.envelope).toMatchObject({ filed: true });
   });
 });

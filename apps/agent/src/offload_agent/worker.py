@@ -50,7 +50,7 @@ from offload_agent.link_place import handle_link_place
 from offload_agent.memories import KINDS as MEMORY_KINDS
 from offload_agent.memories import handle_memories
 from offload_agent.nightly import KINDS as NIGHTLY_KINDS
-from offload_agent.nightly import handle_nightly
+from offload_agent.nightly import handle_nightly, post_usage
 from offload_agent.og import page, picture
 from offload_agent.queue import (
     INTERACTIVE,
@@ -1060,6 +1060,8 @@ async def _handle(
             await handle_memories(job, cfg=cfg, engine=engine, http=http, client=anthropic)
         except Exception as exc:  # noqa: BLE001
             log.error("memory pass failed", kind=job.kind, error=type(exc).__name__)
+            # A call made before the failure was still paid for.
+            await post_usage(http, cfg, job.id)
             async with engine.begin() as conn:
                 await retry_or_die(conn, job, "memory_error", delay_seconds=3600)
         return
@@ -1076,6 +1078,8 @@ async def _handle(
             # an SDK exception can echo the request body, and the request body
             # here is somebody's notes and dumps (OFF-1).
             log.error("nightly failed", kind=job.kind, error=type(exc).__name__)
+            # A call made before the failure was still paid for.
+            await post_usage(http, cfg, job.id)
             async with engine.begin() as conn:
                 await retry_or_die(conn, job, "nightly_error", delay_seconds=3600)
         return
@@ -1160,6 +1164,7 @@ async def _handle(
         )
         return
 
+    budget: Lookups | None = None
     try:
         # 021. **The words first.** A voice note has no words until the
         # provider has written them down, and everything below, the classifier
@@ -1540,7 +1545,14 @@ async def _handle(
             await retry_or_die(conn, job, "undeliverable", delay_seconds=delay)
     except InvalidOutput:
         log.warning("model output invalid", job_id=job.id, attempt=job.attempts)
-        await _give_up_or_retry(job, "invalid_output", cfg=cfg, engine=engine, http=http)
+        await _give_up_or_retry(
+            job,
+            "invalid_output",
+            cfg=cfg,
+            engine=engine,
+            http=http,
+            lookups=budget.rows if budget else None,
+        )
     except Exception as exc:  # noqa: BLE001
         # The type, never the message. An SDK exception can embed the request
         # body, which is the person's dump, and this line would carry it into a
@@ -1554,7 +1566,14 @@ async def _handle(
             error_type=type(exc).__name__,
             error_module=type(exc).__module__,
         )
-        await _give_up_or_retry(job, "model_error", cfg=cfg, engine=engine, http=http)
+        await _give_up_or_retry(
+            job,
+            "model_error",
+            cfg=cfg,
+            engine=engine,
+            http=http,
+            lookups=budget.rows if budget else None,
+        )
 
 
 _RENDITIONS_STATE = text(
@@ -2098,7 +2117,13 @@ async def _stopped(job: ClaimedJob, *, cfg: Config, engine, http: httpx.AsyncCli
 
 
 async def _give_up_or_retry(
-    job: ClaimedJob, reason: str, *, cfg: Config, engine, http: httpx.AsyncClient
+    job: ClaimedJob,
+    reason: str,
+    *,
+    cfg: Config,
+    engine,
+    http: httpx.AsyncClient,
+    lookups: list[dict] | None = None,
 ) -> None:
     """One retry, then tell the person.
 
@@ -2115,7 +2140,17 @@ async def _give_up_or_retry(
         return
 
     try:
-        await _post_result(http, cfg, {"outcome": "failed", "jobId": job.id, "reason": reason})
+        await _post_result(
+            http,
+            cfg,
+            {
+                "outcome": "failed",
+                "jobId": job.id,
+                "reason": reason,
+                # What the turn searched before failing was still paid for.
+                **({"lookups": lookups} if lookups else {}),
+            },
+        )
     except ReportFailed:
         # Even the failure could not be delivered. Same treatment: release it
         # rather than leave it locked, and it terminates on its own once the
@@ -2310,6 +2345,7 @@ async def _handle_answer(
     assert job.account_id is not None
 
     say = _step_writer(http, cfg, job.id)
+    budget: Lookups | None = None
 
     try:
         async with engine.connect() as conn:
@@ -2376,7 +2412,15 @@ async def _handle_answer(
     except Exception as exc:  # noqa: BLE001
         log.error("answer failed", job_id=job.id, error_type=type(exc).__name__)
         await _post_result(
-            http, cfg, {"outcome": "failed", "jobId": job.id, "reason": "model_error"}
+            http,
+            cfg,
+            {
+                "outcome": "failed",
+                "jobId": job.id,
+                "reason": "model_error",
+                # What it searched before failing was still paid for.
+                **({"lookups": budget.rows} if budget and budget.rows else {}),
+            },
         )
 
 

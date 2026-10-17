@@ -7,7 +7,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../app.js";
-import { auth } from "../auth/auth.js";
+import { currentAccountId } from "../auth/current-account.js";
 import { db } from "../db.js";
 import { env } from "../env.js";
 import {
@@ -24,20 +24,6 @@ import { connectorsAvailable, seal, VAULT_NAME } from "../connectors/vault.js";
 import { revokeAndForget } from "../connectors/tokens.js";
 import { syncNow } from "../connectors/sync.js";
 import { confirmPending, declinePending } from "../connectors/tool-calls.js";
-
-function fetchHeaders(request: FastifyRequest): Headers {
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(request.headers)) {
-    if (value === undefined) continue;
-    headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
-  }
-  return headers;
-}
-
-async function currentAccountId(request: FastifyRequest): Promise<string | null> {
-  const result = await auth.api.getSession({ headers: fetchHeaders(request) });
-  return result?.session.userId ?? null;
-}
 
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 

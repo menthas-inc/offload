@@ -8,7 +8,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../app.js";
-import { auth } from "../auth/auth.js";
+import { currentAccountId } from "../auth/current-account.js";
 import { db } from "../db.js";
 import { NotYours } from "../threads/access.js";
 import { NoteDuplicate, moveNoteIn } from "../threads/notes.js";
@@ -24,16 +24,6 @@ import {
   undoProposal,
   undoSuggestion,
 } from "../loose/suggestions.js";
-
-async function currentAccountId(request: FastifyRequest): Promise<string | null> {
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(request.headers)) {
-    if (value === undefined) continue;
-    headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
-  }
-  const result = await auth.api.getSession({ headers });
-  return result?.session.userId ?? null;
-}
 
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 const badRequest = z.object({ error: z.string() });

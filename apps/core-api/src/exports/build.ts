@@ -19,6 +19,8 @@ import { accountKey, NoKey, objectKeyOf } from "../blobs/keys.js";
 import { objectKey, objectStore, type Rendition } from "../blobs/store.js";
 import { record } from "../notifications/activity.js";
 import { partKey, removeParts } from "./copy.js";
+import { connectionsOf } from "../people/access.js";
+import { shownThreadName } from "../threads/default.js";
 import {
   conversationsPage,
   indexPage,
@@ -91,7 +93,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
       const threads = await trx
         .selectFrom("threads")
         .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
-        .select(["threads.id", "threads.name"])
+        .select(["threads.id", shownThreadName("threads.id", "threads.name", accountId).as("name")])
         .where("thread_members.account_id", "=", accountId)
         .where("thread_members.state", "=", "accepted")
         .where("threads.deleted_at", "is", null)
@@ -264,17 +266,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
               .orderBy("created_at")
               .execute();
 
-      const people = await trx
-        .selectFrom("connections")
-        .innerJoin("accounts", (join) =>
-          join.on(
-            sql<boolean>`accounts.id = case when connections.account_a = ${accountId} then connections.account_b else connections.account_a end`,
-          ),
-        )
-        .select("accounts.display_name")
-        .where((eb) => eb.or([eb("connections.account_a", "=", accountId), eb("connections.account_b", "=", accountId)]))
-        .orderBy("connections.created_at")
-        .execute();
+      const people = await connectionsOf(accountId, trx);
 
       const blobs = new Map<string, Blob>();
       // The file as it was put in goes to the person who put it in and to
@@ -342,7 +334,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
           return {
             n: index + 1,
             id: thread.id,
-            name: thread.name,
+            name: thread.name ?? "Not in a thread",
             shared: others.length > 0,
             members: others.map((member) => member.display_name ?? "Someone"),
             labels: (labelsOf.get(thread.id) ?? []).map((label) => label.name),
@@ -396,7 +388,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
           // 038. How offload came to know a memory, as the tab says it.
           ...(note.scope === "account" ? { how: howOf(note.origin, note.attrs), kind: note.kind } : {}),
         })),
-        people: people.map((person) => ({ name: person.display_name ?? "Someone" })),
+        people: people.map((person) => ({ name: person.displayName ?? "Someone" })),
       };
       return { copy, blobs: [...blobs.values()] };
     });
