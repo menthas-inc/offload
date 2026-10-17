@@ -6,12 +6,16 @@ receives a request from us; what it cannot cover is our network being used to
 reach things only our network can see.
 """
 
+import asyncio
+import gzip
 import ipaddress
+import time
 
 import httpx
 import pytest
 
-from offload_agent.og import MAX_BYTES, _is_public, picture
+from offload_agent import og
+from offload_agent.og import MAX_BYTES, PageMeta, _public_address, page, picture
 
 #: `example.com` throughout, and that matters: the guard resolves the image's
 #: host for real, so a made-up name like `cdn.example.com` fails the check and
@@ -49,7 +53,9 @@ async def test_a_relative_tag_is_resolved_against_the_page():
 
 
 async def test_twitters_spelling_counts_too():
-    body = b'<html><head><meta name="twitter:image" content="https://example.com/t.png"></head></html>'
+    body = (
+        b'<html><head><meta name="twitter:image" content="https://example.com/t.png"></head></html>'
+    )
     assert await picture_from(body) == "https://example.com/t.png"
 
 
@@ -73,24 +79,47 @@ async def test_an_image_address_pointing_inside_the_network_is_refused():
 async def test_an_http_image_is_refused():
     """It would be blocked as mixed content on an https app anyway, so allowing
     it here would only ever produce a row whose picture fails to draw."""
-    body = b'<html><head><meta property="og:image" content="http://example.com/a.jpg"></head></html>'
+    body = (
+        b'<html><head><meta property="og:image" content="http://example.com/a.jpg"></head></html>'
+    )
     assert await picture_from(body) is None
 
 
+@pytest.fixture
+def public(monkeypatch):
+    """Every name answers with one public address, so nothing here waits on DNS."""
+    monkeypatch.setattr(og, "_addresses", lambda host: ["93.184.215.14"])
+
+
 @pytest.mark.parametrize(
-    "host",
-    ["127.0.0.1", "localhost", "169.254.169.254", "10.0.0.1", "192.168.1.1", "::1", "100.64.0.1"],
+    "address",
+    [
+        "127.0.0.1",
+        "169.254.169.254",
+        "10.0.0.1",
+        "192.168.1.1",
+        "::1",
+        "100.64.0.1",
+        "::ffff:10.0.0.1",
+    ],
 )
-def test_nothing_on_our_own_network_is_public(host: str):
+async def test_nothing_on_our_own_network_is_public(address: str, monkeypatch):
     """The whole SSRF guard. Without it a dumped
     `https://169.254.169.254/latest/meta-data/` is our own cloud metadata
     endpoint, fetched by our own server, and the reply would be "the page's
-    picture" as far as everything downstream is concerned."""
-    assert _is_public(host) is False
+    picture" as far as everything downstream is concerned.
+
+    **Every address the name gives**, not the first: a name can answer with one
+    public address and one private one, and a client that connects to whichever
+    the stack picks has checked nothing."""
+    monkeypatch.setattr(og, "_addresses", lambda host: [address])
+    assert await _public_address("somewhere.example") is None
+    monkeypatch.setattr(og, "_addresses", lambda host: ["93.184.215.14", address])
+    assert await _public_address("somewhere.example") is None
 
 
-def test_a_real_name_is_public():
-    assert _is_public("example.com") is True
+async def test_a_public_name_is_public(public):
+    assert await _public_address("somewhere.example") == "93.184.215.14"
 
 
 async def test_the_request_goes_to_the_address_the_guard_checked():
@@ -105,7 +134,9 @@ async def test_the_request_goes_to_the_address_the_guard_checked():
         return html_response()
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        assert await picture(client, "https://example.com/page") == "https://example.com/a.jpg?x=1&y=2"
+        assert (
+            await picture(client, "https://example.com/page") == "https://example.com/a.jpg?x=1&y=2"
+        )
 
     request = seen[0]
     ipaddress.ip_address(request.url.host)  # an address, never the name
@@ -232,3 +263,59 @@ async def test_a_url_the_model_composed_is_not_fetched():
 
     assert fetched == []
     assert sent and "imageUrl" not in sent[0]
+
+
+@pytest.mark.parametrize("opener", [b"<meta ", b"<script "])
+async def test_a_head_of_tags_that_never_close_is_read_in_linear_time(opener: bytes, public):
+    """Searched directly, `<meta[^>]+...` retries from every later `<meta` when
+    none is ever closed. A 256 KB head took over a minute, and the whole process
+    with it."""
+    body = opener * (MAX_BYTES // len(opener))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return html_response(body)
+
+    started = time.perf_counter()
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        found = await page(client, "https://example.com/page", read_location=True)
+    assert found == PageMeta(image=None, location=None)
+    assert time.perf_counter() - started < 1.0
+
+
+async def test_a_page_that_drips_is_given_up_on_as_a_whole(monkeypatch, public):
+    """The client's timeout is per read, so a site sending a byte every few
+    seconds would hold the request for as long as it liked."""
+    monkeypatch.setattr(og, "TIMEOUT_SECONDS", 0.5)
+
+    async def drip():
+        yield HEAD
+        for _ in range(8):
+            await asyncio.sleep(0.5)
+            yield b" "
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=drip(), headers={"content-type": "text/html"})
+
+    started = time.perf_counter()
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        assert await picture(client, "https://example.com/page") is None
+    assert time.perf_counter() - started < 2.0
+
+
+async def test_a_compressed_page_is_refused(public):
+    """A decoder inflates each read in full before the cap sees it: 1 MB of
+    gzipped zeros is 67 MB in one chunk. So the page is asked for as it is,
+    and one that comes compressed anyway is not read."""
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(
+            200,
+            content=gzip.compress(HEAD),
+            headers={"content-type": "text/html", "content-encoding": "gzip"},
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        assert await picture(client, "https://example.com/page") is None
+    assert seen[0].headers["accept-encoding"] == "identity"

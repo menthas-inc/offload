@@ -38,6 +38,10 @@ CHANNEL = "offload_cancel"
 #: and a claim, which is milliseconds.
 REMEMBER = 256
 
+#: How long to wait before connecting again after the listener's connection
+#: failed or dropped.
+RETRY_SECONDS = 5
+
 
 class Cancels:
     """What has been cancelled, and what to cancel."""
@@ -83,6 +87,10 @@ async def listen(engine: AsyncEngine, cancels: Cancels, stop: asyncio.Event) -> 
     connection handed back between notifications is a session that stops
     listening without saying so. This is the same shape `answers.ts` uses on the
     other side for the same reason.
+
+    A dropped connection wakes it through asyncpg's termination listener, and
+    it connects again after the same pause as any other failure. Waiting on
+    `stop` alone left Stop dead until the worker restarted.
     """
     while not stop.is_set():
         try:
@@ -91,12 +99,21 @@ async def listen(engine: AsyncEngine, cancels: Cancels, stop: asyncio.Event) -> 
                 # Through SQLAlchemy's wrapper to asyncpg's own connection,
                 # which is the object that has `add_listener`.
                 conn = raw.driver_connection
+                lost = asyncio.Event()
+                conn.add_termination_listener(lambda _conn, lost=lost: lost.set())
                 await conn.add_listener(
                     CHANNEL,
                     lambda _conn, _pid, _channel, payload: cancels.cancel(payload),
                 )
                 log.info("listening for cancels")
-                await stop.wait()
+                waits = [asyncio.ensure_future(stop.wait()), asyncio.ensure_future(lost.wait())]
+                try:
+                    await asyncio.wait(waits, return_when=asyncio.FIRST_COMPLETED)
+                finally:
+                    for w in waits:
+                        w.cancel()
+                if not stop.is_set():
+                    raise ConnectionError("listener connection lost")
             finally:
                 # Closing the connection takes the listener with it, which is
                 # why there is no `remove_listener` here: asyncpg matches it by
@@ -110,4 +127,4 @@ async def listen(engine: AsyncEngine, cancels: Cancels, stop: asyncio.Event) -> 
             # important half.
             log.error("cancel listener error", error_type=type(exc).__name__)
             with contextlib.suppress(TimeoutError):
-                await asyncio.wait_for(stop.wait(), timeout=5)
+                await asyncio.wait_for(stop.wait(), timeout=RETRY_SECONDS)

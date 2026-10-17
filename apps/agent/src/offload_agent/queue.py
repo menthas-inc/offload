@@ -2,8 +2,9 @@
 
 This is the second implementation of the claim query in this codebase. The
 TypeScript one in apps/core-api/src/jobs/queue.ts drains email; this one drains
-model jobs. Two languages, one table, and they must not drift: a shared test
-asserts both honour the priority order and the per-account cap.
+model jobs. Two languages, one table, and they must not drift: each side's
+tests assert the priority order and the scoping by kind. The per-account cap is
+this side's alone, because nobody waits on an email.
 
 That duplication is the two-plane split's first real cost, and it is worth
 naming rather than discovering. The alternative, one runner calling the other
@@ -25,6 +26,9 @@ class ClaimedJob:
     account_id: str | None
     attempts: int
     max_attempts: int
+    #: 017. Somebody pressed Stop before this claim. Read from the row, so a
+    #: Stop the listener never heard is honoured anyway.
+    cancelled: bool = False
 
 
 # The per-account subquery is the whole of AC-12. Without it one account sending
@@ -34,6 +38,12 @@ class ClaimedJob:
 # It counts `running` rather than `queued`: the cap is on work in flight, not on
 # work waiting. Someone who dumps ten times still gets all ten answered, two at
 # a time, while another account's first dump is claimed in between.
+#
+# **And it orders as well as filters.** A cap of two with two lanes is never
+# reached while the other lane holds someone else's job, so as a filter alone it
+# let one account's queue drain before a later dump from anybody else. Ordered
+# by what each account has in flight, the account with less running goes first.
+# Only this worker's kinds count: the Core API's email jobs are not model work.
 _CLAIM = text(
     """
     update jobs set
@@ -44,6 +54,16 @@ _CLAIM = text(
       updated_at = now()
     where id = (
       select j.id from jobs j
+      cross join lateral (
+        select count(*) as running from jobs r
+        where r.state = 'running'
+          and r.account_id = j.account_id
+          and r.kind = any(:kinds)
+          and (
+            r.locked_at is null
+            or r.locked_at >= now() - (:stale_seconds * interval '1 second')
+          )
+      ) busy
       where (
           (j.state = 'queued' and j.run_after <= now())
           or (
@@ -54,23 +74,13 @@ _CLAIM = text(
         )
         and j.kind = any(:kinds)
         and j.priority <= coalesce(cast(:max_priority as integer), j.priority)
-        and (
-          j.account_id is null
-          or (
-            select count(*) from jobs r
-            where r.state = 'running'
-              and r.account_id = j.account_id
-              and (
-                r.locked_at is null
-                or r.locked_at >= now() - (:stale_seconds * interval '1 second')
-              )
-          ) < :per_account
-        )
-      order by j.priority, j.run_after
-      for update skip locked
+        and (j.account_id is null or busy.running < :per_account)
+      order by j.priority, busy.running, j.run_after
+      for update of j skip locked
       limit 1
     )
-    returning id, kind, payload, account_id, attempts, max_attempts
+    returning id, kind, payload, account_id, attempts, max_attempts,
+      cancelled_at is not null as cancelled
     """
 )
 
@@ -145,6 +155,7 @@ async def claim(
         account_id=str(row.account_id) if row.account_id else None,
         attempts=row.attempts,
         max_attempts=row.max_attempts,
+        cancelled=row.cancelled,
     )
 
 

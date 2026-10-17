@@ -453,6 +453,30 @@
           "example.pt"
         ]
       }
+    },
+    {
+      "id": "country-from-today-keeps-the-answer",
+      "why": "from Today a dropped country question leaves the real answer standing, never Not sure. (2026-10-17)",
+      "surface": "answer",
+      "input": "when's the next bank holiday",
+      "context": "behrooz",
+      "may_search": true,
+      "may_read_links": true,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Gives the date the lookup found; never asks which country and never says Not sure.",
+        "asks": "none",
+        "look_up": true,
+        "must_not_contain": [
+          "Not sure"
+        ]
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2026-10-05",
+          "title": "Republic Day"
+        }
+      }
     }
   ]
 }

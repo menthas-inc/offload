@@ -5,7 +5,8 @@
     "016 AC-1, AC-2, AC-3, AC-14, AC-20",
     "016: the test is whether the row answers what they dumped",
     "plan_v2.md: Looking something up",
-    "answer.md: You can reach the web"
+    "answer.md: You can reach the web",
+    "harness/plan.py: _FIND_OUT"
   ],
   "cases": [
     {
@@ -976,6 +977,22 @@
       "expect": {
         "look_up": false,
         "files_something": true
+      }
+    },
+    {
+      "id": "chore-do-the-is-not-a-lookup",
+      "why": "a chore that starts with do the files a to-do and looks nothing up (2026-10-17)",
+      "surface": "file",
+      "input": "do the dishes tonight",
+      "context": "behrooz",
+      "expect": {
+        "look_up": false,
+        "filed": [
+          {
+            "type": "task"
+          }
+        ],
+        "say": null
       }
     }
   ]

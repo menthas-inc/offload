@@ -1755,7 +1755,7 @@ async def plan_answer(
         # The question is dropped, and with nothing else to say the reply is
         # the line answer.md gives an unknown country.
         outcome.questions = [q for q in outcome.questions if q.get("field") != "country"]
-        if not outcome.questions:
+        if not outcome.questions and not outcome.reply:
             outcome.reply = NOT_SURE
     if outcome.reply is not None:
         shaped = shape_answer(outcome.reply)
@@ -1788,11 +1788,14 @@ CHECK_LINE = (
 
 #: Words a dump uses when its point is a fact it does not have yet. A chore
 #: that only says "check the boiler" is not one: the guard is narrow on purpose,
-#: and a false alarm costs one call and changes nothing.
+#: and a false alarm costs one call and changes nothing. "do the" alone sent
+#: "do the dishes tonight" to a forced lookup, so it is only a question when a
+#: timetable verb follows the thing asked about.
 _FIND_OUT = re.compile(
     r"\b(?:find out|look up|check (?:when|if|whether|what|that|it|its|it's|the time)"
     r"|when (?:is|are|do|does|did|will|was)|what time|is there|are there"
-    r"|do the|does the|will it)\b"
+    r"|(?:do|does) the (?:\w+ ){1,2}(?:open|close|run|start|finish|leave|arrive)"
+    r"|will it)\b"
 )
 
 

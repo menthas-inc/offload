@@ -173,8 +173,9 @@ async def test_an_unexpected_embed_failure_releases_the_job_rather_than_strandin
     async def boom(job, **kwargs):
         raise KeyError("data")
 
-    async def fake_release(conn, job_id, reason, delay_seconds=0):
-        released.append((job_id, reason))
+    async def fake_retry_or_die(conn, job, reason, delay_seconds=0):
+        released.append((job.id, reason))
+        return True
 
     class _Conn:
         async def __aenter__(self):
@@ -188,7 +189,7 @@ async def test_an_unexpected_embed_failure_releases_the_job_rather_than_strandin
             return _Conn()
 
     monkeypatch.setattr(worker_mod, "handle_embed", boom)
-    monkeypatch.setattr(worker_mod, "release_for_retry", fake_release)
+    monkeypatch.setattr(worker_mod, "retry_or_die", fake_retry_or_die)
 
     job = ClaimedJob(
         id="job-1",

@@ -40,7 +40,13 @@ from sqlalchemy import text
 
 from offload_agent import ledger
 from offload_agent.config import Config
-from offload_agent.context import QUERY_LONGEST, memories_for, query_words, today_line
+from offload_agent.context import (
+    QUERY_LONGEST,
+    known_zone,
+    memories_for,
+    query_words,
+    today_line,
+)
 from offload_agent.embed import query_embedder
 from offload_agent.prompt_files import load
 from offload_agent.queue import ClaimedJob, finish, retry_or_die
@@ -143,7 +149,9 @@ _NOTES = text(
 # else. The Core API checks the same set again before it writes.
 _MESSAGES = text(
     """
-    select m.id::text as id, to_char(m.created_at, 'YYYY-MM-DD') as day,
+    select m.id::text as id,
+           to_char(m.created_at at time zone coalesce(cast(:zone as text), 'UTC'), 'YYYY-MM-DD')
+             as day,
            said(m.text, m.transcript) as text
       from messages m
      where m.account_id = cast(:account_id as uuid)
@@ -263,9 +271,10 @@ class Folded(BaseModel):
 
     text: str = Field(min_length=1, max_length=200)
     folded_from: list[str] = Field(min_length=1, max_length=50)
-    occurs_at: str | None = None
-    occurs_end_at: str | None = None
-    due_at: str | None = None
+    # The Core API's cap on a date: a longer one is a 400 that loses the pass.
+    occurs_at: str | None = Field(default=None, max_length=40)
+    occurs_end_at: str | None = Field(default=None, max_length=40)
+    due_at: str | None = Field(default=None, max_length=40)
 
 
 class Learned(BaseModel):
@@ -273,9 +282,9 @@ class Learned(BaseModel):
 
     text: str = Field(min_length=1, max_length=200)
     from_messages: list[int] = Field(min_length=1, max_length=10)
-    occurs_at: str | None = None
-    occurs_end_at: str | None = None
-    due_at: str | None = None
+    occurs_at: str | None = Field(default=None, max_length=40)
+    occurs_end_at: str | None = Field(default=None, max_length=40)
+    due_at: str | None = Field(default=None, max_length=40)
 
 
 class Group(BaseModel):
@@ -646,11 +655,15 @@ async def handle_nightly(
             )
         )
         on_default = bool(member["is_default"])
+        # The member's zone, for every date the prompt reads against today.
+        dated_params = {**params, "zone": known_zone(member["time_zone"])}
         messages = (
             None
             if on_default
             else list(
-                (await conn.execute(_MESSAGES, {**params, "limit": MESSAGE_CAP})).mappings().all()
+                (await conn.execute(_MESSAGES, {**dated_params, "limit": MESSAGE_CAP}))
+                .mappings()
+                .all()
             )
         )
         candidates = (
@@ -667,7 +680,6 @@ async def handle_nightly(
             else None
         )
         # 042. What to label for reminders, and what a to-do could be for.
-        dated_params = {**params, "zone": member["time_zone"]}
         to_label = list(
             (await conn.execute(_TO_LABEL, {**dated_params, "limit": LABEL_CAP})).mappings().all()
         )

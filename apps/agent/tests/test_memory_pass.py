@@ -8,15 +8,38 @@ from pydantic import ValidationError
 
 from offload_agent.memories import MESSAGE_CHARS, MemoryPlan, listing
 
+CITE = "01a14b05-d9e9-74c3-9923-a2185e9d5688"
+
 
 def test_it_cannot_write_a_rule_or_more_than_five():
     with pytest.raises(ValidationError):
         MemoryPlan.model_validate({"add": [{"kind": "rules", "text": "x", "cites": "m1"}]})
     with pytest.raises(ValidationError):
         MemoryPlan.model_validate(
-            {"add": [{"kind": "about", "text": f"Fact {i}.", "cites": "m1"} for i in range(6)]}
+            {"add": [{"kind": "about", "text": f"Fact {i}.", "cites": CITE} for i in range(6)]}
         )
     assert MemoryPlan.model_validate({}).add == []
+
+
+def test_an_id_the_core_api_would_refuse_is_refused_here():
+    """The Core API takes only UUIDs, and one it refuses is a 400 for the whole
+    pass. Refused here, it goes back to the model in the repair turn."""
+    for plan in (
+        {"add": [{"kind": "about", "text": "x", "cites": "m1"}]},
+        {"supersede": [{"id": "a", "text": "x", "cites": CITE}]},
+        {"supersede": [{"id": CITE, "text": "x", "cites": "m1"}]},
+        {"fold": [{"ids": [CITE, "b"], "text": "x"}]},
+    ):
+        with pytest.raises(ValidationError):
+            MemoryPlan.model_validate(plan)
+    plan = MemoryPlan.model_validate(
+        {
+            "add": [{"kind": "about", "text": "x", "cites": CITE}],
+            "supersede": [{"id": CITE, "text": "x", "cites": CITE}],
+            "fold": [{"ids": [CITE, CITE.upper()], "text": "x"}],
+        }
+    )
+    assert plan.model_dump()["add"][0]["cites"] == CITE
 
 
 def test_the_turn_is_entries_and_bounded():

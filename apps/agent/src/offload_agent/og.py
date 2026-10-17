@@ -47,6 +47,27 @@ _META = re.compile(
     re.I,
 )
 _CONTENT = re.compile(rb"""content\s*=\s*["']([^"']+)["']""", re.I)
+_META_OPEN = re.compile(rb"<meta", re.I)
+
+
+def _tag(
+    pattern: re.Pattern[bytes], opener: re.Pattern[bytes], head: bytes, position: int = 0
+) -> re.Match[bytes] | None:
+    """`pattern.search(head, position)`, in linear time.
+
+    Searched directly, a pattern that starts `<meta[^>]+` retries from every
+    later `<meta` when none of them is ever closed: over a minute for a head of
+    unclosed tags, holding the whole process. No tag spans a `>`, so each stretch
+    between two is tried once, from its first opener, which matches whenever a
+    later one in the same stretch would.
+    """
+    while (close := head.find(b">", position)) != -1:
+        start = opener.search(head, position, close)
+        if start is not None and (found := pattern.match(head, start.start())):
+            return found
+        position = close + 1
+    return None
+
 
 #: Carrier-grade NAT space, which `ipaddress` does not count as private and
 #: which is nobody's public internet either.
@@ -78,26 +99,15 @@ def _addresses(host: str) -> list[str]:
     return [info[4][0] for info in infos]
 
 
-def _is_public(host: str) -> bool:
-    """Whether a hostname resolves only to addresses on the public internet.
-
-    **Every address it resolves to**, not the first. A name can answer with one
-    public address and one private one, and a client that checks the first and
-    connects to whichever the stack picks has checked nothing.
+async def _public_address(host: str) -> str | None:
+    """The address to connect to, once every address the name gave has passed.
 
     This is the whole SSRF guard. Without it, a dumped
     `https://169.254.169.254/latest/meta-data/` is our own cloud metadata
     endpoint fetched by our own server, and the reply would be the page's
-    picture as far as everything downstream is concerned.
-    """
-    addresses = _addresses(host)
-    if not addresses:
-        return False
-    return not any(_off_limits(ipaddress.ip_address(a)) for a in addresses)
-
-
-async def _public_address(host: str) -> str | None:
-    """The address to connect to, once every address the name gave has passed.
+    picture as far as everything downstream is concerned. **Every address**,
+    not the first: a name can answer with one public address and one private
+    one.
 
     Resolved off the event loop, since a slow resolver would otherwise stall
     every job, and resolved once: the request below goes to this address
@@ -140,32 +150,41 @@ async def _fetch_head(client: httpx.AsyncClient, url: str) -> bytes | None:
     # checked against.
     target = parsed._replace(netloc=_authority(address, parsed.port)).geturl()
     try:
-        # **No redirects.** A redirect is a second URL that nothing has checked,
-        # and following one is how the guard above gets walked around. A page
-        # that only serves through a redirect keeps its picture to itself.
-        async with client.stream(
-            "GET",
-            target,
-            timeout=TIMEOUT_SECONDS,
-            follow_redirects=False,
-            headers={
-                "accept": "text/html",
-                "user-agent": "offload/1.0 (+https://offload.club)",
-                "host": _authority(parsed.hostname, parsed.port),
-            },
-            extensions={"sni_hostname": parsed.hostname},
-        ) as response:
-            if response.status_code != 200:
-                return None
-            if "html" not in response.headers.get("content-type", ""):
-                return None
+        # A deadline for the whole request. The client's timeout is per read, so
+        # a site sending a byte every few seconds would otherwise never end.
+        async with asyncio.timeout(TIMEOUT_SECONDS):
+            # **No redirects.** A redirect is a second URL that nothing has checked,
+            # and following one is how the guard above gets walked around. A page
+            # that only serves through a redirect keeps its picture to itself.
+            async with client.stream(
+                "GET",
+                target,
+                timeout=TIMEOUT_SECONDS,
+                follow_redirects=False,
+                headers={
+                    "accept": "text/html",
+                    "accept-encoding": "identity",
+                    "user-agent": "offload/1.0 (+https://offload.club)",
+                    "host": _authority(parsed.hostname, parsed.port),
+                },
+                extensions={"sni_hostname": parsed.hostname},
+            ) as response:
+                if response.status_code != 200:
+                    return None
+                if "html" not in response.headers.get("content-type", ""):
+                    return None
+                # Uncompressed only: a decoder inflates each read in full before
+                # the cap below sees it, so 1 MB of gzip can arrive as one 67 MB
+                # chunk. Past this check the bytes below are the bytes sent.
+                if response.headers.get("content-encoding", "identity") not in ("", "identity"):
+                    return None
 
-            head = bytearray()
-            async for chunk in response.aiter_bytes():
-                head.extend(chunk)
-                if len(head) >= MAX_BYTES:
-                    break
-            return bytes(head[:MAX_BYTES])
+                head = bytearray()
+                async for chunk in response.aiter_bytes():
+                    head.extend(chunk)
+                    if len(head) >= MAX_BYTES:
+                        break
+                return bytes(head[:MAX_BYTES])
     except Exception as exc:  # noqa: BLE001
         # The type only. A URL is somebody's own content and an exception string
         # from a fetch carries it (OFF-1).
@@ -179,7 +198,7 @@ async def _fetch_head(client: httpx.AsyncClient, url: str) -> bytes | None:
 
 
 async def _image_from(head: bytes, url: str) -> str | None:
-    tag = _META.search(head)
+    tag = _tag(_META, _META_OPEN, head)
     if tag is None:
         return None
     content = _CONTENT.search(tag.group(0))
@@ -233,6 +252,7 @@ _GEO_META = re.compile(
     re.I,
 )
 _LD = re.compile(rb"""<script[^>]+type\s*=\s*["']application/ld\+json["'][^>]*>""", re.I)
+_LD_OPEN = re.compile(rb"<script", re.I)
 _LD_END = re.compile(rb"</script\s*>", re.I)
 
 #: schema.org types that are a place, so their name is a place's name. An
@@ -298,7 +318,9 @@ def _point(lat: object, lng: object) -> dict | None:
 
 def _meta_point(head: bytes) -> dict | None:
     seen: dict[str, str] = {}
-    for tag in _GEO_META.finditer(head):
+    position = 0
+    while (tag := _tag(_GEO_META, _META_OPEN, head, position)) is not None:
+        position = tag.end()
         content = _CONTENT.search(tag.group(0))
         if content:
             seen[tag.group(1).decode().lower()] = html.unescape(
@@ -331,7 +353,7 @@ def _ld_blocks(head: bytes) -> list[object]:
     out: list[object] = []
     position = 0
     while len(out) < LD_BLOCKS:
-        start = _LD.search(head, position)
+        start = _tag(_LD, _LD_OPEN, head, position)
         if start is None:
             break
         end = _LD_END.search(head, start.end())

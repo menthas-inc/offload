@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Literal
+from typing import Annotated, Literal
 
 import httpx
 import structlog
@@ -28,7 +28,14 @@ from sqlalchemy import text
 
 from offload_agent import ledger
 from offload_agent.config import Config
-from offload_agent.context import QUERY_LONGEST, Embedder, memories_for, query_words, today_line
+from offload_agent.context import (
+    QUERY_LONGEST,
+    Embedder,
+    known_zone,
+    memories_for,
+    query_words,
+    today_line,
+)
 from offload_agent.embed import query_embedder
 from offload_agent.prompt_files import load
 from offload_agent.queue import ClaimedJob, finish, retry_or_die
@@ -52,7 +59,9 @@ _ACCOUNT = text("select time_zone from accounts where id = cast(:account_id as u
 # there before anything is applied.
 _MESSAGES = text(
     """
-    select m.id::text as id, to_char(m.created_at, 'YYYY-MM-DD') as day,
+    select m.id::text as id,
+           to_char(m.created_at at time zone coalesce(cast(:zone as text), 'UTC'), 'YYYY-MM-DD')
+             as day,
            said(m.text, m.transcript) as text
       from messages m
      where m.account_id = cast(:account_id as uuid)
@@ -77,7 +86,9 @@ _MESSAGES = text(
 # somebody else's words.
 _NOTES = text(
     """
-    select n.id::text as id, n.text as text, to_char(n.created_at, 'YYYY-MM-DD') as day
+    select n.id::text as id, n.text as text,
+           to_char(n.created_at at time zone coalesce(cast(:zone as text), 'UTC'), 'YYYY-MM-DD')
+             as day
       from notes n
      where n.scope = 'thread'
        and n.account_id = cast(:account_id as uuid)
@@ -111,21 +122,29 @@ _TO_DATE = text(
 
 Kind = Literal["people", "things", "about", "patterns"]
 
+# The Core API's `z.string().uuid()`. The plan is posted whole, so one id it
+# refuses is a 400 that loses every write in the pass; refused here, the repair
+# turn can mend it. A date's id needs none: `dates_wire` keeps only ids shown.
+_UUID = (
+    r"^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
+    r"|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+)
+
 
 class Add(BaseModel):
     kind: Kind
     text: str = Field(min_length=1, max_length=200)
-    cites: str = Field(min_length=1, max_length=40)
+    cites: str = Field(pattern=_UUID)
 
 
 class Supersede(BaseModel):
-    id: str = Field(min_length=1, max_length=40)
+    id: str = Field(pattern=_UUID)
     text: str = Field(min_length=1, max_length=200)
-    cites: str = Field(min_length=1, max_length=40)
+    cites: str = Field(pattern=_UUID)
 
 
 class Fold(BaseModel):
-    ids: list[str] = Field(min_length=2, max_length=10)
+    ids: list[Annotated[str, Field(pattern=_UUID)]] = Field(min_length=2, max_length=10)
     text: str = Field(min_length=1, max_length=200)
 
 
@@ -283,9 +302,11 @@ async def read(
 
     040. The messages first: the memories it is shown are the fifty nearest
     what the person said, their own before learned, as a turn's are."""
-    params = {"account_id": account_id}
-    account = (await conn.execute(_ACCOUNT, params)).mappings().first()
-    today = await today_line(conn, account["time_zone"] if account else None)
+    account = (await conn.execute(_ACCOUNT, {"account_id": account_id})).mappings().first()
+    zone = account["time_zone"] if account else None
+    today = await today_line(conn, zone)
+    # Every date in the prompt is read in the zone today is read in.
+    params = {"account_id": account_id, "zone": known_zone(zone)}
     notes = list((await conn.execute(_NOTES, {**params, "limit": NOTE_CAP})).mappings().all())
     messages = list(
         (await conn.execute(_MESSAGES, {**params, "limit": MESSAGE_CAP})).mappings().all()

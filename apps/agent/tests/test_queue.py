@@ -311,3 +311,105 @@ def test_interactive_is_the_core_apis_number():
     match = re.search(r"PRIORITY = \{ interactive: (\d+),", source)
     assert match is not None, "PRIORITY moved in queue.ts"
     assert int(match.group(1)) == INTERACTIVE
+
+
+async def test_the_account_with_less_in_flight_is_claimed_first(db):
+    """AC-12 with a cap the lanes can never reach. Two lanes and a cap of two:
+    an account with one dump running is still under the cap, so ordering by
+    `run_after` alone answered all of its queued dumps before another
+    account's one that arrived a moment later."""
+    async with db.begin() as conn:
+        busy = await account(conn)
+        other = await account(conn)
+        await enqueue(conn, busy, state="running")
+        earlier = [await enqueue(conn, busy), await enqueue(conn, busy)]
+        theirs = await enqueue(conn, other)
+        await conn.execute(
+            text("update jobs set run_after = now() - interval '1 minute' where id = any(:ids)"),
+            {"ids": earlier},
+        )
+
+    async with db.begin() as conn:
+        claimed = await claim(conn, "w1", ["dump.answer"], 2)
+    assert claimed is not None and claimed.id == theirs
+
+
+async def test_work_this_worker_does_not_own_does_not_count_against_the_cap(db):
+    """The Core API's own running jobs for an account are not model work, and
+    two of them used to read as a full cap."""
+    async with db.begin() as conn:
+        who = await account(conn)
+        for _ in range(2):
+            await conn.execute(
+                text(
+                    "insert into jobs (kind, account_id, payload, priority, run_after, state, "
+                    "locked_at) values ('email.invited', :a, '{}'::jsonb, 100, now(), "
+                    "'running', now())"
+                ),
+                {"a": who},
+            )
+        queued = await enqueue(conn, who)
+
+    async with db.begin() as conn:
+        claimed = await claim(conn, "w1", ["dump.answer"], 2)
+    assert claimed is not None and claimed.id == queued
+
+
+async def test_a_job_stopped_before_its_claim_is_claimed_as_cancelled(db):
+    """017. A Stop the listener never heard, during a deploy or while it was
+    down, is on the row, and the claim is what reads it."""
+    async with db.begin() as conn:
+        who = await account(conn)
+        stopped = await enqueue(conn, who)
+        plain = await enqueue(conn, who)
+        await conn.execute(
+            text("update jobs set cancelled_at = now() where id = :id"), {"id": stopped}
+        )
+
+    async with db.begin() as conn:
+        first = await claim(conn, "w1", ["dump.answer"], 2)
+        second = await claim(conn, "w1", ["dump.answer"], 2)
+    by_id = {j.id: j for j in (first, second) if j is not None}
+    assert by_id[stopped].cancelled is True
+    assert by_id[plain].cancelled is False
+
+
+@pytest.mark.parametrize("kind", ["embed.content", "voice.forget"])
+async def test_an_embed_or_forget_job_that_keeps_failing_ends_dead(db, monkeypatch, kind):
+    """M13 on the two paths it missed. Both released unconditionally, so a job
+    whose handler always raised was retried every five minutes forever."""
+    from offload_agent import worker as worker_mod
+    from offload_agent.config import Config
+
+    async def broken(*_args, **_kwargs):
+        raise RuntimeError("down")
+
+    monkeypatch.setattr(worker_mod, "handle_embed", broken)
+    monkeypatch.setattr(worker_mod, "_handle_forget", broken)
+
+    async with db.begin() as conn:
+        who = await account(conn)
+        spent = str(
+            (
+                await conn.execute(
+                    text(
+                        "insert into jobs (kind, account_id, payload, priority, run_after, "
+                        "state, locked_at, attempts, max_attempts) values (:k, :a, "
+                        "'{}'::jsonb, 100, now(), 'running', now(), 3, 3) returning id"
+                    ),
+                    {"k": kind, "a": who},
+                )
+            ).scalar_one()
+        )
+
+    job = ClaimedJob(id=spent, kind=kind, payload={}, account_id=who, attempts=3, max_attempts=3)
+    config = Config(
+        database_url="postgresql+asyncpg://x/y",
+        api_url="http://api.test",
+        internal_token="t",
+        anthropic_api_key="k",
+    )
+    await worker_mod.handle(job, cfg=config, engine=db, anthropic=None, http=None)
+
+    async with db.begin() as conn:
+        assert (await _job(conn, spent)).state == "dead"

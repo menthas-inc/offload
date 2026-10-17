@@ -1,6 +1,6 @@
 {
   "note": "everything else; run by principle to read failures and tune",
-  "count": 446,
+  "count": 448,
   "cases": [
     "a-birthday-is-a-memory",
     "a-correction",
@@ -70,6 +70,7 @@
     "cancel-one",
     "check-lido",
     "check-market",
+    "chore-do-the-is-not-a-lookup",
     "colleague-birthday-none",
     "concert-ticket-is-an-event",
     "condition-looks-up",
@@ -77,6 +78,7 @@
     "count-is-the-sentence",
     "country-agrees",
     "country-from-today",
+    "country-from-today-keeps-the-answer",
     "country-named",
     "country-neither",
     "country-not-asked-when-agreeing",

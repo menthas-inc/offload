@@ -6,6 +6,7 @@ the answer away or leaving the job locked.
 """
 
 import dataclasses
+import json
 
 import httpx
 import pytest
@@ -445,3 +446,47 @@ async def test_a_resume_that_did_something_is_judged_the_ordinary_way():
     out = Outcome(reply=None)
     out.worked = 1
     assert _nothing_left(out, _ctx(8)) is False
+
+
+async def test_a_job_past_its_attempts_reports_the_failure_without_running_the_turn():
+    """M13, the half `_give_up_or_retry` cannot close. When even the failure
+    could not be posted the job is released with its attempts spent, and the
+    next claim ran the whole paid turn again, every thirty seconds of an
+    outage. Past its attempts, the only thing left to do is say it failed."""
+    from offload_agent.queue import ClaimedJob
+    from offload_agent.worker import handle
+
+    touched: list[str] = []
+    posted: list[dict] = []
+
+    class Engine:
+        def connect(self):
+            touched.append("context")
+            raise AssertionError("the turn read its context")
+
+        def begin(self):
+            touched.append("release")
+            raise AssertionError("the job was released")
+
+    class Anthropic:
+        def __getattr__(self, name):
+            touched.append("model")
+            raise AssertionError("the turn called a model")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        posted.append(json.loads(request.read().decode()))
+        return httpx.Response(200, json={"status": "written"})
+
+    job = ClaimedJob(
+        id="j",
+        kind="dump.answer",
+        payload={"messageId": "m", "conversationId": "c"},
+        account_id="a",
+        attempts=6,
+        max_attempts=5,
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        await handle(job, cfg=cfg(), engine=Engine(), anthropic=Anthropic(), http=http)
+
+    assert touched == []
+    assert posted == [{"outcome": "failed", "jobId": "j", "reason": "model_error"}]

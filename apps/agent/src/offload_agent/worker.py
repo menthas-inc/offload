@@ -1105,7 +1105,7 @@ async def _handle(
                 "forget failed", job_id=job.id, attempt=job.attempts, error_type=type(exc).__name__
             )
             async with engine.begin() as conn:
-                await release_for_retry(conn, job.id, "forget_error", delay_seconds=300)
+                await retry_or_die(conn, job, "forget_error", delay_seconds=300)
         return
 
     if job.kind in EMBED_KINDS:
@@ -1135,7 +1135,17 @@ async def _handle(
             # 014, in the identical line it had just written.
             log.error("embed failed", kind=job.kind, error=type(exc).__name__)
             async with engine.begin() as conn:
-                await release_for_retry(conn, job.id, "embed_error", delay_seconds=300)
+                await retry_or_die(conn, job, "embed_error", delay_seconds=300)
+        return
+
+    # **Past its attempts, the turn is not run again.** Only one path gets a
+    # dump here: `_give_up_or_retry` releasing it because even the failure
+    # could not be posted. Without this the next claim re-ran the whole paid
+    # turn every thirty seconds of an outage. `model_error` because the Core
+    # API takes no `undeliverable`, and the reason the turn failed went with
+    # the release.
+    if job.attempts > job.max_attempts:
+        await _give_up_or_retry(job, "model_error", cfg=cfg, engine=engine, http=http)
         return
 
     payload = job.payload
@@ -2077,10 +2087,11 @@ async def _stopped(job: ClaimedJob, *, cfg: Config, engine, http: httpx.AsyncCli
         log.info("turn stopped", job_id=job.id)
     except ReportFailed:
         # **Nothing else to do, and deliberately no retry.** The person's screen
-        # already moved on when they pressed it, and the Core API has the job
-        # marked cancelled either way, so the turn settles from that rather than
-        # from this post. Releasing it would put the cancelled job back in the
-        # queue, which is the one thing that must not happen here.
+        # already moved on when they pressed it. Releasing it would put the
+        # cancelled job back in the queue, which is the one thing that must not
+        # happen here. The row stays `running` with `cancelled_at` set, and once
+        # its lock goes stale the claim reads that and this runs again, while it
+        # has attempts left; the turn is never run.
         log.error("stop undeliverable", job_id=job.id)
 
 
@@ -2152,8 +2163,11 @@ async def _lane(
 
             # **Cancelled before it was claimed.** The notification and the
             # claim race, and this is the half of the race the listener
-            # cannot win: the job is already ours before the id arrives.
-            if cancels.asked(str(job.id)):
+            # cannot win: the job is already ours before the id arrives. The
+            # row says so too, which covers a Stop the listener never heard:
+            # during a deploy, while it was reconnecting, or one whose report
+            # failed and whose row came back after the stale timeout.
+            if job.cancelled or cancels.asked(str(job.id)):
                 await _stopped(job, engine=engine, http=http, cfg=cfg)
                 cancels.done(str(job.id))
                 continue
@@ -2167,7 +2181,19 @@ async def _lane(
             )
             cancels.watching(str(job.id), running)
             try:
-                await running
+                # **A minute short of the lock going stale.** Nothing renews
+                # it, so a turn still running past it is claimed again by the
+                # other lane and runs twice at once. Cancelling `running` is
+                # what the timeout does, and it lands here as TimeoutError.
+                async with asyncio.timeout(cfg.stale_after_seconds - 60):
+                    await running
+            except TimeoutError:
+                log.error("job timed out", job_id=job.id, kind=job.kind)
+                if job.kind == "dump.answer":
+                    await _give_up_or_retry(job, "timeout", cfg=cfg, engine=engine, http=http)
+                else:
+                    async with engine.begin() as conn:
+                        await retry_or_die(conn, job, "timeout", delay_seconds=300)
             except asyncio.CancelledError:
                 # **Ours, not the loop's.** A cancel aimed at this job must
                 # not read as a shutdown, so it is caught here and the worker
