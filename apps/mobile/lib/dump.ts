@@ -618,8 +618,9 @@ export async function cancelTurn(turnId: string): Promise<boolean> {
 export async function resumeDump(messageId: string): Promise<Sent | "daily_limit" | "not_finishable" | "failed"> {
   const { status, data } = await send<Sent>(`/v1/dumps/${messageId}/resume`, { method: "POST" });
   if (status === 429) return "daily_limit";
-  // Finished, or resumed from another device, since this screen drew it.
-  if (status === 409) return "not_finishable";
+  // Finished, or resumed from another device, since this screen drew it. A
+  // 404 is gone for good, so it asks what the turn is now rather than Retry.
+  if (status === 409 || status === 404) return "not_finishable";
   return data ?? "failed";
 }
 

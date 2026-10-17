@@ -20,6 +20,9 @@ describe("resumeDump", () => {
     expect(await resumeDump("m1")).toBe("daily_limit");
     answer = { status: 409, data: null };
     expect(await resumeDump("m1")).toBe("not_finishable");
+    // Gone, so asking again can never work: no Retry.
+    answer = { status: 404, data: null };
+    expect(await resumeDump("m1")).toBe("not_finishable");
     answer = { status: 500, data: null };
     expect(await resumeDump("m1")).toBe("failed");
     answer = { status: 0, data: null };

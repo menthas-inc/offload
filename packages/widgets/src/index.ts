@@ -534,7 +534,7 @@ export { foundMeta, type FoundDated } from "./found.js";
 export { FOLDED_AT_FIRST, foldsFrom, foldsWith } from "./folds.js";
 export type { FoldSection, Folds } from "./folds.js";
 // A settled turn: Undo on screen first, both clients.
-export { answeredWaiting, answerPollMs, isFinal, turnDid, turnUndoable, undoShown } from "./turn.js";
+export { answeredWaiting, answerPollMs, isFinal, turnDid, turnUndoable, undoShown, withReply } from "./turn.js";
 // Writes the screen has already drawn, both clients.
 export { perform, reverse } from "./optimistic.js";
 export type { Reversible, ToastAction, Toaster, Writes } from "./optimistic.js";

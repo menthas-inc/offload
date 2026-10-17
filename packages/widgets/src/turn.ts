@@ -89,3 +89,12 @@ export async function undoShown<T extends { id: string; turnId?: string | undefi
   });
   return false;
 }
+
+/** The turns with a reply put in. A turn read again (resumed, or settled
+ *  elsewhere) answers with the reply already on screen, so one with the same
+ *  id is replaced where it stands rather than drawn twice. */
+export function withReply<T extends { id: string }>(turns: readonly T[], reply: T): T[] {
+  return turns.some((turn) => turn.id === reply.id)
+    ? turns.map((turn) => (turn.id === reply.id ? reply : turn))
+    : [...turns, reply];
+}

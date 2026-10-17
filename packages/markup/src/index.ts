@@ -105,6 +105,9 @@ function addressable(href: string): boolean {
   // as a whole segment: `a%2Eb` is a name, not a climb.
   const path = href.split(/[?#]/)[0]!;
   if (path.split("/").some((segment) => [".", ".."].includes(segment.replace(/%2e/gi, ".")))) return false;
+  // An encoded slash or backslash keeps `%2e%2e%2fadmin` one segment here, and
+  // anything that decodes the path before resolving it would climb.
+  if (/%2f|%5c/i.test(path)) return false;
   return true;
 }
 

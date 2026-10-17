@@ -57,6 +57,12 @@ export function useToast(): ToastState {
   return { showing, show, hide };
 }
 
+/** The readme's split, read the way the web reads it: an Undo announces
+ *  politely, a failure interrupts. Retry and Try again are the failure forms. */
+export function toastFailed(action: ToastAction | undefined): boolean {
+  return action?.label === "Retry" || action?.label === "Try again";
+}
+
 /** Draws the toast when there is one. Named for what it does rather than what
  *  it contains, because `Toast` is a governed component with a stated contract
  *  and a wrapper taking a state object is not that component. */
@@ -64,6 +70,7 @@ export function ToastHost({ state }: { state: ToastState }) {
   const insets = useSafeAreaInsets();
   if (!state.showing) return null;
   const { message, action } = state.showing;
+  const failed = toastFailed(action);
 
   return (
     <Animated.View
@@ -74,12 +81,16 @@ export function ToastHost({ state }: { state: ToastState }) {
       pointerEvents="box-none"
     >
       <View
-        className={`flex-row items-center gap-space-5 px-space-6 py-space-5 ${
+        accessibilityLiveRegion={failed ? "assertive" : "polite"}
+        accessibilityRole={failed ? "alert" : undefined}
+        // The padding sits on the message so the action can take the bar's
+        // whole height, which is never less than a tap target.
+        className={`min-h-tap-min flex-row items-center gap-space-5 px-space-6 ${
           isAndroid ? "rounded-xs bg-a-on" : "rounded-md bg-surface-inverse"
         }`}
       >
         <Text
-          className={`flex-1 font-core ${isAndroid ? "text-a-surface" : "text-text-inverse"}`}
+          className={`flex-1 py-space-5 font-core ${isAndroid ? "text-a-surface" : "text-text-inverse"}`}
           style={{ fontSize: 14 }}
         >
           {message}
@@ -91,6 +102,7 @@ export function ToastHost({ state }: { state: ToastState }) {
               void action.onPress();
             }}
             hitSlop={12}
+            className="self-stretch justify-center"
           >
             <Text
               className={`font-core font-medium ${

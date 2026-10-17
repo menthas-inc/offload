@@ -110,4 +110,11 @@ describe("Finish it, refused", () => {
     expect(streams.map((one) => one.url).some((url) => url.endsWith("/v1/messages/m1/stream"))).toBe(true);
     expect(document.body.textContent).not.toContain("Couldn't finish that");
   });
+
+  it("asks about the turn again, not Retry, when the message is gone", async () => {
+    resumeAnswer = async () => new Response(JSON.stringify({ error: "not_found" }), { status: 404 });
+    await pressFinish();
+    expect(streams.map((one) => one.url).some((url) => url.endsWith("/v1/messages/m1/stream"))).toBe(true);
+    expect(document.body.textContent).not.toContain("Couldn't finish that");
+  });
 });

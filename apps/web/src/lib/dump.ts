@@ -741,8 +741,9 @@ export async function resumeDump(messageId: string): Promise<Sent | "daily_limit
     credentials: "include",
   }).catch(() => null);
   if (response?.status === 429) return "daily_limit";
-  // Finished, or resumed from another device, since this screen drew it.
-  if (response?.status === 409) return "not_finishable";
+  // Finished, or resumed from another device, since this screen drew it. A
+  // 404 is gone for good, so it asks what the turn is now rather than Retry.
+  if (response?.status === 409 || response?.status === 404) return "not_finishable";
   const sent = response?.ok ? ((await response.json().catch(() => null)) as Sent | null) : null;
   return sent ?? "failed";
 }

@@ -63,7 +63,7 @@ import {
 } from "../../lib/dump";
 import type { ChipError } from "./AttachChip";
 import { addNote, completeContent, fetchThread, provisionalId, quickAdd } from "../../lib/threads";
-import { MAX_PDFS, MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, takeFiles, turnDid, turnUndoable, undoShown } from "@offload/widgets";
+import { MAX_PDFS, MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, takeFiles, turnDid, turnUndoable, undoShown, withReply } from "@offload/widgets";
 import type { Label } from "../../lib/labels";
 import { failed } from "../../lib/log";
 import { fetchPeople, nameOf, type Person } from "../../lib/people";
@@ -878,17 +878,15 @@ export function ConversationProvider({
                 { ...turn, question: null },
           );
           if (!answer.reply) return next;
-          return [
-            ...next,
-            {
-              id: `${messageId}-reply`,
-              from: "offload" as const,
-              text: answer.reply,
-              turnId,
-              waiting: answer.waiting ?? null,
-              found: answer.found ?? [],
-            },
-          ];
+          // A resumed or re-read turn already has a reply on screen.
+          return withReply<Turn>(next, {
+            id: `${messageId}-reply`,
+            from: "offload" as const,
+            text: answer.reply,
+            turnId,
+            waiting: answer.waiting ?? null,
+            found: answer.found ?? [],
+          });
         });
 
         // `changed`, not `threads`: a turn that moved a piece out of the thread

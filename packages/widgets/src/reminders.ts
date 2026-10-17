@@ -98,13 +98,13 @@ export function countdownLabel(day: string, today: string): string {
 const SHORT_DAY = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
 /** Under the countdown: "Tue 13 Oct", or "By Sun 18 Oct" for a deadline or a
- *  task reminded against the thing it is for. */
+ *  task reminded against what it is for. */
 export function reminderDayLine(day: string, by: boolean): string {
   const said = SHORT_DAY.format(new Date(`${day}T12:00:00Z`)).replace(",", "");
   return by ? `By ${said}` : said;
 }
 
-/** After where it lives, when the thing has a clock time: "21:40", or "By
+/** After where it lives, when the row has a clock time: "21:40", or "By
  *  18:00" for a deadline. */
 export function reminderTimeLine(time: string, by: boolean): string {
   return by ? `By ${time}` : time;
@@ -116,8 +116,8 @@ export function dismissLabel(name: string): string {
 }
 
 /** The toast after a dismiss, with Undo beside it. A dismiss hides the one
- *  reminder that was showing, not the thing (the owner, 2026-10-11), so the
- *  line says when the thing's next reminder brings it back; with none to
+ *  reminder that was showing, not the row (the owner, 2026-10-11), so the
+ *  line says when the row's next reminder brings it back; with none to
  *  come, it says only that it is gone. */
 export function dismissedLine(next: string | null, today: string): string {
   if (!next) return "Dismissed";
@@ -136,9 +136,9 @@ export function whereOf(which: { of: "content" | "note" | "memory"; threadName: 
   return which.threadName === null ? { icon: "inbox", text: "Not in a thread" } : { icon: which.threadIcon ?? "lasso", text: which.threadName };
 }
 
-/** The key a dismissed reminder is hidden by on the screen: the thing, its
+/** The key a dismissed reminder is hidden by on the screen: the row, its
  *  day and the reminder showing, as the server keys a dismissal. A key with
- *  the thing alone would hide its next reminder too on a screen left open. */
+ *  the row alone would hide its next reminder too on a screen left open. */
 export function reminderKey(which: { of: "content" | "note" | "memory"; id: string; day: string; window: string }): string {
   return `${which.of}:${which.id}:${which.day}:${which.window}`;
 }
