@@ -178,7 +178,7 @@ Each section owns one route file, one page directory, one test file, and nothing
 
 ### E. Health and alerts (`routes/admin/health.ts`, `CA/src/health/`, `WEB/admin/health/`)
 
-- `GET /v1/admin/health/services?range`, `/incidents?range`, `/queue?range`, `/backups`, `/scheduled?range`, `/scheduled/:kind?range`, `/stuck`, `/dead?cursor`, `/calls?range`, `/vendors?range`.
+- `GET /v1/admin/health/services?range`, `/incidents?range`, `/queue?range`, `/backups`, `/scheduled?range`, `/scheduled/:kind?range`, `/stuck`, `/dead?cursor`, `/calls?range`, `/vendors?range`, and `/revocations` (2026-10-17, the sweep's S27: the calendar grants kept for a revoke by hand).
 - `POST /v1/admin/jobs/:id/retry`: `state = 'queued'`, `run_after = now()`, `max_attempts = attempts + 1`, `retried_at = now()`, only where `state = 'dead' and retried_at is null`; refused when the account does not pass `worksInBackground` or is at its cap. `POST /v1/admin/jobs/:id/dismiss` sets `dismissed_at`.
 - Uptime: minutes with an `ok` heartbeat over minutes in the range since the first heartbeat. Incidents: gaps-and-islands over `heartbeats`, gaps of two minutes or more.
 - `health.rollup`, hourly: closes the previous hour into `job_stats_hourly`.
