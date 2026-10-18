@@ -70,6 +70,13 @@ describe("a fetch that throws", () => {
     expect(await undoTurn("t1")).toBe(false);
   });
 
+  it("carries what an undo could not put back", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ undone: true, stayed: ["Their wife is Meera."] }), { status: 200 }));
+    expect(await undoTurn("t1")).toEqual(["Their wife is Meera."]);
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ undone: true }), { status: 200 }));
+    expect(await undoTurn("t1")).toEqual([]);
+  });
+
   it("does not stop the answer poll, which settles on a later answer", async () => {
     vi.useFakeTimers();
     try {

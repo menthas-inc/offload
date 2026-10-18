@@ -8,7 +8,7 @@ import { env } from "../src/env.js";
 import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
 import { sql } from "kysely";
-import { memoriesForPrompt } from "../src/memories/store.js";
+import { addMemory, memoriesForPrompt } from "../src/memories/store.js";
 
 await migrate(() => {});
 
@@ -227,6 +227,19 @@ describe("Undo on the turn", () => {
 
     await undoTurn(me, first.turnId);
     expect(await memoriesForPrompt(me)).toEqual([]);
+  });
+
+  it("says what stayed forgotten when there was no room to put it back", async () => {
+    const me = await account();
+    const first = await dump(me, "remember that Meera is my wife");
+    const kept = (await tool({ jobId: first.jobId, action: "remember", text: "Their wife is Meera.", kind: "people" })) as { remembered: { id: string } };
+    const asking = await dump(me, "forget that Meera is my wife");
+    await tool({ jobId: asking.jobId, action: "forget", memoryId: kept.remembered.id });
+    // Twenty rules since, and the forgotten one is a rule too: the Undo has no room.
+    await db.updateTable("notes").set({ kind: "rules" }).where("id", "=", kept.remembered.id).execute();
+    for (let i = 0; i < 20; i += 1) await db.transaction().execute((trx) => addMemory(trx, { accountId: me, text: `Rule ${i}.`, kind: "rules" }));
+
+    expect(await undoTurn(me, asking.turnId)).toEqual({ undone: true, stayed: ["Their wife is Meera."] });
   });
 });
 

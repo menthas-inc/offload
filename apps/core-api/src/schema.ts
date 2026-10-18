@@ -812,6 +812,8 @@ export interface PendingRevocationsTable {
   sealed_token: Buffer;
   attempts: Generated<number>;
   created_at: Generated<Timestamp>;
+  /** 0093. Sealed under a key no longer held: kept for a revoke by hand. */
+  unopenable_at: Date | null;
 }
 
 /** 035. One copy of everything an account can read, for seven days. */

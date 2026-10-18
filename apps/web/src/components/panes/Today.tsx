@@ -24,7 +24,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { addUtcDays, dayName, keepInPlace, nextLine, nothingLine, zoneStrip } from "@offload/widgets";
+import { addUtcDays, dayName, keepInPlace, nextLine, nothingLine, reminderEntryKey, remindersInOrder, zoneStrip } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { PaneHead } from "../shell/PaneHead";
 import { useThreads } from "../shell/threads-context";
@@ -32,7 +32,7 @@ import { NeedsYou, type Card } from "../today/NeedsYou";
 import { DayStepper } from "../today/DayStepper";
 import { EventsStrip, NextLine } from "../today/EventsStrip";
 import { OpenThreads } from "../today/OpenThreads";
-import { Reminders, reminderKey } from "../today/Reminders";
+import { Reminders } from "../today/Reminders";
 import { TodoCard } from "../today/TodoCard";
 import { useTodayRows } from "../today/useTodayRows";
 import { useAppearance } from "../../lib/appearance";
@@ -50,7 +50,6 @@ import {
   openThreadsOn,
   partOf,
   partsOn,
-  remindersInOrder,
   remindersOn,
   type Day,
   type LayoutSection,
@@ -419,7 +418,7 @@ export function TodayPane({
     });
   }, []);
   const remindingShown = reminding
-    ? remindersInOrder({ rows: rows.shown(reminding.rows), others: reminding.others }).filter((entry) => !gone.has(reminderKey(entry)))
+    ? remindersInOrder({ rows: rows.shown(reminding.rows), others: reminding.others }).filter((entry) => !gone.has(reminderEntryKey(entry)))
     : [];
   const reminders =
     showReminders && reminding && everDumped && remindingShown.length > 0 ? (

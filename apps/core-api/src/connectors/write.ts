@@ -292,9 +292,8 @@ async function writeToGoogle(
     // shortcut: a counted rule cannot be split without counting the
     // occurrences before the split, and a copied COUNT runs past the old end,
     // so it moves this occurrence alone. Count them via instances if asked for.
-    const counted = series?.recurrence.some((line) => line.startsWith("RRULE:") && line.includes("COUNT=")) ?? false;
-
-    if (existing?.startsAt && series?.startsAt && series.recurrence.length && !counted) {
+    // A tool call narrows to this one before it gets here and says so (S36).
+    if (existing?.startsAt && series?.startsAt && series.recurrence.length && !isCounted(series.recurrence)) {
       const startsAt = write.patch.startsAt ?? existing.startsAt;
       const span = (series.endsAt?.getTime() ?? series.startsAt.getTime() + HOUR) - series.startsAt.getTime();
 
@@ -357,6 +356,26 @@ async function writeToGoogle(
 
   await patchEvent(accessToken, target.externalId, eventId, patch, verdict.notify);
   return { sourceRef: write.sourceRef, verdict };
+}
+
+function isCounted(recurrence: string[]): boolean {
+  return recurrence.some((line) => line.startsWith("RRULE:") && line.includes("COUNT="));
+}
+
+/** Is this event one of a counted series, read live: "this and all following"
+ *  on one cannot be split (see the shortcut in `writeToGoogle`). */
+export async function counted(target: CalendarTarget, sourceRef: string, accessToken: string): Promise<boolean> {
+  const eventId = sourceRef.split(":").slice(1).join(":");
+  try {
+    const existing = await getEvent(accessToken, target.externalId, eventId);
+    const seriesId = existing?.seriesId ?? eventId;
+    const series = seriesId === eventId ? existing : await getEvent(accessToken, target.externalId, seriesId);
+    return isCounted(series?.recurrence ?? []);
+  } catch (error) {
+    // Unreadable now is read again at the write, which falls back the same way.
+    if (error instanceof GrantRevoked) throw error;
+    return false;
+  }
 }
 
 /** Take back a write nobody else learned about, inside the Undo window.

@@ -2002,9 +2002,18 @@ def _reply_as_sent(
     nothing_left = _nothing_left(outcome, ctx) or _photos_land_anyway(outcome, ctx)
     _author_the_failure_line(outcome, budget)
     _author_the_photo_line(outcome, ctx)
+    _author_the_server_lines(outcome)
     if not outcome.finished and not nothing_left:
         return True, _partial_reply(outcome)
     return False, outcome.reply
+
+
+def _author_the_server_lines(outcome: Outcome) -> None:
+    """S36. What the Core API said the reply has to carry, said once. Done is
+    silent, so a model would drop "Only this one changed." as a routine edit."""
+    for line in dict.fromkeys(outcome.lines):
+        if line not in (outcome.reply or ""):
+            outcome.reply = f"{outcome.reply.rstrip()} {line}" if outcome.reply else line
 
 
 def _author_the_photo_line(outcome: Outcome, ctx: DumpContext) -> None:

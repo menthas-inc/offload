@@ -5,7 +5,7 @@
 // over them, the two cards only this phone can know about, and the day a
 // notification opens on. The screen draws from this and decides nothing.
 
-import { MEMORY_PARAM, zoneStrip } from "@offload/widgets";
+import { MEMORY_PARAM, zoneStrip, type ReminderEntry as Entry, type ReminderLine } from "@offload/widgets";
 import { request, send } from "./api";
 import { threadHref } from "./loose";
 import type { ContentRow } from "./threads";
@@ -259,25 +259,18 @@ export async function fetchReminders(): Promise<TodayReminders | null> {
   return sent.status === 200 && sent.data ? sent.data : null;
 }
 
-export type ReminderEntry = ({ of: "row" } & ReminderRow) | ReminderOther;
+/** Rows, notes and memories in one list, put in order by widgets'
+ *  `remindersInOrder`, the same way on the web. */
+export type ReminderEntry = Entry<ReminderRow, ReminderOther>;
 
-/** Rows, notes and memories as one list, nearest first; on one day, as the
- *  server ordered each. */
-export function remindersInOrder(reminders: TodayReminders): ReminderEntry[] {
-  const entries: { day: string; entry: ReminderEntry }[] = [
-    ...reminders.rows.map((row) => ({ day: row.remindDay, entry: { ...row, of: "row" as const } })),
-    ...reminders.others.map((other) => ({ day: other.day, entry: other })),
-  ];
-  return entries.sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0)).map((one) => one.entry);
-}
-
-/** Where a note's or a memory's line opens: a memory in Memories, a note in
- *  its thread, and nowhere for a note with no thread, which is no button. */
+/** Where a line opens, as a route: a memory in Memories, a thread, and
+ *  nowhere for a note with no thread, which is no button. */
 export function reminderDoor(
-  entry: ReminderOther,
+  opens: ReminderLine["opens"],
 ): ReturnType<typeof threadHref> | { pathname: "/memories"; params: { [MEMORY_PARAM]: string } } | null {
-  if (entry.of === "memory") return { pathname: "/memories", params: { [MEMORY_PARAM]: entry.id } };
-  return entry.threadId ? threadHref(entry.threadId, entry.threadName) : null;
+  if (!opens) return null;
+  if ("memory" in opens) return { pathname: "/memories", params: { [MEMORY_PARAM]: opens.memory } };
+  return threadHref(opens.threadId, opens.threadName);
 }
 
 // ---------------------------------------------------------------- the layout

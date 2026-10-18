@@ -131,3 +131,12 @@ describe("Undo of a turn the server refused", () => {
     expect(host.textContent!.indexOf("dentist on friday")).toBeLessThan(host.textContent!.indexOf("milk and eggs"));
   });
 });
+
+describe("Undo of a turn that forgot something", () => {
+  it("names what stayed forgotten when there was no room to put it back", async () => {
+    undoAnswer = async () => new Response(JSON.stringify({ undone: true, stayed: ["Their wife is Meera."] }), { status: 200 });
+    const host = await answeredThenUndone();
+    expect(host.textContent).not.toContain("dentist on friday");
+    expect(document.body.textContent).toContain("Still forgotten: Your wife is Meera.");
+  });
+});

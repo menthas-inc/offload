@@ -584,12 +584,13 @@ export async function fetchCurrent(): Promise<TailMessage[] | null> {
 }
 
 /** Take back a whole turn: what you dumped, what offload filed, and what it
- *  said about it. */
-export async function undoTurn(turnId: string): Promise<boolean> {
-  const { data } = await send<{ undone: boolean }>(`/v1/turns/${turnId}/undo`, {
+ *  said about it. False when it did not land; otherwise the words of any
+ *  memories it could not put back for want of room, usually none. */
+export async function undoTurn(turnId: string): Promise<false | string[]> {
+  const { data } = await send<{ undone: boolean; stayed?: string[] }>(`/v1/turns/${turnId}/undo`, {
     method: "POST",
   });
-  return data?.undone ?? false;
+  return (data?.undone ?? false) && (data?.stayed ?? []);
 }
 
 /** Stop a turn that is taking too long. 017.

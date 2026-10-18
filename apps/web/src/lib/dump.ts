@@ -720,14 +720,16 @@ export async function cancelTurn(turnId: string): Promise<boolean> {
   }
 }
 
-export async function undoTurn(turnId: string): Promise<boolean> {
+/** False when the Undo did not land; otherwise the words of any memories it
+ *  could not put back for want of room, usually none. */
+export async function undoTurn(turnId: string): Promise<false | string[]> {
   const response = await reach(`${API}/v1/turns/${turnId}/undo`, {
     method: "POST",
     credentials: "include",
   });
   if (!response) return false;
-  const body = (await response.json()) as { undone: boolean };
-  return body.undone;
+  const body = (await response.json()) as { undone: boolean; stayed?: string[] };
+  return body.undone && (body.stayed ?? []);
 }
 
 /** Finish a turn that stopped partway.

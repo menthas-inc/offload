@@ -13,81 +13,37 @@
 // Undo. Which entries show is the screen's, so an emptied section takes no
 // band.
 
-import { Platform, Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import {
   countdownLabel,
   dismissedLine,
   dismissLabel,
   reminderDayLine,
-  reminderKey as keyOf,
+  reminderLine,
   reminderTimeLine,
-  timeIn,
   TODAY_REMINDERS,
-  whenOf,
-  whereOf,
+  type ReminderLine,
 } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
-import { threadHref } from "../../lib/loose";
 import { perform, type Writes } from "../../lib/optimistic";
-import { dismissReminder, reminderDoor, undismissReminder, type Dismissal, type ReminderEntry } from "../../lib/today";
+import { dismissReminder, reminderDoor, undismissReminder, type ReminderEntry } from "../../lib/today";
 import type { ToastState } from "../shell/Toast";
 import { groundClass, useInBand } from "./Band";
 import { SectionHead } from "./DayParts";
 
 const isAndroid = Platform.OS === "android";
-/** The countdown's column. */
+/** The countdown's column at the system's default text size; it grows with
+ *  the system's text size, as the countdown does. */
 const WHEN_WIDTH = 82;
 
-/** One line of the column, whatever it came from. */
-interface Line {
-  key: string;
-  name: string;
-  day: string;
-  by: boolean;
-  time: string | null;
-  next: string | null;
-  door: ReturnType<typeof reminderDoor>;
-  where: { icon: string; text: string };
-  which: Dismissal;
-}
-
-/** The key the screen hides a dismissed entry by: the thing, its day and the
- *  reminder showing, as the server keys a dismissal. */
-export function reminderKey(entry: ReminderEntry): string {
-  return entry.of === "row"
-    ? keyOf({ of: "content", id: entry.id, day: entry.remindDay, window: entry.window })
-    : keyOf({ of: entry.of, id: entry.id, day: entry.day, window: entry.window });
-}
+/** One line of the column, built in widgets as the web builds it. */
+type Line = ReminderLine & { door: ReturnType<typeof reminderDoor> };
 
 function lineOf(entry: ReminderEntry, zone: string | null): Line {
-  const key = reminderKey(entry);
-  if (entry.of === "row") {
-    const at = entry.allDay ? null : whenOf(entry);
-    return {
-      key,
-      name: entry.title,
-      day: entry.remindDay,
-      by: entry.remindBy,
-      time: at ? timeIn(new Date(at), zone, "en-GB") : null,
-      next: entry.next,
-      door: threadHref(entry.threadId, entry.threadName),
-      where: whereOf({ of: "content", threadName: entry.threadName, threadIcon: entry.threadIcon }),
-      which: { of: "content", id: entry.id, day: entry.remindDay, window: entry.window },
-    };
-  }
-  return {
-    key,
-    name: entry.name,
-    day: entry.day,
-    by: entry.by,
-    time: entry.time,
-    next: entry.next,
-    door: reminderDoor(entry),
-    where: whereOf(entry),
-    which: { of: entry.of, id: entry.id, day: entry.day, window: entry.window },
-  };
+  const line = reminderLine(entry, zone);
+  return { ...line, door: reminderDoor(line.opens) };
 }
 
 export function Reminders({
@@ -110,6 +66,7 @@ export function Reminders({
   const COLOR = useColors();
   const router = useRouter();
   const inBand = useInBand();
+  const { fontScale } = useWindowDimensions();
   const lines = entries.map((entry) => lineOf(entry, zone));
   if (lines.length === 0) return null;
   const onDay = lines.filter((line) => line.day === today);
@@ -140,7 +97,7 @@ export function Reminders({
 
   // The shared card's day line is the day's, never one thing's "By".
   const when = (line: Line, shared: boolean) => (
-    <View style={{ width: WHEN_WIDTH }}>
+    <View style={{ width: WHEN_WIDTH * fontScale }}>
       <Text className={`font-core font-semibold ${shared ? "text-text-noticed" : ink}`} style={{ fontSize: 17, lineHeight: 20, letterSpacing: -0.17 }}>
         {countdownLabel(line.day, today)}
       </Text>

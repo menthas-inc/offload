@@ -1,7 +1,7 @@
 // A settled turn, both clients.
 
 import { describe, expect, it } from "vitest";
-import { undoShown, withReply } from "../src/index.js";
+import { stayedForgotten, undoShown, withReply } from "../src/index.js";
 
 describe("Undo of a turn", () => {
   const turns = [
@@ -13,6 +13,12 @@ describe("Undo of a turn", () => {
   it("takes the turn off the screen and keeps it off once the server agrees", async () => {
     let drawn = turns;
     expect(await undoShown("t1", turns, (update) => (drawn = update(drawn)), async () => true)).toBe(true);
+    expect(drawn.map((turn) => turn.id)).toEqual(["m0"]);
+  });
+
+  it("hands back what the server said, so the toast can name what stayed forgotten", async () => {
+    let drawn = turns;
+    expect(await undoShown("t1", turns, (update) => (drawn = update(drawn)), async () => ["Their wife is Meera."])).toEqual(["Their wife is Meera."]);
     expect(drawn.map((turn) => turn.id)).toEqual(["m0"]);
   });
 
@@ -47,6 +53,22 @@ describe("Undo of a turn", () => {
     };
     expect(await undoShown("t1", turns, (update) => (drawn = update(drawn)), refused)).toBe(false);
     expect(drawn).toEqual([{ id: "m0", turnId: "t0", did: true }, ...turns.slice(1)]);
+  });
+});
+
+describe("What a turn's Undo could not put back", () => {
+  it("says nothing when everything came back", () => {
+    expect(stayedForgotten([])).toBeNull();
+    expect(stayedForgotten(undefined)).toBeNull();
+  });
+
+  it("names one or two, in the words the tab reads them in", () => {
+    expect(stayedForgotten(["Their wife is Meera."])).toBe("Still forgotten: Your wife is Meera.");
+    expect(stayedForgotten(["Their wife is Meera.", "They live in Leeds."])).toBe("Still forgotten: Your wife is Meera. You live in Leeds.");
+  });
+
+  it("counts more than two", () => {
+    expect(stayedForgotten(["A.", "B.", "C."])).toBe("3 still forgotten");
   });
 });
 

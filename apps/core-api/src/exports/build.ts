@@ -18,6 +18,7 @@ import { unwrap, wrap } from "../crypto/keys.js";
 import { accountKey, NoKey, objectKeyOf } from "../blobs/keys.js";
 import { objectKey, objectStore, type Rendition } from "../blobs/store.js";
 import { record } from "../notifications/activity.js";
+import { remindersOf } from "../notifications/labels.js";
 import { partKey, removeParts } from "./copy.js";
 import { connectionsOf } from "../people/access.js";
 import { shownThreadName } from "../threads/default.js";
@@ -168,6 +169,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
         .selectFrom("readable_notes as n")
         .leftJoin("accounts", "accounts.id", "n.account_id")
         .select([
+          "n.id",
           "n.subject_id",
           "n.account_id",
           "n.text",
@@ -186,7 +188,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
 
       const ownNotes = await trx
         .selectFrom("notes")
-        .select(["scope", "text", "body", "created_at", "origin", "kind", "attrs"])
+        .select(["id", "scope", "text", "body", "created_at", "origin", "kind", "attrs"])
         // By subject for what is about the account, by keeper for what the
         // account keeps about the people it named, as the delete reads them.
         .where((eb) =>
@@ -268,6 +270,27 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
 
       const people = await connectionsOf(accountId, trx);
 
+      // S33. offload's kind of date and the Remind me switch, on the account's
+      // own labels only: another author's never reaches this copy.
+      const reminderLabels = await trx
+        .selectFrom("reminder_labels")
+        .select(["content_id", "note_id", "kind"])
+        .where("account_id", "=", accountId)
+        .execute();
+      const labelledRows = reminderLabels.flatMap((label) => label.content_id ?? []);
+      const labelledNotes = reminderLabels.flatMap((label) => label.note_id ?? []);
+      const switches = new Map([
+        ...(await remindersOf(trx, "content", labelledRows, accountId)),
+        ...(await remindersOf(trx, "note", labelledNotes, accountId)),
+      ]);
+      const reminders = new Map(
+        reminderLabels.map((label) => {
+          const id = (label.content_id ?? label.note_id)!;
+          return [id, { kind: label.kind, remindMe: switches.get(id) ?? null }] as const;
+        }),
+      );
+      const reminderOf = (id: string) => (reminders.has(id) ? { reminder: reminders.get(id)! } : {});
+
       const blobs = new Map<string, Blob>();
       // The file as it was put in goes to the person who put it in and to
       // nobody else: it carries what the camera wrote and the name it had.
@@ -346,6 +369,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
               occursAt: iso(note.occurs_at),
               dueAt: iso(note.due_at),
               rrule: note.rrule,
+              ...reminderOf(note.id),
             })),
             rows: (rowsOf.get(thread.id) ?? []).map((row): CopyRow => ({
               id: row.id,
@@ -364,6 +388,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
               author: author(row),
               labels: (rowLabelsOf.get(row.id) ?? []).flatMap((pair) => labelName.get(pair.label_id) ?? []),
               files: (rowFilesOf.get(row.id) ?? []).flatMap(fileOf).map(strip),
+              ...reminderOf(row.id),
             })),
           };
         }),
@@ -387,6 +412,7 @@ async function read(accountId: string): Promise<{ copy: Copy; blobs: Blob[] }> {
           about: note.scope === "account" ? ("you" as const) : ("someone" as const),
           // 038. How offload came to know a memory, as the tab says it.
           ...(note.scope === "account" ? { how: howOf(note.origin, note.attrs), kind: note.kind } : {}),
+          ...reminderOf(note.id),
         })),
         people: people.map((person) => ({ name: person.displayName ?? "Someone" })),
       };

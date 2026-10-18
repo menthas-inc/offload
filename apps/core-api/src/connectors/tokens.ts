@@ -6,6 +6,7 @@
 // over it.
 
 import { db } from "../db.js";
+import type { Executor } from "../threads/access.js";
 import { GrantRevoked, refreshAccess, revoke } from "./google.js";
 import { openOrNull, seal, VAULT_NAME } from "./vault.js";
 
@@ -87,6 +88,19 @@ export async function markNeedsReauth(connectionId: string): Promise<void> {
     .execute();
 }
 
+/** S27. A grant sealed under a key no longer held cannot be handed back, and
+ *  is still live at Google. Kept as it was sealed, under its connection's id
+ *  (the refresh token when there is one, else the access token), so whoever
+ *  holds the old key can open and revoke it. The hourly pass leaves it, Health
+ *  counts it, and the seven days end it as they end any other. */
+export async function keepUnopenable(trx: Executor, connectionId: string, sealed: Buffer): Promise<void> {
+  await trx
+    .insertInto("pending_revocations")
+    .values({ id: connectionId, provider: "google", sealed_token: Buffer.from(sealed), unopenable_at: new Date() })
+    .onConflict((oc) => oc.column("id").doNothing())
+    .execute();
+}
+
 /** Hand the grant back to Google as well as forgetting it here.
  *
  *  Deleting our copy alone leaves the grant live on Google's side, so
@@ -105,6 +119,7 @@ export async function revokeAndForget(connectionId: string): Promise<void> {
       ? openOrNull(row.refresh_token, connectionId, "refresh_token")
       : openOrNull(row.access_token, connectionId, "access_token");
     if (token !== null) await revoke(token).catch(() => undefined);
+    else await keepUnopenable(db, connectionId, row.refresh_token ?? row.access_token);
   }
 
   await db.deleteFrom("connector_secrets").where("connection_id", "=", connectionId).execute();

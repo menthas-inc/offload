@@ -11,9 +11,9 @@
 // support's, and dismiss declares `config: { rank: "owner" }`.
 //
 // Everything is read from our own Postgres: `heartbeats`, `jobs`,
-// `job_stats_hourly`, `backup_runs`, `llm_usage` and `lookups`. Of a job this
-// file reads its kind, its state, its times, its attempts and its error code,
-// and never its payload or its error text (OFF-1).
+// `job_stats_hourly`, `backup_runs`, `pending_revocations`, `llm_usage` and
+// `lookups`. Of a job this file reads its kind, its state, its times, its
+// attempts and its error code, and never its payload or its error text (OFF-1).
 
 import { z } from "zod";
 import { sql } from "kysely";
@@ -137,6 +137,31 @@ export async function healthAdminRoutes(app: App): Promise<void> {
     async (_request, reply) => {
       const { last, late } = await backups();
       return reply.send({ last: last ? { finishedAt: last.finishedAt.toISOString(), bytes: last.bytes, ok: last.ok } : null, late });
+    }
+  );
+
+  // S27. Grants offload could not open to hand back to Google, so live there
+  // until somebody holding the old vault key revokes them by hand. Ages only:
+  // the rows name nobody, and the seven days of 0080 still end each one.
+  app.get(
+    "/health/revocations",
+    {
+      schema: {
+        response: {
+          200: z.object({ unopenable: z.array(z.object({ since: z.string() })) }),
+          404: notFound,
+        },
+      },
+    },
+    async (_request, reply) => {
+      const rows = await db
+        .selectFrom("pending_revocations")
+        // As a Date: the table's Generated<Timestamp> reads as the column type.
+        .select(sql<Date>`created_at`.as("since"))
+        .where("unopenable_at", "is not", null)
+        .orderBy("created_at")
+        .execute();
+      return reply.send({ unopenable: rows.map((row) => ({ since: row.since.toISOString() })) });
     }
   );
 

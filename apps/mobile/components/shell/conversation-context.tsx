@@ -63,7 +63,7 @@ import {
 } from "../../lib/dump";
 import type { ChipError } from "./AttachChip";
 import { addNote, completeContent, fetchThread, provisionalId, quickAdd } from "../../lib/threads";
-import { MAX_PDFS, MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, takeFiles, turnDid, turnUndoable, undoShown, withReply } from "@offload/widgets";
+import { MAX_PDFS, MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, stayedForgotten, takeFiles, turnDid, turnUndoable, undoShown, withReply } from "@offload/widgets";
 import type { Label } from "../../lib/labels";
 import { failed } from "../../lib/log";
 import { fetchPeople, nameOf, type Person } from "../../lib/people";
@@ -1580,8 +1580,11 @@ export function ConversationProvider({
   // what it filed is still filed.
   const undoTurnShown = useCallback(
     async function again(turnId: string): Promise<void> {
-      if (await undoShown(turnId, shownTurns.current, setTurns, undoTurn)) setFiled({ threadIds: [], at: Date.now() });
-      else notify("Couldn't put that back", { label: "Retry", onPress: () => again(turnId) });
+      const stayed = await undoShown(turnId, shownTurns.current, setTurns, undoTurn);
+      if (!stayed) return notify("Couldn't put that back", { label: "Retry", onPress: () => again(turnId) });
+      setFiled({ threadIds: [], at: Date.now() });
+      const line = stayedForgotten(stayed);
+      if (line) notify(line);
     },
     [notify],
   );

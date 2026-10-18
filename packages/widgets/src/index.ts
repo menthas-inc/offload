@@ -519,7 +519,10 @@ export {
   REMINDER_COUNT_DEFAULT,
   REMINDER_COUNTS,
   reminderDayLine,
+  reminderEntryKey,
   reminderKey,
+  reminderLine,
+  remindersInOrder,
   reminderTimeLine,
   REMINDERS_LINE,
   remindDayLabel,
@@ -527,14 +530,14 @@ export {
   TODAY_REMINDERS,
   whereOf,
 } from "./reminders.js";
-export type { Reminders } from "./reminders.js";
+export type { ReminderEntry, ReminderLine, ReminderOtherRead, ReminderRowRead, Reminders, ReminderWindow } from "./reminders.js";
 export { foundMeta, type FoundDated } from "./found.js";
 
 // 2026-10-17. The thread's sections fold, Files folded at first.
 export { FOLDED_AT_FIRST, foldsFrom, foldsWith } from "./folds.js";
 export type { FoldSection, Folds } from "./folds.js";
 // A settled turn: Undo on screen first, both clients.
-export { answeredWaiting, answerPollMs, isFinal, turnDid, turnUndoable, undoShown, withReply } from "./turn.js";
+export { answeredWaiting, answerPollMs, isFinal, stayedForgotten, turnDid, turnUndoable, undoShown, withReply } from "./turn.js";
 // Writes the screen has already drawn, both clients.
 export { perform, reverse } from "./optimistic.js";
 export type { Reversible, ToastAction, Toaster, Writes } from "./optimistic.js";

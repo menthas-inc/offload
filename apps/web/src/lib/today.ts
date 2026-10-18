@@ -6,7 +6,7 @@
 // `apps/core-api/src/routes/today.ts` and `src/today/layout.ts`; the server's
 // zod schemas are the shapes, and these types say only what the page reads.
 
-import { GOOGLE_EVENT_LINK } from "@offload/widgets";
+import { GOOGLE_EVENT_LINK, type ReminderEntry as Entry } from "@offload/widgets";
 import type { QuestionOnWire } from "./dump";
 import type { ContentRow } from "./threads";
 
@@ -351,24 +351,6 @@ export async function fetchReminders(): Promise<RemindersRead | null> {
   }
 }
 
-export type ReminderEntry = { row: ReminderRow; day: string } | { other: ReminderOther; day: string };
-
-/** Rows, notes and memories in one list, nearest first. The server sorted
- *  each by day; this merges the two, a row first on the same day. */
-export function remindersInOrder(read: { rows: ReminderRow[]; others: ReminderOther[] }): ReminderEntry[] {
-  const merged: ReminderEntry[] = [];
-  let r = 0;
-  let o = 0;
-  while (r < read.rows.length || o < read.others.length) {
-    const row = read.rows[r];
-    const other = read.others[o];
-    if (row && (!other || row.remindDay <= other.day)) {
-      merged.push({ row, day: row.remindDay });
-      r += 1;
-    } else {
-      merged.push({ other: other!, day: other!.day });
-      o += 1;
-    }
-  }
-  return merged;
-}
+/** Rows, notes and memories in one list, put in order by widgets'
+ *  `remindersInOrder`, the same way on the phones. */
+export type ReminderEntry = Entry<ReminderRow, ReminderOther>;

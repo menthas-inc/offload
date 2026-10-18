@@ -366,7 +366,7 @@ const currentConversation = z.object({
   ),
 });
 
-const undoResponse = z.object({ undone: z.boolean() });
+const undoResponse = z.object({ undone: z.boolean(), stayed: z.array(z.string()).optional() });
 const notFinishable = z.object({ error: z.literal("not_finishable") });
 
 /** 034. `scope` says whose cap it was. Optional, and both clients branch on
@@ -2094,7 +2094,7 @@ export async function undoTurn(
    *  `since` is Postgres's own text for the time: a Date holds milliseconds,
    *  so a row filed in the same millisecond as the bound would read as later. */
   opts: { keepMessageId?: string; since?: string } = {},
-): Promise<{ undone: boolean } | null> {
+): Promise<{ undone: boolean; stayed?: string[] } | null> {
   // **Calendar rows are undone before the transaction, not inside it.**
   //
   // Every other row in a turn is undone by a local soft delete, which is why
@@ -2189,8 +2189,8 @@ export async function undoTurn(
 
     // 038. A memory the turn asked for went with the notes above (it is one,
     // at account scope). One the turn forgot comes back, and its words may
-    // teach again.
-    await restoreForgotten(
+    // teach again, as many as fit; the toast names the rest.
+    const stayed = await restoreForgotten(
       trx,
       accountId,
       live.map((row) => row.id),
@@ -2268,7 +2268,7 @@ export async function undoTurn(
       tx: trx,
     });
 
-    return { undone: true };
+    return stayed.length > 0 ? { undone: true, stayed } : { undone: true };
   });
 }
 

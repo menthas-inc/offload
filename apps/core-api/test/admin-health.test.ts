@@ -204,3 +204,25 @@ describe("AC-44 backups", () => {
     expect((await get("/health/backups")).late).toBe(false);
   });
 });
+
+describe("S27 grants offload could not hand back", () => {
+  it("counts each one kept for a revoke by hand, with its age, to the owner and nobody else", async () => {
+    await db.deleteFrom("pending_revocations").execute();
+    await sql`
+      insert into pending_revocations (provider, sealed_token, created_at, unopenable_at) values
+        ('google', '\\x00', now() - interval '3 days', now()),
+        ('google', '\\x00', now() - interval '1 hour', now())`.execute(db);
+    // Waiting on Google, not on a person: not counted here.
+    await sql`insert into pending_revocations (provider, sealed_token) values ('google', '\\x00')`.execute(db);
+    try {
+      const body = await get("/health/revocations");
+      expect(body.unopenable).toHaveLength(2);
+      const days = (body.unopenable as { since: string }[]).map((one) => Math.round((Date.now() - new Date(one.since).getTime()) / 86_400_000));
+      expect(days).toEqual([3, 0]);
+      const support = (await staffMember("support")).cookie;
+      expect((await app.inject({ method: "GET", url: "/v1/admin/health/revocations", headers: { cookie: support } })).statusCode).toBe(404);
+    } finally {
+      await db.deleteFrom("pending_revocations").execute();
+    }
+  });
+});

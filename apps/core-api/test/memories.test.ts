@@ -202,7 +202,8 @@ describe("the one write path", () => {
     const readded = await db.transaction().execute((trx) => remember(trx, { accountId: me, messageId: again, text: "Their wife is Meera.", kind: "people" }));
     expect(readded.ok).toBe(true);
 
-    await db.transaction().execute((trx) => restoreForgotten(trx, me, [asking]));
+    // Said again is not forgotten, so the Undo has nothing to name.
+    expect(await db.transaction().execute((trx) => restoreForgotten(trx, me, [asking]))).toEqual([]);
     expect((await memoriesForPrompt(me)).map((m) => m.text)).toEqual(["Their wife is Meera."]);
   });
 
@@ -216,7 +217,7 @@ describe("the one write path", () => {
     const added = await db.transaction().execute((trx) => addMemory(trx, { accountId: me, text: "Work things go in Work.", kind: "rules" }));
     expect(added.ok).toBe(true);
 
-    expect(await db.transaction().execute((trx) => restoreForgotten(trx, me, [asking]))).toBe(0);
+    expect(await db.transaction().execute((trx) => restoreForgotten(trx, me, [asking]))).toEqual(["Rule 0."]);
     expect((await memoriesForPrompt(me)).filter((m) => m.kind === "rules")).toHaveLength(20);
   });
 

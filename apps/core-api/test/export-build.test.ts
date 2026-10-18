@@ -469,6 +469,47 @@ describe("the archive", () => {
     const bins = data.threads.flatMap((thread) => thread.notes).find((note) => note.text === "Bins go out");
     expect(bins).toMatchObject({ occursAt: "2026-10-08T07:00:00.000Z", rrule: "FREQ=WEEKLY;BYDAY=WE" });
   });
+
+  it("carries each reminder kind and the Remind me switch, the author's own and nobody else's", async () => {
+    // Sweep 2026-10-17, S33. The privacy page says the copy holds everything.
+    const ana = await person("Ana Duarte");
+    const sam = await person("Sam Ibekwe");
+    const shared = await thread("The flat", ana, sam);
+    const soon = sql<Date>`now() + interval '10 days'`;
+    const dentist = await row(ana.id, ana.defaultThreadId, "Dentist", { type: "event", occurs_at: soon });
+    const quiet = await row(ana.id, ana.defaultThreadId, "Gym", { type: "event", occurs_at: soon });
+    const theirs = await row(sam.id, shared, "Boiler service", { type: "event", occurs_at: soon });
+    const note = await db
+      .insertInto("notes")
+      .values({ account_id: ana.id, scope: "thread", subject_id: ana.defaultThreadId, kind: "going_on", text: "Rent due", origin: "stated", due_at: soon })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await db
+      .insertInto("reminder_labels")
+      .values([
+        { account_id: ana.id, content_id: dentist, kind: "appointment", lead: "days" },
+        { account_id: ana.id, content_id: quiet, kind: "meeting", lead: "none", stopped_at: sql`now()` },
+        { account_id: ana.id, note_id: note.id, kind: "deadline", lead: "days", stopped_at: sql`now()` },
+        { account_id: sam.id, content_id: theirs, kind: "appointment", lead: "days" },
+      ] as never)
+      .execute();
+
+    await buildCopy(await asked(ana));
+    const files = await unzip(ana.id);
+    type Entry = { id?: string; text?: string; reminder?: { kind: string | null; remindMe: string | null } };
+    const data = JSON.parse(files.get("data.json")!.toString()) as { threads: { rows: Entry[]; notes: Entry[] }[] };
+    const rows = data.threads.flatMap((one) => one.rows);
+    expect(rows.find((entry) => entry.id === dentist)?.reminder).toEqual({ kind: "appointment", remindMe: "on" });
+    expect(rows.find((entry) => entry.id === quiet)?.reminder).toEqual({ kind: "meeting", remindMe: "off" });
+    expect(rows.find((entry) => entry.id === theirs)?.reminder).toBeUndefined();
+    const rent = data.threads.flatMap((one) => one.notes).find((entry) => entry.text === "Rent due");
+    expect(rent?.reminder).toEqual({ kind: "deadline", remindMe: "off" });
+
+    const pages = [...files.entries()].filter(([name]) => name.startsWith("threads/")).map(([, bytes]) => bytes.toString()).join("");
+    expect(pages).toContain("Kind of date: appointment · Remind me on");
+    expect(pages).toContain("Kind of date: meeting · Remind me off");
+    expect(pages).toContain("Kind of date: deadline · Remind me off");
+  });
 });
 
 describe("how the copy is kept", () => {

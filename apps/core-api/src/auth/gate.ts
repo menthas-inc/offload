@@ -99,5 +99,10 @@ export async function maySignIn(accountId: string): Promise<boolean> {
     .where("deleted_at", "is", null)
     .executeTakeFirst();
   if (account?.state === "disabled") recordAttempt(account.email, "disabled");
-  return account?.state === "invited" || account?.state === "active";
+  return stateMaySignIn(account?.state);
+}
+
+/** The state half of `maySignIn`, for a caller that already holds the row. */
+export function stateMaySignIn(state: string | null | undefined): boolean {
+  return state === "invited" || state === "active";
 }

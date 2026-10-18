@@ -1,5 +1,7 @@
 // A turn once it has settled, the same on the web and the phones.
 
+import { toSecondPerson } from "./voice.js";
+
 /** Whether a turn is over. */
 export function isFinal(state: string): boolean {
   return (
@@ -62,19 +64,20 @@ export function answeredWaiting<T extends { id: string; from: "you" | "offload";
 /** Take a turn back on screen first. It leaves the list on the press and
  *  comes back when the server refuses or cannot be reached, since the rows
  *  it filed are still there. False tells the caller to say so and offer
- *  Retry.
+ *  Retry; anything else is what the undo answered.
  *
  *  `draw` takes an updater, because the list moves while the undo travels: a
  *  turn sent or answered meanwhile has to survive the refusal, so only the
  *  removed rows go back, each after the row it followed. */
-export async function undoShown<T extends { id: string; turnId?: string | undefined }>(
+export async function undoShown<T extends { id: string; turnId?: string | undefined }, R>(
   turnId: string,
   turns: readonly T[],
   draw: (update: (current: T[]) => T[]) => void,
-  undo: (turnId: string) => Promise<boolean>,
-): Promise<boolean> {
+  undo: (turnId: string) => Promise<R | false>,
+): Promise<R | false> {
   draw((current) => current.filter((turn) => turn.turnId !== turnId));
-  if (await undo(turnId).catch(() => false)) return true;
+  const done = await undo(turnId).catch(() => false as const);
+  if (done) return done;
   draw((current) => {
     const back = [...current];
     turns.forEach((turn, at) => {
@@ -88,6 +91,14 @@ export async function undoShown<T extends { id: string; turnId?: string | undefi
     return back;
   });
   return false;
+}
+
+/** S43. The toast after a turn's Undo when memories it forgot stayed
+ *  forgotten for want of room: one or two named as the tab reads them,
+ *  more counted. Null when everything came back. */
+export function stayedForgotten(stayed: readonly string[] | undefined): string | null {
+  if (!stayed?.length) return null;
+  return stayed.length > 2 ? `${stayed.length} still forgotten` : `Still forgotten: ${stayed.map(toSecondPerson).join(" ")}`;
 }
 
 /** The turns with a reply put in. A turn read again (resumed, or settled
