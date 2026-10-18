@@ -126,9 +126,7 @@ export function MonthGrid({
             and on this month it still takes the day back to today. */}
         <span className={styles.railMiddle}>
           {heading ? (
-            <h1 className={styles.railMonthName} aria-live="polite">
-              {name}
-            </h1>
+            <h1 className={styles.railMonthName}>{name}</h1>
           ) : (
             <span className={styles.railMonthName}>{name}</span>
           )}

@@ -18,7 +18,7 @@ describe("Today's month", () => {
 
   it("dots the grid from the month read, for the grid's whole window", () => {
     expect(screen).toMatch(/fetchMonth\(gridFrom, gridTo\)/);
-    expect(read("lib/today.ts")).toMatch(/\/v1\/today\/month\?from=\$\{from\}&to=\$\{to\}/);
+    expect(read("lib/today.ts")).toMatch(/\/v1\/today\/month\?from=\$\{encodeURIComponent\(from\)\}&to=\$\{encodeURIComponent\(to\)\}/);
   });
 
   it("names the picked day in the month's head, as a header, with no name under the grid and no day arrows (the owner, 2026-10-18)", () => {

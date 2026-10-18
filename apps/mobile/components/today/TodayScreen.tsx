@@ -74,7 +74,7 @@ import { drawInPlace } from "../shell/InPlace";
 import { useInPlace, useUndoEntries } from "../../lib/undo";
 
 const isAndroid = Platform.OS === "android";
-/** The stepper reaches the edge of what offload keeps of a calendar. */
+/** The month reaches the edge of what offload keeps of a calendar. */
 const DAYS_AHEAD = 365;
 /** A day that arrives within this draws no spinner. */
 const QUIET_MS = 250;
@@ -326,7 +326,10 @@ export default function TodayScreen() {
   }, [needs, layout, zoneKey, notificationsKey]);
 
   // ---------------------------------------------------------------- the rows
+  // Bumped after every write, so the month's dots follow a tick or a dismiss.
+  const [monthRead, setMonthRead] = useState(0);
   const reloadDay = useCallback(() => {
+    setMonthRead((n) => n + 1);
     loadDay(date);
     if (date === today) {
       loadOpen(false);
@@ -344,9 +347,9 @@ export default function TodayScreen() {
   // The month (2026-10-18, in place of the stepper): what each day on the grid
   // holds, read for the grid's whole window and again after a filing, which
   // may have dated something.
-  const window = monthFor(month ?? date, [], today, weekStart);
-  const gridFrom = window.weeks[0]?.days[0]?.iso ?? window.key;
-  const gridTo = window.weeks[window.weeks.length - 1]?.days[6]?.iso ?? window.key;
+  const span = monthFor(month ?? date, [], today, weekStart);
+  const gridFrom = span.weeks[0]?.days[0]?.iso ?? span.key;
+  const gridTo = span.weeks[span.weeks.length - 1]?.days[6]?.iso ?? span.key;
   const [counts, setCounts] = useState<{ window: string; days: MonthCount[] } | null>(null);
   useEffect(() => {
     let live = true;
@@ -356,7 +359,7 @@ export default function TodayScreen() {
     return () => {
       live = false;
     };
-  }, [gridFrom, gridTo, filed?.at, zone]);
+  }, [gridFrom, gridTo, filed?.at, zone, monthRead]);
   const grid = monthFor(month ?? date, counts?.window === `${gridFrom}|${gridTo}` ? monthDated(counts.days) : [], today, weekStart);
 
   const ink = isAndroid ? "text-a-on" : "text-text-primary";

@@ -117,9 +117,10 @@
   gap: var(--space-3);
 }
 
+/* The one exception to globals.css's reduced-motion cut: the clock is
+   information, not decoration, so it runs for its window regardless. */
 @media (prefers-reduced-motion: reduce) {
-  .line,
-  .returned {
-    animation: none;
+  .clock {
+    animation-duration: var(--undo-window) !important;
   }
 }

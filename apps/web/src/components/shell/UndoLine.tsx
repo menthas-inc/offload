@@ -38,7 +38,9 @@ export function UndoLine({ entry, radius }: { entry: UndoEntry; radius?: string 
         <span
           className={styles.clock}
           aria-hidden="true"
-          style={{ animationDuration: `${UNDO_MS}ms`, animationDelay: `${left - UNDO_MS}ms` }}
+          style={
+            { animationDuration: `${UNDO_MS}ms`, animationDelay: `${left - UNDO_MS}ms`, "--undo-window": `${UNDO_MS}ms` } as React.CSSProperties
+          }
         />
       )}
     </div>

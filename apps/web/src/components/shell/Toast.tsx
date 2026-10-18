@@ -85,13 +85,26 @@ export function ToastHost() {
   const state = useToast();
   const still = useReducedMotion();
   const [leaving, setLeaving] = useState<Showing | null>(null);
-  if (!state.showing) return null;
-  const { message, action } = state.showing;
+  // Escape is the keyboard's way to the same fade as a tap on the body.
+  const showing = state.showing;
+  const hide = state.hide;
+  useEffect(() => {
+    if (!showing) return;
+    const away = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (still) hide();
+      else setLeaving(showing);
+    };
+    document.addEventListener("keydown", away);
+    return () => document.removeEventListener("keydown", away);
+  }, [showing, still, hide]);
+  if (!showing) return null;
+  const { message, action } = showing;
 
   // The readme's split: an Undo announces politely, a failure interrupts.
   // Retry and Try again are the failure forms, and the only actions that are.
   const failure = action?.label === "Retry" || action?.label === "Try again";
-  const fading = leaving === state.showing;
+  const fading = leaving === showing;
   return (
     <div
       className={styles.toast}

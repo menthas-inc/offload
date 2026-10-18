@@ -37,6 +37,9 @@ export interface UndoStore {
   drop: (id: string, options?: { returned?: boolean }) => void;
   returned: (id: string) => boolean;
   subscribe: (listener: () => void) => () => void;
+  /** Everything gone, timers too: at sign-out, so the next account on the
+   *  device sees nothing of the last one's words. */
+  clear: () => void;
 }
 
 interface Timing {
@@ -118,6 +121,13 @@ export function createUndoStore(timing: Timing = realTiming): UndoStore {
       tell();
     },
     returned: (id) => back.has(id),
+    clear() {
+      for (const timer of [...timers.values(), ...back.values()]) timing.cancel(timer);
+      timers.clear();
+      back.clear();
+      entries = new Map();
+      tell();
+    },
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -194,6 +204,10 @@ export function createOrderMemory() {
   let above = new Map<string, string | null>();
   let below = new Map<string, string | null>();
   return {
+    clear(): void {
+      above = new Map();
+      below = new Map();
+    },
     note(ids: readonly string[]): void {
       if (above.size > REMEMBERED) (above = new Map()), (below = new Map());
       ids.forEach((id, index) => {

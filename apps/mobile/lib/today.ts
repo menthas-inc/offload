@@ -59,9 +59,9 @@ export async function fetchDay(date: string): Promise<Day | null> {
 }
 
 /** 2026-10-18. What each day in a window holds, for Today's month; null when
- *  it did not come back, so the grid draws without dots and asks again. */
+ *  it did not come back, so the grid draws without dots. */
 export async function fetchMonth(from: string, to: string): Promise<MonthCount[] | null> {
-  const sent = await send<{ days: MonthCount[] }>(`/v1/today/month?from=${from}&to=${to}`);
+  const sent = await send<{ days: MonthCount[] }>(`/v1/today/month?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
   return sent.status === 200 ? (sent.data?.days ?? null) : null;
 }
 

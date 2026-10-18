@@ -61,7 +61,10 @@ export function OpenThreads({
   const inBand = useInBand();
   if (pages.length === 0) return null;
   const page = width - 2 * GUTTER - 32;
-  const count = pages.reduce((sum, one) => sum + one.count, 0);
+  // A ticked row leaves its page with its line in its place, and the count
+  // with it, as on the web.
+  const ticked = pages.reduce((sum, one) => sum + one.todos.filter((row) => struck.has(row.id)).length, 0);
+  const count = pages.reduce((sum, one) => sum + one.count, 0) - ticked;
   const ground = groundClass(inBand);
   const ink = isAndroid ? "text-a-on" : "text-text-primary";
   const rule = isAndroid ? "border-a-outline" : "border-border-hairline";
@@ -146,7 +149,7 @@ export function OpenThreads({
                 ) : null}
               </Pressable>
               <InPlace
-                items={one.todos}
+                items={one.todos.filter((row) => !struck.has(row.id))}
                 idOf={(row) => row.id}
                 above
                 trailing

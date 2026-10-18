@@ -114,4 +114,4 @@ Every task starts with its failing test, run and seen red for the reason the tas
 - [x] **T9.2** `@offload/widgets` `monthDated`, red first. *(AC-14)*
 - [x] **T9.3** Web: `MonthGrid` lifted out of the thread's `Timeline` and drawn on Today in place of `DayStepper`, its head naming the picked day (`dayTitle`), nothing under it; past and past-the-edge days closed, the arrows' ends, Today back, the month read for the grid's window (`today.test.tsx`, red first). *(AC-14, AC-15)*
 - [x] **T9.4** Phones: the same, `shell/MonthGrid.tsx` from `shell/Timeline.tsx`, its head as a header, the day swipe gone (`today-month.test.ts`, red first). *(AC-14, AC-15)*
-- [ ] **T9.5** Checked on the web and the iOS simulator on a local account.
+- [x] **T9.5** Checked on the web, the iOS simulator and the Pixel on a local account.

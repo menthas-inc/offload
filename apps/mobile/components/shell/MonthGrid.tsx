@@ -109,7 +109,8 @@ export function MonthGrid({
         style={{
           fontSize: 11,
           opacity: outside ? 0.6 : 1,
-          ...(day.iso === selected ? { color: COLOR.onAttention } : {}),
+          // A day that does not open reads as closed: Today's past and the far edge.
+          ...(day.iso === selected ? { color: COLOR.onAttention } : closed?.(day.iso) ? { color: COLOR.disabledText } : {}),
         }}
       >
         {day.dow}
@@ -137,7 +138,8 @@ export function MonthGrid({
         style={{
           fontSize: 13,
           opacity: outside ? 0.6 : 1,
-          ...(day.iso === selected ? { color: COLOR.onAttention } : {}),
+          // A day that does not open reads as closed: Today's past and the far edge.
+          ...(day.iso === selected ? { color: COLOR.onAttention } : closed?.(day.iso) ? { color: COLOR.disabledText } : {}),
         }}
       >
         {day.dom}
@@ -219,7 +221,6 @@ export function MonthGrid({
             className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
             style={{ fontSize: 14 }}
             accessibilityRole={heading ? "header" : undefined}
-            accessibilityLiveRegion={heading ? "polite" : undefined}
           >
             {title ?? grid.label}
           </Text>

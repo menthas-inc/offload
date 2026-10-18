@@ -22,17 +22,24 @@ export function utcDay(at: Date): string {
 export function dayIn(at: Date, zone: string | null | undefined): string {
   if (!zone) return utcDay(at);
   try {
-    // en-CA formats as YYYY-MM-DD, which is the one locale whose default
-    // order is the string every other function here reads.
-    return new Intl.DateTimeFormat("en-CA", {
-      timeZone: zone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(at);
+    return dayFormat(zone).format(at);
   } catch {
     return utcDay(at);
   }
+}
+
+/** One formatter per zone: building one costs far more than using it, and a
+ *  month read calls this thousands of times. */
+const dayFormats = new Map<string, Intl.DateTimeFormat>();
+function dayFormat(zone: string): Intl.DateTimeFormat {
+  let held = dayFormats.get(zone);
+  if (!held) {
+    // en-CA formats as YYYY-MM-DD, which is the one locale whose default
+    // order is the string every other function here reads.
+    held = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" });
+    dayFormats.set(zone, held);
+  }
+  return held;
 }
 
 /** A day as the instant of its UTC noon. */

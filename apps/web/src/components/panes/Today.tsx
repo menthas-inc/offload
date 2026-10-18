@@ -11,8 +11,8 @@
 // per thread holding to-dos with no date, and **Reminders** (042), what offload
 // is reminding you about, nearest first. Customize Today is the second pane
 // beside this one, opened from the sliders in the pane head, which has no
-// title: the line under the month names the day, and Today said twice was
-// one too many.
+// title: the month's head names the day, and Today said twice was one too
+// many.
 //
 // An account that has never dumped sees 024's day-one invitation in place of
 // the day. Tapping an example fills the composer rather than submitting it,
@@ -137,6 +137,8 @@ export function TodayPane({
   // Today tab moving the day brings the month with it.
   const [month, setMonth] = useState<string | null>(null);
   const [went, setWent] = useState<1 | -1>(1);
+  // Bumped after every write, so the month's dots follow a tick or a dismiss.
+  const [monthRead, setMonthRead] = useState(0);
   const show = useCallback((next: string) => {
     setMonth(null);
     setDay(next);
@@ -235,7 +237,7 @@ export function TodayPane({
     return () => {
       live = false;
     };
-  }, [gridFrom, gridTo, filed, zone]);
+  }, [gridFrom, gridTo, filed, zone, monthRead]);
 
   // Needs you: once a load, and again when the server's switches changed.
   useEffect(() => {
@@ -310,6 +312,7 @@ export function TodayPane({
     [read],
   );
   const reload = useCallback(async () => {
+    setMonthRead((n) => n + 1);
     await Promise.all([load(false), loadOpen(), loadReminders()]);
   }, [load, loadOpen, loadReminders]);
   const rows = useTodayRows(reload, labels);

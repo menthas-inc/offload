@@ -153,3 +153,24 @@ describe("createOrderMemory", () => {
     expect(memory.seed(["z"], new Set(["a"]))).toEqual(["z"]);
   });
 });
+
+describe("clear, at sign-out", () => {
+  it("forgets every line, its timer and every remembered order, so the next account sees nothing of the last", () => {
+    const c = clock();
+    const store = createUndoStore(c);
+    let calls = 0;
+    store.subscribe(() => (calls += 1));
+    store.put(slot("a"), "Archived", undo);
+    store.drop("b", { returned: true });
+    store.clear();
+    expect(store.entries().size).toBe(0);
+    expect(store.returned("b")).toBe(false);
+    const before = calls;
+    c.advance(UNDO_MS);
+    expect(calls).toBe(before);
+    const memory = createOrderMemory();
+    memory.note(["a", "b"]);
+    memory.clear();
+    expect(memory.seed(["b"], new Set(["a"]))).toEqual(["b"]);
+  });
+});

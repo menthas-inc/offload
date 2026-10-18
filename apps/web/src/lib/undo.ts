@@ -12,6 +12,12 @@ export const undoStore = createUndoStore();
 /** Where each thing sat, so a list mounted mid-window keeps a slot in place. */
 const order = createOrderMemory();
 
+/** At sign-out: the next account on this device sees nothing of the last. */
+export function forgetUndo(): void {
+  undoStore.clear();
+  order.clear();
+}
+
 const read = () => undoStore.entries();
 
 export function useUndoEntries(): ReadonlyMap<string, UndoEntry> {
@@ -22,6 +28,13 @@ export function useUndoEntries(): ReadonlyMap<string, UndoEntry> {
 export function useReturned(): (id: string) => boolean {
   useSyncExternalStore(undoStore.subscribe, read, read);
   return useCallback((id: string) => undoStore.returned(id), []);
+}
+
+/** The line drawn under a thing that is still here, or none. A refused write
+ *  put the thing back, so its failure sits under it, grey. */
+export function lineFor(entry: UndoEntry | undefined | null): UndoEntry | null {
+  if (!entry || entry.form === "plate") return null;
+  return entry.failed && entry.form === "slot" ? { ...entry, form: "under" } : entry;
 }
 
 export type InPlace<T> = { row: T; line: UndoEntry | null } | { slot: true; entry: UndoEntry };
@@ -39,17 +52,8 @@ export function useInPlace<T>(items: readonly T[], idOf: (item: T) => string): I
   order.note(ids);
   return placed.map((one) => {
     if ("slot" in one) return { slot: true as const, entry: entries.get(one.slot)! };
-    const entry = entries.get(idOf(one.row));
-    if (!entry || entry.form === "plate") return { row: one.row, line: null };
-    // A refused write put the thing back, so its failure sits under it, grey.
-    return { row: one.row, line: entry.failed && entry.form === "slot" ? { ...entry, form: "under" as const } : entry };
+    return { row: one.row, line: lineFor(entries.get(idOf(one.row))) };
   });
-}
-
-/** The lines with nowhere on screen to be drawn: above the composer. */
-export function usePlateLines(): UndoEntry[] {
-  const entries = useUndoEntries();
-  return [...entries.values()].filter((entry) => entry.form === "plate");
 }
 
 /** The line for one thing by its id, for a line drawn at a fixed spot rather

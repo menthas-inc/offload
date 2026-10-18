@@ -9,7 +9,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ToastHost, ToastProvider, useToast } from "../src/components/shell/Toast";
 import { UndoLine } from "../src/components/shell/UndoLine";
-import { undoStore, useInPlace } from "../src/lib/undo";
+import { lineFor, undoStore, useInPlace } from "../src/lib/undo";
 
 let root: Root | null = null;
 let host: HTMLElement | null = null;
@@ -132,5 +132,28 @@ describe("a refusal under the thing it put back", () => {
     const alert = page.querySelector("[role=alert]")!;
     expect(alert.className).toMatch(/under/);
     expect(alert.className).not.toMatch(/slot/);
+  });
+});
+
+describe("review fixes", () => {
+  it("gives a row's own line the grey form once its write was refused", () => {
+    const entry = { id: "a", message: "Couldn't archive that", icon: "archive", form: "slot" as const, failed: true, startedAt: 0 };
+    expect(lineFor(entry)?.form).toBe("under");
+    expect(lineFor({ ...entry, failed: false })?.form).toBe("slot");
+    expect(lineFor({ ...entry, form: "plate" as const })).toBeNull();
+  });
+
+  it("Escape fades the toast too, for a keyboard", () => {
+    const page = mount(
+      <ToastProvider>
+        <Grab />
+        <ToastHost />
+      </ToastProvider>,
+    );
+    act(() => toast!.show("Shared with Sam"));
+    act(() => void document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    const body = page.querySelector("[role=status]");
+    if (body) act(() => body.dispatchEvent(new Event("animationend", { bubbles: true })));
+    expect(page.querySelector("[role=status]")).toBeNull();
   });
 });

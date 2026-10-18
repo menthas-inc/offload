@@ -165,10 +165,10 @@ export async function fetchDay(date: string): Promise<Day | null> {
 }
 
 /** 2026-10-18. What each day in a window holds, for Today's month; null
- *  when it did not load, so the grid draws without dots and asks again. */
+ *  when it did not load, so the grid draws without dots. */
 export async function fetchMonth(from: string, to: string): Promise<MonthCount[] | null> {
   try {
-    const response = await fetch(`${API}/v1/today/month?from=${from}&to=${to}`, send);
+    const response = await fetch(`${API}/v1/today/month?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, send);
     if (!response.ok) return null;
     return ((await response.json()) as { days: MonthCount[] }).days;
   } catch {

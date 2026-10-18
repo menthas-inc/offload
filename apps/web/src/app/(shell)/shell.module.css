@@ -3054,6 +3054,11 @@ a.settingsRow:hover,
   cursor: default;
 }
 
+.railDay:disabled .railDom,
+.railDay:disabled .railDow {
+  color: var(--state-disabled-text);
+}
+
 .railDay:disabled:hover {
   background: transparent;
 }

@@ -5,12 +5,17 @@
 // and is not red, as with Toast.
 
 import { useEffect } from "react";
-import { Pressable, Text, View } from "react-native";
-import Animated, { Easing, FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import { Platform, Pressable, Text, View } from "react-native";
+import Animated, { Easing, FadeIn, FadeOut, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import { token } from "@offload/tokens";
 import { RETURNED_MS, UNDO_MS, type UndoEntry } from "@offload/widgets";
 import { useColors } from "../../lib/colors";
-import { undoStore, useReturned, useUndoEntry } from "../../lib/undo";
+import { undoStore, useDrawn, useReturned, useUndoEntry } from "../../lib/undo";
 import { Glyph } from "../Glyph";
+
+const isAndroid = Platform.OS === "android";
+/** The plate's corner, the web's too. */
+const PLATE_RADIUS = parseFloat(token("radius-md"));
 
 /** The clock: a 2px rule along the foot, full width to nothing over the
  *  window. It runs under reduced motion too, because it is information. */
@@ -18,8 +23,9 @@ function Clock({ startedAt, amber }: { startedAt: number; amber: boolean }) {
   const left = Math.max(0, UNDO_MS - (Date.now() - startedAt));
   const scale = useSharedValue(left / UNDO_MS);
   useEffect(() => {
-    scale.value = withTiming(0, { duration: left, easing: Easing.linear });
-    // Once per line: a line drawn late starts from the time it has left.
+    // Information, not decoration: it runs with reduced motion on too.
+    scale.value = withTiming(0, { duration: left, easing: Easing.linear, reduceMotion: ReduceMotion.Never });
+    // Once per window (keyed by it): a line drawn late starts from the time it has left.
   }, []);
   const style = useAnimatedStyle(() => ({ transform: [{ scaleX: scale.value }] }));
   return (
@@ -43,9 +49,11 @@ export function UndoLine({
 }) {
   const COLOR = useColors();
   const still = useReducedMotion();
+  // Counted as on screen, so the plate does not draw it a second time.
+  useDrawn(entry.form === "plate" ? null : entry.id);
   const slot = entry.form === "slot";
   const action = entry.action;
-  const ink = slot ? "text-text-noticed" : "text-text-secondary";
+  const ink = slot ? "text-text-noticed" : isAndroid ? "text-a-on-var" : "text-text-secondary";
   const ground = slot
     ? "bg-surface-noticed-soft"
     : entry.form === "plate"
@@ -53,7 +61,7 @@ export function UndoLine({
       : "";
   return (
     <Animated.View
-      {...(still ? {} : { entering: FadeIn.duration(200) })}
+      {...(still ? {} : { entering: FadeIn.duration(200), exiting: FadeOut.duration(240) })}
       accessibilityLiveRegion={entry.failed ? "assertive" : "polite"}
       accessibilityRole={entry.failed ? "alert" : undefined}
       className={`flex-row items-center overflow-hidden ${ground}`}
@@ -62,7 +70,7 @@ export function UndoLine({
         minHeight: height ?? (slot ? 56 : entry.form === "plate" ? 40 : 36),
         paddingLeft: entry.form === "under" ? 47 : 14,
         paddingRight: 4,
-        borderRadius: entry.form === "plate" ? 12 : radius,
+        borderRadius: entry.form === "plate" ? PLATE_RADIUS : radius,
       }}
     >
       <Glyph
@@ -91,7 +99,7 @@ export function UndoLine({
           </Text>
         </Pressable>
       ) : null}
-      {entry.failed ? null : <Clock startedAt={entry.startedAt} amber={slot} />}
+      {entry.failed ? null : <Clock key={entry.startedAt} startedAt={entry.startedAt} amber={slot} />}
     </Animated.View>
   );
 }

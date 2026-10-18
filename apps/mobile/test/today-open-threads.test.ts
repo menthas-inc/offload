@@ -42,7 +42,7 @@ describe("open in your threads, the screens", () => {
 
   it("keeps the tick its own control, the size of the thread page's, so a screen reader reaches it", () => {
     const pages = read("components/today/OpenThreads.tsx");
-    const row = pages.slice(pages.indexOf("items={one.todos}"));
+    const row = pages.slice(pages.indexOf("items={one.todos"));
     expect(row.indexOf("<View")).toBeLessThan(row.indexOf("<Pressable"));
     expect(pages).toMatch(/width: 21,\s*height: 21/);
   });

@@ -76,30 +76,60 @@ describe("Today's month", () => {
     const me = await account();
     const flat = await thread([me], "Flat");
     await task(me, flat, "Weekly", day(0), { rrule: "FREQ=WEEKLY" });
+    // Overdue: Today carries it on today's cell, as its late section.
+    await task(me, flat, "Overdue", day(-3));
+    await task(me, flat, "Long gone", day(-40));
     await task(me, flat, "Timed", null, { due_at: new Date(`${day(3)}T22:30:00Z`), attrs: {} });
     await offloadEvent(me, flat, "Trip", `${day(4)}T08:00:00Z`, { occurs_end_at: new Date(`${day(6)}T08:00:00Z`) });
     const work = await calendar(await connection(me), { summary: "Work" });
     await calendarEvent(me, work, "Offsite", `${day(5)}T00:00:00Z`, { allDay: true, end: `${day(7)}T00:00:00Z` });
     const cookie = await signIn(me);
     const counted = new Map((await month(cookie, TODAY, day(9))).days.map((one) => [one.date, one]));
-    for (let n = 1; n <= 9; n += 1) {
+    for (let n = 0; n <= 9; n += 1) {
       const response = await app.inject({ method: "GET", url: `/v1/today/day?date=${day(n)}`, headers: { cookie } });
-      const read = response.json() as { timed: unknown[]; rest: unknown[]; events: { source: string }[] };
+      const read = response.json() as { late: unknown[]; timed: unknown[]; rest: unknown[]; events: { source: string }[] };
       const got = counted.get(day(n)) ?? { task: 0, event: 0, calendar: 0 };
       expect([day(n), got.task, got.event, got.calendar]).toEqual([
         day(n),
-        read.timed.length + read.rest.length,
+        read.late.length + read.timed.length + read.rest.length,
         read.events.filter((one) => one.source === "offload").length,
         read.events.filter((one) => one.source === "calendar").length,
       ]);
     }
   });
 
-  it("dots nothing before today, since a past day does not open", async () => {
+  it("works each row's days out once, so many repeating rows with long counts stay quick", async () => {
+    const me = await account();
+    const flat = await thread([me], "Flat");
+    await db
+      .insertInto("content")
+      .values(
+        Array.from({ length: 300 }, (_, n) => ({
+          account_id: me,
+          thread_id: flat,
+          title: `Repeat ${n}`,
+          type: "task",
+          due_at: new Date(`${day(0)}T12:00:00Z`),
+          attrs: { all_day: true },
+          rrule: "FREQ=DAILY;COUNT=999",
+        })) as never,
+      )
+      .execute();
+    const cookie = await signIn(me);
+    const started = Date.now();
+    const body = await month(cookie, TODAY, day(41));
+    expect(Date.now() - started).toBeLessThan(1500);
+    expect(body.days).toHaveLength(42);
+    expect(body.days[0]!.task).toBe(300);
+  });
+
+  it("dots nothing before today, since a past day does not open; an overdue to-do dots today, as Today's late section", async () => {
     const me = await account();
     const flat = await thread([me], "Flat");
     await task(me, flat, "Yesterday's", day(-1));
-    expect((await month(await signIn(me), day(-5), day(1))).days).toEqual([]);
+    expect((await month(await signIn(me), day(-5), day(1))).days).toEqual([{ date: TODAY, task: 1, event: 0, calendar: 0 }]);
+    // A window that starts after today carries no late rows.
+    expect((await month(await signIn(me), day(1), day(5))).days).toEqual([]);
   });
 
   it("refuses a window that is not days, runs backwards or is longer than a month's grid", async () => {

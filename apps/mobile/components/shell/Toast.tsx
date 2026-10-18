@@ -91,7 +91,8 @@ export function ToastHost({ state }: { state: ToastState }) {
       {/* The body, not the action: tapping it fades it out (the exit above). */}
       <Pressable
         onPress={state.hide}
-        accessibilityHint="Dismisses"
+        // Not one element for a screen reader: its action stays its own.
+        accessible={false}
         accessibilityLiveRegion={failed ? "assertive" : "polite"}
         accessibilityRole={failed ? "alert" : undefined}
         // The padding sits on the message so the action can take the bar's

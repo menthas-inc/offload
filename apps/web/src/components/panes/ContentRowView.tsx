@@ -28,7 +28,7 @@
 import { Icon } from "../Icon";
 import { Returned } from "../shell/UndoLine";
 import { Line } from "../shell/InPlace";
-import { useUndoEntry } from "../../lib/undo";
+import { lineFor, useUndoEntry } from "../../lib/undo";
 import { DateChip } from "../shell/DateChip";
 import { PhotoThumb } from "../shell/PhotoThumb";
 import { ThreadPill } from "../shell/ThreadPill";
@@ -128,8 +128,8 @@ export function ContentRowView({
   // stay in the layout and are hidden by the stylesheet, so nothing reflows
   // when the id arrives, which is the readme's own rule for the filing slot.
   const provisional = isProvisional(row.id);
-  const entry = useUndoEntry(row.id);
-  const line = entry && entry.form !== "plate" ? <Line entry={entry} /> : null;
+  const entry = lineFor(useUndoEntry(row.id));
+  const line = entry ? <Line entry={entry} /> : null;
   if (handlers.archiving === row.id) {
     return (
       <div className={styles.confirmRow}>

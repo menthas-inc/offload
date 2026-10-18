@@ -2,13 +2,21 @@
 // it through. The state and the slot ordering are `@offload/widgets`, shared
 // with the phones; this is the React end of it.
 
-import { useCallback, useRef, useSyncExternalStore } from "react";
+import { useCallback, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { createOrderMemory, createUndoStore, interleave, type UndoEntry } from "@offload/widgets";
+import { onSignedOut } from "./session-end";
 
 /** Outside every screen, so leaving one does not cancel a window. */
 export const undoStore = createUndoStore();
 /** Where each thing sat, so a list mounted mid-window keeps a slot in place. */
 const order = createOrderMemory();
+
+/** At sign-out: the next account on this device sees nothing of the last. */
+export function forgetUndo(): void {
+  undoStore.clear();
+  order.clear();
+}
+onSignedOut(forgetUndo);
 
 const read = () => undoStore.entries();
 
@@ -20,6 +28,13 @@ export function useUndoEntries(): ReadonlyMap<string, UndoEntry> {
 export function useReturned(): (id: string) => boolean {
   useSyncExternalStore(undoStore.subscribe, read, read);
   return useCallback((id: string) => undoStore.returned(id), []);
+}
+
+/** The line drawn under a thing that is still here, or none. A refused write
+ *  put the thing back, so its failure sits under it, grey. */
+export function lineFor(entry: UndoEntry | undefined | null): UndoEntry | null {
+  if (!entry || entry.form === "plate") return null;
+  return entry.failed && entry.form === "slot" ? { ...entry, form: "under" } : entry;
 }
 
 export type InPlace<T> = { row: T; line: UndoEntry | null } | { slot: true; entry: UndoEntry };
@@ -37,21 +52,54 @@ export function useInPlace<T>(items: readonly T[], idOf: (item: T) => string): I
   order.note(ids);
   return placed.map((one) => {
     if ("slot" in one) return { slot: true as const, entry: entries.get(one.slot)! };
-    const entry = entries.get(idOf(one.row));
-    if (!entry || entry.form === "plate") return { row: one.row, line: null };
-    // A refused write put the thing back, so its failure sits under it, grey.
-    return { row: one.row, line: entry.failed && entry.form === "slot" ? { ...entry, form: "under" as const } : entry };
+    return { row: one.row, line: lineFor(entries.get(idOf(one.row))) };
   });
-}
-
-/** The lines with nowhere on screen to be drawn: above the composer. */
-export function usePlateLines(): UndoEntry[] {
-  const entries = useUndoEntries();
-  return [...entries.values()].filter((entry) => entry.form === "plate");
 }
 
 /** The line for one thing by its id, for a line drawn at a fixed spot rather
  *  than in a list: under a thread's read, under the filter bar, in a chip. */
 export function useUndoEntry(id: string): UndoEntry | null {
   return useUndoEntries().get(id) ?? null;
+}
+
+// The lines on screen, counted as they mount, so a line whose place is on no
+// screen (a list that is not drawn, the rail) is drawn on the plate rather
+// than nowhere, as the web does. An Undo nobody can see is an Undo taken away.
+const drawn = new Map<string, number>();
+const drawnListeners = new Set<() => void>();
+let drawnVersion = 0;
+const tellDrawn = () => {
+  drawnVersion += 1;
+  drawnListeners.forEach((listener) => listener());
+};
+const subscribeDrawn = (listener: () => void) => {
+  drawnListeners.add(listener);
+  return () => {
+    drawnListeners.delete(listener);
+  };
+};
+const readDrawn = () => drawnVersion;
+
+/** Count a line as on screen while it is mounted; null counts nothing. */
+export function useDrawn(id: string | null): void {
+  useLayoutEffect(() => {
+    if (id === null) return;
+    drawn.set(id, (drawn.get(id) ?? 0) + 1);
+    tellDrawn();
+    return () => {
+      const left = (drawn.get(id) ?? 1) - 1;
+      if (left > 0) drawn.set(id, left);
+      else drawn.delete(id);
+      tellDrawn();
+    };
+  }, [id]);
+}
+
+/** What the plate draws: the plate lines, and any line not on screen. */
+export function useUnplaced(): UndoEntry[] {
+  const entries = useUndoEntries();
+  useSyncExternalStore(subscribeDrawn, readDrawn, readDrawn);
+  return [...entries.values()]
+    .filter((entry) => entry.form === "plate" || !drawn.has(entry.id))
+    .map((entry) => (entry.form === "plate" ? entry : { ...entry, form: "plate" }));
 }
