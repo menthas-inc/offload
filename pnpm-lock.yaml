@@ -15,6 +15,11 @@ overrides:
   shell-quote@<1.11.0: ^1.11.0
   source-map-js@<1.2.2: ^1.2.2
 
+patchedDependencies:
+  expo-share-intent@8.0.1:
+    hash: 3248568a838cc069f79f1f96f72011a6991ee1745af83553105f2eb194f5639a
+    path: patches/expo-share-intent@8.0.1.patch
+
 importers:
 
   .:
@@ -238,7 +243,7 @@ importers:
         version: 57.0.3(expo@57.0.19)
       expo-share-intent:
         specifier: ^8.0.1
-        version: 8.0.1(expo-constants@57.0.17)(expo-linking@57.0.9)(expo@57.0.19)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3)
+        version: 8.0.1(patch_hash=3248568a838cc069f79f1f96f72011a6991ee1745af83553105f2eb194f5639a)(expo-constants@57.0.17)(expo-linking@57.0.9)(expo@57.0.19)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3)
       expo-sharing:
         specifier: ~57.0.22
         version: 57.0.22(expo@57.0.19)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3)
@@ -9439,7 +9444,7 @@ snapshots:
 
   expo-server@57.0.3: {}
 
-  expo-share-intent@8.0.1(expo-constants@57.0.17)(expo-linking@57.0.9)(expo@57.0.19)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3):
+  expo-share-intent@8.0.1(patch_hash=3248568a838cc069f79f1f96f72011a6991ee1745af83553105f2eb194f5639a)(expo-constants@57.0.17)(expo-linking@57.0.9)(expo@57.0.19)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3):
     dependencies:
       '@expo/config-plugins': 57.0.9(typescript@6.0.3)
       expo: 57.0.19(@babel/core@7.29.7)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.15)(expo-router@57.0.18)(react-dom@19.2.8(react@19.2.3))(react-native-worklets@0.10.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3)
