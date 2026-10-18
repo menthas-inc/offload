@@ -11,6 +11,32 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-18 · Today picks its day on a month, not with arrows
+**Surface:** iOS, Android, web
+**Raised by:** the owner: "instead of the < Today > row, show the calendar view from the threads", all enabled calendars in one view, a day opening as Today shows it now.
+
+**Was:** Today's day was moved one at a time by the stepper, chevrons either side of the day's name, and a swipe on the phones.
+
+**Is:** the thread calendar's month grid sits where the stepper was, the same component on each surface (`MonthGrid`, lifted out of the thread's timeline). Each day is dotted for what Today would show on it: a task dot per to-do, an ink dot per offload event, a hollow dot per event on the person's own ticked calendars, across every thread, never another member's calendar picked for a thread. Tapping a day shows it below exactly as before. **The grid's head names the picked day** (the owner, on seeing it): the month with Today beside it on today, the day itself on any other day, *Thursday 22 October*, the product's date with no ordinal, with Today beside it as the way back; nothing is drawn under the grid. The head is Today's one heading. Past days are drawn faded and closed, as the back chevron never went before Today, and so is anything past twelve months ahead; *Previous month* is disabled on this month and *Next month* at the edge's month. On the phones a swipe on the grid steps a month; the day swipe is gone. No mock exists for this; the grid is the thread calendar's as drawn on 2026-09-29.
+
+**Why:** a month shows what is coming at a glance, which stepping a day at a time never could, and the thread calendar already draws exactly that.
+
+**Design system impact:** the Today kits (`TodayParts.jsx`, `M3TodayScreen.jsx`, `WToday.jsx`) replace the stepper with the thread calendar's month grid, its head naming the picked day; the readme's **Today** says so already. Disabled month arrows and closed days take `--state-disabled-text` and no hover.
+
+### 2026-10-18 · Undo is drawn in place, and the toast goes when tapped
+**Surface:** iOS, Android, web
+**Raised by:** the designer's handoff of 2026-10-18 (`handoff/APPLY-2026-10-18-undo-in-place.md`), drawn with the owner; the tap is the owner's.
+
+**Was:** every Undo, and the failure that replaced it, was the one floating `Toast`, which covered what was under it and kept only the latest of several Undos.
+
+**Is:** built as the handoff draws it, on all three surfaces: `UndoLine` in `slot`, `under` and `plate` forms, one per thing with its own eight seconds, the clock rule, Undo's 1.2s return highlight, failures under the restored row with Retry. Built from the handoff and its standalone page; `components/feedback/UndoLine.jsx` was not in the bundle, so the clients' components follow the handoff's table. Two choices of the code's: the amber uses the semantic aliases `--surface-noticed-soft`, `--text-noticed` and `--surface-noticed`, which are the handoff's `--amber-100`, `--amber-700` and `--amber-600`; and `circle-alert`, which `Toast.jsx` already named, is now vendored in `assets/icons/`. The toast that is left (no Undo, or a conversation's own report) **fades out when its body is tapped**; its action still acts.
+
+**Why:** nothing should float over the thing it is offering to take back, and a message with no action is never worth covering the page for.
+
+**Choices the code made where the handoff was silent:** a ticked row in Open in your threads now leaves its page with its line in its place (it struck through in place before). A label's chip slot carries no glyph at chip size, as the standalone page draws it, and is the chip's height on the phones. Needs you's line takes `--radius-lg` on the web, the nearest token to the card's 18px. On the web, a line whose thing has no slot on the screen you are on (a card the page stopped drawing, the rail, the Files grid) is drawn as a plate under the composer, so no Undo is lost; the phones do not do this yet. A filed dump's Undo on the phones is a toast while the conversation sheet is up, since the plate is under it. *Discarded* (a voice note thrown away) stays a toast on every surface.
+
+**Design system impact:** `assets/icons/circle-alert.svg` added (Lucide). `UndoLine` should name the semantic aliases rather than the amber ramp. `Toast`'s contract gains: tapping the body dismisses it with a fade; the action does not.
+
 ### 2026-10-17 · Health lists the calendar grants offload could not hand back
 **Surface:** admin panel (web)
 **Raised by:** the owner, deciding the sweep's S27.

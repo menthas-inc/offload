@@ -237,6 +237,14 @@ neutral chip and tint from six `--edge-*` tokens that are transparent in light. 
 `handoff/APPLY-2026-10-07-dark-contrast.md` lists the edge per file on all three surfaces,
 `handoff/dark-contrast-standalone.html` is the reference, **Dark theme** then **Edges** in `readme.md` the lasting statement.
 
+## Undo, in place, added 2026-10-18
+
+The floating Undo toast is retired for anything with an Undo: the way back is drawn where the change is, as
+`UndoLine`, amber in a removed row's slot, grey under a changed one, above the composer when nothing on screen
+changed. `handoff/APPLY-2026-10-18-undo-in-place.md` is the build and lists every action,
+`handoff/undo-in-place-standalone.html` the interactive reference, **Undo is drawn in place** in `readme.md` the
+lasting statement.
+
 ## Today: open in your threads, added 2026-10-07
 
 Today's *If you have time* becomes **Open in your threads**: a page per thread with its undated to-dos, swiped on the
