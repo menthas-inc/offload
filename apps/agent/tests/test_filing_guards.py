@@ -58,6 +58,16 @@ def test_a_dump_that_asks_to_find_out_is_told_apart_from_a_chore():
     assert not _asks_to_find_out("eggs, flour, lemons")
 
 
+def test_a_chore_that_starts_with_do_the_is_not_a_question():
+    """"do the" and "does the" alone sent "Do the dishes tonight" to a paid
+    web lookup it could not decline. The questions they were for still are."""
+    assert not _asks_to_find_out("Do the dishes tonight")
+    assert not _asks_to_find_out("do the laundry and hoover")
+    assert _asks_to_find_out("does the pharmacy open sunday")
+    assert _asks_to_find_out("do the trains run on boxing day")
+    assert _asks_to_find_out("does the corner shop close early on christmas eve")
+
+
 async def test_a_row_filed_without_the_lookup_it_asked_for_is_sent_back_once():
     outcome, model = await _file(
         "polls on thursday, check when they open", _filed(_ADD), _END, _END

@@ -189,6 +189,17 @@ describe("a calendar filled in a batch at a time (T1.11)", () => {
     await locateCalendar(cal, geocode, ON);
     expect(asked).toHaveLength(201);
   });
+
+  it("looks a repeating event's place up once, and settles every occurrence with it", async () => {
+    const me = await account();
+    const cal = await calendarOf(me);
+    const days = [await event(me, cal, "Time Out Market", 1), await event(me, cal, "Time Out Market", 2), await event(me, cal, "Time Out Market", 3)];
+    const { asked, geocode } = stub();
+    await locateCalendar(cal, geocode, ON);
+    expect(asked).toEqual(["Time Out Market"]);
+    const rows = await Promise.all(days.map(eventRow));
+    expect(rows.every((r) => r.place_id !== null && r.place_id === rows[0]?.place_id && r.located_key === rows[0]?.located_key)).toBe(true);
+  });
 });
 
 describe("when a calendar is looked up (T1.12)", () => {

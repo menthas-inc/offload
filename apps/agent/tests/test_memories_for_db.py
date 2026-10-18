@@ -417,3 +417,122 @@ async def test_a_malformed_reply_is_no_vector_and_the_turn_goes_on():
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(broken)) as http:
         assert await query_embedder("k", http, 1.0)("the cottage") is None
+
+
+@needs_db
+async def test_an_answer_after_a_photo_with_no_words_keeps_the_photo_turn():
+    """A photo sent with no words is a turn whose text is null. The answering
+    path reads it the way filing does, so a question after one still fits."""
+    from offload_agent.context import fit_answer, load_answer
+
+    admin = create_async_engine(_asyncpg(ADMIN_DB))
+    async with admin.begin() as conn:
+        me = await _account(conn)
+        conversation = (
+            await conn.execute(
+                text("insert into conversations (account_id) values (:a) returning id::text"),
+                {"a": me},
+            )
+        ).scalar_one()
+
+        async def message(words: str | None, minutes_ago: int) -> str:
+            return (
+                await conn.execute(
+                    text(
+                        "insert into messages (conversation_id, account_id, role, type, turn_id, "
+                        "text, state, created_at) values (:c, :a, 'person', 'text', "
+                        "gen_random_uuid(), cast(:t as text), 'answered', "
+                        "now() - make_interval(mins => :m)) returning id::text"
+                    ),
+                    {"c": conversation, "a": me, "t": words, "m": minutes_ago},
+                )
+            ).scalar_one()
+
+        photo = await message(None, 2)
+        await conn.execute(
+            text(
+                "insert into blobs (account_id, message_id, client_key, kind, content_type, "
+                "byte_size, width, height, sha256) values (:a, :m, :k, 'image', 'image/jpeg', 10, "
+                "1, 1, '\\x00')"
+            ),
+            {"a": me, "m": photo, "k": str(uuid.uuid4())},
+        )
+        question = await message("what was in that photo", 1)
+    await admin.dispose()
+
+    agent = create_async_engine(_asyncpg(AGENT_DB))
+    async with agent.connect() as conn:
+        loaded = await load_answer(
+            conn,
+            account_id=me,
+            question="what was in that photo",
+            max_threads=10,
+            conversation_id=conversation,
+            message_id=question,
+            max_turns=5,
+        )
+    await agent.dispose()
+    fitted = fit_answer(loaded, 100_000)
+    assert [t.text for t in fitted.turns] == ["(1 photo)"]
+
+
+@needs_db
+async def test_the_memory_pass_dates_an_evening_on_the_persons_own_day():
+    """At 03:00Z it is still the evening before in Los Angeles, and the pass's
+    today is read there, so its messages and notes are dated there too."""
+    from datetime import UTC, datetime, timedelta
+
+    from offload_agent.memories import read
+
+    # 03:00Z yesterday, so always in the past and inside a three day window.
+    at = datetime.now(UTC).replace(hour=3, minute=0, second=0, microsecond=0) - timedelta(days=1)
+    admin = create_async_engine(_asyncpg(ADMIN_DB))
+    async with admin.begin() as conn:
+        me = await _account(conn)
+        await conn.execute(
+            text(
+                "update accounts set time_zone = 'America/Los_Angeles', "
+                "memories_at = now() - interval '3 days' where id = :a"
+            ),
+            {"a": me},
+        )
+        conversation = (
+            await conn.execute(
+                text("insert into conversations (account_id) values (:a) returning id::text"),
+                {"a": me},
+            )
+        ).scalar_one()
+        await conn.execute(
+            text(
+                "insert into messages (conversation_id, account_id, role, type, turn_id, text, "
+                "state, created_at) values (:c, :a, 'person', 'text', gen_random_uuid(), "
+                "'dinner at eight', 'answered', :at)"
+            ),
+            {"c": conversation, "a": me, "at": at},
+        )
+        thread = (
+            await conn.execute(text("insert into threads (name) values ('Home') returning id"))
+        ).scalar_one()
+        await conn.execute(
+            text(
+                "insert into thread_members (thread_id, account_id, state) "
+                "values (:t, :a, 'accepted')"
+            ),
+            {"t": thread, "a": me},
+        )
+        await conn.execute(
+            text(
+                "insert into notes (account_id, scope, subject_id, kind, text, origin, created_at) "
+                "values (:a, 'thread', :t, 'going_on', 'Dinner at eight', 'stated', :at)"
+            ),
+            {"a": me, "t": thread, "at": at},
+        )
+    await admin.dispose()
+
+    agent = create_async_engine(_asyncpg(AGENT_DB))
+    async with agent.connect() as conn:
+        _, _, notes, messages = await read(conn, me)
+    await agent.dispose()
+    evening = (at - timedelta(days=1)).date().isoformat()
+    assert [m["day"] for m in messages] == [evening]
+    assert [n["day"] for n in notes] == [evening]

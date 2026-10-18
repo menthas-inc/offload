@@ -117,6 +117,14 @@ def make(original: bytes) -> Made:
     # the rest of the record is read from the same object.
     taken_at, lat, lng, device = _metadata(im)
 
+    # Down to the large copy's size before anything else touches it: turned,
+    # flattened and converted at full size, a photo near the pixel bound cost
+    # about 800 MB. In place, so the orientation tag is still there to read.
+    # Pillow shrinks a palette or 1-bit image by nearest neighbour, so those
+    # are widened first, as the flatten below would have.
+    if im.mode in ("P", "1"):
+        im = im.convert("RGBA")
+    im.thumbnail((LARGE_PX, LARGE_PX), Image.Resampling.LANCZOS)
     im = ImageOps.exif_transpose(im) or im
     if im.mode in ("RGBA", "LA", "P"):
         # Flattened onto white. A screenshot with transparency is a screenshot
@@ -129,8 +137,7 @@ def make(original: bytes) -> Made:
         im = im.convert("RGB")
 
     thumb = ImageOps.fit(im, (THUMB_PX, THUMB_PX), Image.Resampling.LANCZOS)
-    large = im.copy()
-    large.thumbnail((LARGE_PX, LARGE_PX), Image.Resampling.LANCZOS)
+    large = im
 
     # Nothing the file arrived with: no EXIF, no XMP, no ICC, and no JPEG
     # comment, which Pillow would otherwise copy from `info` into both

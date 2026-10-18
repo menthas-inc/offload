@@ -1,15 +1,24 @@
 // 042 E3: a reminder of its own, shortly before something with a clock time.
-// Placed by the hourly pass at most an hour ahead, once per thing, occurrence
-// and window; re-checked when it runs; dropped late; sent only to a phone
+// Placed by the hourly pass at most an hour ahead, once per thing and
+// moment; re-checked when it runs; dropped late; sent only to a phone
 // that can draw it, with ids and a closed kind and nothing else. (AC-11,
 // AC-12, AC-15, AC-16, AC-17)
 
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { runOwn, scheduleOwn } from "../src/notifications/own.js";
 import { MemoryPush, push } from "../src/notifications/push.js";
-import { account, label, row, thread, token, wipe } from "./reminders-kit.js";
+import { handlers } from "../src/jobs/handlers.js";
+import { MemoryMailer } from "../src/mail/mailer.js";
+import { account, label, note, row, thread, token, wipe } from "./reminders-kit.js";
+
+// The database's clock, set by the one test that runs the hourly pass late.
+const clock = vi.hoisted(() => ({ now: null as Date | null }));
+vi.mock("../src/jobs/clock.js", async (real) => {
+  const actual = await real<typeof import("../src/jobs/clock.js")>();
+  return { databaseNow: async () => clock.now ?? (await actual.databaseNow()) };
+});
 
 await migrate(() => {});
 
@@ -47,9 +56,48 @@ describe("the hourly pass", () => {
     const jobs = await placedJobs();
     expect(jobs).toHaveLength(1);
     expect(jobs[0]!.run_after.toISOString()).toBe("2026-11-02T14:45:00.000Z");
-    expect(jobs[0]!.idempotency_key).toBe(`reminder.own:${id}:2026-11-02:day`);
+    expect(jobs[0]!.idempotency_key).toBe(`reminder.own:${id}:2026-11-02T14:45:00.000Z`);
     expect(jobs[0]!.payload).toEqual({ of: "content", id, occurrence: "2026-11-02", at: "2026-11-02T14:45:00.000Z" });
     expect(JSON.stringify(jobs[0]!.payload)).not.toContain("Standup");
+  });
+
+  it("places a thing moved later the same day again, at its new moment", async () => {
+    const me = await account();
+    const { id } = await standup(me);
+    await label(me, { contentId: id }, { kind: "meeting", lead: "none", labelled_at: LONG_AGO, date_set_at: LONG_AGO });
+    expect(await scheduleOwn(NOW)).toBe(1);
+    await db.updateTable("content").set({ occurs_at: new Date("2026-11-02T15:30:00Z") }).where("id", "=", id).execute();
+    expect(await scheduleOwn(new Date("2026-11-02T14:20:00Z"))).toBe(1);
+    const jobs = await db.selectFrom("jobs").select("run_after").where("kind", "=", "reminder.own").where("account_id", "=", me).orderBy("run_after").execute();
+    expect(jobs.map((job) => job.run_after.toISOString())).toEqual(["2026-11-02T14:45:00.000Z", "2026-11-02T15:15:00.000Z"]);
+  });
+
+  it("places a timed note that has only a due time", async () => {
+    const me = await account();
+    const t = await thread([me]);
+    const id = await note(me, t, "Hand in the form", {}, { occurs_at: null, due_at: new Date("2026-11-02T15:00:00Z") });
+    await label(me, { noteId: id }, { kind: "meeting", lead: "none", labelled_at: LONG_AGO, date_set_at: LONG_AGO });
+    expect(await scheduleOwn(NOW)).toBe(1);
+  });
+
+  it("places a slot early in the hour when the hourly pass runs late", async () => {
+    const me = await account();
+    const { id } = await standup(me, new Date("2026-11-02T15:30:00Z"));
+    await label(me, { contentId: id }, { kind: "meeting", lead: "none", labelled_at: LONG_AGO, date_set_at: LONG_AGO });
+    // The 15:00 pass, twenty minutes late: the 15:15 reminder is still placed.
+    // The hour is the database's clock, so that is the one set here.
+    clock.now = new Date("2026-11-02T15:20:00Z");
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(clock.now);
+    try {
+      await handlers["digest.schedule"]!({}, { mailer: new MemoryMailer() }, null);
+    } finally {
+      clock.now = null;
+      vi.useRealTimers();
+      await db.deleteFrom("jobs").where("idempotency_key", "=", "digest.schedule:2026-11-02T16").execute();
+    }
+    const jobs = await db.selectFrom("jobs").select("run_after").where("kind", "=", "reminder.own").where("account_id", "=", me).execute();
+    expect(jobs.map((job) => job.run_after.toISOString())).toEqual(["2026-11-02T15:15:00.000Z"]);
   });
 
   it("places nothing outside the hour, and nothing with Reminders off", async () => {

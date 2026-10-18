@@ -986,6 +986,11 @@ export async function applyCompaction(
     // untouchable source reported two ignored.
     const sources = entry.foldedFrom.filter(touchable);
     if (sources.length === 0) continue;
+    // A fold of one sentence a person typed is a rewrite of it, in their name.
+    if (sources.length === 1 && held.get(sources[0]!)?.origin !== "learned") {
+      ignored += 1;
+      continue;
+    }
     const authors = new Set(sources.map((id) => held.get(id)?.account_id ?? null));
     if (authors.size > 1) {
       ignored += 1;

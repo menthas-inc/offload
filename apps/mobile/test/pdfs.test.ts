@@ -12,6 +12,7 @@
 //       viewer closes, on sign-out and on launch.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clipMiddle, isPdf, takeFiles } from "@offload/widgets";
 
 // iOS unless a test says Android, where the viewer is another app and the
 // copy goes when offload is forward again.
@@ -109,11 +110,11 @@ afterEach(() => vi.clearAllMocks());
 
 describe("what the draft takes", () => {
   it("knows a PDF by its type or its name, and refuses what is neither", () => {
-    expect(dump.isPdf({ type: "application/pdf", name: "a" })).toBe(true);
-    expect(dump.isPdf({ type: null, name: "a.PDF" })).toBe(true);
+    expect(isPdf({ type: "application/pdf", name: "a" })).toBe(true);
+    expect(isPdf({ type: null, name: "a.PDF" })).toBe(true);
     // Mail and several Android providers hand a .pdf over as bytes of no type.
-    expect(dump.isPdf({ type: "application/octet-stream", name: "Boarding.pdf" })).toBe(true);
-    expect(dump.isPdf({ type: "application/octet-stream", name: "a.zip" })).toBe(false);
+    expect(isPdf({ type: "application/octet-stream", name: "Boarding.pdf" })).toBe(true);
+    expect(isPdf({ type: "application/octet-stream", name: "a.zip" })).toBe(false);
     expect(dump.refuseFile({ type: "application/pdf", name: "a.pdf", size: 10 })).toBeNull();
     expect(dump.refuseFile({ type: "application/msword", name: "a.doc", size: 10 })).toBe("not_a_photo");
     expect(dump.refuseFile({ type: "application/pdf", name: "a.pdf", size: 20 * 1024 * 1024 + 1 })).toBe("too_big");
@@ -122,14 +123,14 @@ describe("what the draft takes", () => {
   it("takes two PDFs at most and ten in all, and says which", () => {
     const pdf = { type: "application/pdf", name: "p.pdf" };
     const jpg = { type: "image/jpeg", name: "j.jpg" };
-    expect(dump.takeFiles([{ kind: "pdf" }], [pdf, pdf])).toEqual({ taken: [pdf], line: "Two PDFs at a time." });
-    expect(dump.takeFiles(Array.from({ length: 9 }, () => ({ kind: "image" as const })), [jpg, jpg]).line).toBe("Ten at a time.");
+    expect(takeFiles([{ kind: "pdf" }], [pdf, pdf])).toEqual({ taken: [pdf], line: "Two PDFs at a time." });
+    expect(takeFiles(Array.from({ length: 9 }, () => ({ kind: "image" as const })), [jpg, jpg]).line).toBe("Ten at a time.");
   });
 
   it("names unnamed PDFs PDF, PDF 2, and clips a long name in the middle", () => {
     expect(dump.draftName({ type: "application/pdf", name: null }, [])).toBe("PDF");
     expect(dump.draftName({ type: "application/pdf", name: null }, [{ kind: "pdf", named: false }])).toBe("PDF 2");
-    expect(dump.clipMiddle("Boarding_pass_TAP_LIS_14OCT.pdf")).toBe("Boarding_…_14OCT.pdf");
+    expect(clipMiddle("Boarding_pass_TAP_LIS_14OCT.pdf")).toBe("Boarding_…_14OCT.pdf");
   });
 
   it("hears a locked PDF from the server as its own refusal", async () => {

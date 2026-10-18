@@ -6,8 +6,8 @@
 
 import { daysBetween, noonUtc, weekdayIndex } from "./days.js";
 import { timeIn } from "./nearness.js";
+import type { WeekStart } from "./timeline.js";
 
-export type WeekStart = "monday" | "sunday";
 
 const fmt = (day: string, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("en-GB", { ...options, timeZone: "UTC" }).format(noonUtc(day));

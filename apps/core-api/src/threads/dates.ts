@@ -63,6 +63,15 @@ export function parseWhen(value: string | null | undefined, zone: string | null 
   const raw = value.trim();
   if (raw === "") return null;
 
+  // A day that does not exist is refused, in every form, rather than rolled
+  // over: `new Date` reads 30 February as 2 March, which nobody said.
+  const ymd = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  if (ymd) {
+    const [y, m, d] = ymd.slice(1).map(Number) as [number, number, number];
+    const day = new Date(Date.UTC(y, m - 1, d));
+    if (day.getUTCMonth() !== m - 1 || day.getUTCDate() !== d) return null;
+  }
+
   // A bare day is **noon** UTC on that day, and it was midnight until
   // 2026-09-11.
   //
@@ -111,3 +120,20 @@ export function plausible(at: Date, now = new Date()): boolean {
   return years < MAX_YEARS_AHEAD && years > -MAX_YEARS_BEHIND;
 }
 
+
+/** The span a row goes up to a calendar as.
+ *
+ *  An all-day row is days, at midnight UTC as the calendar sync reads one
+ *  back, and Google's all-day end is exclusive, so it ends the day after its
+ *  last. It went up as a one-hour event at the noon it is stored at until
+ *  2026-10-17. A timed row with no end is given an hour. */
+export function calendarSpan(
+  startsAt: Date,
+  endsAt: Date | null,
+  attrs: unknown,
+): { startsAt: Date; endsAt: Date; allDay: boolean } {
+  const allDay = (attrs as Record<string, unknown> | null)?.["all_day"] === true;
+  if (!allDay) return { startsAt, endsAt: endsAt ?? new Date(startsAt.getTime() + 60 * 60 * 1000), allDay };
+  const day = (at: Date, plus = 0) => new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate() + plus));
+  return { startsAt: day(startsAt), endsAt: day(endsAt ?? startsAt, 1), allDay };
+}

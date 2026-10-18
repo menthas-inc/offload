@@ -195,6 +195,22 @@ def test_learned_notes_map_back_to_the_messages_shown_and_nothing_else():
     ]
 
 
+def test_a_date_longer_than_the_core_api_takes_is_refused_here():
+    """The Core API takes a date of 40 characters at most, and a longer one is
+    a 400 for the whole pass. Refused here, the repair turn can mend it."""
+    import pytest
+    from pydantic import ValidationError
+
+    for field in ("occurs_at", "occurs_end_at", "due_at"):
+        for shape, entry in (
+            (nightly.Learned, {"text": "x", "from_messages": [1]}),
+            (nightly.Folded, {"text": "x", "folded_from": ["a"]}),
+        ):
+            assert getattr(shape.model_validate({**entry, field: "x" * 40}), field) == "x" * 40
+            with pytest.raises(ValidationError):
+                shape.model_validate({**entry, field: "x" * 41})
+
+
 async def test_a_good_answer_comes_back_parsed_and_paid_for():
     model = StubModel([Response(content=[ToolUse("a", "nightly", plan(supersede=["x"]))])])
     result, usage = await nightly._ask(model, Cfg(), "a listing", propose=False)
@@ -294,3 +310,19 @@ async def test_the_memory_pass_stays_on_sonnet_5_forced():
     await memories._ask(model, MemoryCfg(), "a listing")
     assert model.requests[0]["tool_choice"] == {"type": "tool", "name": "memory"}
     assert "output_config" not in model.requests[0]
+
+
+async def test_two_bad_answers_are_still_recorded_for_the_ledger():
+    """So a pass that ends unparseable can post what it paid for."""
+    from offload_agent import ledger
+
+    bad = {"supersede": "not a list"}
+    model = StubModel(
+        [
+            Response(content=[ToolUse("a", "nightly", bad)]),
+            Response(content=[ToolUse("b", "nightly", bad)]),
+        ]
+    )
+    with ledger.collecting():
+        await nightly._ask(model, Cfg(), "a listing", propose=False)
+        assert len(ledger.drain()) == 2

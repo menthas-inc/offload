@@ -7,7 +7,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../app.js";
-import { auth } from "../auth/auth.js";
+import { currentAccountId } from "../auth/current-account.js";
 import { db } from "../db.js";
 import { env } from "../env.js";
 import {
@@ -16,7 +16,6 @@ import {
   GrantRevoked,
   grantsAcl,
   listCalendars,
-  revoke,
 } from "../connectors/google.js";
 import { calendarName, refreshCalendars } from "../connectors/calendars.js";
 import { openState, pkce, sealState, LANDINGS, type Landing } from "../connectors/state.js";
@@ -25,20 +24,6 @@ import { connectorsAvailable, seal, VAULT_NAME } from "../connectors/vault.js";
 import { revokeAndForget } from "../connectors/tokens.js";
 import { syncNow } from "../connectors/sync.js";
 import { confirmPending, declinePending } from "../connectors/tool-calls.js";
-
-function fetchHeaders(request: FastifyRequest): Headers {
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(request.headers)) {
-    if (value === undefined) continue;
-    headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
-  }
-  return headers;
-}
-
-async function currentAccountId(request: FastifyRequest): Promise<string | null> {
-  const result = await auth.api.getSession({ headers: fetchHeaders(request) });
-  return result?.session.userId ?? null;
-}
 
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 
@@ -219,9 +204,9 @@ export async function connectorRoutes(app: App): Promise<void> {
         });
 
         // The list, the colours and the participant counts, from the one
-        // function the full pass also runs. Every calendar comes in unticked:
-        // connecting is not consenting to all of them.
-        if (connectionId) await refreshCalendars(connectionId, tokens.accessToken);
+        // function the full pass also runs, handed the list read above. Every
+        // calendar comes in unticked: connecting is not consenting to all of them.
+        if (connectionId) await refreshCalendars(connectionId, tokens.accessToken, calendars);
 
         return reply.redirect(landingUrl(opened.landing, "connected"));
       } catch (error) {

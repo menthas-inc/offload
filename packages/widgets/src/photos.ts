@@ -13,3 +13,56 @@ export function photoCaption(body: string | null | undefined): string | null {
   const caption = (at < 0 ? body : body.slice(0, at)).trim();
   return caption.length > 0 ? caption : null;
 }
+
+/** Per message, photos and PDFs together, and the server holds the same
+ *  number. */
+export const MAX_PHOTOS = 10;
+/** 041. Per message, inside the ten. */
+export const MAX_PDFS = 2;
+/** Per photo. The server holds the same number and refuses by bytes. */
+export const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
+
+/** 041. A PDF by its type, or by its name when the browser or the picker
+ *  gives no type. The server reads the bytes; this only spares a request. */
+export function isPdf(file: { type: string | null; name: string | null }): boolean {
+  const type = (file.type ?? "").toLowerCase();
+  // Mail, several Android providers and some desktops hand a .pdf over as
+  // bytes of no type; the server reads the bytes either way.
+  return type === "application/pdf" || ((type === "" || type === "application/octet-stream") && /\.pdf$/i.test(file.name ?? ""));
+}
+
+/** 041. Which of the incoming files a draft holding `current` takes: ten in
+ *  all, two of them PDFs, in the order given, and the line for what it left. */
+export function takeFiles<T extends { type: string | null; name: string | null }>(
+  current: { kind: "image" | "pdf" }[],
+  incoming: T[],
+): { taken: T[]; line: "Ten at a time." | "Two PDFs at a time." | null } {
+  let room = MAX_PHOTOS - current.length;
+  let pdfRoom = MAX_PDFS - current.filter((one) => one.kind === "pdf").length;
+  const taken: T[] = [];
+  let line: "Ten at a time." | "Two PDFs at a time." | null = null;
+  for (const one of incoming) {
+    if (room <= 0) {
+      line ??= "Ten at a time.";
+      continue;
+    }
+    if (isPdf(one)) {
+      if (pdfRoom <= 0) {
+        line ??= "Two PDFs at a time.";
+        continue;
+      }
+      pdfRoom--;
+    }
+    room--;
+    taken.push(one);
+  }
+  return { taken, line };
+}
+
+/** 041. A long name clipped in the middle, so its end, which is usually what
+ *  tells two PDFs apart, survives. */
+export function clipMiddle(name: string, max = 20): string {
+  if (name.length <= max) return name;
+  const tail = Math.ceil((max - 1) / 2);
+  return `${name.slice(0, max - 1 - tail)}…${name.slice(name.length - tail)}`;
+}

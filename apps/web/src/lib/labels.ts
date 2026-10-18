@@ -6,6 +6,8 @@
 
 import { timeZoneHeader } from "./time-zone";
 
+export { refusalLine } from "@offload/widgets";
+
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 const send = { credentials: "include" as const };
 const json = { credentials: "include" as const, headers: { "content-type": "application/json" } };
@@ -67,10 +69,3 @@ export const labelRows = (id: string, input: { add: Rows; remove: Rows; name?: s
     body: JSON.stringify(input),
   });
 
-/** The words a refusal says, beside the control that was pressed. */
-export function refusalLine(error: LabelRefusal | null, name?: string): string {
-  if (error === "label_taken") return `${name ?? "That"} is already a label here.`;
-  if (error === "label_limit") return "A thread holds ten labels.";
-  if (error === "label_gone") return "That label was deleted.";
-  return "Couldn't save that.";
-}

@@ -195,7 +195,7 @@ async def test_a_pass_reads_only_its_members_own_dumps_that_landed_in_the_thread
 
     agent = create_async_engine(_asyncpg(AGENT_DB))
     async with agent.connect() as conn:
-        params = {"thread_id": trip, "account_id": ana}
+        params = {"thread_id": trip, "account_id": ana, "zone": "UTC"}
         messages = (await conn.execute(_MESSAGES, {**params, "limit": 40})).mappings().all()
         notes = (await conn.execute(_NOTES, {**params, "budget": 100})).mappings().all()
     await agent.dispose()
@@ -265,3 +265,65 @@ def test_the_pass_hands_that_zone_to_today():
     from offload_agent import nightly
 
     assert 'today_line(conn, member["time_zone"])' in inspect.getsource(nightly.handle_nightly)
+
+
+async def test_a_pass_dates_an_evening_message_on_its_members_own_day():
+    """At 03:00Z it is still the evening before in Los Angeles. The pass reads
+    each date against today in the member's zone, so a message's day is read
+    there too, or an evening dump was said tomorrow."""
+    from datetime import UTC, datetime, timedelta
+
+    # 03:00Z yesterday, so always in the past and inside a three day window.
+    at = datetime.now(UTC).replace(hour=3, minute=0, second=0, microsecond=0) - timedelta(days=1)
+    admin = create_async_engine(_asyncpg(ADMIN_DB))
+    async with admin.begin() as conn:
+        ana = await _id(
+            conn,
+            "insert into accounts (email, state, email_verified, analytics_subject_id, time_zone) "
+            "values (:email, 'active', true, gen_random_uuid(), 'America/Los_Angeles') "
+            "returning id",
+            email=f"{uuid.uuid4()}@example.invalid",
+        )
+        trip = await _id(conn, "insert into threads (name) values ('Lisbon') returning id")
+        await conn.execute(
+            text(
+                "insert into thread_members (thread_id, account_id, state, nightly_at) "
+                "values (:t, :a, 'accepted', now() - interval '3 days')"
+            ),
+            {"t": trip, "a": ana},
+        )
+        conversation = await _id(
+            conn, "insert into conversations (account_id) values (:a) returning id", a=ana
+        )
+        evening = await _id(
+            conn,
+            "insert into messages (conversation_id, account_id, role, type, turn_id, text, "
+            "state, created_at) values (:c, :a, 'person', 'text', gen_random_uuid(), "
+            "'dinner at eight', 'answered', :at) returning id",
+            c=conversation,
+            a=ana,
+            at=at,
+        )
+        await conn.execute(
+            text(
+                "insert into content (account_id, thread_id, type, title, derived_from_message_id) "
+                "values (:a, :t, 'task', 'row', :m)"
+            ),
+            {"a": ana, "t": trip, "m": evening},
+        )
+    await admin.dispose()
+
+    agent = create_async_engine(_asyncpg(AGENT_DB))
+    async with agent.connect() as conn:
+        params = {"thread_id": trip, "account_id": ana, "zone": "America/Los_Angeles"}
+        messages = (await conn.execute(_MESSAGES, {**params, "limit": 40})).mappings().all()
+    await agent.dispose()
+    assert [m["day"] for m in messages] == [(at - timedelta(days=1)).date().isoformat()]
+
+
+def test_the_pass_reads_its_members_zone_through_known_zone():
+    import inspect
+
+    from offload_agent import nightly
+
+    assert 'known_zone(member["time_zone"])' in inspect.getsource(nightly.handle_nightly)

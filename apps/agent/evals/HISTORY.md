@@ -153,6 +153,8 @@ and is not committed.
 | 2026-10-17 09:48 | 23 | 1 | 19/22 (86%) | $0.05 | `claude-haiku-5-5` | `22a95fe0` | `73810f21` | tidy: photos baseline before a photo rides on the row it became |
 | 2026-10-17 09:50 | 23 | 1 | 20/23 (87%) | $0.05 | `claude-haiku-5-5` | `4b12e332` | `73810f21` | tidy: photos after, a photo rides on the row it became |
 | 2026-10-17 09:51 | 23 | 1 | 23/23 (100%) | $0.03 | `claude-haiku-5-5` | `9d9f66c8` | `73810f21` | tidy: photos after, second pass (buying stays a picture, no picture row beside) |
+| 2026-10-17 14:20 | chore-do-the-is-not-a-lookup | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `9d9f66c8` | `9b135126` | ponytail agent audit: new case for chore-do-the-is-not-a-lookup |
+| 2026-10-17 14:20 | country-from-today-keeps-the-answer | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `9d9f66c8` | `9b135126` | ponytail agent audit: new case for country-from-today-keeps-the-answer |
 
 ## Full runs by principle
 

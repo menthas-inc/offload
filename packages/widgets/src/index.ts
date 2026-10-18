@@ -31,6 +31,8 @@
 // that decides what a thread looks like, and four clients disagreeing about
 // that is a drift problem with a date on it rather than a risk.
 //
+import { DAY_MS } from "./days.js";
+
 /** **The timeline is not one of these, and was until 015.** It stopped being a
  *  widget when it stopped being a list: it is a rail of weeks at the top of the
  *  thread, drawn whether or not the thread has a single date on it, which is the
@@ -173,14 +175,13 @@ export function splitRepeating<T extends Sortable>(
  *  Rounded to whole days before comparing, because an occurrence that crosses a
  *  daylight saving boundary is an hour out and is still weekly. */
 function cadenceOf(dated: readonly Sortable[]): number | null {
-  const DAY = 24 * 60 * 60 * 1000;
   let every: number | null = null;
 
   for (let i = 1; i < dated.length; i += 1) {
     const a = dated[i - 1]!.occursAt;
     const b = dated[i]!.occursAt;
     if (!a || !b) return null;
-    const gap = Math.round((Date.parse(b) - Date.parse(a)) / DAY);
+    const gap = Math.round((Date.parse(b) - Date.parse(a)) / DAY_MS);
     if (gap <= 0) return null;
     if (every === null) every = gap;
     else if (every !== gap) return null;
@@ -351,7 +352,11 @@ export * from "./timeline.js";
 // Dragging a row to a new place, as the priorities that hold it there. Its own
 // file because it is arithmetic over one field and every surface drags.
 export * from "./reorder.js";
-export { photoCaption } from "./photos.js";
+export { MAX_PDFS, MAX_PHOTO_BYTES, MAX_PHOTOS, clipMiddle, isPdf, photoCaption, takeFiles } from "./photos.js";
+// 021. A voice note: its ceiling and its bars.
+export { MAX_VOICE_MS, WAVEFORM_BARS, resample } from "./recording.js";
+// A thread's rows: a link's domain, a span of the day, a row drawn at the press.
+export { domainOf, isProvisional, provisionalId, rangeOf, startsAs } from "./threads.js";
 
 // 023. The recurrence rule and the day arithmetic it shares with the rail.
 export {
@@ -404,6 +409,7 @@ export {
   VERBS_CATEGORY,
   activityGlyph,
   activityTag,
+  digestDay,
 } from "./notifications.js";
 export type { ActivityKind, ActivityReason, ActivityShape, ChannelId } from "./notifications.js";
 
@@ -421,13 +427,14 @@ export {
   LABEL_NAME_CHARS,
   pickAll,
   readEveryPage,
+  refusalLine,
   rowLabelledCopy,
   toggleLabel,
   toggleUnlabelled,
   withMadeLabels,
 } from "./labels.js";
 export type { LabelPick } from "./labels.js";
-export { GOOGLE_EVENT_LINK, afterWrite, dayName, eventMeta, eventPast, eventRange, nextLine, nothingLine, retryDelay, stackView, type LineEvent, type WeekStart } from "./today.js";
+export { GOOGLE_EVENT_LINK, afterWrite, dayName, eventMeta, eventPast, eventRange, nextLine, nothingLine, retryDelay, stackView, type LineEvent } from "./today.js";
 // 030. A thread's map: point colours and shapes, count dots, the opening fit,
 // and the hand-off to Google Maps.
 export {
@@ -491,7 +498,7 @@ export * from "./memories.js";
 export { shownText, storedText, toSecondPerson, toThirdPerson } from "./voice.js";
 
 // 028. Not in a thread: the chip table and the words a suggestion says.
-export { chipOf, countInWords, sharedHint, suggestionName } from "./loose.js";
+export { chipOf, sharedHint, suggestionName } from "./loose.js";
 export type { ChipEntry, ChipKey, Face, Suggestion, ThreadRef } from "./loose.js";
 // 2026-10-07. What a shared thread asks before archiving in it or leaving it.
 export { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive, leaveAsk, staysWith } from "./shared-confirm.js";
@@ -526,3 +533,10 @@ export { foundMeta, type FoundDated } from "./found.js";
 // 2026-10-17. The thread's sections fold, Files folded at first.
 export { FOLDED_AT_FIRST, foldsFrom, foldsWith } from "./folds.js";
 export type { FoldSection, Folds } from "./folds.js";
+// A settled turn: Undo on screen first, both clients.
+export { answeredWaiting, answerPollMs, isFinal, turnDid, turnUndoable, undoShown } from "./turn.js";
+// Writes the screen has already drawn, both clients.
+export { perform, reverse } from "./optimistic.js";
+export type { Reversible, ToastAction, Toaster, Writes } from "./optimistic.js";
+// 022. People: a name in a sentence, a date on a row, a lookup's answer.
+export { dayMonth, firstNameOf, nameOf, stateOfLookup } from "./people.js";

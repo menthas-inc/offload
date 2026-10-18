@@ -596,6 +596,22 @@ describe("the lists and the page (AC-11, AC-12, AC-14)", () => {
     expect(await person(me, uuidv7())).toBeNull();
   });
 
+  it("leaves out a connection a block outlived", async () => {
+    const me = await account("Jo Martins");
+    const ana = await account("Ana Duarte");
+    const tom = await account("Tom Reilly");
+    await connect(me, ana);
+    await connect(me, tom);
+    // The pair row lingers for an instant when an accept races a block.
+    await db
+      .insertInto("blocks")
+      .values({ blocker_account_id: ana, blocked_account_id: me })
+      .execute();
+    const page = await people(me);
+    expect(page.connections.map((c) => c.accountId)).toEqual([tom]);
+    expect(page.count).toBe(1);
+  });
+
   it("answers the same 404 for a stranger and for nobody, over the route", async () => {
     const me = await account("Jo Martins");
     const stranger = await account("Stranger");

@@ -47,14 +47,10 @@ import {
   uploadVoice,
   refuseFile,
   settledPhotos,
-  takeFiles,
   draftName,
-  isPdf,
   PhotoRefused,
   VoiceRefused,
   UnknownBlob,
-  MAX_PDFS,
-  MAX_PHOTOS,
   type VoiceOnWire,
   type FoundResult,
   type FoundRow,
@@ -65,10 +61,9 @@ import {
   type TouchedThread,
   type WaitingOn,
 } from "../../lib/dump";
-import { answeredWaiting, turnDid } from "../../lib/turn-did";
 import type { ChipError } from "./AttachChip";
 import { addNote, completeContent, fetchThread, provisionalId, quickAdd } from "../../lib/threads";
-import { labelQuery } from "@offload/widgets";
+import { MAX_PDFS, MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, takeFiles, turnDid, turnUndoable, undoShown } from "@offload/widgets";
 import type { Label } from "../../lib/labels";
 import { failed } from "../../lib/log";
 import { fetchPeople, nameOf, type Person } from "../../lib/people";
@@ -464,6 +459,9 @@ export function ConversationProvider({
   const sheetTravel = useSharedValue(0);
   const sheetGoal = useSharedValue(10_000);
   const [turns, setTurns] = useState<Turn[]>([]);
+  // The turns as drawn, for an Undo pressed after they changed.
+  const shownTurns = useRef(turns);
+  shownTurns.current = turns;
   // 020. The photos in the draft, the draft's own key, whether they came
   // through the share sheet, and the one line under the composer.
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
@@ -900,7 +898,7 @@ export function ConversationProvider({
         //
         // And a turn that only changed a calendar names no thread at all: a
         // removed event stayed on Today until the screen was opened again.
-        const acted = did || answer.changed.length > 0;
+        const acted = turnUndoable(answer);
         if (acted) setFiled({ threadIds: answer.changed, at: Date.now() });
         // **A turn offers a way back only when it changed something.**
         // Undo reverses writes, and an answer writes nothing: offering it after
@@ -1580,15 +1578,23 @@ export function ConversationProvider({
     [turns, watch, offerUndo],
   );
 
+  // The turn goes on the press and comes back if the server refuses, since
+  // what it filed is still filed.
+  const undoTurnShown = useCallback(
+    async function again(turnId: string): Promise<void> {
+      if (await undoShown(turnId, shownTurns.current, setTurns, undoTurn)) setFiled({ threadIds: [], at: Date.now() });
+      else notify("Couldn't put that back", { label: "Retry", onPress: () => again(turnId) });
+    },
+    [notify],
+  );
+
   const undo = useCallback(async (): Promise<void> => {
     if (!undoable) return;
     const { turnId } = undoable;
     setUndoable(null);
     if (undoTimer.current) clearTimeout(undoTimer.current);
-    setTurns((current) => current.filter((turn) => turn.turnId !== turnId));
-    await undoTurn(turnId);
-    setFiled({ threadIds: [], at: Date.now() });
-  }, [undoable]);
+    await undoTurnShown(turnId);
+  }, [undoable, undoTurnShown]);
 
   const finish = useCallback(
     async (messageId: string): Promise<void> => {

@@ -204,6 +204,28 @@ describe("the plugin clears the device before the server answers", () => {
     expect(deleted).toEqual([]);
   });
 
+  // Better Auth resolves an HTTP error as `{ error }` rather than rejecting.
+  it("puts the session back when the server refused", async () => {
+    stored = { offload_cookie: cookie, offload_session_data: data };
+    signOutBehaviour = () => {
+      stored["offload_cookie"] = "{}";
+      stored["offload_session_data"] = "{}";
+      return Promise.resolve({ data: null, error: { status: 503 } });
+    };
+
+    await expect(signOut()).rejects.toBeInstanceOf(SignOutFailed);
+
+    expect(stored["offload_cookie"]).toBe(cookie);
+    expect(stored["offload_session_data"]).toBe(data);
+    expect(deleted).toEqual([]);
+  });
+
+  it("counts a 401 as done, since the session is already gone", async () => {
+    signOutBehaviour = () => Promise.resolve({ data: null, error: { status: 401 } });
+    await signOut();
+    expect(deleted.sort()).toEqual(["offload_cookie", "offload_session_data"]);
+  });
+
   it("puts the session back when the call never settles", async () => {
     vi.useFakeTimers();
     stored = { offload_cookie: cookie, offload_session_data: data };

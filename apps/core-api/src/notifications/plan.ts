@@ -9,7 +9,7 @@
 // its hour, and Today those that have begun. The one exception is the default
 // for a thing no pass has labelled, which exists only within a day of now.
 
-import { addUtcDays, dayIn, instantIn, nextOnOrAfter, parseRule } from "@offload/widgets";
+import { addUtcDays, dayIn, instantIn, nextOnOrAfter, parseRule, timeHM } from "@offload/widgets";
 import type { RemindKind, RemindLead } from "../schema.js";
 
 export type Kind = Exclude<RemindKind, "none">;
@@ -120,7 +120,7 @@ function sendSlot(window: Window, occurrence: string, day: string, send: Send, c
 function ownSlot(window: Window, occurrence: string, at: Date, minutes: number, clock: Clock): Slot {
   const instant = new Date(at.getTime() - minutes * 60_000);
   const local = dayIn(instant, clock.zone);
-  const hhmm = new Intl.DateTimeFormat("en-GB", { timeZone: clock.zone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(instant);
+  const hhmm = timeHM(instant.toISOString(), clock.zone);
   if (hhmm < EARLIEST) return sendSlot(window, occurrence, addUtcDays(local, -1), "evening", clock);
   if (hhmm > LATEST) return sendSlot(window, occurrence, local, "morning", clock);
   return { window, occurrence, at: "own", instant, minutes, moment: instant };

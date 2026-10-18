@@ -6,9 +6,11 @@
 // trailing space. A name that arrives one way and a name that arrives another
 // have to be the same name.
 //
-// Any character. People's names contain apostrophes, hyphens, accents, spaces
-// and scripts this product has no business having opinions about, so the only
-// limits are that there is something there and that it is not a paragraph.
+// Any character a person can see. People's names contain apostrophes, hyphens,
+// accents, spaces and scripts this product has no business having opinions
+// about, so the limits are that there is something there, that it is not a
+// paragraph, and that it holds no control or direction character: Postgres
+// refuses a NUL, and a direction override reverses a name in a shared thread.
 
 /** The longest a name may be, after trimming. Past every real name and short of
  *  a sentence. */
@@ -22,8 +24,11 @@ export const NAME_MAX = 60;
  *  state that renders as none of those. */
 export function cleanName(raw: string | null | undefined): string | null {
   const trimmed = (raw ?? "").trim();
-  return trimmed.length === 0 || trimmed.length > NAME_MAX ? null : trimmed;
+  return trimmed.length === 0 || trimmed.length > NAME_MAX || UNSEEN.test(trimmed) ? null : trimmed;
 }
+
+/** C0, DEL, C1, and the bidi embeddings, overrides and isolates. */
+const UNSEEN = /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
 
 /** The same rule, for the one caller that cannot refuse.
  *

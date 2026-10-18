@@ -34,6 +34,7 @@ import {
   type ShareSheet as Sheet,
 } from "../../lib/people";
 import { DragSheet } from "../shell/DragSheet";
+import { useClock } from "../../lib/clock";
 
 const isAndroid = Platform.OS === "android";
 
@@ -44,8 +45,8 @@ const SEARCH_PAST = 8;
 export const SHARE_LINE =
   "A shared thread belongs to everyone in it. If somebody leaves offload, the thread and everything they added stay with the rest of you.";
 
-function sinceLabel(iso: string): string {
-  return `in since ${dayMonth(iso)}`;
+function sinceLabel(iso: string, zone: string | null): string {
+  return `in since ${dayMonth(iso, zone)}`;
 }
 
 const REFUSAL: Record<ShareRefusal, string> = {
@@ -85,6 +86,7 @@ export function ShareSheet({
   const [x, setX] = useState<{ person: Person; member: boolean; added?: { count: number; titles: string[] } } | null>(null);
   const [xBusy, setXBusy] = useState(false);
   const [xFailed, setXFailed] = useState(false);
+  const { zone } = useClock();
 
   const load = useCallback(async () => {
     const next = await fetchShareSheet(threadId);
@@ -163,7 +165,7 @@ export function ShareSheet({
   if (!open) return null;
 
   const lifted = [
-    ...others.map((m) => ({ key: m.accountId, person: m, kind: "member" as const, meta: sinceLabel(m.since), added: m.added })),
+    ...others.map((m) => ({ key: m.accountId, person: m, kind: "member" as const, meta: sinceLabel(m.since, zone), added: m.added })),
     ...(sheet?.waiting ?? []).map((w) => ({ key: w.memberId, person: w, kind: "waiting" as const, meta: "waiting", added: undefined })),
   ];
 

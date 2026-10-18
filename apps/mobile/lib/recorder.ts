@@ -14,7 +14,9 @@ import {
   setAudioModeAsync,
 } from "expo-audio";
 import { Directory, File, Paths } from "expo-file-system";
-import { MAX_VOICE_MS, WAVEFORM_BARS } from "./dump";
+import { MAX_VOICE_MS, resample } from "@offload/widgets";
+
+export { resample } from "@offload/widgets";
 
 /** The kit's live window: the last few seconds, as bars. */
 export const LIVE_BARS = 32;
@@ -43,23 +45,6 @@ export interface Recording {
   uri: string;
   durationMs: number;
   waveform: number[];
-}
-
-/** Thirty two bars over the whole note, from every sample it heard. Each
- *  bar is the mean of its bucket, normalised to the recording's own peak
- *  and quantised to 0 to 255, so a quiet note still draws. */
-export function resample(samples: number[], bars = WAVEFORM_BARS): number[] {
-  if (samples.length === 0) return Array.from({ length: bars }, () => 0);
-  const peak = Math.max(...samples, 1e-6);
-  const out: number[] = [];
-  for (let i = 0; i < bars; i += 1) {
-    const from = Math.floor((i * samples.length) / bars);
-    const to = Math.max(from + 1, Math.floor(((i + 1) * samples.length) / bars));
-    let sum = 0;
-    for (let at = from; at < to; at += 1) sum += samples[at] ?? 0;
-    out.push(Math.max(0, Math.min(255, Math.round((sum / (to - from) / peak) * 255))));
-  }
-  return out;
 }
 
 /** Metering arrives in decibels below full scale, about -160 to 0. As an

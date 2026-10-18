@@ -3,7 +3,7 @@
 // AC-7.
 
 import { describe, expect, it } from "vitest";
-import { splitUid, truncate, untilFor } from "../src/connectors/recurrence.js";
+import { truncate, untilFor } from "../src/connectors/recurrence.js";
 
 const SPLIT = new Date("2026-10-06T09:00:00Z");
 
@@ -40,15 +40,5 @@ describe("AC-7 truncating a rule", () => {
     const truncated = truncate(["EXDATE;TZID=Europe/Lisbon:20261013T100000", "RRULE:FREQ=WEEKLY"], SPLIT);
     expect(truncated[0]).toBe("EXDATE;TZID=Europe/Lisbon:20261013T100000");
     expect(truncated[1]).toContain("UNTIL=");
-  });
-});
-
-describe("AC-7 a split that fails halfway", () => {
-  it("names the new series the same way every time", () => {
-    // The split posts the new series first and truncates the old second, so a
-    // failure between them leaves a duplicate rather than a hole. This is what
-    // lets a retry recognise its own work instead of posting a third one.
-    expect(splitUid("abc", SPLIT)).toBe(splitUid("abc", SPLIT));
-    expect(splitUid("abc", SPLIT)).not.toBe(splitUid("abc", new Date("2026-10-13T09:00:00Z")));
   });
 });

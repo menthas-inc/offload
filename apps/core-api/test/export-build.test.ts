@@ -403,6 +403,36 @@ describe("the archive", () => {
     expect(page).toContain("Added by someone who has gone");
   });
 
+  it("names no connection a block outlived, and no disabled account", async () => {
+    const ana = await person("Ana Duarte");
+    const sam = await person("Sam Ibekwe");
+    const kim = await person("Kim Lee");
+    const rui = await person("Rui Costa");
+    for (const other of [sam, kim, rui]) {
+      const [a, b] = [ana.id, other.id].sort();
+      await db.insertInto("connections").values({ account_a: a!, account_b: b! }).execute();
+    }
+    // The pair row lingers for an instant when an accept races a block.
+    await db.insertInto("blocks").values({ blocker_account_id: sam.id, blocked_account_id: ana.id }).execute();
+    await db.updateTable("accounts").set({ state: "disabled" }).where("id", "=", kim.id).execute();
+    await buildCopy(await asked(ana));
+    const data = JSON.parse((await unzip(ana.id)).get("data.json")!.toString()) as { people: { name: string }[] };
+    expect(data.people).toEqual([{ name: "Rui Costa" }]);
+  });
+
+  it("names the default thread as not in a thread, never by its stored name", async () => {
+    const ana = await person("Ana Duarte");
+    await row(ana.id, ana.defaultThreadId, "Water the plants");
+    const stored = (await db.selectFrom("threads").select("name").where("id", "=", ana.defaultThreadId).executeTakeFirstOrThrow()).name;
+    await buildCopy(await asked(ana));
+    const files = await unzip(ana.id);
+    const page = [...files.entries()].find(([name, bytes]) => name.startsWith("threads/") && bytes.includes("Water the plants"))![1].toString();
+    for (const text of [files.get("index.html")!.toString(), page]) {
+      expect(text).toContain("Not in a thread");
+      expect(text).not.toContain(stored);
+    }
+  });
+
   it("keeps a repeating row repeating: the rule rides in data.json beside its date", async () => {
     // Sweep 2026-10-07, S3. Without it a weekly yoga class came back as one date.
     const ana = await person("Ana Duarte");

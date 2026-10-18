@@ -14,7 +14,7 @@
 // which it can be cancelled. Once the account is gone this page is its head,
 // the day it went and its audit entries, and nothing else (034 section G).
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import styles from "../../../admin.module.css";
 import {
@@ -267,16 +267,6 @@ export default function PersonPage() {
   const usage = useAdminRead<Usage>(here && `/people/${here}/usage?range=${range}`);
   const timeline = usePaged<Job>(here && `/people/${here}/timeline${shown === "failed" ? "?failed=1" : ""}`);
   const hits = useAdminRead<{ rows: Hit[] }>(here && `/people/${here}/hits`);
-
-  // Opening this page is recorded, once per staff member, person and day. A
-  // write the page makes after it loads, because no read changes anything.
-  const loaded = person.data?.id ?? null;
-  const recorded = useRef<string | null>(null);
-  useEffect(() => {
-    if (!loaded || recorded.current === loaded) return;
-    recorded.current = loaded;
-    void adminWrite(`/people/${loaded}/viewed`, "POST").catch(() => null);
-  }, [loaded]);
 
   const reload = () => {
     person.reload();

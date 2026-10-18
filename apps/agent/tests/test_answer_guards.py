@@ -378,3 +378,28 @@ async def test_a_country_question_from_today_is_not_sure():
     outcome, model = await _asked("when's the next bank holiday", ask, _says(""))
     assert outcome.questions == []
     assert outcome.reply == "Not sure."
+
+
+async def test_a_country_question_from_today_keeps_the_answer_beside_it():
+    """The question is dropped, and a real answer given alongside it is the
+    reply. "Not sure." is only for a turn with nothing else to say."""
+    ask = Response(
+        content=[
+            ToolUse(
+                id="q",
+                name="ask",
+                input={
+                    "field": "country",
+                    "title": "Country",
+                    "options": [
+                        {"label": "Portugal", "value": "PT"},
+                        {"label": "UK", "value": "GB"},
+                    ],
+                },
+            )
+        ],
+        stop_reason="tool_use",
+    )
+    outcome, model = await _asked("when's the next bank holiday", ask, _says("Monday 26 October."))
+    assert outcome.questions == []
+    assert outcome.reply == "Monday 26 October."

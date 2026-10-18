@@ -6,11 +6,14 @@
 // polling". So the phones ship on the thing the optimisation was optimising,
 // and gain the stream when a polyfill is worth its weight.
 //
-// Numbers rather than "bounded", because nothing polls this route today: the
-// web asks once per stream reconnect, the server is `pg_notify`-driven, and
-// there is no rate limiter to catch an interval set too tight.
+// Numbers rather than "bounded" (`answerPollMs`, shared with the web), because
+// little else polls this route: the web asks once per stream reconnect and
+// polls only once the browser has closed the stream for good, the server is
+// `pg_notify`-driven, and there is no rate limiter to catch an interval set
+// too tight.
 
 import { File } from "expo-file-system";
+import { MAX_PHOTO_BYTES, answerPollMs, isFinal, isPdf } from "@offload/widgets";
 import { API_URL, send, upload } from "./api";
 import { failed } from "./log";
 
@@ -222,25 +225,6 @@ export class DumpTooLong extends Error {
   }
 }
 
-/** How long the answer is worth waiting for, and how hard.
- *
- *  A second while the turn is live, which is what the web used before
- *  `pg_notify` and is comfortably inside how long a turn takes. After twenty
- *  misses it slows to five, because a turn still unanswered after twenty
- *  seconds is not about to be answered in the next one. */
-const QUICK_MS = 1000;
-const SLOW_MS = 5000;
-const MISSES_BEFORE_SLOWING = 20;
-
-const isFinal = (state: MessageState): boolean =>
-  state === "answered" ||
-  state === "partial" ||
-  state === "failed" ||
-  // 017. A stopped turn is over. Without this the poll would keep asking about
-  // a turn nobody is working on, which is the one thing pressing Stop was
-  // meant to end.
-  state === "cancelled";
-
 /** Send it. The server stores it before anything else, so a resolved promise
  *  means the dump is safe even if nothing ever answers it. */
 /** @param threadId The thread on screen, if any. A filing default, not a
@@ -305,13 +289,6 @@ export interface PhotoOnWire {
   localUri?: string;
 }
 
-/** Per message, photos and PDFs together, and the server holds the same
- *  number. */
-export const MAX_PHOTOS = 10;
-/** 041. Per message, inside the ten. */
-export const MAX_PDFS = 2;
-/** Per photo. The server holds the same number and refuses by bytes. */
-export const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 
 /** What the product takes. A picker reports a MIME type most of the time and
  *  an extension the rest, so both are read. */
@@ -319,15 +296,6 @@ const PHOTO_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp
 const PHOTO_EXTENSIONS = /\.(jpe?g|png|webp|heic|heif)$/i;
 
 export type PhotoRefusal = "too_big" | "not_a_photo" | "locked_pdf" | "daily_limit" | "storage_full" | "unavailable";
-
-/** 041. A PDF by its type, or by its name when the picker gives no type. The
- *  server reads the bytes; this only spares a request. */
-export function isPdf(file: { type: string | null; name: string | null }): boolean {
-  const type = (file.type ?? "").toLowerCase();
-  // Mail and several Android providers hand a .pdf over as bytes of no type;
-  // the server reads the bytes either way.
-  return type === "application/pdf" || ((type === "" || type === "application/octet-stream") && /\.pdf$/i.test(file.name ?? ""));
-}
 
 /** Why a photo or a PDF was refused on the device, or null when it may go.
  *  A locked PDF is the server's to find. */
@@ -337,34 +305,6 @@ export function refuseFile(file: { type: string | null; name: string; size: numb
   if (!looksLikeOne) return "not_a_photo";
   if (file.size !== null && file.size > MAX_PHOTO_BYTES) return "too_big";
   return null;
-}
-
-/** 041. Which of the incoming files a draft holding `current` takes: ten in
- *  all, two of them PDFs, in the order given, and the line for what it left. */
-export function takeFiles<T extends { type: string | null; name: string | null }>(
-  current: { kind: "image" | "pdf" }[],
-  incoming: T[],
-): { taken: T[]; line: "Ten at a time." | "Two PDFs at a time." | null } {
-  let room = MAX_PHOTOS - current.length;
-  let pdfRoom = MAX_PDFS - current.filter((one) => one.kind === "pdf").length;
-  const taken: T[] = [];
-  let line: "Ten at a time." | "Two PDFs at a time." | null = null;
-  for (const one of incoming) {
-    if (room <= 0) {
-      line ??= "Ten at a time.";
-      continue;
-    }
-    if (isPdf(one)) {
-      if (pdfRoom <= 0) {
-        line ??= "Two PDFs at a time.";
-        continue;
-      }
-      pdfRoom--;
-    }
-    room--;
-    taken.push(one);
-  }
-  return { taken, line };
 }
 
 /** The name a chip shows: the file's own, or "Photo", "Photo 2", "PDF",
@@ -393,14 +333,6 @@ export function settledPhotos(
     if (!fresh) return { ...photo, ready: true };
     return photo.localUri ? { ...fresh, localUri: photo.localUri } : fresh;
   });
-}
-
-/** 041. A long name clipped in the middle, so its end, which is usually what
- *  tells two PDFs apart, survives. */
-export function clipMiddle(name: string, max = 20): string {
-  if (name.length <= max) return name;
-  const tail = Math.ceil((max - 1) / 2);
-  return `${name.slice(0, max - 1 - tail)}…${name.slice(name.length - tail)}`;
 }
 
 /** 036. Which ceiling a 429 on an upload was: everything kept, or the day's.
@@ -454,10 +386,7 @@ export function photoUrl(blobId: string, rendition: "thumb" | "large"): string {
 
 // ---------------------------------------------------------------- 021, a voice note
 
-/** The recorders stop themselves here, and the server refuses past it. */
-export const MAX_VOICE_MS = 600_000;
-/** Bars over the whole note. The server holds the same number. */
-export const WAVEFORM_BARS = 32;
+export { WAVEFORM_BARS } from "@offload/widgets";
 
 export class VoiceRefused extends Error {
   constructor(readonly reason: "too_big" | "not_a_voice_note" | "daily_limit" | "storage_full" | "unavailable") {
@@ -623,7 +552,7 @@ export function awaitAnswer(
     misses += 1;
     timer = setTimeout(
       () => void ask(),
-      misses >= MISSES_BEFORE_SLOWING ? SLOW_MS : QUICK_MS
+      answerPollMs(misses)
     );
   };
 

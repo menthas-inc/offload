@@ -9,7 +9,7 @@ import type { Executor } from "../threads/access.js";
 import type { MemoryClass } from "../schema.js";
 import { touchesSensitive } from "./sensitive.js";
 import { MEMORY_CAP } from "@offload/widgets";
-import { LEARNED_MEMORY_CAP, shaped } from "./store.js";
+import { capLock, LEARNED_MEMORY_CAP, shaped, SUPERSEDED_PURGE_DAYS } from "./store.js";
 
 /** What a pass reads, at most (OFF-8). */
 export const PASS_MESSAGES = 60;
@@ -113,6 +113,8 @@ export interface PassApplied {
 /** Apply a pass's answer. Each entry checked on its own; one that fails is
  *  dropped and the rest apply. */
 export async function applyMemoryPass(trx: Executor, accountId: string, plan: PassPlan): Promise<PassApplied> {
+  // The counts below decide the caps, so they are read under every writer's lock.
+  await capLock(trx, accountId);
   const messages = new Map(
     (
       await passMessages(trx, accountId)
@@ -170,7 +172,12 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
     return null;
   };
 
-  const write = async (kind: MemoryClass, text: string, from: { messageId: string | null; fromNote: string | null }) => {
+  const write = async (
+    kind: MemoryClass,
+    text: string,
+    from: { messageId: string | null; fromNote: string | null },
+    origin: "learned" | "stated" = "learned",
+  ) => {
     const row = await trx
       .insertInto("notes")
       .values({
@@ -179,7 +186,7 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
         subject_id: accountId,
         kind,
         text,
-        origin: "learned",
+        origin,
         derived_from_message_id: from.messageId,
         attrs: JSON.stringify(from.fromNote ? { from_note: from.fromNote } : {}),
       })
@@ -197,12 +204,13 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
   };
 
   // Set aside by an earlier entry of this same plan: not there to touch again.
+  // Purged after thirty days, as the privacy page says, by `content.purge`.
   const retired = new Set<string>();
   const retire = (ids: string[]) => {
     for (const id of ids) retired.add(id);
     return trx
       .updateTable("notes")
-      .set({ superseded_at: sql`now()`, updated_at: sql`now()` })
+      .set({ superseded_at: sql`now()`, purge_after: sql`now() + make_interval(days => ${SUPERSEDED_PURGE_DAYS})`, updated_at: sql`now()` })
       .where("id", "in", ids)
       .where("scope", "=", "account")
       .where("subject_id", "=", accountId)
@@ -249,7 +257,8 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
     }
     await retire([old.id]);
     said.delete(old.text.trim().toLowerCase());
-    if (await write(kind!, words.text, from!)) {
+    // The person's own stays theirs: counted as theirs, and never retired or folded as offload's.
+    if (await write(kind!, words.text, from!, theirs ? "stated" : "learned")) {
       said.add(words.text.toLowerCase());
       out.superseded += 1;
     } else {
@@ -260,7 +269,8 @@ export async function applyMemoryPass(trx: Executor, accountId: string, plan: Pa
   for (const entry of plan.fold) {
     const olds = entry.ids.map((id) => byId.get(id));
     // Offload's own only: two of the person's sentences are theirs to merge.
-    if (olds.length < 2 || olds.some((old) => !old || old.origin !== "learned" || retired.has(old.id))) {
+    // Two different ones: [A, A] would rewrite A with no citation.
+    if (new Set(entry.ids).size < 2 || olds.some((old) => !old || old.origin !== "learned" || retired.has(old.id))) {
       out.ignored += 1;
       continue;
     }

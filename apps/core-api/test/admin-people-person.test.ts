@@ -40,7 +40,6 @@ async function person(email: string, name: string | null = null): Promise<string
 }
 
 const get = (cookie: string, url: string) => app.inject({ method: "GET", url: `/v1/admin${url}`, headers: { cookie } });
-const post = (cookie: string, url: string) => app.inject({ method: "POST", url: `/v1/admin${url}`, headers: { cookie } });
 const limits = (cookie: string, id: string, payload: unknown) =>
   app.inject({ method: "PATCH", url: `/v1/admin/people/${id}/limits`, headers: { cookie }, payload: payload as Record<string, unknown> });
 
@@ -483,26 +482,6 @@ describe("AC-22 opening the page", () => {
     await get(support.cookie, `/people/${tom}`);
     expect(await auditEntries()).toHaveLength(before + 2);
   });
-
-  it("is recorded once per staff member, person and day, by a POST", async () => {
-    const support = await staffMember("support");
-    const owner = await staffMember("owner");
-    const ana = await person("ana@example.test");
-    const tom = await person("tom@example.test");
-
-    expect((await post(support.cookie, `/people/${ana}/viewed`)).statusCode).toBe(200);
-    await post(support.cookie, `/people/${ana}/viewed`);
-    await post(support.cookie, `/people/${tom}/viewed`);
-    await post(owner.cookie, `/people/${ana}/viewed`);
-    const entries = await auditEntries();
-    expect(entries.every((entry) => entry.kind === "person.viewed")).toBe(true);
-    expect(entries.map((entry) => `${entry.staff_account_id} ${entry.target_account_id}`).sort()).toEqual(
-      [`${support.id} ${ana}`, `${support.id} ${tom}`, `${owner.id} ${ana}`].sort(),
-    );
-
-    expect((await post(support.cookie, `/people/${uuidv7()}/viewed`)).statusCode).toBe(404);
-    expect(await auditEntries()).toHaveLength(3);
-  });
 });
 
 describe("OFF-1 for a person who has signed in", () => {
@@ -531,7 +510,6 @@ describe("OFF-1 for a person who has signed in", () => {
       }
     }
     for (const [method, path, payload] of [
-      ["POST", "viewed", undefined],
       ["PATCH", "limits", { key: "cap.turns", value: 5 }],
       ["POST", "sign-out", undefined],
       ["POST", "disable", undefined],

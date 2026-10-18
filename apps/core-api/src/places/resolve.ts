@@ -367,7 +367,22 @@ export async function locateCalendar(
     .orderBy("occurs_at")
     .execute();
   const due = candidates.filter((e) => e.located_key !== calendarKey(e.location ?? "", config.pepper));
-  for (const event of due.slice(0, LOCATE_BATCH)) await resolveEventPlace(event.id, geocode, config);
+  // Every occurrence of a series is its own row with the same text, so one
+  // lookup per text settles them all: a daily standup is one paid call, not sixty.
+  const byKey = new Map<string, string[]>();
+  for (const event of due.slice(0, LOCATE_BATCH)) {
+    const key = calendarKey(event.location ?? "", config.pepper);
+    byKey.set(key, [...(byKey.get(key) ?? []), event.id]);
+  }
+  for (const [key, [first, ...rest]] of byKey) {
+    if (!first) continue;
+    await resolveEventPlace(first, geocode, config);
+    const settled = await db.selectFrom("connector_events").select("place_id").where("id", "=", first).where("located_key", "=", key).executeTakeFirst();
+    // A provider error settles nothing, so the rest stay due for the next run.
+    if (settled && rest.length) {
+      await db.updateTable("connector_events").set({ located_key: key, place_id: settled.place_id }).where("id", "in", rest).execute();
+    }
+  }
   return { looked: Math.min(due.length, LOCATE_BATCH), waiting: Math.max(0, due.length - LOCATE_BATCH) };
 }
 

@@ -105,6 +105,49 @@ const usageEntry = z.object({
  *  supported shape rather than a bug. */
 const usage = z.union([usageEntry, z.array(usageEntry)]).transform((u) => (Array.isArray(u) ? u : [u]));
 
+/** 016. Where the turn got something from, for the chips under it.
+ *
+ *  **Two fields, and the omissions are the point.** A provider's citation
+ *  also carries the page's title and a quoted excerpt, and both are written
+ *  by whoever owns the page: forwarding either walks attacker-controlled
+ *  prose onto somebody's screen in offload's own voice. */
+const sources = z
+  .array(
+    z.object({
+      domain: z.string().max(253),
+      // https and nothing else. The clients open these with the platform's
+      // opener, and a citation is the one URL on a reply the person never
+      // typed; a scheme other than https is not a page to open.
+      url: z.string().url().max(2000).refine((value) => /^https:\/\//i.test(value), "https only"),
+    })
+  )
+  // **Twelve, not six.** Six was written for three lookups of two sources
+  // each; one real search cites nine, and the first production turn to
+  // complete a lookup was refused over the length after doing the work. The
+  // worker deduplicates by domain and truncates to the same number, so this
+  // is the contract rather than the thing that catches a mistake.
+  .max(12)
+  .optional();
+
+/** And what kind of lookup it was, which is how the next narrow tool gets
+ *  argued from counts rather than from whichever example came to mind.
+ *
+ *  **No query and no URL.** A query is somebody's own sentence, and
+ *  anonymising it does not make it not content (OFF-1). The label is
+ *  validated against a closed set here as well as in the worker, because a
+ *  set enforced in one place is a set until somebody adds a second writer. */
+const lookups = z
+  .array(
+    z.object({
+      label: z.string().max(40),
+      kind: z.enum(["search", "read"]),
+      outcome: z.enum(["used", "unused", "empty", "failed", "refused_bound"]),
+      costMicros: z.number().int().min(0).max(10_000_000),
+    })
+  )
+  .max(12)
+  .optional();
+
 // A discriminated union rather than an optional reply, so "answered with
 // nothing" cannot be expressed. The worker either has an answer or has a
 // reason it does not.
@@ -149,47 +192,8 @@ const body = z.discriminatedUnion("outcome", [
       )
       .max(3)
       .optional(),
-    /** 016. Where the turn got something from, for the chips under it.
-     *
-     *  **Two fields, and the omissions are the point.** A provider's citation
-     *  also carries the page's title and a quoted excerpt, and both are written
-     *  by whoever owns the page: forwarding either walks attacker-controlled
-     *  prose onto somebody's screen in offload's own voice. */
-    sources: z
-      .array(
-        z.object({
-          domain: z.string().max(253),
-          // https and nothing else. The clients open these with the platform's
-          // opener, and a citation is the one URL on a reply the person never
-          // typed; a scheme other than https is not a page to open.
-          url: z.string().url().max(2000).refine((value) => /^https:\/\//i.test(value), "https only"),
-        })
-      )
-      // **Twelve, not six.** Six was written for three lookups of two sources
-      // each; one real search cites nine, and the first production turn to
-      // complete a lookup was refused over the length after doing the work. The
-      // worker deduplicates by domain and truncates to the same number, so this
-      // is the contract rather than the thing that catches a mistake.
-      .max(12)
-      .optional(),
-    /** And what kind of lookup it was, which is how the next narrow tool gets
-     *  argued from counts rather than from whichever example came to mind.
-     *
-     *  **No query and no URL.** A query is somebody's own sentence, and
-     *  anonymising it does not make it not content (OFF-1). The label is
-     *  validated against a closed set here as well as in the worker, because a
-     *  set enforced in one place is a set until somebody adds a second writer. */
-    lookups: z
-      .array(
-        z.object({
-          label: z.string().max(40),
-          kind: z.enum(["search", "read"]),
-          outcome: z.enum(["used", "unused", "empty", "failed", "refused_bound"]),
-          costMicros: z.number().int().min(0).max(10_000_000),
-        })
-      )
-      .max(12)
-      .optional(),
+    sources,
+    lookups,
     usage,
   }),
   z.strictObject({
@@ -198,35 +202,9 @@ const body = z.discriminatedUnion("outcome", [
     /** Describes what actually landed, and only that (AC-15). */
     replyText: z.string().min(1),
     /** A turn cut off partway still read what it read, and a chip is a record
-     *  of that rather than of the turn finishing. Same shape as above. */
-    sources: z
-      .array(
-        z.object({
-          domain: z.string().max(253),
-          // https and nothing else. The clients open these with the platform's
-          // opener, and a citation is the one URL on a reply the person never
-          // typed; a scheme other than https is not a page to open.
-          url: z.string().url().max(2000).refine((value) => /^https:\/\//i.test(value), "https only"),
-        })
-      )
-      // **Twelve, not six.** Six was written for three lookups of two sources
-      // each; one real search cites nine, and the first production turn to
-      // complete a lookup was refused over the length after doing the work. The
-      // worker deduplicates by domain and truncates to the same number, so this
-      // is the contract rather than the thing that catches a mistake.
-      .max(12)
-      .optional(),
-    lookups: z
-      .array(
-        z.object({
-          label: z.string().max(40),
-          kind: z.enum(["search", "read"]),
-          outcome: z.enum(["used", "unused", "empty", "failed", "refused_bound"]),
-          costMicros: z.number().int().min(0).max(10_000_000),
-        })
-      )
-      .max(12)
-      .optional(),
+     *  of that rather than of the turn finishing. Same shape as answered. */
+    sources,
+    lookups,
     usage,
   }),
   z.strictObject({
@@ -235,6 +213,8 @@ const body = z.discriminatedUnion("outcome", [
     /** An enum, never the exception. An error message can carry the dumped
      *  text, and this value reaches an analytics event (OFF-1). */
     reason: z.enum(["model_error", "invalid_output", "timeout", "transcription_failed"]),
+    /** A turn that searched before it failed still paid for the search. */
+    lookups,
     usage: usage.optional(),
   }),
   /** 017. Somebody stopped it. No reply and no reason: the reply would be
@@ -358,18 +338,23 @@ function when(raw: string | null | undefined): Date | null {
  *  messages and notes it may cite is the Core API's to decide. `rules` is not
  *  a class it may write: only the person makes a rule. */
 const memoryKind = z.enum(["people", "things", "about", "patterns"]);
+/** An id the memory pass names: any string, not only a uuid. Each entry is
+ *  matched against the rows the pass was shown, so an id that names none of
+ *  them is that entry ignored rather than the whole pass refused. */
+const passId = z.string().min(1).max(64);
+
 const memoryBody = z.strictObject({
   jobId: z.string().uuid(),
   add: z
-    .array(z.strictObject({ kind: memoryKind, text: z.string().min(1).max(MEMORY_TEXT_CHARS), cites: z.string().uuid() }))
+    .array(z.strictObject({ kind: memoryKind, text: z.string().min(1).max(MEMORY_TEXT_CHARS), cites: passId }))
     .max(PASS_ADDS)
     .default([]),
   supersede: z
-    .array(z.strictObject({ id: z.string().uuid(), text: z.string().min(1).max(MEMORY_TEXT_CHARS), cites: z.string().uuid() }))
+    .array(z.strictObject({ id: passId, text: z.string().min(1).max(MEMORY_TEXT_CHARS), cites: passId }))
     .max(20)
     .default([]),
   fold: z
-    .array(z.strictObject({ ids: z.array(z.string().uuid()).min(2).max(10), text: z.string().min(1).max(MEMORY_TEXT_CHARS) }))
+    .array(z.strictObject({ ids: z.array(passId).min(2).max(10), text: z.string().min(1).max(MEMORY_TEXT_CHARS) }))
     .max(20)
     .default([]),
   /** 042. Yearly dates on the memories the pass was shown to date. */
@@ -417,6 +402,17 @@ const nightlyApplied = z.object({
 });
 
 export async function internalRoutes(app: App): Promise<void> {
+  // The token first, on every route here, before the body is parsed or
+  // validated: a caller without it learns nothing about what the body should
+  // be. A hook on this plugin, so it covers these routes and no others.
+  app.addHook("onRequest", async (request, reply) => {
+    const header = request.headers.authorization;
+    const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+    if (!tokenMatches(presented)) {
+      return reply.code(401).send({ error: "unauthorised" as const });
+    }
+  });
+
   // 034. The worker says it is alive, once a minute, with the commit it runs
   // and when it started. Behind the private host and the bearer like every
   // route here; the body is strict, so the worker can report itself and
@@ -424,15 +420,6 @@ export async function internalRoutes(app: App): Promise<void> {
   app.post(
     "/internal/v1/heartbeat",
     {
-      // The token first, before the body is parsed or validated: a caller
-      // without it learns nothing about what the body should be.
-      onRequest: async (request, reply) => {
-        const header = request.headers.authorization;
-        const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
-        if (!tokenMatches(presented)) {
-          return reply.code(401).send({ error: "unauthorised" as const });
-        }
-      },
       schema: {
         body: z.strictObject({ commit: z.string().min(1).max(64).nullable().optional(), startedAt: z.string().datetime() }),
         response: { 200: z.object({ ok: z.literal(true) }), 401: refused },
@@ -458,12 +445,6 @@ export async function internalRoutes(app: App): Promise<void> {
     "/internal/v1/nightly-result",
     { schema: { body: nightlyBody, response: { 200: nightlyApplied, 401: refused, 404: refused } } },
     async (request, reply) => {
-      const header = request.headers.authorization;
-      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
-      if (!tokenMatches(presented)) {
-        return reply.code(401).send({ error: "unauthorised" as const });
-      }
-
       const result = request.body;
       const job = await db
         .selectFrom("jobs")
@@ -473,7 +454,7 @@ export async function internalRoutes(app: App): Promise<void> {
         .executeTakeFirst();
       if (!job?.account_id) return reply.code(404).send({ error: "unknown_job" as const });
 
-      const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as {
+      const payload = job.payload as {
         threadId?: string;
         propose?: boolean;
       };
@@ -597,12 +578,6 @@ export async function internalRoutes(app: App): Promise<void> {
     "/internal/v1/memory-result",
     { schema: { body: memoryBody, response: { 200: memoryApplied, 401: refused, 404: refused } } },
     async (request, reply) => {
-      const header = request.headers.authorization;
-      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
-      if (!tokenMatches(presented)) {
-        return reply.code(401).send({ error: "unauthorised" as const });
-      }
-
       const result = request.body;
       const job = await db
         .selectFrom("jobs")
@@ -624,8 +599,13 @@ export async function internalRoutes(app: App): Promise<void> {
         if (result.usage && result.usage.length > 0) {
           await trx.insertInto("llm_usage").values(ledgerRows(accountId, "account.memories", "scheduled", result.usage, result.jobId)).execute();
         }
-        // After everything this pass wrote, so the next reads what came since.
-        await trx.updateTable("accounts").set({ memories_at: sql`clock_timestamp()` }).where("id", "=", accountId).execute();
+        // When the worker claimed the job, before it read: a message sent
+        // while the model ran is after this, so the next pass reads it.
+        await trx
+          .updateTable("accounts")
+          .set({ memories_at: sql`(select locked_at from jobs where id = ${result.jobId})` })
+          .where("id", "=", accountId)
+          .execute();
         await trx
           .updateTable("jobs")
           .set({ state: "done", locked_at: null, locked_by: null, error_code: null, updated_at: sql`now()` })
@@ -640,6 +620,36 @@ export async function internalRoutes(app: App): Promise<void> {
     }
   );
 
+  // A nightly or memory pass that paid for its calls and ended without a
+  // result: an unusable answer, or a failure after the call. The worker posts
+  // what the calls used before it releases the job, so the ledger, which
+  // gates scheduled work, counts them. Only while the job runs: a pass that
+  // posted its result has closed it and written its usage there.
+  app.post(
+    "/internal/v1/usage",
+    { schema: { body: z.strictObject({ jobId: z.string().uuid(), usage }), response: { 200: ok, 401: refused, 404: refused } } },
+    async (request, reply) => {
+      const { jobId, usage: calls } = request.body;
+      const written = await db.transaction().execute(async (trx) => {
+        const job = await trx
+          .selectFrom("jobs")
+          .select(["account_id", "kind"])
+          .where("id", "=", jobId)
+          .where("kind", "in", ["thread.nightly", "account.memories"])
+          .where("state", "=", "running")
+          .forUpdate()
+          .executeTakeFirst();
+        if (!job?.account_id) return false;
+        if (calls.length > 0) {
+          await trx.insertInto("llm_usage").values(ledgerRows(job.account_id, job.kind, "scheduled", calls, jobId)).execute();
+        }
+        return true;
+      });
+      if (!written) return reply.code(404).send({ error: "unknown_job" as const });
+      return reply.send({ status: "written" as const });
+    }
+  );
+
   // 017. What offload is doing, on its way out.
   //
   // **Deliberately not idempotent and deliberately unversioned.** A step is the
@@ -650,12 +660,6 @@ export async function internalRoutes(app: App): Promise<void> {
     "/internal/v1/turn-step",
     { schema: { body: stepBody, response: { 200: ok, 401: refused, 404: refused } } },
     async (request, reply) => {
-      const header = request.headers.authorization;
-      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
-      if (!tokenMatches(presented)) {
-        return reply.code(401).send({ error: "unauthorised" as const });
-      }
-
       // The job is the authority on which message this is, exactly as
       // `turn-result` has it. The worker never names a message id: it holds a
       // job, and the job holds the message.
@@ -698,12 +702,6 @@ export async function internalRoutes(app: App): Promise<void> {
     "/internal/v1/turn-result",
     { schema: { body, response: { 200: ok, 401: refused, 404: refused } } },
     async (request, reply) => {
-      const header = request.headers.authorization;
-      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
-      if (!tokenMatches(presented)) {
-        return reply.code(401).send({ error: "unauthorised" as const });
-      }
-
       const result = request.body;
 
       // The job is the authority on whose conversation this is.
@@ -732,7 +730,7 @@ export async function internalRoutes(app: App): Promise<void> {
 
       if (!job || !job.account_id) return reply.code(404).send({ error: "unknown_job" as const });
 
-      const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as {
+      const payload = job.payload as {
         messageId?: string;
         conversationId?: string;
         turnId?: string;
@@ -755,10 +753,11 @@ export async function internalRoutes(app: App): Promise<void> {
           .executeTakeFirst();
 
         // Idempotent. At-least-once delivery means a retry must not write a
-        // second reply. `partial` is admitted alongside `seen` because a
-        // resumed turn's result arrives against a message this endpoint itself
-        // left partial.
-        if (!person || (person.state !== "seen" && person.state !== "partial")) return false;
+        // second reply. `partial` is admitted alongside `seen` only while the
+        // job is still running: a retried partial post finds its job closed by
+        // the first, and writing it again doubled usage, lookups and Activity.
+        const open = person?.state === "seen" || (person?.state === "partial" && job.state === "running");
+        if (!person || !open) return false;
 
         if (result.outcome === "answered" || result.outcome === "partial") {
           // 025. A # picked in the composer, applied once the rows exist.
@@ -840,7 +839,9 @@ export async function internalRoutes(app: App): Promise<void> {
             let ord = 0;
             const rows = result.found.flatMap((found) =>
               found.contentIds
-                .filter((id) => allowed.has(id))
+                // Taken out as it is used: a row two reads returned is shown
+                // once, at its first place, and the primary key holds.
+                .filter((id) => allowed.delete(id))
                 .map((id) => ({
                   message_id: reply.id,
                   content_id: id,
@@ -899,25 +900,6 @@ export async function internalRoutes(app: App): Promise<void> {
                 on conflict (domain, day) do update set count = domain_reads.count + 1
               `.execute(trx);
             }
-          }
-
-          if (result.lookups?.length) {
-            await trx
-              .insertInto("lookups")
-              .values(
-                result.lookups.map((lookup) => ({
-                  account_id: accountId,
-                  // Validated against the closed set here as well as in the
-                  // worker. A set enforced in one place is a set until there
-                  // is a second writer, and the whole design of this table is
-                  // that the column can never become free text.
-                  label: LOOKUP_LABELS.has(lookup.label) ? lookup.label : "other",
-                  kind: lookup.kind,
-                  outcome: lookup.outcome,
-                  cost_micros: lookup.costMicros,
-                })),
-              )
-              .execute();
           }
 
           // 020. Every photo lands in Files, and the server is what holds
@@ -1008,6 +990,28 @@ export async function internalRoutes(app: App): Promise<void> {
             .execute();
         }
 
+        // What the turn searched and read, on every outcome that carries it:
+        // a failed turn paid for its lookups too.
+        const searched = "lookups" in result ? (result.lookups ?? []) : [];
+        if (searched.length) {
+          await trx
+            .insertInto("lookups")
+            .values(
+              searched.map((lookup) => ({
+                account_id: accountId,
+                // Validated against the closed set here as well as in the
+                // worker. A set enforced in one place is a set until there
+                // is a second writer, and the whole design of this table is
+                // that the column can never become free text.
+                label: LOOKUP_LABELS.has(lookup.label) ? lookup.label : "other",
+                kind: lookup.kind,
+                outcome: lookup.outcome,
+                cost_micros: lookup.costMicros,
+              })),
+            )
+            .execute();
+        }
+
         // 026. A forwarded email is processed with nobody watching, so its
         // record is Activity's, written with the result it describes.
         await recordMailTurn(trx, accountId, payload.messageId!, payload.turnId!);
@@ -1085,14 +1089,8 @@ export async function internalRoutes(app: App): Promise<void> {
   // the question to the job's conversation, so a judgement about one message
   // can only ever settle the question that message could answer.
   async function questionScope(
-    request: { headers: { authorization?: string | string[] | undefined } },
     jobId: string,
   ): Promise<{ accountId: string; conversationId: string; messageId: string; turnId: string } | null> {
-    const header = Array.isArray(request.headers.authorization)
-      ? request.headers.authorization[0]
-      : request.headers.authorization;
-    const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
-    if (!tokenMatches(presented)) return null;
     const job = await db
       .selectFrom("jobs")
       .select(["account_id", "payload"])
@@ -1100,7 +1098,7 @@ export async function internalRoutes(app: App): Promise<void> {
       .where("kind", "=", "dump.answer")
       .executeTakeFirst();
     if (!job || !job.account_id) return null;
-    const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as {
+    const payload = job.payload as {
       messageId?: string;
       conversationId?: string;
       turnId?: string;
@@ -1127,7 +1125,7 @@ export async function internalRoutes(app: App): Promise<void> {
       },
     },
     async (request, reply) => {
-      const scope = await questionScope(request, request.body.jobId);
+      const scope = await questionScope(request.body.jobId);
       if (!scope) return reply.code(401).send({ error: "unauthorised" as const });
       // 019. A typed answer to a calendar question is matched here, in code,
       // against the labels: the worker never reads them, since one may be a
@@ -1222,9 +1220,6 @@ export async function internalRoutes(app: App): Promise<void> {
       },
     },
     async (request, reply) => {
-      const header = request.headers.authorization;
-      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
-      if (!tokenMatches(presented)) return reply.code(401).send({ error: "unauthorised" as const });
       const { id } = request.params;
       const done = await db.transaction().execute(async (trx) => {
         const job = await trx
@@ -1253,7 +1248,7 @@ export async function internalRoutes(app: App): Promise<void> {
       },
     },
     async (request, reply) => {
-      const scope = await questionScope(request, request.body.jobId);
+      const scope = await questionScope(request.body.jobId);
       if (!scope) return reply.code(401).send({ error: "unauthorised" as const });
       const closed = await db.transaction().execute(async (trx) => {
         const q = await trx

@@ -7,6 +7,8 @@ be told apart from the process shutting down.
 """
 
 import asyncio
+import contextlib
+import dataclasses
 import json
 
 import httpx
@@ -14,6 +16,7 @@ import pytest
 
 from offload_agent.cancels import REMEMBER, Cancels
 from offload_agent.config import Config
+from offload_agent.queue import ClaimedJob
 from offload_agent.worker import ReportFailed, _post_result, _step_writer, _stopped
 
 
@@ -213,3 +216,145 @@ def test_the_sources_are_deduplicated_by_domain_and_bounded():
     wire = _web_wire(budget)
     assert [s["domain"] for s in wire["sources"]] == ["en.wikipedia.org", "timeanddate.com"]
     assert len(wire["sources"]) <= MAX_SOURCES
+
+
+class _Engine:
+    """Stands in for the database around the lane: every transaction is empty."""
+
+    @contextlib.asynccontextmanager
+    async def begin(self):
+        yield None
+
+
+async def _run_lane(monkeypatch, jobs: list, handle, config: Config) -> list[dict]:
+    """One lane, fed `jobs` in order by a stub claim, until they run out."""
+    from offload_agent import worker as worker_mod
+
+    stop = asyncio.Event()
+    posted: list[dict] = []
+
+    async def claim(*_args, **_kwargs):
+        if jobs:
+            return jobs.pop(0)
+        stop.set()
+        return None
+
+    async def reap(*_args, **_kwargs):
+        return None
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        posted.append(json.loads(request.read().decode()))
+        return httpx.Response(200, json={"status": "written"})
+
+    monkeypatch.setattr(worker_mod, "claim", claim)
+    monkeypatch.setattr(worker_mod, "reap", reap)
+    monkeypatch.setattr(worker_mod, "handle", handle)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        await asyncio.wait_for(
+            worker_mod._lane(
+                "test",
+                None,
+                cfg=config,
+                stop=stop,
+                engine=_Engine(),
+                anthropic=None,
+                http=http,
+                cancels=Cancels(),
+                worker_id="w",
+            ),
+            timeout=10,
+        )
+    return posted
+
+
+def _job(job_id: str, **kwargs) -> ClaimedJob:
+    fields = (
+        dict(kind="dump.answer", payload={}, account_id="a", attempts=1, max_attempts=5) | kwargs
+    )
+    return ClaimedJob(id=job_id, **fields)
+
+
+async def test_a_job_claimed_as_cancelled_is_stopped_and_never_run(monkeypatch):
+    """A Stop the listener missed is on the row, and the lane honours it the way
+    it honours one it heard: reported stopped, and the paid turn never starts."""
+    ran: list[str] = []
+
+    async def handle(job, **_):
+        ran.append(job.id)
+
+    posted = await _run_lane(monkeypatch, [_job("job-10", cancelled=True)], handle, cfg())
+
+    assert ran == []
+    assert posted == [{"outcome": "cancelled", "jobId": "job-10"}]
+
+
+async def test_a_turn_that_outlives_its_lock_fails_and_the_lane_carries_on(monkeypatch):
+    """A turn still running when its lock goes stale is claimed by the other
+    lane and runs twice at once. Bounded short of the lock, it ends as a
+    failure instead, and the lane takes the next job."""
+    from offload_agent import worker as worker_mod
+
+    released: list[tuple[str, str]] = []
+    ran: list[str] = []
+
+    async def release(_conn, job_id, reason, delay_seconds=2):
+        released.append((job_id, reason))
+
+    async def handle(job, **_):
+        ran.append(job.id)
+        if job.id == "job-11":
+            await asyncio.sleep(30)
+
+    monkeypatch.setattr(worker_mod, "release_for_retry", release)
+    # A minute short of the lock: one second.
+    config = dataclasses.replace(cfg(), stale_after_seconds=61)
+    await _run_lane(monkeypatch, [_job("job-11"), _job("job-12")], handle, config)
+
+    assert released == [("job-11", "timeout")]
+    assert ran == ["job-11", "job-12"]
+
+
+async def test_the_cancel_listener_reconnects_when_its_connection_drops(monkeypatch):
+    """A dropped connection used to leave `listen` waiting on `stop` for good,
+    so Stop did nothing until the worker restarted."""
+    from offload_agent import cancels as cancels_mod
+
+    monkeypatch.setattr(cancels_mod, "RETRY_SECONDS", 0)
+    connects: list[object] = []
+    stop = asyncio.Event()
+
+    class Driver:
+        def __init__(self) -> None:
+            self.lost = None
+
+        async def add_listener(self, _channel, _callback) -> None:
+            pass
+
+        def add_termination_listener(self, callback) -> None:
+            self.lost = callback
+
+    class Raw:
+        def __init__(self) -> None:
+            self.driver_connection = Driver()
+
+        def close(self) -> None:
+            pass
+
+    class Engine:
+        async def raw_connection(self):
+            raw = Raw()
+            connects.append(raw)
+            if len(connects) == 2:
+                stop.set()
+            return raw
+
+    listening = asyncio.create_task(cancels_mod.listen(Engine(), Cancels(), stop))
+    while not connects:
+        await asyncio.sleep(0)
+    await asyncio.sleep(0.05)
+    first = connects[0].driver_connection
+    assert first.lost is not None, "nothing hears the connection drop"
+    first.lost(first)
+
+    await asyncio.wait_for(listening, timeout=2)
+    assert len(connects) == 2

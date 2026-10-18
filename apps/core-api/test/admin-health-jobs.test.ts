@@ -151,9 +151,9 @@ describe("health.rollup", () => {
   const rows = () => db.selectFrom("job_stats_hourly").select(["kind", "outcome", "count", "wait_ms_sum", "wait_ms_p95", "run_ms_sum"]).orderBy("kind").orderBy("outcome").execute();
 
   it("closes each finished hour into counts per kind and outcome, with waits", async () => {
-    // All in the hour before this one. Due one minute before each finished,
-    // except one that waited three.
-    const finished = 61;
+    // All in a closed hour: past the hour and the two minutes it waits to
+    // close. Due one minute before each finished, except one that waited three.
+    const finished = 65;
     await job({ kind: "dump.answer", state: "done", due: finished + 1, updated: finished });
     await job({ kind: "dump.answer", state: "done", due: finished + 3, updated: finished });
     // A turn the worker closed as done with why it failed.
@@ -198,12 +198,25 @@ describe("health.rollup", () => {
   });
 
   it("is the same after a second run, and does not count an hour twice", async () => {
-    await job({ kind: "dump.answer", state: "done", due: 62, updated: 61 });
+    await job({ kind: "dump.answer", state: "done", due: 66, updated: 65 });
     await rollup();
     const first = await rows();
     await rollup();
     expect(await rows()).toEqual(first);
     expect(first[0]!.count).toBe(1);
+  });
+
+  it("counts a job that finished a second before the hour, after a run a second past it", async () => {
+    const hour = new Date(Math.floor(Date.now() / 3_600_000) * 3_600_000);
+    const at = (ms: number) => new Date(hour.getTime() + ms);
+    const finished = (when: Date) =>
+      sql`insert into jobs (kind, payload, state, run_after, updated_at) values ('dump.answer', '{}'::jsonb, 'done', ${when}, ${when})`.execute(db);
+    await finished(at(-30 * 60_000));
+    await rollup(at(1000));
+    // Its transaction began before the hour and committed after that run.
+    await finished(at(-1000));
+    await rollup(at(5 * 60_000));
+    expect((await rows()).map((row) => row.count)).toEqual([2]);
   });
 
   it("goes back 48 hours and no further", async () => {

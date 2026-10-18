@@ -11,6 +11,9 @@ import type { Invitation } from "./people";
 import type { Label } from "./labels";
 import type { LooseSummary } from "./loose";
 import type { Reminders } from "@offload/widgets";
+import { provisionalId } from "@offload/widgets";
+
+export { domainOf, isProvisional, provisionalId, rangeOf, startsAs } from "@offload/widgets";
 
 /** A request with no body.
  *
@@ -219,21 +222,6 @@ export interface Place {
   approximate: boolean;
 }
 
-/** The registrable domain of a URL, for a row that is a link.
- *
- *  The same string the source chip shows, and for the same reason: it is the
- *  part a person recognises, and it is ours rather than the page's. A title is
- *  written by whoever owns the page; a domain is not. */
-export function domainOf(url: string | null): string | null {
-  if (!url) return null;
-  try {
-    const host = new URL(url).hostname.toLowerCase();
-    return host.startsWith("www.") ? host.slice(4) : host;
-  } catch {
-    return null;
-  }
-}
-
 export interface ContentRow {
   id: string;
   type: string;
@@ -328,9 +316,16 @@ export interface ContentPage {
   nextCursor: string | null;
 }
 
+/** The response, or null when it was refused or never left. Offline is the
+ *  failure every caller of these already handles, not a throw. */
+export async function reach(url: string, init: RequestInit): Promise<Response | null> {
+  const response = await fetch(url, init).catch(() => null);
+  return response?.ok ? response : null;
+}
+
 async function get<T>(path: string): Promise<T | null> {
-  const response = await fetch(`${API}${path}`, send);
-  if (!response.ok) return null;
+  const response = await reach(`${API}${path}`, send);
+  if (!response) return null;
   return (await response.json()) as T;
 }
 
@@ -505,21 +500,21 @@ export async function editContent(
   id: string,
   patch: ContentPatch,
 ): Promise<Edited | null> {
-  const response = await fetch(`${API}/v1/content/${id}`, {
+  const response = await reach(`${API}/v1/content/${id}`, {
     ...json,
     method: "PATCH",
     body: JSON.stringify(patch),
   });
-  if (!response.ok) return null;
+  if (!response) return null;
   return (await response.json()) as Edited;
 }
 
 export async function setArchived(id: string, archived: boolean): Promise<boolean> {
-  const response = await fetch(
+  const response = await reach(
     `${API}/v1/content/${id}/${archived ? "archive" : "restore"}`,
     { ...send, method: "POST" },
   );
-  return response.ok;
+  return response !== null;
 }
 
 export interface Moved {
@@ -528,18 +523,18 @@ export interface Moved {
 }
 
 export async function moveContent(id: string, threadId: string): Promise<Moved | null> {
-  const response = await fetch(`${API}/v1/content/${id}/move`, {
+  const response = await reach(`${API}/v1/content/${id}/move`, {
     ...json,
     method: "POST",
     body: JSON.stringify({ threadId }),
   });
-  if (!response.ok) return null;
+  if (!response) return null;
   return (await response.json()) as Moved;
 }
 
 export async function deleteContent(id: string): Promise<boolean> {
-  const response = await fetch(`${API}/v1/content/${id}`, { ...send, method: "DELETE" });
-  if (!response.ok) return false;
+  const response = await reach(`${API}/v1/content/${id}`, { ...send, method: "DELETE" });
+  if (!response) return false;
   const body = (await response.json()) as { deleted: boolean };
   return body.deleted;
 }
@@ -560,35 +555,35 @@ export interface ThreadEdited {
 /** 2026-10-07. A thread made by hand, from the plus on My threads, with the
  *  name, icon and colour New thread showed. */
 export async function createThread(input: { name: string; icon: string; hue: number }): Promise<{ id: string; name: string } | null> {
-  const response = await fetch(`${API}/v1/threads`, {
+  const response = await reach(`${API}/v1/threads`, {
     ...json,
     method: "POST",
     body: JSON.stringify(input),
-  }).catch(() => null);
-  if (!response?.ok) return null;
+  });
+  if (!response) return null;
   return ((await response.json()) as { thread: { id: string; name: string } }).thread;
 }
 
 /** Edit thread's one write: the name, the icon and the hue, any of them.
  *  `previous` sent back whole is the Undo. */
 export async function editThread(id: string, change: Partial<ThreadMark>): Promise<ThreadEdited | null> {
-  const response = await fetch(`${API}/v1/threads/${id}`, {
+  const response = await reach(`${API}/v1/threads/${id}`, {
     ...json,
     method: "PATCH",
     body: JSON.stringify(change),
-  }).catch(() => null);
-  if (!response?.ok) return null;
+  });
+  if (!response) return null;
   return (await response.json()) as ThreadEdited;
 }
 
 /** Tick something off, or put it back. Any member; nothing is destroyed. */
 export async function completeContent(id: string, done: boolean): Promise<boolean> {
-  const response = await fetch(`${API}/v1/content/${id}/complete`, {
+  const response = await reach(`${API}/v1/content/${id}/complete`, {
     ...json,
     method: "POST",
     body: JSON.stringify({ done }),
   });
-  return response.ok;
+  return response !== null;
 }
 
 /** Change a priority. Doing this pins it, so offload stops guessing.
@@ -599,12 +594,12 @@ export async function setPriority(
   id: string,
   priority: number,
 ): Promise<{ previous: { priority: number; priorityPinned: boolean } } | null> {
-  const response = await fetch(`${API}/v1/content/${id}/priority`, {
+  const response = await reach(`${API}/v1/content/${id}/priority`, {
     ...json,
     method: "POST",
     body: JSON.stringify({ priority }),
   });
-  if (!response.ok) return null;
+  if (!response) return null;
   return (await response.json()) as { previous: { priority: number; priorityPinned: boolean } };
 }
 
@@ -614,12 +609,12 @@ export async function setNotePriority(
   id: string,
   priority: number,
 ): Promise<{ previous: { priority: number } } | null> {
-  const response = await fetch(`${API}/v1/notes/${id}/priority`, {
+  const response = await reach(`${API}/v1/notes/${id}/priority`, {
     ...json,
     method: "POST",
     body: JSON.stringify({ priority }),
   });
-  if (!response.ok) return null;
+  if (!response) return null;
   return (await response.json()) as { previous: { priority: number } };
 }
 
@@ -643,32 +638,6 @@ export function typedAddress(text: string): string | null {
 // type. The
 // screen swaps the id for the real one when the write lands, and takes the
 // row away with a word if it does not.
-
-const PROVISIONAL = "provisional:";
-
-/** An id for a row that only this screen knows about yet. */
-export function provisionalId(): string {
-  return `${PROVISIONAL}${Math.random().toString(36).slice(2, 10)}`;
-}
-
-/** Whether a row is one this screen made up. Such a row offers nothing: no
- *  tick, no tools, no link, because there is nothing on the server to act on. */
-export function isProvisional(id: string): boolean {
-  return id.startsWith(PROVISIONAL);
-}
-
-/** What a section's + writes, mirroring the server's own table. A sentence
- *  with no widget type to start as is a note. */
-export function startsAs(section: string): "task" | "location" | "event" | null {
-  switch (section) {
-    case "todo":
-      return "task";
-    case "timeline":
-      return "event";
-    default:
-      return null;
-  }
-}
 
 /** The row a quick add is about to be, drawn from the words alone. */
 export function provisionalRow(
@@ -746,12 +715,12 @@ export async function quickAdd(
   /** The rail's own day, and only that: the heading they pressed + on. */
   options?: { day?: string },
 ): Promise<{ id: string; kind: "content" | "note" } | null> {
-  const response = await fetch(`${API}/v1/threads/${threadId}/quick-add`, {
+  const response = await reach(`${API}/v1/threads/${threadId}/quick-add`, {
     ...json,
     method: "POST",
     body: JSON.stringify({ text, section, ...options }),
   });
-  if (!response.ok) return null;
+  if (!response) return null;
   return (await response.json()) as { id: string; kind: "content" | "note" };
 }
 
@@ -760,12 +729,12 @@ export async function addNote(
   threadId: string,
   text: string,
 ): Promise<{ note: Note } | null> {
-  const response = await fetch(`${API}/v1/threads/${threadId}/notes`, {
+  const response = await reach(`${API}/v1/threads/${threadId}/notes`, {
     ...json,
     method: "POST",
     body: JSON.stringify({ text }),
   });
-  if (!response.ok) return null;
+  if (!response) return null;
   return (await response.json()) as { note: Note };
 }
 
@@ -776,39 +745,39 @@ export async function editNote(
   text: string,
   body?: string | null,
 ): Promise<{ note: Note; previous: string } | null> {
-  const response = await fetch(`${API}/v1/notes/${id}`, {
+  const response = await reach(`${API}/v1/notes/${id}`, {
     ...json,
     method: "PATCH",
     body: JSON.stringify(body === undefined ? { text } : { text, body }),
   });
-  if (!response.ok) return null;
+  if (!response) return null;
   return (await response.json()) as { note: Note; previous: string };
 }
 
 /** Delete. The author's alone, per OFF-3, which is why the control only
  *  renders on your own. */
 export async function deleteNote(id: string): Promise<boolean> {
-  const response = await fetch(`${API}/v1/notes/${id}`, { ...send, method: "DELETE" });
-  if (!response.ok) return false;
+  const response = await reach(`${API}/v1/notes/${id}`, { ...send, method: "DELETE" });
+  if (!response) return false;
   return ((await response.json()) as { deleted: boolean }).deleted;
 }
 
 /** Undo the delete. */
 export async function restoreNote(id: string): Promise<boolean> {
-  const response = await fetch(`${API}/v1/notes/${id}/restore`, { ...send, method: "POST" });
-  return response.ok;
+  const response = await reach(`${API}/v1/notes/${id}/restore`, { ...send, method: "POST" });
+  return response !== null;
 }
 
 /** Mute or unmute. Any member, thread-wide. What everybody who is not the
  *  author gets instead of delete: it stops the note reaching offload without
  *  destroying something somebody else wrote. */
 export async function muteNote(id: string, muted: boolean): Promise<boolean> {
-  const response = await fetch(`${API}/v1/notes/${id}/mute`, {
+  const response = await reach(`${API}/v1/notes/${id}/mute`, {
     ...json,
     method: "POST",
     body: JSON.stringify({ muted }),
   });
-  return response.ok;
+  return response !== null;
 }
 
 /** What the daily job folded. Read, not worked with: there is no restore.
@@ -819,8 +788,8 @@ export async function foldedNotes(
   cursor?: string | null,
 ): Promise<{ notes: Note[]; cursor: string | null } | null> {
   const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
-  const response = await fetch(`${API}/v1/threads/${threadId}/notes/folded${query}`, send);
-  if (!response.ok) return null;
+  const response = await reach(`${API}/v1/threads/${threadId}/notes/folded${query}`, send);
+  if (!response) return null;
   return (await response.json()) as { notes: Note[]; cursor: string | null };
 }
 
@@ -831,15 +800,15 @@ export async function foldedNotes(
 export async function deleteThread(
   id: string,
 ): Promise<{ left: boolean; deleted: boolean } | null> {
-  const response = await fetch(`${API}/v1/threads/${id}`, { ...send, method: "DELETE" });
-  if (!response.ok) return null;
+  const response = await reach(`${API}/v1/threads/${id}`, { ...send, method: "DELETE" });
+  if (!response) return null;
   return (await response.json()) as { left: boolean; deleted: boolean };
 }
 
 /** Undo, inside the eight seconds. After that the purge job has taken it. */
 export async function restoreThread(id: string): Promise<boolean> {
-  const response = await fetch(`${API}/v1/threads/${id}/restore`, { ...send, method: "POST" });
-  return response.ok;
+  const response = await reach(`${API}/v1/threads/${id}/restore`, { ...send, method: "POST" });
+  return response !== null;
 }
 
 export async function setPreference(
@@ -849,25 +818,10 @@ export async function setPreference(
     hideDone?: boolean | null;
   },
 ): Promise<boolean> {
-  const response = await fetch(`${API}/v1/threads/${threadId}/preference`, {
+  const response = await reach(`${API}/v1/threads/${threadId}/preference`, {
     ...json,
     method: "PATCH",
     body: JSON.stringify(patch),
   });
-  return response.ok;
-}
-
-/** A span of the day in the kit's shape: the meridiem once, on the end, so
- *  the time column stays even, and "to" between, never a dash. */
-export function rangeOf(startIso: string, endIso: string | null): string {
-  const format = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
-  const clock = (iso: string, meridiem: boolean) =>
-    format
-      .formatToParts(new Date(iso))
-      .filter((part) => meridiem || part.type !== "dayPeriod")
-      .map((part) => (part.type === "dayPeriod" ? part.value.toLowerCase() : part.value))
-      .join("")
-      .replace(/\s+(am|pm)$/, "$1")
-      .trim();
-  return endIso ? `${clock(startIso, false)} to ${clock(endIso, true)}` : clock(startIso, true);
+  return response !== null;
 }

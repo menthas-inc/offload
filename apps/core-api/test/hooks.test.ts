@@ -2,8 +2,8 @@
 //
 // T-AC5: a refusal has no side effects. No account, no identity row, nothing
 //        that makes a second attempt behave differently from the first.
-// T-AC9: disabling an account stops an existing session at its next refresh,
-//        not at token expiry.
+// T-AC9: a session that commits after its account was disabled is deleted
+//        straight away, so the disable's own session delete cannot be raced.
 //
 // These call the hooks off auth.options directly. That is deliberate: a test
 // that reimplements the decision proves the test, and a full OAuth round trip
@@ -96,9 +96,31 @@ describe("AC-5 a refusal creates no identity row", () => {
   });
 });
 
-describe("AC-9 a session is not issued or extended for an account that may not hold one", () => {
+describe("AC-9 a session is not issued to, or kept by, an account that may not hold one", () => {
   const create = () => hooks.session!.create!.before!;
-  const update = () => hooks.session!.update!.before!;
+  const created = () => hooks.session!.create!.after!;
+
+  // A real row, because the after-hook runs once the insert has committed and
+  // what it is given is that row.
+  async function issued(accountId: string) {
+    return db
+      .insertInto("sessions")
+      .values({ account_id: accountId, token: uuidv7(), expires_at: new Date(Date.now() + 60_000) })
+      .returning(["id", "token", "expires_at"])
+      .executeTakeFirstOrThrow();
+  }
+
+  const asCreated = (accountId: string, row: { id: string; token: string; expires_at: Date }) => ({
+    id: row.id,
+    userId: accountId,
+    token: row.token,
+    expiresAt: row.expires_at,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  const stillThere = async (id: string) =>
+    (await db.selectFrom("sessions").select("id").where("id", "=", id).executeTakeFirst()) !== undefined;
 
   it("refuses to issue one for a waitlisted account", async () => {
     const id = await account("waiting@example.com", "waitlist");
@@ -110,25 +132,29 @@ describe("AC-9 a session is not issued or extended for an account that may not h
     await expect(create()(session(id) as any)).resolves.not.toBe(false);
   });
 
-  it("refuses to extend a live session once the account is disabled", async () => {
-    const id = await account("live@example.com", "active");
-    const live = session(id);
-
-    await expect(update()(live as any)).resolves.not.toBe(false);
-
-    await db.updateTable("accounts").set({ state: "disabled" }).where("id", "=", id).execute();
-
-    // The refresh is where a session that should have died gets its extension,
-    // so refusing here is what makes disabling take effect in minutes rather
-    // than at the end of a thirty day cookie.
-    await expect(update()(live as any)).resolves.toBe(false);
+  it("deletes a session that committed after its account was disabled", async () => {
+    // The race: the sign-in passed create.before, the account was disabled and
+    // its sessions deleted, and then this insert committed. Nothing else would
+    // ever remove it, and it would be good for thirty days.
+    const id = await account("raced@example.com", "disabled");
+    const row = await issued(id);
+    await created()(asCreated(id, row) as any);
+    expect(await stillThere(row.id)).toBe(false);
   });
 
-  it("refuses to extend a session whose account was deleted", async () => {
+  it("deletes a session that committed after its account was deleted", async () => {
     const id = await account("erased@example.com", "active");
-    const live = session(id);
     await db.updateTable("accounts").set({ deleted_at: new Date() }).where("id", "=", id).execute();
-    await expect(update()(live as any)).resolves.toBe(false);
+    const row = await issued(id);
+    await created()(asCreated(id, row) as any);
+    expect(await stillThere(row.id)).toBe(false);
+  });
+
+  it("keeps the session of an active account", async () => {
+    const id = await account("live@example.com", "active");
+    const row = await issued(id);
+    await created()(asCreated(id, row) as any);
+    expect(await stillThere(row.id)).toBe(true);
   });
 });
 

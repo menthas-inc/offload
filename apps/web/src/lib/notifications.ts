@@ -5,7 +5,7 @@
 // sends is worth opening it for. It reads the record and holds the same
 // switches. 024's agenda read went with 027: Today reads `lib/today.ts`.
 
-import { activityGlyph, activityTag, addUtcDays, dayIn, type ActivityKind } from "@offload/widgets";
+import { activityGlyph, activityTag, dayIn, digestDay, type ActivityKind } from "@offload/widgets";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
@@ -76,9 +76,8 @@ export function doorOf(row: ActivityEntry, zone: string | null = null, today: st
     // evening one named tomorrow, so it opens that day, the row's own day in
     // the account's zone plus one, and Today once that day has come.
     case "digest": {
-      if (row.send !== "evening") return "/today";
-      const named = addUtcDays(dayIn(new Date(row.occurredAt), zone), 1);
-      return named > today ? `/today?day=${named}` : "/today";
+      const day = digestDay(row, zone, today);
+      return day ? `/today?day=${day}` : "/today";
     }
     case "request":
       return "/settings/people";

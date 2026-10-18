@@ -72,3 +72,13 @@ def test_the_prompt_says_how_to_date_and_never_their_own_birthday():
     assert "## Dates that come round every year" in prompt
     assert "their own birthday" in prompt
     assert "`dates`" in prompt
+
+
+def test_a_date_no_year_has_is_refused():
+    """02-30 passed the pattern and the Core API refused the whole pass."""
+    date = memories.Dated.model_validate
+    for bad in ("02-30", "04-31", "02-31"):
+        with pytest.raises(ValidationError):
+            date({"id": "k1", "on": bad, "lead": "none", "name": "x"})
+    for good in ("02-29", "12-31"):
+        assert date({"id": "k1", "on": good, "lead": "none", "name": "x"}).on == good

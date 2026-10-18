@@ -16,6 +16,7 @@ on its own line, so words inside one cannot pass for another.
 
 from __future__ import annotations
 
+import datetime
 import json
 import time
 from typing import Literal
@@ -23,13 +24,21 @@ from typing import Literal
 import httpx
 import structlog
 from anthropic import AsyncAnthropic
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from sqlalchemy import text
 
 from offload_agent import ledger
 from offload_agent.config import Config
-from offload_agent.context import QUERY_LONGEST, Embedder, memories_for, query_words, today_line
+from offload_agent.context import (
+    QUERY_LONGEST,
+    Embedder,
+    known_zone,
+    memories_for,
+    query_words,
+    today_line,
+)
 from offload_agent.embed import query_embedder
+from offload_agent.nightly import post_usage
 from offload_agent.prompt_files import load
 from offload_agent.queue import ClaimedJob, finish, retry_or_die
 
@@ -52,7 +61,9 @@ _ACCOUNT = text("select time_zone from accounts where id = cast(:account_id as u
 # there before anything is applied.
 _MESSAGES = text(
     """
-    select m.id::text as id, to_char(m.created_at, 'YYYY-MM-DD') as day,
+    select m.id::text as id,
+           to_char(m.created_at at time zone coalesce(cast(:zone as text), 'UTC'), 'YYYY-MM-DD')
+             as day,
            said(m.text, m.transcript) as text
       from messages m
      where m.account_id = cast(:account_id as uuid)
@@ -77,7 +88,9 @@ _MESSAGES = text(
 # somebody else's words.
 _NOTES = text(
     """
-    select n.id::text as id, n.text as text, to_char(n.created_at, 'YYYY-MM-DD') as day
+    select n.id::text as id, n.text as text,
+           to_char(n.created_at at time zone coalesce(cast(:zone as text), 'UTC'), 'YYYY-MM-DD')
+             as day
       from notes n
      where n.scope = 'thread'
        and n.account_id = cast(:account_id as uuid)
@@ -111,6 +124,8 @@ _TO_DATE = text(
 
 Kind = Literal["people", "things", "about", "patterns"]
 
+# An id is any short string here and at the Core API, which matches each entry
+# against the rows the pass was shown and ignores one that names none of them.
 
 class Add(BaseModel):
     kind: Kind
@@ -136,6 +151,13 @@ class Dated(BaseModel):
     on: str = Field(pattern=r"^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$")
     lead: Literal["none", "days", "weeks", "months"]
     name: str = Field(min_length=1, max_length=60)
+
+    @field_validator("on")
+    @classmethod
+    def _a_day_some_year_has(cls, value: str) -> str:
+        # 2000 is a leap year, so 02-29 stands; 02-30 raises, as the route would.
+        datetime.date(2000, int(value[:2]), int(value[3:]))
+        return value
 
 
 class MemoryPlan(BaseModel):
@@ -238,6 +260,8 @@ async def _ask(
             tool_choice={"type": "tool", "name": "memory"},
         )
         usage.append(ledger.usage_of(model, response.usage, started))
+        # Into the job's sink too, so an unusable pass still posts it.
+        ledger.record(usage[-1])
         block = next((one for one in response.content if one.type == "tool_use"), None)
         if block is None:
             if attempt == 0:
@@ -283,9 +307,11 @@ async def read(
 
     040. The messages first: the memories it is shown are the fifty nearest
     what the person said, their own before learned, as a turn's are."""
-    params = {"account_id": account_id}
-    account = (await conn.execute(_ACCOUNT, params)).mappings().first()
-    today = await today_line(conn, account["time_zone"] if account else None)
+    account = (await conn.execute(_ACCOUNT, {"account_id": account_id})).mappings().first()
+    zone = account["time_zone"] if account else None
+    today = await today_line(conn, zone)
+    # Every date in the prompt is read in the zone today is read in.
+    params = {"account_id": account_id, "zone": known_zone(zone)}
     notes = list((await conn.execute(_NOTES, {**params, "limit": NOTE_CAP})).mappings().all())
     messages = list(
         (await conn.execute(_MESSAGES, {**params, "limit": MESSAGE_CAP})).mappings().all()
@@ -332,6 +358,7 @@ async def handle_memories(
         listing(today=today, memories=memories, notes=notes, messages=messages, to_date=to_date),
     )
     if plan is None:
+        await post_usage(http, cfg, job.id)
         async with engine.begin() as conn:
             await retry_or_die(conn, job, "memory_unparseable", delay_seconds=3600)
         return

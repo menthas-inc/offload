@@ -15,6 +15,9 @@ export const ERROR_CODES = [
   "stale",
   "nightly_error",
   "nightly_unparseable",
+  // 038. The memory pass.
+  "memory_error",
+  "memory_unparseable",
   "link_place_error",
   "forget_error",
   "embed_error",

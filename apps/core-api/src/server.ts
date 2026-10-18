@@ -95,7 +95,7 @@ const shutdown = async (signal: string): Promise<void> => {
   clearInterval(heartbeats);
   // The runner first: it holds claimed rows, and stopping it before the pool
   // closes lets the job in flight finish against a live connection.
-  runner.stop();
+  await runner.stop();
   await app.close();
   await closeDb();
   process.exit(0);

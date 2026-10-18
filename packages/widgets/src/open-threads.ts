@@ -8,9 +8,9 @@
 // read dropped for another reason (a date given in the row sheet) give up
 // their place.
 
+import { DAY_MS } from "./days.js";
 import type { ChipKey } from "./loose.js";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
 

@@ -1401,7 +1401,13 @@ async def load_answer(
         country=(switches.country if switches else None),
         today=today,
         time_zone=time_zone,
-        turns=[Turn(role=r.role, text=r.text) for r in reversed(turn_rows)],
+        turns=[
+            Turn(
+                role=r.role,
+                text=turn_text(r.text, int(r.photos or 0), r.photo_titles, int(r.pdfs or 0)),
+            )
+            for r in reversed(turn_rows)
+        ],
         country_override=country_override,
         looking_at=looking_at,
         looking_at_notes=looking_at_notes,

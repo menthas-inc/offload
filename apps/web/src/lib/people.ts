@@ -14,21 +14,7 @@ export interface Person {
   initials: string;
 }
 
-/** What a sentence calls a person with no name. Never invents a letter. */
-export function nameOf(person: { displayName: string | null }): string {
-  return person.displayName ?? "Someone";
-}
-
-export function firstNameOf(person: { displayName: string | null }): string {
-  return nameOf(person).split(/\s+/)[0] ?? "Someone";
-}
-
-/** "4 Aug", as the design writes a date on a person row and as Connected
- *  apps already writes one. */
-export function dayMonth(iso: string): string {
-  const at = new Date(iso);
-  return `${at.getDate()} ${at.toLocaleString("en-GB", { month: "short" })}`;
-}
+export { dayMonth, firstNameOf, nameOf, stateOfLookup } from "@offload/widgets";
 
 export function avatarUrl(accountId: string): string {
   return `${API}/v1/avatars/${accountId}.png`;
@@ -81,13 +67,6 @@ export async function lookup(email: string): Promise<Lookup> {
 export const LOOKUP_LIMITED = "Too many lookups. Try again in a few minutes.";
 
 export type LookupState = { kind: "found"; found: Found } | { kind: "none" } | { kind: "limited" } | { kind: "failed" };
-
-/** What the connect step draws for a lookup's answer. As the phones'. */
-export function stateOfLookup(result: Lookup): LookupState {
-  if (result.kind === "rate_limited") return { kind: "limited" };
-  if (result.kind === "failed") return { kind: "failed" };
-  return result.found ? { kind: "found", found: result.found } : { kind: "none" };
-}
 
 export type RequestOutcome =
   | { ok: true; requestId: string; since: string }

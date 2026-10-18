@@ -50,7 +50,7 @@ from offload_agent.link_place import handle_link_place
 from offload_agent.memories import KINDS as MEMORY_KINDS
 from offload_agent.memories import handle_memories
 from offload_agent.nightly import KINDS as NIGHTLY_KINDS
-from offload_agent.nightly import handle_nightly
+from offload_agent.nightly import handle_nightly, post_usage
 from offload_agent.og import page, picture
 from offload_agent.queue import (
     INTERACTIVE,
@@ -1060,6 +1060,8 @@ async def _handle(
             await handle_memories(job, cfg=cfg, engine=engine, http=http, client=anthropic)
         except Exception as exc:  # noqa: BLE001
             log.error("memory pass failed", kind=job.kind, error=type(exc).__name__)
+            # A call made before the failure was still paid for.
+            await post_usage(http, cfg, job.id)
             async with engine.begin() as conn:
                 await retry_or_die(conn, job, "memory_error", delay_seconds=3600)
         return
@@ -1076,6 +1078,8 @@ async def _handle(
             # an SDK exception can echo the request body, and the request body
             # here is somebody's notes and dumps (OFF-1).
             log.error("nightly failed", kind=job.kind, error=type(exc).__name__)
+            # A call made before the failure was still paid for.
+            await post_usage(http, cfg, job.id)
             async with engine.begin() as conn:
                 await retry_or_die(conn, job, "nightly_error", delay_seconds=3600)
         return
@@ -1105,7 +1109,7 @@ async def _handle(
                 "forget failed", job_id=job.id, attempt=job.attempts, error_type=type(exc).__name__
             )
             async with engine.begin() as conn:
-                await release_for_retry(conn, job.id, "forget_error", delay_seconds=300)
+                await retry_or_die(conn, job, "forget_error", delay_seconds=300)
         return
 
     if job.kind in EMBED_KINDS:
@@ -1135,7 +1139,17 @@ async def _handle(
             # 014, in the identical line it had just written.
             log.error("embed failed", kind=job.kind, error=type(exc).__name__)
             async with engine.begin() as conn:
-                await release_for_retry(conn, job.id, "embed_error", delay_seconds=300)
+                await retry_or_die(conn, job, "embed_error", delay_seconds=300)
+        return
+
+    # **Past its attempts, the turn is not run again.** Only one path gets a
+    # dump here: `_give_up_or_retry` releasing it because even the failure
+    # could not be posted. Without this the next claim re-ran the whole paid
+    # turn every thirty seconds of an outage. `model_error` because the Core
+    # API takes no `undeliverable`, and the reason the turn failed went with
+    # the release.
+    if job.attempts > job.max_attempts:
+        await _give_up_or_retry(job, "model_error", cfg=cfg, engine=engine, http=http)
         return
 
     payload = job.payload
@@ -1150,6 +1164,7 @@ async def _handle(
         )
         return
 
+    budget: Lookups | None = None
     try:
         # 021. **The words first.** A voice note has no words until the
         # provider has written them down, and everything below, the classifier
@@ -1530,7 +1545,14 @@ async def _handle(
             await retry_or_die(conn, job, "undeliverable", delay_seconds=delay)
     except InvalidOutput:
         log.warning("model output invalid", job_id=job.id, attempt=job.attempts)
-        await _give_up_or_retry(job, "invalid_output", cfg=cfg, engine=engine, http=http)
+        await _give_up_or_retry(
+            job,
+            "invalid_output",
+            cfg=cfg,
+            engine=engine,
+            http=http,
+            lookups=budget.rows if budget else None,
+        )
     except Exception as exc:  # noqa: BLE001
         # The type, never the message. An SDK exception can embed the request
         # body, which is the person's dump, and this line would carry it into a
@@ -1544,7 +1566,14 @@ async def _handle(
             error_type=type(exc).__name__,
             error_module=type(exc).__module__,
         )
-        await _give_up_or_retry(job, "model_error", cfg=cfg, engine=engine, http=http)
+        await _give_up_or_retry(
+            job,
+            "model_error",
+            cfg=cfg,
+            engine=engine,
+            http=http,
+            lookups=budget.rows if budget else None,
+        )
 
 
 _RENDITIONS_STATE = text(
@@ -1793,7 +1822,9 @@ def _web_wire(budget: "Lookups | None") -> dict:
 
     seen: dict[str, dict] = {}
     for source in budget.sources:
-        seen.setdefault(source["domain"], source)
+        # The route's rule: https only, at most 2000 characters.
+        if source["url"].startswith("https://") and len(source["url"]) <= 2000:
+            seen.setdefault(source["domain"], source)
 
     return {
         "sources": list(seen.values())[:MAX_SOURCES],
@@ -2077,15 +2108,22 @@ async def _stopped(job: ClaimedJob, *, cfg: Config, engine, http: httpx.AsyncCli
         log.info("turn stopped", job_id=job.id)
     except ReportFailed:
         # **Nothing else to do, and deliberately no retry.** The person's screen
-        # already moved on when they pressed it, and the Core API has the job
-        # marked cancelled either way, so the turn settles from that rather than
-        # from this post. Releasing it would put the cancelled job back in the
-        # queue, which is the one thing that must not happen here.
+        # already moved on when they pressed it. Releasing it would put the
+        # cancelled job back in the queue, which is the one thing that must not
+        # happen here. The row stays `running` with `cancelled_at` set, and once
+        # its lock goes stale the claim reads that and this runs again, while it
+        # has attempts left; the turn is never run.
         log.error("stop undeliverable", job_id=job.id)
 
 
 async def _give_up_or_retry(
-    job: ClaimedJob, reason: str, *, cfg: Config, engine, http: httpx.AsyncClient
+    job: ClaimedJob,
+    reason: str,
+    *,
+    cfg: Config,
+    engine,
+    http: httpx.AsyncClient,
+    lookups: list[dict] | None = None,
 ) -> None:
     """One retry, then tell the person.
 
@@ -2102,7 +2140,17 @@ async def _give_up_or_retry(
         return
 
     try:
-        await _post_result(http, cfg, {"outcome": "failed", "jobId": job.id, "reason": reason})
+        await _post_result(
+            http,
+            cfg,
+            {
+                "outcome": "failed",
+                "jobId": job.id,
+                "reason": reason,
+                # What the turn searched before failing was still paid for.
+                **({"lookups": lookups} if lookups else {}),
+            },
+        )
     except ReportFailed:
         # Even the failure could not be delivered. Same treatment: release it
         # rather than leave it locked, and it terminates on its own once the
@@ -2152,8 +2200,11 @@ async def _lane(
 
             # **Cancelled before it was claimed.** The notification and the
             # claim race, and this is the half of the race the listener
-            # cannot win: the job is already ours before the id arrives.
-            if cancels.asked(str(job.id)):
+            # cannot win: the job is already ours before the id arrives. The
+            # row says so too, which covers a Stop the listener never heard:
+            # during a deploy, while it was reconnecting, or one whose report
+            # failed and whose row came back after the stale timeout.
+            if job.cancelled or cancels.asked(str(job.id)):
                 await _stopped(job, engine=engine, http=http, cfg=cfg)
                 cancels.done(str(job.id))
                 continue
@@ -2167,7 +2218,19 @@ async def _lane(
             )
             cancels.watching(str(job.id), running)
             try:
-                await running
+                # **A minute short of the lock going stale.** Nothing renews
+                # it, so a turn still running past it is claimed again by the
+                # other lane and runs twice at once. Cancelling `running` is
+                # what the timeout does, and it lands here as TimeoutError.
+                async with asyncio.timeout(cfg.stale_after_seconds - 60):
+                    await running
+            except TimeoutError:
+                log.error("job timed out", job_id=job.id, kind=job.kind)
+                if job.kind == "dump.answer":
+                    await _give_up_or_retry(job, "timeout", cfg=cfg, engine=engine, http=http)
+                else:
+                    async with engine.begin() as conn:
+                        await retry_or_die(conn, job, "timeout", delay_seconds=300)
             except asyncio.CancelledError:
                 # **Ours, not the loop's.** A cancel aimed at this job must
                 # not read as a shutdown, so it is caught here and the worker
@@ -2282,6 +2345,7 @@ async def _handle_answer(
     assert job.account_id is not None
 
     say = _step_writer(http, cfg, job.id)
+    budget: Lookups | None = None
 
     try:
         async with engine.connect() as conn:
@@ -2333,8 +2397,8 @@ async def _handle_answer(
                 **_web_wire(budget),
                 # The rows the answer showed, as ids. The reply resolves them
                 # when it is read, so a row ticked or deleted later is never
-                # stale in an old answer.
-                "found": outcome.found,
+                # stale in an old answer. Three, the turn-result route's cap.
+                "found": outcome.found[:3],
                 **({"questions": _questions_wire(outcome)} if outcome.questions else {}),
             },
         )
@@ -2348,7 +2412,15 @@ async def _handle_answer(
     except Exception as exc:  # noqa: BLE001
         log.error("answer failed", job_id=job.id, error_type=type(exc).__name__)
         await _post_result(
-            http, cfg, {"outcome": "failed", "jobId": job.id, "reason": "model_error"}
+            http,
+            cfg,
+            {
+                "outcome": "failed",
+                "jobId": job.id,
+                "reason": "model_error",
+                # What it searched before failing was still paid for.
+                **({"lookups": budget.rows} if budget and budget.rows else {}),
+            },
         )
 
 

@@ -23,6 +23,8 @@ import { scheduleFullSyncs, scheduleNextSync, superviseSyncs, syncConnection } f
 import { buildCopy } from "../exports/build.js";
 import { destroyParts, removeParts } from "../exports/copy.js";
 import { enqueue, PRIORITY, scheduleDaily, scheduleHourly } from "./queue.js";
+import { databaseNow } from "./clock.js";
+import { JobError } from "./errors.js";
 import { purgeActivity } from "../notifications/activity.js";
 import { forgetPendingWrites } from "../connectors/tool-calls.js";
 import { purgeLabelRuns, purgeLabels } from "../threads/labels.js";
@@ -62,9 +64,10 @@ const waitlistJoined: Handler = async (_payload, { mailer }, accountId) => {
   // and this handler read the payload for a while against it.
   if (!accountId) throw new Error("waitlist_joined job has no account");
 
-  // Claim the send before making it. If the send then fails the job retries and
-  // finds nothing to claim, which loses one email; sending twice to someone who
-  // did not ask is the worse failure of the two.
+  // Claim the send before making it. If the send then fails in a way that may
+  // have landed, the job retries and finds nothing to claim, which loses one
+  // email; sending twice to someone who did not ask is the worse failure of
+  // the two. A send the mail company refused gives the claim back.
   const claimed = await db
     .updateTable("accounts")
     .set({ waitlist_email_sent_at: new Date() })
@@ -84,8 +87,18 @@ const waitlistJoined: Handler = async (_payload, { mailer }, accountId) => {
       body: "offload is invite only while it is still small. We will email you when your account is ready to use.",
       footer: `You are receiving this because you asked to join offload at ${new URL(env.WEB_URL).host}.`,
     },
-  });
+  }).catch((error: unknown) => giveBack(error, accountId, "waitlist_email_sent_at"));
 };
+
+/** A send the mail company answered with a refusal did not land, so its claim
+ *  goes back and the retry sends it. Any other failure may have landed, and
+ *  keeps the claim. */
+async function giveBack(error: unknown, accountId: string, column: "waitlist_email_sent_at" | "invite_email_sent_at"): Promise<never> {
+  if (error instanceof JobError && error.code === "mail_failed") {
+    await db.updateTable("accounts").set({ [column]: null }).where("id", "=", accountId).execute();
+  }
+  throw error;
+}
 
 /** The invite. The one email in this product that someone is waiting for, so
  *  it is the one that carries a link rather than only news.
@@ -120,13 +133,9 @@ const invited: Handler = async (_payload, { mailer }, accountId) => {
       buttonUrl: `${env.WEB_URL}/sign-in`,
       footer: `You are receiving this because you joined the offload waitlist at ${new URL(env.WEB_URL).host}.`,
     },
-  });
+  }).catch((error: unknown) => giveBack(error, accountId, "invite_email_sent_at"));
 };
 
-/** 035. The notice that an account was deleted.
- *
- *  The address comes from the payload: the account is gone, so there is no row
- *  to read it from, and nothing else about the person is in the job. */
 /** "3 October 2026 at 18:34 UTC", in the account's zone when it had one. A
  *  zone the runtime does not know falls back to UTC rather than failing the
  *  one mail that cannot be sent again. */
@@ -152,6 +161,10 @@ function deletedWhen(at: Date, zone: string | null): string {
   }
 }
 
+/** 035. The notice that an account was deleted.
+ *
+ *  The address comes from the payload: the account is gone, so there is no row
+ *  to read it from, and nothing else about the person is in the job. */
 const accountDeleted: Handler = async (payload, { mailer }) => {
   const id = typeof payload["id"] === "string" ? payload["id"] : null;
   const sealed = typeof payload["to"] === "string" ? payload["to"] : null;
@@ -292,9 +305,9 @@ const connectorRevoke: Handler = async () => {
     }
   }
   console.log(JSON.stringify({ level: "info", msg: "grants revoked", revoked: waiting.length - left, waiting: left }));
-  if (left > 0) {
-    await enqueue({ kind: "connector.revoke", payload: {}, priority: PRIORITY.background, runAfterSeconds: 3600 });
-  }
+  // Keyed on the hour: every account deletion starts a run, and an unkeyed
+  // re-arm made each of them a chain of its own.
+  if (left > 0) await scheduleHourly("connector.revoke");
 };
 
 /** How much one run of a purge destroys before it books the next run.
@@ -752,6 +765,9 @@ const embedSweep: Handler = async () => {
  */
 const accountDaily: Handler = async () => {
   await scheduleDaily("account.daily");
+  // 038. For every account, quiet ones too: what the privacy page says of a
+  // memory whose source is gone holds whether or not they came back today.
+  await sweepMemories();
 
   const since = new Date(Date.now() - 25 * 60 * 60 * 1000);
   const accounts = await db
@@ -949,11 +965,10 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
     }
   }
 
-  // 038. What offload knows about the person across their threads: a learned
-  // memory whose source is gone goes with it, then one pass when they said
-  // anything of their own since the last. Booked after the thread passes and
-  // not waiting on them: it reads their notes as they are when it runs.
-  await sweepMemories(accountId);
+  // 038. What offload knows about the person across their threads: one pass
+  // when they said anything of their own since the last. Booked after the
+  // thread passes and not waiting on them: it reads their notes as they are
+  // when it runs.
   if (mayBook && (await passOwed(db, accountId))) {
     await enqueue({
       kind: "account.memories",
@@ -980,19 +995,6 @@ const blobLocate: Handler = async (payload) => {
   console.log(JSON.stringify({ level: "info", msg: "blob located", blobId, outcome }));
 };
 
-/** The photo chain's daily tick.
- *
- *  Two things `content.purge` cannot be relied on for, because it runs only
- *  when something is deleted: an upload nobody sent on a day nobody deleted
- *  anything, which the sweep it triggers takes care of; and the towns for
- *  photos uploaded before `GOOGLE_MAPS_API_KEY` was set, which `blob.locate`
- *  is enqueued for only at rendition time. With the key set, up to
- *  `LOCATE_BACKFILL` blobs a day whose rounded pair is not yet in the cache
- *  get a job, keyed on the blob and the day so a pending one is never
- *  doubled and a provider that was down is asked again tomorrow. A pair
- *  the provider could not name is in the cache with no town and is not
- *  asked about again. Ids only, in the payload and the log. */
-const LOCATE_BACKFILL = 200;
 /** 022. One sweep a day over the people tables, and 027's put-off cards
  *  whose day has passed. */
 const peopleDaily: Handler = async () => {
@@ -1004,9 +1006,15 @@ const peopleDaily: Handler = async () => {
 // 024. The hourly placer, and the digest it places.
 const digestSchedule: Handler = async () => {
   await scheduleHourly("digest.schedule");
-  const placed = await scheduleDigests();
+  // From the top of the hour, not from when this runs: a pass that starts at
+  // 11:20 would otherwise place nothing for 11:00 to 11:20. A slot placed a
+  // little in the past runs at once, inside each send's own lateness bound,
+  // and the keys collapse anything placed twice. The hour is the database's,
+  // as `scheduleHourly`'s is.
+  const hour = new Date(Math.floor((await databaseNow()).getTime() / 3_600_000) * 3_600_000);
+  const placed = await scheduleDigests(hour);
   // 042. Reminders of their own falling in the same hour.
-  const own = await scheduleOwn();
+  const own = await scheduleOwn(hour);
   console.log(JSON.stringify({ level: "info", msg: "digests placed", placed, own }));
 };
 
@@ -1040,6 +1048,21 @@ const sharedActivity: Handler = async (payload) => {
   await notifySharedActivity(payload as { threadId: string; authorId: string; since: string });
 };
 
+/** The most blobs a day `blob.daily` asks a town for. */
+const LOCATE_BACKFILL = 200;
+
+/** The photo chain's daily tick.
+ *
+ *  Two things `content.purge` cannot be relied on for, because it runs only
+ *  when something is deleted: an upload nobody sent on a day nobody deleted
+ *  anything, which the sweep it triggers takes care of; and the towns for
+ *  photos uploaded before `GOOGLE_MAPS_API_KEY` was set, which `blob.locate`
+ *  is enqueued for only at rendition time. With the key set, up to
+ *  `LOCATE_BACKFILL` blobs a day whose rounded pair is not yet in the cache
+ *  get a job, keyed on the blob and the day so a pending one is never
+ *  doubled and a provider that was down is asked again tomorrow. A pair
+ *  the provider could not name is in the cache with no town and is not
+ *  asked about again. Ids only, in the payload and the log. */
 const blobDaily: Handler = async () => {
   await scheduleDaily("blob.daily");
   await enqueue({ kind: "content.purge", payload: {}, priority: PRIORITY.background });
@@ -1158,7 +1181,7 @@ const accountDelete: Handler = async (payload) => {
     .executeTakeFirst();
   if (!marked?.delete_requested_by) return;
   try {
-    const { deleted } = await deleteAccount(id);
+    const { deleted } = await deleteAccount(id, { onlyIfMarked: true });
     if (!deleted) return;
   } catch (error) {
     if (!(error instanceof LastOwner)) throw error;

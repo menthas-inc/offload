@@ -8,7 +8,7 @@
 // anything from mail, a calendar, a capture or an untrusted dump, and skips a
 // thing that is stopped, or held because somebody else set its date.
 
-import { dayIn, utcDay } from "@offload/widgets";
+import { dayIn, timeHM, utcDay } from "@offload/widgets";
 import { sql } from "kysely";
 import { db } from "../db.js";
 import type { Executor } from "../threads/access.js";
@@ -167,10 +167,6 @@ export async function candidatesOf(accountId: string, clock: Clock, trx: Executo
   return result.rows.map((raw) => toCandidate(raw, clock));
 }
 
-function hhmm(at: Date, zone: string): string {
-  return new Intl.DateTimeFormat("en-GB", { timeZone: zone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(at);
-}
-
 function toCandidate(raw: Raw, clock: Clock): Candidate {
   const at = raw.at ? new Date(raw.at) : null;
   const anchorAt = raw.anchor_at ? new Date(raw.anchor_at) : null;
@@ -178,7 +174,7 @@ function toCandidate(raw: Raw, clock: Clock): Candidate {
   const when = anchored ? anchorAt : at;
   const allDay = anchored ? raw.anchor_all_day === true : raw.all_day;
   const day = when ? (allDay ? utcDay(when) : dayIn(when, clock.zone)) : null;
-  const time = when && !allDay && !anchored ? hhmm(when, clock.zone) : null;
+  const time = when && !allDay && !anchored ? timeHM(when.toISOString(), clock.zone) : null;
   const since = raw.date_set_at && raw.date_set_at > raw.born ? raw.date_set_at : raw.born;
   return {
     of: raw.of,

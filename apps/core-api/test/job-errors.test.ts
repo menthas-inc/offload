@@ -4,6 +4,9 @@
 // The code is what the admin panel shows. `last_error` is free text, scrubbed
 // but still free, and no admin route reads it.
 
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "kysely";
 import { db, closeDb } from "../src/db.js";
@@ -41,6 +44,8 @@ describe("AC-41 a failed job's code", () => {
         "stale",
         "nightly_error",
         "nightly_unparseable",
+        "memory_error",
+        "memory_unparseable",
         "link_place_error",
         "forget_error",
         "embed_error",
@@ -56,6 +61,22 @@ describe("AC-41 a failed job's code", () => {
         "handler_error",
       ].sort()
     );
+  });
+
+  it("holds every reason the worker writes", () => {
+    // Read from the source, so a reason added there and not here fails now
+    // rather than as a code Health cannot place. The first string literal of
+    // each release call, and every `error_code = '...'` in its SQL.
+    const dir = join(dirname(fileURLToPath(import.meta.url)), "../../agent/src/offload_agent");
+    const written = new Set<string>();
+    for (const name of readdirSync(dir).filter((one) => one.endsWith(".py"))) {
+      const text = readFileSync(join(dir, name), "utf8");
+      for (const match of text.matchAll(/\b(?:release_for_retry|retry_or_die|_give_up_or_retry)\(([^")]*)"([a-z_]+)"/g)) written.add(match[2]!);
+      for (const match of text.matchAll(/error_code\s*=\s*'([a-z_]+)'/g)) written.add(match[1]!);
+    }
+    // The search finds something, or it proves nothing.
+    expect(written.size).toBeGreaterThanOrEqual(10);
+    expect([...written].filter((code) => !(ERROR_CODES as readonly string[]).includes(code))).toEqual([]);
   });
 
   it("is handler_error for anything a handler threw, beside the scrubbed text", async () => {

@@ -42,7 +42,9 @@ export const MAX_VALUES = 4;
 export const askedQuestion = z.object({
   field: z.enum(FIELDS),
   title: z.string().min(1).max(60),
-  contentId: z.string().uuid().nullish(),
+  // Any string, not only a uuid: an id that names no landed row is dropped
+  // with its question below, and a refused body would lose the whole turn.
+  contentId: z.string().max(64).nullish(),
   // The label is the model's and is never used: the server words every
   // option from its value. Accepted absent or null so a model that sends
   // none is not refused at the door, which is what took a whole turn down

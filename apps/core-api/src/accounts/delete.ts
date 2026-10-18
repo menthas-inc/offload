@@ -44,15 +44,22 @@ export interface Deleted {
   email: string | null;
 }
 
-export async function deleteAccount(accountId: string): Promise<Deleted> {
+export interface DeleteOptions {
+  /** Delete only while the account is marked and its time has come. The
+   *  scheduled delete reads the mark before calling this, unlocked, so a
+   *  cancel in between is caught here, under the lock. */
+  onlyIfMarked?: boolean;
+}
+
+export async function deleteAccount(accountId: string, options: DeleteOptions = {}): Promise<Deleted> {
   return db.transaction().execute(async (trx) => {
     // Ours to lock: this transaction is the whole delete.
-    const account = await trx
+    let query = trx
       .selectFrom("accounts")
       .select(["id", "email", "analytics_subject_id", "time_zone"])
-      .where("id", "=", accountId)
-      .forUpdate()
-      .executeTakeFirst();
+      .where("id", "=", accountId);
+    if (options.onlyIfMarked) query = query.where("delete_after", "<=", sql<Date>`now()`);
+    const account = await query.forUpdate().executeTakeFirst();
     if (!account) return { deleted: false, email: null };
 
     const staff = await trx.selectFrom("staff").select("role").where("account_id", "=", accountId).executeTakeFirst();
@@ -60,7 +67,14 @@ export async function deleteAccount(accountId: string): Promise<Deleted> {
       // Locked, so two owners leaving at once are counted one after the other
       // and the second finds itself the last.
       const owners = await trx.selectFrom("staff").select("account_id").where("role", "=", "owner").forUpdate().execute();
-      if (owners.length <= 1) throw new LastOwner();
+      // Only owners whose account still works count, as in the admin paths: a
+      // disabled account is not somebody who can open the panel.
+      const others = owners.map((owner) => owner.account_id).filter((id) => id !== accountId);
+      const working =
+        others.length === 0
+          ? []
+          : await trx.selectFrom("accounts").select("id").where("id", "in", others).where("state", "=", "active").where("deleted_at", "is", null).execute();
+      if (working.length === 0) throw new LastOwner();
     }
 
     // The grants, before the cascade takes the only copy of each token.

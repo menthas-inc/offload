@@ -8,6 +8,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { ATTEMPT_COOKIE, seal, withAttempt, type AttemptReason } from "../auth/attempt.js";
+import { fetchHeaders } from "../auth/current-account.js";
 import { env, isProduction } from "../env.js";
 
 const ATTEMPT_MAX_AGE = 10 * 60;
@@ -37,11 +38,7 @@ export async function authRoutes(app: App): Promise<void> {
     async handler(request: FastifyRequest, reply: FastifyReply) {
       const url = new URL(request.url, env.API_URL);
 
-      const headers = new Headers();
-      for (const [key, value] of Object.entries(request.headers)) {
-        if (value === undefined) continue;
-        headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
-      }
+      const headers = fetchHeaders(request);
       // The one address Fastify trusts, and nothing else. Better Auth reads
       // this header itself and, with no trusted proxies configured, accepts
       // it only when it holds exactly one address; a chain or a missing header

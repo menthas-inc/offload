@@ -13,7 +13,7 @@ import io
 from pathlib import Path
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageOps
 from pydantic import ValidationError
 
 from offload_agent.context import DumpContext, Photo, Thread, fit, turn_text
@@ -82,6 +82,43 @@ def test_make_uprights_a_sideways_heic():
     large = Image.open(io.BytesIO(made.large))
     # Drawn landscape with the tag saying rotate: the copy is portrait.
     assert large.size[1] > large.size[0]
+
+
+def test_make_shrinks_before_it_turns_and_still_uprights_a_sideways_jpeg(monkeypatch):
+    # Turning, flattening and converting at full size cost about 800 MB for a
+    # photo near the pixel bound, so everything after the metadata works on at
+    # most the large copy's size.
+    turned: list[tuple[int, int]] = []
+    transpose = ImageOps.exif_transpose
+
+    def spy(image, **kw):
+        turned.append(image.size)
+        return transpose(image, **kw)
+
+    monkeypatch.setattr(ImageOps, "exif_transpose", spy)
+    exif = Image.Exif()
+    exif[0x0112] = 6  # rotate 90 clockwise to view
+    source = io.BytesIO()
+    Image.new("RGB", (3000, 1000), "white").save(source, format="JPEG", exif=exif)
+
+    made = make(source.getvalue())
+    assert max(turned[0]) <= LARGE_PX
+    large = Image.open(io.BytesIO(made.large))
+    assert max(large.size) == LARGE_PX
+    assert large.size[1] > large.size[0]
+    assert Image.open(io.BytesIO(made.thumb)).size == (THUMB_PX, THUMB_PX)
+
+
+def test_make_shrinks_a_palette_image_smoothly():
+    # Pillow resizes a palette image by nearest neighbour, which turns fine
+    # detail into noise; halving one-pixel stripes should come out grey.
+    stripes = Image.frombytes("L", (4096, 64), bytes([0, 255] * 2048) * 64).convert("P")
+    assert stripes.mode == "P"
+    source = io.BytesIO()
+    stripes.save(source, format="PNG")
+    large = Image.open(io.BytesIO(make(source.getvalue()).large)).convert("L")
+    assert large.size == (LARGE_PX, 32)
+    assert 60 < large.getpixel((LARGE_PX // 2, 16)) < 200
 
 
 def test_make_flattens_transparency_and_refuses_a_non_image():
@@ -165,7 +202,8 @@ def test_add_content_takes_a_photo_index_on_a_picture_or_the_row_it_became():
 
 
 def test_ask_takes_the_thread_field():
-    q = Ask(field="thread", title="The beach", content_id="c", options=[{"value": "t1"}])
+    row = "3f2b1c4e-8a9d-4e5f-9a1b-2c3d4e5f6a7b"
+    q = Ask(field="thread", title="The beach", content_id=row, options=[{"value": "t1"}])
     assert q.field == "thread"
     with pytest.raises(ValidationError):
-        Ask(field="where", title="The beach", content_id="c")
+        Ask(field="where", title="The beach", content_id=row)

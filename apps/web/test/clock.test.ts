@@ -20,14 +20,16 @@ vi.stubGlobal("window", {
   removeEventListener: () => undefined,
 });
 
-vi.mock("../src/lib/auth-client", () => ({ authClient: { signOut: async () => ({}) } }));
+let signOutResult: () => Promise<unknown> = async () => ({});
+vi.mock("../src/lib/auth-client", () => ({ authClient: { signOut: () => signOutResult() } }));
 
 const { completeOnboarding, currentMe, updateClock } = await import("../src/lib/use-me");
-const { signOut } = await import("../src/lib/sign-out");
+const { signOut, SignOutFailed } = await import("../src/lib/sign-out");
 const { zoneFor } = await import("../src/lib/clock");
 
 beforeEach(() => {
   calls.length = 0;
+  signOutResult = async () => ({});
 });
 
 describe("023 AC-1 finishing first run", () => {
@@ -71,6 +73,22 @@ describe("the identity goes with the session", () => {
   it("forgets who was signed in once sign-out has ended the session", async () => {
     await updateClock({ timeZone: "Asia/Tokyo" });
     expect(currentMe()?.timeZone).toBe("Asia/Tokyo");
+    await signOut();
+    expect(currentMe()).toBeNull();
+  });
+
+  // Better Auth resolves an HTTP error as `{ error }` rather than rejecting,
+  // so a refused sign-out has to be read out of the result.
+  it("keeps who was signed in when the server refused, and says so", async () => {
+    await updateClock({ timeZone: "Asia/Tokyo" });
+    signOutResult = async () => ({ data: null, error: { status: 503 } });
+    await expect(signOut()).rejects.toBeInstanceOf(SignOutFailed);
+    expect(currentMe()?.timeZone).toBe("Asia/Tokyo");
+  });
+
+  it("counts a 401 as done, since the session is already gone", async () => {
+    await updateClock({ timeZone: "Asia/Tokyo" });
+    signOutResult = async () => ({ data: null, error: { status: 401 } });
     await signOut();
     expect(currentMe()).toBeNull();
   });

@@ -71,7 +71,8 @@ function sentenceCount(n: number): string {
   return word ? word.charAt(0).toUpperCase() + word.slice(1) : String(n);
 }
 
-/** A count in words up to nine, a number past that, for mid-sentence. */
+/** A count in words up to nine, a number past that, for mid-sentence: labels
+ *  and *These three look like they belong together.* alike (2026-10-17). */
 export function countWord(n: number): string {
   return WORDS[n] ?? String(n);
 }
@@ -183,4 +184,12 @@ export function withMadeLabels<P extends { labels?: string[] }, S>(
       return true;
     },
   };
+}
+
+/** The words a label refusal says, beside the control that was pressed. */
+export function refusalLine(error: string | null, name?: string): string {
+  if (error === "label_taken") return `${name ?? "That"} is already a label here.`;
+  if (error === "label_limit") return "A thread holds ten labels.";
+  if (error === "label_gone") return "That label was deleted.";
+  return "Couldn't save that.";
 }

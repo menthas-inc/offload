@@ -22,7 +22,7 @@ import {
   THREAD_NAME_CHARS,
   chipInfo,
   chipOf,
-  countInWords,
+  countWord,
   fetchProposal,
   entryId,
   entryKey,
@@ -112,7 +112,7 @@ export function CreateThreadModal({
   return (
     <Modal label="Create a thread" wide onClose={onClose}>
       <h2 className={people.modalTitle}>Create a thread</h2>
-      {proposal ? <p className={styles.line}>These {countInWords(entries.length)} look like they belong together.</p> : null}
+      {proposal ? <p className={styles.line}>These {countWord(entries.length)} look like they belong together.</p> : null}
 
       <label className={styles.field}>
         <Icon name="lasso" size={15} />

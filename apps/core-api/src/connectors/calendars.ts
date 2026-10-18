@@ -27,9 +27,14 @@ export interface RefreshOutcome {
  *  is not consenting to all of them. A calendar Google no longer returns is
  *  deleted, and its events and picks go with it by the foreign keys. The
  *  participant count is read for every owned calendar when the grant allows
- *  it; otherwise it is left null, which every reader treats as more than one. */
-export async function refreshCalendars(connectionId: string, accessToken: string): Promise<RefreshOutcome> {
-  const listed = await listCalendars(accessToken);
+ *  it; otherwise it is left null, which every reader treats as more than one.
+ *  A caller that has just read the list passes it rather than reading twice. */
+export async function refreshCalendars(
+  connectionId: string,
+  accessToken: string,
+  given?: GoogleCalendar[]
+): Promise<RefreshOutcome> {
+  const listed = given ?? (await listCalendars(accessToken));
   const secret = await db
     .selectFrom("connector_secrets")
     .select("scope")

@@ -10,21 +10,11 @@
 import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../app.js";
-import { auth } from "../auth/auth.js";
+import { currentAccountId } from "../auth/current-account.js";
 import { dayResponse, readDay } from "../today/day.js";
 import { needsCard, needsYou, putOff } from "../today/needs.js";
 import { openResponse, openThreads } from "../today/threads.js";
 import { dismissal, dismissReminder, remindersResponse, todayReminders, undismissReminder } from "../today/reminders.js";
-
-async function currentAccountId(request: FastifyRequest): Promise<string | null> {
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(request.headers)) {
-    if (value === undefined) continue;
-    headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
-  }
-  const result = await auth.api.getSession({ headers });
-  return result?.session.userId ?? null;
-}
 
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 const notFound = z.object({ error: z.literal("not_found") });

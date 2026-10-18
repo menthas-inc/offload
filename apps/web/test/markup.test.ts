@@ -123,9 +123,18 @@ describe("a link may address offload and nowhere else", () => {
 });
 
 describe("a reply cannot become a document", () => {
-  it("caps the blocks it will draw", () => {
+  it("caps the blocks it will draw, and runs what is past the cap on as one paragraph", () => {
     const long = Array.from({ length: MAX_BLOCKS + 6 }, (_, i) => `Line ${i}.`).join("\n\n");
-    expect(parse(long)).toHaveLength(MAX_BLOCKS);
+    const blocks = parse(long);
+    expect(blocks).toHaveLength(MAX_BLOCKS);
+    expect(blocks.at(-1)).toMatchObject({ kind: "paragraph" });
+    expect(plainText(long)).toContain(`Line ${MAX_BLOCKS + 5}.`);
+  });
+
+  it("keeps the end of a list long enough to pass the block cap", () => {
+    const items = Array.from({ length: 25 }, (_, i) => `- item ${i + 1}`).join("\n");
+    expect(parse(items).length).toBeLessThanOrEqual(MAX_BLOCKS);
+    expect(plainText(items)).toContain("item 25");
   });
 
   it("keeps what overflows a list rather than dropping it", () => {

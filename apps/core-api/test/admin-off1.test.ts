@@ -178,7 +178,6 @@ interface Write {
  *  the waitlist's removals only ever touch somebody still waiting. */
 const WRITES: Write[] = [
   { route: "POST /v1/admin/session", says: { status: "open" } },
-  { route: "POST /v1/admin/people/:id/viewed", says: { status: "recorded" } },
   { route: "POST /v1/admin/people/:id/sign-out", says: { status: "signed-out", sessions: 1 } },
   { route: "POST /v1/admin/people/:id/disable", says: { status: "disabled" } },
   { route: "POST /v1/admin/people/:id/enable", says: { status: "active" } },
@@ -303,6 +302,9 @@ describe("AC-4 and AC-5 every admin write, the CSV, the alerts and the audit log
       expect(leaks(JSON.stringify(job.payload), marked)).toEqual([]);
       expect(JSON.stringify(job.payload)).not.toContain(email);
     }
+
+    // Opening their page is a read, and the read writes `person.viewed`.
+    expect((await app.inject({ method: "GET", url: `/v1/admin/people/${marked.accountId}`, headers: { cookie: owner.cookie } })).statusCode).toBe(200);
 
     // Every audit row, whole, as the table holds it: ids, a kind, a key and
     // two values. No content, no credential, and no address (AC-53).

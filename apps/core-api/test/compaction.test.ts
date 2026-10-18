@@ -372,3 +372,24 @@ describe("what the review found", () => {
     expect(rows.find((row) => row.id === theirs.id)?.purge_after).not.toBeNull();
   });
 });
+
+describe("a fold of one sentence a person typed", () => {
+  it("is a rewrite of their words, so it is skipped and the note stays", async () => {
+    // Folding one note into one note is rewriting it, with offload's text
+    // credited to the person. The nightly pass refuses this in Python; this is
+    // the side that enforces it.
+    const ana = await account();
+    const flat = await thread(ana);
+    const typed = await add(flat, ana, "the plumber comes Tuesdays");
+
+    const outcome = await applyCompaction(flat, {
+      supersede: [],
+      remove: [],
+      add: [{ text: "Plumber visits weekly on Tuesday", foldedFrom: [typed.id] }],
+    });
+
+    expect(outcome).toMatchObject({ added: 0, superseded: 0, ignored: 1 });
+    const active = await readableNotes(ana, flat);
+    expect(active.map((note) => note.text)).toEqual(["the plumber comes Tuesdays"]);
+  });
+});

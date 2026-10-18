@@ -235,6 +235,34 @@ export async function writeThroughTool(
   return { kind: "pending", pendingId: pending.id, line: outwardLine(verdict, cadenceOf(write)) ?? "" };
 }
 
+/** Take an open proposal for this tap, in one statement, before Google hears of
+ *  it. Two taps arriving together both read it open, and both wrote: two
+ *  events, and the guests mailed twice. Only one of them gets the row back. */
+async function claim(accountId: string, pendingId: string): Promise<boolean> {
+  const row = await db
+    .updateTable("connector_pending_writes")
+    .set({ confirmed_at: new Date() })
+    .where("id", "=", pendingId)
+    .where("account_id", "=", accountId)
+    .where("confirmed_at", "is", null)
+    .where("declined_at", "is", null)
+    .where("expires_at", ">", new Date())
+    .returning("id")
+    .executeTakeFirst();
+  return row !== undefined;
+}
+
+/** A claimed write that throws gives the claim back, so the proposal can be
+ *  tapped again rather than reading as agreed to with nothing written. */
+async function orRelease<T>(pendingId: string, work: Promise<T>): Promise<T> {
+  try {
+    return await work;
+  } catch (error) {
+    await db.updateTable("connector_pending_writes").set({ confirmed_at: null }).where("id", "=", pendingId).execute();
+    throw error;
+  }
+}
+
 /** A person tapped. Re-run the test against live state, because minutes have
  *  passed and a calendar can be shared in them, then do it. */
 export async function confirmPending(accountId: string, pendingId: string): Promise<boolean> {
@@ -254,21 +282,22 @@ export async function confirmPending(accountId: string, pendingId: string): Prom
 
   const write = reviveWrite(pending.payload);
   if (!write) return false;
-  const token = await accessTokenFor(target.connectionId);
-  const verdict = await verdictFor(target, write, token);
-
-  const was = await before(target, write);
-  const done = await performWrite(target, write, verdict);
+  if (!(await claim(accountId, pendingId))) return false;
+  const { verdict, was, done } = await orRelease(
+    pendingId,
+    (async () => {
+      const verdict = await verdictFor(target, write, await accessTokenFor(target.connectionId));
+      const was = await before(target, write);
+      return { verdict, was, done: await performWrite(target, write, verdict) };
+    })()
+  );
   const rows = await follow(accountId, write, pending.message_id);
 
   // What it said is not needed again. What the event was is, for the Undo,
   // until that is pressed or the daily purge empties it.
   await db
     .updateTable("connector_pending_writes")
-    .set({
-      confirmed_at: new Date(),
-      payload: JSON.stringify(was ? { before: kept(was, write, verdict, rows) } : {}),
-    })
+    .set({ payload: JSON.stringify(was ? { before: kept(was, write, verdict, rows) } : {}) })
     .where("id", "=", pendingId)
     .execute();
 
@@ -283,12 +312,13 @@ export async function confirmPending(accountId: string, pendingId: string): Prom
   // that fails is left open, as a row with no event, and the rest go on.
   for (const other of await alikeOpen(pending, accountId)) {
     const also = reviveWrite(other.payload);
-    if (!also) continue;
+    // A tap on the sibling itself may have claimed it since the list was read.
+    if (!also || !(await claim(accountId, other.id))) continue;
     try {
-      const went = await performWrite(target, also, verdict);
+      const went = await orRelease(other.id, performWrite(target, also, verdict));
       await db
         .updateTable("connector_pending_writes")
-        .set({ confirmed_at: new Date(), payload: JSON.stringify({}) })
+        .set({ payload: JSON.stringify({}) })
         .where("id", "=", other.id)
         .execute();
       if (went.sourceRef && also.action === "create") await remember(other.content_id, target.externalId, went.sourceRef);

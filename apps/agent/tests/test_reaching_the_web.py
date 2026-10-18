@@ -297,3 +297,18 @@ def test_a_clean_want_passes_untouched():
     for value in (["title", "place"], ["dates_range"], [], ["image", "title"]):
         assert LookUp.model_validate({"url": "https://x.example/a", "want": value}).want == value
     assert LookUp.model_validate({"question": "q", "want": "date"}).want == ["date"]
+
+
+def test_a_citation_the_route_would_refuse_is_dropped():
+    """The route takes https up to 2000 characters, and one source past that
+    loses the whole turn to a 400."""
+    budget = _budget()
+    long = "https://b.example/" + "x" * (2001 - len("https://b.example/"))
+    budget.sources += [
+        {"domain": "a.example", "url": "http://a.example/page"},
+        {"domain": "b.example", "url": long},
+        {"domain": "c.example", "url": "https://c.example/page"},
+    ]
+    assert _web_wire(budget)["sources"] == [
+        {"domain": "c.example", "url": "https://c.example/page"}
+    ]

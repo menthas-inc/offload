@@ -118,6 +118,18 @@ describe("AC-9 the expander", () => {
       occurrencesIn(rule("FREQ=MONTHLY;BYMONTHDAY=31"), "2026-08-31", "2026-08-01", "2026-11-30"),
     ).toEqual(["2026-08-31", "2026-09-30", "2026-10-31", "2026-11-30"]);
   });
+  it("a monthly day later in the anchor's own month is the second occurrence", () => {
+    expect(occurrencesIn(rule("FREQ=MONTHLY;BYMONTHDAY=15"), "2026-01-03", "2026-01-01", "2026-02-28")).toEqual([
+      "2026-01-03",
+      "2026-01-15",
+      "2026-02-15",
+    ]);
+    expect(occurrencesIn(rule("FREQ=MONTHLY;BYDAY=-1FR"), "2026-01-03", "2026-01-01", "2026-02-28")).toEqual([
+      "2026-01-03",
+      "2026-01-30",
+      "2026-02-27",
+    ]);
+  });
   it("monthly with no anchor part keeps the anchor's day and clamps", () => {
     expect(occurrencesIn(rule("FREQ=MONTHLY"), "2026-01-31", "2026-01-01", "2026-03-31")).toEqual([
       "2026-01-31",
@@ -148,6 +160,10 @@ describe("AC-9 the expander", () => {
     expect(
       occurrencesIn(rule("FREQ=WEEKLY;BYDAY=MO,TH;COUNT=3"), ANCHOR, "2026-09-01", "2026-12-31"),
     ).toEqual(["2026-09-25", "2026-09-28", "2026-10-01"]);
+  });
+  it("COUNT past the step cap still ends on its last occurrence", () => {
+    expect(occurrencesIn(rule("FREQ=DAILY;COUNT=500"), "2026-01-01", "2027-05-10", "2027-12-31").at(-1)).toBe("2027-05-15");
+    expect(nextOnOrAfter(rule("FREQ=DAILY;COUNT=500"), "2026-01-01", "2027-02-10")).toBe("2027-02-10");
   });
   it("jumps to the window rather than walking from an old anchor", () => {
     expect(occurrencesIn(rule("FREQ=DAILY"), "2020-01-01", "2026-09-01", "2026-09-03")).toEqual([

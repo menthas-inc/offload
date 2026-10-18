@@ -9,7 +9,7 @@ import {
   allLabel,
   chipOf,
   chipsShown,
-  countInWords,
+  countWord,
   createFromProposal,
   dismissSuggestion,
   fetchLoose,
@@ -109,8 +109,8 @@ describe("the words (AC-8, AC-9, AC-20, AC-24)", () => {
     expect(allLabel(4, "todo")).toBe("All 4 to-dos");
   });
 
-  it("counts two to ten in words", () => {
-    expect([2, 3, 4, 5, 6, 7, 8, 9, 10].map(countInWords)).toEqual([
+  it("counts two to nine in words", () => {
+    expect([2, 3, 4, 5, 6, 7, 8, 9, 10].map(countWord)).toEqual([
       "two",
       "three",
       "four",
@@ -119,9 +119,8 @@ describe("the words (AC-8, AC-9, AC-20, AC-24)", () => {
       "seven",
       "eight",
       "nine",
-      "ten",
+      "10",
     ]);
-    expect(countInWords(11)).toBe("11");
   });
 
   it("gives a type it does not know no chip, as the phones do", () => {
@@ -304,7 +303,7 @@ describe("the calls (AC-12, AC-16, AC-20 to AC-23, AC-32)", () => {
 
 describe("a turn that filed only where no thread is named (AC-27)", () => {
   it("still draws Done, with no pill", async () => {
-    const { turnDid } = await import("../src/lib/dump");
+    const { turnDid } = await import("@offload/widgets");
     // 028: Done is what the server says was filed, loose included; a move's
     // source in `changed` alone is not a filing.
     expect(turnDid({ threads: [], changed: ["tdefault"], filed: true })).toBe(true);
@@ -315,7 +314,7 @@ describe("a turn that filed only where no thread is named (AC-27)", () => {
   });
 
   it("offers Undo for anything the turn changed, filed or not", async () => {
-    const { turnUndoable } = await import("../src/lib/dump");
+    const { turnUndoable } = await import("@offload/widgets");
     // A move out of a thread, or a delete, files nothing and still changed
     // something a person may want back.
     expect(turnUndoable({ threads: [], changed: ["tsource"], filed: false })).toBe(true);

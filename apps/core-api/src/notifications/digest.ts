@@ -25,7 +25,7 @@ import { record } from "./activity.js";
 import { cutAtWord, digestCopy, reminderName, skippedTitle, type ComingRow, type DigestRow, type Send } from "./copy.js";
 import { clockOf, placed } from "./reminders.js";
 import { calendarOn, isWritten } from "../today/day.js";
-import { GONE, PushFailed, push, type PushMessage } from "./push.js";
+import { deliver, GONE, push, RECEIPTS_AFTER_SECONDS, type PushMessage } from "./push.js";
 import { liveTokens } from "./tokens.js";
 
 export type { Send };
@@ -38,8 +38,6 @@ export const LATE_MS = 2 * 3_600_000;
 export const RULE_ROWS_CAP = 200;
 /** 042. A send's body is cut here, at a word: a lock screen shows little. */
 export const BODY_CHARS = 240;
-/** The receipts are read this long after the send. */
-export const RECEIPTS_AFTER_SECONDS = 15 * 60;
 
 export { PLAIN_CATEGORY, VERBS_CATEGORY };
 export const CHANNELS: Record<Send, string> = DIGEST_CHANNEL;
@@ -444,28 +442,9 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
     categoryId: single ? VERBS_CATEGORY : PLAIN_CATEGORY,
     channelId: CHANNELS[send],
   }));
-  let tickets;
-  try {
-    tickets = await push().send(messages);
-  } catch (error) {
-    if (error instanceof PushFailed) {
-      await emit({ name: "notification_failed", subjectId: subject, properties: { kind: "digest", status: error.status, code: error.code } });
-    }
-    throw error;
-  }
-  const gone = tickets.filter((ticket) => !ticket.ok && ticket.code === GONE).map((ticket) => ticket.token);
-  if (gone.length > 0) await db.deleteFrom("push_tokens").where("token", "in", gone).execute();
-  // A gone device drops its token; any other refusal fails the job with its
-  // code, so a send the service did not take is never recorded as sent.
-  const refused = tickets.find((ticket) => !ticket.ok && ticket.code !== GONE);
-  if (refused && !refused.ok) {
-    await emit({ name: "notification_failed", subjectId: subject, properties: { kind: "digest", status: 200, code: refused.code } });
-    throw new PushFailed(200, refused.code);
-  }
   // The receipts job carries the token's row id, never the token: the worker
   // role may read a job's payload, and a token is a delivery capability.
-  const idOf = new Map(tokens.map((one) => [one.token, one.id]));
-  const delivered = tickets.flatMap((ticket) => (ticket.ok && idOf.has(ticket.token) ? [{ id: ticket.id, tokenId: idOf.get(ticket.token)! }] : []));
+  const delivered = await deliver(tokens, messages, subject, "digest");
   if (delivered.length > 0) {
     await enqueue({
       kind: "push.receipts",

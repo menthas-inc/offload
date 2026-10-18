@@ -5,7 +5,8 @@
 // reaches both, and there is one order to call it in.
 
 import { describe, expect, it } from "vitest";
-import { chipOf, countInWords, sharedHint, suggestionName, type Face, type Suggestion } from "../src/loose.js";
+import { countWord } from "../src/labels.js";
+import { chipOf, sharedHint, suggestionName, type Face, type Suggestion } from "../src/loose.js";
 
 const face = (displayName: string): Face => ({ accountId: displayName.toLowerCase(), initials: displayName[0]!, displayName });
 const move = (names: string[], more = 0): Extract<Suggestion, { kind: "move" }> => ({
@@ -32,10 +33,10 @@ describe("chipOf", () => {
   });
 });
 
-describe("countInWords", () => {
-  it("says two to ten in words and anything past as a number", () => {
-    expect([2, 3, 10].map(countInWords)).toEqual(["two", "three", "ten"]);
-    expect(countInWords(11)).toBe("11");
+describe("countWord", () => {
+  it("says two to nine in words and ten or more as a number, as labels do", () => {
+    expect([2, 3, 9].map(countWord)).toEqual(["two", "three", "nine"]);
+    expect(countWord(10)).toBe("10");
   });
 });
 

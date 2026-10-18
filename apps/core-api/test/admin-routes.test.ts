@@ -246,7 +246,6 @@ describe("every route the impl-spec names", () => {
     "POST /v1/admin/people/:id/disable",
     "POST /v1/admin/people/:id/enable",
     "POST /v1/admin/people/:id/sign-out",
-    "POST /v1/admin/people/:id/viewed",
     "GET /v1/admin/people/:id",
     "GET /v1/admin/people/:id/usage",
     "GET /v1/admin/people/:id/timeline",

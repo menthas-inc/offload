@@ -34,9 +34,10 @@ import {
 } from "../../lib/people";
 import pane from "../../app/(shell)/shell.module.css";
 import styles from "../people/people.module.css";
+import { useClock } from "../../lib/clock";
 
-export function sinceLabel(iso: string): string {
-  return `Pending since ${dayMonth(iso)}`;
+export function sinceLabel(iso: string, zone: string | null): string {
+  return `Pending since ${dayMonth(iso, zone)}`;
 }
 
 function sharedNote(row: ConnectionRow): string {
@@ -64,6 +65,7 @@ function usePeople() {
 
 export function PeoplePane() {
   const { page, failed, load } = usePeople();
+  const { zone } = useClock();
   const [withdrawing, setWithdrawing] = useState<Card | null>(null);
   const [busy, setBusy] = useState(false);
   const [withdrawFailed, setWithdrawFailed] = useState(false);
@@ -153,7 +155,7 @@ export function PeoplePane() {
                   <PersonRow
                     key={card.id}
                     person={card}
-                    note={sinceLabel(card.since)}
+                    note={sinceLabel(card.since, zone)}
                     pill="Withdraw"
                     onClick={() => {
                       setWithdrawFailed(false);

@@ -21,6 +21,7 @@ shipped a version ahead of its storage is a tool that cannot work.
 
 import copy
 import re
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -71,10 +72,35 @@ def _rule_shape(v: str | None) -> str | None:
 
 
 _DATE_ISH = re.compile(
-    r"^\d{4}-\d{2}-\d{2}"
-    r"([T ]\d{2}:\d{2}(:\d{2})?(\.\d+)?)?"
+    r"^(\d{4}-\d{2}-\d{2})"
+    r"([T ](\d{2}:\d{2}(:\d{2})?)(\.\d+)?)?"
     r"(Z|[+-]\d{2}:?\d{2})?$"
 )
+
+
+def _date_shape(v: str | None) -> str | None:
+    """Caught here so it never becomes a refusal the model has to interpret.
+
+    The Core API accepts a day, a naive time and a full ISO string, and
+    refuses anything else. Checking the same shape here turns "the tool said
+    no for a reason I have to guess at" into a validation message naming the
+    field, which is the difference between the model fixing it on the next
+    call and the model telling somebody the tool is broken. A day that does not
+    exist is refused too: the Core API rolls 30 February over to 2 March, so
+    the row would land on a day nobody said.
+    """
+    if v is None or v == "":
+        return None
+    text = v.strip()
+    match = _DATE_ISH.match(text)
+    if not match:
+        raise ValueError("expected YYYY-MM-DD or an ISO 8601 timestamp")
+    day, _, clock = match.group(1, 2, 3)
+    try:
+        datetime.fromisoformat(f"{day}T{clock}" if clock else day)
+    except ValueError:
+        raise ValueError("expected a day and time that exist, as YYYY-MM-DD or ISO 8601") from None
+    return text
 
 ContentType = Literal["link", "image", "screenshot", "voice", "file", "task", "event", "location"]
 
@@ -219,19 +245,7 @@ class AddContent(BaseModel):
     @field_validator("due_at", "occurs_at", "occurs_end_at")
     @classmethod
     def looks_like_a_date(cls, v: str | None) -> str | None:
-        """Caught here so it never becomes a refusal the model has to interpret.
-
-        The Core API accepts a day, a naive time and a full ISO string, and
-        refuses anything else. Checking the same shape here turns "the tool said
-        no for a reason I have to guess at" into a validation message naming the
-        field, which is the difference between the model fixing it on the next
-        call and the model telling somebody the tool is broken.
-        """
-        if v is None or v == "":
-            return None
-        if not _DATE_ISH.match(v.strip()):
-            raise ValueError("expected YYYY-MM-DD or an ISO 8601 timestamp")
-        return v.strip()
+        return _date_shape(v)
 
 
 class ListThreadContent(BaseModel):
@@ -275,12 +289,7 @@ class EditContent(BaseModel):
     @field_validator("due_at", "occurs_at", "occurs_end_at")
     @classmethod
     def looks_like_a_date(cls, v: str | None) -> str | None:
-        """The same shape check add_content makes, for the same reason."""
-        if v is None or v == "":
-            return None
-        if not _DATE_ISH.match(v.strip()):
-            raise ValueError("expected YYYY-MM-DD or an ISO 8601 timestamp")
-        return v.strip()
+        return _date_shape(v)
 
 
 class MoveContent(BaseModel):
@@ -368,6 +377,11 @@ class AddNote(BaseModel):
     @classmethod
     def looks_like_a_rule(cls, v: str | None) -> str | None:
         return _rule_shape(v)
+
+    @field_validator("due_at", "occurs_at", "occurs_end_at")
+    @classmethod
+    def looks_like_a_date(cls, v: str | None) -> str | None:
+        return _date_shape(v)
 
 
 class Memory(BaseModel):
@@ -1030,7 +1044,8 @@ class Ask(BaseModel):
     #: The row's own title, echoed into the template. Never a sentence.
     title: str = Field(min_length=1, max_length=60)
     #: The row the answer fills, from the contentId a filing returned.
-    #: Absent only for country, which fills nothing.
+    #: Absent only for country, which fills nothing. The Core API drops a
+    #: question whose id names no row it landed, so no shape check here.
     content_id: str | None = None
     #: Up to four values. A date or a span with nothing to offer sends none;
     #: the way out is added by the server.

@@ -6,7 +6,7 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { answeredWaiting } from "../lib/turn-did";
+import { answeredWaiting } from "@offload/widgets";
 
 const source = readFileSync(new URL("../components/shell/Conversation.tsx", import.meta.url), "utf8");
 

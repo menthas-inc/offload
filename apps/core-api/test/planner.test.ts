@@ -578,6 +578,76 @@ describe("a turn that stopped partway", () => {
   });
 });
 
+describe("the internal routes read the token before the body", () => {
+  it("answers 401, not 400, to a caller without it whatever it sends", async () => {
+    const routes = [
+      "turn-result",
+      "turn-step",
+      "nightly-result",
+      "memory-result",
+      "question-answer",
+      "question-close",
+      `content/${uuidv7()}/page-location`,
+      "heartbeat",
+    ];
+    for (const route of routes) {
+      const response = await app.inject({
+        method: "POST",
+        url: `/internal/v1/${route}`,
+        headers: { authorization: "Bearer wrong" },
+        payload: { nothing: true },
+      });
+      expect([route, response.statusCode]).toEqual([route, 401]);
+    }
+  });
+});
+
+describe("a result posted twice or naming a row twice", () => {
+  it("writes nothing a second time for a partial post whose job has closed", async () => {
+    const accountId = await account();
+    const { jobId } = await dump(accountId);
+    const body = { outcome: "partial", jobId, replyText: "That did not finish.", usage: [usage] };
+
+    expect((await turnResult(body)).json()).toEqual({ status: "written" });
+    expect((await turnResult(body)).json()).toEqual({ status: "already" });
+
+    const rows = await db.selectFrom("llm_usage").select("id").where("job_id", "=", jobId).execute();
+    expect(rows).toHaveLength(1);
+  });
+
+  it("settles an answer whose reads returned the same row twice, and shows it once", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const row = await db
+      .insertInto("content")
+      .values({ thread_id: threadId, account_id: accountId, title: "Dentist", type: "task" })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const { jobId, turnId } = await dump(accountId, "when is the dentist");
+
+    const response = await turnResult({
+      outcome: "answered",
+      jobId,
+      replyText: "The 20th.",
+      usage: [usage],
+      found: [
+        { threadId, truncated: false, contentIds: [row.id] },
+        { threadId, truncated: true, contentIds: [row.id] },
+      ],
+    });
+    expect(response.json()).toEqual({ status: "written" });
+
+    const reply = await db
+      .selectFrom("messages")
+      .select("id")
+      .where("turn_id", "=", turnId)
+      .where("role", "=", "offload")
+      .executeTakeFirstOrThrow();
+    const shown = await db.selectFrom("message_content").select(["content_id", "ord"]).where("message_id", "=", reply.id).execute();
+    expect(shown).toEqual([{ content_id: row.id, ord: 0 }]);
+  });
+});
+
 describe("a turn that stopped twice", () => {
   async function resumeJob(accountId: string, messageId: string): Promise<string> {
     const message = await db
@@ -1052,6 +1122,20 @@ describe("016 what a turn read", () => {
     expect(Object.keys(tally)).toEqual(["domain", "day", "count"]);
   });
 
+  it("records the lookups of a turn that failed after searching", async () => {
+    const accountId = await account();
+    const { jobId } = await dump(accountId);
+    const posted = await turnResult({
+      outcome: "failed",
+      jobId,
+      reason: "model_error",
+      lookups: [{ label: "when_is", kind: "search", outcome: "used", costMicros: 10000 }],
+    });
+    expect(posted.statusCode).toBe(200);
+    const rows = await db.selectFrom("lookups").select(["label", "cost_micros"]).where("account_id", "=", accountId).execute();
+    expect(rows).toEqual([{ label: "when_is", cost_micros: 10000 }]);
+  });
+
   it("holds no query and no page text anywhere", async () => {
     // The one that would hurt. Nothing about what was asked, or what came
     // back, may be reconstructible from any of the three tables (OFF-1).
@@ -1416,6 +1500,21 @@ describe("018 asking back", () => {
       .orderBy("ordinal")
       .execute();
   }
+
+  it("drops a question that names a row by something other than its id, and settles the turn", async () => {
+    // The route's promise: a bad question is dropped whole and the turn still
+    // settles. A refused body would lose everything the turn filed with it.
+    const accountId = await account();
+    const { jobId, turnId } = await dump(accountId, "call the landlord");
+    const posted = await turnResult({
+      outcome: "answered",
+      jobId,
+      usage: [usage],
+      questions: [{ field: "date", title: "Call the landlord", contentId: "c1", options: [] }],
+    });
+    expect(posted.json()).toEqual({ status: "written" });
+    expect(await question(accountId, turnId)).toEqual([]);
+  });
 
   it("stores a question the turn asked, rendered from a template, with the way out last", async () => {
     const accountId = await account();

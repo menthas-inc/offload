@@ -1,7 +1,7 @@
 // A write the screen has already drawn: the order of events is the contract.
 
 import { describe, expect, it } from "vitest";
-import { perform, reverse, type Reversible, type ToastAction, type Writes } from "../lib/optimistic";
+import { perform, reverse, type Reversible, type ToastAction, type Writes } from "../src/index.js";
 
 function harness() {
   const log: string[] = [];

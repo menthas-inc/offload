@@ -8,13 +8,15 @@ from pydantic import ValidationError
 
 from offload_agent.memories import MESSAGE_CHARS, MemoryPlan, listing
 
+CITE = "01a14b05-d9e9-74c3-9923-a2185e9d5688"
+
 
 def test_it_cannot_write_a_rule_or_more_than_five():
     with pytest.raises(ValidationError):
         MemoryPlan.model_validate({"add": [{"kind": "rules", "text": "x", "cites": "m1"}]})
     with pytest.raises(ValidationError):
         MemoryPlan.model_validate(
-            {"add": [{"kind": "about", "text": f"Fact {i}.", "cites": "m1"} for i in range(6)]}
+            {"add": [{"kind": "about", "text": f"Fact {i}.", "cites": CITE} for i in range(6)]}
         )
     assert MemoryPlan.model_validate({}).add == []
 
