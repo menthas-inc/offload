@@ -5,7 +5,8 @@
     "013: reply shape",
     "013 AC-5, AC-5b",
     "answer.md: The answer is the reply",
-    "the brevity change of 2026-09-10, measured with /test-llm"
+    "the brevity change of 2026-09-10, measured with /test-llm",
+    "answer.md: a row not in a thread answers like any other (F1, 2026-10-17)"
   ],
   "cases": [
     {
@@ -943,6 +944,549 @@
           "yours"
         ],
         "rubric": "One count or one short line for the three open rows in Kids, Tom's swimming kit included. Does not sort them by who wrote them, does not type the titles out, and does not mention the ticked cake."
+      }
+    },
+    {
+      "id": "loose-event-when-from-today",
+      "why": "F1, 2026-10-17 sweep: a dated row in the default thread, asked about by its title from Today, was answered as not filed and with no date",
+      "surface": "answer",
+      "input": "when is the dentist?",
+      "context": "behrooz",
+      "history": [
+        {
+          "role": "person",
+          "text": "dentist next friday at 3pm"
+        }
+      ],
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Dentist",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-18T14:00:00Z"
+        }
+      ],
+      "expect": {
+        "max_words": 12,
+        "must_not_contain": [
+          "thread",
+          "filed",
+          "don't have",
+          "do not have",
+          "not sure",
+          "no date"
+        ],
+        "rubric": "Gives the day and the time: Friday the 18th (or next Friday) at 3pm or 15:00, in a sentence or less. Never says or implies it is not filed, not in a thread, or that offload has no date for it."
+      }
+    },
+    {
+      "id": "loose-event-when-from-a-thread",
+      "why": "F1 asked from inside another thread: the loose row is still theirs and still answers",
+      "surface": "answer",
+      "input": "what time is the dentist",
+      "context": "three",
+      "looking_at": "00000001-0000-0000-0000-000000000000",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Dentist",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-18T14:00:00Z"
+        }
+      ],
+      "expect": {
+        "max_words": 12,
+        "must_not_contain": [
+          "thread",
+          "filed",
+          "don't have",
+          "do not have",
+          "not sure",
+          "no date",
+          "Lisbon"
+        ],
+        "rubric": "Gives the time, 3pm or 15:00, with or without the day (Friday the 18th). A sentence or less. Says nothing about which thread it is in or is not in, and does not mention the thread they asked from."
+      }
+    },
+    {
+      "id": "loose-task-due-by",
+      "why": "a loose task's due date is as much an answer as a threaded one's",
+      "surface": "answer",
+      "input": "when do I have to renew my passport by?",
+      "context": "behrooz",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "task",
+          "title": "Renew passport",
+          "body": null,
+          "done": false,
+          "dueAt": "2026-10-02T00:00:00Z",
+          "occursAt": null
+        }
+      ],
+      "expect": {
+        "max_words": 15,
+        "must_not_contain": [
+          "thread",
+          "filed",
+          "don't have",
+          "do not have",
+          "not sure",
+          "no date"
+        ],
+        "rubric": "Gives the date, 2 October, in a sentence or less; saying it is still open is fine. Never says or implies the row is not filed or not in a thread."
+      }
+    },
+    {
+      "id": "loose-event-where",
+      "why": "a place in a loose row's body answers where",
+      "surface": "answer",
+      "input": "where's my haircut?",
+      "context": "behrooz",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Haircut",
+          "body": "Barbearia Campos, Rua Augusta 12",
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-15T09:30:00Z"
+        }
+      ],
+      "expect": {
+        "max_words": 15,
+        "must_not_contain": [
+          "thread",
+          "filed",
+          "don't have",
+          "do not have",
+          "not sure",
+          "no date"
+        ],
+        "rubric": "Names the place, Barbearia Campos on Rua Augusta, in a sentence or less. The time may come with it. Never says or implies the row is not filed or not in a thread."
+      }
+    },
+    {
+      "id": "loose-event-yes-no",
+      "why": "a yes or no about a loose dated row is yes or no; asked as next friday because the suite's today is a Friday",
+      "surface": "answer",
+      "input": "is the dentist next friday?",
+      "context": "behrooz",
+      "history": [
+        {
+          "role": "person",
+          "text": "dentist next friday at 3pm"
+        }
+      ],
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Dentist",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-18T14:00:00Z"
+        }
+      ],
+      "expect": {
+        "max_words": 12,
+        "must_not_contain": [
+          "thread",
+          "filed",
+          "don't have",
+          "do not have",
+          "not sure",
+          "no date"
+        ],
+        "rubric": "Yes, with at most the day and the time (3pm or 15:00). Never says or implies it is not filed or not in a thread."
+      }
+    },
+    {
+      "id": "loose-and-threaded-agenda",
+      "why": "a span of time holding a loose row and a threaded one: neither is singled out for where it lives",
+      "surface": "answer",
+      "input": "what have I got next week?",
+      "context": "behrooz",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Dentist",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-18T14:00:00Z"
+        },
+        {
+          "contentId": "c2",
+          "threadId": "00000014-0000-0000-0000-000000000000",
+          "threadName": "Istanbul trip",
+          "type": "event",
+          "title": "Flight to Istanbul",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-16T07:10:00Z"
+        }
+      ],
+      "expect": {
+        "max_words": 20,
+        "must_not_contain": [
+          "not in a thread",
+          "filed",
+          "don't have",
+          "do not have",
+          "not sure"
+        ],
+        "rubric": "Answers with what they add up to, or names both with their days. Does not say either one is not in a thread or not filed, and does not explain where either lives."
+      }
+    },
+    {
+      "id": "loose-asked-where-it-lives",
+      "why": "preserved: asked which thread a loose row is in, not in a thread is the answer",
+      "surface": "answer",
+      "input": "which thread is the dentist in?",
+      "context": "behrooz",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Dentist",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-18T14:00:00Z"
+        }
+      ],
+      "expect": {
+        "max_words": 12,
+        "must_not_contain": [
+          "Miscellaneous",
+          "default"
+        ],
+        "rubric": "Says, in one short sentence, that the dentist is not in a thread. Names no thread for it and does not call it unfiled or missing."
+      }
+    },
+    {
+      "id": "loose-event-no-time",
+      "why": "preserved: a loose row with no date still gets the honest short answer, and it is about the date, not about where it lives",
+      "surface": "answer",
+      "input": "when is the vet?",
+      "context": "behrooz",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "task",
+          "title": "Book the vet for Luna",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "expect": {
+        "max_words": 18,
+        "must_not_contain": [
+          "thread",
+          "filed",
+          "sorry"
+        ],
+        "rubric": "Says in one short sentence that there is no date for the vet yet (it is only to book). Does not say it is not filed or not in a thread, and no apology."
+      }
+    },
+    {
+      "id": "ho-loose-time-of-day",
+      "why": "a loose event asked for its time from Today, the dump still in the conversation (held out for F1, 2026-10-17)",
+      "surface": "answer",
+      "input": "what time's the plumber coming",
+      "context": "jun",
+      "history": [
+        {
+          "role": "person",
+          "text": "plumber coming monday 8am"
+        }
+      ],
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Plumber",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-14T12:00:00Z"
+        }
+      ],
+      "expect": {
+        "max_words": 12,
+        "must_not_contain": [
+          "thread",
+          "filed",
+          "don't have",
+          "do not have",
+          "not sure",
+          "no date",
+          "isn't saved",
+          "not saved"
+        ],
+        "rubric": "Gives 8am (with or without Monday), in a sentence or less. Never says or implies it is not filed, not in a thread, or that offload lacks a time for it."
+      }
+    },
+    {
+      "id": "ho-loose-from-inside-kids",
+      "why": "a loose event asked about from inside a shared thread it is not in (held out for F1, 2026-10-17)",
+      "surface": "answer",
+      "input": "when is parents evening?",
+      "context": "maya",
+      "looking_at": "00000061-0000-0000-0000-000000000000",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Parents evening",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-22T16:30:00Z"
+        }
+      ],
+      "expect": {
+        "max_words": 12,
+        "must_not_contain": [
+          "thread",
+          "filed",
+          "don't have",
+          "do not have",
+          "not sure",
+          "no date",
+          "isn't saved",
+          "not saved",
+          "Kids"
+        ],
+        "rubric": "Gives Tuesday 22 September at 18:30 (or 6:30pm), in a sentence or less. Says nothing about which thread it is or is not in."
+      }
+    },
+    {
+      "id": "ho-loose-deadline",
+      "why": "a loose task's due date asked as a deadline (held out for F1, 2026-10-17)",
+      "surface": "answer",
+      "input": "what's the deadline for the tax return",
+      "context": "sam",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "threadName": "Odds and ends",
+          "type": "task",
+          "title": "File the tax return",
+          "body": null,
+          "done": false,
+          "dueAt": "2026-09-30T00:00:00Z",
+          "occursAt": null
+        }
+      ],
+      "expect": {
+        "max_words": 12,
+        "must_not_contain": [
+          "thread",
+          "filed",
+          "don't have",
+          "do not have",
+          "not sure",
+          "no date",
+          "isn't saved",
+          "not saved",
+          "Odds and ends"
+        ],
+        "rubric": "Gives 30 September, with or without the weekday, in a sentence or less. Never says or implies it is not filed or not in a thread, and does not name the thread."
+      }
+    },
+    {
+      "id": "ho-loose-meeting-place",
+      "why": "a place in a loose row's body, asked by who rather than by title (held out for F1, 2026-10-17)",
+      "surface": "answer",
+      "input": "where am I meeting Ana on saturday?",
+      "context": "behrooz",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Lunch with Ana",
+          "body": "Café Nicola, Rossio",
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-12T12:00:00Z"
+        }
+      ],
+      "expect": {
+        "max_words": 15,
+        "must_not_contain": [
+          "thread",
+          "filed",
+          "don't have",
+          "do not have",
+          "not sure",
+          "no date",
+          "isn't saved",
+          "not saved"
+        ],
+        "rubric": "Names Café Nicola (Rossio may come with it), with or without the time, in a sentence or less. Never says or implies it is not filed or not in a thread."
+      }
+    },
+    {
+      "id": "ho-loose-tomorrow-yes",
+      "why": "a yes or no about a loose row dated tomorrow (held out for F1, 2026-10-17)",
+      "surface": "answer",
+      "input": "is the plumber tomorrow?",
+      "context": "jun",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Plumber",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-12T12:00:00Z"
+        }
+      ],
+      "expect": {
+        "max_words": 8,
+        "must_not_contain": [
+          "thread",
+          "filed",
+          "don't have",
+          "do not have",
+          "not sure",
+          "no date",
+          "isn't saved",
+          "not saved"
+        ],
+        "rubric": "Yes, with at most the time (8am). Never says or implies it is not filed or not in a thread."
+      }
+    },
+    {
+      "id": "ho-loose-next-of-two",
+      "why": "two loose rows of the same kind: the next one is the answer, and neither is not filed (held out for F1, 2026-10-17)",
+      "surface": "answer",
+      "input": "when's my next physio?",
+      "context": "maya",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Physio",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-08T08:00:00Z"
+        },
+        {
+          "contentId": "c2",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Physio",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-15T08:00:00Z"
+        }
+      ],
+      "expect": {
+        "max_words": 12,
+        "must_not_contain": [
+          "thread",
+          "filed",
+          "don't have",
+          "do not have",
+          "not sure",
+          "no date",
+          "isn't saved",
+          "not saved"
+        ],
+        "rubric": "Gives Tuesday 15 September at 10:00 (or 10am), in a sentence or less, and not the one on the 8th, which is past. Never says or implies it is not filed or not in a thread."
+      }
+    },
+    {
+      "id": "ho-where-did-it-go",
+      "why": "preserved: asked where a loose row went, not in a thread is the answer, said once (held out for F1, 2026-10-17)",
+      "surface": "answer",
+      "input": "where did the plumber thing go?",
+      "context": "jun",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "type": "event",
+          "title": "Plumber",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-09-14T12:00:00Z"
+        }
+      ],
+      "expect": {
+        "max_words": 12,
+        "must_not_contain": [
+          "Miscellaneous",
+          "default",
+          "sorry"
+        ],
+        "rubric": "Says in one short sentence that it is not in a thread. Names no thread for it, and does not say it was lost, not saved or not filed."
+      }
+    },
+    {
+      "id": "ho-nothing-found",
+      "why": "preserved: when nothing comes back, not found is said once and is about the subject, not about threads (held out for F1, 2026-10-17)",
+      "surface": "answer",
+      "input": "when is the optician?",
+      "context": "maya",
+      "rows": [],
+      "expect": {
+        "max_words": 12,
+        "must_not_contain": [
+          "thread",
+          "sorry",
+          "try"
+        ],
+        "rubric": "One short sentence that offload does not have the optician, or nothing about it. No apology, no suggestion to try other words, nothing about threads."
       }
     }
   ]
