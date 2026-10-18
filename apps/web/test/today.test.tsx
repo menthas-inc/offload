@@ -301,6 +301,7 @@ function serve(call: Call): Response | Promise<Response> {
   if (pathname === "/v1/today/reminders") return json(remindersRead);
   if (pathname === "/v1/today/reminders/dismiss" || pathname === "/v1/today/reminders/undismiss") return json({ ok: true });
   if (pathname === "/v1/today/needs") return json({ cards: needs });
+  if (pathname === "/v1/today/month") return json({ days: [] });
   if (pathname === "/v1/today/day") {
     const date = new URLSearchParams(call.path.split("?")[1]).get("date")!;
     return json(days[date] ?? emptyDay(date));
@@ -323,6 +324,7 @@ const { ToastProvider, ToastHost } = await import("../src/components/shell/Toast
 const { default: TodayRoute } = await import("../src/app/(shell)/today/page");
 const { TODAY_RESET } = await import("../src/lib/today");
 const { RESUME_COMPOSER } = await import("../src/lib/dump");
+const { undoStore } = await import("../src/lib/undo");
 
 // ------------------------------------------------------------------ the page
 
@@ -357,6 +359,7 @@ afterEach(() => {
   act(() => root.unmount());
   document.body.innerHTML = "";
   vi.useRealTimers();
+  for (const id of [...undoStore.entries().keys()]) undoStore.drop(id);
 });
 
 async function open(query = "") {
@@ -382,6 +385,8 @@ const link = (name: string) =>
 const writes = (method: string, path: string) => calls.filter((one) => one.method === method && one.path === path);
 const dayReads = () => calls.filter((one) => one.path.startsWith("/v1/today/day")).map((one) => one.path.split("date=")[1]);
 const needsYou = () => host.querySelector('[aria-label="Needs you"]');
+const heading = () => host.querySelector("h1")?.textContent;
+const dayCell = (iso: string) => (host.querySelector(`[data-day="${iso}"]`) as HTMLButtonElement | null) ?? undefined;
 const before = (a: Node, b: Node) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 const press = async (control: HTMLElement | undefined) => {
   expect(control).toBeDefined();
@@ -397,7 +402,7 @@ describe("027 AC-1 the page", () => {
     needs = [card.request("r1", "Ana Duarte")];
     await open();
     const stack = needsYou()!;
-    const stepper = button("Previous day")!;
+    const stepper = button("Previous month")!;
     expect(stack).not.toBeNull();
     expect(before(stack, stepper)).toBe(true);
     act(() => root.unmount());
@@ -407,22 +412,25 @@ describe("027 AC-1 the page", () => {
     host = document.body.appendChild(document.createElement("div"));
     root = createRoot(host);
     await open();
-    expect(before(button("Previous day")!, needsYou()!)).toBe(true);
+    expect(before(button("Previous month")!, needsYou()!)).toBe(true);
   });
 
-  it("names the day once, in the stepper, with no page title over it", async () => {
+  it("names the day once, in the month's head, with no page title and no name under the grid (the owner, 2026-10-18)", async () => {
     await open();
-    // The stepper's day is the page's one h1.
-    expect([...host.querySelectorAll("h1")].map((one) => one.textContent)).toEqual(["Today"]);
-    expect([...host.querySelectorAll("h1, h2")].filter((one) => one.textContent === "Today")).toHaveLength(1);
+    // On today the head is the month and Today beside it; the head is the page's one h1.
+    expect([...host.querySelectorAll("h1")].map((one) => one.textContent)).toEqual(["September 2026"]);
+    expect(button("Today")).toBeDefined();
+    await press(dayCell("2026-10-02"));
+    expect([...host.querySelectorAll("h1")].map((one) => one.textContent)).toEqual(["Friday 2 October"]);
+    expect(text()).not.toContain("Next Friday");
   });
 
   it("puts Customize Today at the pane head's right and today's date in the crumb bar, whatever day is shown", async () => {
     await open();
     expect(link("Customize Today")!.getAttribute("href")).toBe("/today?customize=1");
     expect(text()).toContain("Tuesday 29 September");
-    await press(button("Next day"));
-    expect(text()).toContain("Tomorrow");
+    await press(dayCell("2026-09-30"));
+    expect(heading()).toBe("Wednesday 30 September");
     expect(text()).toContain("Tuesday 29 September");
   });
 
@@ -538,7 +546,7 @@ describe("027 AC-2 and AC-11 the stack", () => {
     overrides["GET /v1/today/needs"] = () => json({ error: "boom" }, 500);
     await open();
     expect(needsYou()).toBeNull();
-    expect(button("Previous day")).toBeDefined();
+    expect(button("Previous month")).toBeDefined();
     expect(text()).toContain("To do");
   });
 });
@@ -731,29 +739,59 @@ describe("027 AC-4 to AC-10 the cards", () => {
 
 // ------------------------------------------------------------------ the day
 
-describe("027 AC-14 and AC-15 the stepper", () => {
-  it("cannot go back from Today, names the next day and reads it", async () => {
+describe("027 AC-14 and AC-15 the month (2026-10-18, in place of the stepper)", () => {
+  it("draws the month the day is in, today pressed, the days before it closed, and no way back a month", async () => {
     await open();
-    expect(button("Previous day")!.disabled).toBe(true);
-    await press(button("Next day"));
+    expect(text()).toContain("September 2026");
+    expect(dayCell("2026-09-29")!.getAttribute("aria-pressed")).toBe("true");
+    expect(dayCell("2026-09-28")!.disabled).toBe(true);
+    expect(button("Previous month")!.disabled).toBe(true);
+  });
+
+  it("opens a later day on a tap, names it and reads it", async () => {
+    await open();
+    await press(dayCell("2026-09-30"));
     expect(dayReads()).toEqual(["2026-09-29", "2026-09-30"]);
-    expect(text()).toContain("Tomorrow");
-    expect(text()).toContain("Wednesday 30 September");
-    expect(button("Previous day")!.disabled).toBe(false);
+    expect(heading()).toBe("Wednesday 30 September");
+    expect(dayCell("2026-09-30")!.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("dots each day from the month read, over the whole grid it draws", async () => {
+    overrides["GET /v1/today/month"] = () => json({ days: [{ date: "2026-10-02", task: 2, event: 1, calendar: 1 }] });
+    await open();
+    const read = calls.find((one) => one.path.startsWith("/v1/today/month"))!;
+    // Monday weeks: the grid runs from Monday 31 August to Sunday 4 October.
+    expect(read.path).toBe("/v1/today/month?from=2026-08-31&to=2026-10-04");
+    // The date is in the reader's language; the counts are the claim.
+    expect(dayCell("2026-10-02")!.getAttribute("aria-label")).toMatch(/, 2 to do, 1 event, 1 calendar event$/);
+    expect(dayCell("2026-10-02")!.querySelectorAll("[data-dot]")).toHaveLength(4);
+  });
+
+  it("steps a month at a time, and Today comes back to today", async () => {
+    await open();
+    await press(button("Next month"));
+    expect(text()).toContain("October 2026");
+    expect(button("Previous month")!.disabled).toBe(false);
+    await press(dayCell("2026-10-14"));
+    expect(dayReads().at(-1)).toBe("2026-10-14");
+    await press(button("Today"));
+    expect(text()).toContain("September 2026");
+    expect(dayReads().at(-1)).toBe("2026-09-29");
   });
 
   it("stops twelve months ahead", async () => {
     await open("day=2027-09-29");
     expect(dayReads()).toContain("2027-09-29");
-    expect(button("Next day")!.disabled).toBe(true);
+    expect(button("Next month")!.disabled).toBe(true);
+    expect(dayCell("2027-09-30")!.disabled).toBe(true);
   });
 
   it("opens the day a door names, once, and the Today tab goes back to Today", async () => {
     await open("day=2026-09-30");
-    expect(text()).toContain("Tomorrow");
+    expect(heading()).toBe("Wednesday 30 September");
     await act(async () => void window.dispatchEvent(new Event(TODAY_RESET)));
     await settle();
-    expect(button("Previous day")!.disabled).toBe(true);
+    expect(dayCell("2026-09-29")!.getAttribute("aria-pressed")).toBe("true");
     expect(dayReads().at(-1)).toBe("2026-09-29");
   });
 
@@ -813,7 +851,7 @@ describe("027 AC-16, AC-17 and AC-19 the next line and the strip", () => {
       eventCount: 1,
     };
     await open();
-    await press(button("Next day"));
+    await press(dayCell("2026-09-30"));
     expect(host.querySelector("[data-next-line]")!.textContent).toBe("Dentist at 10:00");
   });
 });
@@ -869,14 +907,14 @@ describe("027 AC-24 and AC-25 the empty, failed and slow days", () => {
     days["2026-09-29"] = { ...emptyDay("2026-09-29"), everDumped: false };
     await open();
     expect(text()).toContain("Dump anything and offload will sort it.");
-    expect(button("Previous day")).toBeUndefined();
+    expect(button("Previous month")).toBeUndefined();
   });
 
   it("draws one line for a day with nothing in it", async () => {
     days["2026-09-29"] = emptyDay("2026-09-29");
     await open();
     expect(text()).toContain("Nothing today.");
-    await press(button("Next day"));
+    await press(dayCell("2026-09-30"));
     expect(text()).toContain("Nothing tomorrow.");
   });
 
@@ -896,7 +934,7 @@ describe("027 AC-24 and AC-25 the empty, failed and slow days", () => {
       new Promise((resolve) => {
         release = () => resolve(json(emptyDay(new URLSearchParams(call.path.split("?")[1]).get("date")!)));
       });
-    await press(button("Next day"));
+    await press(dayCell("2026-09-30"));
     expect(host.querySelector('[role="status"]')).toBeNull();
     await wait(300);
     expect(host.querySelector('[role="status"]')).not.toBeNull();
@@ -967,21 +1005,24 @@ describe("open in your threads (design 2026-10-07)", () => {
     expect([...loose.querySelectorAll("a")].map((one) => [one.textContent, one.getAttribute("href")]).at(-1)).toEqual(["Sort them", "/threads/loose"]);
   });
 
-  it("ticks a to-do through in place with Undo, and keeps it on the page when Today reads again", async () => {
+  it("ticks a to-do off with its line in the row's place, each with its own Undo (2026-10-18)", async () => {
     await open();
+    const trip = pages()[0]!;
     await press(box("Book the Sintra train"));
-    expect(box("Book the Sintra train").checked).toBe(true);
+    expect(box("Book the Sintra train")).toBeNull();
     expect(writes("POST", "/v1/content/t2-0/complete")[0]!.body).toEqual({ done: true });
-    expect(text()).toContain("Ticked off");
-    // The server no longer has it; the page still draws it, struck.
+    expect(trip.querySelector("a")!.nextElementSibling!.textContent).toBe("Ticked offUndo");
+    // The server no longer has it; the line holds its place while Today reads again.
     openRead = { ...openRead, pages: openRead.pages.map((one) => (one.threadId === "t2" ? { ...one, todos: one.todos.slice(1), count: 4 } : one)) };
     await press(box("Fix the bathroom tap"));
-    expect(box("Book the Sintra train").checked).toBe(true);
-    expect(section()!.querySelector("h3")!.textContent).toBe("Open in your threads 10");
-    // Undo takes back the latest tick, the one on Flat.
-    await press(button("Undo"));
+    // Ten, less the one the server no longer has and the one ticked here.
+    expect(section()!.querySelector("h3")!.textContent).toBe("Open in your threads 8");
+    expect(section()!.querySelectorAll("[role=status]")).toHaveLength(2);
+    // The Flat line's Undo takes back the Flat tick only.
+    await press(button("Undo", pages()[1]!));
     expect(writes("POST", "/v1/content/t1-0/complete").map((one) => one.body)).toEqual([{ done: true }, { done: false }]);
     expect(box("Fix the bathroom tap").checked).toBe(false);
+    expect(section()!.querySelectorAll("[role=status]")).toHaveLength(1);
   });
 
   it("opens a to-do's row sheet from its title", async () => {
@@ -992,7 +1033,7 @@ describe("open in your threads (design 2026-10-07)", () => {
 
   it("is not drawn on another day, when nothing is open, or when the layout has it off", async () => {
     await open();
-    await press(button("Next day"));
+    await press(dayCell("2026-09-30"));
     expect(section()).toBeNull();
     act(() => root.unmount());
 
@@ -1030,7 +1071,7 @@ describe("027 AC-27 Customize Today", () => {
     expect(button("Move Needs you")).toBeDefined();
     expect(button("Move Your day")).toBeDefined();
     expect(button("Move Open in your threads")).toBeDefined();
-    expect(button("Previous day")).toBeDefined();
+    expect(button("Previous month")).toBeDefined();
   });
 
   it("writes one change per switch, and Today changes behind it", async () => {
@@ -1073,7 +1114,7 @@ describe("027 AC-27 Customize Today", () => {
     const patches = writes("PATCH", "/api/me");
     expect(patches).toHaveLength(1);
     expect((patches[0]!.body as { todayLayout: typeof DEFAULT_LAYOUT }).todayLayout.sections.map((one) => one.kind)).toEqual(["day", "needs_you", "open_threads"]);
-    expect(before(button("Previous day")!, needsYou()!)).toBe(true);
+    expect(before(button("Previous month")!, needsYou()!)).toBe(true);
   });
 
   it("moves a section by dragging it, in one write on the drop", async () => {
@@ -1234,13 +1275,13 @@ describe("042 AC-26 Today's Reminders section (drawn 2026-10-11)", () => {
     const read = fullReminders();
     read.others[2] = { ...read.others[2]!, window: "short", next: null } as (typeof read.others)[2];
     remindersRead = read;
-    await press(button("Next day"));
-    await press(button("Previous day"));
+    await press(dayCell("2026-09-30"));
+    await press(dayCell("2026-09-29"));
     expect(entry("Ana's birthday")).toBeDefined();
     expect(countdowns()).toEqual(["Today", "In 3 days", "In 15 days"]);
   });
 
-  it("dismissing everything on the day takes the shared card with it, and the last thing takes the section", async () => {
+  it("dismissing everything on the day takes the shared card with it once its lines end, and the last thing takes the section", async () => {
     await withV3();
     await open();
     await press(button("Dismiss Lisbon flat from the 1st"));
@@ -1248,11 +1289,22 @@ describe("042 AC-26 Today's Reminders section (drawn 2026-10-11)", () => {
     expect(text()).toContain("Dismissed");
     expect(text()).not.toContain("Dismissed until");
     await press(button("Dismiss Sam's birthday"));
+    // 2026-10-18. The card holds its two lines while their windows run.
+    expect(countdowns()).toEqual(["Today", "In 3 days", "In 15 days"]);
+    expect(remindersSection()!.querySelector("[data-reminder-card]")!.querySelectorAll("[role=status]")).toHaveLength(2);
+    act(() => {
+      for (const id of [...undoStore.entries().keys()]) undoStore.drop(id);
+    });
     expect(countdowns()).toEqual(["In 3 days", "In 15 days"]);
     expect(writes("POST", "/v1/today/reminders/dismiss").map((one) => (one.body as { of: string; window: string }).of)).toEqual(["note", "memory"]);
     await press(button("Dismiss Pack the adapters"));
     expect(writes("POST", "/v1/today/reminders/dismiss").at(-1)!.body).toEqual({ of: "content", id: "c20", day: "2026-10-02", window: "short" });
     await press(button("Dismiss Ana's birthday"));
+    // The last one's line keeps the section until its window ends.
+    expect(remindersSection()!.textContent).toContain("Dismissed");
+    act(() => {
+      for (const id of [...undoStore.entries().keys()]) undoStore.drop(id);
+    });
     expect(remindersSection()).toBeNull();
   });
 
@@ -1277,7 +1329,7 @@ describe("042 AC-26 Today's Reminders section (drawn 2026-10-11)", () => {
   it("is drawn on today only, never over the day-one invitation, and not when the layout has it off", async () => {
     await withV3();
     await open();
-    await press(button("Next day"));
+    await press(dayCell("2026-09-30"));
     expect(remindersSection()).toBeNull();
     act(() => root.unmount());
 
@@ -1313,7 +1365,7 @@ describe("Today's bands (drawn 2026-10-11)", () => {
   it("sections alternate by drawn position: with Needs you empty, Your day is on the page and Reminders is in a band", async () => {
     await withV3();
     await open();
-    const day = button("Previous day")!.closest("[data-section]")!;
+    const day = button("Previous month")!.closest("[data-section]")!;
     expect(bandOf(day)).toBeNull();
     expect(bandOf(remindersSection())).not.toBeNull();
     expect(bandOf(section())).toBeNull();
@@ -1325,7 +1377,7 @@ describe("Today's bands (drawn 2026-10-11)", () => {
     await withV3();
     remindersRead = { rows: [], others: [], more: 0 };
     await open();
-    expect(bandOf(button("Previous day")!.closest("[data-section]"))).toBeNull();
+    expect(bandOf(button("Previous month")!.closest("[data-section]"))).toBeNull();
     expect(bandOf(section())).not.toBeNull();
     act(() => root.unmount());
 
@@ -1335,7 +1387,7 @@ describe("Today's bands (drawn 2026-10-11)", () => {
     root = createRoot(host);
     await open();
     expect(bandOf(remindersSection())).toBeNull();
-    expect(bandOf(button("Previous day")!.closest("[data-section]"))).not.toBeNull();
+    expect(bandOf(button("Previous month")!.closest("[data-section]"))).not.toBeNull();
     expect(bandOf(section())).toBeNull();
   });
 });
@@ -1357,5 +1409,72 @@ describe("042 AC-26 Customize Today", () => {
     expect(sent.sections.map((one) => one.kind)).toEqual(["needs_you", "day", "reminders", "open_threads"]);
     expect(sent.sections[2]).toEqual({ kind: "reminders", on: false });
     expect(remindersSection()).toBeNull();
+  });
+});
+
+describe("Undo in place on Today (2026-10-18)", () => {
+  const floating = () => document.querySelectorAll("[role=status]").length;
+
+  it("ticks a to-do off with its line in its slot in To do, and Undo puts it back", async () => {
+    // The server's day, which does not hold what is done.
+    const day = days["2026-09-29"] as ReturnType<typeof fullToday>;
+    const timed = day.timed;
+    overrides["POST /v1/content/c6/complete"] = (call) => {
+      day.timed = (call.body as { done: boolean }).done ? [] : timed;
+      return json({ ok: true });
+    };
+    await open();
+    await press(host.querySelector('input[aria-label="Finish Call the letting agent"]') as HTMLInputElement);
+    expect(writes("POST", "/v1/content/c6/complete")[0]!.body).toEqual({ done: true });
+    expect(text()).not.toContain("Call the letting agent");
+    const line = host.querySelector("[role=status]")!;
+    expect(line.textContent).toBe("Ticked offUndo");
+    // Where the timed row was: after the late rows' fold, before the rest.
+    const drawn = [...host.querySelectorAll("[data-row], [role=status]")].map((one) => one.textContent ?? "");
+    expect(drawn.findIndex((one) => one === "Ticked offUndo")).toBe(drawn.findIndex((one) => one.includes("Buy Viva Viagem cards")) - 1);
+    expect(floating()).toBe(1);
+    await press(button("Undo"));
+    expect(writes("POST", "/v1/content/c6/complete").map((one) => one.body)).toEqual([{ done: true }, { done: false }]);
+    expect(text()).toContain("Call the letting agent");
+  });
+
+  it("keeps the To do card for the last to-do's line, rather than calling the day empty", async () => {
+    const only = [row("c6", "Call the letting agent", { dueAt: "2026-09-29T10:00:00.000Z" })];
+    const day = { ...emptyDay("2026-09-29"), timed: only };
+    days["2026-09-29"] = day;
+    // The server's day does not hold what is done.
+    overrides["POST /v1/content/c6/complete"] = (call) => {
+      day.timed = (call.body as { done: boolean }).done ? [] : only;
+      return json({ ok: true });
+    };
+    await open();
+    await press(host.querySelector('input[aria-label="Finish Call the letting agent"]') as HTMLInputElement);
+    const section = host.querySelector('[data-section="day"]')!;
+    expect(section.textContent).not.toContain("Nothing today.");
+    expect(section.querySelector("[role=status]")!.textContent).toBe("Ticked offUndo");
+  });
+
+  it("dismisses a reminder with its line in its place in the Today card", async () => {
+    await withV3();
+    await open();
+    await press(button("Dismiss Lisbon flat from the 1st"));
+    const card = remindersSection()!.querySelector("[data-reminder-card]")!;
+    expect(card.querySelector("[role=status]")!.textContent).toBe("DismissedUndo");
+    await press(button("Dismiss Ana's birthday"));
+    expect(text()).toContain("Dismissed until 9 October");
+    expect(floating()).toBe(2);
+    expect(text()).not.toContain("remind you about");
+  });
+
+  it("answers a Needs you card with its line in the card's place", async () => {
+    needs = [card.question()];
+    await open();
+    await press(button("Saturday"));
+    expect(needsYou()).toBeNull();
+    const line = host.querySelector("[role=status]")!;
+    expect(line.textContent).toBe("Saturday, for Europe, OctoberUndo");
+    expect(before(line, button("Previous month")!)).toBe(true);
+    await press(button("Undo"));
+    expect(writes("POST", "/v1/turns/turn1/undo")).toHaveLength(1);
   });
 });

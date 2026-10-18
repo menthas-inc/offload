@@ -26,8 +26,11 @@ import { useFolds } from "../../lib/folds";
 import { remindSwitchShown } from "@offload/widgets";
 import { Switch } from "../Switch";
 import { setReminders } from "../../lib/reminders";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Icon } from "../Icon";
+import { InPlace } from "../shell/InPlace";
+import { Returned } from "../shell/UndoLine";
+import { useUndoEntries } from "../../lib/undo";
 import styles from "../../app/(shell)/shell.module.css";
 import { ReorderHandle, type RowReorder } from "./RowTools";
 import { useToast } from "../shell/Toast";
@@ -119,6 +122,12 @@ export function Notes({
   // is the editor's Cancel.
   const [folds, setFold] = useFolds();
   const sectionFolded = folds.notes && !adding && editingId === null;
+  // 2026-10-18. Every note drawn here, so a deleted last note keeps the
+  // section, and its slot, while its line runs.
+  const seen = useRef(new Set<string>());
+  for (const note of notes) seen.current.add(note.id);
+  const entries = useUndoEntries();
+  const lineHere = [...entries.keys()].some((id) => seen.current.has(id));
 
   const shared = members.length > 1;
   const editing = notes.find((note) => note.id === editingId) ?? null;
@@ -222,6 +231,7 @@ export function Notes({
         did: "Note changed",
         failed: "Couldn't change the note",
         unfailed: "Couldn't put the note back",
+        place: { id: editing.id, icon: "pencil", form: "under" },
       },
       toast,
       writes,
@@ -247,6 +257,7 @@ export function Notes({
         did: "Note deleted",
         failed: "Couldn't delete the note",
         unfailed: "Couldn't put the note back",
+        place: { id: note.id, icon: "trash-2", form: "slot" },
       },
       toast,
       writes,
@@ -264,6 +275,8 @@ export function Notes({
         did: "Saved",
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
+        // Under the open note, which the editor stays in.
+        place: { id: note.id, icon: "bell", form: "under" },
       },
       toast,
       writes,
@@ -312,6 +325,7 @@ export function Notes({
           return duplicate ? `That's already in ${to.name}` : "Couldn't move that";
         },
         unfailed: "Couldn't put that back",
+        place: { id: note.id, icon: "arrow-up-right", form: "slot" },
       },
       toast,
       writes,
@@ -329,8 +343,9 @@ export function Notes({
    *  The same arithmetic To do uses, on the same scale, through the note's
    *  own endpoint. It moves the row and nothing else: not when the note was
    *  written, which is what precedence turns on, so a note dragged to the top
-   *  is not thereby the newest thing said. */
-  function reorder(writes_: ReorderWrite[]): void {
+   *  is not thereby the newest thing said. Its line goes under the note that
+   *  was dragged. */
+  function reorder(writes_: ReorderWrite[], moved: string): void {
     close();
     const set = (pick: (write: ReorderWrite) => number): void =>
       onNotes((current) =>
@@ -352,6 +367,7 @@ export function Notes({
         did: "Moved",
         failed: "Couldn't move that",
         unfailed: "Couldn't put that back",
+        place: { id: moved, icon: "arrow-up-right", form: "under" },
       },
       toast,
       writes,
@@ -365,7 +381,7 @@ export function Notes({
     const from = settled.findIndex((note) => note.id === fromId);
     if (from < 0 || toIndex < 0 || toIndex >= settled.length) return;
     const { writes: plan } = reorderPlan(settled, from, toIndex);
-    if (plan.length > 0) reorder(plan);
+    if (plan.length > 0) reorder(plan, fromId);
   }
 
   const reorderFor = (note: Note, index: number): RowReorder => {
@@ -403,7 +419,7 @@ export function Notes({
   // on the pane said nothing about what it added. The first note on a thread
   // comes from dumping something, which is the product's usual way in. Every
   // one after that can be typed here.
-  if (notes.length === 0 && !adding && counts.folded === 0) return null;
+  if (notes.length === 0 && !adding && counts.folded === 0 && !lineHere) return null;
 
   const editor = (note: Note | null) => (
     <NoteEditor
@@ -536,21 +552,28 @@ export function Notes({
 
       {sectionFolded ? null : <>
       <div className={styles.notes}>
-        {notes.map((note, index) => {
-          if (editingId === note.id) {
-            return (
-              <div
-                key={note.id}
-                className={styles.noteRow}
-                data-tone={note.muted ? "muted" : note.origin === "learned" ? "accent" : "neutral"}
-                data-open={true}
-              >
-                {editor(note)}
-              </div>
-            );
-          }
-          return row(note, index);
-        })}
+        {/* 2026-10-18. A note that leaves keeps its slot for its Undo line,
+            and one that changed carries its line under it. */}
+        <InPlace items={notes} idOf={(note) => note.id}>
+          {(note, line) => (
+            <>
+              <Returned id={note.id}>
+                {editingId === note.id ? (
+                  <div
+                    className={styles.noteRow}
+                    data-tone={note.muted ? "muted" : note.origin === "learned" ? "accent" : "neutral"}
+                    data-open={true}
+                  >
+                    {editor(note)}
+                  </div>
+                ) : (
+                  row(note, notes.indexOf(note))
+                )}
+              </Returned>
+              {line}
+            </>
+          )}
+        </InPlace>
 
         {adding ? (
           <div className={styles.noteRow} data-tone="neutral" data-open={true}>

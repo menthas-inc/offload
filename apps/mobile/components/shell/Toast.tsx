@@ -6,11 +6,18 @@
 //
 // Eight seconds, matching the Undo window everything else in the product uses,
 // so a toast never outlives the thing it is offering to take back.
+//
+// **A word with a place is not a toast** (2026-10-18): an Undo, and the
+// failure that replaces it, is drawn where the change is by `UndoLine`. The
+// toast keeps what has no Undo and a conversation's own report, and tapping
+// its body fades it out, so it never sits over something you want.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInUp, FadeOut } from "react-native-reanimated";
+import type { Place } from "@offload/widgets";
+import { undoStore } from "../../lib/undo";
 
 const VISIBLE_MS = 8000;
 
@@ -31,7 +38,7 @@ interface Showing {
 
 export interface ToastState {
   showing: Showing | null;
-  show: (message: string, action?: ToastAction) => void;
+  show: (message: string, action?: ToastAction, place?: Place) => void;
   hide: () => void;
 }
 
@@ -44,7 +51,8 @@ export function useToast(): ToastState {
     setShowing(null);
   }, []);
 
-  const show = useCallback((message: string, action?: ToastAction) => {
+  const show = useCallback((message: string, action?: ToastAction, place?: Place) => {
+    if (place) return undoStore.put(place, message, action);
     if (timer.current) clearTimeout(timer.current);
     setShowing({ message, ...(action ? { action } : {}) });
     timer.current = setTimeout(() => setShowing(null), VISIBLE_MS);
@@ -80,7 +88,11 @@ export function ToastHost({ state }: { state: ToastState }) {
       style={{ top: insets.top + 56 }}
       pointerEvents="box-none"
     >
-      <View
+      {/* The body, not the action: tapping it fades it out (the exit above). */}
+      <Pressable
+        onPress={state.hide}
+        // Not one element for a screen reader: its action stays its own.
+        accessible={false}
         accessibilityLiveRegion={failed ? "assertive" : "polite"}
         accessibilityRole={failed ? "alert" : undefined}
         // The padding sits on the message so the action can take the bar's
@@ -114,7 +126,7 @@ export function ToastHost({ state }: { state: ToastState }) {
             </Text>
           </Pressable>
         ) : null}
-      </View>
+      </Pressable>
     </Animated.View>
   );
 }

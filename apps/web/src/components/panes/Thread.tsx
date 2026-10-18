@@ -22,6 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Icon } from "../Icon";
+import { InPlace, LineAt } from "../shell/InPlace";
 import styles from "../../app/(shell)/shell.module.css";
 import { PaneHead } from "../shell/PaneHead";
 import { CalendarsTool } from "../shell/CalendarsPopover";
@@ -181,14 +182,20 @@ export function Thread({ id, onChanged }: Props) {
       return;
     }
     setLeaving(false);
-    toast.show(result.deleted ? "Thread deleted" : "You left the thread", {
-      label: "Undo",
-      onPress: async () => {
-        await restoreThread(id);
-        onChanged();
+    // In that thread's row on My threads. The list is reread when the route
+    // changes, so it draws the thread once more before it goes, which is what
+    // gives the line a slot; reloading it here first would race the push.
+    toast.show(
+      result.deleted ? "Thread deleted" : "You left the thread",
+      {
+        label: "Undo",
+        onPress: async () => {
+          await restoreThread(id);
+          onChanged();
+        },
       },
-    });
-    onChanged();
+      { id, icon: result.deleted ? "trash-2" : "log-out", form: "slot" },
+    );
     router.push("/threads");
   }
   // Every write here is drawn before it is sent. `writes` counts what is in
@@ -392,6 +399,7 @@ export function Thread({ id, onChanged }: Props) {
         did: "Saved",
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
+        place: { id: row.id, icon: "pencil", form: "under" },
       },
       toast,
       writes,
@@ -410,6 +418,7 @@ export function Thread({ id, onChanged }: Props) {
         did: "Renamed",
         failed: "Couldn't rename that",
         unfailed: "Couldn't put the name back",
+        place: { id: row.id, icon: "pencil", form: "under" },
       },
       toast,
       writes,
@@ -440,6 +449,7 @@ export function Thread({ id, onChanged }: Props) {
         did: `Moved to ${to.name}`,
         failed: "Couldn't move that",
         unfailed: "Couldn't put that back",
+        place: { id: row.id, icon: "arrow-up-right", form: "slot" },
       },
       toast,
       writes,
@@ -468,6 +478,7 @@ export function Thread({ id, onChanged }: Props) {
         did: wasArchived ? "Back in the thread" : "Archived",
         failed: wasArchived ? "Couldn't put that back" : "Couldn't archive that",
         unfailed: wasArchived ? "Couldn't archive that" : "Couldn't put that back",
+        place: { id: row.id, icon: "archive", form: "slot" },
       },
       toast,
       writes,
@@ -496,6 +507,7 @@ export function Thread({ id, onChanged }: Props) {
         did: "Deleted, gone in a moment",
         failed: "Couldn't delete that",
         unfailed: "Couldn't put that back",
+        place: { id: row.id, icon: "trash-2", form: "slot" },
       },
       toast,
       writes,
@@ -527,8 +539,9 @@ export function Thread({ id, onChanged }: Props) {
    *  The writes are priorities, computed by the list from the rows either side
    *  of the drop, and each one goes through the same endpoint a priority has
    *  always gone through, which pins it. Usually one write; a re-spread of the
-   *  list is several, and Undo puts every one of them back. */
-  function reorder(writes_: ReorderWrite[]): void {
+   *  list is several, and Undo puts every one of them back. Its line goes
+   *  under the row that was dragged. */
+  function reorder(writes_: ReorderWrite[], moved: string): void {
     // A row drawn at the press has no priority to write yet.
     if (writes_.some((write) => isProvisional(write.id))) return;
     const set = (pick: (write: ReorderWrite) => number): void =>
@@ -551,6 +564,7 @@ export function Thread({ id, onChanged }: Props) {
         did: "Moved",
         failed: "Couldn't move that",
         unfailed: "Couldn't put that back",
+        place: { id: moved, icon: "arrow-up-right", form: "under" },
       },
       toast,
       writes,
@@ -669,11 +683,15 @@ export function Thread({ id, onChanged }: Props) {
         did: rowLabelledCopy(row.title, names),
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
+        place: { id: row.id, icon: "tag", form: "under" },
       },
       toast,
       writes,
     );
   }
+
+  /** A whole list labelled: its line under the filter bar. */
+  const listPlace = { id: `labels:${id}`, icon: "tag", form: "under" } as const;
 
   /** The label's list's Save or Label N: one write, one Undo. A refusal keeps
    *  the list open with its line under the name. */
@@ -689,13 +707,17 @@ export function Thread({ id, onChanged }: Props) {
       const made = result.value.label;
       setListing(null);
       relabelled();
-      toast.show(listLabelledCopy(made.count, made.name), {
-        label: "Undo",
-        onPress: async () => {
-          await deleteLabel(made.id);
-          relabelled();
+      toast.show(
+        listLabelledCopy(made.count, made.name),
+        {
+          label: "Undo",
+          onPress: async () => {
+            await deleteLabel(made.id);
+            relabelled();
+          },
         },
-      });
+        listPlace,
+      );
       return;
     }
     const renamed = save.name !== label.name;
@@ -718,17 +740,21 @@ export function Thread({ id, onChanged }: Props) {
     const { changed, previous, label: saved } = result.value;
     setListing(null);
     relabelled();
-    toast.show(listLabelledCopy(saved.count, saved.name), {
-      label: "Undo",
-      onPress: async () => {
-        await labelRows(label.id, {
-          add: changed.removed,
-          remove: changed.added,
-          ...(previous ? { name: previous.name, colour: previous.colour } : {}),
-        });
-        relabelled();
+    toast.show(
+      listLabelledCopy(saved.count, saved.name),
+      {
+        label: "Undo",
+        onPress: async () => {
+          await labelRows(label.id, {
+            add: changed.removed,
+            remove: changed.added,
+            ...(previous ? { name: previous.name, colour: previous.colour } : {}),
+          });
+          relabelled();
+        },
       },
-    });
+      listPlace,
+    );
   }
 
   async function removeLabel(label: Label): Promise<void> {
@@ -739,13 +765,18 @@ export function Thread({ id, onChanged }: Props) {
       return;
     }
     relabelled();
-    toast.show(`${label.name} deleted`, {
-      label: "Undo",
-      onPress: async () => {
-        await restoreLabel(label.id);
-        relabelled();
+    // In the label's chip, which the filter bar keeps for it.
+    toast.show(
+      `${label.name} deleted`,
+      {
+        label: "Undo",
+        onPress: async () => {
+          await restoreLabel(label.id);
+          relabelled();
+        },
       },
-    });
+      { id: label.id, icon: "trash-2", form: "slot" },
+    );
   }
 
   /** 037. Edit thread's Save: the head changes at the press, the write
@@ -757,21 +788,27 @@ export function Thread({ id, onChanged }: Props) {
     setThread({ ...thread, ...threadLookAfter(thread, change, shown) });
 
     const result = await editThread(id, change);
+    // Under the thread's read, the head being what changed.
+    const place = { id: `thread:${id}`, icon: "pencil", form: "under" } as const;
     if (!result) {
       setThread(before);
-      toast.show("Couldn't save that");
+      toast.show("Couldn't save that", undefined, place);
       return;
     }
     await load();
     onChanged();
-    toast.show("Thread updated", {
-      label: "Undo",
-      onPress: async () => {
-        await editThread(id, result.previous);
-        await load();
-        onChanged();
+    toast.show(
+      "Thread updated",
+      {
+        label: "Undo",
+        onPress: async () => {
+          await editThread(id, result.previous);
+          await load();
+          onChanged();
+        },
       },
-    });
+      place,
+    );
   }
 
   if (!thread) return <div className={styles.paneBody} />;
@@ -1123,6 +1160,7 @@ export function Thread({ id, onChanged }: Props) {
             onOpen={(labelId) => handlers.onOpenLabel?.(labelId)}
           />
         )}
+        <LineAt id={`labels:${id}`} />
         {filtering && !showArchived && rows.length === 0 && notes.length === 0 ? (
           <p className={labelStyles.nothing}>
             {pickedNames.length > 0 ? `Nothing under ${nameList(pickedNames)} yet.` : "Nothing without a label yet."}
@@ -1168,6 +1206,7 @@ export function Thread({ id, onChanged }: Props) {
             </p>
           </>
         ) : null}
+        <LineAt id={`thread:${id}`} />
 
         {/* Widgets first, then everything. A widget is a view over the same
             rows the list below shows, so a piece removed from one is gone from
@@ -1300,33 +1339,34 @@ export function Thread({ id, onChanged }: Props) {
               ? "Nothing archived here."
               : "Nothing in this one yet. Dump something on Today and offload will file it."}
           </p>
-        ) : rest.length === 0 && repeating.length === 0 ? null : (
-          [
-            // One row per series, standing for all of its occurrences, with
-            // how often and how many held where its own date would be. **The
-            // occurrences are counted, never hidden**, and the rail still draws
-            // every one of them.
-            ...repeating.map((series) => (
-              <ContentRowView
-                key={series.ref}
-                row={series.row}
-                handlers={handlers}
-                lead={
-                  <span className={styles.rowIcon}>
-                    <Icon name={rowIcon(series.row.type)} size={18} />
-                  </span>
-                }
-                meta={
-                  <span className={styles.rowMeta}>
-                    {cadenceLabel(series.everyDays) ?? `${series.count} dates`}
-                    {cadenceLabel(series.everyDays) ? ` · ${series.count} held` : ""}
-                  </span>
-                }
-              />
-            )),
-            ...rest.map((row) => (
+        ) : null}
+        {/* One row per series, standing for all of its occurrences, with
+            how often and how many held where its own date would be. **The
+            occurrences are counted, never hidden**, and the rail still draws
+            every one of them. */}
+        {repeating.map((series) => (
+          <ContentRowView
+            key={series.ref}
+            row={series.row}
+            handlers={handlers}
+            lead={
+              <span className={styles.rowIcon}>
+                <Icon name={rowIcon(series.row.type)} size={18} />
+              </span>
+            }
+            meta={
+              <span className={styles.rowMeta}>
+                {cadenceLabel(series.everyDays) ?? `${series.count} dates`}
+                {cadenceLabel(series.everyDays) ? ` · ${series.count} held` : ""}
+              </span>
+            }
+          />
+        ))}
+        {/* 2026-10-18. Drawn even with nothing in it, so a row that leaves
+            keeps its slot for its Undo when it was the last one. */}
+        <InPlace items={rest} idOf={(row) => row.id}>
+          {(row) => (
             <ContentRowView
-              key={row.id}
               row={row}
               handlers={handlers}
               lead={
@@ -1350,9 +1390,8 @@ export function Thread({ id, onChanged }: Props) {
                 ) : null
               }
             />
-            )),
-          ]
-        )}
+          )}
+        </InPlace>
 
         {cursor ? (
           <button type="button" className={styles.showMore} onClick={() => void more()}>

@@ -9,8 +9,8 @@
 // order (2026-10-12), with how long each has been open;
 // then N more and Open thread. Not in a thread is last, with offload's line
 // when it has a thread in mind and Sort them. A tick strikes the row through in
-// place with Undo, and the row leaves the page the next time Today is built.
-// A row opens its row sheet.
+// place, its Undo line in the row's place for the window (2026-10-18), and the
+// row leaves the page the next time Today is built. A row opens its row sheet.
 //
 // The kit's first sentence of the thread's read is not drawn: nothing writes a
 // thread's standing read yet, and the thread page draws nothing in its place.
@@ -28,6 +28,7 @@ import { perform, type Writes } from "../../lib/optimistic";
 import { completeContent } from "../../lib/threads";
 import type { OpenPage, TodayRow } from "../../lib/today";
 import type { ToastState } from "../shell/Toast";
+import { InPlace } from "../shell/InPlace";
 import { groundClass, useInBand } from "./Band";
 import { SectionHead } from "./DayParts";
 
@@ -60,7 +61,10 @@ export function OpenThreads({
   const inBand = useInBand();
   if (pages.length === 0) return null;
   const page = width - 2 * GUTTER - 32;
-  const count = pages.reduce((sum, one) => sum + one.count, 0);
+  // A ticked row leaves its page with its line in its place, and the count
+  // with it, as on the web.
+  const ticked = pages.reduce((sum, one) => sum + one.todos.filter((row) => struck.has(row.id)).length, 0);
+  const count = pages.reduce((sum, one) => sum + one.count, 0) - ticked;
   const ground = groundClass(inBand);
   const ink = isAndroid ? "text-a-on" : "text-text-primary";
   const rule = isAndroid ? "border-a-outline" : "border-border-hairline";
@@ -75,6 +79,7 @@ export function OpenThreads({
         ...(on ? { unwrite: () => completeContent(row.id, false), did: "Ticked off" } : {}),
         failed: on ? "Couldn't tick that off" : "Couldn't put that back",
         unfailed: "Couldn't put that back",
+        place: { id: row.id, icon: "check", form: "slot" },
       },
       toast,
       writes,
@@ -143,49 +148,56 @@ export function OpenThreads({
                   </Text>
                 ) : null}
               </Pressable>
-              {one.todos.map((row) => {
-                const done = struck.has(row.id);
-                // The row is not one control: a screen reader reaches the tick
-                // and the title apart, as on the thread page.
-                return (
-                  <View key={row.id} className={`flex-row items-center gap-space-4 border-t px-space-6 ${rule}`} style={{ minHeight: 44 }}>
-                    <Pressable
-                      onPress={() => tick(row)}
-                      hitSlop={12}
-                      accessibilityRole="checkbox"
-                      accessibilityLabel={done ? `Put ${row.title} back on the list` : `Finish ${row.title}`}
-                      accessibilityState={{ checked: done }}
-                      className="items-center justify-center rounded-xs border"
-                      style={{
-                        width: 21,
-                        height: 21,
-                        borderColor: done ? COLOR.accent : COLOR.iconOnWell,
-                        backgroundColor: done ? COLOR.accent : "transparent",
-                      }}
-                    >
-                      {done ? <Glyph name="check" size={13} color={COLOR.onSolid} /> : null}
-                    </Pressable>
-                    <Pressable
-                      onPress={() => onOpenRow(row)}
-                      accessibilityRole="button"
-                      accessibilityLabel={row.title}
-                      className="flex-1 flex-row items-center gap-space-4"
-                      style={{ paddingVertical: 10 }}
-                    >
-                      <Text
-                        className={`flex-1 font-core font-medium ${done ? "text-text-tertiary" : ink}`}
-                        style={{ fontSize: 15, lineHeight: 20, ...(done ? { textDecorationLine: "line-through" as const } : {}) }}
-                        numberOfLines={1}
+              <InPlace
+                items={one.todos.filter((row) => !struck.has(row.id))}
+                idOf={(row) => row.id}
+                above
+                trailing
+                rule={rule}
+                row={(row, border) => {
+                  const done = struck.has(row.id);
+                  // The row is not one control: a screen reader reaches the tick
+                  // and the title apart, as on the thread page.
+                  return (
+                    <View key={row.id} className={`flex-row items-center gap-space-4 px-space-6 ${border ? `border-t ${rule}` : ""}`} style={{ minHeight: 44 }}>
+                      <Pressable
+                        onPress={() => tick(row)}
+                        hitSlop={12}
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={done ? `Put ${row.title} back on the list` : `Finish ${row.title}`}
+                        accessibilityState={{ checked: done }}
+                        className="items-center justify-center rounded-xs border"
+                        style={{
+                          width: 21,
+                          height: 21,
+                          borderColor: done ? COLOR.accent : COLOR.iconOnWell,
+                          backgroundColor: done ? COLOR.accent : "transparent",
+                        }}
                       >
-                        {row.title}
-                      </Text>
-                      <Text className="font-core text-text-tertiary" style={{ fontSize: 12, fontVariant: ["tabular-nums"] }}>
-                        {openFor(row.createdAt, now)}
-                      </Text>
-                    </Pressable>
-                  </View>
-                );
-              })}
+                        {done ? <Glyph name="check" size={13} color={COLOR.onSolid} /> : null}
+                      </Pressable>
+                      <Pressable
+                        onPress={() => onOpenRow(row)}
+                        accessibilityRole="button"
+                        accessibilityLabel={row.title}
+                        className="flex-1 flex-row items-center gap-space-4"
+                        style={{ paddingVertical: 10 }}
+                      >
+                        <Text
+                          className={`flex-1 font-core font-medium ${done ? "text-text-tertiary" : ink}`}
+                          style={{ fontSize: 15, lineHeight: 20, ...(done ? { textDecorationLine: "line-through" as const } : {}) }}
+                          numberOfLines={1}
+                        >
+                          {row.title}
+                        </Text>
+                        <Text className="font-core text-text-tertiary" style={{ fontSize: 12, fontVariant: ["tabular-nums"] }}>
+                          {openFor(row.createdAt, now)}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  );
+                }}
+              />
               <View className={`mt-auto flex-row items-center justify-between border-t px-space-6 ${rule}`} style={{ minHeight: 40 }}>
                 <Text className="font-core text-text-tertiary" style={{ fontSize: 13 }}>
                   {more > 0 ? `${more} more` : (holds ?? "")}

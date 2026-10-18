@@ -8,8 +8,8 @@
 // and every rule about a memory's kind and origin comes from @offload/widgets,
 // so the phones say the same words about the same row.
 //
-// Forget is drawn first and written second, with the toast's eight seconds of
-// Undo, which is `perform` as everywhere else. An add or a change is the
+// Forget is drawn first and written second, with eight seconds of Undo in the
+// memory's place (2026-10-18), which is `perform` as everywhere else. An add or a change is the
 // person's own edit and waits for the server: a refusal belongs under the
 // field, which stays open.
 //
@@ -17,7 +17,7 @@
 // `Switch`: drawn first and written second, put back with the toast's Retry
 // on a failure. No Undo, since this editor has none.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
   MEMORY_COPY,
   MEMORY_KINDS,
@@ -34,11 +34,15 @@ import {
   type MemoryKindId,
   type MemoryList,
   type MemoryView,
+  type UndoEntry,
 } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { Switch } from "../Switch";
 import { PaneHead } from "../shell/PaneHead";
 import { useToast } from "../shell/Toast";
+import { Line } from "../shell/InPlace";
+import { Returned } from "../shell/UndoLine";
+import { useInPlace } from "../../lib/undo";
 import { Segmented } from "./Appearance";
 import { QuietEmpty } from "./QuietEmpty";
 import { MemoriesMap } from "../memories/MemoriesMap";
@@ -111,6 +115,7 @@ export function MemoriesPane({
         did: MEMORY_COPY.forgotten,
         failed: MEMORY_COPY.saveFailed,
         unfailed: MEMORY_COPY.unfailed,
+        place: { id: memory.id, icon: "cloudy", form: "slot" },
       },
       toast,
       writes,
@@ -157,6 +162,25 @@ export function MemoriesPane({
   );
 
   const shown = list.memories.filter((m) => matchesMemory(m, query));
+  const sections = memorySections(shown, sort);
+  // 2026-10-18. The slots over the whole list rather than per section, so a
+  // forgotten memory's line stays when its section empties: it goes before
+  // the memory drawn after it, under its own heading while that has any left,
+  // and at the foot when nothing follows (null).
+  const order = useInPlace(sections.flatMap((section) => section.rows), (m) => m.id);
+  const slotsBefore = new Map<string | null, UndoEntry[]>();
+  const lines = new Map<string, UndoEntry>();
+  let waiting: UndoEntry[] = [];
+  for (const one of order) {
+    if ("slot" in one) waiting.push(one.entry);
+    else {
+      if (waiting.length > 0) slotsBefore.set(one.row.id, waiting);
+      waiting = [];
+      if (one.line) lines.set(one.row.id, one.line);
+    }
+  }
+  if (waiting.length > 0) slotsBefore.set(null, waiting);
+  const slots = (before: string | null) => slotsBefore.get(before)?.map((entry) => <Line key={entry.id} entry={entry} />);
   const editing = open && "id" in open ? (list.memories.find((m) => m.id === open.id) ?? null) : null;
   const editor =
     open && (editing || "fresh" in open) ? (
@@ -275,24 +299,28 @@ export function MemoriesPane({
               />
               {list.full ? <p className={styles.line}>{MEMORY_COPY.full}</p> : null}
               {shown.length === 0 && query.trim() ? <p className={styles.nothing}>{MEMORY_COPY.nothingSays(query.trim())}</p> : null}
-              {memorySections(shown, sort).map((section) => (
+              {sections.map((section) => (
                 <section key={section.key}>
                   <h2 className={styles.head} data-k={section.kind ?? undefined}>
                     {section.kind ? <span className={styles.headDot} aria-hidden="true" /> : null}
                     {section.title}
                     <em>{section.rows.length}</em>
                   </h2>
-                  {section.rows.map((memory) => (
-                    <MemoryEntry
-                      key={memory.id}
-                      memory={memory}
-                      dot={sort === "new"}
-                      on={editing?.id === memory.id}
-                      onOpen={() => setOpen({ id: memory.id })}
-                    />
-                  ))}
+                  {section.rows.map((memory) => {
+                    const line = lines.get(memory.id);
+                    return (
+                      <Fragment key={memory.id}>
+                        {slots(memory.id)}
+                        <Returned id={memory.id}>
+                          <MemoryEntry memory={memory} dot={sort === "new"} on={editing?.id === memory.id} onOpen={() => setOpen({ id: memory.id })} />
+                        </Returned>
+                        {line ? <Line entry={line} /> : null}
+                      </Fragment>
+                    );
+                  })}
                 </section>
               ))}
+              {slots(null)}
             </div>
           ) : null}
         </div>

@@ -183,8 +183,17 @@ export interface CalendarCopy {
 export async function calendarOn(accountId: string, date: string, zone: string | null, { forSend = false } = {}): Promise<CalendarCopy[]> {
   const start = instantIn(`${date}T00:00`, zone) ?? new Date(`${date}T00:00:00Z`);
   const end = instantIn(`${addUtcDays(date, 1)}T00:00`, zone) ?? new Date(`${addUtcDays(date, 1)}T00:00:00Z`);
-  const wideFrom = new Date(start.getTime() - 86400_000);
-  const wideTo = new Date(end.getTime() + 86400_000);
+  const rows = await calendarBetween(accountId, new Date(start.getTime() - 86400_000), new Date(end.getTime() + 86400_000), forSend);
+  return rows.filter((row) => calendarCovers(row, date, zone));
+}
+
+/** Whether a calendar's event is on a day, in the account's clock. */
+function calendarCovers(row: CalendarCopy, date: string, zone: string | null): boolean {
+  return dayCovers(date, row.all_day ? utcDay(row.occurs_at) : dayIn(row.occurs_at, zone), lastDay(row.occurs_at, row.occurs_end_at, row.all_day, zone, true));
+}
+
+/** The account's own ticked calendars' events touching a window. */
+async function calendarBetween(accountId: string, wideFrom: Date, wideTo: Date, forSend: boolean): Promise<CalendarCopy[]> {
   // **Never `thread_calendars`, never `threadEvents`**: those return every
   // member's picks, and this is the account's own calendars only.
   let query = db
@@ -210,12 +219,9 @@ export async function calendarOn(accountId: string, date: string, zone: string |
     .where("e.occurs_at", "<", wideTo)
     .where(sql<boolean>`coalesce(e.occurs_end_at, e.occurs_at) >= ${wideFrom}`);
   if (forSend) query = query.where("n.state", "=", "active").where("e.going", "=", true);
-  const rows = await query.execute();
-  return rows.filter(
-    (row): row is typeof row & { occurs_at: Date } =>
-      row.occurs_at !== null &&
-      dayCovers(date, row.all_day ? utcDay(row.occurs_at) : dayIn(row.occurs_at, zone), lastDay(row.occurs_at, row.occurs_end_at, row.all_day, zone, true)),
-  );
+  // A backstop as the rows' reads have: a month's window reads up to 64 days.
+  const rows = await query.orderBy("e.occurs_at").limit(DAY_ROWS).execute();
+  return rows.filter((row): row is typeof row & { occurs_at: Date } => row.occurs_at !== null);
 }
 
 /** An event offload wrote to a calendar from a row: drawn, or named, once, as
@@ -226,6 +232,14 @@ export function isWritten(row: Pick<CalendarCopy, "source_ref" | "series_ref" | 
 }
 
 const dayCovers = (date: string, first: string, last: string) => first <= date && date <= last;
+
+/** Whether an offload event is on a day: its span, or its rule's occurrence. */
+function eventOn(row: AgendaRaw, date: string, zone: string | null): boolean {
+  if (!row.occurs_at) return false;
+  const allDay = allDayOf(row.attrs);
+  const first = allDay ? utcDay(row.occurs_at) : dayIn(row.occurs_at, zone);
+  return row.rrule ? landsOn(row, first, date) : dayCovers(date, first, lastDay(row.occurs_at, row.occurs_end_at, allDay, zone, false));
+}
 
 /** The day's events: the account's own ticked calendars, never a calendar
  *  another member picked for a thread, and every `event` row the account
@@ -248,16 +262,12 @@ async function eventsOn(accountId: string, date: string, start: Date, end: Date,
       .execute() as Promise<AgendaRaw[]>,
   ]);
 
-  const covers = (first: string, last: string) => first <= date && date <= last;
   const out: TodayEvent[] = [];
   const written = new Set<string>();
 
   for (const row of offloadRows) {
-    if (!row.occurs_at) continue;
+    if (!row.occurs_at || !eventOn(row, date, zone)) continue;
     const allDay = allDayOf(row.attrs);
-    const first = allDay ? utcDay(row.occurs_at) : dayIn(row.occurs_at, zone);
-    const onDay = row.rrule ? landsOn(row, first, date) : covers(first, lastDay(row.occurs_at, row.occurs_end_at, allDay, zone, false));
-    if (!onDay) continue;
     if (row.source_ref) written.add(row.source_ref);
     const mine = row.account_id === accountId;
     // A repeating event's occurrence on this day, at its time of day.
@@ -311,4 +321,134 @@ async function eventsOn(accountId: string, date: string, start: Date, end: Date,
     const at = (a.startsAt ?? "") < (b.startsAt ?? "") ? -1 : (a.startsAt ?? "") > (b.startsAt ?? "") ? 1 : 0;
     return at !== 0 ? at : a.title.localeCompare(b.title);
   });
+}
+
+// ---------------------------------------------------------------- the month
+
+/** The longest window the month reads: six weeks of a grid, with room over. */
+export const MONTH_DAYS = 62;
+
+export const monthResponse = z.object({
+  /** Only the days with something on them. */
+  days: z.array(z.object({ date: z.string(), task: z.number(), event: z.number(), calendar: z.number() })),
+});
+export type MonthResponse = z.infer<typeof monthResponse>;
+
+/** The columns the month counts from, and nothing it would only carry. */
+const MONTH_COLUMNS = [
+  "content.id as id",
+  "content.type as type",
+  "content.due_at as due_at",
+  "content.occurs_at as occurs_at",
+  "content.occurs_end_at as occurs_end_at",
+  "content.rrule as rrule",
+  "content.attrs as attrs",
+  "content.source_ref as source_ref",
+] as const;
+
+/** The days a rule lands on inside a window, worked out once per row. */
+function ruleDays(row: AgendaRaw, anchor: string, first: string, last: string): Set<string> {
+  const parsed = parseRule(row.rrule);
+  return new Set(parsed.ok ? occurrencesIn(parsed.rule, anchor, first, last).filter((day) => day >= anchor) : []);
+}
+
+/** 2026-10-18. A dot for each thing each day in a window would show on Today:
+ *  the day read's own sources and predicates, counted rather than drawn, with
+ *  today's cell carrying the late to-dos the day read carries. Each row's days
+ *  are worked out once, not once a day (security review, PR 127): a member of
+ *  a shared thread must not be able to make another's month slow. A day
+ *  before today or past the calendar copy's edge carries nothing, since it
+ *  does not open. `bad_window` for anything that is not a short window. */
+export async function readMonth(accountId: string, from: string, to: string, now = new Date()): Promise<MonthResponse | "bad_window"> {
+  if (!isDay(from) || !isDay(to) || to < from || to > addUtcDays(from, MONTH_DAYS)) return "bad_window";
+  const zone = await zoneOf(accountId);
+  const today = dayIn(now, zone);
+  const first = from < today ? today : from;
+  const edge = addUtcDays(today, DAYS_AHEAD);
+  const last = to > edge ? edge : to;
+  if (first > last) return { days: [] };
+
+  const start = instantIn(`${first}T00:00`, zone) ?? new Date(`${first}T00:00:00Z`);
+  const end = instantIn(`${addUtcDays(last, 1)}T00:00`, zone) ?? new Date(`${addUtcDays(last, 1)}T00:00:00Z`);
+  const wideFrom = new Date(start.getTime() - 86400_000);
+  const wideTo = new Date(end.getTime() + 86400_000);
+  // Wide enough for a bare day's noon UTC and any zone's day either side, and
+  // back over the late window when today is in it, as the day read reads.
+  const withToday = first === today;
+  const lateFirst = addUtcDays(today, -TODAY_BACK_DAYS);
+  const dueFrom = new Date(`${addUtcDays(withToday ? lateFirst : first, -1)}T00:00:00Z`);
+  const dueTo = new Date(`${addUtcDays(last, 2)}T00:00:00Z`);
+
+  const [rows, offloadRows, calendarRows] = await Promise.all([
+    agendaQuery(accountId)
+      .clearSelect()
+      .select(MONTH_COLUMNS)
+      .where("content.type", "<>", "event")
+      .where((eb) => eb.or([eb.and([eb("content.due_at", ">=", dueFrom), eb("content.due_at", "<", dueTo)]), eb("content.rrule", "is not", null)]))
+      .limit(DAY_ROWS)
+      .execute() as Promise<AgendaRaw[]>,
+    agendaQuery(accountId)
+      .clearSelect()
+      .select(MONTH_COLUMNS)
+      .where("content.type", "=", "event")
+      .where((eb) =>
+        eb.or([
+          eb.and([eb("content.occurs_at", "<", wideTo), eb(sql`coalesce(content.occurs_end_at, content.occurs_at)`, ">=", wideFrom)]),
+          eb("content.rrule", "is not", null),
+        ]),
+      )
+      .limit(DAY_ROWS)
+      .execute() as Promise<AgendaRaw[]>,
+    calendarBetween(accountId, wideFrom, wideTo, false),
+  ]);
+
+  const counts = new Map<string, { task: number; event: number; calendar: number }>();
+  const bump = (date: string, kind: "task" | "event" | "calendar") => {
+    if (date < first || date > last) return;
+    const held = counts.get(date) ?? { task: 0, event: 0, calendar: 0 };
+    held[kind] += 1;
+    counts.set(date, held);
+  };
+
+  for (const row of rows) {
+    const day = dayOfRow(row, zone);
+    if (!day) continue;
+    if (row.rrule) for (const on of ruleDays(row, day, first, last)) bump(on, "task");
+    else if (day >= first) bump(day, "task");
+    // The day read's late section, on today only.
+    else if (withToday && day < today && day >= lateFirst) bump(today, "task");
+  }
+
+  // An event offload wrote to a calendar is counted once, as the row: the
+  // copy it wrote is skipped on the days the row is on.
+  const writtenOn = new Map<string, Set<string>>();
+  for (const row of offloadRows) {
+    if (!row.occurs_at) continue;
+    const allDay = allDayOf(row.attrs);
+    const firstDay = allDay ? utcDay(row.occurs_at) : dayIn(row.occurs_at, zone);
+    const on = row.rrule
+      ? [...ruleDays(row, firstDay, first, last)]
+      : spanDays(firstDay, lastDay(row.occurs_at, row.occurs_end_at, allDay, zone, false), first, last);
+    for (const date of on) {
+      bump(date, "event");
+      if (row.source_ref) (writtenOn.get(date) ?? writtenOn.set(date, new Set()).get(date)!).add(row.source_ref);
+    }
+  }
+  for (const row of calendarRows) {
+    const firstDay = row.all_day ? utcDay(row.occurs_at) : dayIn(row.occurs_at, zone);
+    for (const date of spanDays(firstDay, lastDay(row.occurs_at, row.occurs_end_at, row.all_day, zone, true), first, last)) {
+      if (!isWritten(row, writtenOn.get(date) ?? new Set())) bump(date, "calendar");
+    }
+  }
+
+  return {
+    days: [...counts.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([date, held]) => ({ date, ...held })),
+  };
+}
+
+/** The days of a span that fall inside a window. */
+function spanDays(spanFirst: string, spanLast: string, first: string, last: string): string[] {
+  const out: string[] = [];
+  for (let date = spanFirst > first ? spanFirst : first; date <= spanLast && date <= last; date = addUtcDays(date, 1)) out.push(date);
+  return out;
 }

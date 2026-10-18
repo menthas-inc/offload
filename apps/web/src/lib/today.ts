@@ -6,7 +6,7 @@
 // `apps/core-api/src/routes/today.ts` and `src/today/layout.ts`; the server's
 // zod schemas are the shapes, and these types say only what the page reads.
 
-import { GOOGLE_EVENT_LINK, type ReminderEntry as Entry } from "@offload/widgets";
+import { GOOGLE_EVENT_LINK, type MonthCount, type ReminderEntry as Entry } from "@offload/widgets";
 import type { QuestionOnWire } from "./dump";
 import type { ContentRow } from "./threads";
 
@@ -159,6 +159,18 @@ export async function fetchDay(date: string): Promise<Day | null> {
     const response = await fetch(`${API}/v1/today/day?date=${encodeURIComponent(date)}`, send);
     if (!response.ok) return null;
     return (await response.json()) as Day;
+  } catch {
+    return null;
+  }
+}
+
+/** 2026-10-18. What each day in a window holds, for Today's month; null
+ *  when it did not load, so the grid draws without dots. */
+export async function fetchMonth(from: string, to: string): Promise<MonthCount[] | null> {
+  try {
+    const response = await fetch(`${API}/v1/today/month?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, send);
+    if (!response.ok) return null;
+    return ((await response.json()) as { days: MonthCount[] }).days;
   } catch {
     return null;
   }

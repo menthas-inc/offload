@@ -30,6 +30,7 @@ import { resetToday } from "../../lib/today";
 import { useConversation } from "./conversation-context";
 import { ToastHost, useToast } from "./Toast";
 import { timeOfDay } from "../../lib/sun";
+import { nameList } from "@offload/widgets";
 
 /** Where the composer belongs, and where it does not. Not "/", which is the
  *  launch screen since Today moved to "/today": the plate drew over it
@@ -107,12 +108,25 @@ export function Shell() {
   // The turn's Undo lives here rather than in the sheet, so putting the
   // conversation away cannot take the window away with it. An eight second window
   // that vanishes because somebody tidied the screen was not eight seconds.
+  //
+  // 2026-10-18. A dump that filed while the conversation was put away has its
+  // Undo above the composer, as Saved to the thread: nothing on the screen
+  // shows the new row by its id. With the conversation up, the reply is the
+  // conversation's own report and keeps the toast, as does a turn that filed
+  // nothing.
   const shownUndo = useRef<string | null>(null);
   useEffect(() => {
     const undoable = conversation.undoable;
     if (!undoable || shownUndo.current === undoable.turnId) return;
     shownUndo.current = undoable.turnId;
-    toast.show(undoable.message, { label: "Undo", onPress: () => void conversation.undo() });
+    const undo = { label: "Undo", onPress: () => void conversation.undo() };
+    const filed = conversation.turns.find((turn) => turn.turnId === undoable.turnId && (turn.threads?.length ?? 0) > 0)?.threads;
+    if (conversation.raised || !filed) return toast.show(undoable.message, undo);
+    toast.show(`Saved to ${nameList(filed.map((thread) => thread.name))}`, undo, {
+      id: `turn:${undoable.turnId}`,
+      icon: "lasso",
+      form: "plate",
+    });
   }, [conversation, toast]);
 
   // A word from the conversation that is not an Undo: a `+`'s write that did
@@ -124,7 +138,7 @@ export function Shell() {
     const notice = conversation.notice;
     if (!notice || shownNotice.current === notice.at) return;
     shownNotice.current = notice.at;
-    toast.show(notice.message, notice.action);
+    toast.show(notice.message, notice.action, notice.place);
   }, [conversation, toast]);
 
   const onTab = TABS.includes(pathname);

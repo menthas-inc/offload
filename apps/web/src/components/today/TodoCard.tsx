@@ -13,6 +13,7 @@ import { useState } from "react";
 import { timeIn, whenOf } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { ContentRowView } from "../panes/ContentRowView";
+import { InPlace } from "../shell/InPlace";
 import type { AgendaRow } from "../../lib/today";
 import type { TodayRows } from "./useTodayRows";
 import pane from "../../app/(shell)/shell.module.css";
@@ -57,6 +58,7 @@ export function TodoCard({
   notDrawn,
   rows,
   zone,
+  lingering = false,
 }: {
   late: AgendaRow[];
   lateMore: number;
@@ -66,10 +68,13 @@ export function TodoCard({
   notDrawn: number;
   rows: TodayRows;
   zone: string | null;
+  /** A line still runs for a row that left: the card stays for it. */
+  lingering?: boolean;
 }) {
   const [lateOpen, setLateOpen] = useState(false);
   const count = late.length + lateMore + timed.length + rest.length + notDrawn;
-  if (late.length + timed.length + rest.length === 0) return null;
+  // 2026-10-18. The last row ticked off keeps the card while its line runs.
+  if (late.length + timed.length + rest.length === 0 && !lingering) return null;
 
   const lateShown = lateOpen ? late : late.slice(0, LATE_SHOWN);
   // The fold counts the late rows the read left out too, as the phones do.
@@ -81,20 +86,22 @@ export function TodoCard({
         To do <em className={styles.headCount}>{count}</em>
       </h3>
       <div className={styles.rows}>
-        {lateShown.map((row) => (
-          <TodayRow key={row.id} row={row} rows={rows} />
-        ))}
+        {/* 2026-10-18. A row that leaves keeps its slot for its Undo line,
+            square inside the card. */}
+        <InPlace items={lateShown} idOf={(row) => row.id} radius="0">
+          {(row) => <TodayRow row={row} rows={rows} />}
+        </InPlace>
         {lateFolded > 0 ? (
           <button type="button" className={styles.fold} onClick={() => setLateOpen(true)}>
             {lateFolded} more late
           </button>
         ) : null}
-        {timed.map((row) => (
-          <TodayRow key={row.id} row={row} rows={rows} chip={<HourChip row={row} zone={zone} />} />
-        ))}
-        {rest.map((row) => (
-          <TodayRow key={row.id} row={row} rows={rows} chip={null} />
-        ))}
+        <InPlace items={timed} idOf={(row) => row.id} radius="0">
+          {(row) => <TodayRow row={row} rows={rows} chip={<HourChip row={row} zone={zone} />} />}
+        </InPlace>
+        <InPlace items={rest} idOf={(row) => row.id} radius="0">
+          {(row) => <TodayRow row={row} rows={rows} chip={null} />}
+        </InPlace>
         {/* The read stops at a hundred and counts the rest; they are on the
             thread pages, and the count says how many. */}
         {notDrawn > 0 ? <p className={styles.foldNote}>and {notDrawn} more</p> : null}

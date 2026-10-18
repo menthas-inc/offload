@@ -5,7 +5,7 @@
 // over them, the two cards only this phone can know about, and the day a
 // notification opens on. The screen draws from this and decides nothing.
 
-import { MEMORY_PARAM, zoneStrip, type ReminderEntry as Entry, type ReminderLine } from "@offload/widgets";
+import { MEMORY_PARAM, zoneStrip, type MonthCount, type ReminderEntry as Entry, type ReminderLine } from "@offload/widgets";
 import { request, send } from "./api";
 import { threadHref } from "./loose";
 import type { ContentRow } from "./threads";
@@ -56,6 +56,13 @@ export interface Day {
 export async function fetchDay(date: string): Promise<Day | null> {
   const sent = await send<Day>(`/v1/today/day?date=${encodeURIComponent(date)}`);
   return sent.status === 200 ? sent.data : null;
+}
+
+/** 2026-10-18. What each day in a window holds, for Today's month; null when
+ *  it did not come back, so the grid draws without dots. */
+export async function fetchMonth(from: string, to: string): Promise<MonthCount[] | null> {
+  const sent = await send<{ days: MonthCount[] }>(`/v1/today/month?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+  return sent.status === 200 ? (sent.data?.days ?? null) : null;
 }
 
 // ---------------------------------------------------------------- Needs you

@@ -124,13 +124,15 @@ describe("the screen (AC-11 to AC-13)", () => {
     expect(source).not.toMatch(/<Animated\.ScrollView/);
     expect(source).toMatch(/initialNumToRender=\{/);
     expect(source).toMatch(/windowSize=\{/);
-    expect(source).toMatch(/keyExtractor=\{\(memory\) => memory\.id\}/);
+    // A forgotten memory's slot is an item too, keyed by its line (2026-10-18).
+    expect(source).toMatch(/keyExtractor=\{\(one\) => \("slot" in one \? one\.entry\.id : one\.row\.id\)\}/);
     expect(source).toMatch(/renderSectionHeader=\{/);
   });
 
   it("draws a kind's heading with its dot, name and count", () => {
     expect(source).toMatch(/section\.kind \? <Dot/);
-    expect(source).toMatch(/\{section\.data\.length\}/);
+    // The memories it holds, not its items: a slot is not a memory.
+    expect(source).toMatch(/\{section\.count\}/);
   });
 
   it("puts the toast over the sheet", () => {

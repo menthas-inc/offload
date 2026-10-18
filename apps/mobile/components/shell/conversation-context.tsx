@@ -64,6 +64,7 @@ import {
 import type { ChipError } from "./AttachChip";
 import { addNote, completeContent, fetchThread, provisionalId, quickAdd } from "../../lib/threads";
 import { MAX_PDFS, MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, stayedForgotten, takeFiles, turnDid, turnUndoable, undoShown, withReply } from "@offload/widgets";
+import type { Place } from "@offload/widgets";
 import type { Label } from "../../lib/labels";
 import { failed } from "../../lib/log";
 import { fetchPeople, nameOf, type Person } from "../../lib/people";
@@ -178,6 +179,8 @@ export interface Notice {
   at: number;
   message: string;
   action?: { label: string; onPress: () => void | Promise<void> };
+  /** 2026-10-18. Where an Undo, or its failure, is drawn instead of the toast. */
+  place?: Place;
 }
 
 /** 020. A photo waiting in the composer. The key belongs to the draft until
@@ -395,7 +398,7 @@ export interface Conversation {
   notice: Notice | null;
   /** 022. Say it from a screen that is about to go: Leave from a thread's
    *  More pops the screen, and the toast has to outlive it. */
-  notify: (message: string, action?: Notice["action"]) => void;
+  notify: (message: string, action?: Notice["action"], place?: Place) => void;
 }
 
 /** The tail as turns, for the load and for Today's Answer. */
@@ -517,8 +520,8 @@ export function ConversationProvider({
 
   const [provisional, setProvisional] = useState<ProvisionalWrite[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
-  const notify = useCallback((message: string, action?: Notice["action"]) => {
-    setNotice({ at: Date.now(), message, ...(action ? { action } : {}) });
+  const notify = useCallback((message: string, action?: Notice["action"], place?: Place) => {
+    setNotice({ at: Date.now(), message, ...(action ? { action } : {}), ...(place ? { place } : {}) });
   }, []);
 
   const resolveWaiting = useCallback((turn: { id: string; turnId?: string }, agreed: boolean) => {
@@ -1243,7 +1246,8 @@ export function ConversationProvider({
     if (!taken) return;
     if (taken.durationMs > 60_000) {
       // Discard sits a thumb's width from Send. Past a minute the note is
-      // parked under the toast for eight seconds and deleted after.
+      // parked for eight seconds, its Undo in the toast (the composer's own,
+      // which can sit under the raised sheet), and deleted after.
       notify("Discarded", { label: "Undo", onPress: () => setNote(taken) });
       setTimeout(() => {
         setNote((held) => {

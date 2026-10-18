@@ -41,6 +41,7 @@ export {
   datedFor,
   localDay,
   monthFor,
+  monthDated,
   railFor,
   stepMonth,
   contentOn,
@@ -48,6 +49,7 @@ export {
   type Dated,
   type Day,
   type Month,
+  type MonthCount,
   type RailRow,
   type WeekStart,
 } from "@offload/widgets";

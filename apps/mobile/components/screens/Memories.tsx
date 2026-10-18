@@ -22,6 +22,8 @@ import { Spinner } from "../Spinner";
 import { QuietEmpty } from "./QuietEmpty";
 import { ToastHost, useToast } from "../shell/Toast";
 import { PlateSpace } from "../shell/plate-inset";
+import { placedItem } from "../shell/InPlace";
+import { useInPlace, type InPlace } from "../../lib/undo";
 import { useConversation } from "../shell/conversation-context";
 import { MemoryListRow } from "../memories/MemoryListRow";
 import { MemoryEditor } from "../memories/MemoryEditor";
@@ -43,19 +45,23 @@ import { plusKind } from "../../lib/memories-map";
 
 const isAndroid = Platform.OS === "android";
 
-/** A list section as `SectionList` takes it. */
+/** A list section as `SectionList` takes it: its memories with their Undo
+ *  lines, and how many memories it holds. */
 interface ListSection {
   key: string;
   title: string;
   kind: MemoryKindId | null;
-  data: MemoryView[];
+  count: number;
+  data: InPlace<MemoryView>[];
 }
 
 /** **Virtualised (2026-10-07).** Three hundred rows mount as they scroll into
  *  view rather than all at once; animated, so the prism behind the plate
  *  still slides with it on the UI thread. */
 const MemorySectionList = Animated.createAnimatedComponent(
-  SectionList as unknown as new (props: SectionListProps<MemoryView, ListSection>) => SectionList<MemoryView, ListSection>,
+  SectionList as unknown as new (
+    props: SectionListProps<InPlace<MemoryView>, ListSection>,
+  ) => SectionList<InPlace<MemoryView>, ListSection>,
 );
 
 /** The bar's tools are drawn at 40 and answer to 44. */
@@ -131,6 +137,24 @@ export default function Memories() {
   }, [asked, memories]);
   const places = read && read !== "failed" ? (read.kinds ?? []) : [];
   const shown = listView(memories, sort, query);
+  // 2026-10-18. With the Undo lines: a forgotten memory keeps a slot where it
+  // was, in the section it left, which is remembered for when that is gone.
+  const placed = useInPlace(
+    shown.sections.flatMap((section) => section.rows),
+    (memory) => memory.id,
+  );
+  const sectionOf = useRef(new Map<string, string>());
+  for (const section of shown.sections) for (const row of section.rows) sectionOf.current.set(row.id, section.key);
+  const listed = new Map(shown.sections.map((section) => [section.key, [] as InPlace<MemoryView>[]]));
+  let current = shown.sections[0]?.key ?? "";
+  for (const one of placed) {
+    if ("slot" in one) {
+      (listed.get(sectionOf.current.get(one.entry.id) ?? "") ?? listed.get(current))?.push(one);
+      continue;
+    }
+    current = sectionOf.current.get(one.row.id) ?? current;
+    listed.get(current)?.push(one);
+  }
   const palette = { labels: COLOR.labels, ink: COLOR.ink, raised: COLOR.raised, inverse: COLOR.inverse, onSolid: COLOR.onSolid, hueInkMix: COLOR.hueInkMix };
 
   function toggleSearch(): void {
@@ -149,13 +173,17 @@ export default function Memories() {
 
   async function forget(memory: MemoryView): Promise<void> {
     await perform(
-      forgetOp(memory, {
-        drop: (id) => setRead((r) => (r && r !== "failed" ? { ...r, memories: r.memories.filter((m) => m.id !== id) } : r)),
-        put: (back) =>
-          setRead((r) =>
-            r && r !== "failed" && !r.memories.some((m) => m.id === back.id) ? { ...r, memories: [...r.memories, back] } : r,
-          ),
-      }),
+      {
+        ...forgetOp(memory, {
+          drop: (id) => setRead((r) => (r && r !== "failed" ? { ...r, memories: r.memories.filter((m) => m.id !== id) } : r)),
+          put: (back) =>
+            setRead((r) =>
+              r && r !== "failed" && !r.memories.some((m) => m.id === back.id) ? { ...r, memories: [...r.memories, back] } : r,
+            ),
+        }),
+        // The map has no row to leave a slot in.
+        place: { id: memory.id, icon: "cloudy", form: view === "map" ? "plate" : "slot" },
+      },
       toast,
       writes,
     );
@@ -239,8 +267,14 @@ export default function Memories() {
         />
       ) : (
         <MemorySectionList
-          sections={shown.sections.map((section) => ({ key: section.key, title: section.title, kind: section.kind, data: section.rows }))}
-          keyExtractor={(memory) => memory.id}
+          sections={shown.sections.map((section) => ({
+            key: section.key,
+            title: section.title,
+            kind: section.kind,
+            count: section.rows.length,
+            data: listed.get(section.key) ?? [],
+          }))}
+          keyExtractor={(one) => ("slot" in one ? one.entry.id : one.row.id)}
           // About two screens up front, then a window of seven screens as it
           // scrolls: 300 rows never mount at once.
           initialNumToRender={14}
@@ -283,19 +317,27 @@ export default function Memories() {
               </Text>
               <View className="rounded-pill bg-surface-fill px-space-3 py-space-1" style={{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}>
                 <Text className="font-core text-text-secondary" style={{ fontSize: 12 }}>
-                  {section.data.length}
+                  {section.count}
                 </Text>
               </View>
             </View>
           )}
-          renderItem={({ item: memory, index }) => (
-            <MemoryListRow
-              memory={memory}
-              dot={sort === "new" ? kindColors(memory.kind, palette).dot : null}
-              border={index > 0}
-              onOpen={() => open(memory)}
-              onForget={() => void forget(memory)}
-            />
+          renderItem={({ item: one, index }) => (
+            <>
+              {placedItem(one, index > 0, {
+                idOf: (memory) => memory.id,
+                above: true,
+                row: (memory, border) => (
+                  <MemoryListRow
+                    memory={memory}
+                    dot={sort === "new" ? kindColors(memory.kind, palette).dot : null}
+                    border={border}
+                    onOpen={() => open(memory)}
+                    onForget={() => void forget(memory)}
+                  />
+                ),
+              })}
+            </>
           )}
           ListFooterComponent={
             <>

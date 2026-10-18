@@ -23,6 +23,7 @@ import { useState } from "react";
 import styles from "../../app/(shell)/shell.module.css";
 import { Icon } from "../Icon";
 import { PhotoThumb } from "../shell/PhotoThumb";
+import { InPlace } from "../shell/InPlace";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import type { RowReorder } from "./RowTools";
 import {
@@ -59,7 +60,7 @@ interface Props {
   onFold: (next: boolean) => void;
   /** A row was dragged to a new place. The writes hold the new order; the page
    *  owns the rows and the Undo, so it makes them. */
-  onReorder: (writes: ReorderWrite[]) => void;
+  onReorder: (writes: ReorderWrite[], moved: string) => void;
 }
 
 export function Widgets({
@@ -107,7 +108,7 @@ function WidgetBlock({
   onAdd: (text: string, section: string) => void;
   onToggle: (row: ContentRow) => void;
   onFold: (next: boolean) => void;
-  onReorder: (writes: ReorderWrite[]) => void;
+  onReorder: (writes: ReorderWrite[], moved: string) => void;
 }) {
   const [allDone, setAllDone] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -139,7 +140,7 @@ function WidgetBlock({
     const from = left.findIndex((row) => row.id === fromId);
     if (from < 0 || toIndex < 0 || toIndex >= left.length) return;
     const { writes } = reorderPlan(left, from, toIndex);
-    if (writes.length > 0) onReorder(writes);
+    if (writes.length > 0) onReorder(writes, fromId);
   }
 
   const reorderFor = (row: ContentRow, index: number): RowReorder | undefined => {
@@ -252,16 +253,12 @@ function WidgetBlock({
           ))}
         </div>
       ) : (
-        left.map((row, index) => (
-          <Row
-            key={row.id}
-            row={row}
-            widget={widget.kind}
-            handlers={handlers}
-            onToggle={onToggle}
-            reorder={reorderFor(row, index)}
-          />
-        ))
+        // 2026-10-18. A row that leaves keeps its slot for its Undo line.
+        <InPlace items={left} idOf={(row) => row.id}>
+          {(row) => (
+            <Row row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} reorder={reorderFor(row, left.indexOf(row))} />
+          )}
+        </InPlace>
       )}
 
       {/* A finished task keeps its place and sinks below everything
@@ -276,9 +273,9 @@ function WidgetBlock({
               the finished rows cannot be dragged, so they draw no handle, and
               without the rule they read as the same list drawn wrong. */}
           {widget.kind === "todo" && left.length > 0 && done.length > 0 ? <hr className={styles.doneRule} /> : null}
-          {(allDone ? done : done.slice(0, DONE_SHOWN)).map((row) => (
-            <Row key={row.id} row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} />
-          ))}
+          <InPlace items={allDone ? done : done.slice(0, DONE_SHOWN)} idOf={(row) => row.id}>
+            {(row) => <Row row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} />}
+          </InPlace>
 
           {done.length > DONE_SHOWN && !allDone ? (
             <button type="button" className={styles.showMore} onClick={() => setAllDone(true)}>

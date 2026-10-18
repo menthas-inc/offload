@@ -19,6 +19,7 @@ import { NoteEditor } from "../panes/Notes";
 import type { RowHandlers } from "../panes/ContentRowView";
 import { CreateThreadModal, type CreateChoice } from "./CreateThreadModal";
 import { perform, useWrites, type Writes } from "../../lib/optimistic";
+import type { Place } from "@offload/widgets";
 import { useClock } from "../../lib/clock";
 import { drawnEdit, undoOf } from "../../lib/row-edit";
 import {
@@ -52,6 +53,9 @@ import {
 
 /** 028's failures offer Try again, as the phones' do. */
 export const RETRY = "Try again";
+
+/** An entry's own id, which its Undo line is keyed by, as on the thread page. */
+export const looseId = (entry: LooseEntry): string => (entry.kind === "content" ? entry.row.id : entry.note.id);
 
 export interface LooseRows {
   handlers: RowHandlers;
@@ -110,6 +114,7 @@ export function useLooseRows<S extends LooseSummary>(
       failed: string;
       unfailed?: string;
       retry?: string | null;
+      place: Place;
     },
   ): void {
     const at = entry ? list.rows.findIndex((one) => entryKey(one) === entryKey(entry)) : -1;
@@ -128,6 +133,7 @@ export function useLooseRows<S extends LooseSummary>(
         get retry() {
           return op.retry === undefined ? RETRY : op.retry;
         },
+        place: op.place,
       },
       toast,
       writes,
@@ -144,6 +150,7 @@ export function useLooseRows<S extends LooseSummary>(
       did: "Deleted, gone in a moment",
       failed: "Couldn't delete that",
       unfailed: "Couldn't put that back",
+      place: { id: row.id, icon: "trash-2", form: "slot" },
     });
   }
 
@@ -156,6 +163,7 @@ export function useLooseRows<S extends LooseSummary>(
       did: "Ticked off",
       failed: "Couldn't tick that off",
       unfailed: "Couldn't put that back",
+      place: { id: row.id, icon: "check", form: "slot" },
     });
   }
 
@@ -171,6 +179,7 @@ export function useLooseRows<S extends LooseSummary>(
       did: archived ? "Put back" : "Archived",
       failed: archived ? "Couldn't put that back" : "Couldn't archive that",
       unfailed: archived ? "Couldn't archive that" : "Couldn't put that back",
+      place: { id: row.id, icon: "archive", form: "slot" },
     });
   }
 
@@ -192,6 +201,7 @@ export function useLooseRows<S extends LooseSummary>(
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
         retry: RETRY,
+        place: { id: row.id, icon: "pencil", form: "under" },
       },
       toast,
       writes,
@@ -211,6 +221,7 @@ export function useLooseRows<S extends LooseSummary>(
       did: `Moved to ${to.name}`,
       failed: "Couldn't move that",
       unfailed: "Couldn't put that back",
+      place: { id: row.id, icon: "arrow-up-right", form: "slot" },
     });
   }
 
@@ -235,6 +246,7 @@ export function useLooseRows<S extends LooseSummary>(
         failed: "Couldn't change the note",
         unfailed: "Couldn't put the note back",
         retry: RETRY,
+        place: { id: note.id, icon: "pencil", form: "under" },
       },
       toast,
       writes,
@@ -251,6 +263,7 @@ export function useLooseRows<S extends LooseSummary>(
       did: "Note deleted",
       failed: "Couldn't delete the note",
       unfailed: "Couldn't put the note back",
+      place: { id: note.id, icon: "trash-2", form: "slot" },
     });
   }
 
@@ -293,6 +306,7 @@ export function useLooseRows<S extends LooseSummary>(
         return duplicate ? null : RETRY;
       },
       unfailed: "Couldn't put that back",
+      place: { id: note.id, icon: "arrow-up-right", form: "slot" } as const,
     };
     leave(entry, op);
   }
@@ -312,6 +326,7 @@ export function useLooseRows<S extends LooseSummary>(
       did: `Moved to ${suggestion.thread.name}`,
       failed: "Couldn't move that",
       unfailed: "Couldn't put that back",
+      place: { id: looseId(entry), icon: "arrow-up-right", form: "slot" },
     });
   }
 
@@ -335,12 +350,18 @@ export function useLooseRows<S extends LooseSummary>(
 
   /** The modal's write. On success the new thread opens, and Undo puts
    *  everything back and lands on My threads, unless something else has
-   *  happened in the thread since. */
+   *  happened in the thread since.
+   *
+   *  2026-10-18. Its line is in the first row's slot; the others go at once.
+   *  The list is read again when the route changes, so it draws the rows once
+   *  more before they go, which is what gives the line its slot. */
   async function create(proposalId: string, choice: CreateChoice): Promise<boolean> {
     const result = await createFromProposal(proposalId, choice);
     if (!result.ok) return false;
     setCreating(null);
-    void reload();
+    const taken = new Set([...choice.contentIds, ...choice.noteIds]);
+    const first = list.rows.map(looseId).find((id) => taken.has(id));
+    const place: Place = { id: first ?? proposalId, icon: "lasso", form: "slot" };
     router.push(`/threads/${result.thread.id}?from=threads`);
     const undo = async (): Promise<void> => {
       const outcome = await undoProposal(proposalId);
@@ -350,12 +371,12 @@ export function useLooseRows<S extends LooseSummary>(
         return;
       }
       if (outcome === "changed") {
-        toast.show("Couldn't undo that");
+        toast.show("Couldn't undo that", undefined, place);
         return;
       }
-      toast.show("Couldn't put that back", { label: RETRY, onPress: undo });
+      toast.show("Couldn't put that back", { label: RETRY, onPress: undo }, place);
     };
-    toast.show(`Created ${result.thread.name}`, { label: "Undo", onPress: undo });
+    toast.show(`Created ${result.thread.name}`, { label: "Undo", onPress: undo }, place);
     return true;
   }
 

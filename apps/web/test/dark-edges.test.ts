@@ -56,11 +56,10 @@ const MAP = "components/map/map.module.css";
 const EDIT = "components/panes/EditThread.module.css";
 
 const EDGES: [file: string, selector: string, edge: string][] = [
-  // Today: the To do and If you have time card holds rows; an event card and
-  // the stepper's disc are wells.
+  // Today: the To do and If you have time card holds rows; an
+  // event card is a well.
   [TODAY, ".rows", "card"],
   [TODAY, ".event", "well"],
-  [TODAY, ".stepDisc", "well"],
   // Needs you, by the tone its kind line carries.
   [TODAY, '.card:has(> .kind[data-tone="danger"])', "danger"],
   [TODAY, '.card:has(> .kind[data-tone="attention"])', "attention"],

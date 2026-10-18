@@ -9,9 +9,9 @@
 // tick and its row, so a screen reader reaches both.
 //
 // The x dismisses **this reminder and nothing else** (the owner): a birthday
-// dismissed a month out comes back a week out, so the toast says when, with
-// Undo. Which entries show is the screen's, so an emptied section takes no
-// band.
+// dismissed a month out comes back a week out, so its line says when, with
+// Undo, where the name was (2026-10-18). Which entries show is the screen's,
+// so an emptied section takes no band once its last line has run.
 
 import { Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
@@ -30,6 +30,8 @@ import { useColors } from "../../lib/colors";
 import { perform, type Writes } from "../../lib/optimistic";
 import { dismissReminder, reminderDoor, undismissReminder, type ReminderEntry } from "../../lib/today";
 import type { ToastState } from "../shell/Toast";
+import { CARD_RADIUS, placedItem } from "../shell/InPlace";
+import { useInPlace } from "../../lib/undo";
 import { groundClass, useInBand } from "./Band";
 import { SectionHead } from "./DayParts";
 
@@ -68,9 +70,12 @@ export function Reminders({
   const inBand = useInBand();
   const { fontScale } = useWindowDimensions();
   const lines = entries.map((entry) => lineOf(entry, zone));
-  if (lines.length === 0) return null;
   const onDay = lines.filter((line) => line.day === today);
   const later = lines.filter((line) => line.day !== today);
+  const keyOfLine = (line: Line) => line.key;
+  const placedOnDay = useInPlace(onDay, keyOfLine);
+  const placedLater = useInPlace(later, keyOfLine);
+  if (placedOnDay.length + placedLater.length === 0) return null;
 
   const ink = isAndroid ? "text-a-on" : "text-text-primary";
   const quietInk = isAndroid ? "text-a-on-var" : "text-text-secondary";
@@ -89,6 +94,7 @@ export function Reminders({
         did: dismissedLine(line.next, today),
         failed: "Couldn't dismiss that",
         unfailed: "Couldn't put that back",
+        place: { id: line.key, icon: "bell", form: "slot" },
       },
       toast,
       writes,
@@ -96,7 +102,7 @@ export function Reminders({
   }
 
   // The shared card's day line is the day's, never one thing's "By".
-  const when = (line: Line, shared: boolean) => (
+  const when = (line: Pick<Line, "day" | "by">, shared: boolean) => (
     <View style={{ width: WHEN_WIDTH * fontScale }}>
       <Text className={`font-core font-semibold ${shared ? "text-text-noticed" : ink}`} style={{ fontSize: 17, lineHeight: 20, letterSpacing: -0.17 }}>
         {countdownLabel(line.day, today)}
@@ -163,33 +169,47 @@ export function Reminders({
     <View>
       <SectionHead title={TODAY_REMINDERS.name} count={lines.length} big />
       <View className="gap-space-4">
-        {onDay.length > 0 ? (
+        {placedOnDay.length > 0 ? (
           <View className={`flex-row ${card}`} style={[edge, { paddingLeft: 14, gap: 12 }]}>
-            <View style={{ paddingTop: 12 }}>{when(onDay[0]!, true)}</View>
+            {/* The day's, which every line on this card shares. */}
+            <View style={{ paddingTop: 12 }}>{when({ day: today, by: false }, true)}</View>
             <View className="flex-1">
-              {onDay.map((line, index) => (
-                <View
-                  key={line.key}
-                  className={`flex-row items-center ${index < onDay.length - 1 ? `border-b ${rule}` : ""}`}
-                  style={{ gap: 12, paddingVertical: 12, paddingRight: 10 }}
-                >
-                  {controls(line, said(line))}
-                </View>
-              ))}
+              {placedOnDay.map((one, index) =>
+                placedItem(one, index < placedOnDay.length - 1, {
+                  idOf: keyOfLine,
+                  rule,
+                  row: (line, border) => (
+                    <View
+                      key={line.key}
+                      className={`flex-row items-center ${border ? `border-b ${rule}` : ""}`}
+                      style={{ gap: 12, paddingVertical: 12, paddingRight: 10 }}
+                    >
+                      {controls(line, said(line))}
+                    </View>
+                  ),
+                }),
+              )}
             </View>
           </View>
         ) : null}
-        {later.map((line) => (
-          <View key={line.key} className={`flex-row items-center ${card}`} style={[edge, { paddingVertical: 12, paddingLeft: 14, paddingRight: 10, gap: 12 }]}>
-            {controls(
-              line,
-              <>
-                {when(line, false)}
-                {said(line)}
-              </>,
-            )}
-          </View>
-        ))}
+        {/* A later thing is a card of its own, so its line takes the card's corners. */}
+        {placedLater.map((one) =>
+          placedItem(one, false, {
+            idOf: keyOfLine,
+            radius: CARD_RADIUS,
+            row: (line) => (
+              <View key={line.key} className={`flex-row items-center ${card}`} style={[edge, { paddingVertical: 12, paddingLeft: 14, paddingRight: 10, gap: 12 }]}>
+                {controls(
+                  line,
+                  <>
+                    {when(line, false)}
+                    {said(line)}
+                  </>,
+                )}
+              </View>
+            ),
+          }),
+        )}
       </View>
     </View>
   );

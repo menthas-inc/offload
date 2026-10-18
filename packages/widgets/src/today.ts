@@ -28,6 +28,12 @@ export function dayName(day: string, today: string, weekStart: WeekStart): { nam
   return { name: `${fmt(day, { weekday: "short" })} ${fmt(day, { day: "numeric" })} ${fmt(day, { month: "short" })}`, sub: null };
 }
 
+/** A day as the month's head names it when it is not today (2026-10-18):
+ *  *Thursday 22 October*, the product's date, no ordinal. */
+export function dayTitle(day: string): string {
+  return fmt(day, { weekday: "long", day: "numeric", month: "long" });
+}
+
 /** The empty day's one line, named as the stepper names the day. */
 export function nothingLine(name: string): string {
   if (name === "Today") return "Nothing today.";

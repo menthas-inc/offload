@@ -126,7 +126,9 @@ Roles: display 34, title-1 26, title-2 21, title-3 17, body 16, body-sm 14, labe
 
 **Loading.** One spinner, optionally labelled in lowercase ("looking through your stuff"). No skeletons, no progress bars, no shimmer. **A conversation is the one exception:** while a turn runs, its row is the **Splash** drop, see **The thinking row**. **Asked for as a fading sweep on 20 September and declined:** a row typed in already has a treatment for "the server is still reading this", and drawing that row a second earlier is the whole of the placeholder.
 
-**A write is drawn at the press and the request follows**, on every surface: the tick, archive, delete, rename, the drag, the fold, a note's edit and move, the privacy switches. **Undo is offered the moment the change is drawn**, not when the server answers, because the eight seconds are the person's. When the server refuses, the screen is put back and a failure `Toast` says so in one clause with the same action beside it.
+**A write is drawn at the press and the request follows**, on every surface: the tick, archive, delete, rename, the drag, the fold, a note's edit and move, the privacy switches. **Undo is offered the moment the change is drawn**, not when the server answers, because the eight seconds are the person's. When the server refuses, the screen is put back and its failure says so in one clause with the same action beside it, where its Undo was.
+
+**Undo is drawn in place** (18 October 2026, `handoff/APPLY-2026-10-18-undo-in-place.md`). Nothing floats over the page while an Undo is up. `UndoLine` draws the way back where the change is: **slot**, amber (`--surface-noticed-soft`, `--text-noticed`), in the place a removed thing left, at its height and with its corner; **under**, grey, directly beneath a thing that stayed and changed, aligned with its text; **plate**, a raised line above the composer when nothing on screen changed (on the web, under the composer where errors already go). The action's glyph, the message on one line, **Undo** in a 44px target, and a 2px rule along the foot that runs out over the eight seconds, which runs under reduced motion too because it is information. **Several run at once**, each with its own eight seconds; a second action on the same thing replaces its line. Undo puts the thing back in its place, softly lit in `--surface-attention-soft` for 1.2s. A refused write puts it back and its line becomes the failure under it: `circle-alert`, the clause, **Retry**, no rule, not red. Leaving a screen does not cancel a window. **The `Toast` keeps** confirmations with no Undo and a conversation's own report, and **tapping its body fades it out** (the owner, 18 October 2026).
 
 ---
 
@@ -314,9 +316,9 @@ an ink border plus `--shadow-focus` on fields, and it is never removed. Every ic
 control carries a label. **A seen message has no mark and so needs no alternative**, which is
 one fewer thing to get wrong than the 👀 it replaced.
 
-**Undo lasts eight seconds**, up from four, because four is not enough time to read a toast,
+**Undo lasts eight seconds**, up from four, because four is not enough time to read a line,
 reach for a pointer or hear a screen reader announce it. Nothing is destroyed while the
-toast is up.
+line is up.
 
 The toast covers two cases and they are not worded the same. A person deleting something reads
 what they did, "Deleted, gone in a moment". An action offload took on its own, which is by far the
@@ -997,9 +999,12 @@ nothing is drawn when it is empty, which is most days. There is no heading and n
 
 **The day**, under it, one day at a time:
 
-- **A stepper**: Today, Tomorrow, weekday names to Sunday, Next Monday to Next Sunday, then the
-  date. The back arrow stops at Today; a swipe across the day does the same. Other days write their
-  date small under the name. The page opens on Today every time.
+- **A month** (18 October 2026, in place of the stepper's arrows): the thread calendar's own grid,
+  every day dotted for what that day would show here, to-dos, offload events and the person's own
+  calendars, across every thread. Tapping a day shows it. Past days are drawn faded and do not open;
+  nothing past twelve months ahead does either. **The grid's head names the picked day**: the month
+  with Today beside it on today, *Thursday 22 October* on another day, nothing under the grid. The
+  page opens on Today every time.
 - **The next event in one line**, in 20px semibold, its countdown in `--blue-600`:
   *Call with Ana in 1h 30m*. On another day, the first event and its hour.
 - **Where you will be**: the day's events as a strip of 128px cards scrolled sideways, past ones

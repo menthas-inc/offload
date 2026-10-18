@@ -18,13 +18,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, AppState, Platform, Pressable, Text, View } from "react-native";
-import Animated, { runOnJS, useAnimatedScrollHandler } from "react-native-reanimated";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { addUtcDays, afterWrite, dayIn, dayName, keepInPlace, nothingLine, reminderEntryKey, remindersInOrder } from "@offload/widgets";
+import { addUtcDays, afterWrite, dayIn, dayName, dayTitle, keepInPlace, monthDated, monthFor, nothingLine, reminderEntryKey, remindersInOrder, stepMonth, type MonthCount } from "@offload/widgets";
 import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { GearDot } from "../people/GearDot";
 import { Glyph } from "../Glyph";
@@ -38,6 +37,7 @@ import { permitted, register } from "../../lib/notifications";
 import {
   dayOn,
   fetchDay,
+  fetchMonth,
   fetchNeeds,
   fetchOpenThreads,
   fetchReminders,
@@ -64,14 +64,17 @@ import { BellDot } from "../shell/BellDot";
 import { ToastHost, useToast } from "../shell/Toast";
 import { NeedsYou, NOTIFICATIONS_PUT_OFF } from "./NeedsYou";
 import { Band, Ground } from "./Band";
-import { DayStepper, EventsStrip, NextLine, SectionHead } from "./DayParts";
+import { EventsStrip, NextLine, SectionHead } from "./DayParts";
+import { MonthGrid } from "../shell/MonthGrid";
 import { CustomizeSheet } from "./CustomizeSheet";
 import { OpenThreads } from "./OpenThreads";
 import { Reminders } from "./Reminders";
 import { useTodayRows } from "./useTodayRows";
+import { drawInPlace } from "../shell/InPlace";
+import { useInPlace, useUndoEntries } from "../../lib/undo";
 
 const isAndroid = Platform.OS === "android";
-/** The stepper reaches the edge of what offload keeps of a calendar. */
+/** The month reaches the edge of what offload keeps of a calendar. */
 const DAYS_AHEAD = 365;
 /** A day that arrives within this draws no spinner. */
 const QUIET_MS = 250;
@@ -101,6 +104,10 @@ export default function TodayScreen() {
 
   // ---------------------------------------------------------------- the day shown
   const [date, setDate] = useState(today);
+  // The month on screen. Null is the one the day is in, so a door or the
+  // Today tab moving the day brings the month with it.
+  const [month, setMonth] = useState<string | null>(null);
+  const [went, setWent] = useState<1 | -1>(1);
   const [day, setDay] = useState<Day | null>(null);
   const [dayFailed, setDayFailed] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -180,6 +187,7 @@ export default function TodayScreen() {
 
   const show = useCallback(
     (which: string) => {
+      setMonth(null);
       setDate(which);
       setDay((held) => (held?.date === which ? held : null));
       loadDay(which);
@@ -318,7 +326,10 @@ export default function TodayScreen() {
   }, [needs, layout, zoneKey, notificationsKey]);
 
   // ---------------------------------------------------------------- the rows
+  // Bumped after every write, so the month's dots follow a tick or a dismiss.
+  const [monthRead, setMonthRead] = useState(0);
   const reloadDay = useCallback(() => {
+    setMonthRead((n) => n + 1);
     loadDay(date);
     if (date === today) {
       loadOpen(false);
@@ -330,18 +341,26 @@ export default function TodayScreen() {
   useEffect(() => setLateOpen(false), [date]);
 
   const isToday = date === today;
-  const { name, sub } = dayName(date, today, weekStart);
-  const step = (by: 1 | -1) => {
-    const next = addUtcDays(date, by);
-    if (next < today || next > addUtcDays(today, DAYS_AHEAD)) return;
-    show(next);
-  };
-  const swipe = Gesture.Pan()
-    .activeOffsetX([-28, 28])
-    .failOffsetY([-14, 14])
-    .onEnd((event) => {
-      if (Math.abs(event.translationX) > 56) runOnJS(step)(event.translationX < 0 ? 1 : -1);
+  const { name } = dayName(date, today, weekStart);
+  const lastDay = addUtcDays(today, DAYS_AHEAD);
+
+  // The month (2026-10-18, in place of the stepper): what each day on the grid
+  // holds, read for the grid's whole window and again after a filing, which
+  // may have dated something.
+  const span = monthFor(month ?? date, [], today, weekStart);
+  const gridFrom = span.weeks[0]?.days[0]?.iso ?? span.key;
+  const gridTo = span.weeks[span.weeks.length - 1]?.days[6]?.iso ?? span.key;
+  const [counts, setCounts] = useState<{ window: string; days: MonthCount[] } | null>(null);
+  useEffect(() => {
+    let live = true;
+    void fetchMonth(gridFrom, gridTo).then((days) => {
+      if (live && days) setCounts({ window: `${gridFrom}|${gridTo}`, days });
     });
+    return () => {
+      live = false;
+    };
+  }, [gridFrom, gridTo, filed?.at, zone, monthRead]);
+  const grid = monthFor(month ?? date, counts?.window === `${gridFrom}|${gridTo}` ? monthDated(counts.days) : [], today, weekStart);
 
   const ink = isAndroid ? "text-a-on" : "text-text-primary";
   // The ground is the band's (`Ground`), so a card in a band steps up.
@@ -356,6 +375,21 @@ export default function TodayScreen() {
       style={{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}` }}
     />
   );
+
+  // To do, with its Undo lines: a row ticked, archived or deleted keeps a
+  // slot where it was. Late and the rest are two lists, either side of the
+  // late fold.
+  const late = rows.live(day?.late ?? []);
+  const timed = rows.live(day?.timed ?? []);
+  const restRows = rows.live(day?.rest ?? []);
+  const lateShown = lateOpen ? late : late.slice(0, LATE_SHOWN);
+  const todo: { row: TodayRow; chip: "date" | "time" | "none" }[] = [
+    ...lateShown.map((row) => ({ row, chip: "date" as const })),
+    ...timed.map((row) => ({ row, chip: "time" as const })),
+    ...restRows.map((row) => ({ row, chip: "none" as const })),
+  ];
+  const placedLate = useInPlace(lateShown, (row) => row.id);
+  const placedRest = useInPlace(todo.slice(lateShown.length), (one) => one.row.id);
 
   const dayBody = (() => {
     if (!day) {
@@ -380,20 +414,12 @@ export default function TodayScreen() {
       ) : null;
     }
 
-    const late = rows.live(day.late);
-    const timed = rows.live(day.timed);
-    const rest = rows.live(day.rest);
-    const lateShown = lateOpen ? late : late.slice(0, LATE_SHOWN);
     const lateHidden = late.length - lateShown.length;
-    const todo: { row: TodayRow; chip: "date" | "time" | "none" }[] = [
-      ...lateShown.map((row) => ({ row, chip: "date" as const })),
-      ...timed.map((row) => ({ row, chip: "time" as const })),
-      ...rest.map((row) => ({ row, chip: "none" as const })),
-    ];
-    const todoCount = late.length + timed.length + rest.length + day.lateMore + day.timedMore + day.restMore;
+    const todoCount = late.length + timed.length + restRows.length + day.lateMore + day.timedMore + day.restMore;
     const notDrawn = day.timedMore + day.restMore;
+    const drawnTodo = placedLate.length + placedRest.length;
 
-    if (day.events.length === 0 && todoCount === 0) {
+    if (day.events.length === 0 && todoCount === 0 && drawnTodo === 0) {
       return (
         <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 15 }}>
           {nothingLine(name)}
@@ -404,11 +430,15 @@ export default function TodayScreen() {
     return (
       <>
         <EventsStrip events={day.events} count={day.eventCount} now={now} isToday={isToday} zone={zone} />
-        {todo.length > 0 ? (
+        {drawnTodo > 0 ? (
           <View>
             <SectionHead title="To do" count={todoCount} />
             <Ground className={cardShape}>
-              {lateShown.map((row, index) => rows.row(row, { border: index < todo.length - 1 || lateHidden > 0, chip: "date" }))}
+              {drawInPlace(placedLate, {
+                idOf: (row) => row.id,
+                trailing: placedRest.length > 0 || lateHidden > 0,
+                row: (row, border) => rows.row(row, { border, chip: "date" }),
+              })}
               {lateHidden > 0 ? (
                 <Pressable
                   onPress={() => setLateOpen(true)}
@@ -420,9 +450,10 @@ export default function TodayScreen() {
                   </Text>
                 </Pressable>
               ) : null}
-              {todo.slice(lateShown.length).map(({ row, chip }, index) =>
-                rows.row(row, { border: lateShown.length + index < todo.length - 1, chip }),
-              )}
+              {drawInPlace(placedRest, {
+                idOf: (one) => one.row.id,
+                row: (one, border) => rows.row(one.row, { border, chip: one.chip }),
+              })}
               {cardEdge}
             </Ground>
             {notDrawn > 0 ? (
@@ -439,7 +470,9 @@ export default function TodayScreen() {
   const dayOne = day && !day.everDumped && isToday;
 
   // 042. One list, nearest first; a row archived or deleted here leaves it,
-  // and so does a reminder dismissed here.
+  // and so does a reminder dismissed here, its section kept while the line
+  // of one dismissed here still runs.
+  const undoLines = useUndoEntries();
   const reminding = (() => {
     if (!reminders) return [];
     const live = new Map(rows.live(reminders.rows).map((row) => [row.id, row]));
@@ -475,7 +508,7 @@ export default function TodayScreen() {
     if (section.kind === "needs_you") return cards.length > 0 ? <NeedsYou key="needs" cards={cards} load={needsLoad} toast={toast} onChanged={reloadDay} onReload={loadNeeds} /> : null;
     if (section.kind === "reminders") {
       // Today only, never over the day-one invitation, and nothing when empty.
-      return isToday && remindersOn(layout) && reminders && !dayOne && reminding.length > 0 ? (
+      return isToday && remindersOn(layout) && reminders && !dayOne && (reminding.length > 0 || [...gone].some((key) => undoLines.has(key))) ? (
         <Reminders key="reminders" entries={reminding} today={today} zone={zone} onGone={onGone} toast={toast} writes={rows.writes} />
       ) : null;
     }
@@ -508,12 +541,35 @@ export default function TodayScreen() {
     }
     return (
       <View key="day" className="gap-space-8">
-        <GestureDetector gesture={swipe}>
-          <View className="gap-space-6">
-            <DayStepper name={name} sub={sub} first={isToday} last={date >= addUtcDays(today, DAYS_AHEAD)} onPrev={() => step(-1)} onNext={() => step(1)} />
-            {day ? <NextLine events={day.events} now={now} isToday={isToday} zone={zone} /> : null}
+        <View className="gap-space-6">
+          <View>
+            <MonthGrid
+              grid={grid}
+              selected={date}
+              went={went}
+              inset={false}
+              // A day before today, or past the calendar copy's edge, does not open.
+              closed={(iso) => iso < today || iso > lastDay}
+              // The head names the picked day while its month is the one
+              // shown; on today, the month with Today beside it (the owner,
+              // 2026-10-18).
+              title={date !== today && grid.inMonth(date) ? dayTitle(date) : undefined}
+              heading
+              first={grid.key <= today}
+              last={stepMonth(grid.key, 1) > lastDay}
+              onPick={show}
+              onStep={(by) => {
+                setWent(by);
+                setMonth(stepMonth(grid.key, by));
+              }}
+              onToday={() => {
+                setWent(grid.key > today ? -1 : 1);
+                show(today);
+              }}
+            />
           </View>
-        </GestureDetector>
+          {day ? <NextLine events={day.events} now={now} isToday={isToday} zone={zone} /> : null}
+        </View>
         {dayBody}
       </View>
     );

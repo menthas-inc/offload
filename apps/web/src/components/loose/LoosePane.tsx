@@ -21,7 +21,8 @@ import { ContentRowView } from "../panes/ContentRowView";
 import { rowIcon } from "../panes/Thread";
 import { LooseRow } from "./LooseRow";
 import { TypeChips } from "./TypeChips";
-import { RETRY, useLooseRows } from "./useLooseRows";
+import { RETRY, looseId, useLooseRows } from "./useLooseRows";
+import { InPlace } from "../shell/InPlace";
 import { perform } from "../../lib/optimistic";
 import { setArchived, type ContentRow } from "../../lib/threads";
 import { fetchLoose, fetchLooseArchived, entryKey, type ChipKey, type LoosePage } from "../../lib/loose";
@@ -129,6 +130,7 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
         failed: "Couldn't put that back",
         unfailed: "Couldn't archive that",
         retry: RETRY,
+        place: { id: row.id, icon: "archive", form: "slot" },
       },
       toast,
       rows.writes,
@@ -177,9 +179,9 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
         <>
           <h2 className={pane.section}>Archived</h2>
           {archived.rows.length === 0 ? <p className={pane.empty}>Nothing archived here.</p> : null}
-          {archived.rows.map((row) => (
+          <InPlace items={archived.rows} idOf={(row) => row.id}>
+            {(row) => (
             <ContentRowView
-              key={row.id}
               row={row}
               handlers={{ ...rows.handlers, onArchive: putBack }}
               lead={
@@ -196,7 +198,8 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
                 ) : null
               }
             />
-          ))}
+            )}
+          </InPlace>
           {archived.nextCursor ? (
             <button type="button" className={pane.showMore} onClick={() => void openArchived(archived.nextCursor!)}>
               Show more
@@ -218,9 +221,15 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
     return (
       <>
         <TypeChips sticky count={page.count} byType={page.byType} picked={type} onPick={setType} />
-        {page.rows.map((entry) => (
-          <LooseRow key={entryKey(entry)} entry={entry} rows={rows} />
-        ))}
+        {/* 2026-10-18. A row that leaves keeps its slot for its Undo line. */}
+        <InPlace items={page.rows} idOf={looseId}>
+          {(entry, line) => (
+            <>
+              <LooseRow entry={entry} rows={rows} />
+              {entry.kind === "note" ? line : null}
+            </>
+          )}
+        </InPlace>
         {nextFailed ? (
           <p className={styles.state} role="alert">
             Couldn&apos;t load these

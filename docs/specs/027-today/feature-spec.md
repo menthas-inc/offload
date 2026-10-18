@@ -6,6 +6,7 @@
 **Amended 2026-10-07** by the design handoff `handoff/APPLY-2026-10-07-open-threads.md`: *If you have time* and + Today are replaced by **Open in your threads**, Customize Today gains a third section, and the web's Today loses its page title (the owner's ask: the stepper already says Today).
 **Amended 2026-10-15** (the owner): a question card whose question has no values to tap, a `date`, `span` or `time` question answered only by typing, is drawn as any other card, one row of **Answer** and **Dismiss** with the clock: Answer opens the composer on the conversation that asked, Dismiss is 018's way out. It could only be dismissed before. A typed answer to a question on Today leaves Out of scope.
 **Amended 2026-10-11 and 2026-10-12** (the designer's handoff of 2026-10-11, then the owner): Today's sections alternate by drawn position between the page and a **band**, and cards in a band step up to raised; Reminders and Open in your threads head at the band's size. A past event on Where you will be takes the finished row's treatment, tertiary ink and a 1px strike, on all three surfaces.
+**Amended 2026-10-18** (the owner): **the stepper's arrows are replaced by a month**, the thread calendar's own grid, with every day dotted for what that day would show. Tapping a day shows it exactly as the stepper did; the grid's head names the picked day, and nothing is drawn under the grid. Past days are drawn faded and do not open, as the back chevron never went before Today; the twelve-month edge holds. A new read, `GET /v1/today/month`, counts each day. See **The month** under The day.
 **Amended by 042 (2026-10-10):** Customize Today gains a fourth section, **Reminders**, under Your day and above Open in your threads by default, which holds what offload is reminding the person about once its reminders have begun. `/api/me` carries it in `todayLayoutV3`; `todayLayoutV2` keeps the three sections phones that know Open in your threads can draw. See `042-reminders/feature-spec.md`.
 **Amends:** 024's **Today, the agenda** and its AC-22, replaced on the new clients while 024's read keeps serving phones already installed; 023's **strip**, which becomes a Needs you card; 019's AC-10, whose drawing this does; the readme's launch line, replaced by two states; `TurnFooter`'s thread link, which becomes the shared thread pill
 
@@ -19,7 +20,7 @@ The design decided on 1 October says what Today is for: **what to expect and wha
 
 ### Vocabulary
 
-**Today** is the tab and the screen. **Needs you** is the stack of **cards** on top, in four **kinds**: account issues, people, questions and tips. A card is **settled** by one of its actions, or **put off** until tomorrow. **The day** is everything under Needs you for the day shown: the **stepper**, the **next line**, **Where you will be** (the **events strip**), **To do** and **If you have time** (the **picks**, and the **+ Today** pill). **Customize Today** is the sheet and the **layout** is what it stores. A **thread pill** is the conversation's moss chip, now one component. In schema and code a to-do is still a `content` row; a calendar's event is a `connector_events` row; an event offload filed is a `content` row of type `event`. Nothing a person reads says inbox, feed, agenda, item, task or snooze.
+**Today** is the tab and the screen. **Needs you** is the stack of **cards** on top, in four **kinds**: account issues, people, questions and tips. A card is **settled** by one of its actions, or **put off** until tomorrow. **The day** is everything under Needs you for the day shown: the **month** (the **stepper** until 2026-10-18), the **next line**, **Where you will be** (the **events strip**), **To do** and **If you have time** (the **picks**, and the **+ Today** pill). **Customize Today** is the sheet and the **layout** is what it stores. A **thread pill** is the conversation's moss chip, now one component. In schema and code a to-do is still a `content` row; a calendar's event is a `connector_events` row; an event offload filed is a `content` row of type `event`. Nothing a person reads says inbox, feed, agenda, item, task or snooze.
 
 ### The page
 
@@ -55,9 +56,11 @@ Under the app bar, in the layout's order, each drawn only when it holds somethin
 
 ### The day
 
-#### The stepper
+#### The month (2026-10-18, in place of the stepper)
 
-Chevron buttons, 40px round on `--surface-fill` with a 44px target, named *Previous day* and *Next day*, either side of the day's name at 20px semibold. **Names:** *Today*, *Tomorrow*, then weekday names to the last day of the week, then *Next* and the weekday for each day of the week after, then the date, *Wed 15 Oct*. The week is the person's *Starts on* (023), which is a device preference, so a phone and the web can name the same day differently. Under *Tomorrow* the full date at 13px, *Wednesday 1 October*; under a weekday or a *Next* name the date, *2 October*; nothing under Today or a date name. The back chevron is disabled on Today; **the forward chevron is disabled twelve months ahead**, the edge of what offload keeps of a calendar. On the phones a horizontal swipe across the day's background or the stepper moves one day either way; a row's swipe, the events strip's scroll and a card's swipe win over it inside their own bounds.
+**The thread calendar's month, on Today.** The same grid a thread draws (015, redrawn 2026-09-29): *Previous month* and *Next month* at the ends, the month's name and **Today** between them, then whole weeks, the days of the months either side drawn quieter. A cell is a 44px target with the weekday, the date and up to four dots, a count past four, and an accessible name that says the counts in words (*Friday 2 October, 2 to do, 1 event, 1 calendar event*). **The dots are what that day would show on Today**: one per to-do (`--text-attention`), one per event offload filed (ink), one hollow per event on the person's own ticked calendars (quietest ink), across every thread the person reads. A calendar another member picked for a thread is never counted, as the day never draws it. A day with to-dos or offload events is lifted, a calendar's events alone do not lift it, as on a thread. **Tapping a day shows it**, everything below the grid exactly as the stepper showed it. **Past days are drawn faded and do not open**, and neither does a day past the twelve-month edge; *Previous month* is disabled on this month and *Next month* on the month holding the edge. Today goes back to today from any month. On the phones a sideways swipe on the grid steps a month, as on a thread; there is no day swipe any more. The grid reads `GET /v1/today/month` for its whole window and again after a filing.
+
+**The head names the picked day** (the owner, 2026-10-18): on today it reads the month, *October 2026*, with **Today** beside it; on any other day in the month shown it reads that day, *Thursday 22 October*, the product's date with no ordinal, with Today beside it as the way back; while another month is browsed it reads that month. The head is Today's one heading. There is no name under the grid. **The names below are no longer drawn as a title**; they still name the empty day's line: *Today*, *Tomorrow*, then weekday names to the last day of the week, then *Next* and the weekday for each day of the week after, then the date, *Wed 15 Oct*. The week is the person's *Starts on* (023), which is a device preference, so a phone and the web can name the same day differently. ~~Under *Tomorrow* the full date at 13px, *Wednesday 1 October*; under a weekday or a *Next* name the date, *2 October*; nothing under Today or a date name.~~ No sub-line since 2026-10-18: the head says the date. ~~The back chevron is disabled on Today; the forward chevron is disabled twelve months ahead. On the phones a horizontal swipe across the day's background or the stepper moves one day either way.~~ Replaced 2026-10-18 by the month above: **nothing before today opens and nothing past twelve months ahead does**, the edge of what offload keeps of a calendar.
 
 **Where it opens.** On Today at launch, when Today is chosen from another tab, and when its tab is tapped while it is showing. **A notification or an Activity row may open it on a day**: 024's *Tomorrow* digest and its Activity row open Tomorrow, every other door opens Today. The day shown is never stored. When midnight passes in the account's zone with Today showing, the client reads the new day.
 
@@ -93,7 +96,7 @@ A page: the thread's own icon (037), its name and the people sharing it as 22px 
 
 #### An empty day
 
-Empty sections are not drawn, and there is no line for tomorrow. **An account that has never dumped anything** sees the day-one invitation in place of the day, as 024 built it, with Needs you above it. **Otherwise a day with no event and no to-do** draws the stepper and one quiet line in `--text-secondary`: *Nothing today.*, *Nothing tomorrow.*, *Nothing on Thursday.*, *Nothing next Monday.*, *Nothing on Wed 15 Oct.*
+Empty sections are not drawn, and there is no line for tomorrow. **An account that has never dumped anything** sees the day-one invitation in place of the day, as 024 built it, with Needs you above it. **Otherwise a day with no event and no to-do** draws the month and one quiet line in `--text-secondary`: *Nothing today.*, *Nothing tomorrow.*, *Nothing on Thursday.*, *Nothing next Monday.*, *Nothing on Wed 15 Oct.*
 
 ### Thread pills
 
@@ -143,14 +146,14 @@ The phones' scrim is generated from `--surface-scrim` per theme, 0.35 in light a
 ### States
 
 - **Loading.** One spinner while Today first loads, no skeleton, as 024. Moving to another day shows the new name at once and the day's sections when they arrive, with no spinner if they arrive within a quarter second.
-- **Failure.** A day that fails to load draws the stepper and *Couldn't load this day* with Try again. Needs you failing to load is not drawn; the day still is. A write with no network refuses with its own failure line rather than queueing.
-- **Sizes.** Every pill, row and card takes `min-height`, never `height`, and grows with the type size; every control has a 44px target, larger than what is drawn where it must be; the stepper's name caps at 1.35 times.
+- **Failure.** A day that fails to load draws the month and *Couldn't load this day* with Try again. Needs you failing to load is not drawn; the day still is. A write with no network refuses with its own failure line rather than queueing.
+- **Sizes.** Every pill, row and card takes `min-height`, never `height`, and grows with the type size; every control has a 44px target, larger than what is drawn where it must be; the month's head grows with the type size.
 - **Motion.** With reduced motion the card advance, the swipe's settle, the day change and the tab fade are cuts, not shorter animations; the countdown still changes.
 - **Colour.** Every colour is named by alias and holds in both themes.
 
 ### On the web
 
-The pane head holds *Today* and `sliders-horizontal` at its right; the crumb bar keeps today's date at its right whichever day is shown. The stepper has its chevrons and no swipe. Needs you has no swipe; the clock puts a card off. Customize Today is a right-hand pane beside Today, 520px for Today's pane, as the exploration draws it. The events strip scrolls sideways with a trackpad or the keyboard, shows no scrollbar, and each card is a real button reached by Tab. The notifications card is phones only.
+The pane head holds *Today* and `sliders-horizontal` at its right; the crumb bar keeps today's date at its right whichever day is shown. The month has its arrows and no swipe. Needs you has no swipe; the clock puts a card off. Customize Today is a right-hand pane beside Today, 520px for Today's pane, as the exploration draws it. The events strip scrolls sideways with a trackpad or the keyboard, shows no scrollbar, and each card is a real button reached by Tab. The notifications card is phones only.
 
 ### On Android
 
@@ -183,7 +186,7 @@ No line changes. Today reads what offload already keeps: content rows, the copy 
 
 **The day**
 
-- **AC-14** The stepper names days *Today*, *Tomorrow*, weekday names to the end of the person's week, *Next* and the weekday through the week after, then *Wed 15 Oct*, with the sub-line rules above; the back chevron is disabled on Today and the forward one twelve months ahead; a swipe on the day's background moves one day and a row's swipe, the strip's scroll and a card's swipe are not taken by it.
+- **AC-14** The month's head reads the month with Today beside it on today, and the picked day, *Thursday 22 October*, on any other day in the month shown (2026-10-18); the empty day's line names days *Today*, *Tomorrow*, weekday names to the end of the person's week, *Next* and the weekday through the week after, then *Wed 15 Oct*, with the sub-line rules above. **Amended 2026-10-18:** the month dots each day with what it would show (to-dos, offload events, the person's own ticked calendars, never another member's picked calendar), tapping a day from today to twelve months ahead shows it, a past day or one past the edge is drawn and does not open, *Previous month* is disabled on this month and *Next month* at the edge's month, and Today returns to today.
 - **AC-15** Today opens on Today at launch, from another tab and on a tap of its own tab; the *Tomorrow* digest and its Activity row open it on Tomorrow and every other door on Today; the day shown is not stored; midnight in the account's zone moves an open Today to the new day.
 - **AC-16** The next line names the person's own next timed event that has not ended with *in 1h 30m*, or *until 12:30* while it runs, moving each minute while the app is in front; another day names their first timed event *at 10:00*; all-day events and another member's events are never named; no line when nothing qualifies.
 - **AC-17** Where you will be draws the day's events from every ticked calendar and every `event` row in the person's threads, all-day first, then by start, a span on every day it covers; an event offload wrote to a calendar appears once; another member's event carries their name; past events draw their title in `--text-secondary`; the next line's event is raised.
@@ -193,8 +196,8 @@ No line changes. Today reads what offload already keeps: content rows, the copy 
 - **AC-21** A To do row ticks, opens the row sheet with When, Repeats and Labels, opens the action sheet, swipes to delete on the phones, and offers the eight-second Undo, exactly as on the thread page, on every surface.
 - **AC-22** ~~If you have time appears on Today only, with at most three open undated, unrepeating to-dos filed by this person, in threads with a dated row due from today to seven days ahead, oldest first.~~ Amended 2026-10-07: Open in your threads appears on Today only, after To do, with a page per thread the person reads that holds open to-dos with no date, whoever filed them; the thread with the oldest such to-do first, at most twelve, four rows a page oldest first with the rest counted; Not in a thread last and only when it holds one; nothing on another day, with nothing open, or with its switch off, and the day carries no picks.
 - **AC-23** ~~+ Today gives the row today as a day with no hour, moves it into To do and toasts *Added to today* with Undo; Undo clears the date and that row is not picked again that day; + Today on a row another member filed, a dated row, a repeating row or one in a thread the person is not in is refused.~~ Amended 2026-10-07: a tick on a page strikes the row through in place and toasts *Ticked off* with Undo; the row and its page keep their places and the counts do not move until Today is built again; a row opens its row sheet; the head and *Open thread* open the thread, *Sort them* opens Not in a thread. + Today and its route are gone.
-- **AC-24** An account that has never dumped sees the day-one invitation in place of the day; otherwise an empty day draws the stepper and its *Nothing* line, named for the day.
-- **AC-25** A day that fails to load draws *Couldn't load this day* with Try again under the stepper; Needs you failing leaves the day drawn; a day arriving within a quarter second shows no spinner.
+- **AC-24** An account that has never dumped sees the day-one invitation in place of the day; otherwise an empty day draws the month and its *Nothing* line, named for the day.
+- **AC-25** A day that fails to load draws *Couldn't load this day* with Try again under the month; Needs you failing leaves the day drawn; a day arriving within a quarter second shows no spinner.
 
 **Thread pills and Customize Today**
 
@@ -250,7 +253,7 @@ No line changes. Today reads what offload already keeps: content rows, the copy 
 - **The notifications card is put off per phone**, since it is a fact about the phone.
 - **The forwarding tip waits until the account has dumped something**, so it never sits on top of the day-one invitation.
 - **The next card's actions are inert for 300ms**, so a double tap cannot settle two cards.
-- **The stepper stops twelve months ahead**, the calendar window's edge, so a far day is never confidently empty.
+- **The month stops twelve months ahead** (the stepper did, until 2026-10-18), the calendar window's edge, so a far day is never confidently empty.
 - **The *Tomorrow* digest opens Tomorrow**, since the day is no longer a group on Today.
 - **Past events dim their title, not their whole card**, which kept the calendar's name legible.
 - **Kind colours are aliases**, since `--blue-700` and `--moss-700` fall below 4.5:1 in dark.
@@ -270,7 +273,7 @@ One entry, **Today as built**, for the kits to follow:
 - Kind colours `--text-attention` and `--text-accent`, replacing `--blue-700` and `--moss-700`.
 - Past events dim their title only; another member's event carries *Ana's*.
 - The thread pill: one component, 24px on Today and 30px in the turn footer.
-- The empty day's *Nothing* lines; an offload event opening its thread; the stepper's week end following *Starts on* and stopping twelve months ahead.
+- The empty day's *Nothing* lines; an offload event opening its thread; the empty line's week end following *Starts on*, and the month stopping twelve months ahead.
 - Launch's second line is *Trying again.*
 - `ui_kits/web_app/WToday.jsx` still draws the old week strip and is wholly superseded.
 

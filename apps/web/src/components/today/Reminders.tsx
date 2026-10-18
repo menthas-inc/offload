@@ -10,14 +10,20 @@
 // name is where it lives, with its time in the day's colour. No tick, no chip,
 // no pill: the whole row opens the thing, a row or a note its thread, a
 // memory Memories. The x dismisses **this reminder and nothing else** (the
-// owner): a birthday dismissed a month out comes back a week out, so the toast
-// says when, with Undo. Which entries show, and which were dismissed here, is
-// the pane's, so an emptied section takes no band.
+// owner): a birthday dismissed a month out comes back a week out, so its line
+// says when, with Undo, in the reminder's place (2026-10-18): inside the Today
+// card, which stays while its lines run, or in a later card's own place. Which
+// entries show, and which were dismissed here, is the pane's, so an emptied
+// section takes no band.
 
 import Link from "next/link";
+import { useRef } from "react";
 import { countdownLabel, dismissedLine, dismissLabel, MEMORY_PARAM, reminderDayLine, reminderLine, reminderTimeLine, type ReminderLine } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { useToast } from "../shell/Toast";
+import { InPlace } from "../shell/InPlace";
+import { Returned } from "../shell/UndoLine";
+import { useUndoEntries } from "../../lib/undo";
 import { perform, type Writes } from "../../lib/optimistic";
 import { dismissReminder, undismissReminder, type ReminderEntry } from "../../lib/today";
 import styles from "../../app/(shell)/today.module.css";
@@ -50,10 +56,19 @@ export function Reminders({
   writes: Writes;
 }) {
   const toast = useToast();
+  // What has been drawn on the day, so the Today card stays for a line whose
+  // reminder was its last.
+  const seenToday = useRef(new Set<string>());
+  const seen = useRef(new Set<string>());
+  const undos = useUndoEntries();
   const lines = entries.map((entry) => lineOf(entry, zone));
-  if (lines.length === 0) return null;
+  for (const line of lines) seen.current.add(line.key);
+  // The last reminder dismissed keeps the section while its line runs.
+  if (lines.length === 0 && ![...undos.keys()].some((key) => seen.current.has(key))) return null;
   const onDay = lines.filter((line) => line.day === today);
   const later = lines.filter((line) => line.day !== today);
+  for (const line of onDay) seenToday.current.add(line.key);
+  const todayLine = [...undos.keys()].some((key) => seenToday.current.has(key));
 
   function dismiss(line: Line): void {
     void perform(
@@ -65,6 +80,7 @@ export function Reminders({
         did: dismissedLine(line.next, today),
         failed: "Couldn't dismiss that",
         unfailed: "Couldn't put that back",
+        place: { id: line.key, icon: "bell", form: "slot" },
       },
       toast,
       writes,
@@ -72,10 +88,10 @@ export function Reminders({
   }
 
   // The shared card's day line is the day's, never one thing's "By".
-  const when = (line: Line, shared: boolean) => (
+  const when = (day: string, by: boolean, shared: boolean) => (
     <span className={styles.remWhen} data-soon={shared || undefined}>
-      <span data-countdown>{countdownLabel(line.day, today)}</span>
-      <span className={styles.remDay}>{reminderDayLine(line.day, shared ? false : line.by)}</span>
+      <span data-countdown>{countdownLabel(day, today)}</span>
+      <span className={styles.remDay}>{reminderDayLine(day, shared ? false : by)}</span>
     </span>
   );
 
@@ -109,24 +125,39 @@ export function Reminders({
         Reminders <em className={styles.headCount}>{lines.length}</em>
       </h3>
       <div className={styles.remColumn}>
-        {onDay.length > 0 ? (
+        {onDay.length > 0 || todayLine ? (
           <div className={`${styles.remCard} ${styles.remShared}`} data-reminder-card>
-            <div className={styles.remSharedWhen}>{when(onDay[0]!, true)}</div>
+            <div className={styles.remSharedWhen}>{when(today, false, true)}</div>
             <div className={styles.remRows}>
-              {onDay.map((line) => (
-                <div key={line.key} className={styles.remRow} data-reminder>
-                  {body(line)}
-                </div>
-              ))}
+              <InPlace items={onDay} idOf={(line) => line.key} radius="0">
+                {(line, undo) => (
+                  <>
+                    <Returned id={line.key}>
+                      <div className={styles.remRow} data-reminder>
+                        {body(line)}
+                      </div>
+                    </Returned>
+                    {undo}
+                  </>
+                )}
+              </InPlace>
             </div>
           </div>
         ) : null}
-        {later.map((line) => (
-          <div key={line.key} className={`${styles.remCard} ${styles.remRow}`} data-reminder-card data-reminder>
-            {when(line, false)}
-            {body(line)}
-          </div>
-        ))}
+        {/* A later card's line takes the card's place and its corner. */}
+        <InPlace items={later} idOf={(line) => line.key} radius="var(--radius-md)">
+          {(line, undo) => (
+            <>
+              <Returned id={line.key}>
+                <div className={`${styles.remCard} ${styles.remRow}`} data-reminder-card data-reminder>
+                  {when(line.day, line.by, false)}
+                  {body(line)}
+                </div>
+              </Returned>
+              {undo}
+            </>
+          )}
+        </InPlace>
       </div>
     </section>
   );

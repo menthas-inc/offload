@@ -1,7 +1,7 @@
 // Generated from the design system. Do not edit: run `pnpm icons`.
 // Source: .claude/skills/offload-design/assets/icons
 
-export type IconName = "album" | "apple" | "archive" | "arrow-up-right" | "arrow-up" | "baby" | "ban" | "bed" | "bell" | "bike" | "bird" | "blend" | "book-open" | "bookmark" | "brain" | "briefcase" | "cake" | "calendar-heart" | "calendar" | "camera" | "car" | "cat" | "check-check" | "check" | "chevron-down" | "chevron-left" | "chevron-right" | "circle-dashed" | "circle-dot" | "circle" | "clock-fading" | "clock" | "cloud-cog" | "cloud-download" | "cloud-drizzle" | "cloud-lightning" | "cloud-moon" | "cloud-off" | "cloud-rain" | "cloud-sun" | "cloud" | "cloudy" | "code" | "coffee" | "compass" | "copy" | "dog" | "dumbbell" | "ellipsis" | "eye" | "film" | "fish" | "flower-2" | "folder" | "footprints" | "funnel" | "gallery-vertical-end" | "gamepad-2" | "gift" | "git-branch" | "globe" | "graduation-cap" | "grip-vertical" | "group" | "hammer" | "heart-pulse" | "heart" | "hotel" | "house" | "image" | "inbox" | "key" | "lamp" | "landmark" | "laptop" | "lasso" | "layers" | "leaf" | "library-big" | "link" | "list" | "lock" | "log-out" | "luggage" | "mail" | "map-pin" | "map" | "maximize-2" | "message-circle-more" | "message-circle" | "mic" | "monitor" | "moon-star" | "moon" | "mountain" | "music" | "newspaper" | "orbit" | "paintbrush" | "palette" | "paperclip" | "party-popper" | "pause" | "pen-tool" | "pencil" | "piggy-bank" | "pill" | "plane" | "play" | "plus" | "radio" | "receipt" | "rewind" | "rocket" | "rss" | "scan-text" | "search" | "settings" | "share-2" | "ship" | "shirt" | "shopping-cart" | "sliders-horizontal" | "smartphone" | "snowflake" | "sofa" | "sparkles" | "spline" | "sprout" | "square-check-big" | "stethoscope" | "sun" | "sunrise" | "tag" | "tent" | "text-quote" | "thermometer-sun" | "ticket" | "train-front" | "trash-2" | "tree-pine" | "trophy" | "type" | "umbrella" | "user-plus" | "users" | "utensils" | "wallet" | "waves" | "waypoints" | "wind" | "wine" | "wrench" | "x";
+export type IconName = "album" | "apple" | "archive" | "arrow-up-right" | "arrow-up" | "baby" | "ban" | "bed" | "bell" | "bike" | "bird" | "blend" | "book-open" | "bookmark" | "brain" | "briefcase" | "cake" | "calendar-heart" | "calendar" | "camera" | "car" | "cat" | "check-check" | "check" | "chevron-down" | "chevron-left" | "chevron-right" | "circle-alert" | "circle-dashed" | "circle-dot" | "circle" | "clock-fading" | "clock" | "cloud-cog" | "cloud-download" | "cloud-drizzle" | "cloud-lightning" | "cloud-moon" | "cloud-off" | "cloud-rain" | "cloud-sun" | "cloud" | "cloudy" | "code" | "coffee" | "compass" | "copy" | "dog" | "dumbbell" | "ellipsis" | "eye" | "film" | "fish" | "flower-2" | "folder" | "footprints" | "funnel" | "gallery-vertical-end" | "gamepad-2" | "gift" | "git-branch" | "globe" | "graduation-cap" | "grip-vertical" | "group" | "hammer" | "heart-pulse" | "heart" | "hotel" | "house" | "image" | "inbox" | "key" | "lamp" | "landmark" | "laptop" | "lasso" | "layers" | "leaf" | "library-big" | "link" | "list" | "lock" | "log-out" | "luggage" | "mail" | "map-pin" | "map" | "maximize-2" | "message-circle-more" | "message-circle" | "mic" | "monitor" | "moon-star" | "moon" | "mountain" | "music" | "newspaper" | "orbit" | "paintbrush" | "palette" | "paperclip" | "party-popper" | "pause" | "pen-tool" | "pencil" | "piggy-bank" | "pill" | "plane" | "play" | "plus" | "radio" | "receipt" | "rewind" | "rocket" | "rss" | "scan-text" | "search" | "settings" | "share-2" | "ship" | "shirt" | "shopping-cart" | "sliders-horizontal" | "smartphone" | "snowflake" | "sofa" | "sparkles" | "spline" | "sprout" | "square-check-big" | "stethoscope" | "sun" | "sunrise" | "tag" | "tent" | "text-quote" | "thermometer-sun" | "ticket" | "train-front" | "trash-2" | "tree-pine" | "trophy" | "type" | "umbrella" | "user-plus" | "users" | "utensils" | "wallet" | "waves" | "waypoints" | "wind" | "wine" | "wrench" | "x";
 
 export type Shape =
   | { kind: "path"; d: string }
@@ -420,6 +420,28 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "m9 18 6-6-6-6"
+    }
+  ],
+  "circle-alert": [
+    {
+      "kind": "circle",
+      "cx": 12,
+      "cy": 12,
+      "r": 10
+    },
+    {
+      "kind": "line",
+      "x1": 12,
+      "y1": 8,
+      "x2": 12,
+      "y2": 12
+    },
+    {
+      "kind": "line",
+      "x1": 12,
+      "y1": 16,
+      "x2": 12.01,
+      "y2": 16
     }
   ],
   "circle-dashed": [

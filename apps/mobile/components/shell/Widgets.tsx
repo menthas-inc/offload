@@ -32,6 +32,8 @@ import { useConversation } from "./conversation-context";
 import { QUICK_ADD_CHARS, TYPED_ROW_PLACEHOLDER } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
 import { useFolds } from "../../lib/folds";
+import { useInPlace } from "../../lib/undo";
+import { Returned, UndoLine } from "./UndoLine";
 import type { FoldSection } from "@offload/widgets";
 
 const isAndroid = Platform.OS === "android";
@@ -67,8 +69,9 @@ export function Widgets({
   onOpenPhoto: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
   /** A row was dragged to a new place. The writes hold the new order; the
-   *  screen owns the rows and the Undo, so it makes them. */
-  onReorder: (writes: ReorderWrite[]) => void;
+   *  screen owns the rows and the Undo, so it makes them. `moved` is the row
+   *  that was dragged, whose line the Undo is drawn under. */
+  onReorder: (writes: ReorderWrite[], moved: string) => void;
   arrived?: Set<string> | undefined;
 }) {
   if (widgets.length === 0) return null;
@@ -118,7 +121,7 @@ function WidgetBlock({
   onEdit: (row: ContentRow) => void;
   onOpenPhoto: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
-  onReorder: (writes: ReorderWrite[]) => void;
+  onReorder: (writes: ReorderWrite[], moved: string) => void;
 }) {
   const COLOR = useColors();
   const { raiseFor } = useConversation();
@@ -135,6 +138,8 @@ function WidgetBlock({
 
   const { left, done } = splitDone(widget.rows);
   const shown = [...left, ...(hideDone ? [] : allDone ? done : done.slice(0, DONE_SHOWN))];
+  // 2026-10-18. With the Undo lines: a row that left keeps a slot where it was.
+  const placed = useInPlace(shown, (row) => row.id);
 
   // **Dragging, on To do and nowhere else**, and only the rows still to do: a
   // finished one has sunk and sits by when it was ticked, which is not a
@@ -160,7 +165,7 @@ function WidgetBlock({
       if (theirs && theirs.y + theirs.height / 2 < centre) to += 1;
     }
     const { writes } = reorderPlan(left, from, to);
-    if (writes.length > 0) onReorder(writes);
+    if (writes.length > 0) onReorder(writes, id);
   }
 
   return (
@@ -290,33 +295,53 @@ function WidgetBlock({
           ))}
         </View>
       ) : (
-        shown.map((row, index) => (
-          <View
-            key={row.id}
-            onLayout={(event) => {
-              const { y, height } = event.nativeEvent.layout;
-              layouts.current.set(row.id, { y, height });
-            }}
-          >
-            {/* 2026-09-29. A rule between what is left and what is finished:
-                the finished rows cannot be dragged, so they draw no handle,
-                and without the rule they read as the same list drawn
-                wrong. */}
-            {/* It stands in for the last row's own border, in a darker ink. */}
-            {ruled && index === left.length ? <View className="bg-text-secondary" style={{ height: 1 }} /> : null}
-            <ContentRowView
-              row={row}
-              border={index < shown.length - 1 && !(ruled && index === left.length - 1)}
-              arrived={arrived?.has(row.id) ?? false}
-              onDelete={() => onDelete(row)}
-              onEdit={() => onEdit(row)}
-              onOpenPhoto={() => onOpenPhoto(row)}
-              onToggle={widget.kind === "todo" ? () => onToggle(row) : undefined}
-              reorder={movable && row.doneAt === null ? { onDrop: (dy) => drop(row.id, dy) } : undefined}
-              handleSpace={movable && row.doneAt !== null}
-            />
-          </View>
-        ))
+        placed.map((one, at) => {
+          const last = at === placed.length - 1;
+          if ("slot" in one) {
+            return (
+              <View key={one.entry.id} className={last ? "" : "border-b border-border-hairline"}>
+                <UndoLine entry={one.entry} />
+              </View>
+            );
+          }
+          const { row, line } = one;
+          const index = shown.indexOf(row);
+          const border = !last && !(ruled && index === left.length - 1);
+          return (
+            <View
+              key={row.id}
+              onLayout={(event) => {
+                const { y, height } = event.nativeEvent.layout;
+                layouts.current.set(row.id, { y, height });
+              }}
+            >
+              {/* 2026-09-29. A rule between what is left and what is finished:
+                  the finished rows cannot be dragged, so they draw no handle,
+                  and without the rule they read as the same list drawn
+                  wrong. */}
+              {/* It stands in for the last row's own border, in a darker ink. */}
+              {ruled && index === left.length ? <View className="bg-text-secondary" style={{ height: 1 }} /> : null}
+              <Returned id={row.id}>
+                <ContentRowView
+                  row={row}
+                  border={border && !line}
+                  arrived={arrived?.has(row.id) ?? false}
+                  onDelete={() => onDelete(row)}
+                  onEdit={() => onEdit(row)}
+                  onOpenPhoto={() => onOpenPhoto(row)}
+                  onToggle={widget.kind === "todo" ? () => onToggle(row) : undefined}
+                  reorder={movable && row.doneAt === null ? { onDrop: (dy) => drop(row.id, dy) } : undefined}
+                  handleSpace={movable && row.doneAt !== null}
+                />
+              </Returned>
+              {line ? (
+                <View className={border ? "border-b border-border-hairline" : ""}>
+                  <UndoLine entry={line} />
+                </View>
+              ) : null}
+            </View>
+          );
+        })
       )}
 
       {/* A finished task keeps its place and sinks below everything

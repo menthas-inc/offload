@@ -9,6 +9,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Composer } from "../src/components/shell/Composer";
 import { ToastProvider } from "../src/components/shell/Toast";
+import { undoStore } from "../src/lib/undo";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
@@ -60,9 +61,18 @@ vi.stubGlobal("EventSource", FakeSource);
 afterEach(() => {
   document.body.innerHTML = "";
   streams.length = 0;
+  for (const id of [...undoStore.entries().keys()]) undoStore.drop(id);
 });
 
-async function answeredThenUndone(): Promise<HTMLElement> {
+const filed = {
+  state: "answered",
+  reply: "Filed it in Health.",
+  threads: [{ id: "th1", name: "Health" }],
+  sources: [],
+  found: [],
+};
+
+async function answered(answer: object = filed): Promise<HTMLElement> {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   const host = document.body.appendChild(document.createElement("div"));
   await act(async () =>
@@ -72,14 +82,12 @@ async function answeredThenUndone(): Promise<HTMLElement> {
       </ToastProvider>,
     ),
   );
-  const answer = {
-    state: "answered",
-    reply: "Filed it in Health.",
-    threads: [{ id: "th1", name: "Health" }],
-    sources: [],
-    found: [],
-  };
   await act(async () => streams[0]!.listeners.get("done")!({ data: JSON.stringify(answer) }));
+  return host;
+}
+
+async function answeredThenUndone(): Promise<HTMLElement> {
+  const host = await answered();
   expect(host.textContent).toContain("dentist on friday");
   const undo = [...document.querySelectorAll("button")].find((button) => button.textContent === "Undo")!;
   await act(async () => {
@@ -88,6 +96,44 @@ async function answeredThenUndone(): Promise<HTMLElement> {
   });
   return host;
 }
+
+describe("where a turn's Undo is drawn (2026-10-18)", () => {
+  const field = (host: HTMLElement) => host.querySelector("textarea")!;
+  const after = (a: Node, b: Node) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+  // A word with a control: the composer's own announcements are status too.
+  const offered = (host: HTMLElement) => [...host.querySelectorAll("[role=status]")].filter((one) => one.querySelector("button"));
+
+  it("says where a filed dump went in a line under the composer, not in the toast", async () => {
+    const host = await answered();
+    const lines = offered(host);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.textContent).toBe("Saved to HealthUndo");
+    expect(after(field(host), lines[0]!)).toBe(true);
+  });
+
+  it("draws a line whose place is not on screen under the composer, and not one that is", async () => {
+    const host = await answered({ ...filed, threads: [], changed: [], reply: null });
+    act(() => undoStore.put({ id: "r9", icon: "archive", form: "slot" }, "Archived", { label: "Undo", onPress: () => undefined }));
+    expect(offered(host).map((one) => one.textContent)).toEqual(["ArchivedUndo"]);
+    expect(after(field(host), offered(host)[0]!)).toBe(true);
+    // Drawn in its row's place somewhere on the page, it is not drawn twice.
+    const { Line } = await import("../src/components/shell/InPlace");
+    const elsewhere = document.body.appendChild(document.createElement("div"));
+    const other = createRoot(elsewhere);
+    await act(async () => other.render(<Line entry={undoStore.entries().get("r9")!} />));
+    expect(offered(host)).toHaveLength(0);
+    act(() => other.unmount());
+    expect(offered(host)).toHaveLength(1);
+  });
+
+  it("keeps a conversation's own report in the toast", async () => {
+    const host = await answered({ ...filed, reply: "Moved the dentist out of Health.", threads: [], changed: ["th1"] });
+    const lines = offered(host);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.textContent).toBe("Moved the dentist out of Health.Undo");
+    expect(after(lines[0]!, field(host))).toBe(true);
+  });
+});
 
 describe("Undo of a turn the server refused", () => {
   it("puts the turn back and offers Retry", async () => {

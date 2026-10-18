@@ -434,7 +434,7 @@ export {
   withMadeLabels,
 } from "./labels.js";
 export type { LabelPick } from "./labels.js";
-export { GOOGLE_EVENT_LINK, afterWrite, dayName, eventMeta, eventPast, eventRange, nextLine, nothingLine, retryDelay, stackView, type LineEvent } from "./today.js";
+export { GOOGLE_EVENT_LINK, afterWrite, dayName, dayTitle, eventMeta, eventPast, eventRange, nextLine, nothingLine, retryDelay, stackView, type LineEvent } from "./today.js";
 // 030. A thread's map: point colours and shapes, count dots, the opening fit,
 // and the hand-off to Google Maps.
 export {
@@ -540,6 +540,8 @@ export type { FoldSection, Folds } from "./folds.js";
 export { answeredWaiting, answerPollMs, isFinal, stayedForgotten, turnDid, turnUndoable, undoShown, withReply } from "./turn.js";
 // Writes the screen has already drawn, both clients.
 export { perform, reverse } from "./optimistic.js";
-export type { Reversible, ToastAction, Toaster, Writes } from "./optimistic.js";
+export type { Place, Reversible, ToastAction, Toaster, UndoForm, Writes } from "./optimistic.js";
+export { createOrderMemory, createUndoStore, interleave, isFailure, RETURNED_MS, UNDO_MS } from "./undo.js";
+export type { Interleaved, UndoEntry, UndoStore } from "./undo.js";
 // 022. People: a name in a sentence, a date on a row, a lookup's answer.
 export { dayMonth, firstNameOf, nameOf, stateOfLookup } from "./people.js";
