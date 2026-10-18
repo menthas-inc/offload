@@ -72,11 +72,15 @@ export async function applyLabels(
   const wanted = new Map((await wantedLabels(trx, input.accountId, input.threadId)).map((found) => [key(found), found]));
   const anchors = new Set((await anchorsFor(trx, input.threadId)).map(key));
 
-  const noteIds = input.entries.filter((entry) => entry.of === "note" && entry.name).map((entry) => entry.id);
+  // Only words of a note this pass may label: the ids are the worker's, and
+  // the wanted set is reminders_wanted's, already scoped to the account.
+  const noteIds = input.entries.filter((entry) => entry.of === "note" && entry.name && wanted.has(key(entry))).map((entry) => entry.id);
   const texts = new Map(
     noteIds.length === 0
       ? []
-      : (await trx.selectFrom("notes").select(["id", "text"]).where("id", "in", noteIds).execute()).map((n) => [n.id, n.text]),
+      : (await trx.selectFrom("notes").select(["id", "text"]).where("id", "in", noteIds).where("account_id", "=", input.accountId).execute()).map(
+          (n) => [n.id, n.text],
+        ),
   );
 
   let labelled = 0;

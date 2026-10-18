@@ -412,6 +412,20 @@ describe("a replaced memory goes after thirty days, on an account with nothing e
     const left = await db.selectFrom("notes").select("id").where("id", "in", [home.id, work.id]).execute();
     expect(left).toEqual([{ id: work.id }]);
   });
+
+  it("the person's own is purged the same way once a later word of theirs replaced it (privacy section 13)", async () => {
+    const ana = await account("Ana");
+    const earlier = await said(ana, "remember we live in Toronto", { hoursAgo: 30 });
+    const asked = await db.transaction().execute((trx) => remember(trx, { accountId: ana, messageId: earlier, text: "They live in Toronto.", kind: "about" }));
+    if (!asked.ok) throw new Error("not kept");
+    const moved = await said(ana, "we moved to Montreal last week");
+    const jobId = await passJob(ana);
+    expect((await post({ jobId, supersede: [{ id: asked.id, text: "They live in Montreal.", cites: moved }] })).json()).toMatchObject({ superseded: 1 });
+    await age(asked.id, 31);
+
+    await handlers["content.purge"]!({}, { mailer: new MemoryMailer() }, null);
+    expect(await db.selectFrom("notes").select("id").where("id", "=", asked.id).execute()).toEqual([]);
+  });
 });
 
 describe("when a pass reads from", () => {

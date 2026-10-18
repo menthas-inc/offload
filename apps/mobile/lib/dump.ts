@@ -526,7 +526,8 @@ export function awaitAnswer(
 
   const ask = async (): Promise<void> => {
     if (done) return;
-    const answer = await fetchAnswer(messageId);
+    // A throw is a miss like any other, or the poll would never ask again.
+    const answer = await fetchAnswer(messageId).catch(() => null);
     if (done) return;
 
     if (answer && isFinal(answer.state)) {
@@ -583,12 +584,13 @@ export async function fetchCurrent(): Promise<TailMessage[] | null> {
 }
 
 /** Take back a whole turn: what you dumped, what offload filed, and what it
- *  said about it. */
-export async function undoTurn(turnId: string): Promise<boolean> {
-  const { data } = await send<{ undone: boolean }>(`/v1/turns/${turnId}/undo`, {
+ *  said about it. False when it did not land; otherwise the words of any
+ *  memories it could not put back for want of room, usually none. */
+export async function undoTurn(turnId: string): Promise<false | string[]> {
+  const { data } = await send<{ undone: boolean; stayed?: string[] }>(`/v1/turns/${turnId}/undo`, {
     method: "POST",
   });
-  return data?.undone ?? false;
+  return (data?.undone ?? false) && (data?.stayed ?? []);
 }
 
 /** Stop a turn that is taking too long. 017.
@@ -614,9 +616,13 @@ export async function cancelTurn(turnId: string): Promise<boolean> {
  *
  *  Not a re-send. The dump is still where it was and some of it is already
  *  filed; this asks offload to do the rest. */
-export async function resumeDump(messageId: string): Promise<Sent | null> {
-  const { data } = await send<Sent>(`/v1/dumps/${messageId}/resume`, { method: "POST" });
-  return data;
+export async function resumeDump(messageId: string): Promise<Sent | "daily_limit" | "not_finishable" | "failed"> {
+  const { status, data } = await send<Sent>(`/v1/dumps/${messageId}/resume`, { method: "POST" });
+  if (status === 429) return "daily_limit";
+  // Finished, or resumed from another device, since this screen drew it. A
+  // 404 is gone for good, so it asks what the turn is now rather than Retry.
+  if (status === 409 || status === 404) return "not_finishable";
+  return data ?? "failed";
 }
 
 /** End the current conversation, because somebody closed the sheet.

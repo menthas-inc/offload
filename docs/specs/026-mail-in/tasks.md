@@ -67,6 +67,6 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ## Amended 2026-10-15: an earlier email in the conversation
 
-- [x] **T7.1** `_TURNS`, red first against the database: a later email does not read an earlier one's body, sees *(forwarded an email* and what it filed, and the person's own words stay; a turn reads nothing after its own message; a typed message after two emails reads neither body. *(AC-23)*
+- [x] **T7.1** `_TURNS`, red first against the database: a later email does not read an earlier one's body, sees *(forwarded an email* and how many it filed (a count since 2026-10-17), and the person's own words stay; a turn reads nothing after its own message; a typed message after two emails reads neither body. *(AC-23)*
 - [x] **T7.2** Eval cases in `27-mail.json`, the subsets recut. Not run: a separate ask. *(AC-23)*
 - [x] **T7.3** An email's own ended conversation and a question that survives, red first: three conversations for a typed dump and two emails, the emails' ended and the next dump back in the person's own; no question closed by an email arriving; an email's question open after a new conversation of the person's while the person's own closes; Answer on one email leaves another's open. *(AC-24, AC-25)*

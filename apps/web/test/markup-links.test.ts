@@ -48,6 +48,12 @@ describe("a link is refused when a URL parser would read it as somewhere else", 
     ["climbing from inside", "/threads/../../evil"],
     ["climbing with encoded dots, which a browser decodes", "/threads/%2e%2e/settings"],
     ["climbing with encoded capitals", "/threads/%2E%2E/settings"],
+    ["an encoded single dot segment", "/threads/%2E/x"],
+    ["half encoded dots", "/threads/.%2e/settings"],
+    ["an encoded slash, which a decoding router splits on", "/threads/%2e%2e%2fadmin"],
+    ["an encoded capital slash", "/threads/%2E%2E%2Fadmin"],
+    ["an encoded backslash", "/threads/%2e%2e%5c"],
+    ["an encoded capital backslash", "/threads/x%5Cy"],
   ];
 
   for (const [name, href] of hostile) {
@@ -73,6 +79,10 @@ describe("a link is refused when a URL parser would read it as somewhere else", 
       kind: "link",
       href: "/threads/01a08cd4",
     });
+  });
+
+  it("takes an encoded dot inside a segment, which is no dot segment", () => {
+    expect(inlines("[x](/threads/a%2Eb)")[0]).toMatchObject({ kind: "link", href: "/threads/a%2Eb" });
   });
 
   it("takes a space inside the path, which is encoded rather than stripped", () => {

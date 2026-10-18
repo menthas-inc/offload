@@ -926,6 +926,30 @@ describe("AC-11 where a write goes", () => {
     }
   });
 
+  it("this and all following on a counted series changes this one, and says only this one changed", async () => {
+    // S36. A counted rule cannot be split without counting what came before,
+    // so one occurrence moves. The result says so; it used to read as done.
+    const me = await account();
+    const t = await thread(me);
+    await pick(t, await calendar(await connection(me), { externalId: "cal-mine" }), me);
+    const turn = await readTurn(me, t);
+    const eventId = turn.sourceRef.split(":").slice(1).join(":");
+    google.getEvent.mockImplementation((async (_token: string, _calendar: string, id: string) =>
+      id === "ser"
+        ? { attendees: [], seriesId: null, startsAt: new Date("2026-09-01T15:00:00Z"), recurrence: ["RRULE:FREQ=WEEKLY;COUNT=8"] }
+        : { attendees: [], seriesId: "ser", startsAt: new Date(STARTS), recurrence: [] }) as never);
+    try {
+      const changed = (
+        await tool({ tool: "edit_event", jobId: turn.jobId, toolCallId: "s1", sourceRef: turn.sourceRef, scope: "following", title: "Later" })
+      ).json() as Record<string, unknown>;
+      expect(changed).toMatchObject({ ok: true, written: true, scope: "this", line: "Only this one changed." });
+      expect(google.createEvent).not.toHaveBeenCalled();
+      expect(google.patchEvent.mock.calls.map((c) => (c as unknown as [string, string, string])[2])).toEqual([eventId]);
+    } finally {
+      google.getEvent.mockImplementation(async () => null);
+    }
+  });
+
   it("what is kept for an Undo goes on the daily purge, and the turn still wears Done", async () => {
     const me = await account();
     const t = await thread(me);

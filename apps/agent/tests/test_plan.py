@@ -1035,6 +1035,31 @@ async def test_trailing_text_after_a_change_is_dropped_like_after_a_filing():
     assert outcome.finished
 
 
+async def test_a_following_change_that_moved_only_this_one_says_so_whatever_the_model_says():
+    """S36. A counted series moves one occurrence when asked for all of them,
+    and the person hears that from the Core API's line, not from the model."""
+    from offload_agent.worker import Lookups, _reply_as_sent
+
+    edit = {"source_ref": "ev-1", "starts_at": "2026-11-10T19:00", "scope": "following"}
+    model = StubModel(
+        [
+            Response(
+                content=[ToolUse(id="a", name="edit_event", input=edit)], stop_reason="tool_use"
+            ),
+            Response(content=[TextBlock("Moved the class to 7pm.")], stop_reason="end_turn"),
+        ]
+    )
+    line = "Only this one changed."
+    caller = Recorder(
+        [{"ok": True, "written": True, "sourceRef": "ev-1", "scope": "this", "line": line}]
+    )
+    c = ctx(has_calendar=True)
+    outcome = await plan(model, c, "m", caller)
+
+    budget = Lookups(c.dump, may_search=False, may_read_links=False)
+    assert _reply_as_sent(outcome, c, budget) == (False, line)
+
+
 async def test_a_refusal_the_model_wrote_still_reaches_them_when_nothing_changed():
     """The other side of the same rule: a turn that read and then refused has
     its trailing text kept, because nothing landed and nothing changed."""

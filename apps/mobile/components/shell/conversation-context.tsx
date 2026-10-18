@@ -63,7 +63,7 @@ import {
 } from "../../lib/dump";
 import type { ChipError } from "./AttachChip";
 import { addNote, completeContent, fetchThread, provisionalId, quickAdd } from "../../lib/threads";
-import { MAX_PDFS, MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, takeFiles, turnDid, turnUndoable, undoShown } from "@offload/widgets";
+import { MAX_PDFS, MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, stayedForgotten, takeFiles, turnDid, turnUndoable, undoShown, withReply } from "@offload/widgets";
 import type { Label } from "../../lib/labels";
 import { failed } from "../../lib/log";
 import { fetchPeople, nameOf, type Person } from "../../lib/people";
@@ -878,17 +878,15 @@ export function ConversationProvider({
                 { ...turn, question: null },
           );
           if (!answer.reply) return next;
-          return [
-            ...next,
-            {
-              id: `${messageId}-reply`,
-              from: "offload" as const,
-              text: answer.reply,
-              turnId,
-              waiting: answer.waiting ?? null,
-              found: answer.found ?? [],
-            },
-          ];
+          // A resumed or re-read turn already has a reply on screen.
+          return withReply<Turn>(next, {
+            id: `${messageId}-reply`,
+            from: "offload" as const,
+            text: answer.reply,
+            turnId,
+            waiting: answer.waiting ?? null,
+            found: answer.found ?? [],
+          });
         });
 
         // `changed`, not `threads`: a turn that moved a piece out of the thread
@@ -1582,8 +1580,11 @@ export function ConversationProvider({
   // what it filed is still filed.
   const undoTurnShown = useCallback(
     async function again(turnId: string): Promise<void> {
-      if (await undoShown(turnId, shownTurns.current, setTurns, undoTurn)) setFiled({ threadIds: [], at: Date.now() });
-      else notify("Couldn't put that back", { label: "Retry", onPress: () => again(turnId) });
+      const stayed = await undoShown(turnId, shownTurns.current, setTurns, undoTurn);
+      if (!stayed) return notify("Couldn't put that back", { label: "Retry", onPress: () => again(turnId) });
+      setFiled({ threadIds: [], at: Date.now() });
+      const line = stayedForgotten(stayed);
+      if (line) notify(line);
     },
     [notify],
   );
@@ -1597,13 +1598,22 @@ export function ConversationProvider({
   }, [undoable, undoTurnShown]);
 
   const finish = useCallback(
-    async (messageId: string): Promise<void> => {
+    async function again(messageId: string): Promise<void> {
       const sent = await resumeDump(messageId);
-      if (!sent) return;
+      if (sent === "daily_limit") return setRefusedToday(true);
+      if (sent === "failed") return notify("Couldn't finish that", { label: "Retry", onPress: () => void again(messageId) });
+      if (sent === "not_finishable") {
+        // Settled elsewhere: ask what it is now. Every shown turn carries a
+        // turnId (the tail requires one), so none means it left the screen
+        // and there is nothing on it to correct.
+        const turnId = shownTurns.current.find((turn) => turn.id === messageId)?.turnId;
+        if (turnId) watch(messageId, turnId);
+        return;
+      }
       setWriting(true);
       watch(sent.messageId, sent.turnId);
     },
-    [watch],
+    [watch, notify],
   );
 
   const close = end;

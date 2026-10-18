@@ -24,6 +24,7 @@ import { db } from "../db.js";
 import { emit } from "../analytics.js";
 import { passThreadKeyOn } from "../blobs/keys.js";
 import { openOrNull, seal } from "../connectors/vault.js";
+import { keepUnopenable } from "../connectors/tokens.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { codeAttemptHmac } from "../admin/review-codes.js";
 import { attemptHmac } from "../routes/waitlist.js";
@@ -92,8 +93,11 @@ export async function deleteAccount(accountId: string, options: DeleteOptions = 
         ? openOrNull(Buffer.from(grant.refresh), grant.id, "refresh_token")
         : openOrNull(Buffer.from(grant.access), grant.id, "access_token");
       // One sealed under a key no longer held cannot be handed back, and is
-      // never a reason for the account to stay.
-      if (token === null) continue;
+      // never a reason for the account to stay. It is kept, marked (S27).
+      if (token === null) {
+        await keepUnopenable(trx, grant.id, Buffer.from(grant.refresh ?? grant.access));
+        continue;
+      }
       const id = uuidv7();
       await trx
         .insertInto("pending_revocations")

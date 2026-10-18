@@ -16,7 +16,7 @@ import { db } from "../db.js";
 import { GrantRevoked, type EventDraft } from "./google.js";
 import { outwardLine, readCalendarVerdict, type OutwardVerdict } from "./outward.js";
 import { accessTokenFor, markNeedsReauth } from "./tokens.js";
-import { performWrite, targetFor, verdictFor, writable, type WriteAction } from "./write.js";
+import { counted, performWrite, targetFor, verdictFor, writable, type WriteAction } from "./write.js";
 import type { ScopedCalendar } from "../threads/calendars.js";
 import { deleteContent, setArchived } from "../routes/threads.js";
 
@@ -117,8 +117,8 @@ export async function calendarOfEvent(accountId: string, sourceRef: string): Pro
 
 export type ToolWriteOutcome =
   | { kind: "refused"; reason: "unknown_calendar" | "read_only" | "needs_reconnect" }
-  | { kind: "written"; sourceRef: string | null }
-  | { kind: "pending"; pendingId: string; line: string };
+  | { kind: "written"; sourceRef: string | null; onlyThis?: boolean }
+  | { kind: "pending"; pendingId: string; line: string; onlyThis?: boolean };
 
 /** Perform it, or propose it. Never ask the model which.
  *
@@ -127,7 +127,7 @@ export type ToolWriteOutcome =
 export async function writeThroughTool(
   accountId: string,
   calendarId: string,
-  write: WriteAction,
+  asked: WriteAction,
   /** The message whose tool call this is. A proposal without one cannot be
    *  reached from any screen, so it would be announced and then expire. */
   messageId: string | null,
@@ -149,10 +149,17 @@ export async function writeThroughTool(
   // connection and never marked it. It is a refusal the model can relay.
   let token: string;
   let verdict;
+  let write = asked;
   // Read before the write, since the write is what changes it.
-  const was = await before(target, write);
+  let was = await before(target, write);
   try {
     token = await accessTokenFor(target.connectionId);
+    // S36. A counted series cannot be split, so the change is to this one,
+    // kept for the Undo like any other, and the result says so.
+    if (write.action === "edit" && write.scope === "following" && (await counted(target, write.sourceRef, token))) {
+      write = { ...write, scope: "one" };
+      was = await before(target, write);
+    }
     verdict = await verdictFor(target, write, token);
     // The outward reasons win when they apply, since their sentence names who
     // finds out. A write nobody else would notice, in a turn that read a
@@ -204,7 +211,7 @@ export async function writeThroughTool(
         })
         .execute();
     }
-    return { kind: "written", sourceRef: done.sourceRef };
+    return { kind: "written", sourceRef: done.sourceRef, onlyThis: write !== asked };
   }
 
   const pending = await db
@@ -232,7 +239,7 @@ export async function writeThroughTool(
     .returning("id")
     .executeTakeFirstOrThrow();
 
-  return { kind: "pending", pendingId: pending.id, line: outwardLine(verdict, cadenceOf(write)) ?? "" };
+  return { kind: "pending", pendingId: pending.id, line: outwardLine(verdict, cadenceOf(write)) ?? "", onlyThis: write !== asked };
 }
 
 /** Take an open proposal for this tap, in one statement, before Google hears of

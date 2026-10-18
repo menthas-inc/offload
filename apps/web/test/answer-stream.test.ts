@@ -9,8 +9,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 let state = "seen";
 const asked: string[] = [];
+/** How many asks a captive portal answers, 200 with a page. */
+let portal = 0;
 vi.stubGlobal("fetch", async (url: string) => {
   asked.push(String(url));
+  if (portal > 0) {
+    portal -= 1;
+    return new Response("<html>Sign in to the wifi</html>", { status: 200 });
+  }
   return new Response(JSON.stringify({ state, reply: state === "seen" ? null : "Filed it." }), { status: 200 });
 });
 
@@ -36,6 +42,7 @@ const { awaitAnswer } = await import("../src/lib/dump");
 beforeEach(() => {
   vi.useFakeTimers();
   state = "seen";
+  portal = 0;
   asked.length = 0;
   streams.length = 0;
 });
@@ -73,5 +80,18 @@ describe("a stream the browser closed", () => {
     const after = asked.length;
     await vi.advanceTimersByTimeAsync(30_000);
     expect(asked.length).toBe(after);
+  });
+
+  it("keeps asking after a 200 that is not JSON", async () => {
+    const seen: string[] = [];
+    awaitAnswer("m1", (answer) => seen.push(answer.state));
+    streams[0]!.readyState = FakeSource.CLOSED;
+    portal = 1;
+    state = "answered";
+    streams[0]!.listeners.get("error")!({});
+    await vi.advanceTimersByTimeAsync(0);
+    expect(seen).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(seen).toEqual(["answered"]);
   });
 });

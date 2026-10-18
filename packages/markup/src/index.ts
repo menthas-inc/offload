@@ -101,8 +101,13 @@ function addressable(href: string): boolean {
   // route, but a link that resolves somewhere other than where it reads is the
   // same class of surprise this function exists to refuse.
   if (href.split("/").includes("..")) return false;
-  // A browser decodes `%2e%2e` into `..` before it resolves the path.
-  if (/%2e/i.test(href)) return false;
+  // A browser decodes `%2e%2e` into `..` before it resolves the path, but only
+  // as a whole segment: `a%2Eb` is a name, not a climb.
+  const path = href.split(/[?#]/)[0]!;
+  if (path.split("/").some((segment) => [".", ".."].includes(segment.replace(/%2e/gi, ".")))) return false;
+  // An encoded slash or backslash keeps `%2e%2e%2fadmin` one segment here, and
+  // anything that decodes the path before resolving it would climb.
+  if (/%2f|%5c/i.test(path)) return false;
   return true;
 }
 

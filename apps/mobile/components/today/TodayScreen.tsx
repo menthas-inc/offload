@@ -24,7 +24,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { addUtcDays, afterWrite, dayIn, dayName, keepInPlace, nothingLine } from "@offload/widgets";
+import { addUtcDays, afterWrite, dayIn, dayName, keepInPlace, nothingLine, reminderEntryKey, remindersInOrder } from "@offload/widgets";
 import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { GearDot } from "../people/GearDot";
 import { Glyph } from "../Glyph";
@@ -45,7 +45,6 @@ import {
   notificationsCard,
   onTodayReset,
   openThreadsOn,
-  remindersInOrder,
   remindersOn,
   saveLayout,
   stackOf,
@@ -68,7 +67,7 @@ import { Band, Ground } from "./Band";
 import { DayStepper, EventsStrip, NextLine, SectionHead } from "./DayParts";
 import { CustomizeSheet } from "./CustomizeSheet";
 import { OpenThreads } from "./OpenThreads";
-import { Reminders, reminderKey } from "./Reminders";
+import { Reminders } from "./Reminders";
 import { useTodayRows } from "./useTodayRows";
 
 const isAndroid = Platform.OS === "android";
@@ -446,11 +445,11 @@ export default function TodayScreen() {
     const live = new Map(rows.live(reminders.rows).map((row) => [row.id, row]));
     return remindersInOrder(reminders)
       .flatMap((entry): ReminderEntry[] => {
-        if (entry.of !== "row") return [entry];
-        const row = live.get(entry.id);
-        return row ? [{ ...entry, ...row, of: "row" }] : [];
+        if (!("row" in entry)) return [entry];
+        const row = live.get(entry.row.id);
+        return row ? [{ row, day: row.remindDay }] : [];
       })
-      .filter((entry) => !gone.has(reminderKey(entry)));
+      .filter((entry) => !gone.has(reminderEntryKey(entry)));
   })();
 
   const sections = layout.sections.map((section) => {

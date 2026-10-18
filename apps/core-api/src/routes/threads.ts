@@ -767,7 +767,7 @@ export async function editContent(
     const onlyLabels = Object.keys(patch).every((key) => key === "labels" || (patch as Record<string, unknown>)[key] === undefined);
     // 042. A switch flipped alone is not an edit of the row's words or date.
     const onlySwitch = Object.keys(patch).every(
-      (key) => key === "reminders" || key === "isReminder" || (patch as Record<string, unknown>)[key] === undefined || (key === "reminders" && patch.reminders === null),
+      (key) => key === "reminders" || key === "isReminder" || (patch as Record<string, unknown>)[key] === undefined,
     );
     if (patch.labels !== undefined) {
       await setRowLabels(trx, { accountId, via: "person" }, { kind: "content", id: ref.id, threadId: ref.threadId }, patch.labels);
@@ -1959,7 +1959,7 @@ export async function threadRoutes(app: App): Promise<void> {
         const page = rows.slice(0, PAGE);
         const last = page.at(-1);
 
-        const finished = await withPhotos(page.map((row) => toRow(row, accountId)));
+        const finished = await withPhotos(page.map((row) => toRow(row, accountId)), accountId);
         return reply.send({
           rows: ticksFor ? finished.map((row) => ({ ...row, ticked: row.labels.includes(ticksFor) })) : finished,
           nextCursor: rows.length > PAGE && last ? last.id : null,
@@ -2048,7 +2048,7 @@ export async function threadRoutes(app: App): Promise<void> {
           : undefined;
 
         return reply.send({
-          ...(await withPhotos([toRow(row, accountId)]))[0]!,
+          ...(await withPhotos([toRow(row, accountId)], accountId))[0]!,
           threadId: row.threadId,
           threadName: row.threadName,
           threadIcon: row.threadIcon,
@@ -2811,13 +2811,13 @@ async function rowById(contentId: string, viewerId: string) {
     ])
     .where("content.id", "=", contentId)
     .executeTakeFirstOrThrow();
-  return (await withPhotos([toRow(row, viewerId)]))[0]!;
+  return (await withPhotos([toRow(row, viewerId)], viewerId))[0]!;
 }
 
 /** 020. Attach each row's photo, one query for the page. A row carries at most
  *  one photo today, since a photo row is one photo; the first live blob wins
  *  if that ever changes. */
-export async function withPhotos<T extends { id: string; photo: unknown }>(rows: T[]): Promise<(T & { labels: string[] })[]> {
+export async function withPhotos<T extends { id: string; photo: unknown }>(rows: T[], viewerId: string): Promise<(T & { labels: string[] })[]> {
   if (rows.length === 0) return [];
   const found = await db
     .selectFrom("content_blobs")
@@ -2846,7 +2846,7 @@ export async function withPhotos<T extends { id: string; photo: unknown }>(rows:
   // 025. Every row a client reads passes through here, so this is the one
   // place a row gains its labels, and since 042 its author's Remind me.
   const labelled = await withContentLabels(rows.map((row) => ({ ...row, photo: byContent.get(row.id) ?? null })));
-  return withRowReminders(labelled);
+  return withRowReminders(labelled, viewerId);
 }
 
 export const THREAD_LIMITS = { PAGE, STALE_DAYS } as const;
@@ -2888,11 +2888,9 @@ export async function openKinds(viewerId: string, threadIds: string[]): Promise<
 
 /** 042. The author's Remind me on rows already shaped for one viewer: only a
  *  row that is theirs can carry one. */
-async function withRowReminders<T extends { id: string }>(rows: T[]): Promise<T[]> {
-  const theirs = rows.filter((row) => (row as { author?: { isYou?: boolean; accountId?: string | null } }).author?.isYou);
-  const viewer = (theirs[0] as { author?: { accountId?: string | null } } | undefined)?.author?.accountId;
-  if (!viewer) return rows;
-  const found = await remindersOf(db, "content", theirs.map((row) => row.id), viewer);
+async function withRowReminders<T extends { id: string }>(rows: T[], viewerId: string): Promise<T[]> {
+  const theirs = rows.filter((row) => (row as { author?: { isYou?: boolean } }).author?.isYou);
+  const found = await remindersOf(db, "content", theirs.map((row) => row.id), viewerId);
   return rows.map((row) => (found.has(row.id) ? { ...row, reminders: found.get(row.id)! } : row));
 }
 

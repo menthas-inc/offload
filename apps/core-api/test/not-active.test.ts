@@ -34,7 +34,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function signedIn(state: "active" | "invited"): Promise<{ accountId: string; cookie: string }> {
+async function signedIn(state: "active" | "invited" | "disabled"): Promise<{ accountId: string; cookie: string }> {
   const row = await db
     .insertInto("accounts")
     .values({ email: `${uuidv7()}@example.com`, state, email_verified: true, display_name: "Jo", analytics_subject_id: uuidv7() })
@@ -153,6 +153,17 @@ describe("an account that has not finished first run cannot write", () => {
     // The route answers it (a body it refuses, or 401), not this rule.
     const response = await app.inject({ method: "POST", url: "/v1/dumps", headers: { "content-type": "application/json" }, payload: {} });
     expect(response.statusCode).not.toBe(403);
+  });
+});
+
+describe("an account that may not sign in", () => {
+  it("reads as signed out on a read, whatever session row survived", async () => {
+    // S24. Disabling deletes sessions; a path that forgets to is still answered here.
+    const { cookie } = await signedIn("disabled");
+    const response = await app.inject({ method: "GET", url: "/v1/threads", headers: { cookie } });
+    expect(response.statusCode).toBe(401);
+    const { cookie: fine } = await signedIn("active");
+    expect((await app.inject({ method: "GET", url: "/v1/threads", headers: { cookie: fine } })).statusCode).toBe(200);
   });
 });
 

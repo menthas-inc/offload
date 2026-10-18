@@ -48,7 +48,7 @@ vi.mock("better-auth/react", () => ({
   }),
 }));
 
-const { accountChanged, accountDeleted, onSignedOut, signOut, SignOutFailed } = await import("../lib/auth");
+const { accountChanged, accountDeleted, onSignedOut, sessionRefused, signOut, SignOutFailed } = await import("../lib/auth");
 
 beforeEach(() => {
   deleted.length = 0;
@@ -76,6 +76,62 @@ describe("AC-3 signing out waits for the server", () => {
       "offload_session_data",
     ]);
   });
+
+  // @better-auth/expo 1.7 writes a slotted marker, `ba-chunks:N:S[:F]`, with
+  // the chunks under `<key>.S.i` and the previous slot's kept for recovery.
+  it("clears the chunks of a slotted marker, both slots", async () => {
+    stored = {
+      offload_cookie: "ba-chunks:2:1:3",
+      "offload_cookie.1.0": "a",
+      "offload_cookie.1.1": "b",
+      "offload_cookie.0.0": "x",
+      "offload_cookie.0.1": "y",
+      "offload_cookie.0.2": "z",
+    };
+    await signOut();
+    expect(deleted.sort()).toEqual([
+      "offload_cookie",
+      "offload_cookie.0.0",
+      "offload_cookie.0.1",
+      "offload_cookie.0.2",
+      "offload_cookie.1.0",
+      "offload_cookie.1.1",
+      "offload_session_data",
+    ]);
+  });
+
+  // The plugin writes `{}` over the marker as it prepares the request, so by
+  // the time the server agrees the marker no longer says where the chunks are.
+  it("clears the chunks when the plugin has already written over the marker", async () => {
+    stored = { offload_cookie: "ba-chunks:2:0", "offload_cookie.0.0": "a", "offload_cookie.0.1": "b" };
+    signOutBehaviour = () => {
+      stored["offload_cookie"] = "{}";
+      return Promise.resolve();
+    };
+    await signOut();
+    expect(deleted).toEqual(expect.arrayContaining(["offload_cookie.0.0", "offload_cookie.0.1"]));
+  });
+
+  // A deleted account or a refused session forgets with no snapshot taken
+  // first, so a marker the plugin already cleared said nothing about where the
+  // chunks were and they stayed on the phone.
+  for (const [name, end] of [
+    ["a deleted account", () => accountDeleted()],
+    ["a refused session", () => sessionRefused()],
+  ] as const) {
+    it(`clears every chunk the plugin can have written on ${name}, whatever the marker says`, async () => {
+      stored = {
+        offload_cookie: "{}",
+        "offload_cookie.0": "a",
+        "offload_cookie.1": "b",
+        "offload_cookie.0.0": "c",
+        "offload_cookie.0.1": "d",
+        "offload_cookie.1.0": "e",
+      };
+      await end();
+      expect(deleted.sort()).toEqual(expect.arrayContaining(Object.keys(stored).sort()));
+    });
+  }
 
   it("tells whoever holds a copy of the session once it has ended, and not before", async () => {
     let told = 0;

@@ -1,5 +1,7 @@
 // A turn once it has settled, the same on the web and the phones.
 
+import { toSecondPerson } from "./voice.js";
+
 /** Whether a turn is over. */
 export function isFinal(state: string): boolean {
   return (
@@ -62,15 +64,48 @@ export function answeredWaiting<T extends { id: string; from: "you" | "offload";
 /** Take a turn back on screen first. It leaves the list on the press and
  *  comes back when the server refuses or cannot be reached, since the rows
  *  it filed are still there. False tells the caller to say so and offer
- *  Retry. */
-export async function undoShown<T extends { turnId?: string | undefined }>(
+ *  Retry; anything else is what the undo answered.
+ *
+ *  `draw` takes an updater, because the list moves while the undo travels: a
+ *  turn sent or answered meanwhile has to survive the refusal, so only the
+ *  removed rows go back, each after the row it followed. */
+export async function undoShown<T extends { id: string; turnId?: string | undefined }, R>(
   turnId: string,
   turns: readonly T[],
-  draw: (turns: T[]) => void,
-  undo: (turnId: string) => Promise<boolean>,
-): Promise<boolean> {
-  draw(turns.filter((turn) => turn.turnId !== turnId));
-  if (await undo(turnId).catch(() => false)) return true;
-  draw([...turns]);
+  draw: (update: (current: T[]) => T[]) => void,
+  undo: (turnId: string) => Promise<R | false>,
+): Promise<R | false> {
+  draw((current) => current.filter((turn) => turn.turnId !== turnId));
+  const done = await undo(turnId).catch(() => false as const);
+  if (done) return done;
+  draw((current) => {
+    const back = [...current];
+    turns.forEach((turn, at) => {
+      if (turn.turnId !== turnId || back.some((other) => other.id === turn.id)) return;
+      const before = turns
+        .slice(0, at)
+        .reverse()
+        .find((prior) => back.some((other) => other.id === prior.id));
+      back.splice(before ? back.findIndex((other) => other.id === before.id) + 1 : 0, 0, turn);
+    });
+    return back;
+  });
   return false;
+}
+
+/** S43. The toast after a turn's Undo when memories it forgot stayed
+ *  forgotten for want of room: one or two named as the tab reads them,
+ *  more counted. Null when everything came back. */
+export function stayedForgotten(stayed: readonly string[] | undefined): string | null {
+  if (!stayed?.length) return null;
+  return stayed.length > 2 ? `${stayed.length} still forgotten` : `Still forgotten: ${stayed.map(toSecondPerson).join(" ")}`;
+}
+
+/** The turns with a reply put in. A turn read again (resumed, or settled
+ *  elsewhere) answers with the reply already on screen, so one with the same
+ *  id is replaced where it stands rather than drawn twice. */
+export function withReply<T extends { id: string }>(turns: readonly T[], reply: T): T[] {
+  return turns.some((turn) => turn.id === reply.id)
+    ? turns.map((turn) => (turn.id === reply.id ? reply : turn))
+    : [...turns, reply];
 }

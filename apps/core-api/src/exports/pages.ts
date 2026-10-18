@@ -33,6 +33,14 @@ export interface CopyRow {
   author: string | null;
   labels: string[];
   files: CopyFile[];
+  reminder?: CopyReminder;
+}
+
+/** S33. offload's kind of date, and the author's Remind me as their switch
+ *  shows it: on, off, or null when not set. Only on the account's own things. */
+export interface CopyReminder {
+  kind: string | null;
+  remindMe: "on" | "off" | null;
 }
 
 export interface CopyNote {
@@ -45,6 +53,7 @@ export interface CopyNote {
   occursAt?: string | null;
   dueAt?: string | null;
   rrule?: string | null;
+  reminder?: CopyReminder;
 }
 
 export interface CopyThread {
@@ -152,6 +161,12 @@ function repeats(item: CopyRow | CopyNote, timeZone: string): string | null {
   return parsed.ok ? esc(describeRule(parsed.rule, dayIn(new Date(anchor), timeZone), "en-GB")) : null;
 }
 
+function reminder(item: CopyRow | CopyNote): string | null {
+  if (!item.reminder) return null;
+  const { kind, remindMe } = item.reminder;
+  return [kind ? `Kind of date: ${esc(kind)}` : null, remindMe ? `Remind me ${remindMe}` : null].filter(Boolean).join(" · ") || null;
+}
+
 const by = (author: string | null): string => `Added by ${author === null ? "someone who has gone" : esc(author)}`;
 
 export function indexPage(copy: Copy): string {
@@ -184,6 +199,7 @@ export function threadPage(thread: CopyThread, timeZone: string): string {
             (note) =>
               `<article><p>${esc(note.text)}</p>${note.body ? `<p>${esc(note.body)}</p>` : ""}` +
               (repeats(note, timeZone) ? `<p class="quiet">${repeats(note, timeZone)}</p>` : "") +
+              (reminder(note) ? `<p class="quiet">${reminder(note)}</p>` : "") +
               (thread.shared ? `<p class="quiet">${by(note.author)}</p>` : "") +
               `</article>`,
           )
@@ -198,6 +214,7 @@ export function threadPage(thread: CopyThread, timeZone: string): string {
         row.done ? "Done" : null,
         row.archived ? "Archived" : null,
         row.labels.length > 0 ? row.labels.map(esc).join(", ") : null,
+        reminder(row),
       ].filter(Boolean);
       const foot = [thread.shared ? by(row.author) : null, when(row.addedAt, timeZone)].filter(Boolean).join(" · ");
       return (
@@ -243,7 +260,8 @@ export function notesPage(copy: Copy): string {
         .map(
           (note) =>
             `<article><p>${esc(note.text)}</p>${note.body ? `<p>${esc(note.body)}</p>` : ""}` +
-            `${note.how ? `<p class="quiet">${esc(`${note.how[0]!.toUpperCase()}${note.how.slice(1)}`)} · ${esc(note.addedAt.slice(0, 10))}</p>` : ""}</article>`,
+            `${note.how ? `<p class="quiet">${esc(`${note.how[0]!.toUpperCase()}${note.how.slice(1)}`)} · ${esc(note.addedAt.slice(0, 10))}</p>` : ""}` +
+            `${reminder(note) ? `<p class="quiet">${reminder(note)}</p>` : ""}</article>`,
         )
         .join("")
     );

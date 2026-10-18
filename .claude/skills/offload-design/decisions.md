@@ -11,6 +11,44 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-17 · Health lists the calendar grants offload could not hand back
+**Surface:** admin panel (web)
+**Raised by:** the owner, deciding the sweep's S27.
+
+**Was:** a Google grant sealed under a rotated vault key was dropped on a disconnect or an account deletion, with nothing on any screen, while it stayed live at Google.
+
+**Is:** Health's Now view has a Calendar grants section listing each grant kept for a revoke by hand, with its age, and *All is well.* is not shown while any is listed. Owners only, as the rest of Health.
+
+**Why:** a grant offload cannot revoke has to be revoked by somebody, and only a screen that says so gets it done.
+
+**Design system impact:** the admin kit's Health screen gains a list section in the shape of its other operational lists; no new component.
+
+### 2026-10-17 · The Reminders countdown grows with the text, and Undo names what stayed forgotten
+**Surface:** iOS, Android, web
+**Raised by:** the owner, deciding the sweep's S15 and S43.
+
+**Was:** the Reminders card's countdown column was a fixed 82px on the web and 82 points on the phones while its text grew with Bigger text or the system size. A turn's Undo of a forget restored what fitted under the caps and said nothing about the rest.
+
+**Is:** the column is 82 times the type scale on the web (`--type-scale`, the variable Bigger text sets) and 82 times the system font scale on the phones, so it is the kit's 82 at normal size. When a turn's Undo cannot put a forgotten memory back for want of room, the toast says so: *Still forgotten: Your wife is Meera.* for one or two, worded as the Memories tab shows them, and *3 still forgotten* for more. Words said again since are not named, since they are not forgotten.
+
+**Why:** a fixed column clips the countdown at a bigger size; an Undo that silently leaves something out reads as having done all of it.
+
+**Design system impact:** `TodayParts.jsx`'s Reminders column width is 82 at the base scale and grows with it. One new toast line form, *Still forgotten: ...* and the count form, beside the failure lines.
+
+### 2026-10-17 · Finish it and a turn's Undo say when they did not happen
+**Surface:** iOS, Android, web
+**Raised by:** the sweep of 2026-10-17 and the ponytail cleanup before it: both controls could fail with nothing on screen.
+
+**Was:** Finish it on a stopped turn did nothing at all when the resume was refused (the day's cap, offline, already resumed elsewhere). Undo on a turn took the turn off the screen first and left it gone when the server refused, so it came back only on a reload.
+
+**Is:** a refused Finish it shows a toast, *Couldn't finish that*, with Retry; the day's cap shows the line the composer already shows for it, and a turn another device already resumed simply carries on. A refused Undo puts the turn back where it was and shows the existing *Couldn't put that back* with Retry.
+
+**Why:** offload says what happened and offers the way forward next to a control that acts on it; a control that silently does nothing reads as broken.
+
+On the phones the toast now tells a screen reader: a failure (its action is Retry or Try again) is an assertive live region with the alert role, as the kit's contract and the web already had it, and the bar is at least the 44-point tap height with Retry taking its full height.
+
+**Design system impact:** one new line, *Couldn't finish that*, in the failure-line set beside *Couldn't put that back*. `Toast` on the phones now matches its contract's failure role, and its bar's minimum height is `tap-min`; worth a line in the component's notes.
+
 ### 2026-10-17 · Archive is back on your own rows, beside Delete
 **Surface:** iOS, Android, web
 **Raised by:** the owner: archive is how somebody tidies away what they no longer use, and on their own rows only Delete was offered.

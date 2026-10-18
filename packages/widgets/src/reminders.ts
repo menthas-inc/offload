@@ -4,6 +4,7 @@
 // since it rides in the same morning message.
 
 import { addDays, daysBetween } from "./days.js";
+import { timeIn, whenOf, type ChipRow } from "./nearness.js";
 
 /** The author's Remind me as the API sends it: on while offload will remind
  *  them, off once they stopped it, null otherwise and to anybody else. */
@@ -98,13 +99,13 @@ export function countdownLabel(day: string, today: string): string {
 const SHORT_DAY = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
 /** Under the countdown: "Tue 13 Oct", or "By Sun 18 Oct" for a deadline or a
- *  task reminded against the thing it is for. */
+ *  task reminded against what it is for. */
 export function reminderDayLine(day: string, by: boolean): string {
   const said = SHORT_DAY.format(new Date(`${day}T12:00:00Z`)).replace(",", "");
   return by ? `By ${said}` : said;
 }
 
-/** After where it lives, when the thing has a clock time: "21:40", or "By
+/** After where it lives, when the row has a clock time: "21:40", or "By
  *  18:00" for a deadline. */
 export function reminderTimeLine(time: string, by: boolean): string {
   return by ? `By ${time}` : time;
@@ -116,8 +117,8 @@ export function dismissLabel(name: string): string {
 }
 
 /** The toast after a dismiss, with Undo beside it. A dismiss hides the one
- *  reminder that was showing, not the thing (the owner, 2026-10-11), so the
- *  line says when the thing's next reminder brings it back; with none to
+ *  reminder that was showing, not the row (the owner, 2026-10-11), so the
+ *  line says when the row's next reminder brings it back; with none to
  *  come, it says only that it is gone. */
 export function dismissedLine(next: string | null, today: string): string {
   if (!next) return "Dismissed";
@@ -126,19 +127,120 @@ export function dismissedLine(next: string | null, today: string): string {
   return `Dismissed until ${when === "Tomorrow" ? "tomorrow" : when}`;
 }
 
-/** Where a reminder's thing lives, under its name: a row's thread with the
- *  thread's own icon (`lasso` when it has none), `inbox` and Not in a thread
- *  for a row in the default thread; `text-quote` for a note whatever its
- *  thread; `cloudy` and Memories for a memory. Decided once. */
-export function whereOf(thing: { of: "content" | "note" | "memory"; threadName: string | null; threadIcon: string | null }): { icon: string; text: string } {
-  if (thing.of === "memory") return { icon: "cloudy", text: "Memories" };
-  if (thing.of === "note") return { icon: "text-quote", text: thing.threadName ?? "Not in a thread" };
-  return thing.threadName === null ? { icon: "inbox", text: "Not in a thread" } : { icon: thing.threadIcon ?? "lasso", text: thing.threadName };
+/** Where what a reminder is about lives, under its name: a row's thread with
+ *  the thread's own icon (`lasso` when it has none), `inbox` and Not in a
+ *  thread for a row in the default thread; `text-quote` for a note whatever
+ *  its thread; `cloudy` and Memories for a memory. Decided once. */
+export function whereOf(which: { of: "content" | "note" | "memory"; threadName: string | null; threadIcon: string | null }): { icon: string; text: string } {
+  if (which.of === "memory") return { icon: "cloudy", text: "Memories" };
+  if (which.of === "note") return { icon: "text-quote", text: which.threadName ?? "Not in a thread" };
+  return which.threadName === null ? { icon: "inbox", text: "Not in a thread" } : { icon: which.threadIcon ?? "lasso", text: which.threadName };
 }
 
-/** The key a dismissed reminder is hidden by on the screen: the thing, its
+/** The key a dismissed reminder is hidden by on the screen: the row, its
  *  day and the reminder showing, as the server keys a dismissal. A key with
- *  the thing alone would hide its next reminder too on a screen left open. */
+ *  the row alone would hide its next reminder too on a screen left open. */
 export function reminderKey(which: { of: "content" | "note" | "memory"; id: string; day: string; window: string }): string {
   return `${which.of}:${which.id}:${which.day}:${which.window}`;
+}
+
+export type ReminderWindow = "long" | "short" | "day";
+
+/** S14. The read's row and its note or memory, as much of each as the
+ *  column reads. Each client's own row type carries more. */
+export interface ReminderRowRead extends ChipRow {
+  id: string;
+  title: string;
+  remindDay: string;
+  remindBy: boolean;
+  window: ReminderWindow;
+  next: string | null;
+  threadId: string;
+  threadName: string | null;
+  threadIcon: string | null;
+}
+
+export interface ReminderOtherRead {
+  of: "note" | "memory";
+  id: string;
+  name: string;
+  day: string;
+  by: boolean;
+  /** `HH:MM` in the account's zone when the thing has a clock time. */
+  time: string | null;
+  window: ReminderWindow;
+  next: string | null;
+  threadId: string | null;
+  threadName: string | null;
+  threadIcon: string | null;
+}
+
+export type ReminderEntry<R extends ReminderRowRead = ReminderRowRead, O extends ReminderOtherRead = ReminderOtherRead> =
+  | { row: R; day: string }
+  | { other: O; day: string };
+
+/** Rows, notes and memories as one list, nearest first; on one day a row
+ *  first, then each as the server ordered it. */
+export function remindersInOrder<R extends ReminderRowRead, O extends ReminderOtherRead>(read: {
+  rows: readonly R[];
+  others: readonly O[];
+}): ReminderEntry<R, O>[] {
+  const entries: ReminderEntry<R, O>[] = [
+    ...read.rows.map((row) => ({ row, day: row.remindDay })),
+    ...read.others.map((other) => ({ other, day: other.day })),
+  ];
+  return entries.sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
+}
+
+/** One line of the column, whatever it came from. `opens` is where the line
+ *  goes, for each client to make a link of: a memory in Memories, a thread
+ *  (the default one when it has no name), or nowhere for a note with no
+ *  thread. `which` is the reminder showing, as the server keys a dismissal. */
+export interface ReminderLine {
+  key: string;
+  name: string;
+  day: string;
+  by: boolean;
+  time: string | null;
+  next: string | null;
+  opens: { memory: string } | { threadId: string; threadName: string | null } | null;
+  where: { icon: string; text: string };
+  which: { of: "content" | "note" | "memory"; id: string; day: string; window: ReminderWindow };
+}
+
+/** The key a screen hides a dismissed entry by, without building its line. */
+export function reminderEntryKey(entry: ReminderEntry): string {
+  return "row" in entry
+    ? reminderKey({ of: "content", id: entry.row.id, day: entry.row.remindDay, window: entry.row.window })
+    : reminderKey(entry.other);
+}
+
+export function reminderLine(entry: ReminderEntry, zone: string | null): ReminderLine {
+  if ("row" in entry) {
+    const { row } = entry;
+    const at = row.allDay ? null : whenOf(row);
+    return {
+      key: reminderEntryKey(entry),
+      name: row.title,
+      day: row.remindDay,
+      by: row.remindBy,
+      time: at ? timeIn(new Date(at), zone, "en-GB") : null,
+      next: row.next,
+      opens: { threadId: row.threadId, threadName: row.threadName },
+      where: whereOf({ of: "content", threadName: row.threadName, threadIcon: row.threadIcon }),
+      which: { of: "content", id: row.id, day: row.remindDay, window: row.window },
+    };
+  }
+  const { other } = entry;
+  return {
+    key: reminderEntryKey(entry),
+    name: other.name,
+    day: other.day,
+    by: other.by,
+    time: other.time,
+    next: other.next,
+    opens: other.of === "memory" ? { memory: other.id } : other.threadId ? { threadId: other.threadId, threadName: other.threadName } : null,
+    where: whereOf(other),
+    which: { of: other.of, id: other.id, day: other.day, window: other.window },
+  };
 }

@@ -2,8 +2,8 @@
 //
 // An event, a stay, a ticket: anything that happens on a day and is not a
 // to-do leaves the list once its last day is over in its author's clock, and
-// the undated photos and files that came in the same dump go with it, since a
-// movie ticket is over when the movie is. A late to-do stays, however late:
+// the undated photos and files that came in the same dump go with the last of
+// its dated rows, since a movie ticket is over when the movie is. A late to-do stays, however late:
 // it is still something to do. A repeating row has a next time. A row a person
 // put back carries `put_back` and is left where they put it.
 //
@@ -57,6 +57,23 @@ export async function archivePassed(
         and c.occurs_at is null
         and c.due_at is null
         and coalesce(c.attrs -> 'put_back' = 'true'::jsonb, false) = false
+        -- S39. They go with the dump's last dated row: none from it still ahead.
+        and not exists (
+          select 1
+          from content o
+          join zones on zones.id = o.account_id
+          where o.derived_from_message_id = c.derived_from_message_id
+            and o.thread_id = c.thread_id
+            and o.archived_at is null
+            and o.deleted_at is null
+            and o.id not in (select id from passed)
+            and coalesce(o.occurs_at, o.due_at) is not null
+            and (o.rrule is not null
+                 or (case when coalesce(o.attrs -> 'all_day' = 'true'::jsonb, false)
+                       then (coalesce(o.occurs_end_at, o.occurs_at, o.due_at) at time zone 'UTC')::date
+                       else (coalesce(o.occurs_end_at, o.occurs_at, o.due_at) at time zone zones.zone)::date
+                     end) >= (${now}::timestamptz at time zone zones.zone)::date)
+        )
     ),
     -- updated_at is left alone: the nightly pass reads it as the row having
     -- changed, and nothing about the row did.

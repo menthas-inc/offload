@@ -59,7 +59,7 @@ import { DayUsed } from "./DayUsed";
 import { BAR_PITCH_PX, Recorder, recorderSupported, type Recording } from "../../lib/recorder";
 import { Mentions, mentionQuery, withMention } from "../people/Mentions";
 import { HashList } from "../labels/HashList";
-import { MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, staysOpen, takeFiles, turnDid, turnUndoable, undoShown } from "@offload/widgets";
+import { MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, stayedForgotten, staysOpen, takeFiles, turnDid, turnUndoable, undoShown, withReply } from "@offload/widgets";
 import { fetchThread } from "../../lib/threads";
 import type { Label } from "../../lib/labels";
 import { SHARE_LINE, answerShare, fetchPeople, nameOf, type Person } from "../../lib/people";
@@ -476,17 +476,15 @@ export function Composer({
               : // 018. The next turn closes the last question whatever it says.
                 { ...turn, question: null },
           );
+          // A resumed or re-read turn already has a reply on screen.
           return answer.reply
-            ? [
-                ...next,
-                {
-                  id: `${messageId}-reply`,
-                  from: "offload" as const,
-                  text: answer.reply,
-                  turnId,
-                  found: answer.found,
-                },
-              ]
+            ? withReply<Turn>(next, {
+                id: `${messageId}-reply`,
+                from: "offload" as const,
+                text: answer.reply,
+                turnId,
+                found: answer.found,
+              })
             : next;
         });
         // A dump can create a thread, so the sidebar is stale the moment this
@@ -946,7 +944,17 @@ export function Composer({
    *  would file that part twice. */
   async function finish(messageId: string): Promise<void> {
     const sent = await resumeDump(messageId);
-    if (!sent) return;
+    if (sent === "daily_limit") return setRefusedToday(true);
+    if (sent === "failed") {
+      toast.show("Couldn't finish that", { label: "Retry", onPress: () => void finish(messageId) });
+      return;
+    }
+    if (sent === "not_finishable") {
+      // Settled elsewhere: ask what it is now. The partial reply stays until
+      // the answer replaces it.
+      watch(messageId, shownTurns.current.find((turn) => turn.id === messageId)?.turnId);
+      return;
+    }
     setTurns((current) =>
       current
         .filter((turn) => turn.id !== `${messageId}-reply`)
@@ -965,10 +973,13 @@ export function Composer({
   async function undo(turnId: string): Promise<void> {
     // Optimistic: the turn goes on the press and comes back if the server
     // refuses, since what it filed is still filed.
-    if (!(await undoShown(turnId, shownTurns.current, setTurns, undoTurn))) {
+    const stayed = await undoShown(turnId, shownTurns.current, setTurns, undoTurn);
+    if (!stayed) {
       toast.show("Couldn't put that back", { label: "Retry", onPress: () => undo(turnId) });
       return;
     }
+    const line = stayedForgotten(stayed);
+    if (line) toast.show(line);
     // Undo touches the same threads the turn did, and the screen showing one
     // of them has to lose the rows again. The ids are not carried on the undo
     // itself, so this asks every open screen to refetch rather than naming

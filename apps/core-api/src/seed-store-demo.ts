@@ -12,6 +12,10 @@
 // Renditions are made with `sips`, so that step is macOS only.
 //
 // Local only. The script refuses a database that is not on this machine.
+//
+// The cookie file is a live credential: a month's session for the demo account
+// on any API that shares this database. Keep it outside the repo, never commit
+// it, never share it.
 
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -212,7 +216,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (file) {
     const value = decodeURIComponent(cookie.slice(cookie.indexOf("=") + 1));
     const expires = new Date(Date.now() + 30 * 86400_000).toISOString();
-    writeFileSync(file, JSON.stringify({ "better-auth.session_token": { value, expires } }));
+    writeFileSync(file, JSON.stringify({ "better-auth.session_token": { value, expires } }), { mode: 0o600 });
   }
   // `--newcomer` moves the session to the newcomer, so a build that carries
   // Sam's cookie opens on first run without being rebuilt; a reseed without

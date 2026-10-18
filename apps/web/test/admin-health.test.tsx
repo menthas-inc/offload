@@ -63,6 +63,7 @@ const QUEUE = {
 };
 // Midday UTC, so it is 3 October wherever the suite runs.
 const BACKUPS = { last: { finishedAt: "2026-10-03T12:00:00.000Z", bytes: 1288490189, ok: true }, late: false };
+const REVOCATIONS = { unopenable: [] as { since: string }[] };
 
 const SCHEDULED = {
   jobs: [
@@ -164,6 +165,7 @@ function api(overrides: Record<string, Answer> = {}) {
     ["/health/incidents", INCIDENTS],
     ["/health/queue", QUEUE],
     ["/health/backups", BACKUPS],
+    ["/health/revocations", REVOCATIONS],
     ["/health/scheduled/thread.nightly", NIGHTS],
     ["/health/scheduled/", VOLUME],
     ["/health/scheduled", SCHEDULED],
@@ -253,7 +255,7 @@ describe("the three views", () => {
   it("reads only the view that is open", async () => {
     api();
     await open();
-    expect(paths()).toEqual(["/health/services?range=30d", "/health/incidents?range=30d", "/health/queue?range=30d", "/health/backups"]);
+    expect(paths()).toEqual(["/health/services?range=30d", "/health/incidents?range=30d", "/health/queue?range=30d", "/health/backups", "/health/revocations"]);
   });
 });
 
@@ -314,7 +316,7 @@ describe("AC-7 the states, on each view", () => {
     expect(host.textContent).toMatch(/As of \d\d:\d\d/);
     const before = paths().length;
     await click(button(host, "Refresh"));
-    expect(paths().length).toBe(before + 4);
+    expect(paths().length).toBe(before + 5);
   });
 });
 
@@ -380,6 +382,19 @@ describe("Now", () => {
     const host = await open({ role: "owner", wrong: 1 });
     expect(host.textContent).toContain("No backup has been recorded.");
     expect(host.textContent).toContain("late");
+  });
+
+  it("lists each calendar grant kept for a revoke by hand, with its age, and is not well while one is", async () => {
+    // S27. A rotated vault key left a grant live at Google.
+    const since = new Date(Date.now() - 3 * 86_400_000 - 2 * 3_600_000).toISOString();
+    api({ "/health/incidents": { body: { incidents: [] } }, "/health/revocations": { body: { unopenable: [{ since }] } } });
+    const host = await open();
+    expect(host.textContent).toContain("Calendar grants");
+    expect(rows(host).find((one) => one.includes("3 d 2 h"))).toBeDefined();
+    expect(host.textContent).not.toContain("All is well.");
+
+    api();
+    expect((await open()).textContent).toContain("None to revoke by hand.");
   });
 
   it("says all is well in one line at the top when nothing is wrong", async () => {

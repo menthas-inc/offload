@@ -3,6 +3,7 @@
 
 import type { FastifyRequest } from "fastify";
 import { auth } from "./auth.js";
+import { stateMaySignIn } from "./gate.js";
 
 /** Fastify's headers as the Fetch `Headers` Better Auth reads. */
 export function fetchHeaders(request: FastifyRequest): Headers {
@@ -16,8 +17,13 @@ export function fetchHeaders(request: FastifyRequest): Headers {
 
 /** The signed-in account id, or null. Reads the session through Better Auth
  *  rather than the sessions table directly, so cookie signing and expiry are
- *  checked by the thing that issued them. */
+ *  checked by the thing that issued them.
+ *
+ *  S24. An account that may not sign in reads as signed out on every request,
+ *  so a disable path that forgot to delete sessions still ends them. The state
+ *  rides on the user row Better Auth already read: no second query. */
 export async function currentAccountId(request: FastifyRequest): Promise<string | null> {
   const result = await auth.api.getSession({ headers: fetchHeaders(request) });
-  return result?.session.userId ?? null;
+  if (!result || !stateMaySignIn(result.user.state)) return null;
+  return result.session.userId;
 }

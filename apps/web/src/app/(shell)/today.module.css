@@ -913,11 +913,13 @@ a.event:hover {
 
 /* ------------------------------------------------------------ Reminders
    The kit's column (design 2026-10-11, `TodayReminders.jsx`): the countdown
-   in a fixed 82px column, everything on the day in one card under one Today,
+   in an 82px column, everything on the day in one card under one Today,
    each later thing a card of its own, the dismiss at the right. The whole
    row opens the thing: the name is the link and covers its row, and the
    dismiss sits above it. The day's colour is `--text-noticed`, the alias
-   the kit's `--amber-700` has. */
+   the kit's `--amber-700` has. The column is the one width that moves with
+   Bigger text (owner, 2026-10-17): it holds only the countdown, which
+   wrapped or clipped at a fixed 82px. */
 
 .remColumn {
   display: flex;
@@ -928,7 +930,7 @@ a.event:hover {
 .remCard {
   position: relative;
   display: grid;
-  grid-template-columns: 82px minmax(0, 1fr) auto;
+  grid-template-columns: calc(82px * var(--type-scale)) minmax(0, 1fr) auto;
   column-gap: 12px;
   align-items: center;
   padding: 12px 10px 12px 14px;
@@ -939,7 +941,7 @@ a.event:hover {
 
 /* Everything on the day: one Today at the top left, a row per thing. */
 .remShared {
-  grid-template-columns: 82px minmax(0, 1fr);
+  grid-template-columns: calc(82px * var(--type-scale)) minmax(0, 1fr);
   align-items: start;
   padding: 0 0 0 14px;
 }
@@ -971,7 +973,7 @@ a.event:hover {
 }
 
 .remCard.remRow {
-  grid-template-columns: 82px minmax(0, 1fr) auto;
+  grid-template-columns: calc(82px * var(--type-scale)) minmax(0, 1fr) auto;
 }
 
 .remWhen {

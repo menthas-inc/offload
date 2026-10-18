@@ -623,10 +623,12 @@ const result = z.union([
       })
     ),
   }),
-  z.object({ ok: z.literal(true), written: z.literal(true), sourceRef: z.string().nullable() }),
+  /** S36. `scope` "this": asked for this and all following, only this one
+   *  changes, and `line` says so in the reply whatever the model says. */
+  z.object({ ok: z.literal(true), written: z.literal(true), sourceRef: z.string().nullable(), scope: z.literal("this").optional(), line: z.string().optional() }),
   /** offload did nothing and is waiting for them. `because` names who finds
    *  out, so the model can say it in its own words. */
-  z.object({ ok: z.literal(true), waitingForThem: z.literal(true), because: z.string() }),
+  z.object({ ok: z.literal(true), waitingForThem: z.literal(true), because: z.string(), scope: z.literal("this").optional(), line: z.string().optional() }),
   /** 019. The row's thread has several calendars, or none yet: offload asked
    *  which, in the conversation. The model says nothing about it. */
   z.object({ ok: z.literal(true), asked: z.literal(true) }),
@@ -1573,10 +1575,11 @@ async function existing(
       confirm: sawApps,
     });
     if (outcome.kind === "refused") return { ok: false, error: outcome.reason };
-    if (outcome.kind === "written") return { ok: true, written: true, sourceRef: outcome.sourceRef };
+    const onlyThis = (line: string) => (outcome.onlyThis ? { scope: "this" as const, line } : {});
+    if (outcome.kind === "written") return { ok: true, written: true, sourceRef: outcome.sourceRef, ...onlyThis("Only this one changed.") };
     // Nothing has reached Google. The model says what it is waiting for; it
     // does not get to decide that it is not waiting.
-    return { ok: true, waitingForThem: true, because: outcome.line };
+    return { ok: true, waitingForThem: true, because: outcome.line, ...onlyThis("Only this one will change.") };
   }
 
   const ref = await readableContent(accountId, call.contentId, trx);

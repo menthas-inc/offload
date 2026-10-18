@@ -57,9 +57,10 @@ describe("a calendar whose secret no longer opens", () => {
       .returning("id")
       .executeTakeFirstOrThrow();
     // Sealed under a key the vault no longer holds.
+    const refresh = randomBytes(48);
     await db
       .insertInto("connector_secrets")
-      .values({ connection_id: connection.id, access_token: randomBytes(48), refresh_token: randomBytes(48), access_expires_at: null, scope: null, wrapped_by: "vault:v1" })
+      .values({ connection_id: connection.id, access_token: randomBytes(48), refresh_token: refresh, access_expires_at: null, scope: null, wrapped_by: "vault:v1" })
       .execute();
     const asked: unknown[] = [];
     vi.stubGlobal("fetch", async (...args: unknown[]) => {
@@ -75,5 +76,10 @@ describe("a calendar whose secret no longer opens", () => {
     const row = await db.selectFrom("connector_connections").select(["state", "deleted_at"]).where("id", "=", connection.id).executeTakeFirstOrThrow();
     expect(row.state).toBe("revoked");
     expect(row.deleted_at).not.toBeNull();
+    // S27. The grant is still live at Google: kept as sealed, marked for a revoke by hand.
+    const kept = await db.selectFrom("pending_revocations").selectAll().where("id", "=", connection.id).execute();
+    expect(kept).toMatchObject([{ provider: "google", unopenable_at: expect.any(Date) }]);
+    expect(Buffer.from(kept[0]!.sealed_token).equals(refresh)).toBe(true);
+    await db.deleteFrom("pending_revocations").where("id", "=", connection.id).execute();
   });
 });

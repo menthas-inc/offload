@@ -11,10 +11,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const calls: { path: string; init: RequestInit }[] = [];
 let answer: { state: string; reply: string | null; threads?: unknown[] } | null = null;
+let rejectNext = false;
 
 vi.mock("../lib/api", () => ({
   send: (path: string, init: RequestInit = {}) => {
     calls.push({ path, init });
+    if (rejectNext) {
+      rejectNext = false;
+      return Promise.reject(new SyntaxError("Unexpected token '<'"));
+    }
     return Promise.resolve({ status: 200, data: answer });
   },
   upload: () => Promise.resolve({ status: 200, data: null }),
@@ -43,6 +48,18 @@ async function tick(ms: number): Promise<void> {
 }
 
 describe("the poll", () => {
+  it("keeps asking after an ask that threw", async () => {
+    rejectNext = true;
+    const seen: string[] = [];
+    const poll = awaitAnswer("m1", (a) => seen.push(a.state));
+    await tick(0);
+    expect(seen).toEqual([]);
+    answer = { state: "answered", reply: "Done." };
+    await tick(1500);
+    expect(seen).toEqual(["answered"]);
+    poll.cancel();
+  });
+
   it("stops on each terminal state, and only on those", async () => {
     for (const state of ["answered", "partial", "failed"]) {
       calls.length = 0;

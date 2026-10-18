@@ -124,6 +124,21 @@ describe("what has passed archives itself", () => {
     expect(await count(th)).toBe(2);
   });
 
+  it("keeps a dump's photo while another row from it is still ahead, and takes it with the last one", async () => {
+    // S39. A listing filed as two events: the photo goes in December, not October.
+    const me = await account();
+    const th = await thread(me);
+    const dump = await message(me);
+    const first = await row(me, th, { occurs_at: new Date("2026-10-15T19:00:00Z"), derived_from_message_id: dump });
+    const second = await row(me, th, { occurs_at: new Date("2026-12-12T19:00:00Z"), derived_from_message_id: dump });
+    const photo = await row(me, th, { type: "image", derived_from_message_id: dump });
+    await archivePassed(NOW);
+    expect([await archived(first), await archived(photo)]).toEqual([true, false]);
+
+    await archivePassed(new Date("2026-12-14T12:00:00Z"));
+    expect([await archived(second), await archived(photo)]).toEqual([true, true]);
+  });
+
   it("leaves a row somebody put back where they put it", async () => {
     const me = await account();
     const th = await thread(me);

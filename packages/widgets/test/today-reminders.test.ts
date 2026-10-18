@@ -73,3 +73,67 @@ describe("where a reminder lives, decided once for the phones and the web", () =
     expect(reminderKey({ of: "content", id: "c1", day: "2026-11-04", window: "short" })).not.toBe(reminderKey({ of: "content", id: "c1", day: "2026-11-04", window: "day" }));
   });
 });
+
+describe("one line per reminder, the same on the phones and the web (S14)", () => {
+  const row = {
+    id: "c1",
+    title: "Pack the adapters",
+    type: "task",
+    dueAt: "2026-11-04T17:00:00.000Z",
+    occursAt: null,
+    allDay: false,
+    doneAt: null,
+    rrule: null,
+    remindDay: "2026-11-04",
+    remindBy: true,
+    window: "short" as const,
+    next: null,
+    threadId: "t1",
+    threadName: "Trip",
+    threadIcon: "plane",
+  };
+  const other = (of: "note" | "memory", id: string, day: string, threadId: string | null = null) => ({
+    of,
+    id,
+    name: id,
+    day,
+    by: false,
+    time: null,
+    window: "long" as const,
+    next: "2026-11-20",
+    threadId,
+    threadName: threadId ? "Rent" : null,
+    threadIcon: null,
+  });
+
+  it("puts rows, notes and memories in one list, nearest first, a row first on its day", async () => {
+    const { remindersInOrder } = await import("../src/reminders.js");
+    const merged = remindersInOrder({ rows: [row, { ...row, id: "c2", remindDay: "2026-11-20" }], others: [other("note", "n1", "2026-11-03"), other("memory", "m1", "2026-11-04")] });
+    expect(merged.map((entry) => ("row" in entry ? entry.row.id : entry.other.id))).toEqual(["n1", "c1", "m1", "c2"]);
+    expect(merged.map((entry) => entry.day)).toEqual(["2026-11-03", "2026-11-04", "2026-11-04", "2026-11-20"]);
+  });
+
+  it("draws a row: its time in the zone, its thread, and the dismissal the server keys", async () => {
+    const { reminderLine } = await import("../src/reminders.js");
+    expect(reminderLine({ row, day: row.remindDay }, "Europe/London")).toEqual({
+      key: "content:c1:2026-11-04:short",
+      name: "Pack the adapters",
+      day: "2026-11-04",
+      by: true,
+      time: "17:00",
+      next: null,
+      opens: { threadId: "t1", threadName: "Trip" },
+      where: { icon: "plane", text: "Trip" },
+      which: { of: "content", id: "c1", day: "2026-11-04", window: "short" },
+    });
+    expect(reminderLine({ row: { ...row, allDay: true }, day: row.remindDay }, "Europe/London").time).toBeNull();
+  });
+
+  it("opens a memory in Memories, a note in its thread, and nothing for a note with no thread", async () => {
+    const { reminderLine } = await import("../src/reminders.js");
+    const memory = reminderLine({ other: other("memory", "m1", "2026-11-04"), day: "2026-11-04" }, null);
+    expect(memory).toMatchObject({ key: "memory:m1:2026-11-04:long", opens: { memory: "m1" }, where: { icon: "cloudy", text: "Memories" } });
+    expect(reminderLine({ other: other("note", "n1", "2026-11-04", "t2"), day: "2026-11-04" }, null).opens).toEqual({ threadId: "t2", threadName: "Rent" });
+    expect(reminderLine({ other: other("note", "n2", "2026-11-04"), day: "2026-11-04" }, null).opens).toBeNull();
+  });
+});

@@ -255,14 +255,6 @@ describe("042 the Reminders section", () => {
     status = 200;
   });
 
-  it("puts rows, notes and memories in one list, nearest first", () => {
-    const row = (id: string, remindDay: string) => ({ id, remindDay, remindBy: false }) as never;
-    const other = (id: string, day: string, of: "note" | "memory" = "note") =>
-      ({ of, id, name: id, day, by: false, time: null, window: "long", next: null, threadId: null, threadName: null, threadIcon: null, threadHue: null }) as const;
-    const merged = today.remindersInOrder({ rows: [row("r1", "2026-10-12"), row("r2", "2026-10-20")], others: [other("n1", "2026-10-11"), other("m1", "2026-10-12", "memory")], more: 0 });
-    expect(merged.map((entry) => entry.id)).toEqual(["n1", "r1", "m1", "r2"]);
-  });
-
   it("dismisses one reminder, and undoes it, by what was on the screen", async () => {
     sent.length = 0;
     const which = { of: "memory" as const, id: "m1", day: "2026-11-30", window: "long" as const };
@@ -277,11 +269,11 @@ describe("042 the Reminders section", () => {
     status = 200;
   });
 
-  it("opens a memory in Memories by the shared parameter, a note in its thread, and nothing for a note with no thread", () => {
-    const other = { name: "x", day: "2026-10-11", by: false, time: null, window: "long" as const, next: null, threadName: null, threadIcon: null, threadHue: null };
-    expect(today.reminderDoor({ ...other, of: "memory", id: "m1", threadId: null })).toEqual({ pathname: "/memories", params: { memory: "m1" } });
-    expect(today.reminderDoor({ ...other, of: "note", id: "n1", threadId: "t1", threadName: "Rent" })).toEqual({ pathname: "/threads/[id]", params: { id: "t1" } });
-    expect(today.reminderDoor({ ...other, of: "note", id: "n2", threadId: null })).toBeNull();
+  it("opens a memory in Memories by the shared parameter, a thread by its route, and nothing where the line opens nothing", () => {
+    expect(today.reminderDoor({ memory: "m1" })).toEqual({ pathname: "/memories", params: { memory: "m1" } });
+    expect(today.reminderDoor({ threadId: "t1", threadName: "Rent" })).toEqual({ pathname: "/threads/[id]", params: { id: "t1" } });
+    expect(today.reminderDoor({ threadId: "t2", threadName: null })).toBe("/threads/loose");
+    expect(today.reminderDoor(null)).toBeNull();
   });
 
   it("asks for the phone's permission when only Reminders would reach it", () => {
@@ -331,8 +323,8 @@ describe("042 the screens", () => {
     expect(column).toMatch(/countdownLabel\(/);
     expect(column).toMatch(/reminderDayLine\(/);
     expect(column).toMatch(/reminderTimeLine\(/);
-    // Where it lives is decided once, in widgets, for the phones and the web.
-    expect(column).toMatch(/whereOf\(/);
+    // Where it lives is decided once, in widgets' line, for the phones and the web.
+    expect(column).toMatch(/line\.where\.icon/);
     expect(column).not.toMatch(/"Memories"|"Not in a thread"/);
     expect(column).toMatch(/dismissLabel\(/);
     expect(column).toMatch(/dismissedLine\(/);
@@ -342,8 +334,9 @@ describe("042 the screens", () => {
     // No thread page row, no chip, no pill: the row opens, and that is all.
     expect(column).not.toMatch(/rows\.row\(/);
     expect(column).not.toMatch(/PlainChip|ThreadPill|DateChip/);
-    // A dismiss hides that reminder only, so the key carries the day and the window.
-    expect(column).toMatch(/keyOf\(\{ of: "content", id: entry\.id, day: entry\.remindDay, window: entry\.window \}\)/);
+    // One line builder, in widgets, for the phones and the web (S14); it keys a
+    // dismissal by the day and the window, tested there.
+    expect(column).toMatch(/reminderLine\(entry, zone\)/);
     // Everything on the day shares one card under one Today.
     expect(column).toMatch(/entry\.day === today|day === today/);
   });
@@ -384,7 +377,7 @@ describe("042 the screens", () => {
 
   it("draws a line with no door as no button: only a line that opens something is pressable", () => {
     const column = read("components/today/Reminders.tsx");
-    expect(column).toMatch(/door: reminderDoor\(entry\)/);
+    expect(column).toMatch(/door: reminderDoor\(line\.opens\)/);
     expect(column).toMatch(/line\.door \? \(\s*<Pressable/);
     expect(column).not.toMatch(/params: \{ open: entry\.id \}/);
   });

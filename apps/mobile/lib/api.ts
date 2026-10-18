@@ -175,10 +175,17 @@ export async function send<T>(path: string, init: RequestInit = {}): Promise<Sen
 
   // 204 and an empty body are legitimate answers, not parse failures.
   const text = await response.text();
-  return {
-    status: response.status,
-    data: text.length > 0 ? (JSON.parse(text) as T) : null,
-  };
+  return { status: response.status, data: parsed<T>(text) };
+}
+
+/** Null for an empty body, and for one that is not JSON: a captive portal
+ *  answers 200 with a page, and a throw here stopped the answer poll. */
+function parsed<T>(text: string): T | null {
+  try {
+    return text.length > 0 ? (JSON.parse(text) as T) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** The cookie header the API wants, for a fetch this module does not make:
@@ -212,7 +219,7 @@ export async function upload<T>(path: string, form: FormData): Promise<Sent<T>> 
     return { status: response.status, data: null, ...(error ? { error } : {}) };
   }
   const text = await response.text();
-  return { status: response.status, data: text.length > 0 ? (JSON.parse(text) as T) : null };
+  return { status: response.status, data: parsed<T>(text) };
 }
 
 export { API_URL };

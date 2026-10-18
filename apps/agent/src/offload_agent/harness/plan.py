@@ -320,6 +320,10 @@ class Outcome:
     because: str | None = None
     #: A write this turn came back as waiting on somebody else.
     waited: bool = False
+    #: S36. Lines the Core API wrote for the reply, such as "Only this one
+    #: changed." on a following edit it could not split. Said whatever the
+    #: model said, by `_reply_as_sent`.
+    lines: list[str] = field(default_factory=list)
 
     @property
     def finished(self) -> bool:
@@ -1243,6 +1247,8 @@ async def _run(
             # the turn merely looked at.
             if isinstance(body, dict) and body.get("waitingForThem"):
                 outcome.waited = True
+            if isinstance(body, dict) and body.get("scope") == "this" and body.get("line"):
+                outcome.lines.append(str(body["line"]))
 
             if not body.get("ok"):
                 # Names only. The reason is data for the model, not for a reply.

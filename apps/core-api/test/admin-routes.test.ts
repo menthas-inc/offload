@@ -272,6 +272,7 @@ describe("every route the impl-spec names", () => {
     "GET /v1/admin/health/stuck",
     "GET /v1/admin/health/dead",
     "GET /v1/admin/health/calls",
+    "GET /v1/admin/health/revocations",
     "GET /v1/admin/health/vendors",
     "POST /v1/admin/jobs/:id/retry",
     "POST /v1/admin/jobs/:id/dismiss",

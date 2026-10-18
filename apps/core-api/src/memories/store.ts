@@ -253,20 +253,21 @@ export async function forget(
 }
 
 /** Either Undo puts one forgotten memory back, and its source may teach
- *  again. Never a second copy of words said again since, and an Undo never
- *  makes room by retiring another memory: at a cap it stays forgotten. */
+ *  again. Never a second copy of words said again since ("said"), and an Undo
+ *  never makes room by retiring another memory: at a cap it stays forgotten
+ *  ("full"). */
 async function putBack(
   trx: Executor,
   accountId: string,
   row: { id: string; kind: string; text: string; derived_from_message_id: string | null },
   marker: "forgot_in" | "forgot_by",
-): Promise<boolean> {
+): Promise<"back" | "said" | "full"> {
   await capLock(trx, accountId);
-  if (await saying(trx, accountId, row.text)) return false;
+  if (await saying(trx, accountId, row.text)) return "said";
   const counts = await active(trx, accountId)
     .select([sql<number>`count(*)::int`.as("all"), sql<number>`(count(*) filter (where kind = 'rules'))::int`.as("rules")])
     .executeTakeFirstOrThrow();
-  if (counts.all >= MEMORY_CAP || (row.kind === "rules" && counts.rules >= RULES_CAP)) return false;
+  if (counts.all >= MEMORY_CAP || (row.kind === "rules" && counts.rules >= RULES_CAP)) return "full";
   await trx
     .updateTable("notes")
     .set({ deleted_at: null, purge_after: null, attrs: sql`attrs - ${marker}::text`, updated_at: sql`now()` })
@@ -279,12 +280,13 @@ async function putBack(
       .where("message_id", "=", row.derived_from_message_id)
       .execute();
   }
-  return true;
+  return "back";
 }
 
-/** The turn's Undo: memories these messages forgot come back, as many as fit. */
-export async function restoreForgotten(trx: Executor, accountId: string, messageIds: string[]): Promise<number> {
-  if (messageIds.length === 0) return 0;
+/** The turn's Undo: memories these messages forgot come back, as many as fit.
+ *  Returns the words of those that stayed forgotten, for the toast to name. */
+export async function restoreForgotten(trx: Executor, accountId: string, messageIds: string[]): Promise<string[]> {
+  if (messageIds.length === 0) return [];
   const rows = await trx
     .selectFrom("notes")
     .select(["id", "kind", "text", "derived_from_message_id"])
@@ -294,9 +296,9 @@ export async function restoreForgotten(trx: Executor, accountId: string, message
     .where(sql<boolean>`attrs->>'forgot_in' in (${sql.join(messageIds)})`)
     .orderBy("created_at")
     .execute();
-  let back = 0;
-  for (const row of rows) if (await putBack(trx, accountId, row, "forgot_in")) back += 1;
-  return back;
+  const stayed: string[] = [];
+  for (const row of rows) if ((await putBack(trx, accountId, row, "forgot_in")) === "full") stayed.push(row.text);
+  return stayed;
 }
 
 /** 040. The tab's Undo, by id, while the forgotten memory waits for its
@@ -315,7 +317,7 @@ export async function restoreMemory(trx: Executor, accountId: string, id: string
     .where("purge_after", ">", sql<Date>`now()`)
     .executeTakeFirst();
   if (!row) return false;
-  return putBack(trx, accountId, row, "forgot_by");
+  return (await putBack(trx, accountId, row, "forgot_by")) === "back";
 }
 
 /** 040. Typed in the tab: kept as typed, the person's own, with no source.

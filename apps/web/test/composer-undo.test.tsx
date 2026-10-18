@@ -34,6 +34,8 @@ const sent = {
 let undoAnswer: () => Promise<Response> = async () => new Response("{}", { status: 500 });
 vi.stubGlobal("fetch", async (url: string) => {
   if (String(url).endsWith("/undo")) return undoAnswer();
+  if (String(url).endsWith("/v1/dumps"))
+    return new Response(JSON.stringify({ messageId: "m2", conversationId: "v1", state: "seen", turnId: "t2" }), { status: 200 });
   return new Response(JSON.stringify({ conversationId: "v1", messages: [sent] }), { status: 200 });
 });
 
@@ -101,5 +103,40 @@ describe("Undo of a turn the server refused", () => {
     const host = await answeredThenUndone();
     expect(host.textContent).toContain("dentist on friday");
     expect(document.body.textContent).toContain("Couldn't put that back");
+  });
+
+  it("keeps a dump sent while the refused undo was travelling", async () => {
+    let refuse: (value: Response) => void = () => {};
+    undoAnswer = () => new Promise<Response>((resolve) => (refuse = resolve));
+    const host = await answeredThenUndone();
+    expect(host.textContent).not.toContain("dentist on friday");
+
+    const field = host.querySelector("textarea")!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, "milk and eggs");
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(host.textContent).toContain("milk and eggs");
+
+    await act(async () => {
+      refuse(new Response(JSON.stringify({ undone: false }), { status: 200 }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(host.textContent).toContain("dentist on friday");
+    expect(host.textContent).toContain("milk and eggs");
+    expect(host.textContent!.indexOf("dentist on friday")).toBeLessThan(host.textContent!.indexOf("milk and eggs"));
+  });
+});
+
+describe("Undo of a turn that forgot something", () => {
+  it("names what stayed forgotten when there was no room to put it back", async () => {
+    undoAnswer = async () => new Response(JSON.stringify({ undone: true, stayed: ["Their wife is Meera."] }), { status: 200 });
+    const host = await answeredThenUndone();
+    expect(host.textContent).not.toContain("dentist on friday");
+    expect(document.body.textContent).toContain("Still forgotten: Your wife is Meera.");
   });
 });

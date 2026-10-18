@@ -18,6 +18,7 @@ import { JobError } from "../src/jobs/errors.js";
 import { JobRunner } from "../src/jobs/runner.js";
 import { MemoryMailer, type Mailer } from "../src/mail/mailer.js";
 import { uuidv7 } from "../src/uuid.js";
+import { seal } from "../src/connectors/vault.js";
 
 await migrate(() => {});
 
@@ -75,9 +76,10 @@ describe("the revocation pass", () => {
   });
 
   it("re-armed twice in one hour leaves one queued row", async () => {
-    // Nothing reaches Google: the token does not open, and fetch answers 503.
+    // Google answers 503, so the row waits. One that does not open is marked
+    // and waits for nobody (S27), so this one opens.
     vi.stubGlobal("fetch", async () => new Response("", { status: 503 }));
-    await db.insertInto("pending_revocations").values({ id: bad, provider: "google", sealed_token: Buffer.from("not a sealed token") }).execute();
+    await db.insertInto("pending_revocations").values({ id: bad, provider: "google", sealed_token: seal("t", bad, "refresh_token") }).execute();
     const before = new Set((await db.selectFrom("jobs").select("id").where("kind", "=", "connector.revoke").execute()).map((row) => row.id));
     const next = new Date(Math.floor(Date.now() / 3_600_000) * 3_600_000 + 3_600_000);
     const key = `connector.revoke:${next.toISOString().slice(0, 13)}`;

@@ -476,6 +476,15 @@ export async function internalRoutes(app: App): Promise<void> {
             .where("id", "=", result.jobId)
             .execute();
 
+        // The calls were paid for whatever happens next, a refused pass included.
+        if (result.usage && result.usage.length > 0) {
+          await trx
+            .insertInto("llm_usage")
+            // Scheduled, not interactive: nobody is waiting on it.
+            .values(ledgerRows(accountId, "thread.nightly", "scheduled", result.usage, result.jobId))
+            .execute();
+        }
+
         // A member taken out between the booking and now: the pass is refused
         // whole, and the job closed so it does not hold the account's slot.
         if (!(await memberOf(accountId, threadId, trx))) {
@@ -531,13 +540,6 @@ export async function internalRoutes(app: App): Promise<void> {
         // it was put down.
         const labelled = await applyLabels(trx, { accountId, threadId, shown: result.labelShown, entries: result.labels });
 
-        if (result.usage && result.usage.length > 0) {
-          await trx
-            .insertInto("llm_usage")
-            // Scheduled, not interactive: nobody is waiting on it.
-            .values(ledgerRows(accountId, "thread.nightly", "scheduled", result.usage, result.jobId))
-            .execute();
-        }
         // The member's last pass here, after everything this one wrote: the
         // next is booked on, and reads, what changed since, so this pass's own
         // notes never book it. clock_timestamp, not now(): now() is the

@@ -15,66 +15,23 @@
 // the pane's, so an emptied section takes no band.
 
 import Link from "next/link";
-import { countdownLabel, dismissedLine, dismissLabel, MEMORY_PARAM, reminderDayLine, reminderKey as keyOf, reminderTimeLine, timeIn, whenOf, whereOf } from "@offload/widgets";
+import { countdownLabel, dismissedLine, dismissLabel, MEMORY_PARAM, reminderDayLine, reminderLine, reminderTimeLine, type ReminderLine } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { useToast } from "../shell/Toast";
 import { perform, type Writes } from "../../lib/optimistic";
-import { dismissReminder, undismissReminder, type Dismissal, type ReminderEntry } from "../../lib/today";
+import { dismissReminder, undismissReminder, type ReminderEntry } from "../../lib/today";
 import styles from "../../app/(shell)/today.module.css";
 
 const LOOSE_HREF = "/threads/loose";
 
-/** One line of the column, whatever it came from. */
-interface Line {
-  key: string;
-  name: string;
-  day: string;
-  by: boolean;
-  time: string | null;
-  next: string | null;
-  href: string | null;
-  where: { icon: string; text: string };
-  which: Dismissal;
-}
-
-/** The key the pane hides a dismissed entry by: the thing, its day and the
- *  reminder showing, as the server keys a dismissal. */
-export function reminderKey(entry: ReminderEntry): string {
-  return "row" in entry
-    ? keyOf({ of: "content", id: entry.row.id, day: entry.row.remindDay, window: entry.row.window })
-    : keyOf({ of: entry.other.of, id: entry.other.id, day: entry.other.day, window: entry.other.window });
-}
+/** One line of the column, built in widgets as the phones build it. */
+type Line = ReminderLine & { href: string | null };
 
 function lineOf(entry: ReminderEntry, zone: string | null): Line {
-  const key = reminderKey(entry);
-  if ("row" in entry) {
-    const { row } = entry;
-    const at = row.allDay ? null : whenOf(row);
-    return {
-      key,
-      name: row.title,
-      day: row.remindDay,
-      by: row.remindBy,
-      time: at ? timeIn(new Date(at), zone, "en-GB") : null,
-      next: row.next,
-      href: row.threadName === null ? LOOSE_HREF : `/threads/${row.threadId}`,
-      where: whereOf({ of: "content", threadName: row.threadName, threadIcon: row.threadIcon }),
-      which: { of: "content", id: row.id, day: row.remindDay, window: row.window },
-    };
-  }
-  const { other } = entry;
-  const memory = other.of === "memory";
-  return {
-    key,
-    name: other.name,
-    day: other.day,
-    by: other.by,
-    time: other.time,
-    next: other.next,
-    href: memory ? `/memories?${MEMORY_PARAM}=${other.id}` : other.threadId ? (other.threadName === null ? LOOSE_HREF : `/threads/${other.threadId}`) : null,
-    where: whereOf(other),
-    which: { of: other.of, id: other.id, day: other.day, window: other.window },
-  };
+  const line = reminderLine(entry, zone);
+  const { opens } = line;
+  const href = !opens ? null : "memory" in opens ? `/memories?${MEMORY_PARAM}=${opens.memory}` : opens.threadName === null ? LOOSE_HREF : `/threads/${opens.threadId}`;
+  return { ...line, href };
 }
 
 export function Reminders({

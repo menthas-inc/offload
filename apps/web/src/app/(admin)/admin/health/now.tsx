@@ -1,7 +1,8 @@
 "use client";
 
-// Health, Now: the services, each stretch one was down, the queue, and the
-// last backup. When nothing is wrong, one line at the top says so.
+// Health, Now: the services, each stretch one was down, the queue, the last
+// backup, and any calendar grant left to revoke by hand. When nothing is
+// wrong, one line at the top says so.
 
 import styles from "../../admin.module.css";
 import { useAdmin } from "../../admin-context";
@@ -36,9 +37,15 @@ interface Backups {
   late: boolean;
 }
 
+/** S27. Grants sealed under a vault key no longer held, still live at Google. */
+interface Revocations {
+  unopenable: Array<{ since: string }>;
+}
+
 const SERVICE_COLS: Col[] = [{ label: "Service" }, { label: "Now", w: 150 }, { label: "Uptime", w: 90, right: true }, { label: "Started", w: 130 }, { label: "Commit", w: 90 }];
 const INCIDENT_COLS: Col[] = [{ label: "Service" }, { label: "Began", w: 150 }, { label: "Ended", w: 150 }, { label: "How long", w: 110, right: true }];
 const BACKUP_COLS: Col[] = [{ label: "Finished" }, { label: "Size", w: 110, right: true }, { label: "Outcome", w: 150 }];
+const GRANT_COLS: Col[] = [{ label: "Kept since" }, { label: "Age", w: 110, right: true }];
 
 export function NowView() {
   const range = useRange();
@@ -47,7 +54,8 @@ export function NowView() {
   const incidents = useAdminRead<Incidents>(`/health/incidents?range=${range}`);
   const queue = useAdminRead<Queue>(`/health/queue?range=${range}`);
   const backups = useAdminRead<Backups>("/health/backups");
-  const reads = [services, incidents, queue, backups];
+  const revocations = useAdminRead<Revocations>("/health/revocations");
+  const reads = [services, incidents, queue, backups, revocations];
   const head = <Head asOf={services.asOf ?? queue.asOf} onRefresh={() => reads.forEach((read) => read.reload())} />;
 
   if (reads.some((read) => read.state === "loading" && !read.data)) {
@@ -67,7 +75,8 @@ export function NowView() {
     backups.data !== null &&
     services.data.services.every((one) => one.status === "up" || one.status === "none") &&
     incidents.data.incidents.every((one) => one.ended !== null) &&
-    !backups.data.late;
+    !backups.data.late &&
+    revocations.data?.unopenable.length === 0;
 
   const unit = range === "24h" ? "hour" : "day";
 
@@ -153,6 +162,24 @@ export function NowView() {
               </span>,
             ]}
           />
+        </Table>
+      )}
+
+      <Section note="sealed under an old vault key, so offload could not revoke them; each goes after seven days">Calendar grants</Section>
+      {!revocations.data ? (
+        <Failed what="the calendar grants" onRetry={revocations.reload} />
+      ) : revocations.data.unopenable.length === 0 ? (
+        <Empty>None to revoke by hand.</Empty>
+      ) : (
+        <Table cols={GRANT_COLS}>
+          {revocations.data.unopenable.map((one, index, all) => (
+            <Row
+              key={`${one.since}-${index}`}
+              cols={GRANT_COLS}
+              last={index === all.length - 1}
+              cells={[moment(one.since), duration((Date.now() - new Date(one.since).getTime()) / 1000)]}
+            />
+          ))}
         </Table>
       )}
     </>

@@ -24,6 +24,6 @@ describe("a write that never left", () => {
     expect(await dump.fetchCurrent()).toEqual([]);
     expect(await dump.undoTurn("t1")).toBe(false);
     expect(await dump.fetchAnswer("m1")).toBeNull();
-    expect(await dump.resumeDump("m1")).toBeNull();
+    expect(await dump.resumeDump("m1")).toBe("failed");
   });
 });

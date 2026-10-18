@@ -583,7 +583,7 @@ describe("the calendar grant", () => {
     expect(await db.selectFrom("jobs").select("id").where("kind", "=", "connector.revoke").execute()).toHaveLength(0);
   });
 
-  it("does not let one token it cannot open hold up the rest", async () => {
+  it("does not let one token it cannot open hold up the rest, and marks it rather than trying it again", async () => {
     const bad = uuidv7();
     const good = uuidv7();
     await db.insertInto("pending_revocations").values({ id: bad, provider: "google", sealed_token: Buffer.from("not a sealed token") }).execute();
@@ -595,11 +595,14 @@ describe("the calendar grant", () => {
     });
     await handlers["connector.revoke"]!({}, { mailer: null as never }, null);
     expect(asked).toEqual(["fine"]);
-    const left = await db.selectFrom("pending_revocations").select(["id", "attempts"]).execute();
-    expect(left).toEqual([{ id: bad, attempts: 1 }]);
+    const left = await db.selectFrom("pending_revocations").select(["id", "attempts", "unopenable_at"]).execute();
+    expect(left).toMatchObject([{ id: bad, attempts: 0, unopenable_at: expect.any(Date) }]);
+    // Marked, it books no hourly retry of its own.
+    expect(await db.selectFrom("jobs").select("id").where("kind", "=", "connector.revoke").execute()).toHaveLength(0);
   });
 
-  it("does not stop the account going when it no longer opens", async () => {
+  it("does not stop the account going when it no longer opens, and keeps the grant marked for a revoke by hand", async () => {
+    // S27. A rotated vault key: the grant is live at Google and the row says so.
     const me = await person("Jo");
     const id = await connected(me.id, "refresh-123");
     // Sealed under a key the vault no longer holds.
@@ -610,8 +613,20 @@ describe("the calendar grant", () => {
       .execute();
 
     await expect(deleteAccount(me.id)).resolves.toMatchObject({ deleted: true });
-    expect(await db.selectFrom("pending_revocations").select("id").execute()).toEqual([]);
+    const kept = await db.selectFrom("pending_revocations").selectAll().execute();
+    expect(kept).toMatchObject([{ id, provider: "google", attempts: 0, unopenable_at: expect.any(Date) }]);
+    // As it was sealed, so whoever holds the old key can open it.
+    expect(Buffer.from(kept[0]!.sealed_token).toString()).toBe("y".repeat(48));
     expect(await db.selectFrom("accounts").select("id").where("id", "=", me.id).execute()).toEqual([]);
+
+    const asked: string[] = [];
+    vi.stubGlobal("fetch", async () => {
+      asked.push("google");
+      return new Response("", { status: 200 });
+    });
+    await handlers["connector.revoke"]!({}, { mailer: null as never }, null);
+    expect(asked).toEqual([]);
+    expect(await db.selectFrom("pending_revocations").select("attempts").execute()).toEqual([{ attempts: 0 }]);
   });
 
   it("is given up on after seven days", async () => {

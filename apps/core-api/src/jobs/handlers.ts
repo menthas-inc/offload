@@ -32,7 +32,7 @@ import { runDigest, scheduleDigests, readReceipts, type Send } from "../notifica
 import { notifyPerson, notifySharedActivity } from "../notifications/people.js";
 import { emit } from "../analytics.js";
 import { revoke } from "../connectors/google.js";
-import { open as openSecret } from "../connectors/vault.js";
+import { open as openSecret, openOrNull } from "../connectors/vault.js";
 import { sweepEmbeds } from "../search/sweep.js";
 import { sweepPeople } from "../people/people.js";
 import { sweepPutOffs } from "../today/needs.js";
@@ -285,14 +285,23 @@ const connectorRevoke: Handler = async () => {
   if (dropped.length > 0) {
     console.error(JSON.stringify({ level: "error", msg: "grants dropped unrevoked", dropped: dropped.length }));
   }
-  const waiting = await db.selectFrom("pending_revocations").select(["id", "sealed_token"]).execute();
+  const waiting = await db
+    .selectFrom("pending_revocations")
+    .select(["id", "sealed_token"])
+    .where("unopenable_at", "is", null)
+    .execute();
   let left = 0;
+  let unopenable = 0;
   for (const row of waiting) {
-    // Opened inside the catch: a row that will not open is one failed row,
-    // counted and aged out like any other, not the end of the run.
-    const done = await Promise.resolve()
-      .then(() => revoke(openSecret(Buffer.from(row.sealed_token), row.id, "refresh_token")))
-      .catch(() => false);
+    // S27. One that will not open under the key held now never will: marked
+    // for a revoke by hand, and not tried again. A missing key still throws.
+    const token = openOrNull(Buffer.from(row.sealed_token), row.id, "refresh_token");
+    if (token === null) {
+      unopenable += 1;
+      await db.updateTable("pending_revocations").set({ unopenable_at: new Date() }).where("id", "=", row.id).execute();
+      continue;
+    }
+    const done = await revoke(token).catch(() => false);
     if (done) {
       await db.deleteFrom("pending_revocations").where("id", "=", row.id).execute();
     } else {
@@ -304,7 +313,7 @@ const connectorRevoke: Handler = async () => {
         .execute();
     }
   }
-  console.log(JSON.stringify({ level: "info", msg: "grants revoked", revoked: waiting.length - left, waiting: left }));
+  console.log(JSON.stringify({ level: "info", msg: "grants revoked", revoked: waiting.length - left - unopenable, waiting: left, unopenable }));
   // Keyed on the hour: every account deletion starts a run, and an unkeyed
   // re-arm made each of them a chain of its own.
   if (left > 0) await scheduleHourly("connector.revoke");
@@ -348,8 +357,11 @@ const contentPurge: Handler = async () => {
 
     // **A folded note is the one row here that is due without being deleted.**
     // 014's daily job sets a note aside rather than destroying it, and gives
-    // offload's own thirty days of history before it goes. A person's carries
-    // no `purge_after`, so this predicate never matches one however old it is.
+    // offload's own thirty days of history before it goes. A person's thread
+    // note carries no `purge_after`, so this never matches one however old it
+    // is. An account-scope memory is different: any replaced one goes thirty
+    // days later whoever wrote it, the person's own included, because the
+    // privacy policy's section 13 says so (memories/pass.ts sets the date).
     const folded = sql<boolean>`deleted_at is null and superseded_at is not null
       and purge_after is not null and purge_after < now()`;
 
