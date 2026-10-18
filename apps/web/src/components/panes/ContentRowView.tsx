@@ -19,8 +19,16 @@
 // `decisions.md` records the argument. It is the only control in the product
 // that destroys something, and the eight seconds afterwards is a safety net
 // rather than the whole safety story.
+//
+// **A row carries its own Undo line** (2026-10-18): whatever changed it, its
+// line is drawn directly under it here, so every place a row is drawn shows
+// it, the rail and the widgets included. The slot a removed row leaves is the
+// list's, since only the list knows where the row was.
 
 import { Icon } from "../Icon";
+import { Returned } from "../shell/UndoLine";
+import { Line } from "../shell/InPlace";
+import { useUndoEntry } from "../../lib/undo";
 import { DateChip } from "../shell/DateChip";
 import { PhotoThumb } from "../shell/PhotoThumb";
 import { ThreadPill } from "../shell/ThreadPill";
@@ -120,6 +128,8 @@ export function ContentRowView({
   // stay in the layout and are hidden by the stylesheet, so nothing reflows
   // when the id arrives, which is the readme's own rule for the filing slot.
   const provisional = isProvisional(row.id);
+  const entry = useUndoEntry(row.id);
+  const line = entry && entry.form !== "plate" ? <Line entry={entry} /> : null;
   if (handlers.archiving === row.id) {
     return (
       <div className={styles.confirmRow}>
@@ -167,6 +177,8 @@ export function ContentRowView({
   }
 
   return (
+    <>
+    <Returned id={row.id}>
     <div
       className={styles.row}
       data-row
@@ -372,5 +384,8 @@ export function ContentRowView({
         onDelete={() => handlers.onAsk(row.id)}
       />
     </div>
+    </Returned>
+    {line}
+    </>
   );
 }

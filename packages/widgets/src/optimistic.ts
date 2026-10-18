@@ -20,9 +20,22 @@ export interface ToastAction {
   onPress: () => void | Promise<void>;
 }
 
-/** What a screen's toast offers, and all this file needs of it. */
+/** Where an Undo is drawn (2026-10-18): `slot` in the place a thing left,
+ *  `under` a thing that stayed and changed, `plate` above the composer when
+ *  nothing on screen did. Keyed by the thing's id. */
+export type UndoForm = "slot" | "under" | "plate";
+
+export interface Place {
+  id: string;
+  /** The action's own glyph: archive, trash-2, bell, check and so on. */
+  icon: string;
+  form: UndoForm;
+}
+
+/** What a screen's toast offers, and all this file needs of it. A word with a
+ *  place is drawn in place; one without is the toast. */
 export interface Toaster {
-  show: (message: string, action?: ToastAction) => void;
+  show: (message: string, action?: ToastAction, place?: Place) => void;
 }
 
 export interface Writes {
@@ -49,6 +62,8 @@ export interface Reversible {
   /** The word on the failure's action, Retry unless the op says otherwise.
    *  Null offers none: a refusal that trying again cannot change. */
   retry?: string | null;
+  /** Where its Undo and its failure are drawn. Without one, the toast. */
+  place?: Place;
 }
 
 /** Draw it, write it, and put it back with a word if the server refuses. */
@@ -66,13 +81,15 @@ export async function perform(op: Reversible, toast: Toaster, writes: Writes): P
             },
           }
         : undefined,
+      // A confirmation with no Undo stays a toast: there is nothing to draw in place.
+      op.unwrite ? op.place : undefined,
     );
   }
   if (await written) return true;
   op.revert();
   // Read after the write, which may have settled on a truer word.
-  if (op.retry === null) toast.show(op.failed);
-  else toast.show(op.failed, { label: op.retry ?? "Retry", onPress: () => void perform(op, toast, writes) });
+  if (op.retry === null) toast.show(op.failed, undefined, op.place);
+  else toast.show(op.failed, { label: op.retry ?? "Retry", onPress: () => void perform(op, toast, writes) }, op.place);
   return false;
 }
 
@@ -85,6 +102,6 @@ export async function reverse(op: Reversible, toast: Toaster, writes: Writes): P
   toast.show(op.unfailed ?? op.failed, {
     label: op.retry ?? "Retry",
     onPress: () => void reverse(op, toast, writes),
-  });
+  }, op.place);
   return false;
 }

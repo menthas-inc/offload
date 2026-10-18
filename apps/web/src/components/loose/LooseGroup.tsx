@@ -17,8 +17,9 @@ import Link from "next/link";
 import { Icon } from "../Icon";
 import { LooseRow } from "./LooseRow";
 import { TypeChips } from "./TypeChips";
-import { useLooseRows } from "./useLooseRows";
-import { allLabel, chipOf, chipsShown, fetchLoose, entryKey, type ChipKey, type LooseSummary } from "../../lib/loose";
+import { looseId, useLooseRows } from "./useLooseRows";
+import { InPlace } from "../shell/InPlace";
+import { allLabel, chipOf, chipsShown, fetchLoose, type ChipKey, type LooseSummary } from "../../lib/loose";
 import pane from "../../app/(shell)/shell.module.css";
 import styles from "./loose.module.css";
 
@@ -74,9 +75,16 @@ export function LooseGroup({ summary, onChanged }: { summary: LooseSummary; onCh
         </em>
       </h2>
       <TypeChips count={view.count} byType={view.byType} picked={picked} onPick={(next) => void pick(next)} />
-      {shown.map((entry) => (
-        <LooseRow key={entryKey(entry)} entry={entry} rows={rows} />
-      ))}
+      {/* 2026-10-18. A row that leaves keeps its slot for its Undo line; a
+          content row draws its own under it, a note's is drawn here. */}
+      <InPlace items={shown} idOf={looseId}>
+        {(entry, line) => (
+          <>
+            <LooseRow entry={entry} rows={rows} />
+            {entry.kind === "note" ? line : null}
+          </>
+        )}
+      </InPlace>
       {total > LOOSE_SHOWN ? (
         <Link href={`/threads/loose?${query.toString()}`} className={styles.all}>
           {allLabel(total, picked)}

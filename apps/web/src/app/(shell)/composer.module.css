@@ -627,6 +627,16 @@
   cursor: pointer;
 }
 
+/* Tapped: it fades where it is, and is gone when the fade ends. */
+.toast { cursor: pointer; }
+.toast[data-leaving] {
+  animation: toastFade var(--duration-fast) var(--ease-out) forwards;
+}
+
+@keyframes toastFade {
+  to { opacity: 0; }
+}
+
 @keyframes toastRise {
   from { transform: translate(-50%, 8px); opacity: 0; }
   to { transform: translateX(-50%); opacity: 1; }

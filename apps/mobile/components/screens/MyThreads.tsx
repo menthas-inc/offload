@@ -38,6 +38,9 @@ import { Logo } from "../Logo";
 import { QuietEmpty } from "./QuietEmpty";
 import { ThreadRow } from "../shell/ThreadRow";
 import { ToastHost, useToast } from "../shell/Toast";
+import { InPlace } from "../shell/InPlace";
+import { UndoLine } from "../shell/UndoLine";
+import { useUndoEntries } from "../../lib/undo";
 import {
   createThread,
   deleteThread,
@@ -115,6 +118,10 @@ export default function MyThreads() {
   }, [filed, load]);
 
   const rows = useLooseRows(loose, load, toast);
+  // 2026-10-18. Every thread a list here has drawn: a thread left from its
+  // own page that this screen never drew has its line at the top instead.
+  const lines = useUndoEntries();
+  const drawn = useRef(new Set<string>());
 
   async function make(shown: { name: string; icon: string; hue: number }): Promise<void> {
     const made = await createThread(shown);
@@ -132,13 +139,17 @@ export default function MyThreads() {
     await load();
     // Which of the two happened, because leaving a shared thread destroys
     // nothing and saying "deleted" about it would be untrue.
-    toast.show(result.deleted ? "Thread deleted" : "You left the thread", {
-      label: "Undo",
-      onPress: async () => {
-        await restoreThread(id);
-        await load();
+    toast.show(
+      result.deleted ? "Thread deleted" : "You left the thread",
+      {
+        label: "Undo",
+        onPress: async () => {
+          await restoreThread(id);
+          await load();
+        },
       },
-    });
+      { id: `thread:${id}`, icon: result.deleted ? "trash-2" : "log-out", form: "slot" },
+    );
     void name;
   }
 
@@ -160,6 +171,29 @@ export default function MyThreads() {
 
   const { now, older, empty } = myThreads(groups, loose);
   const shownOlder = allOlder ? older : older.slice(0, OLDER_SHOWN);
+  const unplaced = [...lines.values()].filter(
+    (entry) => entry.id.startsWith("thread:") && entry.form === "slot" && (empty || !drawn.current.has(entry.id)),
+  );
+  for (const thread of [...now, ...shownOlder]) drawn.current.add(`thread:${thread.id}`);
+  const unplacedLines = unplaced.map((entry) => (
+    <View key={entry.id} className="border-b border-border-hairline">
+      <UndoLine entry={entry} />
+    </View>
+  ));
+  const threadRow = (thread: ThreadRowType, border: boolean) => (
+    <ThreadRow
+      key={thread.id}
+      thread={thread}
+      border={border}
+      onOpen={() =>
+        router.push({
+          pathname: "/threads/[id]",
+          params: { id: thread.id },
+        })
+      }
+      onDelete={() => ((thread.others ?? []).length > 0 ? setLeaving(thread) : void remove(thread.id, thread.name))}
+    />
+  );
 
   return (
     <SafeAreaView
@@ -185,6 +219,7 @@ export default function MyThreads() {
               ))}
             </View>
           ) : null}
+          {unplacedLines}
           <QuietEmpty line="Threads appear here on their own, once there is enough in one place to be one." />
         </>
       ) : (
@@ -196,20 +231,8 @@ export default function MyThreads() {
           {invitations.map((invitation) => (
             <InvitationStrip key={invitation.memberId} invitation={invitation} />
           ))}
-          {now.map((thread, i) => (
-            <ThreadRow
-              key={thread.id}
-              thread={thread}
-              border={i < now.length - 1}
-              onOpen={() =>
-                router.push({
-                  pathname: "/threads/[id]",
-                  params: { id: thread.id },
-                })
-              }
-              onDelete={() => ((thread.others ?? []).length > 0 ? setLeaving(thread) : void remove(thread.id, thread.name))}
-            />
-          ))}
+          {unplacedLines}
+          <InPlace items={now} idOf={(thread) => `thread:${thread.id}`} row={threadRow} />
 
           {/* 028. Between the first list and Older threads, and not drawn
               when there is nothing in it. */}
@@ -224,20 +247,7 @@ export default function MyThreads() {
           {older.length > 0 ? (
             <Section label="Older threads" count={older.length} />
           ) : null}
-          {shownOlder.map((thread, i) => (
-            <ThreadRow
-              key={thread.id}
-              thread={thread}
-              border={i < shownOlder.length - 1}
-              onOpen={() =>
-                router.push({
-                  pathname: "/threads/[id]",
-                  params: { id: thread.id },
-                })
-              }
-              onDelete={() => ((thread.others ?? []).length > 0 ? setLeaving(thread) : void remove(thread.id, thread.name))}
-            />
-          ))}
+          <InPlace items={shownOlder} idOf={(thread) => `thread:${thread.id}`} row={threadRow} />
 
           {!allOlder && older.length > OLDER_SHOWN ? (
             <Pressable

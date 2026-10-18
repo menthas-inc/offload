@@ -4,7 +4,8 @@
 // how long it has waited, a title, one line, the actions that settle it, and a
 // clock that puts it off until tomorrow; a sideways swipe does the same. Each
 // action does exactly what it does where it already lives, with its own Undo
-// or none and its own failure words. The next card's actions take no tap for
+// or none and its own failure words; an answer's Undo line takes the card's
+// place and corners (2026-10-18), the next card under it. The next card's actions take no tap for
 // 300ms, so a second tap meant for the first cannot land on it. Drawn only
 // when it holds something.
 
@@ -20,6 +21,8 @@ import { Glyph } from "../Glyph";
 import { QuickReplies } from "../shell/QuickReplies";
 import { ThreadPill } from "../shell/ThreadPill";
 import type { ToastState } from "../shell/Toast";
+import { UndoLine } from "../shell/UndoLine";
+import { useUndoEntries } from "../../lib/undo";
 import { useColors } from "../../lib/colors";
 import { DEVICE_ONLY } from "../../lib/account-keys";
 import { API_URL } from "../../lib/auth";
@@ -158,8 +161,23 @@ export function NeedsYou({
   useEffect(() => {
     dx.value = 0;
   }, [card?.key, dx]);
+  // The answered cards' lines, while their windows run.
+  const undoLines = useUndoEntries();
+  const answered = [...gone].flatMap((key) => {
+    const entry = undoLines.get(`needs:${key}`);
+    return entry ? [entry] : [];
+  });
+  const radius = isAndroid ? 16 : 18;
 
-  if (!card) return null;
+  if (!card) {
+    return answered.length > 0 ? (
+      <View className="gap-space-4">
+        {answered.map((entry) => (
+          <UndoLine key={entry.id} entry={entry} radius={radius} />
+        ))}
+      </View>
+    ) : null;
+  }
   const face = faceOf(card);
   const tone = face.tone === "danger" ? "text-text-danger" : face.tone === "attention" ? "text-text-attention" : "text-text-accent";
   const toneColor = face.tone === "danger" ? COLOR.danger : face.tone === "attention" ? COLOR.textAttention : COLOR.accent;
@@ -325,12 +343,17 @@ export function NeedsYou({
       if (status === 404 || status === 409) return "gone";
       if (!sent) return "failed";
       if (option.kind === "value") {
-        toast.show(option.label, {
-          label: "Undo",
-          onPress: async () => {
-            if (!(await undoTurn(sent.turnId).catch(() => false))) toast.show("Couldn't undo that");
+        const place = { id: `needs:${on.key}`, icon: "check", form: "slot" } as const;
+        toast.show(
+          on.threadName ? `${option.label}, for ${on.threadName}` : option.label,
+          {
+            label: "Undo",
+            onPress: async () => {
+              if (!(await undoTurn(sent.turnId).catch(() => false))) toast.show("Couldn't undo that", undefined, place);
+            },
           },
-        });
+          place,
+        );
       }
       return "ok";
     };
@@ -352,7 +375,6 @@ export function NeedsYou({
       }
     });
 
-  const radius = isAndroid ? 16 : 18;
   const ground = "bg-surface-raised border border-border-hairline";
   const lift = { shadowColor: COLOR.shadowLift.color, shadowOffset: { width: 0, height: COLOR.shadowLift.offsetY }, shadowRadius: COLOR.shadowLift.radius, shadowOpacity: 1 };
   const pill = "min-h-tap-min justify-center";
@@ -378,88 +400,93 @@ export function NeedsYou({
   const question = card.kind === "question" ? card : null;
 
   return (
-    <View className="relative" style={{ paddingBottom: view.slivers > 0 ? 10 : 0 }}>
-      {view.slivers > 1 ? (
-        <View className={`absolute ${ground}`} style={{ left: 20, right: 20, bottom: 0, height: 60, borderRadius: radius, opacity: 0.7 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
-      ) : null}
-      {view.slivers > 0 ? (
-        <View className={`absolute ${ground}`} style={{ left: 10, right: 10, bottom: 5, height: 60, borderRadius: radius }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
-      ) : null}
-      <GestureDetector gesture={swipe}>
-        <Animated.View className={ground} style={[{ borderRadius: radius, paddingHorizontal: 16, paddingVertical: 14 }, lift, moved]}>
-          <View className="flex-row items-center gap-space-2">
-            <Glyph name={face.icon} size={14} color={toneColor} />
-            <Text className={`font-core font-medium ${tone}`} style={{ fontSize: 12 }}>
-              {face.kind}
-            </Text>
-            <Text className="ml-auto font-core font-medium text-text-tertiary" style={{ fontSize: 12, fontVariant: ["tabular-nums"] }}>
-              {view.position} of {view.total}
-            </Text>
-          </View>
-          <Text
-            className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
-            style={{ fontSize: 17, lineHeight: 22, marginTop: 8, marginBottom: 2 }}
-            numberOfLines={face.line || face.thread ? 2 : 3}
-            accessibilityRole="header"
-          >
-            {face.title}
-          </Text>
-          {face.line ? (
-            <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13.5, lineHeight: 19 }} numberOfLines={1}>
-              {face.line}
-            </Text>
-          ) : null}
-          {face.thread ? (
-            <View className="mt-space-1">
-              <ThreadPill id={face.thread.id} name={face.thread.name} icon={face.thread.icon} hue={face.thread.hue} size={24} />
+    <View className="gap-space-4">
+      {answered.map((entry) => (
+        <UndoLine key={entry.id} entry={entry} radius={radius} />
+      ))}
+      <View className="relative" style={{ paddingBottom: view.slivers > 0 ? 10 : 0 }}>
+        {view.slivers > 1 ? (
+          <View className={`absolute ${ground}`} style={{ left: 20, right: 20, bottom: 0, height: 60, borderRadius: radius, opacity: 0.7 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+        ) : null}
+        {view.slivers > 0 ? (
+          <View className={`absolute ${ground}`} style={{ left: 10, right: 10, bottom: 5, height: 60, borderRadius: radius }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+        ) : null}
+        <GestureDetector gesture={swipe}>
+          <Animated.View className={ground} style={[{ borderRadius: radius, paddingHorizontal: 16, paddingVertical: 14 }, lift, moved]}>
+            <View className="flex-row items-center gap-space-2">
+              <Glyph name={face.icon} size={14} color={toneColor} />
+              <Text className={`font-core font-medium ${tone}`} style={{ fontSize: 12 }}>
+                {face.kind}
+              </Text>
+              <Text className="ml-auto font-core font-medium text-text-tertiary" style={{ fontSize: 12, fontVariant: ["tabular-nums"] }}>
+                {view.position} of {view.total}
+              </Text>
             </View>
-          ) : null}
-          {failure ? (
-            <Text className="mt-space-2 font-core text-text-danger" style={{ fontSize: 13 }} accessibilityRole="alert">
-              {failure.line}
+            <Text
+              className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+              style={{ fontSize: 17, lineHeight: 22, marginTop: 8, marginBottom: 2 }}
+              numberOfLines={face.line || face.thread ? 2 : 3}
+              accessibilityRole="header"
+            >
+              {face.title}
             </Text>
-          ) : null}
+            {face.line ? (
+              <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13.5, lineHeight: 19 }} numberOfLines={1}>
+                {face.line}
+              </Text>
+            ) : null}
+            {face.thread ? (
+              <View className="mt-space-1">
+                <ThreadPill id={face.thread.id} name={face.thread.name} icon={face.thread.icon} hue={face.thread.hue} size={24} />
+              </View>
+            ) : null}
+            {failure ? (
+              <Text className="mt-space-2 font-core text-text-danger" style={{ fontSize: 13 }} accessibilityRole="alert">
+                {failure.line}
+              </Text>
+            ) : null}
 
-          {question && !typedOnly(question.question.options) ? (
-            // The conversation's own QuickReplies: no option filled, Not
-            // that alone on its line with the clock beside it.
-            <View className="mt-space-4">
-              <QuickReplies
-                options={question.question.options.map((option) => ({ ...option, label: labelOf(option.label) }))}
-                label={question.question.text}
-                disabled={inert}
-                onPick={(index) => answer(question, index)}
-                trailing={clock}
-              />
-            </View>
-          ) : (
-            <View className="mt-space-4 flex-row flex-wrap items-center gap-space-2">
-              {actions.map((action, index) => (
-                <Pressable
-                  key={action.label}
+            {question && !typedOnly(question.question.options) ? (
+              // The conversation's own QuickReplies: no option filled, Not
+              // that alone on its line with the clock beside it.
+              <View className="mt-space-4">
+                <QuickReplies
+                  options={question.question.options.map((option) => ({ ...option, label: labelOf(option.label) }))}
+                  label={question.question.text}
                   disabled={inert}
-                  onPress={() => {
-                    if (action.keeps) keep(card.key, action.run, action.failed, action.label);
-                    else settle(card.key, action.run, action.failed, action.label);
-                  }}
-                  accessibilityRole="button"
-                  className={pill}
-                >
-                  <View className={index === 0 ? filled : outline} style={{ minHeight: pillHeight }}>
-                    <Text
-                      className={`font-core font-medium ${index === 0 ? (isAndroid ? "text-a-surface" : "text-text-inverse") : isAndroid ? "text-a-on" : "text-text-primary"}`}
-                      style={{ fontSize: 13 }}
-                    >
-                      {labelOf(action.label)}
-                    </Text>
-                  </View>
-                </Pressable>
-              ))}
-              {clock}
-            </View>
-          )}
-        </Animated.View>
-      </GestureDetector>
+                  onPick={(index) => answer(question, index)}
+                  trailing={clock}
+                />
+              </View>
+            ) : (
+              <View className="mt-space-4 flex-row flex-wrap items-center gap-space-2">
+                {actions.map((action, index) => (
+                  <Pressable
+                    key={action.label}
+                    disabled={inert}
+                    onPress={() => {
+                      if (action.keeps) keep(card.key, action.run, action.failed, action.label);
+                      else settle(card.key, action.run, action.failed, action.label);
+                    }}
+                    accessibilityRole="button"
+                    className={pill}
+                  >
+                    <View className={index === 0 ? filled : outline} style={{ minHeight: pillHeight }}>
+                      <Text
+                        className={`font-core font-medium ${index === 0 ? (isAndroid ? "text-a-surface" : "text-text-inverse") : isAndroid ? "text-a-on" : "text-text-primary"}`}
+                        style={{ fontSize: 13 }}
+                      >
+                        {labelOf(action.label)}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))}
+                {clock}
+              </View>
+            )}
+          </Animated.View>
+        </GestureDetector>
+      </View>
     </View>
   );
 }

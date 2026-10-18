@@ -147,7 +147,7 @@ describe("the card", () => {
   // dropped, so a failure said nothing (review of PR 108); a failed one now
   // shows its line and Try again, as every other action's does.
   it("says a failure from an action that keeps the card", () => {
-    const press = source.slice(source.indexOf("onPress={() => {\n                    if (action.keeps)"));
+    const press = source.slice(source.indexOf("onPress={() => {\n                      if (action.keeps)"));
     expect(press).toMatch(/if \(action\.keeps\) keep\(card\.key, action\.run, action\.failed, action\.label\);/);
     const keep = source.slice(source.indexOf("const keep = ("), source.indexOf("const tomorrow ="));
     expect(keep).toMatch(/if \(outcome === "failed"\) setFailed\(\{ key, label, line: failure \}\)/);

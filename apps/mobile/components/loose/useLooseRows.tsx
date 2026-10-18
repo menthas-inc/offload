@@ -61,6 +61,7 @@ import {
   type LooseSummary,
 } from "../../lib/loose";
 import { perform, useWrites, type Reversible } from "../../lib/optimistic";
+import type { Place } from "@offload/widgets";
 import { useClock } from "../../lib/clock";
 import { drawnWhen } from "../../lib/when";
 import { drawnRemind, undoPatch } from "../../lib/reminders";
@@ -131,6 +132,7 @@ export function useLooseRows(
           did: "Note deleted",
           failed: "Couldn't delete the note",
           unfailed: "Couldn't put the note back",
+          place: { id: keyOf(entry), icon: "trash-2", form: "slot" },
         },
         toast,
         writes,
@@ -151,6 +153,7 @@ export function useLooseRows(
         did: "Deleted, gone in a moment",
         failed: "Couldn't delete that",
         unfailed: "Couldn't put that back",
+        place: { id: keyOf(entry), icon: "trash-2", form: "slot" },
       },
       toast,
       writes,
@@ -169,6 +172,7 @@ export function useLooseRows(
         did: "Put back",
         failed: "Couldn't put that back",
         unfailed: "Couldn't archive that",
+        place: { id: keyOf(entry), icon: "archive", form: "slot" },
       },
       toast,
       writes,
@@ -186,6 +190,7 @@ export function useLooseRows(
         did: "Archived",
         failed: "Couldn't archive that",
         unfailed: "Couldn't put that back",
+        place: { id: keyOf(entry), icon: "archive", form: "slot" },
       },
       toast,
       writes,
@@ -205,6 +210,7 @@ export function useLooseRows(
         did: "Ticked off",
         failed: "Couldn't tick that off",
         unfailed: "Couldn't put that back",
+        place: { id: keyOf(entry), icon: "check", form: "slot" },
       },
       toast,
       writes,
@@ -242,6 +248,7 @@ export function useLooseRows(
         did: "Saved",
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
+        place: { id: key, icon: "pencil", form: "under" },
       },
       toast,
       writes,
@@ -261,6 +268,7 @@ export function useLooseRows(
         did: "Note changed",
         failed: "Couldn't change the note",
         unfailed: "Couldn't put the note back",
+        place: { id: key, icon: "pencil", form: "under" },
       },
       toast,
       writes,
@@ -314,6 +322,7 @@ export function useLooseRows(
       failed: "Couldn't move that",
       unfailed: "Couldn't put that back",
       retry: RETRY,
+      place: { id: keyOf(entry), icon: "arrow-up-right", form: "slot" },
     };
     void perform(op, toast, writes);
   }
@@ -338,6 +347,7 @@ export function useLooseRows(
         failed: "Couldn't move that",
         unfailed: "Couldn't put that back",
         retry: RETRY,
+        place: { id: keyOf(entry), icon: "arrow-up-right", form: "slot" },
       },
       toast,
       writes,
@@ -362,21 +372,26 @@ export function useLooseRows(
     );
   }
 
-  /** The thread is made and opens. Its toast is the shell's, since this
-   *  screen is under the thread by the time anybody reads it. */
+  /** The thread is made and opens. Its word is the shell's, since this
+   *  screen is under the thread by the time anybody reads it: in the first
+   *  row's slot here, the others gone at once and back with the Undo. */
   function created(proposalId: string, thread: { id: string; name: string }, moved: readonly LooseEntry[]): void {
     setCreating(null);
     setDropped((held) => new Map([...held, ...moved.map((entry) => [keyOf(entry), entry] as const)]));
     router.push({ pathname: "/threads/[id]", params: { id: thread.id } });
+    const first = moved[0];
+    const place: Place = first
+      ? { id: keyOf(first), icon: "lasso", form: "slot" }
+      : { id: `created:${proposalId}`, icon: "lasso", form: "plate" };
     const undo = async (): Promise<void> => {
       const outcome = await undoProposal(proposalId);
       if (outcome === "ok") {
         router.dismissTo("/threads");
         await reload().catch(() => undefined);
-      } else if (outcome === "refused") notify("Couldn't undo that");
-      else notify("Couldn't put that back", { label: RETRY, onPress: undo });
+      } else if (outcome === "refused") notify("Couldn't undo that", undefined, place);
+      else notify("Couldn't put that back", { label: RETRY, onPress: undo }, place);
     };
-    notify(`Created ${thread.name}`, { label: "Undo", onPress: undo });
+    notify(`Created ${thread.name}`, { label: "Undo", onPress: undo }, place);
     void reload().catch(() => undefined);
   }
 

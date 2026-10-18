@@ -8,8 +8,9 @@
 // page's order (pages in My threads' order, since 2026-10-12),
 // with how long each has been open; then N more and Open thread. Not in a
 // thread is last, with offload's line when it has a thread in mind and Sort
-// them. A tick strikes the row through in place with Undo, and the row leaves
-// the page the next time Today is built. A row's title opens its row sheet.
+// them. A tick takes the row off the page with Ticked off and Undo in its
+// place (2026-10-18; it struck through in place before). A row's title opens
+// its row sheet.
 //
 // The kit's first sentence of the thread's read is not drawn: nothing writes
 // a thread's standing read yet, and the thread page draws nothing in its
@@ -21,6 +22,8 @@ import { holdsLine, inMindLine, openFor } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { ThreadIcon } from "../ThreadIcon";
 import { useToast } from "../shell/Toast";
+import { InPlace } from "../shell/InPlace";
+import { Returned } from "../shell/UndoLine";
 import { perform } from "../../lib/optimistic";
 import { completeContent } from "../../lib/threads";
 import type { AgendaRow, OpenPage } from "../../lib/today";
@@ -49,18 +52,21 @@ export function OpenThreads({
   const [at, setAt] = useState(0);
   if (pages.length === 0) return null;
   const start = Math.min(at, Math.max(0, pages.length - SHOWN));
-  const count = pages.reduce((sum, page) => sum + page.count, 0);
+  // A row ticked here is not open any more, until the server agrees.
+  const ticked = pages.reduce((sum, page) => sum + page.todos.filter((row) => struck.has(row.id)).length, 0);
+  const count = pages.reduce((sum, page) => sum + page.count, 0) - ticked;
 
   function tick(row: AgendaRow): void {
-    const on = !struck.has(row.id);
     void perform(
       {
-        apply: () => onStrike(row.id, on),
-        revert: () => onStrike(row.id, !on),
-        write: () => completeContent(row.id, on),
-        ...(on ? { unwrite: () => completeContent(row.id, false), did: "Ticked off" } : {}),
-        failed: on ? "Couldn't tick that off" : "Couldn't put that back",
+        apply: () => onStrike(row.id, true),
+        revert: () => onStrike(row.id, false),
+        write: () => completeContent(row.id, true),
+        unwrite: () => completeContent(row.id, false),
+        did: "Ticked off",
+        failed: "Couldn't tick that off",
         unfailed: "Couldn't put that back",
+        place: { id: row.id, icon: "check", form: "slot" },
       },
       toast,
       rows.writes,
@@ -123,24 +129,28 @@ export function OpenThreads({
                 ) : null}
               </Link>
               {line ? <p className={styles.openLine}>{line}</p> : null}
-              {page.todos.map((row) => {
-                const done = struck.has(row.id);
-                return (
-                  <div key={row.id} className={styles.openRow} data-done={done || undefined}>
-                    <input
-                      type="checkbox"
-                      className={`${pane.rowCheck} ${styles.openCheck}`}
-                      checked={done}
-                      onChange={() => tick(row)}
-                      aria-label={done ? `Put ${row.title} back on the list` : `Finish ${row.title}`}
-                    />
-                    <button type="button" className={styles.openTitle} onClick={() => rows.handlers.onEdit(row)}>
-                      {row.title}
-                    </button>
-                    <span className={styles.openAge}>{openFor(row.createdAt, now)}</span>
-                  </div>
-                );
-              })}
+              <InPlace items={page.todos.filter((row) => !struck.has(row.id))} idOf={(row) => row.id} radius="0">
+                {(row, line) => (
+                  <>
+                    <Returned id={row.id}>
+                      <div className={styles.openRow}>
+                        <input
+                          type="checkbox"
+                          className={`${pane.rowCheck} ${styles.openCheck}`}
+                          checked={false}
+                          onChange={() => tick(row)}
+                          aria-label={`Finish ${row.title}`}
+                        />
+                        <button type="button" className={styles.openTitle} onClick={() => rows.handlers.onEdit(row)}>
+                          {row.title}
+                        </button>
+                        <span className={styles.openAge}>{openFor(row.createdAt, now)}</span>
+                      </div>
+                    </Returned>
+                    {line}
+                  </>
+                )}
+              </InPlace>
               <div className={styles.openFoot}>
                 <span>{more > 0 ? `${more} more` : (holds ?? "")}</span>
                 <Link href={href} className={styles.openDoor}>

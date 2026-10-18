@@ -53,6 +53,10 @@ import { forgetRendition } from "../shell/PhotoThumb";
 import { MoveSheet } from "../shell/MoveSheet";
 import { CalendarsSheet, calendarsLabel } from "../shell/CalendarsSheet";
 import { ToastHost, useToast } from "../shell/Toast";
+import { InPlace } from "../shell/InPlace";
+import { UndoAt } from "../shell/UndoLine";
+import type { Place, UndoForm } from "@offload/widgets";
+import { useFolds } from "../../lib/folds";
 import { Timeline } from "../shell/Timeline";
 import { Widgets } from "../shell/Widgets";
 import {
@@ -185,11 +189,13 @@ export default function Thread() {
       return;
     }
     setLeaving(false);
-    router.back();
-    notify(result.deleted ? "Thread deleted" : "You left the thread", {
-      label: "Undo",
-      onPress: () => void restoreThread(id),
-    });
+    // Back to My threads, where its line takes the thread's row.
+    router.dismissTo("/threads");
+    notify(
+      result.deleted ? "Thread deleted" : "You left the thread",
+      { label: "Undo", onPress: () => void restoreThread(id) },
+      { id: `thread:${id}`, icon: result.deleted ? "trash-2" : "log-out", form: "slot" },
+    );
   }
   const { filed, setOnScreen, provisional: inFlight, adoptProvisional, raiseFor, notify, openPdf } =
     useConversation();
@@ -366,6 +372,15 @@ export default function Thread() {
    *  them, so a change it draws early is written here. */
   const patchNotes = (update: (notes: Note[]) => Note[]): void =>
     setThread((current) => (current ? { ...current, notes: update(current.notes) } : current));
+  /** 2026-10-18. Where a row's Undo is drawn: in its list, or above the
+   *  composer for a row only the rail draws, which has no line of its own. */
+  const listed = useRef<Set<string>>(new Set());
+  const [folds] = useFolds();
+  const placeOf = (rowId: string, icon: string, form: UndoForm): Place => ({
+    id: rowId,
+    icon,
+    form: listed.current.has(rowId) ? form : "plate",
+  });
 
   /** Tick, or put it back. The box moves at the press; the row sinks or rises
    *  with it, since the lists derive that from the row. No toast: the kits
@@ -414,6 +429,7 @@ export default function Thread() {
         did: wasArchived ? "Back in the thread" : "Archived",
         failed: wasArchived ? "Couldn't put that back" : "Couldn't archive that",
         unfailed: wasArchived ? "Couldn't archive that" : "Couldn't put that back",
+        place: placeOf(row.id, "archive", "slot"),
       },
       toast,
       writes,
@@ -448,6 +464,7 @@ export default function Thread() {
         did: "Deleted, gone in a moment",
         failed: "Couldn't delete that",
         unfailed: "Couldn't put that back",
+        place: placeOf(row.id, "trash-2", "slot"),
       },
       toast,
       writes,
@@ -510,6 +527,7 @@ export default function Thread() {
         did: "Saved",
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
+        place: placeOf(row.id, "pencil", "under"),
       },
       toast,
       writes,
@@ -534,6 +552,8 @@ export default function Thread() {
         did: "Thread updated",
         failed: "Couldn't save that",
         unfailed: "Couldn't put that back",
+        // Under the thread's read, at the top of the page.
+        place: { id: `thread:${id}`, icon: "pencil", form: "under" },
       },
       toast,
       writes,
@@ -566,6 +586,7 @@ export default function Thread() {
         did: movedCopy(threadName),
         failed: "Couldn't move that",
         unfailed: "Couldn't put that back",
+        place: placeOf(row.id, "arrow-up-right", "slot"),
       },
       toast,
       writes,
@@ -577,7 +598,7 @@ export default function Thread() {
    *  The writes are priorities, computed by the list from the rows either
    *  side of the drop, through the endpoint a priority has always gone
    *  through, which pins it. Undo writes every previous number back. */
-  function reorder(writes_: ReorderWrite[]): void {
+  function reorder(writes_: ReorderWrite[], moved: string): void {
     // A row drawn at the press has no priority to write yet.
     if (writes_.some((write) => isProvisional(write.id))) return;
     const set = (pick: (write: ReorderWrite) => number): void =>
@@ -600,6 +621,8 @@ export default function Thread() {
         did: "Moved",
         failed: "Couldn't move that",
         unfailed: "Couldn't put that back",
+        // Under the row that was dragged, where it landed.
+        place: placeOf(moved, "arrow-up-right", "under"),
       },
       toast,
       writes,
@@ -680,6 +703,7 @@ export default function Thread() {
         did: rowLabelledCopy(row.title, names),
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
+        place: placeOf(row.id, "tag", "under"),
       },
       toast,
       writes,
@@ -704,13 +728,17 @@ export default function Thread() {
       const made = result.value.label;
       setListing(null);
       relabelled();
-      toast.show(listLabelledCopy(made.count, made.name), {
-        label: "Undo",
-        onPress: async () => {
-          await deleteLabel(made.id);
-          relabelled();
+      toast.show(
+        listLabelledCopy(made.count, made.name),
+        {
+          label: "Undo",
+          onPress: async () => {
+            await deleteLabel(made.id);
+            relabelled();
+          },
         },
-      });
+        { id: `labels:${thread.id}`, icon: "tag", form: "under" },
+      );
       return;
     }
     const renamed = save.name !== label.name;
@@ -733,17 +761,22 @@ export default function Thread() {
     const { changed, previous, label: saved } = result.value;
     setListing(null);
     relabelled();
-    toast.show(listLabelledCopy(saved.count, saved.name), {
-      label: "Undo",
-      onPress: async () => {
-        await labelRows(label.id, {
-          add: changed.removed,
-          remove: changed.added,
-          ...(previous ? { name: previous.name, colour: previous.colour } : {}),
-        });
-        relabelled();
+    toast.show(
+      listLabelledCopy(saved.count, saved.name),
+      {
+        label: "Undo",
+        onPress: async () => {
+          await labelRows(label.id, {
+            add: changed.removed,
+            remove: changed.added,
+            ...(previous ? { name: previous.name, colour: previous.colour } : {}),
+          });
+          relabelled();
+        },
       },
-    });
+      // Under the filter bar: the whole list changed.
+      { id: `labels:${thread.id}`, icon: "tag", form: "under" },
+    );
   }
 
   async function removeLabel(label: Label): Promise<void> {
@@ -754,13 +787,18 @@ export default function Thread() {
       return;
     }
     relabelled();
-    toast.show(`${label.name} deleted`, {
-      label: "Undo",
-      onPress: async () => {
-        await restoreLabel(label.id);
-        relabelled();
+    // In the label's chip, which the filter bar keeps for the window.
+    toast.show(
+      `${label.name} deleted`,
+      {
+        label: "Undo",
+        onPress: async () => {
+          await restoreLabel(label.id);
+          relabelled();
+        },
       },
-    });
+      { id: `label:${label.id}`, icon: "trash-2", form: "slot" },
+    );
   }
 
   if (!thread) {
@@ -860,6 +898,13 @@ export default function Thread() {
   // Not a fixed string: it is the anti-duplication contract.
   const restHeading =
     inWidgets.size > 0 ? "Everything else" : "Everything in here";
+  // The rows a list here draws, so their lines go in place; To do while it is
+  // open, and Everything else.
+  listed.current = new Set(
+    [...(folds.todo || showArchived ? [] : widgets.filter((widget) => widget.kind === "todo").flatMap((widget) => widget.rows)), ...rest].map(
+      (row) => row.id,
+    ),
+  );
 
   // 020. What the viewer pages through: every photo row on the page, in the
   // page's order, each with its row so the tools follow it.
@@ -943,14 +988,18 @@ export default function Thread() {
       {/* 025. The filter bar, under the app bar and outside the scroll, so it
           stays while the page moves under it. Not on the archived view. */}
       {showArchived || onMap ? null : (
-        <FilterBar
-          labels={thread.labels}
-          unlabelled={thread.counts.unlabelled}
-          pick={pick}
-          onPick={setPick}
-          onNew={openNewLabel}
-          onOpen={(labelId) => rowLabels.onOpenLabel(labelId)}
-        />
+        <>
+          <FilterBar
+            labels={thread.labels}
+            unlabelled={thread.counts.unlabelled}
+            pick={pick}
+            onPick={setPick}
+            onNew={openNewLabel}
+            onOpen={(labelId) => rowLabels.onOpenLabel(labelId)}
+          />
+          {/* A whole list labelled: its line under the filter bar. */}
+          <UndoAt id={`labels:${thread.id}`} />
+        </>
       )}
       <RowLabelsContext.Provider value={rowLabels}>
       {/* 030. The body and the map in one box. Map replaces the list, which
@@ -989,6 +1038,8 @@ export default function Thread() {
             </View>
           </View>
         ) : null}
+        {/* Edit thread's line, under the read, or at the top without one. */}
+        <UndoAt id={`thread:${thread.id}`} />
 
         {/* The rail is above the widgets, and only on a thread with something
             dated. It is not a widget: it lists every kind with a date rather
@@ -1090,17 +1141,21 @@ export default function Thread() {
           />
         ))}
 
-        {rest.map((row, i) => (
-          <ContentRowView
-            key={row.id}
-            row={row}
-            border={i < rest.length - 1}
-            arrived={arrived.has(row.id)}
-            onDelete={() => remove(row)}
-            onEdit={() => setRenaming(row)}
-            onOpenPhoto={() => openFileOf(row)}
-          />
-        ))}
+        <InPlace
+          items={rest}
+          idOf={(row) => row.id}
+          row={(row, border) => (
+            <ContentRowView
+              key={row.id}
+              row={row}
+              border={border}
+              arrived={arrived.has(row.id)}
+              onDelete={() => remove(row)}
+              onEdit={() => setRenaming(row)}
+              onOpenPhoto={() => openFileOf(row)}
+            />
+          )}
+        />
 
         {/* The way to the archived pile, and the way back: a row under
             everything live rather than a control in the section heading. The

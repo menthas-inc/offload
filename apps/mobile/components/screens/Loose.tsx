@@ -19,6 +19,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Glyph } from "../Glyph";
 import { ToastHost, useToast } from "../shell/Toast";
+import { placedItem } from "../shell/InPlace";
+import { useInPlace } from "../../lib/undo";
 import { PlateSpace } from "../shell/plate-inset";
 import { useConversation } from "../shell/conversation-context";
 import { TypeChips } from "../loose/TypeChips";
@@ -140,6 +142,8 @@ export default function Loose() {
   }
 
   const shown = held ? rows.live(held.entries) : [];
+  // 2026-10-18. With the Undo lines: a row that left keeps a slot where it was.
+  const placed = useInPlace(shown, keyOf);
   // The live list's counts, less what has left since they were read.
   const live = rows.less(counts.current);
   const quiet = isAndroid ? "text-a-on-var" : "text-text-secondary";
@@ -230,9 +234,11 @@ export default function Loose() {
         )
       ) : (
         <FlatList
-          data={shown}
-          keyExtractor={keyOf}
-          renderItem={({ item: entry, index }) => <>{rows.row(entry, { border: index < shown.length - 1 })}</>}
+          data={placed}
+          keyExtractor={(one) => ("slot" in one ? one.entry.id : keyOf(one.row))}
+          renderItem={({ item: one, index }) => (
+            <>{placedItem(one, index < placed.length - 1, { idOf: keyOf, row: (entry, border) => rows.row(entry, { border }) })}</>
+          )}
           ListHeaderComponent={header}
           ListFooterComponent={footer}
           ListEmptyComponent={

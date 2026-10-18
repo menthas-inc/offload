@@ -11,8 +11,13 @@
 // the same place: the chip's context menu (a right click, the context menu
 // key or Shift+F10), a long press for a touch screen, and on a picked chip a
 // trailing pencil, so a keyboard and a mouse both reach Rename and Delete.
+//
+// **A deleted label keeps its chip** for its Undo line, pill-shaped, the bar
+// with it when it was the last one (2026-10-18).
 
 import { useRef } from "react";
+import { InPlace } from "../shell/InPlace";
+import { useUndoEntries } from "../../lib/undo";
 import { isAll, toggleLabel, toggleUnlabelled, pickAll, type LabelPick } from "@offload/widgets";
 import styles from "./labels.module.css";
 import { Chip } from "./Chip";
@@ -39,7 +44,11 @@ export function FilterBar({
   onNew: () => void;
   onOpen: (labelId: string) => void;
 }) {
-  if (labels.length === 0) return null;
+  const seen = useRef(new Set<string>());
+  for (const label of labels) seen.current.add(label.id);
+  const entries = useUndoEntries();
+  const lineHere = [...entries.keys()].some((id) => seen.current.has(id));
+  if (labels.length === 0 && !lineHere) return null;
 
   return (
     <div className={floating ? styles.barFloating : styles.bar} role="group" aria-label="Filter by label">
@@ -47,16 +56,19 @@ export function FilterBar({
         <Chip selected={isAll(pick)} onClick={() => onPick(pickAll())}>
           All
         </Chip>
-        {labels.map((label) => (
-          <LabelChip
-            key={label.id}
-            label={label}
-            picked={pick.labels.includes(label.id)}
-            counted={!floating}
-            onPress={() => onPick(toggleLabel(pick, label.id))}
-            onOpen={() => onOpen(label.id)}
-          />
-        ))}
+        <span className={styles.chipSlots}>
+          <InPlace items={labels} idOf={(label) => label.id} radius="var(--radius-pill)">
+            {(label) => (
+              <LabelChip
+                label={label}
+                picked={pick.labels.includes(label.id)}
+                counted={!floating}
+                onPress={() => onPick(toggleLabel(pick, label.id))}
+                onOpen={() => onOpen(label.id)}
+              />
+            )}
+          </InPlace>
+        </span>
         <Chip tone="outline" selected={pick.none} onClick={() => onPick(toggleUnlabelled(pick))}>
           No label{unlabelled > 0 && !floating ? ` ${unlabelled}` : ""}
         </Chip>

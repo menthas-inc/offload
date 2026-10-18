@@ -59,7 +59,7 @@ import { DayUsed } from "./DayUsed";
 import { BAR_PITCH_PX, Recorder, recorderSupported, type Recording } from "../../lib/recorder";
 import { Mentions, mentionQuery, withMention } from "../people/Mentions";
 import { HashList } from "../labels/HashList";
-import { MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, stayedForgotten, staysOpen, takeFiles, turnDid, turnUndoable, undoShown, withReply } from "@offload/widgets";
+import { MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, nameList, stayedForgotten, staysOpen, takeFiles, turnDid, turnUndoable, undoShown, withReply, type Place } from "@offload/widgets";
 import { fetchThread } from "../../lib/threads";
 import type { Label } from "../../lib/labels";
 import { SHARE_LINE, answerShare, fetchPeople, nameOf, type Person } from "../../lib/people";
@@ -74,6 +74,9 @@ import { completeContent } from "../../lib/threads";
 import { Logo } from "../Logo";
 import { FILL_COMPOSER } from "../panes/Today";
 import { ToastHost, useToast } from "./Toast";
+import { UndoPlates } from "./UndoLine";
+import { useUnplaced } from "./InPlace";
+import place from "./in-place.module.css";
 import { lastSaidOf, startsFresh } from "../../lib/conversation";
 import styles from "../../app/(shell)/composer.module.css";
 
@@ -271,6 +274,8 @@ export function Composer({
   const [step, setStep] = useState<string | null>(null);
   const [tooLong, setTooLong] = useState<number | null>(null);
   const toast = useToast();
+  // 2026-10-18. The Undo lines with no place on the screen you are on.
+  const plates = useUnplaced();
   const input = useRef<HTMLTextAreaElement>(null);
   // Focus returns to the field once it is back, after a discard.
   useEffect(() => {
@@ -426,9 +431,19 @@ export function Composer({
     // messages already being watched.
   }, []);
 
-  function offerUndo(turnId: string | undefined, reply: string): void {
+  /** 2026-10-18. A dump filed into a thread says where in a line under the
+   *  composer, since nothing on the screen you are on changed; a turn that
+   *  only changed things is the conversation's own report and stays the toast.
+   *  A row the turn filed has no id here to draw the line under, so a dump
+   *  filed into the thread on screen takes the same line. */
+  function offerUndo(turnId: string | undefined, reply: string, threads: readonly TouchedThread[] = []): void {
     if (!turnId) return;
-    toast.show(reply, { label: "Undo", onPress: () => undo(turnId) });
+    const at: Place | undefined = threads.length > 0 ? { id: `turn:${turnId}`, icon: "lasso", form: "plate" } : undefined;
+    toast.show(
+      at ? `Saved to ${nameList(threads.map((thread) => thread.name))}` : reply,
+      { label: "Undo", onPress: () => undo(turnId, at) },
+      at,
+    );
   }
 
   /** Wait for one message's answer, wherever the waiting started.
@@ -510,7 +525,7 @@ export function Composer({
         if (answer.state === "answered" && answer.reply && turnUndoable(answer))
           // Markers stripped rather than drawn. A toast is one line with a
           // control beside it, so a list has nowhere to go.
-          offerUndo(turnId, plainText(answer.reply));
+          offerUndo(turnId, plainText(answer.reply), answer.threads);
         },
         (text) => setStep(text),
         // 021. Drawn the moment it is written, ahead of the reply.
@@ -562,6 +577,7 @@ export function Composer({
     noteUploaded.current = null;
     const taken = ending ? await ending.take() : note;
     if (taken && taken.durationMs > 60_000) {
+      // The composer's own, not in the handoff's table: the toast, as on the phones.
       toast.show("Discarded", { label: "Undo", onPress: () => setNote(taken) });
     }
   }
@@ -970,12 +986,13 @@ export function Composer({
     watch(messageId, sent.turnId);
   }
 
-  async function undo(turnId: string): Promise<void> {
+  async function undo(turnId: string, at?: Place): Promise<void> {
     // Optimistic: the turn goes on the press and comes back if the server
-    // refuses, since what it filed is still filed.
+    // refuses, since what it filed is still filed. The refusal is drawn where
+    // its Undo was.
     const stayed = await undoShown(turnId, shownTurns.current, setTurns, undoTurn);
     if (!stayed) {
-      toast.show("Couldn't put that back", { label: "Retry", onPress: () => undo(turnId) });
+      toast.show("Couldn't put that back", { label: "Retry", onPress: () => undo(turnId, at) }, at);
       return;
     }
     const line = stayedForgotten(stayed);
@@ -1526,6 +1543,12 @@ export function Composer({
           </span>
         </div>
       </div>
+
+      {plates.length > 0 ? (
+        <div className={place.plates}>
+          <UndoPlates entries={plates} />
+        </div>
+      ) : null}
 
       {line ? (
         <p className={styles.composerLine} role="alert">

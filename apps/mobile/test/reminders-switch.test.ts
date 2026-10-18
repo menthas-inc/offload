@@ -172,7 +172,7 @@ describe("the screens", () => {
   it("the note editor draws it for the author on a note offload reminds about, and writes it through the thread's helper with Undo", () => {
     const notes = read("components/shell/Notes.tsx");
     expect(notes).toMatch(/remindSwitchShown\(\{ reminders: note\.reminders \}, mine\)/);
-    expect(notes).toMatch(/perform\(noteSave\(note, text, remind, \(fields\) => patch\(note\.id, fields\)\), toast, writes\)/);
+    expect(notes).toMatch(/perform\(\s*\{\s*\.\.\.noteSave\(note, text, remind, \(fields\) => patch\(note\.id, fields\)\),[\s\S]*?\},\s*toast,\s*writes,\s*\)/);
   });
 
   it("the memory editor draws it on a memory offload reminds about, written at the switch, with the editor's own failure line", () => {

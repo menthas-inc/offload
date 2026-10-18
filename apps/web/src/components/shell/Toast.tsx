@@ -14,8 +14,16 @@
 // a toast never outlives the thing it is offering to take back. Showing a new
 // one replaces the old, which is what lets a write that fails replace its own
 // Undo with a Retry.
+//
+// **A word with a place is not a toast** (2026-10-18). An Undo, and the
+// failure that replaces it, is drawn where the change is, by `UndoLine`; the
+// toast keeps what has no Undo and a conversation's own report. Tapping the
+// toast's body fades it out, so it never sits over something you want.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import type { Place } from "@offload/widgets";
+import { undoStore } from "../../lib/undo";
+import { useReducedMotion } from "../../lib/reduced-motion";
 import styles from "../../app/(shell)/composer.module.css";
 
 const VISIBLE_MS = 8000;
@@ -32,7 +40,7 @@ interface Showing {
 
 export interface ToastState {
   showing: Showing | null;
-  show: (message: string, action?: ToastAction) => void;
+  show: (message: string, action?: ToastAction, place?: Place) => void;
   hide: () => void;
 }
 
@@ -47,7 +55,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setShowing(null);
   }, []);
 
-  const show = useCallback((message: string, action?: ToastAction) => {
+  const show = useCallback((message: string, action?: ToastAction, place?: Place) => {
+    if (place) return undoStore.put(place, message, action);
     if (timer.current) clearTimeout(timer.current);
     setShowing({ message, ...(action ? { action } : {}) });
     timer.current = setTimeout(() => setShowing(null), VISIBLE_MS);
@@ -74,20 +83,33 @@ export function useToast(): ToastState {
  *  block it floats above. */
 export function ToastHost() {
   const state = useToast();
+  const still = useReducedMotion();
+  const [leaving, setLeaving] = useState<Showing | null>(null);
   if (!state.showing) return null;
   const { message, action } = state.showing;
 
   // The readme's split: an Undo announces politely, a failure interrupts.
   // Retry and Try again are the failure forms, and the only actions that are.
   const failure = action?.label === "Retry" || action?.label === "Try again";
+  const fading = leaving === state.showing;
   return (
-    <div className={styles.toast} role={failure ? "alert" : "status"}>
+    <div
+      className={styles.toast}
+      role={failure ? "alert" : "status"}
+      data-leaving={fading || undefined}
+      // The body, not the action: tapping it fades it out.
+      onClick={() => (still ? state.hide() : setLeaving(state.showing))}
+      onAnimationEnd={() => {
+        if (fading) state.hide();
+      }}
+    >
       <span className={styles.toastMessage}>{message}</span>
       {action ? (
         <button
           type="button"
           className={styles.toastAction}
-          onClick={() => {
+          onClick={(event) => {
+            event.stopPropagation();
             state.hide();
             void action.onPress();
           }}

@@ -19,16 +19,8 @@ import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import cal from "../../app/(shell)/calendar.module.css";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
-import {
-  dayLabel,
-  datedFor,
-  monthFor,
-  stepMonth,
-  contentOn,
-  type Dated,
-  type Day,
-  type RailRow,
-} from "../../lib/widgets";
+import { MonthGrid } from "./MonthGrid";
+import { datedFor, monthFor, stepMonth, contentOn, type Dated } from "../../lib/widgets";
 import { dayIn, utcDay, eventMeta } from "@offload/widgets";
 import { useClock } from "../../lib/clock";
 import { useAppearance } from "../../lib/appearance";
@@ -62,30 +54,6 @@ function eventDated(event: ThreadEvent, zone: string | null): Dated | null {
   return { id: `event:${event.id}`, rowId: `event:${event.id}`, due: false, kind: "calendar", from, to: end < from ? from : end, done: false };
 }
 
-
-/** The colour of a dot is what the thing is.
- *
- *  Semantic aliases, never a ramp: blue already means waiting on you, ink is a
- *  fact of the day rather than a demand on it, and amber is what the kits use
- *  for something offload has noticed. A done dot keeps its colour and loses its
- *  fill, so the legend stays about kind and weight says state. */
-const DOT: Record<string, string> = {
-  // **Text aliases, not fill aliases, and the lift is why.**
-  // `--surface-attention` and `--surface-noticed` are deliberately fixed across
-  // themes, which is right for a chip and wrong for a 5px mark whose backdrop
-  // now changes with the theme. Measured on the lift, the task dot was 2.62:1 in
-  // dark and the note dot 2.03:1 in light. Event and other already used text
-  // aliases and already passed, which is what makes this a rule rather than two
-  // patches.
-  task: "var(--text-attention)",
-  event: "var(--text-primary)",
-  note: "var(--text-noticed)",
-  other: "var(--text-tertiary)",
-  // 2026-09-29. A picked calendar's event, drawn hollow in the quietest ink:
-  // a calendar with something every day otherwise lit every cell and the
-  // thread's own days stopped standing out.
-  calendar: "var(--text-tertiary)",
-};
 
 export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, calendars }: Props) {
   const { weekStart } = useAppearance();
@@ -192,50 +160,6 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
     setSelected(iso);
   };
 
-  const cell = (day: Day, outside = false) => (
-    <button
-      key={day.iso}
-      type="button"
-      className={styles.railDay}
-      data-today={day.today ? true : undefined}
-      data-past={day.past ? true : undefined}
-      data-on={day.iso === selected ? true : undefined}
-      // **A day with anything on it is tinted, not only dotted.** Five pixels
-      // of colour is easy to miss across seven cells; the cell itself carrying
-      // a quiet inward edge is what makes a week readable at a glance, and the
-      // dots then say what kind and how many. The thread's own things only: a
-      // picked calendar's events are dots and never lift a cell (2026-09-29).
-      data-has={day.own > 0 ? true : undefined}
-      data-outside={outside ? true : undefined}
-      aria-pressed={day.iso === selected}
-      // The dots are the fast read and never the only one.
-      aria-label={dayLabel(day)}
-      onClick={() => pick(day.iso)}
-    >
-      <span className={styles.railDow}>{day.dow}</span>
-      <span className={styles.railDom}>{day.dom}</span>
-      <span className={styles.railDots} aria-hidden="true">
-        {day.dots.map((dot, index) => (
-          <span
-            key={index}
-            className={styles.railDot}
-            data-done={dot.done || dot.kind === "calendar" ? true : undefined}
-            style={{ color: DOT[dot.kind] ?? DOT["other"] }}
-          />
-        ))}
-        {day.count > day.dots.length ? (
-          <span className={styles.railMore}>+{day.count - day.dots.length}</span>
-        ) : null}
-      </span>
-    </button>
-  );
-
-  const week = (row: RailRow, outside?: (iso: string) => boolean) => (
-    <div key={row.key} className={styles.railWeek}>
-      {row.days.map((day) => cell(day, outside ? !outside(day.iso) : false))}
-    </div>
-  );
-
   const goToday = (): void => {
     // Back to this month from wherever you are, and in the direction that is
     // actually true: forward if you had wandered into the past.
@@ -251,49 +175,8 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
 
   return (
     <section className={styles.rail}>
-      {/* A month at a time. The controls are the ones a calendar always has,
-          and Today is the way back from wherever stepping through months left
-          somebody. */}
-      <div className={styles.railMonth}>
-          <button
-            type="button"
-            className={styles.railStep}
-            aria-label="Previous month"
-            onClick={() => step(-1)}
-          >
-            <Icon name="chevron-left" size={16} />
-          </button>
-
-          {/* **The arrows are the ends and everything else is between them.**
-              Today sat outside the next arrow, which put the two ways of
-              moving through months on either side of a control that is not
-              one. It is always drawn rather than only when you have wandered:
-              appearing and disappearing would shift the month name beside it,
-              and on this month it still does something, which is take the day
-              back to today. */}
-          <span className={styles.railMiddle}>
-            <span className={styles.railMonthName}>{grid.label}</span>
-            <button type="button" className={styles.railToday} onClick={goToday}>
-              Today
-            </button>
-          </span>
-
-          <button
-            type="button"
-            className={styles.railStep}
-            aria-label="Next month"
-            onClick={() => step(1)}
-          >
-            <Icon name="chevron-right" size={16} />
-          </button>
-        </div>
-
-      {/* Keyed by the month so it remounts and the animation runs. Without the
-          key the same element is rewritten in place and nothing moves, which
-          is a redraw rather than a change of month. */}
-      <div key={grid.key} className={styles.railSlide} data-went={went}>
-        {grid.weeks.map((row) => week(row, grid.inMonth))}
-      </div>
+      {/* A month at a time: the grid Today draws too. */}
+      <MonthGrid grid={grid} selected={selected} went={went} onPick={pick} onStep={step} onToday={goToday} />
 
       <div className={styles.railDayHead}>
         <h2 className={styles.section} style={{ paddingTop: "var(--space-0)" }}>

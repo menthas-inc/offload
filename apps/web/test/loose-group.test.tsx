@@ -161,6 +161,7 @@ vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
 
 const { LooseGroup } = await import("../src/components/loose/LooseGroup");
 const { ToastProvider, ToastHost } = await import("../src/components/shell/Toast");
+const { undoStore } = await import("../src/lib/undo");
 
 // ------------------------------------------------------------------ the page
 
@@ -186,6 +187,7 @@ afterEach(() => {
   act(() => root.unmount());
   document.body.innerHTML = "";
   vi.useRealTimers();
+  for (const id of [...undoStore.entries().keys()]) undoStore.drop(id);
 });
 
 async function draw(value: Summary = summary()) {
@@ -278,6 +280,16 @@ describe("the rows (AC-9 to AC-11)", () => {
     await click(named("Undo"));
     expect(of("/v1/content/c3/complete").map((c) => c.body)).toEqual([{ done: true }, { done: false }]);
     expect(said()).toContain("Book the boiler service");
+  });
+
+  it("draw a ticked to-do's line in its slot, and nothing floats (2026-10-18)", async () => {
+    const todo = { kind: "content", row: row("c3", "Book the boiler service", "task"), suggestion: null };
+    await draw(summary({ rows: [todo, ...summary().rows.slice(1)] as Summary["rows"] }));
+    await click(host.querySelector('input[aria-label="Finish Book the boiler service"]')!);
+    const drawn = [...host.querySelectorAll("[data-row], [role=status]")];
+    expect(drawn[0]?.getAttribute("role")).toBe("status");
+    expect(drawn[0]?.textContent).toBe("Ticked offUndo");
+    expect(host.querySelectorAll("[role=status]")).toHaveLength(1);
   });
 
   it("delete with the thread page's question and the eight-second Undo", async () => {

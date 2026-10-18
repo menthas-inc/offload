@@ -1,5 +1,5 @@
-// The day's head: the stepper, the next line, and Where you will be. 027,
-// from `TodayParts.jsx`'s `DayStepper` and `TodayBody`.
+// The day's head under the month (2026-10-18, where the stepper was): the next
+// line and Where you will be. 027, from `TodayParts.jsx`'s `TodayBody`.
 //
 // Events are context: a calendar's event opens in Google Calendar through the
 // platform, an offload event opens its thread, and nothing here edits one.
@@ -17,67 +17,6 @@ import { threadHref } from "../../lib/loose";
 import { groundClass, useInBand } from "./Band";
 
 const isAndroid = Platform.OS === "android";
-
-export function DayStepper({
-  name,
-  sub,
-  first,
-  last,
-  onPrev,
-  onNext,
-}: {
-  name: string;
-  sub: string | null;
-  first: boolean;
-  last: boolean;
-  onPrev: () => void;
-  onNext: () => void;
-}) {
-  const COLOR = useColors();
-  const inBand = useInBand();
-  const chevron = (icon: string, label: string, disabled: boolean, onPress: () => void) => (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      hitSlop={2}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
-      className="items-center justify-center"
-      style={{ width: 44, height: 44, opacity: disabled ? 0.35 : 1 }}
-    >
-      {/* Drawn at 40 inside the 44 target, as the kit's stepper is. Its
-          edge is Dark theme: edges (design decisions, 2026-10-07). */}
-      <View
-        className={`items-center justify-center rounded-pill ${groundClass(inBand)}`}
-        style={{ width: 40, height: 40, boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}
-      >
-        <Glyph name={icon} size={18} color={COLOR.ink} />
-      </View>
-    </Pressable>
-  );
-  return (
-    <View className="flex-row items-center gap-space-2">
-      {chevron("chevron-left", "Previous day", first, onPrev)}
-      <View className="flex-1 items-center" accessibilityLiveRegion="polite">
-        <Text
-          className={`text-center font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
-          style={{ fontSize: 20, lineHeight: 24, letterSpacing: -0.2 }}
-          maxFontSizeMultiplier={1.35}
-          accessibilityRole="header"
-        >
-          {name}
-        </Text>
-        {sub ? (
-          <Text className={`mt-space-1 text-center font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13 }}>
-            {sub}
-          </Text>
-        ) : null}
-      </View>
-      {chevron("chevron-right", "Next day", last, onNext)}
-    </View>
-  );
-}
 
 /** *Call with Ana in 1h 30m*, the tail in the attention colour. */
 export function NextLine({ events, now, isToday, zone }: { events: TodayEvent[]; now: Date; isToday: boolean; zone: string | null }) {
@@ -159,7 +98,8 @@ export function EventsStrip({
                 { width: 128, paddingHorizontal: 12, paddingVertical: 10, borderRadius: isAndroid ? 16 : 14 },
                 raised
                   ? { shadowColor: COLOR.shadowLift.color, shadowOffset: { width: 0, height: COLOR.shadowLift.offsetY }, shadowRadius: COLOR.shadowLift.radius, shadowOpacity: 1 }
-                  : { boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}` },
+                  : // Dark theme: edges (design decisions, 2026-10-07).
+                    { boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}` },
               ]}
             >
               <Text className="font-core font-semibold text-text-secondary" style={{ fontSize: 12, fontVariant: ["tabular-nums"] }}>

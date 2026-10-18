@@ -183,7 +183,8 @@ The evening digest's push `data` gains `day`, the local date the send named (`{ 
 
 ### Shared, `packages/widgets`
 
-- `dayName(day, today, weekStart): { name: string, sub: string | null }`, the stepper's names and sub-lines.
+- `dayName(day, today, weekStart): { name: string, sub: string | null }`, the day's names, which since 2026-10-18 name only the empty day's line; `dayTitle(day)`, *Thursday 22 October*, is what the month's head reads for a picked day other than today.
+- 2026-10-18: `monthDated(counts)` in `timeline.ts` turns `GET /v1/today/month`'s counts into entries `monthFor` draws, so Today's grid and a thread's dot a day the same way.
 - `countdown(now, event): { lead: string, tail: string } | null`, *in 1h 30m*, *until 12:30*, *at 10:00*.
 - `nextEvent(events, now, isToday)`, the next line's choice: `mine`, timed, not ended.
 - `nothingLine(name)`, the empty day's words.
@@ -197,11 +198,11 @@ One component per client: `apps/web/src/components/shell/ThreadPill.tsx` and `ap
 
 ### Phones
 
-- `components/screens/Today.ios.tsx` and `Today.android.tsx` stay thin and render a shared `TodayScreen` from `components/today/`: `NeedsYou.tsx`, `DayStepper.tsx`, `NextLine.tsx`, `EventsStrip.tsx`, `TodoCard.tsx` (late, timed, rest, folds), `Picks.tsx`, `CustomizeSheet.tsx` on `DragSheet`. `TodayAgenda.tsx`'s row handlers move into `useTodayRows`, used by `TodoCard` and `Picks`, and gain the `labels` prop 025 left out on Today's row sheet.
+- `components/screens/Today.ios.tsx` and `Today.android.tsx` stay thin and render a shared `TodayScreen` from `components/today/`: `NeedsYou.tsx`, ~~`DayStepper.tsx`~~ `shell/MonthGrid.tsx` with its head naming the picked day (2026-10-18, the thread calendar's grid lifted out of `shell/Timeline.tsx` so both draw it), `NextLine.tsx`, `EventsStrip.tsx`, `TodoCard.tsx` (late, timed, rest, folds), `Picks.tsx`, `CustomizeSheet.tsx` on `DragSheet`. `TodayAgenda.tsx`'s row handlers move into `useTodayRows`, used by `TodoCard` and `Picks`, and gain the `labels` prop 025 left out on Today's row sheet.
 - `lib/today.ts`: the three reads, the three writes, the types. The layout comes from `useMe()`.
 - **Device cards.** `useZoneCard()` lifts 023's strip condition and its two writes out of `ZoneStrip.tsx`, which is then deleted; `useNotificationsCard()` reads `permitted()` from `lib/notifications.ts` on mount and on every `AppState` change to `active`, and its put-off is a date in SecureStore. Both are spliced at the front of the server's cards when the layout's `account` part is on; *N of M* is counted on the device.
 - **The card stack**: the card swipe is a `Gesture.Pan` on the card; after an advance the new card's actions ignore presses for 300ms (`useInertFor(300)`); reduced motion turns the advance into a cut.
-- **The day swipe** is a `Gesture.Pan` on the day's container with `activeOffsetX([-24, 24])` and `failOffsetY([-12, 12])`; the row's pan, the strip's `ScrollView` and the card's pan are passed as `blocksExternalGesture` so they win inside their bounds.
+- ~~**The day swipe**~~ gone 2026-10-18 with the stepper; the month's own swipe steps a month, as on a thread. It was a `Gesture.Pan` on the day's container with `activeOffsetX([-24, 24])` and `failOffsetY([-12, 12])`; the row's pan, the strip's `ScrollView` and the card's pan are passed as `blocksExternalGesture` so they win inside their bounds.
 - **Tab reset.** `Shell.tsx`'s Today tab press emits `todayReset` through a small emitter in `lib/today.ts`; `TodayScreen` sets the day to today on it and on focus from another tab. `?day=` from a door sets the day once.
 - **Opening an event**: `openLink(link)` from `lib/links.ts`, which already refuses anything but `https`. No custom scheme, no `canOpenURL`: the https link is handed to the platform, which opens Google Calendar through its app links when the app is installed.
 - **Copy address**: `expo-clipboard`, already a dependency.
@@ -235,7 +236,8 @@ One component per client: `apps/web/src/components/shell/ThreadPill.tsx` and `ap
 - **A request withdrawn while its card shows**: 022's accept answers `not_found`; the card goes with 022's line.
 - **Put off near midnight**: `until` is the start of the next day in the zone at the moment of the write; a zone change later does not move it.
 - **The zone changes** while Today is open (Use Tokyo): the layout and Needs you are unaffected; the day is re-read, since its instants moved.
-- **A day step past the window's edge** from a stale client: `400 bad_date`; the client disables the forward chevron at the same edge, so it is never sent.
+- **A day past the window's edge** from a stale client: `400 bad_date`; the month draws that day closed at the same edge, so it is never sent.
+- **`GET /v1/today/month?from&to`** (2026-10-18): `{ days: [{ date, task, event, calendar }] }`, only days with something, counted by `readMonth` in `today/day.ts` with the day read's own queries and predicates (`dayOfRow`, `landsOn`, `eventOn`, `calendarCovers`, `isWritten`) over the window, so a day's count is what its day read draws (pinned by `today-month.test.ts`). Days before today and past the edge carry nothing. `400 bad_window` for a window that is not two days, runs backwards or is longer than 62 days. Session account only (SEC-2).
 - **An event with no end**: drawn with its start only (*9:00*), past once its start has passed by an hour.
 - **An event in another zone** (`connector_events.timezone`): stored instants are absolute; the day is the account's; the card draws the account's clock, as every screen does since 023.
 - **A repeating offload event**: lands on the days its rule lands, as a row.
@@ -288,7 +290,7 @@ The design handoff `handoff/APPLY-2026-10-07-open-threads.md` replaces If you ha
 - **The day** keeps `picks` on the wire, always empty, for phones built before this; `today/picks.ts`, the picks routes and their tests are gone, and `startOfTomorrow` moved to `needs.ts`. `content_picks_idx` stays: dropping it is a migration for no gain at this size.
 - **The layout** gains `{ kind: "open_threads", on }`, at most three sections; a document without it gets it straight after the day. `/api/me` sends `todayLayout` without it (`legacyLayout`) and `todayLayoutV2` whole, because a phone built before this draws every section that is not Needs you as the day. PATCH still takes `todayLayout`, any valid document of up to three sections. Remove the legacy field when no such build is in use.
 - **Clients.** `@offload/widgets` `open-threads.ts` holds the words (`openFor`, `inMindLine`, `holdsLine`) and `keepInPlace`, which lays each re-read over the pages as drawn so a row ticked here stays where it was and the counts hold, until Today is built again. Web: `components/today/OpenThreads.tsx`, read in `TodayPane` with the day and again after every write. Phones: `components/today/OpenThreads.tsx` in `TodayScreen`, the same; the row sheet is `useTodayRows`'s, which now exposes `open` and `writes`. The tick is `completeContent` with *Ticked off* and Undo, as Not in a thread's rows have.
-- **Web Today has no page title**: `PaneHead` takes an optional `title`, and the stepper's *Today* is the one heading.
+- **Web Today has no page title**: `PaneHead` takes an optional `title`, and the month's head is the one heading.
 
 ## Amended 2026-10-15: Answer
 

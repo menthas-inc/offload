@@ -3,8 +3,9 @@
 // 027. Today's rows act in place exactly as the thread page's do: the tick,
 // the row's modal with When and Repeats, the label sheet, Archive and Delete,
 // each drawn first and written second with the thread page's words and the
-// eight-second Undo. One hook, used by To do and by open in your threads, so
-// the two cannot drift from each other or from the thread page.
+// eight-second Undo, drawn where the row is (2026-10-18). One hook, used by To
+// do and by open in your threads, so the two cannot drift from each other or
+// from the thread page.
 
 import { useCallback, useEffect, useState } from "react";
 import { asksBeforeArchive, rowLabelledCopy, withMadeLabels } from "@offload/widgets";
@@ -89,14 +90,33 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
       return next;
     });
 
+  /** 2026-10-18. A ticked to-do is done, and Today does not draw what is
+   *  done, so it leaves at the press with Ticked off in its slot. */
   function tick(row: ContentRow): void {
     const wasDone = row.doneAt !== null;
+    if (wasDone) {
+      void perform(
+        {
+          apply: () => patchRow(row.id, { doneAt: null }),
+          revert: () => patchRow(row.id, { doneAt: row.doneAt }),
+          write: () => completeContent(row.id, false),
+          failed: "Couldn't put that back",
+        },
+        toast,
+        writes,
+      );
+      return;
+    }
     void perform(
       {
-        apply: () => patchRow(row.id, { doneAt: wasDone ? null : new Date().toISOString() }),
-        revert: () => patchRow(row.id, { doneAt: row.doneAt }),
-        write: () => completeContent(row.id, !wasDone),
-        failed: wasDone ? "Couldn't put that back" : "Couldn't tick that off",
+        apply: () => dropRow(row.id),
+        revert: () => putRow(row.id),
+        write: () => completeContent(row.id, true),
+        unwrite: () => completeContent(row.id, false),
+        did: "Ticked off",
+        failed: "Couldn't tick that off",
+        unfailed: "Couldn't put that back",
+        place: { id: row.id, icon: "check", form: "slot" },
       },
       toast,
       writes,
@@ -114,6 +134,7 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
         did: wasArchived ? "Back in the thread" : "Archived",
         failed: wasArchived ? "Couldn't put that back" : "Couldn't archive that",
         unfailed: wasArchived ? "Couldn't archive that" : "Couldn't put that back",
+        place: { id: row.id, icon: "archive", form: "slot" },
       },
       toast,
       writes,
@@ -131,6 +152,7 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
         did: "Deleted, gone in a moment",
         failed: "Couldn't delete that",
         unfailed: "Couldn't put that back",
+        place: { id: row.id, icon: "trash-2", form: "slot" },
       },
       toast,
       writes,
@@ -161,6 +183,7 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
         did: "Saved",
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
+        place: { id: row.id, icon: "pencil", form: "under" },
       },
       toast,
       writes,
@@ -179,6 +202,8 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
         did: `Moved to ${to.name}`,
         failed: "Couldn't move that",
         unfailed: "Couldn't put that back",
+        // It stays, with its pill changed, so its line is under it.
+        place: { id: row.id, icon: "arrow-up-right", form: "under" },
       },
       toast,
       writes,
@@ -223,6 +248,7 @@ export function useTodayRows(reload: () => Promise<void>, labels: Map<string, La
         did: rowLabelledCopy(row.title, names),
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
+        place: { id: row.id, icon: "tag", form: "under" },
       },
       toast,
       writes,

@@ -58,6 +58,8 @@ import {
 import { DragSheet } from "./DragSheet";
 import { MoveSheet } from "./MoveSheet";
 import { useFolds } from "../../lib/folds";
+import { drawInPlace } from "./InPlace";
+import { useInPlace } from "../../lib/undo";
 
 const isAndroid = Platform.OS === "android";
 
@@ -169,7 +171,14 @@ export function NotesSection({
     if (text.length === 0 || !editing) return close();
     const note = editing;
     close();
-    void perform(noteSave(note, text, remind, (fields) => patch(note.id, fields)), toast, writes);
+    void perform(
+      {
+        ...noteSave(note, text, remind, (fields) => patch(note.id, fields)),
+        place: { id: note.id, icon: "pencil", form: "under" },
+      },
+      toast,
+      writes,
+    );
   }
 
   function remove(note: Note): void {
@@ -191,6 +200,7 @@ export function NotesSection({
         did: "Note deleted",
         failed: "Couldn't delete the note",
         unfailed: "Couldn't put the note back",
+        place: { id: note.id, icon: "trash-2", form: "slot" },
       },
       toast,
       writes,
@@ -224,6 +234,7 @@ export function NotesSection({
       failed: "Couldn't move that",
       unfailed: "Couldn't put that back",
       retry: "Try again",
+      place: { id: note.id, icon: "arrow-up-right", form: "slot" },
     };
     void perform(op, toast, writes);
   }
@@ -256,7 +267,7 @@ export function NotesSection({
    *  written, which is what precedence turns on. */
   const layouts = useRef(new Map<string, { y: number; height: number }>());
 
-  function reorder(writes_: ReorderWrite[]): void {
+  function reorder(writes_: ReorderWrite[], moved: string): void {
     close();
     const set = (pick: (write: ReorderWrite) => number): void =>
       onNotes((current) =>
@@ -278,6 +289,7 @@ export function NotesSection({
         did: "Moved",
         failed: "Couldn't move that",
         unfailed: "Couldn't put that back",
+        place: { id: moved, icon: "arrow-up-right", form: "under" },
       },
       toast,
       writes,
@@ -299,7 +311,7 @@ export function NotesSection({
       if (theirs && theirs.y + theirs.height / 2 < centre) to += 1;
     }
     const { writes: plan } = reorderPlan(settled, from, to);
-    if (plan.length > 0) reorder(plan);
+    if (plan.length > 0) reorder(plan, id);
   }
 
   /** One row. `readOnly` is the folded history, which is read and not worked
@@ -363,7 +375,9 @@ export function NotesSection({
   // section announcing its own absence, and the pinned composer this + raises
   // lives above this component regardless, so it never depends on the
   // section being mounted.
-  if (notes.length === 0 && counts.folded === 0) {
+  // 2026-10-18. With the Undo lines, so the last note deleted keeps its slot.
+  const placed = useInPlace(notes, (note) => note.id);
+  if (placed.length === 0 && counts.folded === 0) {
     return null;
   }
 
@@ -435,7 +449,7 @@ export function NotesSection({
       {sectionFolded ? null : (
       <>
       <View className="px-gutter-screen">
-        {notes.map((note, index) => row(note, index < notes.length - 1))}
+        {drawInPlace(placed, { idOf: (note) => note.id, row: (note, border) => row(note, border) })}
       </View>
 
       {/* Over the budget, and the sentence sits next to what resolves it: the

@@ -67,6 +67,7 @@ function json(body: unknown, status = 200) {
 
 const { MemoriesPane } = await import("../src/components/panes/Memories");
 const { ToastProvider, ToastHost } = await import("../src/components/shell/Toast");
+const { undoStore } = await import("../src/lib/undo");
 
 let root: Root | null = null;
 let host: HTMLDivElement;
@@ -93,6 +94,7 @@ afterEach(() => {
   act(() => root?.unmount());
   root = null;
   document.body.innerHTML = "";
+  for (const id of [...undoStore.entries().keys()]) undoStore.drop(id);
 });
 
 async function settle() {
@@ -245,6 +247,17 @@ describe("the editor", () => {
     await click(button("Undo"));
     expect(sent.find((s) => s.method === "POST" && s.path === "/v1/memories/m1/restore")).toBeTruthy();
     expect([...host.querySelectorAll("[data-memory]")].some((r) => r.textContent?.includes("Your wife is Meera."))).toBe(true);
+  });
+
+  it("draws the forgotten memory's line in its place, and nothing floats (2026-10-18)", async () => {
+    await mount();
+    const drawn = () => [...host.querySelectorAll("[data-memory], [role=status], [role=alert]")];
+    const at = drawn().findIndex((r) => r.textContent?.includes("Your wife is Meera."));
+    await click(drawn()[at]);
+    await click(button("Forget"));
+    expect(drawn()[at]?.getAttribute("role")).toBe("status");
+    expect(drawn()[at]?.textContent).toBe("Memory forgottenUndo");
+    expect(host.querySelectorAll("[role=status]")).toHaveLength(1);
   });
 
   it("a write that fails says so with Retry", async () => {

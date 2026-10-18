@@ -12,17 +12,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { ReduceMotion, SlideInLeft, SlideInRight, runOnJS } from "react-native-reanimated";
 import {
-  dayLabel,
   datedFor,
   monthFor,
   stepMonth,
   contentOn,
   type Dated,
-  type Day,
-  type RailRow,
   dayIn,
   utcDay,
   eventMeta,
@@ -32,6 +27,7 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { useWeekStart } from "../../lib/appearance";
 import { ContentRowView } from "./ContentRow";
+import { MonthGrid } from "./MonthGrid";
 import { useConversation } from "./conversation-context";
 import { QUICK_ADD_CHARS, TYPED_ROW_PLACEHOLDER, fetchThreadEvents, rangeOf } from "../../lib/threads";
 import type { ContentRow, Note, ThreadEvent } from "../../lib/threads";
@@ -96,16 +92,6 @@ export function Timeline({
   /** The colour of a dot is what the thing is: blue already means waiting on
    *  you, ink is a fact of the day rather than a demand on it, and amber is
    *  what the kits use for something offload has noticed. */
-  const DOT: Record<string, string> = {
-    task: COLOR.textAttention,
-    event: COLOR.ink,
-    note: COLOR.textNoticed,
-    other: COLOR.quiet,
-    // 2026-09-29. A picked calendar's event, hollow in the quietest ink: a
-    // calendar with something every day otherwise lit every cell.
-    calendar: COLOR.quiet,
-  };
-
   // The thread's own dated things: what the span is made of.
   const own = useMemo(() => datedFor(rows, notes, zone), [rows, notes, zone]);
 
@@ -180,128 +166,6 @@ export function Timeline({
     .map((one) => ({ one, event: eventsById.get(one.rowId) }))
     .filter((pair): pair is { one: Dated; event: ThreadEvent } => pair.event !== undefined);
 
-  const cell = (day: Day, outside = false) => (
-    <Pressable
-      key={day.iso}
-      onPress={() => setSelected(day.iso)}
-      // The dots are the fast read and never the only one.
-      accessibilityLabel={dayLabel(day)}
-      accessibilityRole="button"
-      accessibilityState={{ selected: day.iso === selected }}
-      className="min-h-tap-min flex-1 items-center rounded-xs py-space-3"
-      // **A day with something on it is a lift, not a light**, and the day being
-      // read is white on blue. The blue glow this replaces was not illegible;
-      // it went because with the waiting chip and the task dot on the same
-      // screen, blue was carrying five meanings at once. Blue now keeps the two
-      // that are about time, today and the day being read, and everything about
-      // content moved off the hue.
-      //
-      // **The border says things about the date, the surface says things about
-      // the content**, which is the architecture the rail already had. Today is
-      // still a blue edge, the read day is still the fill, and the lift sits
-      // underneath both. The border is drawn in every state so nothing shuffles
-      // as things are added and ticked off.
-      style={{
-        borderWidth: 1,
-        borderColor:
-          day.iso === selected
-            ? COLOR.attention
-            : day.today
-              ? COLOR.borderFocus
-              : day.own > 0
-                ? COLOR.lift
-                : "transparent",
-        backgroundColor:
-          day.iso === selected
-            ? COLOR.attention
-            : day.own > 0
-              ? COLOR.raised
-              : "transparent",
-        // The drop that makes it a lift rather than a tint. Not inset: an
-        // inset shadow is the glow this replaced.
-        boxShadow:
-          day.iso !== selected && day.own > 0
-            ? [{ offsetX: 0, offsetY: 1, blurRadius: 2, color: COLOR.shadow, inset: false }]
-            : undefined,
-      }}
-    >
-      <Text
-        className={day.iso === selected ? "font-core" : "font-core text-text-tertiary"}
-        style={{
-          fontSize: 11,
-          opacity: outside ? 0.6 : 1,
-          ...(day.iso === selected ? { color: COLOR.onAttention } : {}),
-        }}
-      >
-        {day.dow}
-      </Text>
-      {/* **A day with nothing on it steps back**, which is the other half of the
-          lift: without it the lift has nothing to be raised above. A wash dulls
-          and an edge advances, which is why the grey version of the lit state
-          read as *less* present than an empty cell.
-
-          **Today is exempt.** A day with nothing on it is still today, and a
-          rule that demotes empty days catches today on any week where today
-          happens to be empty, which is most weeks. */}
-      <Text
-        className={`font-core ${
-          day.iso === selected
-            ? "font-semibold"
-            : day.past || outside
-              ? "font-semibold text-text-tertiary"
-              : day.own === 0 && !day.today
-                ? "text-text-tertiary"
-                : isAndroid
-                  ? "font-semibold text-a-on"
-                  : "font-semibold text-text-primary"
-        }`}
-        style={{
-          fontSize: 13,
-          opacity: outside ? 0.6 : 1,
-          ...(day.iso === selected ? { color: COLOR.onAttention } : {}),
-        }}
-      >
-        {day.dom}
-      </Text>
-      <View className="mt-space-1 flex-row items-center gap-space-1" style={{ minHeight: 7 }}>
-        {day.dots.map((dot, index) => (
-          <View
-            key={index}
-            style={{
-              width: 5,
-              height: 5,
-              borderRadius: 3,
-              // Done keeps its colour and loses its fill, so the legend stays
-              // about what a thing is.
-              // White on the day being read: a blue task dot on a blue cell is
-              // not a dot, and that day's contents are listed directly below.
-              // A calendar's event is hollow too, so the thread's own stand out.
-              backgroundColor: dot.done || dot.kind === "calendar"
-                ? "transparent"
-                : day.iso === selected
-                  ? COLOR.onAttention
-                  : DOT[dot.kind] ?? DOT["other"],
-              borderWidth: dot.done || dot.kind === "calendar" ? 1 : 0,
-              borderColor:
-                day.iso === selected ? COLOR.onAttention : DOT[dot.kind] ?? DOT["other"],
-            }}
-          />
-        ))}
-        {day.count > day.dots.length ? (
-          <Text className="font-core text-text-tertiary" style={{ fontSize: 10 }}>
-            +{day.count - day.dots.length}
-          </Text>
-        ) : null}
-      </View>
-    </Pressable>
-  );
-
-  const week = (row: RailRow, outside?: (iso: string) => boolean) => (
-    <View key={row.key} className="flex-row gap-space-1 px-gutter-screen">
-      {row.days.map((day) => cell(day, outside ? !outside(day.iso) : false))}
-    </View>
-  );
-
   const goToday = (): void => {
     // Back to this month from wherever you are, and in the direction that is
     // actually true: forward if you had wandered into the past.
@@ -315,87 +179,12 @@ export function Timeline({
     setMonth(stepMonth(grid.key, by));
   };
 
-  // Sideways only, and only once the movement is clearly sideways, so a
-  // vertical drag still scrolls the thread under it. `runOnJS` because the
-  // callback runs on the UI thread and `step` is ordinary React state.
-  const swipe = Gesture.Pan()
-    .activeOffsetX([-20, 20])
-    .onEnd((event) => {
-      if (event.translationX < -40) runOnJS(step)(1);
-      else if (event.translationX > 40) runOnJS(step)(-1);
-    });
-
   const when = new Date(`${selected}T12:00:00`);
 
   return (
     <View className="pt-space-5">
-      {/* A month at a time. The controls are the ones a calendar always has,
-        and Today is the way back from wherever stepping through months left
-        somebody. */}
-      <View className="flex-row items-center gap-space-2 px-gutter-screen pb-space-3">
-        <Pressable
-          onPress={() => step(-1)}
-          hitSlop={10}
-          accessibilityLabel="Previous month"
-          accessibilityRole="button"
-          className="min-h-tap-min justify-center"
-        >
-          <Glyph name="chevron-left" size={18} color={COLOR.iconOnWell} />
-        </Pressable>
-
-        {/* **The arrows are the ends and everything else is between them.**
-            Today sat beyond the next arrow, which put the two ways of moving
-            through months on either side of a control that is not one. It is
-            always drawn: appearing and disappearing would shift the month
-            name beside it, and on this month it still takes the day back to
-            today. */}
-        <View className="flex-1 flex-row items-center justify-center gap-space-3">
-          <Text
-            className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
-            style={{ fontSize: 14 }}
-          >
-            {grid.label}
-          </Text>
-          <Pressable onPress={goToday} hitSlop={10} accessibilityRole="button" className="min-h-tap-min justify-center">
-            <Text className="font-core font-medium text-text-accent" style={{ fontSize: 12.5 }}>
-              Today
-            </Text>
-          </Pressable>
-        </View>
-
-        <Pressable
-          onPress={() => step(1)}
-          hitSlop={10}
-          accessibilityLabel="Next month"
-          accessibilityRole="button"
-          className="min-h-tap-min justify-center"
-        >
-          <Glyph name="chevron-right" size={18} color={COLOR.iconOnWell} />
-        </Pressable>
-      </View>
-
-      {/* **A month is also a swipe.** The arrows are the discoverable way and
-        this is the one a thumb reaches for on a grid that looks like every
-        other calendar.
-
-        `activeOffsetX` is what stops it fighting the thread's own scrolling:
-        the gesture only takes over once the movement is clearly sideways, so
-        a vertical drag still scrolls the page under it. */}
-      <GestureDetector gesture={swipe}>
-        {/* Keyed by the month so it remounts and the animation runs. Without
-            the key the same element is rewritten in place and nothing moves,
-            which is a redraw rather than a change of month. */}
-        <Animated.View
-          key={grid.key}
-          entering={(went === 1 ? SlideInRight : SlideInLeft)
-            .duration(140)
-            // Anybody who has asked for less movement gets the change and
-            // none of the travel.
-            .reduceMotion(ReduceMotion.System)}
-        >
-          {grid.weeks.map((row) => week(row, grid.inMonth))}
-        </Animated.View>
-      </GestureDetector>
+      {/* A month at a time: the grid Today draws too. */}
+      <MonthGrid grid={grid} selected={selected} went={went} onPick={setSelected} onStep={step} onToday={goToday} />
 
       <View className="flex-row items-start gap-space-3 px-gutter-screen pb-space-3 pt-space-6">
         <Text

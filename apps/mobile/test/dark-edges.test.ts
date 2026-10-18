@@ -24,7 +24,6 @@ function at(source: string, anchor: string): number[] {
 // looked for from there to the next `<`, which is the element's first child
 // or its close, so a neighbour's edge cannot stand in for it.
 const EDGES: [string, string, string, string][] = [
-  ["today/DayParts.tsx", "the stepper's well", "rounded-pill ${groundClass(inBand)}", "COLOR.edgeWell"],
   ["today/DayParts.tsx", "the unraised event card", 'raised ? "border border-border-hairline bg-surface-raised"', "COLOR.edgeCard"],
   ["settings/Rows.tsx", "the group", 'className={`overflow-hidden ${isAndroid ? "bg-a-c-low"', "COLOR.edgeCard"],
   ["labels/Chip.tsx", "the neutral chip", '"rounded-pill"} ${fill}', "COLOR.edgeCard"],

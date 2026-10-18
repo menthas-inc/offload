@@ -235,6 +235,27 @@ button.mark:focus-visible {
   flex: 0 0 auto;
 }
 
+/* 2026-10-18. The label chips, and a deleted one's Undo line in its place:
+   no box of their own, so they sit in the bar's row as the chips always did. */
+.chipSlots {
+  display: contents;
+}
+
+.chipSlots > * {
+  flex: 0 0 auto;
+}
+
+/* The line at a chip's size, pill-shaped, with no glyph: the chip's place
+   holds the words and Undo and nothing else. */
+.chipSlots > [role] {
+  min-height: 30px;
+  gap: var(--space-3);
+}
+
+.chipSlots > [role] > :first-child {
+  display: none;
+}
+
 /* The plus, pinned to the trailing edge on an opaque ground: the chips scroll
    under it and it never scrolls away. */
 .barPlus {

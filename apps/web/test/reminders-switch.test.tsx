@@ -65,6 +65,8 @@ const { MemoriesPane } = await import("../src/components/panes/Memories");
 const { ToastProvider, ToastHost } = await import("../src/components/shell/Toast");
 const { useWrites } = await import("../src/lib/optimistic");
 const { useTodayRows } = await import("../src/components/today/useTodayRows");
+const { TodayRow } = await import("../src/components/today/TodoCard");
+const { undoStore } = await import("../src/lib/undo");
 import type { ContentPatch, ContentRow, Member, Note } from "../src/lib/threads";
 import type { AgendaRow } from "../src/lib/today";
 
@@ -98,6 +100,7 @@ afterEach(() => {
   act(() => root?.unmount());
   root = null;
   document.body.innerHTML = "";
+  for (const id of [...undoStore.entries().keys()]) undoStore.drop(id);
 });
 
 async function settle() {
@@ -208,6 +211,8 @@ describe("Undo of a stop", () => {
         <button type="button" onClick={() => rows.handlers.onEdit(current!)}>
           Open
         </button>
+        {/* The row, whose Undo line is under it (2026-10-18). */}
+        <TodayRow row={{ ...current!, threadName: null }} rows={rows} />
         {rows.overlays}
         <ToastHost />
       </>

@@ -11,7 +11,7 @@ import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../app.js";
 import { currentAccountId } from "../auth/current-account.js";
-import { dayResponse, readDay } from "../today/day.js";
+import { dayResponse, monthResponse, readDay, readMonth } from "../today/day.js";
 import { needsCard, needsYou, putOff } from "../today/needs.js";
 import { openResponse, openThreads } from "../today/threads.js";
 import { dismissal, dismissReminder, remindersResponse, todayReminders, undismissReminder } from "../today/reminders.js";
@@ -37,6 +37,23 @@ export async function todayRoutes(app: App): Promise<void> {
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" as const });
       const day = await readDay(accountId, request.query.date);
       return day === "bad_date" ? reply.status(400).send({ error: "bad_date" as const }) : reply.send(day);
+    },
+  );
+
+  // 2026-10-18. The month over Today's day: a count per day of what it holds.
+  app.get(
+    "/v1/today/month",
+    {
+      schema: {
+        querystring: z.object({ from: z.string().max(10), to: z.string().max(10) }),
+        response: { 200: monthResponse, 400: badRequest, 401: unauthenticated },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.status(401).send({ error: "unauthenticated" as const });
+      const month = await readMonth(accountId, request.query.from, request.query.to);
+      return month === "bad_window" ? reply.status(400).send({ error: "bad_window" as const }) : reply.send(month);
     },
   );
 

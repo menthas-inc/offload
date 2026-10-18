@@ -4,7 +4,8 @@
 // is the tag in the app bar (2026-09-29), where the Group with labels chip
 // took a row of its own. Either logic: two picked shows anything carrying one or
 // both. Holding a label chip opens its list. The pick is the screen's and this
-// phone's; this draws it and reports presses.
+// phone's; this draws it and reports presses. A deleted label's Undo line is
+// drawn in its chip, pill-shaped, for the window (2026-10-18).
 
 import { Platform, Pressable, ScrollView, View } from "react-native";
 import { isAll, pickAll, toggleLabel, toggleUnlabelled, type LabelPick } from "@offload/widgets";
@@ -12,8 +13,13 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { Chip, ChipFace } from "./Chip";
 import type { Label } from "../../lib/labels";
+import { useInPlace } from "../../lib/undo";
+import { PILL_RADIUS } from "../shell/InPlace";
+import { UndoLine } from "../shell/UndoLine";
 
 const isAndroid = Platform.OS === "android";
+/** A chip's line is wider than a chip, so its words have room in the row. */
+const LINE_WIDTH = 240;
 
 export function FilterBar({
   labels,
@@ -36,7 +42,9 @@ export function FilterBar({
 }) {
   const COLOR = useColors();
   const ground = floating ? "" : isAndroid ? "bg-a-surface" : "bg-surface-page";
-  if (labels.length === 0) return null;
+  const placed = useInPlace(labels, (label) => `label:${label.id}`);
+  // Over the map there is no line: the list's bar draws it.
+  if ((floating ? labels.length : placed.length) === 0) return null;
   return (
     <View className={`flex-row items-center ${floating ? "py-space-4" : "pb-space-4"} ${ground}`}>
       <ScrollView
@@ -55,22 +63,32 @@ export function FilterBar({
             All
           </Chip>
         )}
-        {labels.map((label) => (
-          <Pressable
-            key={label.id}
-            onPress={() => onPick(toggleLabel(pick, label.id))}
-            onLongPress={() => onOpen(label.id)}
-            delayLongPress={400}
-            hitSlop={7}
-            accessibilityRole="button"
-            accessibilityState={{ selected: pick.labels.includes(label.id) }}
-            accessibilityHint="Hold to rename, recolour or delete"
-          >
-            <ChipFace label={label.colour} selected={pick.labels.includes(label.id)} raised={floating}>
-              {label.count > 0 && !floating ? `${label.name} ${label.count}` : label.name}
-            </ChipFace>
-          </Pressable>
-        ))}
+        {placed.map((one) => {
+          if ("slot" in one) {
+            return floating ? null : (
+              <View key={one.entry.id} style={{ width: LINE_WIDTH }}>
+                <UndoLine entry={one.entry} radius={PILL_RADIUS} height={isAndroid ? 32 : 30} />
+              </View>
+            );
+          }
+          const label = one.row;
+          return (
+            <Pressable
+              key={label.id}
+              onPress={() => onPick(toggleLabel(pick, label.id))}
+              onLongPress={() => onOpen(label.id)}
+              delayLongPress={400}
+              hitSlop={7}
+              accessibilityRole="button"
+              accessibilityState={{ selected: pick.labels.includes(label.id) }}
+              accessibilityHint="Hold to rename, recolour or delete"
+            >
+              <ChipFace label={label.colour} selected={pick.labels.includes(label.id)} raised={floating}>
+                {label.count > 0 && !floating ? `${label.name} ${label.count}` : label.name}
+              </ChipFace>
+            </Pressable>
+          );
+        })}
         {floating ? (
           <RaisedChip selected={pick.none} onPress={() => onPick(toggleUnlabelled(pick))}>
             No label

@@ -25,6 +25,8 @@ import { PrismField } from "../PrismField";
 import { prismShift } from "../../lib/prism-scroll";
 import { useConversation } from "./conversation-context";
 import { useSetPlateInset } from "./plate-inset";
+import { UndoPlates } from "./UndoLine";
+import { usePlateLines } from "../../lib/undo";
 
 const isAndroid = Platform.OS === "android";
 
@@ -78,6 +80,9 @@ export function Plate({
     };
   });
   const [gone, setGone] = useState(false);
+  // 2026-10-18. The Undo lines with nowhere on the page to go, on the plate's
+  // top edge, so the plate grows and the page ends above them.
+  const plates = usePlateLines();
   useAnimatedReaction(
     () => tabOpacity(progress(sheetY.value, sheetTravel.value), keyboardHeight.value) === 0,
     (now, was) => {
@@ -105,6 +110,11 @@ export function Plate({
       importantForAccessibility={raised ? "no-hide-descendants" : "auto"}
       accessibilityElementsHidden={raised}
     >
+      {plates.length > 0 ? (
+        <View className="px-space-4 pt-space-4">
+          <UndoPlates entries={plates} />
+        </View>
+      ) : null}
       {/* **The band, and it is the composer and the tabs only.**
 
             `overflow: hidden` because the field may never leave this box. It

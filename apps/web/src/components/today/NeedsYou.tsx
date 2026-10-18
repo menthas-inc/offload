@@ -17,6 +17,9 @@
 // conversation that asked the current one and the composer opens on it with
 // the question's invitation, and stays until that answer closes the question;
 // Dismiss is 018's way out by its index.
+//
+// 2026-10-18. An answered card's Undo line takes the card's place and corner,
+// above the next card: *Saturday, for Europe, October*.
 
 import { useRef, useState } from "react";
 import { zoneCity, stackView } from "@offload/widgets";
@@ -24,6 +27,8 @@ import { Icon } from "../Icon";
 import { QuickReplies } from "../shell/QuickReplies";
 import { ThreadPill } from "../shell/ThreadPill";
 import { useToast } from "../shell/Toast";
+import { Line } from "../shell/InPlace";
+import { useUndoEntries } from "../../lib/undo";
 import { useThreads } from "../shell/threads-context";
 import { answerQuestion, resumeQuestion, undoTurn, RESUME_COMPOSER } from "../../lib/dump";
 import { acceptInvitation, answerRequestOutcome, firstNameOf, nameOf } from "../../lib/people";
@@ -92,10 +97,17 @@ export function NeedsYou({ cards, load }: { cards: Card[]; load: number }) {
   }
   const [failed, setFailed] = useState<{ key: string; label: string; line: string } | null>(null);
   const inertUntil = useRef(0);
+  const undos = useUndoEntries();
 
+  // The answered cards' lines, where the card was, with a card's corner: the
+  // nearest token to the stylesheet's own 18px.
+  const answeredLines = [...settled].flatMap((key) => {
+    const entry = undos.get(key);
+    return entry ? [<Line key={key} entry={entry} radius="var(--radius-lg)" />] : [];
+  });
   const view = stackView(cards, settled, loaded);
   const card = view.current;
-  if (!card) return null;
+  if (!card) return answeredLines.length > 0 ? <>{answeredLines}</> : null;
   const { position, slivers } = view;
 
   const arrive = () => {
@@ -287,12 +299,17 @@ export function NeedsYou({ cards, load }: { cards: Card[]; load: number }) {
         const { status, sent } = await answerQuestion(on.question.id, index);
         if (!sent) return status === 404 || status === 409 ? "gone" : "failed";
         if (option.kind === "value") {
-          toast.show(option.label, {
-            label: "Undo",
-            onPress: async () => {
-              if (!(await undoTurn(sent.turnId).catch(() => false))) toast.show("Couldn't undo that");
+          const place = { id: on.key, icon: "check", form: "slot" } as const;
+          toast.show(
+            on.threadName ? `${option.label}, for ${on.threadName}` : option.label,
+            {
+              label: "Undo",
+              onPress: async () => {
+                if (!(await undoTurn(sent.turnId).catch(() => false))) toast.show("Couldn't undo that", undefined, place);
+              },
             },
-          });
+            place,
+          );
         }
         return "ok";
       },
@@ -334,6 +351,8 @@ export function NeedsYou({ cards, load }: { cards: Card[]; load: number }) {
   ) : null;
 
   return (
+    <>
+    {answeredLines}
     <section className={styles.needs} aria-label="Needs you" data-slivers={slivers}>
       {slivers >= 2 ? <div className={`${styles.sliver} ${styles.sliverBack}`} aria-hidden="true" /> : null}
       {slivers >= 1 ? <div className={`${styles.sliver} ${styles.sliverFront}`} aria-hidden="true" /> : null}
@@ -387,5 +406,6 @@ export function NeedsYou({ cards, load }: { cards: Card[]; load: number }) {
         )}
       </article>
     </section>
+    </>
   );
 }

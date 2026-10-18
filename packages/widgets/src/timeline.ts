@@ -504,3 +504,27 @@ export function dayLabel(day: Day, locale?: string): string {
   const extra = day.count > day.dots.length ? `, ${day.count} in all` : "";
   return `${full}, ${parts.join(", ")}${extra}`;
 }
+
+/** One day of Today's month as the server counts it (2026-10-18). */
+export interface MonthCount {
+  date: string;
+  task: number;
+  event: number;
+  calendar: number;
+}
+
+/** Today's month counts as entries `monthFor` draws, so Today's grid and a
+ *  thread's dot a day the same way. The ids only have to be distinct: nothing
+ *  opens from a dot, the day below the grid does. */
+export function monthDated(days: readonly MonthCount[]): Dated[] {
+  const out: Dated[] = [];
+  for (const day of days) {
+    for (const kind of ["task", "event", "calendar"] as const) {
+      for (let n = 0; n < day[kind]; n += 1) {
+        const id = `${day.date}:${kind}:${n}`;
+        out.push({ id, rowId: id, due: false, kind, from: day.date, to: day.date, done: false });
+      }
+    }
+  }
+  return out;
+}

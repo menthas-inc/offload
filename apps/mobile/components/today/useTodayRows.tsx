@@ -86,14 +86,33 @@ export function useTodayRows(
       return next;
     });
 
+  /** 2026-10-18. A tick takes the row out of the day with Undo in its slot,
+   *  as Open in your threads does. Putting a finished row back has no Undo:
+   *  the box is its own. */
   function tick(row: TodayRow): void {
-    const wasDone = row.doneAt !== null;
+    if (row.doneAt === null) {
+      void perform(
+        {
+          apply: () => dropRow(row.id),
+          revert: () => putRow(row.id),
+          write: () => completeContent(row.id, true),
+          unwrite: () => completeContent(row.id, false),
+          did: "Ticked off",
+          failed: "Couldn't tick that off",
+          unfailed: "Couldn't put that back",
+          place: { id: row.id, icon: "check", form: "slot" },
+        },
+        toast,
+        writes,
+      );
+      return;
+    }
     void perform(
       {
-        apply: () => patchRow(row.id, { doneAt: wasDone ? null : new Date().toISOString() }),
+        apply: () => patchRow(row.id, { doneAt: null }),
         revert: () => patchRow(row.id, { doneAt: row.doneAt }),
-        write: () => completeContent(row.id, !wasDone),
-        failed: wasDone ? "Couldn't put that back" : "Couldn't tick that off",
+        write: () => completeContent(row.id, false),
+        failed: "Couldn't put that back",
       },
       toast,
       writes,
@@ -119,6 +138,7 @@ export function useTodayRows(
         did: wasArchived ? "Back in the thread" : "Archived",
         failed: wasArchived ? "Couldn't put that back" : "Couldn't archive that",
         unfailed: wasArchived ? "Couldn't archive that" : "Couldn't put that back",
+        place: { id: row.id, icon: "archive", form: "slot" },
       },
       toast,
       writes,
@@ -135,6 +155,7 @@ export function useTodayRows(
         did: "Deleted, gone in a moment",
         failed: "Couldn't delete that",
         unfailed: "Couldn't put that back",
+        place: { id: row.id, icon: "trash-2", form: "slot" },
       },
       toast,
       writes,
@@ -186,6 +207,7 @@ export function useTodayRows(
         did: "Saved",
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
+        place: { id: row.id, icon: "pencil", form: "under" },
       },
       toast,
       writes,
@@ -206,6 +228,8 @@ export function useTodayRows(
         did: `Moved to ${to.name}`,
         failed: "Couldn't move that",
         unfailed: "Couldn't put it back",
+        // It stays on Today with its new pill, so its line is under it.
+        place: { id: row.id, icon: "arrow-up-right", form: "under" },
       },
       toast,
       writes,

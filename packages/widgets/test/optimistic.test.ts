@@ -1,14 +1,16 @@
 // A write the screen has already drawn: the order of events is the contract.
 
 import { describe, expect, it } from "vitest";
-import { perform, reverse, type Reversible, type ToastAction, type Writes } from "../src/index.js";
+import { perform, reverse, type Place, type Reversible, type ToastAction, type Writes } from "../src/index.js";
 
 function harness() {
   const log: string[] = [];
   const toasts: { message: string; action?: ToastAction }[] = [];
+  const places: (Place | undefined)[] = [];
   const toast = {
-    show: (message: string, action?: ToastAction) => {
+    show: (message: string, action?: ToastAction, place?: Place) => {
       toasts.push(action ? { message, action } : { message });
+      places.push(place);
     },
   };
   let inFlight = 0;
@@ -40,7 +42,7 @@ function harness() {
     failed: "Couldn't archive that",
     unfailed: "Couldn't put that back",
   });
-  return { log, toasts, toast, writes, op, settled: () => settled };
+  return { log, toasts, places, toast, writes, op, settled: () => settled };
 }
 
 describe("perform", () => {
@@ -162,5 +164,28 @@ describe("undo", () => {
       message: "Couldn't put that back",
       action: expect.objectContaining({ label: "Retry" }),
     });
+  });
+});
+
+// 2026-10-18, undo in place: an op that names its thing hands that place to
+// every word it says about it, so the screen can draw the line where it is.
+describe("place", () => {
+  const place: Place = { id: "row-1", icon: "archive", form: "slot" };
+
+  it("goes with the Undo, the failure and the refused undo", async () => {
+    const h = harness();
+    await perform({ ...h.op({ write: false }), place }, h.toast, h.writes);
+    expect(h.places).toEqual([place, place]);
+    const op = { ...h.op({ write: true, unwrite: false }), place };
+    await reverse(op, h.toast, h.writes);
+    expect(h.places.at(-1)).toEqual(place);
+  });
+
+  it("stays off a confirmation with no Undo, which is still a toast", async () => {
+    const h = harness();
+    const op: Reversible = { ...h.op({ write: true }), place };
+    delete op.unwrite;
+    await perform(op, h.toast, h.writes);
+    expect(h.places).toEqual([undefined]);
   });
 });

@@ -2751,16 +2751,6 @@ a.settingsRow:hover,
   white-space: nowrap;
 }
 
-/* A row on its way out. `max-height` cannot transition from `auto`, so the
-   height is measured once and written inline; this holds the rest, which is
-   the same pair of durations `WRow` uses. */
-.collapsing {
-  overflow: hidden;
-  transition:
-    max-height var(--duration-base) var(--ease-out),
-    opacity var(--duration-fast) var(--ease-out);
-}
-
 /* The delete tool on a thread row. Quiet until you are on it, then clay: the
    kit draws `trash-2` through `WTrash` rather than the plain icon button the
    other tools use, so the one destructive control does not look like the rest
@@ -3029,6 +3019,8 @@ a.settingsRow:hover,
 }
 
 .railMonthName {
+  /* An h1 on Today, so no margin of its own. */
+  margin: 0;
   font-weight: var(--weight-medium);
   font-size: calc(14px * var(--type-scale));
   color: var(--text-primary);
@@ -3047,8 +3039,23 @@ a.settingsRow:hover,
   cursor: pointer;
 }
 
-.railStep:hover {
+.railStep:hover:not(:disabled) {
   color: var(--text-primary);
+}
+
+/* 2026-10-18, Today's month: no month before this one, and a day that does
+   not open (before today, past the calendar copy's edge), are drawn closed. */
+.railStep:disabled {
+  color: var(--state-disabled-text);
+  cursor: default;
+}
+
+.railDay:disabled {
+  cursor: default;
+}
+
+.railDay:disabled:hover {
+  background: transparent;
 }
 
 /* Between the arrows rather than beyond them: it is the way back, not a third

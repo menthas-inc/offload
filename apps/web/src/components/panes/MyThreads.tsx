@@ -15,6 +15,8 @@ import { Icon } from "../Icon";
 import { QuietEmpty } from "./QuietEmpty";
 import { ThreadIcon } from "../ThreadIcon";
 import { useToast } from "../shell/Toast";
+import { InPlace } from "../shell/InPlace";
+import { Returned } from "../shell/UndoLine";
 import styles from "../../app/(shell)/shell.module.css";
 import { EditThread } from "./EditThread";
 import { createThread, deleteThread, restoreThread, type GroupKey, type ThreadGroup, type ThreadRow } from "../../lib/threads";
@@ -44,8 +46,9 @@ interface Props {
  *
  *  Straight from `WRow` in `ui_kits/web_app/W.jsx`, which is where all four of
  *  these behaviours come from: tools on hover only, the question replacing the
- *  row rather than opening over it, clicking anywhere else cancelling, and the
- *  row collapsing to nothing once it is gone.
+ *  row rather than opening over it, and clicking anywhere else cancelling. Once
+ *  it is gone its Undo line takes its place (2026-10-18), where the kit
+ *  collapsed it to nothing.
  *
  *  **The question replaces the row in place** because a dialog would cover the
  *  thing it is asking about, and this one names it: you are looking at the row
@@ -60,7 +63,6 @@ function Row({
 }) {
   const toast = useToast();
   const [asking, setAsking] = useState(false);
-  const [gone, setGone] = useState(false);
   // 2026-10-07. With others in it, the row leaves the thread rather than
   // deleting it, which is what the server does, and says so.
   const others = thread.others ?? [];
@@ -68,8 +70,7 @@ function Row({
   const box = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | null>(null);
 
-  // Measured once, so the collapse has somewhere to animate from. `max-height`
-  // cannot transition from `auto`, and the kit measures for the same reason.
+  // Measured once, so the question holds the row's height.
   useEffect(() => {
     if (box.current && height === null) setHeight(box.current.offsetHeight);
   }, [height]);
@@ -89,19 +90,19 @@ function Row({
     const result = await deleteThread(thread.id);
     if (!result) {
       setAsking(false);
-      toast.show(leaves ? "Couldn't leave that thread" : "Couldn't delete that thread", { label: "Try again", onPress: () => void confirm() });
+      toast.show(
+        leaves ? "Couldn't leave that thread" : "Couldn't delete that thread",
+        { label: "Try again", onPress: () => void confirm() },
+        { id: thread.id, icon: leaves ? "log-out" : "trash-2", form: "slot" },
+      );
       return;
     }
     setAsking(false);
-    setGone(true);
     onDeleted(thread, result.deleted);
   }
 
   return (
-    <div
-      className={styles.collapsing}
-      style={height === null ? undefined : { maxHeight: gone ? 0 : height, opacity: gone ? 0 : 1 }}
-    >
+    <div>
       {asking ? (
         <div ref={box} className={styles.confirmRow} style={{ minHeight: height ?? undefined }}>
           <span className={styles.confirmIcon}>
@@ -185,13 +186,17 @@ export function MyThreads({ groups, loose = null, invitations = [], loading, onC
     // and the purge job is what destroys it. Say which thing happened, because
     // leaving a shared thread and deleting one are not the same act and the
     // person is entitled to know which they just did.
-    toast.show(deleted ? "Thread deleted" : "You left the thread", {
-      label: "Undo",
-      onPress: async () => {
-        await restoreThread(thread.id);
-        onChanged?.();
+    toast.show(
+      deleted ? "Thread deleted" : "You left the thread",
+      {
+        label: "Undo",
+        onPress: async () => {
+          await restoreThread(thread.id);
+          onChanged?.();
+        },
       },
-    });
+      { id: thread.id, icon: deleted ? "trash-2" : "log-out", form: "slot" },
+    );
     onChanged?.();
   }
 
@@ -255,9 +260,23 @@ export function MyThreads({ groups, loose = null, invitations = [], loading, onC
             <em className={styles.sectionCount}>{group.threads.length}</em>
           </h2>
         )}
-        {group.threads.map((thread) => (
-          <Row key={thread.id} thread={thread} onDeleted={offerUndo} />
-        ))}
+        {/* 2026-10-18. A thread that goes keeps its row's slot for its line,
+            from the press, before the list is read again. A refusal is the
+            same line under the row. */}
+        <InPlace items={group.threads} idOf={(thread) => thread.id}>
+          {(thread, line, entry) =>
+            entry && entry.form === "slot" && !entry.failed ? (
+              line
+            ) : (
+              <>
+                <Returned id={thread.id}>
+                  <Row thread={thread} onDeleted={offerUndo} />
+                </Returned>
+                {line}
+              </>
+            )
+          }
+        </InPlace>
       </section>
     );
   }

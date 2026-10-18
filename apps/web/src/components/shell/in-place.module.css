@@ -1,0 +1,5 @@
+/* 2026-10-18. The Undo lines with no place on screen, under the composer
+   where its own line goes, with the same space above. */
+.plates {
+  margin: var(--space-2) 0 0;
+}

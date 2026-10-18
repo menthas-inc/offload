@@ -5,12 +5,14 @@
 // What to expect and what to do, across every thread. Under the pane head, in
 // the layout's order and each only when it holds something: **Needs you**, the
 // interruptions, read once per load and the same whichever day is shown; and
-// **the day**, one at a time, with the stepper, the next line, Where you will
+// **the day**, one at a time, picked on the month (2026-10-18, in place of
+// the stepper's arrows), with the next line, Where you will
 // be and To do; and on Today, **open in your threads** (2026-10-07), a page
 // per thread holding to-dos with no date, and **Reminders** (042), what offload
 // is reminding you about, nearest first. Customize Today is the second pane
 // beside this one, opened from the sliders in the pane head, which has no
-// title: the stepper names the day, and Today said twice was one too many.
+// title: the line under the month names the day, and Today said twice was
+// one too many.
 //
 // An account that has never dumped sees 024's day-one invitation in place of
 // the day. Tapping an example fills the composer rather than submitting it,
@@ -24,12 +26,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { addUtcDays, dayName, keepInPlace, nextLine, nothingLine, reminderEntryKey, remindersInOrder, zoneStrip } from "@offload/widgets";
+import { addUtcDays, dayName, dayTitle, keepInPlace, monthDated, monthFor, stepMonth, type MonthCount, nextLine, nothingLine, reminderEntryKey, remindersInOrder, zoneStrip } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { PaneHead } from "../shell/PaneHead";
 import { useThreads } from "../shell/threads-context";
 import { NeedsYou, type Card } from "../today/NeedsYou";
-import { DayStepper } from "../today/DayStepper";
+import { MonthGrid } from "./MonthGrid";
 import { EventsStrip, NextLine } from "../today/EventsStrip";
 import { OpenThreads } from "../today/OpenThreads";
 import { Reminders } from "../today/Reminders";
@@ -39,10 +41,12 @@ import { useAppearance } from "../../lib/appearance";
 import { deviceZone, useClock } from "../../lib/clock";
 import type { Label } from "../../lib/labels";
 import { currentMe, onMe, type Me } from "../../lib/use-me";
+import { useUndoEntries } from "../../lib/undo";
 import {
   TODAY_RESET,
   dayOn,
   fetchDay,
+  fetchMonth,
   fetchNeeds,
   fetchOpenThreads,
   fetchReminders,
@@ -129,6 +133,14 @@ export function TodayPane({
   const valid = (day: string | null): day is string => day !== null && DAY_PATTERN.test(day) && day >= today && day <= lastDay;
 
   const [day, setDay] = useState(() => (valid(openDay) ? openDay : today));
+  // The month on screen. Null is the one the day is in, so a door or the
+  // Today tab moving the day brings the month with it.
+  const [month, setMonth] = useState<string | null>(null);
+  const [went, setWent] = useState<1 | -1>(1);
+  const show = useCallback((next: string) => {
+    setMonth(null);
+    setDay(next);
+  }, []);
   const [read, setRead] = useState<{ date: string; day: Day } | null>(null);
   const [failed, setFailed] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -157,14 +169,14 @@ export function TodayPane({
     if (openDay === applied.current) return;
     applied.current = openDay;
     // `valid` reads today, which only matters on the render the door lands.
-    if (valid(openDay)) setDay(openDay);
+    if (valid(openDay)) show(openDay);
   }, [openDay]);
 
   useEffect(() => {
-    const back = () => setDay(today);
+    const back = () => show(today);
     window.addEventListener(TODAY_RESET, back);
     return () => window.removeEventListener(TODAY_RESET, back);
-  }, [today]);
+  }, [today, show]);
 
   // Midnight in the account's zone: a day that has become yesterday moves on.
   useEffect(() => {
@@ -208,6 +220,22 @@ export function TodayPane({
   useEffect(() => {
     if (filed) void load(false);
   }, [filed, load]);
+
+  // The month's dots: what each day on the grid holds, read for the grid's
+  // whole window and again after a filing, which may have dated something.
+  const grid0 = monthFor(month ?? day, [], today, weekStart);
+  const gridFrom = grid0.weeks[0]?.days[0]?.iso ?? grid0.key;
+  const gridTo = grid0.weeks[grid0.weeks.length - 1]?.days[6]?.iso ?? grid0.key;
+  const [counts, setCounts] = useState<{ window: string; days: MonthCount[] } | null>(null);
+  useEffect(() => {
+    let live = true;
+    void fetchMonth(gridFrom, gridTo).then((days) => {
+      if (live && days) setCounts({ window: `${gridFrom}|${gridTo}`, days });
+    });
+    return () => {
+      live = false;
+    };
+  }, [gridFrom, gridTo, filed, zone]);
 
   // Needs you: once a load, and again when the server's switches changed.
   useEffect(() => {
@@ -285,6 +313,12 @@ export function TodayPane({
     await Promise.all([load(false), loadOpen(), loadReminders()]);
   }, [load, loadOpen, loadReminders]);
   const rows = useTodayRows(reload, labels);
+  // 2026-10-18. A section whose last thing left keeps its place while that
+  // thing's Undo line runs.
+  const undos = useUndoEntries();
+  const lingers = (ids: readonly string[]) => ids.some((id) => undos.has(id));
+  // What the day has drawn, since a reload after a tick no longer holds it.
+  const drewToDo = useRef({ date: "", ids: new Set<string>() });
 
   // ------------------------------------------------------------ Needs you
 
@@ -307,15 +341,37 @@ export function TodayPane({
   const named = dayName(day, today, weekStart);
   const shown = read && read.date === day ? read.day : null;
 
+  const grid = monthFor(
+    month ?? day,
+    counts && counts.window === `${gridFrom}|${gridTo}` ? monthDated(counts.days) : [],
+    today,
+    weekStart,
+  );
   const stepper = (
-    <DayStepper
-      key="stepper"
-      name={named.name}
-      sub={named.sub}
-      first={day <= today}
-      last={day >= lastDay}
-      onStep={(by) => setDay((current) => addUtcDays(current, by))}
-    />
+    <div key="stepper" className={styles.month}>
+      <MonthGrid
+        grid={grid}
+        selected={day}
+        went={went}
+        // A day before today, or past the calendar copy's edge, does not open.
+        closed={(iso) => iso < today || iso > lastDay}
+        // The head names the picked day while its month is the one shown;
+        // on today, the month with Today beside it (the owner, 2026-10-18).
+        title={day !== today && grid.inMonth(day) ? dayTitle(day) : undefined}
+        heading
+        first={grid.key <= today}
+        last={stepMonth(grid.key, 1) > lastDay}
+        onPick={(iso) => show(iso)}
+        onStep={(by) => {
+          setWent(by);
+          setMonth(stepMonth(grid.key, by));
+        }}
+        onToday={() => {
+          setWent(grid.key > today ? -1 : 1);
+          show(today);
+        }}
+      />
+    </div>
   );
 
   let dayBody: React.ReactNode = null;
@@ -354,8 +410,12 @@ export function TodayPane({
       const late = isToday ? rows.shown(shown.late) : [];
       const timed = rows.shown(shown.timed);
       const next = nextLine(shown.events, now, isToday, zone);
+      if (drewToDo.current.date !== day) drewToDo.current = { date: day, ids: new Set() };
+      for (const row of [...late, ...timed, ...rest]) drewToDo.current.ids.add(row.id);
+      const lingering = lingers([...drewToDo.current.ids]);
       const empty =
-        shown.events.length + late.length + timed.length + rest.length + shown.lateMore + shown.restMore + (shown.timedMore ?? 0) === 0;
+        shown.events.length + late.length + timed.length + rest.length + shown.lateMore + shown.restMore + (shown.timedMore ?? 0) === 0 &&
+        !lingering;
       sections = empty ? (
         <p className={styles.nothing}>{nothingLine(named.name)}</p>
       ) : (
@@ -372,6 +432,7 @@ export function TodayPane({
             notDrawn={(shown.timedMore ?? 0) + shown.restMore}
             rows={rows}
             zone={zone}
+            lingering={lingering}
           />
         </>
       );
@@ -421,7 +482,10 @@ export function TodayPane({
     ? remindersInOrder({ rows: rows.shown(reminding.rows), others: reminding.others }).filter((entry) => !gone.has(reminderEntryKey(entry)))
     : [];
   const reminders =
-    showReminders && reminding && everDumped && remindingShown.length > 0 ? (
+    showReminders &&
+    reminding &&
+    everDumped &&
+    (remindingShown.length > 0 || lingers(remindersInOrder(reminding).map((entry) => reminderEntryKey(entry)))) ? (
       <Reminders key="reminders" entries={remindingShown} today={today} zone={zone} onGone={onGone} writes={rows.writes} />
     ) : null;
 

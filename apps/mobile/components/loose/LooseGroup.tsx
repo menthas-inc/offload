@@ -14,12 +14,15 @@ import { Platform, Pressable, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { Glyph } from "../Glyph";
 import { TypeChips } from "./TypeChips";
+import { drawInPlace } from "../shell/InPlace";
 import { useColors } from "../../lib/colors";
+import { useInPlace } from "../../lib/undo";
 import {
   allLink,
   fetchLoose,
   groupRows,
   keepChip,
+  keyOf,
   listCount,
   type ChipKey,
   type LooseEntry,
@@ -75,16 +78,18 @@ export function LooseGroup({
     setChip(next);
   }
 
-  if (!summary || counts.count <= 0) return null;
+  // 2026-10-18. With the Undo lines, so the last row out keeps its slot.
+  const rows = summary ? live(groupRows(summary, kept, page)) : [];
+  const placed = useInPlace(rows, keyOf);
+  if (!summary || (counts.count <= 0 && !placed.some((one) => "slot" in one))) return null;
 
-  const rows = live(groupRows(summary, kept, page));
   const link = allLink(listCount(counts, kept), kept);
 
   return (
     <>
       {heading("Not in a thread", counts.count)}
       <TypeChips count={counts.count} byType={counts.byType} picked={kept} onPick={pick} />
-      {rows.map((entry, i) => row(entry, { border: i < rows.length - 1 }))}
+      {drawInPlace(placed, { idOf: keyOf, row: (entry, border) => row(entry, { border }) })}
       {link ? (
         <Pressable
           onPress={() => router.push(kept ? { pathname: "/threads/loose", params: { type: kept } } : "/threads/loose")}
