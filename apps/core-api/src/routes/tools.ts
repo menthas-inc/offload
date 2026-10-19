@@ -248,13 +248,18 @@ const body = z.discriminatedUnion("tool", [
      *  rather than taken on the worker's word. */
     worker: z
       .strictObject({
-        pageRead: z.literal(true),
+        pageRead: z.literal(true).nullish(),
         pageLocation: z
           .union([
             z.strictObject({ lat: z.number(), lng: z.number() }),
             z.strictObject({ name: z.string().min(1).max(400) }),
           ])
           .nullish(),
+        /** 044. The PDF's actions, resolved by the worker to the links the PDF
+         *  carried (a number became a URL there). Only on a `file` row. The
+         *  shape is loose here on purpose: a failing entry is dropped at the
+         *  write, not raised, so a decoration never fails the dump (OFF-5). */
+        actions: z.array(z.object({ label: z.string(), url: z.string() })).nullish(),
       })
       .nullish(),
   }),
@@ -1061,6 +1066,25 @@ function allDayAttrs(call: {
 }): { all_day: true } | null {
   const when = call.type === "event" ? call.occursAt : call.dueAt;
   return isBareDate(when) ? { all_day: true } : null;
+}
+
+/** 044. The PDF actions the worker resolved, re-checked at the write: an
+ *  http(s) URL and a one-to-twenty-four character label, at most two, a failing
+ *  entry dropped. This is the last of the four scheme checks (harvest, resolve,
+ *  write, open) and the one that holds against a stale or malformed call. */
+function validateActions(
+  actions: { label: string; url: string }[] | null | undefined,
+): { label: string; url: string }[] {
+  const out: { label: string; url: string }[] = [];
+  for (const a of actions ?? []) {
+    const url = typeof a?.url === "string" ? a.url : "";
+    const label = typeof a?.label === "string" ? a.label.trim() : "";
+    if (!/^https?:\/\//i.test(url)) continue;
+    if (label.length < 1 || label.length > 24) continue;
+    out.push({ label, url });
+    if (out.length >= 2) break;
+  }
+  return out;
 }
 
 /** The three lists, in the shape the tool result carries.
@@ -1975,11 +1999,23 @@ export async function toolRoutes(app: App): Promise<void> {
           location = placeQuery(call.location);
           if (location === null) return { ok: false, error: "bad_place_name" };
         }
-        if (call.worker != null && call.type !== "link") return { ok: false, error: "location_not_here" };
+        // 044. The worker's envelope carries a page read on a link and PDF
+        // actions on a file; a page read anywhere else is refused, as before.
+        if (call.worker?.pageRead && call.type !== "link")
+          return { ok: false, error: "location_not_here" };
+        // The resolved actions, re-checked at the write though the worker
+        // already filtered them (SEC-2, against a stale or malformed call):
+        // http(s) only, a label of one to twenty-four characters, at most two,
+        // a failing entry dropped rather than the dump failed.
+        const actions =
+          call.type === "file" ? validateActions(call.worker?.actions) : [];
         // The page's read counts only while the map is on and the author's
         // switch is, read here: the worker is not trusted for an access
         // decision (routes/internal.ts).
-        const page = call.worker != null && (await mayReadForPlace(accountId, trx)) ? call.worker : null;
+        const page =
+          call.type === "link" && call.worker != null && (await mayReadForPlace(accountId, trx))
+            ? call.worker
+            : null;
         const pageName =
           page?.pageLocation && "name" in page.pageLocation && !/[\r\n]/.test(page.pageLocation.name)
             ? page.pageLocation.name.trim().slice(0, 120) || null
@@ -2040,7 +2076,12 @@ export async function toolRoutes(app: App): Promise<void> {
             // 030. An event's place name, or the name a link's page gave.
             location: location ?? pageName,
             place_read_at: page ? sql`now()` : null,
-            ...(allDayAttrs(call) ? { attrs: allDayAttrs(call) } : {}),
+            // 044. The PDF's actions live in attrs beside any all-day flag,
+            // read whole with the row and never in a WHERE (decisions.md 001).
+            ...((): { attrs?: unknown } => {
+              const attrs = { ...(allDayAttrs(call) ?? {}), ...(actions.length ? { actions } : {}) };
+              return Object.keys(attrs).length ? { attrs } : {};
+            })(),
             updated_at: sql`now()`,
           })
           // Idempotent on the tool call, so a post that succeeded and whose

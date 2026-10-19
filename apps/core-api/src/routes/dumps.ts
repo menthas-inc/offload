@@ -65,6 +65,7 @@ import { memberOf } from "../threads/access.js";
 import { calendarSpan } from "../threads/dates.js";
 import { MAX_PDFS, MAX_PHOTOS } from "../blobs/photos.js";
 import { fileOnMessage, fileOnRow, fileToWire, type FileOnMessage } from "../blobs/wire.js";
+import { actionsOf } from "./threads.js";
 import { OverBudget, requireBudget } from "../budget.js";
 import type { MailAttrs } from "../mail-in/attrs.js";
 
@@ -456,12 +457,38 @@ export async function photosForAll(
     .where("blobs.deleted_at", "is", null)
     .orderBy("blobs.created_at", "asc")
     .execute();
+  // 044. The links a filed PDF carried, by blob, so the filing reply can draw
+  // the same chips the row does. One bounded read for every blob on the page
+  // (each message has at most two PDFs), not a join on the hot path.
+  const actions = await actionsForBlobs(rows.filter((r) => r.kind === "pdf").map((r) => r.id));
   for (const row of rows) {
     const list = out.get(row.message_id!) ?? [];
-    list.push({ ...fileToWire(row), name: row.name });
+    const wire = { ...fileToWire(row), name: row.name };
+    const carried = actions.get(row.id);
+    list.push(wire.kind === "pdf" && carried ? { ...wire, actions: carried } : wire);
     out.set(row.message_id!, list);
   }
   return out;
+}
+
+/** 044. Which links each PDF blob's filed `file` row carries, from its
+ *  `attrs.actions`. Scoped by the join to the account's own rows; a bounded
+ *  set (at most two PDFs a message, two links each). */
+async function actionsForBlobs(blobIds: string[]): Promise<Map<string, { label: string; url: string }[]>> {
+  const map = new Map<string, { label: string; url: string }[]>();
+  if (blobIds.length === 0) return map;
+  const rows = await db
+    .selectFrom("content_blobs")
+    .innerJoin("content", "content.id", "content_blobs.content_id")
+    .select(["content_blobs.blob_id as blobId", "content.attrs as attrs"])
+    .where("content_blobs.blob_id", "in", blobIds)
+    .where("content.type", "=", "file")
+    .execute();
+  for (const row of rows) {
+    const carried = actionsOf(row.attrs);
+    if (carried) map.set(row.blobId, carried);
+  }
+  return map;
 }
 
 /** Where each of a page of messages filed, in one query.

@@ -91,6 +91,49 @@ def ticket() -> bytes:
     )
 
 
+def links() -> bytes:
+    """044 harvest fixture: a boarding pass carrying link annotations and a
+    printed URL. A real check-in hyperlink, a manage-booking URL that is both
+    an annotation and printed text (deduped to one), a `javascript:` link and
+    an over-long one (both dropped). annotations come before printed text."""
+    long_url = "https://example.com/" + "a" * 2100
+    pdf = pikepdf.open(
+        io.BytesIO(
+            _pages(
+                [
+                    [
+                        "BOARDING PASS",
+                        "Passenger: ANA SILVA",
+                        "Flight TP1336  Lisbon to London, 14 October",
+                        "Manage your booking at https://example.com/manage",
+                    ]
+                ]
+            )
+        )
+    )
+    page = pdf.pages[0]
+    rect = Array([72, 72, 200, 90])
+
+    def link(uri: str) -> Dictionary:
+        action = Dictionary(S=Name.URI, URI=String(uri))
+        annot = Dictionary(Type=Name.Annot, Subtype=Name.Link, Rect=rect, A=action)
+        return pdf.make_indirect(annot)
+
+    page.obj.Annots = pdf.make_indirect(
+        Array(
+            [
+                link("https://lufthansa.com/checkin"),
+                link("https://example.com/manage"),
+                link("javascript:alert(1)"),
+                link(long_url),
+            ]
+        )
+    )
+    out = io.BytesIO()
+    pdf.save(out)
+    return out.getvalue()
+
+
 def contract() -> bytes:
     pages = [
         [f"Rental agreement, clause {n}", "The tenant shall keep the flat in good order."]
@@ -292,6 +335,7 @@ def clean_stream_names() -> bytes:
 FIXTURES = {
     "boarding.pdf": boarding,
     "ticket.pdf": ticket,
+    "links.pdf": links,
     "contract.pdf": contract,
     "pages1001.pdf": pages1001,
     "locked.pdf": locked,
@@ -311,6 +355,13 @@ def _assert_claims() -> None:
 
     assert len(opened("boarding.pdf").pages) == 1
     assert len(opened("ticket.pdf").pages) == 2
+    links_pdf = opened("links.pdf")
+    assert [str(a.A.URI) for a in links_pdf.pages[0].obj.Annots] == [
+        "https://lufthansa.com/checkin",
+        "https://example.com/manage",
+        "javascript:alert(1)",
+        "https://example.com/" + "a" * 2100,
+    ]
     assert len(opened("contract.pdf").pages) == 48
     assert len(opened("pages1001.pdf").pages) == 1001
     try:

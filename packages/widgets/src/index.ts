@@ -356,7 +356,7 @@ export { MAX_PDFS, MAX_PHOTO_BYTES, MAX_PHOTOS, clipMiddle, isPdf, photoCaption,
 // 021. A voice note: its ceiling and its bars.
 export { MAX_VOICE_MS, WAVEFORM_BARS, resample } from "./recording.js";
 // A thread's rows: a link's domain, a span of the day, a row drawn at the press.
-export { domainOf, isProvisional, provisionalId, rangeOf, startsAs } from "./threads.js";
+export { domainOf, hostForAction, isProvisional, provisionalId, rangeOf, startsAs } from "./threads.js";
 
 // 023. The recurrence rule and the day arithmetic it shares with the rail.
 export {

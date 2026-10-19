@@ -16,6 +16,13 @@ const pdf = {
   /** The worker could not make it safe: it will never open, which is not the
    *  same as not yet. */
   unreadable: z.boolean(),
+  /** 044. Up to two links the PDF carried, offered beside it in the filing
+   *  reply. Absent on a row's own blob (the row carries its own `actions`); set
+   *  only on a message's PDF, where the reply draws the chips. */
+  actions: z
+    .array(z.object({ label: z.string(), url: z.string() }))
+    .max(2)
+    .nullish(),
 };
 
 export const fileOnRow = z.discriminatedUnion("kind", [z.object(image), z.object(pdf)]);

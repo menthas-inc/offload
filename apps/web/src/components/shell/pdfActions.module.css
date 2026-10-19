@@ -1,0 +1,75 @@
+/* 044. The PDF action pills and their per-tap confirm. Secondary pills: a
+   hairline outline, never the moss "offload did this" or the attention tone, so
+   they never read as a row that needs you. */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pill:hover {
+  background: var(--surface-fill-strong);
+}
+
+.confirm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.confirmText {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.open {
+  min-height: 32px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  border: 1px solid var(--border-strong);
+  color: var(--text-accent);
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.remove,
+.cancel {
+  min-height: 32px;
+  padding: 0 8px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Quietest of the three: correcting a wrong action is rare and not the move
+   the person came for. */
+.remove {
+  color: var(--text-tertiary);
+}

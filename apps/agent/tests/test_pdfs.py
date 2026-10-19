@@ -93,6 +93,22 @@ def test_the_cut_is_the_first_ten_pages_and_the_count_is_all_of_them() -> None:
     assert every_name_in_every_stream(made.cut) == []
 
 
+def test_harvest_collects_link_annotations_and_printed_urls() -> None:
+    # 044 T3. The check-in hyperlink annotation and the printed manage URL
+    # become candidates, in that order (annotations first, then text). The same
+    # URL carried both as an annotation and as text is one entry. A javascript:
+    # link and an over-2048-byte URL are dropped. http(s) only.
+    made = pdfs.make(fixture("links.pdf"))
+    assert made.candidates == [
+        "https://lufthansa.com/checkin",
+        "https://example.com/manage",
+    ]
+
+
+def test_harvest_is_empty_when_a_pdf_carries_no_links() -> None:
+    assert pdfs.make(fixture("boarding.pdf")).candidates == []
+
+
 def test_page_one_becomes_the_same_two_jpegs_a_photo_gets() -> None:
     made = pdfs.make(fixture("boarding.pdf"))
     thumb = Image.open(io.BytesIO(made.thumb))

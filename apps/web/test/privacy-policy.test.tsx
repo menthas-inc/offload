@@ -38,9 +38,9 @@ const terms = textOf(renderToStaticMarkup(<Terms />));
 const source = (path: string) => readFileSync(`${process.cwd()}/src/${path}`, "utf8");
 
 describe("the privacy policy, general", () => {
-  it("is titled as a privacy policy and dated 10 October 2026", () => {
+  it("is titled as a privacy policy and dated 18 October 2026", () => {
     expect(policyHtml).toMatch(/<h1[^>]*>Privacy policy<\/h1>/);
-    expect(policy).toContain("Last updated 10 October 2026");
+    expect(policy).toContain("Last updated 18 October 2026");
   });
 
   // 041. PDFs, wherever the page says what is put in, kept, made, sent to a
@@ -49,8 +49,10 @@ describe("the privacy policy, general", () => {
     expect(policy).toContain("notes, links, photos, screenshots, PDFs, voice notes");
     expect(policy).toContain("its text, its pictures and its PDFs, its subject, who sent it and when, but not the raw email or its other attachments");
     expect(policy).toContain("descriptions of what photos, screenshots and PDFs show, including any words in them. The text of a PDF itself is not kept.");
+    // 044. The useful links a PDF carried, kept as actions, named in section 3.
+    expect(policy).toContain("up to two useful links it carried");
     expect(policy).toContain("Sorting, reading photos and PDFs, transcribing voice notes");
-    expect(policy).toContain("what you just put in (of a PDF, its first ten pages),");
+    expect(policy).toContain("what you just put in (of a PDF, its first ten pages and any web links it carries),");
     expect(policy).toContain("A PDF in a shared thread opens for its members as a copy without the details of who made it and without anything in it that could run.");
     expect(policy).toContain("your photos, screenshots, PDFs, voice note audio and the pictures and PDFs in email you forward");
     expect(policy).toContain("what offload writes about a photo or a PDF");
@@ -252,8 +254,8 @@ describe("040 the memories tab", () => {
   });
 
   it("moves both dates", () => {
-    // 042 moved the policy again on 10 October; the companies list stayed.
-    expect(policy).toContain("Last updated 10 October 2026");
+    // 044 moved the policy again on 18 October (PDF actions); the companies list stayed.
+    expect(policy).toContain("Last updated 18 October 2026");
     expect(companies).toContain("Last updated 8 October 2026");
   });
 });
@@ -308,6 +310,6 @@ describe("042 reminders, as the page says them", () => {
   });
 
   it("is dated the day it changed", () => {
-    expect(source("app/(marketing)/privacy/page.tsx")).toContain('const UPDATED = "10 October 2026";');
+    expect(source("app/(marketing)/privacy/page.tsx")).toContain('const UPDATED = "18 October 2026";');
   });
 });

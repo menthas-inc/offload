@@ -126,6 +126,9 @@ class Pdf:
     picture: bytes | None = None
     clean: bytes | None = field(default=None, repr=False)
     large: bytes | None = field(default=None, repr=False)
+    #: 044. http(s) links the PDF carried, harvested by the worker's child and
+    #: held only for this turn. The model offers at most two of them by number.
+    candidates: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

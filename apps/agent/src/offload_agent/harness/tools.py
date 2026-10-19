@@ -127,6 +127,31 @@ class CreateThread(BaseModel):
 _PHOTO_ROWS = ("image", "screenshot", "event", "location", "task")
 
 
+#: 044. Dashes offload never writes (the en, em and friends; the ASCII hyphen
+#: is fine). A label carrying one is dropped, as is one that is host-shaped.
+_LABEL_DASHES = "‒–—―−"
+_HOST_SHAPED = re.compile(r"\.[a-z]{2,}", re.IGNORECASE)
+
+
+def _usable_label(label: str) -> bool:
+    """A short, sentence-case label with no dash, no scheme and no host, so the
+    only host-shaped text beside a PDF is the one the client computes (AC-6)."""
+    label = label.strip()
+    if not 1 <= len(label) <= 24:
+        return False
+    if any(d in label for d in _LABEL_DASHES):
+        return False
+    return "://" not in label and _HOST_SHAPED.search(label) is None
+
+
+class ActionItem(BaseModel):
+    """044. A link the PDF carried, named by its number in the candidate set
+    (never a URL the model wrote), and the label the model wrote for the tap."""
+
+    link: int
+    label: str
+
+
 class AddContent(BaseModel):
     """Put one piece of what somebody dumped into a thread."""
 
@@ -204,6 +229,14 @@ class AddContent(BaseModel):
     # PDF you were shown.
     pdf: int | None = None
 
+    # 044. Up to two links the PDF carried, offered beside it. Each names a
+    # candidate by its number (never a URL the model writes) and a short label.
+    # Permissive: a bad entry is dropped in the validator below, never raised,
+    # so a decoration cannot cost a whole dump (the 2026-10-17 boundary rule).
+    # The worker resolves each number to the harvested URL; the model, and this
+    # schema, never carry one.
+    actions: list[ActionItem] | None = None
+
     # 028. Filed into their default thread with a home in mind you were not
     # sure enough to file into: that thread's id. Offered to them as a
     # suggestion on the row; nothing moves.
@@ -235,6 +268,15 @@ class AddContent(BaseModel):
             raise ValueError("a file is a PDF: give its number as pdf")
         if self.pdf is not None and not 1 <= self.pdf <= 2:
             raise ValueError("pdf is 1 or 2")
+        # 044. actions ride a file row that carries a PDF; anywhere else they
+        # are dropped, not raised. A bad entry (link below one, or a label that
+        # is empty, over 24, dashed or host-shaped) drops that one entry.
+        if self.actions is not None:
+            if self.type != "file" or self.pdf is None:
+                self.actions = None
+            else:
+                kept = [a for a in self.actions if a.link >= 1 and _usable_label(a.label)]
+                self.actions = kept or None
         return self
 
     @field_validator("rrule")

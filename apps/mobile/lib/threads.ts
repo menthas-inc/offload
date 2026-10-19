@@ -213,6 +213,9 @@ export interface ContentRow extends Sortable {
     unreadable?: boolean;
     ready: boolean;
   } | null;
+  /** 044. Up to two links the PDF carried, offered beside it. Null on a row
+   *  that is not a PDF or carries none; absent on an older shape. */
+  actions?: { label: string; url: string }[] | null;
   createdAt: string;
   archivedAt: string | null;
   doneAt: string | null;
@@ -432,6 +435,19 @@ export async function setArchived(id: string, archived: boolean): Promise<boolea
     `/v1/content/${id}/${archived ? "archive" : "restore"}`,
     { method: "POST" }
   );
+  return status === 200;
+}
+
+/** 044. Remove a wrong action from a PDF's row, or put it back. Author only on
+ *  the server; restore refuses any url the PDF did not carry, so this can never
+ *  add one. The url is the one already on the row, never composed here. */
+export async function forgetAction(id: string, url: string): Promise<boolean> {
+  const { status } = await send(`/v1/content/${id}/actions/forget`, { method: "POST", ...body({ url }) });
+  return status === 200;
+}
+
+export async function restoreAction(id: string, url: string): Promise<boolean> {
+  const { status } = await send(`/v1/content/${id}/actions/restore`, { method: "POST", ...body({ url }) });
   return status === 200;
 }
 

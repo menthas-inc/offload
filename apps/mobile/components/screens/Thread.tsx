@@ -65,6 +65,8 @@ import {
   deleteThread,
   restoreThread,
   editContent,
+  forgetAction,
+  restoreAction,
   fetchContent,
   fetchThread,
   isProvisional,
@@ -430,6 +432,29 @@ export default function Thread() {
         failed: wasArchived ? "Couldn't put that back" : "Couldn't archive that",
         unfailed: wasArchived ? "Couldn't archive that" : "Couldn't put that back",
         place: placeOf(row.id, "archive", "slot"),
+      },
+      toast,
+      writes,
+    );
+  }
+
+  /** 044. Remove a wrong action from a PDF's row. The row stays and changes,
+   *  so the Undo draws under it (`form: "under"`), as an in-place edit does; a
+   *  failed write puts the action back, and restore refuses, server side, any
+   *  url the PDF did not carry. */
+  function removeAction(row: ContentRow, url: string): void {
+    if (isProvisional(row.id)) return;
+    const before = row.actions ?? [];
+    void perform(
+      {
+        apply: () => patchRow(row.id, { actions: before.filter((action) => action.url !== url) }),
+        revert: () => patchRow(row.id, { actions: before }),
+        write: () => forgetAction(row.id, url),
+        unwrite: () => restoreAction(row.id, url),
+        did: "Removed",
+        failed: "Couldn't remove that",
+        unfailed: "Couldn't put that back",
+        place: placeOf(row.id, "arrow-up-right", "under"),
       },
       toast,
       writes,
@@ -1151,6 +1176,7 @@ export default function Thread() {
               border={border}
               arrived={arrived.has(row.id)}
               onDelete={() => remove(row)}
+              onRemoveAction={(url) => removeAction(row, url)}
               onEdit={() => setRenaming(row)}
               onOpenPhoto={() => openFileOf(row)}
             />

@@ -29,9 +29,11 @@ import contextlib
 import io
 import json
 import math
+import re
 import struct
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from urllib.parse import urlsplit
 
 #: What the clean copy never carries, as a dictionary key or a name value.
 KILL = frozenset(
@@ -110,6 +112,8 @@ class Made:
     thumb: bytes
     large: bytes
     pages: int
+    #: http(s) links the PDF carried, for 044's actions. Held only for the turn.
+    candidates: list[str] = field(default_factory=list)
 
 
 def _open(data: bytes):
@@ -175,11 +179,104 @@ def verify(clean: bytes) -> None:
                 raise Failed("verify")
 
 
-def clean(original: bytes) -> bytes:
-    """The clean copy, verified."""
+# ------------------------------------------------------------- link harvest 044
+
+#: Pages the harvest looks at, the same ten the model reads.
+HARVEST_PAGES = 10
+#: Bounds. A candidate over these is dropped; the set is capped (impl-spec: the
+#: cap bounds the one-off prompt cost, a real ticket carries under ten).
+MAX_URL = 2048
+MAX_HOST = 255
+MAX_CANDIDATES = 24
+#: A URL printed in page text, bounded so a pathological run cannot blow up.
+_URL_RE = re.compile(r"https?://[^\s<>\"'\]\)}]{1,2100}", re.IGNORECASE)
+
+
+def _ok_url(url: str) -> bool:
+    """http/https only, within bounds, with a host (SEC-1, AC-11)."""
+    if len(url.encode()) > MAX_URL:
+        return False
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return False
+    if parts.scheme.lower() not in ("http", "https"):
+        return False
+    try:
+        host = parts.hostname or ""
+    except ValueError:
+        return False
+    return bool(host) and len(host.encode()) <= MAX_HOST
+
+
+def _link_uris(pdf) -> list[str]:
+    """The /URI targets of link annotations on the first ten pages, read before
+    the clean copy flattens them away. Best effort: a malformed annotation tree
+    yields what was read so far, never a failure (041's channel is for an
+    unreadable PDF, not a missing link)."""
     import pikepdf
 
-    pdf = _open(original)
+    uris: list[str] = []
+    try:
+        for page in pdf.pages[:HARVEST_PAGES]:
+            annots = page.obj.get("/Annots")
+            if not isinstance(annots, pikepdf.Array):
+                continue
+            for annot in annots:
+                if not isinstance(annot, pikepdf.Dictionary | pikepdf.Stream):
+                    continue
+                if annot.get("/Subtype") != pikepdf.Name("/Link"):
+                    continue
+                action = annot.get("/A")
+                if not isinstance(action, pikepdf.Dictionary):
+                    continue
+                if action.get("/S") != pikepdf.Name("/URI"):
+                    continue
+                uri = action.get("/URI")
+                if uri is not None:
+                    uris.append(str(uri))
+    except Exception:  # noqa: BLE001 - a missing link is never a fatal failure
+        return uris
+    return uris
+
+
+def _text_urls(clean_copy: bytes) -> list[str]:
+    """http(s) URLs printed in the clean copy's first ten pages. Read off the
+    clean copy, so no second parse of untrusted bytes (SEC-1)."""
+    import pypdfium2 as pdfium
+
+    urls: list[str] = []
+    try:
+        doc = pdfium.PdfDocument(clean_copy)
+        for i in range(min(len(doc), HARVEST_PAGES)):
+            text = doc[i].get_textpage().get_text_range()
+            urls.extend(_URL_RE.findall(text))
+    except Exception:  # noqa: BLE001 - text is best effort; the annotation is the reliable source
+        return urls
+    return urls
+
+
+def _candidates(link_uris: list[str], clean_copy: bytes) -> list[str]:
+    """http/https links the PDF carried, annotations first then printed text,
+    deduped on the exact string, capped. Data for the model to pick by number;
+    nothing here is ever composed or completed."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for url in [*link_uris, *_text_urls(clean_copy)]:
+        if url in seen or not _ok_url(url):
+            continue
+        seen.add(url)
+        out.append(url)
+        if len(out) >= MAX_CANDIDATES:
+            break
+    return out
+
+
+def _clean(pdf) -> bytes:
+    """The clean copy of an already-open document, verified. Separated from
+    `clean` so the harvest can read the open document before this flattens it."""
+    import pikepdf
+
     try:
         pdf.flatten_annotations(mode="all")
         root = pdf.Root
@@ -203,6 +300,11 @@ def clean(original: bytes) -> bytes:
         raise Failed("parse") from exc
     verify(out)
     return out
+
+
+def clean(original: bytes) -> bytes:
+    """The clean copy, verified."""
+    return _clean(_open(original))
 
 
 def cut(clean_copy: bytes, pages: int = CUT_PAGES) -> bytes:
@@ -241,10 +343,19 @@ def _jpeg(image, quality: int) -> bytes:
 
 
 def make(original: bytes) -> Made:
-    """The clean copy, its cut, its count, and page 1's two JPEGs."""
+    """The clean copy, its cut, its count, page 1's two JPEGs, and the http(s)
+    links it carried (044). The links are harvested from the open document
+    before it is flattened, and from the clean copy's text; a harvest failure
+    yields no candidates and never fails the PDF."""
     from PIL import Image, ImageOps
 
-    copy = clean(original)
+    pdf = _open(original)
+    links = _link_uris(pdf)
+    copy = _clean(pdf)
+    try:
+        candidates = _candidates(links, copy)
+    except Exception:  # noqa: BLE001 - a missing link is never a fatal failure
+        candidates = []
     page = _page_one(copy, LARGE_PX)
     # From the top, not the centre: a document says what it is in its heading,
     # and a centred square of a page is mostly margin.
@@ -257,6 +368,7 @@ def make(original: bytes) -> Made:
         thumb=_jpeg(thumb, 80),
         large=_jpeg(large, 85),
         pages=len(_open(copy).pages),
+        candidates=candidates,
     )
 
 
@@ -309,7 +421,13 @@ def _main(mode: str) -> None:
             return
         made = make(data)
         parts = [getattr(made, name) for name in _PARTS]
-        _write({"ok": True, "pages": made.pages, "sizes": [len(p) for p in parts]}, parts)
+        header = {
+            "ok": True,
+            "pages": made.pages,
+            "sizes": [len(p) for p in parts],
+            "candidates": made.candidates,
+        }
+        _write(header, parts)
     except Failed as failure:
         _write({"ok": False, "reason": failure.reason}, [])
     except MemoryError:
@@ -352,7 +470,11 @@ async def _child(data: bytes, mode: str, timeout: float) -> tuple[dict, list[byt
 async def run_pdf(original: bytes, *, timeout: float = WALL_SECONDS) -> Made:
     """The copies, made in a bounded child."""
     header, parts = await _child(original, "make", timeout)
-    return Made(**dict(zip(_PARTS, parts, strict=True)), pages=int(header["pages"]))
+    return Made(
+        **dict(zip(_PARTS, parts, strict=True)),
+        pages=int(header["pages"]),
+        candidates=list(header.get("candidates", [])),
+    )
 
 
 async def run_look(original: bytes, *, timeout: float = WALL_SECONDS) -> bytes:

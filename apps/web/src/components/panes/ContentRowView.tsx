@@ -31,6 +31,7 @@ import { Line } from "../shell/InPlace";
 import { lineFor, useUndoEntry } from "../../lib/undo";
 import { DateChip } from "../shell/DateChip";
 import { PhotoThumb } from "../shell/PhotoThumb";
+import { PdfActions } from "../shell/PdfActions";
 import { ThreadPill } from "../shell/ThreadPill";
 import { ReorderHandle, RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
@@ -64,6 +65,9 @@ export interface RowHandlers {
   onArchiveNow?: (row: ContentRow) => void;
   onAsk: (id: string | null) => void;
   onDelete: (row: ContentRow) => void;
+  /** 044. Remove a wrong action from a PDF's row, author only, with the row's
+   *  own Undo. Absent where the page offers no writes. */
+  onRemoveAction?: (row: ContentRow, url: string) => void;
   /** 020. A photo row's tile opens the viewer; the row itself opens as a row. */
   onOpenPhoto?: (row: ContentRow) => void;
   /** 025. The thread's labels by id, so a row can draw its marks. Absent where
@@ -365,6 +369,19 @@ export function ContentRowView({
             <Icon name="link" size={12} />
             {domain}
           </span>
+        ) : null}
+
+        {/* 044. The links the PDF carried, under the title and meta, where the
+            row lives for as long as the PDF does. Not drawn on an archived row. */}
+        {row.actions && !row.archivedAt ? (
+          <PdfActions
+            actions={row.actions}
+            // Author only, the same gate the row's delete uses.
+            canRemove={row.canDelete && Boolean(handlers.onRemoveAction)}
+            onRemove={
+              handlers.onRemoveAction ? (url) => handlers.onRemoveAction!(row, url) : undefined
+            }
+          />
         ) : null}
       </span>
 

@@ -99,6 +99,7 @@ from offload_agent.worker import (
     _within_the_dump,
     fit_documents,
     parse_answer,
+    resolve_actions,
 )
 
 HERE = Path(__file__).parent
@@ -1307,6 +1308,16 @@ def _copy_problems(text: str) -> list[str]:
     return problems
 
 
+def _resolve_actions(fx: dict, args: dict) -> list[dict]:
+    """044. The resolved {label, url} list for a file row's `actions`, run
+    through the worker's own bound against the fixture's harvested candidates."""
+    index = args.get("pdf")
+    names = fx.get("pdfs") or []
+    if not isinstance(index, int) or not 1 <= index <= len(names):
+        return []
+    return resolve_actions(_pdf_candidates(names[index - 1]), args.get("actions") or [])
+
+
 def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str | None:
     """Does any filing call satisfy this matcher. None means yes; otherwise
     the reason it did not, for the report."""
@@ -1405,6 +1416,23 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
             return False
         if matcher.get("no_pdf") and args.get("pdf"):
             return False
+        # 044. The actions, resolved the way the worker resolves them: the model
+        # returned numbers, so this runs the real bound to get the {label, url}
+        # that would land in `content.attrs.actions`.
+        _action_keys = ("action_count", "action_labels", "action_urls", "action_urls_none_of")
+        if any(k in matcher for k in _action_keys):
+            resolved = _resolve_actions(fx, args)
+            if "action_count" in matcher and len(resolved) != matcher["action_count"]:
+                return False
+            labels = [str(a["label"]).lower() for a in resolved]
+            for sub in matcher.get("action_labels", []):
+                if not any(sub.lower() in lab for lab in labels):
+                    return False
+            urls = {a["url"] for a in resolved}
+            if not all(u in urls for u in matcher.get("action_urls", [])):
+                return False
+            if any(u in urls for u in matcher.get("action_urls_none_of", [])):
+                return False
         # And what the body carries, for the transcription rules: a digit run
         # a passport must not leak, a line a screenshot must.
         body = str(args.get("body") or "")
@@ -1719,15 +1747,37 @@ _spent: list[float] = []
 
 PHOTO_FIXTURES = Path(__file__).parent / "fixtures" / "photos"
 PDF_FIXTURES = Path(__file__).parent / "fixtures" / "pdfs"
+#: 044. The feature's own drawn PDFs, with real link annotations; a case may
+#: also name a 041 linkless document from `pdfs/` (the AC-1 zero-yield set).
+PDF_ACTION_FIXTURES = Path(__file__).parent / "fixtures" / "pdf-actions"
+
+
+def _pdf_bytes(name: str) -> bytes:
+    """A fixture PDF by name, from pdf-actions first, then 041's pdfs."""
+    here = PDF_ACTION_FIXTURES / name
+    return (here if here.exists() else PDF_FIXTURES / name).read_bytes()
+
+
+#: 044. Candidates harvested per fixture, cached so the matcher resolves the
+#: same set the model was shown without a second subprocess per assertion.
+_PDF_CANDIDATES: dict[str, list[str]] = {}
+
+
+def _pdf_candidates(name: str) -> list[str]:
+    if name not in _PDF_CANDIDATES:
+        _PDF_CANDIDATES[name] = pdfs_mod.make(_pdf_bytes(name)).candidates
+    return _PDF_CANDIDATES[name]
 
 
 async def _pdfs(fx: dict) -> list[Pdf]:
-    """041. The case's PDFs, by file name under `fixtures/pdfs/`, through the
-    worker's own clean, cut and request bound, so the model reads what it
-    would."""
+    """041. The case's PDFs, by file name, through the worker's own clean, cut
+    and request bound, so the model reads what it would. 044: the links each
+    carried ride along as candidates, so the model is shown the same numbered
+    set production shows it."""
     out: list[Pdf] = []
     for at, name in enumerate(fx.get("pdfs") or []):
-        made = pdfs_mod.make((PDF_FIXTURES / name).read_bytes())
+        made = pdfs_mod.make(_pdf_bytes(name))
+        _PDF_CANDIDATES[name] = made.candidates
         out.append(
             Pdf(
                 blob_id=f"pdf-{at + 1}",
@@ -1736,6 +1786,7 @@ async def _pdfs(fx: dict) -> list[Pdf]:
                 cut=made.cut,
                 clean=made.clean,
                 large=made.large,
+                candidates=made.candidates,
             )
         )
     fitted, _ = await fit_documents(out, other_bytes=0)
@@ -1746,9 +1797,7 @@ async def _run_look(client: AsyncAnthropic, case: Case, model: str) -> Result:
     """041. The look at an email's pictures: page 1 of each PDF, as the worker
     draws it, then the photos, and which it keeps by index."""
     fx = case.fixture
-    pictures = [
-        pdfs_mod.look_picture((PDF_FIXTURES / n).read_bytes()) for n in fx.get("look_pdfs") or []
-    ]
+    pictures = [pdfs_mod.look_picture(_pdf_bytes(n)) for n in fx.get("look_pdfs") or []]
     pictures += [(PHOTO_FIXTURES / n).read_bytes() for n in fx.get("look_photos") or []]
     try:
         kept = await look(client, model, pictures)
@@ -1952,6 +2001,18 @@ async def _file_with(
     for matcher in expect.get("not_filed", []):
         if _match_filing(matcher, rec.calls, fx) is None:
             failures.append(f"filed a row that fits {matcher} and should not have: {filed}")
+    # 044. No PDF row carries any action (the common case; stated with
+    # `action_count: 0` for clarity).
+    if expect.get("no_actions"):
+        carried = [
+            resolved
+            for tool, args in rec.calls
+            if tool == "add_content" and args.get("type") == "file"
+            for resolved in [_resolve_actions(fx, args)]
+            if resolved
+        ]
+        if carried:
+            failures.append(f"a PDF row carries actions and should carry none: {carried}")
     if expect.get("files_something") and not any(
         t in {"add_content", "add_note"} for t, _ in rec.calls
     ):

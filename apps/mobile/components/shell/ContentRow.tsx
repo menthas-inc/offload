@@ -51,6 +51,7 @@ import { DateChip, HourChip } from "./DateChip";
 import { ThreadPill } from "./ThreadPill";
 import { PhotoThumb } from "./PhotoThumb";
 import { PdfOpening } from "./PdfOpening";
+import { PdfActions } from "./PdfActions";
 import { useColors } from "../../lib/colors";
 import { domainOf, isProvisional, rowTap, type ContentRow } from "../../lib/threads";
 import { openLink } from "../../lib/links";
@@ -91,6 +92,9 @@ interface Props {
   row: ContentRow;
   border: boolean;
   onDelete: () => void;
+  /** 044. Remove a wrong action from a PDF's row, author only, with the row's
+   *  own Undo. Bound to the row by the list that renders it. */
+  onRemoveAction?: ((url: string) => void) | undefined;
   /** The row's one sheet, which a tap opens: its fields, labels, Move, and
    *  the way out. */
   onEdit: () => void;
@@ -158,6 +162,7 @@ export function ContentRowView({
   arrived,
   onOpenPhoto,
   onDelete,
+  onRemoveAction,
   onEdit,
   onToggle,
   note,
@@ -619,6 +624,17 @@ export function ContentRowView({
               </Pressable>
             ) : null}
           </Pressable>
+          {/* 044. The links the PDF carried, in the row's text column, outside
+              the title's press so each is its own tappable element. Not on an
+              archived row. */}
+          {row.actions && !row.archivedAt ? (
+            <PdfActions
+              actions={row.actions}
+              // Author only, the same gate the row's delete uses.
+              canRemove={row.canDelete && Boolean(onRemoveAction)}
+              onRemove={onRemoveAction}
+            />
+          ) : null}
           {below}
           </View>
 
