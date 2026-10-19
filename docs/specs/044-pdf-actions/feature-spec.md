@@ -55,7 +55,7 @@ Opening is the platform's own default browser (`UIApplication.open`, an `ACTION_
 
 ### Removing a wrong action
 
-Structure offload adds can always be corrected. A lounge advert the model mislabelled *View ticket* is removed from the row's existing action sheet; the action is dropped from the row, and because a PDF is read only once (041) no later turn re-adds it, so removal is durable with no marker to keep. One row in a sheet that exists, no new surface.
+Structure offload adds can always be corrected. A lounge advert the model mislabelled *View ticket* is removed from the action's own per-tap confirm: the confirm that offers *Open* also offers a quiet author-only **Remove**, beside *Cancel*. The action is dropped from the row, and because a PDF is read only once (041) no later turn re-adds it, so removal is durable with no marker to keep. Per-action, the same on web and the phones, and no new surface: the confirm already exists.
 
 ### What offload does not make from an action
 
@@ -97,7 +97,7 @@ Said before any code, since two lines of the policy change.
 - **AC-12** Actions are produced inside the filing turn's Undo, read once with the PDF, and not refreshed on later turns.
 - **AC-13** A PDF kept from a forwarded email (041 mail path) yields actions on the same turn by the same rules.
 - **AC-14** An action is scoped to the PDF's row and thread; accepted members of a shared thread see the same actions, and nobody else; moving or deleting the PDF takes its actions with it.
-- **AC-15** A person removes a wrong action from the PDF row's action sheet; removal is durable and the action does not return on a later turn.
+- **AC-15** The action's author removes a wrong action from its per-tap confirm (a quiet Remove beside Open and Cancel, shown only to the author); removal is durable and the action does not return on a later turn, and Undo puts it back.
 - **AC-16** No label or destination enters the row's searchable text or its embedding; a test asserts neither reaches the search index or the embedding vendor.
 - **AC-17** Analytics, logs, traces, errors, the drop event, the confirm's telemetry, a validation failure's message, push payloads and any connected-calendar write carry only the count of actions per PDF (0 to 2) and a reason enum, never a label or a destination; tests assert no label or URL reaches any event, log or outward payload.
 - **AC-18** Labels and destinations never enter a later turn's prompt; the candidate set is capped and single-turn.
@@ -110,7 +110,7 @@ Logged in `.claude/skills/offload-design/decisions.md` on `main`, in one entry w
 1. **The action control is a secondary pill `Button`** with a leaves-offload glyph, reused in all three homes; no new component. If the accessible name (`<label>, opens <host>`) needs a prop, it is one prop on `Button`.
 2. **A text-column slot on the mobile PDF row**, where `ListRow` takes no children today (its `.d.ts`, `.prompt.md` and `.jsx` all change, not only `decisions.md`) and `WRow` on web already has them.
 3. **The action controls in the conversation**, beside `SentPhoto` in the filing reply, not on `QuickReplies`.
-4. **Remove in the PDF row's action sheet**, which drops the action from the row.
+4. **Remove in the action's per-tap confirm**, author-only, beside Open and Cancel, which drops the action from the row (with Undo). Refined from the row action sheet in planning: web has no per-action sheet, and the confirm is per-action and identical on both surfaces.
 
 ## Out of scope
 

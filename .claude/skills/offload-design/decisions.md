@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-18 · PDF actions: up to two links a PDF carried, offered beside it
+**Surface:** iOS, Android, web
+**Raised by:** the owner ("action extraction from PDFs": a check-in or manage-trip link, view online, add to wallet), spec 044.
+
+**Was:** a dumped PDF's links were lost. 041's clean copy flattens every annotation, so even the platform viewer cannot open a *Check in* button, and nothing of the link reached the person.
+
+**Is:** up to two label-only pills on the PDF row's text column and under the filing reply, a new `PdfActions` control built from `Button` (`variant="secondary" shape="pill"`, an `arrow-up-right` glyph after the label, neutral, never moss or the attention tone). The pill shows no destination; a tap takes the pills' place with a confirm, *From the PDF. Open &lt;host&gt;?*, the host computed on the client from the URL (`hostForAction`: ASCII punycode, userinfo and path dropped, bidi stripped, middle-clipped), offering Open, a quiet author-only **Remove**, and Cancel. Remove drops the action with the row's own in-place Undo (2026-10-18). No new governed component (`Button` reused, not a new `Chip` tone or `QuickReplies`), and one new slot: the phones' `ListRow` gains `children` under the title and meta, which `WRow` already had.
+
+**Why:** the useful next move is otherwise buried in a document you must open first; the value is placement, one tap from where the PDF is filed. Remove lives in the per-tap confirm, not a row action sheet, because web has no per-action sheet and the confirm is per-action and identical on both surfaces (refined from the spec in planning).
+
+**Design system impact:** a new `PdfActions` control from `Button` (secondary pill, `arrow-up-right`), in the PDF row's text column and beside a sent PDF in the filing reply; the phones' `ListRow` gains a `children` slot (`.d.ts`, `.prompt.md`, `.jsx`); the per-tap confirm (Open / author-only Remove / Cancel) grounded in the delete confirm; the host shown is the client-computed ASCII registrable host, middle-clipped, never a server string. Kits owe it on `WThing`/`ThreadWidgets`/`M3ThreadWidgets` (the row pills), `LiveConversation`/`M3LiveConversation`/`WMisc` (the reply pills beside a sent PDF), and the phones' `ListRow` (the slot).
+
 ### 2026-10-18 · Today picks its day on a month, not with arrows
 **Surface:** iOS, Android, web
 **Raised by:** the owner: "instead of the < Today > row, show the calendar view from the threads", all enabled calendars in one view, a day opening as Today shows it now.
