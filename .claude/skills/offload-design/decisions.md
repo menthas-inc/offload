@@ -11,6 +11,30 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-19 · Today's calendar is two weeks, stepped a week at a time
+**Surface:** iOS, Android, web
+**Raised by:** the owner: the month grid took too many steps; show this week and next as two rows, the arrows moving a week at a time, always two rows.
+
+**Was:** Today's day was picked on the thread calendar's whole month grid (2026-10-18), four to six rows, the arrows stepping a month.
+
+**Is:** the same `MonthGrid` draws exactly two weeks, this week and next, every day in view (nothing dimmed as outside a month), from a new shared `twoWeekFor` in `@offload/widgets`. The arrows step one week (`stepWeek`), and read *Previous week* / *Next week* through a new `unit="week"` prop on `MonthGrid` (the thread calendar stays a month and keeps the default). Everything else is unchanged: a day is dotted the same way, tapping it shows it below, the head names the picked day with Today beside it on today (the month and year while on today), past days and anything past the far edge are drawn faded and closed, *Previous week* is disabled on this week and *Next week* at the edge. No mock exists for this.
+
+**Why:** the common case is the next few days; a whole month is more surface than the glance needs, and two weeks is one step to reach next week and no further to scan.
+
+**Design system impact:** the Today kits (`TodayParts.jsx`, `M3TodayScreen.jsx`, `WToday.jsx`) draw the calendar as two fixed week rows, not a month; the arrows say *week* and step a week. `MonthGrid` gains an optional `unit` ("month" | "week", default "month") that only changes the arrow labels. The thread calendar is unchanged. The readme's **Today** should say two weeks where it now says the month grid.
+
+### 2026-10-19 · Thread layouts
+**Surface:** iOS, Android, web, the thread page, Edit thread, Today, filing, the nightly pass
+**Raised by:** the product owner: different threads need different pages (a trip, a grocery list, songs to listen to, films). Off `main` at tree `1a4dc4c91ddd`: `explorations/thread-skins.html` (seven skins, three or four ways each, then twelve questions answered one by one, then a buildability pass). Handoff: `handoff/APPLY-2026-10-19-thread-layouts.md`.
+
+**Was:** one thread page for every thread, arranged only by what it earns (007).
+
+**Is:** a **layout** per thread, one of six: Default (the page as built), Todo list, Events, Gallery, Project, Timeline. offload may name one when it creates a thread; then only a person changes it, in Edit thread. Events and Project organise by labels they make (*Booked*, *Still deciding*, *Passed on*; *Now*, *Next*, *Later*), each a folding section. Todo list removes a ticked row, with *N got this week*. Gallery draws covers from links and a lettered tile otherwise. Every layout but Default and Timeline ends with *N other things in here*. The nightly pass may suggest a layout once. One layout per thread, for everyone, with a one-time heads-up to the others. Today skips Todo list, Gallery and Timeline rows and undated Events rows, except anything dated or with a reminder. `threads.layout` is a column. One function, `layoutFor`, lays out all six.
+
+**Considered and not taken:** a seventh, Queue, folded into Gallery; a `stage` field on rows; features barred per layout; a fixed set of sections per layout; Automatic re-reads; posters from a lookup or a web search; per-member layouts; *Show as*; the names Mixed, Checklist, Plan, Shelf, Log.
+
+**Design system impact:** `components/layout/LayoutTile` (new) and its card; `readme.md` **Thread layouts** and the index. Kits not redrawn: the handoff and the exploration are the reference. No new tokens or glyphs. **One exception to an existing rule, recorded here:** in Todo list a ticked row leaves the list, against *a ticked item sinks rather than vanishing* (`sinkDone`); every other layout keeps it.
+
 ### 2026-10-18 · PDF actions: up to two links a PDF carried, offered beside it
 **Surface:** iOS, Android, web
 **Raised by:** the owner ("action extraction from PDFs": a check-in or manage-trip link, view online, add to wallet), spec 044.
