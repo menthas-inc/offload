@@ -70,6 +70,20 @@ export function agendaQuery(accountId: string) {
     .where("content.deleted_at", "is", null)
     .where("content.archived_at", "is", null)
     .where("content.done_at", "is", null)
+    // Thread layouts (decision 11). An open row reaches Today's To do from a
+    // Default or Project thread as it always has; from any other layout only
+    // when it carries a date or a reminder. `reachesToday` in @offload/widgets
+    // is the same rule for the clients' optimistic rows, pinned by a test. A
+    // dated row passes here whatever the layout, so the day read, whose rows
+    // are all dated, is untouched.
+    .where((eb) =>
+      eb.or([
+        eb("threads.layout", "in", ["default", "project"]),
+        eb("content.due_at", "is not", null),
+        eb("content.occurs_at", "is not", null),
+        eb("content.is_reminder", "=", true),
+      ]),
+    )
     .where("threads.deleted_at", "is", null);
 }
 

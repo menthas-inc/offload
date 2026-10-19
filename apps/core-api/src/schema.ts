@@ -276,6 +276,21 @@ export interface ThreadsTable {
   purge_after: Timestamp | null;
   /** 025. When the nightly sort last read this thread. */
   labels_sorted_at: Timestamp | null;
+  /** Thread layouts (2026-10-19). The thread's layout and whose pick it is: a
+   *  column, not `attrs`, because Today filters on it. offload may name one at
+   *  creation; after that only a person changes it. */
+  layout: Generated<"default" | "todo" | "events" | "gallery" | "project" | "timeline">;
+  layout_set_by: Generated<"offload" | "person">;
+  layout_changed_at: Timestamp | null;
+  layout_changed_by: string | null;
+  /** The one layout the nightly pass may suggest, and when a member dismissed
+   *  it. Never 'default': a suggestion is always a move off it. */
+  layout_suggestion: ColumnType<
+    "todo" | "events" | "gallery" | "project" | "timeline" | null,
+    "todo" | "events" | "gallery" | "project" | "timeline" | null | undefined,
+    "todo" | "events" | "gallery" | "project" | "timeline" | null
+  >;
+  layout_suggestion_dismissed_at: Timestamp | null;
 }
 
 export interface ThreadMembersTable {
@@ -304,6 +319,9 @@ export interface ThreadMembersTable {
   /** 032. When this member's nightly pass last applied here. What the next one
    *  is booked on and reads is what changed since. */
   nightly_at: Timestamp | null;
+  /** When this member last saw the layout as it stands, so the "Ana switched
+   *  this to Events" line draws once per member per change (2026-10-19). */
+  layout_seen_at: Timestamp | null;
 }
 
 /** 022. The invitation's whole view of a thread. */
