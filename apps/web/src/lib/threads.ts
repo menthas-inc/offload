@@ -10,7 +10,7 @@ const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 import type { Invitation } from "./people";
 import type { Label } from "./labels";
 import type { LooseSummary } from "./loose";
-import type { Reminders } from "@offload/widgets";
+import type { Layout, Reminders } from "@offload/widgets";
 import { provisionalId } from "@offload/widgets";
 
 export { domainOf, isProvisional, provisionalId, rangeOf, startsAs } from "@offload/widgets";
@@ -144,6 +144,13 @@ export interface ThreadBundle {
   isDefault: boolean;
   /** 030. Something in it is on the map, so the switch or the column is drawn. */
   hasPoint: boolean;
+  /** Thread layouts (2026-10-19): how the page is laid out, whose pick it is,
+   *  the one suggestion the line draws, and the heads-up another member sees
+   *  once after somebody else switched. */
+  layout: Layout;
+  layoutSetBy: "offload" | "person";
+  layoutSuggestion: Exclude<Layout, "default"> | null;
+  layoutChange: { by: { accountId: string; displayName: string }; layout: Layout; at: string } | null;
   /** `unlabelled` is 025's No label count. */
   counts: { active: number; archived: number; unlabelled: number };
   members: Member[];
@@ -571,9 +578,24 @@ export interface ThreadMark {
   iconSetBy: "offload" | "person";
 }
 
+/** Thread layouts: what the layout switch did, so one Undo sends it back. */
+export interface LayoutChange {
+  previous: { layout: Layout; layoutSetBy: "offload" | "person" };
+  made: string[];
+  dropped: string[];
+}
+
+/** The body Edit thread's Save sends: the mark, and the layout with its Undo. */
+export type ThreadEdit = Partial<ThreadMark> & {
+  layout?: Layout;
+  layoutSetBy?: "offload" | "person";
+  undoLabels?: { remove: string[]; restore: string[] };
+};
+
 export interface ThreadEdited {
   thread: ThreadMark & { id: string };
   previous: ThreadMark;
+  layout?: LayoutChange;
 }
 
 /** 2026-10-07. A thread made by hand, from the plus on My threads, with the
@@ -590,7 +612,7 @@ export async function createThread(input: { name: string; icon: string; hue: num
 
 /** Edit thread's one write: the name, the icon and the hue, any of them.
  *  `previous` sent back whole is the Undo. */
-export async function editThread(id: string, change: Partial<ThreadMark>): Promise<ThreadEdited | null> {
+export async function editThread(id: string, change: ThreadEdit): Promise<ThreadEdited | null> {
   const response = await reach(`${API}/v1/threads/${id}`, {
     ...json,
     method: "PATCH",

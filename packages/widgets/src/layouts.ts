@@ -134,10 +134,12 @@ export type LayoutRow = Sortable & {
   isReminder?: boolean | null;
 };
 
-/** What it reads off a note: enough to place it on a timeline day. */
+/** What it reads off a note: enough to place it on a timeline day. Both dates
+ *  are optional so a client's looser note type fits; a note with neither does
+ *  not land on a day. */
 export interface LayoutNote {
   id: string;
-  createdAt: string;
+  createdAt?: string | null;
   occursAt?: string | null;
 }
 
@@ -275,10 +277,11 @@ function timelinePage<T extends LayoutRow, N extends LayoutNote>(
   zone: string | null,
 ): LayoutPage<T, N> {
   const dayOf = (at: string): string => (zone ? dayIn(new Date(at), zone) : utcDay(new Date(at)));
-  const entries: { day: string; at: string; item: T | N }[] = [
-    ...rows.map((r) => ({ at: r.occursAt ?? r.createdAt, item: r as T | N })),
-    ...notes.map((n) => ({ at: n.occursAt ?? n.createdAt, item: n as T | N })),
-  ].map((x) => ({ day: dayOf(x.at), at: x.at, item: x.item }));
+  const dated: { at: string; item: T | N }[] = [
+    ...rows.map((r) => ({ at: (r.occursAt ?? r.createdAt) as string | null, item: r as T | N })),
+    ...notes.map((n) => ({ at: (n.occursAt ?? n.createdAt) as string | null, item: n as T | N })),
+  ].filter((x): x is { at: string; item: T | N } => x.at != null);
+  const entries = dated.map((x) => ({ day: dayOf(x.at), at: x.at, item: x.item }));
 
   const byDay = new Map<string, { at: string; item: T | N }[]>();
   for (const e of entries) {

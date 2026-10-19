@@ -40,6 +40,8 @@ import {
   widgetsFor,
   type ReorderWrite,
 } from "../../lib/widgets";
+import { LAYOUT_NAMES, layoutFor, type Layout } from "@offload/widgets";
+import { LayoutSections } from "./LayoutSections";
 import {
   completeContent,
   deleteContent,
@@ -58,6 +60,7 @@ import {
   quickAdd,
   editThread,
   type ThreadMark,
+  type ThreadEdit,
   setArchived,
   setPriority,
   startsAs,
@@ -807,10 +810,15 @@ export function Thread({ id, onChanged }: Props) {
   /** 037. Edit thread's Save: the head changes at the press, the write
    *  follows, and a refusal puts the head back. Undo sends back everything
    *  that was there, whose pick it was included. */
-  async function saveThread(change: Partial<ThreadMark>, shown: { name: string; icon: string; hue: number }): Promise<void> {
+  async function saveThread(change: ThreadEdit, shown: { name: string; icon: string; hue: number }): Promise<void> {
     if (!thread) return;
     const before = thread;
-    setThread({ ...thread, ...threadLookAfter(thread, change, shown) });
+    setThread({
+      ...thread,
+      ...threadLookAfter(thread, change, shown),
+      // Thread layouts: the page redraws in the new layout at the press.
+      ...(change.layout ? { layout: change.layout, layoutSetBy: "person" as const } : {}),
+    });
 
     const result = await editThread(id, change);
     // Under the thread's read, the head being what changed.
@@ -822,12 +830,22 @@ export function Thread({ id, onChanged }: Props) {
     }
     await load();
     onChanged();
+    // A layout switch sends its labels back too (remove the made, restore the
+    // dropped), and reads "Showing as {Name}" (6.8).
+    const undoBody: ThreadEdit = result.layout
+      ? {
+          ...result.previous,
+          layout: result.layout.previous.layout,
+          layoutSetBy: result.layout.previous.layoutSetBy,
+          undoLabels: { remove: result.layout.made, restore: result.layout.dropped },
+        }
+      : result.previous;
     toast.show(
-      "Thread updated",
+      result.layout && change.layout ? `Showing as ${LAYOUT_NAMES[change.layout]}` : "Thread updated",
       {
         label: "Undo",
         onPress: async () => {
-          await editThread(id, result.previous);
+          await editThread(id, undoBody);
           await load();
           onChanged();
         },
@@ -982,6 +1000,26 @@ export function Thread({ id, onChanged }: Props) {
     inWidgets.size > 0 ? "Everything else" : "Everything in here";
 
   const others = thread.members.filter((member) => !member.isYou);
+
+  // Thread layouts. Default keeps its own render below, to the pixel; the five
+  // others draw layoutFor's sections. The rail is still the client's, gated by
+  // whether the layout permits one (decision 21).
+  const threadLayout = (thread.layout ?? "default") as Layout;
+  const isDefaultLayout = threadLayout === "default";
+  const page =
+    showArchived || isDefaultLayout
+      ? null
+      : layoutFor<ContentRow, Note>({
+          layout: threadLayout,
+          rows,
+          notes,
+          labels: thread.labels,
+          // preference only steers Default's widget order, and Default never
+          // routes through here, so the loose client type need not be coerced.
+          preference: {},
+          now: new Date(),
+          zone,
+        });
 
   return (
     <>
@@ -1240,7 +1278,7 @@ export function Thread({ id, onChanged }: Props) {
         {/* The rail is above the widgets, and only on a thread with something
             dated. It is not a widget: it lists every kind with a date rather
             than one, which is why 015 took it out of the widget set. */}
-        {showArchived || !railEarned ? null : (
+        {showArchived || !railEarned || !(isDefaultLayout || page?.rail) ? null : (
           <Timeline
             // Keyed by the thread, so the day you were reading and the gaps you
             // opened do not follow you into the next one. Without it, opening a
@@ -1301,6 +1339,10 @@ export function Thread({ id, onChanged }: Props) {
           />
         ) : null}
 
+        {!isDefaultLayout && !showArchived && page ? (
+          <LayoutSections page={page} handlers={handlers} labels={thread.labels} onAdd={(text) => add(text, "todo")} />
+        ) : (
+        <>
         {showArchived ? null : (
           <Widgets
             rows={rows}
@@ -1424,6 +1466,8 @@ export function Thread({ id, onChanged }: Props) {
             Show more
           </button>
         ) : null}
+        </>
+        )}
 
         {/* The way to the archived pile, and the way back: a row under
             everything live rather than a toggle on the pane head. The archive

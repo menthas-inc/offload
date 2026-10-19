@@ -12,20 +12,21 @@
 // it, Tab stays inside, and closing puts focus back on what opened it.
 
 import { useEffect, useRef, useState } from "react";
-import { HUE_NAMES, THREAD_ICON_NAMES, previewThreadIcon, threadChange, threadIconLabel, type ThreadLook } from "@offload/widgets";
+import { HUE_NAMES, LAYOUTS, LAYOUT_NAMES, THREAD_ICON_NAMES, previewThreadIcon, threadChange, threadIconLabel, type Layout, type ThreadLook } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { ThreadIcon } from "../ThreadIcon";
+import { LayoutTile } from "../LayoutTile";
 import styles from "./EditThread.module.css";
 
 const COLUMNS = 7;
 const HUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export interface EditThreadProps {
-  thread: ThreadLook & { id: string };
+  thread: ThreadLook & { id: string; layout?: Layout; layoutSetBy?: "offload" | "person" };
   /** What was clicked. The name puts the caret in the field; the icon does not. */
   from: "icon" | "name";
   /** The change to write, and what the head draws at the press. */
-  onSave: (change: { name?: string; icon?: string; hue?: number }, shown: { name: string; icon: string; hue: number }) => void;
+  onSave: (change: { name?: string; icon?: string; hue?: number; layout?: Layout }, shown: { name: string; icon: string; hue: number }) => void;
   onClose: () => void;
   /** New thread's words in place of Edit thread's. */
   heading?: string;
@@ -46,6 +47,7 @@ export function EditThread({ thread, from, onSave, onClose, heading = "Edit thre
   const [name, setName] = useState(thread.name);
   const [picked, setPicked] = useState<string | null>(null);
   const [hue, setHue] = useState(thread.hue);
+  const [layout, setLayout] = useState<Layout>(thread.layout ?? "default");
   const box = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLInputElement>(null);
 
@@ -83,8 +85,11 @@ export function EditThread({ thread, from, onSave, onClose, heading = "Edit thre
 
   function save() {
     if (!canSave) return;
-    const change = threadChange(thread, { name, icon: picked, hue });
-    if (change) onSave(change, { name: name.trim(), icon, hue });
+    const change: { name?: string; icon?: string; hue?: number; layout?: Layout } = threadChange(thread, { name, icon: picked, hue }) ?? {};
+    // The layout rides the same Save, so one write and one Undo. threadChange
+    // does not know it, so it is merged in when it moved.
+    if (layout !== (thread.layout ?? "default")) change.layout = layout;
+    if (Object.keys(change).length > 0) onSave(change, { name: name.trim(), icon, hue });
     onClose();
   }
 
@@ -176,6 +181,26 @@ export function EditThread({ thread, from, onSave, onClose, heading = "Edit thre
             </button>
           ))}
         </div>
+
+        <div className={styles.label}>Layout</div>
+        <div role="radiogroup" aria-label="Layout" className={styles.layouts}>
+          {LAYOUTS.map((one, index) => (
+            <LayoutTile
+              key={one}
+              layout={one}
+              selected={one === layout}
+              tabIndex={one === layout ? 0 : -1}
+              onPress={() => setLayout(one)}
+              onKeyDown={(event) => arrows(event, index, LAYOUTS.length, LAYOUTS.length, (next) => setLayout(LAYOUTS[next]!))}
+            />
+          ))}
+        </div>
+        {thread.layoutSetBy === "offload" && (thread.layout ?? "default") !== "default" ? (
+          <div className={styles.picked}>
+            <Icon name="sparkles" size={14} />
+            <span>offload picked {LAYOUT_NAMES[thread.layout ?? "default"]} when it made this thread.</span>
+          </div>
+        ) : null}
       </div>
     </>
   );
