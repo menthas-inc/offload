@@ -340,6 +340,12 @@ export const contentRow = z.object({
    *  is a day drawn wrong: "Sunday brunch" filed as a bare date read
    *  "Saturday, 8:00 PM" to somebody in New York. */
   allDay: z.boolean(),
+  /** 044. Up to two links a PDF carried, offered beside it. Derived from
+   *  `attrs`, which is never sent whole; null for a row with none. */
+  actions: z
+    .array(z.object({ label: z.string(), url: z.string() }))
+    .max(2)
+    .nullable(),
   place: z
     .object({
       id: z.string(),
@@ -520,6 +526,24 @@ function seriesRefOf(attrs: unknown): string | null {
   return typeof ref === "string" && ref.length > 0 ? ref : null;
 }
 
+/** 044. The links a PDF carried, up to two, from `attrs.actions`. Derived
+ *  rather than sending `attrs` whole, as `seriesRef` and `allDay` are; null
+ *  when the row has none, so an older client sees nothing new. */
+export function actionsOf(attrs: unknown): { label: string; url: string }[] | null {
+  if (typeof attrs !== "object" || attrs === null) return null;
+  const raw = (attrs as Record<string, unknown>)["actions"];
+  if (!Array.isArray(raw)) return null;
+  const out: { label: string; url: string }[] = [];
+  for (const item of raw) {
+    if (typeof item !== "object" || item === null) continue;
+    const label = (item as Record<string, unknown>)["label"];
+    const url = (item as Record<string, unknown>)["url"];
+    if (typeof label === "string" && typeof url === "string") out.push({ label, url });
+    if (out.length >= 2) break;
+  }
+  return out.length ? out : null;
+}
+
 export function toRow(row: RawRow, viewerId: string) {
   // A departed author is nobody, so `mine` is false and the two controls that
   // belong to an author are off for everyone. That is OFF-3 working rather
@@ -565,6 +589,10 @@ export function toRow(row: RawRow, viewerId: string) {
     // rest of what a calendar sync wrote.
     seriesRef: seriesRefOf(row.attrs),
     allDay: allDayOf(row.attrs),
+    // 044. Up to two links the PDF carried, offered beside it. A tap shows the
+    // host and opens in the platform browser; the client computes the host from
+    // the url, and offload opens nothing.
+    actions: actionsOf(row.attrs),
     // 030. Where it is and whether it is an area, and nothing Google named:
     // its name and address are neither kept nor sent. The coordinates are null
     // once they age past thirty days, until a map asks for them again.

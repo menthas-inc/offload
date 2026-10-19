@@ -22,6 +22,36 @@ export function domainOf(url: string | null): string | null {
   }
 }
 
+/** 044. The host to show before a PDF's action opens, so a tap reveals where it
+ *  leads before anything loads.
+ *
+ *  Computed on the client from the parsed URL, never a string the server
+ *  composed: the full host in ASCII (`URL` returns punycode), with userinfo,
+ *  path and query gone, control and bidirectional characters stripped, and the
+ *  end kept when it is long, because the registrable domain sits at the end and
+ *  the bait is a long prefix. So `https://lufthansa.com@evil.ru/` shows
+ *  `evil.ru`, `lufthansa.com.evil.ru` shows itself whole, and a mixed-script
+ *  look-alike shows its `xn--` form. Null when the URL will not parse or is not
+ *  http(s): nothing is shown and nothing opens. Not an eTLD+1, which would need
+ *  a public-suffix list whose extraction is its own spoofing surface (DEV-3). */
+const HOST_CLIP = 30;
+
+export function hostForAction(url: string | null | undefined): string | null {
+  if (!url || !/^https?:\/\//i.test(url)) return null;
+  let host: string;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    return null;
+  }
+  // C0 and C1 control characters and the bidirectional overrides, stripped so a
+  // host cannot repaint itself as another. `URL` rejects most, this is the belt.
+  host = host.replace(/[\u0000-\u001f\u007f-\u009f‎‏‪-‮⁦-⁩]/g, "").toLowerCase();
+  if (!host) return null;
+  if (host.length <= HOST_CLIP) return host;
+  return host.slice(0, 2) + "…" + host.slice(host.length - (HOST_CLIP - 3));
+}
+
 const PROVISIONAL = "provisional:";
 
 /** An id for a row that only this screen knows about yet. */
