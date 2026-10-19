@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     "What offload collects, why, who else handles it, how long it is kept and how to get rid of it. Plus a short version at the top.",
 };
 
-const UPDATED = "10 October 2026";
+const UPDATED = "18 October 2026";
 
 const MAIL = <a href="mailto:hello@offload.club">hello@offload.club</a>;
 
@@ -149,6 +149,11 @@ export default function Privacy() {
               Transcripts of voice notes, and descriptions of what photos, screenshots and PDFs
               show, including any words in them. The text of a PDF itself is not kept.
             </li>
+            <li>
+              From a PDF, up to two useful links it carried, such as a check-in or manage-booking
+              link, kept so you can open them from where it is filed. offload only ever keeps a link
+              the PDF itself carried, and never one it wrote.
+            </li>
             <li>Notes about a thread, written by you or by offload.</li>
             <li>
               Memories: what offload knows about you across your threads, such as the names of
@@ -230,7 +235,7 @@ export default function Privacy() {
             Sorting, reading photos and PDFs, transcribing voice notes, looking things up and
             answering you are done by AI models from other companies, which we call on your behalf.
             Each call carries what that task needs: what you just put in (of a PDF, its first ten
-            pages), the recent conversation, the names of your threads and labels, what offload
+            pages and any web links it carries), the recent conversation, the names of your threads and labels, what offload
             knows about you, and, when offload answers,
             what it reads from your threads to answer. Not more. What offload knows about you is
             never put into a web search.
