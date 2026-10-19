@@ -53,6 +53,7 @@ import {
 import { QuickReplies } from "./QuickReplies";
 import { AttachChip, type ChipError } from "./AttachChip";
 import { SentPhoto } from "./SentPhoto";
+import { PdfActions } from "./PdfActions";
 import { VoiceNotePlayer, mmss } from "./SentVoice";
 import { SentMail } from "./SentMail";
 import { DayUsed } from "./DayUsed";
@@ -1161,23 +1162,29 @@ export function Composer({
                 {turn.photos?.length ? (
                   <span className={styles.sentPhotos}>
                     {turn.photos.map((photo) => (
-                      <SentPhoto
-                        key={photo.blobId}
-                        photo={photo}
-                        onOpen={() => {
-                          // 041. A PDF opens itself, in the browser's viewer;
-                          // a photo opens the viewer at its place among the
-                          // message's photos.
-                          if (photo.kind === "pdf") {
-                            openPdfSaying(photo, (text, retry) =>
-                              toast.show(text, retry && { label: "Retry", onPress: retry }),
-                            );
-                            return;
-                          }
-                          const images = turn.photos!.filter((p) => p.kind !== "pdf");
-                          setViewer({ turnId: turn.id, index: images.indexOf(photo) });
-                        }}
-                      />
+                      <span key={photo.blobId}>
+                        <SentPhoto
+                          photo={photo}
+                          onOpen={() => {
+                            // 041. A PDF opens itself, in the browser's viewer;
+                            // a photo opens the viewer at its place among the
+                            // message's photos.
+                            if (photo.kind === "pdf") {
+                              openPdfSaying(photo, (text, retry) =>
+                                toast.show(text, retry && { label: "Retry", onPress: retry }),
+                              );
+                              return;
+                            }
+                            const images = turn.photos!.filter((p) => p.kind !== "pdf");
+                            setViewer({ turnId: turn.id, index: images.indexOf(photo) });
+                          }}
+                        />
+                        {/* 044. The PDF's links, beside it in the conversation
+                            the moment it is filed. */}
+                        {photo.kind === "pdf" && photo.actions?.length ? (
+                          <PdfActions actions={photo.actions} />
+                        ) : null}
+                      </span>
                     ))}
                   </span>
                 ) : null}

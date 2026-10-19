@@ -31,6 +31,7 @@ import { Line } from "../shell/InPlace";
 import { lineFor, useUndoEntry } from "../../lib/undo";
 import { DateChip } from "../shell/DateChip";
 import { PhotoThumb } from "../shell/PhotoThumb";
+import { PdfActions } from "../shell/PdfActions";
 import { ThreadPill } from "../shell/ThreadPill";
 import { ReorderHandle, RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
@@ -366,6 +367,10 @@ export function ContentRowView({
             {domain}
           </span>
         ) : null}
+
+        {/* 044. The links the PDF carried, under the title and meta, where the
+            row lives for as long as the PDF does. Not drawn on an archived row. */}
+        {row.actions && !row.archivedAt ? <PdfActions actions={row.actions} /> : null}
       </span>
 
       {trail}

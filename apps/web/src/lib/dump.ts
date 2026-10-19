@@ -240,6 +240,9 @@ export interface PhotoOnWire {
   openable?: boolean;
   /** 041. A PDF the server could not make safe: it will never open. */
   unreadable?: boolean;
+  /** 044. Up to two links the PDF carried, drawn as chips under the filing
+   *  reply. Absent on a photo or a PDF with none. */
+  actions?: { label: string; url: string }[];
   ready: boolean;
   /** This device only, never from the wire: the file as an object URL, for
    *  the moment between the send and the renditions. */
