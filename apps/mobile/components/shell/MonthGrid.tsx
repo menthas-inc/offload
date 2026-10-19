@@ -6,7 +6,7 @@
 
 import { Platform, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { ReduceMotion, SlideInLeft, SlideInRight, runOnJS } from "react-native-reanimated";
+import Animated, { LinearTransition, ReduceMotion, SlideInDown, SlideInUp, SlideOutDown, SlideOutUp, runOnJS } from "react-native-reanimated";
 import { dayLabel, type Day, type Month, type RailRow } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
@@ -26,10 +26,12 @@ export function MonthGrid({
   inset = true,
   title,
   heading = false,
+  unit = "month",
 }: {
   grid: Month;
   selected: string;
-  /** Which way the last move went, so the grid comes in from that side. */
+  /** Which way the last move went: forward brings the grid up from below, back
+   *  down from above. */
   went: 1 | -1;
   onPick: (iso: string) => void;
   onStep: (by: 1 | -1) => void;
@@ -45,6 +47,8 @@ export function MonthGrid({
   title?: string | undefined;
   /** The head is the screen's heading, as on Today. */
   heading?: boolean;
+  /** What the arrows and swipe step by, for the labels: a month, or Today's week. */
+  unit?: "month" | "week";
 }) {
   const COLOR = useColors();
   const gutter = inset ? "px-gutter-screen" : "";
@@ -177,10 +181,31 @@ export function MonthGrid({
     </Pressable>
   );
 
+  const days = (row: RailRow) => row.days.map((day) => cell(day, !grid.inMonth(day.iso)));
   const week = (row: RailRow) => (
     <View key={row.key} className={`flex-row gap-space-1 ${gutter}`}>
-      {row.days.map((day) => cell(day, !grid.inMonth(day.iso)))}
+      {days(row)}
     </View>
+  );
+
+  // The two-week stepper overlaps a week each step, so that row stays on screen
+  // and slides to its new place while the rest come and go: the eye follows it
+  // up or down instead of the page blinking (the owner, 2026-10-19). Each row is
+  // keyed by its own week, so React keeps the shared one and reanimated's
+  // `layout` carries it; forward the new week enters from below and the old
+  // leaves up top, back the other way.
+  const fwd = went === 1;
+  const reduce = ReduceMotion.System;
+  const rowWeek = (row: RailRow) => (
+    <Animated.View
+      key={row.key}
+      className={`flex-row gap-space-1 ${gutter}`}
+      entering={(fwd ? SlideInDown : SlideInUp).duration(140).reduceMotion(reduce)}
+      exiting={(fwd ? SlideOutUp : SlideOutDown).duration(140).reduceMotion(reduce)}
+      layout={LinearTransition.duration(140).reduceMotion(reduce)}
+    >
+      {days(row)}
+    </Animated.View>
   );
 
   // Sideways only, and only once the movement is clearly sideways, so a
@@ -203,7 +228,7 @@ export function MonthGrid({
           onPress={() => onStep(-1)}
           disabled={first}
           hitSlop={10}
-          accessibilityLabel="Previous month"
+          accessibilityLabel={`Previous ${unit}`}
           accessibilityRole="button"
           className="min-h-tap-min justify-center"
         >
@@ -235,7 +260,7 @@ export function MonthGrid({
           onPress={() => onStep(1)}
           disabled={last}
           hitSlop={10}
-          accessibilityLabel="Next month"
+          accessibilityLabel={`Next ${unit}`}
           accessibilityRole="button"
           className="min-h-tap-min justify-center"
         >
@@ -251,19 +276,20 @@ export function MonthGrid({
         the gesture only takes over once the movement is clearly sideways, so
         a vertical drag still scrolls the page under it. */}
       <GestureDetector gesture={swipe}>
-        {/* Keyed by the month so it remounts and the animation runs. Without
-            the key the same element is rewritten in place and nothing moves,
-            which is a redraw rather than a change of month. */}
-        <Animated.View
-          key={grid.key}
-          entering={(went === 1 ? SlideInRight : SlideInLeft)
-            .duration(140)
-            // Anybody who has asked for less movement gets the change and
-            // none of the travel.
-            .reduceMotion(ReduceMotion.System)}
-        >
-          {grid.weeks.map(week)}
-        </Animated.View>
+        {/* The week stepper keeps its shared row and slides it (above); the
+            month grid changes wholesale, so it remounts and slides up or down
+            as one. Keyed so it remounts and the animation runs; without the key
+            the element is rewritten in place and nothing moves. */}
+        {unit === "week" ? (
+          <View>{grid.weeks.map(rowWeek)}</View>
+        ) : (
+          <Animated.View
+            key={grid.key}
+            entering={(fwd ? SlideInDown : SlideInUp).duration(140).reduceMotion(reduce)}
+          >
+            {grid.weeks.map(week)}
+          </Animated.View>
+        )}
       </GestureDetector>
 
     </>

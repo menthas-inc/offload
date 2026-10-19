@@ -4,6 +4,34 @@ path:
 
 ## Last sync
 
+date: 2026-10-19T22:13:28Z
+
+Read `main` (trees `019ef168ee75`, then `1a4dc4c91ddd`) for thread layouts: `threads/labels.ts`, `threads/icons.ts`, `routes/threads.ts` (`editThread`, `completeContent`), `routes/tools.ts` (`create_thread`), `today/rows.ts`, `today/threads.ts`, `jobs/handlers.ts`, `prompts/nightly.md`, `EditThreadSheet.tsx`, and before them 043 at merge (Undo in place matches this project), `docs/specs/007-widgets-and-grouping/feature-spec.md`, `migrations/0016_thread_attrs.sql`, `packages/widgets/src/index.ts` and `folds.ts` (sections fold since 2026-10-17, Files folded at first), and `apps/mobile/components/screens/Thread.tsx`. Nothing copied. No spec past 043.
+
+### Updated in this project
+
+- **Thread layouts**, decided: `explorations/thread-skins.html`, `handoff/APPLY-2026-10-19-thread-layouts.md`, `handoff/thread-layouts-standalone.html`
+- `components/layout/LayoutTile` (new); `readme.md` **Thread layouts**; `decisions.md` one entry
+- Not yet folded: the 2026-10-17 section folds (`folds.ts`) are not drawn in the kits
+
+## Sync history
+
+### 2026-10-18T17:46:29Z
+
+date: 2026-10-18T17:46:29Z
+
+Read `main` for every Undo: `apps/mobile/components/shell/Toast.tsx`, `apps/web/src/components/shell/Toast.tsx`, `apps/mobile/lib/optimistic.ts`, `components/shell/Shell.tsx`, `packages/widgets/src/labels.ts`, and every `toast.show` and `did:` caller on both clients. Nothing copied.
+
+### Updated in this project
+
+- **Undo, in place** (C, amber): `explorations/undo-toast.html`, `explorations/undo-in-place.html`
+- `components/feedback/UndoLine` (new), Feedback card; `ui_kits/mobile_app/UndoInPlace.jsx` wired into all three kits
+- `handoff/APPLY-2026-10-18-undo-in-place.md`, `handoff/undo-in-place-standalone.html`; `readme.md` **Undo**; `decisions.md` one entry
+
+## Sync history
+
+### 2026-10-11T16:25:02Z
+
 date: 2026-10-11T16:25:02Z
 
 Read `main` (tree `1570ee3`) for 042 Reminders on Today: `docs/specs/042-reminders/at-merge.md`, `apps/mobile/components/today/TodayScreen.tsx`, `apps/web/src/components/today/Reminders.tsx`. Nothing copied.
@@ -13,8 +41,6 @@ Read `main` (tree `1570ee3`) for 042 Reminders on Today: `docs/specs/042-reminde
 - **Today: Reminders (C2b) and bands**: `explorations/home-reminders.html`, `explorations/today-sections.html`, `explorations/today-bands.html`
 - `ui_kits/mobile_app/TodayReminders.jsx` (shared by all three kits), bands in `TodayParts.jsx` and `WToday.jsx`
 - `handoff/APPLY-2026-10-11-today-bands.md`, `handoff/today-bands-standalone.html`; `readme.md` **Today** and 042's four readme lines; `decisions.md` one entry
-
-## Sync history
 
 ### 2026-10-07T23:06:00Z
 
@@ -99,6 +125,8 @@ shared log, with this project's thread marks entry kept), and read `apps/web/src
 
 | Screen | This project | Repo files |
 | --- | --- | --- |
+| Thread layouts | `explorations/thread-skins.html`, `handoff/APPLY-2026-10-19-thread-layouts.md`, `components/layout/LayoutTile` | `apps/mobile/components/screens/Thread.tsx`, `packages/widgets/src/index.ts`, `folds.ts`, `apps/core-api/migrations/0016_thread_attrs.sql`, `threads/labels.ts`, `routes/threads.ts`, `routes/tools.ts`, `today/rows.ts`, `prompts/nightly.md`, `prompts/plan_v2.md`, `EditThreadSheet.tsx`, `panes/EditThread.tsx` |
+| Undo, in place (every list) | `components/feedback/UndoLine.jsx`, `ui_kits/mobile_app/UndoInPlace.jsx`, `explorations/undo-in-place.html` | `apps/mobile/lib/optimistic.ts`, `apps/mobile/components/shell/Toast.tsx`, `apps/web/src/components/shell/Toast.tsx` |
 | Web app | `ui_kits/web_app/` | `apps/web/src/` |
 | iOS and Android | `ui_kits/mobile_app/`, `ui_kits/android_app/` | `apps/mobile/app/`, `apps/mobile/components/` |
 | Calendars | `explorations/calendars-options.html`, `handoff/APPLY-2026-09-17-calendars.md` | settings: the Connected apps Calendar row on all three surfaces; thread: `ThreadScreen.jsx`, `M3ThreadScreen.jsx`, `WThing.jsx` app bars |
