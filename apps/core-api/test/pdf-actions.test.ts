@@ -230,6 +230,79 @@ describe("044 the wire carries actions (T8)", () => {
   });
 });
 
+describe("044 Remove a wrong action, provenance-safe (AC-15)", () => {
+  const forget = (cookie: string, id: string, url: string) =>
+    app.inject({ method: "POST", url: `/v1/content/${id}/actions/forget`, headers: { cookie }, payload: { url } });
+  const restore = (cookie: string, id: string, url: string) =>
+    app.inject({ method: "POST", url: `/v1/content/${id}/actions/restore`, headers: { cookie }, payload: { url } });
+  const rowActions = async (id: string): Promise<{ label: string; url: string }[]> => {
+    const row = await db.selectFrom("content").select("attrs").where("id", "=", id).executeTakeFirstOrThrow();
+    return A(row.attrs);
+  };
+  const CHECKIN = "https://checkin.example-air.com/LX3K9Q";
+  const MANAGE = "https://manage.example-air.com/LX3K9Q";
+
+  it("the author removes one action and the row keeps the other", async () => {
+    const me = await person();
+    const filed = await fileWithActions(me, TWO);
+    const res = await forget(filed.cookie, filed.contentId!, "https://checkin.example-air.com/LX3K9Q");
+    expect(res.statusCode).toBe(200);
+    expect(await rowActions(filed.contentId!)).toEqual([{ label: "Manage booking", url: MANAGE }]);
+  });
+
+  it("a non-member gets a 404, not a removal", async () => {
+    const me = await person();
+    const filed = await fileWithActions(me, TWO);
+    const stranger = await person();
+    const res = await forget(await signIn(stranger.id), filed.contentId!, CHECKIN);
+    expect(res.statusCode).toBe(404);
+    expect(await rowActions(filed.contentId!)).toHaveLength(2);
+  });
+
+  it("restore brings a removed action back", async () => {
+    const me = await person();
+    const filed = await fileWithActions(me, TWO);
+    await forget(filed.cookie, filed.contentId!, CHECKIN);
+    const res = await restore(filed.cookie, filed.contentId!, CHECKIN);
+    expect(res.statusCode).toBe(200);
+    const urls = (await rowActions(filed.contentId!)).map((a) => a.url).sort();
+    expect(urls).toEqual([CHECKIN, MANAGE].sort());
+  });
+
+  it("refuses to restore a url that was never a harvested action (no injection)", async () => {
+    const me = await person();
+    const filed = await fileWithActions(me, TWO);
+    const res = await restore(filed.cookie, filed.contentId!, "https://evil.example/injected");
+    expect(res.statusCode).toBe(200);
+    const urls = (await rowActions(filed.contentId!)).map((a) => a.url);
+    expect(urls).not.toContain("https://evil.example/injected");
+    expect(urls).toHaveLength(2);
+  });
+
+  it("never lets restore push the row past two actions", async () => {
+    const me = await person();
+    const filed = await fileWithActions(me, TWO);
+    // Remove one, then restore it while the row already has its two back is a
+    // no-op; here remove then restore keeps it at two, never three.
+    await forget(filed.cookie, filed.contentId!, CHECKIN);
+    await restore(filed.cookie, filed.contentId!, CHECKIN);
+    await restore(filed.cookie, filed.contentId!, CHECKIN);
+    expect(await rowActions(filed.contentId!)).toHaveLength(2);
+  });
+
+  it("keeps the tombstone out of the wire", async () => {
+    const me = await person();
+    const filed = await fileWithActions(me, TWO);
+    await forget(filed.cookie, filed.contentId!, CHECKIN);
+    const page = (
+      await app.inject({ method: "GET", url: `/v1/threads/${me.defaultThreadId}/content`, headers: { cookie: filed.cookie } })
+    ).json();
+    const row = page.rows.find((r: { id: string }) => r.id === filed.contentId);
+    expect(row.actions).toEqual([{ label: "Manage booking", url: MANAGE }]);
+    expect(JSON.stringify(row)).not.toContain("actions_removed");
+  });
+});
+
 describe("044 no label or destination leaks (T10)", () => {
   const NEEDLES = ["checkin.example-air.com", "manage.example-air.com", "Manage booking"];
 

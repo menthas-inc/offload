@@ -520,6 +520,27 @@ export async function setArchived(id: string, archived: boolean): Promise<boolea
   return response !== null;
 }
 
+/** 044. Remove a wrong action from a PDF's row, or put it back. Author only on
+ *  the server; restore refuses any url the PDF did not carry, so this can never
+ *  add one. The url is the one already on the row, never composed here. */
+export async function forgetAction(id: string, url: string): Promise<boolean> {
+  const response = await reach(`${API}/v1/content/${id}/actions/forget`, {
+    ...json,
+    method: "POST",
+    body: JSON.stringify({ url }),
+  });
+  return response !== null;
+}
+
+export async function restoreAction(id: string, url: string): Promise<boolean> {
+  const response = await reach(`${API}/v1/content/${id}/actions/restore`, {
+    ...json,
+    method: "POST",
+    body: JSON.stringify({ url }),
+  });
+  return response !== null;
+}
+
 export interface Moved {
   content: ContentRow;
   previous: { threadId: string };

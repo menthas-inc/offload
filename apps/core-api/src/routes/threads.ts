@@ -1036,6 +1036,80 @@ export async function deleteContent(
   });
 }
 
+/** 044. Remove a wrong action from a PDF's row, and put it back. Author only
+ *  (OFF-3), as delete and move are: a label the model mislabelled is the
+ *  author's to correct, not a co-owned edit. Provenance-safe: forget moves the
+ *  matching {label, url} from `attrs.actions` to `attrs.actions_removed`, and
+ *  restore moves it back only when it is in `actions_removed`, so a client can
+ *  never add a url the PDF did not carry. `actions_removed` never serves to
+ *  anyone (`actionsOf` reads `attrs.actions`). Read-once (041) means no later
+ *  turn re-adds a forgotten action, so removal is durable with no marker. */
+type ActionList = { label: string; url: string }[];
+
+function splitActions(attrs: unknown): { actions: ActionList; removed: ActionList } {
+  const a = (attrs && typeof attrs === "object" ? attrs : {}) as Record<string, unknown>;
+  const list = (v: unknown): ActionList =>
+    Array.isArray(v)
+      ? v
+          .filter(
+            (x): x is { label: string; url: string } =>
+              typeof x === "object" &&
+              x !== null &&
+              typeof (x as Record<string, unknown>).label === "string" &&
+              typeof (x as Record<string, unknown>).url === "string"
+          )
+          .map((x) => ({ label: x.label, url: x.url }))
+      : [];
+  return { actions: list(a["actions"]), removed: list(a["actions_removed"]) };
+}
+
+async function writeActions(
+  trx: import("../threads/access.js").Executor,
+  id: string,
+  actions: ActionList,
+  removed: ActionList
+): Promise<void> {
+  await trx
+    .updateTable("content")
+    .set({
+      attrs: sql`attrs || ${JSON.stringify({ actions, actions_removed: removed })}::jsonb`,
+      updated_at: sql`now()`,
+    })
+    .where("id", "=", id)
+    .execute();
+}
+
+export async function forgetAction(accountId: string, contentId: string, url: string): Promise<void> {
+  const ref = await requireAuthor(accountId, contentId);
+  await db.transaction().execute(async (trx) => {
+    const row = await trx.selectFrom("content").select("attrs").where("id", "=", ref.id).executeTakeFirstOrThrow();
+    const { actions, removed } = splitActions(row.attrs);
+    const match = actions.find((a) => a.url === url);
+    if (!match) return;
+    await writeActions(
+      trx,
+      ref.id,
+      actions.filter((a) => a.url !== url),
+      removed.some((a) => a.url === url) ? removed : [...removed, match]
+    );
+    await touchThread(ref.threadId, trx);
+  });
+}
+
+export async function restoreAction(accountId: string, contentId: string, url: string): Promise<void> {
+  const ref = await requireAuthor(accountId, contentId);
+  await db.transaction().execute(async (trx) => {
+    const row = await trx.selectFrom("content").select("attrs").where("id", "=", ref.id).executeTakeFirstOrThrow();
+    const { actions, removed } = splitActions(row.attrs);
+    const match = removed.find((a) => a.url === url);
+    // Only a link the PDF carried (so one that was forgotten) can come back,
+    // and never past two.
+    if (!match || actions.length >= 2 || actions.some((a) => a.url === url)) return;
+    await writeActions(trx, ref.id, [...actions, match], removed.filter((a) => a.url !== url));
+    await touchThread(ref.threadId, trx);
+  });
+}
+
 /** Tick something off, or put it back. Co-owned: a thread's contents belong to
  *  everybody in it, and neither direction destroys anything. */
 export async function completeContent(
@@ -2230,6 +2304,30 @@ export async function threadRoutes(app: App): Promise<void> {
         return reply.send({ deleted });
       })
   );
+
+  // 044. Remove a wrong action from a PDF's row, and put it back. Author only,
+  // like delete and move. The body is the url to forget; restore refuses any
+  // url the row did not carry, so a client can never add one.
+  for (const action of ["forget", "restore"] as const) {
+    app.post(
+      `/v1/content/:id/actions/${action}`,
+      {
+        schema: {
+          params: z.object({ id: z.string().uuid() }),
+          body: z.strictObject({ url: z.string().min(1).max(2048) }),
+          response: { 200: z.object({ content: contentRow }), 401: unauthenticated, 404: notFound },
+        },
+      },
+      async (request, reply) =>
+        guard(reply, async () => {
+          const accountId = await currentAccountId(request);
+          if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+          if (action === "forget") await forgetAction(accountId, request.params.id, request.body.url);
+          else await restoreAction(accountId, request.params.id, request.body.url);
+          return reply.send({ content: await rowById(request.params.id, accountId) });
+        })
+    );
+  }
 
   // Leave a thread, which deletes it when nobody else is in it. One endpoint,
   // because on a thread you are alone in they are the same act, and the screen
