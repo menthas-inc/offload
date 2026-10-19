@@ -61,6 +61,7 @@ import { Thinking } from "./Thinking";
 import { useRouter } from "expo-router";
 import { useConversation, type Pin, type Turn } from "./conversation-context";
 import { SentPhoto } from "./SentPhoto";
+import { PdfActions } from "./PdfActions";
 import { VoiceNotePlayer } from "./SentVoice";
 import { RowActionSheet } from "./RowActionSheet";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
@@ -544,17 +545,20 @@ function Yours({
         {turn.voice ? <VoiceNotePlayer voice={turn.voice} inert={recording} /> : null}
         {/* 020. The photos the message carried, shown rather than named. */}
         {(turn.photos ?? []).map((photo) => (
-          <SentPhoto
-            key={photo.blobId}
-            photo={photo}
-            onOpen={() =>
-              // 041. A PDF opens itself; a photo, the viewer at its place
-              // among the message's photos.
-              photo.kind === "pdf"
-                ? onOpenPdf(photo)
-                : onOpenPhoto((turn.photos ?? []).filter((p) => p.kind !== "pdf").indexOf(photo))
-            }
-          />
+          <View key={photo.blobId}>
+            <SentPhoto
+              photo={photo}
+              onOpen={() =>
+                // 041. A PDF opens itself; a photo, the viewer at its place
+                // among the message's photos.
+                photo.kind === "pdf"
+                  ? onOpenPdf(photo)
+                  : onOpenPhoto((turn.photos ?? []).filter((p) => p.kind !== "pdf").indexOf(photo))
+              }
+            />
+            {/* 044. The PDF's links, beside it the moment it is filed. */}
+            {photo.kind === "pdf" && photo.actions?.length ? <PdfActions actions={photo.actions} /> : null}
+          </View>
         ))}
       </View>
 

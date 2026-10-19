@@ -51,6 +51,7 @@ import { DateChip, HourChip } from "./DateChip";
 import { ThreadPill } from "./ThreadPill";
 import { PhotoThumb } from "./PhotoThumb";
 import { PdfOpening } from "./PdfOpening";
+import { PdfActions } from "./PdfActions";
 import { useColors } from "../../lib/colors";
 import { domainOf, isProvisional, rowTap, type ContentRow } from "../../lib/threads";
 import { openLink } from "../../lib/links";
@@ -619,6 +620,10 @@ export function ContentRowView({
               </Pressable>
             ) : null}
           </Pressable>
+          {/* 044. The links the PDF carried, in the row's text column, outside
+              the title's press so each is its own tappable element. Not on an
+              archived row. */}
+          {row.actions && !row.archivedAt ? <PdfActions actions={row.actions} /> : null}
           {below}
           </View>
 

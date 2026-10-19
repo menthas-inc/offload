@@ -213,6 +213,9 @@ export interface ContentRow extends Sortable {
     unreadable?: boolean;
     ready: boolean;
   } | null;
+  /** 044. Up to two links the PDF carried, offered beside it. Null on a row
+   *  that is not a PDF or carries none; absent on an older shape. */
+  actions?: { label: string; url: string }[] | null;
   createdAt: string;
   archivedAt: string | null;
   doneAt: string | null;
