@@ -18,6 +18,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
 from datetime import date, datetime, timedelta
+from urllib.parse import urlsplit
 
 import httpx
 import structlog
@@ -640,6 +641,32 @@ async def _look_up(
 _ENVELOPE_KEYS = ("worker", "pageLocation", "pageRead", "page_location", "page_read")
 
 
+def resolve_actions(candidates: list[str], actions: list) -> list[dict]:
+    """044. Turn the model's candidate numbers into the harvested URLs.
+
+    The model names a link by its number and writes a label; it never writes a
+    URL. This is the one bound between the model and the worker: an out-of-range
+    number, a non-`http(s)` scheme or a duplicate is dropped, and at most two
+    are kept. Shared with the evals so they exercise this bound rather than a
+    copy of it (the 2026-10-17 stub lesson)."""
+    resolved: list[dict] = []
+    seen: set[str] = set()
+    for action in actions or []:
+        if not isinstance(action, dict):
+            continue
+        link = action.get("link")
+        if not isinstance(link, int) or not 1 <= link <= len(candidates):
+            continue
+        url = candidates[link - 1]
+        if url in seen or urlsplit(url).scheme.lower() not in ("http", "https"):
+            continue
+        seen.add(url)
+        resolved.append({"label": action.get("label"), "url": url})
+        if len(resolved) >= 2:
+            break
+    return resolved
+
+
 #: 017. One line to the Core API, which puts it on screen.
 StepWriter = Callable[[str], Awaitable[None]]
 
@@ -682,6 +709,7 @@ def _tool_caller(
     embedder: "Callable[[str], Awaitable[str | None]] | None" = None,
     lookups: "tuple[AsyncAnthropic, Config, Lookups] | None" = None,
     say: "StepWriter | None" = None,
+    pdfs: "list[Pdf] | None" = None,
 ):
     """The loop's only route to a write.
 
@@ -755,11 +783,31 @@ def _tool_caller(
                     if meta.location:
                         envelope["pageLocation"] = meta.location
 
+        # 044. A PDF's actions. The model named candidates by number; resolve
+        # each to the harvested URL here, where the candidate set lives, and put
+        # the resolved {label, url} on the worker's own envelope. The model has
+        # no field for a URL, so the only trust boundary is model-to-worker: an
+        # out-of-range number, a non-http(s) scheme or a duplicate is dropped,
+        # and at most two are kept. The model's own `actions` never reach the
+        # Core API (stripped below with the envelope names).
+        if tool == "add_content" and args.get("type") == "file" and args.get("actions"):
+            index = args.get("pdf")
+            cands = (
+                pdfs[index - 1].candidates
+                if pdfs and isinstance(index, int) and 1 <= index <= len(pdfs)
+                else []
+            )
+            resolved = resolve_actions(cands, args["actions"])
+            if resolved:
+                envelope = {**(envelope or {}), "actions": resolved}
+
         payload = {"tool": tool, "jobId": job_id, "toolCallId": tool_call_id, **_camel(args)}
         # Whatever the model put under the envelope's names is dropped before the
         # worker's own is added. Pydantic drops undeclared keys first
-        # (`plan.py`); this holds if that ever changes.
-        for key in _ENVELOPE_KEYS:
+        # (`plan.py`); this holds if that ever changes. 044's `actions` is a real
+        # model field (candidate numbers), so it is dropped explicitly: only the
+        # worker's resolved copy on the envelope reaches the Core API.
+        for key in (*_ENVELOPE_KEYS, "actions"):
             payload.pop(key, None)
         if envelope is not None:
             payload["worker"] = envelope
@@ -1461,6 +1509,7 @@ async def _handle(
                 job.id,
                 lookups=(anthropic, cfg, budget),
                 say=_step_writer(http, cfg, job.id),
+                pdfs=fitted.pdfs,
             ),
         )
 
@@ -1767,7 +1816,12 @@ async def _prepare_pdfs(
                 cut_bytes=len(copies.cut),
             )
         return dataclasses.replace(
-            pdf, pages=copies.pages, cut=copies.cut, clean=copies.clean, large=copies.large
+            pdf,
+            pages=copies.pages,
+            cut=copies.cut,
+            clean=copies.clean,
+            large=copies.large,
+            candidates=copies.candidates,
         )
 
     out: list[Pdf] = []

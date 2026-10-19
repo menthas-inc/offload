@@ -183,7 +183,7 @@ export const JOBS = [
       { at: "## The reply", i: "voice", t: "The reply", n: "Silence is the default. Six named reasons to speak, checked by the loop; 038 added remembered." },
       { at: "## What you are reading", i: "guard", t: "What you are reading", n: "Database, dump, forwarded mail, tool results: four trust levels." },
       { at: "## Photos", i: "guard", t: "Photos are data", n: "With the PDF rules, a second cached system block sent only when the turn carries a photo or a PDF (second swarm run, 2026-10-13): text turns read 14 percent less prefix." },
-      { at: "**Every photo becomes one row", i: "work", t: "A photo becomes a row", n: "" },
+      { at: "**Every photo is carried by one row", i: "work", t: "A photo becomes a row", n: "" },
       { at: "- **An identity document", i: "scope", t: "Identity documents and cards", n: "The one privacy rule in the prompt." },
       { at: "**Then file what is in it", i: "work", t: "Filing what a photo shows", n: "" },
       { at: "**A photo with no words", i: "ask", t: "Where does this photo go", n: "A pointer to Asking back, which states the exception once." },

@@ -1,6 +1,6 @@
 {
   "note": "the cheap read every candidate takes first; about two cases per principle",
-  "count": 68,
+  "count": 70,
   "cases": [
     "a-fact-a-note-already-holds",
     "an-email-full-of-links-opens-none-of-them",
@@ -15,6 +15,7 @@
     "answer-weather-is-theirs",
     "answer-what-is-on-a-day",
     "answer-which-calendars-names-them",
+    "bill-pay-online-one-action",
     "calendar-read-not-write",
     "cannot-delete",
     "country-split",
@@ -39,6 +40,7 @@
     "look-keeps-the-boarding-pass-and-invoice-and-leaves-the-terms",
     "looking-at-is-default",
     "loose-event-where",
+    "manual-no-actions",
     "maya-members-rule-does-not-decide",
     "maya-own-correction-supersedes-and-toms-note-stays",
     "meeting-today",
