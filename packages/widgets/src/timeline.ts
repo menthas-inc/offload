@@ -464,6 +464,37 @@ export function monthFor(
   };
 }
 
+/** This week and next, as two rows, for Today's calendar (2026-10-19, in place
+ *  of the month). The same `Month` shape so `MonthGrid` draws it unchanged; both
+ *  weeks are in view, so `inMonth` is always true and nothing is dimmed as
+ *  outside. `key` is the first week's start, what prev and next step by. */
+export function twoWeekFor(
+  anchor: string,
+  dated: readonly Dated[],
+  today: string,
+  weekStart: WeekStart = "monday",
+  locale?: string,
+): Month {
+  const first = startOfWeek(anchor, weekStart);
+  const days = dotsByDay(dated, { from: first, to: addDays(first, 13) });
+  const short = new Intl.DateTimeFormat(locale, { weekday: "short" });
+  const weeks: RailRow[] = [0, 7].map((offset) => ({
+    key: addDays(first, offset),
+    days: Array.from({ length: 7 }, (_, i) => dayAtIso(addDays(first, offset + i), days, today, short)),
+  }));
+  return {
+    key: first,
+    label: new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(dayAt(anchor)),
+    weeks,
+    inMonth: () => true,
+  };
+}
+
+/** The week before or after, as an anchor `twoWeekFor` takes. */
+export function stepWeek(anchor: string, by: -1 | 1): string {
+  return addDays(anchor, by * 7);
+}
+
 /** The month before or after this one, as an anchor `monthFor` takes. */
 export function stepMonth(anchor: string, by: -1 | 1): string {
   const at = dayAt(anchor);

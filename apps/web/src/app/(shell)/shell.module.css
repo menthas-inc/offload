@@ -2970,22 +2970,32 @@ a.settingsRow:hover,
    Short and slight: 140ms and 12px, which is enough to read as movement and
    not enough to wait for. Somebody stepping through six months in a row should
    feel the direction rather than six animations. */
-@keyframes railFromRight {
-  from { opacity: 0; transform: translateX(12px); }
-  to { opacity: 1; transform: translateX(0); }
+/* Up, not sideways: a step forward brings the weeks in from below and a step
+   back from above, which reads more like turning a page of dates than paging a
+   carousel (the owner, 2026-10-19). Every calendar that steps uses it. */
+@keyframes railFromBelow {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes railFromLeft {
-  from { opacity: 0; transform: translateX(-12px); }
-  to { opacity: 1; transform: translateX(0); }
+@keyframes railFromAbove {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* The two-week stepper animates its rows one at a time (MonthGrid's FLIP), so
+   it needs no slide of its own; position relative anchors each row's offsetTop
+   for the measure. */
+.railWeeks {
+  position: relative;
 }
 
 .railSlide {
-  animation: railFromRight 140ms ease-out;
+  animation: railFromBelow 140ms ease-out;
 }
 
 .railSlide[data-went="-1"] {
-  animation-name: railFromLeft;
+  animation-name: railFromAbove;
 }
 
 /* Anybody who has asked for less movement gets the change and none of the

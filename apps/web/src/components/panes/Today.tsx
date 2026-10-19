@@ -26,7 +26,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { addUtcDays, dayName, dayTitle, keepInPlace, monthDated, monthFor, stepMonth, type MonthCount, nextLine, nothingLine, reminderEntryKey, remindersInOrder, zoneStrip } from "@offload/widgets";
+import { addUtcDays, dayName, dayTitle, keepInPlace, monthDated, twoWeekFor, stepWeek, type MonthCount, nextLine, nothingLine, reminderEntryKey, remindersInOrder, zoneStrip } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { PaneHead } from "../shell/PaneHead";
 import { useThreads } from "../shell/threads-context";
@@ -133,8 +133,8 @@ export function TodayPane({
   const valid = (day: string | null): day is string => day !== null && DAY_PATTERN.test(day) && day >= today && day <= lastDay;
 
   const [day, setDay] = useState(() => (valid(openDay) ? openDay : today));
-  // The month on screen. Null is the one the day is in, so a door or the
-  // Today tab moving the day brings the month with it.
+  // The week the two rows start on. Null is the one the day is in, so a door
+  // or the Today tab moving the day brings the weeks with it.
   const [month, setMonth] = useState<string | null>(null);
   const [went, setWent] = useState<1 | -1>(1);
   // Bumped after every write, so the month's dots follow a tick or a dismiss.
@@ -223,9 +223,9 @@ export function TodayPane({
     if (filed) void load(false);
   }, [filed, load]);
 
-  // The month's dots: what each day on the grid holds, read for the grid's
+  // The calendar's dots: what each day on the two weeks holds, read for the
   // whole window and again after a filing, which may have dated something.
-  const grid0 = monthFor(month ?? day, [], today, weekStart);
+  const grid0 = twoWeekFor(month ?? day, [], today, weekStart);
   const gridFrom = grid0.weeks[0]?.days[0]?.iso ?? grid0.key;
   const gridTo = grid0.weeks[grid0.weeks.length - 1]?.days[6]?.iso ?? grid0.key;
   const [counts, setCounts] = useState<{ window: string; days: MonthCount[] } | null>(null);
@@ -344,7 +344,7 @@ export function TodayPane({
   const named = dayName(day, today, weekStart);
   const shown = read && read.date === day ? read.day : null;
 
-  const grid = monthFor(
+  const grid = twoWeekFor(
     month ?? day,
     counts && counts.window === `${gridFrom}|${gridTo}` ? monthDated(counts.days) : [],
     today,
@@ -354,20 +354,21 @@ export function TodayPane({
     <div key="stepper" className={styles.month}>
       <MonthGrid
         grid={grid}
+        unit="week"
         selected={day}
         went={went}
         // A day before today, or past the calendar copy's edge, does not open.
         closed={(iso) => iso < today || iso > lastDay}
-        // The head names the picked day while its month is the one shown;
-        // on today, the month with Today beside it (the owner, 2026-10-18).
-        title={day !== today && grid.inMonth(day) ? dayTitle(day) : undefined}
+        // The head names the picked day while the two weeks are shown; on
+        // today, the month with Today beside it (the owner, 2026-10-19).
+        title={day !== today ? dayTitle(day) : undefined}
         heading
         first={grid.key <= today}
-        last={stepMonth(grid.key, 1) > lastDay}
+        last={stepWeek(grid.key, 1) > lastDay}
         onPick={(iso) => show(iso)}
         onStep={(by) => {
           setWent(by);
-          setMonth(stepMonth(grid.key, by));
+          setMonth(stepWeek(grid.key, by));
         }}
         onToday={() => {
           setWent(grid.key > today ? -1 : 1);

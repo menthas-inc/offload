@@ -44,6 +44,8 @@ export {
   monthDated,
   railFor,
   stepMonth,
+  twoWeekFor,
+  stepWeek,
   contentOn,
   weeksSpanned,
   type Dated,
