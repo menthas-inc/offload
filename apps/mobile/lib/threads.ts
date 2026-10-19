@@ -16,7 +16,7 @@ import { send } from "./api";
 import { onSignedOut } from "./session-end";
 import type { Invitation } from "./people";
 import type { LooseSummary } from "./loose";
-import type { Reminders, Sortable, ThreadLook } from "@offload/widgets";
+import type { Layout, Reminders, Sortable, ThreadLook } from "@offload/widgets";
 import { provisionalId } from "@offload/widgets";
 
 export { domainOf, isProvisional, provisionalId, rangeOf, startsAs } from "@offload/widgets";
@@ -124,7 +124,28 @@ export interface ThreadBundle {
   calendars: { picked: number; total: number; anyPicked: boolean } | null;
   /** 030. One live thing in the thread has a point: earns the switch. */
   hasPoint: boolean;
+  /** Thread layouts (2026-10-19): how the page is laid out, whose pick it is,
+   *  the one suggestion the line draws, and the heads-up another member sees
+   *  once after somebody else switched. */
+  layout: Layout;
+  layoutSetBy: "offload" | "person";
+  layoutSuggestion: Exclude<Layout, "default"> | null;
+  layoutChange: { by: { accountId: string; displayName: string }; layout: Layout; at: string } | null;
 }
+
+/** Thread layouts: what a layout switch did, so one Undo sends it back. */
+export interface LayoutChange {
+  previous: { layout: Layout; layoutSetBy: "offload" | "person" };
+  made: string[];
+  dropped: string[];
+}
+
+/** The body Edit thread's Save sends: the look, and the layout with its Undo. */
+export type ThreadEdit = Partial<ThreadLook> & {
+  layout?: Layout;
+  layoutSetBy?: "offload" | "person";
+  undoLabels?: { remove: string[]; restore: string[] };
+};
 
 /** 019. One of the viewer's approved calendars, against a thread. */
 export interface ThreadCalendar {
@@ -533,9 +554,9 @@ export async function createThread(input: { name: string; icon: string; hue: num
  *  them. `previous` sent back whole is the Undo. */
 export async function editThread(
   id: string,
-  change: Partial<ThreadLook>
-): Promise<{ thread: ThreadLook & { id: string }; previous: ThreadLook } | null> {
-  const { data } = await send<{ thread: ThreadLook & { id: string }; previous: ThreadLook }>(`/v1/threads/${id}`, {
+  change: ThreadEdit
+): Promise<{ thread: ThreadLook & { id: string }; previous: ThreadLook; layout?: LayoutChange } | null> {
+  const { data } = await send<{ thread: ThreadLook & { id: string }; previous: ThreadLook; layout?: LayoutChange }>(`/v1/threads/${id}`, {
     method: "PATCH",
     ...body(change),
   });

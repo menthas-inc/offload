@@ -20,7 +20,8 @@
 //     saying offload has not done something is an apology taking up the most
 //     prominent space on the screen.
 
-import { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive, leaveAsk, threadLookAfter, type ThreadLook } from "@offload/widgets";
+import { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive, LAYOUT_NAMES, layoutFor, leaveAsk, threadLookAfter, type Layout, type ThreadLook } from "@offload/widgets";
+import { LayoutSections, type LayoutHandlers } from "./LayoutSections";
 import { ThreadIcon } from "../ThreadIcon";
 import { EditThreadSheet } from "./EditThreadSheet";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -80,6 +81,7 @@ import {
   startsAs,
   type ContentRow,
   type Note,
+  type ThreadEdit,
   type ThreadBundle,
   setPreference,
   type ContentPatch,
@@ -563,18 +565,34 @@ export default function Thread() {
    *  Co-owned, so anybody in the thread may change them. The bar is drawn at
    *  the press, and Undo sends back everything that was there, whose pick it
    *  was included. */
-  function saveThread(change: { name?: string; icon?: string; hue?: number }, shown: { name: string; icon: string; hue: number }): void {
+  function saveThread(change: ThreadEdit, shown: { name: string; icon: string; hue: number }): void {
     if (!thread) return;
     const before: ThreadLook = { name: thread.name, icon: thread.icon, hue: thread.hue, iconSetBy: thread.iconSetBy };
     const after = threadLookAfter(before, change, shown);
-    const draw = (look: ThreadLook) => setThread((current) => (current ? { ...current, ...look } : current));
+    const fromLayout = thread.layout;
+    const draw = (look: ThreadLook, layout?: Layout) =>
+      setThread((current) => (current ? { ...current, ...look, ...(layout ? { layout, layoutSetBy: "person" as const } : {}) } : current));
+    // The layout switch's Undo needs the labels it moved, which only the write's
+    // result carries, so it is captured here and sent by unwrite.
+    let undo: ThreadEdit = before;
     void perform(
       {
-        apply: () => draw(after),
-        revert: () => draw(before),
-        write: () => editThread(id, change).then((result) => result !== null),
-        unwrite: () => editThread(id, before).then((result) => result !== null),
-        did: "Thread updated",
+        apply: () => draw(after, change.layout),
+        revert: () => draw(before, fromLayout),
+        write: () =>
+          editThread(id, change).then((result) => {
+            if (result?.layout) {
+              undo = {
+                ...before,
+                layout: result.layout.previous.layout,
+                layoutSetBy: result.layout.previous.layoutSetBy,
+                undoLabels: { remove: result.layout.made, restore: result.layout.dropped },
+              };
+            }
+            return result !== null;
+          }),
+        unwrite: () => editThread(id, undo).then((result) => result !== null),
+        did: change.layout ? `Showing as ${LAYOUT_NAMES[change.layout]}` : "Thread updated",
         failed: "Couldn't save that",
         unfailed: "Couldn't put that back",
         // Under the thread's read, at the top of the page.
@@ -923,6 +941,34 @@ export default function Thread() {
   // Not a fixed string: it is the anti-duplication contract.
   const restHeading =
     inWidgets.size > 0 ? "Everything else" : "Everything in here";
+
+  // Thread layouts. Default keeps its own render below, to the pixel; the five
+  // others draw layoutFor's sections. The rail is still the screen's, gated by
+  // whether the layout permits one (decision 21).
+  const threadLayout = (thread.layout ?? "default") as Layout;
+  const isDefaultLayout = threadLayout === "default";
+  const page =
+    showArchived || isDefaultLayout
+      ? null
+      : layoutFor<ContentRow, Note>({
+          layout: threadLayout,
+          rows: allRows,
+          notes: shownNotes,
+          labels: thread.labels,
+          // preference only steers Default's widget order, which never routes
+          // through here, so the client's loose type need not be coerced.
+          preference: {},
+          now: new Date(),
+          zone,
+        });
+  const layoutHandlers: LayoutHandlers = {
+    onEdit: setRenaming,
+    onDelete: remove,
+    onToggle: tick,
+    onOpenPhoto: openFileOf,
+    // The composer at the foot is the add path; the row is the affordance.
+    onAdd: () => undefined,
+  };
   // The rows a list here draws, so their lines go in place; To do while it is
   // open, and Everything else.
   listed.current = new Set(
@@ -1069,7 +1115,7 @@ export default function Thread() {
         {/* The rail is above the widgets, and only on a thread with something
             dated. It is not a widget: it lists every kind with a date rather
             than one, which is why 015 took it out of the widget set. */}
-        {showArchived || !railEarned ? null : (
+        {showArchived || !railEarned || !(isDefaultLayout || page?.rail) ? null : (
           <Timeline
             // Keyed by the thread, so the day you were reading and the gaps you
             // opened do not follow you into the next one.
@@ -1085,6 +1131,10 @@ export default function Thread() {
           />
         )}
 
+        {!isDefaultLayout && !showArchived && page ? (
+          <LayoutSections page={page} labels={thread.labels} handlers={layoutHandlers} />
+        ) : (
+        <>
         {showArchived ? null : (
           <Widgets
             threadId={id}
@@ -1182,6 +1232,8 @@ export default function Thread() {
             />
           )}
         />
+        </>
+        )}
 
         {/* The way to the archived pile, and the way back: a row under
             everything live rather than a control in the section heading. The
