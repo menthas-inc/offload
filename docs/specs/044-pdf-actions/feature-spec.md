@@ -15,7 +15,7 @@ offload already reads the PDF once on the filing turn and already knows what it 
 
 ### What an action is
 
-An **action** (schema and code word; no noun reaches anyone reading) is a short label and a destination, offered next to a PDF so one tap goes where the person would have gone anyway. The person reads only the label, which the model writes to say what the tap does in their terms: **Check in**, **Manage booking**, **View ticket**, **Add to wallet**. The label is sentence case, carries no dash, is at most 24 characters (as a reply label is, so it cannot wrap beside the tile), and is refused if it contains a scheme or a host-shaped token, so the only host-shaped text on screen is the one offload computes. The label is held by eval cases, as a PDF's title is.
+An **action** (schema and code word; no noun reaches anyone reading) is a short label and a destination, offered next to a PDF so one tap goes where the person would have gone anyway. The person reads only the label, which the model writes to say what the tap does in their terms: **Check in**, **Manage booking**, **View ticket**, **Pay online**, **Add to wallet**, **Directions**. The label is sentence case, carries no dash, is at most 24 characters (as a reply label is, so it cannot wrap beside the tile), and is refused if it contains a scheme or a host-shaped token, so the only host-shaped text on screen is the one offload computes. The label is held by eval cases, as a PDF's title is.
 
 offload surfaces **at most two** actions from a PDF, and usually **none**. A bank statement, a passport scan, a contract, a manual, a plain invoice for records carry no action, and offload fills no slot it cannot fill well.
 
@@ -30,7 +30,7 @@ Text inside a PDF is never an instruction (041), and an action is not instructio
 
 ### Which links become actions
 
-Only a link the person would actually use in offload: **the move the document exists for** (checking in, viewing or downloading the ticket, managing or cancelling the booking), **plus at most one that changes it**, with the document's own order as the tie-break. A save-to-wallet link counts when the PDF carries it.
+Only a link the person would actually use in offload: **the move the document exists for** (checking in, viewing or downloading the ticket, managing or cancelling the booking, paying a bill or invoice online), **plus at most one more that pays off on a phone** (adding it to a wallet, getting directions to the place it is for), with the document's own order as the tie-break.
 
 Never surfaced, even when present and even when the PDF's own words say to: terms and conditions, a privacy notice, an unsubscribe or preferences link, the issuer's home page or social accounts, a marketing or cross-sell link, a link to software to install to read the PDF, a `mailto:` or a bare phone number, or any link that is boilerplate riding along with every document of its kind. The never-list is the testable half and carries the weight.
 
@@ -80,7 +80,7 @@ Said before any code, since two lines of the policy change.
 - **AC-1** On the filing turn a PDF yields zero, one or two actions; the common case is zero and no slot is filled with a weak action. The bank statement, passport scan, manual, 48-page contract and records-only invoice fixtures each yield zero, and a weak second action fails its case.
 - **AC-2** The candidate set is built in 041's sandboxed child from the original, from hyperlink targets on pages one to ten and URLs in those pages' text, `http`/`https` only, deduped and capped; it travels into the filing turn as data behind a label; the model returns a set index and a label, never a URL; offload resolves the index and offers nothing for an index out of range. A test proves a model-returned URL or an out-of-range index yields no action.
 - **AC-3** Only a link of the useful kinds becomes an action; terms and conditions, privacy, unsubscribe, the issuer's home or social pages, marketing, reader software, `mailto:` and bare numbers never do, held by eval cases over drawn fixtures covering each.
-- **AC-4** At most two actions: the move the document exists for, plus at most one that changes it, with the document's order as the tie-break.
+- **AC-4** At most two actions: the move the document exists for, plus at most one more that pays off on a phone (wallet, directions), with the document's order as the tie-break.
 - **AC-5** A PDF whose text (visible, hidden, in a form field, or past the read pages) tells offload to surface a link produces no action from that instruction; only a harvested useful link does. Injection fixtures prove it.
 - **AC-6** The label is model-written, sentence case, carries no dash, is at most 24 characters, and is refused if it contains a scheme or a host-shaped token; held by eval cases.
 
@@ -135,3 +135,4 @@ All with the product owner, 2026-10-18.
 - **Label only on the chip, a per-tap confirm as the reveal.** Long-press (the row's sheet, and a phone link preview) and hover (no component, no touch or keyboard path) are both out; the confirm is the single cross-surface reveal, showing the client-computed registrable domain.
 - **The model writes the label** but returns a set index, never a URL; held by eval cases, as a PDF's title is.
 - **The existing `Button` as a secondary pill, not `Chip`, `QuickReplies` or a new component**: `Button` already gives a hairline outline, a 44px hit area and keyboard operation, so the governed-component bar is not met; `Chip`'s tones and `QuickReplies`' turn-writing semantics rule those two out.
+- **Directions and pay-online are useful actions** (owner, 2026-10-19), from running the evals: planning had collapsed the taxonomy and dropped a get-directions link, but the model kept offering directions to a booking's hotel and it is genuinely useful on a phone, which the owner's first ask named. A map or directions link and a bill's pay-online link are now actions; the prompt and the eval cases say so, and the eval asserts the move is surfaced and the junk is not rather than an exact count, since the useful second action is a judgment call the model varies on.
