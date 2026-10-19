@@ -56,6 +56,7 @@
   cursor: pointer;
 }
 
+.remove,
 .cancel {
   min-height: 32px;
   padding: 0 8px;
@@ -65,4 +66,10 @@
   font: inherit;
   font-size: 13px;
   cursor: pointer;
+}
+
+/* Quietest of the three: correcting a wrong action is rare and not the move
+   the person came for. */
+.remove {
+  color: var(--text-tertiary);
 }

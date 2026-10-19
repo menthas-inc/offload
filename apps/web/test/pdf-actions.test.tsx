@@ -68,4 +68,41 @@ describe("PdfActions", () => {
     render([{ label: "Open", url: "mailto:a@b.com" }]);
     expect(container.textContent).toBe("");
   });
+
+  const open = () => act(() => pills()[0]!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+  const named = (text: string) =>
+    [...container.querySelectorAll("button")].find((b) => b.textContent?.trim() === text);
+
+  it("does not offer Remove to a non-author", () => {
+    render([{ label: "Check in", url: "https://lufthansa.com/ci" }]);
+    open();
+    expect(named("Remove")).toBeUndefined();
+    expect(named("Cancel")).toBeTruthy();
+  });
+
+  it("offers the author Remove in the confirm, and clicking it calls onRemove with the url", () => {
+    const removed: string[] = [];
+    act(() =>
+      root.render(
+        <PdfActions
+          actions={[{ label: "Check in", url: "https://lufthansa.com/ci" }]}
+          canRemove
+          onRemove={(url) => removed.push(url)}
+        />
+      )
+    );
+    open();
+    // Open still works: the anchor is there with the right rel.
+    expect(container.querySelector("a")?.getAttribute("rel")).toBe("noopener noreferrer");
+    const remove = named("Remove");
+    expect(remove).toBeTruthy();
+    act(() => remove!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(removed).toEqual(["https://lufthansa.com/ci"]);
+  });
+
+  it("offers no Remove without an onRemove handler, even with canRemove", () => {
+    act(() => root.render(<PdfActions actions={[{ label: "Check in", url: "https://lufthansa.com/ci" }]} canRemove />));
+    open();
+    expect(named("Remove")).toBeUndefined();
+  });
 });

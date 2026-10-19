@@ -34,8 +34,10 @@ import {
   deleteNote,
   editContent,
   editNote,
+  forgetAction,
   moveContent,
   muteNote,
+  restoreAction,
   restoreNote,
   setArchived,
   type ContentPatch,
@@ -154,6 +156,30 @@ export function useLooseRows(
         failed: "Couldn't delete that",
         unfailed: "Couldn't put that back",
         place: { id: keyOf(entry), icon: "trash-2", form: "slot" },
+      },
+      toast,
+      writes,
+    );
+  }
+
+  /** 044. Remove a wrong action from a PDF's loose row. The row stays and
+   *  changes, so the Undo draws under it; a failed write puts the action back,
+   *  and restore refuses any url the PDF did not carry. */
+  function removeAction(entry: LooseEntry, url: string): void {
+    if (entry.kind !== "content") return;
+    const row = entry.row;
+    const key = keyOf(entry);
+    const before = row.actions ?? [];
+    void perform(
+      {
+        apply: () => patch(key, { actions: before.filter((action) => action.url !== url) }),
+        revert: () => patch(key, { actions: before }),
+        write: () => forgetAction(row.id, url),
+        unwrite: () => restoreAction(row.id, url),
+        did: "Removed",
+        failed: "Couldn't remove that",
+        unfailed: "Couldn't put that back",
+        place: { id: key, icon: "arrow-up-right", form: "under" },
       },
       toast,
       writes,
@@ -425,6 +451,7 @@ export function useLooseRows(
         muted={entry.kind === "note" && entry.note.muted}
         onEdit={() => (entry.kind === "note" ? setNoting(entry.note) : setRenaming(entry.row))}
         onDelete={() => remove(entry)}
+        onRemoveAction={entry.kind === "content" ? (url) => removeAction(entry, url) : undefined}
         onOpenPhoto={
           entry.kind === "content" && entry.row.photo
             ? () =>

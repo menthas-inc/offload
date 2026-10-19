@@ -27,7 +27,18 @@ export interface PdfAction {
   url: string;
 }
 
-export function PdfActions({ actions }: { actions: PdfAction[] | null | undefined }) {
+export function PdfActions({
+  actions,
+  canRemove = false,
+  onRemove,
+}: {
+  actions: PdfAction[] | null | undefined;
+  /** 044. The row is the viewer's own, so they may correct a wrong action.
+   *  Author only (OFF-3), the same gate the row's delete uses. */
+  canRemove?: boolean;
+  /** Remove this action from the row, with the row's own Undo. */
+  onRemove?: (url: string) => void;
+}) {
   const [confirming, setConfirming] = useState<string | null>(null);
   // http(s) only, re-checked before anything is drawn to open: a stale row
   // cannot offer a scheme the harvest, the worker and the write already refused.
@@ -49,6 +60,20 @@ export function PdfActions({ actions }: { actions: PdfAction[] | null | undefine
         >
           Open
         </a>
+        {canRemove && onRemove ? (
+          // 044. Correcting a wrong action lives here, in the confirm, not a
+          // separate sheet: quiet, author only, with the row's own Undo.
+          <button
+            type="button"
+            className={styles.remove}
+            onClick={() => {
+              setConfirming(null);
+              onRemove(open.url);
+            }}
+          >
+            Remove
+          </button>
+        ) : null}
         <button type="button" className={styles.cancel} onClick={() => setConfirming(null)}>
           Cancel
         </button>

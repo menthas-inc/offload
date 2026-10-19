@@ -21,7 +21,17 @@ export interface PdfAction {
   url: string;
 }
 
-export function PdfActions({ actions }: { actions?: PdfAction[] | null }) {
+export function PdfActions({
+  actions,
+  canRemove = false,
+  onRemove,
+}: {
+  actions?: PdfAction[] | null;
+  /** 044. The row is the viewer's own, so they may correct a wrong action.
+   *  Author only (OFF-3), the same gate the row's delete uses. */
+  canRemove?: boolean | undefined;
+  onRemove?: ((url: string) => void) | undefined;
+}) {
   const [confirming, setConfirming] = useState<string | null>(null);
   const COLOR = useColors();
   const usable = (actions ?? []).filter((a) => isOpenable(a.url)).slice(0, 2);
@@ -49,6 +59,24 @@ export function PdfActions({ actions }: { actions?: PdfAction[] | null }) {
             Open
           </Text>
         </Pressable>
+        {canRemove && onRemove ? (
+          // 044. Correcting a wrong action lives here, in the confirm, not a
+          // separate sheet: quiet, author only, with the row's own Undo.
+          <Pressable
+            onPress={() => {
+              setConfirming(null);
+              onRemove(open.url);
+            }}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Remove"
+            className="py-space-2"
+          >
+            <Text className="font-core text-text-tertiary" style={{ fontSize: 13 }}>
+              Remove
+            </Text>
+          </Pressable>
+        ) : null}
         <Pressable
           onPress={() => setConfirming(null)}
           hitSlop={10}

@@ -43,6 +43,8 @@ import {
 import {
   completeContent,
   deleteContent,
+  forgetAction,
+  restoreAction,
   deleteThread,
   restoreThread,
   editContent,
@@ -514,6 +516,29 @@ export function Thread({ id, onChanged }: Props) {
     );
   }
 
+  /** 044. Remove a wrong action from a PDF's row. The row stays and changes,
+   *  so the Undo line draws under it (`form: "under"`), exactly as an in-place
+   *  edit does; a failed write puts the action back. Restore is the undo and
+   *  refuses, server side, any url the PDF did not carry. */
+  function removeAction(row: ContentRow, url: string): void {
+    if (isProvisional(row.id)) return;
+    const before = row.actions ?? [];
+    void perform(
+      {
+        apply: () => patchRow(row.id, { actions: before.filter((action) => action.url !== url) }),
+        revert: () => patchRow(row.id, { actions: before }),
+        write: () => telling(forgetAction(row.id, url)),
+        unwrite: () => telling(restoreAction(row.id, url)),
+        did: "Removed",
+        failed: "Couldn't remove that",
+        unfailed: "Couldn't put that back",
+        place: { id: row.id, icon: "arrow-up-right", form: "under" },
+      },
+      toast,
+      writes,
+    );
+  }
+
   /** Tick, or put it back. Any member: a thread's contents belong to everybody
    *  in it and neither direction destroys anything. The box moves at the
    *  press; the row sinks or rises with it, since the lists derive that from
@@ -899,6 +924,7 @@ export function Thread({ id, onChanged }: Props) {
     },
     onAsk: (rowId) => setAsking(rowId && isProvisional(rowId) ? null : rowId),
     onDelete: remove,
+    onRemoveAction: removeAction,
     // 020. A photo row's tile, and a tile in Files, open the viewer. 041: a
     // PDF's opens the PDF itself, in the browser's own viewer.
     onOpenPhoto: (row) => {
