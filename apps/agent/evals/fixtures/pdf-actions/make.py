@@ -55,7 +55,9 @@ def draw(
     return out.getvalue()
 
 
-def _button(c: canvas.Canvas, x: float, y: float, label: str, url: str, w: float = 170, h: float = 24) -> None:
+def _button(
+    c: canvas.Canvas, x: float, y: float, label: str, url: str, w: float = 170, h: float = 24
+) -> None:
     c.saveState()
     c.setStrokeColorRGB(0.3, 0.3, 0.3)
     c.setFillColorRGB(0.94, 0.94, 0.94)
