@@ -19,6 +19,8 @@ import {
   monthFor,
   railFor,
   stepMonth,
+  twoWeekFor,
+  stepWeek,
   contentOn,
   weeksSpanned,
   type Dated,
@@ -147,6 +149,36 @@ describe("past a few weeks it is a month, not a rail", () => {
     expect(stepMonth("2026-09-01", -1)).toBe("2026-08-01");
     expect(stepMonth("2026-12-01", 1)).toBe("2027-01-01");
     expect(stepMonth("2026-01-01", -1)).toBe("2025-12-01");
+  });
+});
+
+describe("Today's two weeks (2026-10-19, in place of the month)", () => {
+  it("draws this week and next as two whole weeks, every day in view", () => {
+    const two = twoWeekFor(TODAY, [point("a", "2026-09-30")], TODAY, "monday");
+    // TODAY is Wednesday 2026-09-16; the Monday week starts the 14th.
+    expect(two.key).toBe("2026-09-14");
+    expect(two.weeks).toHaveLength(2);
+    for (const week of two.weeks) expect(week.days).toHaveLength(7);
+    const days = two.weeks.flatMap((week) => week.days);
+    expect(days[0]!.iso).toBe("2026-09-14");
+    expect(days.at(-1)!.iso).toBe("2026-09-27");
+    // Nothing is dimmed as outside: the two weeks are the whole calendar.
+    expect(two.inMonth("2026-09-27")).toBe(true);
+  });
+
+  it("starts the weeks on Sunday when the setting says so", () => {
+    expect(twoWeekFor(TODAY, [], TODAY, "sunday").key).toBe("2026-09-13");
+  });
+
+  it("carries the dots in and marks today", () => {
+    const days = twoWeekFor(TODAY, [point("a", "2026-09-20")], TODAY, "monday").weeks.flatMap((week) => week.days);
+    expect(days.find((day) => day.iso === "2026-09-20")?.count).toBe(1);
+    expect(days.find((day) => day.iso === TODAY)?.today).toBe(true);
+  });
+
+  it("steps a week at a time either way", () => {
+    expect(stepWeek("2026-09-14", 1)).toBe("2026-09-21");
+    expect(stepWeek("2026-09-14", -1)).toBe("2026-09-07");
   });
 });
 

@@ -402,7 +402,7 @@ describe("027 AC-1 the page", () => {
     needs = [card.request("r1", "Ana Duarte")];
     await open();
     const stack = needsYou()!;
-    const stepper = button("Previous month")!;
+    const stepper = button("Previous week")!;
     expect(stack).not.toBeNull();
     expect(before(stack, stepper)).toBe(true);
     act(() => root.unmount());
@@ -412,7 +412,7 @@ describe("027 AC-1 the page", () => {
     host = document.body.appendChild(document.createElement("div"));
     root = createRoot(host);
     await open();
-    expect(before(button("Previous month")!, needsYou()!)).toBe(true);
+    expect(before(button("Previous week")!, needsYou()!)).toBe(true);
   });
 
   it("names the day once, in the month's head, with no page title and no name under the grid (the owner, 2026-10-18)", async () => {
@@ -546,7 +546,7 @@ describe("027 AC-2 and AC-11 the stack", () => {
     overrides["GET /v1/today/needs"] = () => json({ error: "boom" }, 500);
     await open();
     expect(needsYou()).toBeNull();
-    expect(button("Previous month")).toBeDefined();
+    expect(button("Previous week")).toBeDefined();
     expect(text()).toContain("To do");
   });
 });
@@ -739,13 +739,16 @@ describe("027 AC-4 to AC-10 the cards", () => {
 
 // ------------------------------------------------------------------ the day
 
-describe("027 AC-14 and AC-15 the month (2026-10-18, in place of the stepper)", () => {
-  it("draws the month the day is in, today pressed, the days before it closed, and no way back a month", async () => {
+describe("027 AC-14 and AC-15 the two weeks (2026-10-19, in place of the month)", () => {
+  it("draws this week and next as two rows, today pressed, the days before it closed, and no way back a week", async () => {
     await open();
     expect(text()).toContain("September 2026");
     expect(dayCell("2026-09-29")!.getAttribute("aria-pressed")).toBe("true");
     expect(dayCell("2026-09-28")!.disabled).toBe(true);
-    expect(button("Previous month")!.disabled).toBe(true);
+    expect(button("Previous week")!.disabled).toBe(true);
+    // Always two weeks: the week after next is not drawn.
+    expect(dayCell("2026-10-11")).toBeDefined();
+    expect(dayCell("2026-10-12")).toBeUndefined();
   });
 
   it("opens a later day on a tap, names it and reads it", async () => {
@@ -756,22 +759,22 @@ describe("027 AC-14 and AC-15 the month (2026-10-18, in place of the stepper)", 
     expect(dayCell("2026-09-30")!.getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("dots each day from the month read, over the whole grid it draws", async () => {
+  it("dots each day from the read, over the two weeks it draws", async () => {
     overrides["GET /v1/today/month"] = () => json({ days: [{ date: "2026-10-02", task: 2, event: 1, calendar: 1 }] });
     await open();
     const read = calls.find((one) => one.path.startsWith("/v1/today/month"))!;
-    // Monday weeks: the grid runs from Monday 31 August to Sunday 4 October.
-    expect(read.path).toBe("/v1/today/month?from=2026-08-31&to=2026-10-04");
+    // Monday weeks: this week and next run from Monday 28 September to Sunday 11 October.
+    expect(read.path).toBe("/v1/today/month?from=2026-09-28&to=2026-10-11");
     // The date is in the reader's language; the counts are the claim.
     expect(dayCell("2026-10-02")!.getAttribute("aria-label")).toMatch(/, 2 to do, 1 event, 1 calendar event$/);
     expect(dayCell("2026-10-02")!.querySelectorAll("[data-dot]")).toHaveLength(4);
   });
 
-  it("steps a month at a time, and Today comes back to today", async () => {
+  it("steps a week at a time, and Today comes back to today", async () => {
     await open();
-    await press(button("Next month"));
+    await press(button("Next week"));
     expect(text()).toContain("October 2026");
-    expect(button("Previous month")!.disabled).toBe(false);
+    expect(button("Previous week")!.disabled).toBe(false);
     await press(dayCell("2026-10-14"));
     expect(dayReads().at(-1)).toBe("2026-10-14");
     await press(button("Today"));
@@ -779,10 +782,10 @@ describe("027 AC-14 and AC-15 the month (2026-10-18, in place of the stepper)", 
     expect(dayReads().at(-1)).toBe("2026-09-29");
   });
 
-  it("stops twelve months ahead", async () => {
+  it("stops at the far edge of what offload keeps", async () => {
     await open("day=2027-09-29");
     expect(dayReads()).toContain("2027-09-29");
-    expect(button("Next month")!.disabled).toBe(true);
+    expect(button("Next week")!.disabled).toBe(true);
     expect(dayCell("2027-09-30")!.disabled).toBe(true);
   });
 
@@ -907,7 +910,7 @@ describe("027 AC-24 and AC-25 the empty, failed and slow days", () => {
     days["2026-09-29"] = { ...emptyDay("2026-09-29"), everDumped: false };
     await open();
     expect(text()).toContain("Dump anything and offload will sort it.");
-    expect(button("Previous month")).toBeUndefined();
+    expect(button("Previous week")).toBeUndefined();
   });
 
   it("draws one line for a day with nothing in it", async () => {
@@ -1071,7 +1074,7 @@ describe("027 AC-27 Customize Today", () => {
     expect(button("Move Needs you")).toBeDefined();
     expect(button("Move Your day")).toBeDefined();
     expect(button("Move Open in your threads")).toBeDefined();
-    expect(button("Previous month")).toBeDefined();
+    expect(button("Previous week")).toBeDefined();
   });
 
   it("writes one change per switch, and Today changes behind it", async () => {
@@ -1114,7 +1117,7 @@ describe("027 AC-27 Customize Today", () => {
     const patches = writes("PATCH", "/api/me");
     expect(patches).toHaveLength(1);
     expect((patches[0]!.body as { todayLayout: typeof DEFAULT_LAYOUT }).todayLayout.sections.map((one) => one.kind)).toEqual(["day", "needs_you", "open_threads"]);
-    expect(before(button("Previous month")!, needsYou()!)).toBe(true);
+    expect(before(button("Previous week")!, needsYou()!)).toBe(true);
   });
 
   it("moves a section by dragging it, in one write on the drop", async () => {
@@ -1365,7 +1368,7 @@ describe("Today's bands (drawn 2026-10-11)", () => {
   it("sections alternate by drawn position: with Needs you empty, Your day is on the page and Reminders is in a band", async () => {
     await withV3();
     await open();
-    const day = button("Previous month")!.closest("[data-section]")!;
+    const day = button("Previous week")!.closest("[data-section]")!;
     expect(bandOf(day)).toBeNull();
     expect(bandOf(remindersSection())).not.toBeNull();
     expect(bandOf(section())).toBeNull();
@@ -1377,7 +1380,7 @@ describe("Today's bands (drawn 2026-10-11)", () => {
     await withV3();
     remindersRead = { rows: [], others: [], more: 0 };
     await open();
-    expect(bandOf(button("Previous month")!.closest("[data-section]"))).toBeNull();
+    expect(bandOf(button("Previous week")!.closest("[data-section]"))).toBeNull();
     expect(bandOf(section())).not.toBeNull();
     act(() => root.unmount());
 
@@ -1387,7 +1390,7 @@ describe("Today's bands (drawn 2026-10-11)", () => {
     root = createRoot(host);
     await open();
     expect(bandOf(remindersSection())).toBeNull();
-    expect(bandOf(button("Previous month")!.closest("[data-section]"))).not.toBeNull();
+    expect(bandOf(button("Previous week")!.closest("[data-section]"))).not.toBeNull();
     expect(bandOf(section())).toBeNull();
   });
 });
@@ -1473,7 +1476,7 @@ describe("Undo in place on Today (2026-10-18)", () => {
     expect(needsYou()).toBeNull();
     const line = host.querySelector("[role=status]")!;
     expect(line.textContent).toBe("Saturday, for Europe, OctoberUndo");
-    expect(before(line, button("Previous month")!)).toBe(true);
+    expect(before(line, button("Previous week")!)).toBe(true);
     await press(button("Undo"));
     expect(writes("POST", "/v1/turns/turn1/undo")).toHaveLength(1);
   });
