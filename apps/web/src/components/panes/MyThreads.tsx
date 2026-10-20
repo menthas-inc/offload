@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DEFAULT_THREAD_ICON, leaveAsk, leastUsedHue, staysWith } from "@offload/widgets";
+import { DEFAULT_THREAD_ICON, leaveAsk, leastUsedHue, staysWith, type Layout } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { QuietEmpty } from "./QuietEmpty";
 import { ThreadIcon } from "../ThreadIcon";
@@ -204,10 +204,10 @@ export function MyThreads({ groups, loose = null, invitations = [], loading, onC
 
   // 2026-10-07. A thread made by hand: Edit thread as New thread, its colour
   // the one least used here, and the pane opens on it once it is made.
-  async function make(shown: { name: string; icon: string; hue: number }): Promise<void> {
-    const made = await createThread(shown);
+  async function make(shown: { name: string; icon: string; hue: number }, layout?: Layout): Promise<void> {
+    const made = await createThread({ ...shown, ...(layout && layout !== "default" ? { layout } : {}) });
     if (!made) {
-      toast.show("Couldn't make that thread", { label: "Try again", onPress: () => void make(shown) });
+      toast.show("Couldn't make that thread", { label: "Try again", onPress: () => void make(shown, layout) });
       return;
     }
     onChanged?.();
@@ -238,7 +238,7 @@ export function MyThreads({ groups, loose = null, invitations = [], loading, onC
           heading="New thread"
           action="Create"
           align="end"
-          onSave={(_change, shown) => void make(shown)}
+          onSave={(change, shown) => void make(shown, change.layout)}
           onClose={() => setMaking(false)}
         />
       ) : null}

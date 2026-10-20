@@ -91,7 +91,7 @@ export function LayoutTile({
       style={{ gap: 6 }}
     >
       <View
-        className={selected ? "bg-surface-raised border-2 border-ink-950" : "bg-surface-fill border border-border-hairline"}
+        className={selected ? "bg-surface-raised border-2 border-text-primary" : "bg-surface-fill border border-border-hairline"}
         style={{ width: s.w, height: s.h, padding: s.p, borderRadius: s.r, justifyContent: "flex-start" }}
       >
         {marks(layout, s)}

@@ -46,9 +46,9 @@ function Row({ row, handlers }: { row: ContentRow; handlers: RowHandlers }) {
 function Heading({ section, colour, open, onToggle }: { section: Extract<Section, { kind: "list" }>; colour: number | null; open: boolean; onToggle: () => void }) {
   return (
     <button type="button" className={styles.heading} aria-expanded={open} onClick={onToggle}>
-      {colour ? <span className={styles.dot} style={{ background: `var(--label-${colour})` }} /> : null}
+      {colour && colour >= 1 && colour <= 10 ? <span className={styles.dot} style={{ background: `var(--label-${colour})` }} /> : null}
       <span className={styles.headingName}>{section.heading}</span>
-      <span className={styles.headingCount}>{section.rows.length}</span>
+      {section.rows.length > 0 ? <span className={styles.headingCount}>{section.rows.length}</span> : null}
       <Icon name={open ? "chevron-down" : "chevron-right"} size={18} />
     </button>
   );
@@ -56,11 +56,19 @@ function Heading({ section, colour, open, onToggle }: { section: Extract<Section
 
 function Tile({ row, handlers }: { row: ContentRow; handlers: RowHandlers }) {
   const letters = row.title.trim().slice(0, 2);
-  const cover = row.imageUrl ?? null;
+  // Gallery draws link and task tiles; a link's picture is its own, a typed
+  // title is lettered. Project Files draws photo/PDF tiles, which open the
+  // viewer. A link opens the link, a task its sheet (6.4).
+  const cover = row.type === "link" ? (row.imageUrl ?? null) : null;
+  const open = () => {
+    if (row.type === "link" && row.url) window.open(row.url, "_blank", "noopener,noreferrer");
+    else if (row.type === "task") handlers.onEdit?.(row);
+    else handlers.onOpenPhoto?.(row);
+  };
   return (
-    <button type="button" className={styles.tile} onClick={() => handlers.onEdit?.(row)}>
+    <button type="button" className={styles.tile} onClick={open}>
       <span className={styles.tileCover} data-lettered={cover ? undefined : true}>
-        {cover ? <img src={cover} alt="" className={styles.tileImg} /> : <span className={styles.tileLetters}>{letters}</span>}
+        {cover ? <img src={cover} alt="" referrerPolicy="no-referrer" loading="lazy" className={styles.tileImg} /> : <span className={styles.tileLetters}>{letters}</span>}
         <span className={styles.tileGlyph}>
           <Icon name={rowIcon(row.type)} size={12} />
         </span>
@@ -113,13 +121,13 @@ function ListSection({ section, handlers, labels, onAdd }: { section: Extract<Se
   );
 }
 
-function FoldSection({ heading, rows, handlers }: { heading: string; rows: ContentRow[]; handlers: RowHandlers }) {
+function FoldSection({ heading, rows, handlers, countFirst }: { heading: string; rows: ContentRow[]; handlers: RowHandlers; countFirst?: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <section className={styles.block}>
       <button type="button" className={styles.fold} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <Icon name="check" size={16} />
-        <span>{heading} {rows.length}</span>
+        <span>{countFirst ? `${rows.length} ${heading}` : `${heading} ${rows.length}`}</span>
         <Icon name={open ? "chevron-down" : "chevron-right"} size={16} />
       </button>
       {open ? rows.map((row) => <Row key={row.id} row={row} handlers={handlers} />) : null}
@@ -169,7 +177,7 @@ export function LayoutSections({ page, handlers, labels, onAdd }: Props) {
     <>
       {page.sections.map((section, i) => {
         if (section.kind === "list") return <ListSection key={section.key} section={section} handlers={handlers} labels={labels} onAdd={onAdd} />;
-        if (section.kind === "done") return <FoldSection key={section.key} heading={section.heading} rows={section.rows} handlers={handlers} />;
+        if (section.kind === "done") return <FoldSection key={section.key} heading={section.heading} rows={section.rows} handlers={handlers} countFirst={section.key === "week"} />;
         if (section.kind === "day") return <DaySection key={section.key} section={section} handlers={handlers} />;
         if (section.kind === "files")
           return (

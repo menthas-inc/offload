@@ -1369,21 +1369,29 @@ async function switchLayout(
   const actor: Actor = { accountId, via: "person" };
 
   if (input.undoLabels) {
+    // The Undo is the person's, but it is not a free label editor: it may only
+    // restore labels in THIS thread, and remove the current layout's own labels
+    // that are still empty, never an arbitrary one. The ids are capped by the
+    // route schema (LABEL_LIMIT).
     for (const id of input.undoLabels.restore) {
-      // A label another member re-created, or one past its window, is already
-      // back or gone: the Undo of a switch is not where that is an error.
+      // Scope to this thread: restoreLabel checks the deleter and the window,
+      // but resolves the thread from the label, so a cross-thread id would
+      // restore elsewhere without this.
+      const owner = await trx.selectFrom("labels").select("thread_id").where("id", "=", id).executeTakeFirst();
+      if (owner?.thread_id !== threadId) continue;
       try {
         await restoreLabel(trx, actor, id);
       } catch (error) {
         if (!(error instanceof LabelRefused)) throw error;
       }
     }
+    // One count read, not one per id. Remove only the labels the switch into the
+    // current layout would have made: its own names, still empty.
+    const ownNames = new Set(LAYOUT_LABELS[fromLayout].map((name) => name.toLowerCase()));
+    const live = await labelsOfThread(threadId, trx);
     for (const id of input.undoLabels.remove) {
-      const live = await labelsOfThread(threadId, trx);
       const made = live.find((label) => label.id === id);
-      // Only while it is still empty: a row filed under it since the switch is
-      // somebody using the label, and Undo does not take that away.
-      if (made && made.count === 0) await deleteLabel(trx, actor, id);
+      if (made && made.count === 0 && ownNames.has(made.name.toLowerCase())) await deleteLabel(trx, actor, id);
     }
     await trx
       .updateTable("threads")
@@ -1433,6 +1441,7 @@ async function switchLayout(
  *  member has seen the layout as it stands. */
 async function layoutChangeFor(
   thread: {
+    id: string;
     layout: Layout;
     layout_changed_at: Date | string | null;
     layout_changed_by: string | null;
@@ -1444,11 +1453,17 @@ async function layoutChangeFor(
   if (thread.layout_changed_by === viewerId) return null;
   const changedAt = new Date(thread.layout_changed_at);
   if (thread.layout_seen_at && new Date(thread.layout_seen_at) >= changedAt) return null;
+  // Name the changer only while they are still an accepted member: an ex-member
+  // the `members` list no longer shows should not keep being named here.
   const who = await db
     .selectFrom("accounts")
-    .select("display_name")
-    .where("id", "=", thread.layout_changed_by)
+    .innerJoin("thread_members", "thread_members.account_id", "accounts.id")
+    .select("accounts.display_name")
+    .where("accounts.id", "=", thread.layout_changed_by)
+    .where("thread_members.thread_id", "=", thread.id)
+    .where("thread_members.state", "=", "accepted")
     .executeTakeFirst();
+  if (!who) return null;
   return {
     by: { accountId: thread.layout_changed_by, displayName: who?.display_name ?? "Someone" },
     layout: thread.layout,
@@ -2947,7 +2962,10 @@ export async function threadRoutes(app: App): Promise<void> {
             layout: z.enum(LAYOUTS).optional(),
             layoutSetBy: z.enum(["offload", "person"]).optional(),
             undoLabels: z
-              .object({ remove: z.array(z.string().uuid()), restore: z.array(z.string().uuid()) })
+              .object({
+                remove: z.array(z.string().uuid()).max(LABEL_LIMIT),
+                restore: z.array(z.string().uuid()).max(LABEL_LIMIT),
+              })
               .optional(),
           })
           .refine((body) => Object.values(body).some((value) => value !== undefined))

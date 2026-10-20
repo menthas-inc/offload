@@ -29,7 +29,7 @@ import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { DEFAULT_THREAD_ICON, leaveAsk, leastUsedHue, staysWith } from "@offload/widgets";
+import { DEFAULT_THREAD_ICON, leaveAsk, leastUsedHue, staysWith, type Layout } from "@offload/widgets";
 import { ConfirmSheet } from "../people/ConfirmSheet";
 import { Glyph } from "../Glyph";
 import { EditThreadSheet } from "./EditThreadSheet";
@@ -123,10 +123,10 @@ export default function MyThreads() {
   const lines = useUndoEntries();
   const drawn = useRef(new Set<string>());
 
-  async function make(shown: { name: string; icon: string; hue: number }): Promise<void> {
-    const made = await createThread(shown);
+  async function make(shown: { name: string; icon: string; hue: number }, layout?: Layout): Promise<void> {
+    const made = await createThread({ ...shown, ...(layout && layout !== "default" ? { layout } : {}) });
     if (!made) {
-      toast.show("Couldn't make that thread", { label: "Try again", onPress: () => void make(shown) });
+      toast.show("Couldn't make that thread", { label: "Try again", onPress: () => void make(shown, layout) });
       return;
     }
     void load();
@@ -293,7 +293,7 @@ export default function MyThreads() {
           heading="New thread"
           action="Create"
           onClose={() => setMaking(false)}
-          onSave={(_change, shown) => void make(shown)}
+          onSave={(change, shown) => void make(shown, change.layout)}
         />
       ) : null}
       <ToastHost state={toast} />

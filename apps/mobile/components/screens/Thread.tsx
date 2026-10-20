@@ -22,6 +22,7 @@
 
 import { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive, LAYOUT_NAMES, layoutFor, leaveAsk, threadLookAfter, type Layout, type ThreadLook } from "@offload/widgets";
 import { LayoutSections, type LayoutHandlers } from "./LayoutSections";
+import { TYPED_ROW_PLACEHOLDER } from "../../lib/typed-row";
 import { ThreadIcon } from "../ThreadIcon";
 import { EditThreadSheet } from "./EditThreadSheet";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -79,6 +80,7 @@ import {
   setArchived,
   setPriority,
   startsAs,
+  QUICK_ADD_CHARS,
   type ContentRow,
   type Note,
   type ThreadEdit,
@@ -572,13 +574,15 @@ export default function Thread() {
     const fromLayout = thread.layout;
     const draw = (look: ThreadLook, layout?: Layout) =>
       setThread((current) => (current ? { ...current, ...look, ...(layout ? { layout, layoutSetBy: "person" as const } : {}) } : current));
+    // Only stamp the layout on a draw when this edit actually moved it, so a
+    // plain rename's Undo or a failed save does not claim the person's pick.
     // The layout switch's Undo needs the labels it moved, which only the write's
     // result carries, so it is captured here and sent by unwrite.
     let undo: ThreadEdit = before;
     void perform(
       {
         apply: () => draw(after, change.layout),
-        revert: () => draw(before, fromLayout),
+        revert: () => draw(before, change.layout ? fromLayout : undefined),
         write: () =>
           editThread(id, change).then((result) => {
             if (result?.layout) {
@@ -966,8 +970,18 @@ export default function Thread() {
     onDelete: remove,
     onToggle: tick,
     onOpenPhoto: openFileOf,
-    // The composer at the foot is the add path; the row is the affordance.
-    onAdd: () => undefined,
+    // Todo list's "Add an item" opens the composer's quick add for a task, the
+    // same raise the To do widget's add row uses (6.2).
+    onAdd: () =>
+      raiseFor({
+        threadId: id,
+        threadName: thread.name,
+        write: "quickAdd",
+        section: "todo",
+        title: "Add an item",
+        placeholder: TYPED_ROW_PLACEHOLDER,
+        charLimit: QUICK_ADD_CHARS,
+      }),
   };
   // The rows a list here draws, so their lines go in place; To do while it is
   // open, and Everything else.

@@ -4,7 +4,7 @@
 // arranges it into.
 
 import { useState } from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { Image, Linking, Pressable, Text, View } from "react-native";
 import type { LayoutPage, LayoutSection } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { ContentRowView } from "../shell/ContentRow";
@@ -37,10 +37,17 @@ function Row({ row, handlers }: { row: ContentRow; handlers: LayoutHandlers }) {
 }
 
 function Tile({ row, handlers }: { row: ContentRow; handlers: LayoutHandlers }) {
-  const cover = row.imageUrl ?? null;
+  // A link's cover is its own picture; a typed title is lettered; a photo/PDF
+  // file tile opens the viewer. Tap: a link opens the link, a task its sheet.
+  const cover = row.type === "link" ? (row.imageUrl ?? null) : null;
   const letters = row.title.trim().slice(0, 2);
+  const open = () => {
+    if (row.type === "link" && row.url) void Linking.openURL(row.url);
+    else if (row.type === "task") handlers.onEdit(row);
+    else handlers.onOpenPhoto(row);
+  };
   return (
-    <Pressable onPress={() => (row.type === "link" ? handlers.onOpenPhoto(row) : handlers.onEdit(row))} style={{ width: "47%" }}>
+    <Pressable onPress={open} style={{ width: "47%" }}>
       <View className="border border-border-hairline bg-surface-fill" style={{ aspectRatio: 1, borderRadius: 8, overflow: "hidden" }}>
         {cover ? (
           <Image source={{ uri: cover }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
@@ -74,9 +81,11 @@ function ListSection({ section, colour, handlers }: { section: Extract<Sec, { ki
           <Text className="font-core font-semibold text-text-primary" style={{ fontSize: 17 }}>
             {section.heading}
           </Text>
-          <Text className="font-core text-text-tertiary" style={{ fontSize: 13 }}>
-            {section.rows.length}
-          </Text>
+          {section.rows.length > 0 ? (
+            <Text className="font-core text-text-tertiary" style={{ fontSize: 13 }}>
+              {section.rows.length}
+            </Text>
+          ) : null}
           <View className="flex-1" />
           <Glyph name={open ? "chevron-down" : "chevron-right"} size={18} color={COLOR.secondary} />
         </Pressable>
@@ -110,7 +119,7 @@ function ListSection({ section, colour, handlers }: { section: Extract<Sec, { ki
   );
 }
 
-function FoldSection({ heading, rows, handlers }: { heading: string; rows: ContentRow[]; handlers: LayoutHandlers }) {
+function FoldSection({ heading, rows, handlers, countFirst }: { heading: string; rows: ContentRow[]; handlers: LayoutHandlers; countFirst?: boolean }) {
   const COLOR = useColors();
   const [open, setOpen] = useState(false);
   return (
@@ -122,7 +131,7 @@ function FoldSection({ heading, rows, handlers }: { heading: string; rows: Conte
       >
         <Glyph name="check" size={16} color={COLOR.secondary} />
         <Text className="font-core text-text-secondary" style={{ fontSize: 14 }}>
-          {heading} {rows.length}
+          {countFirst ? `${rows.length} ${heading}` : `${heading} ${rows.length}`}
         </Text>
         <View className="flex-1" />
         <Glyph name={open ? "chevron-down" : "chevron-right"} size={16} color={COLOR.secondary} />
@@ -209,7 +218,7 @@ export function LayoutSections({ page, labels, handlers }: { page: Page; labels:
           const colour = section.labelId ? COLOR.labels[labels.find((l) => l.id === section.labelId)?.colour ?? 0] : undefined;
           return <ListSection key={section.key} section={section} colour={colour} handlers={handlers} />;
         }
-        if (section.kind === "done") return <FoldSection key={section.key} heading={section.heading} rows={section.rows} handlers={handlers} />;
+        if (section.kind === "done") return <FoldSection key={section.key} heading={section.heading} rows={section.rows} handlers={handlers} countFirst={section.key === "week"} />;
         if (section.kind === "day") return <DaySection key={section.key} section={section} handlers={handlers} />;
         if (section.kind === "files")
           return (

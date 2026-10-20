@@ -600,7 +600,7 @@ export interface ThreadEdited {
 
 /** 2026-10-07. A thread made by hand, from the plus on My threads, with the
  *  name, icon and colour New thread showed. */
-export async function createThread(input: { name: string; icon: string; hue: number }): Promise<{ id: string; name: string } | null> {
+export async function createThread(input: { name: string; icon: string; hue: number; layout?: Layout }): Promise<{ id: string; name: string } | null> {
   const response = await reach(`${API}/v1/threads`, {
     ...json,
     method: "POST",
