@@ -119,22 +119,6 @@
   color: var(--text-primary);
 }
 
-/* Events: Booked as solid cards, Still deciding as tentative drafts (6.3).
-   No in-repo kit for 045 yet; logged in decisions.md. */
-.card,
-.draft {
-  border-radius: var(--radius-lg);
-  padding: 0 var(--space-12);
-  margin-top: var(--space-6);
-}
-.card {
-  background: var(--surface-raised);
-  box-shadow: inset 0 0 0 1px var(--border-lift);
-}
-.draft {
-  border: 1px dashed var(--border-lift);
-}
-
 /* Done / got this week fold (6.2, 6.4, 6.5). */
 .fold {
   display: flex;

@@ -116,28 +116,11 @@ function ListSection({ section, colour, handlers }: { section: Extract<Sec, { ki
                 <Tile key={row.id} row={row} handlers={handlers} />
               ))}
             </View>
-          ) : section.form === "card" || section.form === "draft" ? (
-            // Events: Booked as a filled card, Still deciding as an outlined
-            // draft (6.3). The fill is what tells them apart, so it survives
-            // Android (a dashed border with a radius draws nothing there, and a
-            // light inset edge is near invisible); the draft stays dashed on iOS
-            // only. No in-repo kit for 045 yet; logged in decisions.md.
-            section.rows.map((row) => (
-              <View
-                key={row.id}
-                className={`mx-gutter-screen mt-space-3 overflow-hidden rounded-lg px-space-4 ${
-                  section.form === "card" ? (isAndroid ? "bg-a-c" : "bg-surface-raised") : ""
-                }`}
-                style={
-                  section.form === "card"
-                    ? { boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}` }
-                    : { borderWidth: 1, borderStyle: isAndroid ? "solid" : "dashed", borderColor: COLOR.edgeCard }
-                }
-              >
-                <Row row={row} handlers={handlers} flat />
-              </View>
-            ))
           ) : (
+            // Events' Booked/Still deciding (card/draft) and every other form
+            // render as plain rows: the section heading and each row's own label
+            // chip already say which group it is, and the card/draft containers
+            // were an unmocked invention that read as a white box on Android.
             section.rows.map((row) => <Row key={row.id} row={row} handlers={handlers} box={box} />)
           )}
         </>

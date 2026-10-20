@@ -130,14 +130,11 @@ function ListSection({ section, handlers, labels, onAdd, onToggle }: { section: 
                 <Tile key={row.id} row={row} handlers={handlers} />
               ))}
             </div>
-          ) : section.form === "card" || section.form === "draft" ? (
-            // Events: Booked as cards, Still deciding as drafts (6.3).
-            section.rows.map((row) => (
-              <div key={row.id} className={section.form === "card" ? styles.card : styles.draft}>
-                <Row row={row} handlers={handlers} onToggle={onToggle} box={box} />
-              </div>
-            ))
           ) : (
+            // Events' Booked/Still deciding (card/draft) and every other form
+            // render as plain rows: the section heading and each row's label chip
+            // already say the group, and the card/draft containers were an
+            // unmocked invention that read as a white box on Android.
             section.rows.map((row) => <Row key={row.id} row={row} handlers={handlers} onToggle={onToggle} box={box} />)
           )}
         </>
