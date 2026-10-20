@@ -23,7 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { addUtcDays, afterWrite, dayIn, dayName, dayTitle, keepInPlace, monthDated, monthFor, nothingLine, reminderEntryKey, remindersInOrder, stepMonth, type MonthCount } from "@offload/widgets";
+import { addUtcDays, afterWrite, dayIn, dayName, dayTitle, keepInPlace, monthDated, twoWeekFor, nothingLine, reminderEntryKey, remindersInOrder, stepWeek, type MonthCount } from "@offload/widgets";
 import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { GearDot } from "../people/GearDot";
 import { Glyph } from "../Glyph";
@@ -104,8 +104,8 @@ export default function TodayScreen() {
 
   // ---------------------------------------------------------------- the day shown
   const [date, setDate] = useState(today);
-  // The month on screen. Null is the one the day is in, so a door or the
-  // Today tab moving the day brings the month with it.
+  // The week the two rows start on. Null is the one the day is in, so a door
+  // or the Today tab moving the day brings the weeks with it.
   const [month, setMonth] = useState<string | null>(null);
   const [went, setWent] = useState<1 | -1>(1);
   const [day, setDay] = useState<Day | null>(null);
@@ -344,10 +344,10 @@ export default function TodayScreen() {
   const { name } = dayName(date, today, weekStart);
   const lastDay = addUtcDays(today, DAYS_AHEAD);
 
-  // The month (2026-10-18, in place of the stepper): what each day on the grid
-  // holds, read for the grid's whole window and again after a filing, which
+  // The two weeks (2026-10-19, in place of the month): what each day on the
+  // grid holds, read for the whole window and again after a filing, which
   // may have dated something.
-  const span = monthFor(month ?? date, [], today, weekStart);
+  const span = twoWeekFor(month ?? date, [], today, weekStart);
   const gridFrom = span.weeks[0]?.days[0]?.iso ?? span.key;
   const gridTo = span.weeks[span.weeks.length - 1]?.days[6]?.iso ?? span.key;
   const [counts, setCounts] = useState<{ window: string; days: MonthCount[] } | null>(null);
@@ -360,7 +360,7 @@ export default function TodayScreen() {
       live = false;
     };
   }, [gridFrom, gridTo, filed?.at, zone, monthRead]);
-  const grid = monthFor(month ?? date, counts?.window === `${gridFrom}|${gridTo}` ? monthDated(counts.days) : [], today, weekStart);
+  const grid = twoWeekFor(month ?? date, counts?.window === `${gridFrom}|${gridTo}` ? monthDated(counts.days) : [], today, weekStart);
 
   const ink = isAndroid ? "text-a-on" : "text-text-primary";
   // The ground is the band's (`Ground`), so a card in a band steps up.
@@ -545,22 +545,23 @@ export default function TodayScreen() {
           <View>
             <MonthGrid
               grid={grid}
+              unit="week"
               selected={date}
               went={went}
               inset={false}
               // A day before today, or past the calendar copy's edge, does not open.
               closed={(iso) => iso < today || iso > lastDay}
-              // The head names the picked day while its month is the one
-              // shown; on today, the month with Today beside it (the owner,
-              // 2026-10-18).
-              title={date !== today && grid.inMonth(date) ? dayTitle(date) : undefined}
+              // The head names the picked day while the two weeks are shown;
+              // on today, the month with Today beside it (the owner,
+              // 2026-10-19).
+              title={date !== today ? dayTitle(date) : undefined}
               heading
               first={grid.key <= today}
-              last={stepMonth(grid.key, 1) > lastDay}
+              last={stepWeek(grid.key, 1) > lastDay}
               onPick={show}
               onStep={(by) => {
                 setWent(by);
-                setMonth(stepMonth(grid.key, by));
+                setMonth(stepWeek(grid.key, by));
               }}
               onToday={() => {
                 setWent(grid.key > today ? -1 : 1);

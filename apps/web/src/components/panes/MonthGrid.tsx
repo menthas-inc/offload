@@ -9,6 +9,7 @@
 // that does not open is drawn and closed: Today's past, and anything past the
 // edge of what offload keeps of a calendar.
 
+import { useLayoutEffect, useRef } from "react";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import { dayLabel, type Day, type Month, type RailRow } from "../../lib/widgets";
@@ -49,10 +50,12 @@ export function MonthGrid({
   last = false,
   title,
   heading = false,
+  unit = "month",
 }: {
   grid: Month;
   selected: string;
-  /** Which way the last move went, so the grid comes in from that side. */
+  /** Which way the last move went: forward brings the grid up from below, back
+   *  down from above. */
   went: 1 | -1;
   onPick: (iso: string) => void;
   onStep: (by: 1 | -1) => void;
@@ -66,8 +69,45 @@ export function MonthGrid({
   title?: string | undefined;
   /** The head is the page's heading, as on Today. */
   heading?: boolean;
+  /** What the arrows step by, for their labels: a month, or Today's week. */
+  unit?: "month" | "week";
 }) {
   const name = title ?? grid.label;
+
+  // The two-week stepper overlaps a week each step, so that row stays on screen
+  // and slides to its new place while the rest come and go: the eye follows it
+  // up or down instead of the grid blinking (the owner, 2026-10-19). Each row is
+  // keyed by its own week, so React keeps the shared one; FLIP measures where
+  // each row was and animates the move to zero. A new week (no prior place)
+  // comes in from below on a step forward, from above on a step back.
+  const rowEls = useRef(new Map<string, HTMLDivElement | null>());
+  const prevTop = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    if (unit !== "week") return;
+    const reduce = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const now = new Map<string, number>();
+    rowEls.current.forEach((el, key) => {
+      if (!el) {
+        rowEls.current.delete(key);
+        return;
+      }
+      const top = el.offsetTop;
+      now.set(key, top);
+      const was = prevTop.current.get(key);
+      const fromY = was === undefined ? went * el.offsetHeight : was - top;
+      if (fromY && !reduce && typeof el.animate === "function") {
+        el.animate(
+          [
+            { transform: `translateY(${fromY}px)`, opacity: was === undefined ? 0 : 1 },
+            { transform: "translateY(0)", opacity: 1 },
+          ],
+          { duration: 140, easing: "ease-out" },
+        );
+      }
+    });
+    prevTop.current = now;
+  });
+
   const cell = (day: Day, outside: boolean) => (
     <button
       key={day.iso}
@@ -116,7 +156,7 @@ export function MonthGrid({
   return (
     <>
       <div className={styles.railMonth}>
-        <button type="button" className={styles.railStep} aria-label="Previous month" disabled={first} onClick={() => onStep(-1)}>
+        <button type="button" className={styles.railStep} aria-label={`Previous ${unit}`} disabled={first} onClick={() => onStep(-1)}>
           <Icon name="chevron-left" size={16} />
         </button>
 
@@ -135,16 +175,34 @@ export function MonthGrid({
           </button>
         </span>
 
-        <button type="button" className={styles.railStep} aria-label="Next month" disabled={last} onClick={() => onStep(1)}>
+        <button type="button" className={styles.railStep} aria-label={`Next ${unit}`} disabled={last} onClick={() => onStep(1)}>
           <Icon name="chevron-right" size={16} />
         </button>
       </div>
 
-      {/* Keyed by the month so it remounts and the animation runs. Without the
-          key the same element is rewritten in place and nothing moves. */}
-      <div key={grid.key} className={styles.railSlide} data-went={went}>
-        {grid.weeks.map(week)}
-      </div>
+      {/* The week stepper keeps its shared row and slides it (the FLIP above);
+          the month grid changes wholesale, so it remounts and slides up or down
+          as one. Without the key the element is rewritten in place, nothing
+          moves. */}
+      {unit === "week" ? (
+        <div className={styles.railWeeks}>
+          {grid.weeks.map((row) => (
+            <div
+              key={row.key}
+              ref={(el) => {
+                rowEls.current.set(row.key, el);
+              }}
+              className={styles.railWeek}
+            >
+              {row.days.map((day) => cell(day, !grid.inMonth(day.iso)))}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div key={grid.key} className={styles.railSlide} data-went={went}>
+          {grid.weeks.map(week)}
+        </div>
+      )}
     </>
   );
 }

@@ -174,7 +174,7 @@ Components, each with `.jsx`, `.d.ts` props contract, `.prompt.md` usage note, a
 - **brand/**, `Logo`
 - **core/**, `Icon`, `Button`, `IconButton`, `Chip`, `LabelMark`, `Badge`, `Card`, `Avatar`
 - **forms/**, `TextField`, `Switch`, `Checkbox`, `SegmentedControl`
-- **layout/**, `AppBar`, `TabBar`, `ListRow`, `SwipeRow`, `RowActionSheet`, `MemoryRow`, `SectionHeader`, `Sheet`, `PrismField`
+- **layout/**, `AppBar`, `TabBar`, `ListRow`, `SwipeRow`, `RowActionSheet`, `MemoryRow`, `SectionHeader`, `Sheet`, `PrismField`, `LayoutTile`
 - **feedback/**, `Toast`, `EmptyState`, `Spinner`
 - **notifications/**, `NotificationIOS`, `NotificationAndroid`
 - **answering/**, `AnswerResult`, `QuickReplies`
@@ -1331,6 +1331,33 @@ out of the panel.
 Costs are grouped by the job being paid for, not by model, and the caps live in one place
 with a single decision about what happens when one is reached: slow down, drop to the
 cheaper model, or stop and tell the person offload is resting. Dumps are always still saved.
+
+## Thread layouts
+
+Decided 19 October 2026 off `explorations/thread-skins.html`; build in `handoff/APPLY-2026-10-19-thread-layouts.md`.
+**A thread has a layout, one of six**, chosen by what it is for: **Default** (the page as built, everything
+earned), **Todo list**, **Events**, **Gallery**, **Project** and **Timeline**. The rows, the writes and the
+Undo are the same in all six; only the arrangement changes. One function, `layoutFor` in `@offload/widgets`,
+decides every layout's sections, and the clients draw what it returns.
+
+- **Who picks.** offload may name a layout once, in the call that creates the thread, or leave it Default.
+  After that only a person changes it, in Edit thread's **Layout** row (`LayoutTile`, six in a radiogroup).
+  The nightly pass may suggest one for a Default thread offload made: a moss line under the bar, Switch or
+  dismiss, once. Shared threads have one layout for everyone; the others see *Ana switched this to Events*
+  once, with Undo.
+- **Labels are the organising layer.** Events makes *Booked*, *Still deciding* and *Passed on*; Project makes
+  *Now*, *Next* and *Later*. Every label is a section that folds from its heading, the layout's own first.
+  Switching in makes what is missing; switching out deletes the empty ones the new layout does not use. A
+  renamed label is the person's and draws plain.
+- **What each draws.** Todo list: big rows, the whole row ticks, **a ticked row leaves** (the one exception to
+  *a ticked item sinks*), with *N got this week* folded at the foot. Events: *Booked* as solid cards, *Still
+  deciding* dashed with **Booked it**. Gallery: covers two across, a lettered tile for a title typed without
+  a link, done ones to a fold. Project: label sections of To do rows, Done and Files folded. Timeline: every
+  row and note under its day.
+- **Nothing is out of reach.** Every layout but Default and Timeline ends with **N other things in here**,
+  which opens the rest the way the archived pile opens. List | Map is unchanged in every layout.
+- **Today** takes open rows from Default and Project threads, dated rows from Events, and none from Todo
+  list, Gallery or Timeline; a row with a date or a reminder reaches Today in any layout.
 
 ## Behaviour notes for the build
 

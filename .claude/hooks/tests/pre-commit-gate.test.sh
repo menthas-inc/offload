@@ -64,5 +64,23 @@ check_type() {
 }
 check_type "failing typecheck" 'python3 -c "import sys; print(\"test/x.test.ts(1,1): error TS2322\"); sys.exit(2)"'
 
+# The commit runs in the worktree, but the gate cd'd to CLAUDE_PROJECT_DIR (the
+# MAIN checkout for a worktree session) and ran its checks there, so a worktree
+# commit's own breakages passed the gate and only failed in CI. The gate must run
+# against the checkout the commit targets: the session cwd from the payload,
+# resolved to its git top-level. Here the test command only passes in the
+# worktree, so a gate running in CLAUDE_PROJECT_DIR fails it.
+check_worktree() {
+  local main wt payload out code
+  main="$(mktemp -d)"; git -C "$main" init -q
+  wt="$(mktemp -d)"; git -C "$wt" init -q
+  : > "$wt/only-in-worktree"
+  payload="$(printf '{"cwd":"%s","tool_input":{"command":"git commit -m x"}}' "$wt")"
+  out="$(cd "$main" && printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$main" PROJECT_TEST_CMD="test -f only-in-worktree" bash "$gate" 2>&1 >/dev/null)"; code=$?
+  if [ "$code" != 0 ]; then echo "FAIL gate runs in the commit's worktree, not CLAUDE_PROJECT_DIR: exit $code"; fails=$((fails+1)); fi
+  rm -rf "$main" "$wt"
+}
+check_worktree
+
 [ "$fails" = 0 ] && echo "pre-commit-gate: all passed"
 exit "$fails"
