@@ -639,16 +639,17 @@ export async function editThread(id: string, change: ThreadEdit): Promise<Thread
   return (await response.json()) as ThreadEdited;
 }
 
-/** Thread layouts: stop the suggestion line for good on this thread (6.9). */
+/** Thread layouts: stop the suggestion line for good on this thread (6.9). No
+ *  body, so no content type: Fastify 400s an empty body that claims JSON. */
 export async function dismissLayoutSuggestion(threadId: string): Promise<boolean> {
-  const response = await reach(`${API}/v1/threads/${threadId}/layout-suggestion/dismiss`, { ...json, method: "POST" });
+  const response = await reach(`${API}/v1/threads/${threadId}/layout-suggestion/dismiss`, { ...send, method: "POST" });
   return response !== null;
 }
 
 /** Thread layouts: mark the "someone switched this" heads-up seen, so it shows
- *  once (the server returns it only until this lands). */
+ *  once (the server returns it only until this lands). No body, no content type. */
 export async function markLayoutSeen(threadId: string): Promise<boolean> {
-  const response = await reach(`${API}/v1/threads/${threadId}/layout-seen`, { ...json, method: "POST" });
+  const response = await reach(`${API}/v1/threads/${threadId}/layout-seen`, { ...send, method: "POST" });
   return response !== null;
 }
 

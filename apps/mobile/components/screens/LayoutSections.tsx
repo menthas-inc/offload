@@ -24,7 +24,10 @@ export interface LayoutHandlers {
   onAdd: () => void;
 }
 
-function Row({ row, handlers, flat }: { row: ContentRow; handlers: LayoutHandlers; flat?: boolean }) {
+/** `box` draws the checkbox lead (Todo list, Project, and the done/week folds);
+ *  otherwise the row's type tile, matching the web. `flat` drops the divider
+ *  inside a card. */
+function Row({ row, handlers, flat, box }: { row: ContentRow; handlers: LayoutHandlers; flat?: boolean; box?: boolean }) {
   return (
     <ContentRowView
       row={row}
@@ -32,7 +35,7 @@ function Row({ row, handlers, flat }: { row: ContentRow; handlers: LayoutHandler
       arrived={false}
       onDelete={() => handlers.onDelete(row)}
       onEdit={() => handlers.onEdit(row)}
-      onToggle={() => handlers.onToggle(row)}
+      {...(box ? { onToggle: () => handlers.onToggle(row) } : {})}
       onOpenPhoto={() => handlers.onOpenPhoto(row)}
     />
   );
@@ -49,7 +52,7 @@ function Tile({ row, handlers }: { row: ContentRow; handlers: LayoutHandlers }) 
     else handlers.onOpenPhoto(row);
   };
   return (
-    <Pressable onPress={open} style={{ width: "47%" }}>
+    <Pressable onPress={open} style={{ width: "47%" }} accessibilityRole="button" accessibilityLabel={row.title}>
       <View className={`border ${isAndroid ? "border-a-outline bg-a-c-low" : "border-border-hairline bg-surface-fill"}`} style={{ aspectRatio: 1, borderRadius: 8, overflow: "hidden" }}>
         {cover ? (
           <Image source={{ uri: cover }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
@@ -70,6 +73,7 @@ function ListSection({ section, colour, handlers }: { section: Extract<Sec, { ki
   const COLOR = useColors();
   const [open, setOpen] = useState(!section.foldedAtFirst);
   const tiles = section.form === "tile";
+  const box = section.form === "big" || section.form === "check";
   return (
     <View style={{ marginTop: 16 }}>
       {section.heading !== null && section.folds ? (
@@ -129,7 +133,7 @@ function ListSection({ section, colour, handlers }: { section: Extract<Sec, { ki
               </View>
             ))
           ) : (
-            section.rows.map((row) => <Row key={row.id} row={row} handlers={handlers} />)
+            section.rows.map((row) => <Row key={row.id} row={row} handlers={handlers} box={box} />)
           )}
         </>
       ) : null}
@@ -145,6 +149,7 @@ function FoldSection({ heading, rows, handlers, countFirst }: { heading: string;
       <Pressable
         onPress={() => setOpen((v) => !v)}
         accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
         className={`mx-gutter-screen min-h-tap-min flex-row items-center gap-space-3 px-space-4 ${isAndroid ? "rounded-a-sm bg-a-c-low" : "rounded-lg bg-surface-fill"}`}
       >
         <Glyph name="check" size={16} color={COLOR.secondary} />
@@ -154,7 +159,7 @@ function FoldSection({ heading, rows, handlers, countFirst }: { heading: string;
         <View className="flex-1" />
         <Glyph name={open ? "chevron-down" : "chevron-right"} size={16} color={COLOR.secondary} />
       </Pressable>
-      {open ? rows.map((row) => <Row key={row.id} row={row} handlers={handlers} />) : null}
+      {open ? rows.map((row) => <Row key={row.id} row={row} handlers={handlers} box />) : null}
     </View>
   );
 }
@@ -174,15 +179,9 @@ function DaySection({ section, handlers }: { section: Extract<Sec, { kind: "day"
       <View className="flex-1">
         {section.rows.map((item) =>
           "type" in item ? (
-            <ContentRowView
-              key={item.id}
-              row={item}
-              border={false}
-              arrived={false}
-              onDelete={() => handlers.onDelete(item)}
-              onEdit={() => handlers.onEdit(item)}
-              onToggle={() => handlers.onToggle(item)}
-            />
+            // Timeline rows are not ticked in place (no box), but a photo or PDF
+            // still opens, so they go through the local Row like the web's.
+            <Row key={item.id} row={item} handlers={handlers} flat />
           ) : (
             <Text key={item.id} className={`font-quiet ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 15, paddingVertical: 8 }}>
               {item.text}

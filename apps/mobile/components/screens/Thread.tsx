@@ -170,6 +170,9 @@ export default function Thread() {
   const [calendarsVersion, setCalendarsVersion] = useState(0);
   // Thread layouts (6.9): the suggestion line, hidden at once when dismissed.
   const [suggestionGone, setSuggestionGone] = useState(false);
+  // The heads-up, held for the life of the view: marking it seen clears it on
+  // the server, so without this a background catchUp would erase the line.
+  const [headsUp, setHeadsUp] = useState<ThreadBundle["layoutChange"]>(null);
   const toast = useToast();
   // 025. The filter bar's pick, kept per thread on this phone; the label sheet
   // open on a row; the label's list open for a label, or for a new one.
@@ -349,13 +352,20 @@ export default function Thread() {
     void catchUp();
   }, [filed, id, catchUp]);
 
-  // Thread layouts: the heads-up shows once; marking it seen stops the server
-  // sending it again (decision 13). It stays on screen for this view. The
-  // suggestion's local hide resets when the thread changes.
-  const changedAt = thread?.layoutChange?.at;
+  // The suggestion's local hide resets only when the thread changes, never on a
+  // reload that drops the heads-up (which would revive a dismissed pill).
   useEffect(() => {
     setSuggestionGone(false);
-    if (changedAt && id) void markLayoutSeen(id);
+    setHeadsUp(null);
+  }, [id]);
+
+  // Thread layouts: the heads-up shows once; captured so it stays for this view,
+  // then marked seen so the server stops sending it (decision 13).
+  const changedAt = thread?.layoutChange?.at;
+  useEffect(() => {
+    if (!changedAt || !id || !thread?.layoutChange) return;
+    setHeadsUp(thread.layoutChange);
+    void markLayoutSeen(id);
   }, [id, changedAt]);
 
   // The mark is a moment, not a state, and it is cleared on a timer so it
@@ -420,12 +430,14 @@ export default function Thread() {
     );
   }
 
-  /** Thread layouts, decision 22. In Todo list and Gallery a ticked row leaves
-   *  the list, so the box is no longer its own undo: the tick draws an UndoLine
-   *  in the row's slot. Un-ticking and every other layout is the plain `tick`. */
+  /** Thread layouts, decision 22. In Todo list a ticked row leaves the open
+   *  list for the week fold, so the box is no longer its own undo: the tick
+   *  draws an UndoLine in the row's slot, with `unwrite` so there is a way back.
+   *  Un-ticking and every other layout is the plain `tick`. Gallery open tiles
+   *  carry no tick control, so they never reach here open. */
   function layoutTick(row: ContentRow): void {
     if (isProvisional(row.id)) return;
-    if (row.doneAt !== null || (threadLayout !== "todo" && threadLayout !== "gallery")) {
+    if (row.doneAt !== null || threadLayout !== "todo") {
       tick(row);
       return;
     }
@@ -434,7 +446,8 @@ export default function Thread() {
         apply: () => patchRow(row.id, { doneAt: new Date().toISOString() }),
         revert: () => patchRow(row.id, { doneAt: null }),
         write: () => completeContent(row.id, true),
-        did: threadLayout === "todo" ? "Ticked off" : "Done",
+        unwrite: () => completeContent(row.id, false),
+        did: "Ticked off",
         failed: "Couldn't tick that off",
         place: placeOf(row.id, "check", "slot"),
       },
@@ -625,7 +638,7 @@ export default function Thread() {
           // The layout switch was refused because the thread's labels are full
           // (6.8): say what to free, and trying again changes nothing.
           if (isLabelsFull(result)) {
-            op.failed = `That layout needs ${result.labelsFull.needed} labels and ${result.labelsFull.free} will fit. Remove some first.`;
+            op.failed = `That layout needs ${result.labelsFull.needed} labels and only ${result.labelsFull.free} will fit`;
             op.retry = null;
             return false;
           }
@@ -1170,17 +1183,21 @@ export default function Thread() {
 
         {/* Thread layouts: the heads-up another member sees once after somebody
             else switched, then the suggestion line offload draws (6.9). */}
-        {thread.layoutChange ? (
+        {headsUp ? (
           <View className="px-gutter-screen pt-space-4">
             <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13 }}>
-              {thread.layoutChange.by.displayName} switched this to {LAYOUT_NAMES[thread.layoutChange.layout]}
+              {headsUp.by.displayName} switched this to {LAYOUT_NAMES[headsUp.layout]}
             </Text>
           </View>
         ) : null}
         {thread.layoutSuggestion && !suggestionGone ? (
           <View className="flex-row items-center px-gutter-screen pt-space-4">
             <Pressable
-              onPress={() => thread.layoutSuggestion && saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue })}
+              onPress={() => {
+                if (!thread.layoutSuggestion) return;
+                setSuggestionGone(true);
+                saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue });
+              }}
               hitSlop={{ top: 6, bottom: 6 }}
               accessibilityRole="button"
               accessibilityLabel={`Show this thread as ${LAYOUT_NAMES[thread.layoutSuggestion]}`}

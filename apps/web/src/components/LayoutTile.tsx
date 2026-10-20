@@ -1,7 +1,8 @@
 // The option a thread's layout is picked by, in Edit thread and New thread.
-// From the design system's components/layout/LayoutTile.jsx (19 October 2026):
-// six abstract marks, each saying how a layout arranges a page, never what is
-// in this thread. The geometry lives in the CSS module (px in a module is the
+// Six abstract marks, each saying how a layout arranges a page, never what is
+// in this thread. There is no 045 kit in the repo yet (see decisions.md,
+// 2026-10-19); this is the code's own drawing until one lands.
+// The geometry lives in the CSS module (px in a module is the
 // system's own drawing, not spacing a screen lays out).
 
 import type { Layout } from "@offload/widgets";

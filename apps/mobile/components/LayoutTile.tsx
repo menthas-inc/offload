@@ -1,7 +1,7 @@
 // The option a thread's layout is picked by, in Edit thread and New thread.
-// From the design system's components/layout/LayoutTile.jsx (19 October 2026):
-// six abstract marks saying how a layout arranges a page, never what is in this
-// thread. Colours are token classes; geometry is the system's own drawing.
+// Six abstract marks saying how a layout arranges a page, never what is in this
+// thread. Colours are token classes; geometry is the code's own drawing: there
+// is no 045 kit in the repo yet (see decisions.md, 2026-10-19).
 
 import { Platform, Pressable, Text, View } from "react-native";
 import type { Layout } from "@offload/widgets";

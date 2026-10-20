@@ -157,6 +157,10 @@ export function Thread({ id, onChanged }: Props) {
   // Thread layouts (6.9): the suggestion line, hidden at once when dismissed
   // while the write lands; reset per thread below.
   const [suggestionGone, setSuggestionGone] = useState(false);
+  // The heads-up, held for the life of the view: marking it seen clears it on
+  // the server, so without this a background reload would erase the line before
+  // it is read.
+  const [headsUp, setHeadsUp] = useState<ThreadBundle["layoutChange"]>(null);
   // 019. The calendars popover, and a counter bumped when the picks change so
   // the rail reads the calendars again.
   const [calendarsOpen, setCalendarsOpen] = useState(false);
@@ -318,14 +322,17 @@ export function Thread({ id, onChanged }: Props) {
   useEffect(() => {
     setPickState(readPick(id));
     setSuggestionGone(false);
+    setHeadsUp(null);
   }, [id]);
 
   // Thread layouts: the heads-up another member sees once after somebody else
-  // switched. Marking it seen stops the server sending it again (decision 13);
-  // it stays on screen for this view.
+  // switched. Captured so it stays for this view, then marked seen so the
+  // server stops sending it (decision 13).
   const changedAt = thread?.layoutChange?.at;
   useEffect(() => {
-    if (changedAt) void markLayoutSeen(id);
+    if (!changedAt || !thread?.layoutChange) return;
+    setHeadsUp(thread.layoutChange);
+    void markLayoutSeen(id);
   }, [id, changedAt]);
   useEffect(() => {
     if (!thread) return;
@@ -578,13 +585,15 @@ export function Thread({ id, onChanged }: Props) {
     );
   }
 
-  /** Thread layouts, decision 22. In Todo list and Gallery a ticked row leaves
-   *  the list, so the box is no longer its own undo: the tick draws an UndoLine
-   *  in the row's slot. Un-ticking (from the week/done fold) is the plain
-   *  toggle. Every other layout keeps `sinkDone` and stays silent. */
+  /** Thread layouts, decision 22. In Todo list a ticked row leaves the open
+   *  list for the week fold, so the box is no longer its own undo: the tick
+   *  draws an UndoLine in the row's slot, with `unwrite` so there is a way back.
+   *  Un-ticking (from the week fold) and every other layout keep `sinkDone` and
+   *  stay the plain toggle. Gallery open tiles carry no tick control, so they
+   *  never reach here open. */
   function layoutTick(row: ContentRow): void {
     if (isProvisional(row.id)) return;
-    if (row.doneAt !== null || (threadLayout !== "todo" && threadLayout !== "gallery")) {
+    if (row.doneAt !== null || threadLayout !== "todo") {
       toggle(row);
       return;
     }
@@ -593,7 +602,8 @@ export function Thread({ id, onChanged }: Props) {
         apply: () => patchRow(row.id, { doneAt: new Date().toISOString() }),
         revert: () => patchRow(row.id, { doneAt: null }),
         write: () => completeContent(row.id, true),
-        did: threadLayout === "todo" ? "Ticked off" : "Done",
+        unwrite: () => completeContent(row.id, false),
+        did: "Ticked off",
         failed: "Couldn't tick that off",
         place: { id: row.id, icon: "check", form: "slot" },
       },
@@ -872,7 +882,7 @@ export function Thread({ id, onChanged }: Props) {
     // (6.8): put the head back and say what to free, not a generic failure.
     if (isLabelsFull(result)) {
       setThread(before);
-      toast.show(`That layout needs ${result.labelsFull.needed} labels and ${result.labelsFull.free} will fit. Remove some first.`, undefined, place);
+      toast.show(`That layout needs ${result.labelsFull.needed} labels and only ${result.labelsFull.free} will fit`, undefined, place);
       return;
     }
     await load();
@@ -1321,9 +1331,9 @@ export function Thread({ id, onChanged }: Props) {
 
         {/* Thread layouts: the heads-up another member sees once after somebody
             else switched, then the suggestion line offload draws (6.9). */}
-        {thread.layoutChange ? (
+        {headsUp ? (
           <p className={styles.headsUp}>
-            {thread.layoutChange.by.displayName} switched this to {LAYOUT_NAMES[thread.layoutChange.layout]}
+            {headsUp.by.displayName} switched this to {LAYOUT_NAMES[headsUp.layout]}
           </p>
         ) : null}
         {thread.layoutSuggestion && !suggestionGone ? (
@@ -1332,7 +1342,11 @@ export function Thread({ id, onChanged }: Props) {
               type="button"
               className={looseStyles.suggestHit}
               aria-label={`Show this thread as ${LAYOUT_NAMES[thread.layoutSuggestion]}`}
-              onClick={() => thread.layoutSuggestion && void saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue })}
+              onClick={() => {
+                if (!thread.layoutSuggestion) return;
+                setSuggestionGone(true);
+                void saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue });
+              }}
             >
               <span className={looseStyles.suggest}>
                 <Icon name="sparkles" size={13} className={looseStyles.spark} />
