@@ -117,16 +117,21 @@ function ListSection({ section, colour, handlers }: { section: Extract<Sec, { ki
               ))}
             </View>
           ) : section.form === "card" || section.form === "draft" ? (
-            // Events: Booked as cards, Still deciding as drafts (6.3). No
-            // in-repo kit for 045 yet; logged in decisions.md.
+            // Events: Booked as a filled card, Still deciding as an outlined
+            // draft (6.3). The fill is what tells them apart, so it survives
+            // Android (a dashed border with a radius draws nothing there, and a
+            // light inset edge is near invisible); the draft stays dashed on iOS
+            // only. No in-repo kit for 045 yet; logged in decisions.md.
             section.rows.map((row) => (
               <View
                 key={row.id}
-                className={`mx-gutter-screen mt-space-3 overflow-hidden rounded-lg px-space-4 ${section.form === "card" ? "bg-surface-raised" : ""}`}
+                className={`mx-gutter-screen mt-space-3 overflow-hidden rounded-lg px-space-4 ${
+                  section.form === "card" ? (isAndroid ? "bg-a-c" : "bg-surface-raised") : ""
+                }`}
                 style={
                   section.form === "card"
-                    ? { boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }
-                    : { borderWidth: 1, borderStyle: "dashed", borderColor: COLOR.edgeWell }
+                    ? { boxShadow: `inset 0 0 0 1px ${COLOR.edgeCard}` }
+                    : { borderWidth: 1, borderStyle: isAndroid ? "solid" : "dashed", borderColor: COLOR.edgeCard }
                 }
               >
                 <Row row={row} handlers={handlers} flat />
