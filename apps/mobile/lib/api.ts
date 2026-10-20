@@ -104,6 +104,9 @@ export interface Sent<T> {
   /** The refusal's code when the server named one, `{ "error": "..." }`. 025:
    *  a label sheet says the one clause that code names. */
   error?: string;
+  /** The refusal's whole body, when it carried fields past `error` a caller
+   *  needs (a layout switch's `needed`/`free`, 6.8). */
+  body?: Record<string, unknown>;
   /** 027. Seconds from a `Retry-After` on a refusal, when it carried one. */
   retryAfter?: number;
 }
@@ -160,15 +163,14 @@ export async function send<T>(path: string, init: RequestInit = {}): Promise<Sen
   if (!response) return { status: 0, data: null };
   if (!response.ok) {
     refused(response, cookie);
-    const error = await response
-      .json()
-      .then((body: unknown) => (body && typeof body === "object" && typeof (body as { error?: unknown }).error === "string" ? (body as { error: string }).error : undefined))
-      .catch(() => undefined);
+    const raw = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+    const error = raw && typeof raw.error === "string" ? raw.error : undefined;
     const wait = Number(response.headers?.get?.("retry-after") ?? NaN);
     return {
       status: response.status,
       data: null,
       ...(error ? { error } : {}),
+      ...(raw ? { body: raw } : {}),
       ...(Number.isFinite(wait) && wait > 0 ? { retryAfter: Math.min(wait, 300) } : {}),
     };
   }

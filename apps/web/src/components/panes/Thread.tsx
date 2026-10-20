@@ -40,7 +40,8 @@ import {
   widgetsFor,
   type ReorderWrite,
 } from "../../lib/widgets";
-import { LAYOUT_NAMES, layoutFor, type Layout } from "@offload/widgets";
+import { LAYOUT_NAMES, layoutFor, suggestionLine, type Layout } from "@offload/widgets";
+import looseStyles from "../loose/loose.module.css";
 import { LayoutSections } from "./LayoutSections";
 import {
   completeContent,
@@ -59,6 +60,9 @@ import {
   provisionalRow,
   quickAdd,
   editThread,
+  isLabelsFull,
+  dismissLayoutSuggestion,
+  markLayoutSeen,
   type ThreadMark,
   type ThreadEdit,
   setArchived,
@@ -150,6 +154,9 @@ export function Thread({ id, onChanged }: Props) {
   const [draft, setDraft] = useState("");
   // 037. Edit thread, and whether it was opened from the icon or the name.
   const [editingThread, setEditingThread] = useState<"icon" | "name" | null>(null);
+  // Thread layouts (6.9): the suggestion line, hidden at once when dismissed
+  // while the write lands; reset per thread below.
+  const [suggestionGone, setSuggestionGone] = useState(false);
   // 019. The calendars popover, and a counter bumped when the picks change so
   // the rail reads the calendars again.
   const [calendarsOpen, setCalendarsOpen] = useState(false);
@@ -310,7 +317,16 @@ export function Thread({ id, onChanged }: Props) {
   // since been deleted once the thread's labels are known.
   useEffect(() => {
     setPickState(readPick(id));
+    setSuggestionGone(false);
   }, [id]);
+
+  // Thread layouts: the heads-up another member sees once after somebody else
+  // switched. Marking it seen stops the server sending it again (decision 13);
+  // it stays on screen for this view.
+  const changedAt = thread?.layoutChange?.at;
+  useEffect(() => {
+    if (changedAt) void markLayoutSeen(id);
+  }, [id, changedAt]);
   useEffect(() => {
     if (!thread) return;
     const live = keepLive(pick, thread.labels.map((label) => label.id));
@@ -556,6 +572,30 @@ export function Thread({ id, onChanged }: Props) {
         revert: () => patchRow(row.id, { doneAt: row.doneAt }),
         write: () => completeContent(row.id, !wasDone),
         failed: wasDone ? "Couldn't put that back" : "Couldn't tick that off",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  /** Thread layouts, decision 22. In Todo list and Gallery a ticked row leaves
+   *  the list, so the box is no longer its own undo: the tick draws an UndoLine
+   *  in the row's slot. Un-ticking (from the week/done fold) is the plain
+   *  toggle. Every other layout keeps `sinkDone` and stays silent. */
+  function layoutTick(row: ContentRow): void {
+    if (isProvisional(row.id)) return;
+    if (row.doneAt !== null || (threadLayout !== "todo" && threadLayout !== "gallery")) {
+      toggle(row);
+      return;
+    }
+    void perform(
+      {
+        apply: () => patchRow(row.id, { doneAt: new Date().toISOString() }),
+        revert: () => patchRow(row.id, { doneAt: null }),
+        write: () => completeContent(row.id, true),
+        did: threadLayout === "todo" ? "Ticked off" : "Done",
+        failed: "Couldn't tick that off",
+        place: { id: row.id, icon: "check", form: "slot" },
       },
       toast,
       writes,
@@ -826,6 +866,13 @@ export function Thread({ id, onChanged }: Props) {
     if (!result) {
       setThread(before);
       toast.show("Couldn't save that", undefined, place);
+      return;
+    }
+    // The layout switch was refused because the thread's labels are full
+    // (6.8): put the head back and say what to free, not a generic failure.
+    if (isLabelsFull(result)) {
+      setThread(before);
+      toast.show(`That layout needs ${result.labelsFull.needed} labels and ${result.labelsFull.free} will fit. Remove some first.`, undefined, place);
       return;
     }
     await load();
@@ -1272,6 +1319,40 @@ export function Thread({ id, onChanged }: Props) {
         ) : null}
         <LineAt id={`thread:${id}`} />
 
+        {/* Thread layouts: the heads-up another member sees once after somebody
+            else switched, then the suggestion line offload draws (6.9). */}
+        {thread.layoutChange ? (
+          <p className={styles.headsUp}>
+            {thread.layoutChange.by.displayName} switched this to {LAYOUT_NAMES[thread.layoutChange.layout]}
+          </p>
+        ) : null}
+        {thread.layoutSuggestion && !suggestionGone ? (
+          <span className={looseStyles.suggestion}>
+            <button
+              type="button"
+              className={looseStyles.suggestHit}
+              aria-label={`Show this thread as ${LAYOUT_NAMES[thread.layoutSuggestion]}`}
+              onClick={() => thread.layoutSuggestion && void saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue })}
+            >
+              <span className={looseStyles.suggest}>
+                <Icon name="sparkles" size={13} className={looseStyles.spark} />
+                <span>{suggestionLine(thread.layoutSuggestion)}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              className={looseStyles.dismiss}
+              aria-label="Dismiss suggestion"
+              onClick={() => {
+                setSuggestionGone(true);
+                void dismissLayoutSuggestion(id);
+              }}
+            >
+              <Icon name="x" size={14} />
+            </button>
+          </span>
+        ) : null}
+
         {/* Widgets first, then everything. A widget is a view over the same
             rows the list below shows, so a piece removed from one is gone from
             both, and nothing here costs a second query. */}
@@ -1340,7 +1421,7 @@ export function Thread({ id, onChanged }: Props) {
         ) : null}
 
         {!isDefaultLayout && !showArchived && page ? (
-          <LayoutSections page={page} handlers={handlers} labels={thread.labels} onAdd={(text) => add(text, "todo")} />
+          <LayoutSections page={page} handlers={handlers} labels={thread.labels} onAdd={(text) => add(text, "todo")} onToggle={layoutTick} />
         ) : (
         <>
         {showArchived ? null : (

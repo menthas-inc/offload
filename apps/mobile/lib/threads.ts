@@ -140,6 +140,17 @@ export interface LayoutChange {
   dropped: string[];
 }
 
+/** A layout needs more labels than the thread can still hold (server 409).
+ *  `needed` is how many it would make, `free` how many slots remain. */
+export interface LayoutLabelsFull {
+  labelsFull: { needed: number; free: number };
+}
+
+export type ThreadEdited = { thread: ThreadLook & { id: string }; previous: ThreadLook; layout?: LayoutChange };
+
+export const isLabelsFull = (result: ThreadEdited | LayoutLabelsFull): result is LayoutLabelsFull =>
+  "labelsFull" in result;
+
 /** The body Edit thread's Save sends: the look, and the layout with its Undo. */
 export type ThreadEdit = Partial<ThreadLook> & {
   layout?: Layout;
@@ -552,16 +563,31 @@ export async function createThread(input: { name: string; icon: string; hue: num
 
 /** 037. Edit thread's one write: the name, the icon and the hue, any of
  *  them. `previous` sent back whole is the Undo. */
-export async function editThread(
-  id: string,
-  change: ThreadEdit
-): Promise<{ thread: ThreadLook & { id: string }; previous: ThreadLook; layout?: LayoutChange } | null> {
-  const { data } = await send<{ thread: ThreadLook & { id: string }; previous: ThreadLook; layout?: LayoutChange }>(`/v1/threads/${id}`, {
+export async function editThread(id: string, change: ThreadEdit): Promise<ThreadEdited | LayoutLabelsFull | null> {
+  const sent = await send<ThreadEdited>(`/v1/threads/${id}`, {
     method: "PATCH",
     ...body(change),
   });
-  if (data) looks.set(id, { icon: data.thread.icon, hue: data.thread.hue });
-  return data;
+  // A layout switch refused for full labels: the one failure the caller tells
+  // apart, so Save can say what to free and keep the sheet open (6.8).
+  if (sent.status === 409 && sent.error === "layout_labels_full") {
+    return { labelsFull: { needed: Number(sent.body?.needed ?? 0), free: Number(sent.body?.free ?? 0) } };
+  }
+  if (sent.data) looks.set(id, { icon: sent.data.thread.icon, hue: sent.data.thread.hue });
+  return sent.data;
+}
+
+/** Thread layouts: stop the suggestion line for good on this thread (6.9). */
+export async function dismissLayoutSuggestion(threadId: string): Promise<boolean> {
+  const { status } = await send(`/v1/threads/${threadId}/layout-suggestion/dismiss`, { method: "POST" });
+  return status === 200;
+}
+
+/** Thread layouts: mark the "someone switched this" heads-up seen, so it shows
+ *  once (the server returns it only until this lands). */
+export async function markLayoutSeen(threadId: string): Promise<boolean> {
+  const { status } = await send(`/v1/threads/${threadId}/layout-seen`, { method: "POST" });
+  return status === 200;
 }
 
 /** How the thread wants to look. Co-owned, like its name, and merged on the

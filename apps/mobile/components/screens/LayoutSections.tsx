@@ -4,7 +4,9 @@
 // arranges it into.
 
 import { useState } from "react";
-import { Image, Linking, Pressable, Text, View } from "react-native";
+import { Image, Linking, Platform, Pressable, Text, View } from "react-native";
+
+const isAndroid = Platform.OS === "android";
 import type { LayoutPage, LayoutSection } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { ContentRowView } from "../shell/ContentRow";
@@ -22,11 +24,11 @@ export interface LayoutHandlers {
   onAdd: () => void;
 }
 
-function Row({ row, handlers }: { row: ContentRow; handlers: LayoutHandlers }) {
+function Row({ row, handlers, flat }: { row: ContentRow; handlers: LayoutHandlers; flat?: boolean }) {
   return (
     <ContentRowView
       row={row}
-      border
+      border={!flat}
       arrived={false}
       onDelete={() => handlers.onDelete(row)}
       onEdit={() => handlers.onEdit(row)}
@@ -48,7 +50,7 @@ function Tile({ row, handlers }: { row: ContentRow; handlers: LayoutHandlers }) 
   };
   return (
     <Pressable onPress={open} style={{ width: "47%" }}>
-      <View className="border border-border-hairline bg-surface-fill" style={{ aspectRatio: 1, borderRadius: 8, overflow: "hidden" }}>
+      <View className={`border ${isAndroid ? "border-a-outline bg-a-c-low" : "border-border-hairline bg-surface-fill"}`} style={{ aspectRatio: 1, borderRadius: 8, overflow: "hidden" }}>
         {cover ? (
           <Image source={{ uri: cover }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
         ) : (
@@ -57,7 +59,7 @@ function Tile({ row, handlers }: { row: ContentRow; handlers: LayoutHandlers }) 
           </Text>
         )}
       </View>
-      <Text className="font-core font-semibold text-text-primary" style={{ fontSize: 14, marginTop: 6 }} numberOfLines={1}>
+      <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 14, marginTop: 6 }} numberOfLines={1}>
         {row.title}
       </Text>
     </Pressable>
@@ -78,11 +80,11 @@ function ListSection({ section, colour, handlers }: { section: Extract<Sec, { ki
           className="min-h-tap-min flex-row items-center gap-space-3 px-gutter-screen"
         >
           {colour ? <View style={{ width: 10, height: 10, borderRadius: 999, backgroundColor: colour }} /> : null}
-          <Text className="font-core font-semibold text-text-primary" style={{ fontSize: 17 }}>
+          <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 17 }}>
             {section.heading}
           </Text>
           {section.rows.length > 0 ? (
-            <Text className="font-core text-text-tertiary" style={{ fontSize: 13 }}>
+            <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-tertiary"}`} style={{ fontSize: 13 }}>
               {section.rows.length}
             </Text>
           ) : null}
@@ -95,13 +97,13 @@ function ListSection({ section, colour, handlers }: { section: Extract<Sec, { ki
           {section.add ? (
             <Pressable onPress={handlers.onAdd} className="min-h-tap-min flex-row items-center gap-space-3 px-gutter-screen">
               <Glyph name="plus" size={20} color={COLOR.quiet} />
-              <Text className="font-core text-text-tertiary" style={{ fontSize: 17 }}>
+              <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-tertiary"}`} style={{ fontSize: 17 }}>
                 Add an item
               </Text>
             </Pressable>
           ) : null}
           {section.rows.length === 0 && section.heading !== null ? (
-            <Text className="px-gutter-screen py-space-3 font-core text-text-tertiary" style={{ fontSize: 14 }}>
+            <Text className={`px-gutter-screen py-space-3 font-core ${isAndroid ? "text-a-on-var" : "text-text-tertiary"}`} style={{ fontSize: 14 }}>
               Nothing here yet
             </Text>
           ) : tiles ? (
@@ -110,6 +112,22 @@ function ListSection({ section, colour, handlers }: { section: Extract<Sec, { ki
                 <Tile key={row.id} row={row} handlers={handlers} />
               ))}
             </View>
+          ) : section.form === "card" || section.form === "draft" ? (
+            // Events: Booked as cards, Still deciding as drafts (6.3). No
+            // in-repo kit for 045 yet; logged in decisions.md.
+            section.rows.map((row) => (
+              <View
+                key={row.id}
+                className={`mx-gutter-screen mt-space-3 overflow-hidden rounded-lg px-space-4 ${section.form === "card" ? "bg-surface-raised" : ""}`}
+                style={
+                  section.form === "card"
+                    ? { boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }
+                    : { borderWidth: 1, borderStyle: "dashed", borderColor: COLOR.edgeWell }
+                }
+              >
+                <Row row={row} handlers={handlers} flat />
+              </View>
+            ))
           ) : (
             section.rows.map((row) => <Row key={row.id} row={row} handlers={handlers} />)
           )}
@@ -127,10 +145,10 @@ function FoldSection({ heading, rows, handlers, countFirst }: { heading: string;
       <Pressable
         onPress={() => setOpen((v) => !v)}
         accessibilityRole="button"
-        className="mx-gutter-screen min-h-tap-min flex-row items-center gap-space-3 rounded-lg bg-surface-fill px-space-4"
+        className={`mx-gutter-screen min-h-tap-min flex-row items-center gap-space-3 px-space-4 ${isAndroid ? "rounded-a-sm bg-a-c-low" : "rounded-lg bg-surface-fill"}`}
       >
         <Glyph name="check" size={16} color={COLOR.secondary} />
-        <Text className="font-core text-text-secondary" style={{ fontSize: 14 }}>
+        <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 14 }}>
           {countFirst ? `${rows.length} ${heading}` : `${heading} ${rows.length}`}
         </Text>
         <View className="flex-1" />
@@ -144,12 +162,12 @@ function FoldSection({ heading, rows, handlers, countFirst }: { heading: string;
 function DaySection({ section, handlers }: { section: Extract<Sec, { kind: "day" }>; handlers: LayoutHandlers }) {
   const d = new Date(section.day + "T00:00:00");
   return (
-    <View className="flex-row border-b border-border-hairline px-gutter-screen" style={{ gap: 12, paddingVertical: 16 }}>
+    <View className={`flex-row border-b px-gutter-screen ${isAndroid ? "border-a-outline" : "border-border-hairline"}`} style={{ gap: 12, paddingVertical: 16 }}>
       <View style={{ width: 48, alignItems: "flex-end" }}>
-        <Text className="font-core font-semibold text-text-primary" style={{ fontSize: 13 }}>
+        <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 13 }}>
           {d.toLocaleDateString(undefined, { weekday: "short" })}
         </Text>
-        <Text className="font-core text-text-tertiary" style={{ fontSize: 12 }}>
+        <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-tertiary"}`} style={{ fontSize: 12 }}>
           {d.toLocaleDateString(undefined, { day: "numeric", month: "short" })}
         </Text>
       </View>
@@ -166,7 +184,7 @@ function DaySection({ section, handlers }: { section: Extract<Sec, { kind: "day"
               onToggle={() => handlers.onToggle(item)}
             />
           ) : (
-            <Text key={item.id} className="font-quiet text-text-secondary" style={{ fontSize: 15, paddingVertical: 8 }}>
+            <Text key={item.id} className={`font-quiet ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 15, paddingVertical: 8 }}>
               {item.text}
             </Text>
           ),
@@ -185,7 +203,7 @@ export function LayoutSections({ page, labels, handlers }: { page: Page; labels:
     return (
       <View>
         <View className="px-gutter-screen pb-space-3 pt-space-7">
-          <Text className="font-core font-semibold text-text-primary" style={{ fontSize: 21 }}>
+          <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 21 }}>
             Other things
           </Text>
         </View>
@@ -193,17 +211,17 @@ export function LayoutSections({ page, labels, handlers }: { page: Page; labels:
           <Row key={row.id} row={row} handlers={handlers} />
         ))}
         {page.others.notes.map((note) => (
-          <Text key={note.id} className="px-gutter-screen font-quiet text-text-secondary" style={{ fontSize: 15, paddingVertical: 8 }}>
+          <Text key={note.id} className={`px-gutter-screen font-quiet ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 15, paddingVertical: 8 }}>
             {note.text}
           </Text>
         ))}
         <Pressable
           onPress={() => setOthers(false)}
-          className="min-h-tap-min flex-row items-center gap-space-3 border-t border-border-hairline px-gutter-screen"
+          className={`min-h-tap-min flex-row items-center gap-space-3 border-t px-gutter-screen ${isAndroid ? "border-a-outline" : "border-border-hairline"}`}
           style={{ marginTop: 16 }}
         >
           <Glyph name="chevron-left" size={15} color={COLOR.secondary} />
-          <Text className="font-core text-text-secondary" style={{ fontSize: 14.5 }}>
+          <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 14.5 }}>
             Back to the list
           </Text>
         </Pressable>
@@ -234,10 +252,10 @@ export function LayoutSections({ page, labels, handlers }: { page: Page; labels:
       {otherCount > 0 ? (
         <Pressable
           onPress={() => setOthers(true)}
-          className="min-h-tap-min flex-row items-center gap-space-3 border-t border-border-hairline px-gutter-screen"
+          className={`min-h-tap-min flex-row items-center gap-space-3 border-t px-gutter-screen ${isAndroid ? "border-a-outline" : "border-border-hairline"}`}
           style={{ marginTop: 16 }}
         >
-          <Text className="font-core flex-1 text-text-secondary" style={{ fontSize: 14.5 }}>
+          <Text className={`font-core flex-1 ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 14.5 }}>
             {otherCount} other things in here
           </Text>
           <Glyph name="chevron-right" size={16} color={COLOR.secondary} />

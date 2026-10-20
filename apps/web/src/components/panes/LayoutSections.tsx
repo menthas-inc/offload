@@ -23,20 +23,37 @@ interface Props {
   labels: { id: string; name: string; colour: number }[];
   /** Todo list's "Add an item" opens the section's quick add. */
   onAdd: (text: string) => void;
+  /** Tick a row off or back; the layout decides whether it leaves and whether
+   *  an Undo line is drawn (decision 22). */
+  onToggle: (row: ContentRow) => void;
 }
 
 const isRow = (item: ContentRow | Note): item is ContentRow => "type" in item;
 
-function Row({ row, handlers }: { row: ContentRow; handlers: RowHandlers }) {
+/** A list row. `box` draws the lead as a checkbox (Todo list and Project, and
+ *  the done/week folds), otherwise the row's kind glyph. */
+function Row({ row, handlers, onToggle, box }: { row: ContentRow; handlers: RowHandlers; onToggle: (row: ContentRow) => void; box?: boolean }) {
+  const done = row.doneAt !== null;
   return (
     <ContentRowView
       row={row}
       handlers={handlers}
       meta={null}
+      checkbox={box}
       lead={
-        <span className={tstyles.rowIcon}>
-          <Icon name={rowIcon(row.type)} size={18} />
-        </span>
+        box ? (
+          <input
+            type="checkbox"
+            className={tstyles.rowCheck}
+            checked={done}
+            onChange={() => onToggle(row)}
+            aria-label={done ? `Put ${row.title} back on the list` : `Finish ${row.title}`}
+          />
+        ) : (
+          <span className={tstyles.rowIcon}>
+            <Icon name={rowIcon(row.type)} size={18} />
+          </span>
+        )
       }
     />
   );
@@ -78,11 +95,12 @@ function Tile({ row, handlers }: { row: ContentRow; handlers: RowHandlers }) {
   );
 }
 
-function ListSection({ section, handlers, labels, onAdd }: { section: Extract<Section, { kind: "list" }>; handlers: RowHandlers; labels: Props["labels"]; onAdd: Props["onAdd"] }) {
+function ListSection({ section, handlers, labels, onAdd, onToggle }: { section: Extract<Section, { kind: "list" }>; handlers: RowHandlers; labels: Props["labels"]; onAdd: Props["onAdd"]; onToggle: Props["onToggle"] }) {
   const [open, setOpen] = useState(!section.foldedAtFirst);
   const [draft, setDraft] = useState("");
   const colour = section.labelId ? labels.find((l) => l.id === section.labelId)?.colour ?? null : null;
   const tiles = section.form === "tile";
+  const box = section.form === "big" || section.form === "check";
 
   return (
     <section className={styles.block}>
@@ -112,8 +130,15 @@ function ListSection({ section, handlers, labels, onAdd }: { section: Extract<Se
                 <Tile key={row.id} row={row} handlers={handlers} />
               ))}
             </div>
+          ) : section.form === "card" || section.form === "draft" ? (
+            // Events: Booked as cards, Still deciding as drafts (6.3).
+            section.rows.map((row) => (
+              <div key={row.id} className={section.form === "card" ? styles.card : styles.draft}>
+                <Row row={row} handlers={handlers} onToggle={onToggle} box={box} />
+              </div>
+            ))
           ) : (
-            section.rows.map((row) => <Row key={row.id} row={row} handlers={handlers} />)
+            section.rows.map((row) => <Row key={row.id} row={row} handlers={handlers} onToggle={onToggle} box={box} />)
           )}
         </>
       ) : null}
@@ -121,7 +146,7 @@ function ListSection({ section, handlers, labels, onAdd }: { section: Extract<Se
   );
 }
 
-function FoldSection({ heading, rows, handlers, countFirst }: { heading: string; rows: ContentRow[]; handlers: RowHandlers; countFirst?: boolean }) {
+function FoldSection({ heading, rows, handlers, onToggle, countFirst }: { heading: string; rows: ContentRow[]; handlers: RowHandlers; onToggle: Props["onToggle"]; countFirst?: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <section className={styles.block}>
@@ -130,12 +155,12 @@ function FoldSection({ heading, rows, handlers, countFirst }: { heading: string;
         <span>{countFirst ? `${rows.length} ${heading}` : `${heading} ${rows.length}`}</span>
         <Icon name={open ? "chevron-down" : "chevron-right"} size={16} />
       </button>
-      {open ? rows.map((row) => <Row key={row.id} row={row} handlers={handlers} />) : null}
+      {open ? rows.map((row) => <Row key={row.id} row={row} handlers={handlers} onToggle={onToggle} box />) : null}
     </section>
   );
 }
 
-function DaySection({ section, handlers }: { section: Extract<Section, { kind: "day" }>; handlers: RowHandlers }) {
+function DaySection({ section, handlers, onToggle }: { section: Extract<Section, { kind: "day" }>; handlers: RowHandlers; onToggle: Props["onToggle"] }) {
   const d = new Date(section.day + "T00:00:00");
   return (
     <section className={styles.day}>
@@ -145,14 +170,14 @@ function DaySection({ section, handlers }: { section: Extract<Section, { kind: "
       </div>
       <div className={styles.entries}>
         {section.rows.map((item) =>
-          isRow(item) ? <Row key={item.id} row={item} handlers={handlers} /> : <p key={item.id} className={styles.noteLine}>{item.text}</p>,
+          isRow(item) ? <Row key={item.id} row={item} handlers={handlers} onToggle={onToggle} /> : <p key={item.id} className={styles.noteLine}>{item.text}</p>,
         )}
       </div>
     </section>
   );
 }
 
-export function LayoutSections({ page, handlers, labels, onAdd }: Props) {
+export function LayoutSections({ page, handlers, labels, onAdd, onToggle }: Props) {
   const [others, setOthers] = useState(false);
   const otherCount = page.others.rows.length + page.others.notes.length;
 
@@ -161,7 +186,7 @@ export function LayoutSections({ page, handlers, labels, onAdd }: Props) {
       <>
         <h2 className={tstyles.section}>Other things</h2>
         {page.others.rows.map((row) => (
-          <Row key={row.id} row={row} handlers={handlers} />
+          <Row key={row.id} row={row} handlers={handlers} onToggle={onToggle} />
         ))}
         {page.others.notes.map((note) => (
           <p key={note.id} className={styles.noteLine}>{note.text}</p>
@@ -176,9 +201,9 @@ export function LayoutSections({ page, handlers, labels, onAdd }: Props) {
   return (
     <>
       {page.sections.map((section, i) => {
-        if (section.kind === "list") return <ListSection key={section.key} section={section} handlers={handlers} labels={labels} onAdd={onAdd} />;
-        if (section.kind === "done") return <FoldSection key={section.key} heading={section.heading} rows={section.rows} handlers={handlers} countFirst={section.key === "week"} />;
-        if (section.kind === "day") return <DaySection key={section.key} section={section} handlers={handlers} />;
+        if (section.kind === "list") return <ListSection key={section.key} section={section} handlers={handlers} labels={labels} onAdd={onAdd} onToggle={onToggle} />;
+        if (section.kind === "done") return <FoldSection key={section.key} heading={section.heading} rows={section.rows} handlers={handlers} onToggle={onToggle} countFirst={section.key === "week"} />;
+        if (section.kind === "day") return <DaySection key={section.key} section={section} handlers={handlers} onToggle={onToggle} />;
         if (section.kind === "files")
           return (
             <section className={styles.block} key={`files-${i}`}>

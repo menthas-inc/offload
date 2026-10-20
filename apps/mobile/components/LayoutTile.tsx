@@ -3,9 +3,11 @@
 // six abstract marks saying how a layout arranges a page, never what is in this
 // thread. Colours are token classes; geometry is the system's own drawing.
 
-import { Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import type { Layout } from "@offload/widgets";
 import { LAYOUT_NAMES } from "@offload/widgets";
+
+const isAndroid = Platform.OS === "android";
 
 const SIZES = {
   sm: { w: 44, h: 54, p: 7, gap: 3, bar: 4, r: 9 },
@@ -91,13 +93,21 @@ export function LayoutTile({
       style={{ gap: 6 }}
     >
       <View
-        className={selected ? "bg-surface-raised border-2 border-text-primary" : "bg-surface-fill border border-border-hairline"}
+        className={
+          selected
+            ? isAndroid
+              ? "bg-a-c border-2 border-a-on"
+              : "bg-surface-raised border-2 border-text-primary"
+            : isAndroid
+              ? "bg-a-c-low border border-a-outline"
+              : "bg-surface-fill border border-border-hairline"
+        }
         style={{ width: s.w, height: s.h, padding: s.p, borderRadius: s.r, justifyContent: "flex-start" }}
       >
         {marks(layout, s)}
       </View>
       <Text
-        className={`font-core ${selected ? "font-semibold text-text-primary" : "font-medium text-text-secondary"}`}
+        className={`font-core ${selected ? `font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}` : `font-medium ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}`}
         style={{ fontSize: 12 }}
       >
         {LAYOUT_NAMES[layout]}

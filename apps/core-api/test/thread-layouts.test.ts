@@ -4,7 +4,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db, closeDb } from "../src/db.js";
 import { buildApp } from "../src/app.js";
-import { account, as, dump, owner, row, signIn, thread, tool } from "./loose-kit.js";
+import { account, as, dump, join, owner, row, signIn, thread, tool } from "./loose-kit.js";
 import { wipe } from "./labels-kit.js";
 
 let app: Awaited<ReturnType<typeof buildApp>>;
@@ -112,6 +112,57 @@ describe("the bundle read", () => {
     const t = await thread(me, "Plain");
     const bundle = (await client.get(`/v1/threads/${t}`)).json();
     expect(bundle).toMatchObject({ layout: "default", layoutSetBy: "offload", layoutSuggestion: null, layoutChange: null });
+  });
+});
+
+describe("the suggestion line (6.9)", () => {
+  it("draws the thread's suggestion, and the dismiss x ends it for everybody, idempotently", async () => {
+    const me = await account();
+    const client = as(app, await signIn(me));
+    const t = await thread(me, "Trip");
+    await db.updateTable("threads").set({ layout_suggestion: "events" }).where("id", "=", t).execute();
+    expect((await client.get(`/v1/threads/${t}`)).json().layoutSuggestion).toBe("events");
+
+    expect((await client.post(`/v1/threads/${t}/layout-suggestion/dismiss`)).statusCode).toBe(200);
+    expect((await client.get(`/v1/threads/${t}`)).json().layoutSuggestion).toBeNull();
+    // A second dismiss is a no-op, not an error.
+    expect((await client.post(`/v1/threads/${t}/layout-suggestion/dismiss`)).statusCode).toBe(200);
+  });
+
+  it("a non-member cannot dismiss it", async () => {
+    const me = await account();
+    const other = await account("Mara Silva");
+    const t = await thread(me, "Trip");
+    expect((await as(app, await signIn(other)).post(`/v1/threads/${t}/layout-suggestion/dismiss`)).statusCode).toBe(404);
+  });
+});
+
+describe("the heads-up another member sees (decision 13)", () => {
+  it("names who switched the layout, not to the switcher, and stops once seen", async () => {
+    const me = await account();
+    const other = await account("Mara Silva");
+    const t = await thread(me, "Trip");
+    await join(t, other);
+    const theirs = as(app, await signIn(other));
+    await theirs.patch(`/v1/threads/${t}`, { layout: "events" });
+
+    const mine = as(app, await signIn(me));
+    expect((await mine.get(`/v1/threads/${t}`)).json().layoutChange).toMatchObject({
+      layout: "events",
+      by: { accountId: other, displayName: "Mara Silva" },
+    });
+    // The one who switched does not see their own heads-up.
+    expect((await theirs.get(`/v1/threads/${t}`)).json().layoutChange).toBeNull();
+
+    expect((await mine.post(`/v1/threads/${t}/layout-seen`)).statusCode).toBe(200);
+    expect((await mine.get(`/v1/threads/${t}`)).json().layoutChange).toBeNull();
+  });
+
+  it("a non-member cannot mark it seen", async () => {
+    const me = await account();
+    const other = await account("Mara Silva");
+    const t = await thread(me, "Trip");
+    expect((await as(app, await signIn(other)).post(`/v1/threads/${t}/layout-seen`)).statusCode).toBe(404);
   });
 });
 

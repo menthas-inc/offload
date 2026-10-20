@@ -47,7 +47,7 @@ export function LayoutTile({ layout, size = "md", selected = false, onPress, onK
           <i key={i} className={styles.cell} data-kind={kind} />
         ))}
       </span>
-      <span className={styles.name}>{LAYOUT_NAMES[layout]}</span>
+      <span>{LAYOUT_NAMES[layout]}</span>
     </button>
   );
 }
