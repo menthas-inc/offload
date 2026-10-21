@@ -22,9 +22,8 @@ plate into frosted glass so the page shows through it. One field, one blur, no n
    cells, today marker and week rows (PR 129) are not bands and are left as they are.
 2. **A prism field sits under Today's page**, scrolling with the content, at `--today-field-alpha` (0.35 light, 0.26
    dark): four soft blooms, about half the ground in colour where the page shows between cards. Today only.
-3. **The field drifts** slowly and continuously, a subtle living background, driven on the UI thread (no shader, no
-   per-frame JS), paused when Today is not the focused tab or the app is backgrounded, off under Reduce Motion. This
-   reverses two logged decisions and ships only if it is near free (see "Drift" and AC-11).
+3. **The field is still.** *Changed 2026-10-21:* a slow UI-thread drift was built and the owner removed it after
+   seeing it ("it doesn't look good, just have the prisms as stills"). Nothing on Today moves at rest.
 4. **The composer switches to this frosted style everywhere, and stays consistent across pages.** On iOS and Android
    it is the bottom plate: on every tab the page scrolls under it blurred and brightened, with a graded tint most
    opaque where the tab labels sit; shape, corners, keyboard ride and tab fade unchanged. **Web has no bottom plate**
@@ -33,36 +32,22 @@ plate into frosted glass so the page shows through it. One field, one blur, no n
 5. **The plate's resting prism band goes; the arrival pulse stays.** On a filing the plate still plays the two-second
    prism pulse; between filings there is no field inside the plate, because the page's field now shows through.
 6. **The raised conversation is the same glass, more opaque** (`--glass-sheet`) on iOS; **opaque `--surface-plate` on
-   Android** (two live blurs over one target measured poorly; the page is dimmed behind it anyway).
-7. **Opaque fallbacks**, per platform (each is new work, no reader exists today): iOS Reduce Transparency; web no
-   `backdrop-filter` support or `prefers-reduced-transparency`; Android below 12; and any phone failing the frame gate.
+   Android** (two live blurs over one target measured poorly; the page is dimmed behind it anyway). The Android plate
+   blurs from 12 through one `BlurTargetView` wrapping the screens in the root layout.
+7. **Opaque fallbacks**, per platform: iOS Reduce Transparency; web no `backdrop-filter` support or
+   `prefers-reduced-transparency`; Android below 12.
 
 Surfaces: iOS, Android, web, scoped per track in tasks. Kit reference: the plate and the conversation sheet in
 `.claude/skills/offload-design/` and the readme **Today** section as updated by the bundle. Kits are not redrawn; the
 handoff and the exploration are the visual reference. No new design-system component contract (`GlassBackdrop` is an
 app component under `apps/mobile/components/shell/`).
 
-## The two reversals this feature makes (OFF-7)
+## The reversal this feature makes (OFF-7)
 
-The field and the drift each contradict a logged design decision, so the code lands **one** `decisions.md` entry that
-names both by date:
-
-- **2026-09-08, "the prism field is frozen":** the field "may never sit under a scrolling list" because
-  `--text-tertiary` is exactly 4.5:1 on paper with no headroom, and perpetual drift was built and rejected on a
-  battery argument ("arrival, not weather"). The entry must say why that no longer applies: the field is now on the
-  page where people see it (not hidden under a fill and three labels), and the drift ships only if measured near free.
-- **2026-10-19, "a prism field, and a frosted plate":** chose a still field; this adopts a drift.
-
-The entry also notes that a continuously drifting background competes with the plate's arrival pulse as the one place
-motion carries meaning, and why the owner accepted that.
-
-## Drift (item 3), decided on power not frame rate
-
-The 2026-09-08 rejection was about battery, and a UI-thread transform loop can hold 60 fps while keeping the GPU out
-of idle, which is the drain that was avoided. So the drift's acceptance is a **measured idle-power delta** (AC-11),
-not a frame count. If the delta is not near zero the drift does not ship and nothing else is blocked: the still field
-is the fallback and is already the logged decision. The owner asked for drift "if it's not a lot of drain"; this is
-that condition made testable.
+The code lands **one** `decisions.md` entry. It reverses *2026-09-08, the prism field "may never sit under a scrolling
+list"* (because `--text-tertiary` is exactly 4.5:1 on paper with no headroom): the field is now on Today's page, and
+small grey text is kept off it instead (AC-3). *Frozen at rest* still holds: the drift tried on 2026-10-21 was taken
+out the same day, so the field is still, as the 2026-10-19 decision chose.
 
 ## Acceptance criteria
 
@@ -75,16 +60,17 @@ Tasks cite these as `046 AC-n` (the handoff's own AC-1..7 are numbered different
   Today only.
 - **046 AC-3 (contrast, gating).** `--text-tertiary` and `--text-secondary` drawn **on Today's page ground** (not on
   a card) hold 4.5:1 over the field at its densest bloom, in both themes, **measured from the blooms' actual pixels at
-  `--today-field-alpha`**, not judged from a screenshot. Measured 2026-10-19: the original blooms fail (light tertiary
-  cannot pass at any alpha). **Resolved by re-baking lighter, less saturated blooms (R1 path a):** AC-3 passes when the
-  re-baked blooms hold 4.5:1 for `--text-tertiary` at the field alpha in both themes, re-measured by the T0.0 loop.
-  This is settled before any field code; the field cannot land on the original blooms.
-- **046 AC-4** The field drifts slowly and loops seamlessly; the drift **stops** when Today is not the focused tab or
-  the app is backgrounded, and is **disabled** under Reduce Motion (mobile) and `prefers-reduced-motion` (web),
-  through one shared reader per surface.
+  `--today-field-alpha`**, not judged from a screenshot. Measured 2026-10-19: light tertiary cannot pass over the
+  original blooms at any alpha, and a single lightened asset fails dark (the two themes pull opposite ways). **Resolved
+  by keeping small grey text off the bare field (R1 path b):** the rich original blooms ship at 0.35 / 0.26, and every
+  `--text-tertiary` / `--text-secondary` string on Today sits on an opaque raised ground. As built: the calendar on one
+  raised card, each section count on a small raised pill, the "and N more" caption inside its card. Checked live on
+  2026-10-21 by walking every on-field text node on web Today; only near-black or large headings remain on the field.
+- **046 AC-4** The field is still: no animation of any kind on any surface. *(Changed 2026-10-21; it was a slow
+  drift, removed by the owner.)*
 - **046 AC-5** On iOS and Android 12+, content scrolling under the plate shows through it blurred. Opaque fallback
   fires on: iOS Reduce Transparency; Android below 12; web with no `backdrop-filter` support or
-  `prefers-reduced-transparency: reduce`; and the frame gate (046 AC-10). Each trigger is named per platform, not one
+  `prefers-reduced-transparency: reduce`; and a device class found below the AC-10 bar. Each trigger is named per platform, not one
   shared query.
 - **046 AC-6** Tab labels, the composer placeholder and the attachment chip meet 4.5:1 against any Today content
   scrolling under the plate, light and dark.
@@ -95,11 +81,10 @@ Tasks cite these as `046 AC-n` (the handoff's own AC-1..7 are numbered different
 - **046 AC-9 (regression check, mostly already true).** Every tab's **list** scrolls under the plate and ends in the
   existing plate spacer: Today, My threads, a thread, Memories' list, Loose. Memories' **map** keeps its
   `usePlateInset` padding (it is not a scroll view) and its t-SNE cards stay legible under the glass.
-- **046 AC-10** 60 fps scrolling Today on iPhone 12 and Pixel 6a with the drift on; a phone below 55 fps with the blur
-  on gets the opaque plate. (Build-time measurement on the reference phones, plus the static `Platform.Version` and
-  capability checks of AC-5; not a bespoke runtime sampler, see impl-spec.)
-- **046 AC-11 (drift power gate).** Idle-power / energy delta on Today with the drift on versus the still field, over
-  ~10 minutes on iPhone 12 and Pixel 6a, is near zero. If not, the drift does not ship.
+- **046 AC-10** 60 fps scrolling Today on iPhone 12 and Pixel 6a with the blur on; a phone below 55 fps gets the opaque
+  plate. (Build-time measurement on the reference phones, plus the static `Platform.Version` and capability checks of
+  AC-5; not a bespoke runtime sampler, see impl-spec.)
+- **046 AC-11** *Retired 2026-10-21 with the drift it gated (the drift's power cost).*
 - **046 AC-12** An empty or one-section Today (day one, first run) still reads as coloured, or the subtlety there is
   accepted explicitly by the owner. (The blooms are placed down the page; a short Today draws only the first.)
 
@@ -123,12 +108,11 @@ constitution check in the impl-spec.
 
 ## Risks the owner should know
 
-- **R1 (measured and decided: re-bake, path a).** AC-3 was computed on 2026-10-19 (see tasks T0.0): `--text-tertiary`
-  in **light** cannot sit over the original blooms at any usable alpha (0.35 -> 3.06:1 with 19% of the field failing;
-  even 0.10 fails), because the token is only 4.846:1 on the bare page to begin with. The owner chose **path (a):
-  re-bake lighter, less saturated blooms** so the composited ground stays bright and the field reads as colour across
-  the page in both themes. This is a design task on the bloom assets (owned by the design re-bake, not this branch),
-  and it is a day-one prerequisite: the field code cannot land until the re-baked blooms pass the T0.0 contrast loop.
+- **R1 (measured and decided: path b).** AC-3 was computed on 2026-10-19 (see tasks T0.0): `--text-tertiary` in
+  **light** cannot sit over the original blooms at any usable alpha (0.35 -> 3.06:1 with 19% of the field failing;
+  even 0.10 fails), because the token is only 4.846:1 on the bare page to begin with. The owner first chose a re-bake
+  (path a), then, once a single lightened asset was measured failing dark, **path (b): rich blooms, small grey text on
+  opaque ground only**. No re-bake. See AC-3 for what that took as built.
 - **R2 (coordination).** Task 0 edits shared state (`.claude/skills/offload-design/`), which is main-only, and the
   blooms 2 and 3 and six tokens must land before this branch writes field or glass code. Who lands it, and when, is a
   day-one dependency.

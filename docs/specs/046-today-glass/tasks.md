@@ -5,6 +5,11 @@ every behaviour task starts with a failing test for the reason the change exists
 measurement, not a unit test, and say so. Reviewed as impl-spec + tasks by `project-lead` (tech lead) on 2026-10-19;
 its corrections are folded in and noted inline.
 
+**As built, 2026-10-21.** Done: T0.x (on this branch), T2, T2b, T3, T6, T7 (Android blurs the plate from 12 through a
+`BlurTargetView`; the sheet stays opaque there), T8, T9, T10 (still), T11, T12, T13, T16 (web, iOS and Android, live).
+**Removed:** T1 and T5 (the drift and its shared hook; the field is still, the owner's call) and T15 (the drift's GPU
+gate). **Not done:** T14, the fps measurement on iPhone 12 and Pixel 6a.
+
 **Before any task: board post + sequencing.** 045 thread-layouts is live on `ContentRow.tsx` and `today/rows.ts`,
 which T2 touches; post the de-band plan and hold order on the board (`.claude/scripts/board.py`) and sequence against
 045, do not leave it to the merge.
@@ -34,21 +39,22 @@ which T2 touches; post the de-band plan and hold order on the board (`.claude/sc
   gutters) and fix the two on-page sites `TodayScreen.tsx:460` and `OpenThreads.tsx:202`. A page veil is a worse third
   option (dilutes the field and the light baseline leaves little to gain). Lowering alpha is ruled out.
 
-  **Decision 2026-10-19: path (a), re-bake lighter blooms.** The field ships only once re-baked blooms pass this
-  check for `--text-tertiary` at the field alpha in both themes. T0.0 is now a loop: re-bake (design, T0.2) ->
-  re-measure here -> repeat until green. Light is the binding theme.
+  **Decision 2026-10-19, revised: path (b).** A re-bake (path a) was chosen first, then measured: lightening a
+  shared bloom passes light and fails dark (blend 0.8 gives light 4.49, dark 3.38; no blend passes both). So the rich
+  original blooms ship at 0.35 / 0.26 and small grey text stays off the bare field (T2b). No re-bake.
+- **T2b (AC-3 sites, found by the live check 2026-10-21).** Walk every text node on web Today whose nearest painted
+  ancestor is the page; any `--text-tertiary` / `--text-secondary` or small accent text there fails the rule. Found:
+  the calendar's empty days, month head and Today link, and every section count. Fix on web and phones: the calendar
+  on one raised card, a count on a small raised pill. Test: `today-glass` shape tests on both, red first.
 - **T0.1** On `main`, add the nine tokens to `.claude/skills/offload-design/tokens/colors.css`, both themes: the six
   bundle tokens (`--today-field-alpha` = the T0.0 number, `--glass-tint-rgb`, `--glass-tint-top/-mid/-base`,
   `--glass-sheet`) plus `--glass-blur`, `--glass-saturate`, `--glass-edge-light/-dark`. The tint's **base opacity is
   the contrast-derived floor from T0.0**, one number shared with the phones (the composer is global, AC-6 holds on
   every pane over arbitrary content). Serves OFF-7, every AC. Test: `pnpm tokens`, then assert `@offload/tokens`
   carries all nine names.
-- **T0.2 (design re-bake, blocker).** Re-bake all three blooms lighter and less saturated so they pass T0.0 for
-  `--text-tertiary` at the field alpha in both themes (the current blooms' densest pixels drop the light page to a
-  3.06:1 lavender; they must stay bright enough that the worst composited pixel holds >= 4.5:1). This is a design task
-  on the bloom art, owned by the design re-bake, not this branch. Then convert to webp and place all three in the
-  mobile and web asset locations (only `p2-bloom-1.webp` exists today). Serves 046 AC-2, AC-3. Test: T0.0 passes on
-  the re-baked blooms; three webp files exist and decode.
+- **T0.2** Convert the design skill's `p2-bloom-2.png` and `p2-bloom-3.png` to webp and place all three blooms in the
+  mobile and web asset locations (only `p2-bloom-1.webp` existed). No re-bake (path b). Serves 046 AC-2. Test: three
+  webp files exist and decode.
 - **T0.3** Add the bloom-layout (four {x, y, width} + container width from handoff §2) as a **shared TS constant in
   `packages/tokens/src/index.ts`**, not a new generator emit (fewer moving parts than another generated artifact,
   given this repo's generator history). Serves 046 AC-2 (one source, both surfaces). Test: both surfaces import it.
@@ -162,7 +168,9 @@ T7 / T8 -> T11 / T12 -> T13 -> T14-T16, with T15 deciding whether the drift flag
 ## Unresolved SHOULD-level flags
 
 - **OFF-7:** two design-decision reversals; the single `decisions.md` entry in T0.4.
-- **R1 (field subtlety / the real fork):** if T0.0 finds no alpha both passes 4.5:1 and reads as colour, the honest
-  options are lighter blooms (re-bake) or no field under text, not a buried veil. Owner's look call.
-- **Android blur (T0.5/T7):** the handoff's Android API is unverified; the opaque plate is the committed fallback if
-  `expo-blur` has no view-targeted blur.
+- **R1 (settled, path b):** rich blooms, small grey text on opaque ground only (T2b). Revisit only if the owner
+  wants the field under body text after all, which would need lighter blooms per theme.
+- **Android blur (T0.5/T7), follow-up:** verified against `expo-blur` 57's types: `blurMethod:
+  "dimezisBlurViewSdk31Plus"`, `blurTarget` and `BlurTargetView` are real API (the handoff was right). Shipped as the
+  opaque plate for now, since wiring `BlurTargetView` around the router needs its own device pass; that is the
+  follow-up.

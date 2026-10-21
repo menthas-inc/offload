@@ -1035,14 +1035,16 @@ nothing is drawn when it is empty, which is most days. There is no heading and n
 **The prism field and the glass composer** (046, 2026-10-20 off the design bundle; replaces the
 bands of 11 October). Today draws no alternating grounds: sections keep their headings and spacing,
 and cards stay `--surface-raised`. A **prism field** sits under the page, four blooms at
-`--today-field-alpha` (0.35 light, 0.26 dark) scrolling with the content, Today only; it drifts
-slowly where a measured power delta allows, and is still under Reduce Motion. Small grey text
+`--today-field-alpha` (0.35 light, 0.26 dark) scrolling with the content, Today only, and still:
+nothing moves at rest. Small grey text
 (`--text-tertiary`) never sits on the bare field, only on cards, so the field cannot drop it below
 4.5:1. The **composer is frosted glass** over the page on every tab, the page showing through it
 blurred and brightened under a graded tint (`--glass-tint-*`) most opaque where the tab labels sit:
 the bottom plate on the phones, the floating composer card on the web. Its resting prism band is
-gone, since the page's colour shows through, and the arrival pulse stays. The raised conversation
-is the same glass on iOS and opaque on Android. **Reminders and Open in your threads still head
+gone, since the page's colour shows through, and the arrival pulse stays. Android blurs the plate
+from 12 and is opaque below it. The raised conversation is the same glass on iOS and opaque on
+Android, so Android never runs two live blurs. Small grey text never sits on the field: on Today
+the calendar is one raised card and a section count is a small raised pill. **Reminders and Open in your threads still head
 their sections at 20px semibold** with the count; Needs you and Your day draw no heading, since the
 stacked cards and the stepper's *Today* already say what they are.
 

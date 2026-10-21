@@ -25,11 +25,26 @@ describe("046 field (AC-2, AC-4)", () => {
   it("reads the shared bloom layout, not hand-typed placements", () => {
     expect(read("components/panes/Today.tsx")).toMatch(/TODAY_FIELD/);
   });
-  it("the field tints at the field-alpha token and drifts, off under reduced motion", () => {
+  it("the field tints at the field-alpha token and stays still (owner, 2026-10-21)", () => {
     const t = css("today.module.css");
     expect(t).toMatch(/--today-field-alpha/);
-    expect(t).toMatch(/@keyframes/);
-    expect(t).toMatch(/prefers-reduced-motion:\s*reduce/);
+    expect(t).not.toMatch(/today-field-drift/);
+    const inner = t.slice(t.indexOf(".fieldInner {"), t.indexOf("}", t.indexOf(".fieldInner {")));
+    expect(inner).not.toMatch(/animation/);
+  });
+});
+
+describe("046 small grey text never sits on the field (AC-3)", () => {
+  // Found by the live check: the two-week calendar's empty days and the
+  // section counts drew --text-tertiary straight onto the densest bloom.
+  const rule = (t: string, sel: string): string => t.slice(t.indexOf(`${sel} {`), t.indexOf("}", t.indexOf(`${sel} {`)));
+  it("the calendar block is one raised card", () => {
+    expect(rule(css("today.module.css"), ".month")).toMatch(/background:\s*var\(--surface-raised\)/);
+  });
+  it("a section count is a small raised pill", () => {
+    const head = rule(css("today.module.css"), ".headCount");
+    expect(head).toMatch(/background:\s*var\(--surface-raised\)/);
+    expect(head).toMatch(/border-radius:\s*var\(--radius-pill\)/);
   });
 });
 

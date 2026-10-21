@@ -19,7 +19,7 @@ describe("046 de-band, Today only (AC-1)", () => {
   });
 });
 
-describe("046 field (AC-2), drift (AC-4)", () => {
+describe("046 field (AC-2), still (owner, 2026-10-21)", () => {
   it("is static images from the shared layout, never a shader", () => {
     const f = read("components/today/TodayField.tsx");
     expect(f).toMatch(/TODAY_FIELD/);
@@ -27,33 +27,56 @@ describe("046 field (AC-2), drift (AC-4)", () => {
     expect(f).toMatch(/Image/);
     expect(f).not.toMatch(/react-native-skia/);
   });
-  it("drifts on the UI thread, paused on blur and stilled under reduce motion", () => {
+  it("does not move: no animation of any kind", () => {
     const f = read("components/today/TodayField.tsx");
-    expect(f).toMatch(/useReduceMotion/);
-    expect(f).toMatch(/useFocusEffect/);
-    expect(f).toMatch(/withRepeat/);
-    expect(f).toMatch(/cancelAnimation/);
-    // Reduce motion short-circuits before the loop starts.
-    expect(f).toMatch(/if \(reduce\)/);
+    expect(f).not.toMatch(/react-native-reanimated/);
+    expect(f).not.toMatch(/withRepeat|useSharedValue|useAnimatedStyle/);
   });
   it("is mounted behind Today's content", () => {
     expect(read("components/today/TodayScreen.tsx")).toMatch(/<TodayField \/>/);
   });
 });
 
-describe("046 one reduce-motion reader (AC-4)", () => {
-  it("the shared hook exists", () => {
-    expect(read("lib/reduce-motion.ts")).toMatch(/export function useReduceMotion\(\): boolean/);
+describe("046 small grey text never sits on the field (AC-3)", () => {
+  // Found by the live check: the calendar's empty days and the section counts
+  // drew --text-tertiary straight onto the densest bloom.
+  it("the two-week calendar sits on one raised card", () => {
+    const screen = read("components/today/TodayScreen.tsx");
+    const at = screen.indexOf("<MonthGrid");
+    expect(screen.slice(at - 120, at)).toMatch(/<Ground className=\{`\$\{cardShape\} p-space-4`\}>/);
+  });
+  it("a section count is a small raised pill", () => {
+    const head = read("components/today/DayParts.tsx");
+    const fn = head.slice(head.indexOf("export function SectionHead"), head.indexOf("export function EventsStrip"));
+    expect(fn).toMatch(/rounded-pill bg-surface-raised/);
   });
 });
 
 describe("046 plate and sheet glass (AC-5, AC-7, AC-8)", () => {
-  it("GlassBackdrop blurs on iOS and is opaque on Android / reduce transparency", () => {
+  it("GlassBackdrop blurs on iOS and Android 12+, opaque below 12, under reduce transparency, and for the Android sheet", () => {
     const g = read("components/shell/GlassBackdrop.tsx");
     expect(g).toMatch(/from "expo-blur"/);
     expect(g).toMatch(/isReduceTransparencyEnabled/);
-    expect(g).toMatch(/isAndroid \|\| reduceTransparency/);
+    expect(g).toMatch(/Number\(Platform\.Version\) >= 31/);
+    // Never two live blurs on Android (AC-8): the sheet stays opaque there.
+    expect(g).toMatch(/\(isAndroid && \(sheet \|\| !androidBlur\)\) \|\| reduceTransparency/);
     expect(g).toMatch(/bg-surface-plate/);
+  });
+  it("Android blurs the screens through one BlurTargetView, a sibling of the plate", () => {
+    const g = read("components/shell/GlassBackdrop.tsx");
+    expect(g).toMatch(/blurMethod="dimezisBlurViewSdk31Plus"/);
+    expect(g).toMatch(/blurTarget=\{glassTarget\}/);
+    const layout = read("app/_layout.tsx");
+    expect(layout).toMatch(/<BlurTargetView ref=\{glassTarget\}/);
+    // The plate is mounted after the target closes, never inside it.
+    expect(layout.indexOf("</BlurTargetView>")).toBeLessThan(layout.indexOf("<Shell />"));
+  });
+  it("the tint stretches to the plate's full height, home-indicator inset included", () => {
+    // Without a viewBox the 100% rect stopped above the inset, and the bare blur
+    // under the tabs read as a separate band (seen on iOS, 2026-10-21).
+    const g = read("components/shell/GlassBackdrop.tsx");
+    expect(g).toMatch(/viewBox="0 0 1 1"/);
+    expect(g).toMatch(/preserveAspectRatio="none"/);
   });
   it("the plate shows the glass and mounts the prism pulse only while filing", () => {
     const p = read("components/shell/Plate.tsx");

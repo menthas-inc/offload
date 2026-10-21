@@ -23,6 +23,8 @@ import { ConversationProvider } from "../components/shell/conversation-context";
 import { Recede, SheetStatusBar } from "../components/shell/Recede";
 import { RecordArrival } from "../components/shell/RecordArrival";
 import { Shell } from "../components/shell/Shell";
+import { BlurTargetView } from "expo-blur";
+import { glassTarget } from "../components/shell/glass-target";
 import { PlateInsetProvider } from "../components/shell/plate-inset";
 import { ShareArrival } from "../components/shell/ShareArrival";
 import * as Notifications from "expo-notifications";
@@ -190,6 +192,10 @@ export default function RootLayout() {
               transition is exactly the colour the screens paint: there is
               nothing to see through to, in either theme. */}
           <PlateInsetProvider>
+          {/* 046. What the plate's Android blur samples: every screen, wrapped
+              once. The plate is mounted after this closes, as a sibling, since
+              a view cannot blur its own parent. A plain View on iOS. */}
+          <BlurTargetView ref={glassTarget} style={{ flex: 1 }}>
           {/* On iOS the page steps back under a raised conversation. */}
           <Recede>
           <ThemeProvider value={navigationTheme}>
@@ -240,6 +246,7 @@ export default function RootLayout() {
           </Stack>
           </ThemeProvider>
           </Recede>
+          </BlurTargetView>
           {/* One plate for the whole app, deciding from the route what it
               holds. Mounted here so a thread pushing over the tabs does not
               produce a second one. */}

@@ -6,10 +6,11 @@
 // (the plate is mounted above the router), so no blur target is needed. Under
 // Reduce Transparency it falls back to the opaque `--surface-plate`.
 //
-// Android: opaque `--surface-plate` for now. The Dimezis blur needs an explicit
-// `BlurTargetView` wrapping the router's screens plus a shared ref, which has to
-// be verified on an Android device; shipped as the opaque fallback (046 AC-5)
-// until then.
+// Android 12+ (API 31): the Dimezis RenderNode blur, sampling the screens
+// through the one `BlurTargetView` the root layout wraps them in (`glassTarget`;
+// a view cannot blur its own parent, and the plate is the screens' sibling).
+// Below 12, opaque. **Never two live blurs on Android** (046 AC-8): the raised
+// conversation stays opaque there; the page is dimmed behind it anyway.
 
 import { useEffect, useState } from "react";
 import { AccessibilityInfo, Platform, StyleSheet, View } from "react-native";
@@ -17,8 +18,11 @@ import { BlurView } from "expo-blur";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { useColorScheme } from "nativewind";
 import { resolved } from "@offload/tokens";
+import { glassTarget } from "./glass-target";
+import { androidOverlay, stackedAlpha } from "../../lib/glass";
 
 const isAndroid = Platform.OS === "android";
+const androidBlur = isAndroid && Number(Platform.Version) >= 31;
 
 function num(t: Record<string, string>, name: string, fallback: number): number {
   const v = Number.parseFloat(t[name] ?? "");
@@ -61,7 +65,7 @@ export function GlassBackdrop({ sheet = false }: { sheet?: boolean }) {
   }, []);
 
   // Opaque where glass is not available or not wanted.
-  if (isAndroid || reduceTransparency) {
+  if ((isAndroid && (sheet || !androidBlur)) || reduceTransparency) {
     return (
       <View
         pointerEvents="none"
@@ -73,11 +77,15 @@ export function GlassBackdrop({ sheet = false }: { sheet?: boolean }) {
 
   const tint = rgbCss(t["glass-tint-rgb"], "rgb(255, 255, 255)");
   const edge = rgbCss(t["glass-edge-rgb"], "rgb(255, 255, 255)");
-  const top = num(t, "glass-tint-top", 0.45);
-  const mid = num(t, "glass-tint-mid", 0.55);
-  const base = num(t, "glass-tint-base", 0.85);
   const edgeAlpha = num(t, "glass-edge-alpha", 0.95);
   const intensity = num(t, "glass-blur-intensity", 60);
+  // On Android the BlurView already paints an overlay under ours; reduce the
+  // stops so the two land on the token values together (2026-10-21: stacked,
+  // the Android plate read nearly opaque). iOS's material is left as it is.
+  const under = isAndroid ? androidOverlay(dark, intensity) : 0;
+  const top = stackedAlpha(num(t, "glass-tint-top", 0.45), under);
+  const mid = stackedAlpha(num(t, "glass-tint-mid", 0.55), under);
+  const base = stackedAlpha(num(t, "glass-tint-base", 0.85), under);
 
   if (sheet) {
     const sheetAlpha = num(t, "glass-sheet", 0.8);
@@ -104,11 +112,18 @@ export function GlassBackdrop({ sheet = false }: { sheet?: boolean }) {
         intensity={intensity}
         tint={dark ? "systemUltraThinMaterialDark" : "systemUltraThinMaterialLight"}
         style={StyleSheet.absoluteFill}
+        // Android only; iOS ignores both.
+        blurMethod="dimezisBlurViewSdk31Plus"
+        blurTarget={glassTarget}
       />
       {/* The graded tint: lightest at the top edge, most opaque from just above
           the tab labels down, so a dark button scrolling under the labels never
           drops their contrast. */}
-      <Svg style={StyleSheet.absoluteFill}>
+      {/* A unit viewBox stretched with no aspect lock, so the tint covers the
+          plate's full measured box, the home-indicator inset included. A bare
+          `100%` rect stopped short of the inset on iOS and left the blur showing
+          untinted under the tabs as a separate band. */}
+      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" viewBox="0 0 1 1" preserveAspectRatio="none">
         <Defs>
           <LinearGradient id="plateTint" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={tint} stopOpacity={top} />
@@ -117,7 +132,7 @@ export function GlassBackdrop({ sheet = false }: { sheet?: boolean }) {
             <Stop offset="1" stopColor={tint} stopOpacity={base} />
           </LinearGradient>
         </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill="url(#plateTint)" />
+        <Rect x="0" y="0" width="1" height="1" fill="url(#plateTint)" />
       </Svg>
       <View
         style={{

@@ -13,9 +13,10 @@
 }
 
 /* The prism field (046): four blooms from `TODAY_FIELD`, behind the page
-   content, tinted to --today-field-alpha and drifting slowly. The inner layer
-   is 140% wide and centred so blooms overhang; the outer clips it. The cards
-   sit above it (z-index 1) and are opaque, so text never lands on the field. */
+   content, tinted to --today-field-alpha and still (the owner, 2026-10-21). The
+   inner layer is 140% wide and centred so blooms overhang; the outer clips it.
+   The cards sit above it (z-index 1) and are opaque, so text never lands on the
+   field. */
 .field {
   position: absolute;
   inset: 0;
@@ -31,27 +32,12 @@
   width: 140%;
   height: 100%;
   transform: translateX(-50%);
-  animation: today-field-drift 32s ease-in-out infinite alternate;
-  will-change: transform;
 }
 .bloom {
   position: absolute;
   aspect-ratio: 1;
   background-size: 100% 100%;
   background-repeat: no-repeat;
-}
-@keyframes today-field-drift {
-  from {
-    transform: translateX(-50%) translate3d(0, 0, 0) scale(1);
-  }
-  to {
-    transform: translateX(-50%) translate3d(3%, 1.5%, 0) scale(1.06);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .fieldInner {
-    animation: none;
-  }
 }
 .today > .band {
   position: relative;
@@ -297,10 +283,17 @@
 
 /* 2026-10-18: the thread calendar's month in place of the stepper, its head
    naming the picked day. */
+/* One raised card under the two weeks (046): the empty days, the month head and
+   its Today link are small text that would otherwise sit on the prism field's
+   densest bloom. A lit day still lifts on it by its hairline and shadow. */
 .month {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--edge-card);
 }
 
 /* ------------------------------------------------------------ the day */
@@ -339,11 +332,17 @@
   letter-spacing: -0.01em;
 }
 
+/* A section count stays quiet grey, on a small raised pill so it never sits on
+   the prism field (046, AC-3). */
 .headCount {
   font-style: normal;
   font-weight: var(--weight-regular);
   font-size: calc(13px * var(--type-scale));
   color: var(--text-tertiary);
+  margin-left: var(--space-1);
+  padding: 1px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
 }
 
 /* Where you will be: past the pane's gutter, no scrollbar, a trackpad or the

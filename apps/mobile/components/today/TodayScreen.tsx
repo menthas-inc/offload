@@ -544,7 +544,10 @@ export default function TodayScreen() {
     return (
       <View key="day" className="gap-space-8">
         <View className="gap-space-6">
-          <View>
+          {/* One raised card under the two weeks (046): the empty days, the
+              month head and its Today link are small text that would otherwise
+              sit on the prism field's densest bloom. */}
+          <Ground className={`${cardShape} p-space-4`}>
             <MonthGrid
               grid={grid}
               unit="week"
@@ -570,7 +573,7 @@ export default function TodayScreen() {
                 show(today);
               }}
             />
-          </View>
+          </Ground>
           {day ? <NextLine events={day.events} now={now} isToday={isToday} zone={zone} /> : null}
         </View>
         {dayBody}

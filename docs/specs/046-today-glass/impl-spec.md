@@ -1,7 +1,23 @@
 # 046 Today glass: impl-spec
 
-Planning only. Grounds in the handoff `APPLY-2026-10-19-today-glass.md` (in the bundle) and `docs/tech/`. Where the
-handoff and the repo disagree, the repo wins and it is called out.
+Grounds in the handoff `APPLY-2026-10-19-today-glass.md` (in the bundle) and `docs/tech/`. Where the handoff and
+the repo disagree, the repo wins and it is called out.
+
+## As built, 2026-10-21 (supersedes the sections below where they differ)
+
+- **The field is still.** `TodayField` is static `Image`s in a plain `View`; web has no keyframes. The drift, its
+  focus pause and the shared `useReduceMotion` hook it needed were built and then removed (the owner: it did not
+  look right). The five older reduce-motion readers were never touched.
+- **Android blurs the plate from 12.** `GlassBackdrop` passes `blurMethod="dimezisBlurViewSdk31Plus"` and
+  `blurTarget={glassTarget}`; `glassTarget` is a `createRef` in `components/shell/glass-target.ts`, and
+  `app/_layout.tsx` wraps `Recede`/`Stack` in `<BlurTargetView ref={glassTarget}>`, with `<Shell />` mounted after it
+  as a sibling. The Android conversation sheet stays opaque, so there is one live blur. The API is real in
+  expo-blur 57 (the "unverified" note below was resolved against its types).
+- **The plate tint** is an SVG with `viewBox="0 0 1 1"` and `preserveAspectRatio="none"`: a bare `100%` rect stopped
+  above the home-indicator inset on iOS and the untinted blur under the tabs read as a separate band.
+- **AC-3 sites:** the calendar on one raised card and section counts on raised pills (web `today.module.css`
+  `.month` / `.headCount`; phones a `Ground` around `MonthGrid` and a pill in `SectionHead`).
+- **Design sync** landed on this branch, not main, per the 2026-10-02 rule for features carrying design.
 
 ## Nature of the change
 
