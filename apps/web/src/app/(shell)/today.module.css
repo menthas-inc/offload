@@ -9,30 +9,65 @@
 .today {
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
-/* Bands (design 2026-10-11, the kit's `WBand`). Each drawn section sits in
-   one; by position they alternate between the page and a `--surface-fill`
-   band that runs to the measure's edges with the pane's padding inside, and
-   radius-lg since it stops short of the pane. Inside a band, cards step up
-   to raised, and chips and the stepper's buttons on them step to the fill,
-   so nothing matches its ground. The three properties are what the kit's
-   cards read; every card below consumes one with its page value as the
-   fallback. */
+/* The prism field (046): four blooms from `TODAY_FIELD`, behind the page
+   content, tinted to --today-field-alpha and drifting slowly. The inner layer
+   is 140% wide and centred so blooms overhang; the outer clips it. The cards
+   sit above it (z-index 1) and are opaque, so text never lands on the field. */
+.field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: var(--today-field-alpha);
+}
+.fieldInner {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 140%;
+  height: 100%;
+  transform: translateX(-50%);
+  animation: today-field-drift 32s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.bloom {
+  position: absolute;
+  aspect-ratio: 1;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+@keyframes today-field-drift {
+  from {
+    transform: translateX(-50%) translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translateX(-50%) translate3d(3%, 1.5%, 0) scale(1.06);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fieldInner {
+    animation: none;
+  }
+}
+.today > .band {
+  position: relative;
+  z-index: 1;
+}
+
+/* De-banded for the prism field (046, 2026-10-20). The alternating
+   `--surface-fill` bands are gone: sections sit flat on the page so the field
+   shows between the cards, and every card stays `--surface-raised` and opaque
+   so the small grey text on it never falls on the bare field (046 AC-1, AC-3).
+   The three properties are still what the kit's cards read; they are pinned to
+   raised rather than alternated. `.band` is now only a section stack. */
 .band {
   display: flex;
   flex-direction: column;
   gap: var(--space-7);
-  margin: 0 calc(-1 * var(--space-8));
-  padding: var(--space-7) var(--space-8) var(--space-8);
-  border-radius: var(--radius-lg);
-  --tp-card: var(--surface-fill);
-  --tp-on-card: var(--surface-raised);
-  --tp-btn: var(--surface-fill);
-}
-
-.band[data-band] {
-  background: var(--surface-fill);
   --tp-card: var(--surface-raised);
   --tp-on-card: var(--surface-fill);
   --tp-btn: var(--surface-raised);

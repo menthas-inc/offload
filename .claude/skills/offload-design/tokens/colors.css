@@ -61,6 +61,20 @@
      field sits on, and by definition the colour its veil is made of. Kept as
      one token so the two can never disagree. */
   --surface-plate:var(--paper);
+  /* Today's prism field and the frosted composer (046, 2026-10-20). The field
+     sits under Today's page; the composer is frosted glass over the page on
+     every tab (the plate on phones, the composer card on web). */
+  --today-field-alpha:0.35;
+  --glass-tint-rgb:255 255 255;
+  --glass-tint-top:0.45;
+  --glass-tint-mid:0.55;
+  --glass-tint-base:0.85;
+  --glass-sheet:0.80;
+  --glass-edge-rgb:255 255 255;
+  --glass-edge-alpha:0.95;
+  --glass-blur-radius:18px;
+  --glass-blur-intensity:60;
+  --glass-saturate:1.9;
   --surface-sunken:var(--ink-50);
   --surface-card:var(--paper);
   --surface-fill:var(--ink-100);
@@ -192,6 +206,13 @@
   --text-on-attention:#D6DEFF;--text-link:var(--ink-950);--text-danger:#F28679;
 
   --surface-page:#1A1A19;--surface-raised:#232323;
+  /* 046 glass, dark (the theme-varying values; blur, saturate and edge-rgb
+     fall back to :root). */
+  --today-field-alpha:0.26;
+  --glass-tint-rgb:15 15 17;
+  --glass-tint-top:0.55;--glass-tint-mid:0.65;--glass-tint-base:0.90;
+  --glass-sheet:0.86;
+  --glass-edge-alpha:0.08;
   --surface-plate:#0F0F11; /* = --prism-veil-rgb; the plate is darker than a card on purpose */
   --surface-card:#232323;--surface-sunken:#0E0E0E;
   --surface-fill:var(--ink-100);--surface-fill-strong:var(--ink-150);--surface-inverse:var(--ink-950);

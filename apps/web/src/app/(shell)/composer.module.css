@@ -49,11 +49,32 @@
   padding: calc(var(--space-3) + 5px);
   border-radius: 33px;
   border: 1.5px solid var(--blue-500);
-  background: var(--surface-raised);
+  /* Frosted glass (046): the page scrolls under the composer and shows through
+     blurred and brightened. The tint is opaque enough (--glass-tint-base) that
+     the input well and offload's reply stay readable over any pane. One
+     backdrop-filter layer, on the card only. */
+  background: rgb(var(--glass-tint-rgb) / var(--glass-tint-base));
+  -webkit-backdrop-filter: blur(var(--glass-blur-radius)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-radius)) saturate(var(--glass-saturate));
   box-shadow:
     inset 0 10px 26px -14px rgb(74 104 222 / 0.28),
     inset 0 0 16px -6px rgb(74 104 222 / 0.15),
     var(--shadow-2);
+}
+
+/* No backdrop-filter (Firefox without the flag, old Safari), or the viewer
+   asked for less transparency: a solid composer. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .card {
+    background: var(--surface-raised);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .card {
+    background: var(--surface-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 .composerInner {

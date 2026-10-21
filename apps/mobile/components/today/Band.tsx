@@ -1,10 +1,12 @@
-// Today's bands (design 2026-10-11, the kit's `TodayParts.jsx`). The drawn
-// sections alternate by position between the page and a full-bleed band in
-// the plain fill, whatever order Customize Today keeps; a section that draws
-// nothing takes no position. Inside a band, cards step up to raised, and the
-// chips and buttons on them step down to the fill, so nothing matches its
-// ground. The band tells what it holds through a context, since a card deep
-// in a section cannot see which ground it stands on.
+// Today's sections (de-banded for the prism field, 046, 2026-10-20). The
+// alternating full-bleed bands are gone: every section sits flat on the page so
+// the field shows between the cards, and every card is raised and opaque so its
+// text never lands on the bare field. The old banding is preserved as the
+// "inside a band" ground (cards raised, chips and buttons on them stepped to the
+// fill), pinned on for every section through the context rather than alternated.
+// `groundClass`, `onCardClass`, `useInBand` and `BAND_FILL` are unchanged, so
+// the rows shared with other screens (ContentRow, DateChip) are untouched: off
+// Today there is still no BandContext and they read the page ground as before.
 
 import { createContext, useContext, type ReactNode } from "react";
 import { Platform, View, type StyleProp, type ViewStyle } from "react-native";
@@ -31,13 +33,13 @@ export function onCardClass(inBand: boolean): string {
   return inBand ? BAND_FILL : "bg-surface-raised";
 }
 
-/** One drawn section. Odd positions are bands: 20 above the content and 24
- *  below, the gutter at the sides; the first keeps the page's own top. */
+/** One drawn section, flat on the page (046). No band fill; cards are raised
+ *  everywhere (`inBand` pinned true). `index` only sets the top: the first
+ *  section keeps the page's own top, the rest a space-7 gap. */
 export function Band({ index, children }: { index: number; children: ReactNode }) {
-  const inBand = index % 2 === 1;
   return (
-    <BandContext.Provider value={inBand}>
-      <View className={`px-gutter-screen pb-space-8 ${inBand ? BAND_FILL : ""} ${index === 0 ? "pt-space-3" : "pt-space-7"}`}>
+    <BandContext.Provider value={true}>
+      <View className={`px-gutter-screen pb-space-8 ${index === 0 ? "pt-space-3" : "pt-space-7"}`}>
         {children}
       </View>
     </BandContext.Provider>

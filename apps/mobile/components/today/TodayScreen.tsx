@@ -64,6 +64,7 @@ import { BellDot } from "../shell/BellDot";
 import { ToastHost, useToast } from "../shell/Toast";
 import { NeedsYou, NOTIFICATIONS_PUT_OFF } from "./NeedsYou";
 import { Band, Ground } from "./Band";
+import { TodayField } from "./TodayField";
 import { EventsStrip, NextLine, SectionHead } from "./DayParts";
 import { MonthGrid } from "../shell/MonthGrid";
 import { CustomizeSheet } from "./CustomizeSheet";
@@ -454,13 +455,14 @@ export default function TodayScreen() {
                 idOf: (one) => one.row.id,
                 row: (one, border) => rows.row(one.row, { border, chip: one.chip }),
               })}
+              {/* 046: on the card, not below it, so it never lands on the field. */}
+              {notDrawn > 0 ? (
+                <Text className="px-space-5 pb-space-4 pt-space-2 font-core text-text-tertiary" style={{ fontSize: 13 }}>
+                  and {notDrawn} more
+                </Text>
+              ) : null}
               {cardEdge}
             </Ground>
-            {notDrawn > 0 ? (
-              <Text className="pt-space-2 font-core text-text-tertiary" style={{ fontSize: 13 }}>
-                and {notDrawn} more
-              </Text>
-            ) : null}
           </View>
         ) : null}
       </>
@@ -592,6 +594,7 @@ export default function TodayScreen() {
       </View>
 
       <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerClassName="pb-space-8">
+        <TodayField />
         {layout.sections
           .map((section, index) => [section.kind, sections[index] ?? null] as const)
           .filter(([, drawn]) => drawn !== null)
