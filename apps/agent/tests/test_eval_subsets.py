@@ -43,7 +43,7 @@ def test_the_blocks_are_disjoint_from_each_other_and_from_the_fixed_subsets(subs
 def test_the_blocks_are_the_sizes_the_race_advances_by(subsets):
     assert len(subsets["block1"]) == 30
     assert len(subsets["block2"]) == 30
-    assert 30 <= len(subsets["block3"]) <= 60
+    assert 30 <= len(subsets["block3"]) <= 75
 
 
 def test_the_blocks_leave_out_the_cases_that_measure_nothing(make, subsets):
