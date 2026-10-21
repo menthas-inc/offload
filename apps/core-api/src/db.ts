@@ -37,6 +37,17 @@ export const pool = new pg.Pool({
 // everything anyway, so paying for exact distance ordering inside the scan buys
 // nothing this product reads.
 pool.on("connect", (client) => {
+  // Every client keeps an error listener for its whole life, idle or checked
+  // out. `pool.on("error")` below only covers idle clients; a client that drops
+  // mid-query ("Connection terminated unexpectedly", e.g. the minute heartbeat
+  // in flight when Postgres closes the socket) emits on the client with no
+  // listener, which Node turns into an uncaught exception and the process
+  // exits. The query still rejects and the pool discards the client; this only
+  // stops a dropped connection from taking the whole API down. No client detail
+  // or query text (OFF-1), as the pool handler.
+  client.on("error", (error) => {
+    console.error(JSON.stringify({ level: "error", msg: "postgres client error", code: (error as NodeJS.ErrnoException).code ?? null }));
+  });
   client.query("set hnsw.iterative_scan = relaxed_order").catch(() => {
     // A connection that cannot set it still works, just narrower. Silent
     // because it fires per connection and would otherwise be the loudest line

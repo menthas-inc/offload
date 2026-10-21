@@ -1,6 +1,6 @@
 {
   "note": "sealed: run once per merged candidate by the merge agent, never by a worker",
-  "count": 136,
+  "count": 140,
   "cases": [
     "a-rule-it-worked-out-is-not-written",
     "a-sure-home-is-filed-not-suggested",
@@ -76,6 +76,7 @@
     "j-refused-with-event",
     "jun-asked-to-move-a-shift",
     "jun-spoken-filler-still-files",
+    "layout-word-is-data",
     "link-read-titles-row",
     "look-keeps-a-school-letter",
     "look-leaves-terms-alone",
@@ -91,6 +92,7 @@
     "no-date-invented-for-task",
     "no-guess-about-them",
     "no-label-for-another-thread",
+    "no-layout-vague",
     "no-links-no-actions",
     "no-thing-noun",
     "notes-give-the-dates",
@@ -126,6 +128,8 @@
     "terse-passport",
     "thumbs-up",
     "time-afternoon",
+    "todo-garden",
+    "todo-returns",
     "truncated-existence-never-no",
     "two-leg-booking-files-as-two-rows",
     "two-sams-say-nothing",

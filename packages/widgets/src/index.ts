@@ -545,3 +545,17 @@ export { createOrderMemory, createUndoStore, interleave, isFailure, RETURNED_MS,
 export type { Interleaved, UndoEntry, UndoStore } from "./undo.js";
 // 022. People: a name in a sentence, a date on a row, a lookup's answer.
 export { dayMonth, firstNameOf, nameOf, stateOfLookup } from "./people.js";
+
+// Thread layouts: the closed set and the one renderer for all six (19 October).
+export {
+  FOLDED_AT_FIRST_LABELS,
+  LAYOUTS,
+  LAYOUT_LABELS,
+  LAYOUT_NAMES,
+  labelsToDrop,
+  labelsToMake,
+  layoutFor,
+  reachesToday,
+  suggestionLine,
+} from "./layouts.js";
+export type { Form, Layout, LayoutInput, LayoutNote, LayoutPage, LayoutRow, LayoutSection } from "./layouts.js";

@@ -33,7 +33,7 @@ import { LabelRefused, applyLabels, createLabel, nameInDump, normaliseLabelName,
 import { labelledLiveCopy } from "../notifications/copy.js";
 import { WIDGET_KIND_CHARS } from "../threads/widgets.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
-import { formatRule, parseRule } from "@offload/widgets";
+import { formatRule, LAYOUT_LABELS, LAYOUTS, parseRule } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";
 import { record } from "../notifications/activity.js";
 import { dayLabel, movedCopy } from "../notifications/copy.js";
@@ -167,6 +167,9 @@ const body = z.discriminatedUnion("tool", [
     // name outside the list falls to the word list, and the thread is still
     // made.
     icon: z.string().max(40).nullish(),
+    // Thread layouts. How the page is laid out, when the dump makes it plain;
+    // offload names it once, here, and never again. Leaving it out is Default.
+    layout: z.enum(LAYOUTS).nullish(),
   }),
   z.strictObject({
     tool: z.literal("add_content"),
@@ -1913,6 +1916,9 @@ export async function toolRoutes(app: App): Promise<void> {
               name: call.name,
               ...(await markFor(trx, accountId, call.name, call.icon)),
               always_on: false,
+              // Thread layouts: offload's one pick, at creation. Omitted is the
+              // column's own 'default'/'offload'.
+              ...(call.layout ? { layout: call.layout } : {}),
               last_activity_at: sql`now()`,
               updated_at: sql`now()`,
             })
@@ -1931,6 +1937,14 @@ export async function toolRoutes(app: App): Promise<void> {
               responded_at: sql`now()`,
             })
             .execute();
+
+          // The labels the layout organises by, made as offload. A new thread
+          // has none, so offload's limit of six is never met.
+          if (call.layout) {
+            for (const name of LAYOUT_LABELS[call.layout]) {
+              await createLabel(trx, { accountId, via: "offload" }, thread.id, { name });
+            }
+          }
 
           // `[]` rather than absent: a new thread cannot have notes, and the
           // model seeing one shape from both filing tools is worth a

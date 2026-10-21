@@ -98,7 +98,9 @@ describe("Edit thread (AC-13)", () => {
     expect(screen).not.toContain("Rename thread");
     expect(screen).toContain("Edit thread");
     expect(screen).not.toContain("renameThread");
-    expect(screen).toContain('did: "Thread updated"');
+    // A plain edit still reads "Thread updated"; a layout switch reads
+    // "Showing as ..." (045), so the did is a ternary now.
+    expect(screen).toContain(': "Thread updated"');
     expect(screen).toContain("threadLookAfter(before, change, shown)");
     expect(screen).toContain(`failed: "Couldn't save that"`);
   });

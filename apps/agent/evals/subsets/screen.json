@@ -1,6 +1,6 @@
 {
   "note": "the cheap read every candidate takes first; about two cases per principle",
-  "count": 70,
+  "count": 72,
   "cases": [
     "a-fact-a-note-already-holds",
     "an-email-full-of-links-opens-none-of-them",
@@ -21,6 +21,7 @@
     "country-split",
     "date-with-more",
     "dont-let-me-forget-event",
+    "events-leaving-do",
     "file-country-from-account",
     "file-howto-alone",
     "files-under-the-city-it-plainly-belongs-to",
@@ -68,6 +69,7 @@
     "task-dated",
     "the-note-is-followed",
     "thread-name-instruction-answer",
+    "timeline-running",
     "tom-cannot-rewrite-mayas-row",
     "tool-failure-not-described",
     "unknown-is-one-sentence",

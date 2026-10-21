@@ -175,3 +175,22 @@
 .hue[aria-checked="true"] {
   box-shadow: 0 0 0 2px var(--text-primary);
 }
+
+/* Thread layouts: the Layout row and offload's "picked" note (6.8). */
+.layouts {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.picked {
+  display: flex;
+  gap: var(--space-8);
+  align-items: flex-start;
+  margin-top: var(--space-8);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-fill);
+  font: var(--text-label-role);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}

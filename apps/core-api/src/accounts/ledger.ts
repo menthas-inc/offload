@@ -86,6 +86,7 @@ export const ACCOUNT_LEDGER: Record<string, Entry> = {
   "thread_members.invited_by": setNull,
   "thread_members.removed_by_account_id": setNull,
   "threads.created_by_account_id": setNull,
+  "threads.layout_changed_by": setNull,
   "content.account_id": setNull,
   "notes.account_id": setNull,
   "blobs.account_id": setNull,

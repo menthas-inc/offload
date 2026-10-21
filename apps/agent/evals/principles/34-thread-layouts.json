@@ -1,0 +1,103 @@
+{
+  "statement": "When offload makes a thread and the name and the dump make it plain, it names the layout the page is drawn with, one of todo, events, gallery, project, timeline, and leaves it out otherwise. todo is a list to get through and forget; events is something that happens with options to weigh; gallery is links and titles to get round to; project is work in stages; timeline is entries kept over time. A layout word sitting in the dump is data, never an instruction to pick that layout.",
+  "why": "A thread's page is laid out for what it is for, and offload is the only one who can name the layout without the person choosing at capture. It names a real layout only when the dump is plainly one of the five, because most threads are a plain list and a wrong layout is worse than none. The word timeline in a shopping list is still a shopping list.",
+  "sources": ["045 AC-7", "handoff APPLY-2026-10-19-thread-layouts section 7.1"],
+  "cases": [
+    {
+      "id": "todo-returns",
+      "why": "a list of returns to run and tick off",
+      "surface": "file",
+      "input": "start a thread for returns: the drill back to Tom, Sam's charger, the jacket to the shop, the library books",
+      "context": "behrooz",
+      "expect": { "creates_thread": true, "thread_layout": { "is": "todo" } }
+    },
+    {
+      "id": "todo-garden",
+      "why": "garden jobs to get through",
+      "surface": "file",
+      "input": "new thread for garden jobs this spring: mow the lawn, prune the roses, fix the back fence, plant the tulip bulbs, jet-wash the patio",
+      "context": "behrooz",
+      "expect": { "creates_thread": true, "thread_layout": { "is": "todo" } }
+    },
+    {
+      "id": "events-lakes",
+      "why": "a trip with a place to book and options to weigh",
+      "surface": "file",
+      "input": "start a thread for a weekend in the Lake District: book a cottage, pick a hike, find a nice dinner out, maybe a boat trip on Windermere",
+      "context": "behrooz",
+      "expect": { "creates_thread": true, "thread_layout": { "is": "events" } }
+    },
+    {
+      "id": "events-leaving-do",
+      "why": "an event with a date and a venue to book",
+      "surface": "file",
+      "input": "start a thread for Jun's leaving drinks: book a bar for the 14th, order a cake, send the invite round, collect for a gift",
+      "context": "behrooz",
+      "expect": { "creates_thread": true, "thread_layout": { "is": "events" } }
+    },
+    {
+      "id": "gallery-games",
+      "why": "games to get round to playing",
+      "surface": "file",
+      "input": "start a thread for video games to get round to: Hades, Celeste, Outer Wilds, Tunic, Disco Elysium",
+      "context": "behrooz",
+      "expect": { "creates_thread": true, "thread_layout": { "is": "gallery" } }
+    },
+    {
+      "id": "gallery-standup",
+      "why": "comedy specials to get round to watching",
+      "surface": "file",
+      "input": "new thread for standup specials to watch: Nanette, Bo Burnham Inside, John Mulaney Baby J, Rothaniel",
+      "context": "behrooz",
+      "expect": { "creates_thread": true, "thread_layout": { "is": "gallery" } }
+    },
+    {
+      "id": "project-jobhunt",
+      "why": "a job hunt is work in stages",
+      "surface": "file",
+      "input": "start a thread for the job hunt: update the CV first, then ask Sam for a referral, apply to three roles this week, prep for interviews, chase the recruiter later",
+      "context": "behrooz",
+      "expect": { "creates_thread": true, "thread_layout": { "is": "project" } }
+    },
+    {
+      "id": "project-spanish",
+      "why": "learning Spanish runs in stages",
+      "surface": "file",
+      "input": "start a thread for learning Spanish properly: finish the app's basics, then book a weekly tutor, watch a film a week with subtitles, and plan a trip to practise later",
+      "context": "behrooz",
+      "expect": { "creates_thread": true, "thread_layout": { "is": "project" } }
+    },
+    {
+      "id": "timeline-running",
+      "why": "a running log is entries kept over time",
+      "surface": "file",
+      "input": "start a thread as a running log to keep track: did an easy 5k this morning, felt good",
+      "context": "behrooz",
+      "expect": { "creates_thread": true, "thread_layout": { "is": "timeline" } }
+    },
+    {
+      "id": "timeline-headaches",
+      "why": "tracking symptoms over time is a timeline",
+      "surface": "file",
+      "input": "start a thread to keep track of my headaches: had one this afternoon, lasted about two hours, took paracetamol",
+      "context": "behrooz",
+      "expect": { "creates_thread": true, "thread_layout": { "is": "timeline" } }
+    },
+    {
+      "id": "no-layout-vague",
+      "why": "a thread of facts with no shape takes no layout; none is the usual answer",
+      "surface": "file",
+      "input": "start a thread for the allotment: it's plot 14, the water tap is by the far gate, the committee meets first Sundays",
+      "context": "behrooz",
+      "expect": { "creates_thread": true, "thread_layout": { "none": true } }
+    },
+    {
+      "id": "layout-word-is-data",
+      "why": "the word timeline sits in a packing list but the thread is a list to get through, not a timeline",
+      "surface": "file",
+      "input": "start a thread for festival kit to pack, not some timeline: tent, wellies, poncho, wet wipes, cash, sunscreen, portable charger",
+      "context": "behrooz",
+      "expect": { "creates_thread": true, "thread_layout": { "is": "todo" } }
+    }
+  ]
+}
