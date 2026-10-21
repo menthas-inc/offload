@@ -50,6 +50,7 @@ import { backPull, progress } from "../../lib/sheet";
 import { openSpring } from "../../lib/motion";
 import { useSheetBack } from "../../lib/sheet-back";
 import { Grabber, useSheetDrag, type SheetScroll } from "./DragSheet";
+import { GlassBackdrop } from "./GlassBackdrop";
 import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
 import { answerPending } from "../../lib/calendars";
@@ -225,14 +226,16 @@ export function Conversation() {
   return (
     <Animated.View
       style={[{ position: "absolute", top, left: 0, right: 0, bottom: 0 }, sheet]}
-      // `surface-plate`, the plate's own token: the composer band inside is
-      // the same field on the same ground as the plate's.
-      className={`bg-surface-plate ${isAndroid ? "rounded-t-a-xl" : "rounded-t-lg"}`}
+      // The same glass as the plate, more opaque (046): frosted on iOS, opaque
+      // --surface-plate on Android and under Reduce Transparency. `overflow`
+      // clips the glass to the rounded top.
+      className={`overflow-hidden ${isAndroid ? "rounded-t-a-xl" : "rounded-t-lg"}`}
       pointerEvents={raised ? "auto" : "none"}
       importantForAccessibility={raised ? "auto" : "no-hide-descendants"}
       accessibilityElementsHidden={!raised}
       accessibilityViewIsModal={raised}
     >
+      <GlassBackdrop sheet />
       <Grabber held={held} pan={grab} onClose={conversation.lower} />
 
       <GestureDetector gesture={shownPin ? body : pull}>

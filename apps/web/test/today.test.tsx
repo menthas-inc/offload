@@ -1362,36 +1362,21 @@ describe("042 AC-26 Today's Reminders section (drawn 2026-10-11)", () => {
   });
 });
 
-describe("Today's bands (drawn 2026-10-11)", () => {
-  const bandOf = (node: Element | null) => node?.closest("[data-band]") ?? null;
-
-  it("sections alternate by drawn position: with Needs you empty, Your day is on the page and Reminders is in a band", async () => {
+describe("046 de-band and the prism field", () => {
+  it("draws no alternating bands: nothing carries data-band, and the heads keep their size", async () => {
     await withV3();
     await open();
-    const day = button("Previous week")!.closest("[data-section]")!;
-    expect(bandOf(day)).toBeNull();
-    expect(bandOf(remindersSection())).not.toBeNull();
-    expect(bandOf(section())).toBeNull();
-    // Open in your threads heads its section at the band's size too.
+    // The 11 October bands are gone: sections sit flat on the page.
+    expect(host.querySelector("[data-band]")).toBeNull();
+    // Open in your threads still heads its section at the big size.
     expect((section()!.querySelector("h3") as HTMLElement).dataset["big"]).toBe("true");
   });
 
-  it("a section that draws nothing takes no position, and reordering keeps the alternation", async () => {
+  it("draws the prism field behind the page: four bloom layers from TODAY_FIELD", async () => {
     await withV3();
-    remindersRead = { rows: [], others: [], more: 0 };
     await open();
-    expect(bandOf(button("Previous week")!.closest("[data-section]"))).toBeNull();
-    expect(bandOf(section())).not.toBeNull();
-    act(() => root.unmount());
-
-    remindersRead = fullReminders();
-    await withV3([LAYOUT_V3.sections[0], LAYOUT_V3.sections[2], LAYOUT_V3.sections[1], LAYOUT_V3.sections[3]]);
-    host = document.body.appendChild(document.createElement("div"));
-    root = createRoot(host);
-    await open();
-    expect(bandOf(remindersSection())).toBeNull();
-    expect(bandOf(button("Previous week")!.closest("[data-section]"))).not.toBeNull();
-    expect(bandOf(section())).toBeNull();
+    const blooms = host.querySelectorAll('[style*="p2-bloom"]');
+    expect(blooms).toHaveLength(4);
   });
 });
 

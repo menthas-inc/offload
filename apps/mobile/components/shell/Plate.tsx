@@ -11,7 +11,7 @@
 // screen keeps its tabs**, a thread included; they leave only under the
 // conversation or the plate's own keyboard.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
@@ -22,7 +22,17 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
+import { GlassBackdrop } from "./GlassBackdrop";
 import { prismShift } from "../../lib/prism-scroll";
+import { resolved } from "@offload/tokens";
+
+// How long the arrival pulse is mounted: the field's run plus its settle, from
+// the tokens, so a design change to either moves this too.
+const PULSE_MS = (() => {
+  const run = Number.parseFloat(resolved.light["prism-run"] ?? "2000");
+  const settle = Number.parseFloat(resolved.light["prism-settle"] ?? "700");
+  return (Number.isFinite(run) ? run : 2000) + (Number.isFinite(settle) ? settle : 700) + 200;
+})();
 import { useConversation } from "./conversation-context";
 import { useSetPlateInset } from "./plate-inset";
 import { UndoPlates } from "./UndoLine";
@@ -83,6 +93,18 @@ export function Plate({
   // 2026-10-18. The Undo lines with nowhere on the page to go, on the plate's
   // top edge, so the plate grows and the page ends above them.
   const plates = useUnplaced();
+
+  // The arrival pulse: PrismField mounts only while a filing plays, then
+  // unmounts, so nothing animates at rest. The page's field now shows through
+  // the glass, which is why the resting band is gone (046).
+  const filedAt = raised ? 0 : (conversation.filed?.at ?? 0);
+  const [pulseAt, setPulseAt] = useState(0);
+  useEffect(() => {
+    if (!filedAt) return;
+    setPulseAt(filedAt);
+    const id = setTimeout(() => setPulseAt((v) => (v === filedAt ? 0 : v)), PULSE_MS);
+    return () => clearTimeout(id);
+  }, [filedAt]);
   useAnimatedReaction(
     () => tabOpacity(progress(sheetY.value, sheetTravel.value), keyboardHeight.value) === 0,
     (now, was) => {
@@ -93,12 +115,11 @@ export function Plate({
   return (
     <View
       onLayout={(event) => setInset(event.nativeEvent.layout.height)}
-      // **`surface-plate` in both themes, and it is one token on purpose.**
-      // It is the ground the prism field sits on and the colour the field's
-      // veil is made of. If the two ever hold different values the difference
-      // shows as a band exactly where the field should be vanishing: on dark
-      // that read as a grey composer against a black tab strip.
-      className={`bg-surface-plate ${CORNERS}`}
+      // The plate's ground is `GlassBackdrop` (046): frosted glass on iOS,
+      // opaque `--surface-plate` on Android and under Reduce Transparency.
+      // `overflow-hidden` clips the glass to the rounded top; the shadow is a
+      // box-shadow and sits outside the box, so it is not clipped.
+      className={`${CORNERS} overflow-hidden`}
       style={{
         paddingBottom: insets.bottom,
         // The kit's own shadow on the plate, which is what separates it from
@@ -110,6 +131,7 @@ export function Plate({
       importantForAccessibility={raised ? "no-hide-descendants" : "auto"}
       accessibilityElementsHidden={raised}
     >
+      <GlassBackdrop />
       {plates.length > 0 ? (
         <View className="px-space-4 pt-space-4">
           <UndoPlates entries={plates} />
@@ -128,24 +150,19 @@ export function Plate({
             the same height under a raised conversation, which covers it; the
             pulse goes to whichever field is on top. */}
       <View className={`overflow-hidden ${CORNERS}`}>
-        <PrismField
-          variant="band"
-          veil="graded"
-          pulse={raised ? 0 : (conversation.filed?.at ?? 0)}
-          // The design system's contract does not declare `shift`, and the
-          // rule enforcing that arrived with the 14 September sync, which is
-          // the first time `PrismField` was in the enforced set at all.
-          //
-          // The prop is real and logged: the web component attaches its own
-          // scroll listener, React Native has no equivalent, and the plate
-          // lives above the router while the lists live in the tab screens,
-          // so a shared value is the only thing that can span them. See the
-          // 2026-09-08 entry, "the parallax is handed in rather than listened
-          // for". Code wins and the contract catches up (OFF-7), so this is
-          // disabled here rather than the feature being removed.
-          // eslint-disable-next-line no-restricted-syntax
-          shift={prismShift}
-        />
+        {/* The arrival pulse only (046): mounted while a filing plays, then
+            unmounted. At rest there is no band, because the page's field shows
+            through the glass. `shift` is the handed-in parallax (real and
+            logged, not in the contract; see the 2026-09-08 entry and OFF-7). */}
+        {pulseAt ? (
+          <PrismField
+            variant="band"
+            veil="graded"
+            arriveOnMount
+            // eslint-disable-next-line no-restricted-syntax
+            shift={prismShift}
+          />
+        ) : null}
 
         <Composer placeholder={placeholder} />
 

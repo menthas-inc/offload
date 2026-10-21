@@ -46,3 +46,23 @@ describe("046 one reduce-motion reader (AC-4)", () => {
     expect(read("lib/reduce-motion.ts")).toMatch(/export function useReduceMotion\(\): boolean/);
   });
 });
+
+describe("046 plate and sheet glass (AC-5, AC-7, AC-8)", () => {
+  it("GlassBackdrop blurs on iOS and is opaque on Android / reduce transparency", () => {
+    const g = read("components/shell/GlassBackdrop.tsx");
+    expect(g).toMatch(/from "expo-blur"/);
+    expect(g).toMatch(/isReduceTransparencyEnabled/);
+    expect(g).toMatch(/isAndroid \|\| reduceTransparency/);
+    expect(g).toMatch(/bg-surface-plate/);
+  });
+  it("the plate shows the glass and mounts the prism pulse only while filing", () => {
+    const p = read("components/shell/Plate.tsx");
+    expect(p).toMatch(/<GlassBackdrop \/>/);
+    expect(p).toMatch(/\$\{CORNERS\} overflow-hidden/);
+    expect(p).toMatch(/pulseAt \? \(/);
+    expect(p).toMatch(/arriveOnMount/);
+  });
+  it("the conversation sheet uses the same glass", () => {
+    expect(read("components/shell/Conversation.tsx")).toMatch(/<GlassBackdrop sheet \/>/);
+  });
+});
