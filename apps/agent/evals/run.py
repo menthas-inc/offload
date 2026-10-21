@@ -1587,6 +1587,24 @@ def _icon_problems(expect: dict, calls: list[tuple[str, dict]]) -> list[str]:
     return []
 
 
+def _layout_problems(expect: dict, calls: list[tuple[str, dict]]) -> list[str]:
+    """Thread layouts. The layout a new thread was given, read off the
+    `create_thread` call. `is` names the layout it must be; `none` requires no
+    layout (the model left it out, or named nonsense the tool dropped)."""
+    want = expect.get("thread_layout")
+    if not want:
+        return []
+    made = [args for tool, args in calls if tool == "create_thread"]
+    if not made:
+        return ["created no thread, so there is no layout to read"]
+    layout = made[0].get("layout")
+    if want.get("none") and layout is not None:
+        return [f"the new thread's layout is {layout!r}, when none was expected"]
+    if "is" in want and layout != want["is"]:
+        return [f"the new thread's layout is {layout!r}, not {want['is']!r}"]
+    return []
+
+
 def _came_back(tool: str, body: dict | None) -> str:
     """What a call came back as, when that changes what may be said."""
     if not isinstance(body, dict):
@@ -2022,6 +2040,7 @@ async def _file_with(
         if made != expect["creates_thread"]:
             failures.append("created a thread" if made else "did not create a thread")
     failures.extend(_icon_problems(expect, rec.calls))
+    failures.extend(_layout_problems(expect, rec.calls))
 
     if expect.get("look_up") is True and not rec.looked:
         failures.append("should have looked something up and did not")

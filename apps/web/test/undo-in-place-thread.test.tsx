@@ -41,6 +41,10 @@ vi.mock("../src/lib/threads", async (original) => ({
   fetchThread: async (): Promise<ThreadBundle> => ({
     id: "t1",
     name: "Busan trip",
+    layout: "default",
+    layoutSetBy: "offload",
+    layoutSuggestion: null,
+    layoutChange: null,
     icon: "plane",
     hue: 3,
     iconSetBy: "offload",

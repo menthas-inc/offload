@@ -40,6 +40,9 @@ import {
   widgetsFor,
   type ReorderWrite,
 } from "../../lib/widgets";
+import { LAYOUT_NAMES, layoutFor, suggestionLine, type Layout } from "@offload/widgets";
+import looseStyles from "../loose/loose.module.css";
+import { LayoutSections } from "./LayoutSections";
 import {
   completeContent,
   deleteContent,
@@ -57,7 +60,11 @@ import {
   provisionalRow,
   quickAdd,
   editThread,
+  isLabelsFull,
+  dismissLayoutSuggestion,
+  markLayoutSeen,
   type ThreadMark,
+  type ThreadEdit,
   setArchived,
   setPriority,
   startsAs,
@@ -147,6 +154,13 @@ export function Thread({ id, onChanged }: Props) {
   const [draft, setDraft] = useState("");
   // 037. Edit thread, and whether it was opened from the icon or the name.
   const [editingThread, setEditingThread] = useState<"icon" | "name" | null>(null);
+  // Thread layouts (6.9): the suggestion line, hidden at once when dismissed
+  // while the write lands; reset per thread below.
+  const [suggestionGone, setSuggestionGone] = useState(false);
+  // The heads-up, held for the life of the view: marking it seen clears it on
+  // the server, so without this a background reload would erase the line before
+  // it is read.
+  const [headsUp, setHeadsUp] = useState<ThreadBundle["layoutChange"]>(null);
   // 019. The calendars popover, and a counter bumped when the picks change so
   // the rail reads the calendars again.
   const [calendarsOpen, setCalendarsOpen] = useState(false);
@@ -307,7 +321,19 @@ export function Thread({ id, onChanged }: Props) {
   // since been deleted once the thread's labels are known.
   useEffect(() => {
     setPickState(readPick(id));
+    setSuggestionGone(false);
+    setHeadsUp(null);
   }, [id]);
+
+  // Thread layouts: the heads-up another member sees once after somebody else
+  // switched. Captured so it stays for this view, then marked seen so the
+  // server stops sending it (decision 13).
+  const changedAt = thread?.layoutChange?.at;
+  useEffect(() => {
+    if (!changedAt || !thread?.layoutChange) return;
+    setHeadsUp(thread.layoutChange);
+    void markLayoutSeen(id);
+  }, [id, changedAt]);
   useEffect(() => {
     if (!thread) return;
     const live = keepLive(pick, thread.labels.map((label) => label.id));
@@ -553,6 +579,33 @@ export function Thread({ id, onChanged }: Props) {
         revert: () => patchRow(row.id, { doneAt: row.doneAt }),
         write: () => completeContent(row.id, !wasDone),
         failed: wasDone ? "Couldn't put that back" : "Couldn't tick that off",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  /** Thread layouts, decision 22. In Todo list a ticked row leaves the open
+   *  list for the week fold, so the box is no longer its own undo: the tick
+   *  draws an UndoLine in the row's slot, with `unwrite` so there is a way back.
+   *  Un-ticking (from the week fold) and every other layout keep `sinkDone` and
+   *  stay the plain toggle. Gallery open tiles carry no tick control, so they
+   *  never reach here open. */
+  function layoutTick(row: ContentRow): void {
+    if (isProvisional(row.id)) return;
+    if (row.doneAt !== null || threadLayout !== "todo") {
+      toggle(row);
+      return;
+    }
+    void perform(
+      {
+        apply: () => patchRow(row.id, { doneAt: new Date().toISOString() }),
+        revert: () => patchRow(row.id, { doneAt: null }),
+        write: () => completeContent(row.id, true),
+        unwrite: () => completeContent(row.id, false),
+        did: "Ticked off",
+        failed: "Couldn't tick that off",
+        place: { id: row.id, icon: "check", form: "slot" },
       },
       toast,
       writes,
@@ -807,10 +860,15 @@ export function Thread({ id, onChanged }: Props) {
   /** 037. Edit thread's Save: the head changes at the press, the write
    *  follows, and a refusal puts the head back. Undo sends back everything
    *  that was there, whose pick it was included. */
-  async function saveThread(change: Partial<ThreadMark>, shown: { name: string; icon: string; hue: number }): Promise<void> {
+  async function saveThread(change: ThreadEdit, shown: { name: string; icon: string; hue: number }): Promise<void> {
     if (!thread) return;
     const before = thread;
-    setThread({ ...thread, ...threadLookAfter(thread, change, shown) });
+    setThread({
+      ...thread,
+      ...threadLookAfter(thread, change, shown),
+      // Thread layouts: the page redraws in the new layout at the press.
+      ...(change.layout ? { layout: change.layout, layoutSetBy: "person" as const } : {}),
+    });
 
     const result = await editThread(id, change);
     // Under the thread's read, the head being what changed.
@@ -820,14 +878,31 @@ export function Thread({ id, onChanged }: Props) {
       toast.show("Couldn't save that", undefined, place);
       return;
     }
+    // The layout switch was refused because the thread's labels are full
+    // (6.8): put the head back and say what to free, not a generic failure.
+    if (isLabelsFull(result)) {
+      setThread(before);
+      toast.show(`That layout needs ${result.labelsFull.needed} labels and only ${result.labelsFull.free} will fit`, undefined, place);
+      return;
+    }
     await load();
     onChanged();
+    // A layout switch sends its labels back too (remove the made, restore the
+    // dropped), and reads "Showing as {Name}" (6.8).
+    const undoBody: ThreadEdit = result.layout
+      ? {
+          ...result.previous,
+          layout: result.layout.previous.layout,
+          layoutSetBy: result.layout.previous.layoutSetBy,
+          undoLabels: { remove: result.layout.made, restore: result.layout.dropped },
+        }
+      : result.previous;
     toast.show(
-      "Thread updated",
+      result.layout && change.layout ? `Showing as ${LAYOUT_NAMES[change.layout]}` : "Thread updated",
       {
         label: "Undo",
         onPress: async () => {
-          await editThread(id, result.previous);
+          await editThread(id, undoBody);
           await load();
           onChanged();
         },
@@ -982,6 +1057,26 @@ export function Thread({ id, onChanged }: Props) {
     inWidgets.size > 0 ? "Everything else" : "Everything in here";
 
   const others = thread.members.filter((member) => !member.isYou);
+
+  // Thread layouts. Default keeps its own render below, to the pixel; the five
+  // others draw layoutFor's sections. The rail is still the client's, gated by
+  // whether the layout permits one (decision 21).
+  const threadLayout = (thread.layout ?? "default") as Layout;
+  const isDefaultLayout = threadLayout === "default";
+  const page =
+    showArchived || isDefaultLayout
+      ? null
+      : layoutFor<ContentRow, Note>({
+          layout: threadLayout,
+          rows,
+          notes,
+          labels: thread.labels,
+          // preference only steers Default's widget order, and Default never
+          // routes through here, so the loose client type need not be coerced.
+          preference: {},
+          now: new Date(),
+          zone,
+        });
 
   return (
     <>
@@ -1234,13 +1329,51 @@ export function Thread({ id, onChanged }: Props) {
         ) : null}
         <LineAt id={`thread:${id}`} />
 
+        {/* Thread layouts: the heads-up another member sees once after somebody
+            else switched, then the suggestion line offload draws (6.9). */}
+        {headsUp ? (
+          <p className={styles.headsUp}>
+            {headsUp.by.displayName} switched this to {LAYOUT_NAMES[headsUp.layout]}
+          </p>
+        ) : null}
+        {thread.layoutSuggestion && !suggestionGone ? (
+          <span className={looseStyles.suggestion}>
+            <button
+              type="button"
+              className={looseStyles.suggestHit}
+              aria-label={`Show this thread as ${LAYOUT_NAMES[thread.layoutSuggestion]}`}
+              onClick={() => {
+                if (!thread.layoutSuggestion) return;
+                setSuggestionGone(true);
+                void saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue });
+              }}
+            >
+              <span className={looseStyles.suggest}>
+                <Icon name="sparkles" size={13} className={looseStyles.spark} />
+                <span>{suggestionLine(thread.layoutSuggestion)}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              className={looseStyles.dismiss}
+              aria-label="Dismiss suggestion"
+              onClick={() => {
+                setSuggestionGone(true);
+                void dismissLayoutSuggestion(id);
+              }}
+            >
+              <Icon name="x" size={14} />
+            </button>
+          </span>
+        ) : null}
+
         {/* Widgets first, then everything. A widget is a view over the same
             rows the list below shows, so a piece removed from one is gone from
             both, and nothing here costs a second query. */}
         {/* The rail is above the widgets, and only on a thread with something
             dated. It is not a widget: it lists every kind with a date rather
             than one, which is why 015 took it out of the widget set. */}
-        {showArchived || !railEarned ? null : (
+        {showArchived || !railEarned || !(isDefaultLayout || page?.rail) ? null : (
           <Timeline
             // Keyed by the thread, so the day you were reading and the gaps you
             // opened do not follow you into the next one. Without it, opening a
@@ -1301,6 +1434,10 @@ export function Thread({ id, onChanged }: Props) {
           />
         ) : null}
 
+        {!isDefaultLayout && !showArchived && page ? (
+          <LayoutSections page={page} handlers={handlers} labels={thread.labels} onAdd={(text) => add(text, "todo")} onToggle={layoutTick} />
+        ) : (
+        <>
         {showArchived ? null : (
           <Widgets
             rows={rows}
@@ -1424,6 +1561,8 @@ export function Thread({ id, onChanged }: Props) {
             Show more
           </button>
         ) : null}
+        </>
+        )}
 
         {/* The way to the archived pile, and the way back: a row under
             everything live rather than a toggle on the pane head. The archive

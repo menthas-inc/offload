@@ -944,6 +944,14 @@
   color: var(--text-tertiary);
 }
 
+/* Thread layouts: the one-time heads-up that another member switched the
+   layout (decision 13). A quiet line, not offload's moss. */
+.headsUp {
+  margin-top: var(--space-4);
+  font-size: var(--size-caption);
+  color: var(--text-secondary);
+}
+
 /* Faces on the thread head. */
 .faces {
   display: flex;

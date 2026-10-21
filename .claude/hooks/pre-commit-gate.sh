@@ -20,7 +20,22 @@ if printf '%s' "$cmd" | grep -qE '(^|[^[:alnum:]_])git[[:space:]]+([^[:space:]].
 
 case "$commits" in
   yes)
-    cd "${CLAUDE_PROJECT_DIR:-.}"
+    # Run the gate against the checkout the commit actually targets. The commit
+    # runs in the session's cwd (the worktree for a worktree session), but
+    # CLAUDE_PROJECT_DIR is the MAIN checkout, so gating there tested main's code:
+    # a worktree commit's own breakages passed the gate and only failed in CI, and
+    # the suite it ran hit main's shared database. Take the payload's cwd (where
+    # the command runs), else the hook's own invocation dir, resolve each to its
+    # git top-level, and fall back to CLAUDE_PROJECT_DIR only if neither is a repo.
+    invoked_pwd="$PWD"
+    cwd="$(printf '%s' "$payload" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("cwd") or "")' 2>/dev/null || true)"
+    repo=""
+    for cand in "$cwd" "$invoked_pwd"; do
+      [ -n "$cand" ] && [ -d "$cand" ] || continue
+      repo="$(git -C "$cand" rev-parse --show-toplevel 2>/dev/null || true)"
+      [ -n "$repo" ] && break
+    done
+    cd "${repo:-${CLAUDE_PROJECT_DIR:-.}}"
 
     # Em dashes are a design-system non-negotiable and this is the only gate that
     # sees every file however it was written. design-guard.sh runs on the Write and

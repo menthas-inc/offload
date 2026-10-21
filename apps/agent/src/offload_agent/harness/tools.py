@@ -104,6 +104,9 @@ def _date_shape(v: str | None) -> str | None:
 
 ContentType = Literal["link", "image", "screenshot", "voice", "file", "task", "event", "location"]
 
+#: The layouts offload may name at creation. Not "default", which is the absence.
+_LAYOUT_PICKS = ("todo", "events", "gallery", "project", "timeline")
+
 
 class CreateThread(BaseModel):
     """Start a thread."""
@@ -115,11 +118,31 @@ class CreateThread(BaseModel):
     # The names are one plain line and not an enum: quoted and comma separated
     # they cost half as much again, on every turn.
     icon: str | None = Field(default=None, description="One of: " + " ".join(THREAD_ICON_NAMES))
+    # Thread layouts. offload names a layout once, here, when the name and the
+    # dump make it plain; after that only a person changes it. "default" is the
+    # absence, so the model names one of the five or leaves it out.
+    layout: str | None = Field(
+        default=None,
+        description=(
+            "Optional: how the thread page is laid out. todo for a list to get through and "
+            "forget (groceries, packing, errands); events for something that happens with "
+            "options to weigh (a trip, a party, a move); gallery for links and titles to get "
+            "round to (songs, films, books, articles); project for work in stages (a renovation, "
+            "a job hunt); timeline for entries kept over time (runs, symptoms, a child's first "
+            "year). Leave it out when the name and the dump do not make it plain. Leaving it out "
+            "is a good answer."
+        ),
+    )
 
     @field_validator("icon", mode="before")
     @classmethod
     def one_of_the_seventy(cls, v: object) -> str | None:
         return v if isinstance(v, str) and v in THREAD_ICON_NAMES else None
+
+    @field_validator("layout", mode="before")
+    @classmethod
+    def one_of_the_layouts(cls, v: object) -> str | None:
+        return v if isinstance(v, str) and v in _LAYOUT_PICKS else None
 
 
 #: 2026-10-17. The rows a photo can be: a picture of its own, or the one

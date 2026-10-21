@@ -323,6 +323,9 @@ const nightlyBody = z.strictObject({
     .array(z.strictObject({ id: z.string().uuid(), of: z.enum(["content", "note"]) }))
     .max(LABELS_SHOWN)
     .default([]),
+  /** Thread layouts. The one layout the pass may suggest for a Default thread
+   *  offload made. Never 'default'. The Core API writes it once, under guards. */
+  layout: z.enum(["todo", "events", "gallery", "project", "timeline"]).nullish(),
   usage: usage.optional(),
 });
 
@@ -535,6 +538,23 @@ export async function internalRoutes(app: App): Promise<void> {
             });
 
         const proposals = isDefault && payload.propose ? await applyProposals(trx, accountId, result.sent, result.groups) : 0;
+
+        // Thread layouts: the one suggestion the pass may leave, for a regular
+        // thread still laid out as Default by offload. The guards make it a
+        // write-once: a person's pick, a prior suggestion or a dismissal all
+        // stop it. Never the default thread (Not in a thread), which has no
+        // layout picker and whose pass suggests threads instead.
+        if (result.layout && !isDefault) {
+          await trx
+            .updateTable("threads")
+            .set({ layout_suggestion: result.layout, updated_at: sql`now()` })
+            .where("id", "=", threadId)
+            .where("layout", "=", "default")
+            .where("layout_set_by", "=", "offload")
+            .where("layout_suggestion", "is", null)
+            .where("layout_suggestion_dismissed_at", "is", null)
+            .execute();
+        }
 
         // 042. Every thread, the default one too: a date is a date wherever
         // it was put down.

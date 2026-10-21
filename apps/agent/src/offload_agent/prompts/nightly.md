@@ -36,6 +36,10 @@ A note other people wrote never supplies words to a note you learn: what you lea
 Never write a summary of what was said, since a note is what is true now and not a record; anything a note already says; a guess about them, how they feel, their health, money, beliefs or relationships; or anything a dump quotes from somebody else.
 
 Most days a thread's dumps hold nothing worth a note, and adding nothing is the normal answer.
+
+## How the thread is laid out
+
+It is laid out as a plain list. If its rows plainly are one of these, say which in `layout`: `todo` (a list to get through), `events` (something that happens with options to weigh), `gallery` (links and titles to get round to), `project` (work in stages), `timeline` (entries kept over time). Most threads are none of them, and no answer is the usual one.
 <!-- /learn -->
 
 <!-- propose -->

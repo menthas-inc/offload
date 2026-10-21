@@ -17,7 +17,7 @@ import { sql, type Transaction } from "kysely";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { currentAccountId } from "../auth/current-account.js";
-import { DEFAULT_THREAD_ICON, formatRule, isThreadIcon, parseRule, pickThreadIcon, utcDay } from "@offload/widgets";
+import { DEFAULT_THREAD_ICON, formatRule, isThreadIcon, LAYOUT_LABELS, LAYOUTS, labelsToDrop, labelsToMake, parseRule, pickThreadIcon, utcDay, type Layout } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";
 import { Refused } from "../threads/refusals.js";
 import { threadLine } from "../threads/line.js";
@@ -70,7 +70,7 @@ import {
 import { OverBudget } from "../budget.js";
 import { purgeAbout } from "../notifications/activity.js";
 import { destroyCopiesHolding } from "../exports/copy.js";
-import { LabelRefused, carriesAny, contentLabelsFor, labelsOfThread, setRowLabels, unlabelledCount, withContentLabels, withNoteLabels } from "../threads/labels.js";
+import { LABEL_LIMIT, LabelRefused, carriesAny, contentLabelsFor, createLabel, deleteLabel, labelsOfThread, restoreLabel, setRowLabels, unlabelledCount, withContentLabels, withNoteLabels, type Actor } from "../threads/labels.js";
 import { noteAddition } from "../notifications/people.js";
 import { looseSummary } from "../loose/read.js";
 import { shownThreadName } from "../threads/default.js";
@@ -291,6 +291,19 @@ const threadBundle = z.object({
   /** 030. Something in it is on the map, so the switch is drawn. Computed by
    *  the server so the three surfaces agree; false while the map is off. */
   hasPoint: z.boolean(),
+  /** Thread layouts (2026-10-19). The layout, whose pick it is, the one
+   *  suggestion the line draws (null unless it should), and the heads-up
+   *  another member sees once after somebody else switched. */
+  layout: z.enum(LAYOUTS),
+  layoutSetBy: z.enum(["offload", "person"]),
+  layoutSuggestion: z.enum(["todo", "events", "gallery", "project", "timeline"]).nullable(),
+  layoutChange: z
+    .object({
+      by: z.object({ accountId: z.string(), displayName: z.string() }),
+      layout: z.enum(LAYOUTS),
+      at: z.string(),
+    })
+    .nullable(),
 });
 
 export const contentRow = z.object({
@@ -1247,6 +1260,25 @@ export interface ThreadMark {
   iconSetBy: "offload" | "person";
 }
 
+/** What a layout switch did, beside the name/icon `previous`, so one Undo
+ *  sends the layout back and removes or restores the labels it moved. */
+export interface LayoutChange {
+  previous: { layout: Layout; layoutSetBy: "offload" | "person" };
+  made: string[];
+  dropped: string[];
+}
+
+/** A switch that would need more labels than the thread has room for: refused
+ *  whole, with how many it needs and how many are free (decision 17). */
+export class LayoutLabelsFull extends Error {
+  constructor(
+    readonly needed: number,
+    readonly free: number,
+  ) {
+    super("layout_labels_full");
+  }
+}
+
 /** 037. Change a thread's name, icon and hue, any of them, in one write.
  *  Co-owned: a shared thread's name and look belong to everybody in it, and
  *  none of this touches content.
@@ -1266,9 +1298,17 @@ export interface ThreadMark {
 export async function editThread(
   accountId: string,
   threadId: string,
-  input: Partial<ThreadMark>,
+  input: Partial<ThreadMark> & {
+    /** The layout to switch to, in the same write as name, icon and hue. */
+    layout?: Layout;
+    /** Accepted only alongside `undoLabels`: the layout's pick to put back. */
+    layoutSetBy?: "offload" | "person";
+    /** The Undo of a switch: restore the labels it dropped, remove the ones it
+     *  made that are still empty. */
+    undoLabels?: { remove: string[]; restore: string[] };
+  },
   within?: import("../threads/access.js").Executor,
-): Promise<{ thread: ThreadMark; previous: ThreadMark }> {
+): Promise<{ thread: ThreadMark; previous: ThreadMark; layout?: LayoutChange }> {
 
   // Read then write, in one transaction. `returning` on an UPDATE gives the NEW
   // value in Postgres, so returning it as `previous` would hand the client an
@@ -1278,7 +1318,7 @@ export async function editThread(
     await requireMember(accountId, threadId, trx);
     const current = await trx
       .selectFrom("threads")
-      .select(["name", "icon", "hue", "icon_set_by"])
+      .select(["name", "icon", "hue", "icon_set_by", "layout", "layout_set_by"])
       .where("id", "=", threadId)
       .where("deleted_at", "is", null)
       .forUpdate()
@@ -1302,11 +1342,133 @@ export async function editThread(
       .where("id", "=", threadId)
       .execute();
 
-    return { thread, previous };
+    const layout = await switchLayout(trx, accountId, threadId, current.layout, current.layout_set_by, input);
+    return { thread, previous, ...(layout ? { layout } : {}) };
   };
   const result = within ? await write(within) : await db.transaction().execute(write);
   if (!result) throw new NotYours();
   return result;
+}
+
+/** The layout half of a thread edit, inside the edit's transaction. Returns the
+ *  change for the client's one Undo, or undefined when the layout did not move.
+ *
+ *  A switch makes the labels the new layout needs and the thread lacks, and
+ *  deletes the old layout's empty ones the new one does not use, both as the
+ *  person, in one write. A thread with no room for the makes is refused whole
+ *  (decision 17). The Undo sends it back the other way: restore the dropped,
+ *  remove the made that are still empty, and set the layout and its pick back. */
+async function switchLayout(
+  trx: import("../threads/access.js").Executor,
+  accountId: string,
+  threadId: string,
+  fromLayout: Layout,
+  fromSetBy: "offload" | "person",
+  input: { layout?: Layout; layoutSetBy?: "offload" | "person"; undoLabels?: { remove: string[]; restore: string[] } },
+): Promise<LayoutChange | undefined> {
+  const actor: Actor = { accountId, via: "person" };
+
+  if (input.undoLabels) {
+    // The Undo is the person's, but it is not a free label editor: it may only
+    // restore labels in THIS thread, and remove the current layout's own labels
+    // that are still empty, never an arbitrary one. The ids are capped by the
+    // route schema (LABEL_LIMIT).
+    for (const id of input.undoLabels.restore) {
+      // Scope to this thread: restoreLabel checks the deleter and the window,
+      // but resolves the thread from the label, so a cross-thread id would
+      // restore elsewhere without this.
+      const owner = await trx.selectFrom("labels").select("thread_id").where("id", "=", id).executeTakeFirst();
+      if (owner?.thread_id !== threadId) continue;
+      try {
+        await restoreLabel(trx, actor, id);
+      } catch (error) {
+        if (!(error instanceof LabelRefused)) throw error;
+      }
+    }
+    // One count read, not one per id. Remove only the labels the switch into the
+    // current layout would have made: its own names, still empty.
+    const ownNames = new Set(LAYOUT_LABELS[fromLayout].map((name) => name.toLowerCase()));
+    const live = await labelsOfThread(threadId, trx);
+    for (const id of input.undoLabels.remove) {
+      const made = live.find((label) => label.id === id);
+      if (made && made.count === 0 && ownNames.has(made.name.toLowerCase())) await deleteLabel(trx, actor, id);
+    }
+    await trx
+      .updateTable("threads")
+      .set({
+        layout: input.layout ?? fromLayout,
+        layout_set_by: input.layoutSetBy ?? fromSetBy,
+        layout_changed_at: sql`now()`,
+        layout_changed_by: accountId,
+        layout_suggestion: null,
+        updated_at: sql`now()`,
+      })
+      .where("id", "=", threadId)
+      .execute();
+    return undefined;
+  }
+
+  if (!input.layout || input.layout === fromLayout) return undefined;
+  const to = input.layout;
+  const live = await labelsOfThread(threadId, trx);
+  const make = labelsToMake(to, live);
+  const drop = labelsToDrop(fromLayout, to, live);
+  const free = LABEL_LIMIT - (live.length - drop.length);
+  if (make.length > free) throw new LayoutLabelsFull(make.length, free);
+
+  for (const id of drop) await deleteLabel(trx, actor, id);
+  const made: string[] = [];
+  for (const name of make) made.push((await createLabel(trx, actor, threadId, { name })).id);
+
+  await trx
+    .updateTable("threads")
+    .set({
+      layout: to,
+      layout_set_by: "person",
+      layout_changed_at: sql`now()`,
+      layout_changed_by: accountId,
+      layout_suggestion: null,
+      updated_at: sql`now()`,
+    })
+    .where("id", "=", threadId)
+    .execute();
+
+  return { previous: { layout: fromLayout, layoutSetBy: fromSetBy }, made, dropped: drop };
+}
+
+/** The one-time heads-up a member sees after somebody else switched the layout
+ *  (decision 13): null for the member who made the change, and null once this
+ *  member has seen the layout as it stands. */
+async function layoutChangeFor(
+  thread: {
+    id: string;
+    layout: Layout;
+    layout_changed_at: Date | string | null;
+    layout_changed_by: string | null;
+    layout_seen_at: Date | string | null;
+  },
+  viewerId: string,
+): Promise<{ by: { accountId: string; displayName: string }; layout: Layout; at: string } | null> {
+  if (!thread.layout_changed_by || !thread.layout_changed_at) return null;
+  if (thread.layout_changed_by === viewerId) return null;
+  const changedAt = new Date(thread.layout_changed_at);
+  if (thread.layout_seen_at && new Date(thread.layout_seen_at) >= changedAt) return null;
+  // Name the changer only while they are still an accepted member: an ex-member
+  // the `members` list no longer shows should not keep being named here.
+  const who = await db
+    .selectFrom("accounts")
+    .innerJoin("thread_members", "thread_members.account_id", "accounts.id")
+    .select("accounts.display_name")
+    .where("accounts.id", "=", thread.layout_changed_by)
+    .where("thread_members.thread_id", "=", thread.id)
+    .where("thread_members.state", "=", "accepted")
+    .executeTakeFirst();
+  if (!who) return null;
+  return {
+    by: { accountId: thread.layout_changed_by, displayName: who?.display_name ?? "Someone" },
+    layout: thread.layout,
+    at: changedAt.toISOString(),
+  };
 }
 
 /** Leaving a thread, which is also how a thread dies.
@@ -1725,12 +1887,21 @@ export async function threadRoutes(app: App): Promise<void> {
         const thread = await db
           .selectFrom("threads")
           .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
-          .select(["threads.id", "threads.name", "threads.icon", "threads.hue", "threads.icon_set_by", "threads.always_on", "threads.attrs", "thread_members.hide_done"])
+          .select([
+            "threads.id", "threads.name", "threads.icon", "threads.hue", "threads.icon_set_by", "threads.always_on", "threads.attrs",
+            "threads.layout", "threads.layout_set_by", "threads.layout_suggestion", "threads.layout_suggestion_dismissed_at",
+            "threads.layout_changed_at", "threads.layout_changed_by",
+            "thread_members.hide_done", "thread_members.layout_seen_at",
+          ])
           .where("threads.id", "=", id)
           .where("threads.deleted_at", "is", null)
           .where("thread_members.account_id", "=", accountId)
           .executeTakeFirst();
         if (!thread) throw new NotYours();
+
+        // The heads-up another member sees once: non-null when somebody else
+        // made the switch and this member has not seen it since.
+        const layoutChange = await layoutChangeFor(thread, accountId);
 
         // One query, two counts. Postgres will not scan two partial indexes in
         // one statement, so this rides content_thread_idx, which covers both
@@ -1775,6 +1946,12 @@ export async function threadRoutes(app: App): Promise<void> {
           shareable: !isDefault,
           isDefault,
           hasPoint: await hasPoint(id),
+          layout: thread.layout,
+          layoutSetBy: thread.layout_set_by,
+          // Drawn only when it still should be: present, not dismissed. The
+          // write already guarded that it is offload's and the layout Default.
+          layoutSuggestion: thread.layout_suggestion && !thread.layout_suggestion_dismissed_at ? thread.layout_suggestion : null,
+          layoutChange,
         });
       })
   );
@@ -2719,6 +2896,8 @@ export async function threadRoutes(app: App): Promise<void> {
           name: z.string().trim().min(1).max(80),
           icon: z.string().refine(isThreadIcon).optional(),
           hue: z.number().int().min(1).max(10).optional(),
+          // New thread's Layout row, the person's pick. Default when omitted.
+          layout: z.enum(LAYOUTS).optional(),
         }),
         response: {
           200: z.object({ thread: z.object({ id: z.string(), name: z.string(), icon: z.string(), hue: z.number() }) }),
@@ -2729,7 +2908,7 @@ export async function threadRoutes(app: App): Promise<void> {
     async (request, reply) => {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
-      const { name, icon, hue } = request.body;
+      const { name, icon, hue, layout } = request.body;
       const thread = await db.transaction().execute(async (trx) => {
         const mark = await markFor(trx, accountId, name, icon);
         const offloads = pickThreadIcon(name) ?? DEFAULT_THREAD_ICON;
@@ -2742,6 +2921,8 @@ export async function threadRoutes(app: App): Promise<void> {
             hue: hue ?? mark.hue,
             icon_set_by: mark.icon === offloads ? "offload" : "person",
             always_on: false,
+            // A person's pick from New thread. Default is the column's own.
+            ...(layout ? { layout, layout_set_by: "person" } : {}),
             last_activity_at: sql`now()`,
             updated_at: sql`now()`,
           })
@@ -2751,6 +2932,12 @@ export async function threadRoutes(app: App): Promise<void> {
           .insertInto("thread_members")
           .values({ thread_id: made.id, account_id: accountId, invited_by: null, state: "accepted", responded_at: sql`now()` })
           .execute();
+        // The labels the layout organises by, made as the person who picked it.
+        if (layout) {
+          for (const labelName of LAYOUT_LABELS[layout]) {
+            await createLabel(trx, { accountId, via: "person" }, made.id, { name: labelName });
+          }
+        }
         return made;
       });
       return reply.send({ thread });
@@ -2770,16 +2957,40 @@ export async function threadRoutes(app: App): Promise<void> {
             icon: z.string().refine(isThreadIcon).optional(),
             hue: z.number().int().min(1).max(10).optional(),
             iconSetBy: z.enum(["offload", "person"]).optional(),
+            // Thread layouts. The switch rides the same write as name and look,
+            // so Save is one request with one Undo.
+            layout: z.enum(LAYOUTS).optional(),
+            layoutSetBy: z.enum(["offload", "person"]).optional(),
+            undoLabels: z
+              .object({
+                remove: z.array(z.string().uuid()).max(LABEL_LIMIT),
+                restore: z.array(z.string().uuid()).max(LABEL_LIMIT),
+              })
+              .optional(),
           })
           .refine((body) => Object.values(body).some((value) => value !== undefined))
           // Whose pick it is comes back only with the pick itself, which is
           // what Undo sends. Alone it would hand a person's pick back to
           // offload without changing anything anybody can see.
-          .refine((body) => body.iconSetBy === undefined || (body.icon !== undefined && body.hue !== undefined)),
+          .refine((body) => body.iconSetBy === undefined || (body.icon !== undefined && body.hue !== undefined))
+          // `layoutSetBy` is the layout's twin of that rule: accepted only
+          // alongside `undoLabels`, which is the only write that puts a pick back.
+          .refine((body) => body.layoutSetBy === undefined || body.undoLabels !== undefined),
         response: {
-          200: z.object({ thread: threadMark.extend({ id: z.string() }), previous: threadMark }),
+          200: z.object({
+            thread: threadMark.extend({ id: z.string() }),
+            previous: threadMark,
+            layout: z
+              .object({
+                previous: z.object({ layout: z.enum(LAYOUTS), layoutSetBy: z.enum(["offload", "person"]) }),
+                made: z.array(z.string()),
+                dropped: z.array(z.string()),
+              })
+              .optional(),
+          }),
           401: unauthenticated,
           404: notFound,
+          409: z.object({ error: z.literal("layout_labels_full"), needed: z.number(), free: z.number() }),
         },
       },
     },
@@ -2788,14 +2999,78 @@ export async function threadRoutes(app: App): Promise<void> {
         const accountId = await currentAccountId(request);
         if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
-        const { name, icon, hue, iconSetBy } = request.body;
-        const { thread, previous } = await editThread(accountId, request.params.id, {
-          ...(name !== undefined ? { name } : {}),
-          ...(icon !== undefined ? { icon } : {}),
-          ...(hue !== undefined ? { hue } : {}),
-          ...(iconSetBy !== undefined ? { iconSetBy } : {}),
-        });
-        return reply.send({ thread: { id: request.params.id, ...thread }, previous });
+        const { name, icon, hue, iconSetBy, layout, layoutSetBy, undoLabels } = request.body;
+        try {
+          const result = await editThread(accountId, request.params.id, {
+            ...(name !== undefined ? { name } : {}),
+            ...(icon !== undefined ? { icon } : {}),
+            ...(hue !== undefined ? { hue } : {}),
+            ...(iconSetBy !== undefined ? { iconSetBy } : {}),
+            ...(layout !== undefined ? { layout } : {}),
+            ...(layoutSetBy !== undefined ? { layoutSetBy } : {}),
+            ...(undoLabels !== undefined ? { undoLabels } : {}),
+          });
+          return reply.send({
+            thread: { id: request.params.id, ...result.thread },
+            previous: result.previous,
+            ...(result.layout ? { layout: result.layout } : {}),
+          });
+        } catch (error) {
+          if (error instanceof LayoutLabelsFull) {
+            return reply.code(409).send({ error: "layout_labels_full" as const, needed: error.needed, free: error.free });
+          }
+          throw error;
+        }
+      })
+  );
+
+  // Thread layouts. The suggestion line's x: the thread's suggestion ends for
+  // everybody (decision 25). Idempotent, member-only.
+  app.post(
+    "/v1/threads/:id/layout-suggestion/dismiss",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: { 200: z.object({ ok: z.literal(true) }), 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+        await requireMember(accountId, request.params.id);
+        await db
+          .updateTable("threads")
+          .set({ layout_suggestion_dismissed_at: sql`now()`, updated_at: sql`now()` })
+          .where("id", "=", request.params.id)
+          .where("layout_suggestion_dismissed_at", "is", null)
+          .execute();
+        return reply.send({ ok: true as const });
+      })
+  );
+
+  // Thread layouts. The heads-up has drawn: this member has now seen the layout
+  // as it stands, so it does not draw again (decision 13).
+  app.post(
+    "/v1/threads/:id/layout-seen",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: { 200: z.object({ ok: z.literal(true) }), 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+        await requireMember(accountId, request.params.id);
+        await db
+          .updateTable("thread_members")
+          .set({ layout_seen_at: sql`now()` })
+          .where("thread_id", "=", request.params.id)
+          .where("account_id", "=", accountId)
+          .execute();
+        return reply.send({ ok: true as const });
       })
   );
 

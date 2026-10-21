@@ -17,14 +17,18 @@ import { useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import {
   HUE_NAMES,
+  LAYOUTS,
+  LAYOUT_NAMES,
   THREAD_ICON_NAMES,
   previewThreadIcon,
   threadChange,
   threadIconLabel,
+  type Layout,
   type ThreadLook,
 } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { ThreadIcon } from "../ThreadIcon";
+import { LayoutTile } from "../LayoutTile";
 import { DragSheet } from "../shell/DragSheet";
 import { useColors } from "../../lib/colors";
 
@@ -44,19 +48,20 @@ export function EditThreadSheet({
   /** New thread's words in place of Edit thread's. */
   heading?: string;
   action?: string;
-  thread: ThreadLook & { id: string };
+  thread: ThreadLook & { id: string; layout?: Layout; layoutSetBy?: "offload" | "person" };
   /** What was tapped. The name opens the keyboard; the icon does not. */
   from: "icon" | "name";
   /** Cancel, the scrim, a swipe down and Android's back. Drops everything. */
   onClose: () => void;
   /** The change to write, and what the bar draws at the press. The sheet has
    *  already closed. */
-  onSave: (change: { name?: string; icon?: string; hue?: number }, shown: { name: string; icon: string; hue: number }) => void;
+  onSave: (change: { name?: string; icon?: string; hue?: number; layout?: Layout }, shown: { name: string; icon: string; hue: number }) => void;
 }) {
   const COLOR = useColors();
   const [name, setName] = useState(thread.name);
   const [picked, setPicked] = useState<string | null>(null);
   const [hue, setHue] = useState(thread.hue);
+  const [layout, setLayout] = useState<Layout>(thread.layout ?? "default");
   const [focused, setFocused] = useState(false);
   const [gridWidth, setGridWidth] = useState(0);
   const field = useRef<TextInput>(null);
@@ -69,9 +74,11 @@ export function EditThreadSheet({
 
   function save(): void {
     if (!canSave) return;
-    const change = threadChange(thread, { name, icon: picked, hue });
+    const change: { name?: string; icon?: string; hue?: number; layout?: Layout } = threadChange(thread, { name, icon: picked, hue }) ?? {};
+    // The layout rides the same Save, so one write and one Undo (6.8).
+    if (layout !== (thread.layout ?? "default")) change.layout = layout;
     onClose();
-    if (change) onSave(change, { name: name.trim(), icon, hue });
+    if (Object.keys(change).length > 0) onSave(change, { name: name.trim(), icon, hue });
   }
 
   return (
@@ -190,6 +197,33 @@ export function EditThreadSheet({
           );
         })}
       </View>
+
+      <Text className={`font-core font-medium ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13, marginTop: 16, marginBottom: 8, marginHorizontal: 2 }}>
+        Layout
+      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        accessibilityRole="radiogroup"
+        accessibilityLabel="Layout"
+        contentContainerStyle={{ gap: 10, paddingHorizontal: 2 }}
+      >
+        {LAYOUTS.map((one) => (
+          <LayoutTile key={one} layout={one} selected={one === layout} onPress={() => setLayout(one)} />
+        ))}
+      </ScrollView>
+      {thread.layoutSetBy === "offload" && (thread.layout ?? "default") !== "default" ? (
+        <View
+          className={isAndroid ? "bg-a-c-high" : "bg-surface-fill"}
+          style={{ flexDirection: "row", gap: 8, alignItems: "flex-start", marginTop: 8, padding: 10, borderRadius: 12 }}
+        >
+          <Glyph name="sparkles" size={14} color={COLOR.iconOnWell} />
+          <Text className={`font-core flex-1 ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13, lineHeight: 19 }}>
+            offload picked {LAYOUT_NAMES[thread.layout ?? "default"]} when it made this thread.
+          </Text>
+        </View>
+      ) : null}
     </DragSheet>
   );
 }

@@ -20,7 +20,9 @@
 //     saying offload has not done something is an apology taking up the most
 //     prominent space on the screen.
 
-import { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive, leaveAsk, threadLookAfter, type ThreadLook } from "@offload/widgets";
+import { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive, LAYOUT_NAMES, layoutFor, leaveAsk, suggestionLine, threadLookAfter, type Layout, type ThreadLook } from "@offload/widgets";
+import { LayoutSections, type LayoutHandlers } from "./LayoutSections";
+import { TYPED_ROW_PLACEHOLDER } from "../../lib/typed-row";
 import { ThreadIcon } from "../ThreadIcon";
 import { EditThreadSheet } from "./EditThreadSheet";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -75,11 +77,16 @@ import {
   provisionalNote,
   provisionalRow,
   editThread,
+  isLabelsFull,
+  dismissLayoutSuggestion,
+  markLayoutSeen,
   setArchived,
   setPriority,
   startsAs,
+  QUICK_ADD_CHARS,
   type ContentRow,
   type Note,
+  type ThreadEdit,
   type ThreadBundle,
   setPreference,
   type ContentPatch,
@@ -87,7 +94,7 @@ import {
   fetchOne,
   type Point,
 } from "../../lib/threads";
-import { perform, useWrites } from "../../lib/optimistic";
+import { perform, useWrites, type Reversible } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
 import { drawnWhen, patchFor, sameWhen, whenLabel, whenValueOf } from "../../lib/when";
 import { drawnRemind, undoPatch } from "../../lib/reminders";
@@ -161,6 +168,11 @@ export default function Thread() {
   // 037. Edit thread, and whether the icon or the name opened it.
   const [editingThread, setEditingThread] = useState<"icon" | "name" | null>(null);
   const [calendarsVersion, setCalendarsVersion] = useState(0);
+  // Thread layouts (6.9): the suggestion line, hidden at once when dismissed.
+  const [suggestionGone, setSuggestionGone] = useState(false);
+  // The heads-up, held for the life of the view: marking it seen clears it on
+  // the server, so without this a background catchUp would erase the line.
+  const [headsUp, setHeadsUp] = useState<ThreadBundle["layoutChange"]>(null);
   const toast = useToast();
   // 025. The filter bar's pick, kept per thread on this phone; the label sheet
   // open on a row; the label's list open for a label, or for a new one.
@@ -340,6 +352,22 @@ export default function Thread() {
     void catchUp();
   }, [filed, id, catchUp]);
 
+  // The suggestion's local hide resets only when the thread changes, never on a
+  // reload that drops the heads-up (which would revive a dismissed pill).
+  useEffect(() => {
+    setSuggestionGone(false);
+    setHeadsUp(null);
+  }, [id]);
+
+  // Thread layouts: the heads-up shows once; captured so it stays for this view,
+  // then marked seen so the server stops sending it (decision 13).
+  const changedAt = thread?.layoutChange?.at;
+  useEffect(() => {
+    if (!changedAt || !id || !thread?.layoutChange) return;
+    setHeadsUp(thread.layoutChange);
+    void markLayoutSeen(id);
+  }, [id, changedAt]);
+
   // The mark is a moment, not a state, and it is cleared on a timer so it
   // survives the reload that produced it.
   useEffect(() => {
@@ -396,6 +424,32 @@ export default function Thread() {
         revert: () => patchRow(row.id, { doneAt: row.doneAt }),
         write: () => completeContent(row.id, !wasDone),
         failed: wasDone ? "Couldn't put that back" : "Couldn't tick that off",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  /** Thread layouts, decision 22. In Todo list a ticked row leaves the open
+   *  list for the week fold, so the box is no longer its own undo: the tick
+   *  draws an UndoLine in the row's slot, with `unwrite` so there is a way back.
+   *  Un-ticking and every other layout is the plain `tick`. Gallery open tiles
+   *  carry no tick control, so they never reach here open. */
+  function layoutTick(row: ContentRow): void {
+    if (isProvisional(row.id)) return;
+    if (row.doneAt !== null || threadLayout !== "todo") {
+      tick(row);
+      return;
+    }
+    void perform(
+      {
+        apply: () => patchRow(row.id, { doneAt: new Date().toISOString() }),
+        revert: () => patchRow(row.id, { doneAt: null }),
+        write: () => completeContent(row.id, true),
+        unwrite: () => completeContent(row.id, false),
+        did: "Ticked off",
+        failed: "Couldn't tick that off",
+        place: placeOf(row.id, "check", "slot"),
       },
       toast,
       writes,
@@ -563,26 +617,49 @@ export default function Thread() {
    *  Co-owned, so anybody in the thread may change them. The bar is drawn at
    *  the press, and Undo sends back everything that was there, whose pick it
    *  was included. */
-  function saveThread(change: { name?: string; icon?: string; hue?: number }, shown: { name: string; icon: string; hue: number }): void {
+  function saveThread(change: ThreadEdit, shown: { name: string; icon: string; hue: number }): void {
     if (!thread) return;
     const before: ThreadLook = { name: thread.name, icon: thread.icon, hue: thread.hue, iconSetBy: thread.iconSetBy };
     const after = threadLookAfter(before, change, shown);
-    const draw = (look: ThreadLook) => setThread((current) => (current ? { ...current, ...look } : current));
-    void perform(
-      {
-        apply: () => draw(after),
-        revert: () => draw(before),
-        write: () => editThread(id, change).then((result) => result !== null),
-        unwrite: () => editThread(id, before).then((result) => result !== null),
-        did: "Thread updated",
-        failed: "Couldn't save that",
-        unfailed: "Couldn't put that back",
-        // Under the thread's read, at the top of the page.
-        place: { id: `thread:${id}`, icon: "pencil", form: "under" },
-      },
-      toast,
-      writes,
-    );
+    const fromLayout = thread.layout;
+    const draw = (look: ThreadLook, layout?: Layout) =>
+      setThread((current) => (current ? { ...current, ...look, ...(layout ? { layout, layoutSetBy: "person" as const } : {}) } : current));
+    // Only stamp the layout on a draw when this edit actually moved it, so a
+    // plain rename's Undo or a failed save does not claim the person's pick.
+    // The layout switch's Undo needs the labels it moved, which only the write's
+    // result carries, so it is captured here and sent by unwrite.
+    let undo: ThreadEdit = before;
+    const op: Reversible = {
+      apply: () => draw(after, change.layout),
+      revert: () => draw(before, change.layout ? fromLayout : undefined),
+      write: () =>
+        editThread(id, change).then((result) => {
+          if (!result) return false;
+          // The layout switch was refused because the thread's labels are full
+          // (6.8): say what to free, and trying again changes nothing.
+          if (isLabelsFull(result)) {
+            op.failed = `That layout needs ${result.labelsFull.needed} labels and only ${result.labelsFull.free} will fit`;
+            op.retry = null;
+            return false;
+          }
+          if (result.layout) {
+            undo = {
+              ...before,
+              layout: result.layout.previous.layout,
+              layoutSetBy: result.layout.previous.layoutSetBy,
+              undoLabels: { remove: result.layout.made, restore: result.layout.dropped },
+            };
+          }
+          return true;
+        }),
+      unwrite: () => editThread(id, undo).then((result) => result !== null && !isLabelsFull(result)),
+      did: change.layout ? `Showing as ${LAYOUT_NAMES[change.layout]}` : "Thread updated",
+      failed: "Couldn't save that",
+      unfailed: "Couldn't put that back",
+      // Under the thread's read, at the top of the page.
+      place: { id: `thread:${id}`, icon: "pencil", form: "under" },
+    };
+    void perform(op, toast, writes);
   }
 
   /** 020. Move, by hand, from the row's own sheet. The author's, like delete,
@@ -923,6 +1000,44 @@ export default function Thread() {
   // Not a fixed string: it is the anti-duplication contract.
   const restHeading =
     inWidgets.size > 0 ? "Everything else" : "Everything in here";
+
+  // Thread layouts. Default keeps its own render below, to the pixel; the five
+  // others draw layoutFor's sections. The rail is still the screen's, gated by
+  // whether the layout permits one (decision 21).
+  const threadLayout = (thread.layout ?? "default") as Layout;
+  const isDefaultLayout = threadLayout === "default";
+  const page =
+    showArchived || isDefaultLayout
+      ? null
+      : layoutFor<ContentRow, Note>({
+          layout: threadLayout,
+          rows: allRows,
+          notes: shownNotes,
+          labels: thread.labels,
+          // preference only steers Default's widget order, which never routes
+          // through here, so the client's loose type need not be coerced.
+          preference: {},
+          now: new Date(),
+          zone,
+        });
+  const layoutHandlers: LayoutHandlers = {
+    onEdit: setRenaming,
+    onDelete: remove,
+    onToggle: layoutTick,
+    onOpenPhoto: openFileOf,
+    // Todo list's "Add an item" opens the composer's quick add for a task, the
+    // same raise the To do widget's add row uses (6.2).
+    onAdd: () =>
+      raiseFor({
+        threadId: id,
+        threadName: thread.name,
+        write: "quickAdd",
+        section: "todo",
+        title: "Add an item",
+        placeholder: TYPED_ROW_PLACEHOLDER,
+        charLimit: QUICK_ADD_CHARS,
+      }),
+  };
   // The rows a list here draws, so their lines go in place; To do while it is
   // open, and Everything else.
   listed.current = new Set(
@@ -1066,10 +1181,53 @@ export default function Thread() {
         {/* Edit thread's line, under the read, or at the top without one. */}
         <UndoAt id={`thread:${thread.id}`} />
 
+        {/* Thread layouts: the heads-up another member sees once after somebody
+            else switched, then the suggestion line offload draws (6.9). */}
+        {headsUp ? (
+          <View className="px-gutter-screen pt-space-4">
+            <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13 }}>
+              {headsUp.by.displayName} switched this to {LAYOUT_NAMES[headsUp.layout]}
+            </Text>
+          </View>
+        ) : null}
+        {thread.layoutSuggestion && !suggestionGone ? (
+          <View className="flex-row items-center px-gutter-screen pt-space-4">
+            <Pressable
+              onPress={() => {
+                if (!thread.layoutSuggestion) return;
+                setSuggestionGone(true);
+                saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue });
+              }}
+              hitSlop={{ top: 6, bottom: 6 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Show this thread as ${LAYOUT_NAMES[thread.layoutSuggestion]}`}
+              className={`flex-row items-center gap-space-3 border border-transparent bg-surface-accent-soft ${isAndroid ? "rounded-a-sm" : "rounded-pill"}`}
+              style={{ minHeight: 32, paddingLeft: 10, paddingRight: 12, flexShrink: 1, boxShadow: `inset 0 0 0 1px ${COLOR.edgeAccent}` }}
+            >
+              <Glyph name="sparkles" size={13} color={COLOR.accent} />
+              <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13, flexShrink: 1 }} numberOfLines={1}>
+                {suggestionLine(thread.layoutSuggestion)}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setSuggestionGone(true);
+                if (id) void dismissLayoutSuggestion(id);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss suggestion"
+              className="items-center justify-center"
+              style={{ width: 44, height: 44, marginVertical: -6 }}
+            >
+              <Glyph name="x" size={14} color={COLOR.quiet} />
+            </Pressable>
+          </View>
+        ) : null}
+
         {/* The rail is above the widgets, and only on a thread with something
             dated. It is not a widget: it lists every kind with a date rather
             than one, which is why 015 took it out of the widget set. */}
-        {showArchived || !railEarned ? null : (
+        {showArchived || !railEarned || !(isDefaultLayout || page?.rail) ? null : (
           <Timeline
             // Keyed by the thread, so the day you were reading and the gaps you
             // opened do not follow you into the next one.
@@ -1085,6 +1243,10 @@ export default function Thread() {
           />
         )}
 
+        {!isDefaultLayout && !showArchived && page ? (
+          <LayoutSections page={page} labels={thread.labels} handlers={layoutHandlers} />
+        ) : (
+        <>
         {showArchived ? null : (
           <Widgets
             threadId={id}
@@ -1182,6 +1344,8 @@ export default function Thread() {
             />
           )}
         />
+        </>
+        )}
 
         {/* The way to the archived pile, and the way back: a row under
             everything live rather than a control in the section heading. The

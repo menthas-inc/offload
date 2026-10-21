@@ -35,7 +35,7 @@ from typing import Literal
 import httpx
 import structlog
 from anthropic import AsyncAnthropic
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from sqlalchemy import text
 
 from offload_agent import ledger
@@ -315,6 +315,16 @@ class LearnPlan(_Fold):
     """An ordinary thread's pass. Empty everywhere is a good answer."""
 
     learned: list[Learned] = Field(default_factory=list, max_length=3)
+    # Thread layouts. The one layout the pass may suggest, given only when the
+    # thread is laid out as a plain list by offload. Never "default"; most
+    # threads are none of these and no answer is the usual one.
+    layout: str | None = Field(default=None)
+
+    @field_validator("layout", mode="before")
+    @classmethod
+    def one_of_the_layouts(cls, v: object) -> str | None:
+        picks = ("todo", "events", "gallery", "project", "timeline")
+        return v if isinstance(v, str) and v in picks else None
 
 
 class ProposePlan(_Fold):
@@ -782,6 +792,9 @@ async def handle_nightly(
             plan.labels, [dict(row) for row in to_label], [dict(row) for row in anchors]
         ),
         "labelShown": [{"id": row["id"], "of": row["of"]} for row in to_label[:LABEL_CAP]],
+        # Thread layouts. The one suggestion an ordinary thread's pass may make;
+        # the Core API writes it once, under guards.
+        "layout": plan.layout if isinstance(plan, LearnPlan) else None,
     }
     response = await http.post(
         f"{cfg.api_url}/internal/v1/nightly-result",

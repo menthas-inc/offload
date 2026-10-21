@@ -1,6 +1,6 @@
 {
   "note": "the race's third block: the lead's pool, for a candidate block2 kept",
-  "count": 59,
+  "count": 63,
   "cases": [
     "a-correction",
     "a-one-off-date-is-a-row",
@@ -19,7 +19,9 @@
     "date-the-20th",
     "default-thread-silent",
     "error-screenshot-is-a-task-too",
+    "events-lakes",
     "facts-injection",
+    "gallery-games",
     "h-fact-default",
     "h-preserve-truncated",
     "ho-loose-next-of-two",
@@ -48,6 +50,7 @@
     "plan-is-a-note",
     "poster-is-an-event",
     "private-write-quiet",
+    "project-spanish",
     "meera-rota-email-is-two-shifts",
     "q-anything-overdue",
     "read-reference",
@@ -58,6 +61,7 @@
     "thread-note-not-in-query",
     "ticket-view-online",
     "tidy-set-untouched",
+    "timeline-headaches",
     "visa-before-the-trip",
     "wedding-to-attend",
     "yesno-already-done"
