@@ -34,6 +34,27 @@ describe("046 field (AC-2, AC-4)", () => {
   });
 });
 
+describe("046 the field covers the whole pane (owner, 2026-10-21)", () => {
+  // It sat in the 700px content column and ended with the content, leaving
+  // paper either side and below.
+  const rule = (t: string, sel: string): string => t.slice(t.indexOf(`${sel} {`), t.indexOf("}", t.indexOf(`${sel} {`)));
+  it("scrolls a full-width canvas at least as tall as the pane", () => {
+    const t = css("today.module.css");
+    expect(rule(t, ".scroller")).toMatch(/overflow-y:\s*auto/);
+    expect(rule(t, ".canvas")).toMatch(/flex:\s*1 0 auto/);
+    expect(rule(t, ".canvas")).toMatch(/position:\s*relative/);
+  });
+  it("puts the field in the canvas, outside the content column", () => {
+    const tsx = read("components/panes/Today.tsx");
+    const canvas = tsx.indexOf("styles.canvas");
+    const field = tsx.indexOf("styles.field");
+    const column = tsx.indexOf("styles.column");
+    expect(canvas).toBeGreaterThan(-1);
+    expect(field).toBeGreaterThan(canvas);
+    expect(column).toBeGreaterThan(field);
+  });
+});
+
 describe("046 small grey text never sits on the field (AC-3)", () => {
   // Found by the live check: the two-week calendar's empty days and the
   // section counts drew --text-tertiary straight onto the densest bloom.

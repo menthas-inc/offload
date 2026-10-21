@@ -9,13 +9,36 @@
 .today {
   display: flex;
   flex-direction: column;
+}
+
+/* Today scrolls a full-width canvas (046), at least as tall as the pane, so the
+   prism field covers the whole page, side to side and to the bottom, rather
+   than only the content column (the owner, 2026-10-21). */
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.canvas {
   position: relative;
+  flex: 1 0 auto;
+}
+/* The column is the shell's `paneBody`, which scrolls everywhere else; here the
+   scroller above does, so it only centres and pads. Two classes, so it wins over
+   `.paneBody` whatever order the stylesheets load in. */
+.canvas > .column {
+  flex: none;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
 }
 
 /* The prism field (046): four blooms from `TODAY_FIELD`, behind the page
    content, tinted to --today-field-alpha and still (the owner, 2026-10-21). The
    inner layer is 140% wide and centred so blooms overhang; the outer clips it.
-   The cards sit above it (z-index 1) and are opaque, so text never lands on the
+   The column sits above it and the cards are opaque, so text never lands on the
    field. */
 .field {
   position: absolute;
@@ -38,10 +61,6 @@
   aspect-ratio: 1;
   background-size: 100% 100%;
   background-repeat: no-repeat;
-}
-.today > .band {
-  position: relative;
-  z-index: 1;
 }
 
 /* De-banded for the prism field (046, 2026-10-20). The alternating

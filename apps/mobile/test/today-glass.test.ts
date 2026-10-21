@@ -35,6 +35,10 @@ describe("046 field (AC-2), still (owner, 2026-10-21)", () => {
   it("is mounted behind Today's content", () => {
     expect(read("components/today/TodayScreen.tsx")).toMatch(/<TodayField \/>/);
   });
+  it("covers at least the screen: the scroll content grows to fill it", () => {
+    // A short Today ended the field where the content ended (owner, 2026-10-21).
+    expect(read("components/today/TodayScreen.tsx")).toMatch(/contentContainerClassName="grow pb-space-8"/);
+  });
 });
 
 describe("046 small grey text never sits on the field (AC-3)", () => {

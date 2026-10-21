@@ -529,10 +529,12 @@ export function TodayPane({
         }
       />
 
-      <div className={pane.paneBody}>
-        {/* De-banded for the prism field (046): the sections sit flat and the
-            field shows between the cards. Cards stay raised and opaque. */}
-        <div className={styles.today}>
+      {/* 046. Today scrolls a full-width canvas at least as tall as the pane, so
+          the prism field covers the whole page, side to side and to the
+          bottom, with the content column centred on top of it. The sections
+          sit flat, de-banded, and the cards stay raised and opaque. */}
+      <div className={styles.scroller}>
+        <div className={styles.canvas}>
           <div className={styles.field} aria-hidden="true">
             <div className={styles.fieldInner}>
               {TODAY_FIELD.blooms.map((b, i) => (
@@ -549,14 +551,18 @@ export function TodayPane({
               ))}
             </div>
           </div>
-          {layout.sections
-            .map((section) => [section.kind, sectionFor(section)] as const)
-            .filter(([, drawn]) => drawn !== null)
-            .map(([kind, drawn]) => (
-              <div key={kind} className={styles.band} data-section={kind}>
-                {drawn}
-              </div>
-            ))}
+          <div className={`${pane.paneBody} ${styles.column}`}>
+            <div className={styles.today}>
+              {layout.sections
+                .map((section) => [section.kind, sectionFor(section)] as const)
+                .filter(([, drawn]) => drawn !== null)
+                .map(([kind, drawn]) => (
+                  <div key={kind} className={styles.band} data-section={kind}>
+                    {drawn}
+                  </div>
+                ))}
+            </div>
+          </div>
         </div>
       </div>
 

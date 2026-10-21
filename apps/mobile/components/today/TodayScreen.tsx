@@ -596,7 +596,9 @@ export default function TodayScreen() {
         </View>
       </View>
 
-      <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerClassName="pb-space-8">
+      {/* `grow`: a short Today still fills the screen, so the field behind it
+          runs to the bottom rather than ending with the content (046). */}
+      <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerClassName="grow pb-space-8">
         <TodayField />
         {layout.sections
           .map((section, index) => [section.kind, sections[index] ?? null] as const)

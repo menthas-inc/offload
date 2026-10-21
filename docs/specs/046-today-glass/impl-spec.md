@@ -18,6 +18,10 @@ the repo disagree, the repo wins and it is called out.
 - **AC-3 sites:** the calendar on one raised card and section counts on raised pills (web `today.module.css`
   `.month` / `.headCount`; phones a `Ground` around `MonthGrid` and a pill in `SectionHead`).
 - **Design sync** landed on this branch, not main, per the 2026-10-02 rule for features carrying design.
+- **The field covers the whole page.** On web, Today scrolls a full-width canvas at least as tall as the pane
+  (`.scroller` > `.canvas`), with the field in the canvas and the 700px `paneBody` column centred above it; it had
+  sat inside the column and ended with the content (the owner, 2026-10-21). On the phones the ScrollView's content
+  grows to fill the screen, so a short Today's field still runs to the bottom.
 
 ## Nature of the change
 
