@@ -26,6 +26,8 @@ const applied = await migrate((msg) => console.log(JSON.stringify({ level: "info
 const { buildApp } = await import("./app.js");
 const app = await buildApp();
 app.log.info({ applied }, "migrations up to date");
+// 047. A retired root left in place is a rotation half done; say so on every boot.
+if (env.DATA_ROOT_KEY_PREVIOUS) app.log.warn("DATA_ROOT_KEY_PREVIOUS is set: finish the root rotation and remove it");
 
 // The job runner runs in the API process, not a separate service.
 //

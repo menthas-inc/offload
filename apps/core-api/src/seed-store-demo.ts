@@ -27,7 +27,7 @@ import { CONSENT_VERSION } from "./routes/session.js";
 import { makeSignature } from "better-auth/crypto";
 import { linkPhoto } from "./blobs/rows.js";
 import { layoutMemories } from "./memories/layout.js";
-import { generateKey, ROOT_NAME, wrap } from "./crypto/keys.js";
+import { generateKey, wrapUnderRoot } from "./crypto/keys.js";
 import { closeDb, db } from "./db.js";
 import { env } from "./env.js";
 import { uuidv7 } from "./uuid.js";
@@ -55,7 +55,7 @@ export async function seedStoreDemo(zone?: string): Promise<void> {
   for (const { id } of people) {
     await db
       .insertInto("account_keys")
-      .values({ account_id: id, wrapped_dek: wrap(generateKey()), wrapped_by: ROOT_NAME })
+      .values({ account_id: id, ...wrapUnderRoot(generateKey()) })
       .onConflict((oc) => oc.column("account_id").doNothing())
       .execute();
   }

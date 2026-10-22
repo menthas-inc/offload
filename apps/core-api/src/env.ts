@@ -107,6 +107,9 @@ const schema = z.object({
   // derived from BETTER_AUTH_SECRET otherwise, so a test database needs no key
   // provisioning and a real one cannot run without a real key.
   DATA_ROOT_KEY: z.string().min(1).optional(),
+  // 047. Set only while a rotation runs: the root being retired, so rows still
+  // wrapped by it open until `rotate-keys.js root` has moved them all.
+  DATA_ROOT_KEY_PREVIOUS: z.string().min(1).optional(),
 
   // 020. Cloudflare R2, where photos live as ciphertext. All four or none:
   // without them the in-memory store stands in, which is what development and

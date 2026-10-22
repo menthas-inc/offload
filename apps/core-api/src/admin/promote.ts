@@ -21,7 +21,7 @@ import type { Database } from "../schema.js";
 import { emit } from "../analytics.js";
 import { audit } from "./audit.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
-import { generateKey, ROOT_NAME, unwrap, wrap } from "../crypto/keys.js";
+import { generateKey, unwrapFromRoot, wrap, wrapUnderRoot } from "../crypto/keys.js";
 
 export type PromotionOutcome =
   /** The account is now invited and an email is on its way. */
@@ -124,7 +124,7 @@ async function ensureAccountKey(tx: Transaction<Database>, accountId: string): P
   const key = generateKey();
   const inserted = await tx
     .insertInto("account_keys")
-    .values({ account_id: accountId, wrapped_dek: wrap(key), wrapped_by: ROOT_NAME })
+    .values({ account_id: accountId, ...wrapUnderRoot(key) })
     .onConflict((oc) => oc.column("account_id").doNothing())
     .returning(["account_id"])
     .executeTakeFirst();
@@ -136,10 +136,10 @@ async function ensureAccountKey(tx: Transaction<Database>, accountId: string): P
   // retry.
   const row = await tx
     .selectFrom("account_keys")
-    .select(["wrapped_dek"])
+    .select(["wrapped_dek", "wrapped_by"])
     .where("account_id", "=", accountId)
     .executeTakeFirstOrThrow();
-  return unwrap(Buffer.from(row.wrapped_dek));
+  return unwrapFromRoot(row);
 }
 
 async function ensureDefaultThread(
