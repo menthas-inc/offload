@@ -180,6 +180,9 @@
   /* 030. What a closed composer covers at the foot of a pane: a map on Map
      stops above it. */
   --map-foot: 104px;
+  /* What a closed composer covers at the foot of a scrolling pane: the last
+     row clears it. One token, consumed by every pane (046). */
+  --composer-foot: 120px;
   /* The toast is absolutely positioned inside this, not the viewport, so it
      sits over the panes rather than over the sidebar too. */
   position: relative;
@@ -472,7 +475,7 @@
   margin: 0 auto;
   /* Clears a closed composer, which floats over this. An open one covers
      content, which is what floating means and is why it can be closed. */
-  padding: 0 var(--space-8) 120px;
+  padding: 0 var(--space-8) var(--composer-foot);
 }
 
 .section {

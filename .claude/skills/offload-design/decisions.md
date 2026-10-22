@@ -11,6 +11,22 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-20 · Today: a prism field, and the composer as frosted glass
+**Surface:** iOS, Android, web; Today's field, and the composer on every tab
+**Raised by:** the product owner, off the design bundle and `handoff/APPLY-2026-10-19-today-glass.md`: Today's grey bands read as bland. Built from spec 046 (`docs/specs/046-today-glass/`), where the contrast was measured before any code.
+
+**Was:** Today's sections alternated paper and a `--surface-fill` band (11 October). The bottom plate was opaque with its own resting prism band. The prism field was frozen and confined to the plate and the gate, never under a scrolling list (2026-09-08), and a still field was chosen for Today on 19 October.
+
+**Is:** no bands; cards stay `--surface-raised` and the page shows a prism field between them, four still blooms at `--today-field-alpha` scrolling with the content, Today only. The composer is frosted glass over the page on every tab (the plate on the phones, the floating composer card on the web), with a graded tint; its resting prism band goes and the arrival pulse stays. On Android the plate blurs from 12 (the Dimezis RenderNode blur, sampling the screens through one `BlurTargetView` in the root layout). The raised conversation is the same glass on iOS, opaque on Android, so Android never runs two live blurs. Opaque fallbacks for Reduce Transparency, Android below 12 and no `backdrop-filter`.
+
+**One reversal, named:** this reverses *the prism field is never under a scrolling list* (2026-09-08), because the field is now on the page where people see it rather than hidden under a fill; small grey text is kept off it instead (below). *Frozen at rest* still holds: a slow drift was built and taken out the same day, the owner judging it did not look right (2026-10-21), so the field is still, as decided on 2026-10-19. The small grey text that would otherwise sit on the bare field (`--text-tertiary`, measured at only 4.846:1 on the light page, no headroom) stays on `--surface-raised` cards, so the rich blooms read in both themes without failing contrast. A lighter bloom could not: lightening a shared asset passes light and fails dark, the two pull opposite ways (measured in `docs/specs/046-today-glass/tasks.md`, T0.0).
+
+**As built, found by the live check:** with the bands gone, the two-week calendar's empty days, its month head and Today link, and every section count were `--text-tertiary` (and a 12.5px accent link) drawn straight onto the densest bloom. The calendar now sits on one raised card (a lit day still lifts on it by its hairline and shadow), and a section count sits on a small raised pill, so no small grey text on Today touches the field. Headings stay on the field: near-black, or large and blue.
+
+**Considered and not taken:** a single lighter or pastel bloom set (fails dark); per-theme bloom sets (light reads faint); a page-level veil (dilutes the field); lowering the field alpha (does not rescue light tertiary at any value); a continuous prism shader on Today (the per-frame GPU cost the field avoids); a slow transform drift of the blooms (built, then removed: it did not look right).
+
+**Design system impact:** `--today-field-alpha`, `--glass-tint-rgb`, `--glass-tint-top`/`-mid`/`-base`, `--glass-sheet`, `--glass-edge-rgb`/`-alpha`, `--glass-blur-radius`/`-intensity`, `--glass-saturate` in `tokens/colors.css`, both themes. The bloom placements ship as `TODAY_FIELD` in `@offload/tokens`. The readme's **Today** section: bands replaced by the field, the composer described as glass. The kits still draw bands and the resting plate band and are owed both the de-band and the glass. No new component contract (`GlassBackdrop` is an app component). Reverses the plate's opaque ground in *The bottom plate is a fixed shape*; its shape, corners and keyboard behaviour are unchanged.
+
 ### 2026-10-19 · Today's calendar is two weeks, stepped a week at a time
 **Surface:** iOS, Android, web
 **Raised by:** the owner: the month grid took too many steps; show this week and next as two rows, the arrows moving a week at a time, always two rows.

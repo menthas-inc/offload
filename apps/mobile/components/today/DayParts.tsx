@@ -46,9 +46,13 @@ export function SectionHead({ title, count, big = false }: { title: string; coun
         {title}
       </Text>
       {count !== undefined ? (
-        <Text className="font-core text-text-tertiary" style={{ fontSize: 13 }}>
-          {count}
-        </Text>
+        // Quiet grey on a small raised pill, so it never sits on the prism
+        // field (046, AC-3).
+        <View className="rounded-pill bg-surface-raised px-space-3">
+          <Text className="font-core text-text-tertiary" style={{ fontSize: 13 }}>
+            {count}
+          </Text>
+        </View>
       ) : null}
     </View>
   );

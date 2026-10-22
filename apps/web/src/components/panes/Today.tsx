@@ -62,6 +62,7 @@ import {
   type RemindersRead,
   type TodayLayout,
 } from "../../lib/today";
+import { TODAY_FIELD } from "@offload/tokens";
 import pane from "../../app/(shell)/shell.module.css";
 import styles from "../../app/(shell)/today.module.css";
 
@@ -528,19 +529,40 @@ export function TodayPane({
         }
       />
 
-      <div className={pane.paneBody}>
-        {/* Bands (design 2026-10-11): the drawn sections alternate by position
-            between the page and a band, whatever order Customize Today keeps;
-            a section that draws nothing takes no position. */}
-        <div className={styles.today}>
-          {layout.sections
-            .map((section) => [section.kind, sectionFor(section)] as const)
-            .filter(([, drawn]) => drawn !== null)
-            .map(([kind, drawn], index) => (
-              <div key={kind} className={styles.band} data-section={kind} data-band={index % 2 === 1 ? "true" : undefined}>
-                {drawn}
-              </div>
-            ))}
+      {/* 046. Today scrolls a full-width canvas at least as tall as the pane, so
+          the prism field covers the whole page, side to side and to the
+          bottom, with the content column centred on top of it. The sections
+          sit flat, de-banded, and the cards stay raised and opaque. */}
+      <div className={styles.scroller}>
+        <div className={styles.canvas}>
+          <div className={styles.field} aria-hidden="true">
+            <div className={styles.fieldInner}>
+              {TODAY_FIELD.blooms.map((b, i) => (
+                <div
+                  key={i}
+                  className={styles.bloom}
+                  style={{
+                    top: b.top,
+                    width: b.width,
+                    ...(b.from === "left" ? { left: b.offset } : { right: b.offset }),
+                    backgroundImage: `url(/prism/p2-bloom-${b.src}.webp)`,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+          <div className={`${pane.paneBody} ${styles.column}`}>
+            <div className={styles.today}>
+              {layout.sections
+                .map((section) => [section.kind, sectionFor(section)] as const)
+                .filter(([, drawn]) => drawn !== null)
+                .map(([kind, drawn]) => (
+                  <div key={kind} className={styles.band} data-section={kind}>
+                    {drawn}
+                  </div>
+                ))}
+            </div>
+          </div>
         </div>
       </div>
 
