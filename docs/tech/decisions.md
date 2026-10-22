@@ -1332,3 +1332,14 @@ The owner decided the 2026-10-17 sweep's calls; the full list and what was left 
 - ✅ **The export carries reminder kinds and the Remind me switch (S33)**, the author's own only, so the privacy page's "everything" is true without rewording. Migration 0089's header still says labels are never exported; it is applied and left as written.
 
 **Design system impact:** Health gains a Calendar grants section (logged in the design decisions).
+
+## The root key can be rotated, 2026-10-22
+
+Railway exposed customer environment variables on 2026-10-22, so `DATA_ROOT_KEY` is assumed leaked. Spec 047.
+
+- ✅ **Two roots while a rotation runs, each row opened by the one it names.** `DATA_ROOT_KEY` is current and `DATA_ROOT_KEY_PREVIOUS` the one being retired. A root's name is `db:` plus six bytes of HKDF of the key, so a row's name can never disagree with the key that wrapped it whatever order the variables and the deploys land in, and the next rotation needs no code. `db:v1`, what every row said before, reads as the previous root when one is set and the current one otherwise.
+- ✅ **`rotate-keys.js root` rewraps `account_keys`, a transaction per row, resumable by `wrapped_by`, counts only.** Run in production through `railway ssh`, like `api-role.js`. `rotate-keys.js account <email>` gives one account a new key and rewraps its thread key copies, copies' keys and photos' account wraps in one transaction. `accountKey()` takes `FOR SHARE` so that rotation waits for any request holding the old key.
+- ⚠️ **Open, the owner's call:** level 1 changes nothing for someone who already holds a database copy and the old root. Only new thread keys and blob re-encryption would, and neither is built. The impl-spec says what each level protects.
+- ✅ **The vault is rotated by replacing its key and reconnecting**, no code: the 2026-10-08 `openOrNull` path already treats an unopenable token as a grant to reconnect.
+
+**Design system impact:** none.

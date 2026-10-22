@@ -155,11 +155,12 @@ describe("POST /v1/mail/resend (AC-1, AC-2)", () => {
   });
 
   it("logs no address, subject or body on any path (AC-22)", async () => {
-    stored = { id: "e6", to: ["over@to.offload.club"], bytes: await signed(raw({ subject: "Fwd: Zebra LX3K9", body: "Secret quokka\r\n" })) };
-    await post(event("e6"));
-    await post(event("e6"), { signature: "v1,AAAA" });
+    // Not "e6": the CI runner's hostname is in every log line and once contained it.
+    stored = { id: "evt_E6", to: ["over@to.offload.club"], bytes: await signed(raw({ subject: "Fwd: Zebra LX3K9", body: "Secret quokka\r\n" })) };
+    await post(event("evt_E6"));
+    await post(event("evt_E6"), { signature: "v1,AAAA" });
     expect(logs.length).toBeGreaterThan(0);
-    for (const needle of ["Zebra", "quokka", DOMAIN, "offload.club", "e6"]) expect(logs).not.toContain(needle);
+    for (const needle of ["Zebra", "quokka", DOMAIN, "offload.club", "evt_E6"]) expect(logs).not.toContain(needle);
   });
 });
 

@@ -10,7 +10,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { promote } from "../src/admin/promote.js";
-import { unwrap } from "../src/crypto/keys.js";
+import { rootName, unwrap, unwrapFromRoot } from "../src/crypto/keys.js";
 
 await migrate(() => {});
 
@@ -123,9 +123,9 @@ describe("the key layers it creates", () => {
       .selectAll()
       .where("account_id", "=", result.accountId)
       .executeTakeFirstOrThrow();
-    expect(accountKeyRow.wrapped_by).toBe("db:v1");
+    expect(accountKeyRow.wrapped_by).toBe(rootName());
 
-    const accountKey = unwrap(Buffer.from(accountKeyRow.wrapped_dek));
+    const accountKey = unwrapFromRoot(accountKeyRow);
     expect(accountKey).toHaveLength(32);
 
     const threadKeyRow = await db
@@ -138,7 +138,7 @@ describe("the key layers it creates", () => {
     expect(unwrap(Buffer.from(threadKeyRow.wrapped_tk), accountKey)).toHaveLength(32);
     // And not with the root, which is what "wrapped once per scope entitled to
     // open it" has to mean if leaving a thread is to revoke anything.
-    expect(() => unwrap(Buffer.from(threadKeyRow.wrapped_tk))).toThrow();
+    expect(() => unwrapFromRoot({ wrapped_dek: threadKeyRow.wrapped_tk, wrapped_by: rootName() })).toThrow();
   });
 });
 
