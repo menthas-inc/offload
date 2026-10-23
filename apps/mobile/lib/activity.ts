@@ -31,6 +31,8 @@ export interface ActivityEntry {
   /** 026. Which of the five an email row is, and the email it came from. */
   mailOutcome?: "filed" | "asked" | "nothing" | "refused" | "over_limit" | null;
   messageId?: string | null;
+  /** An email's open question, which the row opens. */
+  questionId?: string | null;
 }
 
 export interface ActivityPage {
@@ -106,6 +108,14 @@ export function doorOf(row: ActivityEntry, at?: DoorContext): Door | null {
     default:
       return null;
   }
+}
+
+/** 026 AC-17. An email's open question opens in the conversation that asked,
+ *  over Today, the row's door. False when there is none to open. */
+export async function openQuestion(row: ActivityEntry, resumeConversation: () => Promise<boolean>): Promise<boolean> {
+  if (!row.questionId) return false;
+  const { status } = await send<{ conversationId: string }>(`/v1/questions/${row.questionId}/resume`, { method: "POST" });
+  return status === 200 && (await resumeConversation());
 }
 
 /** Today, Yesterday, Earlier: by the day the row happened, in the zone the

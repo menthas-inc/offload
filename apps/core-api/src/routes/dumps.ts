@@ -1897,8 +1897,14 @@ export async function dumpRoutes(app: App): Promise<void> {
           .where("questions.id", "=", request.params.id)
           .where("questions.account_id", "=", accountId)
           .where("questions.state", "=", "open")
-          // Only what typing answers; a question with values is tapped.
-          .where("questions.field", "in", ["date", "span", "time"])
+          // Only what typing answers; a question with values is tapped. An
+          // email's is any field: its Activity row opens it here (026 AC-17).
+          .where((eb) =>
+            eb.or([
+              eb("questions.field", "in", ["date", "span", "time"]),
+              eb.exists(eb.selectFrom("messages as m").select("m.id").whereRef("m.id", "=", "questions.message_id").where("m.source", "=", "mail")),
+            ]),
+          )
           // The question's account is not held to its conversation's by the
           // schema, so the conversation is checked as the account's too.
           .where("conversations.account_id", "=", accountId)

@@ -30,6 +30,10 @@ export function startOfTomorrow(today: string, zone: string | null): Date {
  *  offload says who will find out and a follow-up turn has somewhere to land. */
 export const TODAY_FIELDS = ["date", "span", "time", "thread"] as const;
 
+/** 2026-10-23. An email's calendar question too: its conversation ended as it
+ *  opened, so nobody is in it to answer, and 026 AC-25 is one card each. */
+const EMAIL_FIELDS = [...TODAY_FIELDS, "calendar"] as const;
+
 const person = z.object({ accountId: z.string(), displayName: z.string().nullable(), initials: z.string() });
 
 export const needsCard = z.discriminatedUnion("kind", [
@@ -137,10 +141,11 @@ async function questionCards(accountId: string): Promise<NeedsCard[]> {
     ])
     .where("q.account_id", "=", accountId)
     .where("q.state", "=", "open")
-    .where("q.field", "in", [...TODAY_FIELDS])
+    .where("q.field", "in", [...EMAIL_FIELDS])
     .orderBy("q.created_at", "asc")
     .execute();
   return rows
+    .filter((row) => row.source === "mail" || (TODAY_FIELDS as readonly string[]).includes(row.field))
     // A question raised from somebody else's words is on Today only when it
     // came from a forwarded email, and then it says so. One from a calendar
     // or a web page stays in the conversation that holds its source.

@@ -122,6 +122,27 @@ describe("the Activity row (AC-15, AC-17)", () => {
     expect(row).toMatchObject({ mail_outcome: "asked", title: "A question about an email", body: "“Parents' evening”.", message_id: messageId });
   });
 
+  it("carries the question while it is open, so the row opens it, and not once it closes", async () => {
+    const { jobId, messageId, turnId } = await forwarded("Ticket confirmation");
+    const message = await db.selectFrom("messages").select("conversation_id").where("id", "=", messageId).executeTakeFirstOrThrow();
+    const { id } = await db
+      .insertInto("questions")
+      .values({
+        account_id: jo, conversation_id: message.conversation_id, message_id: messageId, turn_id: turnId,
+        ordinal: 1, options: JSON.stringify([]), field: "calendar", text: "Which calendar?", state: "open",
+      } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await result(jobId);
+    const listed = async () => {
+      const response = await app.inject({ method: "GET", url: "/v1/activity", headers: { cookie: await signIn(jo) } });
+      return (response.json() as { rows: { kind: string; questionId: string | null }[] }).rows.find((r) => r.kind === "mail");
+    };
+    expect(await listed()).toMatchObject({ questionId: id });
+    await db.updateTable("questions").set({ state: "answered" }).where("id", "=", id).execute();
+    expect(await listed()).toMatchObject({ questionId: null });
+  });
+
   it("says nothing was filed, and opens the email, when the turn filed nothing or failed", async () => {
     const { jobId, messageId } = await forwarded("Newsletter");
     await result(jobId, "failed");

@@ -107,6 +107,21 @@ describe("an email's row in Activity (AC-15, AC-17)", () => {
     expect(doorOf({ ...base, mailOutcome: "asked" })).toBe("/today");
     expect(doorOf({ ...base, mailOutcome: "nothing" })).toBe("/today");
   });
+  it("opens an open question in the conversation that asked, and nothing once it closed", async () => {
+    const { openQuestion } = await import("../src/lib/notifications");
+    const { RESUME_COMPOSER } = await import("../src/lib/dump");
+    const fetched = vi.fn(() => Promise.resolve(new Response("{}", { status: 200 })));
+    vi.stubGlobal("fetch", fetched);
+    const resumed = vi.fn();
+    window.addEventListener(RESUME_COMPOSER, resumed);
+    await openQuestion({ ...base, mailOutcome: "asked", questionId: null });
+    expect(fetched).not.toHaveBeenCalled();
+    await openQuestion({ ...base, mailOutcome: "asked", questionId: "q1" });
+    expect(String(fetched.mock.calls[0]![0 as never])).toContain("/v1/questions/q1/resume");
+    expect(resumed).toHaveBeenCalledOnce();
+    window.removeEventListener(RESUME_COMPOSER, resumed);
+    vi.unstubAllGlobals();
+  });
   it("opens the Mail block for a refused email, and nothing for the cap", async () => {
     const { doorOf } = await import("../src/lib/notifications");
     expect(doorOf({ ...base, mailOutcome: "refused", messageId: null })).toBe("/settings/apps");

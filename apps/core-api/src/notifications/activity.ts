@@ -131,6 +131,8 @@ export interface ActivityEntry {
   occurredAt: string;
   mailOutcome: ActivityTable["mail_outcome"];
   messageId: string | null;
+  /** An email's open question, which its row opens; null once it closes. */
+  questionId: string | null;
 }
 
 /** A page, newest first by when it happened, the cursor the last row's id.
@@ -153,6 +155,17 @@ export async function listActivity(accountId: string, cursor: string | null): Pr
   const rows = await query.execute();
   const page = rows.slice(0, ACTIVITY_PAGE);
   const last = page[page.length - 1];
+  const askedIn = page.filter((row) => row.mail_outcome === "asked" && row.message_id).map((row) => row.message_id!);
+  const open = askedIn.length
+    ? await db
+        .selectFrom("questions")
+        .select(["id", "message_id"])
+        .where("account_id", "=", accountId)
+        .where("message_id", "in", askedIn)
+        .where("state", "=", "open")
+        .execute()
+    : [];
+  const questionOf = new Map(open.map((q) => [q.message_id, q.id]));
   return {
     rows: page.map((row) => ({
       id: row.id,
@@ -174,6 +187,7 @@ export async function listActivity(accountId: string, cursor: string | null): Pr
       occurredAt: row.occurred_at.toISOString(),
       mailOutcome: row.mail_outcome,
       messageId: row.message_id,
+      questionId: (row.message_id && questionOf.get(row.message_id)) ?? null,
     })),
     next: rows.length > ACTIVITY_PAGE && last ? last.id : null,
   };
