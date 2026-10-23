@@ -1343,3 +1343,18 @@ Railway exposed customer environment variables on 2026-10-22, so `DATA_ROOT_KEY`
 - ✅ **The vault is rotated by replacing its key and reconnecting**, no code: the 2026-10-08 `openOrNull` path already treats an unopenable token as a grant to reconnect.
 
 **Design system impact:** none.
+
+## Railway's leaked environment, and what was rotated, 2026-10-23
+
+Railway disclosed on 2026-10-21 (incident `QH8L8B3E`) that a third party may have read customers' decrypted environment variables. Everything offload kept in Railway is treated as leaked. offload had one user, the owner, so there was nobody else to tell.
+
+- ✅ **Rotated, each new value deployed and checked before the old one was revoked:** Anthropic, Voyage and AssemblyAI keys; `INTERNAL_SERVICE_TOKEN`, `BETTER_AUTH_SECRET` and `PLACE_HASH_PEPPER`, minted in process and never printed; the Google sign-in and connector client secrets and the server maps key (projects `offload-507217`, `offload-connectors`, `offload-maps-510418`); the Apple sign-in key; the Resend key and webhook secret; the Expo push token on the `core-api-push` robot; the one R2 token, which backup shares with core-api by reference; the three Postgres roles; the `Postgres-PITR` bucket credentials, which Railway had also rotated on 2026-10-21. `DATA_ROOT_KEY` through 047's runbook: three account keys moved to the new root, a second run moved none, and the owner's account key was replaced, rewrapping 7 thread keys and 21 photo keys.
+- ✅ **Not rotated, on purpose:** `CONNECTOR_VAULT_KEY`, the owner's call, because a sealed calendar token is useless without the connector client secret and the old one is disabled. `NEXT_PUBLIC_*` ship to every browser by design. `CLOUDFLARE_API_TOKEN` lives in the local `.env` only. `RAILWAY_API_TOKEN` was never set.
+- ✅ **Postgres passwords are set as SCRAM verifiers computed locally**, so the plaintext never reaches the remote command line, and each service's connection string is rewritten in the same run. The verifier was proven on a throwaway local role first.
+- ✅ **What was checked:** exactly three login roles, no event triggers, only `postgres` privileged, every connection from a service's private address. The 90 failed logins during the rotation were all the outgoing core-api on the old password. The repository has no deploy keys, no webhooks and no Actions secrets, one collaborator, and every commit since 2026-10-20 is the owner's.
+- ⚠️ **What cannot be ruled out:** Postgres logged no connections before 2026-10-23, so a read between the leak and the rotation leaves no trace, and under OFF-2 a database copy exposes all text content. `log_connections` is on from 2026-10-23.
+- ⚠️ **Keep the retired root until 2026-11-22.** A backup taken before the rewrap opens only with it as `DATA_ROOT_KEY_PREVIOUS` (047, runbook step 8).
+- ✅ **What the platform did during it, for next time.** A merge reached neither CI nor Railway while GitHub was degraded; Railway's "Deploy latest commit" (Cmd+K) deploys `main` without the push. The CLI cannot redeploy a cron service's deployment; the dashboard can. A change to a variable another service references sometimes redeploys that service and sometimes stages it, so read `railway deployment list` after every change. Railway's own note says a GitHub integration made before the incident may need reconnecting before merges deploy again.
+- ⚠️ **Open:** the 03:00 backup on 2026-10-24 is the first on the new database password and R2 secret; if merges stop deploying, reconnect the GitHub integration.
+
+**Design system impact:** none.
