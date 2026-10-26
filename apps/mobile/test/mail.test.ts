@@ -46,6 +46,13 @@ describe("an email's row in Activity (AC-15, AC-17)", () => {
     expect(activity.doorOf({ ...base, mailOutcome: "asked" })).toEqual({ pathname: "/today" });
     expect(activity.doorOf({ ...base, mailOutcome: "nothing" })).toEqual({ pathname: "/today" });
   });
+  it("opens an open question in the conversation that asked, and nothing once it closed", async () => {
+    const resume = vi.fn(() => Promise.resolve(true));
+    expect(await activity.openQuestion({ ...base, mailOutcome: "asked", questionId: null }, resume)).toBe(false);
+    expect(resume).not.toHaveBeenCalled();
+    expect(await activity.openQuestion({ ...base, mailOutcome: "asked", questionId: "q1" }, resume)).toBe(true);
+    expect(resume).toHaveBeenCalledOnce();
+  });
   it("opens the Mail page for a refused email, and nothing for the cap", () => {
     expect(activity.doorOf({ ...base, mailOutcome: "refused", messageId: null })).toEqual({ pathname: "/settings/[page]", params: { page: "mail" } });
     expect(activity.doorOf({ ...base, mailOutcome: "over_limit", messageId: null })).toBeNull();
