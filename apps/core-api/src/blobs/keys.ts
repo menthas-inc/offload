@@ -14,7 +14,7 @@
 // deletion and leaving a thread destroy.
 
 import type { Transaction } from "kysely";
-import { generateKey, unwrap, wrap } from "../crypto/keys.js";
+import { generateKey, unwrap, unwrapFromRoot, wrap } from "../crypto/keys.js";
 import type { Database } from "../schema.js";
 
 type Trx = Transaction<Database>;
@@ -25,15 +25,20 @@ export class NoKey extends Error {
   }
 }
 
-/** An account's data key, unwrapped from the root. */
+/** An account's data key, unwrapped from the root.
+ *
+ *  Share-locked for the rest of the transaction, so a rotation of this key
+ *  (047) waits for every transaction holding the old one and nothing gets
+ *  wrapped under a key that has just been replaced. */
 export async function accountKey(trx: Trx, accountId: string): Promise<Buffer> {
   const row = await trx
     .selectFrom("account_keys")
-    .select("wrapped_dek")
+    .select(["wrapped_dek", "wrapped_by"])
     .where("account_id", "=", accountId)
+    .forShare()
     .executeTakeFirst();
   if (!row) throw new NoKey(`account ${accountId}`);
-  return unwrap(Buffer.from(row.wrapped_dek));
+  return unwrapFromRoot(row);
 }
 
 /** A thread's key, through any accepted member's wrapped copy.
@@ -55,14 +60,14 @@ export async function threadKey(trx: Trx, threadId: string): Promise<Buffer> {
         .onRef("thread_members.thread_id", "=", "thread_keys.thread_id")
         .onRef("thread_members.account_id", "=", "thread_keys.account_id"),
     )
-    .select(["thread_keys.account_id as account_id", "thread_keys.wrapped_tk as wrapped_tk"])
+    .select("thread_keys.account_id as account_id")
     .where("thread_keys.thread_id", "=", threadId)
     .where("thread_members.state", "=", "accepted")
     .executeTakeFirst();
 
   if (held) {
     const holder = await accountKey(trx, held.account_id);
-    const key = unwrap(Buffer.from(held.wrapped_tk), holder);
+    const key = unwrap(await copyOf(trx, threadId, held.account_id), holder);
     await wrapForMembersWithout(trx, threadId, key);
     return key;
   }
@@ -115,13 +120,26 @@ export async function threadKey(trx: Trx, threadId: string): Promise<Buffer> {
 export async function passThreadKeyOn(trx: Trx, threadId: string, fromAccountId: string): Promise<void> {
   const mine = await trx
     .selectFrom("thread_keys")
-    .select("wrapped_tk")
+    .select("thread_id")
     .where("thread_id", "=", threadId)
     .where("account_id", "=", fromAccountId)
     .executeTakeFirst();
   if (!mine) return;
-  const key = unwrap(Buffer.from(mine.wrapped_tk), await accountKey(trx, fromAccountId));
-  await wrapForMembersWithout(trx, threadId, key);
+  const holder = await accountKey(trx, fromAccountId);
+  await wrapForMembersWithout(trx, threadId, unwrap(await copyOf(trx, threadId, fromAccountId), holder));
+}
+
+/** A member's wrapped copy of a thread key. Read only once the caller holds
+ *  that member's account key: a rotation (047) committed in between would
+ *  leave a copy the key in hand cannot open. */
+async function copyOf(trx: Trx, threadId: string, accountId: string): Promise<Buffer> {
+  const row = await trx
+    .selectFrom("thread_keys")
+    .select("wrapped_tk")
+    .where("thread_id", "=", threadId)
+    .where("account_id", "=", accountId)
+    .executeTakeFirstOrThrow();
+  return Buffer.from(row.wrapped_tk);
 }
 
 /** A wrapped copy for every accepted member who holds none. Exported for the
@@ -171,7 +189,16 @@ export async function objectKeyOf(trx: Trx, blobId: string): Promise<Buffer> {
   const byAccount = wraps.find((w) => w.scope === "account");
   if (byAccount) {
     try {
-      return unwrap(Buffer.from(byAccount.wrapped_object_key), await accountKey(trx, byAccount.scope_id));
+      const holder = await accountKey(trx, byAccount.scope_id);
+      // Read again under the key's lock: a rotation (047) may have rewrapped it since.
+      const fresh = await trx
+        .selectFrom("blob_keys")
+        .select("wrapped_object_key")
+        .where("blob_id", "=", blobId)
+        .where("scope", "=", "account")
+        .where("scope_id", "=", byAccount.scope_id)
+        .executeTakeFirstOrThrow();
+      return unwrap(Buffer.from(fresh.wrapped_object_key), holder);
     } catch (error) {
       // The account is gone and its key with it. Fall through to the threads.
       if (!(error instanceof NoKey)) throw error;

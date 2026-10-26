@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import { open, seal, VAULT_NAME, connectorsAvailable } from "../src/connectors/vault.js";
-import { wrap } from "../src/crypto/keys.js";
+import { wrapUnderRoot } from "../src/crypto/keys.js";
 
 const CONNECTION = "0199e0d0-0000-7000-8000-000000000001";
 const OTHER = "0199e0d0-0000-7000-8000-000000000002";
@@ -62,7 +62,7 @@ describe("AC-2 the vault is not the root", () => {
   it("cannot open something the root sealed", () => {
     // The whole point of two keys. If this passed, they would be one key with
     // two names and rotating either would be a decision about both.
-    const rootSealed = wrap(Buffer.from("content key"));
+    const rootSealed = wrapUnderRoot(Buffer.from("content key")).wrapped_dek;
     expect(() => open(rootSealed, CONNECTION, "access_token")).toThrow();
   });
 
