@@ -11,13 +11,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { contentSecurityPolicy } from "./lib/csp";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "https://api.offload.club";
-
 export function middleware(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const policy = contentSecurityPolicy({
     nonce,
-    api: API,
+    // The client's own fallback, so a dev server without the variable can reach
+    // its local API. Production sets it.
+    api: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4701",
     dev: process.env.NODE_ENV === "development",
     // 030. The same two values the client needs before it draws a map. Not
     // the server's switch: a build with both and the switch off names the
