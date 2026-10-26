@@ -6,9 +6,13 @@
  * min-height and grows with the type size.
  */
 
+/* The space the de-banded `.band` padding used to give (046): under the pane
+   head's tools, and between sections at the rhythm inside one. */
 .today {
   display: flex;
   flex-direction: column;
+  gap: var(--space-7);
+  padding-top: var(--space-5);
 }
 
 /* Today scrolls a full-width canvas (046), at least as tall as the pane, so the
