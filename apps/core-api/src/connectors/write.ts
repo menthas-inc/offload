@@ -122,8 +122,10 @@ export async function verdictFor(
   return outwardTest({
     attendeesBefore,
     attendeesAfter,
-    participants: await freshParticipants(target, accessToken),
+    // Read only for a delete, the one write the count still confirms.
+    participants: write.action === "delete" ? await freshParticipants(target, accessToken) : target.participants,
     askFirst: target.askFirst,
+    deleting: write.action === "delete",
   });
 }
 

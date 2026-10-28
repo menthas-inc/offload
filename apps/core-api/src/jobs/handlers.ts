@@ -107,7 +107,7 @@ async function giveBack(error: unknown, accountId: string, column: "waitlist_ema
  *  the queue's idempotency key prevents a second enqueue, not a second send by
  *  a job that retried after the mailer succeeded and the acknowledgement did
  *  not. */
-const invited: Handler = async (_payload, { mailer }, accountId) => {
+const invited: Handler = async (payload, { mailer }, accountId) => {
   if (!accountId) throw new Error("invited job has no account");
 
   const claimed = await db
@@ -121,17 +121,27 @@ const invited: Handler = async (_payload, { mailer }, accountId) => {
 
   if (!claimed) return;
 
+  // A job queued before promotion said where the address came from was a
+  // waitlist promotion: that was the only invite there was.
+  const fromWaitlist = (payload as { fromWaitlist?: boolean }).fromWaitlist !== false;
+  const site = new URL(env.WEB_URL).host;
+
   await mailer.send({
     to: claimed.email,
-    subject: "You are in",
+    subject: "Welcome to offload",
     slots: {
-      headline: "You are in",
+      headline: "Let's get you started",
       body:
-        "Your offload account is ready. Sign in with this address, using Google or Apple, " +
-        "and dump the first thing you would otherwise forget.",
-      buttonLabel: "Open offload",
-      buttonUrl: `${env.WEB_URL}/sign-in`,
-      footer: `You are receiving this because you joined the offload waitlist at ${new URL(env.WEB_URL).host}.`,
+        `You've been invited to try offload. You can sign in with your email address ${claimed.email} ` +
+        "using Google or Apple and start using offload!",
+      bold: claimed.email,
+      badges: [
+        { url: "https://apps.apple.com/app/id6814795746", image: `${env.WEB_URL}/brands/app-store.png`, alt: "Download on the App Store" },
+        { url: `${env.WEB_URL}/sign-in`, image: `${env.WEB_URL}/brands/open-in-browser.png`, alt: "Open in browser" },
+      ],
+      footer: fromWaitlist
+        ? `You are receiving this because you joined the offload waitlist at ${site}.`
+        : "You are receiving this because the team at offload wanted you to try it.",
     },
   }).catch((error: unknown) => giveBack(error, accountId, "invite_email_sent_at"));
 };
