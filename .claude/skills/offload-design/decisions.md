@@ -4422,3 +4422,14 @@ exactly like "I refreshed and I cannot see your change".
 **Is:** an email's `calendar` question is a question card like any other, *About an email*, its calendars as `QuickReplies`. Tapping *A question about an email* in Activity, while the question is open, makes the email's conversation the current one and opens the composer on it with the question in view, as Today's *Answer* does; once it is closed the row opens Today as before.
 **Why:** 026 AC-17 and AC-25 already said both; 027's exclusion of `calendar` predated each email being its own conversation.
 **Design system impact:** none. The question card and the resumed conversation are existing components.
+
+### 2026-10-28 · The invite email: new words, and a row of two badges
+**Surface:** email, the invite
+**Raised by:** the owner, once 0.3.0 was live on the App Store: someone promoted from the waitlist should be one tap from the app or the web.
+**Was:** *You are in*, one paragraph, one *Open offload* button to the web sign-in, the waitlist footer for everyone, and no images anywhere in the shell.
+**Is:**
+- Subject *Welcome to offload*, headline *Let's get you started*, and the owner's paragraph with the person's address in bold. The brand stays lowercase where the owner's draft capitalised it.
+- In place of the button, one row of two 120 by 40 badges: Apple's own *Download on the App Store* (black, from developer.apple.com, unedited) linked to the listing, and an *Open in browser* badge linked to the web sign-in. The second is drawn on Apple's frame, so the two are the same size, corners and edge, with offload's inverse mark where the Apple logo sits and *Open in* over *browser* in the same two-line rhythm. Both are PNGs at three times size served from the web app's `/brands/`, because Gmail does not draw SVG. Their alt text is their words, so with images blocked they are still links that say what they do; the plain-text alternative carries both URLs.
+- The footer follows how they got in: the waitlist line if they joined it, *You are receiving this because the team at offload wanted you to try it.* if staff added the address directly.
+**Why:** the owner asked for the logos and a matching web button. The no-images rule was about blocked images costing nothing and about never carrying a tracking pixel; alt text keeps the first, and one fixed URL for every recipient keeps the second.
+**Design system impact:** `ui_kits/marketing_site/invite-email.html` and its README: the rule becomes *no images but the invite's two badges*, and the mock takes the new words, the badge row in place of the button, and the second footer. The *Open in browser* badge has no source file in the design system; its source is `apps/web/public/brands/open-in-browser.svg`. Also from this change: the shell's font family is quoted, so the code escapes it inside the `style` attribute; before that every email lost its font, the button's padding and its corners after the first quote.

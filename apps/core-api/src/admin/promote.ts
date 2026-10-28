@@ -93,7 +93,8 @@ export async function promoteIn(
   await enqueue({
     kind: "email.invited",
     accountId: account.id,
-    payload: { accountId: account.id },
+    // Which footer the invite carries: joined the waitlist, or added directly.
+    payload: { accountId: account.id, fromWaitlist: Boolean(existing) },
     priority: PRIORITY.interactive,
     // One invite email per account, enforced by the queue rather than by the
     // handler having to remember.
