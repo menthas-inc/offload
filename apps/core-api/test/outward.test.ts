@@ -3,15 +3,16 @@
 // AC-5:  a write nobody learns about is reversible; one they do is confirmed.
 // AC-5b: attendees are read across both sides of the edit.
 // 019 AC-5: the calendar's participant count and the ask-first switch decide
-// the second and third conditions.
+// the second and third conditions. Since 2026-10-28 the count only confirms a
+// delete: adding to or moving on a shared calendar is done, with Undo.
 
 import { describe, expect, it } from "vitest";
 import { outwardLine, outwardTest, type OutwardVerdict } from "../src/connectors/outward.js";
 
 const shared = (over = {}) =>
-  outwardTest({ attendeesBefore: [], attendeesAfter: [], participants: 2, askFirst: false, ...over });
+  outwardTest({ attendeesBefore: [], attendeesAfter: [], participants: 2, askFirst: false, deleting: true, ...over });
 const mine = (over = {}) =>
-  outwardTest({ attendeesBefore: [], attendeesAfter: [], participants: 1, askFirst: false, ...over });
+  outwardTest({ attendeesBefore: [], attendeesAfter: [], participants: 1, askFirst: false, deleting: false, ...over });
 
 describe("AC-5 nobody else finds out", () => {
   it("your own calendar with no guests is reversible", () => {
@@ -32,19 +33,28 @@ describe("AC-5 somebody does", () => {
     expect(outwardLine(verdict)).toBe("ana@example.com will be told.");
   });
 
-  it("a calendar with more than one participant is outward with nobody to mail", () => {
-    // Nobody gets an email and your wife still sees it on her phone. Outward
-    // by a different route, so no notification is sent and it still confirms.
+  it("deleting from a calendar with more than one participant is outward with nobody to mail", () => {
+    // Nobody gets an email and your wife loses it from her phone. Outward by a
+    // different route, so no notification is sent and it still confirms.
     const verdict = shared();
     expect(verdict.outward).toBe(true);
     expect(verdict.notify).toBe(false);
     expect(outwardLine(verdict)).toBe("Everyone on this calendar will see it.");
   });
 
-  it("an unknown count is outward: guessing 'only them' is the one guess that skips a confirmation", () => {
+  it("adding to or moving on a shared calendar is done, with Undo", () => {
+    // 2026-10-28, the owner: they know the calendar is shared, so asking on
+    // every add was friction. Guests and the ask-first switch still confirm.
+    for (const verdict of [shared({ deleting: false }), shared({ deleting: false, participants: null })]) {
+      expect(verdict.outward).toBe(false);
+      expect(outwardLine(verdict)).toBeNull();
+    }
+  });
+
+  it("an unknown count is outward for a delete: guessing 'only them' is the one guess that skips a confirmation", () => {
     // 019. Null is a calendar the person does not own, or a grant without the
     // access-list scope. Both read as more than one.
-    const verdict = mine({ participants: null });
+    const verdict = mine({ participants: null, deleting: true });
     expect(verdict.outward).toBe(true);
     expect(verdict.reason).toBe("shared_calendar");
   });

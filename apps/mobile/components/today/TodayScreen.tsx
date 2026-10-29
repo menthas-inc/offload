@@ -58,7 +58,7 @@ import {
   type TodayReminders,
   type TodayRow,
 } from "../../lib/today";
-import { useConversation } from "../shell/conversation-context";
+import { useChanged, useConversation } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
 import { BellDot } from "../shell/BellDot";
 import { ToastHost, useToast } from "../shell/Toast";
@@ -220,7 +220,7 @@ export default function TodayScreen() {
   const [now, setNow] = useState(() => new Date());
   const loadNeeds = useCallback(() => {
     void fetchNeeds().then((cards) => {
-      setNeeds(cards ?? []);
+      setNeeds((shown) => cards ?? shown ?? []);
       setNeedsLoad((n) => n + 1);
     });
     void permitted().then(setAllowed);
@@ -338,6 +338,12 @@ export default function TodayScreen() {
     }
   }, [loadDay, loadOpen, loadReminders, date, today]);
   const rows = useTodayRows(day, reloadDay, toast);
+  // 048. A dated row, a note or a reminder changed elsewhere: every section
+  // reads again in place, as after a filing.
+  useChanged(["thread", "today"], () => {
+    reloadDay();
+    loadNeeds();
+  });
   const [lateOpen, setLateOpen] = useState(false);
   useEffect(() => setLateOpen(false), [date]);
 

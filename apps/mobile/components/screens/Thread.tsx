@@ -100,7 +100,7 @@ import { drawnWhen, patchFor, sameWhen, whenLabel, whenValueOf } from "../../lib
 import { drawnRemind, undoPatch } from "../../lib/reminders";
 import { RowEditSheet } from "../shell/RowEditSheet";
 import { WhenSheet } from "../shell/WhenSheet";
-import { useConversation } from "../shell/conversation-context";
+import { useChanged, useConversation } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
 import { failed } from "../../lib/log";
 import { ShareSheet } from "../people/ShareSheet";
@@ -211,7 +211,7 @@ export default function Thread() {
       { id: `thread:${id}`, icon: result.deleted ? "trash-2" : "log-out", form: "slot" },
     );
   }
-  const { filed, setOnScreen, provisional: inFlight, adoptProvisional, raiseFor, notify, openPdf } =
+  const { filed, setOnScreen, provisional: inFlight, adoptProvisional, raiseFor, notify, openPdf, changed, turnOut, sheetOpen, pin } =
     useConversation();
   /** 020, 041. A photo row opens the viewer; a PDF row opens the PDF. */
   const openFileOf = (row: ContentRow) =>
@@ -240,7 +240,9 @@ export default function Thread() {
     [id, adoptProvisional],
   );
 
-  const load = useCallback(async () => {
+  /** `live` for a read nobody asked for: one that failed keeps what is drawn
+   *  rather than the spinner (048). */
+  const load = useCallback(async (live = false) => {
     if (!id) return;
     try {
       const [bundle, page] = await Promise.all([
@@ -248,6 +250,7 @@ export default function Thread() {
         fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
       ]);
       if (!writes.idle()) return;
+      if (live && (!bundle || !page)) return;
       // 028. The caller's own default thread is never drawn as a thread: from
       // the loading state straight to Not in a thread, never a flash of this.
       const away = redirectFor(bundle);
@@ -323,6 +326,8 @@ export default function Thread() {
         fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
       ]);
       if (!writes.idle()) return;
+      // A read that failed keeps what is drawn, rather than the spinner.
+      if (!bundle || !page) return;
       // A turn that filed before the first read landed: load does the leaving.
       if (redirectFor(bundle)) return;
       const next = page?.rows ?? [];
@@ -351,6 +356,32 @@ export default function Thread() {
       return;
     void catchUp();
   }, [filed, id, catchUp]);
+
+  // 048. Changed elsewhere: another device, another member, offload. Through
+  // the marking path while a turn of this account is out, so a turn's rows
+  // that land live before it settles are still marked; a plain read
+  // otherwise, which marks nothing.
+  useChanged(["thread", "today"], () => void (turnOut ? catchUp() : load(true)), id);
+
+  // 048. Taken out of this thread, or it went, on another device or by
+  // somebody else. Nothing if this screen is not the one in front: leaving it
+  // here already went, with its own Undo. Otherwise it goes the way leaving
+  // does, with no Undo, since there is nothing here to undo, and not while a
+  // sheet or the pinned composer is open: nobody's unsaved words are thrown
+  // away by somebody else's action. A save there fails with its own line.
+  // A removal from before this screen mounted is not this view's; one that
+  // arrived while another screen was in front is acted on when this is again.
+  const [gone, setGone] = useState(false);
+  const removedSeen = useRef(changed?.at ?? 0);
+  useEffect(() => {
+    if (!changed || changed.at === removedSeen.current || !id || !focused) return;
+    if (!changed.kinds.includes("removed") || !changed.removed?.includes(id)) return;
+    removedSeen.current = changed.at;
+    setGone(true);
+  }, [changed, id, focused]);
+  useEffect(() => {
+    if (gone && !sheetOpen && pin === null) router.dismissTo("/threads");
+  }, [gone, sheetOpen, pin, router]);
 
   // The suggestion's local hide resets only when the thread changes, never on a
   // reload that drops the heads-up (which would revive a dismissed pill).

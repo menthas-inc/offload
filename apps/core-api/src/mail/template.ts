@@ -1,7 +1,8 @@
 // The one transactional email shell.
 //
 // From the design system's marketing kit: a 600px table with inline styles, no
-// images, no CSS block. Four slots fill it and it becomes any other message.
+// CSS block, and no image but the invite's two badges. Four slots fill it and
+// it becomes any other message.
 // Every send ships a plain-text alternative.
 //
 // Values are taken from the generated tokens rather than retyped, because a
@@ -15,9 +16,15 @@ export interface EmailSlots {
   headline: string;
   /** One or two sentences in offload's voice. */
   body: string;
+  /** Words in the body set in bold, the first time they appear. */
+  bold?: string;
   /** Omit both to send a message with no action. */
   buttonLabel?: string;
   buttonUrl?: string;
+  /** Linked 120 by 40 badges in one row. `image` is one fixed URL for
+   *  everyone, so it cannot tell who opened it; `alt` is what reads with
+   *  images off. */
+  badges?: { url: string; image: string; alt: string }[];
   footer: string;
 }
 
@@ -30,7 +37,8 @@ export function renderHtml(slots: EmailSlots): string {
   const page = token("surface-page");
   const card = token("surface-raised");
   const hairline = token("border-hairline");
-  const sans = token("font-core");
+  // Its family names are quoted, and every use sits inside a double-quoted style attribute.
+  const sans = escape(token("font-core"));
   const radius = token("radius-field");
 
   const button =
@@ -43,6 +51,27 @@ export function renderHtml(slots: EmailSlots): string {
            </a>
          </td></tr>`
       : "";
+
+  const badges = slots.badges?.length
+    ? `<tr><td style="padding:0 32px 32px 32px;">
+         <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+           ${slots.badges
+             .map(
+               (badge, i) => `<td style="padding:0 ${i === slots.badges!.length - 1 ? 0 : 12}px 0 0;">
+             <a href="${escape(badge.url)}" style="display:block;">
+               <img src="${escape(badge.image)}" width="120" height="40" alt="${escape(badge.alt)}"
+                    style="display:block;border:0;width:120px;height:40px;">
+             </a>
+           </td>`
+             )
+             .join("")}
+         </tr></table>
+       </td></tr>`
+    : "";
+
+  const body = slots.bold
+    ? escape(slots.body).replace(escape(slots.bold), `<strong style="color:${ink};font-weight:600;">${escape(slots.bold)}</strong>`)
+    : escape(slots.body);
 
   // Table layout and inline styles because email clients are not browsers.
   return `<!doctype html>
@@ -60,9 +89,10 @@ export function renderHtml(slots: EmailSlots): string {
         ${escape(slots.headline)}
       </td></tr>
       <tr><td style="padding:12px 32px 24px 32px;font:400 16px/1.45 ${sans};color:${secondary};">
-        ${escape(slots.body)}
+        ${body}
       </td></tr>
       ${button}
+      ${badges}
       <tr><td style="padding:0 32px 32px 32px;font:400 13px/1.4 ${sans};color:${secondary};border-top:1px solid ${hairline};padding-top:20px;">
         ${escape(slots.footer)}
       </td></tr>
@@ -76,5 +106,6 @@ export function renderHtml(slots: EmailSlots): string {
  *  message with no text part reads as spam to several providers. */
 export function renderText(slots: EmailSlots): string {
   const action = slots.buttonLabel && slots.buttonUrl ? `\n\n${slots.buttonLabel}: ${slots.buttonUrl}` : "";
-  return `offload\n\n${slots.headline}\n\n${slots.body}${action}\n\n${slots.footer}\n`;
+  const badges = (slots.badges ?? []).map((badge) => `\n\n${badge.alt}: ${badge.url}`).join("");
+  return `offload\n\n${slots.headline}\n\n${slots.body}${action}${badges}\n\n${slots.footer}\n`;
 }

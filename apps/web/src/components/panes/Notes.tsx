@@ -26,7 +26,7 @@ import { useFolds } from "../../lib/folds";
 import { remindSwitchShown } from "@offload/widgets";
 import { Switch } from "../Switch";
 import { setReminders } from "../../lib/reminders";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "../Icon";
 import { InPlace } from "../shell/InPlace";
 import { Returned } from "../shell/UndoLine";
@@ -74,6 +74,9 @@ interface Props {
   /** The thread's count of writes in flight, shared so a note's write holds
    *  the thread's reload back the same as a row's does. */
   writes: Writes;
+  /** 048. Whether a note is open in its editor or being moved, so the thread
+   *  page does not leave under it when the thread is taken away elsewhere. */
+  onEditing?: (open: boolean) => void;
 }
 
 /** The date on a row, derived rather than stored, so a weekday can never
@@ -101,6 +104,7 @@ export function Notes({
   onAdding,
   onNotes,
   writes,
+  onEditing,
 }: Props) {
   const { zone } = useClock();
   const toast = useToast();
@@ -131,6 +135,9 @@ export function Notes({
 
   const shared = members.length > 1;
   const editing = notes.find((note) => note.id === editingId) ?? null;
+
+  const busy = editingId !== null || moving !== null;
+  useEffect(() => onEditing?.(busy), [busy, onEditing]);
 
   // **Which notes are not reaching offload.** The budget takes the most
   // recently written, so anything outside that set is on the thread and out of

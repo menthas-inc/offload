@@ -15,7 +15,7 @@ import { enqueue, PRIORITY } from "../src/jobs/queue.js";
 import { MemoryMailer, renderHtml, renderText, type Message } from "../src/mail/index.js";
 import { clearSettingsCache } from "../src/settings.js";
 import { clearPlatformSpent } from "../src/budget.js";
-import { checkAlerts, wrongCount, DAILY_ALERTS } from "../src/health/alerts.js";
+import { checkAlerts, wrongCount, DAILY_ALERTS, NOTIFY_QUEUE_LIMIT, notifyQueueBacked } from "../src/health/alerts.js";
 import { renderAlert, STAFF_DAILY_ALERTS, type AlertPayload } from "../src/health/mail.js";
 import { uuidv7 } from "../src/uuid.js";
 import { activeAccount, staffMember, wipeAdmin } from "./admin-kit.js";
@@ -450,5 +450,23 @@ describe("the count beside Health", () => {
 
     const me = await app.inject({ method: "GET", url: "/v1/admin/me", headers: { cookie: owner.cookie } });
     expect(me.json().wrong).toBe(4);
+  });
+});
+
+// 048. Every write now notifies, and Postgres holds notifications until the
+// slowest listener in the cluster has read them; a full queue fails every
+// write. A listener left idle somewhere is the cause, so it is a page.
+describe("048 the notify queue", () => {
+  it("is backed up only past the limit", async () => {
+    expect(await notifyQueueBacked(-1)).toBe(true);
+    expect(await notifyQueueBacked(NOTIFY_QUEUE_LIMIT)).toBe(false);
+    expect(NOTIFY_QUEUE_LIMIT).toBe(0.25);
+  });
+
+  it("says what is filling and what fails when it is full", () => {
+    const opened = renderAlert({ alert: "condition", condition: "notify_queue", state: "opened" }, null);
+    expect(opened.subject).toBe("The notify queue is filling");
+    const cleared = renderAlert({ alert: "condition", condition: "notify_queue", state: "cleared" }, null);
+    expect(cleared.subject).toBe("The notify queue is draining");
   });
 });

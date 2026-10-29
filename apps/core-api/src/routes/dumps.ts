@@ -19,7 +19,7 @@ import type { App } from "../app.js";
 import { currentAccountId } from "../auth/current-account.js";
 import { timeZoneOf } from "../time-zone.js";
 import { adoptZone } from "../accounts/zone.js";
-import { webOrigins } from "../env.js";
+import { STREAM_SESSION_MS, openEventStream, refuseOrigin } from "./event-stream.js";
 import { db } from "../db.js";
 import { labelsForTurns, undoTurnLabels, type LabelPickOnWire } from "../threads/labels.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
@@ -98,20 +98,6 @@ const MAX_DUMP_CHARS = 10_000;
  *  It was six hours, a working session, which carried the last subject into
  *  the next one. */
 const CONVERSATION_GAP = "30 minutes";
-
-/** How often the stream re-checks the session and sends a keep-alive.
- *
- *  **Nothing polls for the answer any more.** The stream reads once when it
- *  opens, then waits to be woken by `pg_notify` from the transaction that
- *  writes the reply, so an answer arrives the instant it commits and no
- *  question is asked in the meantime. See `../dumps/answers.ts`.
- *
- *  This interval is only two things now, and both genuinely want a clock. 002
- *  enforces session revocation at Better Auth's refresh, which fires on a
- *  request, and an open stream makes none, so **this interval is the window in
- *  which a disabled account keeps receiving its own conversation updates**. And
- *  an idle proxy drops a connection that has said nothing for long enough. */
-const STREAM_SESSION_MS = 15_000;
 
 /** Then the client reconnects. Bounds the revocation gap above and keeps a
  *  proxy from closing the stream first and making it look like a failure. */
@@ -1536,6 +1522,7 @@ export async function dumpRoutes(app: App): Promise<void> {
     "/v1/messages/:id/stream",
     { schema: { params: z.object({ id: z.string().uuid() }) } },
     async (request, reply) => {
+      if (refuseOrigin(request, reply)) return;
       const accountId = await currentAccountId(request);
       if (!accountId)
         return reply.code(401).send({ error: "unauthenticated" as const });
@@ -1566,48 +1553,7 @@ export async function dumpRoutes(app: App): Promise<void> {
       };
       request.raw.on("close", finish);
 
-      // Fastify otherwise passes whatever an async handler resolves with to
-      // reply.send() once the promise settles, which for a stream that is still
-      // waiting means sending a response on top of one already in flight.
-      reply.hijack();
-
-      // CORS, by hand, because hijacking bypasses the plugin that would
-      // otherwise add it.
-      //
-      // **This is why the composer never received an answer in a browser.**
-      // `reply.hijack()` takes the socket away from Fastify, and
-      // `reply.raw.writeHead` writes exactly the headers listed here, so the
-      // `access-control-allow-origin` @fastify/cors sets on the reply object
-      // never reaches the wire. Same-origin callers, including every test in
-      // this repo, never notice. A browser on a different origin blocks the
-      // response, the EventSource errors, and the person watches a thinking
-      // indicator until they reload.
-      //
-      // The origin is echoed only when it is on the same allowlist the plugin
-      // uses, so this cannot become a way around it.
-      const requestOrigin = request.headers.origin;
-      const allowed =
-        typeof requestOrigin === "string" && webOrigins.includes(requestOrigin)
-          ? requestOrigin
-          : null;
-
-      reply.raw.writeHead(200, {
-        "content-type": "text/event-stream",
-        "cache-control": "no-cache, no-transform",
-        connection: "keep-alive",
-        // Nginx and friends buffer by default, which turns a stream into one
-        // large response delivered at the end.
-        "x-accel-buffering": "no",
-        ...(allowed
-          ? {
-              "access-control-allow-origin": allowed,
-              "access-control-allow-credentials": "true",
-              // The origin decides the body, so a shared cache must not serve
-              // one origin's response to another.
-              vary: "Origin",
-            }
-          : {}),
-      });
+      openEventStream(request, reply);
 
       // A socket that dies mid-write emits on the response. Unhandled, that is
       // an uncaught exception on a process serving everybody else.
@@ -1897,8 +1843,14 @@ export async function dumpRoutes(app: App): Promise<void> {
           .where("questions.id", "=", request.params.id)
           .where("questions.account_id", "=", accountId)
           .where("questions.state", "=", "open")
-          // Only what typing answers; a question with values is tapped.
-          .where("questions.field", "in", ["date", "span", "time"])
+          // Only what typing answers; a question with values is tapped. An
+          // email's is any field: its Activity row opens it here (026 AC-17).
+          .where((eb) =>
+            eb.or([
+              eb("questions.field", "in", ["date", "span", "time"]),
+              eb.exists(eb.selectFrom("messages as m").select("m.id").whereRef("m.id", "=", "questions.message_id").where("m.source", "=", "mail")),
+            ]),
+          )
           // The question's account is not held to its conversation's by the
           // schema, so the conversation is checked as the account's too.
           .where("conversations.account_id", "=", accountId)

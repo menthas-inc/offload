@@ -34,14 +34,16 @@ const SIZE = 22;
 const K = SIZE / 24;
 const OUT = Easing.bezier(0.22, 0.85, 0.24, 1); // --ease-out
 
-export function Thinking() {
+export function Thinking({ elsewhere }: { elsewhere?: { step: string | null } } = {}) {
   const { working, stop } = useConversation();
-  const step = usePhrase(working?.step ?? null);
+  // 048. A turn another device sent draws its phrase and never Stop, which
+  // stays with the device that sent it.
+  const step = usePhrase(elsewhere ? elsewhere.step : (working?.step ?? null));
   const [canStop, setCanStop] = useState(false);
 
   // A timer to the one threshold left, rather than a clock: the phrase is
   // drawn when it arrives, so only Stop is a time.
-  const since = working?.since ?? null;
+  const since = elsewhere ? null : (working?.since ?? null);
   useEffect(() => {
     if (since === null) {
       setCanStop(false);

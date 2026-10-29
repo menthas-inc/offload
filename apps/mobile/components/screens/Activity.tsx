@@ -18,12 +18,14 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { useClock } from "../../lib/clock";
 import { refreshMe } from "../../lib/me";
-import { doorOf, glyphOf, loadActivity, sectionOf, seen, tagOf, undoActivity, whenOf, type ActivityEntry } from "../../lib/activity";
+import { doorOf, glyphOf, loadActivity, openQuestion, sectionOf, seen, tagOf, undoActivity, whenOf, type ActivityEntry } from "../../lib/activity";
+import { useChanged, useConversation } from "../shell/conversation-context";
 
 const isAndroid = Platform.OS === "android";
 
 export default function Activity() {
   const router = useRouter();
+  const { resumeConversation } = useConversation();
   const COLOR = useColors();
   const { zone, today } = useClock();
   const [rows, setRows] = useState<ActivityEntry[] | null>(null);
@@ -48,9 +50,13 @@ export default function Activity() {
       setRows(page.rows);
       setNext(page.next);
     } else {
-      setRows([]);
+      // A read that failed keeps what is drawn: a live one runs while
+      // somebody is reading the list.
+      setRows((shown) => shown ?? []);
     }
   }, []);
+  // 048. A new entry, from a share, a request or a reminder elsewhere.
+  useChanged(["activity"], () => void load());
 
   useFocusEffect(
     useCallback(() => {
@@ -163,7 +169,11 @@ export default function Activity() {
                       <Pressable
                         // A tab is gone back down to, never pushed on top,
                         // as the plate's own tabs do.
-                        onPress={() => (door.pathname === "/today" ? router.dismissTo(door as never) : router.push(door as never))}
+                        onPress={() => {
+                          if (door.pathname === "/today") router.dismissTo(door as never);
+                          else router.push(door as never);
+                          void openQuestion(row, resumeConversation);
+                        }}
                         accessibilityRole="button"
                         className="min-h-tap-min"
                       >

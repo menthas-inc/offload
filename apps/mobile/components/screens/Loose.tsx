@@ -22,7 +22,7 @@ import { ToastHost, useToast } from "../shell/Toast";
 import { placedItem } from "../shell/InPlace";
 import { useInPlace } from "../../lib/undo";
 import { PlateSpace } from "../shell/plate-inset";
-import { useConversation } from "../shell/conversation-context";
+import { useChanged, useConversation } from "../shell/conversation-context";
 import { TypeChips } from "../loose/TypeChips";
 import { useLooseRows } from "../loose/useLooseRows";
 import { useColors } from "../../lib/colors";
@@ -109,6 +109,9 @@ export default function Loose() {
     lastFiled.current = filed.at;
     void load();
   }, [filed, load]);
+  // 048. And when a thread changed elsewhere. The default thread's id is not
+  // known here before a read, so any thread's change reads again.
+  useChanged(["thread"], () => void load());
 
   async function more(): Promise<void> {
     if (!held?.nextCursor || next === "loading") return;

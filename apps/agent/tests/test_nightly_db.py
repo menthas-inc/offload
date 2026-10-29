@@ -17,7 +17,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent.config import _asyncpg
-from offload_agent.nightly import _CANDIDATES, _MEMBER, _MESSAGES, _NOTES
+from offload_agent.nightly import _CANDIDATES, _MEMBER, _MESSAGES, _NOTES, _ROWS
 
 ADMIN_DB = os.environ.get("DATABASE_URL")
 AGENT_DB = os.environ.get("AGENT_DATABASE_URL")
@@ -327,3 +327,72 @@ def test_the_pass_reads_its_members_zone_through_known_zone():
     from offload_agent import nightly
 
     assert 'known_zone(member["time_zone"])' in inspect.getsource(nightly.handle_nightly)
+
+
+async def test_a_pass_reads_the_rows_of_a_thread_whose_layout_is_open():
+    """Thread layouts. The rows a layout is judged from: this thread's live
+    rows by anybody, newest first, and whether offload may still suggest one."""
+    admin = create_async_engine(_asyncpg(ADMIN_DB))
+    async with admin.begin() as conn:
+        ana = await _id(
+            conn,
+            "insert into accounts (email, state, email_verified, analytics_subject_id) "
+            "values (:email, 'active', true, gen_random_uuid()) returning id",
+            email=f"{uuid.uuid4()}@example.invalid",
+        )
+        fixes = await _id(conn, "insert into threads (name) values ('App fixes') returning id")
+        picked = await _id(
+            conn,
+            "insert into threads (name, layout, layout_set_by) "
+            "values ('Picked', 'todo', 'person') returning id",
+        )
+        for t in (fixes, picked):
+            await conn.execute(
+                text(
+                    "insert into thread_members (thread_id, account_id, state) "
+                    "values (:t, :a, 'accepted')"
+                ),
+                {"t": t, "a": ana},
+            )
+
+        async def row(thread: str, title: str, hours: int, **extra: str) -> None:
+            await conn.execute(
+                text(
+                    "insert into content (account_id, thread_id, type, title, created_at, "
+                    "done_at, deleted_at) values (:a, :t, 'task', :title, "
+                    "now() - make_interval(hours => :h), cast(cast(:done as text) as timestamptz), "
+                    "cast(cast(:gone as text) as timestamptz))"
+                ),
+                {
+                    "a": ana,
+                    "t": thread,
+                    "title": title,
+                    "h": hours,
+                    "done": extra.get("done"),
+                    "gone": extra.get("gone"),
+                },
+            )
+
+        await row(fixes, "fix the sheet", 3)
+        await row(fixes, "dark edges", 1, done="2026-10-01")
+        await row(fixes, "deleted one", 2, gone="2026-10-01")
+        await row(picked, "elsewhere", 1)
+    await admin.dispose()
+
+    agent = create_async_engine(_asyncpg(AGENT_DB))
+    async with agent.connect() as conn:
+        rows = (await conn.execute(_ROWS, {"thread_id": fixes, "limit": 40})).mappings().all()
+        open_ = (
+            (await conn.execute(_MEMBER, {"thread_id": fixes, "account_id": ana})).mappings().one()
+        )
+        settled = (
+            (await conn.execute(_MEMBER, {"thread_id": picked, "account_id": ana})).mappings().one()
+        )
+    await agent.dispose()
+
+    assert [(r["type"], r["title"], r["done"]) for r in rows] == [
+        ("task", "dark edges", True),
+        ("task", "fix the sheet", False),
+    ]
+    assert open_["layout_open"] is True
+    assert settled["layout_open"] is False

@@ -14,6 +14,7 @@
 //     the next check, so each new death opens it again. A dead alert email is
 //     left out: an alert about not being able to alert goes nowhere.
 //   - `backup_late`: no good backup in 26 hours.
+//   - `notify_queue`: Postgres's notify queue is over a quarter full (048).
 //   - `review_code_old`: one or more review codes still live fourteen days
 //     after they were made. One is made for one store review, and one that
 //     can still let somebody in a fortnight later is one somebody forgot. One
@@ -52,6 +53,18 @@ const DOWN_MINUTES = 5;
 /** How old a live review code gets before the owners are told. */
 const REVIEW_CODE_DAYS = 14;
 
+/** 048. How full Postgres's notify queue may get before the owners hear.
+ *  Every write a screen can see notifies, and the queue holds each one until
+ *  the slowest listener in the cluster has read it; when it is full, every one
+ *  of those writes fails. Ours drains on a half-second clock, so a queue this
+ *  full means a listener left idle somewhere else. */
+export const NOTIFY_QUEUE_LIMIT = 0.25;
+
+export async function notifyQueueBacked(limit = NOTIFY_QUEUE_LIMIT): Promise<boolean> {
+  const { rows } = await sql<{ backed: boolean }>`select pg_notification_queue_usage() > ${limit} as backed`.execute(db);
+  return rows[0]!.backed;
+}
+
 /** Whether any review code is still live a fortnight on, live as the panel
  *  reads it: not revoked, not expired, not used up. Nothing while the switch
  *  is off, because sign in checks it before it reads a code. */
@@ -71,7 +84,7 @@ async function oldReviewCode(): Promise<boolean> {
 
 /** Every condition that is true now. */
 async function conditions(): Promise<string[]> {
-  const [cap, down, late, dead, backup, codes] = await Promise.all([
+  const [cap, down, late, dead, backup, codes, queue] = await Promise.all([
     platformCapReached(),
     downServices(DOWN_MINUTES),
     lateKinds(),
@@ -83,6 +96,7 @@ async function conditions(): Promise<string[]> {
       ) as died`.execute(db),
     backups(),
     oldReviewCode(),
+    notifyQueueBacked(),
   ]);
   return [
     ...(cap ? ["platform_cap"] : []),
@@ -91,6 +105,7 @@ async function conditions(): Promise<string[]> {
     ...(dead.rows[0]!.died ? ["job_dead"] : []),
     ...(backup.late ? ["backup_late"] : []),
     ...(codes ? ["review_code_old"] : []),
+    ...(queue ? ["notify_queue"] : []),
   ];
 }
 

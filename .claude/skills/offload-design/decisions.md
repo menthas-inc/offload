@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-29 · The change mark plays for the person's own dump, on every device
+**Surface:** iOS, Android, web; the thread page
+**Raised by:** spec 048, live updates, from the client review of its feature spec and the owner's choice of a silent redraw.
+
+**Was:** *anything that appeared while somebody was watching* takes the change mark (readme, "The change mark"). Until 048 the only thing that could appear on an open screen was what the person's own dump filed, on the device they sent it from.
+
+**Is:** an open screen now catches up to every change, from another device, another member or the nightly pass. The mark plays only for what one of the person's own dumps filed, on every device that has the thread open, from whichever one it was sent. Everything else just redraws: the owner's call on 2026-10-29, and moss means *offload did this for you*, which another member's change is not.
+
+**Considered and not taken:** a mark for every live change (the owner chose a silent redraw); no mark on the second device (a dump from the phone filing into the thread open on the web is the case the mark exists for).
+
+**Design system impact:** the readme's **The change mark** paragraph: replace *anything that appeared while somebody was watching* with *what the person's own dump filed, on every device with the thread open*. No token, no component contract.
+
 ### 2026-10-20 · Today: a prism field, and the composer as frosted glass
 **Surface:** iOS, Android, web; Today's field, and the composer on every tab
 **Raised by:** the product owner, off the design bundle and `handoff/APPLY-2026-10-19-today-glass.md`: Today's grey bands read as bland. Built from spec 046 (`docs/specs/046-today-glass/`), where the contrast was measured before any code.
@@ -4414,3 +4426,22 @@ exactly like "I refreshed and I cannot see your change".
 **Why:** the review found the removing tick with no way back (AC-5) the sharpest gap; the rest were the layout's own chrome going undrawn. Built in code because the kit does not exist for 045 yet.
 **Deferred:** a drag handle on Project's check rows (reorder inside label sections needs the drag infrastructure the default list has, and the per-section ordering semantics are not settled); fold state is per-view, not yet persisted per thread like the default layout's.
 **Design system impact:** there is no 045 kit. When one is drawn, it should set: the two nudge lines (the moss suggestion pill and the quiet heads-up) and their placement; whether Events' Booked/Still deciding want a card and draft treatment at all (this pass renders them as plain rows after the first attempt read as a white box on Android); the Todo tick-with-Undo; and the Android roles for the section chrome and the layout tiles. Two per-track differences the next reader should expect: the Todo add row is an inline field on the web and raises the composer's quick add on the phones (the kits cannot show a keyboard); and the Gallery tile draws a small glyph chip on the web (a raw scrim, no token yet) and none on the phones. Until a kit lands the code is the reference. `home-thread-pages-standalone.html` in `handoff/` predates 045 and is not it.
+
+### 2026-10-23 · An email's calendar question is a Today card, and its Activity row opens it
+**Surface:** iOS, Android, web, Today and Activity
+**Raised by:** the owner, on a phone: a ticket email asked which calendar, Activity said *A question about an email*, Today had no card, and tapping the row focused an empty composer.
+**Was:** Today left out every `calendar` question, and an email's Activity row opened Today, so a question asked in a conversation that ended as it opened could not be reached.
+**Is:** an email's `calendar` question is a question card like any other, *About an email*, its calendars as `QuickReplies`. Tapping *A question about an email* in Activity, while the question is open, makes the email's conversation the current one and opens the composer on it with the question in view, as Today's *Answer* does; once it is closed the row opens Today as before.
+**Why:** 026 AC-17 and AC-25 already said both; 027's exclusion of `calendar` predated each email being its own conversation.
+**Design system impact:** none. The question card and the resumed conversation are existing components.
+
+### 2026-10-28 · The invite email: new words, and a row of two badges
+**Surface:** email, the invite
+**Raised by:** the owner, once 0.3.0 was live on the App Store: someone promoted from the waitlist should be one tap from the app or the web.
+**Was:** *You are in*, one paragraph, one *Open offload* button to the web sign-in, the waitlist footer for everyone, and no images anywhere in the shell.
+**Is:**
+- Subject *Welcome to offload*, headline *Let's get you started*, and the owner's paragraph with the person's address in bold. The brand stays lowercase where the owner's draft capitalised it.
+- In place of the button, one row of two 120 by 40 badges: Apple's own *Download on the App Store* (black, from developer.apple.com, unedited) linked to the listing, and an *Open in browser* badge linked to the web sign-in. The second is drawn on Apple's frame, so the two are the same size, corners and edge, with offload's inverse mark where the Apple logo sits and *Open in* over *browser* in the same two-line rhythm. Both are PNGs at three times size served from the web app's `/brands/`, because Gmail does not draw SVG. Their alt text is their words, so with images blocked they are still links that say what they do; the plain-text alternative carries both URLs.
+- The footer follows how they got in: the waitlist line if they joined it, *You are receiving this because the team at offload wanted you to try it.* if staff added the address directly.
+**Why:** the owner asked for the logos and a matching web button. The no-images rule was about blocked images costing nothing and about never carrying a tracking pixel; alt text keeps the first, and one fixed URL for every recipient keeps the second.
+**Design system impact:** `ui_kits/marketing_site/invite-email.html` and its README: the rule becomes *no images but the invite's two badges*, and the mock takes the new words, the badge row in place of the button, and the second footer. The *Open in browser* badge has no source file in the design system; its source is `apps/web/public/brands/open-in-browser.svg`. Also from this change: the shell's font family is quoted, so the code escapes it inside the `style` attribute; before that every email lost its font, the button's padding and its corners after the first quote.

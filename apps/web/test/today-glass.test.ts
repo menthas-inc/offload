@@ -19,6 +19,15 @@ describe("046 de-band (AC-1)", () => {
   it("the Today pane no longer sets data-band", () => {
     expect(read("components/panes/Today.tsx")).not.toMatch(/data-band=/);
   });
+  // The band's padding was the only space between bands and under the pane
+  // head, so de-banding left the sliders on the first card and the cards
+  // touching each other.
+  it("keeps the space under the pane head and between bands", () => {
+    const t = css("today.module.css");
+    const today = t.slice(t.indexOf(".today {"), t.indexOf("}", t.indexOf(".today {")));
+    expect(today).toMatch(/gap:\s*var\(--space-/);
+    expect(today).toMatch(/padding-top:\s*var\(--space-/);
+  });
 });
 
 describe("046 field (AC-2, AC-4)", () => {

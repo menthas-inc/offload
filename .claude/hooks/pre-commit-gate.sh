@@ -55,6 +55,19 @@ case "$commits" in
       echo "The brand uses a comma, a colon or a full stop instead, and a middle dot for metadata (OFF-7)." >&2
       exit 2
     fi
+    # The suite runs on the shared database, so the gate takes the board's `suite`
+    # hold itself instead of trusting each session to: on 2026-10-26 a command
+    # that matched the gate by accident ran the suite under another session's
+    # hold and broke both runs. A hold the session took first stays its to release.
+    sid="$(printf '%s' "$payload" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("session_id") or "")' 2>/dev/null || true)"
+    export CLAUDE_CODE_SESSION_ID="${sid:-${CLAUDE_CODE_SESSION_ID:-manual}}"
+    scripts="$here/../scripts"
+    mine="$(python3 -c "import sys,time; sys.path.insert(0, sys.argv[1]); import board; h = board.read_hold(board.hold_path(board.board_dir(), 'suite')); print('yes' if h and h['sid'] == board.session() and h['until'] > time.time() else '')" "$scripts" 2>/dev/null || true)"
+    if ! held="$(python3 "$scripts/board.py" hold suite "pre-commit gate" --for 20 2>&1)"; then
+      echo "BLOCKED by pre-commit gate: $held" >&2
+      exit 2
+    fi
+    [ -n "$mine" ] || trap 'python3 "$scripts/board.py" release suite >/dev/null 2>&1 || true' EXIT
     # Every step writes to a log and only a summary comes back. The gate's stderr
     # is the tool result of the commit call, and on 2026-10-05 a failing suite
     # returned 5.6 MB of turbo output that way and filled the context window of
@@ -124,6 +137,9 @@ case "$commits" in
       if [ -f "$f" ]; then js="$js '$f'"; fi
     done
     if [ -n "$js" ]; then harness="$harness node --test $js &&"; fi
+    for f in .claude/hooks/tests/*.test.sh; do
+      if [ -f "$f" ]; then harness="$harness bash '$f' &&"; fi
+    done
     if [ -n "$harness" ]; then
       step "BLOCKED by pre-commit gate: harness tests failed." "$harness true"
     fi

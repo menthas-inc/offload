@@ -284,6 +284,7 @@ const note = (over: Partial<Note> = {}): Note =>
   }) as Note;
 
 let shown: Note[] = [];
+const noteEditing = vi.fn();
 function NotesHarness({ start, members }: { start: Note[]; members: Member[] }) {
   const [notes, setNotes] = useState(start);
   shown = notes;
@@ -299,6 +300,7 @@ function NotesHarness({ start, members }: { start: Note[]; members: Member[] }) 
         onAdding={() => {}}
         onNotes={(update) => setNotes(update)}
         writes={writes}
+        onEditing={noteEditing}
       />
       <ToastHost />
     </ToastProvider>
@@ -306,6 +308,18 @@ function NotesHarness({ start, members }: { start: Note[]; members: Member[] }) 
 }
 
 const openNote = async () => click(host.querySelector("button[class*=noteMain]") ?? [...host.querySelectorAll("button")].find((b) => b.textContent?.includes("Lisbon flat")));
+
+// 048. The thread page waits for an open note before leaving a thread that
+// was taken away elsewhere, so the editor says when it is open.
+describe("a note open in its editor", () => {
+  it("tells the thread page when it is open", async () => {
+    noteEditing.mockClear();
+    await draw(<NotesHarness start={[note()]} members={[ME, ANA]} />);
+    expect(noteEditing).toHaveBeenLastCalledWith(false);
+    await openNote();
+    expect(noteEditing).toHaveBeenLastCalledWith(true);
+  });
+});
 
 describe("Remind me in the note editor", () => {
   it("is drawn for the author, drawn first and written second through PUT /v1/reminders, with Undo", async () => {

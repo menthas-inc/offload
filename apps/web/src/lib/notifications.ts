@@ -6,6 +6,7 @@
 // switches. 024's agenda read went with 027: Today reads `lib/today.ts`.
 
 import { activityGlyph, activityTag, dayIn, digestDay, type ActivityKind } from "@offload/widgets";
+import { resumeQuestion, RESUME_COMPOSER } from "./dump";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
@@ -30,6 +31,8 @@ export interface ActivityEntry {
   occurredAt: string;
   /** 026. Which of the five an email row is, and the email it came from. */
   mailOutcome?: "filed" | "asked" | "nothing" | "refused" | "over_limit" | null;
+  /** An email's open question, which the row opens. */
+  questionId?: string | null;
   messageId?: string | null;
 }
 
@@ -55,6 +58,12 @@ export async function markActivitySeen(): Promise<void> {
  *  phones draw from, so the two clients cannot drift on what a row looks like. */
 export const glyphOf = activityGlyph;
 export const tagOf = activityTag;
+
+/** 026 AC-17. An email's open question opens in the conversation that asked,
+ *  in the composer every page draws, as Today's Answer does. */
+export async function openQuestion(row: ActivityEntry): Promise<void> {
+  if (row.questionId && (await resumeQuestion(row.questionId)) === "ok") window.dispatchEvent(new CustomEvent(RESUME_COMPOSER));
+}
 
 /** Where a row goes, or null for a row that is the record and nothing more.
  *  `zone` and `today` are the account's clock, for the evening digest's day. */

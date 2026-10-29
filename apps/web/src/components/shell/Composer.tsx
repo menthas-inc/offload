@@ -60,7 +60,7 @@ import { DayUsed } from "./DayUsed";
 import { BAR_PITCH_PX, Recorder, recorderSupported, type Recording } from "../../lib/recorder";
 import { Mentions, mentionQuery, withMention } from "../people/Mentions";
 import { HashList } from "../labels/HashList";
-import { MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, nameList, stayedForgotten, staysOpen, takeFiles, turnDid, turnUndoable, undoShown, withReply, type Place } from "@offload/widgets";
+import { MAX_PHOTOS, answeredWaiting, isFinal, isPdf, labelQuery, nameList, stayedForgotten, staysOpen, takeFiles, turnDid, turnUndoable, undoShown, withReply, type Place } from "@offload/widgets";
 import { fetchThread } from "../../lib/threads";
 import type { Label } from "../../lib/labels";
 import { SHARE_LINE, answerShare, fetchPeople, nameOf, type Person } from "../../lib/people";
@@ -77,6 +77,7 @@ import { FILL_COMPOSER } from "../panes/Today";
 import { ToastHost, useToast } from "./Toast";
 import { UndoPlates } from "./UndoLine";
 import { useUnplaced } from "./InPlace";
+import { useChanged } from "./threads-context";
 import place from "./in-place.module.css";
 import { lastSaidOf, startsFresh } from "../../lib/conversation";
 import styles from "../../app/(shell)/composer.module.css";
@@ -132,6 +133,9 @@ interface Turn {
    *  and Try again puts the words back in the field. Local only, never on the
    *  wire, which is why it is not a `MessageState`. */
   unsent?: boolean;
+  /** 048. Sent from another device. Drawn with its answer, and its controls
+   *  stay where it was sent: no Stop, Finish, Try again or Undo here. */
+  elsewhere?: boolean;
 }
 
 /** 020. A photo waiting in the composer. The key belongs to the draft until
@@ -154,6 +158,7 @@ export function Composer({
   inThread,
   atDailyLimit = false,
   mapColumn = false,
+  onTurnOut,
 }: {
   /** 030. The top thread pane is drawing its map column: the card keeps to
    *  the list. */
@@ -171,6 +176,9 @@ export function Composer({
    *  sidebar and hands the ids down so a screen already showing one of those
    *  threads updates itself instead of going stale behind a truthful reply. */
   onFiled: (threadIds: string[]) => void;
+  /** 048. Whether a turn is out, from this tab or another device, for the
+   *  thread page to catch up through the path that marks. */
+  onTurnOut?: (out: boolean) => void;
 }) {
   const [draft, setDraft] = useState("");
   // 022. Who an @ picked, kept while the name is still in the text, and the
@@ -451,7 +459,7 @@ export function Composer({
    *
    *  Written once. This block existed twice, identical apart from the id it
    *  closed over, which is how the two would have drifted. */
-  function watch(messageId: string, turnId: string | undefined): void {
+  function watch(messageId: string, turnId: string | undefined, elsewhere = false): void {
     cancels.current.set(
       messageId,
       awaitAnswer(
@@ -523,7 +531,8 @@ export function Composer({
         // Only a finished turn, too. A partial one offers a way forward, and
         // both at once asks somebody to choose between finishing and undoing
         // inside eight seconds.
-        if (answer.state === "answered" && answer.reply && turnUndoable(answer))
+        // 048. And only on the device that sent it.
+        if (!elsewhere && answer.state === "answered" && answer.reply && turnUndoable(answer))
           // Markers stripped rather than drawn. A toast is one line with a
           // control beside it, so a list has nowhere to go.
           offerUndo(turnId, plainText(answer.reply), answer.threads);
@@ -541,6 +550,64 @@ export function Composer({
       ),
     );
   }
+
+  /** 048. This tab's own requests that make a message: a send, a tapped
+   *  answer, a Finish. While one is out its message is on the server and not
+   *  yet on screen under its id, so a read of the tail would draw it as another
+   *  device's. The read waits for them and runs once after, and the turns they
+   *  made are this tab's for good, however soon the tail is read. */
+  const making = useRef(0);
+  const askedMeanwhile = useRef(false);
+  const mine = useRef(new Set<string>());
+  async function own<T>(request: Promise<T>): Promise<T> {
+    making.current += 1;
+    try {
+      const made = await request;
+      const sent = typeof made === "object" && made !== null && "sent" in made ? (made as { sent: unknown }).sent : made;
+      if (typeof sent === "object" && sent !== null && "turnId" in sent) mine.current.add(String(sent.turnId));
+      return made;
+    } finally {
+      making.current -= 1;
+      if (making.current === 0 && askedMeanwhile.current) {
+        askedMeanwhile.current = false;
+        void fromElsewhere();
+      }
+    }
+  }
+
+  /** 048. The conversation changed elsewhere: a dump from another device, or a
+   *  question answered there. Read the tail again and, when it is the
+   *  conversation on screen, add the turns this tab does not hold and wait for
+   *  their answers as a reload would. A tab holding none takes the whole tail,
+   *  which is what a reload would draw; another conversation is left alone. */
+  async function fromElsewhere(): Promise<void> {
+    if (making.current > 0) {
+      askedMeanwhile.current = true;
+      return;
+    }
+    const messages = await fetchCurrent();
+    if (making.current > 0) {
+      askedMeanwhile.current = true;
+      return;
+    }
+    const held = shownTurns.current;
+    const ids = new Set(held.map((turn) => turn.id));
+    if (held.length > 0 && !messages.some((message) => ids.has(message.id))) return;
+    const heldTurns = new Set(held.filter((turn) => turn.from === "you").map((turn) => turn.turnId));
+    const missing = messages.filter((message) => !heldTurns.has(message.turnId) && !mine.current.has(message.turnId));
+    const questions = new Map(messages.map((message) => [message.id, message.question ?? null]));
+    lastSaid.current = lastSaidOf(messages);
+    setTurns((current) => [
+      ...current.map((turn) => (questions.has(turn.id) ? { ...turn, question: questions.get(turn.id) ?? null } : turn)),
+      ...turnsOf(missing).map((turn) => ({ ...turn, elsewhere: true })),
+    ]);
+    // Queued as well as seen: the change is heard the moment the dump is
+    // written, before the worker has picked it up.
+    for (const message of missing) {
+      if (message.role === "person" && !isFinal(message.state)) watch(message.id, message.turnId, true);
+    }
+  }
+  useChanged(["conversation"], () => void fromElsewhere());
 
   /** 021. Tap the microphone: ask once, then record. The field gives way to
    *  the row and focus moves to Send, so Enter sends and Escape discards. */
@@ -783,7 +850,7 @@ export function Composer({
       const hashed = hashPicks
         .filter((one) => text.toLowerCase().includes(`#${one.name.replace(/\s+/g, "").toLowerCase()}`))
         .map((one) => ("id" in one ? { id: one.id } : { name: one.name }));
-      const sent = await sendDump(text, clientKey, inThread?.id, blobIds.length ? { blobIds } : undefined, named, hashed);
+      const sent = await own(sendDump(text, clientKey, inThread?.id, blobIds.length ? { blobIds } : undefined, named, hashed));
       // Only what went: a photo dropped in while the send was out stays
       // for the next one.
       const went = new Set(sendable.map((photo) => photo.key));
@@ -960,7 +1027,7 @@ export function Composer({
    *  Not a re-send: part of it is already in a thread, and sending it again
    *  would file that part twice. */
   async function finish(messageId: string): Promise<void> {
-    const sent = await resumeDump(messageId);
+    const sent = await own(resumeDump(messageId));
     if (sent === "daily_limit") return setRefusedToday(true);
     if (sent === "failed") {
       toast.show("Couldn't finish that", { label: "Retry", onPress: () => void finish(messageId) });
@@ -980,7 +1047,8 @@ export function Composer({
             ? // The clock restarts with the turn. Carrying the old `since` over
               // put Stop on screen a third of a second into a resumed turn,
               // because ten seconds had already passed on the first attempt.
-              { ...turn, state: sent.state, since: Date.now() }
+              // 048. Finished from here, it is this tab's turn from now on.
+              { ...turn, state: sent.state, since: Date.now(), elsewhere: false }
             : turn,
         ),
     );
@@ -1006,12 +1074,20 @@ export function Composer({
   }
 
   const live = turns.length > 0;
-  const waiting = turns.some((turn) => turn.from === "you" && turn.state === "seen");
+  const waiting = turns.some(
+    (turn) => turn.from === "you" && (turn.state === "seen" || (turn.elsewhere && turn.state !== undefined && !isFinal(turn.state))),
+  );
+  // 048. Any turn not settled, from here or elsewhere.
+  const turnOut = turns.some((turn) => turn.from === "you" && !turn.unsent && turn.state !== undefined && !isFinal(turn.state));
+  useEffect(() => {
+    onTurnOut?.(turnOut);
+  }, [turnOut]);
 
   // 017. The turn in flight, if one is. Derived from the turns rather than held
   // beside them, for the reason `waiting` is: two pieces of state that have to
   // agree about the same thing are two pieces of state that will not.
-  const inFlight = turns.find((turn) => turn.from === "you" && turn.state === "seen");
+  // 048. What Stop acts on, so never a turn sent from another device.
+  const inFlight = turns.find((turn) => turn.from === "you" && turn.state === "seen" && !turn.elsewhere);
 
   /** Which reply belongs to which sent message.
    *
@@ -1204,6 +1280,8 @@ export function Composer({
                       : turn.voice && !turn.voice.transcribed
                         ? "Couldn't write that one down. "
                         : "offload could not answer that one. Your dump is saved. "}
+                    {/* 048. On every device that draws it, the owner's call of
+                        2026-10-29: a failure line always has its way forward. */}
                     <button
                       type="button"
                       className={styles.retry}
@@ -1255,7 +1333,7 @@ export function Composer({
               {!replies.has(turn.id) && turn.question ? (
                 <div className={styles.turn}>
                   <div className={styles.turnOffload}>
-                    <Question turn={turn} onAnswered={answeredQuestion} />
+                    <Question turn={turn} onAnswered={answeredQuestion} own={own} />
                   </div>
                 </div>
               ) : null}
@@ -1308,7 +1386,7 @@ export function Composer({
                 {/* 018. The question, under the sentence and after any
                     proposal, which keeps its own life. */}
                 {answered.get(turn.id)?.question ? (
-                  <Question turn={answered.get(turn.id)!} onAnswered={answeredQuestion} />
+                  <Question turn={answered.get(turn.id)!} onAnswered={answeredQuestion} own={own} />
                 ) : null}
                 {/* The pills used to be here, inside the reply. They are in
                     the turn's footer now, with the Done mark and the sources,
@@ -1633,9 +1711,12 @@ function conversationTitle(turns: Turn[]): string {
 function Question({
   turn,
   onAnswered,
+  own,
 }: {
   turn: Turn;
   onAnswered: (turn: Turn, sent: Sent | null, option: { label: string; kind: "value" | "plain" }) => void;
+  /** 048. The composer's count of its own requests that make a message. */
+  own: <T>(request: Promise<T>) => Promise<T>;
 }) {
   const [busy, setBusy] = useState(false);
   const [failedToSend, setFailedToSend] = useState(false);
@@ -1649,7 +1730,7 @@ function Question({
     setBusy(true);
     setFailedToSend(false);
     try {
-      const { status, sent } = await answerQuestion(question.id, index);
+      const { status, sent } = await own(answerQuestion(question.id, index));
       // 404 means closed, answered elsewhere or gone: the chips leave and
       // there is nothing to retry. Anything else that failed is the network
       // or the server, and the chips stay beside the line that offers again.

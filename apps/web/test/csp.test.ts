@@ -113,6 +113,20 @@ describe("the middleware", () => {
     expect(first).not.toBe(second);
   });
 
+  it("lets the page reach the same API the client falls back to", () => {
+    // It fell back to production while every fetch fell back to the local
+    // API, so a dev server without the variable refused all its own calls.
+    const connectSrc = () => directive(serve("/").headers.get("content-security-policy") ?? "", "connect-src");
+    try {
+      vi.stubEnv("NEXT_PUBLIC_API_URL", undefined);
+      expect(connectSrc()).toContain("http://localhost:4701");
+      vi.stubEnv("NEXT_PUBLIC_API_URL", "https://api.offload.club");
+      expect(connectSrc()).toContain("https://api.offload.club");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("mints a nonce Next will read", () => {
     // Next ignores a nonce outside this alphabet and renders its scripts with
     // none, which the browser then refuses.

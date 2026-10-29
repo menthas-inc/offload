@@ -122,6 +122,14 @@ describe("027 questions (AC-9)", () => {
     expect(cards.map((c) => [c.key, c["fromEmail"]])).toEqual([[`question:${fromMail}`, true]]);
   });
 
+  it("draws an email's calendar question, since nobody had its conversation open (026 AC-25)", async () => {
+    const me = await settled();
+    const id = await question(me, { field: "calendar", untrusted: true, source: "mail" });
+    await question(me, { field: "person", untrusted: true, source: "mail" });
+    const cards = await needs(await signIn(me));
+    expect(cards.map((c) => [c.key, c["fromEmail"]])).toEqual([[`question:${id}`, true]]);
+  });
+
   it("never draws another account's question", async () => {
     const me = await settled();
     await question(await account());

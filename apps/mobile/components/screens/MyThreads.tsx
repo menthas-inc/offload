@@ -55,7 +55,7 @@ import { LooseGroup } from "../loose/LooseGroup";
 import { useLooseRows } from "../loose/useLooseRows";
 import type { Invitation } from "../../lib/people";
 import { InvitationStrip } from "../people/InvitationStrip";
-import { useConversation } from "../shell/conversation-context";
+import { useChanged, useConversation } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
 import { failed } from "../../lib/log";
 
@@ -88,9 +88,15 @@ export default function MyThreads() {
   const load = useCallback(async () => {
     try {
       const page = await fetchThreadsAndInvitations();
-      setGroups(page?.groups ?? []);
-      setInvitations(page?.invitations ?? []);
-      setLoose(page?.loose ?? null);
+      // A read that failed keeps what is drawn: a live one runs while
+      // somebody is looking at the list.
+      if (!page) {
+        setGroups((shown) => shown ?? []);
+        return;
+      }
+      setGroups(page.groups);
+      setInvitations(page.invitations);
+      setLoose(page.loose);
     } catch (error) {
       failed("threads.load", error);
     }
@@ -116,6 +122,8 @@ export default function MyThreads() {
     lastFiled.current = filed.at;
     void load();
   }, [filed, load]);
+  // 048. And when a thread changed elsewhere: another device, another member.
+  useChanged(["thread", "removed", "invitation"], () => void load());
 
   const rows = useLooseRows(loose, load, toast);
   // 2026-10-18. Every thread a list here has drawn: a thread left from its

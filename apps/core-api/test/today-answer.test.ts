@@ -133,6 +133,13 @@ describe("Answer on a question card", () => {
     expect((await resume(cookie, thread)).statusCode).toBe(404);
   });
 
+  it("takes an email's question whatever its field, for its Activity row (026 AC-17)", async () => {
+    const me = await account();
+    const cookie = await signIn(me);
+    const id = await question(me, { source: "mail", untrusted: true, field: "calendar" });
+    expect((await resume(cookie, id)).statusCode).toBe(200);
+  });
+
   it("leaves every other email's question open", async () => {
     const me = await account();
     const cookie = await signIn(me);

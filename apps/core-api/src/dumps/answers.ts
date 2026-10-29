@@ -27,6 +27,14 @@ import { env } from "../env.js";
 /** The channel the Core API notifies on when a turn is written. */
 export const ANSWER_CHANNEL = "offload_answer";
 
+/** 048. The channel every write a screen can see notifies on, from the
+ *  triggers in `0096_live_changes.sql`. Same connection, since a second one
+ *  would be a second thing to keep alive for no gain. */
+export const CHANGE_CHANNEL = "offload_change";
+
+type Heard = (payload: string) => void;
+const changeListeners = new Set<Heard>();
+
 type Waiter = () => void;
 
 const waiting = new Map<string, Set<Waiter>>();
@@ -49,23 +57,41 @@ async function connect(): Promise<void> {
   // clears itself and wakes everybody currently waiting, so they re-read once:
   // re-reading is cheap and correct, and sleeping through a missed notification
   // is neither.
-  next.on("error", () => {
+  const dropped = (): void => {
     client = null;
     connecting = null;
     for (const messageId of [...waiting.keys()]) wake(messageId);
+  };
+  next.on("error", dropped);
+  // 048. A terminated backend can end the client with no error first, and the
+  // hub reads `isListening` to know when to listen again.
+  next.on("end", () => {
+    if (client === next) dropped();
   });
 
   next.on("notification", (message) => {
-    if (message.channel !== ANSWER_CHANNEL || !message.payload) return;
-    wake(message.payload);
+    if (!message.payload) return;
+    if (message.channel === ANSWER_CHANNEL) wake(message.payload);
+    else if (message.channel === CHANGE_CHANNEL) for (const heard of changeListeners) heard(message.payload);
   });
 
-  await next.connect();
-  await next.query(`listen ${ANSWER_CHANNEL}`);
+  try {
+    await next.connect();
+    await next.query(`listen ${ANSWER_CHANNEL}`);
+    await next.query(`listen ${CHANGE_CHANNEL}`);
+  } catch (error) {
+    // Connected and half listening is a connection nobody holds: close it, or
+    // the hub's retries leak one per failure.
+    await next.end().catch(() => undefined);
+    throw error;
+  }
   client = next;
 }
 
-async function ensureListening(): Promise<void> {
+/** Connect if nobody has. Exported for the live hub, which, unlike a waiter,
+ *  has to listen again on its own after a drop: nothing else would call this
+ *  while no dump is out. */
+export async function ensureListening(): Promise<void> {
   if (client) return;
   connecting ??= connect().catch((error: unknown) => {
     connecting = null;
@@ -93,6 +119,15 @@ export async function onAnswer(messageId: string, woken: Waiter): Promise<() => 
     current.delete(woken);
     if (current.size === 0) waiting.delete(messageId);
   };
+}
+
+/** Whether the connection is up. The hub reads it on its clock. */
+export const isListening = (): boolean => client !== null;
+
+/** 048. Hear every `offload_change` payload. Returns the unsubscribe. */
+export function onChange(heard: Heard): () => void {
+  changeListeners.add(heard);
+  return () => changeListeners.delete(heard);
 }
 
 /** For tests and for shutdown. */

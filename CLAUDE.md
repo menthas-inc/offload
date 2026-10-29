@@ -21,6 +21,7 @@ Five surfaces: iOS, Android, web app, admin panel, marketing site. Invite only, 
 - When code and spec disagree, the spec wins. Update the code, or flag the spec as wrong.
 - When code and the design system disagree, the **code** wins, and the same change logs one entry in the design system's `decisions.md`. That asymmetry is deliberate, see OFF-7.
 - **The privacy policy is a claim surface. Treat it like a spec that can be broken from a distance.** It lives at `apps/web/src/app/(marketing)/privacy/page.tsx` and it states, in public, what happens to what people dump in. Any change that makes a line of it untrue is a defect even when the code is correct: a new company that receives content, a retention window that moves, a log or an event that starts carrying content, a control the page promises. **Tell me before writing the code, not after.** The reverse counts too: when something the page describes as coming finally ships, the dated note about it has to go.
+- **Over the air first, Apple review only when native changed.** Say so before writing a change that needs a new store build: a new native module or config plugin, a native field in `app.json` (permissions, entitlements, icons, plugins), an Expo SDK upgrade. When I ask to update the store, ship over the air if nothing native changed since the live build (`eas fingerprint:compare` against it): `eas update --channel production --environment production --private-key-path keys/private-key.pem` from `apps/mobile`, at the same `version`, because `runtimeVersion` follows it and a bump strands the update. Only a native change gets a version bump, a production build and a review.
 
 ## The design system is checked in
 
@@ -106,14 +107,14 @@ If a change is both, it gets an entry in both.
 
 ## Parallel work
 
-- Unrelated features run in separate git worktrees and separate sessions: `.claude/scripts/new-worktree.sh <slug>`.
+- Unrelated features run in separate git worktrees and separate sessions: `.claude/scripts/new-worktree.sh <slug>`. **The main checkout stays on `main`**, because several sessions work in it at once: every branch, even a one-line chore, gets a worktree, and `main_on_main.py` refuses a switch there.
 - `docs/constitution/`, `docs/tech/` and `.claude/skills/offload-design/` are SHARED state. Edit them on `main` only, never inside a feature worktree.
 - **Sessions talk through the board**, `.claude/scripts/board.py`, shared by every worktree. What other sessions post arrives on its own through a hook; nobody polls.
   - A feature session that runs from the main checkout names itself first, or it posts as `main`: `board.py as <slug>`.
   - Starting a feature: `board.py plan <impl-spec path> [note]`. Read the other sessions' impl-specs when they touch what you touch.
   - Anything another session would trip over: `board.py say "..."`. A migration number taken, a port, a shared file being edited, a device in use.
   - Before an action that cannot overlap: `board.py hold <name> "<reason>"`, and `board.py release <name>` straight after. A refusal means wait and ask again, not find a way round. Holds expire after 30 minutes (`--for N` to change it).
-  - Hold names in use: `suite` for anything that runs a suite on the shared database, **which includes every `git commit`, because the gate runs it**; `sim-<device>` and `pixel` for a device test. Make up others as needed and say so.
+  - Hold names in use: `suite` for anything that runs a suite on the shared database, **which includes every `git commit`, because the gate runs it**, so the gate takes it itself and refuses while another session has it; `sim-<device>` and `pixel` for a device test. Make up others as needed and say so.
 
 ## Status
 

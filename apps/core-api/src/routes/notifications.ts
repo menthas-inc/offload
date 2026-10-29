@@ -77,6 +77,8 @@ const activityEntry = z.object({
   /** 026. Which of the five an email row is, and the email it opens. */
   mailOutcome: z.enum(["filed", "asked", "nothing", "refused", "over_limit"]).nullable(),
   messageId: z.string().nullable(),
+  /** An email's open question, which its row opens. */
+  questionId: z.string().nullable(),
 });
 
 export async function notificationRoutes(app: App): Promise<void> {

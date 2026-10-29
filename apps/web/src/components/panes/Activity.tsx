@@ -15,9 +15,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { addUtcDays, dayIn } from "@offload/widgets";
 import { Icon } from "../Icon";
+import { useChanged } from "../shell/threads-context";
 import { useClock } from "../../lib/clock";
 import { refreshMe } from "../../lib/use-me";
-import { doorOf, fetchActivity, glyphOf, markActivitySeen, tagOf, undoActivity, type ActivityEntry } from "../../lib/notifications";
+import { doorOf, fetchActivity, glyphOf, markActivitySeen, openQuestion, tagOf, undoActivity, type ActivityEntry } from "../../lib/notifications";
 import pane from "../../app/(shell)/shell.module.css";
 
 function sectionOf(day: string, today: string, yesterday: string): "Today" | "Yesterday" | "Earlier" {
@@ -44,6 +45,16 @@ export function ActivityPane() {
       live = false;
     };
   }, []);
+
+  // 048. The first page again, as it opened, with nothing held over: a new
+  // entry lands at the top.
+  useChanged(["activity"], () => {
+    void fetchActivity(null).then((page) => {
+      if (!page) return;
+      setRows(page.rows);
+      setNext(page.next);
+    });
+  });
 
   /** 025. A sort taken back. Drawn first, written second, put back with the
    *  one clause if the server refuses. */
@@ -125,7 +136,7 @@ export function ActivityPane() {
                   {heading ? <h2 className={pane.actGroup}>{here}</h2> : null}
                   <div className={undoControl ? pane.actWithUndo : undefined}>
                     {door ? (
-                      <Link href={door} className={pane.actRow}>
+                      <Link href={door} className={pane.actRow} onClick={() => void openQuestion(row)}>
                         {body}
                       </Link>
                     ) : (

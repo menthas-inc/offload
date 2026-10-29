@@ -82,5 +82,27 @@ check_worktree() {
 }
 check_worktree
 
+# The gate runs the suite on the shared database, so it takes the board's
+# `suite` hold itself. On 2026-10-26 a command that matched the gate by accident
+# ran the suite while another session held `suite`, and both runs failed.
+board="$(cd "$(dirname "$0")/../../scripts" && pwd)/board.py"
+check_hold() {
+  local name="$1" holder="$2" want_exit="$3" want_text="$4" want_left="$5" out code
+  export BOARD_DIR="$tmp/board-$RANDOM"
+  [ -n "$holder" ] && CLAUDE_CODE_SESSION_ID="$holder" python3 "$board" hold suite "a suite run" >/dev/null
+  rm -f "$tmp/ran"
+  local p='{"session_id":"me","tool_input":{"command":"git commit -m x"}}'
+  out="$(cd "$tmp" && printf '%s' "$p" | CLAUDE_PROJECT_DIR="$tmp" PROJECT_TEST_CMD="test -f '$BOARD_DIR/holds/suite.json' && touch '$tmp/ran'" bash "$gate" 2>&1 >/dev/null)"; code=$?
+  if [ "$code" != "$want_exit" ]; then echo "FAIL $name: exit $code, wanted $want_exit"; fails=$((fails+1)); fi
+  if ! grep -qF "$want_text" <<< "$out"; then echo "FAIL $name: no '$want_text' in the output"; fails=$((fails+1)); fi
+  if [ "$want_exit" = 2 ] && [ -f "$tmp/ran" ]; then echo "FAIL $name: the suite ran under another session's hold"; fails=$((fails+1)); fi
+  left=no; [ -f "$BOARD_DIR/holds/suite.json" ] && left=yes
+  if [ "$left" != "$want_left" ]; then echo "FAIL $name: hold left behind is $left, wanted $want_left"; fails=$((fails+1)); fi
+  unset BOARD_DIR
+}
+check_hold "suite held by another session" "them" 2 "suite is held by" yes
+check_hold "the gate holds suite while it runs, then gives it back" "" 0 "pre-commit gate: passed" no
+check_hold "a hold this session took stays its own to release" "me" 0 "pre-commit gate: passed" yes
+
 [ "$fails" = 0 ] && echo "pre-commit-gate: all passed"
 exit "$fails"
