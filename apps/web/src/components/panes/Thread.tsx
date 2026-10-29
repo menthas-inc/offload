@@ -13,7 +13,7 @@
 // author's alone, and no kit draws an archived state though every kit draws an
 // archive control.
 
-import { threadLookAfter } from "@offload/widgets";
+import { threadLookAfter, touches } from "@offload/widgets";
 import { ThreadIcon } from "../ThreadIcon";
 import { EditThread } from "./EditThread";
 import { asksBeforeArchive, leaveAsk } from "@offload/widgets";
@@ -29,7 +29,7 @@ import { CalendarsTool } from "../shell/CalendarsPopover";
 import { Notes } from "./Notes";
 import { Timeline } from "./Timeline";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
-import { useThreads } from "../shell/threads-context";
+import { useChanged, useThreads } from "../shell/threads-context";
 import { useToast } from "../shell/Toast";
 import { perform, useWrites } from "../../lib/optimistic";
 import { Widgets } from "./Widgets";
@@ -175,7 +175,7 @@ export function Thread({ id, onChanged }: Props) {
   // What arrived while this screen was open, so it can be marked for a moment
   // rather than appearing silently in the middle of a list.
   const [arrived, setArrived] = useState<Set<string>>(new Set());
-  const { filed } = useThreads();
+  const { filed, changed, turnOut } = useThreads();
   // 020. The photo open in the viewer, by row id. The set it pages through is
   // every photo row on the page, in the page's order.
   const [viewing, setViewing] = useState<string | null>(null);
@@ -188,6 +188,8 @@ export function Thread({ id, onChanged }: Props) {
   const [leaving, setLeaving] = useState(false);
   const [leaveBusy, setLeaveBusy] = useState(false);
   const [leaveFailed, setLeaveFailed] = useState(false);
+  // 048. Left from here: the `removed` that follows finds the Undo already up.
+  const leftHere = useRef(false);
   async function leave() {
     setLeaveBusy(true);
     setLeaveFailed(false);
@@ -198,6 +200,7 @@ export function Thread({ id, onChanged }: Props) {
       return;
     }
     setLeaving(false);
+    leftHere.current = true;
     // In that thread's row on My threads. The list is reread when the route
     // changes, so it draws the thread once more before it goes, which is what
     // gives the line a slot; reloading it here first would race the push.
@@ -234,10 +237,12 @@ export function Thread({ id, onChanged }: Props) {
       fetchThread(id),
       fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
     ]);
-    if (!writes.idle()) return;
+    // 048. A read that failed keeps what is drawn: a live change or a write's
+    // reload is never the moment to blank the page.
+    if (!writes.idle() || !bundle || !page) return;
     setThread(bundle);
-    setRows(page?.rows ?? []);
-    setCursor(page?.nextCursor ?? null);
+    setRows(page.rows);
+    setCursor(page.nextCursor);
   }
 
   /** Reload, and mark whatever was not here before.
@@ -253,11 +258,11 @@ export function Thread({ id, onChanged }: Props) {
       fetchThread(id),
       fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
     ]);
-    if (!writes.idle()) return;
-    const next = page?.rows ?? [];
+    if (!writes.idle() || !bundle || !page) return;
+    const next = page.rows;
     setThread(bundle);
     setRows(next);
-    setCursor(page?.nextCursor ?? null);
+    setCursor(page.nextCursor);
 
     const fresh = next.filter((row) => before.get(row.id) !== changeToken(row)).map((row) => row.id);
     if (fresh.length === 0) return;
@@ -285,6 +290,33 @@ export function Thread({ id, onChanged }: Props) {
     if (filed.threadIds.length > 0 && !filed.threadIds.includes(id)) return;
     void catchUp();
   }, [filed, id]);
+
+  // 048. Changed elsewhere. Through `catchUp()` while a turn is out, here or on
+  // another device, so its rows still take the mark when they land ahead of the
+  // turn settling and the settling read finds nothing new; `load()` otherwise,
+  // which does not mark a member's edit or the nightly pass.
+  useChanged(["thread", "today"], () => void (turnOut ? catchUp() : load()), id);
+
+  // 048. Taken out of it elsewhere, or left on another device: My threads, with no Undo, since
+  // there is nothing here to undo. An editor, sheet or dialog open keeps its
+  // text and the page waits for it to close.
+  const [gone, setGone] = useState(false);
+  // 048. A note open in its editor inside `Notes`, which holds that state itself.
+  const [noteEditing, setNoteEditing] = useState(false);
+  const anythingOpen = Boolean(
+    addingNote || noteEditing || editing || editRow || editingThread || labelling || listing || sharing || leaving || viewing || calendarsOpen || map.open,
+  );
+  // A removal already heard when the page opened is not one: it opened reading.
+  const removedSeen = useRef(changed);
+  useEffect(() => {
+    if (!changed || changed === removedSeen.current) return;
+    removedSeen.current = changed;
+    // `touches` takes `all` too, which says nothing about this thread.
+    if (changed.kinds.includes("removed") && touches(changed, ["removed"], id) && !leftHere.current) setGone(true);
+  }, [changed, id]);
+  useEffect(() => {
+    if (gone && !anythingOpen) router.push("/threads");
+  }, [gone, anythingOpen]);
 
   // The mark is a moment, not a state. Cleared on a timer rather than on the
   // next render, so it survives the reload that produced it.
@@ -1466,6 +1498,7 @@ export function Thread({ id, onChanged }: Props) {
             onAdding={setAddingNote}
             onNotes={patchNotes}
             writes={writes}
+            onEditing={setNoteEditing}
           />
         )}
 

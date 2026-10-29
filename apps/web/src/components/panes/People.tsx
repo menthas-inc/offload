@@ -19,6 +19,7 @@ import { PersonRow } from "../people/PersonRow";
 import { RequestCard } from "../people/RequestCard";
 import { NewConnectionBody } from "../people/NewConnectionBody";
 import { ConfirmModal } from "../people/Modal";
+import { useChanged } from "../shell/threads-context";
 import { refreshMe } from "../../lib/use-me";
 import { peopleSummary } from "../../lib/settings";
 import {
@@ -60,6 +61,8 @@ function usePeople() {
   useEffect(() => {
     void load();
   }, [load]);
+  // 048. A connection, a request or a thread invitation changed elsewhere.
+  useChanged(["people", "invitation"], () => void load());
   return { page, failed, load };
 }
 

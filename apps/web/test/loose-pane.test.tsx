@@ -230,7 +230,7 @@ describe("the full list (AC-12 to AC-15)", () => {
 });
 
 describe("the routes (AC-4, AC-12)", () => {
-  const threads = { groups: [], invitations: [], loose: null, ready: true, reload: () => undefined, filed: null };
+  const threads = { groups: [], invitations: [], loose: null, ready: true, reload: () => undefined, filed: null, changed: null, turnOut: false };
 
   it("send the caller's default thread to Not in a thread, never drawing it", async () => {
     await draw(

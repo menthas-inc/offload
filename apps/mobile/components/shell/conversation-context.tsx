@@ -25,11 +25,13 @@ import { PAST, startsFresh } from "../../lib/sheet";
 import { raisedOf, settled } from "../../lib/conversation-sheet";
 import { AppState, Linking, type AppStateStatus } from "react-native";
 import { useAudioRecorder } from "expo-audio";
+import { useIsFocused } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { openPdf as openPdfOnPhone, sharePdf, sweepPdfs } from "../../lib/pdf-open";
 import { onClaimed } from "../../lib/device-data";
 import { tailAsker } from "../../lib/conversation-tail";
+import { elsewhereOf, openLive, outElsewhere, questionsFrom } from "../../lib/live";
 import { plainText } from "@offload/markup";
 import {
   DailyLimit,
@@ -63,8 +65,8 @@ import {
 } from "../../lib/dump";
 import type { ChipError } from "./AttachChip";
 import { addNote, completeContent, fetchThread, provisionalId, quickAdd } from "../../lib/threads";
-import { MAX_PDFS, MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, stayedForgotten, takeFiles, turnDid, turnUndoable, undoShown, withReply } from "@offload/widgets";
-import type { Place } from "@offload/widgets";
+import { MAX_PDFS, MAX_PHOTOS, answeredWaiting, isPdf, labelQuery, reloadFloor, stayedForgotten, takeFiles, touches, turnDid, turnUndoable, undoShown, withReply } from "@offload/widgets";
+import type { ChangeKind, Changes, Place } from "@offload/widgets";
 import type { Label } from "../../lib/labels";
 import { failed } from "../../lib/log";
 import { fetchPeople, nameOf, type Person } from "../../lib/people";
@@ -78,7 +80,7 @@ import {
   type Recording,
 } from "../../lib/recorder";
 import { putKeyboardAway } from "../../lib/keyboard";
-import { useMe } from "../../lib/me";
+import { refreshMe, useMe } from "../../lib/me";
 import { closedForTheDay } from "../../lib/composer";
 
 /** What a `+` pinned the composer to. Set only by a `+`, never chosen from
@@ -154,6 +156,12 @@ export interface Turn {
    *  and Try again puts the words back in the field. Local only, never on the
    *  wire, which is why it is not a `MessageState`. */
   unsent?: boolean;
+  /** 048. Sent from another of the person's devices. Drawn with its steps,
+   *  its writing indicator and its Done, and none of its controls: Stop,
+   *  Finish, Try again and Undo stay on the device that sent it. */
+  elsewhere?: boolean;
+  /** 048. What offload is doing on an elsewhere turn, which has no `working`. */
+  step?: string | null;
 }
 
 /** A `+`'s write that has left the composer and not yet settled.
@@ -386,8 +394,19 @@ export interface Conversation {
   answerOpen: (turnId: string, option: number) => Promise<"answered" | "gone" | "failed">;
   /** Tick a row from inside an answer. The only write an answer can do. */
   tickFound: (turnId: string, row: FoundRow) => Promise<void>;
-  /** What the turn wrote to, so an open thread can catch up on its own. */
-  filed: { threadIds: string[]; at: number } | null;
+  /** What the turn wrote to, so an open thread can catch up on its own.
+   *  048: `elsewhere` when the turn was sent from another device, which marks
+   *  the thread here too but plays no prism pulse. */
+  filed: { threadIds: string[]; at: number; elsewhere?: boolean } | null;
+  /** The prism's arrival pulse: the `at` of the last filing of this phone's
+   *  own turns. */
+  pulseAt: number;
+  /** 048. What changed, from the live connection or from coming back to the
+   *  foreground, for each screen to check against what it shows. */
+  changed: (Changes & { at: number }) | null;
+  /** 048. A turn of this account is out, from this phone or another: the
+   *  thread page catches up through the path that marks while it is. */
+  turnOut: boolean;
   /** A send that did not land: the turn goes and the words come back. */
   retry: (messageId: string) => void;
   /** The `+` writes in flight, for the thread screen to draw. */
@@ -632,7 +651,13 @@ export function ConversationProvider({
   const [filed, setFiled] = useState<{
     threadIds: string[];
     at: number;
+    elsewhere?: boolean;
   } | null>(null);
+  // 048. The prism's pulse is for this phone's own turns; a turn from another
+  // device marks the thread and leaves the prism still.
+  const pulse = useRef(0);
+  if (filed && !filed.elsewhere) pulse.current = filed.at;
+  const [changed, setChanged] = useState<(Changes & { at: number }) | null>(null);
 
   const polls = useRef(new Map<string, ReturnType<typeof awaitAnswer>>());
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -839,13 +864,17 @@ export function ConversationProvider({
     // `since` is when the person pressed send, not when the server answered
     // it: the dump request takes a second or more, and a clock stamped after
     // it held the first step back and put Stop late by the same amount.
-    (messageId: string, turnId: string, since: number = Date.now()) => {
+    // 048. `elsewhere` for a turn another device sent: drawn as it lands, and
+    // none of this phone's own state, which is its composer's, moves for it.
+    (messageId: string, turnId: string, since: number = Date.now(), elsewhere = false) => {
       const poll = awaitAnswer(
         messageId,
         (answer) => {
         polls.current.delete(messageId);
-        setWriting(false);
-        setWorking((current) => (current?.messageId === messageId ? null : current));
+        if (!elsewhere) {
+          setWriting(false);
+          setWorking((current) => (current?.messageId === messageId ? null : current));
+        }
 
         const did = turnDid(answer);
         setTurns((current) => {
@@ -900,7 +929,7 @@ export function ConversationProvider({
         // And a turn that only changed a calendar names no thread at all: a
         // removed event stayed on Today until the screen was opened again.
         const acted = turnUndoable(answer);
-        if (acted) setFiled({ threadIds: answer.changed, at: Date.now() });
+        if (acted) setFiled({ threadIds: answer.changed, at: Date.now(), ...(elsewhere ? { elsewhere: true } : {}) });
         // **A turn offers a way back only when it changed something.**
         // Undo reverses writes, and an answer writes nothing: offering it after
         // "I could not find that" is a control that would do nothing, sitting
@@ -911,7 +940,7 @@ export function ConversationProvider({
         // Only a finished turn, too. A partial one offers a way forward, and
         // both at once asks somebody to choose between finishing and undoing
         // inside eight seconds.
-        if (answer.state === "answered" && answer.reply && acted)
+        if (!elsewhere && answer.state === "answered" && answer.reply && acted)
           // Markers stripped rather than drawn. A toast is one line with a
           // control beside it, so a list has nowhere to go, and the raw
           // characters were showing.
@@ -919,9 +948,11 @@ export function ConversationProvider({
         },
         // 017. Only on a change, and only for the turn still in flight.
         (step) =>
-          setWorking((current) =>
-            current?.messageId === messageId ? { ...current, step } : current,
-          ),
+          elsewhere
+            ? setTurns((current) => current.map((turn) => (turn.id === messageId ? { ...turn, step } : turn)))
+            : setWorking((current) =>
+                current?.messageId === messageId ? { ...current, step } : current,
+              ),
         // 021. Drawn the moment the poll finds it, ahead of the reply. A
         // conversation that opened with the note takes its words as its
         // title, as the web's header does.
@@ -943,10 +974,90 @@ export function ConversationProvider({
         },
       );
       polls.current.set(messageId, poll);
-      setWorking({ messageId, turnId, since, step: null });
+      if (!elsewhere) setWorking({ messageId, turnId, since, step: null });
     },
     [offerUndo],
   );
+
+  // 048. A dump from another of the person's devices: the tail read, as on
+  // launch, and the turns this screen lacks appended as `elsewhere`, watched
+  // by the same poll. The sheet does not rise and the draft is not touched.
+  const outgoing = useRef(0);
+  const tailMissed = useRef(false);
+  const latestTail = useRef(async (): Promise<void> => undefined);
+  const [tailFloor] = useState(() => reloadFloor(() => void latestTail.current()));
+  latestTail.current = async () => {
+    // A send of this phone's own is out, or a conversation is ending: the tail
+    // could hold the message before the send has named it, so this waits.
+    if (outgoing.current > 0 || stopping.current) {
+      tailMissed.current = true;
+      return;
+    }
+    const tail = await fetchCurrent().catch(() => null);
+    if (!tail) return;
+    if (outgoing.current > 0 || stopping.current) {
+      tailMissed.current = true;
+      return;
+    }
+    const tailTurns = turnsOfTail(tail);
+    const fresh = elsewhereOf(shownTurns.current, tailTurns);
+    if (!fresh) return;
+    // A question answered on another device leaves this one's screen too.
+    setTurns((current) => questionsFrom(current, tailTurns));
+    if (fresh.length === 0) return;
+    const added: Turn[] = fresh.map((one) => ({ ...one, elsewhere: true }));
+    setTurns((current) => [...current, ...added.filter((one) => !current.some((held) => held.turnId === one.turnId))]);
+    if (shownTurns.current.length === 0) {
+      // A conversation to come back to, put away as of its last message, as
+      // the launch read leaves one.
+      setLive((current) => current ?? { title: "" });
+      const last = tail[tail.length - 1]?.createdAt;
+      if (closedAt.current === null) closedAt.current = last ? Date.parse(last) : Date.now();
+    }
+    for (const one of added) if (outElsewhere(one) && one.turnId && !polls.current.has(one.id)) watch(one.id, one.turnId, Date.now(), true);
+  };
+  /** A request of this phone's own that makes a message: the tail read waits
+   *  for it, and runs once nothing is out if it was asked meanwhile. */
+  const sending = useCallback(
+    async <T,>(request: Promise<T>): Promise<T> => {
+      outgoing.current += 1;
+      try {
+        return await request;
+      } finally {
+        outgoing.current -= 1;
+        if (outgoing.current === 0 && tailMissed.current) {
+          tailMissed.current = false;
+          tailFloor.ask();
+        }
+      }
+    },
+    [tailFloor],
+  );
+
+  // 048. What changed: stamped for the screens, the bell's dot read again on
+  // `activity` through `refreshMe`, which only announces the identity (the
+  // gate is launch's `getMe`, so nothing redirects), and the tail on
+  // `conversation`. Closed on sign-out by `openLive` itself, and opened again
+  // when the phone is claimed, since this mounts signed out after a sign-out.
+  const [bell] = useState(() => reloadFloor(() => void refreshMe()));
+  useEffect(() => {
+    const hear = (changes: Changes): void => {
+      setChanged({ ...changes, at: Date.now() });
+      if (touches(changes, ["activity"])) bell.ask();
+      if (touches(changes, ["conversation"])) tailFloor.ask();
+    };
+    let close = openLive(hear);
+    const off = onClaimed(() => {
+      close();
+      close = openLive(hear);
+    });
+    return () => {
+      off();
+      close();
+      bell.cancel();
+      tailFloor.cancel();
+    };
+  }, [bell, tailFloor]);
 
   /** Stop the turn in flight. 017.
    *
@@ -1431,13 +1542,15 @@ export function ConversationProvider({
       const hashed = hashPicks
         .filter((one) => text.toLowerCase().includes(`#${one.name.replace(/\s+/g, "").toLowerCase()}`))
         .map((one) => ("id" in one ? { id: one.id } : { name: one.name }));
-      const sent = await sendDump(
-        text,
-        clientKey,
-        onScreen?.id,
-        blobIds.length ? { blobIds, viaShare: viaShare.current } : undefined,
-        named,
-        hashed,
+      const sent = await sending(
+        sendDump(
+          text,
+          clientKey,
+          onScreen?.id,
+          blobIds.length ? { blobIds, viaShare: viaShare.current } : undefined,
+          named,
+          hashed,
+        ),
       );
       if (!sent) return unsent();
       // Only what went: a photo added while the send was out stays for the
@@ -1521,7 +1634,7 @@ export function ConversationProvider({
         unsent();
       }
     }
-  }, [dayUsed, draft, photos, note, live, onScreen, pin, submitPin, watch]);
+  }, [dayUsed, draft, photos, note, live, onScreen, pin, submitPin, watch, sending]);
 
   // 018. One open question per conversation.
   const openQuestion = useMemo(
@@ -1534,7 +1647,7 @@ export function ConversationProvider({
       const asked = turns.find((turn) => turn.id === turnId)?.question;
       const picked = asked?.options[option];
       if (!asked || !picked) return "gone";
-      const { status, sent } = await answerQuestion(asked.id, option);
+      const { status, sent } = await sending(answerQuestion(asked.id, option));
       // 404 means closed, answered elsewhere or gone: the chips leave and
       // there is nothing to retry. Anything else is the network or the
       // server, and the chips stay.
@@ -1577,7 +1690,7 @@ export function ConversationProvider({
       if (asked.field !== "country" && asked.field !== "person") offerUndo(sent.turnId, picked.label);
       return "answered";
     },
-    [turns, watch, offerUndo],
+    [turns, watch, offerUndo, sending],
   );
 
   // The turn goes on the press and comes back if the server refuses, since
@@ -1614,6 +1727,8 @@ export function ConversationProvider({
         if (turnId) watch(messageId, turnId);
         return;
       }
+      // 048. Finished from here, it is this phone's turn from now on.
+      setTurns((current) => current.map((turn) => (turn.id === messageId && turn.elsewhere ? { ...turn, elsewhere: false } : turn)));
       setWriting(true);
       watch(sent.messageId, sent.turnId);
     },
@@ -1621,6 +1736,7 @@ export function ConversationProvider({
   );
 
   const close = end;
+  const turnOut = working !== null || writing || turns.some(outElsewhere);
 
   return (
     <ConversationContext.Provider
@@ -1681,6 +1797,9 @@ export function ConversationProvider({
         undo,
         finish,
         filed,
+        pulseAt: pulse.current,
+        changed,
+        turnOut,
         resolveWaiting,
         openQuestion,
         answerOpen,
@@ -1738,4 +1857,25 @@ export function useScreenSheet(open: boolean): void {
       closeSheet();
     };
   }, [open, openSheet, closeSheet, sheetCount, sheetClosedAt, composerFocused]);
+}
+
+/** 048. Read again when something this screen shows changed elsewhere: at
+ *  most once every two seconds, trailing, so a burst is one read at its end.
+ *  Never for a change from before the screen mounted, which its own first
+ *  read already has, and only while the screen is in front: a tab stays
+ *  mounted behind the others, and every screen reads itself on focus. */
+export function useChanged(kinds: ChangeKind[], reload: () => void, threadId?: string): void {
+  const { changed } = useConversation();
+  const focused = useIsFocused();
+  const latest = useRef(reload);
+  latest.current = reload;
+  const seen = useRef(changed?.at ?? 0);
+  const [floor] = useState(() => reloadFloor(() => latest.current()));
+  useEffect(() => floor.cancel, [floor]);
+  useEffect(() => {
+    if (!changed || changed.at === seen.current) return;
+    seen.current = changed.at;
+    if (focused && touches(changed, kinds, threadId)) floor.ask();
+    // `kinds` is a literal at every call, read when a change arrives.
+  }, [changed, floor, threadId]);
 }

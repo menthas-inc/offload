@@ -19,7 +19,7 @@ import { useColors } from "../../lib/colors";
 import { useClock } from "../../lib/clock";
 import { refreshMe } from "../../lib/me";
 import { doorOf, glyphOf, loadActivity, openQuestion, sectionOf, seen, tagOf, undoActivity, whenOf, type ActivityEntry } from "../../lib/activity";
-import { useConversation } from "../shell/conversation-context";
+import { useChanged, useConversation } from "../shell/conversation-context";
 
 const isAndroid = Platform.OS === "android";
 
@@ -50,9 +50,13 @@ export default function Activity() {
       setRows(page.rows);
       setNext(page.next);
     } else {
-      setRows([]);
+      // A read that failed keeps what is drawn: a live one runs while
+      // somebody is reading the list.
+      setRows((shown) => shown ?? []);
     }
   }, []);
+  // 048. A new entry, from a share, a request or a reminder elsewhere.
+  useChanged(["activity"], () => void load());
 
   useFocusEffect(
     useCallback(() => {

@@ -23,13 +23,15 @@
 // instead of tapped, so the place you say things cannot be one tab.
 
 import { useCallback, useEffect, useState } from "react";
+import { reloadFloor, touches } from "@offload/widgets";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "../../components/shell/Sidebar";
-import { ThreadsProvider, type Filed } from "../../components/shell/threads-context";
+import { ThreadsProvider, type Changed, type Filed } from "../../components/shell/threads-context";
 import { Composer } from "../../components/shell/Composer";
 import { MapColumnContext } from "../../components/shell/map-column";
 import { ToastProvider } from "../../components/shell/Toast";
-import { useMe } from "../../lib/use-me";
+import { refreshBadges, useMe } from "../../lib/use-me";
+import { openLive } from "../../lib/live";
 import { Unanswered } from "../../components/Unanswered";
 import { fetchThreadsAndInvitations, type ThreadGroup } from "../../lib/threads";
 import type { Invitation } from "../../lib/people";
@@ -48,6 +50,10 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const [filed, setFiled] = useState<Filed | null>(null);
   // 030. The top thread pane's map column, which the composer keeps clear of.
   const [mapColumn, setMapColumn] = useState(false);
+  // 048. What changed elsewhere, for the screens to read again, and whether a
+  // turn is out, for the thread page to read through the path that marks.
+  const [changed, setChanged] = useState<Changed | null>(null);
+  const [turnOut, setTurnOut] = useState(false);
 
   const loadThreads = useCallback(async () => {
     const page = await fetchThreadsAndInvitations();
@@ -69,6 +75,23 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     void loadThreads();
   }, [pathname, loadThreads]);
 
+  // 048. Once signed in, and for the life of the shell. The list and the
+  // badges are the shell's own; every screen under it reads `changed`.
+  const signedIn = state.status === "ready";
+  useEffect(() => {
+    if (!signedIn) return;
+    const threadsFloor = reloadFloor(() => void loadThreads());
+    const close = openLive((changes) => {
+      setChanged({ ...changes, at: Date.now() });
+      if (touches(changes, ["thread", "removed", "invitation"])) threadsFloor.ask();
+      if (touches(changes, ["activity"])) void refreshBadges();
+    });
+    return () => {
+      close();
+      threadsFloor.cancel();
+    };
+  }, [signedIn, loadThreads]);
+
   if (state.status === "loading") return <div className={styles.shell} />;
   if (state.status === "unreachable") return <Unanswered retry={state.retry} attempt={state.attempt} retryAfter={state.retryAfter} />;
 
@@ -84,7 +107,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const inThread = open ? (threads.find((one) => one.id === open[1]) ?? null) : null;
 
   return (
-    <ThreadsProvider value={{ groups, invitations, loose, ready, reload: () => void loadThreads(), filed }}>
+    <ThreadsProvider value={{ groups, invitations, loose, ready, reload: () => void loadThreads(), filed, changed, turnOut }}>
       <ToastProvider>
       <div className={styles.shell}>
         <Sidebar threads={threads} threadCount={threads.length} requestsWaiting={state.me.requestsWaiting} activityNew={state.me.activityNew} />
@@ -97,6 +120,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               mapColumn={mapColumn}
               atDailyLimit={state.me.atDailyLimit}
               inThread={inThread ? { id: inThread.id, name: inThread.name } : null}
+              onTurnOut={setTurnOut}
               onFiled={(threadIds) => {
                 void loadThreads();
                 setFiled({ threadIds, at: Date.now() });

@@ -99,6 +99,22 @@ export async function refreshMe(): Promise<void> {
   }
 }
 
+/** 048. The two badges again, Activity's dot and the requests waiting, and
+ *  nothing else. A whole identity would carry the first-run, name and consent
+ *  gates with it, and a change heard live is no moment to send somebody to
+ *  one mid-sentence: the next load asks them. */
+export async function refreshBadges(): Promise<void> {
+  try {
+    const response = await fetch(`${API}/api/me`, { credentials: "include" });
+    if (!response.ok || !cached) return;
+    const { activityNew, requestsWaiting } = (await response.json()) as Me;
+    cached = { ...cached, activityNew, requestsWaiting };
+    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: cached }));
+  } catch {
+    // A hint, as `refreshMe` says: the next change or the next load reads it.
+  }
+}
+
 /** Whether this account still has something to answer before the shell.
  *
  *  Three questions, one gate. They came apart because every account that

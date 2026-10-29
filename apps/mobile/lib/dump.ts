@@ -11,6 +11,11 @@
 // polls only once the browser has closed the stream for good, the server is
 // `pg_notify`-driven, and there is no rate limiter to catch an interval set
 // too tight.
+//
+// 048: the phones still poll for an answer, and hear about a dump sent from
+// another of the person's devices on the live connection (`lib/live.ts`),
+// which says only that the conversation changed; the turn it adds is then
+// watched by this same poll.
 
 import { File } from "expo-file-system";
 import { MAX_PHOTO_BYTES, answerPollMs, isFinal, isPdf } from "@offload/widgets";

@@ -13,7 +13,7 @@ const data = vi.hoisted(() => ({ rows: [] as unknown[], notes: [] as unknown[] }
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 vi.mock("next/dynamic", () => ({ default: () => () => null }));
-vi.mock("../src/components/shell/threads-context", () => ({ useThreads: () => ({ filed: null }) }));
+vi.mock("../src/components/shell/threads-context", () => ({ useThreads: () => ({ filed: null }), useChanged: () => undefined }));
 vi.mock("../src/components/shell/Toast", () => ({ useToast: () => ({ show: vi.fn() }) }));
 vi.mock("../src/lib/clock", () => ({ useClock: () => ({ zone: "UTC", today: "2026-10-07" }) }));
 vi.mock("../src/components/shell/PaneHead", () => ({ PaneHead: () => null }));

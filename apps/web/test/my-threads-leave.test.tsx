@@ -60,3 +60,33 @@ describe("leaving a shared thread from My threads", () => {
     expect([...host.querySelectorAll("button")].some((b) => b.textContent === "Leave")).toBe(true);
   });
 });
+
+describe("048 W3 a row renamed elsewhere", () => {
+  it("holds the question at the row's height as it is now, not as it first drew", async () => {
+    // happy-dom lays nothing out: a longer name stands for a row that wraps.
+    const tall = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight");
+    Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+      configurable: true,
+      get(this: HTMLElement) {
+        return (this.textContent ?? "").length > 30 ? 64 : 40;
+      },
+    });
+    try {
+      const draw = (name: string) =>
+        act(async () =>
+          root.render(
+            <ToastProvider>
+              <MyThreads groups={[{ key: "now", threads: [thread("t2", name, [])] }]} loading={false} />
+            </ToastProvider>,
+          ),
+        );
+      await draw("Dentist");
+      await draw("Dentist, and the kids' check-ups in May");
+      await act(async () => (host.querySelector('[aria-label^="Delete Dentist"]') as HTMLButtonElement).click());
+      const question = [...host.querySelectorAll("button")].find((one) => one.textContent === "Cancel")!.parentElement!;
+      expect(parseFloat(question.style.minHeight)).toBe(64);
+    } finally {
+      if (tall) Object.defineProperty(HTMLElement.prototype, "offsetHeight", tall);
+    }
+  });
+});
