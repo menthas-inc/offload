@@ -9,7 +9,10 @@
 // **Three conditions, and the first is a union across the edit.** Removing every
 // guest from an invited event sends each of them a cancellation, so a test that
 // read only the proposed state would see no attendees and call it reversible.
-// The second is the calendar's participant count, read from Google since 019.
+// The second is the calendar's participant count, read from Google since 019,
+// and since 2026-10-28 it confirms only a delete: the owner adds to a calendar
+// they know is shared, and asking every time was friction. Adding and moving
+// are done with Undo; removing somebody's plan from under them still asks.
 // The third is the person asking to be asked on every write.
 //
 // **Evaluated server-side, from the event, the calendar and the account.** The
@@ -26,6 +29,8 @@ export interface OutwardInput {
   participants: number | null;
   /** The account's `Ask before adding` switch. */
   askFirst: boolean;
+  /** Only a delete is confirmed for the participant count. */
+  deleting: boolean;
 }
 
 export interface OutwardVerdict {
@@ -55,7 +60,7 @@ export function outwardTest(input: OutwardInput): OutwardVerdict {
   if (audience.length > 0) {
     return { outward: true, notify: true, audience, reason: "guests" };
   }
-  if (input.participants === null || input.participants > 1) {
+  if (input.deleting && (input.participants === null || input.participants > 1)) {
     // Nobody to mail, and still outward: everybody who can see the calendar can
     // see the event, which is a person finding out by other means. Unknown is
     // treated the same way, because guessing "only them" is the one guess that

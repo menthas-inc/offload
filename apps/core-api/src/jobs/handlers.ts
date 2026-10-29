@@ -107,7 +107,7 @@ async function giveBack(error: unknown, accountId: string, column: "waitlist_ema
  *  the queue's idempotency key prevents a second enqueue, not a second send by
  *  a job that retried after the mailer succeeded and the acknowledgement did
  *  not. */
-const invited: Handler = async (_payload, { mailer }, accountId) => {
+const invited: Handler = async (payload, { mailer }, accountId) => {
   if (!accountId) throw new Error("invited job has no account");
 
   const claimed = await db
@@ -121,17 +121,27 @@ const invited: Handler = async (_payload, { mailer }, accountId) => {
 
   if (!claimed) return;
 
+  // A job queued before promotion said where the address came from was a
+  // waitlist promotion: that was the only invite there was.
+  const fromWaitlist = (payload as { fromWaitlist?: boolean }).fromWaitlist !== false;
+  const site = new URL(env.WEB_URL).host;
+
   await mailer.send({
     to: claimed.email,
-    subject: "You are in",
+    subject: "Welcome to offload",
     slots: {
-      headline: "You are in",
+      headline: "Let's get you started",
       body:
-        "Your offload account is ready. Sign in with this address, using Google or Apple, " +
-        "and dump the first thing you would otherwise forget.",
-      buttonLabel: "Open offload",
-      buttonUrl: `${env.WEB_URL}/sign-in`,
-      footer: `You are receiving this because you joined the offload waitlist at ${new URL(env.WEB_URL).host}.`,
+        `You've been invited to try offload. You can sign in with your email address ${claimed.email} ` +
+        "using Google or Apple and start using offload!",
+      bold: claimed.email,
+      badges: [
+        { url: "https://apps.apple.com/app/id6814795746", image: `${env.WEB_URL}/brands/app-store.png`, alt: "Download on the App Store" },
+        { url: `${env.WEB_URL}/sign-in`, image: `${env.WEB_URL}/brands/open-in-browser.png`, alt: "Open in browser" },
+      ],
+      footer: fromWaitlist
+        ? `You are receiving this because you joined the offload waitlist at ${site}.`
+        : "You are receiving this because the team at offload wanted you to try it.",
     },
   }).catch((error: unknown) => giveBack(error, accountId, "invite_email_sent_at"));
 };
@@ -892,7 +902,12 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
   // next one; ticking or moving rows changes nothing a pass reads. In order:
   // a dump of theirs the pass may read landed; a note of theirs changed and
   // they hold two or more there (one has nothing to fold); a dated note of
-  // theirs passed its date; a first pass on a thread over the budget.
+  // theirs passed its date; a first pass on a thread over the budget; a row
+  // they typed straight into a thread still open to a layout, which files no
+  // dump; the one layout pass 0095 owes a thread with rows in it.
+  // Thread layouts: offload may still suggest one, as the nightly result's guards say.
+  const layoutOpen = sql`(threads.layout = 'default' and threads.layout_set_by = 'offload'
+      and threads.layout_suggestion is null and threads.layout_suggestion_dismissed_at is null)`;
   const since = sql`greatest(coalesce(thread_members.nightly_at, now() - interval '25 hours'), now() - interval '7 days')`;
   const own = sql`(select count(*) from notes n where n.scope = 'thread' and n.subject_id = threads.id
       and n.account_id = ${accountId} and n.deleted_at is null and n.superseded_at is null)`;
@@ -919,6 +934,12 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
          and coalesce(n.occurs_end_at, n.occurs_at, n.due_at) <= now()
     )
     or exists (select 1 from reminders_wanted(${accountId}::uuid, threads.id))
+    or (threads.id is distinct from ${defaultThread} and ${layoutOpen} and exists (
+      select 1 from content c where c.thread_id = threads.id and c.account_id = ${accountId}
+         and c.derived_from_message_id is null and c.deleted_at is null and c.created_at > ${since}
+    ))
+    or (threads.id is distinct from ${defaultThread} and threads.layout_pass_owed and ${layoutOpen}
+      and exists (select 1 from content c where c.thread_id = threads.id and c.deleted_at is null))
     or (thread_members.nightly_at is null and ${own} >= 2 and (
       select count(*) from notes n where n.scope = 'thread' and n.subject_id = threads.id
          and n.deleted_at is null and n.superseded_at is null) > ${NOTE_PROMPT_BUDGET})

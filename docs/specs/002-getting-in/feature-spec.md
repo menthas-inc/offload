@@ -35,7 +35,7 @@ Doing it first is deliberate. The alternative, building the dump loop against a 
 - **AC-8** An active account lands on Today and sees the designed day-one empty state on all three clients.
 - **AC-9** A disabled account cannot sign in and its live sessions stop working.
 - **AC-10** The funnel is measurable server-side end to end: `waitlist_joined`, `invite_sent`, `first_sign_in`, `onboarding_completed`, each carrying `subject_id` and never a real account id.
-- **AC-11** Every transactional email is the design's one template with four slots filled, ships a plain-text alternative, and contains no images.
+- **AC-11** Every transactional email is the design's one template with four slots filled, ships a plain-text alternative, and contains no images. *Amended 2026-10-28: the invite carries two, Apple's App Store badge and an Open in browser badge in one row, each at a fixed URL that is the same for every recipient so it cannot tell who opened it, with alt text so it reads with images off.*
 
 ## What this feature does not make possible
 

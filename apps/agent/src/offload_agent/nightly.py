@@ -69,6 +69,10 @@ CANDIDATE_CHARS = 200
 LABEL_CAP = 30
 ANCHOR_CAP = 20
 LABEL_CHARS = 200
+#: Thread layouts. The thread's rows a pass judges a layout from, and how much
+#: of each: titles, so a short cut.
+ROWS_SHOWN = 40
+ROW_CHARS = 120
 
 _PROMPT = load("nightly")
 for _marker in ("learn", "propose"):
@@ -112,6 +116,9 @@ _MEMBER = text(
     """
     select t.name as name, (a.default_thread_id = t.id) as is_default,
            a.time_zone as time_zone,
+           (t.layout = 'default' and t.layout_set_by = 'offload'
+            and t.layout_suggestion is null
+            and t.layout_suggestion_dismissed_at is null) as layout_open,
            exists (select 1 from thread_members o
                     where o.thread_id = t.id and o.account_id <> m.account_id
                       and o.state = 'accepted') as shared
@@ -139,6 +146,18 @@ _NOTES = text(
        and not n.derived_from_untrusted
      order by n.updated_at desc
      limit :budget
+    """
+)
+
+# Thread layouts. What the thread holds, by anybody, newest first: what a
+# layout is judged from while offload may still suggest one. Never cited.
+_ROWS = text(
+    """
+    select c.type as type, c.title as title, (c.done_at is not null) as done
+      from content c
+     where c.thread_id = cast(:thread_id as uuid) and c.deleted_at is null
+     order by c.created_at desc
+     limit :limit
     """
 )
 
@@ -377,6 +396,7 @@ def listing(
     memories: list | None = None,
     to_label: list[dict] | None = None,
     anchors: list[dict] | None = None,
+    rows: list[dict] | None = None,
 ) -> str:
     """The user turn: a data label, then one JSON entry per line."""
     lines = [
@@ -417,6 +437,16 @@ def listing(
             _entry(n=number, day=message["day"], text=_flat(message["text"], MESSAGE_CHARS))
             for number, message in enumerate(messages[:MESSAGE_CAP], start=1)
         ] or ["(nothing)"]
+    if rows:
+        lines += ["", "What the thread holds, newest first, for its layout only:"]
+        lines += [
+            _entry(
+                kind=_KIND_WORDS.get(row["type"], "entry"),
+                text=_flat(row["title"], ROW_CHARS),
+                **({"done": True} if row["done"] else {}),
+            )
+            for row in rows[:ROWS_SHOWN]
+        ]
     if candidates is not None:
         lines += ["", "What they put down without a thread, newest first:"]
         lines += [
@@ -712,6 +742,11 @@ async def handle_nightly(
             if on_default and propose
             else None
         )
+        rows = (
+            list((await conn.execute(_ROWS, {**params, "limit": ROWS_SHOWN})).mappings().all())
+            if member["layout_open"] and not on_default
+            else []
+        )
         # 042. What to label for reminders, and what a to-do could be for.
         to_label = list(
             (await conn.execute(_TO_LABEL, {**dated_params, "limit": LABEL_CAP})).mappings().all()
@@ -743,7 +778,7 @@ async def handle_nightly(
 
     mode = mode_for(on_default=on_default, candidates=candidates)
     owns_notes = any(row["theirs"] for row in notes)
-    if not owns_notes and not messages and not candidates and not to_label:
+    if not owns_notes and not messages and not candidates and not to_label and not rows:
         # Nothing of theirs to keep true and nothing new to read.
         async with engine.begin() as conn:
             await finish(conn, job.id)
@@ -759,6 +794,7 @@ async def handle_nightly(
         memories=memories,
         to_label=[dict(row) for row in to_label],
         anchors=[dict(row) for row in anchors],
+        rows=[dict(row) for row in rows],
     )
     plan, usage = await _ask(client, cfg, turn, propose=mode == "propose", mode=mode)
     if plan is None:
