@@ -38,8 +38,8 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 ## Documents
 
-- [~] **D1** Drafted in `at-merge.md`, for main after the merge. `docs/tech/decisions.md` on main: the always-on stream (cap, lifetime, session-check cost and its upgrade trigger), a line on the Redis entry, and the stale TanStack line corrected. (DEV-2)
-- [~] **D2** Drafted in `at-merge.md`, for main after the merge. `.claude/skills/offload-design/decisions.md`: the change mark's scope, with **Design system impact** filled in. On main, or on this branch if another session is carrying design (memory: design sync in the worktree). (OFF-7)
+- [x] **D1** Landed from `at-merge.md` after the merge, 2026-10-29. `docs/tech/decisions.md` on main: the always-on stream (cap, lifetime, session-check cost and its upgrade trigger), a line on the Redis entry, and the stale TanStack line corrected. (DEV-2)
+- [x] **D2** Landed from `at-merge.md` after the merge, 2026-10-29. `.claude/skills/offload-design/decisions.md`: the change mark's scope, with **Design system impact** filled in. On main, or on this branch if another session is carrying design (memory: design sync in the worktree). (OFF-7)
 - [x] **D3** `apps/mobile/lib/dump.ts` header updated. Privacy page re-read at merge against the feature spec's sentence. (DEV-2)
 
 ## Checks on devices
