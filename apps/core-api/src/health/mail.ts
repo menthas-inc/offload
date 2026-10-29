@@ -120,6 +120,13 @@ function conditionWords(condition: string, cleared: boolean): ConditionWords {
   if (name === "backup_late") {
     return { headline: "The backup is late", body: "No backup has finished in the last 26 hours." };
   }
+  if (name === "notify_queue") {
+    if (cleared) return { headline: "The notify queue is draining", body: "It is back under a quarter full." };
+    return {
+      headline: "The notify queue is filling",
+      body: "Postgres holds every live update until the slowest listener reads it, and when the queue is full every write fails. A listener left idle on the database is the usual cause.",
+    };
+  }
   if (name === "review_code_old") {
     // The codes are a section of the Waitlist page (039), so the button goes
     // there rather than to Health, which only says the condition is open.

@@ -70,10 +70,12 @@ function Row({
   const box = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | null>(null);
 
-  // Measured once, so the question holds the row's height.
+  // Measured from the row, so the question holds its height. Again when the
+  // name changes, which a rename on another device does under a drawn row
+  // (048), and never from the question itself.
   useEffect(() => {
-    if (box.current && height === null) setHeight(box.current.offsetHeight);
-  }, [height]);
+    if (box.current && !asking) setHeight(box.current.offsetHeight);
+  }, [thread.name, asking]);
 
   // Clicking anywhere else is a cancel. The question should never trap the
   // page, which is the kit's own comment on this listener.

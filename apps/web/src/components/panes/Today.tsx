@@ -29,7 +29,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { addUtcDays, dayName, dayTitle, keepInPlace, monthDated, twoWeekFor, stepWeek, type MonthCount, nextLine, nothingLine, reminderEntryKey, remindersInOrder, zoneStrip } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { PaneHead } from "../shell/PaneHead";
-import { useThreads } from "../shell/threads-context";
+import { useChanged, useThreads } from "../shell/threads-context";
 import { NeedsYou, type Card } from "../today/NeedsYou";
 import { MonthGrid } from "./MonthGrid";
 import { EventsStrip, NextLine } from "../today/EventsStrip";
@@ -317,6 +317,16 @@ export function TodayPane({
     await Promise.all([load(false), loadOpen(), loadReminders()]);
   }, [load, loadOpen, loadReminders]);
   const rows = useTodayRows(reload, labels);
+  // 048. A row or note with a date, a reminder dismissed elsewhere: the reads
+  // a write already runs, none of which draws the spinner over a drawn day.
+  // And Needs you, without starting its count over, which would drop the line
+  // of a card answered here.
+  useChanged(["thread", "today"], () => {
+    void reload();
+    void fetchNeeds().then((cards) => {
+      if (cards) setNeeds(cards);
+    });
+  });
   // 2026-10-18. A section whose last thing left keeps its place while that
   // thing's Undo line runs.
   const undos = useUndoEntries();

@@ -69,6 +69,7 @@ import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import type { PhotoOnWire } from "../../lib/dump";
 import { putKeyboardAway } from "../../lib/keyboard";
 import { threadHref } from "../../lib/loose";
+import { outElsewhere } from "../../lib/live";
 import { atEnd, sentBy, yours } from "../../lib/transcript-follow";
 
 /** 020. The viewer for a sent message's photos, mounted by the shell above
@@ -255,7 +256,7 @@ export function Conversation() {
         {shownPin ? <PinnedTarget pin={shownPin} /> : null}
         <View style={{ paddingBottom: insets.bottom }}>
           <View className="overflow-hidden">
-            <PrismField variant="band" veil="graded" pulse={raised ? (conversation.filed?.at ?? 0) : 0} />
+            <PrismField variant="band" veil="graded" pulse={raised ? conversation.pulseAt : 0} />
             <Composer
               inSheet
               placeholder={shownPin ? shownPin.placeholder : "Add to this"}
@@ -371,6 +372,7 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
    *  sent bubble again, and a `replace` that found nothing to strip matched the
    *  reply against itself, so it drew twice. Both messages of a turn carry the
    *  same `turnId` on every path, which is the thing that was always true. */
+  const away = turns.find(outElsewhere);
   const answered = new Map<string, Turn>();
   const replied = new Set<string>();
   for (const reply of turns) {
@@ -468,7 +470,8 @@ function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
             <Theirs key={turn.id} turn={turn} sent={answered.get(turn.id) ?? null} />
           ),
         )}
-        {writing ? <Thinking /> : null}
+        {/* 048. A turn from another device draws its phrase and no Stop. */}
+        {writing ? <Thinking /> : away ? <Thinking elsewhere={{ step: away.step ?? null }} /> : null}
       </View>
     </KeyboardChatScrollView>
   );

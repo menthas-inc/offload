@@ -97,7 +97,7 @@ export function Plate({
   // The arrival pulse: PrismField mounts only while a filing plays, then
   // unmounts, so nothing animates at rest. The page's field now shows through
   // the glass, which is why the resting band is gone (046).
-  const filedAt = raised ? 0 : (conversation.filed?.at ?? 0);
+  const filedAt = raised ? 0 : conversation.pulseAt;
   const [pulseAt, setPulseAt] = useState(0);
   useEffect(() => {
     if (!filedAt) return;

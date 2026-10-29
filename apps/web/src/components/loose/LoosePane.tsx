@@ -23,6 +23,7 @@ import { LooseRow } from "./LooseRow";
 import { TypeChips } from "./TypeChips";
 import { RETRY, looseId, useLooseRows } from "./useLooseRows";
 import { InPlace } from "../shell/InPlace";
+import { useChanged } from "../shell/threads-context";
 import { perform } from "../../lib/optimistic";
 import { setArchived, type ContentRow } from "../../lib/threads";
 import { fetchLoose, fetchLooseArchived, entryKey, type ChipKey, type LoosePage } from "../../lib/loose";
@@ -50,11 +51,12 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
 
   /** The first page, for the chip that is on. A reload that lands while a
    *  write is in flight is dropped, as the thread page drops it. */
-  async function load(which: ChipKey | null): Promise<void> {
+  async function load(which: ChipKey | null, live = false): Promise<void> {
     const read = await fetchLoose({ type: which });
     if (!rows.writes.idle()) return;
     if (!read) {
-      setState("failed");
+      // 048. A live read that fails keeps what is drawn.
+      if (!live) setState("failed");
       return;
     }
     // The picked type has emptied: back to All.
@@ -81,6 +83,10 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
       live = false;
     };
   }, [type, attempt]);
+
+  // 048. The default thread's id is the server's to know, so a change to any
+  // thread reads this again. `load` keeps the chip and the archived rows open.
+  useChanged(["thread"], () => void load(type, true));
 
   async function more(): Promise<void> {
     if (!page.nextCursor) return;

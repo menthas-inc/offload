@@ -1466,3 +1466,47 @@ describe("Undo in place on Today (2026-10-18)", () => {
     expect(writes("POST", "/v1/turns/turn1/undo")).toHaveLength(1);
   });
 });
+
+// ------------------------------------------------------------------ 048
+
+const { ThreadsProvider } = await import("../src/components/shell/threads-context");
+
+describe("048 P3 a change while Today is open", () => {
+  const provide = (changed: import("@offload/widgets").Changes | null) =>
+    act(async () =>
+      root.render(
+        <ThreadsProvider
+          value={{ groups: [], invitations: [], loose: null, ready: true, reload: () => {}, filed: null, turnOut: false, changed: changed && { ...changed, at: Date.now() } }}
+        >
+          <ToastProvider>
+            <TodayRoute />
+            <ToastHost />
+          </ToastProvider>
+        </ThreadsProvider>,
+      ),
+    );
+  const reads = () => ["day", "threads", "reminders", "needs"].map((one) => calls.filter((call) => call.path.startsWith(`/v1/today/${one}`)).length);
+
+  it.each(["thread", "today", "all"] as const)("reads the day, the open threads, the reminders and Needs you again on %s", async (kind) => {
+    await withV3();
+    await provide(null);
+    await settle();
+    calls = [];
+    needs = [card.request("r1", "Ana Duarte")];
+    await provide({ kinds: [kind], threads: ["t9"] });
+    await settle();
+    expect(reads()).toEqual([1, 1, 1, 1]);
+    expect(text()).toContain("Book the Sintra train");
+    expect(text()).toContain("Ana Duarte");
+  });
+
+  it("does not read again on a memory", async () => {
+    await withV3();
+    await provide(null);
+    await settle();
+    calls = [];
+    await provide({ kinds: ["memories"] });
+    await settle();
+    expect(reads()).toEqual([0, 0, 0, 0]);
+  });
+});
