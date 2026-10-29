@@ -34,7 +34,7 @@
     "libmime": "^5.4.6",
     "mailauth": "^7.1.0",
     "mailparser": "^3.9.32",
-    "nodemailer": "^10.0.13",
+    "nodemailer": "^10.1.4",
     "pdfjs-dist": "^6.2.108",
     "pg": "^8.13.1",
     "pngjs": "7.0.0",
