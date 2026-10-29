@@ -68,7 +68,8 @@ describe("a turn that changed a calendar and filed nothing", () => {
   const context = readFileSync(new URL("../components/shell/conversation-context.tsx", import.meta.url), "utf8");
 
   it("tells the open screens to read again when it settles", () => {
-    expect(context).toContain("if (acted) setFiled({ threadIds: answer.changed, at: Date.now() });");
+    // 048: flagged when another device sent the turn, which plays no pulse.
+    expect(context).toContain("if (acted) setFiled({ threadIds: answer.changed, at: Date.now(), ...(elsewhere ? { elsewhere: true } : {}) });");
   });
 
   it("and when a proposal is agreed to", () => {

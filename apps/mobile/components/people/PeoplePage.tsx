@@ -26,6 +26,7 @@ import { PersonRow } from "./PersonRow";
 import { RequestCard } from "./RequestCard";
 import { ConfirmSheet } from "./ConfirmSheet";
 import { refreshMe } from "../../lib/me";
+import { useChanged } from "../shell/conversation-context";
 import {
   dayMonth,
   answerRequest,
@@ -68,6 +69,8 @@ function usePeople() {
       void load();
     }, [load]),
   );
+  // 048. A connection, a request or an invitation changed elsewhere.
+  useChanged(["people", "invitation"], () => void load());
   return { page, failed, load };
 }
 

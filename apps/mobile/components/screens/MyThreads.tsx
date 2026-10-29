@@ -64,7 +64,7 @@ import {
 import type { LooseSummary } from "../../lib/loose";
 import type { Invitation } from "../../lib/people";
 import { InvitationStrip } from "../people/InvitationStrip";
-import { useConversation } from "../shell/conversation-context";
+import { useChanged, useConversation } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
 import { useMe } from "../../lib/me";
 import { failed } from "../../lib/log";
@@ -128,10 +128,16 @@ export default function MyThreads() {
   const load = useCallback(async () => {
     try {
       const page = await fetchThreadsAndInvitations();
-      setGroups(page?.groups ?? []);
-      setInvitations(page?.invitations ?? []);
-      setLoose(page?.loose ?? null);
-      if (page) setOrder(page.order);
+      // A read that failed keeps what is drawn: a live one runs while
+      // somebody is looking at the list.
+      if (!page) {
+        setGroups((shown) => shown ?? []);
+        return;
+      }
+      setGroups(page.groups);
+      setInvitations(page.invitations);
+      setLoose(page.loose);
+      setOrder(page.order);
     } catch (error) {
       failed("threads.load", error);
     }
@@ -155,6 +161,9 @@ export default function MyThreads() {
     lastFiled.current = filed.at;
     void load();
   }, [filed, load]);
+  // 048. And when a thread changed elsewhere, another device or another
+  // member, or the order did on another device.
+  useChanged(["thread", "removed", "invitation", "order"], () => void load());
 
   // A fresh read takes over from the drawn order, unless a write is still
   // travelling and the read is from before it.

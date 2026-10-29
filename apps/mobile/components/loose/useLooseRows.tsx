@@ -97,12 +97,15 @@ export function useLooseRows(
   const [moving, setMoving] = useState<LooseEntry | null>(null);
   const [viewing, setViewing] = useState<ContentRow | null>(null);
   const [creating, setCreating] = useState<string | null>(null);
+  const writes = useWrites(reload);
+  // A read taken while a write is out is the server's copy from before it, so
+  // what was drawn ahead stays until the read the write's settling runs.
   useEffect(() => {
+    if (!writes.idle()) return;
     setDropped(new Map());
     setUnsuggested(new Set());
     setDrawn(new Map());
   }, [source]);
-  const writes = useWrites(reload);
 
   const add = (set: Set<string>, key: string) => new Set(set).add(key);
   const take = (set: Set<string>, key: string) => {

@@ -13,7 +13,7 @@ const data = vi.hoisted(() => ({ rows: [] as unknown[], archive: true, toasts: [
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 vi.mock("next/dynamic", () => ({ default: () => () => null }));
-vi.mock("../src/components/shell/threads-context", () => ({ useThreads: () => ({ filed: null }) }));
+vi.mock("../src/components/shell/threads-context", () => ({ useThreads: () => ({ filed: null }), useChanged: () => undefined }));
 // The real toast's rule: a word with a place is drawn in place, anything else
 // is the toast, counted here.
 vi.mock("../src/components/shell/Toast", async () => {

@@ -559,3 +559,6 @@ export {
 export type { Form, Layout, LayoutInput, LayoutNote, LayoutPage, LayoutRow, LayoutSection } from "./layouts.js";
 export { backGlyph, moveThread, ORDER_COPY, orderThreads, tileLabel } from "./threads-grid.js";
 export type { ThreadSort } from "./threads-grid.js";
+// 048. Live updates: what the connection says, and when a screen reads again.
+export { EVERYTHING, reloadFloor, touches } from "./live.js";
+export type { ChangeKind, Changes } from "./live.js";

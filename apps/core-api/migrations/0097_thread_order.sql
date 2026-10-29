@@ -13,3 +13,8 @@ create table thread_order (
   ids        uuid[] not null default '{}',
   updated_at timestamptz not null default now()
 );
+
+-- 048. An order made on one device reaches the person's other screens. Ids
+-- only, as every live trigger: the account, never the list.
+create trigger live_thread_order after insert or update or delete on thread_order
+  for each row execute function live_notify('order', 'account_id');

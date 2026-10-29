@@ -42,6 +42,7 @@ import { PaneHead } from "../shell/PaneHead";
 import { useToast } from "../shell/Toast";
 import { Line } from "../shell/InPlace";
 import { Returned } from "../shell/UndoLine";
+import { useChanged } from "../shell/threads-context";
 import { useInPlace } from "../../lib/undo";
 import { Segmented } from "./Appearance";
 import { QuietEmpty } from "./QuietEmpty";
@@ -83,6 +84,8 @@ export function MemoriesPane({
   }, []);
   const writes = useWrites(reload);
   idle.current = writes.idle;
+  // 048. The quiet read, never `load`, which draws the spinner.
+  useChanged(["memories"], () => void reload());
 
   const load = useCallback(async () => {
     setState("loading");

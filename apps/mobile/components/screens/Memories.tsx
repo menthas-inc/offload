@@ -24,7 +24,7 @@ import { ToastHost, useToast } from "../shell/Toast";
 import { PlateSpace } from "../shell/plate-inset";
 import { placedItem } from "../shell/InPlace";
 import { useInPlace, type InPlace } from "../../lib/undo";
-import { useConversation } from "../shell/conversation-context";
+import { useChanged, useConversation } from "../shell/conversation-context";
 import { MemoryListRow } from "../memories/MemoryListRow";
 import { MemoryEditor } from "../memories/MemoryEditor";
 import { MemoriesMap } from "../memories/MemoriesMap";
@@ -121,6 +121,8 @@ export default function Memories() {
     lastFiled.current = filed.at;
     void load();
   }, [filed, load]);
+  // 048. And when a memory changed elsewhere, or the nightly pass wrote one.
+  useChanged(["memories"], () => void load());
 
   useEffect(() => {
     if (searching) searchField.current?.focus();
