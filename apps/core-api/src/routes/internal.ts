@@ -544,6 +544,11 @@ export async function internalRoutes(app: App): Promise<void> {
         // write-once: a person's pick, a prior suggestion or a dismissal all
         // stop it. Never the default thread (Not in a thread), which has no
         // layout picker and whose pass suggests threads instead.
+        // 0095. A pass over a thread still open to a layout had its rows in
+        // view, so that thread's owed pass is paid, suggestion or not.
+        if (!isDefault) {
+          await trx.updateTable("threads").set({ layout_pass_owed: false }).where("id", "=", threadId).where("layout_pass_owed", "=", true).execute();
+        }
         if (result.layout && !isDefault) {
           await trx
             .updateTable("threads")

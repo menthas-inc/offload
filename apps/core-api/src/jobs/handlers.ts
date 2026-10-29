@@ -902,7 +902,12 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
   // next one; ticking or moving rows changes nothing a pass reads. In order:
   // a dump of theirs the pass may read landed; a note of theirs changed and
   // they hold two or more there (one has nothing to fold); a dated note of
-  // theirs passed its date; a first pass on a thread over the budget.
+  // theirs passed its date; a first pass on a thread over the budget; a row
+  // they typed straight into a thread still open to a layout, which files no
+  // dump; the one layout pass 0095 owes a thread with rows in it.
+  // Thread layouts: offload may still suggest one, as the nightly result's guards say.
+  const layoutOpen = sql`(threads.layout = 'default' and threads.layout_set_by = 'offload'
+      and threads.layout_suggestion is null and threads.layout_suggestion_dismissed_at is null)`;
   const since = sql`greatest(coalesce(thread_members.nightly_at, now() - interval '25 hours'), now() - interval '7 days')`;
   const own = sql`(select count(*) from notes n where n.scope = 'thread' and n.subject_id = threads.id
       and n.account_id = ${accountId} and n.deleted_at is null and n.superseded_at is null)`;
@@ -929,6 +934,12 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
          and coalesce(n.occurs_end_at, n.occurs_at, n.due_at) <= now()
     )
     or exists (select 1 from reminders_wanted(${accountId}::uuid, threads.id))
+    or (threads.id is distinct from ${defaultThread} and ${layoutOpen} and exists (
+      select 1 from content c where c.thread_id = threads.id and c.account_id = ${accountId}
+         and c.derived_from_message_id is null and c.deleted_at is null and c.created_at > ${since}
+    ))
+    or (threads.id is distinct from ${defaultThread} and threads.layout_pass_owed and ${layoutOpen}
+      and exists (select 1 from content c where c.thread_id = threads.id and c.deleted_at is null))
     or (thread_members.nightly_at is null and ${own} >= 2 and (
       select count(*) from notes n where n.scope = 'thread' and n.subject_id = threads.id
          and n.deleted_at is null and n.superseded_at is null) > ${NOTE_PROMPT_BUDGET})
