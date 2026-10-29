@@ -291,6 +291,9 @@ export interface ThreadsTable {
     "todo" | "events" | "gallery" | "project" | "timeline" | null
   >;
   layout_suggestion_dismissed_at: Timestamp | null;
+  /** 0095. One pass with the rows in view is owed, booked however quiet the
+   *  thread is, and cleared when a pass applies. */
+  layout_pass_owed: Generated<boolean>;
 }
 
 export interface ThreadMembersTable {

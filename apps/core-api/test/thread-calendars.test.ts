@@ -874,7 +874,7 @@ describe("AC-11 where a write goes", () => {
     expect(google.patchEvent).not.toHaveBeenCalled();
   });
 
-  it("a removal other people would see, or one they asked to check, still waits; agreed to, Undo re-adds it with its guests", async () => {
+  it("a removal other people would see, or one they asked to check, still waits, a move on that calendar is done; agreed to, Undo re-adds it with its guests", async () => {
     const me = await account();
     const t = await thread(me);
     const id = await calendar(await connection(me), { externalId: "cal-mine" });
@@ -890,7 +890,8 @@ describe("AC-11 where a write goes", () => {
     const moved = (
       await tool({ tool: "edit_event", jobId: turn.jobId, toolCallId: "g2", sourceRef: turn.sourceRef, scope: "one", title: "Later" })
     ).json() as Record<string, unknown>;
-    expect(moved).toMatchObject({ waitingForThem: true, because: "Everyone on this calendar will see it." });
+    // 2026-10-28, the owner: only a removal from a shared calendar asks.
+    expect(moved["written"]).toBe(true);
     await db.deleteFrom("connector_pending_writes").execute();
 
     google.countParticipants.mockResolvedValue(1);
@@ -919,7 +920,8 @@ describe("AC-11 where a write goes", () => {
       const undone = await app.inject({ method: "POST", url: `/v1/turns/${turn.turnId}/undo`, headers: { cookie } });
       expect(undone.statusCode).toBe(200);
       const [, , draft, notify] = google.createEvent.mock.calls[0] as unknown as [string, string, { title: string; attendees?: string[] }, boolean];
-      expect(draft).toMatchObject({ title: "Dentist appointment", attendees: ["ana@example.com"] });
+      // The move above was done, so what comes back is the moved event.
+      expect(draft).toMatchObject({ title: "Later", attendees: ["ana@example.com"] });
       expect(notify).toBe(true);
     } finally {
       google.getEvent.mockResolvedValue(null as never);
@@ -1195,20 +1197,18 @@ describe("AC-11 where a write goes", () => {
     expect(picks.map((p) => p.calendar_id)).toEqual([home]);
   });
 
-  it("a named calendar other people can see waits, on that calendar", async () => {
+  it("a named calendar other people can see is written to, with no question", async () => {
     const me = await account();
     const t = await thread(me);
     const n = await connection(me);
     await pick(t, await calendar(n, { summary: "Home" }), me);
-    const shared = await calendar(n, { summary: "P and B", accessRole: "writer", participants: null });
+    await calendar(n, { summary: "P and B", externalId: "cal-pb", accessRole: "writer", participants: null });
     const { jobId, messageId } = await dump(me, t);
     const contentId = await row(me, t, "Dentist", messageId);
 
     const result = (await tool({ tool: "create_event", jobId, toolCallId: "n2", contentId, calendar: "P and B" })).json() as Record<string, unknown>;
-    expect(result).toMatchObject({ ok: true, waitingForThem: true, because: "Everyone on this calendar will see it." });
-    expect(google.createEvent).not.toHaveBeenCalled();
-    const pending = await db.selectFrom("connector_pending_writes").select("calendar_id").executeTakeFirstOrThrow();
-    expect(pending.calendar_id).toBe(shared);
+    expect(result["written"]).toBe(true);
+    expect(calledWith(0)).toBe("cal-pb");
   });
 
   it("a named calendar that is none of theirs is asked about, never swapped for the one they have", async () => {
@@ -1391,9 +1391,8 @@ describe("AC-11 where a write goes", () => {
     const result = (
       await tool({ tool: "create_event", jobId, toolCallId: "w1", contentId, calendar: "my calendar with Meera" })
     ).json() as Record<string, unknown>;
-    expect(result).toMatchObject({ ok: true, waitingForThem: true });
-    const pending = await db.selectFrom("connector_pending_writes").select("calendar_id").executeTakeFirstOrThrow();
-    expect(pending.calendar_id).toBe(await idOf("cal-pb", n));
+    expect(result["written"]).toBe(true);
+    expect(calledWith(0)).toBe("cal-pb");
     // Her offload answered, so Google was not asked.
     expect(google.sharedWith).not.toHaveBeenCalled();
   });
@@ -1417,9 +1416,8 @@ describe("AC-11 where a write goes", () => {
     const result = (
       await tool({ tool: "create_event", jobId, toolCallId: "w2", contentId, calendar: "the calendar I share with Meera" })
     ).json() as Record<string, unknown>;
-    expect(result).toMatchObject({ ok: true, waitingForThem: true });
-    const pending = await db.selectFrom("connector_pending_writes").select("calendar_id").executeTakeFirstOrThrow();
-    expect(pending.calendar_id).toBe(await idOf("cal-pb", n));
+    expect(result["written"]).toBe(true);
+    expect(calledWith(0)).toBe("cal-pb");
     // Only calendars other people see are worth asking about.
     expect(google.sharedWith.mock.calls.map((call) => call[1]).sort()).toEqual(["cal-pb", "cal-work"]);
   });
@@ -1435,14 +1433,15 @@ describe("AC-11 where a write goes", () => {
 
     const one = await row(me, t, "Tapas", messageId);
     const named = (await tool({ tool: "create_event", jobId, toolCallId: "d1", contentId: one, calendar: "Dinner with friends" })).json() as Record<string, unknown>;
-    expect(named).toMatchObject({ ok: true, waitingForThem: true });
+    expect(named["written"]).toBe(true);
+    expect(calledWith(0)).toBe("cal-dinner");
     expect(google.sharedWith).not.toHaveBeenCalled();
 
     google.countParticipants.mockResolvedValue(1);
     const two = await row(me, t, "Dentist", messageId);
     const personal = (await tool({ tool: "create_event", jobId, toolCallId: "d2", contentId: two, calendar: "personal calendar" })).json() as Record<string, unknown>;
     expect(personal["written"]).toBe(true);
-    expect(calledWith(0)).toBe("cal-mine");
+    expect(calledWith(1)).toBe("cal-mine");
   });
 
   it("a connection's address on Google's list counts, and nobody matching is a question", async () => {
@@ -1460,7 +1459,8 @@ describe("AC-11 where a write goes", () => {
 
     const one = await row(me, t, "Bins", messageId);
     const found = (await tool({ tool: "create_event", jobId, toolCallId: "s1", contentId: one, calendar: "calendar with Sam" })).json() as Record<string, unknown>;
-    expect(found).toMatchObject({ ok: true, waitingForThem: true });
+    expect(found["written"]).toBe(true);
+    expect(calledWith(0)).toBe("cal-flat");
 
     // Ana is nobody they are connected to. An address with her name in it
     // is not enough on its own, and Google is not asked.
@@ -1470,7 +1470,7 @@ describe("AC-11 where a write goes", () => {
     const nobody = (await tool({ tool: "create_event", jobId, toolCallId: "s2", contentId: two, calendar: "my calendar with Ana" })).json() as Record<string, unknown>;
     expect(nobody).toEqual({ ok: true, asked: true });
     expect(google.sharedWith).not.toHaveBeenCalled();
-    expect(google.createEvent).not.toHaveBeenCalled();
+    expect(google.createEvent).toHaveBeenCalledTimes(1);
   });
 
   it("a confirmed write is something the turn did: Done on the single read and in the tail, and after the purge", async () => {
@@ -1606,21 +1606,23 @@ describe("AC-11 where a write goes", () => {
     expect(result).toEqual({ ok: false, error: "no_time" });
   });
 
-  it("reads the access list on the write path and confirms when it says more than one", async () => {
+  it("reads the access list on the write path for a removal and confirms when it says more than one", async () => {
     const me = await account();
     const t = await thread(me);
     const id = await calendar(await connection(me), { participants: 1 });
     await pick(t, id, me);
     google.countParticipants.mockResolvedValue(2);
-    const { jobId, messageId } = await dump(me, t);
-    const contentId = await row(me, t, "Dentist", messageId);
-    const result = (await tool({ tool: "create_event", jobId, toolCallId: "w1", contentId })).json() as Record<string, unknown>;
+    // An add does not read it: since 2026-10-28 the count confirms removals only.
+    const turn = await readTurn(me, t);
+    expect(google.countParticipants).not.toHaveBeenCalled();
+
+    const result = (
+      await tool({ tool: "delete_event", jobId: turn.jobId, toolCallId: "w1", sourceRef: turn.sourceRef, scope: "one" })
+    ).json() as Record<string, unknown>;
     expect(result["waitingForThem"]).toBe(true);
     expect(result["because"]).toBe("Everyone on this calendar will see it.");
     const stored = await db.selectFrom("connector_calendars").select("participants").where("id", "=", id).executeTakeFirstOrThrow();
     expect(stored.participants).toBe(2);
-    const pending = await db.selectFrom("connector_pending_writes").select("content_id").executeTakeFirstOrThrow();
-    expect(pending.content_id).toBe(contentId);
   });
 
   it("the ask-first switch confirms a write nobody else would see", async () => {
@@ -1720,6 +1722,7 @@ describe("AC-11, AC-17 a tapped calendar answer", () => {
 
   it("a calendar that needs the person's say-so turns the tap into a proposal on their own turn", async () => {
     const me = await account();
+    await db.updateTable("accounts").set({ calendar_ask_first: true }).where("id", "=", me).execute();
     const t = await thread(me);
     const n = await connection(me);
     const home = await calendar(n, { summary: "Home", participants: 3 });
@@ -1729,17 +1732,18 @@ describe("AC-11, AC-17 a tapped calendar answer", () => {
     const response = await app.inject({ method: "POST", url: `/v1/questions/${questionId}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 0 } });
     expect(response.statusCode).toBe(200);
     const body = response.json() as { messageId: string; waiting: { id: string; because: string } | null };
-    expect(body.waiting?.because).toBe("Everyone on this calendar will see it.");
+    expect(body.waiting?.because).toBe("You asked to check first.");
     const pending = await db.selectFrom("connector_pending_writes").select("message_id").executeTakeFirstOrThrow();
     expect(pending.message_id).toBe(body.messageId);
     expect(google.createEvent).not.toHaveBeenCalled();
   });
 
-  it("the tap's rows on a shared calendar are one proposal, and agreeing to it writes every one (the owner, 2026-10-13)", async () => {
+  it("the tap's rows on a calendar that asks first are one proposal, and agreeing to it writes every one (the owner, 2026-10-13)", async () => {
     // The tap wrote the first row as a proposal with a control, and the seven
     // others as proposals with none: one event reached the calendar and the
     // rest sat until the purge.
     const me = await account();
+    await db.updateTable("accounts").set({ calendar_ask_first: true }).where("id", "=", me).execute();
     const t = await thread(me);
     const n = await connection(me);
     await calendar(n, { summary: "Home", participants: 3 });
@@ -1758,7 +1762,7 @@ describe("AC-11, AC-17 a tapped calendar answer", () => {
     const response = await app.inject({ method: "POST", url: `/v1/questions/${q.id}/answer`, headers: { cookie }, payload: { option: 0 } });
     expect(response.statusCode).toBe(200);
     const body = response.json() as { waiting: { id: string; because: string } | null };
-    expect(body.waiting?.because).toBe("Everyone on this calendar will see it. 3 events.");
+    expect(body.waiting?.because).toBe("You asked to check first. 3 events.");
     expect(google.createEvent).not.toHaveBeenCalled();
 
     const pressed = await app.inject({ method: "POST", url: `/api/calendar/pending/${body.waiting!.id}/confirm`, headers: { cookie } });
@@ -1775,6 +1779,7 @@ describe("AC-11, AC-17 a tapped calendar answer", () => {
     // on one message, and the screen draws one control, so seven had no way
     // to be agreed to.
     const me = await account();
+    await db.updateTable("accounts").set({ calendar_ask_first: true }).where("id", "=", me).execute();
     const t = await thread(me);
     const n = await connection(me);
     await pick(t, await calendar(n, { participants: 3 }), me);
@@ -1792,7 +1797,7 @@ describe("AC-11, AC-17 a tapped calendar answer", () => {
       }
       await db.updateTable("messages").set({ state: "answered" }).where("id", "=", messageId).execute();
       const one = (await get(`/v1/messages/${messageId}`, cookie)).json() as { waiting: { id: string; because: string } | null };
-      expect(one.waiting?.because).toBe("Everyone on this calendar will see it. 3 events.");
+      expect(one.waiting?.because).toBe("You asked to check first. 3 events.");
       return { ids, waitingId: one.waiting!.id };
     };
 
@@ -1814,6 +1819,7 @@ describe("AC-11, AC-17 a tapped calendar answer", () => {
 
   it("a proposal Google refuses on the tap stays open on its own, and the rest are written", async () => {
     const me = await account();
+    await db.updateTable("accounts").set({ calendar_ask_first: true }).where("id", "=", me).execute();
     const t = await thread(me);
     const n = await connection(me);
     await pick(t, await calendar(n, { participants: 3 }), me);
@@ -2010,9 +2016,8 @@ describe("038 the calendar shared with somebody offload cannot find", () => {
 
     const tapped = await app.inject({ method: "POST", url: `/v1/questions/${q.id}/answer`, headers: { cookie: await signIn(me) }, payload: { option: 1 } });
     expect(tapped.statusCode).toBe(200);
-    // Somebody else sees that calendar, so the write is put to them first.
-    const pending = await db.selectFrom("connector_pending_writes").select("calendar_id").executeTakeFirstOrThrow();
-    expect(pending.calendar_id).toBe(pb);
+    // Somebody else sees that calendar, and the add is done all the same.
+    expect(google.createEvent).toHaveBeenCalledTimes(1);
     // The calendar's name is never in it: it may be somebody else's words.
     expect(await memories(me)).toEqual([{ text: "They share a calendar with Meera.", origin: "answered", kind: "things", calendar_id: pb }]);
     void mine;
@@ -2034,8 +2039,8 @@ describe("038 the calendar shared with somebody offload cannot find", () => {
     await says(next.messageId, "add it to my calendar with Meera, or Anoushka Sen-Mukherjee");
     const two = await row(me, t, "Bins night", next.messageId);
     const settled = (await tool({ tool: "create_event", jobId: next.jobId, toolCallId: "m2", contentId: two, calendar: "calendar with MEERA" })).json() as Record<string, unknown>;
-    expect(settled).toMatchObject({ ok: true, waitingForThem: true });
-    expect((await db.selectFrom("connector_pending_writes").select("calendar_id").executeTakeFirstOrThrow()).calendar_id).toBe(pb);
+    expect(settled["written"]).toBe(true);
+    expect(calledWith(google.createEvent.mock.calls.length - 1)).toBe("cal-pb");
     expect(google.sharedWith).not.toHaveBeenCalled();
   });
 

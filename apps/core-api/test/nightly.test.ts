@@ -601,6 +601,64 @@ describe("AC-7 the daily run books one pass per thread and member", () => {
     expect(runs.map((r) => r.account_id)).toContain(ana);
   });
 
+  // Thread layouts. Passes before rows were shown to the model never judged a
+  // layout, so each thread still open to one is owed a single pass with its
+  // rows in view, however quiet it has been.
+  it("books a pass for a quiet thread still owed its layout pass, and nothing once the pass is in", async () => {
+    const ana = await account("Ana");
+    const fixes = await thread(ana, "App fixes");
+    const empty = await thread(ana, "Nothing in it");
+    await row(ana, fixes, "Fix the sheet", { created_at: sql<Date>`now() - interval '20 days'` });
+    await lastPass(ana, fixes, 300);
+    await db.updateTable("threads").set({ layout_pass_owed: true }).where("id", "in", [fixes, empty]).execute();
+
+    await daily(ana);
+    expect((await booked(ana)).map((j) => (j.payload as { threadId: string }).threadId)).toEqual([fixes]);
+
+    await db.deleteFrom("jobs").execute();
+    expect((await post({ jobId: await job(ana, fixes) })).statusCode).toBe(200);
+    await db.deleteFrom("jobs").execute();
+    await daily(ana);
+    expect(await booked(ana)).toEqual([]);
+  });
+
+  it("owes no layout pass once a layout is picked, suggested or dismissed, nor on the default thread", async () => {
+    const { me, loose } = await owner();
+    const picked = await thread(me, "Picked");
+    const suggested = await thread(me, "Suggested");
+    const dismissed = await thread(me, "Dismissed");
+    for (const th of [loose, picked, suggested, dismissed]) {
+      await row(me, th, "Something", { created_at: sql<Date>`now() - interval '20 days'` });
+      await lastPass(me, th, 300);
+    }
+    await db.updateTable("threads").set({ layout_pass_owed: true }).execute();
+    await db.updateTable("threads").set({ layout: "todo", layout_set_by: "person" }).where("id", "=", picked).execute();
+    await db.updateTable("threads").set({ layout_suggestion: "todo" }).where("id", "=", suggested).execute();
+    await db.updateTable("threads").set({ layout_suggestion_dismissed_at: new Date() }).where("id", "=", dismissed).execute();
+
+    await daily(me);
+    expect(await booked(me)).toEqual([]);
+  });
+
+  // A row typed straight into a thread files no dump, and a pass is still the
+  // only thing that can see it for a layout.
+  it("books a pass for a row added straight into a thread whose layout is open, and not before the last pass", async () => {
+    const ana = await account("Ana");
+    const fixes = await thread(ana, "App fixes");
+    const earlier = await thread(ana, "Earlier");
+    const picked = await thread(ana, "Picked");
+    await row(ana, fixes, "Fix the sheet");
+    await row(ana, earlier, "Old one", { created_at: sql<Date>`now() - interval '10 hours'` });
+    await row(ana, picked, "Typed in");
+    await lastPass(ana, fixes, 30);
+    await lastPass(ana, earlier, 5);
+    await lastPass(ana, picked, 30);
+    await db.updateTable("threads").set({ layout: "todo", layout_set_by: "person" }).where("id", "=", picked).execute();
+
+    await daily(ana);
+    expect((await booked(ana)).map((j) => (j.payload as { threadId: string }).threadId)).toEqual([fixes]);
+  });
+
   it("books the default thread with proposals when its set has two", async () => {
     const { me, loose } = await owner();
     await row(me, loose, "Oak brackets");

@@ -1,6 +1,6 @@
 {
   "note": "everything else; run by principle to read failures and tune",
-  "count": 478,
+  "count": 481,
   "cases": [
     "a-birthday-is-a-memory",
     "a-correction",
@@ -303,6 +303,7 @@
     "no-composed-sentence",
     "no-country-dump-files-without",
     "no-country-not-sure",
+    "no-layout-vague",
     "no-mechanism-in-say",
     "no-new-knowledge",
     "no-rule-from-a-guess",
@@ -453,6 +454,8 @@
     "time-clock-only",
     "time-day-and-clock",
     "timeline-headaches",
+    "todo-garden",
+    "todo-returns",
     "tomorrow-is-a-date",
     "tomorrow-is-arithmetic",
     "trip-note-named",
