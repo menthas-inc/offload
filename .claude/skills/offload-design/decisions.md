@@ -25,6 +25,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Design system impact:** `--thread-ground-1` to `-10` in `tokens/colors.css`, both themes. `readme.md` **Thread marks** (the wash and glyph) and a new **My threads** section. `readme.md` **Not in a thread**: the group is a row above the grid. Kits not redrawn: the approval page is the reference.
 
+### 2026-10-29 · The change mark plays for the person's own dump, on every device
+**Surface:** iOS, Android, web; the thread page
+**Raised by:** spec 048, live updates, from the client review of its feature spec and the owner's choice of a silent redraw.
+
+**Was:** *anything that appeared while somebody was watching* takes the change mark (readme, "The change mark"). Until 048 the only thing that could appear on an open screen was what the person's own dump filed, on the device they sent it from.
+
+**Is:** an open screen now catches up to every change, from another device, another member or the nightly pass. The mark plays only for what one of the person's own dumps filed, on every device that has the thread open, from whichever one it was sent. Everything else just redraws: the owner's call on 2026-10-29, and moss means *offload did this for you*, which another member's change is not.
+
+**Considered and not taken:** a mark for every live change (the owner chose a silent redraw); no mark on the second device (a dump from the phone filing into the thread open on the web is the case the mark exists for).
+
+**Design system impact:** the readme's **The change mark** paragraph: replace *anything that appeared while somebody was watching* with *what the person's own dump filed, on every device with the thread open*. No token, no component contract.
+
 ### 2026-10-20 · Today: a prism field, and the composer as frosted glass
 **Surface:** iOS, Android, web; Today's field, and the composer on every tab
 **Raised by:** the product owner, off the design bundle and `handoff/APPLY-2026-10-19-today-glass.md`: Today's grey bands read as bland. Built from spec 046 (`docs/specs/046-today-glass/`), where the contrast was measured before any code.
