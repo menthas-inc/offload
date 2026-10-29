@@ -675,7 +675,7 @@ describe("the write transactions", () => {
 });
 
 describe("the routes, with a real session", () => {
-  it("serves My threads, grouped, with a composed meta line (AC-1)", async () => {
+  it("serves My threads as one list, newest made first, with a composed meta line (AC-1)", async () => {
     const me = await account("Ana Duarte");
     const sam = await account("Sam Ibekwe");
     const lisbon = await thread(me, "Lisbon trip");
@@ -697,13 +697,13 @@ describe("the routes, with a real session", () => {
     };
     const byKey = Object.fromEntries(body.groups.map((g) => [g.key, g.threads]));
 
-    expect(Object.keys(byKey)).toEqual(["now", "older"]);
-    expect(byKey["now"]!.map((t) => t.name)).toEqual(["Lisbon trip", "Read later"]);
-    expect(byKey["older"]!.map((t) => t.name)).toEqual(["Berlin"]);
+    // 2026-10-29. One list, newest made first: activity does not sort it.
+    expect(Object.keys(byKey)).toEqual(["now"]);
+    expect(byKey["now"]!.map((t) => t.name)).toEqual(["Berlin", "Read later", "Lisbon trip"]);
 
     // Composed server-side so three clients cannot drift. What is open in the
     // thread by kind, and who with; never "you" (2026-09-29).
-    expect(byKey["now"]![0]!.meta).toBe("1 to do, with Sam");
+    expect(byKey["now"]![2]!.meta).toBe("1 to do, with Sam");
     expect(byKey["now"]![1]!.meta).toBe("");
   });
 

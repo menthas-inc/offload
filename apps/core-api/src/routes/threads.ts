@@ -17,7 +17,7 @@ import { sql, type Transaction } from "kysely";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { currentAccountId } from "../auth/current-account.js";
-import { DEFAULT_THREAD_ICON, formatRule, isThreadIcon, LAYOUT_LABELS, LAYOUTS, labelsToDrop, labelsToMake, parseRule, pickThreadIcon, utcDay, type Layout } from "@offload/widgets";
+import { DEFAULT_THREAD_ICON, orderThreads, formatRule, isThreadIcon, LAYOUT_LABELS, LAYOUTS, labelsToDrop, labelsToMake, parseRule, pickThreadIcon, utcDay, type Layout } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";
 import { Refused } from "../threads/refusals.js";
 import { threadLine } from "../threads/line.js";
@@ -87,10 +87,7 @@ async function isDefaultThreadOf(accountId: string, threadId: string): Promise<b
  *  a dozen, so fetching them all to show twelve is the thing this prevents. */
 const PAGE = 30;
 
-/** Past this, a thread is "older" on My threads. Derived from activity rather
- *  than stored, because it is a function of time rather than a property of the
- *  thread, which is 001's own reasoning for not storing it. */
-const STALE_DAYS = 30;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Wraps a handler so a `NotYours` becomes the one refusal rather than a 500.
  *  Written once so no endpoint can forget, and so no endpoint can accidentally
@@ -163,17 +160,26 @@ const threadRow = z.object({
   /** 2026-10-07. Everybody else in it, by name: a shared thread's row offers
    *  Leave and names who it stays with. Empty on a thread of your own. */
   others: z.array(z.string()),
+  /** 2026-10-29. The same people as faces, for the tile's corner. */
+  faces: z.array(z.object({ accountId: z.string(), initials: z.string() })),
+  /** 2026-10-29. When it was made: the grid's newest first, which a client
+   *  redraws at the press of the order chip. */
+  createdAt: z.string(),
 });
 
 const threadList = z.object({
   groups: z.array(
     z.object({
-      // 028. Two groups: Always on is retired, and the one thread that was
-      // ever in it, the default, is drawn as `loose` instead.
-      key: z.enum(["now", "older"]),
+      // 2026-10-29. One group: Older threads went with the grid. Still a
+      // group so a build from before reads it as its first list.
+      key: z.enum(["now"]),
       threads: z.array(threadRow),
     })
   ),
+  /** 2026-10-29. How the list is ordered, and the person's own order as it
+   *  is kept, visible threads only: empty until they have dragged one. A client
+   *  puts it back as it was on an Undo. */
+  order: z.object({ sort: z.enum(["newest", "mine"]), ids: z.array(z.string()) }),
   /** 022. Waiting shares, one strip each at the top of the list. Read here
    *  rather than on their own route so an open of My threads is one call. */
   /** 028. What is not in a thread: null when nothing is, which is when the
@@ -1751,9 +1757,9 @@ export async function quickAdd(
 export async function threadRoutes(app: App): Promise<void> {
   // ------------------------------------------------------------ My threads
   //
-  // Two groups, neither stored: "older" is derived from activity, because a
-  // thread does not become old, it stops being used. 028 retired Always on and
-  // took the default thread out; what is in it is `loose`.
+  // One list (2026-10-29): newest made first, or the person's own order once
+  // they have dragged one. Activity never moves a thread. 028 took the default
+  // thread out; what is in it is `loose`.
   app.get(
     "/v1/threads",
     { schema: { response: { 200: threadList, 401: unauthenticated } } },
@@ -1780,13 +1786,15 @@ export async function threadRoutes(app: App): Promise<void> {
           "threads.icon as icon",
           "threads.hue as hue",
           "threads.content_count as count",
-          "threads.last_activity_at as lastActivityAt",
+          "threads.created_at as createdAt",
         ])
         .where("thread_members.account_id", "=", accountId)
         .where("thread_members.state", "=", "accepted")
         .where("threads.deleted_at", "is", null)
-        .orderBy("threads.last_activity_at", "desc")
+        .orderBy("threads.created_at", "desc")
+        .orderBy("threads.id", "desc")
         .execute();
+      const order = await db.selectFrom("thread_order").select(["sort", "ids"]).where("account_id", "=", accountId).executeTakeFirst();
 
       // One extra query for every thread's members rather than one per thread.
       // A person is in tens of threads, so the N+1 here would be tens of round
@@ -1798,23 +1806,26 @@ export async function threadRoutes(app: App): Promise<void> {
             .innerJoin("accounts", "accounts.id", "thread_members.account_id")
             .select([
               "thread_members.thread_id as threadId",
+              "accounts.id as accountId",
               "accounts.display_name as displayName",
             ])
             .where("thread_members.thread_id", "in", ids)
             .where("thread_members.state", "=", "accepted")
             .where("thread_members.account_id", "!=", accountId)
             .where("accounts.deleted_at", "is", null)
+            // The same faces, in the same order, on every read.
+            .orderBy("accounts.display_name")
+            .orderBy("accounts.id")
             .execute()
         : [];
 
       const others = new Map<string, string[]>();
+      const faces = new Map<string, { accountId: string; initials: string }[]>();
       for (const row of memberRows) {
-        const list = others.get(row.threadId) ?? [];
-        list.push(row.displayName ?? "Someone");
-        others.set(row.threadId, list);
+        const name = row.displayName ?? "Someone";
+        others.set(row.threadId, [...(others.get(row.threadId) ?? []), name]);
+        faces.set(row.threadId, [...(faces.get(row.threadId) ?? []), { accountId: row.accountId, initials: initialsOf(name) }]);
       }
-
-      const stale = Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000;
 
       // What is open in each thread by kind, for its line: one grouped query
       // for the whole list. Live rows only, a task only while it is not
@@ -1823,7 +1834,7 @@ export async function threadRoutes(app: App): Promise<void> {
       const kinds = ids.length ? await openKinds(accountId, ids) : new Map<string, Record<string, number>>();
 
       type Row = z.infer<typeof threadRow>;
-      const groups = { now: [] as Row[], older: [] as Row[] };
+      const threads: Row[] = [];
       for (const row of rows) {
         // 028. Never drawn as a thread: its contents are `loose`.
         if (row.id === account?.default_thread_id) continue;
@@ -1837,22 +1848,67 @@ export async function threadRoutes(app: App): Promise<void> {
           meta: threadLine(kinds.get(row.id) ?? {}, others.get(row.id) ?? []),
           isDefault: row.id === account?.default_thread_id,
           others: others.get(row.id) ?? [],
+          faces: faces.get(row.id) ?? [],
+          createdAt: row.createdAt.toISOString(),
         };
-        // 028. Time only. A slow thread sinks and comes back up when
-        // something lands in it.
-        if (row.lastActivityAt.getTime() < stale) groups.older.push(shaped);
-        else groups.now.push(shaped);
+        threads.push(shaped);
       }
+      const seen = new Set(threads.map((row) => row.id));
 
       return reply.send({
         invitations: await invitationsFor(accountId),
-        groups: [
-          { key: "now" as const, threads: groups.now },
-          { key: "older" as const, threads: groups.older },
-        ],
+        groups: [{ key: "now" as const, threads: orderThreads(threads, order?.sort ?? "newest", order?.ids ?? []) }],
+        order: { sort: order?.sort ?? "newest", ids: (order?.ids ?? []).filter((id) => seen.has(id)) },
         loose: await looseSummary(accountId),
       });
     }
+  );
+
+  // 2026-10-29. A drop sends the whole visible list as `mine`; the chip sends
+  // the sort alone and keeps the list. Last write wins, and an id the person
+  // cannot see is dropped rather than refused: a thread left on another device
+  // is not this device's mistake.
+  app.patch(
+    "/v1/threads/order",
+    {
+      schema: {
+        body: z.object({ sort: z.enum(["newest", "mine"]), ids: z.array(z.string().max(64)).max(2000).optional() }),
+        response: { 204: z.null(), 401: unauthenticated },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+      const { sort, ids } = request.body as { sort: "newest" | "mine"; ids?: string[] };
+      let kept: string[] | undefined;
+      if (ids) {
+        const wanted = [...new Set(ids)].filter((id) => UUID.test(id));
+        const visible = wanted.length
+          ? new Set(
+              (
+                await db
+                  .selectFrom("thread_members")
+                  .innerJoin("threads", "threads.id", "thread_members.thread_id")
+                  .select("threads.id")
+                  .where("thread_members.account_id", "=", accountId)
+                  .where("thread_members.state", "=", "accepted")
+                  .where("threads.deleted_at", "is", null)
+                  .where("threads.id", "in", wanted)
+                  .execute()
+              ).map((row) => row.id),
+            )
+          : new Set<string>();
+        // The default thread is never drawn on My threads, so it has no place.
+        const account = await db.selectFrom("accounts").select("default_thread_id").where("id", "=", accountId).executeTakeFirst();
+        kept = wanted.filter((id) => visible.has(id) && id !== account?.default_thread_id);
+      }
+      await db
+        .insertInto("thread_order")
+        .values({ account_id: accountId, sort, ...(kept ? { ids: kept } : {}) })
+        .onConflict((oc) => oc.column("account_id").doUpdateSet({ sort, ...(kept ? { ids: kept } : {}), updated_at: sql`now()` }))
+        .execute();
+      return reply.code(204).send(null);
+    },
   );
 
   // ---------------------------------------------------------- one thread
@@ -3250,7 +3306,7 @@ export async function withPhotos<T extends { id: string; photo: unknown }>(rows:
   return withRowReminders(labelled, viewerId);
 }
 
-export const THREAD_LIMITS = { PAGE, STALE_DAYS } as const;
+export const THREAD_LIMITS = { PAGE } as const;
 
 /** Each thread's open content by type, for `threadLine`, through the one
  *  read predicate: a thread the viewer is not in counts nothing. */

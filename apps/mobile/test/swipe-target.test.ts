@@ -7,11 +7,9 @@ import { describe, expect, it } from "vitest";
 
 const read = (file: string): string => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 
-// The word as the source writes it: a thread row says Leave on a shared
-// thread and Delete on one of your own (2026-10-07), through `verb`.
+// The word as the source writes it.
 describe.each([
   ["components/memories/MemoryListRow.tsx", "Forget", "Forget", '"Forget"'],
-  ["components/shell/ThreadRow.tsx", "Delete", "\\{verb\\}", "verb"],
 ])("%s", (file, word, drawn, label) => {
   const source = read(file);
   // The revealed panel, from its clay ground to the end of its Animated.View.

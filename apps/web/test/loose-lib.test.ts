@@ -44,12 +44,12 @@ const note = (id: string, text: string, createdAt = "2026-09-28T10:00:00Z"): Loo
   }) as unknown as LooseEntry;
 
 describe("the wire (AC-1, AC-6)", () => {
-  it("has two groups, and Always on is not one of them", () => {
-    const groups: ThreadGroup[] = [
-      { key: "now", threads: [] },
-      { key: "older", threads: [] },
-    ];
-    expect(groups).toHaveLength(2);
+  it("has one group, and neither Always on nor Older threads is one", () => {
+    const groups: ThreadGroup[] = [{ key: "now", threads: [] }];
+    expect(groups).toHaveLength(1);
+    // @ts-expect-error 2026-10-29: "older" went with the grid.
+    const older: ThreadGroup = { key: "older", threads: [] };
+    expect(older.key).toBe("older");
     // @ts-expect-error 028: "always" is gone from the group keys.
     const always: ThreadGroup = { key: "always", threads: [] };
     expect(always.key).toBe("always");

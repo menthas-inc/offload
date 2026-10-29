@@ -263,3 +263,15 @@
 
 /* A glyph drawn on a well or beside a row: the app's iconOnWell, in both themes (1 October). */
 :root,[data-theme="light"],[data-theme="dark"]{--icon-on-well:var(--text-secondary)}
+
+/* A thread's ground: the tile on My threads and every ThreadIcon (29 October). Light is the label hue
+   at 0.9 of its lightness and 1.4 of its chroma, clipped to sRGB; dark is the hue at 52% into #1C1B19 in
+   oklch, keeping the label's hue. The glyph and text on it are #FFFFFF in both themes, 5.3:1 or more. */
+:root,[data-theme="light"]{
+  --thread-ground-1:#006AB5;--thread-ground-2:#C8006A;--thread-ground-3:#467200;--thread-ground-4:#8532CE;--thread-ground-5:#B23800;
+  --thread-ground-6:#00777C;--thread-ground-7:#AB04AC;--thread-ground-8:#726500;--thread-ground-9:#6047D7;--thread-ground-10:#007B41;
+}
+[data-theme="dark"]{
+  --thread-ground-1:#204B65;--thread-ground-2:#70334A;--thread-ground-3:#3C4D1D;--thread-ground-4:#533D6F;--thread-ground-5:#663D24;
+  --thread-ground-6:#204E4F;--thread-ground-7:#633662;--thread-ground-8:#4B4820;--thread-ground-9:#444272;--thread-ground-10:#20503A;
+}

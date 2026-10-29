@@ -10,7 +10,6 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf
 const thread = read("../components/screens/Thread.tsx");
 const today = read("../components/today/useTodayRows.tsx");
 const threads = read("../components/screens/MyThreads.tsx");
-const row = read("../components/shell/ThreadRow.tsx");
 
 describe("archiving in a shared thread", () => {
   it("asks on the thread, where its people are known", () => {
@@ -32,6 +31,6 @@ describe("leaving a shared thread from My threads", () => {
     expect(threads).toMatch(/leaveAsk\(/);
     expect(threads).toMatch(/staysWith\(/);
     expect(threads).toMatch(/action="Leave"/);
-    expect(row).toMatch(/leaves \? "Leave" : "Delete"/);
+    expect(threads).toMatch(/leaves \? "Leave thread" : "Delete thread"/);
   });
 });

@@ -42,6 +42,12 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
+const menuOf = async (name: string) => {
+  const tile = [...host.querySelectorAll("[data-tile]")].find((one) => one.getAttribute("aria-label")!.startsWith(name))!;
+  await act(async () => void tile.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true })));
+  return [...host.querySelectorAll<HTMLButtonElement>("[role=menuitem]")];
+};
+
 describe("leaving a shared thread from My threads", () => {
   it("says Leave on a shared thread and names who it stays with", async () => {
     await act(async () =>
@@ -51,12 +57,12 @@ describe("leaving a shared thread from My threads", () => {
         </ToastProvider>,
       ),
     );
-    expect(host.querySelector('[aria-label="Delete Dentist"]')).not.toBeNull();
-    expect(host.querySelector('[aria-label="Delete Flat admin"]')).toBeNull();
-    const leave = host.querySelector('[aria-label="Leave Flat admin"]') as HTMLButtonElement;
-    await act(async () => leave.click());
-    expect(host.textContent).toContain("Leave Flat admin?");
-    expect(host.textContent).toContain("It stays for Sam.");
-    expect([...host.querySelectorAll("button")].some((b) => b.textContent === "Leave")).toBe(true);
+    expect((await menuOf("Dentist")).map((item) => item.textContent)).toContain("Delete thread");
+    const items = await menuOf("Flat admin");
+    expect(items.map((item) => item.textContent)).not.toContain("Delete thread");
+    await act(async () => items.find((item) => item.textContent === "Leave thread")!.click());
+    expect(document.body.textContent).toContain("Leave Flat admin?");
+    expect(document.body.textContent).toContain("It stays for Sam.");
+    expect([...document.body.querySelectorAll("button")].some((b) => b.textContent === "Leave")).toBe(true);
   });
 });

@@ -1,0 +1,142 @@
+/* 2026-10-29. My threads as a grid: three columns at 1.6 : 1, gap 16, the
+   content to 960. A narrower pane takes fewer columns. */
+.wide {
+  max-width: 960px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-width: 0;
+  flex: 1;
+}
+
+.chipWrap {
+  margin-left: auto;
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
+  color: var(--text-primary);
+  font-family: var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(13.5px * var(--type-scale));
+  cursor: pointer;
+}
+
+/* 32 drawn, 44 to press. */
+.chip::after {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+
+.chipMenu {
+  width: 248px;
+}
+
+.check {
+  display: inline-flex;
+  width: 15px;
+}
+
+.caption {
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  color: var(--text-tertiary);
+  font-size: calc(12px * var(--type-scale));
+  line-height: 1.4;
+}
+
+.loose {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 48px;
+  margin-bottom: var(--space-6);
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--surface-fill);
+  box-shadow: inset 0 0 0 1px var(--edge-well);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.looseName {
+  flex: 1;
+  font-weight: var(--weight-medium);
+  font-size: calc(14.5px * var(--type-scale));
+}
+
+.looseCount {
+  color: var(--text-secondary);
+  font-size: calc(13px * var(--type-scale));
+}
+
+.frame {
+  container-type: inline-size;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+
+@container (max-width: 520px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (max-width: 300px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cell {
+  position: relative;
+  min-width: 0;
+}
+
+/* Where the dragged tile will land. */
+.slot {
+  aspect-ratio: 1.6 / 1;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 16px;
+}
+
+.floating {
+  position: fixed;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.tileMenu {
+  top: calc(100% + 6px);
+  left: 0;
+  right: auto;
+}
+
+.danger {
+  color: var(--text-danger);
+}
+
+.said {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

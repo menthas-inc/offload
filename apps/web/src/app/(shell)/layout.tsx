@@ -31,7 +31,7 @@ import { MapColumnContext } from "../../components/shell/map-column";
 import { ToastProvider } from "../../components/shell/Toast";
 import { useMe } from "../../lib/use-me";
 import { Unanswered } from "../../components/Unanswered";
-import { fetchThreadsAndInvitations, type ThreadGroup } from "../../lib/threads";
+import { fetchThreadsAndInvitations, type ThreadGroup, type ThreadOrder } from "../../lib/threads";
 import type { Invitation } from "../../lib/people";
 import type { LooseSummary } from "../../lib/loose";
 import styles from "./shell.module.css";
@@ -42,6 +42,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const [groups, setGroups] = useState<ThreadGroup[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loose, setLoose] = useState<LooseSummary | null>(null);
+  const [order, setOrder] = useState<ThreadOrder>({ sort: "newest", ids: [] });
   const [ready, setReady] = useState(false);
   // What the last turn wrote to, so a screen already showing one of those
   // threads can catch up without being reloaded.
@@ -54,6 +55,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     setGroups(page?.groups ?? []);
     setInvitations(page?.invitations ?? []);
     setLoose(page?.loose ?? null);
+    if (page) setOrder(page.order);
     setReady(true);
   }, []);
 
@@ -84,7 +86,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const inThread = open ? (threads.find((one) => one.id === open[1]) ?? null) : null;
 
   return (
-    <ThreadsProvider value={{ groups, invitations, loose, ready, reload: () => void loadThreads(), filed }}>
+    <ThreadsProvider value={{ groups, invitations, loose, order, viewerId: state.me.accountId, ready, reload: () => void loadThreads(), filed }}>
       <ToastProvider>
       <div className={styles.shell}>
         <Sidebar threads={threads} threadCount={threads.length} requestsWaiting={state.me.requestsWaiting} activityNew={state.me.activityNew} />

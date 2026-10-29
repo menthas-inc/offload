@@ -11,6 +11,20 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-29 · My threads as a grid, in your own order, with deeper thread colours
+**Surface:** iOS, Android, web; My threads, and every thread icon
+**Raised by:** the product owner: My threads should be a grid, keep its order rather than sort by activity, and the thread icons are too pale in both themes. Off `explorations/threads-grid.html` (three tiles, five mark treatments), `threads-grid-final.html` (the back glyph, the light ground), and `threads-grid-approval.html` (interactive, approved). Handoff: `handoff/APPLY-2026-10-29-threads-grid.md`.
+
+**Was:** one list by last activity, then Older threads (028); a row per thread with its icon at 36; swipe to delete. Icons a pale tint of the hue with a darker glyph (037).
+
+**Is:** a grid of Wash tiles, 2 columns of squares on the phones and 3 at 1.6 : 1 on the web. Newest made first, row by row; a drag makes **your order**, one list per person, which the order chip switches back from without losing it; new threads start top left. Older threads goes. Each tile is the thread's deep ground with the wash, a white glyph and name, and the glyph again at 190%, square-stroked, 12% white, placed from the seed. Hold and release opens the tile's menu (Edit, Share, Delete or Leave); swipe goes. **Every thread icon** takes the same deep ground and a white glyph.
+
+**As built, where the code departs from the handoff:** the tile's foot carries the thread's line as the list row did (*3 to do, with Sam*), not *14 things*: thing is retired, and the owner chose the line over a bare count. **No blue *new* dot** and no `thread_reads` yet (the owner, at build). **No haptic on lift**: it needs `expo-haptics`, a native module, so it waits for a store build and the rest ships over the air. The write is a PATCH. On the web the grid takes two columns, then one, when its pane is narrow, as it is beside an open thread, through a container query; three at full width. Delete from the tile's menu goes straight to the in-place Undo; Leave asks with the existing confirm, as the handoff says. The phones' `ThreadRow` and its swipe are gone, since nothing else drew it (the Move picker and People already had their own rows). The tile's faces are initials on `--surface-raised`, ringed in the ground, since the faces have no picture yet. The web's back glyph is drawn from the same vendored SVG the icon masks with, read once and redrawn inline, hardened. The tile's corners (16 on the web and Android, 18 on iOS), its 14 and 18 padding and the 260ms curve are the handoff's numbers written as literals: there are no tokens for them yet. Under Reduce Motion the phones lift a tile with no scale; the tile's text stops growing at 1.3 of its size, since the square does not grow with it.
+
+**Considered and not taken:** the Card and Centred tiles; marks Deeper, Solid, Deep and Ink glyph (C was taken, then deepened in light); a pixel and a hatched back glyph, and the original rounded one; the grid as one bleeding sheet of colour (Seep, Oil, Watercolour, Field, Spill).
+
+**Design system impact:** `--thread-ground-1` to `-10` in `tokens/colors.css`, both themes. `readme.md` **Thread marks** (the wash and glyph) and a new **My threads** section. `readme.md` **Not in a thread**: the group is a row above the grid. Kits not redrawn: the approval page is the reference.
+
 ### 2026-10-20 · Today: a prism field, and the composer as frosted glass
 **Surface:** iOS, Android, web; Today's field, and the composer on every tab
 **Raised by:** the product owner, off the design bundle and `handoff/APPLY-2026-10-19-today-glass.md`: Today's grey bands read as bland. Built from spec 046 (`docs/specs/046-today-glass/`), where the contrast was measured before any code.

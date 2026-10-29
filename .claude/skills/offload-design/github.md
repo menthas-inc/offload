@@ -4,6 +4,20 @@ path:
 
 ## Last sync
 
+date: 2026-10-29T22:04:46Z
+
+Read `main` (tree `7888d8aba97c`) for My threads and thread icons: `apps/mobile/components/screens/MyThreads.tsx`, `components/ThreadIcon.tsx`, `apps/web/src/components/ThreadIcon.tsx`, `packages/widgets/src/thread-icons.ts`, and the older cut in `apps/core-api/src/routes/threads.ts`. Found: `mixOklch` gives `#1C1B19` a hue (chroma 0.004 over its 1e-4 threshold), so dark mixes drift from the browser's; the new grounds are a table for that reason. Nothing copied.
+
+### Updated in this project
+
+- **My threads as a grid**: `explorations/threads-grid.html`, `threads-grid-final.html`, `threads-grid-approval.html`; `handoff/APPLY-2026-10-29-threads-grid.md`, `handoff/threads-grid-standalone.html`
+- `--thread-ground-1` to `-10`, both themes; every thread icon deeper with a white glyph
+- `readme.md` **My threads** (new) and **Thread marks**; `decisions.md` one entry
+
+## Sync history
+
+### 2026-10-19T22:13:28Z
+
 date: 2026-10-19T22:13:28Z
 
 Read `main` (trees `019ef168ee75`, then `1a4dc4c91ddd`) for thread layouts: `threads/labels.ts`, `threads/icons.ts`, `routes/threads.ts` (`editThread`, `completeContent`), `routes/tools.ts` (`create_thread`), `today/rows.ts`, `today/threads.ts`, `jobs/handlers.ts`, `prompts/nightly.md`, `EditThreadSheet.tsx`, and before them 043 at merge (Undo in place matches this project), `docs/specs/007-widgets-and-grouping/feature-spec.md`, `migrations/0016_thread_attrs.sql`, `packages/widgets/src/index.ts` and `folds.ts` (sections fold since 2026-10-17, Files folded at first), and `apps/mobile/components/screens/Thread.tsx`. Nothing copied. No spec past 043.
@@ -13,8 +27,6 @@ Read `main` (trees `019ef168ee75`, then `1a4dc4c91ddd`) for thread layouts: `thr
 - **Thread layouts**, decided: `explorations/thread-skins.html`, `handoff/APPLY-2026-10-19-thread-layouts.md`, `handoff/thread-layouts-standalone.html`
 - `components/layout/LayoutTile` (new); `readme.md` **Thread layouts**; `decisions.md` one entry
 - Not yet folded: the 2026-10-17 section folds (`folds.ts`) are not drawn in the kits
-
-## Sync history
 
 ### 2026-10-18T17:46:29Z
 
@@ -125,6 +137,7 @@ shared log, with this project's thread marks entry kept), and read `apps/web/src
 
 | Screen | This project | Repo files |
 | --- | --- | --- |
+| My threads grid | `explorations/threads-grid-approval.html`, `handoff/APPLY-2026-10-29-threads-grid.md` | `apps/mobile/components/screens/MyThreads.tsx`, `shell/ThreadRow.tsx`, `apps/web/src/components/panes/MyThreads.tsx`, `apps/core-api/src/routes/threads.ts` |
 | Thread layouts | `explorations/thread-skins.html`, `handoff/APPLY-2026-10-19-thread-layouts.md`, `components/layout/LayoutTile` | `apps/mobile/components/screens/Thread.tsx`, `packages/widgets/src/index.ts`, `folds.ts`, `apps/core-api/migrations/0016_thread_attrs.sql`, `threads/labels.ts`, `routes/threads.ts`, `routes/tools.ts`, `today/rows.ts`, `prompts/nightly.md`, `prompts/plan_v2.md`, `EditThreadSheet.tsx`, `panes/EditThread.tsx` |
 | Undo, in place (every list) | `components/feedback/UndoLine.jsx`, `ui_kits/mobile_app/UndoInPlace.jsx`, `explorations/undo-in-place.html` | `apps/mobile/lib/optimistic.ts`, `apps/mobile/components/shell/Toast.tsx`, `apps/web/src/components/shell/Toast.tsx` |
 | Web app | `ui_kits/web_app/` | `apps/web/src/` |

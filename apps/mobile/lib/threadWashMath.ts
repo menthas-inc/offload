@@ -53,7 +53,13 @@ export interface WashSpec {
   round: boolean;
   /** The screen's pixels per point: the wash is rendered at the device's own. */
   scale: number;
+  /** A corner of its own, for a tile; otherwise round or 30% of the size. */
+  corner?: number;
 }
 
 export const washKey = (spec: WashSpec): string =>
-  `${spec.seed}:${spec.hue}:${spec.size}:${spec.theme}:${spec.round ? "o" : "s"}:${spec.scale}`;
+  `${spec.seed}:${spec.hue}:${spec.size}:${spec.theme}:${spec.round ? "o" : "s"}:${spec.scale}:${spec.corner ?? ""}`;
+
+/** The texture's opacity over the ground: on a deep ground 0.9 greys it in
+ *  light (2026-10-29). */
+export const washAlpha = (theme: "light" | "dark"): number => (theme === "light" ? 0.55 : 0.9);
