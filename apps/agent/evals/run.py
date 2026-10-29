@@ -2401,6 +2401,7 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
         candidates=candidates if propose else None,
         to_label=to_label,
         anchors=anchors,
+        rows=fx.get("rows"),
     )
     cfg = Config(
         database_url="", api_url="", internal_token="", anthropic_api_key="", nightly_model=model
@@ -2426,6 +2427,7 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
             "learned": learned_raw,
             "groups": groups_raw,
             "labels": labels_raw,
+            "layout": getattr(plan_, "layout", None),
         },
         ensure_ascii=False,
     )
@@ -2482,6 +2484,13 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
     for word in expect.get("learned_lacks", []):
         if any(word.lower() in t.lower() for t in learned_text):
             failures.append(f"a learned note says {word!r}: {transcript}")
+    # Thread layouts. The one layout an open thread's pass may suggest.
+    want = expect.get("nightly_layout") or {}
+    layout = getattr(plan_, "layout", None)
+    if want.get("none") and layout is not None:
+        failures.append(f"suggested the layout {layout!r}, when none was expected")
+    if "is" in want and layout != want["is"]:
+        failures.append(f"suggested the layout {layout!r}, not {want['is']!r}")
     if "groups" in expect and len(groups_raw) != expect["groups"]:
         failures.append(f"suggested {len(groups_raw)} threads, wanted {expect['groups']}")
     judged, note = True, ""

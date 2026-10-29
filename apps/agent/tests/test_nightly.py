@@ -326,3 +326,20 @@ async def test_two_bad_answers_are_still_recorded_for_the_ledger():
     with ledger.collecting():
         await nightly._ask(model, Cfg(), "a listing", propose=False)
         assert len(ledger.drain()) == 2
+
+
+def test_a_thread_whose_layout_is_open_shows_its_rows_bounded():
+    # Thread layouts. The rows are what a layout is judged from, and only that:
+    # no number to cite, a tick where one is done.
+    rows = [{"type": "task", "title": "y" * 400, "done": n % 2 == 0} for n in range(100)]
+    listing = nightly.listing(thread_name="App fixes", today="today", notes=[], rows=rows)
+    assert "What the thread holds, newest first, for its layout only:" in listing
+    shown = [json.loads(line) for line in listing.splitlines() if line.startswith('{"kind"')]
+    assert len(shown) == nightly.ROWS_SHOWN == 40
+    assert shown[0] == {"kind": "to-do", "text": "y" * nightly.ROW_CHARS, "done": True}
+    assert shown[1] == {"kind": "to-do", "text": "y" * nightly.ROW_CHARS}
+
+
+def test_a_thread_whose_layout_is_settled_shows_no_rows():
+    listing = nightly.listing(thread_name="T", today="today", notes=[])
+    assert "What the thread holds" not in listing
