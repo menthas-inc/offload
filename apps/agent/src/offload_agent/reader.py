@@ -30,6 +30,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlparse
 
 import structlog
@@ -98,6 +99,11 @@ FETCHES_PER_LINK = 1
 #: words and the results, so a page cannot be made to carry the question out.
 FETCHES_PER_QUESTION = 2
 
+#: A field is a value, not a passage. Anything longer, or on more than one
+#: line, is page prose by another name, and page prose does not reach the
+#: planner: the title and the excerpt are withheld for exactly that reason.
+FIELD_CHARS = 120
+
 #: The one refusal category that is never a judgement call gets a backstop that
 #: is not the model's compliance.
 BLOCKED_DOMAINS: list[str] = []
@@ -117,6 +123,10 @@ class Found(BaseModel):
     fields: dict[str, str] = Field(default_factory=dict)
     sources: list[Source] = Field(default_factory=list)
     unsure: bool = False
+    #: What the sources say instead, when they are about the question and do
+    #: not answer it: "2027 sale dates not announced". One `fact`, bound like
+    #: any field. Empty when nothing relevant was found.
+    known: dict[str, str] = Field(default_factory=dict)
     label: str = "other"
 
 
@@ -135,8 +145,13 @@ class Answer(BaseModel):
     "Didn't finish that one." because of a field nobody read.
     """
 
+    #: 2026-10-30. Three outcomes, not two. "Unsure" alone made "Burning Man
+    #: has not announced 2027 sale dates", read on burningman.org, into "Not sure."
+    outcome: Literal["answered", "related", "nothing"] = "answered"
     fields: dict[str, str] = Field(default_factory=dict)
-    unsure: bool = False
+    #: For `related`, what the sources say instead. Bounded here, so a long one
+    #: goes back for a repair rather than being dropped after it.
+    fact: str = Field(default="", max_length=FIELD_CHARS)
     label: str = "other"
 
 
@@ -324,7 +339,8 @@ async def _shape(
         "role": "user",
         "content": (
             "Now answer, using the tool. Only these fields, and only what you "
-            f"actually read: {', '.join(asked)}."
+            f"actually read: {', '.join(asked)}. Or, if what you read is about "
+            "the question and does not answer it, `related` with `fact`."
         ),
     }
     turn = [*messages, ask]
@@ -394,11 +410,6 @@ async def _shape(
     return Found(unsure=True)
 
 
-#: A field is a value, not a passage. Anything longer, or on more than one
-#: line, is page prose by another name, and page prose does not reach the
-#: planner: the title and the excerpt are withheld for exactly that reason.
-FIELD_CHARS = 120
-
 
 def _plain(value: str) -> bool:
     return 0 < len(value) <= FIELD_CHARS and "\n" not in value and "\r" not in value
@@ -406,11 +417,17 @@ def _plain(value: str) -> bool:
 
 def shape(answer: Answer, asked) -> Found:
     """Only what was asked for, each a short single line, and the label
-    coerced. All three are the same rule: a set is closed or it is not a set."""
+    coerced. All three are the same rule: a set is closed or it is not a set.
+
+    A related read whose one line does not survive the same bound is nothing."""
+    label = answer.label if answer.label in LABELS else "other"
+    if answer.outcome == "related":
+        fact = answer.fact or answer.fields.get("fact", "")
+        return Found(unsure=True, known={"fact": fact} if _plain(fact) else {}, label=label)
+    if answer.outcome == "nothing":
+        return Found(unsure=True, label=label)
     return Found(
-        fields={k: v for k, v in answer.fields.items() if k in asked and _plain(v)},
-        unsure=answer.unsure,
-        label=answer.label if answer.label in LABELS else "other",
+        fields={k: v for k, v in answer.fields.items() if k in asked and _plain(v)}, label=label
     )
 
 

@@ -9,8 +9,15 @@ When you search and the results do not say it, open a page they found. The page 
 - **Only the fields you were asked for.** Not extra ones, however interesting.
 - **A field you could not establish is left out.** An empty string is a wrong answer wearing the
   shape of a right one.
-- **If you could not establish anything, say so.** `unsure` exists for exactly that and using it is
-  a correct outcome, not a failure.
+- **Every lookup ends one of three ways, as `outcome`.**
+  - `answered`: you read the fields you were asked for.
+  - `related`: what you read is about exactly this question and does not answer it, because the
+    answer does not exist yet or any more: not announced, sold out, cancelled, no fixed date. Only
+    when a source you read says so outright; when sources disagree, or you cannot tell, it is
+    `nothing`. Give `fact`, and only with `related`: what the sources say instead, in one line of
+    at most 120 characters, with the last one before today when they give it. "2027 sale dates not
+    announced; the 2026 main sale began 2026-04-29".
+  - `nothing`: nothing you read was about the question. A correct outcome, not a failure.
 - **Dates are `YYYY-MM-DD`. Times are 24 hour, `HH:MM`.** Never a phrase, never a relative day.
 - **Every field must come from something you actually read.** Not from what you already knew, not
   from what is probably true. If the page did not say it and the search did not say it, it is not a

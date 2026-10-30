@@ -422,3 +422,33 @@ def test_not_sure_draws_no_rows():
 
     assert outcome.reply == "Not sure."
     assert outcome.found == []
+
+
+def test_not_sure_carries_no_source_chips():
+    """2026-10-30. "Not sure." came with eight chips naming the sites that did
+    not answer. A chip says where an answer came from, and there was none."""
+    from offload_agent.harness.plan import Outcome
+    from offload_agent.worker import Lookups, _author_the_answer_line
+
+    budget = Lookups("when do flurbo tickets go on sale", may_search=True, may_read_links=True)
+    budget.record(label="other", kind="search", outcome="empty")
+    budget.sources.append({"domain": "facebook.com", "url": "https://facebook.com/x"})
+
+    _author_the_answer_line(Outcome(reply=None), budget)
+
+    assert budget.sources == []
+
+
+def test_what_is_known_instead_keeps_its_reply_and_its_chips():
+    from offload_agent.harness.plan import Outcome
+    from offload_agent.worker import Lookups, _author_the_answer_line
+
+    budget = Lookups("when do burning man tickets go on sale", may_search=True, may_read_links=True)
+    budget.record(label="when_is", kind="search", outcome="used")
+    budget.sources.append({"domain": "burningman.org", "url": "https://burningman.org/tickets"})
+    outcome = Outcome(reply="Not announced yet. Last year's main sale started on 29 April.")
+
+    _author_the_answer_line(outcome, budget)
+
+    assert outcome.reply.startswith("Not announced yet.")
+    assert budget.sources

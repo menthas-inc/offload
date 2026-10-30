@@ -184,6 +184,24 @@ and is not committed.
 | 2026-10-30 12:58 | answer-lookup-empty-draws-no-rows | 2 | 0/1 (0%) | $0.00 | `claude-haiku-5-5` | `41f510ca` | `72778581` |  |
 | 2026-10-30 12:58 | answer-lookup-empty-draws-no-rows | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `41f510ca` | `72778581` |  |
 | 2026-10-30 12:58 | 09 | 1 | 5/5 (100%) | $0.02 | `claude-haiku-5-5` | `41f510ca` | `72778581` |  |
+| 2026-10-30 16:32 | answer-lookup-known-instead | 1 | 0/1 (0%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:32 | file-lookup-known-files-without | 1 | 0/1 (0%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:33 | answer-lookup-known-instead | 3 | 1/1 (100%) | $0.02 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:33 | file-lookup-known-files-without | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:33 | answer-lookup-known-instead | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:33 | answer-lookup-known-instead | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:33 | answer-lookup-known-instead | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:34 | 09 | 1 | 75/78 (96%) | $0.07 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:35 | question-word-looks-up | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:35 | j-easter | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:35 | j-link-ticket | 1 | 0/1 (0%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:35 | question-word-looks-up | 1 | 0/1 (0%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:35 | j-easter | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:35 | j-link-ticket | 1 | 0/1 (0%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:36 | question-word-looks-up | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:36 | j-easter | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:36 | j-link-ticket | 1 | 0/1 (0%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-30 16:36 | j-link-ticket | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
 
 ## Full runs by principle
 

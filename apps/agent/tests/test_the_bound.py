@@ -169,7 +169,7 @@ async def test_the_lookup_searches_the_kept_words_instead_of_refusing(monkeypatc
             fetches=0,
             usage=[],
             failed=False,
-            found=SimpleNamespace(sources=[], label="other", unsure=True, fields={}),
+            found=SimpleNamespace(sources=[], label="other", unsure=True, fields={}, known={}),
         )
 
     monkeypatch.setattr(reader, "read", fake_read)
