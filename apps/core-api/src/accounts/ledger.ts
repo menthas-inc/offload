@@ -47,6 +47,8 @@ export const ACCOUNT_LEDGER: Record<string, Entry> = {
   // 042. What offload worked out about their dated things, to remind them.
   "reminder_labels.account_id": cascade,
   "reminder_dismissals.account_id": cascade,
+  // 2026-10-29. Their own order on My threads.
+  "thread_order.account_id": cascade,
   "today_put_offs.account_id": cascade,
   "account_limits.account_id": cascade,
   "limit_hits.account_id": cascade,

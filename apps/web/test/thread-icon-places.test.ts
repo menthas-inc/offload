@@ -16,13 +16,17 @@ const DRAWS = [
   "components/shell/Panes.tsx",
   "components/loose/Suggestion.tsx",
   "components/panes/Person.tsx",
-  "components/panes/MyThreads.tsx",
   "components/panes/Thread.tsx",
 ];
 
 describe("a thread's icon on the web", () => {
   it.each(DRAWS)("%s draws ThreadIcon", (file) => {
     expect(read(file)).toContain("<ThreadIcon");
+  });
+
+  it("draws My threads as tiles, which carry the thread's own glyph (2026-10-29)", () => {
+    expect(read("components/panes/MyThreads.tsx")).toContain("<ThreadTile");
+    expect(read("components/ThreadTile.tsx")).toContain("isThreadIcon(thread.icon) ? thread.icon : DEFAULT_THREAD_ICON");
   });
 
   it.each([

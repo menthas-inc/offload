@@ -477,7 +477,6 @@ export {
   DEFAULT_THREAD_ICON,
   HUE_NAMES,
   THREAD_ICONS,
-  THREAD_ICON_MIX,
   THREAD_ICON_NAMES,
   isThreadIcon,
   leastUsedHue,
@@ -485,13 +484,12 @@ export {
   pickThreadIcon,
   previewThreadIcon,
   threadChange,
-  threadIconColors,
   threadIconLabel,
   threadLookAfter,
   threadSeed,
   threadWash,
 } from "./thread-icons.js";
-export type { ThreadDraft, ThreadIconColors, ThreadIconWords, ThreadLook } from "./thread-icons.js";
+export type { ThreadDraft, ThreadIconWords, ThreadLook } from "./thread-icons.js";
 export * from "./memories.js";
 
 // F4. An account memory, spoken to the person it is about and stored about them.
@@ -559,6 +557,8 @@ export {
   suggestionLine,
 } from "./layouts.js";
 export type { Form, Layout, LayoutInput, LayoutNote, LayoutPage, LayoutRow, LayoutSection } from "./layouts.js";
+export { backGlyph, moveThread, ORDER_COPY, orderThreads, tileLabel } from "./threads-grid.js";
+export type { ThreadSort } from "./threads-grid.js";
 // 048. Live updates: what the connection says, and when a screen reads again.
 export { EVERYTHING, reloadFloor, touches } from "./live.js";
 export type { ChangeKind, Changes } from "./live.js";

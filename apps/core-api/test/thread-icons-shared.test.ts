@@ -16,7 +16,6 @@ import {
   pickThreadIcon,
   previewThreadIcon,
   threadChange,
-  threadIconColors,
   threadIconLabel,
   threadLookAfter,
   threadSeed,
@@ -113,17 +112,12 @@ describe("the wash", () => {
 
 describe("the colours", () => {
   // Built from parts so no colour is written here as a literal: the first
-  // label hue, white and black.
+  // label hue, white and black. A thread's own colours are a table since
+  // 2026-10-29; the mix stays for the Memories kinds.
   const hex = (r: number, g: number, b: number) => `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`.toUpperCase();
   const BLUE = hex(12, 123, 176);
   const WHITE = hex(255, 255, 255);
   const BLACK = hex(0, 0, 0);
-  const DARK_PAGE = hex(28, 27, 25);
-  const channels = (colour: string) => [1, 3, 5].map((at) => parseInt(colour.slice(at, at + 2), 16)) as [number, number, number];
-  const lum = (colour: string) => {
-    const [r, g, b] = channels(colour);
-    return r * 0.2126 + g * 0.7152 + b * 0.0722;
-  };
 
   it("mixes in oklch, and ends at its ends", () => {
     expect(mixOklch(BLUE, WHITE, 1)).toBe(BLUE);
@@ -131,22 +125,6 @@ describe("the colours", () => {
     expect(mixOklch(BLUE, BLACK, 0)).toBe(BLACK);
   });
 
-  it("gives a light ground lighter than the hue and a glyph darker than it, and the reverse in dark", () => {
-    const light = threadIconColors(BLUE, "light", WHITE);
-    expect(lum(light.ground)).toBeGreaterThan(lum(BLUE));
-    expect(lum(light.glyph)).toBeLessThan(lum(BLUE));
-    const dark = threadIconColors(BLUE, "dark", DARK_PAGE);
-    expect(lum(dark.ground)).toBeLessThan(lum(BLUE));
-    expect(lum(dark.glyph)).toBeGreaterThan(lum(BLUE));
-    expect(light.ring).toBe("rgba(12, 123, 176, 0.18)");
-  });
-
-  it("keeps the hue's own hue against white", () => {
-    // A fifth of a blue into white is a pale blue, not a pale grey or pink.
-    const [r, g, b] = channels(threadIconColors(BLUE, "light", WHITE).ground);
-    expect(b).toBeGreaterThan(r);
-    expect(g).toBeGreaterThan(r);
-  });
 });
 
 describe("Edit thread", () => {

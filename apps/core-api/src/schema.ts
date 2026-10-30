@@ -530,6 +530,14 @@ export interface ReminderDismissalsTable {
   created_at: Generated<Timestamp>;
 }
 
+/** 2026-10-29. My threads in a person's own order: one list per person. */
+export interface ThreadOrderTable {
+  account_id: string;
+  sort: Generated<"newest" | "mine">;
+  ids: Generated<string[]>;
+  updated_at: Generated<Timestamp>;
+}
+
 /** 026. A DKIM signature accepted once: a hash, never the message. */
 export interface MailSignaturesTable {
   hash: Buffer;
@@ -1442,6 +1450,7 @@ export interface Database {
   activity_calendars: ActivityCalendarsTable;
   reminder_labels: ReminderLabelsTable;
   reminder_dismissals: ReminderDismissalsTable;
+  thread_order: ThreadOrderTable;
   labels: LabelsTable;
   content_labels: ContentLabelsTable;
   note_labels: NoteLabelsTable;

@@ -27,7 +27,7 @@ export interface ThreadIconProps {
 export function ThreadIcon({ icon, hue, seed, size, round = false, bare = false, className }: ThreadIconProps) {
   const wash = threadWash(threadSeed(seed));
   const style = {
-    "--hue": `var(--label-${Number.isInteger(hue) && hue >= 1 && hue <= 10 ? hue : 1})`,
+    "--ground": `var(--thread-ground-${Number.isInteger(hue) && hue >= 1 && hue <= 10 ? hue : 1})`,
     "--k": `${size}px`,
     "--px": `${wash.x}%`,
     "--py": `${wash.y}%`,

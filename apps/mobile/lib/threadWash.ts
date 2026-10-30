@@ -10,14 +10,13 @@
 // until a wash arrives: a thread's colour never waits on a texture.
 
 import { Image } from "react-native";
-import { BlendMode, ClipOp, PaintStyle, Skia, type SkImage } from "@shopify/react-native-skia";
-import { washFilter, washKey, washRect, type WashSpec } from "./threadWashMath";
+import { BlendMode, ClipOp, Skia, type SkImage } from "@shopify/react-native-skia";
+import { washAlpha, washFilter, washKey, washRect, type WashSpec } from "./threadWashMath";
 import { onSignedOut } from "./session-end";
 
 export interface WashInput extends WashSpec {
   wash: { x: number; y: number; angle: number };
   ground: string;
-  ring: string;
 }
 
 /** Enough for a long list and Edit thread on top of it, and bounded. */
@@ -60,7 +59,7 @@ export async function renderWash(input: WashInput): Promise<string | null> {
     canvas.scale(input.scale, input.scale);
 
     const size = input.size;
-    const radius = input.round ? size / 2 : size * 0.3;
+    const radius = input.corner ?? (input.round ? size / 2 : size * 0.3);
     const shape = Skia.RRectXY(Skia.XYWHRect(0, 0, size, size), radius, radius);
     canvas.clipRRect(shape, ClipOp.Intersect, true);
 
@@ -74,7 +73,7 @@ export async function renderWash(input: WashInput): Promise<string | null> {
     const lit = Skia.Paint();
     lit.setAntiAlias(true);
     lit.setBlendMode(BlendMode.Luminosity);
-    lit.setAlphaf(0.9);
+    lit.setAlphaf(washAlpha(input.theme));
     lit.setColorFilter(
       Skia.ColorFilter.MakeCompose(
         Skia.ColorFilter.MakeMatrix([filter.then, 0, 0, 0, 0, 0, filter.then, 0, 0, 0, 0, 0, filter.then, 0, 0, 0, 0, 0, 1, 0]),
@@ -86,15 +85,6 @@ export async function renderWash(input: WashInput): Promise<string | null> {
     canvas.rotate(at.angle, size / 2, size / 2);
     canvas.drawImageRect(image, Skia.XYWHRect(0, 0, image.width(), image.height()), Skia.XYWHRect(at.left, at.top, at.side, at.side), lit);
     canvas.restore();
-
-    // The 1px ring, inside the edge.
-    const ring = Skia.Paint();
-    ring.setAntiAlias(true);
-    ring.setStyle(PaintStyle.Stroke);
-    ring.setStrokeWidth(1);
-    ring.setColor(Skia.Color(input.ring));
-    const inner = Math.max(0, radius - 0.5);
-    canvas.drawRRect(Skia.RRectXY(Skia.XYWHRect(0.5, 0.5, size - 1, size - 1), inner, inner), ring);
 
     surface.flush();
     const uri = `data:image/png;base64,${surface.makeImageSnapshot().encodeToBase64()}`;

@@ -97,7 +97,7 @@ const draw = async (changes: Changes | null) => {
   await act(async () =>
     root.render(
       <ThreadsProvider
-        value={{ groups: [], invitations: [], loose: null, ready: true, reload: () => {}, filed: null, turnOut: false, changed: changes && { ...changes, at: Date.now() } }}
+        value={{ groups: [], invitations: [], loose: null, order: { sort: "newest", ids: [] }, viewerId: null, ready: true, reload: () => {}, filed: null, turnOut: false, changed: changes && { ...changes, at: Date.now() } }}
       >
         <ToastProvider>{screen()}</ToastProvider>
       </ThreadsProvider>,

@@ -10,7 +10,7 @@ const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 import type { Invitation } from "./people";
 import type { Label } from "./labels";
 import type { LooseSummary } from "./loose";
-import type { Layout, Reminders } from "@offload/widgets";
+import type { Layout, Reminders, ThreadSort } from "@offload/widgets";
 import { provisionalId } from "@offload/widgets";
 
 export { domainOf, isProvisional, provisionalId, rangeOf, startsAs } from "@offload/widgets";
@@ -48,10 +48,21 @@ export interface ThreadRow {
   /** 2026-10-07. Everybody else in it, by name: a shared thread is left,
    *  not deleted, and the question names who it stays with. */
   others?: string[];
+  /** 2026-10-29. The same people, as faces for the tile's corner. Absent from
+   *  an API from before. */
+  faces?: { accountId: string; initials: string }[];
+  /** 2026-10-29. When it was made, for newest first at the press. */
+  createdAt?: string;
 }
 
-/** 028. Two groups. Always on is retired, and Older threads is about time. */
-export type GroupKey = "now" | "older";
+/** 2026-10-29. One group: Older threads went with the grid. */
+export type GroupKey = "now";
+
+/** How My threads is ordered, and the person's own order as it is kept. */
+export interface ThreadOrder {
+  sort: ThreadSort;
+  ids: string[];
+}
 
 export interface ThreadGroup {
   key: GroupKey;
@@ -362,13 +373,21 @@ export interface ThreadsPage {
   invitations: Invitation[];
   /** 028. What is not in a thread. Null draws no group. */
   loose: LooseSummary | null;
+  /** 2026-10-29. Newest first until a person drags one. */
+  order: ThreadOrder;
 }
 
 /** 022. The list and the strips in one read, which is what My threads draws. */
 export const fetchThreadsAndInvitations = async (): Promise<ThreadsPage | null> => {
   const page = await get<Omit<ThreadsPage, "groups"> & { groups: { key: ThreadGroup["key"]; threads: WireRow[] }[] }>("/v1/threads");
-  return page ? { ...page, groups: drawn(page.groups) } : null;
+  return page ? { ...page, groups: drawn(page.groups), order: page.order ?? { sort: "newest", ids: [] } } : null;
 };
+
+/** 2026-10-29. A drop sends the whole list as the person's order; the chip
+ *  sends the sort alone, which keeps the list. */
+export async function putThreadOrder(sort: ThreadSort, ids?: string[]): Promise<boolean> {
+  return (await reach(`${API}/v1/threads/order`, { ...json, method: "PATCH", body: JSON.stringify(ids ? { sort, ids } : { sort }) })) !== null;
+}
 
 export const fetchThread = (id: string): Promise<ThreadBundle | null> =>
   get<ThreadBundle>(`/v1/threads/${id}`);

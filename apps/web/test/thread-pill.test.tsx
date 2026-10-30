@@ -86,7 +86,7 @@ describe("027 AC-26 the thread pill", () => {
     expect(pill.textContent).toBe("Flat");
     // 037. The thread's own icon, on its hue, in place of the lasso.
     const mark = pill.firstElementChild as HTMLElement;
-    expect(mark.style.getPropertyValue("--hue")).toBe("var(--label-2)");
+    expect(mark.style.getPropertyValue("--ground")).toBe("var(--thread-ground-2)");
     expect((mark.firstElementChild as HTMLElement).style.maskImage).toContain("/icons/house.svg");
   });
 

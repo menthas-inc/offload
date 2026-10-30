@@ -52,7 +52,8 @@ describe("P5 the shell's hook every screen reads changes through", () => {
 
 describe("P5 each screen takes the kinds it shows", () => {
   const cases: [string, RegExp][] = [
-    ["components/screens/MyThreads.tsx", /useChanged\(\["thread", "removed", "invitation"\], \(\) => void load\(\)\);/],
+    // 2026-10-29. My threads also reads again when the order changed on another device.
+    ["components/screens/MyThreads.tsx", /useChanged\(\["thread", "removed", "invitation", "order"\], \(\) => void load\(\)\);/],
     ["components/screens/Loose.tsx", /useChanged\(\["thread"\], \(\) => void load\(\)\);/],
     ["components/screens/Memories.tsx", /useChanged\(\["memories"\], \(\) => void load\(\)\);/],
     ["components/people/PeoplePage.tsx", /useChanged\(\["people", "invitation"\], \(\) => void load\(\)\);/],

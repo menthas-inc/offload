@@ -1476,7 +1476,7 @@ describe("048 P3 a change while Today is open", () => {
     act(async () =>
       root.render(
         <ThreadsProvider
-          value={{ groups: [], invitations: [], loose: null, ready: true, reload: () => {}, filed: null, turnOut: false, changed: changed && { ...changed, at: Date.now() } }}
+          value={{ groups: [], invitations: [], loose: null, order: { sort: "newest", ids: [] }, viewerId: null, ready: true, reload: () => {}, filed: null, turnOut: false, changed: changed && { ...changed, at: Date.now() } }}
         >
           <ToastProvider>
             <TodayRoute />

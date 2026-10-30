@@ -14,7 +14,7 @@ import { useThreads } from "../../../../components/shell/threads-context";
 import { CHIPS, type ChipKey } from "../../../../lib/loose";
 
 export default function LooseRoute() {
-  const { groups, loose, invitations, ready, reload } = useThreads();
+  const { groups, loose, invitations, order, ready, reload } = useThreads();
   const asked = useSearchParams().get("type");
   const type: ChipKey | null = CHIPS.find((chip) => chip.key === asked)?.key ?? null;
 
@@ -25,7 +25,7 @@ export default function LooseRoute() {
         { label: "Not in a thread", href: "/threads/loose" },
       ]}
       panes={[
-        <MyThreads key="threads" groups={groups} loose={loose} invitations={invitations} loading={!ready} onChanged={reload} />,
+        <MyThreads key="threads" groups={groups} loose={loose} invitations={invitations} order={order} loading={!ready} onChanged={reload} />,
         <LoosePane key={type ?? "all"} type={type} onChanged={reload} />,
       ]}
     />

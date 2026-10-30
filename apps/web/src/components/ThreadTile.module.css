@@ -1,0 +1,135 @@
+/* 2026-10-29. A thread's tile on My threads: the handoff's section 3. The
+   ground and the wash are ThreadIcon's, at the tile's size; the text on them is
+   always --text-on-solid. */
+.tile {
+  --texture: grayscale(1) contrast(2.2) brightness(1.02);
+  --wash: 0.55;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  aspect-ratio: 1.6 / 1;
+  padding: 18px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--ground);
+  color: var(--text-on-solid);
+  font-family: var(--font-core);
+  text-align: left;
+  cursor: pointer;
+  /* A finger can still scroll the grid from a tile; a sideways move drags. */
+  touch-action: pan-y;
+  user-select: none;
+  transition: transform var(--transition-ui), box-shadow var(--transition-ui);
+}
+
+:global([data-theme="dark"]) .tile {
+  --texture: grayscale(1) invert(1) contrast(2.4) brightness(0.42);
+  --wash: 0.9;
+}
+
+.tile::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: url("/prism/oil-ground.png") var(--px) var(--py) / 220% 220%;
+  transform: rotate(var(--r));
+  filter: var(--texture);
+  mix-blend-mode: luminosity;
+  opacity: var(--wash);
+  z-index: -2;
+}
+
+.tile:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.tile[data-lifted] {
+  transform: scale(1.04);
+  box-shadow: var(--shadow-3);
+}
+
+/* The glyph again, hardened, at 190% of the tile and 12% white, behind the
+   text and clipped by the tile. Placed from the seed in @offload/widgets. */
+.back {
+  position: absolute;
+  left: var(--bx);
+  top: var(--by);
+  width: 190%;
+  aspect-ratio: 1;
+  transform: rotate(var(--bt));
+  color: var(--text-on-solid);
+  opacity: 0.12;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.faces {
+  display: inline-flex;
+  align-items: center;
+}
+
+.face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 2px var(--ground);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  font-size: 10px;
+}
+
+.face + .face {
+  margin-left: -6px;
+}
+
+.more {
+  margin-left: var(--space-2);
+  font-size: calc(12px * var(--type-scale));
+}
+
+.foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-weight: var(--weight-semibold);
+  font-size: calc(17px * var(--type-scale));
+  line-height: 1.25;
+}
+
+.meta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0.86;
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1.3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile[data-lifted] {
+    transform: none;
+  }
+}

@@ -1,8 +1,8 @@
 // 037. Thread icons: the rules every surface shares.
 //
 // Each thread has one of seventy glyphs on a wash of one of the ten label
-// hues. The list, the pick from a name, the hue, where the wash sits and the
-// colours live here, so the server that picks and the three clients that draw
+// hues. The list, the pick from a name, the hue and where the wash sits live
+// here, so the server that picks and the three clients that draw
 // cannot disagree. The order is the design's and it is the pick's order: the
 // first glyph with a word in the name wins.
 
@@ -135,16 +135,6 @@ export function threadWash(seed: number): { x: number; y: number; angle: number 
   return { x: seed % 100, y: (seed >>> 7) % 100, angle: (seed >>> 3) % 360 };
 }
 
-/** How much of the hue goes into each part, per theme: the ground is the hue
- *  mixed into the page, the glyph the hue taken toward black in light and
- *  white in dark. The web writes these into `color-mix`; the phones mix by
- *  hand with `threadIconColors`. */
-export const THREAD_ICON_MIX = {
-  light: { ground: 0.2, glyph: 0.88 },
-  dark: { ground: 0.34, glyph: 0.62 },
-  ring: 0.18,
-} as const;
-
 type Triple = [number, number, number];
 
 const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
@@ -190,9 +180,6 @@ export function mixOklch(a: string, b: string, share: number): string {
   return mixed(oklchOf(a), oklchOf(b), share);
 }
 
-const BLACK: Triple = [0, 0, 0];
-const WHITE: Triple = [1, 0, 0];
-
 function mixed([l1, c1, h1]: Triple, [l2, c2, h2]: Triple, share: number): string {
   const GREY = 1e-4;
   let from = c1 < GREY ? h2 : h1;
@@ -200,25 +187,6 @@ function mixed([l1, c1, h1]: Triple, [l2, c2, h2]: Triple, share: number): strin
   if (to - from > 180) from += 360;
   else if (to - from < -180) to += 360;
   return hexOf([l1 * share + l2 * (1 - share), c1 * share + c2 * (1 - share), from * share + to * (1 - share)]);
-}
-
-export interface ThreadIconColors {
-  ground: string;
-  glyph: string;
-  ring: string;
-}
-
-/** The three colours of a thread's icon from its hue, for a surface that has
- *  no `color-mix`. `page` is what the hue is mixed into: the raised surface in
- *  light, the page in dark, as hex from the tokens. */
-export function threadIconColors(hue: string, theme: "light" | "dark", page: string): ThreadIconColors {
-  const mix = THREAD_ICON_MIX[theme];
-  const [r, g, b] = rgbOf(hue);
-  return {
-    ground: mixOklch(hue, page, mix.ground),
-    glyph: mixed(oklchOf(hue), theme === "light" ? BLACK : WHITE, mix.glyph),
-    ring: `rgba(${r}, ${g}, ${b}, ${THREAD_ICON_MIX.ring})`,
-  };
 }
 
 /** A thread's name and look, as Edit thread reads and writes them. */

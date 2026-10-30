@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { THREAD_ICON_MIX, threadSeed, threadWash } from "@offload/widgets";
+import { threadSeed, threadWash } from "@offload/widgets";
 
 const { ThreadIcon } = await import("../src/components/ThreadIcon");
 
@@ -32,9 +32,9 @@ function draw(props: Parameters<typeof ThreadIcon>[0]): HTMLElement {
 }
 
 describe("ThreadIcon", () => {
-  it("draws the thread's glyph at half its size on its hue", () => {
+  it("draws the thread's glyph at half its size on its ground", () => {
     const el = draw({ icon: "plane", hue: 6, seed: ID, size: 40 });
-    expect(el.style.getPropertyValue("--hue")).toBe("var(--label-6)");
+    expect(el.style.getPropertyValue("--ground")).toBe("var(--thread-ground-6)");
     expect(el.style.getPropertyValue("--k")).toBe(`${40}px`);
     const glyph = el.firstElementChild as HTMLElement;
     expect(glyph.style.maskImage).toContain("/icons/plane.svg");
@@ -57,7 +57,7 @@ describe("ThreadIcon", () => {
   });
 
   it("keeps a hue that is not one of the ten on the first", () => {
-    expect(draw({ icon: "plane", hue: 42, seed: ID, size: 32 }).style.getPropertyValue("--hue")).toBe("var(--label-1)");
+    expect(draw({ icon: "plane", hue: 42, seed: ID, size: 32 }).style.getPropertyValue("--ground")).toBe("var(--thread-ground-1)");
   });
 
   it("is a circle when asked, and says nothing to a screen reader", () => {
@@ -69,13 +69,18 @@ describe("ThreadIcon", () => {
 
 describe("the stylesheet", () => {
   const css = readFileSync(join(process.cwd(), "src/components/ThreadIcon.module.css"), "utf8");
-  const pct = (share: number) => `${Math.round(share * 100)}%`;
 
-  it("mixes what the shared module mixes, so the phones and the web agree", () => {
-    for (const share of [THREAD_ICON_MIX.light.ground, THREAD_ICON_MIX.light.glyph, THREAD_ICON_MIX.dark.ground, THREAD_ICON_MIX.dark.glyph, THREAD_ICON_MIX.ring]) {
-      expect(css).toContain(pct(share));
-    }
+  it("takes the thread's ground from the table and draws the glyph white, with no mix and no ring (AC-5)", () => {
+    expect(css).toContain("background: var(--ground)");
+    expect(css).toContain("color: var(--text-on-solid)");
+    expect(css).not.toContain("color-mix");
+    expect(css).not.toContain("::after");
     expect(css).toContain("mix-blend-mode: luminosity");
-    expect(css).toContain("in oklch");
+  });
+
+  it("lays the wash at 0.55 in light and 0.9 in dark", () => {
+    expect(css).toMatch(/--wash: 0\.55/);
+    expect(css).toMatch(/\[data-theme="dark"\]\) \.icon \{[^}]*--wash: 0\.9/);
+    expect(css).toContain("opacity: var(--wash)");
   });
 });
