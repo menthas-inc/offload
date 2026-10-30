@@ -32,6 +32,7 @@ import { looseRoutes } from "./routes/loose.js";
 import { sharingRoutes } from "./routes/sharing.js";
 import { exportRoutes } from "./routes/export.js";
 import { memoryRoutes } from "./routes/memories.js";
+import { searchRoutes } from "./routes/search.js";
 import { changeRoutes } from "./routes/changes.js";
 import { MAX_PHOTO_BYTES } from "./blobs/photos.js";
 import { mailInRoutes } from "./routes/mail-in.js";
@@ -198,6 +199,7 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
   await app.register(sharingRoutes);
   await app.register(exportRoutes);
   await app.register(memoryRoutes);
+  await app.register(searchRoutes);
   // 048. The live connection.
   await app.register(changeRoutes);
   await app.register(mailInRoutes, {

@@ -15,6 +15,8 @@ import { Preferences } from "./Preferences";
 import styles from "../../app/(shell)/shell.module.css";
 import type { ThreadRow } from "../../lib/threads";
 import { TODAY_RESET } from "../../lib/today";
+import { openSearch } from "../../lib/search";
+import { searchKey } from "./SearchWindow";
 
 interface Props {
   threads: ThreadRow[];
@@ -31,7 +33,7 @@ export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityNew
 
   const tabs = [
     { href: "/today", label: "Today", icon: "sun", count: undefined as number | undefined },
-    { href: "/threads", label: "My threads", icon: "message-circle", count: threadCount },
+    { href: "/threads", label: "Threads", icon: "message-circle", count: threadCount },
     // 040. Where Notes was drawn inert until there was something to open.
     { href: "/memories", label: "Memories", icon: "cloudy", count: undefined },
   ];
@@ -81,7 +83,20 @@ export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityNew
               {tab.count ? <em className={styles.navCount}>{tab.count}</em> : null}
             </Link>
           );
-        })}
+        }).flatMap((link, index) =>
+          // 049. Search sits between Threads and Memories, and opens a window
+          // rather than a page, so it is a button among the links.
+          index === 1
+            ? [
+                link,
+                <button key="search" type="button" className={styles.navItem} onClick={openSearch} aria-keyshortcuts="Meta+K Control+K /">
+                  <Icon name="search" size={17} />
+                  <span className={styles.navLabel}>Search</span>
+                  <em className={styles.navKey}>{searchKey()}K</em>
+                </button>,
+              ]
+            : [link],
+        )}
       </div>
 
       {recent.length ? (

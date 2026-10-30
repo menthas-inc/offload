@@ -129,12 +129,14 @@ function writePick(threadId: string, pick: LabelPick): void {
 interface Props {
   id: string;
   onChanged: () => void;
+  /** 049. Opened from Search at one row or one note. */
+  at?: { row: string | null; note: string | null; archived: boolean };
 }
 
 // 030. The map's library and Google's script load the first time a map shows.
 const ThreadMap = dynamic(() => import("../map/ThreadMap"), { ssr: false });
 
-export function Thread({ id, onChanged }: Props) {
+export function Thread({ id, onChanged, at }: Props) {
   const [thread, setThread] = useState<ThreadBundle | null>(null);
   // 025. The filter bar's pick, the label sheet open on a row, and the label's
   // list open for a label (or for a new one, `null`).
@@ -144,7 +146,11 @@ export function Thread({ id, onChanged }: Props) {
   const [listLine, setListLine] = useState<string | null>(null);
   const [rows, setRows] = useState<ContentRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
+  const [showArchived, setShowArchived] = useState(at?.archived === true);
+  // 049. What Search opened the page at: read back to once, marked, kept
+  // unfolded and scrolled to. A row the read does not hold is not marked.
+  const target = useRef(at?.row ?? null);
+  const [reveal, setReveal] = useState<string | null>(at?.row ?? at?.note ?? null);
   // Lifted out of `Notes` so the pane head's More menu can open the editor. It
   // is also the answer to a cost that section had accepted: a thread with no
   // notes drew nothing, so there was nowhere to type the first one.
@@ -329,9 +335,11 @@ export function Thread({ id, onChanged }: Props) {
   useEffect(() => {
     let live = true;
     void (async () => {
+      const through = target.current;
+      target.current = null;
       const [bundle, page] = await Promise.all([
         fetchThread(id),
-        fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
+        fetchContent(id, { archived: showArchived, ...(through ? { through } : filterOf(pick)) }),
       ]);
       if (!live) return;
       // 028. The account's default thread is never drawn as a thread: from
@@ -343,16 +351,31 @@ export function Thread({ id, onChanged }: Props) {
       setThread(bundle);
       setRows(page?.rows ?? []);
       setCursor(page?.nextCursor ?? null);
+      if (through && !page?.rows.some((row) => row.id === through)) setReveal(null);
     })();
     return () => {
       live = false;
     };
   }, [id, showArchived, pick]);
 
+  // 049. Once the target is drawn: on screen, and the 023 mark for a moment.
+  const shown = Boolean(thread);
+  useEffect(() => {
+    if (!shown || !reveal) return;
+    setArrived(new Set([reveal]));
+    const id_ = CSS.escape(reveal);
+    const frame = requestAnimationFrame(() =>
+      document.querySelector(`[data-row-id="${id_}"], [data-note-id="${id_}"]`)?.scrollIntoView({ block: "center" }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [shown, reveal]);
+
   // 025. The kept pick, read once per thread, and less any label that has
   // since been deleted once the thread's labels are known.
   useEffect(() => {
-    setPickState(readPick(id));
+    // 049. Opened at a row, a kept filter could hide it: the page opens on
+    // All for this visit and the kept pick stays for the next.
+    setPickState(at?.row ? ALL_LABELS : readPick(id));
     setSuggestionGone(false);
     setHeadsUp(null);
   }, [id]);
@@ -1010,6 +1033,7 @@ export function Thread({ id, onChanged }: Props) {
     draft,
     asking,
     arrived,
+    reveal,
     onDraft: setDraft,
     // 023. A content row edits in the modal, which holds the title, the
     // details and the when field; the inline field stays for a thread's name.
@@ -1494,6 +1518,7 @@ export function Thread({ id, onChanged }: Props) {
             counts={thread.noteCounts}
             members={thread.members}
             arrived={arrived}
+            reveal={reveal}
             adding={addingNote}
             onAdding={setAddingNote}
             onNotes={patchNotes}

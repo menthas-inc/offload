@@ -147,6 +147,28 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 049. Search opens a window, so it is a button drawn as a nav row, with the
+   key that opens it from anywhere. */
+button.navItem {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.navKey {
+  margin-left: auto;
+  font-style: normal;
+  font-weight: var(--weight-medium);
+  font-size: calc(11px * var(--type-scale));
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-hairline);
+  border-radius: 5px;
+  padding: 3px 5px;
+}
+
 .sideLabel {
   display: flex;
   align-items: center;

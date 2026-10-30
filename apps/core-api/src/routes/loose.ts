@@ -13,7 +13,7 @@ import { db } from "../db.js";
 import { NotYours } from "../threads/access.js";
 import { NoteDuplicate, moveNoteIn } from "../threads/notes.js";
 import { withNoteLabels } from "../threads/labels.js";
-import { contentRow, looseEntrySchema, loosePageSchema, noteSchema } from "./threads.js";
+import { contentRow, looseEntrySchema, loosePageSchema, noteSchema, rowsThrough, THROUGH } from "./threads.js";
 import { CHIP_KEYS, archivedCount, defaultThreadOf, looseArchived, looseCounts, loosePage } from "../loose/read.js";
 import {
   LooseRefused,
@@ -60,6 +60,8 @@ export async function looseRoutes(app: App): Promise<void> {
           // An id, since the list is ordered by id: anything else is a 400.
           cursor: z.string().uuid().optional(),
           archived: z.enum(["true", "false"]).default("false"),
+          // 049. Read back far enough to hold this row, for Search.
+          through: z.string().uuid().optional(),
         }),
         response: { 200: z.union([loosePageSchema, archivedPage]), 400: badRequest, 401: unauthenticated },
       },
@@ -74,8 +76,12 @@ export async function looseRoutes(app: App): Promise<void> {
 
       const threadId = await defaultThreadOf(accountId);
       if (!threadId) return reply.send({ rows: [], nextCursor: null, count: 0, byType: {}, archived: 0 });
+      // 049. Notes interleave with rows here, so this reads the furthest a
+      // read through a row may go rather than counting exactly; a row it
+      // still misses opens the page with nothing marked.
+      const reach = request.query.through && !request.query.cursor ? await rowsThrough(threadId, request.query.through, false) : null;
       const [page, counts, archived] = await Promise.all([
-        loosePage(accountId, { type: request.query.type, cursor: request.query.cursor }),
+        loosePage(accountId, { type: request.query.type, cursor: request.query.cursor, ...(reach ? { limit: THROUGH } : {}) }),
         looseCounts(threadId),
         archivedCount(threadId),
       ]);

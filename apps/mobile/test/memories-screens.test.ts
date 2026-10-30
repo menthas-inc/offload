@@ -38,10 +38,10 @@ describe("the tab (AC-10)", () => {
 
   it("reads Memories with cloudy on the plate, and the plate belongs on it", () => {
     const shell = read("components/shell/Shell.tsx");
-    expect(shell).toMatch(/const TABS = \["\/today", "\/threads", "\/memories"\];/);
+    expect(shell).toMatch(/const TABS = \["\/today", "\/threads", "\/search", "\/memories"\];/);
     expect(shell).toMatch(/key: "memories",\s*label: "Memories",\s*icon: "cloudy",\s*active: pathname === "\/memories",\s*onPress: \(\) => go\("\/memories"\)/);
     expect(shell).not.toMatch(/"\/notes"/);
-    expect(read("components/shell/RecordArrival.tsx")).toMatch(/const HOME = \["\/today", "\/threads", "\/memories"\];/);
+    expect(read("components/shell/RecordArrival.tsx")).toMatch(/const HOME = \["\/today", "\/threads", "\/search", "\/memories"\];/);
   });
 });
 
@@ -94,8 +94,11 @@ describe("the screen (AC-11 to AC-13)", () => {
   });
 
   it("lets the search field grow with the text", () => {
-    const start = source.indexOf("{searching && screen.state");
-    const field = source.slice(start, source.indexOf("<TextInput", start));
+    // 049. The field is SearchField, shared with the Search tab.
+    expect(source).toMatch(/<SearchField value=\{query\}/);
+    const shared = read("components/SearchField.tsx");
+    const start = shared.indexOf("<View");
+    const field = shared.slice(start, shared.indexOf("<TextInput", start));
     expect(field).toMatch(/minHeight: 48/);
     expect(field).toMatch(/minHeight: 40/);
     expect(field).not.toMatch(/\bheight: \d/);

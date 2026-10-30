@@ -130,7 +130,8 @@ contentArms(accountId, { match: Sql, vector: string | null, limit: number }): Pr
 What follows:
 - **Pagination:** none. Each group is a fixed small limit and the response is bounded at 17 entries of at most 200 characters.
 - **Indexes:** the existing GIN indexes on `search_text` (0027) and HNSW on the chunks (0027) and memories (0086); no new index. Thread names are a scan of the account's own memberships, at most 300 rows, through `thread_members`' account index.
-- **The known weak point, checked before the arms are written:** the GIN index is not account scoped, and `order by ts_rank` cannot be served by it. For `li:*` Postgres either gathers every account's matching rows and ranks them, or starts from the account's memberships and filters. Every search passes through two letters on its way to five, so task A0 runs `EXPLAIN (ANALYZE, BUFFERS)` for `li:*`, `lis:*` and `lisb:*` on a database seeded with a heavy account among many, and its result decides the server's minimum (two or three letters) and whether the arm forces the membership path (a `thread_id in (…)` from the account's memberships first). *shortcut: unscoped GIN prefix scan; when p95 of `POST /v1/search` passes 150 ms or `content` passes 2 million rows, add a `btree_gin` index on `(thread_id, search_text)`.* The p95 is read from the request logs' durations, which carry no query.
+- **Measured 2026-10-30 (A0)**, on a local Postgres 17 with 201 accounts and 220,100 rows, one heavy account holding 300 threads and 20,100 rows. The planner starts from the account's memberships (`thread_members_account_state_idx`) and checks the tsquery per row through `content_thread_priority_idx`; it never scans the GIN index corpus-wide, because the membership side is the selective one. Rows arm, live pile: heavy `li:*` 21 ms (16,062 matches ranked), heavy `lisb:*` 6 ms, ordinary `li:*` 0.8 ms, ordinary `lisb:*` 0.6 ms. **The server's minimum stays at two letters, with no forced plan.** The cost that grows is ranking a heavy account's many two-letter matches, not the index.
+- **The weak point that remains:** a heavy account's two-letter query ranks every match it has. *shortcut: unscoped GIN prefix scan; when p95 of `POST /v1/search` passes 150 ms or `content` passes 2 million rows, add a `btree_gin` index on `(thread_id, search_text)`.* The p95 is read from the request logs' durations, which carry no query.
 - **Denormalisation:** none.
 - **Cost of meaning:** about 10 tokens per embed at $0.06 a million; under a cent an account a year.
 
@@ -198,6 +199,19 @@ The bundle is applied on this branch (owner, 2026-10-02): the readme's **Search*
 - **Two tabs of the web app:** each its own window and recent list, the same storage key.
 - **The sweep embedding late:** a new row is found by words at once and by meaning once its chunk is embedded.
 
+## As built, 2026-10-30
+
+Where the build departed from the sections above, each folded in here rather than rewritten above it:
+- **A row carries the date fields an answer's row carries** (`dueAt`, `occursAt`, `occursEndAt`, `allDay`, `rrule`), not `at` and `dateKind`, so both clients draw its date with the existing `foundMeta`, as answers do, and fall back to the kind's word (`KIND_WORDS`) when it has none.
+- **Meaning locally is an opt-in per shell, `MEANING_LIVE=1`**, as `MAIL_LIVE` and `PUSH_LIVE` are: the suite and a dev server read the same `.env`, which carries the Voyage key, and a paid third party is never reached from a local process by default. Production uses the key as described.
+- **Not in a thread reads from its own route**, `GET /v1/loose`, not the content route. It takes `through` too: when the row is in the default thread's live pile within 90, the page reads 90 entries (rows and notes interleave there, so this is the reach, not an exact count), and a row it still misses opens the page with nothing marked.
+- **The keystroke scheduling is one shared function**, `searchSession` in `packages/widgets/src/search.ts`, used by both clients: settle, the meaning pause, newest wins, a failed meaning read leaves the words standing, nothing asked under two letters.
+- **The phones' Ask uses the conversation's existing `setDraft`**; no `fill()` was needed.
+- **Opening at a row on the phones** goes through a small `Reveal` context (`components/shell/reveal.tsx`): the thread screen provides the id and a `found(view)` that measures against its `ScrollView`; `ContentRowView` and the note row report themselves, and `Widgets` and `NotesSection` keep the fold holding it open. Not in a thread is a `FlatList` and uses `scrollToIndex`. A revealed row or note takes the existing change mark.
+- **The web** passes `reveal` through `RowHandlers` and a prop on `Notes`; rows and notes carry `data-row-id` and `data-note-id` for `scrollIntoView`.
+- **Search counts as home** for the voice-note quick action (`RecordArrival`'s `HOME`), since it carries the plate's composer.
+- `docs/tech/decisions.md` is shared state and is edited on `main`, so its entry (D2) goes in at the merge.
+
 ## Review, 2026-10-30
 
 Project lead as tech lead. Changed:
@@ -209,6 +223,22 @@ Project lead as tech lead. Changed:
 - `noteFilter(accountId)`, a per-minute counter, `FILL_COMPOSER` moved out of Today, `SearchField`'s placeholder prop, `VOYAGE_API_KEY` optional in `env.ts`, and production's Postgres major stated (18.6).
 
 Not changed: the in-process embed budget stays, as the one-line counter the review allowed.
+
+## Review of the build, 2026-10-30
+
+Code, client and security reviewers on the whole diff. Changed:
+- **Recent searches are forgotten on every way a web session ends**, not only Sign out: the 401 that follows a remote sign-out, a staff disable or a deletion mark (`use-me.ts`), and deleting the account (`delete-account.ts`). The phones already cleared them through `ACCOUNT_KEYS` on all four. Section 18's "until you sign out" is true on both now.
+- **Opening at a row no longer erases the thread's kept label filter**: the page shows All for that visit and the kept pick is there next time, on both clients.
+- **`POST /v1/search` holds at most three searches in flight per account** (429 `busy`, which the client draws as a failed read), the statement timeout is 250 ms, and the comment counts the real twelve statements. A request a browser marks `sec-fetch-site: cross-site` is refused like a foreign Origin.
+- **The web**: the Threads page heading renamed (the crumb had been, the heading had not); an archived Not in a thread row opens the archived pile; chips reach 44 with a hit area round the drawn 36; tokens for every radius and target; Tab stays in the window; ⌘K pressed while open no longer loses where focus came from; a click inside the window keeps the keys working; a window opened before `/me` answers reads its recent list when it does; the count is announced for the server's answer only, as on the phones; the chip wrapper is `role="presentation"`; ids from the address go through `CSS.escape`.
+- **The phones**: `measureLayout` measures against the scroll view's content view, a host component (the ScrollView itself raised a dev error on the simulator); the Ask row lost an edge the handoff does not draw.
+
+Not changed:
+- **"Accent folding misses `memories.search_text`"**: there is no `memories` table since 0033; memories are `notes` rows, whose column 0098 folds (checked in the database).
+- **A remove control inside a recent option** may not be reached by a screen reader in browse mode; it needs a VoiceOver and NVDA pass, which was not run.
+- **iOS hears no live region** for *Couldn't search.*; `accessibilityLiveRegion` is Android's. The count is announced on both.
+- **The keyboard spacer on the phones** adds the plate's height under Ask while the keyboard is up: extra scroll room, nothing hidden.
+- **"Add it to my threads"** in two sentences on the web (`NeedsYou.tsx`, `InvitationModal.tsx`) is prose rather than the tab's name; left for the owner.
 
 ## Constitution check
 

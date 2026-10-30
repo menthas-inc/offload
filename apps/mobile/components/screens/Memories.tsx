@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { MEMORY_COPY, MEMORY_PARAM, type MemoryKindId, type MemoryView } from "@offload/widgets";
 import { Glyph } from "../Glyph";
+import { SearchField } from "../SearchField";
 import { Segmented } from "../Segmented";
 import { Spinner } from "../Spinner";
 import { QuietEmpty } from "./QuietEmpty";
@@ -213,31 +214,8 @@ export default function Memories() {
 
       {searching && screen.state === "list" ? (
         <View className="px-gutter-screen pb-space-3 pt-space-1">
-          <View
-            className={`flex-row items-center gap-space-4 px-space-5 ${isAndroid ? "rounded-pill bg-a-c-low" : "bg-surface-fill"}`}
-            // A minimum, so the field grows with the text size rather than
-            // clipping it. The edge is Dark theme: edges (design decisions, 2026-10-07).
-            style={[{ boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }, isAndroid ? { minHeight: 48 } : { minHeight: 40, borderRadius: 12 }]}
-          >
-            <Glyph name="search" size={16} color={COLOR.quiet} />
-            <TextInput
-              ref={searchField}
-              value={query}
-              onChangeText={setQuery}
-              placeholder={MEMORY_COPY.search}
-              placeholderTextColor={COLOR.quiet}
-              accessibilityLabel={MEMORY_COPY.search}
-              returnKeyType="search"
-              autoCorrect={false}
-              className="flex-1 font-core"
-              style={{ color: COLOR.ink, fontSize: 15.5, paddingVertical: 0 }}
-            />
-            {query ? (
-              <Pressable onPress={() => setQuery("")} hitSlop={12} accessibilityRole="button" accessibilityLabel="Clear">
-                <Glyph name="x" size={15} color={COLOR.quiet} />
-              </Pressable>
-            ) : null}
-          </View>
+          {/* The field and its edge (Dark theme: edges, design decisions, 2026-10-07) are SearchField's. */}
+          <SearchField value={query} onChangeText={setQuery} placeholder={MEMORY_COPY.search} label={MEMORY_COPY.search} inputRef={searchField} />
         </View>
       ) : null}
 

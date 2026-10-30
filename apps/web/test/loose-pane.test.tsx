@@ -252,8 +252,37 @@ describe("the routes (AC-4, AC-12)", () => {
     );
     expect(calls.some((c) => c.path === "/v1/loose?type=link")).toBe(true);
     const crumbs = [...host.querySelectorAll("a")].map((a) => a.textContent);
-    expect(crumbs).toContain("My threads");
+    expect(crumbs).toContain("Threads");
     expect(crumbs).toContain("Not in a thread");
     expect(said()).toContain("Put down without a thread, newest first.");
+  });
+});
+
+describe("opened from Search at a row (049, AC-10)", () => {
+  it("reads back to the row and marks it", async () => {
+    overrides["/v1/loose?through=c3"] = () => json({ ...first, rows: [...first.rows, ...second.rows], nextCursor: null });
+    Element.prototype.scrollIntoView = () => undefined;
+    await draw(<LoosePane type={null} at="c3" />);
+    expect(calls.some((call) => call.path === "/v1/loose?through=c3")).toBe(true);
+    expect(host.querySelector('[data-row-id="c3"]')?.getAttribute("data-arrived")).toBe("true");
+  });
+
+  it("opens the archived pile for an archived row, and marks it", async () => {
+    Element.prototype.scrollIntoView = () => undefined;
+    await draw(<LoosePane type={null} at="c9" atArchived />);
+    expect(calls.some((call) => call.path === "/v1/loose?archived=true")).toBe(true);
+    expect(host.querySelector('[data-row-id="c9"]')?.getAttribute("data-arrived")).toBe("true");
+  });
+
+  it("the route passes ?row= to the pane", async () => {
+    search = new URLSearchParams({ row: "c3" });
+    overrides["/v1/loose?through=c3"] = () => json({ ...first, rows: [...first.rows, ...second.rows], nextCursor: null });
+    Element.prototype.scrollIntoView = () => undefined;
+    await draw(
+      <ThreadsProvider value={{ groups: [], invitations: [], loose: null, order: { sort: "newest", ids: [] }, viewerId: null, ready: true, reload: () => {}, filed: null, changed: null, turnOut: false }}>
+        <LooseRoute />
+      </ThreadsProvider>,
+    );
+    expect(calls.some((call) => call.path === "/v1/loose?through=c3")).toBe(true);
   });
 });

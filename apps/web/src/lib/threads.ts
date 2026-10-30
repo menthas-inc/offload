@@ -450,10 +450,12 @@ export async function fetchThreadEvents(threadId: string, from: string, to: stri
 
 export async function fetchContent(
   threadId: string,
-  options: { cursor?: string; archived?: boolean; labels?: string[]; unlabelled?: boolean; ticksFor?: string } = {},
+  options: { cursor?: string; archived?: boolean; labels?: string[]; unlabelled?: boolean; ticksFor?: string; through?: string } = {},
 ): Promise<ContentPage | null> {
   const query = new URLSearchParams();
   if (options.cursor) query.set("cursor", options.cursor);
+  // 049. Read back to the row Search opened the page at.
+  if (options.through) query.set("through", options.through);
   if (options.archived) query.set("archived", "true");
   // 025. The filter bar's pick, read on the server because the list is paged.
   if (options.labels?.length) query.set("labels", options.labels.join(","));

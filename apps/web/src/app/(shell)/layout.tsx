@@ -13,9 +13,9 @@
 // simpler as well as linkable:
 //
 //   /today          Today
-//   /threads        My threads
-//   /threads/:id    My threads | that thread
-//   /threads/loose  My threads | not in a thread
+//   /threads        Threads
+//   /threads/:id    Threads | that thread
+//   /threads/loose  Threads | not in a thread
 //   /content/:id    its thread  | that piece
 //
 // **The composer is under the panes and belongs to none of them.** The kit says
@@ -28,6 +28,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "../../components/shell/Sidebar";
 import { ThreadsProvider, type Changed, type Filed } from "../../components/shell/threads-context";
 import { Composer } from "../../components/shell/Composer";
+import { SearchWindow } from "../../components/shell/SearchWindow";
 import { MapColumnContext } from "../../components/shell/map-column";
 import { ToastProvider } from "../../components/shell/Toast";
 import { refreshBadges, useMe } from "../../lib/use-me";
@@ -131,6 +132,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           )}
         </div>
       </div>
+      <SearchWindow />
       </ToastProvider>
     </ThreadsProvider>
   );

@@ -36,6 +36,7 @@ import {
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useEffect, type ReactNode } from "react";
+import { useRevealed } from "./reveal";
 import { useRouter } from "expo-router";
 import Animated, {
   ReduceMotion,
@@ -221,16 +222,20 @@ export function ContentRowView({
     return withSpring(0, { damping: 20, stiffness: 220 });
   };
 
+  // 049. Search opened the page at this row.
+  const revealed_ = useRevealed(row.id);
   // The change mark: a moss ground settling to transparent over 1400ms. Moss
   // because it already means "offload did this, you didn't", which is exactly
   // what happened. Reduced motion drops it rather than shortening it, because
   // a flash that is only briefer is still a flash.
-  const mark = useSharedValue(arrived ? 1 : 0);
+  // 049. A row Search opened its page at takes the same mark.
+  const marked = arrived === true || Boolean(revealed_.ref);
+  const mark = useSharedValue(marked ? 1 : 0);
   useEffect(() => {
-    if (!arrived) return;
+    if (!marked) return;
     mark.value = 1;
     mark.value = withTiming(0, { duration: 1400, reduceMotion: ReduceMotion.System });
-  }, [arrived, mark]);
+  }, [marked, mark]);
 
   const pan = Gesture.Pan()
     .enabled(!provisional)
@@ -309,7 +314,7 @@ export function ContentRowView({
   }));
 
   return (
-    <Animated.View className="relative" style={stacking}>
+    <Animated.View className="relative" style={stacking} {...revealed_}>
       <Animated.View
         className="absolute inset-y-0 right-0 items-center justify-center bg-surface-danger"
         style={[revealed, { width: REVEAL + 24 }]}

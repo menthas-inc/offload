@@ -562,3 +562,31 @@ export type { ThreadSort } from "./threads-grid.js";
 // 048. Live updates: what the connection says, and when a screen reads again.
 export { EVERYTHING, reloadFloor, touches } from "./live.js";
 export type { ChangeKind, Changes } from "./live.js";
+// 049. Search: its numbers, its words, what is drawn semibold, recent searches.
+export {
+  ANNOUNCE_MS,
+  ARCHIVED_PARAM,
+  fold,
+  KIND_WORDS,
+  looseMatches,
+  matchSpans,
+  MEANING_FROM,
+  MEANING_IDLE_MS,
+  nameMatches,
+  NO_ANSWER,
+  NOTE_GLYPH,
+  NOTE_PARAM,
+  QUERY_CHARS,
+  recentAfter,
+  RECENT_MAX,
+  ROW_GLYPHS,
+  ROW_PARAM,
+  rowLabel,
+  SEARCH_COPY,
+  SEARCH_LIMITS,
+  searchCount,
+  searchLetters,
+  searchSession,
+  SETTLE_MS,
+} from "./search.js";
+export type { SearchAnswer, SearchRow, SearchState } from "./search.js";

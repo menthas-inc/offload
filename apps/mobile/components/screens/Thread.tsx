@@ -36,7 +36,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, type LabelPick } from "@offload/widgets";
+import { ALL_LABELS, ARCHIVED_PARAM, changeToken, isAll, keepLive, listLabelledCopy, nameList, NOTE_PARAM, ROW_PARAM, rowLabelledCopy, type LabelPick } from "@offload/widgets";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
   cadenceLabel,
@@ -49,6 +49,7 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { ContentRowView } from "../shell/ContentRow";
 import { NotesSection } from "../shell/Notes";
+import { Reveal } from "../shell/reveal";
 import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
 import { PhotoViewer, type ViewerPhoto } from "../shell/PhotoViewer";
 import { forgetRendition } from "../shell/PhotoThumb";
@@ -137,12 +138,27 @@ const SHEET_CHROME = 48;
 
 export default function Thread() {
   const COLOR = useColors();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; [ROW_PARAM]?: string; [NOTE_PARAM]?: string; [ARCHIVED_PARAM]?: string }>();
+  const { id } = params;
   const router = useRouter();
   const [thread, setThread] = useState<ThreadBundle | null>(null);
   const [rows, setRows] = useState<ContentRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
+  const [showArchived, setShowArchived] = useState(params[ARCHIVED_PARAM] === "1");
+  // 049. What Search opened the thread at: read back to once, kept unfolded,
+  // marked and scrolled to. A row the read does not hold is not marked.
+  const target = useRef(params[ROW_PARAM] ?? null);
+  const [reveal, setReveal] = useState<string | null>(params[ROW_PARAM] ?? params[NOTE_PARAM] ?? null);
+  const scroll = useRef<ScrollView>(null);
+  const scrolledTo = useRef<string | null>(null);
+  const revealed = useCallback((view: View) => {
+    // The content view, a host component: measureLayout refuses the ScrollView itself.
+    // Present at runtime, missing from RN's types.
+    const content = (scroll.current as unknown as { getInnerViewRef?: () => View | null } | null)?.getInnerViewRef?.();
+    if (!content || scrolledTo.current === reveal) return;
+    scrolledTo.current = reveal;
+    view.measureLayout(content, (_x, y) => scroll.current?.scrollTo({ y: Math.max(0, y - 120), animated: false }));
+  }, [reveal]);
   const [renaming, setRenaming] = useState<ContentRow | null>(null);
   // 020. The photo open in the viewer, by row id, and the row a move sheet
   // is up for. The viewer pages through every photo row on the page.
@@ -176,7 +192,9 @@ export default function Thread() {
   const toast = useToast();
   // 025. The filter bar's pick, kept per thread on this phone; the label sheet
   // open on a row; the label's list open for a label, or for a new one.
-  const [pick, setPickState] = useState<LabelPick>(() => (id ? readPick(id) : ALL_LABELS));
+  // 049. Opened at a row, a kept filter could hide it, so the page opens on
+  // All for this visit and the kept pick stays for the next.
+  const [pick, setPickState] = useState<LabelPick>(() => (id && !params[ROW_PARAM] ? readPick(id) : ALL_LABELS));
   const [labelling, setLabelling] = useState<ContentRow | null>(null);
   // The note editor, drawn here at the root: see NotesSection's onSheet.
   const [noteSheet, setNoteSheet] = useState<ReactNode>(null);
@@ -245,10 +263,16 @@ export default function Thread() {
   const load = useCallback(async (live = false) => {
     if (!id) return;
     try {
+      const through = target.current;
+      target.current = null;
       const [bundle, page] = await Promise.all([
         fetchThread(id),
-        fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
+        fetchContent(id, { archived: showArchived, ...(through ? { through } : filterOf(pick)) }),
       ]);
+      if (through) {
+        if (page?.rows.some((row) => row.id === through)) setArrived(new Set([through]));
+        else setReveal(null);
+      }
       if (!writes.idle()) return;
       if (live && (!bundle || !page)) return;
       // 028. The caller's own default thread is never drawn as a thread: from
@@ -1177,7 +1201,9 @@ export default function Thread() {
           stays mounted, out of sight and reach, so its scroll is where it was
           on the way back. */}
       <View className="flex-1">
+      <Reveal.Provider value={{ id: reveal, found: revealed }}>
       <ScrollView
+        ref={scroll}
         contentContainerClassName="pb-space-9"
         pointerEvents={onMap ? "none" : "auto"}
         accessibilityElementsHidden={onMap}
@@ -1412,6 +1438,7 @@ export default function Thread() {
         ) : null}
         <PlateSpace />
       </ScrollView>
+      </Reveal.Provider>
       {map.made ? (
         <ThreadMap
           points={map.points}

@@ -116,7 +116,9 @@ function WidgetBlock({
   // Files starts folded. Folding with the add field open is its Cancel.
   const [folds, setFold] = useFolds();
   const section: FoldSection = widget.kind;
-  const folded = folds[section];
+  // 049. A row Search opened the page at is never folded away or cut short.
+  const revealing = widget.rows.some((row) => row.id === handlers.reveal);
+  const folded = folds[section] && !revealing;
   // Only To do earns the fold: `doneAt` is only ever set on a task, so a
   // files section has nothing to hide and never draws the control.
   //
@@ -267,17 +269,17 @@ function WidgetBlock({
           that the work happened. The heading toggle above hides this whole
           block; "Show all" is the separate, narrower question of whether to
           see all of them once they are already showing. */}
-      {!hideDone && widget.kind !== "files" ? (
+      {(!hideDone || revealing) && widget.kind !== "files" ? (
         <>
           {/* 2026-09-29. A rule between what is left and what is finished:
               the finished rows cannot be dragged, so they draw no handle, and
               without the rule they read as the same list drawn wrong. */}
           {widget.kind === "todo" && left.length > 0 && done.length > 0 ? <hr className={styles.doneRule} /> : null}
-          <InPlace items={allDone ? done : done.slice(0, DONE_SHOWN)} idOf={(row) => row.id}>
+          <InPlace items={allDone || revealing ? done : done.slice(0, DONE_SHOWN)} idOf={(row) => row.id}>
             {(row) => <Row row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} />}
           </InPlace>
 
-          {done.length > DONE_SHOWN && !allDone ? (
+          {done.length > DONE_SHOWN && !allDone && !revealing ? (
             <button type="button" className={styles.showMore} onClick={() => setAllDone(true)}>
               Show all {done.length} finished
             </button>
