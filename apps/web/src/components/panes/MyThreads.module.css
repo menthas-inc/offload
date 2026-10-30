@@ -4,6 +4,12 @@
   max-width: 960px;
 }
 
+/* The pane's body starts flush; the first thing under the title is the
+   loose row or the grid, and neither brings a margin of its own. */
+.body {
+  padding-top: var(--space-6);
+}
+
 .titleRow {
   display: flex;
   align-items: center;

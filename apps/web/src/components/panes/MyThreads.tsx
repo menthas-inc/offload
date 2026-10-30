@@ -154,39 +154,30 @@ export function MyThreads({
     dy: number;
   } | null>(null);
 
-  // The others slide to their new places: measured after every render and
-  // each eased from where it was. Reduced motion moves them without it.
-  const rects = useRef(new Map<string, DOMRect>());
+  // The others slide to their new places when the order changes. Each cell's
+  // place is its layout offset, which neither a scroll nor a slide still
+  // running moves: a box read from the screen does, and sliding from that
+  // restarted every tile on every pointer move, so the grid jumped. Reduced
+  // motion moves them without it.
+  const cellRefs = useRef(new Map<string, HTMLElement>());
+  const places = useRef<{ key: string; at: Map<string, { x: number; y: number }> }>({ key: "", at: new Map() });
+  const orderKey = threads.map((thread) => thread.id).join();
   useLayoutEffect(() => {
-    const next = new Map<string, DOMRect>();
-    tileRefs.current.forEach((el, id) =>
-      next.set(id, el.getBoundingClientRect()),
-    );
-    if (!reduced) {
-      next.forEach((rect, id) => {
-        const was = rects.current.get(id);
-        const el = tileRefs.current.get(id);
-        if (
-          !was ||
-          !el?.animate ||
-          (was.left === rect.left && was.top === rect.top)
-        )
-          return;
-        el.animate(
-          [
-            {
-              transform: `translate(${was.left - rect.left}px, ${was.top - rect.top}px)`,
-            },
-            { transform: "none" },
-          ],
-          {
-            duration: 260,
-            easing: "cubic-bezier(0.32, 0.72, 0, 1)",
-          },
-        );
+    const at = new Map<string, { x: number; y: number }>();
+    cellRefs.current.forEach((el, id) => at.set(id, { x: el.offsetLeft, y: el.offsetTop }));
+    if (!reduced && places.current.key && places.current.key !== orderKey) {
+      at.forEach((now, id) => {
+        const was = places.current.at.get(id);
+        const el = cellRefs.current.get(id);
+        if (!was || !el?.animate || (was.x === now.x && was.y === now.y)) return;
+        el.getAnimations?.().forEach((running) => running.cancel());
+        el.animate([{ transform: `translate(${was.x - now.x}px, ${was.y - now.y}px)` }, { transform: "none" }], {
+          duration: 260,
+          easing: "cubic-bezier(0.32, 0.72, 0, 1)",
+        });
       });
     }
-    rects.current = next;
+    places.current = { key: orderKey, at };
   });
 
   function open(thread: ThreadRow): void {
@@ -601,7 +592,7 @@ export function MyThreads({
         {newThread}
       </div>
 
-      <div className={`${styles.paneBody} ${page.wide}`}>
+      <div className={`${styles.paneBody} ${page.wide} ${page.body}`}>
         {strips}
         {loading ? null : (
           <>
@@ -630,6 +621,10 @@ export function MyThreads({
                     ) : (
                       <div
                         className={page.cell}
+                        ref={(el) => {
+                          if (el) cellRefs.current.set(thread.id, el);
+                          else cellRefs.current.delete(thread.id);
+                        }}
                         data-menu={
                           menu === thread.id ||
                           editing?.id === thread.id ||

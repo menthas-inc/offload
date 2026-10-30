@@ -27,6 +27,14 @@ export function cellAt(x: number, y: number, m: GridMetrics, count: number): num
   return Math.max(0, Math.min(count - 1, row * m.columns + column));
 }
 
+/** The cell under a finger that went down in cell `from`: `x` and `y` are
+ *  where it went down in that cell plus how far it has moved since, so
+ *  nothing about the grid's place on the screen is needed. */
+export function cellUnder(from: number, x: number, y: number, m: GridMetrics, count: number): number {
+  const origin = cellOrigin(from, m);
+  return cellAt(origin.x + x, origin.y + y, m, count);
+}
+
 /** Where a cell's top left sits, from the grid's. */
 export const cellOrigin = (index: number, m: GridMetrics): { x: number; y: number } => ({
   x: (index % m.columns) * (m.side + m.gap),
