@@ -17,7 +17,7 @@ vi.mock("../lib/api", () => ({
 }));
 
 const threads = await import("../lib/threads");
-const { cellAt, gridMetrics, HOLD_MS, STILL_PT } = await import("../lib/threadGrid");
+const { cellAt, cellUnder, gridMetrics, HOLD_MS, STILL_PT } = await import("../lib/threadGrid");
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8").replace(/\/\/.*$/gm, "");
 const screen = read("../components/screens/MyThreads.tsx");
@@ -60,6 +60,21 @@ describe("the grid (AC-1)", () => {
     expect(cellAt(10, m.side + m.gap + 1, m, 5)).toBe(2);
     expect(cellAt(m.side + m.gap + 1, 4 * (m.side + m.gap), m, 5)).toBe(4);
     expect(cellAt(-50, -50, m, 5)).toBe(0);
+  });
+
+  it("finds the cell under the finger from the held cell itself, with nothing measured", () => {
+    const m = gridMetrics(402, 20);
+    // Held in the middle of the first tile, moved one tile right: the second.
+    expect(cellUnder(0, m.side / 2 + m.side + m.gap, m.side / 2, m, 6)).toBe(1);
+    // Held in the fourth (second row, right), moved up a row and left: the first.
+    expect(cellUnder(3, m.side / 2 - m.side - m.gap, m.side / 2 - m.side - m.gap, m, 6)).toBe(0);
+    // Not moved: where it is.
+    expect(cellUnder(4, 10, 10, m, 6)).toBe(4);
+  });
+
+  it("never reads the grid's place on the screen to drag, which arrives a frame late", () => {
+    expect(screen).not.toContain("gridAt");
+    expect(screen).toMatch(/cellUnder\(/);
   });
 
   it("lifts after the design's hold, and calls a release under 8pt still", () => {
