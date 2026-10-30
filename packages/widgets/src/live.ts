@@ -12,6 +12,8 @@ export type ChangeKind =
   /** Taken out of a thread, or left it. Addressed to that person alone. */
   | "removed"
   | "invitation"
+  /** 2026-10-29. The person's own order on My threads. */
+  | "order"
   | "conversation"
   | "memories"
   | "people"

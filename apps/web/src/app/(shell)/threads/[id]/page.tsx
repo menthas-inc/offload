@@ -16,7 +16,7 @@ import { fetchThread } from "../../../../lib/threads";
 
 export default function ThreadRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { groups, loose, ready, reload: reloadThreads } = useThreads();
+  const { groups, loose, order, ready, reload: reloadThreads } = useThreads();
   const [name, setName] = useState<string>("Thread");
   // 037. The crumb wears the thread's icon once the thread is read.
   const [mark, setMark] = useState<{ icon: string; hue: number } | null>(null);
@@ -50,7 +50,7 @@ export default function ThreadRoute({ params }: { params: Promise<{ id: string }
         { label: name, href: `/threads/${id}`, ...(mark ? { thread: { id, ...mark } } : {}) },
       ]}
       panes={[
-        <MyThreads key="threads" groups={groups} loose={loose} loading={!ready} onChanged={reload} />,
+        <MyThreads key="threads" groups={groups} loose={loose} order={order} loading={!ready} onChanged={reload} />,
         <Thread key={id} id={id} onChanged={reload} />,
       ]}
     />

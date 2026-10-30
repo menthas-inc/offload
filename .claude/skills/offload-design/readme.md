@@ -1060,6 +1060,23 @@ read by the server; no model call is involved.
 the sign-in address in its line, with *Copy address* and *Got it*. Never shown to an Apple hidden
 email. A filed or failed email stays in Activity.
 
+## My threads
+
+Decided 29 October 2026 off `explorations/threads-grid-approval.html`. Build: `handoff/APPLY-2026-10-29-threads-grid.md`.
+
+**A grid of tiles: two columns of squares on the phones, three at 1.6 : 1 on the web.** Each tile is the thread's
+wash: `--thread-ground-N` with the texture, the glyph small at the top left, faces and a blue *new* dot at the top
+right, the name and count at the foot, all white. Behind them the glyph again at 190% of the tile, square-stroked,
+12% white, so each tile shows a different part of it.
+
+**Newest made first, row by row, until a person drags one.** Then the grid is in **their order**, one list per
+person, kept across devices; the chip beside the title switches between *Newest first* and *Your order* without
+losing it, and a new thread starts at the top left. Activity never moves a tile. There is no Older threads.
+
+**Hold to lift.** Release without moving opens the tile's menu (Edit thread, Share, Delete or Leave); move to drag,
+and the others make room. On the web a press and move drags, right click opens the menu, and the keyboard moves a
+tile with Space and the arrows. **Not in a thread** is one row above the grid.
+
 ## Not in a thread
 
 Decided 1 October 2026 off `explorations/loose-items.html`. A thing can be put down without
@@ -1139,9 +1156,9 @@ Handoff: `handoff/APPLY-2026-10-03-thread-marks.md`.
 is named: My threads, the thread's app bar beside its name, the thread pill, the Move picker, People's shared
 threads. The tab glyph stays `lasso`, which is also the mark of a thread offload found no word for.
 
-**The wash is the prism in one colour.** The hue mixed into the page, with `oil-ground` laid over it in
-luminosity blend so it adds light and shade and never a second hue, placed and turned from the thread's id.
-The glyph is the same hue, darker in light and lighter in dark. Rounded square on iOS and the web, circle on
+**The wash is the prism in one colour.** The thread's ground, `--thread-ground-N` (deep in light, a dark tint in
+dark, 29 October), with `oil-ground` laid over it in luminosity blend so it adds light and shade and never a
+second hue, placed and turned from the thread's id. The glyph is white in both themes, 5.3 : 1 or more. Rounded square on iOS and the web, circle on
 Android, a circle inside a pill. **This is the one place a glyph is drawn in colour**; everywhere else icons
 stay `currentColor`.
 

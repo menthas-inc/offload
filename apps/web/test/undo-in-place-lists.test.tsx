@@ -56,9 +56,14 @@ const button = (text: string) =>
   [...host.querySelectorAll("button")].find((one) => one.textContent === text || one.getAttribute("aria-label") === text) as HTMLButtonElement;
 /** Thread names and lines, in the order they are drawn. */
 const drawn = () =>
-  [...host.querySelectorAll("a[href^='/threads/'], [role=status], [role=alert]")].map((one) =>
-    one.matches("a") ? one.textContent?.replace("3 to do", "") : `line: ${one.textContent}`,
+  [...host.querySelectorAll("[data-tile], [role=status]:not([aria-live=polite]), [role=alert]")].map((one) =>
+    one.matches("[data-tile]") ? one.getAttribute("aria-label")!.replace(", 3 to do", "") : `line: ${one.textContent}`,
   );
+const deleteFromMenu = async (name: string) => {
+  const tile = [...host.querySelectorAll("[data-tile]")].find((one) => one.getAttribute("aria-label")!.startsWith(name))!;
+  await act(async () => void tile.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true })));
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>("[role=menuitem]")].find((item) => item.textContent === "Delete thread")!.click());
+};
 
 describe("My threads", () => {
   function Page({ groups }: { groups: Group[] }) {
@@ -71,10 +76,9 @@ describe("My threads", () => {
   }
   const before: Group[] = [{ key: "now", threads: [thread("t1", "Lisbon trip"), thread("t2", "Dentist"), thread("t3", "Flat admin")] }];
 
-  it("draws a deleted thread's line in its row's slot, before and after the list is read again", async () => {
+  it("draws a deleted thread's line in its tile's slot, before and after the list is read again", async () => {
     await act(async () => root.render(<Page groups={before} />));
-    await act(async () => button("Delete Dentist").click());
-    await act(async () => button("Delete").click());
+    await deleteFromMenu("Dentist");
     await settle();
     expect(drawn()).toEqual(["Lisbon trip", "line: Thread deletedUndo", "Flat admin"]);
     await act(async () => root.render(<Page groups={[{ key: "now", threads: [thread("t1", "Lisbon trip"), thread("t3", "Flat admin")] }]} />));
@@ -84,8 +88,7 @@ describe("My threads", () => {
   it("says a refusal under the row it left in place", async () => {
     deleted = null;
     await act(async () => root.render(<Page groups={before} />));
-    await act(async () => button("Delete Dentist").click());
-    await act(async () => button("Delete").click());
+    await deleteFromMenu("Dentist");
     await settle();
     expect(drawn()).toEqual(["Lisbon trip", "Dentist", "line: Couldn't delete that threadTry again", "Flat admin"]);
   });

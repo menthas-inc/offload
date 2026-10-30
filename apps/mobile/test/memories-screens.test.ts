@@ -150,12 +150,10 @@ describe("a row (AC-12, AC-15)", () => {
     expect(source).toMatch(/text-text-noticed/);
   });
 
-  it("swipes as a thread row does, to a clay Forget at the shipped 88", () => {
+  it("swipes to a clay Forget at the shipped 88", () => {
     expect(source).toMatch(/useRowSwipe\(/);
     expect(source).toMatch(/bg-surface-danger/);
     expect(source).toMatch(/>\s*Forget\s*</);
-    const thread = read("components/shell/ThreadRow.tsx");
-    expect(thread).toMatch(/useRowSwipe\(/);
     expect(read("components/shell/swipe.ts")).toMatch(/export const REVEAL = 88;/);
   });
 

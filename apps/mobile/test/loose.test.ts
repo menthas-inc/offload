@@ -37,13 +37,13 @@ const content = (id: string, type: string, createdAt = "2026-10-01T09:00:00.000Z
   suggestion: null,
 });
 
-describe("T3.1 the threads read has two groups and the loose summary", () => {
+describe("T3.1 the threads read has its group and the loose summary", () => {
   it("hands back the groups, the invitations and what is not in a thread", async () => {
     const summary = { count: 14, byType: { todo: 3, link: 5 }, rows: [note("n1")] };
-    reply = { status: 200, data: { groups: [{ key: "now", threads: [] }, { key: "older", threads: [] }], invitations: [], loose: summary } };
+    reply = { status: 200, data: { groups: [{ key: "now", threads: [] }], invitations: [], loose: summary } };
     const page = await threads.fetchThreadsAndInvitations();
     expect(page?.loose).toEqual(summary);
-    expect(page?.groups.map((g) => g.key)).toEqual(["now", "older"]);
+    expect(page?.groups.map((g) => g.key)).toEqual(["now"]);
   });
 
   it("reads a missing summary as nothing to draw", async () => {
@@ -61,14 +61,13 @@ describe("T3.1 the threads read has two groups and the loose summary", () => {
 describe("T3.2 My threads", () => {
   const row = (id: string) => ({ id, name: id, icon: "lasso", hue: 1, count: 0, meta: "", isDefault: false });
 
-  it("counts the two lists, and is empty only with no threads and nothing loose", () => {
-    const groups: ThreadGroup[] = [
-      { key: "now", threads: [row("a"), row("b")] },
-      { key: "older", threads: [row("c")] },
-    ];
-    expect(threads.myThreads(groups, null)).toMatchObject({ total: 3, empty: false });
-    expect(threads.myThreads([], null).empty).toBe(true);
-    expect(threads.myThreads([], { count: 2, byType: { note: 2 }, rows: [] }).empty).toBe(false);
+  it("is one list, and is empty only with no threads and nothing loose", () => {
+    const groups: ThreadGroup[] = [{ key: "now", threads: [row("a"), row("b"), row("c")] }];
+    const newest = { sort: "newest" as const, ids: [] };
+    expect(threads.myThreads(groups, null, newest)).toMatchObject({ empty: false });
+    expect(threads.myThreads(groups, null, newest).threads).toHaveLength(3);
+    expect(threads.myThreads([], null, newest).empty).toBe(true);
+    expect(threads.myThreads([], { count: 2, byType: { note: 2 }, rows: [] }, newest).empty).toBe(false);
   });
 });
 

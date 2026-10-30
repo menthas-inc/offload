@@ -46,22 +46,12 @@ async function threads(me: string): Promise<Threads> {
 }
 
 describe("My threads (T1.3, AC-1, AC-2)", () => {
-  it("returns exactly two groups and never the default thread", async () => {
+  it("returns one group and never the default thread", async () => {
     const { me } = await owner();
     await thread(me, "Lisbon trip");
     const body = await threads(me);
-    expect(body.groups.map((g) => g.key)).toEqual(["now", "older"]);
+    expect(body.groups.map((g) => g.key)).toEqual(["now"]);
     expect(body.groups.flatMap((g) => g.threads.map((t) => t.name))).toEqual(["Lisbon trip"]);
-  });
-
-  it("groups by staleness only: always_on no longer holds a thread up", async () => {
-    const { me } = await owner();
-    const read = await thread(me, "Read later");
-    const fresh = await thread(me, "Flat admin");
-    await db.updateTable("threads").set({ always_on: true, last_activity_at: sql`now() - interval '40 days'` }).where("id", "=", read).execute();
-    await db.updateTable("threads").set({ always_on: true }).where("id", "=", fresh).execute();
-    const byKey = Object.fromEntries((await threads(me)).groups.map((g) => [g.key, g.threads.map((t) => t.name)]));
-    expect(byKey).toEqual({ now: ["Flat admin"], older: ["Read later"] });
   });
 });
 

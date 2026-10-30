@@ -1372,3 +1372,14 @@ Railway disclosed on 2026-10-21 (incident `QH8L8B3E`) that a third party may hav
 - ⚠️ **Open:** the 03:00 backup on 2026-10-24 is the first on the new database password and R2 secret; if merges stop deploying, reconnect the GitHub integration.
 
 **Design system impact:** none.
+
+## My threads in a person's own order, 2026-10-29
+
+- ✅ **One list per person, in `thread_order` (0097).** `sort` is `newest` or `mine` and `ids` the person's own order, so a shared thread sits where each member put it. Ids and a word, nothing a person wrote; it cascades with the account and is in the ledger. Switching back to newest first keeps `ids`, so the order comes back as it was.
+- ✅ **The read is one group.** `GET /v1/threads` still answers `groups`, now one `now` group, so a phone build from before draws its first list and nothing else; Older threads and its 30 day cut are gone. Each row gains `faces` (the others' initials) and `createdAt`, and the body gains `order: { sort, ids }`, the kept order filtered to threads the person can still see, so a client can put it back on an Undo.
+- ✅ **The order rule is shared.** `orderThreads` in `@offload/widgets` is what the server reads by and what both clients redraw by at the press: threads not in `ids` first, newest first, so a new one lands top left; ids that are gone are skipped.
+- ✅ **The write is `PATCH /v1/threads/order`, not the handoff's PUT.** The API's CORS allows no PUT and nothing else uses it; the live check found the browser refusing it. An id that is not a uuid, or not one of the person's threads, is dropped rather than refused, as the other boundaries do (2026-10-17).
+- ✅ **An order made on one device reaches the others live.** 0097 adds a `live_thread_order` trigger saying `order:<account>`, a new account-keyed kind in `@offload/widgets`' `ChangeKind` and the hub, and both My threads screens read again on it, beside 048's `thread`, `removed` and `invitation`.
+- ✅ **A thread's colour is a table, not a mix.** `--thread-ground-N` per theme in the tokens; the phones read it through `useColors().threadGrounds` and `threadIconColors` and `THREAD_ICON_MIX` are gone from `@offload/widgets`. `mixOklch` stays for the Memories kinds.
+
+**Design system impact:** see the 2026-10-29 entry in the design log.

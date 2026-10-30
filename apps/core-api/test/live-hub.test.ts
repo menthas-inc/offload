@@ -120,6 +120,17 @@ describe("what is the account's own", () => {
     expect(theirs.sent).toEqual([]);
   });
 
+  it("an order made on one device reaches only its own account (2026-10-29)", async () => {
+    const me = await account();
+    const them = await account("Meera");
+    const mine = await watching(me);
+    const theirs = await watching(them);
+    await db.insertInto("thread_order").values({ account_id: me, sort: "mine", ids: [] }).execute();
+    await tick();
+    expect(mine.sent).toEqual([{ kinds: ["order"] }]);
+    expect(theirs.sent).toEqual([]);
+  });
+
   it("says nothing to an account with nothing open", async () => {
     const me = await account();
     await message(me);

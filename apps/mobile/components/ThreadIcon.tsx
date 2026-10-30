@@ -14,7 +14,7 @@
 import { useEffect, useState } from "react";
 import { Image, PixelRatio, Platform, StyleSheet, View } from "react-native";
 import { useColorScheme } from "nativewind";
-import { DEFAULT_THREAD_ICON, isThreadIcon, threadIconColors, threadSeed, threadWash } from "@offload/widgets";
+import { DEFAULT_THREAD_ICON, isThreadIcon, threadSeed, threadWash } from "@offload/widgets";
 import { Glyph } from "./Glyph";
 import { useColors } from "../lib/colors";
 import { renderWash, washed } from "../lib/threadWash";
@@ -40,7 +40,7 @@ export function ThreadIcon({ icon, hue, seed, size, round = false, bare = false 
   const theme = colorScheme === "dark" ? "dark" : "light";
   const circle = round || Platform.OS === "android";
   const n = Number.isInteger(hue) && hue >= 1 && hue <= 10 ? hue : 1;
-  const colors = threadIconColors(COLOR.labels[n]!, theme, theme === "dark" ? COLOR.page : COLOR.raised);
+  const ground = COLOR.threadGrounds[n]!;
   const spec = { seed: threadSeed(seed), hue: n, size, theme, round: circle, scale: PixelRatio.get() } as const;
   const key = washKey(spec);
   const [wash, setWash] = useState<{ key: string; uri: string } | null>(null);
@@ -49,13 +49,13 @@ export function ThreadIcon({ icon, hue, seed, size, round = false, bare = false 
   useEffect(() => {
     if (washed(spec)) return;
     let live = true;
-    void renderWash({ ...spec, wash: threadWash(spec.seed), ground: colors.ground, ring: colors.ring }).then((made) => {
+    void renderWash({ ...spec, wash: threadWash(spec.seed), ground }).then((made) => {
       if (live && made) setWash({ key, uri: made });
     });
     return () => {
       live = false;
     };
-    // `key` is everything `spec` and the colours are made from.
+    // `key` is everything `spec` and the ground are made from.
   }, [key]);
 
   return (
@@ -67,14 +67,14 @@ export function ThreadIcon({ icon, hue, seed, size, round = false, bare = false 
         width: size,
         height: size,
         borderRadius: circle ? size / 2 : size * 0.3,
-        backgroundColor: colors.ground,
+        backgroundColor: ground,
         overflow: "hidden",
         alignItems: "center",
         justifyContent: "center",
       }}
     >
       {uri ? <Image source={{ uri }} style={StyleSheet.absoluteFill} fadeDuration={0} /> : null}
-      {bare ? null : <Glyph name={isThreadIcon(icon) ? icon : DEFAULT_THREAD_ICON} size={size / 2} color={colors.glyph} />}
+      {bare ? null : <Glyph name={isThreadIcon(icon) ? icon : DEFAULT_THREAD_ICON} size={size / 2} color={COLOR.onBrand} />}
     </View>
   );
 }

@@ -187,7 +187,7 @@ const settle = async () => {
 async function draw() {
   await act(async () =>
     root.render(
-      <ThreadsProvider value={{ groups: [], invitations: [], loose: null, ready: true, reload: () => {}, filed: null, changed, turnOut }}>
+      <ThreadsProvider value={{ groups: [], invitations: [], loose: null, order: { sort: "newest", ids: [] }, viewerId: null, ready: true, reload: () => {}, filed: null, changed, turnOut }}>
         <Thread id="t1" onChanged={() => undefined} />
       </ThreadsProvider>,
     ),

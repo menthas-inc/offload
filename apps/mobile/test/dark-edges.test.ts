@@ -34,7 +34,7 @@ const EDGES: [string, string, string, string][] = [
   ["shell/ContentRow.tsx", "the row's tile", '"border border-dashed border-border-strong"', "COLOR.edgeWell"],
   ["screens/Memories.tsx", "the search field", '"rounded-pill bg-a-c-low" : "bg-surface-fill"', "COLOR.edgeWell"],
   ["screens/Memories.tsx", "the count pill", "rounded-pill bg-surface-fill px-space-3 py-space-1", "COLOR.edgeWell"],
-  ["screens/MyThreads.tsx", "the count pill", "rounded-pill bg-surface-fill px-space-3 py-space-1", "COLOR.edgeWell"],
+  ["screens/MyThreads.tsx", "Not in a thread", "mx-gutter-screen mb-space-6 flex-row items-center gap-space-4 rounded-md bg-surface-fill", "COLOR.edgeWell"],
   ["screens/Thread.tsx", "the count pill", "rounded-pill bg-surface-fill px-space-3 py-space-1", "COLOR.edgeWell"],
   ["screens/Activity.tsx", "the tag", 'tag.tone === "noticed" ? "bg-surface-noticed-soft"', 'tag.tone === "noticed" ? COLOR.edgeNoticed : COLOR.edgeWell'],
   ["people/RequestCard.tsx", "the card", 'isAndroid ? "bg-a-c-low" : "bg-surface-accent-soft"', "isAndroid ? COLOR.edgeCard : COLOR.edgeAccent"],

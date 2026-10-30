@@ -17,7 +17,7 @@ import { onSignedOut } from "./session-end";
 import type { Invitation } from "./people";
 import type { LooseSummary } from "./loose";
 import type { Layout, Reminders, Sortable, ThreadLook } from "@offload/widgets";
-import { provisionalId } from "@offload/widgets";
+import { orderThreads, provisionalId, type ThreadSort } from "@offload/widgets";
 
 export { domainOf, isProvisional, provisionalId, rangeOf, startsAs } from "@offload/widgets";
 
@@ -35,12 +35,23 @@ export interface ThreadRow {
   /** 2026-10-07. Everybody else in it, by name: a shared thread is left,
    *  not deleted, and the question names who it stays with. */
   others?: string[];
+  /** 2026-10-29. The same people, as faces for the tile's corner. Absent from
+   *  an API from before. */
+  faces?: { accountId: string; initials: string }[];
+  /** 2026-10-29. When it was made, for newest first at the press. */
+  createdAt?: string;
 }
 
-/** 028. Two groups: Always on went, and Older is about time only. */
+/** 2026-10-29. One group: Older threads went with the grid. */
 export interface ThreadGroup {
-  key: "now" | "older";
+  key: "now";
   threads: ThreadRow[];
+}
+
+/** How My threads is ordered, and the person's own order as it is kept. */
+export interface ThreadOrder {
+  sort: ThreadSort;
+  ids: string[];
 }
 
 export interface Member {
@@ -323,6 +334,8 @@ export interface ThreadsPage {
   invitations: Invitation[];
   /** 028. What is not in a thread, or null when there is nothing to draw. */
   loose: LooseSummary | null;
+  /** 2026-10-29. Newest first until a person drags one. */
+  order: ThreadOrder;
 }
 
 /** 022. The list and the strips in one read, which is what My threads draws.
@@ -330,19 +343,27 @@ export interface ThreadsPage {
 export async function fetchThreadsAndInvitations(): Promise<ThreadsPage | null> {
   const { data } = await send<Partial<Omit<ThreadsPage, "groups">> & { groups?: WireGroup[] }>("/v1/threads");
   if (!data) return null;
-  return { groups: drawn(data.groups ?? []), invitations: data.invitations ?? [], loose: data.loose ?? null };
+  return {
+    groups: drawn(data.groups ?? []),
+    invitations: data.invitations ?? [],
+    loose: data.loose ?? null,
+    order: data.order ?? { sort: "newest", ids: [] },
+  };
 }
 
-/** 028. My threads' two lists, and whether there is nothing at all: the
- *  empty state is drawn only with no thread and nothing loose. */
-export function myThreads(
-  groups: ThreadGroup[],
-  loose: LooseSummary | null,
-): { now: ThreadRow[]; older: ThreadRow[]; total: number; empty: boolean } {
-  const now = groups.find((g) => g.key === "now")?.threads ?? [];
-  const older = groups.find((g) => g.key === "older")?.threads ?? [];
-  const total = now.length + older.length;
-  return { now, older, total, empty: total === 0 && (loose?.count ?? 0) === 0 };
+/** 2026-10-29. A drop sends the whole list as the person's order; the chip
+ *  sends the sort alone, which keeps the list. */
+export async function putThreadOrder(sort: ThreadSort, ids?: string[]): Promise<boolean> {
+  const { status } = await send("/v1/threads/order", { method: "PATCH", ...body(ids ? { sort, ids } : { sort }) });
+  return status >= 200 && status < 300;
+}
+
+/** My threads in its order, and whether there is nothing at all: the empty
+ *  state is drawn only with no thread and nothing loose. */
+export function myThreads(groups: ThreadGroup[], loose: LooseSummary | null, order: ThreadOrder): { threads: ThreadRow[]; empty: boolean } {
+  const all = groups.flatMap((group) => group.threads);
+  const threads = all.every((thread) => thread.createdAt) ? orderThreads(all as (ThreadRow & { createdAt: string })[], order.sort, order.ids) : all;
+  return { threads, empty: threads.length === 0 && (loose?.count ?? 0) === 0 };
 }
 
 export async function fetchThread(id: string): Promise<ThreadBundle | null> {

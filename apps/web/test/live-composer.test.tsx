@@ -108,7 +108,7 @@ const settle = () => act(() => vi.advanceTimersByTimeAsync(0));
 async function draw() {
   await act(async () =>
     root.render(
-      <ThreadsProvider value={{ groups: [], invitations: [], loose: null, ready: true, reload: () => {}, filed: null, turnOut: false, changed }}>
+      <ThreadsProvider value={{ groups: [], invitations: [], loose: null, order: { sort: "newest", ids: [] }, viewerId: null, ready: true, reload: () => {}, filed: null, turnOut: false, changed }}>
         <ToastProvider>
           <Composer onFiled={(ids) => filed.push(ids)} onTurnOut={(now) => out.push(now)} />
         </ToastProvider>

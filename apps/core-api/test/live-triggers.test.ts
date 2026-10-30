@@ -54,6 +54,14 @@ async function hear(write: () => Promise<unknown>): Promise<string[]> {
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const ONLY_IDS = new RegExp(`^[a-z]+(:${UUID}){1,2}$`);
 
+describe("a person's own order (2026-10-29)", () => {
+  it("says order with their account, and nothing else", async () => {
+    const me = await account();
+    expect(await hear(() => db.insertInto("thread_order").values({ account_id: me, sort: "mine", ids: [] }).execute())).toEqual([`order:${me}`]);
+    expect(await hear(() => db.updateTable("thread_order").set({ sort: "newest" }).where("account_id", "=", me).execute())).toEqual([`order:${me}`]);
+  });
+});
+
 describe("threads and what is in them", () => {
   it("a thread made, renamed and deleted says thread with its id", async () => {
     const me = await account();

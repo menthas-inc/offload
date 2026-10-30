@@ -25,9 +25,12 @@ interface Props {
   name: IconName | string;
   size?: number;
   color?: ColorValue;
+  /** 2026-10-29. Hardened, for a tile's back glyph: a heavier stroke with
+   *  square ends and mitred joins, and no rounded corners on a rect. */
+  hard?: boolean;
 }
 
-export function Glyph({ name, size = 20, color }: Props) {
+export function Glyph({ name, size = 20, color, hard = false }: Props) {
   // The default is resolved here rather than in the parameter list, because a
   // default parameter is evaluated before the hook that would supply it. An
   // omitted colour means "whatever an icon on a well is in this theme", which
@@ -46,9 +49,9 @@ export function Glyph({ name, size = 20, color }: Props) {
       viewBox="0 0 24 24"
       fill="none"
       stroke={stroke}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeWidth={hard ? 3 : 2}
+      strokeLinecap={hard ? "square" : "round"}
+      strokeLinejoin={hard ? "miter" : "round"}
     >
       {shapes.map((shape, i) => {
         if (shape.kind === "path") return <Path key={i} d={shape.d} />;
@@ -62,7 +65,7 @@ export function Glyph({ name, size = 20, color }: Props) {
               y={shape.y}
               width={shape.width}
               height={shape.height}
-              rx={shape.rx}
+              rx={hard ? 0 : shape.rx}
             />
           );
         return <Line key={i} x1={shape.x1} y1={shape.y1} x2={shape.x2} y2={shape.y2} />;

@@ -60,7 +60,7 @@ function heard(payload: string): void {
   else if (kind === "removed" && account) {
     const ids = removed.get(account) ?? new Set<string>();
     removed.set(account, ids.add(id));
-  } else if (kind === "invitation" || kind === "conversation" || kind === "memories" || kind === "people" || kind === "activity" || kind === "today") {
+  } else if (kind === "invitation" || kind === "order" || kind === "conversation" || kind === "memories" || kind === "people" || kind === "activity" || kind === "today") {
     const kinds = byAccount.get(id) ?? new Set<ChangeKind>();
     byAccount.set(id, kinds.add(kind));
   }

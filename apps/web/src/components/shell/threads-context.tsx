@@ -15,7 +15,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { reloadFloor, touches, type ChangeKind, type Changes } from "@offload/widgets";
-import type { ThreadGroup } from "../../lib/threads";
+import type { ThreadGroup, ThreadOrder } from "../../lib/threads";
 import type { Invitation } from "../../lib/people";
 import type { LooseSummary } from "../../lib/loose";
 
@@ -46,6 +46,10 @@ interface Threads {
   invitations: Invitation[];
   /** 028. What is not in a thread, from the same read. Null draws no group. */
   loose: LooseSummary | null;
+  /** 2026-10-29. How My threads is ordered. */
+  order: ThreadOrder;
+  /** The person's own id, for Share from a tile. */
+  viewerId: string | null;
   /** False only on the very first load, when there is genuinely nothing yet. */
   ready: boolean;
   reload: () => void;
@@ -62,6 +66,8 @@ const ThreadsContext = createContext<Threads>({
   groups: [],
   invitations: [],
   loose: null,
+  order: { sort: "newest", ids: [] },
+  viewerId: null,
   ready: false,
   reload: () => {},
   filed: null,

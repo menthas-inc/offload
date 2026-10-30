@@ -35,6 +35,8 @@ const LIVE: Record<string, string[]> = {
   today_put_offs: ["today"],
   connector_events: ["today"],
   connector_connections: ["today"],
+  // 2026-10-29. My threads in a person's own order.
+  thread_order: ["order"],
 };
 
 describe("live triggers", () => {

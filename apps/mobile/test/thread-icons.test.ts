@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_THREAD_ICON, THREAD_ICON_NAMES } from "@offload/widgets";
 import { ICONS } from "../components/icons.generated";
-import { washFilter, washKey, washRect } from "../lib/threadWashMath";
+import { washAlpha, washFilter, washKey, washRect } from "../lib/threadWashMath";
 
 const read = (file: string) => readFileSync(join(process.cwd(), file), "utf8");
 const code = (file: string) => read(file).replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
@@ -48,6 +48,21 @@ describe("the wash (AC-12)", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
+  it("lays the texture at 0.55 in light and 0.9 in dark, since 0.9 greys a deep ground", () => {
+    expect(washAlpha("light")).toBe(0.55);
+    expect(washAlpha("dark")).toBe(0.9);
+    expect(code("lib/threadWash.ts")).toContain("setAlphaf(washAlpha(input.theme))");
+  });
+
+  it("draws no ring: it was for a pale ground", () => {
+    expect(code("lib/threadWash.ts")).not.toMatch(/\bring\b/i);
+  });
+
+  it("is cached by its corner too, so a tile and an icon of one size are two pictures", () => {
+    const base = { seed: 7, hue: 3, size: 160, theme: "light" as const, round: false, scale: 3 };
+    expect(washKey(base)).not.toBe(washKey({ ...base, corner: 18 }));
+  });
+
   it("is a picture and never a live canvas per row", () => {
     const icon = code("components/ThreadIcon.tsx");
     expect(icon).not.toContain("<Canvas");
@@ -55,8 +70,17 @@ describe("the wash (AC-12)", () => {
   });
 });
 
+describe("the ground (AC-5, 2026-10-29)", () => {
+  it("is the thread's row of the table, with the glyph white, and nothing mixed", () => {
+    const icon = code("components/ThreadIcon.tsx");
+    expect(icon).toContain("COLOR.threadGrounds[n]");
+    expect(icon).toContain("color={COLOR.onBrand}");
+    expect(icon).not.toContain("threadIconColors");
+    expect(code("lib/colors.ts")).toContain("`thread-ground-${n}`");
+  });
+});
+
 const DRAWS = [
-  "components/shell/ThreadRow.tsx",
   "components/shell/ThreadPill.tsx",
   "components/shell/AnswerResult.tsx",
   "components/shell/MoveSheet.tsx",
@@ -73,8 +97,7 @@ describe("where it shows (AC-11)", () => {
   });
 
   it.each([
-    "components/shell/ThreadRow.tsx",
-    "components/shell/ThreadPill.tsx",
+      "components/shell/ThreadPill.tsx",
     "components/shell/AnswerResult.tsx",
     "components/shell/MoveSheet.tsx",
     "components/shell/Conversation.tsx",

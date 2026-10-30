@@ -90,10 +90,10 @@ describe("the thread", () => {
 });
 
 describe("my threads and not in a thread", () => {
-  it("draws both thread lists in place, and a line with no row drawn yet at the top", () => {
+  it("draws the grid in place, and a line with no tile drawn yet at the top", () => {
     const source = read("components/screens/MyThreads.tsx");
-    expect(source.match(/<InPlace\s/g)?.length).toBe(2);
-    expect(source).toMatch(/id: `thread:\$\{id\}`/);
+    expect(source).toMatch(/useInPlace\(shown, /);
+    expect(source).toMatch(/id: `thread:\$\{thread\.id\}`/);
     expect(source).toMatch(/startsWith\("thread:"\)/);
   });
 
