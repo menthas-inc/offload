@@ -81,7 +81,11 @@ describe("AC-37 services", () => {
     // A hundred minutes of history with ten missing.
     await beats("core-api", [...range(100, 51), ...range(40, 1)]);
     const body = await get("/health/services?range=24h");
-    expect(one(body, "core-api").uptime).toBeCloseTo(0.9, 5);
+    // 90 of 100 minutes, or of 101 when the clock crosses a minute between the
+    // insert and the read (CI, 2026-10-30).
+    const uptime = one(body, "core-api").uptime!;
+    expect(uptime).toBeGreaterThanOrEqual(90 / 101 - 1e-9);
+    expect(uptime).toBeLessThanOrEqual(0.9 + 1e-9);
   });
 
   it("measures uptime over the range asked for when history is longer", async () => {
