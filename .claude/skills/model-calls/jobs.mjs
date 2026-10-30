@@ -250,7 +250,7 @@ export const JOBS = [
     trigger: "worker.py `_look_up`, after the bound: words from the dump plus their country, a stray word dropped, refused when none of theirs or most were dropped (2026-10-14)",
     call: "Two calls in a throwaway conversation: gather with web_search and web_fetch (up to 3 pauses), then shape with forced tool found, one repair. Haiku 5.5 since 2026-10-30: Haiku 4.5 searched the year it was, not the next edition's, and returned dates already gone",
     inputs: ["The fields wanted", "One question or one URL from the dump", "Today and their country"],
-    outputs: ["Fields, or unsure", "Sources as domain and URL only, never titles or excerpts"],
+    outputs: ["One of three outcomes: the fields asked for; what the sources say instead, as one bounded line, when they are about the question and do not answer it (2026-10-30); or nothing", "Sources as domain and URL only, never titles or excerpts"],
     bounds: ["No client tools, no threads, no notes, no conversation", "Searches left in the turn's budget", "Page reads: one for a pasted link, up to two of a question's search results, three a turn"],
     source: { file: P + "reader.md" },
     segments: [
