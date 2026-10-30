@@ -11,9 +11,12 @@ describe("the privacy page says what the map adds (T5.3)", () => {
   const companies = readFileSync(`${process.cwd()}/src/app/(marketing)/privacy/companies/page.tsx`, "utf8").replace(/\s+/g, " ");
   const session = readFileSync(`${process.cwd()}/../core-api/src/routes/session.ts`, "utf8");
 
-  it("names Google Maps Platform as the exception to the no-training line", () => {
-    expect(page).toContain("except Google Maps Platform");
-    expect(page).toContain("a place&rsquo;s name, on its own, is sent to Google Maps Platform to put it on a map");
+  // 2026-10-30: the policy names Google Maps Platform among those that act for
+  // themselves, and says a place's name goes to a maps service on its own.
+  it("names Google Maps Platform as acting for itself, and sends a place's name on its own", () => {
+    expect(page).toContain("Some act for themselves under their own terms");
+    expect(page).toContain("Google Maps Platform");
+    expect(page).toContain("the place&rsquo;s name, on its own, goes to a maps service to put it on a map");
   });
 
   it("gives Google Maps Platform its own row, acting for itself", () => {

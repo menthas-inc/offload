@@ -13,6 +13,8 @@
 // sends while a map is on screen follows the Maps SDK's own privacy manifest
 // (crash, performance, product interaction, a device id and a user id), said
 // generally; crash and performance reports come from the phones' SDK only.
+// 2026-10-30: a page offload reads may be fetched by our server or by
+// Anthropic's, so the site paragraph says either, as the policy does.
 
 import type { Metadata } from "next";
 import { Screen, ScreenFooter, ScreenHeader, screenStyles } from "../../../../components/Screen";
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
   description: "The companies that help run offload, what each does, and what each receives.",
 };
 
-const UPDATED = "8 October 2026";
+const UPDATED = "30 October 2026";
 
 /** Company, what for, what they receive. Marked `self` when it acts for itself. */
 const COMPANIES: { name: string; does: string; receives: string; self?: true }[] = [
@@ -32,11 +34,11 @@ const COMPANIES: { name: string; does: string; receives: string; self?: true }[]
     name: "Cloudflare R2",
     does: "Stores files, backups and exports",
     receives:
-      "Your photos, screenshots, voice notes and the pictures from email you forward, our backups and your exports, all encrypted with keys it never receives; and product events, which carry no content",
+      "The files you put in, including documents and what is attached to email you forward, our backups and your exports, all encrypted with keys it never receives; and product events, which carry no content",
   },
   {
     name: "Anthropic",
-    does: "The AI models that sort, read and answer, and the web searches and link reading they do",
+    does: "The AI models that sort, read and answer, and the web searches and page reading they do",
     receives: "The part of your content a task needs, and the words of a search",
   },
   {
@@ -50,7 +52,7 @@ const COMPANIES: { name: string; does: string; receives: string; self?: true }[]
     name: "Resend",
     does: "Sends the emails we send, and receives email you forward to offload",
     receives:
-      "Your email address, the emails we send you, and the email you forward, which it keeps as received, attachments included, for 30 days and then deletes",
+      "Your email address, the emails we send you, and the email you forward, which it keeps as received, attachments included, for a limited time set by its terms, then deletes",
   },
   {
     name: "Expo",
@@ -129,9 +131,9 @@ export default function Companies() {
             .
           </p>
           <p>
-            <strong>The site a link points to</strong> is not one of ours. When offload reads a link
-            you pasted, our server fetches the page, and your device may ask the site for its
-            preview picture, which shows it your IP address. Its own policy applies.
+            <strong>A site offload reads</strong> is not one of ours. It sees a request from us or
+            from the company doing the reading, never from you, though your device may ask it for a
+            picture, which shows it your IP address. Its own policy applies.
           </p>
         </section>
       </article>
