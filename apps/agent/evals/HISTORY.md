@@ -181,6 +181,9 @@ and is not committed.
 | 2026-10-19 11:25 | 33-pdf-actions | 1 | 13/13 (100%) | $0.01 | `claude-haiku-5-5` | `bc8322f6` | `7a94360e` |  |
 | 2026-10-19 11:25 | 33-pdf-actions | 1 | 13/13 (100%) | $0.01 | `claude-haiku-5-5` | `bc8322f6` | `7a94360e` |  |
 | 2026-10-29 17:52 | 34 | 3 | 3/3 (100%) | $0.00 | `claude-haiku-5-5` | `638bb148` | `d458e362` |  |
+| 2026-10-30 12:58 | answer-lookup-empty-draws-no-rows | 2 | 0/1 (0%) | $0.00 | `claude-haiku-5-5` | `41f510ca` | `72778581` |  |
+| 2026-10-30 12:58 | answer-lookup-empty-draws-no-rows | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `41f510ca` | `72778581` |  |
+| 2026-10-30 12:58 | 09 | 1 | 5/5 (100%) | $0.02 | `claude-haiku-5-5` | `41f510ca` | `72778581` |  |
 
 ## Full runs by principle
 

@@ -403,3 +403,22 @@ async def test_a_country_question_from_today_keeps_the_answer_beside_it():
     outcome, model = await _asked("when's the next bank holiday", ask, _says("Monday 26 October."))
     assert outcome.questions == []
     assert outcome.reply == "Monday 26 October."
+
+
+def test_not_sure_draws_no_rows():
+    """2026-10-30. "When do Waking Life tickets go on sale" read their rows,
+    found nothing, looked it up, found nothing, and drew twenty unrelated rows
+    from every thread under "Not sure." The meaning arm always returns its
+    nearest rows, so a read that answered nothing still has rows to draw."""
+    from offload_agent.harness.plan import Outcome
+    from offload_agent.worker import Lookups, _author_the_answer_line
+
+    budget = Lookups("when do waking life tickets go on sale", may_search=True, may_read_links=True)
+    budget.record(label="other", kind="search", outcome="empty")
+    outcome = Outcome(reply="Not sure.")
+    outcome.found.append({"threadId": None, "truncated": True, "contentIds": ["c1", "c2"]})
+
+    _author_the_answer_line(outcome, budget)
+
+    assert outcome.reply == "Not sure."
+    assert outcome.found == []

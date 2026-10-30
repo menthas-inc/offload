@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     "What offload collects, why, who else handles it, how long it is kept and how to get rid of it. Plus a short version at the top.",
 };
 
-const UPDATED = "18 October 2026";
+const UPDATED = "30 October 2026";
 
 const MAIL = <a href="mailto:hello@offload.club">hello@offload.club</a>;
 
@@ -249,7 +249,7 @@ export default function Privacy() {
             <li>
               <strong>Looking things up.</strong> When offload needs a fact it does not hold, it may
               search the web with words from what you put in and the country you set in Settings,
-              and read a link you pasted. The site
+              read up to two pages the search found, and read a link you pasted. The site
               sees a request from our server, and your device may load the page&rsquo;s preview
               picture straight from the site. You can turn searching and link reading off in
               Settings under Privacy.

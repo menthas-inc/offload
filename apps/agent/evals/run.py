@@ -2164,6 +2164,8 @@ async def _answer_with(
             failures.append(f"a query carried {needle!r}: {queries!r}")
     if expect.get("step_present") and not any((a.get("doing") or "").strip() for a in rec.looked):
         failures.append("no progress line was written on the lookup")
+    if expect.get("draws") == "none" and outcome.found:
+        failures.append(f"rows drawn beside the reply: {outcome.found}")
     if expect.get("look_up") is True and not rec.looked:
         failures.append("should have looked something up and did not")
     if expect.get("look_up") is False and rec.looked:

@@ -181,7 +181,7 @@ async def test_the_lookup_searches_the_kept_words_instead_of_refusing(monkeypatc
     )
     await _look_up(
         None,
-        SimpleNamespace(sort_model="m"),
+        SimpleNamespace(sort_model="m", reader_model="m"),
         budget,
         {"question": "march saturday route Portugal", "want": ["fact"]},
     )

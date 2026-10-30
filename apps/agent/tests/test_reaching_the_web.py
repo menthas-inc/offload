@@ -11,7 +11,7 @@ from types import SimpleNamespace
 from offload_agent import reader
 from offload_agent.worker import Lookups, _from_the_dump, _in_the_dump, _look_up, _web_wire
 
-CFG = SimpleNamespace(sort_model="a-model")
+CFG = SimpleNamespace(sort_model="a-model", reader_model="the-reader")
 
 DUMP = "book the alfama flat for the 14th, https://airbnb.com/rooms/123 and check the weather"
 
@@ -235,7 +235,9 @@ async def test_the_reader_is_told_the_date_and_the_country(monkeypatch):
     September: the page listed both and nothing had told it what day it was."""
     got: dict = {}
 
-    async def capture(client, model, *, question, url, want, searches, today=None, country=None):
+    async def capture(
+        client, model, *, question, url, want, searches, fetches, today=None, country=None
+    ):
         got.update(today=today, country=country)
         return reader.Reading(found=reader.Found(label="when_is", fields={"date": "2026-10-25"}))
 
@@ -312,3 +314,45 @@ def test_a_citation_the_route_would_refuse_is_dropped():
     assert _web_wire(budget)["sources"] == [
         {"domain": "c.example", "url": "https://c.example/page"}
     ]
+
+
+async def test_a_question_may_open_two_pages_from_the_turn_s_reads(monkeypatch):
+    """2026-10-30. A search alone never reached the page that says the date.
+
+    "When do Waking Life tickets go on sale" came back unsure: the reader had
+    no fetch, and the on-sale date lives on the festival's own page. Two reads
+    per question, and the turn's three still bound the whole turn.
+    """
+    given = []
+
+    async def spent(client, model, *, fetches, **_):
+        given.append(fetches)
+        return reader.Reading(found=reader.Found(label="when_is"), fetches=fetches)
+
+    monkeypatch.setattr(reader, "read", spent)
+    budget = _budget()
+
+    await _look_up(None, CFG, budget, {"question": "the 14th", "want": ["date"]})
+    await _look_up(None, CFG, budget, {"question": "the weather", "want": ["fact"]})
+    await _look_up(None, CFG, budget, {"question": "the alfama flat", "want": ["fact"]})
+
+    assert given == [2, 1, 0]
+    assert budget.reads == 3
+
+
+async def test_the_reader_has_its_own_model(monkeypatch):
+    """2026-10-30. Haiku 4.5 searched the year it was, not the year the next
+    edition is, and came back with dates already gone. Haiku 5.5 did not."""
+    from offload_agent.config import Config
+
+    used = []
+
+    async def spent(client, model, **_):
+        used.append(model)
+        return reader.Reading(found=reader.Found(label="when_is"))
+
+    monkeypatch.setattr(reader, "read", spent)
+    await _look_up(None, CFG, _budget(), {"question": "the 14th", "want": ["date"]})
+
+    assert used == ["the-reader"]
+    assert Config.__dataclass_fields__["reader_model"].default == "claude-haiku-5-5"
