@@ -224,6 +224,51 @@ describe("the tile on a touch screen and the chip's target", () => {
   });
 });
 
+describe("the others making room", () => {
+  // happy-dom lays nothing out: a cell's place is its index, and a box read
+  // from the screen moves on every read, as a scrolled or animating one does.
+  const proto = HTMLElement.prototype as unknown as Record<string, unknown>;
+  const saved = ["offsetLeft", "offsetTop", "getBoundingClientRect", "animate"].map((key) => [key, Object.getOwnPropertyDescriptor(HTMLElement.prototype, key) ?? Object.getOwnPropertyDescriptor(Element.prototype, key)] as const);
+  let slid: string[] = [];
+  let drift = 0;
+  beforeEach(() => {
+    slid = [];
+    const place = (el: HTMLElement) => [...(el.parentElement?.children ?? [])].indexOf(el);
+    Object.defineProperty(proto, "offsetLeft", { configurable: true, get(this: HTMLElement) { return place(this) * 100; } });
+    Object.defineProperty(proto, "offsetTop", { configurable: true, get() { return 0; } });
+    Object.defineProperty(proto, "getBoundingClientRect", { configurable: true, value() { drift += 7; return { left: drift, top: drift, width: 100, height: 60, right: 0, bottom: 0, x: 0, y: 0 }; } });
+    Object.defineProperty(proto, "animate", { configurable: true, value(this: HTMLElement) { slid.push(this.textContent ?? ""); return { cancel() {} }; } });
+  });
+  afterEach(() => {
+    for (const [key, was] of saved) if (was) Object.defineProperty(proto, key, was);
+    else delete proto[key];
+  });
+
+  it("does not slide anything while nothing has moved, however the boxes read", async () => {
+    await draw();
+    await key(tileOf("Lisbon trip"), " ");
+    await draw();
+    expect(slid).toEqual([]);
+  });
+
+  it("slides the tiles whose places changed when the order does", async () => {
+    await draw();
+    await key(tileOf("Lisbon trip"), " ");
+    await key(tileOf("Lisbon trip"), "ArrowRight");
+    expect(slid.length).toBe(2);
+    expect(slid.join()).toContain("Lisbon trip");
+    expect(slid.join()).toContain("Dentist");
+  });
+});
+
+describe("the page's top", () => {
+  it("leaves room under the title before what comes first", () => {
+    const sheet = readFileSync(join(process.cwd(), "src/components/panes/MyThreads.module.css"), "utf8");
+    expect(sheet).toMatch(/\.body \{[^}]*padding-top: var\(--space-6\)/);
+    expect(readFileSync(join(process.cwd(), "src/components/panes/MyThreads.tsx"), "utf8")).toMatch(/styles\.paneBody\} \$\{page\.wide\} \$\{page\.body\}/);
+  });
+});
+
 describe("the tile's menu (AC-7)", () => {
   const menu = () => [...host.querySelectorAll("[role=menuitem]")].map((one) => one.textContent);
   it("opens on a right click with Edit thread, Share and Delete thread", async () => {
