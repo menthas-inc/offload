@@ -46,7 +46,7 @@ import { ToastHost, useToast } from "../shell/Toast";
 import { Returned, UndoLine } from "../shell/UndoLine";
 import { useInPlace, useUndoEntries } from "../../lib/undo";
 import { perform, useWrites } from "../../lib/optimistic";
-import { cellAt, cellOrigin, gridMetrics, HOLD_MS, STILL_PT } from "../../lib/threadGrid";
+import { cellOrigin, cellUnder, gridMetrics, HOLD_MS, STILL_PT } from "../../lib/threadGrid";
 import {
   createThread,
   deleteThread,
@@ -122,8 +122,6 @@ export default function MyThreads() {
   };
   const chipRef = useRef<View>(null);
   const cells = useRef(new Map<string, View>());
-  const grid = useRef<View>(null);
-  const gridAt = useRef({ x: GUTTER, y: 0 });
 
   const load = useCallback(async () => {
     try {
@@ -188,6 +186,9 @@ export default function MyThreads() {
   const scroll = useAnimatedRef<Animated.ScrollView>();
   const scrollY = useSharedValue(0);
   const startScroll = useSharedValue(0);
+  // Where the finger went down in the held cell.
+  const downX = useSharedValue(0);
+  const downY = useSharedValue(0);
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
   const lift = useSharedValue(1);
@@ -250,20 +251,18 @@ export default function MyThreads() {
     setMenu(null);
     const ids = threads.map((thread) => thread.id);
     setMoving({ id, from: ids.indexOf(id), ids, dragged: false });
-    grid.current?.measureInWindow((x, y) => {
-      gridAt.current = { x: x + GUTTER, y };
-    });
   }
 
-  // The finger, from the window into the grid's own points: the grid as it
-  // was at the lift, less the scroll since. Within 64pt of the list's top or
-  // bottom edge, which sit under the bar and over the plate, the grid scrolls.
-  function over(absoluteX: number, absoluteY: number, far: boolean): void {
-    const x = absoluteX - gridAt.current.x;
-    const y = absoluteY - gridAt.current.y + scrollY.value - startScroll.value;
+  // The finger, from the cell it went down in: where in that cell, plus how
+  // far it has moved and the grid has scrolled since. Measuring the grid on
+  // the screen instead arrived a frame after the first move, which read the
+  // grid at the top of the screen and threw the held tile to the end of the
+  // list and back. Within 64pt of the list's top or bottom edge, which sit
+  // under the bar and over the plate, the grid scrolls.
+  function over(x: number, y: number, absoluteY: number, far: boolean): void {
     setMoving((was) => {
       if (!was || (!far && !was.dragged)) return was;
-      const to = cellAt(x, y, m, was.ids.length);
+      const to = cellUnder(was.from, x, y, m, was.ids.length);
       const ids = was.ids.indexOf(was.id) === to ? was.ids : moveThread(was.ids, was.id, to);
       return ids === was.ids && was.dragged ? was : { ...was, ids, dragged: true };
     });
@@ -294,15 +293,17 @@ export default function MyThreads() {
     if (kept) return kept;
     const call = {
       lifted: (one: string) => handlers.current.lifted(one),
-      over: (x: number, y: number, far: boolean) => handlers.current.over(x, y, far),
+      over: (x: number, y: number, absoluteY: number, far: boolean) => handlers.current.over(x, y, absoluteY, far),
       released: (still: boolean) => handlers.current.released(still),
       open: (one: string) => handlers.current.open(one),
     };
     const pan = Gesture.Pan()
       .activateAfterLongPress(HOLD_MS)
-      .onStart(() => {
+      .onStart((event) => {
         tx.value = 0;
         ty.value = 0;
+        downX.value = event.x;
+        downY.value = event.y;
         startScroll.value = scrollY.value;
         lift.value = withTiming(reduced ? 1 : 1.04, { duration: 140, reduceMotion: ReduceMotion.System });
         runOnJS(call.lifted)(id);
@@ -312,7 +313,7 @@ export default function MyThreads() {
         ty.value = event.translationY;
         const far = Math.hypot(event.translationX, event.translationY) >= STILL_PT;
         if (far && !reduced) lift.value = withTiming(1.05, { duration: 80, reduceMotion: ReduceMotion.System });
-        runOnJS(call.over)(event.absoluteX, event.absoluteY, far);
+        runOnJS(call.over)(downX.value + event.translationX, downY.value + event.translationY + scrollY.value - startScroll.value, event.absoluteY, far);
       })
       .onEnd((event) => {
         runOnJS(call.released)(Math.hypot(event.translationX, event.translationY) < STILL_PT);
@@ -472,7 +473,7 @@ export default function MyThreads() {
             </Pressable>
           ) : null}
 
-          <View ref={grid} collapsable={false} className="flex-row flex-wrap px-gutter-screen" style={{ gap: m.gap }}>
+          <View className="flex-row flex-wrap px-gutter-screen" style={{ gap: m.gap }}>
             {placed.map((one) => {
               // A thread that went keeps its tile's place for its line.
               const slot = "slot" in one ? one.entry : one.line?.form === "slot" && !one.line.failed ? one.line : null;
