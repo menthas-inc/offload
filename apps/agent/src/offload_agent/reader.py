@@ -92,6 +92,12 @@ MAX_CONTENT_TOKENS = 10_000
 #: and one read makes the second impossible rather than merely discouraged.
 FETCHES_PER_LINK = 1
 
+#: Pages a question may open, from what its search found. A search result alone
+#: never reached the page that says when Waking Life tickets go on sale. The
+#: provider fetches only a URL already in this conversation, which holds their
+#: words and the results, so a page cannot be made to carry the question out.
+FETCHES_PER_QUESTION = 2
+
 #: The one refusal category that is never a judgement call gets a backstop that
 #: is not the model's compliance.
 BLOCKED_DOMAINS: list[str] = []
@@ -217,12 +223,12 @@ async def read(
     url: str | None,
     want: list[str],
     searches: int,
+    fetches: int,
     today: str | None = None,
     country: str | None = None,
 ) -> Reading:
     """Answer one lookup. Raises nothing: a failure is a `Reading` that says so."""
     asked = [w for w in want if w in WANT] or ["fact"]
-    fetches = FETCHES_PER_LINK if url else 0
 
     # **The date and the country, from our database, on every lookup.** "When
     # do the clocks change" found a page listing both changes of the year and

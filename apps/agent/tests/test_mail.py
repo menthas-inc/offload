@@ -278,7 +278,7 @@ async def test_a_mail_turn_never_opens_a_link_only_in_the_forwarded_part(monkeyp
     budget = Lookups(WHOLE, may_search=True, may_read_links=True, links=NOTE)
     out = await _look_up(
         None,
-        SimpleNamespace(sort_model="m"),
+        SimpleNamespace(sort_model="m", reader_model="m"),
         budget,
         {"url": "https://airline.test/cancel?id=9", "want": ["fact"]},
     )

@@ -2,7 +2,7 @@
 
 Swarm round 2: the look moves to Haiku 5.5, a twentieth of Haiku 4.5's price,
 and the forced tool call it makes is one Haiku 5.5 accepts and answers without
-thinking. Classify and the reader stay on `sort_model`.
+thinking. Classify stays on `sort_model`.
 """
 
 import io

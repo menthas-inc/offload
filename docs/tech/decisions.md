@@ -361,6 +361,17 @@ What is left is not decisions but work, and it lives elsewhere: the deferred har
 
 *The data model is specced at `docs/specs/001-data-model/`. What remains of it is implementation.*
 
+## Looking a date up, 2026-10-30
+
+"When do Waking Life tickets go on sale?" came back `Not sure.` with twenty unrelated rows under it. The answer is on the festival's raffle page, and Google shows it.
+
+- ✅ **A question's lookup may open up to two pages its search found**, within the turn's three reads. Before this, only a pasted link was ever fetched, so a fact on an organiser's own page was out of reach. The provider fetches only a URL that is already in the reader's conversation, which holds their words and the results, so a page cannot carry the question anywhere new.
+- ✅ **The web reader runs on Haiku 5.5 (`reader_model`).** With page reads and a prompt line telling it to search the year of the next edition, Haiku 4.5 still searched 2026 and returned dates that had already passed in 2 of 5 runs; the other 3 were unsure. Haiku 5.5 searched 2027 and read the raffle FAQ in both runs, about five seconds slower per lookup at the same cost. A bank holiday, a clock change and a pasted link all stayed right on it. Classify and the judge stay on Haiku 4.5. Sonnet 5.5 refused the request with these server tool versions, which is worth knowing before anyone tries it.
+- ✅ **`Not sure.` draws no rows.** A search's meaning arm always returns its nearest rows, so a read that answered nothing still had rows to draw.
+- ✅ **The privacy policy and the terms say intent and mechanism, never implementation (owner).** No day counts, page counts, feature limits or product stages; retention is given as criteria, which the state laws accept in place of a period. `test/privacy-policy.test.tsx` holds the policy to no number but its date, its sections and the age. A legal review of the rewrite found one claim untrue before it: with link reading off, a filed link's page is still fetched for its picture (`worker.py`, `og.page`), so the policy now says so. Gating that fetch on the switch is the owner's call. All three pages and `CONSENT_VERSION` moved to 2026-10-30, so every active account agrees again. Voyage AI and AssemblyAI are opted out of training on their dashboards (owner, 2026-10-30). Open from the review: a linked consumer health data notice for Washington's My Health My Data Act.
+
+**Design system impact:** none.
+
 ## Live updates, decided during 048 (2026-10-29)
 
 Every signed-in client holds one server-sent event stream, `GET /v1/changes`, for as long as it is on screen. It says that something changed, as kinds and ids, never what; the screen reads again through the read it already uses. This widens the 2026-08 entry that scoped server-sent events to one interactive answer: that channel was open only while a turn was out, and this one is always on.

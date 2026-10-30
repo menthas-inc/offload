@@ -1,9 +1,11 @@
-// The privacy policy, rewritten general on 2026-10-05 (owner: "generalize when
-// it helps"). The page is a claim surface, so each line pinned here is one the
-// owner decided, the legal review requires, or the audit of the old page found
-// untrue. Mechanisms are not pinned: the page no longer names them, which is
-// the point of the rewrite. The companies sit on their own page with their own
-// date, so adding one does not move the policy.
+// The privacy policy, the companies page and the terms.
+//
+// Rewritten general again on 2026-10-30 (owner: "the intent and mechanism
+// should be there, not the implementation details"). Each line pinned here is
+// a promise the owner decided, the law or a store requires, or one a reader
+// relies on. No implementation detail is pinned, and the policy is held to
+// carrying none: no counts, no windows in days, no product constants. A
+// change that keeps the promise should never need this file edited.
 
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -25,7 +27,7 @@ const textOf = (html: string) =>
   html
     .replace(/<\/?(a|strong|em)\b[^>]*>/g, "")
     .replace(/<[^>]+>/g, " ")
-    .replace(/&#x27;|&rsquo;|\u2019/g, "'")
+    .replace(/&#x27;|&rsquo;|’/g, "'")
     .replace(/&quot;/g, '"')
     .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ");
@@ -34,29 +36,28 @@ const policyHtml = renderToStaticMarkup(<Policy />);
 const policy = textOf(policyHtml);
 const companiesHtml = renderToStaticMarkup(<Companies />);
 const companies = textOf(companiesHtml);
-const terms = textOf(renderToStaticMarkup(<Terms />));
+const termsHtml = renderToStaticMarkup(<Terms />);
+const terms = textOf(termsHtml);
 const source = (path: string) => readFileSync(`${process.cwd()}/src/${path}`, "utf8");
 
-describe("the privacy policy, general", () => {
-  it("is titled as a privacy policy and dated 18 October 2026", () => {
+describe("the privacy policy states intent, not implementation", () => {
+  it("is titled as a privacy policy and dated 30 October 2026", () => {
     expect(policyHtml).toMatch(/<h1[^>]*>Privacy policy<\/h1>/);
-    expect(policy).toContain("Last updated 18 October 2026");
+    expect(policy).toContain("Last updated 30 October 2026");
   });
 
-  // 041. PDFs, wherever the page says what is put in, kept, made, sent to a
-  // model, shared and encrypted.
-  it("names PDFs where it names photos", () => {
-    expect(policy).toContain("notes, links, photos, screenshots, PDFs, voice notes");
-    expect(policy).toContain("its text, its pictures and its PDFs, its subject, who sent it and when, but not the raw email or its other attachments");
-    expect(policy).toContain("descriptions of what photos, screenshots and PDFs show, including any words in them. The text of a PDF itself is not kept.");
-    // 044. The useful links a PDF carried, kept as actions, named in section 3.
-    expect(policy).toContain("up to two useful links it carried");
-    expect(policy).toContain("Sorting, reading photos and PDFs, transcribing voice notes");
-    expect(policy).toContain("what you just put in (of a PDF, its first ten pages and any web links it carries),");
-    expect(policy).toContain("A PDF in a shared thread opens for its members as a copy without the details of who made it and without anything in it that could run.");
-    expect(policy).toContain("your photos, screenshots, PDFs, voice note audio and the pictures and PDFs in email you forward");
-    expect(policy).toContain("what offload writes about a photo or a PDF");
-    expect(policy).toContain("A PDF you open on your phone is handed to the phone's own viewer from a private copy, deleted when you come back to offload.");
+  it("carries no number but its date, its section numbers and the age", () => {
+    const rest = policy
+      .replace(/Last updated \d{1,2} \w+ \d{4}/, "")
+      .replace(/\b(\d+)\. (?=[A-Z])/g, "")
+      .replace(/\b[Ss]ection \d+/g, "")
+      .replace(/\b18\b/g, "");
+    expect(rest.match(/\d+/g) ?? []).toEqual([]);
+  });
+
+  it("names no single feature's limits or mechanisms", () => {
+    expect(policy).not.toMatch(/first ten pages|up to two|nightly|overnight|morning notification|preview picture straight|private copy/i);
+    expect(policy).not.toMatch(/Voyage|AssemblyAI|Resend|Railway|Cloudflare|Anthropic|Expo/);
   });
 
   it("names the controller and says it is for the United States only", () => {
@@ -65,60 +66,93 @@ describe("the privacy policy, general", () => {
     expect(policy).not.toMatch(/European|GDPR|Article 27|standard contractual|UK addendum|\bICO\b/);
   });
 
-  it("makes the no-training promise without a future opt-in", () => {
+  it("says what is collected, by kind", () => {
+    expect(policy).toContain("Everything you put in");
+    expect(policy).toContain("email you forward to it");
+    expect(policy).toContain("such as when and where a photo was taken");
+    expect(policy).toContain("If you join the waitlist");
+    expect(policy).toContain("We do not ask your device for its location.");
+    expect(policy).toContain("under a random identifier that only we can link back to you, until you delete your account");
+  });
+
+  it("makes the no-training promise, and says who acts for themselves", () => {
     expect(policy).toContain("We do not use your content to train models.");
     expect(policy).toContain("by their terms or by settings we have turned on");
-    expect(policy).not.toMatch(/Improve offload with my data|if we ever offer that/i);
-  });
-
-  it("links the companies page and names kinds of companies, not each one", () => {
+    expect(policy).toContain("act for themselves under their own terms");
     expect(policyHtml).toContain('href="/privacy/companies"');
-    expect(policy).not.toMatch(/Voyage|AssemblyAI|Resend|Railway|Cloudflare/);
-    expect(policy).toContain("Apple and Google, when you sign in with them, act for themselves");
   });
 
-  it("names the country a web search carries, and how long Resend keeps forwarded mail", () => {
-    expect(policy).toContain("words from what you put in and the country you set in Settings");
-    expect(companies).toContain("keeps as received, attachments included, for 30 days and then deletes");
+  it("says each AI call carries what its task needs and not more", () => {
+    expect(policy).toContain("Each call carries only what its task needs");
+    expect(policy).toContain("Not more.");
   });
 
-  it("says new companies are listed and a material change is put to you again in the app", () => {
+  it("says a web lookup uses their words and never what offload knows about them, and can be turned off", () => {
+    expect(policy).toContain("A search uses words from what you put in, and your country if you set one");
+    expect(policy).toContain("never what offload knows about you");
+    expect(policy).toContain("Settings under Privacy");
+    // The review of 2026-10-30: a filed link's picture is fetched with the switch off.
+    expect(policy).toContain("offload still asks a site you link to for the picture it shows beside the link");
+  });
+
+  it("says what stays when a calendar is disconnected (Limited Use review)", () => {
+    expect(policy).toContain("What offload already wrote in your threads from your calendar stays until you delete it.");
+  });
+
+  it("says memories are kept by instruction, not guarantee, and can all be seen and removed", () => {
+    expect(policy).toContain("Memories: what offload knows about you across your threads");
+    expect(policy).toContain("a model following instructions, not a guarantee");
+    expect(policy).toContain("In Memories you can see, add, change and forget what offload knows about you");
+  });
+
+  it("names the maps service and what it collects from the device, as the store label does", () => {
+    expect(policy).toContain("Google Maps Platform");
+    expect(policy).toContain("an identifier, how the map is used, and crash and performance reports");
+  });
+
+  it("puts a material change to the list or the page to you again in the app", () => {
     expect(policy).toContain("We keep the list current");
     expect(policy).toContain("offload tells you the next time you open it and asks you to agree again");
-    expect(policy).not.toContain("we email account holders before it takes effect");
   });
 
-  it("claims our encryption only for our own backup and exports, not the host's recovery copies", () => {
-    expect(policy).toContain("Our own nightly backup and your exports are encrypted the same way.");
+  it("claims encryption only for files, backups and exports, holds the keys, and says text is not encrypted by us", () => {
+    expect(policy).toContain("Encrypted by us:");
+    expect(policy).toContain("Our own backups and your exports are encrypted too, with keys our storage provider never receives.");
     expect(policy).toContain("recovery copies of the database are protected by its encryption");
-    expect(policy).not.toContain("Exports and backups are encrypted too.");
+    expect(policy).toMatch(/we hold the keys/i);
+    expect(policy).toContain("Not encrypted by us:");
+    expect(policy).not.toMatch(/your data is encrypted/i);
   });
 
-  it("says what you delete is deleted, promptly, and from backups within 30 days", () => {
+  it("says what you delete is deleted, from live systems and then backups", () => {
     expect(policy).toContain("What you delete is deleted.");
-    expect(policy).toContain("removed from our live systems promptly, and from our backups within 30 days");
+    expect(policy).toContain("removed from our live systems promptly, and from our backups when they expire");
     expect(policyHtml).toContain('href="/delete-account"');
   });
 
-  it("says offload holds the keys rather than claiming it has none", () => {
-    expect(policy).not.toContain("a key we do not have");
-    expect(policy).toContain("we hold the keys");
+  it("gives retention as criteria for each kind of record", () => {
+    expect(policy).toContain("for as long as your account exists, or until you delete it");
+    expect(policy).toContain("A copy you export");
+    expect(policy).toContain("Security records");
+    expect(policy).toContain("for a fixed period long enough to look into a problem, then deleted");
+    expect(policy).not.toContain("for a limited period.");
   });
 
   it("carries the Limited Use statement, and lets nobody read Google data outside it", () => {
     expect(policy).toContain(
-      "offload's use and transfer of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements.",
+      "offload's use and transfer to any other app of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements.",
     );
     expect(policyHtml).toContain('href="https://developers.google.com/terms/api-services-user-data-policy"');
     expect(policy).toContain("we do not use it to develop, improve or train AI or machine learning models");
-    expect(policy).not.toMatch(/chasing a bug/);
+    expect(policy).toContain("asks you first before a change that would notify other people");
   });
 
-  it("gives everyone in the US the same rights and keeps the no-sale line", () => {
+  it("gives everyone in the US the same rights, a way to appeal, and keeps the no-sale line", () => {
     expect(policy).toContain("to know what we collect and why, to a copy, to correct it, and to delete it");
     expect(policy).toContain("authorised agent");
+    expect(policy).toContain("ask us to look at it again");
+    expect(policy).toContain("your state attorney general");
     expect(policy).toContain("We do not sell your personal information or share it for cross-context behavioural advertising");
-    expect(policy).not.toMatch(/California law defines|In California and other US states/);
   });
 
   it("has a health section, a Do Not Track line and a section for people not on offload", () => {
@@ -127,32 +161,26 @@ describe("the privacy policy, general", () => {
     expect(policyHtml).toMatch(/<h2[^>]*>\d+\. If you are not on offload<\/h2>/);
   });
 
-  it("names the waitlist address, the subject and sender kept from a forwarded email, and the export's 7 days", () => {
-    expect(policy).toContain("If you join the waitlist");
-    expect(policy).toContain("its subject, who sent it and when");
-    expect(policy).toContain("A copy you export: 7 days");
-  });
-
   it("leaves no owner marker, no dated promise of a future feature, and no dash", () => {
     expect(policy).not.toMatch(/\[OWNER|We plan to encrypt|A person reads it/);
-    expect(policy).not.toMatch(/[\u2013\u2014]/);
-    expect(companies).not.toMatch(/[\u2013\u2014]|\[OWNER/);
+    expect(policy).not.toMatch(/[–—]/);
+    expect(companies).not.toMatch(/[–—]|\[OWNER/);
   });
 
-  it("is shorter than 3,500 words", () => {
-    expect(policy.split(" ").filter(Boolean).length).toBeLessThan(3500);
+  it("is shorter than the page it replaced", () => {
+    expect(policy.split(" ").filter(Boolean).length).toBeLessThan(3300);
   });
 });
 
 describe("the companies page", () => {
   it("renders with its own date and links back to the policy", () => {
     expect(companiesHtml).toMatch(/<h1[^>]*>Companies we use<\/h1>/);
-    expect(companies).toMatch(/Last updated \d{1,2} \w+ 2026/);
+    expect(companies).toContain("Last updated 30 October 2026");
     expect(companiesHtml).toContain('href="/privacy"');
     expect(source("app/(marketing)/privacy/companies/page.tsx")).toContain('title: "Companies we use · offload"');
   });
 
-  it("lists every company, with Voyage embedding searches too", () => {
+  it("lists every company", () => {
     for (const name of [
       "Railway",
       "Cloudflare R2",
@@ -168,26 +196,35 @@ describe("the companies page", () => {
     ]) {
       expect(companies, name).toContain(name);
     }
-    expect(companies).toContain("the words of a search inside offload");
   });
 
-  it("says our server fetches a linked page, and keeps sign-in and maps out of the contract sentence", () => {
-    expect(companies).toContain("our server fetches the page");
+  it("says a site sees a request from us or the company doing the reading, never from them", () => {
+    expect(companies).toContain("sees a request from us or from the company doing the reading");
+    expect(companies).not.toContain("our server fetches the page");
     expect(companies).toContain("except the ones marked as acting for themselves");
-    expect(companies).toContain("on the web when it is turned on");
   });
 });
 
-describe("the terms", () => {
+describe("the terms state intent, not implementation", () => {
   it("are dated, named, and for the United States", () => {
-    expect(terms).toContain("Last updated 7 October 2026");
+    expect(terms).toContain("Last updated 30 October 2026");
     expect(terms).toContain("Behrooz Afghahi");
     expect(terms).toContain("only offered in the United States");
   });
 
-  it("send deletion to Settings, and cap liability", () => {
+  it("name no sign-in provider, connected app or product stage", () => {
+    expect(terms).not.toMatch(/Google calendar|Apple or Google|invite only|free for now|a beta/i);
+  });
+
+  it("send deletion to Settings, disclaim implied warranties, and cap liability", () => {
     expect(terms).toContain("delete your account yourself in Settings");
+    expect(terms).toContain("merchantability, fitness for a particular purpose and non-infringement");
     expect(terms).toContain("the greater of what you paid us in the 12 months before the claim and 100 US dollars");
+  });
+
+  it("license content only to run offload, including through the companies that help", () => {
+    expect(terms).toContain("including through the companies that help us run it");
+    expect(terms).toContain("to run offload for you and as the privacy policy describes");
   });
 
   it("add acceptable use, AI output, termination, changes and Apple's licence", () => {
@@ -196,120 +233,7 @@ describe("the terms", () => {
     expect(terms).toContain("time to take a copy");
     expect(terms).toContain("asks you to agree again before you go on");
     expect(terms).toContain("Apple's standard licensed application end user licence agreement");
-  });
-});
-
-// 038. Memories: what offload knows about a person across their threads. The
-// page says what they are, how each kind is written, what is never kept, where
-// they go, and how to see and remove one while there is no screen for it.
-describe("memories", () => {
-  it("are listed with what offload makes from what you put in", () => {
-    expect(policy).toContain("Memories: what offload knows about you across your threads");
-  });
-
-  it("say how each kind is written, and that keeping sensitive ones only when asked is an instruction, not a guarantee", () => {
-    expect(policy).toContain("when you ask it to remember something");
-    expect(policy).toContain("from what you said, overnight");
-    expect(policy).toContain("offload is told to keep health, religion");
-    expect(policy).toContain("never an ID or account number, a password");
-    expect(policy).toContain("That is an instruction and a filter, not a guarantee");
-    // The sweep of 2026-10-07: a word list cannot carry "kept only when asked".
-    expect(policy).not.toContain("are kept only when you asked offload to remember it");
-  });
-
-  it("go with every call, and never into a web search", () => {
-    // Named in the list of what each call carries, so "Not more." stays true.
-    expect(policy).toContain("labels, what offload knows about you, and, when offload answers");
-    expect(policy).toContain("never put into a web search");
-  });
-
-  it("can be seen and removed by asking, and are in the export", () => {
-    // 040: the tab, with asking and the export beside it.
-    expect(policy).toContain("ask offload what it remembers");
-    expect(policy).toContain("add, change and forget");
-  });
-
-  it("name the people in your life, and nothing more about them", () => {
-    expect(policy).toContain("the names of people in your life, how they relate to you and their birthdays");
-  });
-});
-
-// 040. The Memories tab: a fourth way a memory is kept, the tab as where they
-// are seen and changed, and what Voyage receives once memories are embedded.
-describe("040 the memories tab", () => {
-  it("says in the health section, too, that a memory is kept when you add it yourself", () => {
-    expect(policy).toContain("offload is told to keep it as a memory");
-    expect(policy).toContain("only when you asked it to remember it or added it yourself in Memories.");
-  });
-
-  it("says a memory is kept when you add one in the tab, and that the tab is where you see and change them", () => {
-    expect(policy).toContain("when you add one yourself in Memories");
-    expect(policy).toContain("In Memories you can see, add, change and forget what offload knows about you");
-    expect(policy).not.toContain("Ask offload what it remembers about you to see your memories");
-  });
-
-  it("says Voyage lays out memories and finds the ones a message needs, and what it receives", () => {
-    expect(companies).toContain("Makes what offload holds searchable, lays out your memories by meaning and finds the ones a message needs");
-    expect(companies).toContain("The text being indexed, your memories, the words of a search inside offload, and your own words in a message or a thread's name and your notes in it, to find the memories it needs");
-  });
-
-  it("moves both dates", () => {
-    // 044 moved the policy again on 18 October (PDF actions); the companies list stayed.
-    expect(policy).toContain("Last updated 18 October 2026");
-    expect(companies).toContain("Last updated 8 October 2026");
-  });
-});
-
-// 2026-10-08, the App Store privacy label. The label declares what the Google
-// Maps SDK's own privacy manifest says it collects, and product events as
-// linked, so both pages say the same in words.
-describe("the pages agree with the store's privacy label", () => {
-  it("say what the map collects on the phones, beyond the IP address", () => {
-    for (const page of [companies, policy]) {
-      expect(page).toContain("an identifier, how the map is used, and on the phones crash and performance reports");
-      expect(page).not.toContain("your IP address and device details");
-    }
-  });
-
-  it("say product events carry an identifier only we can link back to you, until the account goes", () => {
-    expect(policy).toContain("Product events, such as finishing first run, under a random identifier that only we can link back to you, until you delete your account.");
-    expect(policy).not.toContain("rather than to your account");
-  });
-});
-
-// 042, read by the owner on 2026-10-10 before any send code: reminders are
-// timed by what offload works out, may name a memory, and are said on the page
-// before the first one goes.
-describe("042 reminders, as the page says them", () => {
-  it("says what offload works out about a dated thing to remind about it", () => {
-    expect(policy).toContain(
-      "For anything you put in with a date, what kind of date it is and how much notice it needs, which offload works out so it can remind you, and drops when the thing goes.",
-    );
-  });
-
-  it("names the reminders among the notifications you choose", () => {
-    expect(policy).toContain("send the notifications you choose, including reminders offload times before the dates that need one");
-  });
-
-  it("says a notification may carry what offload remembers, such as a birthday, and the day's calendar events", () => {
-    expect(policy).toContain(
-      "they carry a few words of what you or a thread member wrote, of what offload remembers for you, such as a birthday, or the titles of the day's events on a calendar you connected, which somebody who invited you may have written, to your own phone",
-    );
-  });
-
-  it("names the morning notification among the uses of Google calendar data (2026-10-10)", () => {
-    expect(policy).toContain(
-      "to file and answer from it, to name the day's events in your morning notification, and to add, change or delete events when you ask",
-    );
-  });
-
-  it("tells somebody not on offload their birthday can be named in a reminder", () => {
-    expect(policy).toContain(
-      "or a memory of theirs that says who you are to them, or when your birthday is, which offload can name in a reminder on their phone",
-    );
-  });
-
-  it("is dated the day it changed", () => {
-    expect(source("app/(marketing)/privacy/page.tsx")).toContain('const UPDATED = "18 October 2026";');
+    expect(termsHtml).toContain('href="/privacy"');
+    expect(terms).toContain("Where it and these terms differ about the app itself, Apple's agreement counts.");
   });
 });

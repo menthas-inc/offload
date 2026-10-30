@@ -574,11 +574,14 @@ async def _look_up(
 
     reading = await reader.read(
         client,
-        cfg.sort_model,
+        cfg.reader_model,
         question=question,
         url=url,
         want=list(args.get("want") or []),
         searches=budget.left() if question else 0,
+        fetches=reader.FETCHES_PER_LINK
+        if url
+        else min(reader.FETCHES_PER_QUESTION, budget.READS - budget.reads),
         today=budget.today,
         country=budget.country,
     )
@@ -2114,6 +2117,10 @@ def _author_the_answer_line(outcome: Outcome, budget: "Lookups") -> None:
     looked = {row["outcome"] for row in budget.rows}
     if looked & {"empty", "failed"} and "used" not in looked and not outcome.found:
         outcome.reply = NOT_SURE
+    # Rows the answer did not come from. A search's meaning arm always returns
+    # its nearest rows, so a read that answered nothing still had twenty to draw.
+    if outcome.reply == NOT_SURE:
+        outcome.found = []
 
 
 def _nothing_left(outcome: Outcome, ctx: DumpContext) -> bool:

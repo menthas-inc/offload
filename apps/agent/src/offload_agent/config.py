@@ -80,9 +80,14 @@ class Config:
     # 026 and 041. The look at an email's pictures and a PDF's first page: one
     # forced call with a list of verdicts. Haiku 5.5 accepts the forced tool
     # and answers it without thinking, at a twentieth of Haiku 4.5's price.
-    # Swarm round 1 and 2, 2026-10-10: principle 31 held. Classify and the
-    # reader stay on `sort_model`, where Haiku 5.5 was slower on every dump.
+    # Swarm round 1 and 2, 2026-10-10: principle 31 held. Classify stays on
+    # `sort_model`, where Haiku 5.5 was slower on every dump.
     look_model: str = "claude-haiku-5-5"
+    # The web reader, since 2026-10-30. Asked when Waking Life tickets go on
+    # sale, Haiku 4.5 searched the year it was rather than the year of the next
+    # edition and returned dates already gone; Haiku 5.5 searched 2027 and read
+    # the raffle page, about five seconds slower per lookup at the same cost.
+    reader_model: str = "claude-haiku-5-5"
     # Opus 5 still. Opus 5.5 was measured on 2026-10-02 on the 112 answering
     # cases, same code: 98 passed against Opus 5's 109, for 30% less. Nothing
     # it was sent is one it refuses, so the gap is behaviour: past the word

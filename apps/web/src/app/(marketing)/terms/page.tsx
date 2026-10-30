@@ -5,6 +5,11 @@
 // governing law on purpose (owner, 2026-10-03): offload is not incorporated
 // yet, and a clause naming a state would be a guess.
 //
+// 2026-10-30 (owner): intent and mechanism, not implementation. It names no
+// sign-in provider, connected app or product stage, so those can change
+// without this page. The warranty disclaimer and the liability cap are in bold
+// because a disclaimer of implied warranties has to be conspicuous.
+//
 // It shares the privacy page's stylesheet because it is the same kind of
 // page. Anything this page says about content has to agree with that one;
 // where they could disagree, this page points there instead of restating it.
@@ -18,7 +23,7 @@ export const metadata: Metadata = {
   description: "What you can expect from offload, and what offload expects from you.",
 };
 
-const UPDATED = "7 October 2026";
+const UPDATED = "30 October 2026";
 
 const MAIL = <a href="mailto:hello@offload.club">hello@offload.club</a>;
 
@@ -55,9 +60,10 @@ export default function Terms() {
         <section className={styles.section}>
           <h2 className={styles.h2}>2. Who can use it</h2>
           <p>
-            offload is invite only, for people aged 18 and over, and only offered in the United
-            States. You sign in with Apple or Google, and the account is for one person. Keep that
-            sign-in to yourself: what happens through your account is treated as coming from you.
+            offload is for people aged 18 and over, and only offered in the United States. We may
+            limit who can join, for example by invitation. You sign in through a service we
+            support, and an account is for one person. Keep that sign-in to yourself: what happens
+            through your account is treated as coming from you.
           </p>
         </section>
 
@@ -65,10 +71,10 @@ export default function Terms() {
           <h2 className={styles.h2}>3. What you put in is yours</h2>
           <p>
             You keep every right you have in what you put in. You give offload permission to store
-            it, process it and show it back to you and to the people you share a thread with, for
-            the one purpose of running offload for you. That permission ends when the content is
-            deleted, apart from the backups and the shared threads that{" "}
-            <a href="/privacy">the privacy policy</a> describes.
+            it, process it, including through the companies that help us run it, and show it back
+            to you and to the people you share it with, to run offload for you and as the privacy
+            policy describes. That permission ends when the content is deleted, apart from the backups and the
+            shared threads that <a href="/privacy">the privacy policy</a> describes.
           </p>
           <p>
             What offload does with your content, who else handles it and how long it is kept are
@@ -106,10 +112,11 @@ export default function Terms() {
         <section className={styles.section}>
           <h2 className={styles.h2}>6. offload can be wrong</h2>
           <p>
-            offload uses AI models to read what you put in, to file it and to answer you. It makes
-            mistakes: a date read wrongly, something filed in the wrong thread, an answer that is
-            not right. Everything it files can be corrected. Check anything that matters before you
-            rely on it. You are responsible for how you use what offload produces.
+            offload uses AI models to read what you put in, to file it, to look things up and to
+            answer you. It makes mistakes: a date read wrongly, something filed in the wrong place,
+            an answer that is not right. What it files can be corrected. Check anything that
+            matters before you rely on it. You are responsible for how you use what offload
+            produces.
           </p>
           <p>
             offload is not a doctor, a lawyer or a financial adviser, and nothing it says is
@@ -118,21 +125,22 @@ export default function Terms() {
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>7. Apps you connect</h2>
+          <h2 className={styles.h2}>7. Other services</h2>
           <p>
-            You can connect a Google calendar. offload reads and writes there only as the privacy
-            policy describes, and you can disconnect it at any time. Your use of Google&apos;s and
-            Apple&apos;s services stays under their terms, not these.
+            You can connect other services to offload, such as a calendar. offload uses them only as
+            the privacy policy describes, and you can disconnect them at any time. Your use of other
+            companies&apos; services, including the one you sign in with, stays under their terms,
+            not these.
           </p>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>8. A beta, and free for now</h2>
+          <h2 className={styles.h2}>8. offload is changing</h2>
           <p>
-            offload is a beta. It changes often, parts of it may break or go away, and it may be
-            unavailable at times. There are limits on how much each account can use in a day and
-            on how much it can store. It costs nothing today. If that changes, we will say so
-            before anything is charged, and nothing will be charged without you agreeing to it.
+            offload is early and changes often. Features may change or go away, and it may be
+            unavailable at times. Accounts have limits on how much they can use and store. If we
+            start charging for offload, we will say so before anything is charged, and nothing will
+            be charged without you agreeing to it.
           </p>
         </section>
 
@@ -154,15 +162,21 @@ export default function Terms() {
           <h2 className={styles.h2}>10. What we do not promise</h2>
           <p>
             We work to keep offload running and what you put in safe, and the privacy policy says
-            how. Beyond that, offload is provided as it is, without warranties of any kind, as far
-            as the law allows.
+            how. Beyond that,{" "}
+            <strong>
+              offload is provided as it is and as available, without warranties of any kind,
+              express or implied, including merchantability, fitness for a particular purpose and
+              non-infringement, as far as the law allows.
+            </strong>
           </p>
           <p>
-            As far as the law allows, we are not liable for indirect or consequential losses, or
-            for lost data, profits or opportunities, that come from using offload or being unable
-            to, and our total liability for any claim about offload is limited to the greater of
-            what you paid us in the 12 months before the claim and 100 US dollars. Nothing here
-            limits a right you have by law that cannot be limited.
+            <strong>
+              As far as the law allows, we are not liable for indirect or consequential losses, or
+              for lost data, profits or opportunities, that come from using offload or being unable
+              to, and our total liability for any claim about offload is limited to the greater of
+              what you paid us in the 12 months before the claim and 100 US dollars.
+            </strong>{" "}
+            Nothing here limits a right you have by law that cannot be limited.
           </p>
         </section>
 
@@ -172,6 +186,7 @@ export default function Terms() {
             Apple&apos;s standard licensed application end user licence agreement applies too,
             alongside these terms. You can read it on{" "}
             <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/">Apple&apos;s site</a>.
+            Where it and these terms differ about the app itself, Apple&apos;s agreement counts.
           </p>
         </section>
 
@@ -189,7 +204,8 @@ export default function Terms() {
           <p>
             We may transfer these terms to a company set up to run offload, or to a buyer bound by
             the privacy policy. If part of these terms cannot be enforced, the rest still applies.
-            These terms and the privacy policy are the whole agreement between us about offload,
+            These terms, the privacy policy and, for the App Store app, Apple&apos;s agreement are the
+            whole agreement between us about offload,
             and not enforcing a part of them straight away does not mean giving it up.
           </p>
         </section>

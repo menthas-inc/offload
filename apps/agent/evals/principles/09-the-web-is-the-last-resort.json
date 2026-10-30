@@ -228,6 +228,56 @@
       }
     },
     {
+      "id": "answer-lookup-empty-draws-no-rows",
+      "why": "2026-10-30: a public date their rows do not hold, looked up and not found, is 'Not sure.' with nothing drawn beside it, however near the rows a search came back with",
+      "surface": "answer",
+      "input": "when do Waking Life tickets go on sale?",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Book the tram museum tickets",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "c2",
+          "threadId": "00000002-0000-0000-0000-000000000000",
+          "threadName": "Groceries",
+          "type": "task",
+          "title": "Tickets for the farmers market raffle",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "c3",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "note",
+          "title": "Life admin hour on friday",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "lookup_result": {
+        "found": false
+      },
+      "expect": {
+        "look_up": true,
+        "reply": "Not sure.",
+        "draws": "none"
+      }
+    },
+    {
       "id": "answer-arithmetic-not-lookup",
       "why": "a date that is arithmetic is not looked up",
       "surface": "answer",

@@ -157,7 +157,7 @@ describe("the privacy page says what happens to an email you forward (T6.1)", ()
     // Generalised on 2026-10-05: the policy says what is kept of a forwarded
     // email, and the companies page names Resend as the receiver.
     const companies = readFileSync(`${process.cwd()}/src/app/(marketing)/privacy/companies/page.tsx`, "utf8").replace(/\s+/g, " ");
-    expect(page).toContain("its subject, who sent it and when, but not the raw email or its other attachments");
+    expect(page).toContain("email you forward to it, with who sent it and when");
     expect(companies).toContain(`name: "Resend"`);
     expect(companies).toContain("receives email you forward to offload");
     expect(page).not.toContain("Cloudflare Email Routing");
