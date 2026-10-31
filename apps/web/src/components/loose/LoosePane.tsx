@@ -56,7 +56,7 @@ export function LoosePane({
   const [archived, setArchivedRows] = useState<{ rows: ContentRow[]; nextCursor: string | null } | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   // 049. The row Search opened the page at: read back to once, then marked.
-  const target = useRef(at);
+  const target = useRef(atArchived ? null : at);
   const [arrived, setArrived] = useState<Set<string>>(new Set());
   const rows = useLooseRows(
     page,

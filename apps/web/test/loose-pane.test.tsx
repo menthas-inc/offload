@@ -271,6 +271,9 @@ describe("opened from Search at a row (049, AC-10)", () => {
     Element.prototype.scrollIntoView = () => undefined;
     await draw(<LoosePane type={null} at="c9" atArchived />);
     expect(calls.some((call) => call.path === "/v1/loose?archived=true")).toBe(true);
+    // The live list never holds an archived row, so it is not read through it.
+    expect(calls.some((call) => call.path === "/v1/loose")).toBe(true);
+    expect(calls.some((call) => call.path.includes("through="))).toBe(false);
     expect(host.querySelector('[data-row-id="c9"]')?.getAttribute("data-arrived")).toBe("true");
   });
 
