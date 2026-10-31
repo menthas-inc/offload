@@ -175,7 +175,7 @@ Components, each with `.jsx`, `.d.ts` props contract, `.prompt.md` usage note, a
 - **core/**, `Icon`, `Button`, `IconButton`, `Chip`, `LabelMark`, `Badge`, `Card`, `Avatar`
 - **forms/**, `TextField`, `Switch`, `Checkbox`, `SegmentedControl`
 - **layout/**, `AppBar`, `TabBar`, `ListRow`, `SwipeRow`, `RowActionSheet`, `MemoryRow`, `SectionHeader`, `Sheet`, `PrismField`, `LayoutTile`
-- **feedback/**, `Toast`, `EmptyState`, `Spinner`
+- **feedback/**, `Toast`, `UndoLine`, `ThreadNotice`, `EmptyState`, `Spinner`
 - **notifications/**, `NotificationIOS`, `NotificationAndroid`
 - **answering/**, `AnswerResult`, `QuickReplies`
 - **conversation/**, `TurnFooter`, `SentVoice`
@@ -1385,9 +1385,9 @@ decides every layout's sections, and the clients draw what it returns.
 
 - **Who picks.** offload may name a layout once, in the call that creates the thread, or leave it Default.
   After that only a person changes it, in Edit thread's **Layout** row (`LayoutTile`, six in a radiogroup).
-  The nightly pass may suggest one for a Default thread offload made: a moss line under the bar, Switch or
-  dismiss, once. Shared threads have one layout for everyone; the others see *Ana switched this to Events*
-  once, with Undo.
+  The nightly pass may suggest one for a Default thread offload made: a **thread notice** (below), Switch or
+  dismiss, once. Shared threads have one layout for everyone; the others see *Ana switched this to the Events
+  layout* once, as a notice, with Change.
 - **Labels are the organising layer.** Events makes *Booked*, *Still deciding* and *Passed on*; Project makes
   *Now*, *Next* and *Later*. Every label is a section that folds from its heading, the layout's own first.
   Switching in makes what is missing; switching out deletes the empty ones the new layout does not use. A
@@ -1401,6 +1401,26 @@ decides every layout's sections, and the clients draw what it returns.
   which opens the rest the way the archived pile opens. List | Map is unchanged in every layout.
 - **Today** takes open rows from Default and Project threads, dated rows from Events, and none from Todo
   list, Gallery or Timeline; a row with a date or a reminder reaches Today in any layout.
+
+## Thread notices
+
+Decided 31 October 2026 off `explorations/thread-notices.html` (direction B of four) and
+`explorations/thread-notice-final.html`. Build: `handoff/APPLY-2026-10-31-thread-notice.md`.
+
+**One strip for anything a thread needs to tell you**, `ThreadNotice`, full width under the thread's read and
+above the rail. It replaces the 13px suggestion pill and the plain heads-up line. **Solid moss with white text
+when it is offload's, ink when it is a person's**, in both themes; never the soft moss tint, which read as too
+pale. 16 medium, **two lines at most**, one underlined word to act on, an x to dismiss for good. Several stack,
+newest on top.
+
+- **The layout suggestion is most people's first sight of layouts**, so it names one: *Looks like {phrase},
+  switch to the {Layout} layout?* and **Switch**. Phrases: a checklist, a trip or event, a collection, a
+  project, a diary.
+- **Switching** leaves `UndoLine` (under, `wrap`) in its place: *Showing as Events. You can always change
+  this in thread settings.* with Undo.
+- **A member's switch**: their face, *Sam switched this to the Events layout*, and **Change**, which opens
+  Edit thread at Layout. Once.
+- Copy is written to fit two lines at 375 wide, about 55 characters.
 
 ## Behaviour notes for the build
 

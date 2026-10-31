@@ -15,6 +15,7 @@
 
 import { threadLookAfter, touches } from "@offload/widgets";
 import { ThreadIcon } from "../ThreadIcon";
+import { ThreadNotice } from "./ThreadNotice";
 import { EditThread } from "./EditThread";
 import { asksBeforeArchive, leaveAsk } from "@offload/widgets";
 import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, withMadeLabels, type LabelPick } from "@offload/widgets";
@@ -41,7 +42,6 @@ import {
   type ReorderWrite,
 } from "../../lib/widgets";
 import { LAYOUT_NAMES, layoutFor, suggestionLine, type Layout } from "@offload/widgets";
-import looseStyles from "../loose/loose.module.css";
 import { LayoutSections } from "./LayoutSections";
 import {
   completeContent,
@@ -159,7 +159,7 @@ export function Thread({ id, onChanged, at }: Props) {
   const [editRow, setEditRow] = useState<ContentRow | null>(null);
   const [draft, setDraft] = useState("");
   // 037. Edit thread, and whether it was opened from the icon or the name.
-  const [editingThread, setEditingThread] = useState<"icon" | "name" | null>(null);
+  const [editingThread, setEditingThread] = useState<"icon" | "name" | "layout" | null>(null);
   // Thread layouts (6.9): the suggestion line, hidden at once when dismissed
   // while the write lands; reset per thread below.
   const [suggestionGone, setSuggestionGone] = useState(false);
@@ -915,7 +915,9 @@ export function Thread({ id, onChanged, at }: Props) {
   /** 037. Edit thread's Save: the head changes at the press, the write
    *  follows, and a refusal puts the head back. Undo sends back everything
    *  that was there, whose pick it was included. */
-  async function saveThread(change: ThreadEdit, shown: { name: string; icon: string; hue: number }): Promise<void> {
+  /** `notice`: the switch came from the thread notice, so its line says where
+   *  to change it later, and wraps to be read whole. */
+  async function saveThread(change: ThreadEdit, shown: { name: string; icon: string; hue: number }, notice = false): Promise<void> {
     if (!thread) return;
     const before = thread;
     setThread({
@@ -927,7 +929,9 @@ export function Thread({ id, onChanged, at }: Props) {
 
     const result = await editThread(id, change);
     // Under the thread's read, the head being what changed.
-    const place = { id: `thread:${id}`, icon: "pencil", form: "under" } as const;
+    const place = notice
+      ? ({ id: `thread:${id}`, icon: "check", form: "under", wrap: true } as const)
+      : ({ id: `thread:${id}`, icon: "pencil", form: "under" } as const);
     if (!result) {
       setThread(before);
       toast.show("Couldn't save that", undefined, place);
@@ -953,7 +957,9 @@ export function Thread({ id, onChanged, at }: Props) {
         }
       : result.previous;
     toast.show(
-      result.layout && change.layout ? `Showing as ${LAYOUT_NAMES[change.layout]}` : "Thread updated",
+      result.layout && change.layout
+        ? `Showing as ${LAYOUT_NAMES[change.layout]}${notice ? ". You can always change this in thread settings." : ""}`
+        : "Thread updated",
       {
         label: "Undo",
         onPress: async () => {
@@ -1385,42 +1391,38 @@ export function Thread({ id, onChanged, at }: Props) {
         ) : null}
         <LineAt id={`thread:${id}`} />
 
-        {/* Thread layouts: the heads-up another member sees once after somebody
-            else switched, then the suggestion line offload draws (6.9). */}
+        {/* The thread notice (2026-10-31): a member's switch, once, then
+            offload's layout suggestion (6.9). Newest on top. */}
         {headsUp ? (
-          <p className={styles.headsUp}>
-            {headsUp.by.displayName} switched this to {LAYOUT_NAMES[headsUp.layout]}
-          </p>
+          <ThreadNotice
+            person={{
+              uid: headsUp.by.accountId,
+              initials: thread.members.find((one) => one.accountId === headsUp.by.accountId)?.initials ?? "",
+              name: headsUp.by.displayName,
+            }}
+            message={`${headsUp.by.displayName} switched this to the ${LAYOUT_NAMES[headsUp.layout]} layout`}
+            action="Change"
+            actionLabel="Change this thread's layout"
+            onAction={() => setEditingThread("layout")}
+            // Already seen on the server; this hides it for the view.
+            onDismiss={() => undefined}
+            onGone={() => setHeadsUp(null)}
+          />
         ) : null}
         {thread.layoutSuggestion && !suggestionGone ? (
-          <span className={looseStyles.suggestion}>
-            <button
-              type="button"
-              className={looseStyles.suggestHit}
-              aria-label={`Show this thread as ${LAYOUT_NAMES[thread.layoutSuggestion]}`}
-              onClick={() => {
-                if (!thread.layoutSuggestion) return;
-                setSuggestionGone(true);
-                void saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue });
-              }}
-            >
-              <span className={looseStyles.suggest}>
-                <Icon name="sparkles" size={13} className={looseStyles.spark} />
-                <span>{suggestionLine(thread.layoutSuggestion)}</span>
-              </span>
-            </button>
-            <button
-              type="button"
-              className={looseStyles.dismiss}
-              aria-label="Dismiss suggestion"
-              onClick={() => {
-                setSuggestionGone(true);
-                void dismissLayoutSuggestion(id);
-              }}
-            >
-              <Icon name="x" size={14} />
-            </button>
-          </span>
+          <ThreadNotice
+            message={suggestionLine(thread.layoutSuggestion)}
+            action="Switch"
+            actionLabel={`Switch this thread to the ${LAYOUT_NAMES[thread.layoutSuggestion]} layout`}
+            onAction={() => {
+              if (!thread.layoutSuggestion) return;
+              setSuggestionGone(true);
+              void saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue }, true);
+            }}
+            dismissLabel="Dismiss suggestion"
+            onDismiss={() => void dismissLayoutSuggestion(id)}
+            onGone={() => setSuggestionGone(true)}
+          />
         ) : null}
 
         {/* Widgets first, then everything. A widget is a view over the same

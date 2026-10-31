@@ -20,7 +20,7 @@ export function UndoLine({ entry, radius }: { entry: UndoEntry; radius?: string 
       style={radius ? ({ "--undo-radius": radius } as React.CSSProperties) : undefined}
     >
       <Icon name={entry.failed ? "circle-alert" : entry.icon} size={entry.form === "under" ? 14 : 16} className={styles.glyph} />
-      <span className={styles.message}>{entry.message}</span>
+      <span className={`${styles.message} ${entry.wrap ? styles.wrap : ""}`}>{entry.message}</span>
       {action ? (
         <button
           type="button"

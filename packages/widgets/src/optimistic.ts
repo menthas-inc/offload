@@ -30,6 +30,8 @@ export interface Place {
   /** The action's own glyph: archive, trash-2, bell, check and so on. */
   icon: string;
   form: UndoForm;
+  /** The message wraps instead of truncating: a sentence read whole. */
+  wrap?: boolean;
 }
 
 /** What a screen's toast offers, and all this file needs of it. A word with a

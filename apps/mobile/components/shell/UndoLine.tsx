@@ -78,7 +78,11 @@ export function UndoLine({
         size={entry.form === "under" ? 14 : 16}
         color={slot ? COLOR.textNoticed : COLOR.quiet}
       />
-      <Text numberOfLines={1} className={`flex-1 font-core ${ink}`} style={{ fontSize: 14 }}>
+      <Text
+        numberOfLines={entry.wrap ? undefined : 1}
+        className={`flex-1 font-core ${ink}`}
+        style={entry.wrap ? { fontSize: 14, paddingVertical: 8 } : { fontSize: 14 }}
+      >
         {entry.message}
       </Text>
       {action ? (

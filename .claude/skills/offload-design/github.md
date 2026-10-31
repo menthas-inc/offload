@@ -4,6 +4,20 @@ path:
 
 ## Last sync
 
+date: 2026-10-31T17:59:39Z
+
+Read `main` (tree `94b3e9069ce8`) for the layout suggestion: `apps/mobile/components/screens/Thread.tsx` (the 32px pill, 13px, and the heads-up line), `apps/web/src/components/panes/Thread.tsx` (`looseStyles.suggestion`), `packages/widgets/src/layouts.ts` (`suggestionLine`, `PHRASES`). Nothing kept.
+
+### Updated in this project
+
+- **Thread notices**, four directions (A card, B strip, C offload's voice, D compact): `explorations/thread-notices.html`
+- **Thread notice, decided** (B, the strip): `explorations/thread-notice-final.html`, `handoff/APPLY-2026-10-31-thread-notice.md`, `handoff/thread-notice-standalone.html`
+- `components/feedback/ThreadNotice` (new), `UndoLine` gains `wrap`; `readme.md` **Thread notices**; `decisions.md` one entry
+
+## Sync history
+
+### 2026-10-30T21:03:21Z
+
 date: 2026-10-30T21:03:21Z
 
 Read `main` (tree `ca5aca2e9ffa`) for a search surface: `apps/mobile/components/screens/MyThreads.tsx`, `ThreadTile.tsx`, `lib/threadGrid.ts`, `shell/Plate.tsx`, `shell/Shell.tsx` (tabs: Today, My threads, Memories with `cloudy`), `shell/Composer.tsx`, `lib/composer.ts`, and `screens/Memories.tsx`, whose in-page search field is the only search the phones draw today and is reused here. No search page exists on any client. Nothing copied.
@@ -15,8 +29,6 @@ Read `main` (tree `ca5aca2e9ffa`) for a search surface: `apps/mobile/components/
 - **Search, decided**: Today, Threads, Search, Memories on the phones and the web sidebar; ⌘K and /; composer unchanged. `explorations/search-tab.html`, `handoff/APPLY-2026-10-30-search.md`, `handoff/search-standalone.html`
 - Also read `apps/core-api/src/search/read.ts` (`search_text` is a tsvector; `websearch_to_tsquery` does not prefix)
 - `readme.md` **Search** (new), tab glyphs and vocabulary; `decisions.md` one entry
-
-## Sync history
 
 ### 2026-10-29T22:04:46Z
 
@@ -152,6 +164,7 @@ shared log, with this project's thread marks entry kept), and read `apps/web/src
 
 | Screen | This project | Repo files |
 | --- | --- | --- |
+| Thread notices | `explorations/thread-notice-final.html`, `handoff/APPLY-2026-10-31-thread-notice.md`, `components/feedback/ThreadNotice` | `apps/mobile/components/screens/Thread.tsx`, `apps/web/src/components/panes/Thread.tsx`, `packages/widgets/src/layouts.ts` |
 | Thread layouts | `explorations/thread-skins.html`, `handoff/APPLY-2026-10-19-thread-layouts.md`, `components/layout/LayoutTile` | `apps/mobile/components/screens/Thread.tsx`, `packages/widgets/src/index.ts`, `folds.ts`, `apps/core-api/migrations/0016_thread_attrs.sql`, `threads/labels.ts`, `routes/threads.ts`, `routes/tools.ts`, `today/rows.ts`, `prompts/nightly.md`, `prompts/plan_v2.md`, `EditThreadSheet.tsx`, `panes/EditThread.tsx` |
 | Undo, in place (every list) | `components/feedback/UndoLine.jsx`, `ui_kits/mobile_app/UndoInPlace.jsx`, `explorations/undo-in-place.html` | `apps/mobile/lib/optimistic.ts`, `apps/mobile/components/shell/Toast.tsx`, `apps/web/src/components/shell/Toast.tsx` |
 | Web app | `ui_kits/web_app/` | `apps/web/src/` |
