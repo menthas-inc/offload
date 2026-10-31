@@ -50,9 +50,16 @@ By kind at 0.56: whole questions 89%, single words 82%, questions sharing no wor
 - **What is missed sits just past the floor**: sentence memories and notes reached by a loose question, "where are my folks based" against "Their parents live in Kolkata." (0.569), "licence" against "Their medical licence is held with the CPSO." (0.563). The words arm finds some of these; the rest is the cost the owner accepted. The furthest misses ("drop in on my nan", 0.87) no floor would reach without flooding.
 - **Precision is about half** at every useful floor: of the 4.1 items a real question reads, about two are labelled right. The labels are strict and were written in one pass by the generators, so this undercounts; it is also what the words arm alone looked like before meaning existed.
 
+## At production's precision
+
+Production stores `halfvec(1024)` and compares with pgvector's `<=>`. `precision.py` embeds all three sets again, loads every vector into a scratch database on the local Postgres as `halfvec(1024)`, and reads every distance from `<=>` itself: 107,485 query and item pairs. The largest difference from the float32 numbers is 0.00004, and **not one keep-or-drop decision at 0.56 changes**. `halfvec-distances.json` (not committed) holds the cast's.
+
+## The model, with less to read
+
+The evals answer every tool from a fixture, so the floor in the API never runs inside them; what they can show is that answers hold when a search returns little or nothing. On 2026-10-31, with the owner's yes, the answer path: principles 12 (21/21), 16 (6/7), 17 (43/53), 18 (14/14, which covers saying no only after a complete read) and 09's answer cases (6/6), 90 of 101 for about $0.82. Read paired against each case's history, 16 and 17 sit inside the band (z -0.65 and -0.20); the misses are cases already near a coin toss. No prompt changed, so this is the before and the after at once.
+
 ## Not measured
 
-- Distances here are computed in float32 from Voyage's output; production compares `halfvec(1024)` columns. Half precision moves a 1024-dimension cosine by roughly a thousandth, so an item within about 0.003 of the floor can land on either side of it.
 - Query cost: the floor is applied after the index's top sixty, so a search reads exactly what it read before the floor existed.
 
 ## Outside

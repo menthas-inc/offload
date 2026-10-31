@@ -202,6 +202,11 @@ and is not committed.
 | 2026-10-30 16:36 | j-easter | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
 | 2026-10-30 16:36 | j-link-ticket | 1 | 0/1 (0%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
 | 2026-10-30 16:36 | j-link-ticket | 1 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `2b314669` | `ca5aca2e` |  |
+| 2026-10-31 16:33 | 12 | 1 | 21/21 (100%) | $0.05 | `claude-haiku-5-5` | `a9211ad1` | `e4ef7f81` | meaning floor PR 158, limited answer run |
+| 2026-10-31 16:33 | 16 | 1 | 6/7 (86%) | $0.06 | `claude-haiku-5-5` | `a9211ad1` | `e4ef7f81` | meaning floor PR 158, limited answer run |
+| 2026-10-31 16:33 | 17 | 1 | 43/53 (81%) | $0.56 | `claude-haiku-5-5` | `a9211ad1` | `e4ef7f81` | meaning floor PR 158, limited answer run |
+| 2026-10-31 16:34 | 18 | 1 | 14/14 (100%) | $0.13 | `claude-haiku-5-5` | `a9211ad1` | `e4ef7f81` | meaning floor PR 158, limited answer run |
+| 2026-10-31 16:34 | 09 | 1 | 6/6 (100%) | $0.02 | `claude-haiku-5-5` | `a9211ad1` | `e4ef7f81` | meaning floor PR 158, limited answer run |
 
 ## Full runs by principle
 

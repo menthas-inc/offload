@@ -32,6 +32,10 @@ beforeEach(async () => {
   await db.deleteFrom("thread_members").execute();
   await db.deleteFrom("threads").execute();
   await db.deleteFrom("accounts").execute();
+  // Deleted chunks stay in the HNSW graph until a vacuum, and a scan that walks
+  // them can come back empty: "meaning joins the words" failed that way in the
+  // gate's full run and never alone (search-index.test.ts has the history).
+  await sql`vacuum content_chunks, note_chunks`.execute(db);
 });
 
 async function account(): Promise<string> {
