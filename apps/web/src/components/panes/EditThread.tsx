@@ -62,9 +62,9 @@ export function EditThread({ thread, from, onSave, onClose, heading = "Edit thre
       field.current?.focus();
       field.current?.select();
     } else if (from === "layout") {
-      const picked = layouts.current?.querySelector<HTMLElement>('[tabindex="0"]');
-      picked?.focus();
-      picked?.scrollIntoView?.({ block: "nearest" });
+      const tile = layouts.current?.querySelector<HTMLElement>('[tabindex="0"]');
+      tile?.focus();
+      tile?.scrollIntoView?.({ block: "nearest" });
     } else box.current?.focus();
     return () => {
       if (opener?.isConnected) opener.focus();

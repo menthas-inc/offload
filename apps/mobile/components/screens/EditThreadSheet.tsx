@@ -93,7 +93,8 @@ export function EditThreadSheet({
       keyboard="lift"
       onOpen={() => {
         if (from === "name") field.current?.focus();
-        // A medium LayoutTile is 64 wide, with the strip's gap of 10.
+        // shortcut: a medium LayoutTile taken as 64 wide plus the gap of 10; a label
+        // wider than its tile at a large text size lands short. Measure if that shows.
         if (from === "layout") layouts.current?.scrollTo({ x: LAYOUTS.indexOf(layout) * 74, animated: true });
       }}
     >

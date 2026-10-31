@@ -23,16 +23,27 @@
   box-shadow: inset 0 1px rgb(255 255 255 / 0.18);
 }
 
+.face {
+  display: flex;
+  flex: 0 0 auto;
+}
+
 .message {
   flex: 1;
   min-width: 0;
-  font: var(--weight-medium) 16px/1.35 var(--font-core);
+  font: var(--weight-medium) calc(16px * var(--type-scale))/1.35 var(--font-core);
   text-wrap: pretty;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   overflow: hidden;
+}
+
+/* Larger text may need more lines; nothing is cut. */
+:root[data-type="large"] .message {
+  -webkit-line-clamp: none;
+  line-clamp: none;
 }
 
 .action {
@@ -44,7 +55,7 @@
   background: transparent;
   cursor: pointer;
   color: inherit;
-  font: var(--weight-semibold) 16px/1 var(--font-core);
+  font: var(--weight-semibold) calc(16px * var(--type-scale))/1 var(--font-core);
   text-decoration: underline;
   text-underline-offset: 3px;
   white-space: nowrap;

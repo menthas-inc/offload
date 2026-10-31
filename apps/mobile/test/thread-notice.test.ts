@@ -17,13 +17,19 @@ describe("ThreadNotice", () => {
     expect(notice).not.toMatch(/surface-accent-soft/);
   });
 
-  it("reads 16 medium on two lines, and lets the largest text sizes run on", () => {
+  // Three, not the handoff's two: at 375 three of the five suggestions need a third line.
+  it("reads 16 medium on three lines at most, and lets the largest text sizes run on", () => {
     expect(notice).toMatch(/fontSize: 16/);
-    expect(notice).toMatch(/numberOfLines=\{fontScale > 1\.3 \? undefined : 2\}/);
+    expect(notice).toMatch(/numberOfLines=\{fontScale > 1\.3 \? undefined : 3\}/);
   });
 
-  it("announces itself once, politely", () => {
+  it("announces itself once, politely, on Android and on iOS", () => {
     expect(notice).toMatch(/accessibilityLiveRegion="polite"/);
+    expect(notice).toMatch(/if \(Platform\.OS === "ios"\)\s*AccessibilityInfo\.announceForAccessibility\(message\)/);
+  });
+
+  it("does not read a person's name twice: the face is hidden from a screen reader", () => {
+    expect(notice).toMatch(/importantForAccessibility="no-hide-descendants"/);
   });
 });
 
@@ -43,8 +49,13 @@ describe("the thread screen", () => {
   });
 
   it("says where to change it later only when the switch came from the notice", () => {
-    expect(thread).toMatch(/You can always change this in thread settings\./);
-    expect(thread).toMatch(/setEditingThread\("layout"\)/);
+    expect(thread).toMatch(/\$\{notice \? "\. You can always change this in thread settings\." : ""\}/);
+    expect(thread).toMatch(/onAction=\{\(\) => setEditingThread\("layout"\)\}/);
+  });
+
+  it("draws a faint line between two stacked notices, as the web does", () => {
+    expect(thread).toMatch(/stacked=\{headsUp !== null\}/);
+    expect(code("components/shell/ThreadNotice.tsx")).toMatch(/borderTopColor: "rgba\(255, 255, 255, 0\.18\)"/);
   });
 });
 

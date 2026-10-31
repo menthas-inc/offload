@@ -4,6 +4,9 @@
 // offload's layout suggestion in moss, a member's switch in ink, each with one
 // word to act on and an x, and the switch's Undo in the strip's place.
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -119,6 +122,23 @@ const notice = () => host.querySelector("[data-notice]");
 /** The x lets the strip leave first; happy-dom runs no animation, so its end is sent. */
 const left = () => act(async () => void notice()!.dispatchEvent(new Event("animationend", { bubbles: true })));
 
+const readCss = () => readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../src/components/panes/ThreadNotice.module.css"), "utf8");
+const css = readCss;
+
+describe("the strip's type", () => {
+  it("grows with the large text setting, as every other label does", async () => {
+    const css = readCss();
+    expect(css.match(/calc\(16px \* var\(--type-scale\)\)/g)).toHaveLength(2);
+    expect(css).not.toMatch(/ 16px\//);
+  });
+
+  // Three, not the handoff's two: at 375 three of the five suggestions need a third line.
+  it("clamps at three lines, and not at all with Larger text", () => {
+    expect(css()).toMatch(/-webkit-line-clamp: 3;/);
+    expect(css()).toMatch(/:root\[data-type="large"\] \.message \{\s*-webkit-line-clamp: none;/);
+  });
+});
+
 describe("the thread notice", () => {
   it("AC-1 draws offload's suggestion as the moss strip, naming the layout, with Switch", async () => {
     data.suggestion = "events";
@@ -145,10 +165,10 @@ describe("the thread notice", () => {
   it("AC-3 x dismisses it on the server and at once here", async () => {
     data.suggestion = "todo";
     await open();
+    // Written at the press, so leaving within the animation cannot lose it.
     await press("Dismiss suggestion");
-    expect(data.dismissed).toEqual([]);
-    await left();
     expect(data.dismissed).toEqual(["t1"]);
+    await left();
     expect(notice()).toBeNull();
   });
 
@@ -158,6 +178,8 @@ describe("the thread notice", () => {
     expect(notice()?.getAttribute("data-notice")).toBe("person");
     expect(notice()?.textContent).toContain("Sam switched this to the Events layout");
     expect(notice()?.textContent).toContain("SK");
+    // The face is not read: the line already names them.
+    expect(notice()?.querySelector('[aria-hidden="true"] [role=img]')).not.toBeNull();
     await press("Change this thread's layout");
     const dialog = host.querySelector('[role=dialog][aria-label="Edit thread"]');
     expect(dialog).not.toBeNull();

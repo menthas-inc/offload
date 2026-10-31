@@ -1405,7 +1405,8 @@ export function Thread({ id, onChanged, at }: Props) {
             actionLabel="Change this thread's layout"
             onAction={() => setEditingThread("layout")}
             // Already seen on the server; this hides it for the view.
-            onDismiss={() => setHeadsUp(null)}
+            onDismiss={() => undefined}
+            onGone={() => setHeadsUp(null)}
           />
         ) : null}
         {thread.layoutSuggestion && !suggestionGone ? (
@@ -1419,10 +1420,8 @@ export function Thread({ id, onChanged, at }: Props) {
               void saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue }, true);
             }}
             dismissLabel="Dismiss suggestion"
-            onDismiss={() => {
-              setSuggestionGone(true);
-              void dismissLayoutSuggestion(id);
-            }}
+            onDismiss={() => void dismissLayoutSuggestion(id)}
+            onGone={() => setSuggestionGone(true)}
           />
         ) : null}
 

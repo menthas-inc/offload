@@ -1262,6 +1262,7 @@ export default function Thread() {
         ) : null}
         {thread.layoutSuggestion && !suggestionGone ? (
           <ThreadNotice
+            stacked={headsUp !== null}
             message={suggestionLine(thread.layoutSuggestion)}
             action="Switch"
             actionLabel={`Switch this thread to the ${LAYOUT_NAMES[thread.layoutSuggestion]} layout`}

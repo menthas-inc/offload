@@ -2,8 +2,8 @@
 
 // The design system's ThreadNotice (2026-10-31): one full-width strip under a
 // thread's read for anything the thread needs to tell the person. Solid moss
-// with white from offload, ink from a person, the same in both themes. Two
-// lines at most, one underlined word to act on, an x to dismiss.
+// with white from offload, ink from a person. Three lines at most, one
+// underlined word to act on, an x to dismiss.
 
 import { useState } from "react";
 import { Avatar } from "../Avatar";
@@ -16,6 +16,7 @@ export function ThreadNotice({
   actionLabel,
   onAction,
   onDismiss,
+  onGone,
   dismissLabel = "Dismiss",
   person,
 }: {
@@ -25,8 +26,10 @@ export function ThreadNotice({
   /** What a screen reader hears for the action. */
   actionLabel: string;
   onAction: () => void;
-  /** Called once the strip has left. */
+  /** Called at the press: the write, so leaving the page cannot lose it. */
   onDismiss: () => void;
+  /** Called once the strip has left: drop it. */
+  onGone: () => void;
   dismissLabel?: string;
   /** A person's notice, drawn in ink with their face; offload's otherwise. */
   person?: { uid: string; initials: string; name: string } | undefined;
@@ -38,15 +41,40 @@ export function ThreadNotice({
       data-notice={person ? "person" : "offload"}
       aria-live="polite"
       onAnimationEnd={(event) => {
-        if (leaving && event.target === event.currentTarget) onDismiss();
+        if (leaving && event.target === event.currentTarget) onGone();
       }}
     >
-      {person ? <Avatar uid={person.uid} initials={person.initials} name={person.name} size={28} /> : <Icon name="sparkles" size={20} />}
+      {person ? (
+        // The line names them; the face is not read a second time.
+        <span className={styles.face} aria-hidden="true">
+          <Avatar
+            uid={person.uid}
+            initials={person.initials}
+            name={person.name}
+            size={28}
+          />
+        </span>
+      ) : (
+        <Icon name="sparkles" size={20} />
+      )}
       <span className={styles.message}>{message}</span>
-      <button type="button" className={styles.action} aria-label={actionLabel} onClick={onAction}>
+      <button
+        type="button"
+        className={styles.action}
+        aria-label={actionLabel}
+        onClick={onAction}
+      >
         {action}
       </button>
-      <button type="button" className={styles.dismiss} aria-label={dismissLabel} onClick={() => setLeaving(true)}>
+      <button
+        type="button"
+        className={styles.dismiss}
+        aria-label={dismissLabel}
+        onClick={() => {
+          onDismiss();
+          setLeaving(true);
+        }}
+      >
         <Icon name="x" size={18} />
       </button>
     </div>
