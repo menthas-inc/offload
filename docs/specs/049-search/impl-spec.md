@@ -240,6 +240,14 @@ Not changed:
 - **The keyboard spacer on the phones** adds the plate's height under Ask while the keyboard is up: extra scroll room, nothing hidden.
 - **"Add it to my threads"** in two sentences on the web (`NeedsYou.tsx`, `InvitationModal.tsx`) is prose rather than the tab's name; left for the owner.
 
+## The meaning floor, 2026-10-31
+
+Found on production the day after the merge: with no floor, a meaning arm always returned its nearest sixty, so "xqzvt plork" filled every group to its cap and *Nothing matches* (AC-14) could not appear from four letters on. The owner asked for a floor here and in the answer path.
+
+- **Every meaning read drops a candidate further than `MEANING_FLOOR = 0.56`** cosine distance (similarity under 0.44): content in `contentArms`, both of `search()`'s asides, and this page's notes and memories. One constant in `search/read.ts`, applied by `near()` to the index's top sixty after they are read, not as a where clause: with `hnsw.iterative_scan` on, a where that nothing passes (every nonsense query) keeps the scan widening to pgvector's tuple limit on every arm, which the review caught. The words arms are unchanged, so a prefix while typing still finds its row: meaning cannot tell "resu" from anything else (relevant and irrelevant both sat near 0.7).
+- **Measured, not chosen.** `docs/experiments/2026-10-meaning-floor`: 63 invented rows shaped like dumps, embedded with the agent's breadcrumb, 63 labelled queries, then 32 held-out queries written before they were embedded. At 0.56 all 25 nonsense and off-topic queries but one read nothing (the one: "weather in Tokyo" reaches the Japan trip), and 56 of 61 real questions still find a row they should. A final check on eight synthetic accounts written from the eval cast (2,030 items, 400 labelled queries) held it: 82% of real questions find a right item, 59 of 61 web questions and every nonsense query read nothing. A margin relative to the best match bought a few points of precision for a second constant and was left out. Nothing published gives a Voyage cutoff; the advice that exists is to floor the vector arm on its raw distance before fusing, calibrated on your own data, which is what this is.
+- **What it costs.** A question worded far from its row is not read by meaning: "my CV" sits at 0.578 from "Finish resume". The model can still search again in other words or list the thread, and the answering spec's AC-4c is amended to say an empty read is not evidence of absence.
+
 ## Constitution check
 
 - **OFF-1:** the query is in a body, never an address; no log, event or error carries it; Voyage failures log the status only; recent searches are device storage.

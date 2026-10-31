@@ -255,4 +255,26 @@ describe("the page read", () => {
     expect((await searchPage(me, "boiler")).rows).toEqual([]);
     expect((await searchPage(me, "boiler", { vector })).rows.map((r) => r.title)).toEqual(["Heater replaced"]);
   });
+
+  it("meaning reads nothing past the floor, in rows, notes and memories", async () => {
+    // A unit vector at cosine distance `d` from the query's axis.
+    const at = (d: number) =>
+      `[${Array.from({ length: 1024 }, (_, i) => (i === 0 ? 1 - d : i === 1 ? Math.sqrt(1 - (1 - d) ** 2) : 0)).join(",")}]`;
+    const me = await account();
+    const home = await thread(me, "Home");
+    for (const [title, d] of [["Heater replaced", 0.5], ["Bins on Tuesday", 0.7]] as const) {
+      const id = await row(home, me, title);
+      await sql`insert into content_chunks (content_id, thread_id, ord, text, embedding, embedded_at)
+        values (${id}::uuid, ${home}::uuid, 0, ${title}, ${at(d)}::halfvec, now())`.execute(db);
+      const n = await note(home, me, `note ${title}`);
+      await sql`insert into note_chunks (note_id, subject_id, ord, text, embedding, embedded_at)
+        values (${n}::uuid, ${home}::uuid, 0, ${title}, ${at(d)}::halfvec, now())`.execute(db);
+      await memory(me, `memory ${title}`, { embedding: sql`${at(d)}::halfvec` });
+    }
+
+    const found = await searchPage(me, "zzzz", { vector: at(0) });
+    expect(found.rows.map((r) => r.title)).toEqual(["Heater replaced"]);
+    expect(found.notes.map((n) => n.text)).toEqual(["note Heater replaced"]);
+    expect(found.memories.map((m) => m.text)).toEqual(["memory Heater replaced"]);
+  });
 });

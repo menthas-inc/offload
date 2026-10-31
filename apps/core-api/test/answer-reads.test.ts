@@ -530,6 +530,38 @@ describe("notes and conversations are found by meaning too, as content is", () =
     expect(found.asides ?? []).toEqual([]);
   });
 
+  it("reads nothing past the meaning floor: rows, notes or messages", async () => {
+    // A unit vector at cosine distance `d` from axis 0.
+    const at = (d: number) =>
+      `[${Array.from({ length: 1024 }, (_, i) => (i === 0 ? 1 - d : i === 1 ? Math.sqrt(1 - (1 - d) ** 2) : 0)).join(",")}]`;
+    const ana = await account();
+    const home = await thread(ana, "Home");
+    for (const [text, d] of [["Heater replaced", 0.5], ["Bins on Tuesday", 0.7]] as const) {
+      const id = await add(home, ana, text);
+      await sql`insert into content_chunks (content_id, thread_id, ord, text, embedding, embedded_at)
+        values (${id}::uuid, ${home}::uuid, 0, ${text}, ${at(d)}::halfvec, now())`.execute(db);
+      const n = await db
+        .insertInto("notes")
+        .values({ scope: "thread", subject_id: home, account_id: ana, kind: "standing", text: `note ${text}`, origin: "stated" } as never)
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      await sql`insert into note_chunks (note_id, subject_id, ord, text, embedding, embedded_at)
+        values (${n.id}, ${home}, 0, ${text}, ${at(d)}::halfvec, now())`.execute(db);
+      const chat = await db.insertInto("conversations").values({ account_id: ana }).returning("id").executeTakeFirstOrThrow();
+      const m = await db
+        .insertInto("messages")
+        .values({ conversation_id: chat.id, account_id: ana, role: "person", turn_id: uuidv7(), text: `said ${text}`, state: "answered" })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      await sql`insert into message_chunks (message_id, account_id, role, ord, text, embedding, embedded_at)
+        values (${m.id}, ${ana}, 'person', 0, ${text}, ${at(d)}::halfvec, now())`.execute(db);
+    }
+
+    const found = await search(ana, { query: "zzzz", queryVector: at(0) });
+    expect(found.rows.map((r) => r.title)).toEqual(["Heater replaced"]);
+    expect(found.asides?.map((a) => a.text).sort()).toEqual(["note Heater replaced", "said Heater replaced"]);
+  });
+
   it("still finds by words alone when there is no vector", async () => {
     const ana = await account();
     const home = await thread(ana, "Home");
@@ -540,23 +572,32 @@ describe("notes and conversations are found by meaning too, as content is", () =
 
 describe("AC-9 retrieval shortlists and never decides", () => {
   it("returns every candidate rather than picking the best one", async () => {
-    // **No distance threshold anywhere in the path.** `decisions.md` records
-    // why: embedders score below random on negation, so "not Lisbon" and
-    // "Lisbon" are neighbours, and anything that decides on a score alone gets
-    // that wrong silently. Retrieval hands the model candidates; the model
-    // reads them and answers.
+    // **No distance threshold decides between candidates.** `decisions.md`
+    // records why: embedders score below random on negation, so "not Lisbon"
+    // and "Lisbon" are neighbours, and anything that decides on a score alone
+    // gets that wrong silently. Retrieval hands the model candidates; the model
+    // reads them and answers. The meaning floor (2026-10-31) only drops far
+    // candidates, and a negation's neighbour is near by definition.
     const ana = await account();
     const lisbon = await thread(ana, "Lisbon trip");
-    await add(lisbon, ana, "Airbnb in Alfama", { body: "Booked for the 14th" });
-    await add(lisbon, ana, "Airbnb cancellation policy");
-    await add(lisbon, ana, "Not the Airbnb, the hotel");
+    // Through the meaning arm too, each a little further from the query than
+    // the last, the negated row furthest and still inside the floor.
+    const at = (d: number) =>
+      `[${Array.from({ length: 1024 }, (_, i) => (i === 0 ? 1 - d : i === 1 ? Math.sqrt(1 - (1 - d) ** 2) : 0)).join(",")}]`;
+    for (const [title, d, body] of [["Airbnb in Alfama", 0.1, "Booked for the 14th"], ["Airbnb cancellation policy", 0.15, ""], ["Not the Airbnb, the hotel", 0.2, ""]] as const) {
+      const id = await add(lisbon, ana, title, body ? { body } : {});
+      await sql`insert into content_chunks (content_id, thread_id, ord, text, embedding, embedded_at)
+        values (${id}::uuid, ${lisbon}::uuid, 0, ${title}, ${at(d)}::halfvec, now())`.execute(db);
+    }
 
-    const found = await search(ana, { query: "airbnb" });
-
-    // Three matches come back, including the negated one, which is exactly the
-    // row a threshold would have been most confident about dropping.
-    expect(found.rows).toHaveLength(3);
-    expect(found.rows.map((r) => r.title)).toContain("Not the Airbnb, the hotel");
+    // Words alone and with meaning: three matches either way, including the
+    // negated one, which is exactly the row a threshold deciding between
+    // neighbours would have been most confident about dropping.
+    for (const queryVector of [null, at(0)]) {
+      const found = await search(ana, { query: "airbnb", queryVector });
+      expect(found.rows).toHaveLength(3);
+      expect(found.rows.map((r) => r.title)).toContain("Not the Airbnb, the hotel");
+    }
   });
 
   it("never returns a verdict, only rows and whether there were more", async () => {

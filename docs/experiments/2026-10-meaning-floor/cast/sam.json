@@ -1,0 +1,1851 @@
+{
+ "person": "sam",
+ "threads": [
+  {
+   "key": "misc",
+   "name": "Miscellaneous"
+  },
+  {
+   "key": "bikes",
+   "name": "Bike repairs"
+  },
+  {
+   "key": "shop",
+   "name": "Shop inventory"
+  },
+  {
+   "key": "mtb",
+   "name": "Mountain biking"
+  },
+  {
+   "key": "band",
+   "name": "Band practice"
+  },
+  {
+   "key": "apt",
+   "name": "Apartment"
+  },
+  {
+   "key": "inv",
+   "name": "Invoices and taxes"
+  },
+  {
+   "key": "whistler",
+   "name": "Whistler ski trip"
+  }
+ ],
+ "rows": [
+  {
+   "id": "s001",
+   "thread": "bikes",
+   "title": "True the wheel for Dana",
+   "body": "Lateral hop near the valve. Spokes are fine."
+  },
+  {
+   "id": "s002",
+   "thread": "bikes",
+   "title": "Order Shimano chains",
+   "body": ""
+  },
+  {
+   "id": "s003",
+   "thread": "bikes",
+   "title": "Brake bleed on Marcus's Trek",
+   "body": "Hydraulic, DOT fluid not mineral oil. He needs it back Thursday."
+  },
+  {
+   "id": "s004",
+   "thread": "bikes",
+   "title": "chain needs oil",
+   "body": ""
+  },
+  {
+   "id": "s005",
+   "thread": "bikes",
+   "title": "pick up two inner tubes",
+   "body": ""
+  },
+  {
+   "id": "s006",
+   "thread": "bikes",
+   "title": "Replace cassette on Priya's gravel bike",
+   "body": "11-speed 11-34. She says it skips under load."
+  },
+  {
+   "id": "s007",
+   "thread": "bikes",
+   "title": "Tubeless conversion for the Rocky Mountain",
+   "body": ""
+  },
+  {
+   "id": "s008",
+   "thread": "bikes",
+   "title": "Flat tire, rear, commuter",
+   "body": "Glass shard in the casing. Patch the tube and check the tire."
+  },
+  {
+   "id": "s009",
+   "thread": "bikes",
+   "title": "Kid's bike left with no seat",
+   "body": "Tag it and call the number on the tag if it is still here after two weeks."
+  },
+  {
+   "id": "s010",
+   "thread": "bikes",
+   "title": "Check torque on the carbon seatpost",
+   "body": "Park Tool says 5 Nm for most. Use carbon paste."
+  },
+  {
+   "id": "s011",
+   "thread": "bikes",
+   "title": "Dana's bike ready Friday",
+   "body": ""
+  },
+  {
+   "id": "s012",
+   "thread": "bikes",
+   "title": "Replace bottom bracket on Elena's road bike",
+   "body": "Creaking. Probably BSA threaded, check before ordering."
+  },
+  {
+   "id": "s013",
+   "thread": "bikes",
+   "title": "How to Adjust a Front Derailleur | Park Tool",
+   "body": "https://www.parktool.com/en-us/blog/repair-help/front-derailleur-adjustment"
+  },
+  {
+   "id": "s014",
+   "thread": "bikes",
+   "title": "Wheel build for the tandem: 32h Velocity rims, DT Swiss spokes",
+   "body": "Need the spoke length from the calculator first."
+  },
+  {
+   "id": "s015",
+   "thread": "bikes",
+   "title": "Rear derailleur hanger bent on the Norco",
+   "body": "Straighten with the alignment gauge, spare hanger is on order."
+  },
+  {
+   "id": "s016",
+   "thread": "bikes",
+   "title": "Swap brake pads on Hao's commuter",
+   "body": "Metal sintered pads, he rides in the rain a lot."
+  },
+  {
+   "id": "s017",
+   "thread": "bikes",
+   "title": "Full tune up for Jess's Cannondale",
+   "body": "Cables and housing too."
+  },
+  {
+   "id": "s018",
+   "thread": "bikes",
+   "title": "Fix squeaky brakes on the e-bike",
+   "body": "Rotors contaminated. Isopropyl clean, new pads, bed them in."
+  },
+  {
+   "id": "s019",
+   "thread": "bikes",
+   "title": "Free steel Miyata frame on Craigslist",
+   "body": "Idea: build it up as a shop loaner."
+  },
+  {
+   "id": "s020",
+   "thread": "bikes",
+   "title": "Cable housing for Sunday's two jobs",
+   "body": ""
+  },
+  {
+   "id": "s021",
+   "thread": "bikes",
+   "title": "Install the 12-speed Deore chain",
+   "body": "Check the quick link direction."
+  },
+  {
+   "id": "s022",
+   "thread": "bikes",
+   "title": "New tires for the 20 inch kid's bike",
+   "body": ""
+  },
+  {
+   "id": "s023",
+   "thread": "bikes",
+   "title": "Grease the headset on the Surly",
+   "body": "Notchy when turning. Might need new bearings."
+  },
+  {
+   "id": "s024",
+   "thread": "bikes",
+   "title": "Check the fork on the Kona after the crash",
+   "body": "Customer says it hit a curb. Look for cracks at the crown."
+  },
+  {
+   "id": "s025",
+   "thread": "bikes",
+   "title": "New saddle for Tom's cruiser",
+   "body": ""
+  },
+  {
+   "id": "s026",
+   "thread": "bikes",
+   "title": "Bike fit appointment Thursday 4pm",
+   "body": "Bring the cleat wedges."
+  },
+  {
+   "id": "s027",
+   "thread": "bikes",
+   "title": "Call Dana about spoke tension",
+   "body": "She asked if the wheel will hold up on gravel."
+  },
+  {
+   "id": "s028",
+   "thread": "bikes",
+   "title": "Calibrate the torque wrench",
+   "body": ""
+  },
+  {
+   "id": "s029",
+   "thread": "bikes",
+   "title": "Chain checker reads 0.75, replace it",
+   "body": "Cassette is probably fine if caught now."
+  },
+  {
+   "id": "s030",
+   "thread": "bikes",
+   "title": "Pannier rack install for a customer",
+   "body": "Rear rack, needs eyelets. If none, use p-clamps."
+  },
+  {
+   "id": "s031",
+   "thread": "bikes",
+   "title": "True the rotor for Jess",
+   "body": ""
+  },
+  {
+   "id": "s032",
+   "thread": "bikes",
+   "title": "True the wheel for Marcus",
+   "body": ""
+  },
+  {
+   "id": "s033",
+   "thread": "bikes",
+   "title": "Top up sealant in the tubeless tires",
+   "body": "Every 3 to 6 months. Stan's or Orange Seal."
+  },
+  {
+   "id": "s034",
+   "thread": "bikes",
+   "title": "Pedals seized on the Raleigh",
+   "body": "Left pedal is reverse thread. Heat and penetrating oil."
+  },
+  {
+   "id": "s035",
+   "thread": "bikes",
+   "title": "Winter special: studded tires and fenders",
+   "body": "Put a sign in the window."
+  },
+  {
+   "id": "s036",
+   "thread": "bikes",
+   "title": "Mobile repair day at the farmers market",
+   "body": ""
+  },
+  {
+   "id": "s037",
+   "thread": "bikes",
+   "title": "Kona is ready for pickup",
+   "body": "Customer coming Saturday."
+  },
+  {
+   "id": "s038",
+   "thread": "bikes",
+   "title": "Order SRAM chains",
+   "body": "Eight of the 12-speed, for the Force groupsets."
+  },
+  {
+   "id": "s039",
+   "thread": "bikes",
+   "title": "Shifting is ghosting on the Giant",
+   "body": "Probably a stretched cable. Replace both."
+  },
+  {
+   "id": "s040",
+   "thread": "bikes",
+   "title": "Bleed kit has an air leak",
+   "body": "Replace the syringe o-ring."
+  },
+  {
+   "id": "s041",
+   "thread": "bikes",
+   "title": "Photos of the finished tandem for the shop page",
+   "body": ""
+  },
+  {
+   "id": "s042",
+   "thread": "shop",
+   "title": "Inner tubes 700x28 running low",
+   "body": "Only 3 left."
+  },
+  {
+   "id": "s043",
+   "thread": "shop",
+   "title": "Tubes 29 x 2.3, count 4",
+   "body": ""
+  },
+  {
+   "id": "s044",
+   "thread": "shop",
+   "title": "Order Shimano resin brake pads, 10 sets",
+   "body": ""
+  },
+  {
+   "id": "s045",
+   "thread": "shop",
+   "title": "Chain whip broke",
+   "body": "Tooth snapped on the cassette that was seized."
+  },
+  {
+   "id": "s046",
+   "thread": "shop",
+   "title": "Degreaser, restock",
+   "body": ""
+  },
+  {
+   "id": "s047",
+   "thread": "shop",
+   "title": "Rock N Roll Gold chain lube",
+   "body": "Customers keep asking for it."
+  },
+  {
+   "id": "s048",
+   "thread": "shop",
+   "title": "Shop rags",
+   "body": ""
+  },
+  {
+   "id": "s049",
+   "thread": "shop",
+   "title": "Zip ties and cable ends",
+   "body": ""
+  },
+  {
+   "id": "s050",
+   "thread": "shop",
+   "title": "Wholesale order from Pacific Cycle Supply",
+   "body": "Free shipping over $500, so batch it."
+  },
+  {
+   "id": "s051",
+   "thread": "shop",
+   "title": "Bolt cutters for the shop",
+   "body": "For cutting through cable locks that people lose the key to."
+  },
+  {
+   "id": "s052",
+   "thread": "shop",
+   "title": "DOT 5.1 brake fluid, 2 bottles",
+   "body": ""
+  },
+  {
+   "id": "s053",
+   "thread": "shop",
+   "title": "Mineral oil for Shimano brakes",
+   "body": "The 1 litre jug is cheaper than the small bottles."
+  },
+  {
+   "id": "s054",
+   "thread": "shop",
+   "title": "Tubeless valve stems",
+   "body": "Get the 44mm ones, deep rims."
+  },
+  {
+   "id": "s055",
+   "thread": "shop",
+   "title": "Sealant, 1 litre jug",
+   "body": ""
+  },
+  {
+   "id": "s056",
+   "thread": "shop",
+   "title": "Bar tape, black and white",
+   "body": "Six rolls of each. Cork ones sell fastest."
+  },
+  {
+   "id": "s057",
+   "thread": "shop",
+   "title": "Spoke assortment, 14g silver",
+   "body": "Mostly 260 to 290 mm."
+  },
+  {
+   "id": "s058",
+   "thread": "shop",
+   "title": "Shimano 11-speed cassettes, 3 in stock",
+   "body": ""
+  },
+  {
+   "id": "s059",
+   "thread": "shop",
+   "title": "Hollowtech bottom bracket tool",
+   "body": ""
+  },
+  {
+   "id": "s060",
+   "thread": "shop",
+   "title": "Shop stool is cracked",
+   "body": "Someone is going to fall off it. Replace with the metal one."
+  },
+  {
+   "id": "s061",
+   "thread": "shop",
+   "title": "Compressor oil",
+   "body": ""
+  },
+  {
+   "id": "s062",
+   "thread": "shop",
+   "title": "Parts washer solvent",
+   "body": ""
+  },
+  {
+   "id": "s063",
+   "thread": "shop",
+   "title": "New floor pump for the front counter",
+   "body": ""
+  },
+  {
+   "id": "s064",
+   "thread": "shop",
+   "title": "Supplier gift card expires in December",
+   "body": ""
+  },
+  {
+   "id": "s065",
+   "thread": "shop",
+   "title": "Cycling caps to sell by the till",
+   "body": "Local artist could do the print."
+  },
+  {
+   "id": "s066",
+   "thread": "shop",
+   "title": "Count the cables and housing",
+   "body": ""
+  },
+  {
+   "id": "s067",
+   "thread": "shop",
+   "title": "Nitrile gloves, large, 2 boxes",
+   "body": ""
+  },
+  {
+   "id": "s068",
+   "thread": "shop",
+   "title": "Truing stand needs a new dial gauge",
+   "body": ""
+  },
+  {
+   "id": "s069",
+   "thread": "shop",
+   "title": "Sell more USB lights in winter",
+   "body": "Put them at eye level near the till."
+  },
+  {
+   "id": "s070",
+   "thread": "shop",
+   "title": "Pedro's tire levers, 6 pairs",
+   "body": ""
+  },
+  {
+   "id": "s071",
+   "thread": "shop",
+   "title": "Order Shimano chains",
+   "body": "12-speed and 11-speed, six of each."
+  },
+  {
+   "id": "s072",
+   "thread": "mtb",
+   "title": "Ride Fromme this weekend",
+   "body": "Meet at the top of Mountain Highway at 9."
+  },
+  {
+   "id": "s073",
+   "thread": "mtb",
+   "title": "Seymour trails closed for the rain",
+   "body": "Check the society page again on Friday."
+  },
+  {
+   "id": "s074",
+   "thread": "mtb",
+   "title": "Trailforks: Fromme trail conditions",
+   "body": "https://www.trailforks.com/region/fromme/"
+  },
+  {
+   "id": "s075",
+   "thread": "mtb",
+   "title": "Dial in the fork pressure",
+   "body": "I weigh 80 kg, aim for 25 percent sag."
+  },
+  {
+   "id": "s076",
+   "thread": "mtb",
+   "title": "New dropper post, 150mm",
+   "body": "30.9 diameter. KS or Fox, whichever is cheaper."
+  },
+  {
+   "id": "s077",
+   "thread": "mtb",
+   "title": "Sign up for the Squamish enduro in spring",
+   "body": ""
+  },
+  {
+   "id": "s078",
+   "thread": "mtb",
+   "title": "Cornering clinic for beginners",
+   "body": ""
+  },
+  {
+   "id": "s079",
+   "thread": "mtb",
+   "title": "Chunky 2.5 tires for winter",
+   "body": "Maxxis DHF front, Dissector rear."
+  },
+  {
+   "id": "s080",
+   "thread": "mtb",
+   "title": "Pump track Saturday with the club kids",
+   "body": ""
+  },
+  {
+   "id": "s081",
+   "thread": "mtb",
+   "title": "Buy knee pads",
+   "body": ""
+  },
+  {
+   "id": "s082",
+   "thread": "mtb",
+   "title": "Helmet cracked, replace before the next ride",
+   "body": "Dropped it on the concrete floor. Never trust a cracked shell."
+  },
+  {
+   "id": "s083",
+   "thread": "mtb",
+   "title": "Always carry a tube, multitool and pump",
+   "body": ""
+  },
+  {
+   "id": "s084",
+   "thread": "mtb",
+   "title": "Shuttle day at the Whistler bike park next summer",
+   "body": ""
+  },
+  {
+   "id": "s085",
+   "thread": "mtb",
+   "title": "Half Nelson in Squamish, intermediate",
+   "body": "Bring a camera for the roots section."
+  },
+  {
+   "id": "s086",
+   "thread": "mtb",
+   "title": "Ride with Behrooz when he visits",
+   "body": "He will need a rental, size large."
+  },
+  {
+   "id": "s087",
+   "thread": "mtb",
+   "title": "GPS file from Sunday's ride",
+   "body": "Upload it to Strava and send the link to the group."
+  },
+  {
+   "id": "s088",
+   "thread": "mtb",
+   "title": "Rear shock service is due at 200 hours",
+   "body": ""
+  },
+  {
+   "id": "s089",
+   "thread": "mtb",
+   "title": "How to Manual a Mountain Bike (Beginner Tutorial) - YouTube",
+   "body": ""
+  },
+  {
+   "id": "s090",
+   "thread": "mtb",
+   "title": "Trail work day Saturday",
+   "body": "North Shore trail society. Bring gloves and a shovel."
+  },
+  {
+   "id": "s091",
+   "thread": "mtb",
+   "title": "Hydration pack is leaking",
+   "body": ""
+  },
+  {
+   "id": "s092",
+   "thread": "mtb",
+   "title": "Cypress is closed for snow",
+   "body": ""
+  },
+  {
+   "id": "s093",
+   "thread": "mtb",
+   "title": "Lines to try on Pipeline",
+   "body": ""
+  },
+  {
+   "id": "s094",
+   "thread": "band",
+   "title": "Practice Tuesday 7pm",
+   "body": "In the garage on Kingsway."
+  },
+  {
+   "id": "s095",
+   "thread": "band",
+   "title": "New bass strings, roundwound 45-105",
+   "body": ""
+  },
+  {
+   "id": "s096",
+   "thread": "band",
+   "title": "Learn the bass line for Superstition",
+   "body": "The funk one. Play along with the record, slow it down first."
+  },
+  {
+   "id": "s097",
+   "thread": "band",
+   "title": "Gig at The Anchor Room, Nov 21",
+   "body": "Doors at 8, we play at 9:30."
+  },
+  {
+   "id": "s098",
+   "thread": "band",
+   "title": "Setlist draft, ten songs",
+   "body": "Open with the up tempo one, end with the cover."
+  },
+  {
+   "id": "s099",
+   "thread": "band",
+   "title": "Book the rehearsal room for December",
+   "body": ""
+  },
+  {
+   "id": "s100",
+   "thread": "band",
+   "title": "Earplugs",
+   "body": ""
+  },
+  {
+   "id": "s101",
+   "thread": "band",
+   "title": "Amp is buzzing, check the cable",
+   "body": "Probably a ground loop. Try a different outlet."
+  },
+  {
+   "id": "s102",
+   "thread": "band",
+   "title": "Kofi can't make Tuesday",
+   "body": ""
+  },
+  {
+   "id": "s103",
+   "thread": "band",
+   "title": "Tuner pedal",
+   "body": ""
+  },
+  {
+   "id": "s104",
+   "thread": "band",
+   "title": "Song idea: 12-bar in E with a walking bass line",
+   "body": ""
+  },
+  {
+   "id": "s105",
+   "thread": "band",
+   "title": "Slap Bass for Beginners | StudioBass Lessons",
+   "body": ""
+  },
+  {
+   "id": "s106",
+   "thread": "band",
+   "title": "Print flyers for the gig",
+   "body": "50 copies at the print shop on Broadway."
+  },
+  {
+   "id": "s107",
+   "thread": "band",
+   "title": "Send the demo to the campus radio station",
+   "body": ""
+  },
+  {
+   "id": "s108",
+   "thread": "band",
+   "title": "Ifeoma wants a key change in the bridge",
+   "body": ""
+  },
+  {
+   "id": "s109",
+   "thread": "band",
+   "title": "Rehearsal room is $60, split four ways",
+   "body": ""
+  },
+  {
+   "id": "s110",
+   "thread": "band",
+   "title": "Spare 9V batteries for the pedals",
+   "body": ""
+  },
+  {
+   "id": "s111",
+   "thread": "band",
+   "title": "Ask Dev to bring the second guitar amp",
+   "body": ""
+  },
+  {
+   "id": "s112",
+   "thread": "apt",
+   "title": "Rent due on the 1st",
+   "body": "$1,850 e-transfer to Mrs. Tran."
+  },
+  {
+   "id": "s113",
+   "thread": "apt",
+   "title": "Fix the leaking kitchen tap",
+   "body": "Drip under the sink too. Might be the washer."
+  },
+  {
+   "id": "s114",
+   "thread": "apt",
+   "title": "Ask the landlord about the heating",
+   "body": "Radiator in the bedroom stays cold."
+  },
+  {
+   "id": "s115",
+   "thread": "apt",
+   "title": "Renter's insurance renewal in January",
+   "body": ""
+  },
+  {
+   "id": "s116",
+   "thread": "apt",
+   "title": "Bike hook for the hallway",
+   "body": ""
+  },
+  {
+   "id": "s117",
+   "thread": "apt",
+   "title": "Replace smoke alarm batteries",
+   "body": ""
+  },
+  {
+   "id": "s118",
+   "thread": "apt",
+   "title": "Electric bill due the 15th",
+   "body": ""
+  },
+  {
+   "id": "s119",
+   "thread": "apt",
+   "title": "Switch internet to fibre",
+   "body": "Current plan is 150 Mbps for $85. Ask about the promo."
+  },
+  {
+   "id": "s120",
+   "thread": "apt",
+   "title": "Move the couch",
+   "body": ""
+  },
+  {
+   "id": "s121",
+   "thread": "apt",
+   "title": "Laundry Sunday",
+   "body": ""
+  },
+  {
+   "id": "s122",
+   "thread": "apt",
+   "title": "Mouse in the kitchen, get traps",
+   "body": "Seal the gap under the stove with steel wool."
+  },
+  {
+   "id": "s123",
+   "thread": "apt",
+   "title": "Shower curtain",
+   "body": ""
+  },
+  {
+   "id": "s124",
+   "thread": "apt",
+   "title": "Compost bin pickup is Wednesday",
+   "body": ""
+  },
+  {
+   "id": "s125",
+   "thread": "apt",
+   "title": "Upstairs neighbour is loud",
+   "body": "Talk to the building manager."
+  },
+  {
+   "id": "s126",
+   "thread": "apt",
+   "title": "Floating shelves for the records",
+   "body": "Need a stud finder and two 30 inch brackets."
+  },
+  {
+   "id": "s127",
+   "thread": "apt",
+   "title": "Billy bookcase from IKEA",
+   "body": ""
+  },
+  {
+   "id": "s128",
+   "thread": "apt",
+   "title": "Paint the spare room sage green",
+   "body": "Two coats. Buy tape and a roller."
+  },
+  {
+   "id": "s129",
+   "thread": "apt",
+   "title": "Lease ends August 31, renew or move",
+   "body": ""
+  },
+  {
+   "id": "s130",
+   "thread": "apt",
+   "title": "Bike room door code changed",
+   "body": ""
+  },
+  {
+   "id": "s131",
+   "thread": "apt",
+   "title": "Descale the kettle",
+   "body": ""
+  },
+  {
+   "id": "s132",
+   "thread": "apt",
+   "title": "Warm white light bulbs, E26",
+   "body": ""
+  },
+  {
+   "id": "s133",
+   "thread": "apt",
+   "title": "Water the monstera on Sundays",
+   "body": ""
+  },
+  {
+   "id": "s134",
+   "thread": "inv",
+   "title": "Invoice Marcus for the brake job",
+   "body": "$140 parts and labour, net 14."
+  },
+  {
+   "id": "s135",
+   "thread": "inv",
+   "title": "Follow up with Marcus about the invoice",
+   "body": ""
+  },
+  {
+   "id": "s136",
+   "thread": "inv",
+   "title": "File the GST return",
+   "body": "Quarter ended Sept 30, due end of month."
+  },
+  {
+   "id": "s137",
+   "thread": "inv",
+   "title": "Keep the receipt from Pacific Cycle Supply",
+   "body": ""
+  },
+  {
+   "id": "s138",
+   "thread": "inv",
+   "title": "Business insurance renewal",
+   "body": ""
+  },
+  {
+   "id": "s139",
+   "thread": "inv",
+   "title": "Mileage log for the van",
+   "body": "Note the start and end km for every mobile job."
+  },
+  {
+   "id": "s140",
+   "thread": "inv",
+   "title": "Accountant meeting Nov 12, 10am",
+   "body": "Bring the quarterly receipts and the bank statements."
+  },
+  {
+   "id": "s141",
+   "thread": "inv",
+   "title": "Set up e-transfer autodeposit",
+   "body": ""
+  },
+  {
+   "id": "s142",
+   "thread": "inv",
+   "title": "Add a late fee line to the invoice template",
+   "body": ""
+  },
+  {
+   "id": "s143",
+   "thread": "inv",
+   "title": "Dana owes $35 for the wheel true",
+   "body": ""
+  },
+  {
+   "id": "s144",
+   "thread": "inv",
+   "title": "Pay supplier invoice #2291",
+   "body": "Due in 10 days. Pay by e-transfer."
+  },
+  {
+   "id": "s145",
+   "thread": "inv",
+   "title": "Square Payment Processing Fees | Square",
+   "body": ""
+  },
+  {
+   "id": "s146",
+   "thread": "inv",
+   "title": "Business licence renewal, City of Vancouver",
+   "body": ""
+  },
+  {
+   "id": "s147",
+   "thread": "inv",
+   "title": "Quarterly income tax instalment",
+   "body": ""
+  },
+  {
+   "id": "s148",
+   "thread": "inv",
+   "title": "Scan receipts every Friday",
+   "body": "Use the phone app and file them by month."
+  },
+  {
+   "id": "s149",
+   "thread": "inv",
+   "title": "WorkSafeBC premium",
+   "body": ""
+  },
+  {
+   "id": "s150",
+   "thread": "inv",
+   "title": "Chase Hao for payment, 30 days overdue",
+   "body": "Send a reminder. If no reply by Friday, call him."
+  },
+  {
+   "id": "s151",
+   "thread": "inv",
+   "title": "Open a separate business bank account",
+   "body": ""
+  },
+  {
+   "id": "s152",
+   "thread": "inv",
+   "title": "Home office deduction does not apply, the shop is rented",
+   "body": "Ask Mr. Lim to confirm."
+  },
+  {
+   "id": "s153",
+   "thread": "inv",
+   "title": "Update the price list: labour is $95 an hour",
+   "body": ""
+  },
+  {
+   "id": "s154",
+   "thread": "whistler",
+   "title": "Book the cabin in Creekside for Jan 9 to 12",
+   "body": ""
+  },
+  {
+   "id": "s155",
+   "thread": "whistler",
+   "title": "Buy lift tickets, three days",
+   "body": ""
+  },
+  {
+   "id": "s156",
+   "thread": "whistler",
+   "title": "Wax and edge the skis before the trip",
+   "body": ""
+  },
+  {
+   "id": "s157",
+   "thread": "whistler",
+   "title": "Drive up Friday morning on the Sea to Sky",
+   "body": "About two hours without traffic."
+  },
+  {
+   "id": "s158",
+   "thread": "whistler",
+   "title": "Winter tires on the car by Nov 1",
+   "body": "Book the tire shop. They fill up."
+  },
+  {
+   "id": "s159",
+   "thread": "whistler",
+   "title": "Rent skis for Behrooz",
+   "body": "He has not skied in five years. Intermediate boots, size 10."
+  },
+  {
+   "id": "s160",
+   "thread": "whistler",
+   "title": "Meera wants a lesson on day one",
+   "body": ""
+  },
+  {
+   "id": "s161",
+   "thread": "whistler",
+   "title": "Cabin groceries: pasta, chili, beer",
+   "body": "Behrooz does not eat pork."
+  },
+  {
+   "id": "s162",
+   "thread": "whistler",
+   "title": "Dinner reservation Saturday 7pm",
+   "body": ""
+  },
+  {
+   "id": "s163",
+   "thread": "whistler",
+   "title": "Hot tub at the cabin?",
+   "body": ""
+  },
+  {
+   "id": "s164",
+   "thread": "whistler",
+   "title": "Playlist for the drive",
+   "body": ""
+  },
+  {
+   "id": "s165",
+   "thread": "whistler",
+   "title": "Split the cabin three ways, $330 each",
+   "body": ""
+  },
+  {
+   "id": "s166",
+   "thread": "whistler",
+   "title": "Whistler Blackcomb Snow Report | Conditions and Webcams",
+   "body": ""
+  },
+  {
+   "id": "s167",
+   "thread": "whistler",
+   "title": "New goggle lens",
+   "body": ""
+  },
+  {
+   "id": "s168",
+   "thread": "whistler",
+   "title": "Hand warmers",
+   "body": ""
+  },
+  {
+   "id": "s169",
+   "thread": "whistler",
+   "title": "Snow chains in the trunk",
+   "body": ""
+  },
+  {
+   "id": "s170",
+   "thread": "whistler",
+   "title": "Check the avalanche forecast if we go backcountry",
+   "body": ""
+  },
+  {
+   "id": "s171",
+   "thread": "whistler",
+   "title": "Pick up Behrooz and Meera at the airport",
+   "body": "Their flight lands at YVR at 6:40pm Thursday."
+  },
+  {
+   "id": "s172",
+   "thread": "whistler",
+   "title": "Apres spot, ask Meera which place she liked",
+   "body": ""
+  },
+  {
+   "id": "s173",
+   "thread": "whistler",
+   "title": "Gas money for the drive",
+   "body": ""
+  },
+  {
+   "id": "s174",
+   "thread": "whistler",
+   "title": "Leave before 7am to beat the highway traffic",
+   "body": ""
+  },
+  {
+   "id": "s175",
+   "thread": "whistler",
+   "title": "Pack helmet, base layers and neck gaiter",
+   "body": ""
+  },
+  {
+   "id": "s176",
+   "thread": "misc",
+   "title": "Eggs",
+   "body": ""
+  },
+  {
+   "id": "s177",
+   "thread": "misc",
+   "title": "Milk, bread, bananas",
+   "body": ""
+  },
+  {
+   "id": "s178",
+   "thread": "misc",
+   "title": "Call mum",
+   "body": "Sunday afternoon."
+  },
+  {
+   "id": "s179",
+   "thread": "misc",
+   "title": "Dentist appointment Nov 4 at 2pm",
+   "body": ""
+  },
+  {
+   "id": "s180",
+   "thread": "misc",
+   "title": "Renew passport",
+   "body": "Photos first. It expires in March."
+  },
+  {
+   "id": "s181",
+   "thread": "misc",
+   "title": "Behrooz's birthday is in March, get him something",
+   "body": ""
+  },
+  {
+   "id": "s182",
+   "thread": "misc",
+   "title": "Flu shot",
+   "body": ""
+  },
+  {
+   "id": "s183",
+   "thread": "misc",
+   "title": "Oil change for the van",
+   "body": ""
+  },
+  {
+   "id": "s184",
+   "thread": "misc",
+   "title": "Phone charger cable",
+   "body": ""
+  },
+  {
+   "id": "s185",
+   "thread": "misc",
+   "title": "Pricing Your Services with Confidence | The Small Shop Podcast",
+   "body": ""
+  },
+  {
+   "id": "s186",
+   "thread": "misc",
+   "title": "Renew library card",
+   "body": ""
+  },
+  {
+   "id": "s187",
+   "thread": "misc",
+   "title": "Haircut Saturday",
+   "body": ""
+  },
+  {
+   "id": "s188",
+   "thread": "misc",
+   "title": "Book the dentist",
+   "body": ""
+  },
+  {
+   "id": "s189",
+   "thread": "misc",
+   "title": "Easy Jollof Rice Recipe | Nigerian Kitchen",
+   "body": "https://www.nigeriankitchen.example/jollof-rice"
+  },
+  {
+   "id": "s190",
+   "thread": "misc",
+   "title": "Send Auntie Ngozi a card, her birthday is Nov 14",
+   "body": ""
+  },
+  {
+   "id": "s191",
+   "thread": "misc",
+   "title": "Return the library books",
+   "body": ""
+  },
+  {
+   "id": "s192",
+   "thread": "misc",
+   "title": "Coffee beans",
+   "body": ""
+  },
+  {
+   "id": "s193",
+   "thread": "misc",
+   "title": "Pick up dry cleaning",
+   "body": ""
+  },
+  {
+   "id": "s194",
+   "thread": "misc",
+   "title": "Watch the movie Meera recommended",
+   "body": "She said it is a slow burn but worth it."
+  },
+  {
+   "id": "s195",
+   "thread": "misc",
+   "title": "5k on the seawall Sunday",
+   "body": ""
+  },
+  {
+   "id": "s196",
+   "thread": "misc",
+   "title": "Cancel the gym membership",
+   "body": ""
+  },
+  {
+   "id": "s197",
+   "thread": "misc",
+   "title": "Cat food",
+   "body": ""
+  },
+  {
+   "id": "s198",
+   "thread": "misc",
+   "title": "Vet appointment for Spoke Nov 9",
+   "body": "Annual shots."
+  },
+  {
+   "id": "s199",
+   "thread": "misc",
+   "title": "Cheese, eggs, spinach",
+   "body": ""
+  },
+  {
+   "id": "s200",
+   "thread": "misc",
+   "title": "Ask Behrooz how the app is going",
+   "body": ""
+  },
+  {
+   "id": "s201",
+   "thread": "misc",
+   "title": "Phone screen is cracked",
+   "body": ""
+  },
+  {
+   "id": "s202",
+   "thread": "misc",
+   "title": "Winter jacket sale",
+   "body": ""
+  },
+  {
+   "id": "s203",
+   "thread": "misc",
+   "title": "Read The Overstory",
+   "body": ""
+  },
+  {
+   "id": "s204",
+   "thread": "misc",
+   "title": "Pick up the tax slips from the mailbox",
+   "body": ""
+  },
+  {
+   "id": "s205",
+   "thread": "misc",
+   "title": "Buy a lock for the bike trailer",
+   "body": ""
+  },
+  {
+   "id": "s206",
+   "thread": "misc",
+   "title": "Call the van insurance about the claim",
+   "body": "Windshield chip got bigger."
+  },
+  {
+   "id": "s207",
+   "thread": "misc",
+   "title": "Renew the van registration",
+   "body": ""
+  }
+ ],
+ "notes": [
+  {
+   "id": "sn01",
+   "thread": "bikes",
+   "text": "Shop hours are Tuesday to Saturday, 10 to 6."
+  },
+  {
+   "id": "sn02",
+   "thread": "bikes",
+   "text": "Labour is $95 an hour."
+  },
+  {
+   "id": "sn03",
+   "thread": "bikes",
+   "text": "Customers get a text when their bike is ready."
+  },
+  {
+   "id": "sn04",
+   "thread": "bikes",
+   "text": "Before bleeding hydraulic brakes, check whether the system takes mineral oil or DOT fluid."
+  },
+  {
+   "id": "sn05",
+   "thread": "bikes",
+   "text": "Jobs not collected after two weeks get tagged and held."
+  },
+  {
+   "id": "sn06",
+   "thread": "shop",
+   "text": "Orders go through Pacific Cycle Supply, free shipping over $500."
+  },
+  {
+   "id": "sn07",
+   "thread": "shop",
+   "text": "Reorder inner tubes when a size drops under six."
+  },
+  {
+   "id": "sn08",
+   "thread": "mtb",
+   "text": "Home trails are Fromme and Seymour on the North Shore."
+  },
+  {
+   "id": "sn09",
+   "thread": "mtb",
+   "text": "Fork setup is 70 psi, 25 percent sag."
+  },
+  {
+   "id": "sn10",
+   "thread": "band",
+   "text": "Rehearsal is Tuesdays at 7 in the garage on Kingsway."
+  },
+  {
+   "id": "sn11",
+   "thread": "band",
+   "text": "Sam plays bass in a four piece called Cold Frames."
+  },
+  {
+   "id": "sn12",
+   "thread": "band",
+   "text": "The rehearsal room costs $60 a night, split four ways."
+  },
+  {
+   "id": "sn13",
+   "thread": "apt",
+   "text": "Rent is $1,850, due on the 1st."
+  },
+  {
+   "id": "sn14",
+   "thread": "apt",
+   "text": "The landlord is Mrs. Tran."
+  },
+  {
+   "id": "sn15",
+   "thread": "apt",
+   "text": "The lease ends August 31."
+  },
+  {
+   "id": "sn16",
+   "thread": "apt",
+   "text": "Garbage goes out Monday night, compost Wednesday."
+  },
+  {
+   "id": "sn17",
+   "thread": "inv",
+   "text": "Invoices are net 14."
+  },
+  {
+   "id": "sn18",
+   "thread": "inv",
+   "text": "GST is filed quarterly."
+  },
+  {
+   "id": "sn19",
+   "thread": "inv",
+   "text": "The accountant is Mr. Lim."
+  },
+  {
+   "id": "sn20",
+   "thread": "whistler",
+   "text": "Cabin booked for January 9 to 12."
+  },
+  {
+   "id": "sn21",
+   "thread": "whistler",
+   "text": "Three of us: Sam, Behrooz and Meera."
+  },
+  {
+   "id": "sn22",
+   "thread": "whistler",
+   "text": "Sam is driving up from Vancouver."
+  },
+  {
+   "id": "sn23",
+   "thread": "whistler",
+   "text": "Behrooz and Meera fly in to YVR."
+  },
+  {
+   "id": "sn24",
+   "thread": "misc",
+   "text": "Anything unsorted lands here."
+  },
+  {
+   "id": "sn25",
+   "thread": "misc",
+   "text": "Spoke the cat only eats the wet food."
+  }
+ ],
+ "memories": [
+  {
+   "id": "sm01",
+   "text": "They run a small bike repair shop in Vancouver."
+  },
+  {
+   "id": "sm02",
+   "text": "They live in Vancouver."
+  },
+  {
+   "id": "sm03",
+   "text": "They play bass in a band called Cold Frames."
+  },
+  {
+   "id": "sm04",
+   "text": "Their oldest friend is Behrooz, who lives in Toronto."
+  },
+  {
+   "id": "sm05",
+   "text": "Their friend Meera is Behrooz's wife."
+  },
+  {
+   "id": "sm06",
+   "text": "They have a cat named Spoke."
+  },
+  {
+   "id": "sm07",
+   "text": "They ski at Whistler with Behrooz and Meera every winter."
+  },
+  {
+   "id": "sm08",
+   "text": "Their landlord is Mrs. Tran."
+  },
+  {
+   "id": "sm09",
+   "text": "They ride mountain bikes on the North Shore."
+  },
+  {
+   "id": "sm10",
+   "text": "Their accountant is Mr. Lim."
+  },
+  {
+   "id": "sm11",
+   "text": "They are allergic to shellfish."
+  },
+  {
+   "id": "sm12",
+   "text": "Their aunt Ngozi lives in Calgary."
+  },
+  {
+   "id": "sm13",
+   "text": "Their shop is on Main Street."
+  },
+  {
+   "id": "sm14",
+   "text": "They drive a white van for mobile repairs."
+  },
+  {
+   "id": "sm15",
+   "text": "Their bandmate Kofi plays drums."
+  },
+  {
+   "id": "sm16",
+   "text": "Their dentist is Dr. Whitfield."
+  },
+  {
+   "id": "sm17",
+   "text": "Their birthday is in June."
+  },
+  {
+   "id": "sm18",
+   "text": "They run on the seawall on Sundays."
+  },
+  {
+   "id": "sm19",
+   "text": "Their family is from Nigeria."
+  },
+  {
+   "id": "sm20",
+   "text": "They prefer Shimano parts over SRAM."
+  }
+ ],
+ "queries": [
+  {
+   "q": "brakes",
+   "relevant": [
+    "s003",
+    "s016",
+    "s018",
+    "s031",
+    "s040",
+    "s044",
+    "s052",
+    "s053",
+    "s134",
+    "sn04"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "dentist",
+   "relevant": [
+    "s179",
+    "s188",
+    "sm16"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "landlord",
+   "relevant": [
+    "s112",
+    "s114",
+    "sn14",
+    "sm08"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Kofi",
+   "relevant": [
+    "s102",
+    "sm15"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "passport",
+   "relevant": [
+    "s180"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Marcus",
+   "relevant": [
+    "s003",
+    "s032",
+    "s134",
+    "s135"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "eggs",
+   "relevant": [
+    "s176",
+    "s199"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Squamish",
+   "relevant": [
+    "s077",
+    "s085"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "when is the gig",
+   "relevant": [
+    "s097",
+    "s106"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how much is the rent",
+   "relevant": [
+    "s112",
+    "sn13"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "who is my accountant",
+   "relevant": [
+    "s140",
+    "s152",
+    "sn19",
+    "sm10"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "what time does the shop open",
+   "relevant": [
+    "sn01"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "when does the lease end",
+   "relevant": [
+    "s129",
+    "sn15"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how do I bleed Shimano brakes",
+   "relevant": [
+    "s003",
+    "s040",
+    "s052",
+    "s053",
+    "sn04"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how much is the cabin per person",
+   "relevant": [
+    "s165"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "when does Behrooz land",
+   "relevant": [
+    "s171",
+    "sn23"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "mountain bike trail conditions",
+   "relevant": [
+    "s073",
+    "s074",
+    "s092"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "hearing protection for shows",
+   "relevant": [
+    "s100"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "money I'm waiting on from customers",
+   "relevant": [
+    "s134",
+    "s135",
+    "s143",
+    "s150"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "my flat is freezing",
+   "relevant": [
+    "s114"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "meeting the visitors off their plane",
+   "relevant": [
+    "s171",
+    "sn23"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "which company do I buy stock from",
+   "relevant": [
+    "s050",
+    "s137",
+    "sn06"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "suspension numbers I settled on",
+   "relevant": [
+    "s075",
+    "sn09"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "my feline's yearly checkup",
+   "relevant": [
+    "s198"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "rodent problem at home",
+   "relevant": [
+    "s122"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "lodging for the snow weekend",
+   "relevant": [
+    "s154",
+    "sn20"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "liquid that plugs small punctures",
+   "relevant": [
+    "s033",
+    "s055"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "sit down with the bookkeeper",
+   "relevant": [
+    "s140",
+    "sn19",
+    "sm10"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "a novel for the evenings",
+   "relevant": [
+    "s203"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "plate stickers due",
+   "relevant": [
+    "s207"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "gift idea for my best mate",
+   "relevant": [
+    "s181",
+    "sm04"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "foods I can't have",
+   "relevant": [
+    "sm11"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "weather in Lisbon tomorrow",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "who won the game last night",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "convert 30 euros to dollars",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "how tall is the Eiffel Tower",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "capital of Australia",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "translate good morning into Portuguese",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "when does daylight saving time end",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "how many ounces in a pound",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "hiring a part time mechanic",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "recording studio rates",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "kayak rental",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "bike industry trade show",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "dog groomer",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "xqzvt plork",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "asdfghjkl",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "qwpo zmxn",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "blorptastic wumbo",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "jjjjj kkkk lll",
+   "relevant": [],
+   "kind": "nonsense"
+  }
+ ]
+}

@@ -1,0 +1,1818 @@
+{
+ "person": "maya",
+ "threads": [
+  {
+   "key": "garden",
+   "name": "Garden"
+  },
+  {
+   "key": "kids",
+   "name": "Kids"
+  },
+  {
+   "key": "misc",
+   "name": "Miscellaneous"
+  },
+  {
+   "key": "work",
+   "name": "Translation work"
+  },
+  {
+   "key": "home",
+   "name": "Household"
+  },
+  {
+   "key": "travel",
+   "name": "Holidays"
+  },
+  {
+   "key": "birthdays",
+   "name": "Birthdays"
+  },
+  {
+   "key": "school",
+   "name": "School"
+  }
+ ],
+ "rows": [
+  {
+   "id": "m001",
+   "thread": "garden",
+   "title": "Water the tomatoes before it gets hot",
+   "body": ""
+  },
+  {
+   "id": "m002",
+   "thread": "garden",
+   "title": "Buy compost, 3 bags",
+   "body": ""
+  },
+  {
+   "id": "m003",
+   "thread": "garden",
+   "title": "Prune the roses",
+   "body": "Wait until after the last frost, mid March."
+  },
+  {
+   "id": "m004",
+   "thread": "garden",
+   "title": "Slug problem on the lettuce",
+   "body": "Try beer traps or coffee grounds around the beds."
+  },
+  {
+   "id": "m005",
+   "thread": "garden",
+   "title": "Sunflower seeds for the kids",
+   "body": ""
+  },
+  {
+   "id": "m006",
+   "thread": "garden",
+   "title": "Raised bed 2 needs new soil",
+   "body": ""
+  },
+  {
+   "id": "m007",
+   "thread": "garden",
+   "title": "Rain barrel for the shed",
+   "body": "Tom thinks we can fit one behind the shed. Check the Hornbach one."
+  },
+  {
+   "id": "m008",
+   "thread": "garden",
+   "title": "Plant garlic in October",
+   "body": ""
+  },
+  {
+   "id": "m009",
+   "thread": "garden",
+   "title": "How to Grow Courgettes in Containers | Gardeners' World",
+   "body": ""
+  },
+  {
+   "id": "m010",
+   "thread": "garden",
+   "title": "Mow the lawn Saturday",
+   "body": ""
+  },
+  {
+   "id": "m011",
+   "thread": "garden",
+   "title": "Fix the hose connector",
+   "body": "The brass one leaks at the tap."
+  },
+  {
+   "id": "m012",
+   "thread": "garden",
+   "title": "Ask neighbour Frau Keller about the hedge",
+   "body": "She said she would trim her side in April if we do ours."
+  },
+  {
+   "id": "m013",
+   "thread": "garden",
+   "title": "Basil, mint, parsley for the windowsill",
+   "body": ""
+  },
+  {
+   "id": "m014",
+   "thread": "garden",
+   "title": "Tulip bulbs, 50 pcs",
+   "body": "Plant before the first frost. Red and yellow so Lena can pick."
+  },
+  {
+   "id": "m015",
+   "thread": "garden",
+   "title": "Kompost leeren",
+   "body": ""
+  },
+  {
+   "id": "m016",
+   "thread": "garden",
+   "title": "Cherry tree is not flowering",
+   "body": "Maybe too much shade? Ask at the Baumschule."
+  },
+  {
+   "id": "m017",
+   "thread": "garden",
+   "title": "Wann Rasen düngen?",
+   "body": ""
+  },
+  {
+   "id": "m018",
+   "thread": "garden",
+   "title": "Bird feeder for winter",
+   "body": ""
+  },
+  {
+   "id": "m019",
+   "thread": "garden",
+   "title": "Wasps nest under the roof of the shed",
+   "body": "Call Schädlingsbekämpfung, not DIY."
+  },
+  {
+   "id": "m020",
+   "thread": "garden",
+   "title": "Strawberries: pick every other day",
+   "body": ""
+  },
+  {
+   "id": "m021",
+   "thread": "garden",
+   "title": "Garden chairs need oil",
+   "body": ""
+  },
+  {
+   "id": "m022",
+   "thread": "garden",
+   "title": "Companion Planting Chart for Vegetables - Mein schöner Garten",
+   "body": ""
+  },
+  {
+   "id": "m023",
+   "thread": "garden",
+   "title": "Compost bin smells",
+   "body": "Too wet. Add dry leaves and cardboard."
+  },
+  {
+   "id": "m024",
+   "thread": "garden",
+   "title": "Water the tomatoes in the morning, not at night",
+   "body": ""
+  },
+  {
+   "id": "m025",
+   "thread": "garden",
+   "title": "Hedgehog house",
+   "body": "Felix wants to build one. Needs a quiet corner under the hedge."
+  },
+  {
+   "id": "m026",
+   "thread": "garden",
+   "title": "Fairy lights for the terrace",
+   "body": ""
+  },
+  {
+   "id": "m027",
+   "thread": "garden",
+   "title": "Winter cover for the fig tree",
+   "body": ""
+  },
+  {
+   "id": "m028",
+   "thread": "garden",
+   "title": "Order seed potatoes",
+   "body": ""
+  },
+  {
+   "id": "m029",
+   "thread": "garden",
+   "title": "Sonnenblumen Samen",
+   "body": ""
+  },
+  {
+   "id": "m030",
+   "thread": "garden",
+   "title": "Apples are ready",
+   "body": "Bring a bag to Ingrid on Sunday."
+  },
+  {
+   "id": "m031",
+   "thread": "kids",
+   "title": "Lena: dentist Tuesday 15:30",
+   "body": "Dr. Weiss, bring the Zahnbonusheft."
+  },
+  {
+   "id": "m032",
+   "thread": "kids",
+   "title": "Felix needs new shoes",
+   "body": ""
+  },
+  {
+   "id": "m033",
+   "thread": "kids",
+   "title": "Felix football practice Wednesday 17:00",
+   "body": "TSV Pankow, bring shin guards."
+  },
+  {
+   "id": "m034",
+   "thread": "kids",
+   "title": "Lena piano lesson Thursdays",
+   "body": ""
+  },
+  {
+   "id": "m035",
+   "thread": "kids",
+   "title": "Pack swim bags",
+   "body": ""
+  },
+  {
+   "id": "m036",
+   "thread": "kids",
+   "title": "Kinderarzt appointment Felix",
+   "body": "Dr. Aksoy, U9 check up, 14 Nov 09:00."
+  },
+  {
+   "id": "m037",
+   "thread": "kids",
+   "title": "Ingrid has the kids Sunday",
+   "body": "Pick up at 18:00."
+  },
+  {
+   "id": "m038",
+   "thread": "kids",
+   "title": "Lena's reading log due Friday",
+   "body": ""
+  },
+  {
+   "id": "m039",
+   "thread": "kids",
+   "title": "Felix lost a tooth",
+   "body": "Tooth fairy tonight, have a 2 euro coin."
+  },
+  {
+   "id": "m040",
+   "thread": "kids",
+   "title": "Buy school bag for Felix",
+   "body": "He starts school next August. Ergobag or Satch?"
+  },
+  {
+   "id": "m041",
+   "thread": "kids",
+   "title": "Felix swimming lesson Saturday 10:00",
+   "body": "Seepferdchen exam in December."
+  },
+  {
+   "id": "m042",
+   "thread": "kids",
+   "title": "Lena's glasses adjusted at the optician",
+   "body": ""
+  },
+  {
+   "id": "m043",
+   "thread": "kids",
+   "title": "Bedtime story: Pippi Langstrumpf",
+   "body": ""
+  },
+  {
+   "id": "m044",
+   "thread": "kids",
+   "title": "Rain jackets for both",
+   "body": ""
+  },
+  {
+   "id": "m045",
+   "thread": "kids",
+   "title": "Felix lunchbox broke",
+   "body": ""
+  },
+  {
+   "id": "m046",
+   "thread": "kids",
+   "title": "Kids' haircut",
+   "body": ""
+  },
+  {
+   "id": "m047",
+   "thread": "kids",
+   "title": "Playdate with Noah Saturday",
+   "body": "His mum Carolin will drop him at 14:00."
+  },
+  {
+   "id": "m048",
+   "thread": "kids",
+   "title": "Kinderturnen Mittwoch ausgefallen?",
+   "body": ""
+  },
+  {
+   "id": "m049",
+   "thread": "kids",
+   "title": "Tom picks up Felix on Fridays",
+   "body": ""
+  },
+  {
+   "id": "m050",
+   "thread": "kids",
+   "title": "Kids' bikes: service before spring",
+   "body": "Lena's brakes are squeaky."
+  },
+  {
+   "id": "m051",
+   "thread": "kids",
+   "title": "Bike helmet for Felix",
+   "body": ""
+  },
+  {
+   "id": "m052",
+   "thread": "kids",
+   "title": "Kids' passports expire",
+   "body": "Lena's runs out in March. Need a Bürgeramt appointment."
+  },
+  {
+   "id": "m053",
+   "thread": "kids",
+   "title": "Zoo Saturday?",
+   "body": ""
+  },
+  {
+   "id": "m054",
+   "thread": "kids",
+   "title": "Kids' books to return to the library",
+   "body": "Due the 14th."
+  },
+  {
+   "id": "m055",
+   "thread": "kids",
+   "title": "Sleepover at Mia's",
+   "body": ""
+  },
+  {
+   "id": "m056",
+   "thread": "kids",
+   "title": "Felix nightmares again",
+   "body": "Night light and the blue blanket help."
+  },
+  {
+   "id": "m057",
+   "thread": "kids",
+   "title": "Rainy day ideas",
+   "body": "Pillow fort, baking, Memory game."
+  },
+  {
+   "id": "m058",
+   "thread": "kids",
+   "title": "Lena wants a hamster",
+   "body": ""
+  },
+  {
+   "id": "m059",
+   "thread": "kids",
+   "title": "Vitamin D drops",
+   "body": ""
+  },
+  {
+   "id": "m060",
+   "thread": "kids",
+   "title": "Lena's math test Thursday",
+   "body": ""
+  },
+  {
+   "id": "m061",
+   "thread": "school",
+   "title": "Elternabend 12 Nov 19:00",
+   "body": "Grundschule am Kastanienhof, Room 2.04."
+  },
+  {
+   "id": "m062",
+   "thread": "school",
+   "title": "Sign Klassenfahrt permission slip",
+   "body": "Due Monday."
+  },
+  {
+   "id": "m063",
+   "thread": "school",
+   "title": "Pay Klassenkasse 15 euros",
+   "body": ""
+  },
+  {
+   "id": "m064",
+   "thread": "school",
+   "title": "Felix Einschulung 8 August",
+   "body": ""
+  },
+  {
+   "id": "m065",
+   "thread": "school",
+   "title": "Schultüte basteln",
+   "body": ""
+  },
+  {
+   "id": "m066",
+   "thread": "school",
+   "title": "Hort registration deadline",
+   "body": "Form from the Schulbüro by 30 Nov."
+  },
+  {
+   "id": "m067",
+   "thread": "school",
+   "title": "Elternvertreter wanted",
+   "body": "Frau Dietrich asked if I would do it. Think about it."
+  },
+  {
+   "id": "m068",
+   "thread": "school",
+   "title": "School trip packing list",
+   "body": "Rain jacket, Wanderschuhe, 2 euro for ice cream."
+  },
+  {
+   "id": "m069",
+   "thread": "school",
+   "title": "Sportsachen Freitag",
+   "body": ""
+  },
+  {
+   "id": "m070",
+   "thread": "school",
+   "title": "Schulfotos bestellen",
+   "body": ""
+  },
+  {
+   "id": "m071",
+   "thread": "school",
+   "title": "Bake for the Herbstfest",
+   "body": "Sign-up sheet in the hallway, I said apple cake."
+  },
+  {
+   "id": "m072",
+   "thread": "school",
+   "title": "Email Herr Brandt about Lena's reading",
+   "body": ""
+  },
+  {
+   "id": "m073",
+   "thread": "school",
+   "title": "School closed Brückentag 2 Nov",
+   "body": ""
+  },
+  {
+   "id": "m074",
+   "thread": "school",
+   "title": "Mensa money top up",
+   "body": "Via the Schulportal."
+  },
+  {
+   "id": "m075",
+   "thread": "school",
+   "title": "Bring recycling materials for craft",
+   "body": ""
+  },
+  {
+   "id": "m076",
+   "thread": "school",
+   "title": "Ferienbetreuung booking",
+   "body": "Open for the winter break, sign up before 1 Dec."
+  },
+  {
+   "id": "m077",
+   "thread": "school",
+   "title": "Parent-teacher conversation Lena",
+   "body": "Wed 20 Nov, 16:20 slot."
+  },
+  {
+   "id": "m078",
+   "thread": "school",
+   "title": "Laterne basteln for St Martin's",
+   "body": "Parade is 11 Nov."
+  },
+  {
+   "id": "m079",
+   "thread": "school",
+   "title": "Class photo order form",
+   "body": ""
+  },
+  {
+   "id": "m080",
+   "thread": "work",
+   "title": "Invoice Kowalski Verlag",
+   "body": "1,840 euro, due 15th, sent 20 Oct."
+  },
+  {
+   "id": "m081",
+   "thread": "work",
+   "title": "Deadline: Hartmann manual, 4 Nov",
+   "body": "52 pages DE to EN, technical, about 18k words."
+  },
+  {
+   "id": "m082",
+   "thread": "work",
+   "title": "Glossary: Fördermittel, Zuwendungsbescheid",
+   "body": ""
+  },
+  {
+   "id": "m083",
+   "thread": "work",
+   "title": "Trados licence renewal",
+   "body": ""
+  },
+  {
+   "id": "m084",
+   "thread": "work",
+   "title": "Call back agency Lingua Nord",
+   "body": ""
+  },
+  {
+   "id": "m085",
+   "thread": "work",
+   "title": "Umsatzsteuer-Voranmeldung",
+   "body": "Due on the 10th each month via Elster."
+  },
+  {
+   "id": "m086",
+   "thread": "work",
+   "title": "Proofread the Stein catalogue",
+   "body": ""
+  },
+  {
+   "id": "m087",
+   "thread": "work",
+   "title": "Quote for legal contract translation",
+   "body": "Per-word 0.14, minimum 60 euro."
+  },
+  {
+   "id": "m088",
+   "thread": "work",
+   "title": "Translators' Stammtisch Thursday",
+   "body": ""
+  },
+  {
+   "id": "m089",
+   "thread": "work",
+   "title": "How to set your freelance translation rates in Germany - The Freelance Linguist",
+   "body": ""
+  },
+  {
+   "id": "m090",
+   "thread": "work",
+   "title": "New headset for client calls",
+   "body": ""
+  },
+  {
+   "id": "m091",
+   "thread": "work",
+   "title": "Work from the library Thursday mornings",
+   "body": ""
+  },
+  {
+   "id": "m092",
+   "thread": "work",
+   "title": "Sworn translator exam?",
+   "body": "Look into the Landgericht certification (allgemein beeidigt). Costs and dates."
+  },
+  {
+   "id": "m093",
+   "thread": "work",
+   "title": "Backup the translation memory",
+   "body": "Weekly. The drive is in the kitchen drawer."
+  },
+  {
+   "id": "m094",
+   "thread": "work",
+   "title": "Email Mr Okonkwo about Gewährleistung",
+   "body": "Warranty vs guarantee, ask what he prefers."
+  },
+  {
+   "id": "m095",
+   "thread": "work",
+   "title": "Block Fridays for invoices",
+   "body": ""
+  },
+  {
+   "id": "m096",
+   "thread": "work",
+   "title": "New enquiry: Studio Nordlicht, website copy EN to DE",
+   "body": ""
+  },
+  {
+   "id": "m097",
+   "thread": "work",
+   "title": "Reply to Studio Nordlicht by Friday",
+   "body": ""
+  },
+  {
+   "id": "m098",
+   "thread": "work",
+   "title": "Follow up unpaid invoice 2024-087",
+   "body": "Second reminder, 30 days late."
+  },
+  {
+   "id": "m099",
+   "thread": "work",
+   "title": "Mahnung schreiben",
+   "body": ""
+  },
+  {
+   "id": "m100",
+   "thread": "work",
+   "title": "Back-up laptop",
+   "body": ""
+  },
+  {
+   "id": "m101",
+   "thread": "work",
+   "title": "Style guide for Hartmann",
+   "body": "They want British spelling, no contractions."
+  },
+  {
+   "id": "m102",
+   "thread": "work",
+   "title": "Interpreting gig 29 Nov",
+   "body": "Consecutive, notary appointment in Mitte. 2 hours."
+  },
+  {
+   "id": "m103",
+   "thread": "work",
+   "title": "Update portfolio on the website",
+   "body": ""
+  },
+  {
+   "id": "m104",
+   "thread": "work",
+   "title": "The Translation Show - Episode 112: Machine translation and post-editing",
+   "body": ""
+  },
+  {
+   "id": "m105",
+   "thread": "work",
+   "title": "Steuerberaterin call",
+   "body": "Frau Aydin, about the Vorauszahlung."
+  },
+  {
+   "id": "m106",
+   "thread": "work",
+   "title": "Printer toner",
+   "body": ""
+  },
+  {
+   "id": "m107",
+   "thread": "work",
+   "title": "Find a better term for Fördermittel",
+   "body": ""
+  },
+  {
+   "id": "m108",
+   "thread": "work",
+   "title": "Reminder: send Hartmann the first 20 pages Friday",
+   "body": ""
+  },
+  {
+   "id": "m109",
+   "thread": "home",
+   "title": "Milk, eggs, butter",
+   "body": ""
+  },
+  {
+   "id": "m110",
+   "thread": "home",
+   "title": "Groceries: pasta, tomatoes, cheese",
+   "body": ""
+  },
+  {
+   "id": "m111",
+   "thread": "home",
+   "title": "Toilet paper",
+   "body": ""
+  },
+  {
+   "id": "m112",
+   "thread": "home",
+   "title": "Dishwasher tabs",
+   "body": ""
+  },
+  {
+   "id": "m113",
+   "thread": "home",
+   "title": "Call the Hausverwaltung about the heating",
+   "body": "Radiator in Felix's room does not get warm."
+  },
+  {
+   "id": "m114",
+   "thread": "home",
+   "title": "Schornsteinfeger 5 Dec",
+   "body": "Someone must be home to let him in."
+  },
+  {
+   "id": "m115",
+   "thread": "home",
+   "title": "Pay Stromrechnung",
+   "body": ""
+  },
+  {
+   "id": "m116",
+   "thread": "home",
+   "title": "Rundfunkbeitrag",
+   "body": "Check it is on direct debit."
+  },
+  {
+   "id": "m117",
+   "thread": "home",
+   "title": "Replace smoke detector battery",
+   "body": ""
+  },
+  {
+   "id": "m118",
+   "thread": "home",
+   "title": "Vacuum robot?",
+   "body": "Ask Tom. Look at the Roborock reviews."
+  },
+  {
+   "id": "m119",
+   "thread": "home",
+   "title": "Best Cordless Vacuum Cleaners 2026 | Stiftung Warentest",
+   "body": ""
+  },
+  {
+   "id": "m120",
+   "thread": "home",
+   "title": "Fix wobbly kitchen chair",
+   "body": ""
+  },
+  {
+   "id": "m121",
+   "thread": "home",
+   "title": "Declutter the hallway closet",
+   "body": "Winter jackets, bike helmets. Take donations to the Kleiderkammer."
+  },
+  {
+   "id": "m122",
+   "thread": "home",
+   "title": "New curtains for the living room",
+   "body": ""
+  },
+  {
+   "id": "m123",
+   "thread": "home",
+   "title": "Pick up parcel from the Packstation",
+   "body": ""
+  },
+  {
+   "id": "m124",
+   "thread": "home",
+   "title": "Wash the sofa covers",
+   "body": ""
+  },
+  {
+   "id": "m125",
+   "thread": "home",
+   "title": "Meal plan this week",
+   "body": "Mon pasta, Tue soup, Wed fish fingers, Thu Tom cooks, Fri pizza night."
+  },
+  {
+   "id": "m126",
+   "thread": "home",
+   "title": "Linseneintopf mit Würstchen - Chefkoch",
+   "body": ""
+  },
+  {
+   "id": "m127",
+   "thread": "home",
+   "title": "Hair appointment Saturday 11:00",
+   "body": "Salon Kurz."
+  },
+  {
+   "id": "m128",
+   "thread": "home",
+   "title": "Light bulbs E27",
+   "body": ""
+  },
+  {
+   "id": "m129",
+   "thread": "home",
+   "title": "Find a copy of the Mietvertrag",
+   "body": ""
+  },
+  {
+   "id": "m130",
+   "thread": "home",
+   "title": "Cancel old gym membership",
+   "body": "Letter, 3 months notice."
+  },
+  {
+   "id": "m131",
+   "thread": "home",
+   "title": "Paint Felix's room?",
+   "body": "He wants blue. Weekend in spring."
+  },
+  {
+   "id": "m132",
+   "thread": "home",
+   "title": "Heizung entlüften",
+   "body": ""
+  },
+  {
+   "id": "m133",
+   "thread": "home",
+   "title": "Groceries: milk, bread, apples",
+   "body": ""
+  },
+  {
+   "id": "m134",
+   "thread": "home",
+   "title": "Yogurt, cucumbers, bread",
+   "body": ""
+  },
+  {
+   "id": "m135",
+   "thread": "home",
+   "title": "Dentist recall for me",
+   "body": ""
+  },
+  {
+   "id": "m136",
+   "thread": "home",
+   "title": "Descale the kettle",
+   "body": ""
+  },
+  {
+   "id": "m137",
+   "thread": "birthdays",
+   "title": "Order the cake for Lena's birthday",
+   "body": ""
+  },
+  {
+   "id": "m138",
+   "thread": "birthdays",
+   "title": "Lena's 10th birthday 23 March",
+   "body": "Party at the climbing hall, 8 kids."
+  },
+  {
+   "id": "m139",
+   "thread": "birthdays",
+   "title": "Felix's birthday 9 June",
+   "body": ""
+  },
+  {
+   "id": "m140",
+   "thread": "birthdays",
+   "title": "Ingrid's 70th birthday 14 Feb",
+   "body": "Surprise lunch for 12, book a table."
+  },
+  {
+   "id": "m141",
+   "thread": "birthdays",
+   "title": "Tom's birthday 3 Sept",
+   "body": "He wants a new drill, hint: the Makita."
+  },
+  {
+   "id": "m142",
+   "thread": "birthdays",
+   "title": "Present for Noah's party",
+   "body": "Saturday 14:00, around 15 euro. Lego?"
+  },
+  {
+   "id": "m143",
+   "thread": "birthdays",
+   "title": "Party invitations for Lena",
+   "body": "Print 10 cards."
+  },
+  {
+   "id": "m144",
+   "thread": "birthdays",
+   "title": "Balloons and streamers",
+   "body": "For Lena's party, the climbing hall does not supply them."
+  },
+  {
+   "id": "m145",
+   "thread": "birthdays",
+   "title": "Goodie bags: stickers, pencils",
+   "body": "10 bags for the party at the climbing hall."
+  },
+  {
+   "id": "m146",
+   "thread": "birthdays",
+   "title": "Card for Oma",
+   "body": ""
+  },
+  {
+   "id": "m147",
+   "thread": "birthdays",
+   "title": "Call Tante Gisela on the 2nd",
+   "body": ""
+  },
+  {
+   "id": "m148",
+   "thread": "birthdays",
+   "title": "Gift idea for Tom: a day of go-karting",
+   "body": ""
+  },
+  {
+   "id": "m149",
+   "thread": "birthdays",
+   "title": "Cake for Lena's party",
+   "body": "Chocolate with raspberries, 20 cm."
+  },
+  {
+   "id": "m150",
+   "thread": "birthdays",
+   "title": "Geburtstagseinladungen für Lenas Party verschicken",
+   "body": ""
+  },
+  {
+   "id": "m151",
+   "thread": "birthdays",
+   "title": "Easy Cake Pops Recipe | Backen macht glücklich",
+   "body": ""
+  },
+  {
+   "id": "m152",
+   "thread": "birthdays",
+   "title": "Flowers for Ingrid",
+   "body": ""
+  },
+  {
+   "id": "m153",
+   "thread": "birthdays",
+   "title": "Wedding anniversary 12 June",
+   "body": "Table at the Italian place, babysitter: Ingrid?"
+  },
+  {
+   "id": "m154",
+   "thread": "birthdays",
+   "title": "Birthday playlist for the kids",
+   "body": ""
+  },
+  {
+   "id": "m155",
+   "thread": "travel",
+   "title": "Summer holiday Ostsee July",
+   "body": "Ferienwohnung in Prerow, 10 to 24 July."
+  },
+  {
+   "id": "m156",
+   "thread": "travel",
+   "title": "Book the Ferienwohnung in Prerow",
+   "body": ""
+  },
+  {
+   "id": "m157",
+   "thread": "travel",
+   "title": "Ferienwohnung Prerow Darß - Strandnähe | Ostsee-Urlaub.de",
+   "body": ""
+  },
+  {
+   "id": "m158",
+   "thread": "travel",
+   "title": "Sunscreen, swim stuff, towels",
+   "body": ""
+  },
+  {
+   "id": "m159",
+   "thread": "travel",
+   "title": "Train tickets to Hamburg for the wedding",
+   "body": "Saturday 6 June. Sparpreis, book 3 months ahead."
+  },
+  {
+   "id": "m160",
+   "thread": "travel",
+   "title": "Weekend at Ingrid's in Potsdam",
+   "body": ""
+  },
+  {
+   "id": "m161",
+   "thread": "travel",
+   "title": "Travel insurance renewal",
+   "body": ""
+  },
+  {
+   "id": "m162",
+   "thread": "travel",
+   "title": "Italy idea: Lake Garda 2027",
+   "body": "Kid-friendly campsites with a pool."
+  },
+  {
+   "id": "m163",
+   "thread": "travel",
+   "title": "Check the tent",
+   "body": "The zip is broken."
+  },
+  {
+   "id": "m164",
+   "thread": "travel",
+   "title": "Weekend in Copenhagen?",
+   "body": "Just me and Tom, Ingrid can take the kids. Flights are cheap in March."
+  },
+  {
+   "id": "m165",
+   "thread": "travel",
+   "title": "Packliste Wochenende",
+   "body": ""
+  },
+  {
+   "id": "m166",
+   "thread": "travel",
+   "title": "Travel sickness tablets for Lena",
+   "body": ""
+  },
+  {
+   "id": "m167",
+   "thread": "travel",
+   "title": "Buy a new suitcase",
+   "body": ""
+  },
+  {
+   "id": "m168",
+   "thread": "travel",
+   "title": "Nachtzug Berlin Kopenhagen Fahrplan - Bahn Reisen",
+   "body": ""
+  },
+  {
+   "id": "m169",
+   "thread": "travel",
+   "title": "Pack Felix's blue blanket",
+   "body": ""
+  },
+  {
+   "id": "m170",
+   "thread": "travel",
+   "title": "Christmas at Tom's parents in Cologne",
+   "body": "Dec 24 to 26. Book trains early."
+  },
+  {
+   "id": "m171",
+   "thread": "travel",
+   "title": "Bahncard renewal",
+   "body": "Runs out in January."
+  },
+  {
+   "id": "m172",
+   "thread": "travel",
+   "title": "Beach toys",
+   "body": ""
+  },
+  {
+   "id": "m173",
+   "thread": "travel",
+   "title": "Passport photos",
+   "body": "Biometric, for both kids, Rossmann machine."
+  },
+  {
+   "id": "m174",
+   "thread": "travel",
+   "title": "Prerow: bunk beds for the kids",
+   "body": "Felix and Lena share a room."
+  },
+  {
+   "id": "m175",
+   "thread": "misc",
+   "title": "Call Ingrid",
+   "body": ""
+  },
+  {
+   "id": "m176",
+   "thread": "misc",
+   "title": "Buy stamps",
+   "body": ""
+  },
+  {
+   "id": "m177",
+   "thread": "misc",
+   "title": "Return the drill to Herr Peters",
+   "body": ""
+  },
+  {
+   "id": "m178",
+   "thread": "misc",
+   "title": "Bürgeramt Termin buchen - Service Berlin",
+   "body": ""
+  },
+  {
+   "id": "m179",
+   "thread": "misc",
+   "title": "Book yoga class",
+   "body": ""
+  },
+  {
+   "id": "m180",
+   "thread": "misc",
+   "title": "Pick up dry cleaning",
+   "body": ""
+  },
+  {
+   "id": "m181",
+   "thread": "misc",
+   "title": "Read the new Juli Zeh novel",
+   "body": ""
+  },
+  {
+   "id": "m182",
+   "thread": "misc",
+   "title": "Idea: vegetable swap group on our street",
+   "body": ""
+  },
+  {
+   "id": "m183",
+   "thread": "misc",
+   "title": "Renew library card",
+   "body": "Expires end of month."
+  },
+  {
+   "id": "m184",
+   "thread": "misc",
+   "title": "Find a babysitter for Friday evening",
+   "body": "Ask Sophie, the student from downstairs."
+  },
+  {
+   "id": "m185",
+   "thread": "misc",
+   "title": "Podcast from Carolin about kids and sleep",
+   "body": ""
+  },
+  {
+   "id": "m186",
+   "thread": "misc",
+   "title": "Car TÜV due November",
+   "body": ""
+  },
+  {
+   "id": "m187",
+   "thread": "misc",
+   "title": "Anwohnerparken renewal",
+   "body": "Online at the Bürgeramt."
+  },
+  {
+   "id": "m188",
+   "thread": "misc",
+   "title": "Run Tuesday morning",
+   "body": ""
+  },
+  {
+   "id": "m189",
+   "thread": "misc",
+   "title": "Dinner with Sophie Thursday 20:00",
+   "body": "Italian on Kastanienallee."
+  },
+  {
+   "id": "m190",
+   "thread": "misc",
+   "title": "Call the Krankenkasse about the invoice",
+   "body": ""
+  },
+  {
+   "id": "m191",
+   "thread": "misc",
+   "title": "Physio reimbursement form",
+   "body": ""
+  },
+  {
+   "id": "m192",
+   "thread": "misc",
+   "title": "Book physio for my back",
+   "body": ""
+  },
+  {
+   "id": "m193",
+   "thread": "misc",
+   "title": "Photo book of last summer",
+   "body": ""
+  },
+  {
+   "id": "m194",
+   "thread": "misc",
+   "title": "Present for Sophie's 40th",
+   "body": ""
+  },
+  {
+   "id": "m195",
+   "thread": "misc",
+   "title": "New phone case",
+   "body": ""
+  },
+  {
+   "id": "m196",
+   "thread": "misc",
+   "title": "Idea: monthly family board game night",
+   "body": "First Friday of the month."
+  },
+  {
+   "id": "m197",
+   "thread": "misc",
+   "title": "Winter tyres on the car",
+   "body": "Appointment at ATU on 10 Nov."
+  },
+  {
+   "id": "m198",
+   "thread": "misc",
+   "title": "Recycle old electronics",
+   "body": "Take the printer and Tom's old phone to the Recyclinghof."
+  },
+  {
+   "id": "m199",
+   "thread": "misc",
+   "title": "Cancel the newspaper subscription",
+   "body": ""
+  }
+ ],
+ "notes": [
+  {
+   "id": "mn01",
+   "thread": "garden",
+   "text": "Raised bed 1 has tomatoes and basil, bed 2 lettuce and courgettes, bed 3 potatoes."
+  },
+  {
+   "id": "mn02",
+   "thread": "garden",
+   "text": "The garden is in shade in the afternoon because of the neighbour's walnut tree."
+  },
+  {
+   "id": "mn03",
+   "thread": "garden",
+   "text": "Frau Keller next door shares the hedge, and trimming is done together in April and September."
+  },
+  {
+   "id": "mn04",
+   "thread": "garden",
+   "text": "Watering is done in the morning only, and the tomatoes get liquid fertiliser every two weeks."
+  },
+  {
+   "id": "mn05",
+   "thread": "kids",
+   "text": "Lena is 9 and Felix is 6."
+  },
+  {
+   "id": "mn06",
+   "thread": "kids",
+   "text": "Ingrid takes the kids on Sundays."
+  },
+  {
+   "id": "mn07",
+   "thread": "kids",
+   "text": "Lena has piano on Thursdays at 16:00. Felix has football on Wednesdays and swimming on Saturdays."
+  },
+  {
+   "id": "mn08",
+   "thread": "kids",
+   "text": "The paediatrician is Dr. Aksoy and the dentist is Dr. Weiss."
+  },
+  {
+   "id": "mn09",
+   "thread": "kids",
+   "text": "Felix needs the blue blanket to sleep."
+  },
+  {
+   "id": "mn10",
+   "thread": "school",
+   "text": "Lena is in class 3b with Herr Brandt, and Felix starts class 1 next August."
+  },
+  {
+   "id": "mn11",
+   "thread": "school",
+   "text": "Mensa lunch is 4.50 euros and is topped up through the Schulportal."
+  },
+  {
+   "id": "mn12",
+   "thread": "school",
+   "text": "The school office is closed on Fridays after 12:00."
+  },
+  {
+   "id": "mn13",
+   "thread": "work",
+   "text": "Main clients are Hartmann Technik, Kowalski Verlag and the agency Lingua Nord."
+  },
+  {
+   "id": "mn14",
+   "thread": "work",
+   "text": "Invoices go out on the last working day of the month, payment term 30 days."
+  },
+  {
+   "id": "mn15",
+   "thread": "work",
+   "text": "Rates are 0.12 euro per word for general texts and 0.14 for legal and technical."
+  },
+  {
+   "id": "mn16",
+   "thread": "home",
+   "text": "Hausverwaltung Roth handles repairs: email first, call only if urgent."
+  },
+  {
+   "id": "mn17",
+   "thread": "home",
+   "text": "The weekly shop is on Saturday morning at the Markthalle, and Tom does the big one at Rewe."
+  },
+  {
+   "id": "mn18",
+   "thread": "home",
+   "text": "The meal plan is made on Sunday evening and Friday is pizza night."
+  },
+  {
+   "id": "mn19",
+   "thread": "birthdays",
+   "text": "Family birthdays: Ingrid 14 Feb, Lena 23 March, Felix 9 June, Tom 3 Sept."
+  },
+  {
+   "id": "mn20",
+   "thread": "birthdays",
+   "text": "Kids' parties are at the climbing hall or at home, with at most 8 children."
+  },
+  {
+   "id": "mn21",
+   "thread": "travel",
+   "text": "Every summer the family goes to the Baltic coast for two weeks in July."
+  },
+  {
+   "id": "mn22",
+   "thread": "travel",
+   "text": "Christmas alternates: this year at Tom's parents in Cologne, next year at Ingrid's in Potsdam."
+  },
+  {
+   "id": "mn23",
+   "thread": "travel",
+   "text": "Maya has a BahnCard 25 and Tom drives."
+  },
+  {
+   "id": "mn24",
+   "thread": "misc",
+   "text": "Sophie from downstairs babysits for 12 euros an hour."
+  },
+  {
+   "id": "mn25",
+   "thread": "misc",
+   "text": "The car is a grey Skoda Octavia estate, TÜV every two years, winter tyres at ATU."
+  }
+ ],
+ "memories": [
+  {
+   "id": "mm01",
+   "text": "They live in Pankow, Berlin."
+  },
+  {
+   "id": "mm02",
+   "text": "Their children are Lena (9) and Felix (6)."
+  },
+  {
+   "id": "mm03",
+   "text": "Their husband is Tom, a site manager."
+  },
+  {
+   "id": "mm04",
+   "text": "They are a freelance translator, working between German and English."
+  },
+  {
+   "id": "mm05",
+   "text": "Their mother Ingrid lives in Potsdam."
+  },
+  {
+   "id": "mm06",
+   "text": "They have a BahnCard 25."
+  },
+  {
+   "id": "mm07",
+   "text": "They drink oat milk."
+  },
+  {
+   "id": "mm08",
+   "text": "They go to yoga on Tuesday evenings."
+  },
+  {
+   "id": "mm09",
+   "text": "They are left-handed."
+  },
+  {
+   "id": "mm10",
+   "text": "They drive a grey Skoda Octavia."
+  },
+  {
+   "id": "mm11",
+   "text": "Their best friend Sophie lives in the flat below."
+  },
+  {
+   "id": "mm12",
+   "text": "They do their translation work in the mornings while the kids are at school."
+  },
+  {
+   "id": "mm13",
+   "text": "They use Trados for translation projects."
+  },
+  {
+   "id": "mm14",
+   "text": "They grew up in Dresden."
+  },
+  {
+   "id": "mm15",
+   "text": "Lena and Felix go to Grundschule am Kastanienhof."
+  },
+  {
+   "id": "mm16",
+   "text": "They go to the Markthalle on Saturday mornings."
+  },
+  {
+   "id": "mm17",
+   "text": "They take two weeks on the Baltic coast every July."
+  },
+  {
+   "id": "mm18",
+   "text": "They are learning Swedish."
+  },
+  {
+   "id": "mm19",
+   "text": "They are a member of the BDÜ, the German translators' association."
+  },
+  {
+   "id": "mm20",
+   "text": "They get hay fever in spring."
+  }
+ ],
+ "queries": [
+  {
+   "q": "tomatoes",
+   "relevant": [
+    "m001",
+    "m024",
+    "m110",
+    "mn01",
+    "mn04"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "dentist",
+   "relevant": [
+    "m031",
+    "m135",
+    "mn08"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "invoice",
+   "relevant": [
+    "m080",
+    "m095",
+    "m098",
+    "m099",
+    "m190",
+    "mn14"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "cake",
+   "relevant": [
+    "m071",
+    "m137",
+    "m149",
+    "m151"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "passport",
+   "relevant": [
+    "m052",
+    "m173"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Heizung",
+   "relevant": [
+    "m113",
+    "m132"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Sophie",
+   "relevant": [
+    "m184",
+    "m189",
+    "m194",
+    "mn24",
+    "mm11"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "what time is Felix's football practice",
+   "relevant": [
+    "m033",
+    "mn07"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "plans for Lena's birthday party",
+   "relevant": [
+    "m137",
+    "m138",
+    "m143",
+    "m144",
+    "m145",
+    "m149",
+    "m150",
+    "mn19",
+    "mn20"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how do I get rid of slugs",
+   "relevant": [
+    "m004"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "what is the plan for Christmas",
+   "relevant": [
+    "m170",
+    "mn22"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "when does my BahnCard run out",
+   "relevant": [
+    "m171",
+    "mn23",
+    "mm06"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "which books are due at the library",
+   "relevant": [
+    "m054",
+    "m183"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "where do I keep the backup drive",
+   "relevant": [
+    "m093",
+    "m100"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "who is Frau Keller",
+   "relevant": [
+    "m012",
+    "mn03"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "when is the Hartmann deadline",
+   "relevant": [
+    "m081",
+    "m108"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "grandmother minding the children",
+   "relevant": [
+    "m037",
+    "m153",
+    "m164",
+    "mn06"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "stinging insects that need removing",
+   "relevant": [
+    "m019"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "money owed by a customer",
+   "relevant": [
+    "m080",
+    "m098",
+    "m099"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "dinner ideas for the coming days",
+   "relevant": [
+    "m125",
+    "m126",
+    "mn18"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "accommodation by the shore for the vacation",
+   "relevant": [
+    "m155",
+    "m156",
+    "m157",
+    "m162",
+    "m174",
+    "mn21",
+    "mm17"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "doctor visit for my son",
+   "relevant": [
+    "m036",
+    "mn08"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "document needed for travelling abroad",
+   "relevant": [
+    "m052",
+    "m173",
+    "m178"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "what to buy my husband",
+   "relevant": [
+    "m141",
+    "m148"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "someone to sit with the children while we go out",
+   "relevant": [
+    "m153",
+    "m184",
+    "mn24"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "roadworthiness inspection for the vehicle",
+   "relevant": [
+    "m186",
+    "mn25"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "Zahnarzt Termin",
+   "relevant": [
+    "m031",
+    "m135",
+    "mn08"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "Geburtstagstorte bestellen",
+   "relevant": [
+    "m137",
+    "m149"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "Elektroschrott wegbringen",
+   "relevant": [
+    "m198"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "fertilise the grass",
+   "relevant": [
+    "m017"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "meeting with other mums and dads",
+   "relevant": [
+    "m061"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "overnight train to Denmark",
+   "relevant": [
+    "m164",
+    "m168"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "weather in Madrid tomorrow",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "who won the game last night",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "convert 30 euros to dollars",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "how many calories in a banana",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "capital of Australia",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "tickets for a Taylor Swift concert",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "how tall is the Eiffel Tower",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "what time does the sun set in Munich",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "mortgage interest rate",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "dog walker",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "ski holiday in Austria",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "knitting patterns",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "Tom's overtime hours",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "xqzvt plork",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "asdfghjkl",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "zzzz qqq wmp",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "lkjh 7733 bnm",
+   "relevant": [],
+   "kind": "negative"
+  },
+  {
+   "q": "qwertzuiop",
+   "relevant": [],
+   "kind": "negative"
+  }
+ ]
+}

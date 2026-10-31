@@ -348,6 +348,12 @@ no is somebody doing the thing twice.
 **AC-4c** An existence check is decided by the model reading candidates, never
 by a distance threshold, per the deduplication rule in `decisions.md`: a row and
 its negation are neighbours, so no near match is not evidence of absence.
+*Amended 2026-10-31 (the owner):* meaning reads drop candidates past a fixed
+floor (049's impl-spec, *The meaning floor*), so nothing unrelated is read or
+shown under an answer. The floor never chooses between near candidates, so the
+negation case above is untouched. Its cost is a row worded far from the
+question ("my CV" against "Finish resume"), which only the words arm or a second
+search in other words can now find: an empty read is weaker evidence still.
 
 **AC-4d** An existence check does not assume the row is unticked. Something
 already done is found and reported as done.
