@@ -73,7 +73,7 @@ import { Reply } from "./Reply";
 import { isRich, plainText } from "@offload/markup";
 import { completeContent } from "../../lib/threads";
 import { Logo } from "../Logo";
-import { FILL_COMPOSER } from "../panes/Today";
+import { FILL_COMPOSER } from "../../lib/composer-fill";
 import { ToastHost, useToast } from "./Toast";
 import { UndoPlates } from "./UndoLine";
 import { useUnplaced } from "./InPlace";

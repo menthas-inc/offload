@@ -16,6 +16,7 @@ import { authClient } from "./auth-client";
 import { forgetMe } from "./use-me";
 import { forgetUndo } from "./undo";
 import { closeLive } from "./live";
+import { forgetRecent } from "./search";
 
 /** Bounded, and the bound is not the interesting part.
  *
@@ -52,4 +53,5 @@ export async function signOut(): Promise<void> {
   forgetMe();
   forgetUndo();
   closeLive();
+  forgetRecent();
 }

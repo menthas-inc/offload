@@ -53,6 +53,8 @@ export interface RowHandlers {
   asking: string | null;
   /** Rows that arrived while somebody was looking at the screen. */
   arrived: Set<string>;
+  /** 049. The row Search opened the page at: never folded away. */
+  reveal?: string | null;
   onDraft: (text: string) => void;
   onEdit: (row: ContentRow) => void;
   onSaveTitle: (row: ContentRow) => void;
@@ -198,6 +200,7 @@ export function ContentRowView({
       // exactly what happened. Blue is "this needs you", and a row that was
       // simply filed needs nothing.
       data-arrived={handlers.arrived.has(row.id) ? true : undefined}
+      data-row-id={row.id}
       data-provisional={provisional ? true : undefined}
       data-picked={handlers.picked === row.id ? true : undefined}
       onMouseEnter={handlers.onHover ? () => handlers.onHover?.(row.id) : undefined}

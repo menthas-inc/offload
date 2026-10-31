@@ -31,10 +31,11 @@ import { SHARED } from "./shared-in";
 import { within } from "./within";
 
 /** Fixed names in secure storage that belong to the account: the threads left
- *  on Map, Today's put-off of the notifications card, and the section folds.
+ *  on Map, Today's put-off of the notifications card, the section folds, and
+ *  the recent searches (049).
  *  Names made at runtime are in `account-keys.ts`; the session's own are
  *  `auth.ts`'s. */
-export const ACCOUNT_KEYS = ["offload_map_views", "offload_today_notifications_until", "offload_section_folds"] as const;
+export const ACCOUNT_KEYS = ["offload_map_views", "offload_today_notifications_until", "offload_section_folds", "offload_recent_searches"] as const;
 
 /** Kept. How this phone draws, chosen on it: the theme and the first day of
  *  the week. Neither holds a word of anybody's. */

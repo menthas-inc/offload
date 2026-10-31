@@ -24,6 +24,7 @@
 // opens its day once, the Today tab sends it back, and midnight in the
 // account's zone moves an open Today to the new day.
 
+import { fillComposer } from "../../lib/composer-fill";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { addUtcDays, dayName, dayTitle, keepInPlace, monthDated, twoWeekFor, stepWeek, type MonthCount, nextLine, nothingLine, reminderEntryKey, remindersInOrder, zoneStrip } from "@offload/widgets";
@@ -79,8 +80,6 @@ const EXAMPLES = [
 const DAY_ONE_INVITATION =
   "Dump anything and offload will sort it. You do not need to pick a place for it, or name it, or come back and tidy it up.";
 
-/** How an example reaches a composer that is nobody's child. */
-export const FILL_COMPOSER = "offload:fill-composer";
 
 /** How far ahead the stepper reaches: the calendar copy's edge. */
 export const DAYS_AHEAD = 365;
@@ -400,7 +399,7 @@ export function TodayPane({
               key={example}
               type="button"
               className={styles.example}
-              onClick={() => window.dispatchEvent(new CustomEvent(FILL_COMPOSER, { detail: example }))}
+              onClick={() => fillComposer(example)}
             >
               <Icon name="arrow-up" size={14} className={styles.exampleMark} />
               {example}

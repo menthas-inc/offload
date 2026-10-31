@@ -1,4 +1,4 @@
-// The three tabs.
+// The four tabs.
 //
 // The bar itself is not here: `M3App.jsx` draws one raised plate holding the
 // composer and the tabs, and they move together when the keyboard comes up. So this supplies the routing and `Shell` supplies
@@ -21,6 +21,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="today" />
       <Tabs.Screen name="threads" />
+      <Tabs.Screen name="search" />
       <Tabs.Screen name="memories" />
     </Tabs>
   );

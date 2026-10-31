@@ -519,7 +519,8 @@ export default function Privacy() {
           <h2 className={styles.h2}>18. Cookies and tracking</h2>
           <p>
             offload sets what it needs to sign you in, keep you signed in and stop abuse, and your
-            browser keeps your display preferences on your device. There are no advertising
+            browser or phone keeps your display preferences on your device, and your recent
+            searches until you sign out. There are no advertising
             cookies and no third-party analytics in your browser, so there is no banner. We do not
             track you across other sites, so we treat a Do Not Track signal the way we treat
             everyone. Others can see your device&rsquo;s requests while you use offload: the maps

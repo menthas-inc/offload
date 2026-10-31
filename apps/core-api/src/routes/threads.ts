@@ -13,7 +13,7 @@
 import { dateSet, remindersOf, remindersOfRow, setReminders } from "../notifications/labels.js";
 import { z } from "zod";
 import { fileOnRow, fileToWire, type FileOnRow } from "../blobs/wire.js";
-import { sql, type Transaction } from "kysely";
+import { sql, type SelectQueryBuilder, type Transaction } from "kysely";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { currentAccountId } from "../auth/current-account.js";
@@ -86,6 +86,24 @@ async function isDefaultThreadOf(accountId: string, threadId: string): Promise<b
 /** One screenful. 001's heavy case is 500 rows in one thread and the page draws
  *  a dozen, so fetching them all to show twelve is the thing this prevents. */
 const PAGE = 30;
+/** 049. The furthest back a read through a row goes: three pages, into a
+ *  page that draws everything it holds. */
+export const THROUGH = 90;
+
+/** The rows from the newest back to `through`, counted, when it is this
+ *  thread's, not deleted and in the pile asked for; null otherwise. Ids are
+ *  UUIDv7 and the page is ordered by id alone, so this is a range. */
+export async function rowsThrough(threadId: string, through: string, archived: boolean): Promise<number | null> {
+  const pile = (q: SelectQueryBuilder<Database, "content", object>) =>
+    q.where("thread_id", "=", threadId).where("deleted_at", "is", null).where("archived_at", archived ? "is not" : "is", null);
+  const target = await pile(db.selectFrom("content")).select("id").where("id", "=", through).executeTakeFirst();
+  if (!target) return null;
+  const { count } = await pile(db.selectFrom("content"))
+    .select((eb) => eb.fn.countAll<number>().as("count"))
+    .where("id", ">=", through)
+    .executeTakeFirstOrThrow();
+  return count <= THROUGH ? count : null;
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -2190,6 +2208,8 @@ export async function threadRoutes(app: App): Promise<void> {
           // The label's list: every row, the filter ignored, each marked with
           // whether it carries this label.
           ticksFor: z.string().uuid().optional(),
+          // 049. Read back to this row, so Search can open the page at it.
+          through: z.string().uuid().optional(),
         }),
         response: { 200: contentPage, 401: unauthenticated, 404: notFound },
       },
@@ -2203,6 +2223,11 @@ export async function threadRoutes(app: App): Promise<void> {
         await requireMember(accountId, id);
 
         const wantArchived = request.query.archived === "true";
+        // 049. How many rows reach back to `through`, when it is in this
+        // thread's pile and close enough; otherwise it is ignored and this is
+        // the first page, which is the fallback Search relies on.
+        const reach = request.query.through ? await rowsThrough(id, request.query.through, wantArchived) : null;
+        const size = reach ?? PAGE;
 
         let query = db
           .selectFrom("content")
@@ -2246,10 +2271,12 @@ export async function threadRoutes(app: App): Promise<void> {
           .where("content.deleted_at", "is", null)
           .where("content.archived_at", wantArchived ? "is not" : "is", null)
           .orderBy("content.id", "desc")
-          .limit(PAGE + 1);
+          .limit(size + 1);
 
-        const picked = request.query.ticksFor ? [] : (request.query.labels ?? []);
-        const none = !request.query.ticksFor && request.query.unlabelled === "true";
+        // Read through a row, a filter cannot hide it: the page clears its
+        // pick when it opens at one.
+        const picked = request.query.ticksFor || reach ? [] : (request.query.labels ?? []);
+        const none = !request.query.ticksFor && !reach && request.query.unlabelled === "true";
         if (picked.length > 0 || none) {
           const carrying = picked.length > 0 ? sql<boolean>`exists (${carriesAny(sql.ref("content.id"), picked)})` : null;
           const bare = none ? sql<boolean>`not exists (${carriesAny(sql.ref("content.id"), null)})` : null;
@@ -2261,7 +2288,7 @@ export async function threadRoutes(app: App): Promise<void> {
         // unless the label carries them, so they can still come off it. A
         // series is never over. Days as Today reads them: an all-day row by
         // its UTC date, a timed one in the account's clock.
-        const ticksFor = request.query.ticksFor;
+        const ticksFor = reach ? undefined : request.query.ticksFor;
         if (ticksFor) {
           const zone = (await zoneOf(accountId)) ?? "UTC";
           const today = sql`(now() at time zone ${zone})::date`;
@@ -2291,13 +2318,13 @@ export async function threadRoutes(app: App): Promise<void> {
         }
 
         const rows = await query.execute();
-        const page = rows.slice(0, PAGE);
+        const page = rows.slice(0, size);
         const last = page.at(-1);
 
         const finished = await withPhotos(page.map((row) => toRow(row, accountId)), accountId);
         return reply.send({
           rows: ticksFor ? finished.map((row) => ({ ...row, ticked: row.labels.includes(ticksFor) })) : finished,
-          nextCursor: rows.length > PAGE && last ? last.id : null,
+          nextCursor: rows.length > size && last ? last.id : null,
         });
       })
   );

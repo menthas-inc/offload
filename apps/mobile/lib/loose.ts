@@ -248,10 +248,12 @@ const withPlace = (entry: LooseEntry): LooseEntry =>
 
 /** A page of the list, newest first; by chip with `type`. Null when it did
  *  not come back, so the screen can say so and offer Try again. */
-export async function fetchLoose(options: { type?: ChipKey | null; cursor?: string | null }): Promise<LoosePage | null> {
+export async function fetchLoose(options: { type?: ChipKey | null; cursor?: string | null; through?: string | null }): Promise<LoosePage | null> {
   const query = new URLSearchParams();
   if (options.type) query.set("type", options.type);
   if (options.cursor) query.set("cursor", options.cursor);
+  // 049. Read back to the row Search opened the page at.
+  if (options.through) query.set("through", options.through);
   const suffix = query.toString() ? `?${query.toString()}` : "";
   const { status, data } = await send<LoosePage>(`/v1/loose${suffix}`);
   if (status !== 200 || !data) return null;

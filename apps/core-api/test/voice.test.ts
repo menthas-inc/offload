@@ -413,14 +413,14 @@ describe("the transcript", () => {
       .selectFrom("messages")
       .select("id")
       .where("id", "=", messageId)
-      .where(sql<boolean>`search_text @@ plainto_tsquery('simple', 'hallway')`)
+      .where(sql<boolean>`search_text @@ plainto_tsquery('offload_search', 'hallway')`)
       .execute();
     expect(found).toHaveLength(1);
     const both = await db
       .selectFrom("messages")
       .select("id")
       .where("id", "=", messageId)
-      .where(sql<boolean>`search_text @@ plainto_tsquery('simple', 'these hallway')`)
+      .where(sql<boolean>`search_text @@ plainto_tsquery('offload_search', 'these hallway')`)
       .execute();
     expect(both).toHaveLength(1);
 

@@ -53,7 +53,7 @@ offload's voice is a calm assistant that has already done the work and does not 
 | Use | Not |
 | --- | --- |
 | dump, put down, offload | capture, ingest, log |
-| thread / my threads | folder, project, workspace, board, space |
+| thread / threads (the tab; *My threads* until 30 October 2026) | folder, project, workspace, board, space |
 | thing / things | item, entry, record, asset |
 | a thread holds things | a project holds items |
 | note / notes (what a thread knows about itself) | profile, knowledge base, facts |
@@ -138,7 +138,7 @@ Roles: display 34, title-1 26, title-2 21, title-3 17, body 16, body-sm 14, labe
 
 Icons are rendered as a **`currentColor` mask**, so a glyph always inherits the colour of the text it sits beside, that is why there is no coloured-icon rule to remember. Sizes: 14 (inside chips), 16 (metadata, small buttons), 18 (list rows, fields), 20 (bars, buttons), 22 (tab bar), 28 (empty states, in `--ink-300`).
 
-Tab glyphs: `sun` / `moon` (Today and Tonight, on real sunset), `lasso` (My threads, a loop drawn round related things), `cloudy` (Notes). Then `sparkles` (anything offload did for you), `map-pin` `link` `image` `mic` `camera` `paperclip` `scan-text` (kinds of dumped thing), `square-check-big` / `check` / `check-check` (tasks and done states), `users` (shared threads and people), `arrow-up` (send), `plus` (new), `ellipsis` (more), `chevron-*` and `maximize-2` (navigation), `bell` `settings` `search` `clock` `calendar` `bookmark` `archive` `trash-2` `pencil` `share-2` `funnel` `lock` `house` `message-circle` `circle` `list`.
+Tab glyphs, in order: `sun` / `moon` (Today and Tonight, on real sunset), `lasso` (Threads, a loop drawn round related things), `search` (Search), `cloudy` (Memories). Then `sparkles` (anything offload did for you), `map-pin` `link` `image` `mic` `camera` `paperclip` `scan-text` (kinds of dumped thing), `square-check-big` / `check` / `check-check` (tasks and done states), `users` (shared threads and people), `arrow-up` (send), `plus` (new), `ellipsis` (more), `chevron-*` and `maximize-2` (navigation), `bell` `settings` `search` `clock` `calendar` `bookmark` `archive` `trash-2` `pencil` `share-2` `funnel` `lock` `house` `message-circle` `circle` `list`.
 
 All 154 vendored glyphs: `album` `apple` `archive` `arrow-up` `arrow-up-right` `baby` `ban` `bed` `bell` `bike` `bird` `blend` `book-open` `bookmark` `brain` `briefcase` `cake` `calendar` `calendar-heart` `camera` `car` `cat` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `code` `coffee` `compass` `copy` `dog` `dumbbell` `ellipsis` `eye` `film` `fish` `flower-2` `folder` `footprints` `funnel` `gallery-vertical-end` `gamepad-2` `gift` `git-branch` `globe` `graduation-cap` `grip-vertical` `group` `hammer` `heart` `heart-pulse` `hotel` `house` `image` `inbox` `key` `lamp` `landmark` `laptop` `lasso` `layers` `leaf` `library-big` `link` `list` `lock` `log-out` `luggage` `mail` `map` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `monitor` `moon` `moon-star` `mountain` `music` `newspaper` `orbit` `paintbrush` `palette` `paperclip` `party-popper` `pause` `pen-tool` `pencil` `piggy-bank` `pill` `plane` `play` `plus` `radio` `receipt` `rewind` `rocket` `rss` `scan-text` `search` `settings` `share-2` `ship` `shirt` `shopping-cart` `sliders-horizontal` `smartphone` `snowflake` `sofa` `sparkles` `spline` `sprout` `square-check-big` `stethoscope` `sun` `sunrise` `tag` `tent` `text-quote` `thermometer-sun` `ticket` `train-front` `trash-2` `tree-pine` `trophy` `type` `umbrella` `user-plus` `users` `utensils` `wallet` `waves` `waypoints` `wind` `wine` `wrench` `x`.
 
@@ -1193,6 +1193,26 @@ It replaces the three dots and the line *Looking through your threads* on all th
   Ink, not moss: stopping is not something offload did.
 - **No bubble.** Nothing in the row is offload speaking.
 - **Reduced motion** draws the mark whole and still.
+
+## Search
+
+Decided 30 October 2026 off `explorations/search-tab.html` (and `search-entry.html`, `search-pull.html`). Build:
+`handoff/APPLY-2026-10-30-search.md`; as built in 049, with the departures listed in `decisions.md`'s entry of the same day.
+
+**Search has its own page, and it never waits for offload.** Matches show as you type, from the index: threads,
+then rows with the thread they are in (headed *In your threads*), then thread notes, then memories, the match in semibold. A thread opens its page, a row
+opens its thread scrolled to the row, a memory opens Memories at it. **Ask offload about "…"** is always the last
+row and puts the words in the composer unsent. Empty, the page shows up to five recent searches and the threads as
+chips. *As built (049):* from four letters the query is also read by meaning once typing pauses, and the results
+may reorder as that lands; words match with accents folded.
+
+**On the phones it is a tab: Today, Threads, Search, Memories.** The page has a titled bar, as Memories does, and
+Memories' own field; the keyboard covers the plate like any field that is not the composer's. **On the web it is
+the sidebar item in the same place**, with ⌘K and / from anywhere, opening a window over the page that works by
+keyboard.
+
+**The composer is unchanged.** A question typed there is still answered as before; Search is the fast way to find,
+the composer stays the way to ask. **My threads is renamed Threads** wherever a person reads it.
 
 ## The Memories tab
 

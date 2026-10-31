@@ -14,7 +14,8 @@
 // Everything here reads `readable_content` and `readable_notes` from 0026 and 0033.
 // No membership rule is written in this file.
 
-import { sql } from "kysely";
+import { sql, type RawBuilder } from "kysely";
+import type { Executor } from "../threads/access.js";
 import { calendarName } from "../connectors/calendars.js";
 import { db } from "../db.js";
 import { NOT_IN_A_THREAD, shownToModel } from "../threads/default.js";
@@ -190,7 +191,7 @@ export async function listContent(
   if (options.done === false) query = query.where("content.done_at", "is", null);
   if (options.matching) {
     query = query.where(
-      sql<boolean>`content.search_text @@ websearch_to_tsquery('simple', ${options.matching})`,
+      sql<boolean>`content.search_text @@ websearch_to_tsquery('offload_search', ${options.matching})`,
     );
   }
 
@@ -296,7 +297,7 @@ const RRF_K = 60;
  *  match still beats a live row the meaning arm only found nearby. */
 const ARCHIVED_BEHIND = SHORTLIST;
 
-function fuse(arms: string[][], archivedArms: string[][] = []): string[] {
+export function fuse(arms: string[][], archivedArms: string[][] = []): string[] {
   const score = new Map<string, number>();
   const add = (arm: string[], behind: number) =>
     arm.forEach((id, index) => {
@@ -317,11 +318,16 @@ export interface SearchOptions {
   queryVector?: string | null;
 }
 
-export async function search(accountId: string, options: SearchOptions): Promise<Result> {
-  // 2026-10-17 (the owner). Archived rows are found too, behind the live
-  // ones: archive takes a row off the list, never out of reach, and what has
-  // passed archives itself. Each arm runs once per pile, so neither pile's
-  // shortlist crowds out the other's.
+/** The content arms both searches run: words, and meaning when there is a
+ *  vector, each once per pile so neither pile's shortlist crowds out the
+ *  other's. `match` is the tsquery: the model's search passes
+ *  `websearch_to_tsquery`, the Search page (049) a prefix query. Lifted out of
+ *  `search()` unchanged so the two cannot drift on membership or lifecycle. */
+export async function contentArms(
+  accountId: string,
+  options: { match: RawBuilder<unknown>; vector: string | null; limit: number },
+  executor: Executor = db,
+): Promise<{ live: string[][]; archived: string[][] }> {
   // Which pile an arm reads, said as every other reader says it.
   const pile = (archived: boolean) => (archived ? sql`c.archived_at is not null` : sql`c.archived_at is null`);
   const textArm = async (archived: boolean) =>
@@ -332,13 +338,13 @@ export async function search(accountId: string, options: SearchOptions): Promise
       where c.viewer_account_id = ${accountId}::uuid
         and c.deleted_at is null and ${pile(archived)}
         and t.deleted_at is null
-        and c.search_text @@ websearch_to_tsquery('simple', ${options.query})
-      order by ts_rank(c.search_text, websearch_to_tsquery('simple', ${options.query})) desc,
+        and c.search_text @@ ${options.match}
+      order by ts_rank(c.search_text, ${options.match}) desc,
                c.created_at desc
-      limit ${SHORTLIST}
-    `.execute(db);
+      limit ${options.limit}
+    `.execute(executor);
   const vectorArm = async (archived: boolean) =>
-    options.queryVector
+    options.vector
       ? sql<{ id: string }>`
           select c.id::text as id
           from content_chunks ch
@@ -348,11 +354,24 @@ export async function search(accountId: string, options: SearchOptions): Promise
             and c.deleted_at is null and ${pile(archived)}
             and t.deleted_at is null
             and ch.embedding is not null
-          order by ch.embedding <=> ${options.queryVector}::halfvec(1024), c.created_at desc
-          limit ${SHORTLIST}
-        `.execute(db)
+          order by ch.embedding <=> ${options.vector}::halfvec(1024), c.created_at desc
+          limit ${options.limit}
+        `.execute(executor)
       : { rows: [] as { id: string }[] };
   const [text, vector, oldText, oldVector] = await Promise.all([textArm(false), vectorArm(false), textArm(true), vectorArm(true)]);
+  const ids = (result: { rows: { id: string }[] }) => result.rows.map((r) => r.id);
+  return { live: [ids(text), ids(vector)], archived: [ids(oldText), ids(oldVector)] };
+}
+
+export async function search(accountId: string, options: SearchOptions): Promise<Result> {
+  // 2026-10-17 (the owner). Archived rows are found too, behind the live
+  // ones: archive takes a row off the list, never out of reach, and what has
+  // passed archives itself.
+  const arms = await contentArms(accountId, {
+    match: sql`websearch_to_tsquery('offload_search', ${options.query})`,
+    vector: options.queryVector ?? null,
+    limit: SHORTLIST,
+  });
 
   // Read before the early return below. A question whose answer lives in a
   // standing rule matches no content at all, and returning nothing there would
@@ -360,10 +379,7 @@ export async function search(accountId: string, options: SearchOptions): Promise
   // looking like an empty corpus.
   const asides = await asidesFor(accountId, options);
 
-  const ranked = fuse(
-    [text.rows.map((r) => r.id), vector.rows.map((r) => r.id)],
-    [oldText.rows.map((r) => r.id), oldVector.rows.map((r) => r.id)],
-  );
+  const ranked = fuse(arms.live, arms.archived);
   const wanted = ranked.slice(0, ANSWER_RESULTS + 1);
   if (wanted.length === 0) {
     return { threadId: null, threadName: null, truncated: false, rows: [], asides };
@@ -425,21 +441,27 @@ export const ASIDES = 5;
  *  written every minute and never queried. The query vector is the one the
  *  content arm already has: no second embed.
  */
-async function asidesFor(accountId: string, options: SearchOptions): Promise<Aside[]> {
-  const viewer = sql`m.viewer_account_id = ${accountId}::uuid`;
-  const query = sql`websearch_to_tsquery('simple', ${options.query})`;
-
-  const noteFilter = sql`${viewer}
+/** A thread note the account may read and that still stands, over
+ *  `readable_notes m` left joined to `threads t`. Shared by the model's asides
+ *  and the Search page (049), so the two agree on what a live note is. */
+export function noteFilter(accountId: string): RawBuilder<unknown> {
+  return sql`m.viewer_account_id = ${accountId}::uuid
       and m.deleted_at is null and m.superseded_at is null and m.muted_at is null
       -- A note scoped to a deleted thread is about somewhere that no longer
       -- exists, and it would still be steering the answer. The left join means
       -- an account-scoped note has no thread and stays.
       and (t.id is null or t.deleted_at is null)`;
+}
+
+async function asidesFor(accountId: string, options: SearchOptions): Promise<Aside[]> {
+  const viewer = sql`m.viewer_account_id = ${accountId}::uuid`;
+  const query = sql`websearch_to_tsquery('offload_search', ${options.query})`;
+  const notesLive = noteFilter(accountId);
   const noteText = await sql<{ id: string }>`
     select m.id::text as id
     from readable_notes m
     left join threads t on t.id = m.subject_id
-    where ${noteFilter}
+    where ${notesLive}
       and m.search_text @@ ${query}
     order by ts_rank(m.search_text, ${query}) desc, m.updated_at desc
     limit ${SHORTLIST}
@@ -450,7 +472,7 @@ async function asidesFor(accountId: string, options: SearchOptions): Promise<Asi
         from note_chunks ch
         join readable_notes m on m.id = ch.note_id
         left join threads t on t.id = m.subject_id
-        where ${noteFilter}
+        where ${notesLive}
           and ch.embedding is not null
         order by ch.embedding <=> ${options.queryVector}::halfvec(1024), m.updated_at desc
         limit ${SHORTLIST}

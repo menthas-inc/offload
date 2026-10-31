@@ -11,6 +11,7 @@
 // bar narrows every section at once, so a chip row inside each would be a
 // second way to do the same thing.
 
+import { useRevealId } from "./reveal";
 import { useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import {
@@ -128,7 +129,10 @@ function WidgetBlock({
   const [allDone, setAllDone] = useState(false);
   const [folds, setFold] = useFolds();
   const section: FoldSection = widget.kind;
-  const folded = folds[section];
+  // 049. A row Search opened the thread at is never folded away or cut short.
+  const revealId = useRevealId();
+  const revealing = widget.rows.some((row) => row.id === revealId);
+  const folded = folds[section] && !revealing;
   // Only To do earns the fold: `doneAt` is only ever set on a task, so a
   // files section has nothing to hide and never draws the control.
   //
@@ -137,7 +141,7 @@ function WidgetBlock({
   // here.
 
   const { left, done } = splitDone(widget.rows);
-  const shown = [...left, ...(hideDone ? [] : allDone ? done : done.slice(0, DONE_SHOWN))];
+  const shown = [...left, ...(hideDone && !revealing ? [] : allDone || revealing ? done : done.slice(0, DONE_SHOWN))];
   // 2026-10-18. With the Undo lines: a row that left keeps a slot where it was.
   const placed = useInPlace(shown, (row) => row.id);
 
@@ -350,7 +354,7 @@ function WidgetBlock({
           that the work happened. The heading toggle above hides this whole
           group; this is the separate, narrower question of whether to see all
           of them once they are already showing. */}
-      {!hideDone && done.length > DONE_SHOWN && !allDone ? (
+      {!hideDone && done.length > DONE_SHOWN && !allDone && !revealing ? (
         <Pressable
           onPress={() => setAllDone(true)}
           className="min-h-tap-min justify-center px-gutter-screen"

@@ -13,7 +13,7 @@
 // read fails or a next page does (under the last row), and the empty state
 // when there is nothing.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "../Icon";
 import { PaneHead } from "../shell/PaneHead";
 import { useToast } from "../shell/Toast";
@@ -34,7 +34,18 @@ import styles from "./loose.module.css";
 
 const EMPTY: LoosePage = { rows: [], nextCursor: null, count: 0, byType: {}, archived: 0 };
 
-export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; onChanged?: () => void }) {
+export function LoosePane({
+  type: initial,
+  onChanged,
+  at = null,
+  atArchived = false,
+}: {
+  type: ChipKey | null;
+  onChanged?: () => void;
+  at?: string | null;
+  /** 049. The row Search opened at is archived: open the archived pile. */
+  atArchived?: boolean;
+}) {
   const toast = useToast();
   const [type, setType] = useState<ChipKey | null>(initial);
   const [state, setState] = useState<"loading" | "failed" | "ready">("loading");
@@ -44,10 +55,18 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
   // The archived rows, read when the foot row is opened.
   const [archived, setArchivedRows] = useState<{ rows: ContentRow[]; nextCursor: string | null } | null>(null);
   const [showArchived, setShowArchived] = useState(false);
-  const rows = useLooseRows(page, setPage, async () => {
-    await load(type);
-    onChanged?.();
-  });
+  // 049. The row Search opened the page at: read back to once, then marked.
+  const target = useRef(atArchived ? null : at);
+  const [arrived, setArrived] = useState<Set<string>>(new Set());
+  const rows = useLooseRows(
+    page,
+    setPage,
+    async () => {
+      await load(type);
+      onChanged?.();
+    },
+    arrived,
+  );
 
   /** The first page, for the chip that is on. A reload that lands while a
    *  write is in flight is dropped, as the thread page drops it. */
@@ -72,17 +91,32 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
 
   useEffect(() => {
     let live = true;
-    void fetchLoose({ type }).then((read) => {
+    const through = target.current;
+    target.current = null;
+    void fetchLoose({ type, through }).then((read) => {
       if (!live) return;
       if (!read) return setState("failed");
       setPage(read);
       setNextFailed(false);
       setState("ready");
+      if (through && read.rows.some((one) => one.kind === "content" && one.row.id === through)) setArrived(new Set([through]));
     });
     return () => {
       live = false;
     };
   }, [type, attempt]);
+
+  // 049. On screen, and the mark for a moment, as the thread page does it.
+  useEffect(() => {
+    if (arrived.size === 0) return;
+    const [id] = [...arrived];
+    const frame = requestAnimationFrame(() => document.querySelector(`[data-row-id="${CSS.escape(id!)}"]`)?.scrollIntoView({ block: "center" }));
+    const timer = setTimeout(() => setArrived(new Set()), 1400);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, [arrived]);
 
   // 048. The default thread's id is the server's to know, so a change to any
   // thread reads this again. `load` keeps the chip and the archived rows open.
@@ -110,7 +144,13 @@ export function LoosePane({ type: initial, onChanged }: { type: ChipKey | null; 
       nextCursor: read.nextCursor,
     }));
     setShowArchived(true);
+    if (!cursor && at && atArchived && read.rows.some((row) => row.id === at)) setArrived(new Set([at]));
   }
+
+  // 049. Opened at an archived row: its pile, as the foot row would open it.
+  useEffect(() => {
+    if (at && atArchived) void openArchived();
+  }, []);
 
   /** Put back, as the thread page's archived rows offer it: out of this list
    *  and into the live one. */

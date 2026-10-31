@@ -173,7 +173,7 @@ describe("the people sends", () => {
   it("lead with the sender's name, carry no pronoun, and say the thread's name once", () => {
     expect(requestCopy("Ana")).toEqual({ title: "Ana wants to connect", body: "Answer in My people." });
     expect(requestCopy(null)).toEqual({ title: "Someone wants to connect", body: "Answer in My people." });
-    expect(shareCopy("Ana", "Lisbon trip")).toEqual({ title: "Ana shared Lisbon trip", body: "Waiting in My threads." });
+    expect(shareCopy("Ana", "Lisbon trip")).toEqual({ title: "Ana shared Lisbon trip", body: "Waiting in Threads." });
     expect(additionsCopy("Ana", "Lisbon trip", ["Ferry times", "a place in Alfama"])).toEqual({
       title: "Ana added two to Lisbon trip",
       body: "Ferry times, and a place in Alfama.",

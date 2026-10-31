@@ -62,6 +62,8 @@ interface Props {
   members: Member[];
   /** Notes that arrived while this screen was open, marked for a moment. */
   arrived?: Set<string>;
+  /** 049. The note Search opened the page at: the section stays open for it. */
+  reveal?: string | null;
   /** Whether the new-note editor is open. Owned by the thread rather than by
    *  this section, because the pane head's More menu opens it too, and because
    *  a thread with no notes draws nothing here: without a way in from outside,
@@ -100,6 +102,7 @@ export function Notes({
   counts,
   members,
   arrived,
+  reveal = null,
   adding,
   onAdding,
   onNotes,
@@ -125,7 +128,7 @@ export function Notes({
   // An open editor holds it open, since the editor is inside, and folding
   // is the editor's Cancel.
   const [folds, setFold] = useFolds();
-  const sectionFolded = folds.notes && !adding && editingId === null;
+  const sectionFolded = folds.notes && !adding && editingId === null && !notes.some((note) => note.id === reveal);
   // 2026-10-18. Every note drawn here, so a deleted last note keeps the
   // section, and its slot, while its line runs.
   const seen = useRef(new Set<string>());
@@ -471,6 +474,7 @@ export function Notes({
         data-tone={tone}
         data-quiet={quietRow ? true : undefined}
         data-arrived={arrived?.has(note.id) ? true : undefined}
+        data-note-id={note.id}
         data-drag-row={reorder ? true : undefined}
         data-dragging={reorder?.dragging ? true : undefined}
         data-over={reorder?.over ?? undefined}
