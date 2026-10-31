@@ -278,6 +278,50 @@
       }
     },
     {
+      "id": "answer-lookup-known-instead",
+      "why": "2026-10-30: a lookup that found the question's subject but not its answer says what is known instead, never 'Not sure.'",
+      "surface": "answer",
+      "input": "when do Burning man tickets go on sale?",
+      "context": "behrooz",
+      "lookup_result": {
+        "found": false,
+        "known": {
+          "fact": "2027 sale dates not announced; the 2026 main sale began 2026-04-29"
+        }
+      },
+      "expect": {
+        "look_up": true,
+        "must_not_contain": [
+          "not sure"
+        ],
+        "max_words": 30,
+        "rubric": "Says the 2027 sale dates are not announced yet and that last year's main sale began on 29 April, in one or two short sentences. Does not give a 2027 date, name a website, say it searched, or suggest checking somewhere."
+      }
+    },
+    {
+      "id": "file-lookup-known-files-without",
+      "why": "2026-10-30: in a filing turn, what is known instead is not the fact: the row lands without a date and nothing is said",
+      "surface": "file",
+      "input": "add a todo on the day burning man tickets go on sale to buy two",
+      "context": "behrooz",
+      "lookup_result": {
+        "found": false,
+        "known": {
+          "fact": "2027 sale dates not announced; the 2026 main sale began 2026-04-29"
+        }
+      },
+      "expect": {
+        "look_up": true,
+        "filed": [
+          {
+            "type": "task",
+            "no_date": true
+          }
+        ],
+        "say": null
+      }
+    },
+    {
       "id": "answer-arithmetic-not-lookup",
       "why": "a date that is arithmetic is not looked up",
       "surface": "answer",

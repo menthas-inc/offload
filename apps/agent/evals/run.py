@@ -990,6 +990,10 @@ class Recorder:
         override = self.fx.get("lookup_result")
         kind = "read" if url else "search"
         if override is not None and override.get("found") is False:
+            # 2026-10-30. What the sources say instead, as production sends it.
+            if override.get("known"):
+                self.budget.record(label="other", kind=kind, outcome="used")
+                return {"ok": True, "found": False, "known": dict(override["known"])}
             self.budget.record(label="other", kind=kind, outcome="empty")
             return {"ok": True, "found": False}
         self.budget.record(label="other", kind=kind, outcome="used")

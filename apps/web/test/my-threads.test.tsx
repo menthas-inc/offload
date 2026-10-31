@@ -261,6 +261,23 @@ describe("the others making room", () => {
   });
 });
 
+describe("the card under the pointer", () => {
+  // The tile's own sheet sets position: relative at the same specificity, and
+  // which sheet wins depends on the bundle's order: on prod the card sat in
+  // the flow, pushed off by its own left and top.
+  it("is fixed to the window by its own style, whatever order the sheets load in", async () => {
+    await draw();
+    const tile = tileOf("Lisbon trip");
+    const pointer = (type: string, x: number) =>
+      act(async () => void tile.dispatchEvent(new PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: 10 })));
+    await pointer("pointerdown", 10);
+    await pointer("pointermove", 60);
+    const card = host.querySelector<HTMLElement>('button[aria-hidden="true"][data-lifted]');
+    expect(card).not.toBeNull();
+    expect(card!.style.position).toBe("fixed");
+  });
+});
+
 describe("the page's top", () => {
   it("leaves room under the title before what comes first", () => {
     const sheet = readFileSync(join(process.cwd(), "src/components/panes/MyThreads.module.css"), "utf8");

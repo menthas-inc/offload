@@ -122,8 +122,9 @@
   border-radius: 16px;
 }
 
+/* position: fixed is set inline on the card: .tile sets relative at the same
+   specificity, and the bundle's sheet order decides which wins. */
 .floating {
-  position: fixed;
   z-index: 30;
   pointer-events: none;
 }

@@ -361,6 +361,14 @@ What is left is not decisions but work, and it lives elsewhere: the deferred har
 
 *The data model is specced at `docs/specs/001-data-model/`. What remains of it is implementation.*
 
+## A lookup has three outcomes, 2026-10-30
+
+"When do Burning man tickets go on sale?" came back `Not sure.` with eight source chips. The reader had opened burningman.org and read that 2027 sale dates are not announced, and had no way to say it: a lookup was a date or unsure.
+
+- ✅ **Nothing relevant, relevant but not the answer, or the answer (owner).** The reader returns `outcome`. `related` carries one `fact`, what the sources say instead with the last one when given, bounded in the schema at the field limit so a long line goes back for one repair instead of being dropped. It is only for a source that says so outright; sources that disagree are `nothing`, because a wrong "not announced" is worse than `Not sure.`. It crosses to the planner as `found: false` with `known`, so filing treats it as no fact, and answering says it: "Not announced yet. The 2026 main sale started on 29 April."
+- ✅ **`Not sure.` carries no source chips.** A chip says where an answer came from.
+- Measured on the live reader (Haiku 5.5): Burning Man related 3 of 3, an invented event nothing 3 of 3, Waking Life answered 2 of 3. Its raffle makes "on sale" ambiguous, and the answers said the first round's opening date.
+
 ## Looking a date up, 2026-10-30
 
 "When do Waking Life tickets go on sale?" came back `Not sure.` with twenty unrelated rows under it. The answer is on the festival's raffle page, and Google shows it.

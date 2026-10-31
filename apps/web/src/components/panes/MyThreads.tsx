@@ -709,6 +709,8 @@ export function MyThreads({
                 aria-hidden="true"
                 className={page.floating}
                 style={{
+                  // Inline, so the tile's own position: relative cannot win on load order.
+                  position: "fixed",
                   left: float.x - float.dx,
                   top: float.y - float.dy,
                   width: float.w,

@@ -595,12 +595,22 @@ async def _look_up(
         if entry not in budget.sources:
             budget.sources.append(entry)
 
-    outcome = "failed" if reading.failed else ("empty" if reading.found.unsure else "used")
+    # What the sources say instead reaches the reply, so it is used, not empty.
+    known = {} if reading.failed else reading.found.known
+    outcome = (
+        "failed"
+        if reading.failed
+        else ("empty" if reading.found.unsure and not known else "used")
+    )
     # The label and the outcome, never the query and never the URL. Enough to
     # tell a refused turn from a quiet one without putting a word of theirs in a
     # log (OFF-1).
     log.info(
-        "looked up", label=reading.found.label, kind="read" if url else "search", outcome=outcome
+        "looked up",
+        label=reading.found.label,
+        kind="read" if url else "search",
+        outcome=outcome,
+        known=bool(known),
     )
     budget.record(
         label=reading.found.label,
@@ -610,7 +620,7 @@ async def _look_up(
     )
 
     if reading.failed or reading.found.unsure:
-        return {"ok": True, "found": False}
+        return {"ok": True, "found": False, **({"known": known} if known else {})}
 
     fields = dict(reading.found.fields)
 
@@ -2100,6 +2110,8 @@ def _author_the_failure_line(outcome: Outcome, budget: "Lookups") -> None:
         return
     filed = any(item.tool != "create_thread" for item in outcome.landed)
     outcome.reply = None if filed else NOT_SURE
+    if outcome.reply == NOT_SURE:
+        budget.sources.clear()
 
 
 def _author_the_answer_line(outcome: Outcome, budget: "Lookups") -> None:
@@ -2117,10 +2129,12 @@ def _author_the_answer_line(outcome: Outcome, budget: "Lookups") -> None:
     looked = {row["outcome"] for row in budget.rows}
     if looked & {"empty", "failed"} and "used" not in looked and not outcome.found:
         outcome.reply = NOT_SURE
-    # Rows the answer did not come from. A search's meaning arm always returns
-    # its nearest rows, so a read that answered nothing still had twenty to draw.
+    # Rows and chips the answer did not come from. A search's meaning arm
+    # always returns its nearest rows, and a chip says where an answer came
+    # from: under "Not sure." there was none.
     if outcome.reply == NOT_SURE:
         outcome.found = []
+        budget.sources.clear()
 
 
 def _nothing_left(outcome: Outcome, ctx: DumpContext) -> bool:
