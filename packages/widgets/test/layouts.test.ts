@@ -109,9 +109,13 @@ describe("labelsToMake / labelsToDrop (decision 3)", () => {
 });
 
 describe("suggestionLine (6.9)", () => {
-  it("has a phrase per suggestible layout", () => {
-    expect(suggestionLine("todo")).toContain("a list to get through");
-    expect(suggestionLine("timeline")).toContain("a diary");
+  // Thread notice (2026-10-31): the whole question, written to fit two lines at 375 wide.
+  it("names the layout and asks", () => {
+    expect(suggestionLine("todo")).toBe("Looks like a checklist, switch to the Todo list layout?");
+    expect(suggestionLine("events")).toBe("Looks like a trip or event, switch to the Events layout?");
+    expect(suggestionLine("gallery")).toBe("Looks like a collection, switch to the Gallery layout?");
+    expect(suggestionLine("project")).toBe("Looks like a project, switch to the Project layout?");
+    expect(suggestionLine("timeline")).toBe("Looks like a diary, switch to the Timeline layout?");
   });
 });
 

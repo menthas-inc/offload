@@ -23,8 +23,9 @@ const HUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export interface EditThreadProps {
   thread: ThreadLook & { id: string; layout?: Layout; layoutSetBy?: "offload" | "person" };
-  /** What was clicked. The name puts the caret in the field; the icon does not. */
-  from: "icon" | "name";
+  /** What was clicked. The name puts the caret in the field; the icon does
+   *  not; a notice's Change lands on the picked layout. */
+  from: "icon" | "name" | "layout";
   /** The change to write, and what the head draws at the press. */
   onSave: (change: { name?: string; icon?: string; hue?: number; layout?: Layout }, shown: { name: string; icon: string; hue: number }) => void;
   onClose: () => void;
@@ -50,6 +51,7 @@ export function EditThread({ thread, from, onSave, onClose, heading = "Edit thre
   const [layout, setLayout] = useState<Layout>(thread.layout ?? "default");
   const box = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLInputElement>(null);
+  const layouts = useRef<HTMLDivElement>(null);
 
   const icon = previewThreadIcon(thread, { name, icon: picked });
   const canSave = name.trim().length > 0;
@@ -59,6 +61,10 @@ export function EditThread({ thread, from, onSave, onClose, heading = "Edit thre
     if (from === "name") {
       field.current?.focus();
       field.current?.select();
+    } else if (from === "layout") {
+      const tile = layouts.current?.querySelector<HTMLElement>('[tabindex="0"]');
+      tile?.focus();
+      tile?.scrollIntoView?.({ block: "nearest" });
     } else box.current?.focus();
     return () => {
       if (opener?.isConnected) opener.focus();
@@ -183,7 +189,7 @@ export function EditThread({ thread, from, onSave, onClose, heading = "Edit thre
         </div>
 
         <div className={styles.label}>Layout</div>
-        <div role="radiogroup" aria-label="Layout" className={styles.layouts}>
+        <div ref={layouts} role="radiogroup" aria-label="Layout" className={styles.layouts}>
           {LAYOUTS.map((one, index) => (
             <LayoutTile
               key={one}

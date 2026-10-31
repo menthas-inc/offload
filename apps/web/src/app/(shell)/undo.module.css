@@ -53,6 +53,13 @@
   text-overflow: ellipsis;
 }
 
+/* A sentence that has to be read whole: the thread notice's switch. */
+.wrap {
+  padding: var(--space-4) 0;
+  white-space: normal;
+  text-wrap: pretty;
+}
+
 /* A 44px hit area around a word. */
 .action {
   flex: 0 0 auto;

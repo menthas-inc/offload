@@ -25,6 +25,7 @@ import { LayoutSections, type LayoutHandlers } from "./LayoutSections";
 import { TYPED_ROW_PLACEHOLDER } from "../../lib/typed-row";
 import { ThreadIcon } from "../ThreadIcon";
 import { EditThreadSheet } from "./EditThreadSheet";
+import { ThreadNotice } from "../shell/ThreadNotice";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
@@ -181,8 +182,8 @@ export default function Thread() {
   const [archiving, setArchiving] = useState<ContentRow | null>(null);
   const [leaveBusy, setLeaveBusy] = useState(false);
   const [leaveFailed, setLeaveFailed] = useState(false);
-  // 037. Edit thread, and whether the icon or the name opened it.
-  const [editingThread, setEditingThread] = useState<"icon" | "name" | null>(null);
+  // 037. Edit thread, and whether the icon, the name or a notice opened it.
+  const [editingThread, setEditingThread] = useState<"icon" | "name" | "layout" | null>(null);
   const [calendarsVersion, setCalendarsVersion] = useState(0);
   // Thread layouts (6.9): the suggestion line, hidden at once when dismissed.
   const [suggestionGone, setSuggestionGone] = useState(false);
@@ -672,7 +673,9 @@ export default function Thread() {
    *  Co-owned, so anybody in the thread may change them. The bar is drawn at
    *  the press, and Undo sends back everything that was there, whose pick it
    *  was included. */
-  function saveThread(change: ThreadEdit, shown: { name: string; icon: string; hue: number }): void {
+  /** `notice`: the switch came from the thread notice, so its line says where
+   *  to change it later, and wraps to be read whole. */
+  function saveThread(change: ThreadEdit, shown: { name: string; icon: string; hue: number }, notice = false): void {
     if (!thread) return;
     const before: ThreadLook = { name: thread.name, icon: thread.icon, hue: thread.hue, iconSetBy: thread.iconSetBy };
     const after = threadLookAfter(before, change, shown);
@@ -708,11 +711,13 @@ export default function Thread() {
           return true;
         }),
       unwrite: () => editThread(id, undo).then((result) => result !== null && !isLabelsFull(result)),
-      did: change.layout ? `Showing as ${LAYOUT_NAMES[change.layout]}` : "Thread updated",
+      did: change.layout
+        ? `Showing as ${LAYOUT_NAMES[change.layout]}${notice ? ". You can always change this in thread settings." : ""}`
+        : "Thread updated",
       failed: "Couldn't save that",
       unfailed: "Couldn't put that back",
       // Under the thread's read, at the top of the page.
-      place: { id: `thread:${id}`, icon: "pencil", form: "under" },
+      place: notice ? { id: `thread:${id}`, icon: "check", form: "under", wrap: true } : { id: `thread:${id}`, icon: "pencil", form: "under" },
     };
     void perform(op, toast, writes);
   }
@@ -1238,47 +1243,40 @@ export default function Thread() {
         {/* Edit thread's line, under the read, or at the top without one. */}
         <UndoAt id={`thread:${thread.id}`} />
 
-        {/* Thread layouts: the heads-up another member sees once after somebody
-            else switched, then the suggestion line offload draws (6.9). */}
+        {/* The thread notice (2026-10-31): a member's switch, once, then
+            offload's layout suggestion (6.9). Newest on top. */}
         {headsUp ? (
-          <View className="px-gutter-screen pt-space-4">
-            <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13 }}>
-              {headsUp.by.displayName} switched this to {LAYOUT_NAMES[headsUp.layout]}
-            </Text>
-          </View>
+          <ThreadNotice
+            person={{
+              uid: headsUp.by.accountId,
+              initials: thread.members.find((one) => one.accountId === headsUp.by.accountId)?.initials ?? "",
+              name: headsUp.by.displayName,
+            }}
+            message={`${headsUp.by.displayName} switched this to the ${LAYOUT_NAMES[headsUp.layout]} layout`}
+            action="Change"
+            actionLabel="Change this thread's layout"
+            onAction={() => setEditingThread("layout")}
+            // Already seen on the server; this hides it for the view.
+            onDismiss={() => setHeadsUp(null)}
+          />
         ) : null}
         {thread.layoutSuggestion && !suggestionGone ? (
-          <View className="flex-row items-center px-gutter-screen pt-space-4">
-            <Pressable
-              onPress={() => {
-                if (!thread.layoutSuggestion) return;
-                setSuggestionGone(true);
-                saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue });
-              }}
-              hitSlop={{ top: 6, bottom: 6 }}
-              accessibilityRole="button"
-              accessibilityLabel={`Show this thread as ${LAYOUT_NAMES[thread.layoutSuggestion]}`}
-              className={`flex-row items-center gap-space-3 border border-transparent bg-surface-accent-soft ${isAndroid ? "rounded-a-sm" : "rounded-pill"}`}
-              style={{ minHeight: 32, paddingLeft: 10, paddingRight: 12, flexShrink: 1, boxShadow: `inset 0 0 0 1px ${COLOR.edgeAccent}` }}
-            >
-              <Glyph name="sparkles" size={13} color={COLOR.accent} />
-              <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13, flexShrink: 1 }} numberOfLines={1}>
-                {suggestionLine(thread.layoutSuggestion)}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setSuggestionGone(true);
-                if (id) void dismissLayoutSuggestion(id);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Dismiss suggestion"
-              className="items-center justify-center"
-              style={{ width: 44, height: 44, marginVertical: -6 }}
-            >
-              <Glyph name="x" size={14} color={COLOR.quiet} />
-            </Pressable>
-          </View>
+          <ThreadNotice
+            stacked={headsUp !== null}
+            message={suggestionLine(thread.layoutSuggestion)}
+            action="Switch"
+            actionLabel={`Switch this thread to the ${LAYOUT_NAMES[thread.layoutSuggestion]} layout`}
+            onAction={() => {
+              if (!thread.layoutSuggestion) return;
+              setSuggestionGone(true);
+              saveThread({ layout: thread.layoutSuggestion }, { name: thread.name, icon: thread.icon, hue: thread.hue }, true);
+            }}
+            dismissLabel="Dismiss suggestion"
+            onDismiss={() => {
+              setSuggestionGone(true);
+              if (id) void dismissLayoutSuggestion(id);
+            }}
+          />
         ) : null}
 
         {/* The rail is above the widgets, and only on a thread with something

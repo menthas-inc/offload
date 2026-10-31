@@ -41,6 +41,15 @@ describe("createUndoStore", () => {
     expect(store.entries().size).toBe(0);
   });
 
+  // Thread notice (2026-10-31): a sentence that must be read whole wraps.
+  it("carries a place's wrap onto its line", () => {
+    const store = createUndoStore(clock());
+    store.put({ id: "t", icon: "check", form: "under", wrap: true }, "Showing as Events", undo);
+    store.put(slot("a"), "Archived", undo);
+    expect(store.entries().get("t")?.wrap).toBe(true);
+    expect(store.entries().get("a")?.wrap).toBeUndefined();
+  });
+
   it("a second action on the same thing replaces its line and restarts the clock", () => {
     const c = clock();
     const store = createUndoStore(c);
