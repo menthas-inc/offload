@@ -16,7 +16,7 @@ import { active } from "../memories/store.js";
 import type { MemoryClass } from "../schema.js";
 import type { Executor } from "../threads/access.js";
 import { NOT_IN_A_THREAD } from "../threads/default.js";
-import { ANSWER_ROW_CHARS, contentArms, fuse, noteFilter } from "./read.js";
+import { ANSWER_ROW_CHARS, contentArms, fuse, near, noteFilter } from "./read.js";
 
 export const PAGE_LIMITS = { threads: 5, rows: 6, notes: 3, memories: 3 } as const;
 /** What the field takes; anything longer is cut, never refused. */
@@ -183,17 +183,21 @@ async function notesMatching(
     limit ${SHORTLIST}
   `.execute(executor);
   const meaning = vector
-    ? await sql<{ id: string }>`
-        select m.id::text as id
-        from note_chunks ch
-        join readable_notes m on m.id = ch.note_id
-        left join threads t on t.id = m.subject_id
-        where ${live} and ch.embedding is not null
-        order by ch.embedding <=> ${vector}::halfvec(1024), m.updated_at desc
-        limit ${SHORTLIST}
-      `.execute(executor)
-    : { rows: [] as { id: string }[] };
-  const wanted = fuse([words.rows.map((r) => r.id), [...new Set(meaning.rows.map((r) => r.id))]]).slice(0, PAGE_LIMITS.notes);
+    ? near(
+        (
+          await sql<{ id: string; d: number }>`
+            select m.id::text as id, (ch.embedding <=> ${vector}::halfvec(1024))::float8 as d
+            from note_chunks ch
+            join readable_notes m on m.id = ch.note_id
+            left join threads t on t.id = m.subject_id
+            where ${live} and ch.embedding is not null
+            order by ch.embedding <=> ${vector}::halfvec(1024), m.updated_at desc
+            limit ${SHORTLIST}
+          `.execute(executor)
+        ).rows,
+      )
+    : [];
+  const wanted = fuse([words.rows.map((r) => r.id), [...new Set(meaning.map((r) => r.id))]]).slice(0, PAGE_LIMITS.notes);
   if (wanted.length === 0) return [];
   const found = await sql<{ id: string; thread_id: string; loose: boolean; text: string }>`
     select m.id::text as id, m.subject_id::text as thread_id, m.subject_id = ${defaultThread} as loose, m.text
@@ -224,12 +228,14 @@ async function memoriesMatching(
     .limit(SHORTLIST)
     .execute();
   const meaning = vector
-    ? await active(executor, accountId)
-        .select("id")
-        .where("embedding", "is not", null)
-        .orderBy(sql`embedding <=> ${vector}::halfvec(1024)`)
-        .limit(SHORTLIST)
-        .execute()
+    ? near(
+        await active(executor, accountId)
+          .select(["id", sql<number>`(embedding <=> ${vector}::halfvec(1024))::float8`.as("d")])
+          .where("embedding", "is not", null)
+          .orderBy(sql`embedding <=> ${vector}::halfvec(1024)`)
+          .limit(SHORTLIST)
+          .execute(),
+      )
     : [];
   const wanted = fuse([words.map((r) => r.id), meaning.map((r) => r.id)]).slice(0, PAGE_LIMITS.memories);
   if (wanted.length === 0) return [];

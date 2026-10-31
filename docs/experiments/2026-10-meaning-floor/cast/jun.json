@@ -1,0 +1,1909 @@
+{
+ "person": "jun",
+ "threads": [
+  {
+   "key": "nights",
+   "name": "Night shifts"
+  },
+  {
+   "key": "busan",
+   "name": "Busan trip"
+  },
+  {
+   "key": "misc",
+   "name": "Miscellaneous"
+  },
+  {
+   "key": "sleep",
+   "name": "Sleep and health"
+  },
+  {
+   "key": "cooking",
+   "name": "Cooking"
+  },
+  {
+   "key": "climb",
+   "name": "Climbing gym"
+  },
+  {
+   "key": "car",
+   "name": "Car"
+  },
+  {
+   "key": "budget",
+   "name": "Budget"
+  }
+ ],
+ "rows": [
+  {
+   "id": "j001",
+   "thread": "nights",
+   "title": "Swap shift with Dana on the 14th",
+   "body": "She owes me one from September."
+  },
+  {
+   "id": "j002",
+   "thread": "nights",
+   "title": "Night shift schedule November",
+   "body": "Rotation changes on the 9th. Four on, three off."
+  },
+  {
+   "id": "j003",
+   "thread": "nights",
+   "title": "Handover checklist",
+   "body": "Bed status, IV lines, pending labs, family calls, fall risk."
+  },
+  {
+   "id": "j004",
+   "thread": "nights",
+   "title": "Charge nurse training Thursday 2pm",
+   "body": ""
+  },
+  {
+   "id": "j005",
+   "thread": "nights",
+   "title": "Renew BLS certification",
+   "body": "Expires in January. Book the recertification course at the hospital education centre."
+  },
+  {
+   "id": "j006",
+   "thread": "nights",
+   "title": "Union meeting Oct 28 7pm",
+   "body": ""
+  },
+  {
+   "id": "j007",
+   "thread": "nights",
+   "title": "Ask Priya to cover Saturday night",
+   "body": "Offer her my Tuesday in return."
+  },
+  {
+   "id": "j008",
+   "thread": "nights",
+   "title": "Compression socks",
+   "body": ""
+  },
+  {
+   "id": "j009",
+   "thread": "nights",
+   "title": "Overtime sign-up closes Friday",
+   "body": "Sheet is on the board by the med room."
+  },
+  {
+   "id": "j010",
+   "thread": "nights",
+   "title": "Parking pass renewal for hospital garage",
+   "body": "Staff lot B, $84 a month."
+  },
+  {
+   "id": "j011",
+   "thread": "nights",
+   "title": "Shadow the new grad on 4 West",
+   "body": ""
+  },
+  {
+   "id": "j012",
+   "thread": "nights",
+   "title": "10 Tips for Surviving Night Shift | Nurse.com",
+   "body": ""
+  },
+  {
+   "id": "j013",
+   "thread": "nights",
+   "title": "Staying Alert at 4am: A Night Nurse's Guide - Registered Nurse Journal",
+   "body": ""
+  },
+  {
+   "id": "j014",
+   "thread": "nights",
+   "title": "Request vacation days for Busan",
+   "body": "Submit to the unit manager by Nov 1. Ask for Nov 18 to Nov 30."
+  },
+  {
+   "id": "j015",
+   "thread": "nights",
+   "title": "Order 2 navy scrub pairs",
+   "body": ""
+  },
+  {
+   "id": "j016",
+   "thread": "nights",
+   "title": "N95 fit test appointment",
+   "body": "Occupational health, ground floor. Bring the old mask."
+  },
+  {
+   "id": "j017",
+   "thread": "nights",
+   "title": "Code blue debrief Tuesday",
+   "body": ""
+  },
+  {
+   "id": "j018",
+   "thread": "nights",
+   "title": "Hand hygiene audit this week",
+   "body": ""
+  },
+  {
+   "id": "j019",
+   "thread": "nights",
+   "title": "Dana's retirement party Nov 22",
+   "body": "Potluck at the unit. Bring japchae."
+  },
+  {
+   "id": "j020",
+   "thread": "nights",
+   "title": "Flu shot at occupational health",
+   "body": "Required before Nov 30. Walk-in Monday to Friday."
+  },
+  {
+   "id": "j021",
+   "thread": "nights",
+   "title": "Take the streetcar home after shift, faster than driving",
+   "body": ""
+  },
+  {
+   "id": "j022",
+   "thread": "nights",
+   "title": "Bring phone charger to work",
+   "body": ""
+  },
+  {
+   "id": "j023",
+   "thread": "nights",
+   "title": "Workplace violence training module due",
+   "body": ""
+  },
+  {
+   "id": "j024",
+   "thread": "nights",
+   "title": "Ask manager about the weekend rotation",
+   "body": ""
+  },
+  {
+   "id": "j025",
+   "thread": "nights",
+   "title": "Sign up for the pediatric sepsis course",
+   "body": ""
+  },
+  {
+   "id": "j026",
+   "thread": "nights",
+   "title": "Staff meeting Wednesday 3pm",
+   "body": "Have to come in early for it. Sleep first."
+  },
+  {
+   "id": "j027",
+   "thread": "nights",
+   "title": "New stethoscope",
+   "body": "Littmann Cardiology IV in navy. Wait for the sale."
+  },
+  {
+   "id": "j028",
+   "thread": "nights",
+   "title": "Check payslip for shift differential",
+   "body": "Last month looked short by about $120."
+  },
+  {
+   "id": "j029",
+   "thread": "nights",
+   "title": "Pick up extra shifts Dec 20 to 24",
+   "body": ""
+  },
+  {
+   "id": "j030",
+   "thread": "nights",
+   "title": "Swap Saturday night with Dana",
+   "body": ""
+  },
+  {
+   "id": "j031",
+   "thread": "nights",
+   "title": "Pack a real lunch for the 3am break",
+   "body": ""
+  },
+  {
+   "id": "j032",
+   "thread": "nights",
+   "title": "Hospital cafeteria closes at midnight",
+   "body": "Vending machine only after that. Bring food."
+  },
+  {
+   "id": "j033",
+   "thread": "nights",
+   "title": "Reflective vest for walking to the garage",
+   "body": ""
+  },
+  {
+   "id": "j034",
+   "thread": "nights",
+   "title": "Request Christmas Eve off",
+   "body": ""
+  },
+  {
+   "id": "j035",
+   "thread": "nights",
+   "title": "Nursing college renewal fee due",
+   "body": "Online portal, deadline end of the month."
+  },
+  {
+   "id": "j036",
+   "thread": "nights",
+   "title": "Ask Tae-yang about the pump training",
+   "body": ""
+  },
+  {
+   "id": "j037",
+   "thread": "nights",
+   "title": "Preceptor course notes",
+   "body": "Give feedback early, keep it specific, write down what went well."
+  },
+  {
+   "id": "j038",
+   "thread": "sleep",
+   "title": "Melatonin 3mg",
+   "body": "The 3mg is enough, 10mg makes me groggy."
+  },
+  {
+   "id": "j039",
+   "thread": "sleep",
+   "title": "Buy melatonin",
+   "body": ""
+  },
+  {
+   "id": "j040",
+   "thread": "sleep",
+   "title": "Blackout curtains",
+   "body": "The thick ones, not the polyester."
+  },
+  {
+   "id": "j041",
+   "thread": "sleep",
+   "title": "Measure bedroom window for blackout curtains",
+   "body": "Need the width and the drop. Order from IKEA."
+  },
+  {
+   "id": "j042",
+   "thread": "sleep",
+   "title": "Sleep after shift: aim for 8:30am to 2:30pm",
+   "body": ""
+  },
+  {
+   "id": "j043",
+   "thread": "sleep",
+   "title": "Eye mask",
+   "body": ""
+  },
+  {
+   "id": "j044",
+   "thread": "sleep",
+   "title": "White noise machine",
+   "body": ""
+  },
+  {
+   "id": "j045",
+   "thread": "sleep",
+   "title": "Magnesium glycinate",
+   "body": ""
+  },
+  {
+   "id": "j046",
+   "thread": "sleep",
+   "title": "How to Sleep During the Day: A Shift Worker's Guide | Sleep Foundation",
+   "body": ""
+  },
+  {
+   "id": "j047",
+   "thread": "sleep",
+   "title": "Does Melatonin Work for Shift Work Disorder? - Healthline",
+   "body": ""
+  },
+  {
+   "id": "j048",
+   "thread": "sleep",
+   "title": "Physio appointment Nov 5 4pm",
+   "body": "Lower back again. Ask about core exercises."
+  },
+  {
+   "id": "j049",
+   "thread": "sleep",
+   "title": "Lower back stretches after shift",
+   "body": "Cat cow, child's pose, hip flexor stretch. Ten minutes before bed."
+  },
+  {
+   "id": "j050",
+   "thread": "sleep",
+   "title": "Book physio follow up",
+   "body": ""
+  },
+  {
+   "id": "j051",
+   "thread": "sleep",
+   "title": "Sleep log",
+   "body": "Went to bed 8:40am, woke at 2pm, groggy all evening."
+  },
+  {
+   "id": "j052",
+   "thread": "sleep",
+   "title": "Dentist cleaning Dec 3",
+   "body": ""
+  },
+  {
+   "id": "j053",
+   "thread": "sleep",
+   "title": "Eye doctor appointment",
+   "body": ""
+  },
+  {
+   "id": "j054",
+   "thread": "sleep",
+   "title": "Annual physical, ask about vitamin D",
+   "body": ""
+  },
+  {
+   "id": "j055",
+   "thread": "sleep",
+   "title": "Vitamin D drops",
+   "body": ""
+  },
+  {
+   "id": "j056",
+   "thread": "sleep",
+   "title": "No caffeine after 1am",
+   "body": "Coffee at 3am is why the 2pm sleep never works."
+  },
+  {
+   "id": "j057",
+   "thread": "sleep",
+   "title": "Supportive insoles for 12 hour shifts",
+   "body": ""
+  },
+  {
+   "id": "j058",
+   "thread": "sleep",
+   "title": "Ask GP about a sleep clinic referral",
+   "body": "Waited too long already. Mention the afternoon crashes."
+  },
+  {
+   "id": "j059",
+   "thread": "sleep",
+   "title": "Phone on do not disturb at 8am",
+   "body": ""
+  },
+  {
+   "id": "j060",
+   "thread": "sleep",
+   "title": "Allergy card for wallet",
+   "body": "Penicillin allergy. Write it in English and Korean."
+  },
+  {
+   "id": "j061",
+   "thread": "sleep",
+   "title": "Ibuprofen",
+   "body": ""
+  },
+  {
+   "id": "j062",
+   "thread": "sleep",
+   "title": "Heating pad for lower back",
+   "body": "The wrap kind, not the plug-in pad."
+  },
+  {
+   "id": "j063",
+   "thread": "sleep",
+   "title": "Light therapy lamp",
+   "body": "Use it for 20 minutes when waking up at 2pm."
+  },
+  {
+   "id": "j064",
+   "thread": "sleep",
+   "title": "Walk 30 minutes before shift",
+   "body": ""
+  },
+  {
+   "id": "j065",
+   "thread": "sleep",
+   "title": "수면 앱 추천 찾아보기",
+   "body": ""
+  },
+  {
+   "id": "j066",
+   "thread": "sleep",
+   "title": "Earplugs, the silicone ones",
+   "body": ""
+  },
+  {
+   "id": "j067",
+   "thread": "cooking",
+   "title": "Easy Kimchi Jjigae Recipe - Maangchi",
+   "body": ""
+  },
+  {
+   "id": "j068",
+   "thread": "cooking",
+   "title": "Meal prep Sunday: chicken thighs, rice, broccoli",
+   "body": ""
+  },
+  {
+   "id": "j069",
+   "thread": "cooking",
+   "title": "Gochujang",
+   "body": ""
+  },
+  {
+   "id": "j070",
+   "thread": "cooking",
+   "title": "Gochugaru, big bag from H Mart",
+   "body": ""
+  },
+  {
+   "id": "j071",
+   "thread": "cooking",
+   "title": "Doenjang",
+   "body": ""
+  },
+  {
+   "id": "j072",
+   "thread": "cooking",
+   "title": "Eggs, milk, bread",
+   "body": ""
+  },
+  {
+   "id": "j073",
+   "thread": "cooking",
+   "title": "Eggs",
+   "body": ""
+  },
+  {
+   "id": "j074",
+   "thread": "cooking",
+   "title": "Tofu x2",
+   "body": ""
+  },
+  {
+   "id": "j075",
+   "thread": "cooking",
+   "title": "Mom's japchae recipe",
+   "body": "Ask Min for her sweet potato noodle ratio."
+  },
+  {
+   "id": "j076",
+   "thread": "cooking",
+   "title": "Bibimbap bowls for work lunches",
+   "body": "Cook the rice Sunday and portion it."
+  },
+  {
+   "id": "j077",
+   "thread": "cooking",
+   "title": "Overnight oats for the 3am break",
+   "body": ""
+  },
+  {
+   "id": "j078",
+   "thread": "cooking",
+   "title": "Korean Fried Chicken Recipe | Serious Eats",
+   "body": ""
+  },
+  {
+   "id": "j079",
+   "thread": "cooking",
+   "title": "Best Sheet Pan Dinners - NYT Cooking",
+   "body": ""
+  },
+  {
+   "id": "j080",
+   "thread": "cooking",
+   "title": "Make seolleongtang this weekend",
+   "body": "Simmer the bones all day Saturday. Good for sick days too."
+  },
+  {
+   "id": "j081",
+   "thread": "cooking",
+   "title": "Instant Pot sealing ring",
+   "body": "Lid smells like last week's soup."
+  },
+  {
+   "id": "j082",
+   "thread": "cooking",
+   "title": "Sharpen the chef's knife",
+   "body": "The place on Dundas does it for $8."
+  },
+  {
+   "id": "j083",
+   "thread": "cooking",
+   "title": "H Mart run Saturday morning",
+   "body": "Get there before the crowd. Bring bags."
+  },
+  {
+   "id": "j084",
+   "thread": "cooking",
+   "title": "Ssamjang, perilla leaves, pork belly",
+   "body": ""
+  },
+  {
+   "id": "j085",
+   "thread": "cooking",
+   "title": "Make and freeze a batch of mandu",
+   "body": "Pork and kimchi filling. Fold forty, freeze flat on a tray."
+  },
+  {
+   "id": "j086",
+   "thread": "cooking",
+   "title": "Almond milk",
+   "body": ""
+  },
+  {
+   "id": "j087",
+   "thread": "cooking",
+   "title": "Spinach, bananas, yogurt",
+   "body": ""
+  },
+  {
+   "id": "j088",
+   "thread": "cooking",
+   "title": "Peanut butter",
+   "body": ""
+  },
+  {
+   "id": "j089",
+   "thread": "cooking",
+   "title": "Night shift snacks: boiled eggs, jerky, mandarins",
+   "body": ""
+  },
+  {
+   "id": "j090",
+   "thread": "cooking",
+   "title": "Cast iron pan, reseason it",
+   "body": ""
+  },
+  {
+   "id": "j091",
+   "thread": "cooking",
+   "title": "Salmon on sale at No Frills",
+   "body": ""
+  },
+  {
+   "id": "j092",
+   "thread": "cooking",
+   "title": "김치 담그기 주말에",
+   "body": ""
+  },
+  {
+   "id": "j093",
+   "thread": "cooking",
+   "title": "Banana bread with the old bananas",
+   "body": "Three black ones on the counter."
+  },
+  {
+   "id": "j094",
+   "thread": "cooking",
+   "title": "Rice cooker descale",
+   "body": "The inner lid has a white film. Vinegar and hot water."
+  },
+  {
+   "id": "j095",
+   "thread": "cooking",
+   "title": "Perilla oil",
+   "body": ""
+  },
+  {
+   "id": "j096",
+   "thread": "cooking",
+   "title": "Soy sauce, the Sempio one",
+   "body": ""
+  },
+  {
+   "id": "j097",
+   "thread": "cooking",
+   "title": "Cook 닭볶음탕 for Hye-jin",
+   "body": "She likes it extra spicy."
+  },
+  {
+   "id": "j098",
+   "thread": "climb",
+   "title": "Climbing gym membership renewal",
+   "body": "Monthly $89. Can freeze it while in Korea."
+  },
+  {
+   "id": "j099",
+   "thread": "climb",
+   "title": "Climbing shoes resole",
+   "body": ""
+  },
+  {
+   "id": "j100",
+   "thread": "climb",
+   "title": "Chalk bag",
+   "body": ""
+  },
+  {
+   "id": "j101",
+   "thread": "climb",
+   "title": "Belay certification class Saturday 10am",
+   "body": "Forty dollars, bring shoes."
+  },
+  {
+   "id": "j102",
+   "thread": "climb",
+   "title": "Try the purple V4 on the overhang wall",
+   "body": ""
+  },
+  {
+   "id": "j103",
+   "thread": "climb",
+   "title": "Climb Tuesday and Thursday before shifts",
+   "body": ""
+  },
+  {
+   "id": "j104",
+   "thread": "climb",
+   "title": "Hangboard 3 times a week",
+   "body": "Twenty second hangs, three minutes rest. Do not overdo it."
+  },
+  {
+   "id": "j105",
+   "thread": "climb",
+   "title": "Bouldering Grades Explained for Beginners - Climbing Magazine",
+   "body": ""
+  },
+  {
+   "id": "j106",
+   "thread": "climb",
+   "title": "Hangboard Training for Climbers | Lattice Training",
+   "body": ""
+  },
+  {
+   "id": "j107",
+   "thread": "climb",
+   "title": "Guest pass for Dana",
+   "body": ""
+  },
+  {
+   "id": "j108",
+   "thread": "climb",
+   "title": "Dynamic movement clinic Nov 12",
+   "body": ""
+  },
+  {
+   "id": "j109",
+   "thread": "climb",
+   "title": "Toe hook beta on route 9",
+   "body": "Left foot heel hook then rock over."
+  },
+  {
+   "id": "j110",
+   "thread": "climb",
+   "title": "Finger tape",
+   "body": ""
+  },
+  {
+   "id": "j111",
+   "thread": "climb",
+   "title": "Climbing balm for split skin",
+   "body": ""
+  },
+  {
+   "id": "j112",
+   "thread": "climb",
+   "title": "Watch Free Solo again",
+   "body": ""
+  },
+  {
+   "id": "j113",
+   "thread": "climb",
+   "title": "Rattlesnake Point day trip",
+   "body": "Check the forecast and bring the crash pad. Hye-jin can drive."
+  },
+  {
+   "id": "j114",
+   "thread": "climb",
+   "title": "Climbing partner: Hye-jin",
+   "body": ""
+  },
+  {
+   "id": "j115",
+   "thread": "climb",
+   "title": "Warm up: 10 min cardio, scapular pulls",
+   "body": ""
+  },
+  {
+   "id": "j116",
+   "thread": "climb",
+   "title": "Gym closes at 10pm on Sundays",
+   "body": ""
+  },
+  {
+   "id": "j117",
+   "thread": "climb",
+   "title": "Rope bag",
+   "body": ""
+  },
+  {
+   "id": "j118",
+   "thread": "climb",
+   "title": "Pulley tweak in left ring finger",
+   "body": "Rest a week and skip crimps. Mention it at physio."
+  },
+  {
+   "id": "j119",
+   "thread": "climb",
+   "title": "Buy a Moon board training book",
+   "body": ""
+  },
+  {
+   "id": "j120",
+   "thread": "car",
+   "title": "Winter tires on by Dec 1",
+   "body": "Four tires and rims are in the storage locker."
+  },
+  {
+   "id": "j121",
+   "thread": "car",
+   "title": "Oil change at 80,000 km",
+   "body": ""
+  },
+  {
+   "id": "j122",
+   "thread": "car",
+   "title": "Car insurance renewal Jan 15",
+   "body": "Shop around. Current premium is $187 a month."
+  },
+  {
+   "id": "j123",
+   "thread": "car",
+   "title": "Pay parking ticket by Nov 20",
+   "body": "Ticket from the hospital side street. Pay online."
+  },
+  {
+   "id": "j124",
+   "thread": "car",
+   "title": "Windshield washer fluid",
+   "body": ""
+  },
+  {
+   "id": "j125",
+   "thread": "car",
+   "title": "Book tire swap at Canadian Tire",
+   "body": ""
+  },
+  {
+   "id": "j126",
+   "thread": "car",
+   "title": "Check engine light came on in the Civic",
+   "body": "Drive to the shop this week."
+  },
+  {
+   "id": "j127",
+   "thread": "car",
+   "title": "Snow brush and ice scraper",
+   "body": ""
+  },
+  {
+   "id": "j128",
+   "thread": "car",
+   "title": "Best Winter Tires 2026 - Consumer Reports",
+   "body": ""
+  },
+  {
+   "id": "j129",
+   "thread": "car",
+   "title": "Ask mechanic about brake squeal",
+   "body": "Only when cold, in the morning after shift."
+  },
+  {
+   "id": "j130",
+   "thread": "car",
+   "title": "Jumper cables",
+   "body": ""
+  },
+  {
+   "id": "j131",
+   "thread": "car",
+   "title": "Emergency kit for the trunk",
+   "body": "Blanket, flashlight, granola bars, phone cable."
+  },
+  {
+   "id": "j132",
+   "thread": "car",
+   "title": "Car wash before the snow",
+   "body": ""
+  },
+  {
+   "id": "j133",
+   "thread": "car",
+   "title": "Dashcam for the Civic",
+   "body": ""
+  },
+  {
+   "id": "j134",
+   "thread": "budget",
+   "title": "Rent due on the 1st",
+   "body": ""
+  },
+  {
+   "id": "j135",
+   "thread": "budget",
+   "title": "Pay credit card",
+   "body": ""
+  },
+  {
+   "id": "j136",
+   "thread": "budget",
+   "title": "Send Mom money for her birthday",
+   "body": "Wire it through the app by Dec 1."
+  },
+  {
+   "id": "j137",
+   "thread": "budget",
+   "title": "Tax receipts: union dues, scrubs, shoes",
+   "body": "Keep the PDFs in one folder for March."
+  },
+  {
+   "id": "j138",
+   "thread": "budget",
+   "title": "RRSP contribution before March",
+   "body": "Aim for $3000."
+  },
+  {
+   "id": "j139",
+   "thread": "budget",
+   "title": "Cancel the streaming subscription I never use",
+   "body": ""
+  },
+  {
+   "id": "j140",
+   "thread": "budget",
+   "title": "Convert CAD to won before the trip",
+   "body": "Compare the bank rate with the exchange booth. Do not use the airport."
+  },
+  {
+   "id": "j141",
+   "thread": "budget",
+   "title": "Busan trip budget $3000",
+   "body": "Flight, gifts, food, a few days of travel."
+  },
+  {
+   "id": "j142",
+   "thread": "budget",
+   "title": "TFSA top up",
+   "body": ""
+  },
+  {
+   "id": "j143",
+   "thread": "budget",
+   "title": "Best High Interest Savings Accounts in Canada | Ratehub",
+   "body": ""
+  },
+  {
+   "id": "j144",
+   "thread": "budget",
+   "title": "Phone bill $55",
+   "body": ""
+  },
+  {
+   "id": "j145",
+   "thread": "budget",
+   "title": "Hydro bill",
+   "body": ""
+  },
+  {
+   "id": "j146",
+   "thread": "budget",
+   "title": "Student loan payment",
+   "body": ""
+  },
+  {
+   "id": "j147",
+   "thread": "budget",
+   "title": "Overtime on the October pay stub",
+   "body": ""
+  },
+  {
+   "id": "j148",
+   "thread": "busan",
+   "title": "Flight to Busan Nov 18",
+   "body": "Air Canada via Seoul Incheon, departing 1:05pm. Check the baggage allowance."
+  },
+  {
+   "id": "j149",
+   "thread": "busan",
+   "title": "Book return flight Busan to Toronto",
+   "body": "Prefer the Nov 30 flight, wait for the schedule."
+  },
+  {
+   "id": "j150",
+   "thread": "busan",
+   "title": "Check passport expiry",
+   "body": "Needs six months of validity. Expires next June, should be fine."
+  },
+  {
+   "id": "j151",
+   "thread": "busan",
+   "title": "K-ETA requirement for Canadians?",
+   "body": ""
+  },
+  {
+   "id": "j152",
+   "thread": "busan",
+   "title": "Gift for Min: maple syrup",
+   "body": ""
+  },
+  {
+   "id": "j153",
+   "thread": "busan",
+   "title": "Maple syrup, 3 bottles",
+   "body": ""
+  },
+  {
+   "id": "j154",
+   "thread": "busan",
+   "title": "Vitamins for Mom",
+   "body": "The good ones from Shoppers."
+  },
+  {
+   "id": "j155",
+   "thread": "busan",
+   "title": "Haeundae beach walk at sunrise",
+   "body": "Min says the best time is 7am."
+  },
+  {
+   "id": "j156",
+   "thread": "busan",
+   "title": "Jagalchi Fish Market Guide | Visit Busan",
+   "body": ""
+  },
+  {
+   "id": "j157",
+   "thread": "busan",
+   "title": "Gamcheon Culture Village: How to Visit - Korea Tourism Organization",
+   "body": ""
+  },
+  {
+   "id": "j158",
+   "thread": "busan",
+   "title": "Busan Subway Map and Lines - Busan Transportation Corporation",
+   "body": ""
+  },
+  {
+   "id": "j159",
+   "thread": "busan",
+   "title": "Beomeosa Temple day trip",
+   "body": "Hiking trail starts behind the temple."
+  },
+  {
+   "id": "j160",
+   "thread": "busan",
+   "title": "Haedong Yonggungsa Temple, go early",
+   "body": "The crowds are huge by 10am. Take bus 181 from Haeundae."
+  },
+  {
+   "id": "j161",
+   "thread": "busan",
+   "title": "Eat milmyeon and dwaeji gukbap",
+   "body": "Min knows the place near Seomyeon."
+  },
+  {
+   "id": "j162",
+   "thread": "busan",
+   "title": "돼지국밥 맛집 Min이랑",
+   "body": ""
+  },
+  {
+   "id": "j163",
+   "thread": "busan",
+   "title": "Ssiat hotteok at BIFF Square",
+   "body": "The seed pancake stalls, the one with the line."
+  },
+  {
+   "id": "j164",
+   "thread": "busan",
+   "title": "Stay at Min's place in Suyeong-gu",
+   "body": ""
+  },
+  {
+   "id": "j165",
+   "thread": "busan",
+   "title": "Get a T-money card at the airport",
+   "body": ""
+  },
+  {
+   "id": "j166",
+   "thread": "busan",
+   "title": "eSIM for Korea",
+   "body": "Cheaper than roaming. Install it before landing."
+  },
+  {
+   "id": "j167",
+   "thread": "busan",
+   "title": "Travel insurance for the trip",
+   "body": "Compare the credit card coverage first."
+  },
+  {
+   "id": "j168",
+   "thread": "busan",
+   "title": "Power adapter for Korea",
+   "body": "Type C. Two of them."
+  },
+  {
+   "id": "j169",
+   "thread": "busan",
+   "title": "Warm jacket, Busan is about 10 degrees in November",
+   "body": ""
+  },
+  {
+   "id": "j170",
+   "thread": "busan",
+   "title": "Dinner with Min on arrival night",
+   "body": "He picks the place."
+  },
+  {
+   "id": "j171",
+   "thread": "busan",
+   "title": "Call Min about airport pickup",
+   "body": ""
+  },
+  {
+   "id": "j172",
+   "thread": "busan",
+   "title": "Min's birthday Nov 25",
+   "body": "He turns 32 while I am there. Get a cake."
+  },
+  {
+   "id": "j173",
+   "thread": "busan",
+   "title": "KTX ticket Seoul to Busan",
+   "body": "Only if the flight lands in Seoul. Book at korail.com."
+  },
+  {
+   "id": "j174",
+   "thread": "busan",
+   "title": "Bring allergy card in Korean",
+   "body": "Penicillin allergy, so any pharmacy or clinic can read it."
+  },
+  {
+   "id": "j175",
+   "thread": "busan",
+   "title": "Visit Grandma in Gijang with Min",
+   "body": "Bring fruit and a card."
+  },
+  {
+   "id": "j176",
+   "thread": "busan",
+   "title": "Exchange 500 CAD for won",
+   "body": "At the bank, not at the airport."
+  },
+  {
+   "id": "j177",
+   "thread": "busan",
+   "title": "Download Papago and Naver Map",
+   "body": "Google Maps is bad for walking in Korea."
+  },
+  {
+   "id": "j178",
+   "thread": "busan",
+   "title": "Gwangalli Bridge light show at night",
+   "body": "Walk the beach, eat fish cake."
+  },
+  {
+   "id": "j179",
+   "thread": "busan",
+   "title": "Nampo-dong shopping for socks and skincare",
+   "body": ""
+  },
+  {
+   "id": "j180",
+   "thread": "busan",
+   "title": "Pack light, leave room for gifts coming back",
+   "body": ""
+  },
+  {
+   "id": "j181",
+   "thread": "misc",
+   "title": "Call landlord about the heater",
+   "body": "It rattles and barely warms the bedroom."
+  },
+  {
+   "id": "j182",
+   "thread": "misc",
+   "title": "Renew health card",
+   "body": ""
+  },
+  {
+   "id": "j183",
+   "thread": "misc",
+   "title": "Return Amazon package",
+   "body": ""
+  },
+  {
+   "id": "j184",
+   "thread": "misc",
+   "title": "Birthday gift for Hye-jin",
+   "body": ""
+  },
+  {
+   "id": "j185",
+   "thread": "misc",
+   "title": "Haircut Saturday",
+   "body": "Appointment at 11am with Joon."
+  },
+  {
+   "id": "j186",
+   "thread": "misc",
+   "title": "Laundry",
+   "body": ""
+  },
+  {
+   "id": "j187",
+   "thread": "misc",
+   "title": "Replace smoke detector battery",
+   "body": "9V, it chirped at 5am."
+  },
+  {
+   "id": "j188",
+   "thread": "misc",
+   "title": "Watch Parasite again",
+   "body": "With the Korean subtitles on this time."
+  },
+  {
+   "id": "j189",
+   "thread": "misc",
+   "title": "Book club: Please Look After Mom",
+   "body": "Meeting is the 20th at the library."
+  },
+  {
+   "id": "j190",
+   "thread": "misc",
+   "title": "Library hold pickup",
+   "body": ""
+  },
+  {
+   "id": "j191",
+   "thread": "misc",
+   "title": "Update resume",
+   "body": ""
+  },
+  {
+   "id": "j192",
+   "thread": "misc",
+   "title": "Call Min Sunday 8pm",
+   "body": ""
+  },
+  {
+   "id": "j193",
+   "thread": "misc",
+   "title": "Video call Min on Sunday",
+   "body": ""
+  },
+  {
+   "id": "j194",
+   "thread": "misc",
+   "title": "Laptop screen flickers",
+   "body": "Only on battery. Check the warranty."
+  },
+  {
+   "id": "j195",
+   "thread": "misc",
+   "title": "Gift card for the mail carrier",
+   "body": ""
+  },
+  {
+   "id": "j196",
+   "thread": "misc",
+   "title": "Passport photos",
+   "body": ""
+  },
+  {
+   "id": "j197",
+   "thread": "misc",
+   "title": "AA batteries",
+   "body": ""
+  },
+  {
+   "id": "j198",
+   "thread": "misc",
+   "title": "Best Noise Cancelling Headphones 2026 - RTINGS",
+   "body": ""
+  },
+  {
+   "id": "j199",
+   "thread": "misc",
+   "title": "Mom's birthday Dec 3, call her",
+   "body": ""
+  },
+  {
+   "id": "j200",
+   "thread": "misc",
+   "title": "Drop off donation bags",
+   "body": ""
+  },
+  {
+   "id": "j201",
+   "thread": "misc",
+   "title": "Bank appointment",
+   "body": ""
+  },
+  {
+   "id": "j202",
+   "thread": "misc",
+   "title": "Water the pothos",
+   "body": ""
+  },
+  {
+   "id": "j203",
+   "thread": "misc",
+   "title": "Podcast idea: nurses talk about their worst night",
+   "body": "Short episodes, one story each, no names."
+  },
+  {
+   "id": "j204",
+   "thread": "misc",
+   "title": "App idea: shift swap tracker",
+   "body": "Who owes me a swap and who I owe."
+  },
+  {
+   "id": "j205",
+   "thread": "misc",
+   "title": "Hye-jin's housewarming Nov 8",
+   "body": ""
+  },
+  {
+   "id": "j206",
+   "thread": "misc",
+   "title": "Sign up for the Python course",
+   "body": ""
+  },
+  {
+   "id": "j207",
+   "thread": "misc",
+   "title": "Fix the bathroom fan",
+   "body": "Loud grinding noise, probably the motor."
+  },
+  {
+   "id": "j208",
+   "thread": "misc",
+   "title": "Dentist? Check insurance coverage first",
+   "body": ""
+  },
+  {
+   "id": "j209",
+   "thread": "misc",
+   "title": "Phone case",
+   "body": ""
+  },
+  {
+   "id": "j210",
+   "thread": "misc",
+   "title": "Renew library card",
+   "body": ""
+  },
+  {
+   "id": "j211",
+   "thread": "misc",
+   "title": "Look into condo insurance",
+   "body": "The building asked for proof."
+  },
+  {
+   "id": "j212",
+   "thread": "misc",
+   "title": "Subway pass for December",
+   "body": "Get the monthly Presto pass."
+  }
+ ],
+ "notes": [
+  {
+   "id": "jn01",
+   "thread": "nights",
+   "text": "Shifts rotate every two weeks."
+  },
+  {
+   "id": "jn02",
+   "thread": "nights",
+   "text": "Handover is at 7am and 7pm."
+  },
+  {
+   "id": "jn03",
+   "thread": "nights",
+   "text": "Works on 4 West, a medical-surgical ward."
+  },
+  {
+   "id": "jn04",
+   "thread": "nights",
+   "text": "Dana and Priya are the two people to swap shifts with."
+  },
+  {
+   "id": "jn05",
+   "thread": "nights",
+   "text": "Overtime is signed up for on the sheet by the med room."
+  },
+  {
+   "id": "jn06",
+   "thread": "busan",
+   "text": "The trip is Nov 18 to Nov 30, staying with Min."
+  },
+  {
+   "id": "jn07",
+   "thread": "busan",
+   "text": "Min lives in Suyeong-gu, close to Gwangalli beach."
+  },
+  {
+   "id": "jn08",
+   "thread": "busan",
+   "text": "Mom lives in Gijang, about 40 minutes from Min's by subway and bus."
+  },
+  {
+   "id": "jn09",
+   "thread": "busan",
+   "text": "The budget for the trip is $3000."
+  },
+  {
+   "id": "jn10",
+   "thread": "sleep",
+   "text": "Sleeps from about 8:30am to 2:30pm after a night shift."
+  },
+  {
+   "id": "jn11",
+   "thread": "sleep",
+   "text": "Allergic to penicillin and carries a wallet card about it."
+  },
+  {
+   "id": "jn12",
+   "thread": "sleep",
+   "text": "The back pain is lower back, with physio about once a month."
+  },
+  {
+   "id": "jn13",
+   "thread": "cooking",
+   "text": "Meal preps on Sundays for the week of shifts."
+  },
+  {
+   "id": "jn14",
+   "thread": "cooking",
+   "text": "H Mart in North York is the closest Korean grocery store."
+  },
+  {
+   "id": "jn15",
+   "thread": "cooking",
+   "text": "The rice cooker is a Zojirushi, 5.5 cup."
+  },
+  {
+   "id": "jn16",
+   "thread": "climb",
+   "text": "Membership is at a bouldering gym, mostly bouldering and no lead."
+  },
+  {
+   "id": "jn17",
+   "thread": "climb",
+   "text": "Climbs Tuesday and Thursday before shifts."
+  },
+  {
+   "id": "jn18",
+   "thread": "climb",
+   "text": "Climbing partner is Hye-jin."
+  },
+  {
+   "id": "jn19",
+   "thread": "car",
+   "text": "Drives a 2016 Honda Civic."
+  },
+  {
+   "id": "jn20",
+   "thread": "car",
+   "text": "Winter tires are stored at the Canadian Tire on Dufferin."
+  },
+  {
+   "id": "jn21",
+   "thread": "budget",
+   "text": "Rent is $1850, due on the 1st."
+  },
+  {
+   "id": "jn22",
+   "thread": "budget",
+   "text": "Pays the credit card in full each month."
+  },
+  {
+   "id": "jn23",
+   "thread": "misc",
+   "text": "Mom's birthday is Dec 3."
+  },
+  {
+   "id": "jn24",
+   "thread": "misc",
+   "text": "Min is the younger brother, he turns 32 on Nov 25."
+  },
+  {
+   "id": "jn25",
+   "thread": "misc",
+   "text": "Video calls Min on Sundays at 8pm Toronto time."
+  }
+ ],
+ "memories": [
+  {
+   "id": "jm01",
+   "text": "They are allergic to penicillin."
+  },
+  {
+   "id": "jm02",
+   "text": "They live in Toronto."
+  },
+  {
+   "id": "jm03",
+   "text": "They work night shifts as a nurse."
+  },
+  {
+   "id": "jm04",
+   "text": "Their brother is Min."
+  },
+  {
+   "id": "jm05",
+   "text": "Min lives in Busan."
+  },
+  {
+   "id": "jm06",
+   "text": "They grew up in Busan."
+  },
+  {
+   "id": "jm07",
+   "text": "They climb at a bouldering gym twice a week."
+  },
+  {
+   "id": "jm08",
+   "text": "They drive a Honda Civic."
+  },
+  {
+   "id": "jm09",
+   "text": "Their mother lives in Busan."
+  },
+  {
+   "id": "jm10",
+   "text": "They rent a one bedroom condo downtown."
+  },
+  {
+   "id": "jm11",
+   "text": "They cook Korean food and meal prep on Sundays."
+  },
+  {
+   "id": "jm12",
+   "text": "Hye-jin is their climbing partner."
+  },
+  {
+   "id": "jm13",
+   "text": "Dana is a coworker they swap shifts with."
+  },
+  {
+   "id": "jm14",
+   "text": "They work at a downtown Toronto hospital on a medical-surgical ward."
+  },
+  {
+   "id": "jm15",
+   "text": "They avoid caffeine after 1am."
+  },
+  {
+   "id": "jm16",
+   "text": "They buy Korean groceries at H Mart."
+  },
+  {
+   "id": "jm17",
+   "text": "They speak Korean and English."
+  },
+  {
+   "id": "jm18",
+   "text": "Their mother's birthday is December 3."
+  },
+  {
+   "id": "jm19",
+   "text": "They take the streetcar home after a shift."
+  },
+  {
+   "id": "jm20",
+   "text": "Their manager is Ms. Okoye."
+  }
+ ],
+ "queries": [
+  {
+   "q": "melatonin",
+   "relevant": [
+    "j038",
+    "j039",
+    "j047"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "kimchi",
+   "relevant": [
+    "j067",
+    "j085",
+    "j092"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "climbing",
+   "relevant": [
+    "j098",
+    "j099",
+    "j100",
+    "j101",
+    "j102",
+    "j103",
+    "j104",
+    "j105",
+    "j106",
+    "j107",
+    "j108",
+    "j109",
+    "j110",
+    "j111",
+    "j112",
+    "j113",
+    "j114",
+    "j115",
+    "j116",
+    "j117",
+    "j118",
+    "j119",
+    "jn16",
+    "jn17",
+    "jn18",
+    "jm07",
+    "jm12"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "passport",
+   "relevant": [
+    "j150",
+    "j196"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "insurance",
+   "relevant": [
+    "j122",
+    "j167",
+    "j208",
+    "j211"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "Dana",
+   "relevant": [
+    "j001",
+    "j019",
+    "j030",
+    "j107",
+    "jn04",
+    "jm13"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "tires",
+   "relevant": [
+    "j120",
+    "j125",
+    "j128",
+    "jn20"
+   ],
+   "kind": "word"
+  },
+  {
+   "q": "when is Min's birthday",
+   "relevant": [
+    "j172",
+    "jn24"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "what's my flight to Busan",
+   "relevant": [
+    "j148",
+    "j149"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "physio appointment",
+   "relevant": [
+    "j048",
+    "j050",
+    "jn12"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "where do I buy Korean groceries",
+   "relevant": [
+    "j070",
+    "j083",
+    "jn14",
+    "jm16"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "who do I swap shifts with",
+   "relevant": [
+    "j001",
+    "j007",
+    "j030",
+    "jn04",
+    "jm13"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how much is rent",
+   "relevant": [
+    "j134",
+    "jn21"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "mom's birthday",
+   "relevant": [
+    "j136",
+    "j199",
+    "jn23",
+    "jm18"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "what time is handover",
+   "relevant": [
+    "j003",
+    "jn02"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "how much am I spending on the Busan trip",
+   "relevant": [
+    "j141",
+    "jn09"
+   ],
+   "kind": "full"
+  },
+  {
+   "q": "stuff to block the morning sun",
+   "relevant": [
+    "j040",
+    "j041",
+    "j043"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "pills that help me fall asleep",
+   "relevant": [
+    "j038",
+    "j039",
+    "j045",
+    "j047"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "phone internet once I arrive overseas",
+   "relevant": [
+    "j166"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "aching spine",
+   "relevant": [
+    "j048",
+    "j049",
+    "j050",
+    "j062",
+    "jn12"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "sibling's special day",
+   "relevant": [
+    "j172",
+    "jn24"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "fine for leaving the vehicle in a banned spot",
+   "relevant": [
+    "j123"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "coat for chilly weather abroad",
+   "relevant": [
+    "j169"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "drop in on my nan",
+   "relevant": [
+    "j175"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "drug reaction doctors must be told of",
+   "relevant": [
+    "j060",
+    "j174",
+    "jn11",
+    "jm01"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "when does my coverage lapse for the vehicle",
+   "relevant": [
+    "j122"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "place to buy fresh catch from the sea",
+   "relevant": [
+    "j156"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "hearty soup when I'm ill",
+   "relevant": [
+    "j080"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "go see daybreak at the shore",
+   "relevant": [
+    "j155"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "course to hold the safety line",
+   "relevant": [
+    "j101"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "colleague leaving for good",
+   "relevant": [
+    "j019"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "regular fee for scaling walls",
+   "relevant": [
+    "j098",
+    "jn16"
+   ],
+   "kind": "paraphrase"
+  },
+  {
+   "q": "weather in Lisbon tomorrow",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "who won the game last night",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "convert 30 euros to dollars",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "capital of Australia",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "how tall is the CN Tower",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "how to say thank you in Portuguese",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "when is Thanksgiving in the US",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "Shopify stock price",
+   "relevant": [],
+   "kind": "web"
+  },
+  {
+   "q": "yoga class schedule",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "Tokyo trip itinerary",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "bike repair shop",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "sourdough starter",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "marathon training plan",
+   "relevant": [],
+   "kind": "adjacent"
+  },
+  {
+   "q": "asdkjh qwe",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "xqzvt plork",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "zzzz",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "?!?!",
+   "relevant": [],
+   "kind": "nonsense"
+  },
+  {
+   "q": "blorf nuggle",
+   "relevant": [],
+   "kind": "nonsense"
+  }
+ ]
+}
