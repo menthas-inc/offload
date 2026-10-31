@@ -1,4 +1,4 @@
-// My threads, as a grid (2026-10-29, `APPLY-2026-10-29-threads-grid.md`).
+// Threads (My threads until 049), as a grid (2026-10-29, `APPLY-2026-10-29-threads-grid.md`).
 //
 // Two columns of square tiles, newest made first, until the person drags one;
 // then the grid is in their order, which the chip under the bar switches back
@@ -429,7 +429,7 @@ export default function MyThreads() {
         <Animated.ScrollView ref={scroll} onScroll={onScroll} scrollEventThrottle={16} scrollEnabled={moving === null} contentContainerClassName="pb-space-9">
           <View className="flex-row items-center justify-between px-gutter-screen pb-space-6 pt-space-3">
             <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 28 }} accessibilityRole="header">
-              My threads
+              Threads
             </Text>
             <Pressable
               ref={chipRef}

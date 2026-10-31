@@ -8,6 +8,15 @@ on the internal track (going-public items 6 and 22).
 
 ## Owner: before inviting anyone
 
+**Status 2026-10-31:** steps 1 to 3 are done. App setup is complete, the
+closed track (*Closed testing - Alpha*, United States) uses the existing
+*close group* email list, so internal testers count too, and release 0.3.0
+(9) went to Google for review on 2026-10-31. The tester code is *Play
+closed test* in the admin panel (50 uses, until 29 January); Google's
+reviewers have their own, *Play review*, in Sign in details. Only step 4
+is left, once the review passes. The data safety form now matches the iOS
+label; an earlier draft had wrong purposes on seven types.
+
 1. **Finish setting up the app** in Play Console (Dashboard, *Finish setting up
    your app*, View tasks). The closed test stays locked until this is done:
    store listing (name, short and full description, icon, 1024 x 500 feature

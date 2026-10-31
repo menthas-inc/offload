@@ -1,6 +1,6 @@
 "use client";
 
-// My threads, as a grid (2026-10-29, `APPLY-2026-10-29-threads-grid.md`).
+// Threads (My threads until 049), as a grid (2026-10-29, `APPLY-2026-10-29-threads-grid.md`).
 //
 // Three columns of tiles at 1.6 : 1, newest made first, until the person drags
 // one; then the grid is in their order, which the chip beside the title
@@ -530,7 +530,7 @@ export function MyThreads({
           <div className={styles.paneBody}>{strips}</div>
         ) : null}
         <QuietEmpty
-          title="My threads"
+          title="Threads"
           line="Threads appear here on their own, once there is enough in one place to be one."
           tools={newThread}
         />
@@ -585,7 +585,7 @@ export function MyThreads({
       <div className={`${styles.paneHead} ${page.wide}`}>
         <div className={page.titleRow}>
           <h1 className={`${styles.paneTitle} ${styles.paneTitleBig}`}>
-            My threads
+            Threads
           </h1>
           {loading ? null : chip}
         </div>

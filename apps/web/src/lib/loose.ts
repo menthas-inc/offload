@@ -161,10 +161,12 @@ async function get<T>(path: string): Promise<T | null> {
 }
 
 /** A page of the full list, newest first, optionally of one type. */
-export function fetchLoose(options: { type?: ChipKey | null; cursor?: string | null }): Promise<LoosePage | null> {
+export function fetchLoose(options: { type?: ChipKey | null; cursor?: string | null; through?: string | null }): Promise<LoosePage | null> {
   const query = new URLSearchParams();
   if (options.type) query.set("type", options.type);
   if (options.cursor) query.set("cursor", options.cursor);
+  // 049. Read back to the row Search opened the page at.
+  if (options.through) query.set("through", options.through);
   const suffix = query.toString() ? `?${query.toString()}` : "";
   return get<LoosePage>(`/v1/loose${suffix}`);
 }

@@ -1,5 +1,5 @@
 {
-  "statement": "What offload cannot do it says plainly and truthfully, once, and then gets on with the rest: a delete becomes an archive, a thread is deleted from My threads and never called impossible, a calendar that is not connected is in Settings under Connected apps, and somebody else's row cannot be rewritten.",
+  "statement": "What offload cannot do it says plainly and truthfully, once, and then gets on with the rest: a delete becomes an archive, a thread is deleted from Threads and never called impossible, a calendar that is not connected is in Settings under Connected apps, and somebody else's row cannot be rewritten.",
   "why": "A model cannot delete, cannot reach a calendar that is not there, and cannot rewrite another member's words. Saying so is the way forward; saying 'impossible' about a thread they can delete themselves is a lie, and filing the request as a task to do later is a promise nobody will keep.",
   "sources": [
     "006 AC-10b, AC-12",
@@ -24,16 +24,17 @@
     },
     {
       "id": "delete-thread-points-at-my-threads",
-      "why": "a thread delete is theirs, on the row in My threads",
+      "why": "a thread delete is theirs, on the row in Threads (049 renamed My threads)",
       "surface": "file",
       "input": "delete the Music thread",
       "context": "behrooz",
       "expect": {
         "say": {
           "contains": [
-            "My threads"
+            "Threads"
           ],
           "must_not_contain": [
+            "My threads",
             "impossible",
             "cannot be deleted",
             "can't be deleted",
@@ -56,9 +57,10 @@
       "expect": {
         "say": {
           "contains": [
-            "My threads"
+            "Threads"
           ],
           "must_not_contain": [
+            "My threads",
             "impossible",
             "cannot be deleted",
             "not possible"
@@ -175,7 +177,7 @@
     },
     {
       "id": "delete-content-not-thread",
-      "why": "a delete of a row inside a thread is an archive, not a My threads sentence",
+      "why": "a delete of a row inside a thread is an archive, not a sentence about deleting threads",
       "surface": "file",
       "input": "delete the deposit row",
       "context": "shared",
@@ -196,6 +198,9 @@
       "expect": {
         "say": {
           "contains": [
+            "Threads"
+          ],
+          "must_not_contain": [
             "My threads"
           ]
         },

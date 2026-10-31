@@ -6,6 +6,7 @@
 // guess at why one of them is a failure: the screen says what happened.
 
 import { forgetMe } from "./use-me";
+import { forgetRecent } from "./search";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
@@ -24,6 +25,7 @@ export async function deleteAccount(word: string): Promise<DeleteOutcome> {
     if (response.status === 401) return "signed_out";
     if (!response.ok) return "failed";
     forgetMe();
+    forgetRecent();
     return "done";
   } catch {
     return "failed";

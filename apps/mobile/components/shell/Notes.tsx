@@ -23,13 +23,17 @@
 // reminds about. It is folded into Save, as on the row's sheet, and takes the
 // same Undo a text edit does; a refusal puts back only the write it stopped.
 
+import { useRevealId, useRevealed } from "./reveal";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
+  interpolateColor,
+  ReduceMotion,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import { remindSwitchShown, reorderPlan, type ReorderWrite } from "@offload/widgets";
 import { Glyph } from "../Glyph";
@@ -115,7 +119,9 @@ export function NotesSection({
   const COLOR = useColors();
   // 2026-10-17. The section folds from its heading, kept on the phone.
   const [folds, setFold] = useFolds();
-  const sectionFolded = folds.notes;
+  // 049. A note Search opened the thread at keeps the section open.
+  const reveal = useRevealId();
+  const sectionFolded = folds.notes && !notes.some((note) => note.id === reveal);
   const { raiseFor } = useConversation();
   const [editing, setEditing] = useState<Note | null>(null);
   // 028. The note whose move sheet is up.
@@ -547,9 +553,16 @@ function NoteRow({
       lifted.value = 0;
       dy.value = 0;
     });
+  // 049. Search opened the thread at this note: the rows' change mark, once.
+  const revealed = useRevealed(note.id);
+  const mark = useSharedValue(revealed.ref ? 1 : 0);
+  useEffect(() => {
+    if (!revealed.ref) return;
+    mark.value = withTiming(0, { duration: 1400, reduceMotion: ReduceMotion.System });
+  }, [Boolean(revealed.ref), mark]);
   const lift = useAnimatedStyle(() => ({
     transform: [{ translateY: dy.value }],
-    backgroundColor: lifted.value === 1 ? COLOR.raised : "transparent",
+    backgroundColor: lifted.value === 1 ? COLOR.raised : mark.value > 0 ? interpolateColor(mark.value, [0, 1], ["transparent", COLOR.accentSoft]) : "transparent",
     zIndex: lifted.value === 1 ? 10 : 0,
     elevation: lifted.value === 1 ? 3 : 0,
   }));
@@ -557,9 +570,11 @@ function NoteRow({
   return (
     <Animated.View
       style={lift}
+      {...(revealed.ref ? { ref: revealed.ref } : {})}
       onLayout={(event) => {
         const { y, height } = event.nativeEvent.layout;
         onLayout({ y, height });
+        revealed.onLayout?.();
       }}
       className={`flex-row items-start gap-space-3 ${
         divider ? "border-b border-border-hairline" : ""

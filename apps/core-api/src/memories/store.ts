@@ -46,7 +46,7 @@ type Full = { ok: false; error: "rules_full" | "memories_full" };
 
 /** Active memories of the account, the one scope every read and write here
  *  takes: account scope, about the account, written to the account. */
-function active(trx: Executor, accountId: string) {
+export function active(trx: Executor, accountId: string) {
   return trx
     .selectFrom("notes")
     .where("scope", "=", "account")

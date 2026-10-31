@@ -33,7 +33,9 @@ jobs:
     # A skipped job reports success, and a draft cannot be merged anyway.
     if: github.event_name == 'push' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # A web PR runs about 12 minutes and a slow runner adds a third; 15 cancelled
+    # PR 154 with every test passed (2026-10-31).
+    timeout-minutes: 20
 
     services:
       postgres:

@@ -276,7 +276,7 @@ export function requestCopy(name: string | null): Copy {
 }
 
 export function shareCopy(name: string | null, threadName: string): Copy {
-  return { title: `${sender(name)} shared ${clamp(threadName)}`, body: "Waiting in My threads." };
+  return { title: `${sender(name)} shared ${clamp(threadName)}`, body: "Waiting in Threads." };
 }
 
 /** Somebody adding to a shared thread, coalesced: the count in the title,

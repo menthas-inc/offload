@@ -77,6 +77,8 @@ export function useLooseRows<S extends LooseSummary>(
   list: S,
   setList: (update: (current: S) => S) => void,
   reload: () => Promise<void>,
+  /** 049. The row Search opened the page at, marked for a moment. */
+  arrived: Set<string> = new Set(),
 ): LooseRows {
   const toast = useToast();
   const router = useRouter();
@@ -386,7 +388,7 @@ export function useLooseRows<S extends LooseSummary>(
     editing: null,
     draft: "",
     asking,
-    arrived: new Set(),
+    arrived,
     onDraft: () => undefined,
     onEdit: (row) => setEditRow(row),
     onSaveTitle: () => undefined,

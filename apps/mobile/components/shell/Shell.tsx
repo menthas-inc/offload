@@ -13,7 +13,7 @@
 //
 // The kit hides both inside a thread; dumping from where you are is the
 // product's core move and a thread is the likeliest place to want it (009).
-// The tabs joined it on 30 September: every screen draws Today, My threads and
+// The tabs joined it on 30 September: every screen draws Today, Threads and
 // Memories, and they leave only under the conversation or the keyboard.
 //
 // Stacked, bottom to top: the plate, the conversation's scrim, the sheet, then
@@ -27,6 +27,7 @@ import { useKeyboardHandler, useReanimatedKeyboardAnimation } from "react-native
 import { Plate, type Tab } from "./Plate";
 import { Conversation, ConversationPhotoSheet, ConversationPhotoViewer, ConversationScrim } from "./Conversation";
 import { resetToday } from "../../lib/today";
+import { focusSearch } from "../../lib/search";
 import { useConversation } from "./conversation-context";
 import { ToastHost, useToast } from "./Toast";
 import { timeOfDay } from "../../lib/sun";
@@ -35,7 +36,7 @@ import { nameList } from "@offload/widgets";
 /** Where the composer belongs, and where it does not. Not "/", which is the
  *  launch screen since Today moved to "/today": the plate drew over it
  *  whenever launch held, a composer on a screen that has not heard back yet. */
-const TABS = ["/today", "/threads", "/memories"];
+const TABS = ["/today", "/threads", "/search", "/memories"];
 
 export function Shell() {
   const router = useRouter();
@@ -161,7 +162,7 @@ export function Shell() {
 
   // From a tab, the tabs swap; from a thread, back down to the tabs first,
   // so a tab never lands on top of the thread it left.
-  const go = (href: "/today" | "/threads" | "/memories"): void => {
+  const go = (href: "/today" | "/threads" | "/search" | "/memories"): void => {
     if (inThread) router.dismissTo(href);
     else router.replace(href);
   };
@@ -183,11 +184,21 @@ export function Shell() {
         },
         {
           key: "threads",
-          label: "My threads",
+          label: "Threads",
           icon: "lasso",
-          // A thread is somewhere inside My threads.
+          // A thread is somewhere inside Threads, whether it was opened from
+          // there or from Search.
           active: pathname === "/threads" || inThread,
           onPress: () => go("/threads"),
+        },
+        {
+          // 049. Search: the field focused on arrival, and again when tapped
+          // while it shows, with what was typed kept.
+          key: "search",
+          label: "Search",
+          icon: "search",
+          active: pathname === "/search",
+          onPress: () => (pathname === "/search" ? focusSearch() : go("/search")),
         },
         {
           // 040. Memories again, with the `cloudy` it was drawn for: what

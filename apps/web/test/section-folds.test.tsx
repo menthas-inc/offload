@@ -99,7 +99,7 @@ describe("a thread's sections fold", () => {
     const notes = readFileSync("src/components/panes/Notes.tsx", "utf8");
     expect(notes).toMatch(/useFolds\(\)/);
     expect(notes).toMatch(/aria-expanded=\{!sectionFolded\}/);
-    expect(notes).toMatch(/const sectionFolded = folds\.notes && !adding && editingId === null;/);
+    expect(notes).toMatch(/const sectionFolded = folds\.notes && !adding && editingId === null && !notes\.some\(\(note\) => note\.id === reveal\);/);
     expect(notes).toMatch(/onAdding\(false\)[\s\S]{0,120}setFold\("notes", !sectionFolded\)/);
   });
 });

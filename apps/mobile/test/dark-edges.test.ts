@@ -32,7 +32,7 @@ const EDGES: [string, string, string, string][] = [
   ["Segmented.tsx", "the text track", "flex-row rounded-sm p-space-1", "COLOR.edgeWell"],
   ["shell/ContentRow.tsx", "the photo's fallback tile", 'rounded-sm ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}', "COLOR.edgeWell"],
   ["shell/ContentRow.tsx", "the row's tile", '"border border-dashed border-border-strong"', "COLOR.edgeWell"],
-  ["screens/Memories.tsx", "the search field", '"rounded-pill bg-a-c-low" : "bg-surface-fill"', "COLOR.edgeWell"],
+  ["SearchField.tsx", "the search field", '"rounded-pill bg-a-c-low" : "bg-surface-fill"', "COLOR.edgeWell"],
   ["screens/Memories.tsx", "the count pill", "rounded-pill bg-surface-fill px-space-3 py-space-1", "COLOR.edgeWell"],
   ["screens/MyThreads.tsx", "Not in a thread", "mx-gutter-screen mb-space-6 flex-row items-center gap-space-4 rounded-md bg-surface-fill", "COLOR.edgeWell"],
   ["screens/Thread.tsx", "the count pill", "rounded-pill bg-surface-fill px-space-3 py-space-1", "COLOR.edgeWell"],
