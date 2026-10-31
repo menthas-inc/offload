@@ -4,6 +4,20 @@ path:
 
 ## Last sync
 
+date: 2026-10-31T17:59:39Z
+
+Read `main` (tree `94b3e9069ce8`) for the layout suggestion: `apps/mobile/components/screens/Thread.tsx` (the 32px pill, 13px, and the heads-up line), `apps/web/src/components/panes/Thread.tsx` (`looseStyles.suggestion`), `packages/widgets/src/layouts.ts` (`suggestionLine`, `PHRASES`). Nothing kept.
+
+### Updated in this project
+
+- **Thread notices**, four directions (A card, B strip, C offload's voice, D compact): `explorations/thread-notices.html`
+- **Thread notice, decided** (B, the strip): `explorations/thread-notice-final.html`, `handoff/APPLY-2026-10-31-thread-notice.md`, `handoff/thread-notice-standalone.html`
+- `components/feedback/ThreadNotice` (new), `UndoLine` gains `wrap`; `readme.md` **Thread notices**; `decisions.md` one entry
+
+## Sync history
+
+### 2026-10-29T22:04:46Z
+
 date: 2026-10-29T22:04:46Z
 
 Read `main` (tree `7888d8aba97c`) for My threads and thread icons: `apps/mobile/components/screens/MyThreads.tsx`, `components/ThreadIcon.tsx`, `apps/web/src/components/ThreadIcon.tsx`, `packages/widgets/src/thread-icons.ts`, and the older cut in `apps/core-api/src/routes/threads.ts`. Found: `mixOklch` gives `#1C1B19` a hue (chroma 0.004 over its 1e-4 threshold), so dark mixes drift from the browser's; the new grounds are a table for that reason. Nothing copied.
@@ -138,6 +152,7 @@ shared log, with this project's thread marks entry kept), and read `apps/web/src
 | Screen | This project | Repo files |
 | --- | --- | --- |
 | My threads grid | `explorations/threads-grid-approval.html`, `handoff/APPLY-2026-10-29-threads-grid.md` | `apps/mobile/components/screens/MyThreads.tsx`, `shell/ThreadRow.tsx`, `apps/web/src/components/panes/MyThreads.tsx`, `apps/core-api/src/routes/threads.ts` |
+| Thread notices | `explorations/thread-notice-final.html`, `handoff/APPLY-2026-10-31-thread-notice.md`, `components/feedback/ThreadNotice` | `apps/mobile/components/screens/Thread.tsx`, `apps/web/src/components/panes/Thread.tsx`, `packages/widgets/src/layouts.ts` |
 | Thread layouts | `explorations/thread-skins.html`, `handoff/APPLY-2026-10-19-thread-layouts.md`, `components/layout/LayoutTile` | `apps/mobile/components/screens/Thread.tsx`, `packages/widgets/src/index.ts`, `folds.ts`, `apps/core-api/migrations/0016_thread_attrs.sql`, `threads/labels.ts`, `routes/threads.ts`, `routes/tools.ts`, `today/rows.ts`, `prompts/nightly.md`, `prompts/plan_v2.md`, `EditThreadSheet.tsx`, `panes/EditThread.tsx` |
 | Undo, in place (every list) | `components/feedback/UndoLine.jsx`, `ui_kits/mobile_app/UndoInPlace.jsx`, `explorations/undo-in-place.html` | `apps/mobile/lib/optimistic.ts`, `apps/mobile/components/shell/Toast.tsx`, `apps/web/src/components/shell/Toast.tsx` |
 | Web app | `ui_kits/web_app/` | `apps/web/src/` |

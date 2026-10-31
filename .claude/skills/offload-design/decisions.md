@@ -11,6 +11,20 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-10-31 · The thread notice: one strip for what a thread tells you
+**Surface:** iOS, Android, web; the thread page
+**Raised by:** the product owner: the layout suggestion is ugly and small, and the next things a thread needs to say should use the same thing. Off `explorations/thread-notices.html` (A card, B strip, C offload's voice, D compact) and `explorations/thread-notice-final.html`. Handoff: `handoff/APPLY-2026-10-31-thread-notice.md`.
+
+**Was:** offload's layout suggestion as a 32px soft-moss pill, 13px, *Looks like a trip or an event*, with an x; tapping it switched without saying so. A member's switch as a plain 13px line.
+
+**Is:** `ThreadNotice`, a full-width strip under the read: solid moss and white from offload, ink from a person, 16 medium, two lines at most, one underlined word and an x. The suggestion reads *Looks like a trip or event, switch to the Events layout?* with Switch; switching leaves *Showing as Events. You can always change this in thread settings.* with Undo. A member's switch reads *Sam switched this to the Events layout* with Change.
+
+**As built, where the code departs from the handoff:** a person's face is `Avatar` at 28, not 24: the house Avatar's sizes start at 28 and it draws their mark, not initials on a hue, so `initials` and `hue` are not props of the app's strip. On the web the strip pays back the pane's own gutter (24) rather than 20, so its text lines up with the page's. The phones' underline has no offset (React Native has none), and the strip leaves as a 280ms fade with no height collapse; the web collapses height and fades. On the phones Edit thread is short enough that its Layout row is always in view, so Change scrolls the layout strip to the picked one; on the web it focuses the picked tile. Checked: all five suggestion lines are two lines at 375 wide in Instrument Sans 16 medium.
+
+**Considered and not taken:** a raised card with a sentence of why and two buttons (A); offload's serif voice with no box (C); one compact row that opens and folds several into a count (D); the soft moss tint for the strip, too pale.
+
+**Design system impact:** `ThreadNotice` (new) in `components/feedback/`; `UndoLine` gains `wrap`; `readme.md` gains **Thread notices** and Thread layouts' suggestion line. No new tokens or glyphs.
+
 ### 2026-10-29 · My threads as a grid, in your own order, with deeper thread colours
 **Surface:** iOS, Android, web; My threads, and every thread icon
 **Raised by:** the product owner: My threads should be a grid, keep its order rather than sort by activity, and the thread icons are too pale in both themes. Off `explorations/threads-grid.html` (three tiles, five mark treatments), `threads-grid-final.html` (the back glyph, the light ground), and `threads-grid-approval.html` (interactive, approved). Handoff: `handoff/APPLY-2026-10-29-threads-grid.md`.
