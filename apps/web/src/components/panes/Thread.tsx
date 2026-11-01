@@ -27,7 +27,7 @@ import { InPlace, LineAt } from "../shell/InPlace";
 import styles from "../../app/(shell)/shell.module.css";
 import { PaneHead } from "../shell/PaneHead";
 import { CalendarsTool } from "../shell/CalendarsPopover";
-import { Notes, useNoteActions } from "./Notes";
+import { NewNote, Notes, useNoteActions } from "./Notes";
 import { Timeline } from "./Timeline";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import { useChanged, useThreads } from "../shell/threads-context";
@@ -1510,6 +1510,11 @@ export function Thread({ id, onChanged, at }: Props) {
           />
         ) : null}
 
+        {/* 2026-10-31. A layout draws no Notes section, so the More menu's
+            Add a note opens its own editor above the sections. */}
+        {!isDefaultLayout && !showArchived && page && addingNote ? (
+          <NewNote actions={noteActions} onClose={() => setAddingNote(false)} />
+        ) : null}
         {!isDefaultLayout && !showArchived && page ? (
           <LayoutSections page={page} handlers={handlers} labels={thread.labels} onAdd={(text) => add(text, "todo")} onToggle={layoutTick} threadId={id} noteActions={noteActions} onEditing={setNoteEditing} />
         ) : (

@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ContentRow, ThreadBundle } from "../src/lib/threads";
 
 type Props = Record<string, unknown>;
-const data = vi.hoisted(() => ({ rows: [] as unknown[], notes: [] as unknown[], head: {} as Props, widgets: {} as Props, notesProps: {} as Props }));
+const data = vi.hoisted(() => ({ rows: [] as unknown[], notes: [] as unknown[], head: {} as Props, widgets: {} as Props, notesProps: {} as Props, layout: "default", newNote: null as Props | null }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 vi.mock("next/dynamic", () => ({ default: () => () => null }));
@@ -36,7 +36,12 @@ vi.mock("../src/components/panes/Notes", () => ({
     return null;
   },
   useNoteActions: () => ({}),
+  NewNote: (props: Props) => {
+    data.newNote = props;
+    return <div data-new-note />;
+  },
 }));
+vi.mock("../src/components/panes/LayoutSections", () => ({ LayoutSections: () => <div data-layout /> }));
 vi.mock("../src/components/labels/FilterBar", () => ({ FilterBar: () => null }));
 vi.mock("../src/components/map/MapFrame", () => ({
   MapFrame: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -48,7 +53,7 @@ vi.mock("../src/lib/threads", async (original) => ({
   fetchThread: async (): Promise<ThreadBundle> => ({
     id: "t1",
     name: "Busan trip",
-    layout: "default",
+    layout: data.layout as ThreadBundle["layout"],
     layoutSetBy: "offload",
     layoutSuggestion: null,
     layoutChange: null,
@@ -190,5 +195,29 @@ describe("an empty thread's ways in", () => {
     data.notes = [];
     await open();
     expect([...host.querySelectorAll("button")].map((one) => one.textContent)).not.toContain("Add a to do");
+  });
+});
+
+// 2026-10-31. Add a note in the More menu set the open flag and nothing drew
+// it on any layout but Default, which is the only one that draws Notes.
+describe("Add a note on a layout", () => {
+  afterEach(() => {
+    data.layout = "default";
+    data.newNote = null;
+  });
+
+  it("draws a new note's editor above the layout's sections, and closes it", async () => {
+    data.layout = "timeline";
+    data.rows = [event()];
+    data.notes = [];
+    await open();
+    expect(host.querySelector("[data-layout]")).not.toBeNull();
+    expect(host.querySelector("[data-new-note]")).toBeNull();
+    const more = data.head.more as { label: string; onSelect: () => void }[];
+    expect(more.map((item) => item.label)).not.toContain("Add a to do");
+    act(() => more.find((item) => item.label === "Add a note")!.onSelect());
+    expect(host.querySelector("[data-new-note]")).not.toBeNull();
+    act(() => (data.newNote!.onClose as () => void)());
+    expect(host.querySelector("[data-new-note]")).toBeNull();
   });
 });

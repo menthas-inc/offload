@@ -122,6 +122,28 @@ export function useNoteActions({ threadId, notes, members, onNotes, writes }: Pi
   const patch = (noteId: string, fields: Partial<Note>): void =>
     onNotes((current) => current.map((note) => (note.id === noteId ? { ...note, ...fields } : note)));
 
+  /** A new note, drawn at the press with a made-up id. The server's note
+   *  replaces it whole when the write lands: it carries the fields the screen
+   *  could only guess at. */
+  function add(text: string): void {
+    const note = provisionalNote(text, viewerId);
+    void perform(
+      {
+        apply: () => onNotes((current) => [...current, note]),
+        revert: () => onNotes((current) => current.filter((one) => one.id !== note.id)),
+        write: async () => {
+          const result = await addNote(threadId, text);
+          if (!result) return false;
+          onNotes((current) => current.map((one) => (one.id === note.id ? result.note : one)));
+          return true;
+        },
+        failed: "Couldn't add that",
+      },
+      toast,
+      writes,
+    );
+  }
+
   function edit(note: Note, text: string): void {
     const previous = note.text;
     // Reversible by writing the previous value back, which is what puts an
@@ -234,7 +256,7 @@ export function useNoteActions({ threadId, notes, members, onNotes, writes }: Pi
     );
   }
 
-  return { viewerId, canDelete, edit, remove, remind, mute, move };
+  return { viewerId, canDelete, add, edit, remove, remind, mute, move };
 }
 
 export type NoteActions = ReturnType<typeof useNoteActions>;
@@ -289,6 +311,29 @@ export function OpenNote({
           : undefined
       }
     />
+  );
+}
+
+/** A new note where the Notes section is not drawn: a layout other than
+ *  Default, opened from the More menu. The same editor and the same add. */
+export function NewNote({ actions, onClose }: { actions: Pick<NoteActions, "add">; onClose: () => void }) {
+  const [draft, setDraft] = useState("");
+  return (
+    <div className={styles.noteRow} data-tone="neutral" data-open={true}>
+      <NoteEditor
+        draft={draft}
+        onDraft={setDraft}
+        onSave={() => {
+          const text = draft.trim();
+          onClose();
+          if (text.length > 0) actions.add(text);
+        }}
+        onCancel={onClose}
+        way={null}
+        onDelete={() => {}}
+        onMute={() => {}}
+      />
+    </div>
   );
 }
 
@@ -374,28 +419,8 @@ export function Notes({
   /** A new note. One already on the thread saves through `OpenNote`. */
   function save(): void {
     const text = draft.trim();
-    if (text.length === 0) return close();
-
-    // The note is drawn at the press with a made-up id, and the server's
-    // note replaces it whole when the write lands: it carries the fields
-    // the screen could only guess at.
-    const note = provisionalNote(text, viewerId);
     close();
-    void perform(
-      {
-        apply: () => onNotes((current) => [...current, note]),
-        revert: () => onNotes((current) => current.filter((one) => one.id !== note.id)),
-        write: async () => {
-          const result = await addNote(threadId, text);
-          if (!result) return false;
-          onNotes((current) => current.map((one) => (one.id === note.id ? result.note : one)));
-          return true;
-        },
-        failed: "Couldn't add that",
-      },
-      toast,
-      writes,
-    );
+    if (text.length > 0) actions.add(text);
   }
 
   async function showFolded(): Promise<void> {

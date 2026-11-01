@@ -50,6 +50,7 @@ const note: Note = {
 const actions = {
   viewerId: "me",
   canDelete: () => true,
+  add: vi.fn(),
   edit: vi.fn(),
   remove: vi.fn(),
   mute: vi.fn(),
