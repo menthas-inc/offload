@@ -34,6 +34,7 @@ vi.mock("../src/components/panes/Widgets", () => ({
   },
 }));
 vi.mock("../src/components/panes/Notes", () => ({
+  useNoteActions: () => ({}),
   Notes: (props: { reveal?: string | null; arrived?: Set<string> }) => {
     data.notesProps = props;
     return null;

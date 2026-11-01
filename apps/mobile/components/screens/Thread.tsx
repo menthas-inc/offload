@@ -1080,6 +1080,30 @@ export default function Thread() {
           now: new Date(),
           zone,
         });
+  // 2026-10-31. To do's quick add and Add a note, raised from the More sheet
+  // and from an empty thread's two buttons. To do's needs no To do section:
+  // the row is written as a task and the section earns itself.
+  const raiseTodo = (): void =>
+    raiseFor({
+      threadId: id,
+      threadName: thread.name,
+      write: "quickAdd",
+      section: "todo",
+      title: "Add to To do",
+      placeholder: TYPED_ROW_PLACEHOLDER,
+      charLimit: QUICK_ADD_CHARS,
+    });
+  const raiseNote = (): void =>
+    raiseFor({
+      threadId: thread.id,
+      threadName: thread.name,
+      write: "note",
+      title: "Add a note",
+      placeholder: "What is true about this thread?",
+      charLimit: NOTE_CHARS,
+      showCounter: true,
+    });
+
   const layoutHandlers: LayoutHandlers = {
     onEdit: setRenaming,
     onDelete: remove,
@@ -1299,7 +1323,7 @@ export default function Thread() {
         )}
 
         {!isDefaultLayout && !showArchived && page ? (
-          <LayoutSections page={page} labels={thread.labels} handlers={layoutHandlers} />
+          <LayoutSections page={page} labels={thread.labels} handlers={layoutHandlers} threadId={thread.id} notes={shownNotes} members={thread.members} onNotes={patchNotes} toast={toast} writes={writes} onSheet={setNoteSheet} />
         ) : (
         <>
         {showArchived ? null : (
@@ -1354,13 +1378,19 @@ export default function Thread() {
           </View>
         ) : null}
 
-        {rest.length === 0 && !showArchived && inWidgets.size === 0 && !filtering ? (
-          <Text
-            className="px-gutter-screen py-space-8 font-core text-text-tertiary"
-            style={{ fontSize: 14 }}
-          >
-            Nothing in this one yet. Dump something and offload will file it.
-          </Text>
+        {/* 2026-10-31. The two ways in, in the middle of the screen: the kit's
+            EmptyState, with two buttons where it allows one. A thread with
+            notes is not empty. */}
+        {rest.length === 0 && !showArchived && inWidgets.size === 0 && !filtering && shownNotes.length === 0 ? (
+          <View className="items-center px-space-9 py-space-11" style={{ gap: 12 }}>
+            <Text className={`text-center font-quiet ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 15, lineHeight: 22, maxWidth: 280 }}>
+              Nothing in this one yet. Add something, or dump it and offload will file it.
+            </Text>
+            <View className="flex-row flex-wrap justify-center" style={{ gap: 8, marginTop: 6 }}>
+              <WayIn label="Add a to do" icon="square-check-big" onPress={raiseTodo} />
+              <WayIn label="Add a note" icon="brain" onPress={raiseNote} />
+            </View>
+          </View>
         ) : null}
 
         {/* One row per series, standing for all of its occurrences, with how
@@ -1541,20 +1571,9 @@ export default function Thread() {
         actions={[
           ...tools.moreFirst.map((tool) => MORE_FIRST[tool]),
           { label: "Edit thread", icon: "pencil", run: () => setEditingThread("name") },
-          {
-            label: "Add a note",
-            icon: "brain",
-            run: () =>
-              raiseFor({
-                threadId: thread.id,
-                threadName: thread.name,
-                write: "note",
-                title: "Add a note",
-                placeholder: "What is true about this thread?",
-                charLimit: NOTE_CHARS,
-                showCounter: true,
-              }),
-          },
+          // Default only: the other layouts have their own way in, or none.
+          ...(isDefaultLayout ? [{ label: "Add a to do", icon: "square-check-big", run: raiseTodo }] : []),
+          { label: "Add a note", icon: "brain", run: raiseNote },
           ...(thread.calendars && !tools.moreFirst.includes("calendars")
             ? [{ label: "Calendars in this thread", icon: "calendar", run: () => setCalendarsOpen(true) }]
             : []),
@@ -1849,5 +1868,24 @@ function EditSheet({
         </View>
       </DragSheet>
     </>
+  );
+}
+
+/** One of an empty thread's two ways in: the kit's secondary Button, or the
+ *  outlined pill on Android. */
+function WayIn({ label, icon, onPress }: { label: string; icon: "square-check-big" | "brain"; onPress: () => void }) {
+  const COLOR = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      className={`flex-row items-center border px-space-6 ${isAndroid ? "rounded-pill border-a-outline" : "rounded-sm border-border-strong bg-surface-raised"}`}
+      style={{ minHeight: 44, gap: 6 }}
+    >
+      <Glyph name={icon} size={18} color={COLOR.ink} />
+      <Text className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 14.5 }}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }

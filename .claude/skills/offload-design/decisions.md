@@ -4487,3 +4487,20 @@ exactly like "I refreshed and I cannot see your change".
 - The footer follows how they got in: the waitlist line if they joined it, *You are receiving this because the team at offload wanted you to try it.* if staff added the address directly.
 **Why:** the owner asked for the logos and a matching web button. The no-images rule was about blocked images costing nothing and about never carrying a tracking pixel; alt text keeps the first, and one fixed URL for every recipient keeps the second.
 **Design system impact:** `ui_kits/marketing_site/invite-email.html` and its README: the rule becomes *no images but the invite's two badges*, and the mock takes the new words, the badge row in place of the button, and the second footer. The *Open in browser* badge has no source file in the design system; its source is `apps/web/public/brands/open-in-browser.svg`. Also from this change: the shell's font family is quoted, so the code escapes it inside the `style` attribute; before that every email lost its font, the button's padding and its corners after the first quote.
+
+### 2026-10-31 · An empty thread offers Add a to do and Add a note
+**Surface:** iOS, Android, web, the thread page and its More menu
+**Raised by:** the owner: a new thread had no way to start a to do. Add a note was in the More menu and nothing else was.
+**Was:** an empty thread showed one quiet line, *Nothing in this one yet. Dump something on Today and offload will file it.*, with no button, as the readme's empty states section says of My threads and Memories. To do's add only existed on a To do section that already had rows.
+**Is:**
+- **Add a to do** in the More menu, before Add a note, with `square-check-big`, on Default only (the other layouts have their own way in, or none). On the web it opens To do's inline quick add, drawing the section if the thread has none; on the phones it raises the composer's quick add for To do, the same raise as the section's +.
+- An empty thread draws the `EmptyState` shape in the middle of the page: the body in the quiet serif, *Nothing in this one yet. Add something, or dump it on Today and offload will file it.* (on the phones *dump it and offload will file it*), and under it **two** secondary Buttons at md, *Add a to do* and *Add a note*, each with its glyph. On Android they are outlined pills. The block goes while either one is open. A thread that holds only notes is no longer called empty on the phones, which the web already did.
+**Why:** the owner asked for both. It breaks two lines of the system on purpose: `EmptyState` allows one action, and an emptied thread was meant to stay quiet with no button. A new thread is not a cleared screen; the first thing typed into it is the point of opening it.
+**Design system impact:** `EmptyState` should allow two actions, or a pair should be its own variant. The readme's empty states section should name an empty thread as the exception that offers its ways in. `ui_kits/web_app/WThing.jsx` and the phones' `ThreadScreen` should draw the empty thread this way, and the More menus should list *Add a to do*.
+
+### 2026-10-31 · A layout's notes open in the note editor
+**Surface:** iOS, Android, web, the Timeline layout and every layout's *Other things*
+**Raised by:** the owner: a Timeline entry could not be edited.
+**Was:** a note in a layout was plain text that nothing opened.
+**Is:** pressing it opens the same editor the Notes section opens: in place on the web, the note sheet on the phones, with the same rules for edit, delete, mute and move. On the web an edit's Undo line draws under the note; one that takes it off the day draws under the composer.
+**Design system impact:** none. The editor and the sheet are existing components; the 045 kit, when it is drawn, should show a Timeline note as pressable.

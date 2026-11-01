@@ -170,8 +170,17 @@
   font: var(--text-body-role);
   font-family: var(--font-quiet);
   color: var(--text-secondary);
+  display: block;
+  width: 100%;
   margin: 0;
   padding: var(--space-4) 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.noteLine:disabled {
+  cursor: default;
 }
 
 /* The others row (6.7). */
