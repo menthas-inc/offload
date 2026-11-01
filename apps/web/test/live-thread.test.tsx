@@ -66,6 +66,7 @@ vi.mock("../src/components/panes/Timeline", () => ({ Timeline: () => null }));
 vi.mock("../src/components/panes/Widgets", () => ({ Widgets: () => null }));
 // Drawn as nothing; its props are kept so a test can open its editor.
 vi.mock("../src/components/panes/Notes", () => ({
+  useNoteActions: () => ({}),
   Notes: (props: { onEditing?: (open: boolean) => void }) => {
     data.onNoteEditing = props.onEditing ?? null;
     return null;

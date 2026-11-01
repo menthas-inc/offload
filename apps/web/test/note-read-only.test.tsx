@@ -74,6 +74,7 @@ describe("the thread's notes", () => {
   it("opens a note as read only for anybody who could not delete it", async () => {
     const { readFileSync } = await import("node:fs");
     const source = readFileSync(join(process.cwd(), "src/components/panes/Notes.tsx"), "utf8");
-    expect(source).toContain("readOnly={note !== null && !canDelete(note)}");
+    expect(source).toContain("const mine = actions.canDelete(note);");
+    expect(source).toContain("readOnly={!mine}");
   });
 });

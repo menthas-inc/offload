@@ -96,87 +96,17 @@ function when(note: Note, zone: string | null): string | null {
   });
 }
 
-export function Notes({
-  threadId,
-  notes,
-  counts,
-  members,
-  arrived,
-  reveal = null,
-  adding,
-  onAdding,
-  onNotes,
-  writes,
-  onEditing,
-}: Props) {
-  const { zone } = useClock();
+/** What can be done to a note that is already on the thread, drawn first and
+ *  sent second through the thread's `perform`: the row changes at the press
+ *  and comes back with a word if the server refuses. The Notes section and the
+ *  Timeline layout both open notes, so the writes live here once. Closing an
+ *  editor or a sheet is the caller's. */
+export function useNoteActions({ threadId, notes, members, onNotes, writes }: Pick<Props, "threadId" | "notes" | "members" | "onNotes" | "writes">) {
   const toast = useToast();
   // Who is reading, from the member list the bundle already carries. Decides
   // which rows offer delete, because deleting is the author's alone and
   // everybody else gets mute.
   const viewerId = members.find((member) => member.isYou)?.accountId ?? null;
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
-  const [folded, setFolded] = useState<Note[] | null>(null);
-  // Which row is being dragged, and which one the pointer is over. The active
-  // list only: folded history is read, not arranged.
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [over, setOver] = useState<string | null>(null);
-  // 028. The note whose Move sheet is open.
-  const [moving, setMoving] = useState<Note | null>(null);
-  // 2026-10-17. The section folds from its heading, kept in this browser.
-  // An open editor holds it open, since the editor is inside, and folding
-  // is the editor's Cancel.
-  const [folds, setFold] = useFolds();
-  const sectionFolded = folds.notes && !adding && editingId === null && !notes.some((note) => note.id === reveal);
-  // 2026-10-18. Every note drawn here, so a deleted last note keeps the
-  // section, and its slot, while its line runs.
-  const seen = useRef(new Set<string>());
-  for (const note of notes) seen.current.add(note.id);
-  const entries = useUndoEntries();
-  const lineHere = [...entries.keys()].some((id) => seen.current.has(id));
-
-  const shared = members.length > 1;
-  const editing = notes.find((note) => note.id === editingId) ?? null;
-
-  const busy = editingId !== null || moving !== null;
-  useEffect(() => onEditing?.(busy), [busy, onEditing]);
-
-  // **Which notes are not reaching offload.** The budget takes the most
-  // recently written, so anything outside that set is on the thread and out of
-  // the prompt. Computed here rather than sent, because it is the same rule the
-  // server applies at assembly and duplicating the rule is cheaper than a field
-  // that can be stale by the time it is drawn.
-  const instructing = new Set(
-    [...notes]
-      .sort((a, b) => b.writtenAt.localeCompare(a.writtenAt))
-      .slice(0, NOTE_BUDGET)
-      .map((note) => note.id)
-  );
-  const quiet = notes.length - instructing.size;
-
-  // A note whose author has deleted their account carries no name, and that
-  // reads as somebody who left rather than as yours, because every live
-  // member's note does carry one.
-  function author(note: Note): string | null {
-    if (!shared || note.authorId === null) return null;
-    return members.find((m) => m.accountId === note.authorId)?.displayName ?? null;
-  }
-
-  /** `open_` rather than `open`, because `open` is a global on Window and
-   *  shadowing it inside a component that also has a boolean called `open` is
-   *  how a click handler ends up calling the wrong thing. */
-  function open_(note: Note): void {
-    onAdding(false);
-    setEditingId(note.id);
-    setDraft(note.text);
-  }
-
-  function close(): void {
-    onAdding(false);
-    setEditingId(null);
-    setDraft("");
-  }
 
   /** Deleting is the author's, per OFF-3, with one exception: **a note nobody
    *  owns is everybody's.** Its author deleted their account or left the
@@ -189,59 +119,25 @@ export function Notes({
     return note.authorId === viewerId || !note.authorIsMember;
   }
 
-  // ---------------------------------------------------------------- writes
-  //
-  // Drawn first, sent second, through the thread's `perform`: the row changes
-  // at the press and comes back with a word if the server refuses.
-
   const patch = (noteId: string, fields: Partial<Note>): void =>
     onNotes((current) => current.map((note) => (note.id === noteId ? { ...note, ...fields } : note)));
 
-  function save(): void {
-    const text = draft.trim();
-    if (text.length === 0) return close();
-
-    if (adding) {
-      // The note is drawn at the press with a made-up id, and the server's
-      // note replaces it whole when the write lands: it carries the fields
-      // the screen could only guess at.
-      const note = provisionalNote(text, viewerId);
-      close();
-      void perform(
-        {
-          apply: () => onNotes((current) => [...current, note]),
-          revert: () => onNotes((current) => current.filter((one) => one.id !== note.id)),
-          write: async () => {
-            const result = await addNote(threadId, text);
-            if (!result) return false;
-            onNotes((current) => current.map((one) => (one.id === note.id ? result.note : one)));
-            return true;
-          },
-          failed: "Couldn't add that",
-        },
-        toast,
-        writes,
-      );
-      return;
-    }
-
-    if (!editing) return close();
-    const previous = editing.text;
-    close();
+  function edit(note: Note, text: string): void {
+    const previous = note.text;
     // Reversible by writing the previous value back, which is what puts an
     // edit on the OFF-6 allowlist rather than under a confirmation.
     void perform(
       {
         // The text alone: a note's details are no longer drawn or edited
         // (2026-09-29), and what is stored there is left as it is.
-        apply: () => patch(editing.id, { text }),
-        revert: () => patch(editing.id, { text: previous }),
-        write: () => editNote(editing.id, text).then((result) => result !== null),
-        unwrite: () => editNote(editing.id, previous).then((result) => result !== null),
+        apply: () => patch(note.id, { text }),
+        revert: () => patch(note.id, { text: previous }),
+        write: () => editNote(note.id, text).then((result) => result !== null),
+        unwrite: () => editNote(note.id, previous).then((result) => result !== null),
         did: "Note changed",
         failed: "Couldn't change the note",
         unfailed: "Couldn't put the note back",
-        place: { id: editing.id, icon: "pencil", form: "under" },
+        place: { id: note.id, icon: "pencil", form: "under" },
       },
       toast,
       writes,
@@ -249,7 +145,6 @@ export function Notes({
   }
 
   function remove(note: Note): void {
-    close();
     const at = notes.findIndex((one) => one.id === note.id);
     void perform(
       {
@@ -295,7 +190,6 @@ export function Notes({
 
   /** No Undo: the same control, pressed again, is the undo. */
   function mute(note: Note): void {
-    close();
     void perform(
       {
         apply: () => patch(note.id, { muted: !note.muted }),
@@ -312,8 +206,6 @@ export function Notes({
    *  list at the press; Undo is the same move back. A thread that already
    *  holds the same words refuses it, and says so. */
   function move(note: Note, to: { id: string; name: string }): void {
-    setMoving(null);
-    close();
     const at = notes.findIndex((one) => one.id === note.id);
     let duplicate = false;
     void perform(
@@ -336,6 +228,170 @@ export function Notes({
         },
         unfailed: "Couldn't put that back",
         place: { id: note.id, icon: "arrow-up-right", form: "slot" },
+      },
+      toast,
+      writes,
+    );
+  }
+
+  return { viewerId, canDelete, edit, remove, remind, mute, move };
+}
+
+export type NoteActions = ReturnType<typeof useNoteActions>;
+
+/** A note that is on the thread, open: the editor with that note's one way
+ *  out, Move where it can move, and the author's Remind me. Every action
+ *  closes it except Remind me. */
+export function OpenNote({
+  note,
+  actions,
+  draft,
+  onDraft,
+  onClose,
+  onMoving,
+}: {
+  note: Note;
+  actions: Pick<NoteActions, "viewerId" | "canDelete" | "edit" | "remove" | "remind" | "mute">;
+  draft: string;
+  onDraft: (text: string) => void;
+  onClose: () => void;
+  /** Opens the Move sheet, which the caller draws since it outlives the editor. */
+  onMoving: () => void;
+}) {
+  const mine = actions.canDelete(note);
+  return (
+    <NoteEditor
+      draft={draft}
+      onDraft={onDraft}
+      onSave={() => {
+        const text = draft.trim();
+        onClose();
+        if (text.length > 0) actions.edit(note, text);
+      }}
+      onCancel={onClose}
+      way={note.muted ? "unmute" : mine ? "delete" : "mute"}
+      onDelete={() => {
+        onClose();
+        actions.remove(note);
+      }}
+      onMute={() => {
+        onClose();
+        actions.mute(note);
+      }}
+      // 028. A note moves between threads as a row does: its author's, or
+      // anybody's once its author has gone, the same rule as delete.
+      onMove={mine && !isProvisional(note.id) ? onMoving : undefined}
+      // Its words are its author's to change, on the terms delete has.
+      readOnly={!mine}
+      remind={
+        remindSwitchShown(note, note.authorId === actions.viewerId)
+          ? { on: note.reminders === "on", onChange: (on) => actions.remind(note, on) }
+          : undefined
+      }
+    />
+  );
+}
+
+export function Notes({
+  threadId,
+  notes,
+  counts,
+  members,
+  arrived,
+  reveal = null,
+  adding,
+  onAdding,
+  onNotes,
+  writes,
+  onEditing,
+}: Props) {
+  const { zone } = useClock();
+  const toast = useToast();
+  const actions = useNoteActions({ threadId, notes, members, onNotes, writes });
+  const { viewerId } = actions;
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [folded, setFolded] = useState<Note[] | null>(null);
+  // Which row is being dragged, and which one the pointer is over. The active
+  // list only: folded history is read, not arranged.
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+  // 028. The note whose Move sheet is open.
+  const [moving, setMoving] = useState<Note | null>(null);
+  // 2026-10-17. The section folds from its heading, kept in this browser.
+  // An open editor holds it open, since the editor is inside, and folding
+  // is the editor's Cancel.
+  const [folds, setFold] = useFolds();
+  const sectionFolded = folds.notes && !adding && editingId === null && !notes.some((note) => note.id === reveal);
+  // 2026-10-18. Every note drawn here, so a deleted last note keeps the
+  // section, and its slot, while its line runs.
+  const seen = useRef(new Set<string>());
+  for (const note of notes) seen.current.add(note.id);
+  const entries = useUndoEntries();
+  const lineHere = [...entries.keys()].some((id) => seen.current.has(id));
+
+  const shared = members.length > 1;
+
+  const busy = editingId !== null || moving !== null;
+  useEffect(() => onEditing?.(busy), [busy, onEditing]);
+
+  // **Which notes are not reaching offload.** The budget takes the most
+  // recently written, so anything outside that set is on the thread and out of
+  // the prompt. Computed here rather than sent, because it is the same rule the
+  // server applies at assembly and duplicating the rule is cheaper than a field
+  // that can be stale by the time it is drawn.
+  const instructing = new Set(
+    [...notes]
+      .sort((a, b) => b.writtenAt.localeCompare(a.writtenAt))
+      .slice(0, NOTE_BUDGET)
+      .map((note) => note.id)
+  );
+  const quiet = notes.length - instructing.size;
+
+  // A note whose author has deleted their account carries no name, and that
+  // reads as somebody who left rather than as yours, because every live
+  // member's note does carry one.
+  function author(note: Note): string | null {
+    if (!shared || note.authorId === null) return null;
+    return members.find((m) => m.accountId === note.authorId)?.displayName ?? null;
+  }
+
+  /** `open_` rather than `open`, because `open` is a global on Window and
+   *  shadowing it inside a component that also has a boolean called `open` is
+   *  how a click handler ends up calling the wrong thing. */
+  function open_(note: Note): void {
+    onAdding(false);
+    setEditingId(note.id);
+    setDraft(note.text);
+  }
+
+  function close(): void {
+    onAdding(false);
+    setEditingId(null);
+    setDraft("");
+  }
+
+  /** A new note. One already on the thread saves through `OpenNote`. */
+  function save(): void {
+    const text = draft.trim();
+    if (text.length === 0) return close();
+
+    // The note is drawn at the press with a made-up id, and the server's
+    // note replaces it whole when the write lands: it carries the fields
+    // the screen could only guess at.
+    const note = provisionalNote(text, viewerId);
+    close();
+    void perform(
+      {
+        apply: () => onNotes((current) => [...current, note]),
+        revert: () => onNotes((current) => current.filter((one) => one.id !== note.id)),
+        write: async () => {
+          const result = await addNote(threadId, text);
+          if (!result) return false;
+          onNotes((current) => current.map((one) => (one.id === note.id ? result.note : one)));
+          return true;
+        },
+        failed: "Couldn't add that",
       },
       toast,
       writes,
@@ -431,27 +487,13 @@ export function Notes({
   // one after that can be typed here.
   if (notes.length === 0 && !adding && counts.folded === 0 && !lineHere) return null;
 
-  const editor = (note: Note | null) => (
-    <NoteEditor
-      draft={draft}
-      onDraft={setDraft}
-      onSave={save}
-      onCancel={close}
-      way={note ? (note.muted ? "unmute" : canDelete(note) ? "delete" : "mute") : null}
-      onDelete={() => note && remove(note)}
-      onMute={() => note && mute(note)}
-      // 028. A note moves between threads as a row does: its author's, or
-      // anybody's once its author has gone, the same rule as delete.
-      onMove={note && canDelete(note) && !isProvisional(note.id) ? () => setMoving(note) : undefined}
-      // Its words are its author's to change, on the terms delete has.
-      readOnly={note !== null && !canDelete(note)}
-      remind={
-        note && remindSwitchShown(note, note.authorId === viewerId)
-          ? { on: note.reminders === "on", onChange: (on) => remind(note, on) }
-          : undefined
-      }
-    />
-  );
+  // The open row: an existing note through `OpenNote`, a new one here.
+  const editor = (note: Note | null) =>
+    note ? (
+      <OpenNote note={note} actions={actions} draft={draft} onDraft={setDraft} onClose={close} onMoving={() => setMoving(note)} />
+    ) : (
+      <NoteEditor draft={draft} onDraft={setDraft} onSave={save} onCancel={close} way={null} onDelete={() => {}} onMute={() => {}} />
+    );
 
   // The row is a div holding a button and, on the active list, a handle. It
   // was one button until 2026-09-16, and a handle inside a button is a control
@@ -621,7 +663,11 @@ export function Notes({
       </>}
 
       {moving ? (
-        <MoveOver exceptThreadId={threadId} onClose={() => setMoving(null)} onPick={(thread) => move(moving, thread)} />
+        <MoveOver exceptThreadId={threadId} onClose={() => setMoving(null)} onPick={(thread) => {
+          setMoving(null);
+          close();
+          actions.move(moving, thread);
+        }} />
       ) : null}
     </>
   );

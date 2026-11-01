@@ -41,7 +41,7 @@ vi.mock("../src/lib/clock", () => ({ useClock: () => ({ zone: "UTC", today: "202
 vi.mock("../src/components/shell/PaneHead", () => ({ PaneHead: ({ lead, title }: { lead: React.ReactNode; title: React.ReactNode }) => <>{lead}{title}</> }));
 vi.mock("../src/components/panes/Timeline", () => ({ Timeline: () => null }));
 vi.mock("../src/components/panes/Widgets", () => ({ Widgets: () => null }));
-vi.mock("../src/components/panes/Notes", () => ({ Notes: () => null }));
+vi.mock("../src/components/panes/Notes", () => ({ Notes: () => null, useNoteActions: () => ({}) }));
 vi.mock("../src/components/labels/FilterBar", () => ({ FilterBar: () => null }));
 vi.mock("../src/components/map/MapFrame", () => ({
   MapFrame: ({ children }: { children: React.ReactNode }) => <>{children}</>,

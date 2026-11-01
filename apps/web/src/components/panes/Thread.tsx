@@ -27,7 +27,7 @@ import { InPlace, LineAt } from "../shell/InPlace";
 import styles from "../../app/(shell)/shell.module.css";
 import { PaneHead } from "../shell/PaneHead";
 import { CalendarsTool } from "../shell/CalendarsPopover";
-import { Notes } from "./Notes";
+import { Notes, useNoteActions } from "./Notes";
 import { Timeline } from "./Timeline";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import { useChanged, useThreads } from "../shell/threads-context";
@@ -730,6 +730,8 @@ export function Thread({ id, onChanged, at }: Props) {
    *  them, so a change it draws early is written here. */
   const patchNotes = (update: (notes: Note[]) => Note[]): void =>
     setThread((current) => (current ? { ...current, notes: update(current.notes) } : current));
+  // A layout opens its notes with the writes the Notes section uses.
+  const noteActions = useNoteActions({ threadId: id, notes: thread?.notes ?? [], members: thread?.members ?? [], onNotes: patchNotes, writes });
 
   /** Something typed straight into a section, or into a day on the rail.
    *
@@ -1493,7 +1495,7 @@ export function Thread({ id, onChanged, at }: Props) {
         ) : null}
 
         {!isDefaultLayout && !showArchived && page ? (
-          <LayoutSections page={page} handlers={handlers} labels={thread.labels} onAdd={(text) => add(text, "todo")} onToggle={layoutTick} />
+          <LayoutSections page={page} handlers={handlers} labels={thread.labels} onAdd={(text) => add(text, "todo")} onToggle={layoutTick} threadId={id} noteActions={noteActions} onEditing={setNoteEditing} />
         ) : (
         <>
         {showArchived ? null : (
