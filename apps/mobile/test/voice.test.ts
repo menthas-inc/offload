@@ -30,7 +30,7 @@ vi.mock("expo-audio", () => ({
   setAudioModeAsync: () => Promise.resolve(),
 }));
 
-const { amplitude, mmss, resample, RECORDING_OPTIONS } = await import("../lib/recorder");
+const { amplitude, mmss, resample, RECORDING_OPTIONS, Session } = await import("../lib/recorder");
 const { awaitAnswer, WAVEFORM_BARS } = await import("../lib/dump");
 
 beforeEach(() => {
@@ -78,6 +78,16 @@ describe("the recorder's shape", () => {
       expo: { ios?: { infoPlist?: Record<string, unknown> } };
     };
     expect(app.expo.ios?.infoPlist?.["UIBackgroundModes"]).toBeUndefined();
+  });
+
+  it("prepares each note with its options, so iOS makes a new file after sign-out took the old one's folder", async () => {
+    // Without options iOS reuses the recorder made at launch, whose folder
+    // `device-data.ts` deletes, and prepare fails until a relaunch.
+    const prepareToRecordAsync = vi.fn(() => Promise.resolve());
+    const recorder = { prepareToRecordAsync, record: () => undefined, getStatus: () => ({ isRecording: true }) };
+    const session = await Session.start(recorder as never, () => undefined, () => undefined);
+    expect(prepareToRecordAsync).toHaveBeenCalledWith(RECORDING_OPTIONS);
+    await session.discard().catch(() => undefined);
   });
 });
 
