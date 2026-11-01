@@ -5,7 +5,7 @@
 // this browser and read back on the next thread.
 
 import { readFileSync } from "node:fs";
-import { act } from "react";
+import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ContentRow } from "../src/lib/threads";
@@ -50,12 +50,20 @@ const row = (over: Partial<ContentRow>): ContentRow =>
 
 const rows = [row({ id: "t", title: "Book the ferry" }), row({ id: "p", type: "image", title: "Ferry times" })];
 
+// To do's add field is the page's, so the test holds it as the page does.
+function Page() {
+  const [addingTodo, setAddingTodo] = useState(false);
+  return (
+    <Widgets rows={rows} preference={{}} handlers={{ arrived: new Set<string>() } as never} onAdd={() => {}} onToggle={() => {}} onFold={() => {}} onReorder={() => {}} addingTodo={addingTodo} onAddingTodo={setAddingTodo} />
+  );
+}
+
 function render() {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   root = createRoot(document.body.appendChild(document.createElement("div")));
   act(() =>
     root!.render(
-      <Widgets rows={rows} preference={{}} handlers={{ arrived: new Set<string>() } as never} onAdd={() => {}} onToggle={() => {}} onFold={() => {}} onReorder={() => {}} />,
+      <Page />,
     ),
   );
 }

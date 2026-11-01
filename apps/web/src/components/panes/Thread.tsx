@@ -155,6 +155,9 @@ export function Thread({ id, onChanged, at }: Props) {
   // is also the answer to a cost that section had accepted: a thread with no
   // notes drew nothing, so there was nowhere to type the first one.
   const [addingNote, setAddingNote] = useState(false);
+  // 2026-10-31. To do's quick add, lifted for the same reasons: the More menu
+  // opens it, and a thread with no to dos has no To do section to open it in.
+  const [addingTodo, setAddingTodo] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<ContentRow | null>(null);
   const [draft, setDraft] = useState("");
@@ -310,7 +313,7 @@ export function Thread({ id, onChanged, at }: Props) {
   // 048. A note open in its editor inside `Notes`, which holds that state itself.
   const [noteEditing, setNoteEditing] = useState(false);
   const anythingOpen = Boolean(
-    addingNote || noteEditing || editing || editRow || editingThread || labelling || listing || sharing || leaving || viewing || calendarsOpen || map.open,
+    addingNote || addingTodo || noteEditing || editing || editRow || editingThread || labelling || listing || sharing || leaving || viewing || calendarsOpen || map.open,
   );
   // A removal already heard when the page opened is not one: it opened reading.
   const removedSeen = useRef(changed);
@@ -1238,6 +1241,19 @@ export function Thread({ id, onChanged, at }: Props) {
             icon: "pencil",
             onSelect: () => setEditingThread("name"),
           },
+          // Default only: it opens To do's field, which only Default draws.
+          ...(isDefaultLayout
+            ? [
+                {
+                  label: "Add a to do",
+                  icon: "square-check-big",
+                  onSelect: () => {
+                    setShowArchived(false);
+                    setAddingTodo(true);
+                  },
+                },
+              ]
+            : []),
           {
             label: "Add a note",
             icon: "brain",
@@ -1507,6 +1523,8 @@ export function Thread({ id, onChanged, at }: Props) {
             onToggle={toggle}
             onFold={fold}
             onReorder={reorder}
+            addingTodo={addingTodo}
+            onAddingTodo={setAddingTodo}
           />
         )}
 
@@ -1559,11 +1577,26 @@ export function Thread({ id, onChanged, at }: Props) {
             other than the one picked, is not an empty thread (sweep
             2026-10-07). */}
         {rows.length === 0 && (showArchived || notes.length === 0) ? (
-          filtering && !showArchived ? null : <p className={styles.empty}>
-            {showArchived
-              ? "Nothing archived here."
-              : "Nothing in this one yet. Dump something on Today and offload will file it."}
-          </p>
+          showArchived ? (
+            <p className={styles.empty}>Nothing archived here.</p>
+          ) : filtering || addingTodo || addingNote ? null : (
+            // 2026-10-31. The two ways in, in the middle of the page: the
+            // kit's EmptyState, with two buttons where it allows one. Gone
+            // while either is open, so it never sits under what it opened.
+            <div className={styles.emptyThread}>
+              <p className={styles.emptyThreadBody}>Nothing in this one yet. Add something, or dump it on Today and offload will file it.</p>
+              <div className={styles.emptyThreadActions}>
+                <button type="button" className={styles.emptyThreadAction} onClick={() => setAddingTodo(true)}>
+                  <Icon name="square-check-big" size={18} />
+                  Add a to do
+                </button>
+                <button type="button" className={styles.emptyThreadAction} onClick={() => setAddingNote(true)}>
+                  <Icon name="brain" size={18} />
+                  Add a note
+                </button>
+              </div>
+            </div>
+          )
         ) : null}
         {/* One row per series, standing for all of its occurrences, with
             how often and how many held where its own date would be. **The

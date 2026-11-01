@@ -104,45 +104,16 @@ function when(note: Note, zone: string | null): string | null {
   });
 }
 
-export function NotesSection({
-  threadId,
-  threadName,
-  notes,
-  counts,
-  members,
-  onNotes,
-  toast,
-  writes,
-  onSheet,
-}: Props) {
-  const { zone } = useClock();
-  const COLOR = useColors();
-  // 2026-10-17. The section folds from its heading, kept on the phone.
-  const [folds, setFold] = useFolds();
-  // 049. A note Search opened the thread at keeps the section open.
-  const reveal = useRevealId();
-  const sectionFolded = folds.notes && !notes.some((note) => note.id === reveal);
-  const { raiseFor } = useConversation();
+/** A note that is on the thread, opened: the editor sheet, drawn at the
+ *  screen's root through `onSheet`, and every write it makes, drawn first and
+ *  sent second through the thread's `perform`. The Notes section and the
+ *  layouts both open notes, and never draw at the same time, so each holds
+ *  one of these. */
+export function useNoteSheet({ threadId, notes, members, onNotes, toast, writes, onSheet }: Pick<Props, "threadId" | "notes" | "members" | "onNotes" | "toast" | "writes" | "onSheet">) {
   const [editing, setEditing] = useState<Note | null>(null);
   // 028. The note whose move sheet is up.
   const [moving, setMoving] = useState<Note | null>(null);
-  const [folded, setFolded] = useState<Note[] | null>(null);
-
   const viewerId = members.find((m) => m.isYou)?.accountId ?? null;
-  const shared = members.length > 1;
-
-  // **Which notes are not reaching offload.** The budget takes the most
-  // recently written, so anything outside that set is on the thread and out of
-  // the prompt. The same rule the server applies at assembly, applied again
-  // here rather than sent, because a field saying so is stale the moment
-  // somebody writes another note.
-  const instructing = new Set(
-    [...notes]
-      .sort((a, b) => b.writtenAt.localeCompare(a.writtenAt))
-      .slice(0, NOTE_BUDGET)
-      .map((note) => note.id)
-  );
-  const quiet = notes.length - instructing.size;
 
   /** Author, or nobody current. A note whose author has left the thread
    *  belongs to whoever is still in it, and the server enforces the same. */
@@ -151,19 +122,9 @@ export function NotesSection({
   /** 042. Theirs, which is who Remind me is drawn to. */
   const mine = (note: Note): boolean => viewerId !== null && note.authorId === viewerId;
 
-  const author = (note: Note): string | null => {
-    if (!shared || note.authorId === null) return null;
-    return members.find((m) => m.accountId === note.authorId)?.displayName ?? null;
-  };
-
   function close(): void {
     setEditing(null);
   }
-
-  // ---------------------------------------------------------------- writes
-  //
-  // Drawn first, sent second, through the thread's `perform`: the row changes
-  // at the press and comes back with a word if the server refuses.
 
   const patch = (noteId: string, fields: Partial<Note>): void =>
     onNotes((current) => current.map((note) => (note.id === noteId ? { ...note, ...fields } : note)));
@@ -260,6 +221,90 @@ export function NotesSection({
     );
   }
 
+  // The editor goes to the screen's root. The handlers are read through a ref
+  // so the sheet is handed over when a note opens or closes, not on every
+  // render of this section, and still acts on the notes as they are now.
+  const latest = useRef({ save, close, mute, remove, canDelete, mine, move });
+  latest.current = { save, close, mute, remove, canDelete, mine, move };
+  useEffect(() => {
+    onSheet(
+      editing ? (
+        <NoteEditor
+          key={editing.id}
+          note={editing}
+          canDelete={latest.current.canDelete(editing)}
+          mine={latest.current.mine(editing)}
+          onSave={(text, remind) => latest.current.save(text, remind)}
+          onClose={() => latest.current.close()}
+          onMute={() => latest.current.mute(editing)}
+          onDelete={() => latest.current.remove(editing)}
+          // 028. Move, for whoever may move it, which is whoever may delete it.
+          onMove={
+            latest.current.canDelete(editing)
+              ? () => {
+                  latest.current.close();
+                  setMoving(editing);
+                }
+              : undefined
+          }
+        />
+      ) : moving ? (
+        <MoveSheet
+          open
+          exceptThreadId={threadId}
+          onClose={() => setMoving(null)}
+          onPick={(to) => latest.current.move(moving, to)}
+        />
+      ) : null,
+    );
+  }, [editing, moving, onSheet, threadId]);
+  useEffect(() => () => onSheet(null), [onSheet]);
+
+  return { open: setEditing, close };
+}
+
+export function NotesSection({
+  threadId,
+  threadName,
+  notes,
+  counts,
+  members,
+  onNotes,
+  toast,
+  writes,
+  onSheet,
+}: Props) {
+  const { zone } = useClock();
+  const COLOR = useColors();
+  // 2026-10-17. The section folds from its heading, kept on the phone.
+  const [folds, setFold] = useFolds();
+  // 049. A note Search opened the thread at keeps the section open.
+  const reveal = useRevealId();
+  const sectionFolded = folds.notes && !notes.some((note) => note.id === reveal);
+  const { raiseFor } = useConversation();
+  const { open, close } = useNoteSheet({ threadId, notes, members, onNotes, toast, writes, onSheet });
+  const [folded, setFolded] = useState<Note[] | null>(null);
+
+  const shared = members.length > 1;
+
+  // **Which notes are not reaching offload.** The budget takes the most
+  // recently written, so anything outside that set is on the thread and out of
+  // the prompt. The same rule the server applies at assembly, applied again
+  // here rather than sent, because a field saying so is stale the moment
+  // somebody writes another note.
+  const instructing = new Set(
+    [...notes]
+      .sort((a, b) => b.writtenAt.localeCompare(a.writtenAt))
+      .slice(0, NOTE_BUDGET)
+      .map((note) => note.id)
+  );
+  const quiet = notes.length - instructing.size;
+
+  const author = (note: Note): string | null => {
+    if (!shared || note.authorId === null) return null;
+    return members.find((m) => m.accountId === note.authorId)?.displayName ?? null;
+  };
+
   async function showFolded(): Promise<void> {
     if (folded) return setFolded(null);
     const result = await foldedNotes(threadId);
@@ -333,49 +378,10 @@ export function NotesSection({
       date={when(note, zone)}
       instructing={instructing.has(note.id)}
       onLayout={(layout) => layouts.current.set(note.id, layout)}
-      onOpen={() => setEditing(note)}
+      onOpen={() => open(note)}
       onDrop={(dy) => drop(note.id, dy)}
     />
   );
-
-  // The editor goes to the screen's root. The handlers are read through a ref
-  // so the sheet is handed over when a note opens or closes, not on every
-  // render of this section, and still acts on the notes as they are now.
-  const latest = useRef({ save, close, mute, remove, canDelete, mine, move });
-  latest.current = { save, close, mute, remove, canDelete, mine, move };
-  useEffect(() => {
-    onSheet(
-      editing ? (
-        <NoteEditor
-          key={editing.id}
-          note={editing}
-          canDelete={latest.current.canDelete(editing)}
-          mine={latest.current.mine(editing)}
-          onSave={(text, remind) => latest.current.save(text, remind)}
-          onClose={() => latest.current.close()}
-          onMute={() => latest.current.mute(editing)}
-          onDelete={() => latest.current.remove(editing)}
-          // 028. Move, for whoever may move it, which is whoever may delete it.
-          onMove={
-            latest.current.canDelete(editing)
-              ? () => {
-                  latest.current.close();
-                  setMoving(editing);
-                }
-              : undefined
-          }
-        />
-      ) : moving ? (
-        <MoveSheet
-          open
-          exceptThreadId={threadId}
-          onClose={() => setMoving(null)}
-          onPick={(to) => latest.current.move(moving, to)}
-        />
-      ) : null,
-    );
-  }, [editing, moving, onSheet, threadId]);
-  useEffect(() => () => onSheet(null), [onSheet]);
 
   // Nothing to show: draw nothing at all. A heading over an empty row is a
   // section announcing its own absence, and the pinned composer this + raises
