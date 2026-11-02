@@ -1507,6 +1507,7 @@ export function Thread({ id, onChanged, at }: Props) {
               setEditRow(null);
               move(row, to);
             }}
+            onRemoveAction={removeAction}
           />
         ) : null}
 

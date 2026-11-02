@@ -52,8 +52,7 @@ import { DateChip, HourChip } from "./DateChip";
 import { ThreadPill } from "./ThreadPill";
 import { PhotoThumb } from "./PhotoThumb";
 import { PdfOpening } from "./PdfOpening";
-import { PdfActions } from "./PdfActions";
-import { CallPill } from "./CallPill";
+import { Actions } from "./Actions";
 import { useColors } from "../../lib/colors";
 import { domainOf, isProvisional, rowTap, type ContentRow } from "../../lib/threads";
 import { openLink } from "../../lib/links";
@@ -630,19 +629,19 @@ export function ContentRowView({
               </Pressable>
             ) : null}
           </Pressable>
-          {/* 044. The links the PDF carried, in the row's text column, outside
+          {/* 044, 050. What the dump carried that one tap acts on, and
+              Directions for a placed row, in the row's text column, outside
               the title's press so each is its own tappable element. Not on an
               archived row. */}
-          {row.actions && !row.archivedAt ? (
-            <PdfActions
+          {(row.actions || row.place) && !row.archivedAt ? (
+            <Actions
               actions={row.actions}
+              place={row.place}
               // Author only, the same gate the row's delete uses.
               canRemove={row.canDelete && Boolean(onRemoveAction)}
               onRemove={onRemoveAction}
             />
           ) : null}
-          {/* 2026-11-02. A number in the details, one tap from the list. */}
-          {!row.archivedAt ? <CallPill text={row.body} /> : null}
           {below}
           </View>
 

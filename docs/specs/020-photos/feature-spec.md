@@ -244,8 +244,8 @@ Every one is one short clause, next to the control that acts on it, and offload 
 **Details and Call (2026-11-02)**
 
 - **AC-39** On the phones a photo or PDF row's tile opens it on every list that draws it, Today and the day under a thread's calendar included.
-- **AC-40** The phones' row sheet shows the attachment's tile, which opens it, and the caption as an editable field; saving an edited caption keeps the `Text:` words.
-- **AC-41** A phone number in a row's caption is one Call pill naming the number, on the row, in the row sheet and in the viewer on the phones, and in the viewer on the web; a number only in the `Text:` words, a date, an id or a price draws none.
+- **AC-40** The phones' row sheet shows the attachment's tile, which opens it, and the caption as an editable field; saving an edited caption keeps the `Text:` words. *Its Call pill is 050's actions block now (050 AC-9).*
+- ~~**AC-41** A phone number in a row's caption is one Call pill naming the number, on the row, in the row sheet and in the viewer on the phones, and in the viewer on the web; a number only in the `Text:` words, a date, an id or a price draws none.~~ *Replaced before it shipped by 050 (found actions), in the same pull request: offload chooses a number, an address or a link from the dump on the filing turn, a picture's from its `Text:` line, and the row, the sheet and the viewer draw 050's pills. The on-device detector is gone.*
 
 ## Out of scope
 

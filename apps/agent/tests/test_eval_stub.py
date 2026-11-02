@@ -113,3 +113,43 @@ def test_a_fixture_row_is_a_row_create_event_can_take():
     assert _call(case, "create_event", {"content_id": "e1"}).get("ok") is True
     assert _call(case, "create_event", {"content_id": "e2"})["error"] == "no_time"
     assert _call(case, "create_event", {"content_id": "e9"})["error"] == "unknown_content"
+
+
+# ------------------------------------------------------------------ 050 actions
+
+
+def test_the_actions_stub_resolves_a_typed_number_and_a_picture_s_quote():
+    # 050 T6b. The stub runs the worker's own resolve over the turn's set the
+    # model was shown, so a case about a typed dump or a picture can pass and,
+    # more to the point, fail. Before 050 it returned nothing unless the row
+    # was a PDF's, so every such case passed vacuously.
+    from offload_agent.context import Found
+
+    run = _run()
+    fx = {"_found": [Found("tel:+12125550142", "dump", "typed")]}
+    typed = {"type": "event", "actions": [{"link": 1, "label": "Call Dana"}]}
+    assert [a["url"] for a in run._resolve_actions(fx, typed)] == ["tel:+12125550142"]
+    picture = {
+        "type": "event",
+        "photo": 1,
+        "body": "A message\nText: Dana R. 212 555 0142",
+        "actions": [{"found": "212 555 0142", "label": "Call Dana"}],
+    }
+    assert [a["kind"] for a in run._resolve_actions({}, picture)] == ["call"]
+    assert run._resolve_actions({}, {**picture, "photo": None}) == []
+
+
+def test_no_actions_looks_at_every_row_not_only_a_pdf_s():
+    from offload_agent.context import Found
+
+    run = _run()
+    fx = {"_found": [Found("tel:+12125550142", "dump", "typed")]}
+    calls = [
+        (
+            "add_content",
+            {"type": "task", "title": "Call Dana", "actions": [{"link": 1, "label": "Call Dana"}]},
+        )
+    ]
+    assert run._carried_actions(calls, fx) == [
+        [{"label": "Call Dana", "url": "tel:+12125550142", "kind": "call", "source": "typed"}]
+    ]

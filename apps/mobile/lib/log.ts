@@ -44,6 +44,8 @@ const FORBIDDEN = new Set([
   "query",
   "label",
   "message",
+  // 050. An action's destination is a person's number, address or link.
+  "url",
 ]);
 
 function safe(fields: Record<string, Fact>): Record<string, Fact> {

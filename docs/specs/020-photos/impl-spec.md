@@ -170,7 +170,7 @@ Object keys in R2: `blobs/<blob id>/original`, `/thumb`, `/large`. Never a name,
 - `Conversation.tsx`: `SentPhoto`; `ContentRow.tsx`: the thumbnail tile; `Widgets.tsx`: the grid.
 - `PhotoViewer`: a modal route on `--surface-scrim`, the platform bar (M3 top app bar on Android, translucent bar on iOS) with the same three controls, pinch to zoom with `react-native-gesture-handler` and `reanimated` already in the app, swipe between the set, swipe down and the back gesture to close, the text under a pull.
 - The share arrival: `useShareIntent` on the root layout, the composer opened with chips, `viaShare`.
-- *2026-11-02.* `useTodayRows` opens a tile as Loose does (the viewer, or `openPdf`); `RowEditSheet` takes `onOpenPhoto` from Thread, Loose and Today and draws the tile and the caption field, writing `body` through `withCaption`; `CallPill` (phones and web) reads `phoneIn(photoCaption(body))` from `@offload/widgets` and opens the `tel:` it built, through `Linking.openURL` or an anchor. `phone.svg` joins the vendored icon set.
+- *2026-11-02.* `useTodayRows` opens a tile as Loose does (the viewer, or `openPdf`); `RowEditSheet` takes `onOpenPhoto` from Thread, Loose and Today and draws the tile and the caption field, writing `body` through `withCaption`; `phone.svg` joins the vendored icon set. The interim `CallPill` and `phoneIn` were replaced in the same change by 050's `Actions` (see `050-found-actions/impl-spec.md`).
 
 ## Prompt budget, per OFF-8
 

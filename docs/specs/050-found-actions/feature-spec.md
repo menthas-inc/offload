@@ -33,7 +33,7 @@ Model-written, as 044's: sentence case, no en or em dash, at most 24 characters,
 
 **Typed, said, mailed and PDF words.** Before the filing turn, offload gathers the web addresses, phone numbers and email addresses in the dump's words: what the person typed, a voice note's transcript, a forwarded mail's body as the turn reads it (026's clamp), and a PDF's printed text (044 already gathers its links). The gathering is deterministic: one strict pattern per kind, linear in its input, over a bounded number of bytes, deduped, and capped at 24 for the dump's words and 24 for each PDF, as 044's are. The set travels into the turn as numbered data behind a data label, as 044's does, and the model names an action by its number; a number outside the set yields nothing.
 
-A spoken number often arrives as words. A transcript's run of digit words is read as a phone number only when it is one unbroken run of exactly 10 or 11 digits (*two one two five five five zero one four two*), optionally led by *plus*; *double*, *triple*, a pause word, a year, a price or a count is never read as one.
+A spoken number often arrives as words. A transcript's run of digit words is read as a phone number only when it is one unbroken run of exactly 10 or 11 digits (*two one two five five five zero one four two*), or 8 to 15 led by *plus* (another country's number says its plus); *double*, *triple*, a pause word, a year, a price or a count is never read as one.
 
 **A picture's words.** A picture has no text to gather until offload reads it, and offload reads it in the same turn that files it, writing what it read as the row's `Text:` line (020). So a picture's action has a weaker bound, chosen with the owner: **the destination must be one the same gathering finds in the `Text:` line of the row that carries that picture**: the model quotes it as it appears there, and offload keeps it only if gathering that line finds the same number, address or link. This is self-referential, and the spec says so plainly: the model writes both the transcription and the choice, so a picture built to inject a destination, or a misread digit, can satisfy it. What holds it is that the destination is always visible before anything happens (below) and the picture is one tap away. The owner accepted that over reading text on the device, which would mean a store build and nothing for the web or for mail.
 
@@ -94,7 +94,7 @@ Said before any code.
 **Gathering and choosing**
 
 - **AC-1** Before the filing turn, the web addresses, phone numbers and email addresses in the typed text, the transcript, the forwarded mail's clamped body and a PDF's printed text are gathered by linear patterns over bounded input, deduped and capped at 24 for the dump's words and 24 for each PDF, and travel into the turn as numbered data behind a data label; the model names an action by its number, and a number outside the set or a destination it wrote yields nothing.
-- **AC-2** A transcript's unbroken run of 10 or 11 digit words, optionally led by *plus*, is gathered as a phone number; *double*, *triple*, a broken run, a year, a price and a count are not. Unit tests, one per confusable.
+- **AC-2** A transcript's unbroken run of 10 or 11 digit words, or 8 to 15 led by *plus*, is gathered as a phone number; *double*, *triple*, a broken run, a year, a price and a count are not. Unit tests, one per confusable.
 - **AC-3** A picture's action is kept only on the row carrying that picture and only when gathering that row's `Text:` line finds the destination the model quoted; otherwise it is dropped.
 - **AC-4** Typed, transcribed and mailed actions may ride any row the turn files; a PDF's stay on its own row.
 - **AC-5** A row carries zero, one or two chosen actions; the common case is zero. Eval cases, each asserting yes or no: a screenshot of a message asking to call back yields Call; a delivery mail yields Open; a voice note saying a number to call yields Call; a typed dump with an address to write to yields Email; a PDF booking confirmation with a hotel number yields Call. A group chat screenshot whose number is someone else's, a receipt with a footer support line, an order number, a card, an identity document, a feed with adverts, a sign-in or reset link, and a mail whose only link is unsubscribe each yield none.
@@ -107,7 +107,7 @@ Said before any code.
 - **AC-9** Pills draw on the row in the thread's lists and widgets, Today, Loose, a layout's list sections and a calendar day's content rows; in the phones' row sheet and the web's edit modal; in the viewer; and under a sent picture or PDF in the conversation. Never on a tile, a grid cell or a search result.
 - **AC-10** Call and Email show the label and the client-formatted destination on the pill and open on the tap through the platform; a device with nothing to open them leaves the pill readable and says nothing.
 - **AC-11** Open keeps 044's per-tap confirm, naming its source, and for mail the sender, with the host computed on the client.
-- **AC-12** Directions draws on any row with a resolved place, from 030's link at render, not stored, not counted in the two, and opens on the tap.
+- **AC-12** Directions draws on any row with a resolved place whose coordinates are current (030 keeps them thirty days and fetches them again when a map asks), from 030's link to those coordinates at render, not stored, not counted in the two, and opens on the tap.
 - **AC-13** Schemes are `http`, `https`, `tel` and `mailto` only; a `tel:` is `+` and digits only; a `mailto:` is one address with no query, separator, line break or encoded form of them. Enforced at gather, choice, write and before opening, with unit tests per refused form (`*21*`, `#`, `,`, `;ext`, `%23`, `?bcc=`, `%0A`). offload makes no network call while showing or opening an action.
 
 **Lifecycle, scope and privacy**
@@ -118,7 +118,7 @@ Said before any code.
 - **AC-17** The action field adds nothing to the row's search text or embedding; no label or destination reaches an event, log, trace, error report, crash breadcrumb, page snapshot, failed-open report, push payload or calendar write; tests assert it.
 - **AC-18** Labels and destinations never enter a later turn's prompt; the gathered sets are capped and live for the turn.
 - **AC-19** 020's AC-40 and AC-41 are amended in the same change to point here, and the on-device detector is not in the shipped code.
-- **AC-20** OFF-6's reversible allowlist in `docs/tech/decisions.md` names found actions, on `main`, as it names 044's.
+- **AC-20** OFF-6's reversible allowlist in `docs/tech/decisions.md` names found actions (and 044's, which it never did).
 
 ## Where the code diverges from the design
 

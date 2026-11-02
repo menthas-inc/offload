@@ -59,10 +59,12 @@ import {
   type Executor,
 } from "../threads/access.js";
 import {
+  checkAction,
   moveContent,
   editThread,
   setArchivedIn,
   setPreference,
+  type Action,
 } from "./threads.js";
 import { calendarOfEvent, findEvents, summarise, writeThroughTool } from "../connectors/tool-calls.js";
 import { approvedWritable, calendarsNamed, turnScope, writablePicks } from "../threads/calendars.js";
@@ -258,11 +260,13 @@ const body = z.discriminatedUnion("tool", [
             z.strictObject({ name: z.string().min(1).max(400) }),
           ])
           .nullish(),
-        /** 044. The PDF's actions, resolved by the worker to the links the PDF
-         *  carried (a number became a URL there). Only on a `file` row. The
-         *  shape is loose here on purpose: a failing entry is dropped at the
-         *  write, not raised, so a decoration never fails the dump (OFF-5). */
-        actions: z.array(z.object({ label: z.string(), url: z.string() })).nullish(),
+        /** 044, 050. The row's actions, resolved by the worker from the
+         *  turn's gathered set (a number or a picture's quote became a
+         *  destination there). On any row. The shape is loose here on purpose:
+         *  each entry is checked at the write by `checkAction` and a failing
+         *  one dropped, not raised, so a decoration never fails the dump
+         *  (OFF-5). */
+        actions: z.array(z.unknown()).nullish(),
       })
       .nullish(),
   }),
@@ -1071,20 +1075,16 @@ function allDayAttrs(call: {
   return isBareDate(when) ? { all_day: true } : null;
 }
 
-/** 044. The PDF actions the worker resolved, re-checked at the write: an
- *  http(s) URL and a one-to-twenty-four character label, at most two, a failing
- *  entry dropped. This is the last of the four scheme checks (harvest, resolve,
- *  write, open) and the one that holds against a stale or malformed call. */
-function validateActions(
-  actions: { label: string; url: string }[] | null | undefined,
-): { label: string; url: string }[] {
-  const out: { label: string; url: string }[] = [];
-  for (const a of actions ?? []) {
-    const url = typeof a?.url === "string" ? a.url : "";
-    const label = typeof a?.label === "string" ? a.label.trim() : "";
-    if (!/^https?:\/\//i.test(url)) continue;
-    if (label.length < 1 || label.length > 24) continue;
-    out.push({ label, url });
+/** 044, 050. The actions the worker resolved, re-checked at the write
+ *  (`checkAction`: the destination's shape, the label, the kind, the source
+ *  and a mail's sender), at most two, a failing entry dropped. This is the
+ *  write's check of the four (gather, resolve, write, open) and the one that
+ *  holds against a stale or malformed call. */
+function validateActions(actions: unknown[] | null | undefined): Action[] {
+  const out: Action[] = [];
+  for (const raw of actions ?? []) {
+    const checked = checkAction(raw);
+    if (checked && !out.some((a) => a.url === checked.url)) out.push(checked);
     if (out.length >= 2) break;
   }
   return out;
@@ -2018,11 +2018,10 @@ export async function toolRoutes(app: App): Promise<void> {
         if (call.worker?.pageRead && call.type !== "link")
           return { ok: false, error: "location_not_here" };
         // The resolved actions, re-checked at the write though the worker
-        // already filtered them (SEC-2, against a stale or malformed call):
-        // http(s) only, a label of one to twenty-four characters, at most two,
-        // a failing entry dropped rather than the dump failed.
-        const actions =
-          call.type === "file" ? validateActions(call.worker?.actions) : [];
+        // already filtered them (SEC-2, against a stale or malformed call), on
+        // any row since 050; a failing entry dropped rather than the dump
+        // failed.
+        const actions = validateActions(call.worker?.actions);
         // The page's read counts only while the map is on and the author's
         // switch is, read here: the worker is not trusted for an access
         // decision (routes/internal.ts).

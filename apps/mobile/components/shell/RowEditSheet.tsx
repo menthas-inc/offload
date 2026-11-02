@@ -29,7 +29,7 @@ import { Glyph } from "../Glyph";
 import { Switch } from "../settings/Switch";
 import { photoCaption, remindSwitchShown, withCaption } from "@offload/widgets";
 import { PhotoThumb } from "./PhotoThumb";
-import { CallPill } from "./CallPill";
+import { Actions } from "./Actions";
 import { useColors } from "../../lib/colors";
 import { useClock } from "../../lib/clock";
 import type { ContentPatch, ContentRow } from "../../lib/threads";
@@ -53,11 +53,14 @@ export function RowEditSheet({
   labels,
   onMove,
   onOpenPhoto,
+  onRemoveAction,
 }: {
   row: ContentRow | null;
   onClose: () => void;
   /** 2026-11-02. The attachment's tile opens it: the viewer, or the PDF. */
   onOpenPhoto?: ((row: ContentRow) => void) | undefined;
+  /** 050. Remove one of the row's actions, author only, with the row's Undo. */
+  onRemoveAction?: ((row: ContentRow, url: string) => void) | undefined;
   /** Every changed field, in one patch. The sheet closes at the press and
    *  the screen writes it, so the keyboard is never held up for a round trip.
    *  `made` is any label typed in the label sheet, to be made first and
@@ -77,6 +80,8 @@ export function RowEditSheet({
   const { zone } = useClock();
   const [title, setTitle] = useState(row?.title ?? "");
   const [details, setDetails] = useState(photoCaption(row?.body) ?? "");
+  // 050. Removed here while the sheet is open; the row prop is a snapshot.
+  const [removed, setRemoved] = useState<string[]>([]);
   const [when, setWhen] = useState<WhenValue>(() => (row ? whenValueOf(row, zone) : NOTHING));
   const [remind, setRemind] = useState(row ? remindOf(row, row.author.isYou) : false);
   const [picking, setPicking] = useState<"when" | "repeats" | "labels" | null>(null);
@@ -230,7 +235,19 @@ export function RowEditSheet({
             ) : null}
           </View>
         ) : null}
-        <CallPill text={row.body} />
+        {/* 050. The row's actions, with Remove beside a Call or an Email,
+            which have no confirm to hold it. A removal is the row's own write
+            with its Undo, not part of Save. */}
+        <Actions
+          actions={row.actions?.filter((a) => !removed.includes(a.url))}
+          place={row.place}
+          canRemove={row.canDelete && onRemoveAction !== undefined}
+          onRemove={(url) => {
+            setRemoved((now) => [...now, url]);
+            onRemoveAction?.(row, url);
+          }}
+          removeHere
+        />
 
         {/* When and Repeats carry their values and open the same sheet, which
             hands back rather than writing: Save below writes once. A row on a

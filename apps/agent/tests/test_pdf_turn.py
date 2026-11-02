@@ -25,7 +25,7 @@ from anthropic.types import DocumentBlockParam
 from pydantic import ValidationError
 
 from offload_agent import pdfs as pdfs_mod
-from offload_agent.context import DumpContext, Pdf, Photo, Thread, turn_text
+from offload_agent.context import DumpContext, Found, Pdf, Photo, Thread, turn_text
 from offload_agent.harness.plan import build_blocks
 from offload_agent.harness.tools import AddContent
 from offload_agent.worker import fit_documents
@@ -255,11 +255,14 @@ def test_actions_are_permissive_a_bad_label_drops_and_never_raises() -> None:
     assert [a.label for a in kept.actions] == ["Check in"]
 
 
-def test_actions_need_a_file_row_that_carries_a_pdf_and_are_dropped_not_raised() -> None:
+def test_actions_ride_any_row_since_050_and_an_empty_list_is_none() -> None:
+    # 044 held actions to a PDF's file row; 050 lets any row carry them, and a
+    # PDF's own entries are held to its row by the worker's resolve instead.
     assert _file([]).actions is None
-    assert AddContent(
+    kept = AddContent(
         thread_id="t", title="Note", type="task", actions=[{"link": 1, "label": "Check in"}]
-    ).actions is None
+    )
+    assert [a.link for a in kept.actions] == [1]
 
 
 async def _resolve(actions: list[dict], candidates: list[str], *, pdf: int = 1) -> dict:
@@ -280,9 +283,9 @@ async def _resolve(actions: list[dict], candidates: list[str], *, pdf: int = 1) 
         internal_token="t",
         anthropic_api_key="k",
     )
-    pdfs = [Pdf(blob_id="a", index=1, pages=1, cut=b"%PDF-", candidates=candidates)]
+    found = [Found(c, "pdf:1", "pdf") for c in candidates]
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        call = _tool_caller(client, cfg, "job-1", pdfs=pdfs)
+        call = _tool_caller(client, cfg, "job-1", found=found)
         await call(
             "add_content",
             "t1",
@@ -297,8 +300,18 @@ async def test_the_worker_resolves_an_index_to_the_harvested_url_on_its_own_enve
         ["https://lufthansa.com/checkin", "https://example.com/manage"],
     )
     assert sent["worker"]["actions"] == [
-        {"label": "Check in", "url": "https://lufthansa.com/checkin"},
-        {"label": "Manage booking", "url": "https://example.com/manage"},
+        {
+            "label": "Check in",
+            "url": "https://lufthansa.com/checkin",
+            "kind": "open",
+            "source": "pdf",
+        },
+        {
+            "label": "Manage booking",
+            "url": "https://example.com/manage",
+            "kind": "open",
+            "source": "pdf",
+        },
     ]
     # The model's index-actions never reach the Core API at the top level.
     assert "actions" not in sent

@@ -17,7 +17,7 @@ import { sql, type SelectQueryBuilder, type Transaction } from "kysely";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { currentAccountId } from "../auth/current-account.js";
-import { DEFAULT_THREAD_ICON, orderThreads, formatRule, isThreadIcon, LAYOUT_LABELS, LAYOUTS, labelsToDrop, labelsToMake, parseRule, pickThreadIcon, utcDay, type Layout } from "@offload/widgets";
+import { actionKind, labelOk, type ActionKind, DEFAULT_THREAD_ICON, orderThreads, formatRule, isThreadIcon, LAYOUT_LABELS, LAYOUTS, labelsToDrop, labelsToMake, parseRule, pickThreadIcon, utcDay, type Layout } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";
 import { Refused } from "../threads/refusals.js";
 import { threadLine } from "../threads/line.js";
@@ -380,7 +380,15 @@ export const contentRow = z.object({
   /** 044. Up to two links a PDF carried, offered beside it. Derived from
    *  `attrs`, which is never sent whole; null for a row with none. */
   actions: z
-    .array(z.object({ label: z.string(), url: z.string() }))
+    .array(
+      z.object({
+        label: z.string(),
+        url: z.string(),
+        kind: z.enum(["open", "call", "email"]),
+        source: z.enum(["pdf", "picture", "voice", "typed", "mail"]),
+        sender: z.string().nullable(),
+      }),
+    )
     .max(2)
     .nullable(),
   place: z
@@ -563,19 +571,57 @@ function seriesRefOf(attrs: unknown): string | null {
   return typeof ref === "string" && ref.length > 0 ? ref : null;
 }
 
-/** 044. The links a PDF carried, up to two, from `attrs.actions`. Derived
- *  rather than sending `attrs` whole, as `seriesRef` and `allDay` are; null
- *  when the row has none, so an older client sees nothing new. */
-export function actionsOf(attrs: unknown): { label: string; url: string }[] | null {
+/** 050. One action as it is stored and served: what the tap does, where it
+ *  goes, which kind it is and where it was found. */
+export type Action = {
+  label: string;
+  url: string;
+  kind: ActionKind;
+  source: ActionSource;
+  sender?: string;
+};
+export type ActionSource = "pdf" | "picture" | "voice" | "typed" | "mail";
+const SOURCES: readonly ActionSource[] = ["pdf", "picture", "voice", "typed", "mail"];
+
+/** 044, 050. One entry checked against the rules every surface shares
+ *  (`@offload/widgets` actions): a destination of the allowed shapes, a label
+ *  that carries none, a kind that matches the url and a known source, with a
+ *  mail's sender as a bare host. A 044 entry has no kind or source and reads
+ *  as an open action from a PDF, which is what it was. Null for anything that
+ *  fails, so a stale or hand-made entry is dropped, never drawn. */
+export function checkAction(raw: unknown): Action | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const item = raw as Record<string, unknown>;
+  const url = item["url"];
+  const label = typeof item["label"] === "string" ? item["label"].trim() : null;
+  const kind = actionKind(typeof url === "string" ? url : null);
+  if (kind === null || label === null || !labelOk(label)) return null;
+  if (item["kind"] !== undefined && item["kind"] !== kind) return null;
+  const source = item["source"] ?? "pdf";
+  if (!SOURCES.includes(source as ActionSource)) return null;
+  const sender = item["sender"];
+  if (sender !== undefined && sender !== null) {
+    if (source !== "mail" || typeof sender !== "string" || !/^[a-z0-9.-]{1,255}$/.test(sender)) return null;
+  }
+  const out: Action = { label, url: url as string, kind, source: source as ActionSource };
+  if (typeof sender === "string") out.sender = sender;
+  return out;
+}
+
+/** 044, 050. A row's actions, up to two, from `attrs.actions`, each checked
+ *  again on the way out. Derived rather than sending `attrs` whole, as
+ *  `seriesRef` and `allDay` are; null when the row has none, so an older
+ *  client sees nothing new. */
+export type WireAction = Omit<Action, "sender"> & { sender: string | null };
+
+export function actionsOf(attrs: unknown): WireAction[] | null {
   if (typeof attrs !== "object" || attrs === null) return null;
   const raw = (attrs as Record<string, unknown>)["actions"];
   if (!Array.isArray(raw)) return null;
-  const out: { label: string; url: string }[] = [];
+  const out: WireAction[] = [];
   for (const item of raw) {
-    if (typeof item !== "object" || item === null) continue;
-    const label = (item as Record<string, unknown>)["label"];
-    const url = (item as Record<string, unknown>)["url"];
-    if (typeof label === "string" && typeof url === "string") out.push({ label, url });
+    const checked = checkAction(item);
+    if (checked) out.push({ ...checked, sender: checked.sender ?? null });
     if (out.length >= 2) break;
   }
   return out.length ? out : null;
@@ -1081,21 +1127,20 @@ export async function deleteContent(
  *  never add a url the PDF did not carry. `actions_removed` never serves to
  *  anyone (`actionsOf` reads `attrs.actions`). Read-once (041) means no later
  *  turn re-adds a forgotten action, so removal is durable with no marker. */
-type ActionList = { label: string; url: string }[];
+type ActionList = Action[];
 
 function splitActions(attrs: unknown): { actions: ActionList; removed: ActionList } {
   const a = (attrs && typeof attrs === "object" ? attrs : {}) as Record<string, unknown>;
+  // 050. The whole entry as stored, kind, source and sender included: the
+  // array is rewritten on every remove, so a narrower copy would strip the
+  // survivor, and an entry today's rules would refuse (a 044 label, say) is
+  // kept as it was rather than destroyed by a neighbour's removal. Serving
+  // filters it (`actionsOf`); restore still only brings back what was there.
   const list = (v: unknown): ActionList =>
     Array.isArray(v)
-      ? v
-          .filter(
-            (x): x is { label: string; url: string } =>
-              typeof x === "object" &&
-              x !== null &&
-              typeof (x as Record<string, unknown>).label === "string" &&
-              typeof (x as Record<string, unknown>).url === "string"
-          )
-          .map((x) => ({ label: x.label, url: x.url }))
+      ? (v.filter(
+          (x) => typeof x === "object" && x !== null && typeof (x as Record<string, unknown>)["url"] === "string",
+        ) as ActionList)
       : [];
   return { actions: list(a["actions"]), removed: list(a["actions_removed"]) };
 }

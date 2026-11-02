@@ -1547,6 +1547,7 @@ export default function Thread() {
           setRenaming(null);
           openFileOf(row);
         }}
+        onRemoveAction={removeAction}
         labels={thread.labels}
         onSave={(row, patch, made) => {
           setRenaming(null);

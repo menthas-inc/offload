@@ -53,7 +53,7 @@ import {
 import { QuickReplies } from "./QuickReplies";
 import { AttachChip, type ChipError } from "./AttachChip";
 import { SentPhoto } from "./SentPhoto";
-import { PdfActions } from "./PdfActions";
+import { Actions } from "./Actions";
 import { VoiceNotePlayer, mmss } from "./SentVoice";
 import { SentMail } from "./SentMail";
 import { DayUsed } from "./DayUsed";
@@ -1255,10 +1255,11 @@ export function Composer({
                             setViewer({ turnId: turn.id, index: images.indexOf(photo) });
                           }}
                         />
-                        {/* 044. The PDF's links, beside it in the conversation
-                            the moment it is filed. */}
-                        {photo.kind === "pdf" && photo.actions?.length ? (
-                          <PdfActions actions={photo.actions} />
+                        {/* 044, 050. What the picture's or PDF's filed row
+                            offers, beside it in the conversation the moment it
+                            is filed. Remove lives on the row. */}
+                        {photo.actions?.length ? (
+                          <Actions actions={photo.actions} />
                         ) : null}
                       </span>
                     ))}

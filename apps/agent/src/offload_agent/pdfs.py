@@ -29,11 +29,11 @@ import contextlib
 import io
 import json
 import math
-import re
 import struct
 import sys
 from dataclasses import dataclass, field
-from urllib.parse import urlsplit
+
+from offload_agent.found import MAX_FOUND, gather, ok_url
 
 #: What the clean copy never carries, as a dictionary key or a name value.
 KILL = frozenset(
@@ -183,30 +183,9 @@ def verify(clean: bytes) -> None:
 
 #: Pages the harvest looks at, the same ten the model reads.
 HARVEST_PAGES = 10
-#: Bounds. A candidate over these is dropped; the set is capped (impl-spec: the
-#: cap bounds the one-off prompt cost, a real ticket carries under ten).
-MAX_URL = 2048
-MAX_HOST = 255
-MAX_CANDIDATES = 24
-#: A URL printed in page text, bounded so a pathological run cannot blow up.
-_URL_RE = re.compile(r"https?://[^\s<>\"'\]\)}]{1,2100}", re.IGNORECASE)
-
-
-def _ok_url(url: str) -> bool:
-    """http/https only, within bounds, with a host (SEC-1, AC-11)."""
-    if len(url.encode()) > MAX_URL:
-        return False
-    try:
-        parts = urlsplit(url)
-    except ValueError:
-        return False
-    if parts.scheme.lower() not in ("http", "https"):
-        return False
-    try:
-        host = parts.hostname or ""
-    except ValueError:
-        return False
-    return bool(host) and len(host.encode()) <= MAX_HOST
+#: The cap and the web-address rule are `found`'s, shared with a dump's words
+#: (050), so a PDF and a dump gather by one rule.
+MAX_CANDIDATES = MAX_FOUND
 
 
 def _link_uris(pdf) -> list[str]:
@@ -240,30 +219,32 @@ def _link_uris(pdf) -> list[str]:
     return uris
 
 
-def _text_urls(clean_copy: bytes) -> list[str]:
-    """http(s) URLs printed in the clean copy's first ten pages. Read off the
-    clean copy, so no second parse of untrusted bytes (SEC-1)."""
+def _text_found(clean_copy: bytes) -> list[str]:
+    """What the clean copy's first ten pages print that one tap can act on:
+    http(s) links, and since 050 phone numbers and email addresses, gathered by
+    `found`. Read off the clean copy, so no second parse of untrusted bytes
+    (SEC-1)."""
     import pypdfium2 as pdfium
 
-    urls: list[str] = []
+    out: list[str] = []
     try:
         doc = pdfium.PdfDocument(clean_copy)
         for i in range(min(len(doc), HARVEST_PAGES)):
-            text = doc[i].get_textpage().get_text_range()
-            urls.extend(_URL_RE.findall(text))
+            out.extend(gather(doc[i].get_textpage().get_text_range()))
     except Exception:  # noqa: BLE001 - text is best effort; the annotation is the reliable source
-        return urls
-    return urls
+        return out
+    return out
 
 
 def _candidates(link_uris: list[str], clean_copy: bytes) -> list[str]:
-    """http/https links the PDF carried, annotations first then printed text,
-    deduped on the exact string, capped. Data for the model to pick by number;
-    nothing here is ever composed or completed."""
+    """What the PDF carried, annotation links first then printed text, deduped
+    on the exact string, capped. Data for the model to pick by number; nothing
+    here is ever composed or completed. An annotation is http(s) only: a `tel:`
+    or `mailto:` target is a scheme the PDF wrote, never one offload built."""
     out: list[str] = []
     seen: set[str] = set()
-    for url in [*link_uris, *_text_urls(clean_copy)]:
-        if url in seen or not _ok_url(url):
+    for url in [*(u for u in link_uris if ok_url(u)), *_text_found(clean_copy)]:
+        if url in seen:
             continue
         seen.add(url)
         out.append(url)

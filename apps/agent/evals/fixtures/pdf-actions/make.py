@@ -144,6 +144,21 @@ DOCS: dict[str, dict] = {
             ("Get directions", "https://maps.example.com/?q=Hotel+Avenida+Porto"),
         ],
     },
+    # 050. A guesthouse that asks to be called before arrival: the number is
+    # the move, alongside the manage link; the footer address is boilerplate.
+    "guesthouse-call-links.pdf": {
+        "pages": [
+            [
+                "Booking confirmation - Casa da Ribeira, Porto",
+                "Guest: Ana Silva",
+                "Arriving Friday 20 November 2026, two nights, 180 euros paid.",
+                "Please call us on +1 (212) 555-0142 before you arrive",
+                "so we can meet you with the keys.",
+                "Casa da Ribeira, Rua da Fonte 3, Porto. hello@casaribeira.example.com",
+            ]
+        ],
+        "buttons": [("Manage booking", "https://book.example-stays.com/CR-1180")],
+    },
     # Only a login to the issuer: issuer home, never an action. Expect zero.
     "bank-statement-links.pdf": {
         "pages": [

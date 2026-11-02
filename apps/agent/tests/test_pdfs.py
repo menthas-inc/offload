@@ -105,6 +105,18 @@ def test_harvest_collects_link_annotations_and_printed_urls() -> None:
     ]
 
 
+def test_harvest_gathers_printed_numbers_and_addresses() -> None:
+    # 050 T4. A phone number and an email address printed on the first ten
+    # pages join the printed link, in text order; a `tel:` annotation is still
+    # dropped, since annotation targets stay http(s) only.
+    made = pdfs.make(fixture("contact.pdf"))
+    assert made.candidates == [
+        "tel:+12125550142",
+        "mailto:desk@avenida.example.com",
+        "https://avenida.example.com/manage",
+    ]
+
+
 def test_harvest_is_empty_when_a_pdf_carries_no_links() -> None:
     assert pdfs.make(fixture("boarding.pdf")).candidates == []
 

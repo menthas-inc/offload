@@ -12,24 +12,71 @@ import { ICONS } from "../components/icons.generated";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
-describe("the call pill", () => {
-  const pill = () => read("../components/shell/CallPill.tsx");
+// 050. The interim Call pill became found actions: one pill component for
+// every kind, chosen by offload on the filing turn and drawn wherever the row
+// is, with Directions from the row's place.
+describe("found actions (050)", () => {
+  const pill = () => read("../components/shell/Actions.tsx");
 
-  it("dials only what phoneIn found in the caption, through the platform", () => {
-    expect(pill()).toMatch(/phoneIn\(photoCaption\(/);
-    expect(pill()).toMatch(/Linking\.openURL\(phone\.tel\)/);
-    expect(pill()).toContain("Call {phone.shown}");
+  it("re-checks every entry and branches on the kind, never the scheme alone", () => {
+    expect(pill()).toMatch(/isActionUrl\(/);
+    expect(pill()).toMatch(/actionKind\(/);
+    expect(pill()).toMatch(/shownDestination\(/);
   });
 
-  it("draws a glyph that is in the set", () => {
-    expect(pill()).toContain('name="phone"');
-    expect(ICONS).toHaveProperty("phone");
+  it("opens a call or an email on the tap through the platform, and swallows a refusal", () => {
+    expect(pill()).toMatch(/Linking\.openURL\(action\.url\)\.catch\(\(\) => \{\}\)/);
   });
 
-  it("is on the row, in the sheet and in the viewer", () => {
-    for (const file of ["../components/shell/ContentRow.tsx", "../components/shell/RowEditSheet.tsx", "../components/shell/PhotoViewer.tsx"]) {
-      expect(read(file), file).toMatch(/<CallPill /);
+  it("keeps 044's confirm for an Open, worded by its source and a mail's sender", () => {
+    for (const words of ["From the picture.", "From your voice note.", "From what you typed.", "From a mail from ", "From the PDF."]) {
+      expect(pill()).toContain(words);
     }
+  });
+
+  it("draws Directions from the row's place with 030's link", () => {
+    expect(pill()).toMatch(/directionsUrl\(/);
+  });
+
+  it("draws glyphs that are in the set", () => {
+    for (const name of ["phone", "mail", "map-pin", "arrow-up-right"]) {
+      expect(pill()).toContain(`"${name}"`);
+      expect(ICONS).toHaveProperty(name);
+    }
+  });
+
+  it("has a 44 point hit area and sizes from the type scale, not literal numbers", () => {
+    expect(pill()).toMatch(/hitSlop=\{/);
+    expect(pill()).not.toMatch(/fontSize: \d/);
+  });
+
+  it("is on the row, in the sheet with Remove, in the viewer and in the conversation", () => {
+    expect(read("../components/shell/ContentRow.tsx")).toMatch(/<Actions[\s\S]*?place=\{row\.place\}/);
+    expect(read("../components/shell/RowEditSheet.tsx")).toMatch(/<Actions[\s\S]*?removeHere[\s\S]*?\/>/);
+    expect(read("../components/shell/PhotoViewer.tsx")).toMatch(/<Actions /);
+    const conversation = read("../components/shell/Conversation.tsx");
+    expect(conversation).toMatch(/photo\.actions\?\.length \? <Actions /);
+    expect(conversation).not.toMatch(/photo\.kind === "pdf" && photo\.actions/);
+  });
+
+  it("lets the author remove one from Today and Loose too, on the row and in the sheet", () => {
+    for (const file of ["../components/today/useTodayRows.tsx", "../components/loose/useLooseRows.tsx"]) {
+      const source = read(file);
+      const sheetAt = source.indexOf("<RowEditSheet");
+      expect(source.slice(sheetAt, sheetAt + 800), file).toMatch(/onRemoveAction=/);
+    }
+    expect(read("../components/today/useTodayRows.tsx")).toMatch(/onRemoveAction=\{\(url\) => removeAction\(item, url\)\}/);
+  });
+
+  it("leaves nothing of the interim pill or its detector", () => {
+    for (const file of ["../components/shell/ContentRow.tsx", "../components/shell/RowEditSheet.tsx", "../components/shell/PhotoViewer.tsx", "../components/shell/Conversation.tsx"]) {
+      expect(read(file), file).not.toMatch(/CallPill|PdfActions|phoneIn/);
+    }
+  });
+
+  it("keeps the general link opener to web pages, and never logs a destination", () => {
+    expect(read("../lib/links.ts")).toMatch(/isOpenable = [^\n]*\^https\?:/);
+    expect(read("../lib/log.ts")).toMatch(/"url",/);
   });
 });
 
