@@ -55,6 +55,8 @@ interface Props {
   onDelete: (row: ContentRow) => void;
   onEdit: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
+  /** A dated screenshot or PDF opens in the viewer, as everywhere else. */
+  onOpenPhoto: (row: ContentRow) => void;
   /** 019. Whether any member has picked a calendar here, which is what puts
    *  the calendars' events on the rail. Bumped when the picks change. */
   calendars: { anyPicked: boolean; version: number };
@@ -69,6 +71,7 @@ export function Timeline({
   onDelete,
   onEdit,
   onToggle,
+  onOpenPhoto,
 }: Props) {
   const { raiseFor } = useConversation();
   const COLOR = useColors();
@@ -352,6 +355,7 @@ export function Timeline({
           onDelete={() => onDelete(row)}
           onEdit={() => onEdit(row)}
           onToggle={row.type === "task" ? () => onToggle(row) : undefined}
+          onOpenPhoto={() => onOpenPhoto(row)}
           // 023. The row's own chip says the day and the hour now, on the
           // title line; the one thing the day list still has to say is that
           // a row is here for the day it is wanted by rather than the day it

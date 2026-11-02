@@ -1319,6 +1319,7 @@ export default function Thread() {
             onDelete={remove}
             onEdit={setRenaming}
             onToggle={tick}
+            onOpenPhoto={openFileOf}
           />
         )}
 
@@ -1542,6 +1543,10 @@ export default function Thread() {
         key={renaming?.id ?? "none"}
         row={renaming}
         onClose={() => setRenaming(null)}
+        onOpenPhoto={(row) => {
+          setRenaming(null);
+          openFileOf(row);
+        }}
         labels={thread.labels}
         onSave={(row, patch, made) => {
           setRenaming(null);

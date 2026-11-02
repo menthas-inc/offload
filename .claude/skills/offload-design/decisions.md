@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-11-02 · Details in the row sheet, and Call from a number in them
+**Surface:** iOS, Android (row, row sheet, viewer); web (viewer)
+**Raised by:** the product owner: a screenshot for a meeting held the number to call, and on the phones it could be neither read nor opened. Off a mock in the session of the same day (Today row, row sheet, viewer); the owner picked the number on the pill and all three places.
+
+**Was:** the phones' row sheet held the title, When, Repeats, Labels, Move and Remind me; the details field went on 2026-09-29. Today drew a photo row's tile with nothing behind the tap. No surface offered a number in a row's details as anything but text.
+
+**Is:** the row sheet shows, under the title, the attachment's tile at 56 (it opens the viewer, or the PDF) and the caption beside it as an editable field, the `Text:` words kept as stored. Today's tile opens the viewer, as the thread's and Loose's do. A US number in the caption, or another country's written with its +, is one pill, *Call +1 212 555 0142*: 044's secondary pill with the new `phone` glyph in `--text-accent`, on the row under the PDF actions, in the sheet under the details and in the viewer under the caption, on both phones; on the web in the viewer only. The tap goes to the platform's own call prompt or dialer, which is the confirm; the number is on the pill, so there is no confirm of offload's.
+
+**Considered and not taken:** *Call Dana*, a label the filing model writes (a new field, eval cases, and new rows only); the pill in the sheet and the viewer only, off the list; the details read-only.
+
+**Design system impact:** `assets/icons/phone.svg` (Lucide `phone`) joins the set. No new tokens or components. **To redraw:** `RowEditSheet` in `mobile_app/TodayParts.jsx` and its Android twin gain the details block (tile, editable caption) and the Call pill under the title; a photo row with a number in its details draws the pill in the row's text column; the viewer's caption ends with it.
+
 ### 2026-10-31 · The thread notice: one strip for what a thread tells you
 **Surface:** iOS, Android, web; the thread page
 **Raised by:** the product owner: the layout suggestion is ugly and small, and the next things a thread needs to say should use the same thing. Off `explorations/thread-notices.html` (A card, B strip, C offload's voice, D compact) and `explorations/thread-notice-final.html`. Handoff: `handoff/APPLY-2026-10-31-thread-notice.md`.

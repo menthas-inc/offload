@@ -12,6 +12,11 @@
 // on Done and Save below still writes once. The details field went the same
 // day: offload is for short things, and what is stored there is left as it is.
 //
+// 2026-11-02 (the owner). The details came back, because a screenshot's
+// number was stored and nowhere to be read on a phone: the attachment, which
+// opens it, and the caption beside it, editable, with the `Text:` words kept
+// as they are. A number in them is a Call pill under them.
+//
 // 042. Remind me is drawn to the author whenever offload will remind them, and
 // to anybody else while somebody asked, by the shared rule. The author's
 // switch writes `reminders`, which stops every reminder for good; anybody
@@ -22,7 +27,9 @@ import { Keyboard, Platform, Pressable, ScrollView, Text, TextInput, View, useWi
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glyph } from "../Glyph";
 import { Switch } from "../settings/Switch";
-import { remindSwitchShown } from "@offload/widgets";
+import { photoCaption, remindSwitchShown, withCaption } from "@offload/widgets";
+import { PhotoThumb } from "./PhotoThumb";
+import { CallPill } from "./CallPill";
 import { useColors } from "../../lib/colors";
 import { useClock } from "../../lib/clock";
 import type { ContentPatch, ContentRow } from "../../lib/threads";
@@ -45,9 +52,12 @@ export function RowEditSheet({
   onArchive,
   labels,
   onMove,
+  onOpenPhoto,
 }: {
   row: ContentRow | null;
   onClose: () => void;
+  /** 2026-11-02. The attachment's tile opens it: the viewer, or the PDF. */
+  onOpenPhoto?: ((row: ContentRow) => void) | undefined;
   /** Every changed field, in one patch. The sheet closes at the press and
    *  the screen writes it, so the keyboard is never held up for a round trip.
    *  `made` is any label typed in the label sheet, to be made first and
@@ -66,6 +76,7 @@ export function RowEditSheet({
   const COLOR = useColors();
   const { zone } = useClock();
   const [title, setTitle] = useState(row?.title ?? "");
+  const [details, setDetails] = useState(photoCaption(row?.body) ?? "");
   const [when, setWhen] = useState<WhenValue>(() => (row ? whenValueOf(row, zone) : NOTHING));
   const [remind, setRemind] = useState(row ? remindOf(row, row.author.isYou) : false);
   const [picking, setPicking] = useState<"when" | "repeats" | "labels" | null>(null);
@@ -86,6 +97,7 @@ export function RowEditSheet({
     const patch: ContentPatch = {};
     const text = title.trim();
     if (text.length > 0 && text !== row.title) patch.title = text;
+    if (details.trim() !== (photoCaption(row.body) ?? "")) patch.body = withCaption(row.body, details);
     if (!sameWhen(when, held)) Object.assign(patch, patchFor(row, when));
     Object.assign(patch, remindWrite(row, row.author.isYou, remind));
     const relabelled =
@@ -177,6 +189,48 @@ export function RowEditSheet({
           className={`rounded-sm border border-border-hairline px-space-4 py-space-3 font-core font-semibold text-title-3 ${rowInk}`}
           returnKeyType="done"
         />
+
+        {/* 2026-11-02. What the row came with: the attachment, which opens
+            it, and its details. Neither is drawn when the row has none. */}
+        {row.photo || photoCaption(row.body) ? (
+          <View className="mt-space-3 flex-row items-start gap-space-3">
+            {row.photo && onOpenPhoto ? (
+              <Pressable
+                onPress={() => onOpenPhoto(row)}
+                hitSlop={4}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${row.title}`}
+                className="overflow-hidden rounded-sm"
+              >
+                <PhotoThumb
+                  blobId={row.photo.blobId}
+                  ready={row.photo.ready}
+                  style={{ width: 56, height: 56 }}
+                  className="rounded-sm"
+                  fallback={
+                    <View
+                      className={`items-center justify-center rounded-sm ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
+                      style={{ width: 56, height: 56, boxShadow: `inset 0 0 0 1px ${COLOR.edgeWell}` }}
+                    >
+                      <Glyph name={row.photo.kind === "pdf" ? "paperclip" : "image"} size={18} color={COLOR.iconOnWell} />
+                    </View>
+                  }
+                />
+              </Pressable>
+            ) : null}
+            {photoCaption(row.body) ? (
+              <TextInput
+                value={details}
+                onChangeText={setDetails}
+                multiline
+                accessibilityLabel="Details"
+                className={`flex-1 rounded-sm border border-border-hairline px-space-3 py-space-2 font-core ${quiet}`}
+                style={{ fontSize: 14, lineHeight: 20, textAlignVertical: "top" }}
+              />
+            ) : null}
+          </View>
+        ) : null}
+        <CallPill text={row.body} />
 
         {/* When and Repeats carry their values and open the same sheet, which
             hands back rather than writing: Save below writes once. A row on a

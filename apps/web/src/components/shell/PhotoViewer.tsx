@@ -25,6 +25,7 @@ import { photoCaption, ARCHIVE_SHARED, archiveAsk, asksBeforeArchive } from "@of
 import { Icon } from "../Icon";
 import { MoveSheet } from "./MoveSheet";
 import { PhotoThumb } from "./PhotoThumb";
+import { CallPill } from "./CallPill";
 import type { ContentRow, ThreadRow } from "../../lib/threads";
 import styles from "../../app/(shell)/viewer.module.css";
 
@@ -317,6 +318,7 @@ export function PhotoViewer({
           {/* The caption, never the words read out of the picture: those
               stay stored for search and are not details (2026-09-29). */}
           {photoCaption(photo.body) ? <p className={styles.body}>{photoCaption(photo.body)}</p> : null}
+          <CallPill text={photo.body} />
           {photos.length > 1 ? (
             <p className={styles.count}>
               {index + 1} of {photos.length}

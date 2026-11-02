@@ -33,6 +33,7 @@ import { atOpacity, useColors } from "../../lib/colors";
 import type { ContentRow } from "../../lib/threads";
 import { useScreenSheet } from "./conversation-context";
 import { PhotoThumb } from "./PhotoThumb";
+import { CallPill } from "./CallPill";
 
 
 export interface ViewerPhoto {
@@ -242,6 +243,7 @@ export function PhotoViewer({
               {photoCaption(photo.body)}
             </Text>
           ) : null}
+          <CallPill text={photo.body} />
         </ScrollView>
       )}
     </Animated.View>

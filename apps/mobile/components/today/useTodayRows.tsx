@@ -13,6 +13,8 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { ContentRowView } from "../shell/ContentRow";
+import { PhotoViewer } from "../shell/PhotoViewer";
+import { useConversation } from "../shell/conversation-context";
 import { RowEditSheet } from "../shell/RowEditSheet";
 import { MoveSheet } from "../shell/MoveSheet";
 import { ConfirmSheet } from "../people/ConfirmSheet";
@@ -55,6 +57,11 @@ export function useTodayRows(
   const [renaming, setRenaming] = useState<TodayRow | null>(null);
   const [labels, setLabels] = useState<Label[] | undefined>(undefined);
   const [moving, setMoving] = useState<TodayRow | null>(null);
+  const [viewing, setViewing] = useState<TodayRow | null>(null);
+  const { openPdf } = useConversation();
+  // 2026-11-02. The tile was drawn with nothing behind it. A PDF opens
+  // itself; a photo, the viewer, as on the thread page and Loose.
+  const openFile = (row: TodayRow) => (row.photo?.kind === "pdf" ? openPdf(row.photo, row.title) : setViewing(row));
   useEffect(() => {
     setDrawn(new Map());
     setDropped(new Set());
@@ -256,6 +263,7 @@ export function useTodayRows(
           : item.labels.flatMap((labelId) => (day?.threadLabels ?? []).filter((label) => label.id === labelId))
       }
       onToggle={item.type === "task" ? () => tick(item) : undefined}
+      onOpenPhoto={item.photo ? () => openFile(item) : undefined}
       onEdit={() => setRenaming(item)}
       onDelete={() => remove(item)}
     />
@@ -263,11 +271,34 @@ export function useTodayRows(
 
   const sheets = (
     <>
+      {viewing?.photo ? (
+        <PhotoViewer
+          photos={[
+            {
+              blobId: viewing.photo.blobId,
+              ready: viewing.photo.ready,
+              width: viewing.photo.width ?? 0,
+              height: viewing.photo.height ?? 0,
+              title: viewing.title,
+              body: viewing.body,
+              row: viewing,
+            },
+          ]}
+          index={0}
+          onIndex={() => undefined}
+          onClose={() => setViewing(null)}
+          onMore={(one) => setRenaming(one as TodayRow)}
+        />
+      ) : null}
       <RowEditSheet
         key={renaming?.id ?? "none"}
         row={renaming}
         labels={labels}
         onClose={() => setRenaming(null)}
+        onOpenPhoto={(one) => {
+          setRenaming(null);
+          openFile(one as TodayRow);
+        }}
         onSave={(saved, patch, made) => {
           const threadId = renaming?.threadId;
           setRenaming(null);

@@ -53,6 +53,7 @@ import { ThreadPill } from "./ThreadPill";
 import { PhotoThumb } from "./PhotoThumb";
 import { PdfOpening } from "./PdfOpening";
 import { PdfActions } from "./PdfActions";
+import { CallPill } from "./CallPill";
 import { useColors } from "../../lib/colors";
 import { domainOf, isProvisional, rowTap, type ContentRow } from "../../lib/threads";
 import { openLink } from "../../lib/links";
@@ -640,6 +641,8 @@ export function ContentRowView({
               onRemove={onRemoveAction}
             />
           ) : null}
+          {/* 2026-11-02. A number in the details, one tap from the list. */}
+          {!row.archivedAt ? <CallPill text={row.body} /> : null}
           {below}
           </View>
 

@@ -14,6 +14,37 @@ export function photoCaption(body: string | null | undefined): string | null {
   return caption.length > 0 ? caption : null;
 }
 
+/** 2026-11-02. The body with its caption replaced and the `Text:` words kept,
+ *  for the row sheet's details field. Null when nothing is left. */
+export function withCaption(body: string | null | undefined, caption: string): string | null {
+  const at = body ? body.search(/(^|\n)Text:/) : -1;
+  const words = at < 0 || !body ? "" : body.slice(at).replace(/^\n/, "");
+  const next = [caption.trim(), words].filter((part) => part.length > 0).join("\n");
+  return next.length > 0 ? next : null;
+}
+
+// A US number in any of its usual spellings, whole: not inside a longer run of
+// digits, so a date, an id or a price is not read as one. offload is offered in
+// the United States only, so ten digits are a US number.
+const US_NUMBER = /(?<![\w+.,-])(?:\+?1[ .-]?)?\(?([2-9]\d{2})\)?[ .-]?([2-9]\d{2})[ .-]?(\d{4})(?![\w-])/;
+// Any other country's, which must say so with its +.
+const OTHER_NUMBER = /(?<![\w+])\+(?!1)\d[\d ().-]{6,}\d(?![\w-])/;
+
+/** 2026-11-02. The first phone number in a row's details, as the pill shows it
+ *  and as the platform dials it, or null. Read from what the row already
+ *  shows, so the number on the pill is the one on the screen. */
+export function phoneIn(text: string | null | undefined): { shown: string; tel: string } | null {
+  if (!text) return null;
+  const us = US_NUMBER.exec(text);
+  const other = OTHER_NUMBER.exec(text);
+  if (us && (!other || us.index <= other.index)) {
+    const [, area, exchange, line] = us;
+    return { shown: `+1 ${area} ${exchange} ${line}`, tel: `tel:+1${area}${exchange}${line}` };
+  }
+  const digits = other?.[0].replace(/\D/g, "") ?? "";
+  return other && digits.length >= 8 && digits.length <= 15 ? { shown: other[0], tel: `tel:+${digits}` } : null;
+}
+
 /** Per message, photos and PDFs together, and the server holds the same
  *  number. */
 export const MAX_PHOTOS = 10;
