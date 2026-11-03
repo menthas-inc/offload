@@ -352,7 +352,7 @@ export * from "./timeline.js";
 // Dragging a row to a new place, as the priorities that hold it there. Its own
 // file because it is arithmetic over one field and every surface drags.
 export * from "./reorder.js";
-export { MAX_PDFS, MAX_PHOTO_BYTES, MAX_PHOTOS, clipMiddle, isPdf, photoCaption, takeFiles } from "./photos.js";
+export { MAX_PDFS, MAX_PHOTO_BYTES, MAX_PHOTOS, clipMiddle, isPdf, photoCaption, takeFiles, withCaption } from "./photos.js";
 // 021. A voice note: its ceiling and its bars.
 export { MAX_VOICE_MS, WAVEFORM_BARS, resample } from "./recording.js";
 // A thread's rows: a link's domain, a span of the day, a row drawn at the press.
@@ -590,3 +590,4 @@ export {
   SETTLE_MS,
 } from "./search.js";
 export type { SearchAnswer, SearchRow, SearchState } from "./search.js";
+export { actionKind, isActionUrl, labelOk, shownDestination, type ActionKind } from "./actions.js";

@@ -11,6 +11,22 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-11-02 · Details in the row sheet, and found actions on every row (050)
+**Surface:** iOS, Android (row, row sheet, viewer, conversation); web (row, edit modal, viewer, conversation)
+**Raised by:** the product owner: a screenshot for a meeting held the number to call, and on the phones it could be neither read nor opened. Off a mock in the session of the same day (Today row, row sheet, viewer), then widened the same day from one Call pill to found actions, 044's PDF actions for anything a dump says (spec 050, reviewed by the project lead, client and security reviewers).
+
+**Was:** the phones' row sheet held the title, When, Repeats, Labels, Move and Remind me; the details field went on 2026-09-29. Today drew a photo row's tile with nothing behind the tap. Only a PDF's file row could carry actions: 044's label-only pills, a link each, behind a per-tap confirm, with literal 13px type.
+
+**Is:** the row sheet shows, under the title, the attachment's tile at 56 (it opens the viewer, or the PDF) and the caption beside it as an editable field, the `Text:` words kept as stored. Today's tile and a calendar day's rows open the viewer, as the thread's and Loose's do. Any row may carry up to two actions offload chose on the filing turn, drawn by one `Actions` pill component per client in 044's secondary style:
+- **Open** keeps 044's label-only pill with `arrow-up-right` after the label, and its confirm, now naming its source: *From the picture.*, *From your voice note.*, *From what you typed.*, *From the PDF.*, *From a mail from dhl.com.*
+- **Call** and **Email** lead with `phone` or `mail` in `--text-accent`, then the label, then the number or address in `--text-secondary` with tabular figures: *Call Dana  +1 212 555 0142*. No confirm of offload's: the destination is on the pill, and the platform's dialer or mail draft sends nothing by itself. Their Remove, author only, sits beside each in the phones' row sheet and the web's edit modal (in a thread).
+- **Directions** leads with `map-pin`, drawn on any row whose place resolved (030), from 030's own link.
+The pills sit on the row under the title and meta, in the sheet's details block, in the edit modal under the title, in the viewer under the caption, and under a sent picture or PDF in the conversation; never on a tile, a grid cell or a search row. Type is `--size-label` (`text-label` on the phones), not a literal; pills draw at 32 with the hit area reaching `--tap-min` through `::after` on the web and `hitSlop` on the phones, so 044's PDF pills change only in that their size is now the token.
+
+**Considered and not taken:** a Call pill found on the device by a pattern (shipped to a branch, never released: it could not tell the number that matters from a footer, and knew only numbers); a confirm for every kind (the web and the phones' own prompts already show a number or address that is on the pill); the details read-only.
+
+**Design system impact:** `assets/icons/phone.svg` (Lucide `phone`) joins the set; `mail.svg` and `map-pin.svg` are already in it. No new tokens or components. **To redraw:** `RowEditSheet` in `mobile_app/TodayParts.jsx` and its Android twin gain the details block (tile, editable caption) and the actions under it; the row's text column in every list may end with up to two action pills and Directions in the three kinds above; the viewer's caption ends with them; 044's PDF pill in the kits takes `--size-label`; the web edit modal (`web_app/WThing.jsx`'s edit) gains the actions with Remove under the title.
+
 ### 2026-10-31 · The thread notice: one strip for what a thread tells you
 **Surface:** iOS, Android, web; the thread page
 **Raised by:** the product owner: the layout suggestion is ugly and small, and the next things a thread needs to say should use the same thing. Off `explorations/thread-notices.html` (A card, B strip, C offload's voice, D compact) and `explorations/thread-notice-final.html`. Handoff: `handoff/APPLY-2026-10-31-thread-notice.md`.

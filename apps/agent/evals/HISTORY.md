@@ -207,6 +207,17 @@ and is not committed.
 | 2026-10-31 16:33 | 17 | 1 | 43/53 (81%) | $0.56 | `claude-haiku-5-5` | `a9211ad1` | `e4ef7f81` | meaning floor PR 158, limited answer run |
 | 2026-10-31 16:34 | 18 | 1 | 14/14 (100%) | $0.13 | `claude-haiku-5-5` | `a9211ad1` | `e4ef7f81` | meaning floor PR 158, limited answer run |
 | 2026-10-31 16:34 | 09 | 1 | 6/6 (100%) | $0.02 | `claude-haiku-5-5` | `a9211ad1` | `e4ef7f81` | meaning floor PR 158, limited answer run |
+| 2026-11-02 15:21 | 50 | 1 | 10/15 (67%) | $0.04 | `claude-haiku-5-5` | `a9211ad1` | `cd6890cd` | 050 baseline before the prompt change |
+| 2026-11-02 15:21 | 33 | 1 | 12/13 (92%) | $0.02 | `claude-haiku-5-5` | `a9211ad1` | `cd6890cd` | 050 baseline before the prompt change |
+| 2026-11-02 15:22 | 50 | 1 | 14/15 (93%) | $0.02 | `claude-haiku-5-5` | `96b668a0` | `cd6890cd` | 050 after the prompt change |
+| 2026-11-02 15:23 | 33 | 1 | 10/13 (77%) | $0.02 | `claude-haiku-5-5` | `96b668a0` | `cd6890cd` | 050 after the prompt change |
+| 2026-11-02 15:23 | 33 | 1 | 13/13 (100%) | $0.02 | `claude-haiku-5-5` | `4b3d475f` | `cd6890cd` | 050 after: a PDF's entries stay on its row |
+| 2026-11-02 15:24 | 50 | 1 | 14/15 (93%) | $0.02 | `claude-haiku-5-5` | `4b3d475f` | `cd6890cd` | 050 after: a PDF's entries stay on its row |
+| 2026-11-02 15:24 | 50 | 1 | 14/15 (93%) | $0.02 | `claude-haiku-5-5` | `cb40f500` | `cd6890cd` | 050 after: a task to call or write carries it |
+| 2026-11-02 15:24 | 33 | 1 | 13/13 (100%) | $0.02 | `claude-haiku-5-5` | `cb40f500` | `cd6890cd` | 050 after: a task to call or write carries it |
+| 2026-11-02 15:24 | 23 | 1 | 20/23 (87%) | $0.03 | `claude-haiku-5-5` | `cb40f500` | `cd6890cd` | 050 after: a task to call or write carries it |
+| 2026-11-02 15:25 | 27 | 1 | 7/8 (88%) | $0.01 | `claude-haiku-5-5` | `cb40f500` | `cd6890cd` | 050 after: a task to call or write carries it |
+| 2026-11-02 15:26 | 50 | 3 | 15/15 (100%) | $0.04 | `claude-haiku-5-5` | `cb40f500` | `cd6890cd` | 050 final prompt, three-run majority |
 
 ## Full runs by principle
 

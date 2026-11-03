@@ -140,8 +140,12 @@ const TWO = [
   { label: "Manage booking", url: "https://manage.example-air.com/LX3K9Q" },
 ];
 
+// 050: stored entries carry their kind and source; a 044 worker's entry is
+// written as an open action from a PDF, and the wire adds a null sender.
 const A = (attrs: unknown): { label: string; url: string }[] =>
-  (attrs as { actions?: { label: string; url: string }[] })?.actions ?? [];
+  ((attrs as { actions?: { label: string; url: string }[] })?.actions ?? []).map(({ label, url }) => ({ label, url }));
+const wire = (list: { label: string; url: string }[]) =>
+  list.map((a) => ({ ...a, kind: "open", source: "pdf", sender: null }));
 
 describe("044 the Core API persists a PDF's actions", () => {
   it("writes the worker's resolved label and url to content.attrs.actions", async () => {
@@ -201,7 +205,7 @@ describe("044 the wire carries actions (T8)", () => {
     const filed = await fileWithActions(me, TWO);
     const page = (await content(filed.cookie, me.defaultThreadId)).json();
     const row = page.rows.find((r: { id: string }) => r.id === filed.contentId);
-    expect(row.actions).toEqual(TWO);
+    expect(row.actions).toEqual(wire(TWO));
   });
 
   it("carries the same actions on the PDF in the filing reply's photos", async () => {
@@ -210,7 +214,7 @@ describe("044 the wire carries actions (T8)", () => {
     const tail = (await app.inject({ method: "GET", url: "/v1/conversations/current", headers: { cookie: filed.cookie } })).json();
     const message = tail.messages.find((m: { id: string }) => m.id === filed.messageId);
     const pdf = message.photos.find((p: { kind: string }) => p.kind === "pdf");
-    expect(pdf.actions).toEqual(TWO);
+    expect(pdf.actions).toEqual(wire(TWO));
   });
 
   it("sends no actions field for a PDF that carries none, so an older client sees nothing new", async () => {
@@ -298,7 +302,7 @@ describe("044 Remove a wrong action, provenance-safe (AC-15)", () => {
       await app.inject({ method: "GET", url: `/v1/threads/${me.defaultThreadId}/content`, headers: { cookie: filed.cookie } })
     ).json();
     const row = page.rows.find((r: { id: string }) => r.id === filed.contentId);
-    expect(row.actions).toEqual([{ label: "Manage booking", url: MANAGE }]);
+    expect(row.actions).toEqual(wire([{ label: "Manage booking", url: MANAGE }]));
     expect(JSON.stringify(row)).not.toContain("actions_removed");
   });
 });

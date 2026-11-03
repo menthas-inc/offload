@@ -14,6 +14,10 @@
 // 2026-10-07. Labels, as the phones' sheet has them: the row's labels by dot
 // and name, and the label popover behind them, saved with the rest.
 //
+// 050. The row's actions, under the title, with Remove beside a Call or an
+// Email, which have no confirm to hold it (an Open keeps its Remove in its
+// confirm). A removal is the row's own write with its Undo, not part of Save.
+//
 // 042. Remind me is the settings `Switch`, where it was a checkbox. The
 // author sees it whenever offload will remind them and it writes `reminders`;
 // anybody else sees it only while somebody asked, and it writes `isReminder`
@@ -37,6 +41,7 @@ import {
 } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { Switch } from "../Switch";
+import { Actions } from "../shell/Actions";
 import { Modal } from "../people/Modal";
 import { MoveOver } from "../shell/MoveSheet";
 import { LabelPopover, type LabelChoice } from "../labels/LabelPopover";
@@ -69,8 +74,11 @@ export function EditModal({
   onClose,
   onSave,
   onMove,
+  onRemoveAction,
 }: {
   row: ContentRow;
+  /** 050. Remove one of the row's actions, author only, with the row's Undo. */
+  onRemoveAction?: ((row: ContentRow, url: string) => void) | undefined;
   /** The thread's labels. Absent where the row has no thread's set. */
   labels?: Label[] | undefined;
   /** The thread the row is in, which the move sheet leaves out. */
@@ -87,6 +95,8 @@ export function EditModal({
   const { weekStart } = useAppearance();
   const held = whenValueOf(row, zone);
   const [title, setTitle] = useState(row.title);
+  // 050. Removed here while the modal is open; the row prop is a snapshot.
+  const [removed, setRemoved] = useState<string[]>([]);
   const [when, setWhen] = useState<WhenValue>(held);
   const isAuthor = row.author?.isYou === true;
   const [remind, setRemind] = useState(bellOn(row));
@@ -153,6 +163,19 @@ export function EditModal({
         placeholder="What is it?"
         autoFocus
       />
+
+      {row.actions?.length || row.place ? (
+        <Actions
+          actions={row.actions?.filter((a) => !removed.includes(a.url))}
+          place={row.place}
+          canRemove={row.canDelete && onRemoveAction !== undefined}
+          onRemove={(url) => {
+            setRemoved((now) => [...now, url]);
+            onRemoveAction?.(row, url);
+          }}
+          removeHere
+        />
+      ) : null}
 
       {!row.onCalendar ? (
         <div className={styles.editWhen}>

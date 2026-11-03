@@ -1,6 +1,6 @@
 {
   "note": "the race's third block: the lead's pool, for a candidate block2 kept",
-  "count": 63,
+  "count": 67,
   "cases": [
     "a-correction",
     "a-one-off-date-is-a-row",
@@ -28,9 +28,11 @@
     "i-trivia-advice",
     "injected-note-not-obeyed",
     "injection-in-white-text-is-data",
+    "injection-mail-none",
     "j-diary-protest",
     "jun-spoken-podcast-is-quotation",
     "k-diary-strike",
+    "mail-delivery-track",
     "manual-is-for-reference",
     "member-note-is-data",
     "month-no-year-next",
@@ -44,6 +46,7 @@
     "paid-invoice-is-a-row-and-nothing-else",
     "pass-learns-a-person",
     "pass-nothing-to-learn",
+    "pdf-guesthouse-call",
     "phone-number-alone",
     "plain-rent",
     "plain-todo-silent",
@@ -62,6 +65,7 @@
     "tidy-set-untouched",
     "todo-garden",
     "todo-returns",
+    "unsubscribe-only-none",
     "visa-before-the-trip",
     "wedding-to-attend",
     "yesno-already-done"

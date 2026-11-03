@@ -1313,13 +1313,28 @@ def _copy_problems(text: str) -> list[str]:
 
 
 def _resolve_actions(fx: dict, args: dict) -> list[dict]:
-    """044. The resolved {label, url} list for a file row's `actions`, run
-    through the worker's own bound against the fixture's harvested candidates."""
-    index = args.get("pdf")
-    names = fx.get("pdfs") or []
-    if not isinstance(index, int) or not 1 <= index <= len(names):
-        return []
-    return resolve_actions(_pdf_candidates(names[index - 1]), args.get("actions") or [])
+    """044, 050. A row's resolved actions, run through the worker's own bound
+    against the turn's set the model was shown (`_found`, put on the fixture
+    by `_run_file` from the same `found_set` production numbers), with a
+    picture's row checked against its own `Text:` line as the worker checks
+    it."""
+    return resolve_actions(
+        args.get("actions") or [],
+        found=fx.get("_found") or [],
+        pdf=args.get("pdf"),
+        body=args.get("body") if args.get("photo") is not None else None,
+    )
+
+
+def _carried_actions(calls: list[tuple[str, dict]], fx: dict) -> list[list[dict]]:
+    """050. Every row's resolved actions in a turn, any row type."""
+    return [
+        resolved
+        for tool, args in calls
+        if tool == "add_content"
+        for resolved in [_resolve_actions(fx, args)]
+        if resolved
+    ]
 
 
 def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str | None:
@@ -1780,17 +1795,6 @@ def _pdf_bytes(name: str) -> bytes:
     return (here if here.exists() else PDF_FIXTURES / name).read_bytes()
 
 
-#: 044. Candidates harvested per fixture, cached so the matcher resolves the
-#: same set the model was shown without a second subprocess per assertion.
-_PDF_CANDIDATES: dict[str, list[str]] = {}
-
-
-def _pdf_candidates(name: str) -> list[str]:
-    if name not in _PDF_CANDIDATES:
-        _PDF_CANDIDATES[name] = pdfs_mod.make(_pdf_bytes(name)).candidates
-    return _PDF_CANDIDATES[name]
-
-
 async def _pdfs(fx: dict) -> list[Pdf]:
     """041. The case's PDFs, by file name, through the worker's own clean, cut
     and request bound, so the model reads what it would. 044: the links each
@@ -1799,7 +1803,6 @@ async def _pdfs(fx: dict) -> list[Pdf]:
     out: list[Pdf] = []
     for at, name in enumerate(fx.get("pdfs") or []):
         made = pdfs_mod.make(_pdf_bytes(name))
-        _PDF_CANDIDATES[name] = made.candidates
         out.append(
             Pdf(
                 blob_id=f"pdf-{at + 1}",
@@ -1904,6 +1907,9 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         spoken=bool(fx.get("spoken")),
         looking_at_notes=_notes_on_screen(fx),
     )
+    # 050. The numbered set the model is shown, kept for the matchers so they
+    # resolve the same numbers the worker would.
+    fx["_found"] = ctx.found_set()
     return await _file_with(client, case, model, ctx, rec)
 
 
@@ -2023,18 +2029,12 @@ async def _file_with(
     for matcher in expect.get("not_filed", []):
         if _match_filing(matcher, rec.calls, fx) is None:
             failures.append(f"filed a row that fits {matcher} and should not have: {filed}")
-    # 044. No PDF row carries any action (the common case; stated with
+    # 044, 050. No row carries any action (the common case; stated with
     # `action_count: 0` for clarity).
     if expect.get("no_actions"):
-        carried = [
-            resolved
-            for tool, args in rec.calls
-            if tool == "add_content" and args.get("type") == "file"
-            for resolved in [_resolve_actions(fx, args)]
-            if resolved
-        ]
+        carried = _carried_actions(rec.calls, fx)
         if carried:
-            failures.append(f"a PDF row carries actions and should carry none: {carried}")
+            failures.append(f"a row carries actions and should carry none: {carried}")
     if expect.get("files_something") and not any(
         t in {"add_content", "add_note"} for t, _ in rec.calls
     ):

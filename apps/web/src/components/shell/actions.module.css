@@ -1,6 +1,7 @@
-/* 044. The PDF action pills and their per-tap confirm. Secondary pills: a
-   hairline outline, never the moss "offload did this" or the attention tone, so
-   they never read as a row that needs you. */
+/* 044, 050. A row's action pills and an Open's per-tap confirm. Secondary
+   pills: a hairline outline, never the moss "offload did this" or the
+   attention tone, so they never read as a row that needs you. Drawn at 32px;
+   the hit area reaches --tap-min through ::after, as the search chips do. */
 
 .actions {
   display: flex;
@@ -9,7 +10,15 @@
   margin-top: 6px;
 }
 
+.held {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+}
+
 .pill {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -20,13 +29,42 @@
   background: var(--surface-fill);
   color: var(--text-primary);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--size-label);
   line-height: 1;
+  text-decoration: none;
   cursor: pointer;
+  max-width: 100%;
+}
+
+.pill::after,
+.open::after,
+.remove::after,
+.cancel::after {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto 0;
+  min-height: var(--tap-min);
+  transform: translateY(-50%);
 }
 
 .pill:hover {
   background: var(--surface-fill-strong);
+}
+
+.glyph {
+  color: var(--text-accent);
+}
+
+/* Call and Email: the number or address after the label, so where the click
+   leads is on screen before it. */
+.destination {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: 4px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .confirm {
@@ -39,10 +77,11 @@
 
 .confirmText {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--size-label);
 }
 
 .open {
+  position: relative;
   min-height: 32px;
   padding: 0 12px;
   display: inline-flex;
@@ -51,20 +90,21 @@
   background: var(--surface-fill);
   border: 1px solid var(--border-strong);
   color: var(--text-accent);
-  font-size: 13px;
+  font-size: var(--size-label);
   text-decoration: none;
   cursor: pointer;
 }
 
 .remove,
 .cancel {
+  position: relative;
   min-height: 32px;
   padding: 0 8px;
   background: none;
   border: none;
   color: var(--text-secondary);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--size-label);
   cursor: pointer;
 }
 

@@ -1,0 +1,251 @@
+{
+  "_": "050. One table for the label and destination rules, read by actions.test.ts and by the agent's test_found.py, so the TypeScript and Python checks cannot drift apart.",
+  "labels": [
+    {
+      "label": "Call Dana",
+      "ok": true
+    },
+    {
+      "label": "Track parcel",
+      "ok": true
+    },
+    {
+      "label": "Check-in",
+      "ok": true
+    },
+    {
+      "label": "Gate 12",
+      "ok": true
+    },
+    {
+      "label": "Email the landlord",
+      "ok": true
+    },
+    {
+      "label": "  Manage booking ",
+      "ok": true
+    },
+    {
+      "label": "",
+      "ok": false
+    },
+    {
+      "label": "   ",
+      "ok": false
+    },
+    {
+      "label": "A label far too long to fit",
+      "ok": false
+    },
+    {
+      "label": "Call 0900 555 222",
+      "ok": false
+    },
+    {
+      "label": "Call 212 555 0142",
+      "ok": false
+    },
+    {
+      "label": "Call (212) 555-0142",
+      "ok": false
+    },
+    {
+      "label": "Ref 12345",
+      "ok": false
+    },
+    {
+      "label": "Email ana@flat.co",
+      "ok": false
+    },
+    {
+      "label": "Open dhl.com",
+      "ok": false
+    },
+    {
+      "label": "Open bit.ly/x",
+      "ok": false
+    },
+    {
+      "label": "Go to https://x",
+      "ok": false
+    },
+    {
+      "label": "javascript:alert",
+      "ok": false
+    },
+    {
+      "label": "Call Dana — now",
+      "ok": false
+    },
+    {
+      "label": "Pay – online",
+      "ok": false
+    },
+    {
+      "label": "Open paypal․com",
+      "ok": false
+    },
+    {
+      "label": "Open paypal．com",
+      "ok": false
+    },
+    {
+      "label": "Open paypal。com",
+      "ok": false
+    },
+    {
+      "label": "Ref ١٢٣٤",
+      "ok": false
+    },
+    {
+      "label": "Call João",
+      "ok": true
+    }
+  ],
+  "urls": [
+    {
+      "url": "https://dhl.com/track?id=1",
+      "ok": true,
+      "kind": "open",
+      "shown": "dhl.com"
+    },
+    {
+      "url": "http://a.co",
+      "ok": true,
+      "kind": "open",
+      "shown": "a.co"
+    },
+    {
+      "url": "tel:+12125550142",
+      "ok": true,
+      "kind": "call",
+      "shown": "+1 212 555 0142"
+    },
+    {
+      "url": "tel:+442079460958",
+      "ok": true,
+      "kind": "call",
+      "shown": "+442079460958"
+    },
+    {
+      "url": "mailto:ana@flat.co",
+      "ok": true,
+      "kind": "email",
+      "shown": "ana@flat.co"
+    },
+    {
+      "url": "mailto:dana.r+venue@mail.example.org",
+      "ok": true,
+      "kind": "email",
+      "shown": "dana.r+venue@mail.example.org"
+    },
+    {
+      "url": "tel:*21*12125550142#",
+      "ok": false
+    },
+    {
+      "url": "tel:+12125550142#",
+      "ok": false
+    },
+    {
+      "url": "tel:+12125550142,1",
+      "ok": false
+    },
+    {
+      "url": "tel:+12125550142;ext=1",
+      "ok": false
+    },
+    {
+      "url": "tel:+12125550142;phone-context=x",
+      "ok": false
+    },
+    {
+      "url": "tel:%2B12125550142",
+      "ok": false
+    },
+    {
+      "url": "tel:+1212555%23",
+      "ok": false
+    },
+    {
+      "url": "tel:12125550142",
+      "ok": false
+    },
+    {
+      "url": "tel:+1234567",
+      "ok": false
+    },
+    {
+      "url": "tel:+1234567890123456",
+      "ok": false
+    },
+    {
+      "url": "tel:+1 212 555 0142",
+      "ok": false
+    },
+    {
+      "url": "mailto:a@b.co?bcc=x@y.z",
+      "ok": false
+    },
+    {
+      "url": "mailto:a@b.co%0Abcc:x@y.z",
+      "ok": false
+    },
+    {
+      "url": "mailto:a@b.co,c@d.e",
+      "ok": false
+    },
+    {
+      "url": "mailto:a@b.co&x=1",
+      "ok": false
+    },
+    {
+      "url": "mailto:a@b",
+      "ok": false
+    },
+    {
+      "url": "mailto:",
+      "ok": false
+    },
+    {
+      "url": "mailto:a b@c.co",
+      "ok": false
+    },
+    {
+      "url": "javascript:alert(1)",
+      "ok": false
+    },
+    {
+      "url": "sms:+12125550142",
+      "ok": false
+    },
+    {
+      "url": "ftp://a.co/x",
+      "ok": false
+    },
+    {
+      "url": "data:text/html,x",
+      "ok": false
+    },
+    {
+      "url": "https://",
+      "ok": false
+    },
+    {
+      "url": "",
+      "ok": false
+    },
+    {
+      "url": "tel:+١٢١٢٥٥٥٠١٤٢",
+      "ok": false
+    },
+    {
+      "url": "TEL:+12125550142",
+      "ok": false
+    },
+    {
+      "url": "MAILTO:ana@flat.co",
+      "ok": false
+    }
+  ]
+}

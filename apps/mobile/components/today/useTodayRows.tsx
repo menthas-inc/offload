@@ -13,12 +13,14 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { ContentRowView } from "../shell/ContentRow";
+import { PhotoViewer } from "../shell/PhotoViewer";
+import { useConversation } from "../shell/conversation-context";
 import { RowEditSheet } from "../shell/RowEditSheet";
 import { MoveSheet } from "../shell/MoveSheet";
 import { ConfirmSheet } from "../people/ConfirmSheet";
 import { ARCHIVE_SHARED, archiveAsk, asksBeforeArchive } from "@offload/widgets";
 import type { ToastState } from "../shell/Toast";
-import { completeContent, deleteContent, editContent, fetchThread, moveContent, setArchived, type ContentPatch, type ContentRow, type ContentSnapshot } from "../../lib/threads";
+import { completeContent, deleteContent, editContent, fetchThread, forgetAction, moveContent, restoreAction, setArchived, type ContentPatch, type ContentRow, type ContentSnapshot } from "../../lib/threads";
 import { createLabel, deleteLabel, withMadeLabels, type Label } from "../../lib/labels";
 import { perform, useWrites } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
@@ -55,6 +57,11 @@ export function useTodayRows(
   const [renaming, setRenaming] = useState<TodayRow | null>(null);
   const [labels, setLabels] = useState<Label[] | undefined>(undefined);
   const [moving, setMoving] = useState<TodayRow | null>(null);
+  const [viewing, setViewing] = useState<TodayRow | null>(null);
+  const { openPdf } = useConversation();
+  // 2026-11-02. The tile was drawn with nothing behind it. A PDF opens
+  // itself; a photo, the viewer, as on the thread page and Loose.
+  const openFile = (row: TodayRow) => (row.photo?.kind === "pdf" ? openPdf(row.photo, row.title) : setViewing(row));
   useEffect(() => {
     setDrawn(new Map());
     setDropped(new Set());
@@ -85,6 +92,26 @@ export function useTodayRows(
       next.delete(id);
       return next;
     });
+
+  /** 050. Remove a wrong action from a row on the day, as the thread does:
+   *  the row stays and changes, so the Undo draws under it. */
+  function removeAction(row: TodayRow, url: string): void {
+    const before = row.actions ?? [];
+    void perform(
+      {
+        apply: () => patchRow(row.id, { actions: before.filter((action) => action.url !== url) }),
+        revert: () => patchRow(row.id, { actions: before }),
+        write: () => forgetAction(row.id, url),
+        unwrite: () => restoreAction(row.id, url),
+        did: "Removed",
+        failed: "Couldn't remove that",
+        unfailed: "Couldn't put that back",
+        place: { id: row.id, icon: "arrow-up-right", form: "under" },
+      },
+      toast,
+      writes,
+    );
+  }
 
   /** 2026-10-18. A tick takes the row out of the day with Undo in its slot,
    *  as Open in your threads does. Putting a finished row back has no Undo:
@@ -256,18 +283,44 @@ export function useTodayRows(
           : item.labels.flatMap((labelId) => (day?.threadLabels ?? []).filter((label) => label.id === labelId))
       }
       onToggle={item.type === "task" ? () => tick(item) : undefined}
+      onOpenPhoto={item.photo ? () => openFile(item) : undefined}
       onEdit={() => setRenaming(item)}
       onDelete={() => remove(item)}
+      onRemoveAction={(url) => removeAction(item, url)}
     />
   );
 
   const sheets = (
     <>
+      {viewing?.photo ? (
+        <PhotoViewer
+          photos={[
+            {
+              blobId: viewing.photo.blobId,
+              ready: viewing.photo.ready,
+              width: viewing.photo.width ?? 0,
+              height: viewing.photo.height ?? 0,
+              title: viewing.title,
+              body: viewing.body,
+              row: viewing,
+            },
+          ]}
+          index={0}
+          onIndex={() => undefined}
+          onClose={() => setViewing(null)}
+          onMore={(one) => setRenaming(one as TodayRow)}
+        />
+      ) : null}
       <RowEditSheet
         key={renaming?.id ?? "none"}
         row={renaming}
         labels={labels}
+        onRemoveAction={(one, url) => removeAction(one as TodayRow, url)}
         onClose={() => setRenaming(null)}
+        onOpenPhoto={(one) => {
+          setRenaming(null);
+          openFile(one as TodayRow);
+        }}
         onSave={(saved, patch, made) => {
           const threadId = renaming?.threadId;
           setRenaming(null);

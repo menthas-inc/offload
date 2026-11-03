@@ -33,6 +33,7 @@ import { atOpacity, useColors } from "../../lib/colors";
 import type { ContentRow } from "../../lib/threads";
 import { useScreenSheet } from "./conversation-context";
 import { PhotoThumb } from "./PhotoThumb";
+import { Actions } from "./Actions";
 
 
 export interface ViewerPhoto {
@@ -242,6 +243,9 @@ export function PhotoViewer({
               {photoCaption(photo.body)}
             </Text>
           ) : null}
+          {/* 050. The row's actions, under what it says about the picture.
+              Remove lives on the row. */}
+          <Actions actions={photo.row?.actions} place={photo.row?.place} />
         </ScrollView>
       )}
     </Animated.View>

@@ -290,7 +290,7 @@ export interface PhotoOnWire {
   unreadable?: boolean;
   /** 044. Up to two links the PDF carried, drawn as chips under the filing
    *  reply. Absent on a photo or a PDF with none. */
-  actions?: { label: string; url: string }[];
+  actions?: { label: string; url: string; kind?: "open" | "call" | "email"; source?: "pdf" | "picture" | "voice" | "typed" | "mail"; sender?: string | null }[];
   ready: boolean;
   /** This device only, never from the wire: the file's uri, for the moment
    *  between the send and the renditions. */
