@@ -45,6 +45,11 @@ describe("found actions (050)", () => {
     }
   });
 
+  it("shortens a long destination in the middle so its Remove stays on screen (simulator, 2026-11-03)", () => {
+    expect(pill()).toMatch(/numberOfLines=\{1\}\s*ellipsizeMode="middle"/);
+    expect(pill()).toMatch(/className="max-w-full flex-row items-center gap-space-1"/);
+  });
+
   it("has a 44 point hit area and sizes from the type scale, not literal numbers", () => {
     expect(pill()).toMatch(/hitSlop=\{/);
     expect(pill()).not.toMatch(/fontSize: \d/);

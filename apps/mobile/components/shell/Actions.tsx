@@ -152,7 +152,9 @@ export function Actions({
         }
         const shown = shownDestination(action.url);
         return (
-          <View key={action.url} className="flex-row items-center gap-space-1">
+          // The pill gives way before its Remove does: a long address shortens in
+          // the middle, so both of its ends stay on screen.
+          <View key={action.url} className="max-w-full flex-row items-center gap-space-1">
             <Pressable
               onPress={() => {
                 if (isActionUrl(action.url)) void Linking.openURL(action.url).catch(() => {});
@@ -161,10 +163,16 @@ export function Actions({
               accessibilityRole="button"
               accessibilityLabel={`${action.label}, ${shown}`}
               className={PILL}
+              style={{ flexShrink: 1 }}
             >
               <Glyph name={kind === "call" ? "phone" : "mail"} size={13} color={COLOR.accent} />
               <Text className="font-core text-label text-text-primary">{action.label}</Text>
-              <Text className="font-core text-label text-text-secondary" style={{ fontVariant: ["tabular-nums"] }}>
+              <Text
+                className="font-core text-label text-text-secondary"
+                style={{ fontVariant: ["tabular-nums"], flexShrink: 1 }}
+                numberOfLines={1}
+                ellipsizeMode="middle"
+              >
                 {shown}
               </Text>
             </Pressable>

@@ -53,7 +53,7 @@ A forwarded mail is somebody else's words, and a phishing mail's number is in th
 
 ### Where they show
 
-- **On the row**, under the title and meta, wherever a list draws the row as a row: the thread's lists and widgets, Today, Loose, a layout's list sections, and the content rows under a calendar's day. Not on a tile (a layout's gallery or a file tile), a calendar grid cell, or a search result, which open the row instead.
+- **On the row**, under the title and meta, wherever a list draws the row as a row: the thread's lists and widgets, Today, Loose, a layout's list sections, and the content rows under a calendar's day. Not on a tile (a layout's gallery or a file tile), a calendar grid cell, a search result, or a page of Today's Open in your threads (one line per to-do), which open the row or its sheet instead.
 - **In the row's sheet** on the phones, in the details block 020 added, and in the row's edit modal on the web, which gains the actions with their Remove (the web's viewer already shows a picture's details).
 - **In the viewer**, under a picture's details.
 - **In the conversation**, as built for 044: under the attachment in the person's own turn, for a picture or PDF the turn filed. Typed, spoken and mailed dumps have no attachment there; their actions are on the rows.
@@ -104,7 +104,7 @@ Said before any code.
 **Showing and opening**
 
 - **AC-8** One pill component per client draws every kind, replacing 044's PDF pill and the interim Call pill: a glyph per kind (`phone`, `mail`, `map-pin`, and `arrow-up-right` after Open), a 44px hit area, type tokens, no literal sizes.
-- **AC-9** Pills draw on the row in the thread's lists and widgets, Today, Loose, a layout's list sections and a calendar day's content rows; in the phones' row sheet and the web's edit modal; in the viewer; and under a sent picture or PDF in the conversation. Never on a tile, a grid cell or a search result.
+- **AC-9** Pills draw on the row in the thread's lists and widgets, Today, Loose, a layout's list sections and a calendar day's content rows; in the phones' row sheet and the web's edit modal; in the viewer; and under a sent picture or PDF in the conversation. Never on a tile, a grid cell, a search result or a page of Today's Open in your threads.
 - **AC-10** Call and Email show the label and the client-formatted destination on the pill and open on the tap through the platform; a device with nothing to open them leaves the pill readable and says nothing.
 - **AC-11** Open keeps 044's per-tap confirm, naming its source, and for mail the sender, with the host computed on the client.
 - **AC-12** Directions draws on any row with a resolved place whose coordinates are current (030 keeps them thirty days and fetches them again when a map asks), from 030's link to those coordinates at render, not stored, not counted in the two, and opens on the tap.
