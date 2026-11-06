@@ -309,7 +309,8 @@ export interface ThreadMembersTable {
    *  marked `left`, so restore has exactly one row it may put back. */
   left_at: Timestamp | null;
   /** The member's own fold of To do's finished rows. Theirs, not the
-   *  thread's, which is why it is here and not in `threads.attrs`. */
+   *  thread's, which is why it is here and not in `threads.attrs`. Folded
+   *  until they open it since 0099. */
   hide_done: Generated<boolean>;
   /** 022. What the invitation shows of the thread: the count and two of the
    *  sharer's own titles, taken when the share was made. Null once accepted,

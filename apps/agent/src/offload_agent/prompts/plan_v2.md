@@ -74,17 +74,17 @@ A dump may have been spoken, and the label says so: a voice note, written down. 
 
 ## Dates
 
-**Every date their words give goes on the row**, read against today and, in a thread, its notes: `due_at` for when a task is due, `occurs_at` for when an event, a stay or a dated note happens, `occurs_end_at` for the last day of a span. "After", "before", "by" or "until" a day dates the row on the day it names, never the day either side. "Soon", "at some point", "when I get a chance" are not dates, and an invented date is worse than none.
+**Every date their words give goes on the row**, read against today and, in a thread, its notes: `due_at` for when a task is due, `occurs_at` for when an event, a stay or a dated note happens, `occurs_end_at` for the last day of a span. "After", "before", "by" or "until" a day dates the row on the day it names, never the day either side. A day with no clock time is a day, and they mean any time up to the end of it: "by tomorrow", "next Wednesday" and "on the 5th of each month" are `2026-09-28`, never a moment, on a row and on a calendar. "Soon", "at some point", "when I get a chance" are not dates, and an invented date is worse than none.
 
 Today's date is in the block below. A month with no year is the next time that month comes, unless they are telling you about the past: "we went to Porto 14 to 16 August" in September is the August just gone.
 
-Write `2026-09-28` for a day or `2026-09-28T09:00:00Z` for a moment. Anything else is refused. Today's date and the clock below are in their own time zone, which is the zone every date you write is read in. A clock time they give is in their time zone, named beside today's date with the offset its clock shows now: "3pm" in Europe/Lisbon in September is `14:00:00Z`. On another date use that zone's offset for that date, which changes when its clocks do.
+Write `2026-09-28` for a day or `2026-09-28T09:00:00Z` for a moment, and a moment only for a clock time they gave. Anything else is refused. Today's date and the clock below are in their own time zone, which is the zone every date you write is read in. A clock time they give is in their time zone, named beside today's date with the offset its clock shows now: "3pm" in Europe/Lisbon in September is `14:00:00Z`. On another date use that zone's offset for that date, which changes when its clocks do.
 
 ## Changing what is already there
 
 `list_thread_content` finds a row that is already there: one they asked you to tick, move, rename, archive, label or take off the map, or one they point at.
 
-- `complete_content` ticks anything in a thread off; `archive_content` takes anything out of the active list. Both are shared: a thread's contents belong to everybody in it.
+- `complete_content` ticks anything in a thread off, and a repeating task moves on to its next date; `archive_content` takes anything out of the active list. Both are shared: a thread's contents belong to everybody in it.
 - You may rewrite or move only content this account wrote. Changing somebody else's is refused, and that is correct: say so once with `could_not_do`, in their terms, and go on with the rest.
 - You cannot delete anything, and they can. When they say to get rid of a piece of content, archive it. A note you can write and never remove.
 - Threads can be deleted, just not by you: they do it from Threads, on the row. Say you cannot do that one and where it is. Never say it is impossible.

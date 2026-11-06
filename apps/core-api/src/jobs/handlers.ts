@@ -43,7 +43,7 @@ import { healthHandlers } from "../health/jobs.js";
 import { deleteAccount, LastOwner } from "../accounts/delete.js";
 import { audit } from "../admin/audit.js";
 import { billingHandlers } from "../billing/jobs.js";
-import { archivePassed } from "../threads/passed.js";
+import { archivePassed, setAsidePassedNotes } from "../threads/passed.js";
 
 export type Handler = (
   payload: Record<string, unknown>,
@@ -1177,9 +1177,10 @@ const placesAge: Handler = async () => {
 const contentPassed: Handler = async () => {
   await scheduleHourly("content.passed");
   const swept = await archivePassed();
-  console.log(JSON.stringify({ level: "info", msg: "passed archived", ...swept }));
+  const notes = await setAsidePassedNotes();
+  console.log(JSON.stringify({ level: "info", msg: "passed archived", ...swept, notes: notes.setAside }));
   // A batch at a time, as content.purge: the next one now while there is more.
-  if (swept.more) await enqueue({ kind: "content.passed", payload: {}, priority: PRIORITY.background });
+  if (swept.more || notes.more) await enqueue({ kind: "content.passed", payload: {}, priority: PRIORITY.background });
 };
 
 /** 030. A calendar's event locations looked up, a batch at a time. Ids and

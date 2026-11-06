@@ -417,6 +417,28 @@
           "5th"
         ]
       }
+    },
+    {
+      "id": "pass-learns-a-person-said-in-passing",
+      "why": "the thread pass no longer writes this as a note, so the fact has to come straight from the dump or it is lost",
+      "surface": "memory",
+      "input": {
+        "messages": [
+          {
+            "day": "2026-10-31",
+            "text": "Thursday grocery shopping with Ritu (meera's mom) 3-6pm."
+          }
+        ]
+      },
+      "expect": {
+        "adds": 1,
+        "has": [
+          "Ritu"
+        ],
+        "kinds": [
+          "people"
+        ]
+      }
     }
   ]
 }

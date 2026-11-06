@@ -412,6 +412,120 @@
           "n2"
         ]
       }
+    },
+    {
+      "id": "a-memory-takes-a-note-about-nothing-here",
+      "why": "the owner, 2026-11-06: who Ritu is, is known across threads, so the note offload wrote in Home goes and the one about Home stays",
+      "surface": "nightly",
+      "today": "Friday 6 November 2026",
+      "input": {
+        "thread": "Home",
+        "memories": [
+          {
+            "kind": "people",
+            "text": "Ritu is Meera's mom."
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "written_at": "2026-10-31",
+            "theirs": true,
+            "origin": "learned",
+            "text": "Ritu is Meera's mom."
+          },
+          {
+            "id": "n2",
+            "written_at": "2026-10-31",
+            "theirs": true,
+            "origin": "learned",
+            "text": "Bins go out on Tuesday night"
+          }
+        ]
+      },
+      "expect": {
+        "supersedes": [
+          "n1"
+        ],
+        "never_touches": [
+          "n2"
+        ]
+      }
+    },
+    {
+      "id": "a-note-about-the-thread-stands-beside-a-memory",
+      "why": "what somebody is to this thread is a note, whatever a memory says of them",
+      "surface": "nightly",
+      "today": "Friday 6 November 2026",
+      "input": {
+        "thread": "Kitchen renovation",
+        "memories": [
+          {
+            "kind": "people",
+            "text": "Ana is their electrician."
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "written_at": "2026-10-31",
+            "theirs": true,
+            "origin": "learned",
+            "text": "Ana is doing the electrics"
+          }
+        ]
+      },
+      "expect": {
+        "no_change": true
+      }
+    },
+    {
+      "id": "a-typed-note-stands-beside-a-memory",
+      "why": "a sentence a person typed stays where they put it, even when a memory says the same",
+      "surface": "nightly",
+      "today": "Friday 6 November 2026",
+      "input": {
+        "thread": "Home",
+        "memories": [
+          {
+            "kind": "people",
+            "text": "Ritu is Meera's mom."
+          }
+        ],
+        "notes": [
+          {
+            "id": "n1",
+            "written_at": "2026-10-31",
+            "theirs": true,
+            "origin": "stated",
+            "text": "Ritu is Meera's mom."
+          }
+        ]
+      },
+      "expect": {
+        "no_change": true
+      }
+    },
+    {
+      "id": "no-memory-shown-the-note-stands",
+      "why": "a shared thread's pass is shown no memories, and with none it cannot know a note is held elsewhere",
+      "surface": "nightly",
+      "today": "Friday 6 November 2026",
+      "input": {
+        "thread": "Home",
+        "notes": [
+          {
+            "id": "n1",
+            "written_at": "2026-10-31",
+            "theirs": true,
+            "origin": "learned",
+            "text": "Ritu is Meera's mom."
+          }
+        ]
+      },
+      "expect": {
+        "no_change": true
+      }
     }
   ]
 }

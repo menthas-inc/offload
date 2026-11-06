@@ -197,3 +197,12 @@ Read as leads, not facts: several sources are leaked prompts or third-party writ
   - consolidation dropping a fact's limits;
   - sycophancy from a condensed profile;
   - one person's memory surfacing where others see it.
+
+## Amended 2026-11-06, the owner
+
+**A memory takes priority over a thread's note when the fact is not about the thread.** The nightly thread pass read "Thursday grocery shopping with Ritu (meera's mom)" and wrote "Ritu is Meera's mom." as a note on Home, and the memory pass, a second later, took it for a memory from that note. The fact sat in both places, and the thread's copy was the wrong one.
+
+- **Learning.** The thread pass writes no note that would stand just as well with the thread gone: who somebody in their life is, what is true of the person. The memory pass reads the same dumps, so nothing is lost. What somebody is to this thread stays a note: "Ana is doing the electrics."
+- **Keeping true.** A note offload wrote that a memory the pass is shown already says, and that is not about the thread, is set aside. A sentence a person typed stands. This reaches a note the live turn filed from a dump of that one sentence, which still has to land somewhere: the live turn never writes a memory unasked (2a).
+- **Shared threads.** A pass in one is shown no memories (section 4), so the second rule has nothing to read there and such a note stands. The first rule needs no memory and holds.
+- **A memory outlives the note it came from.** `sweepMemories` takes a learned memory whose source note has gone, which is right when a person deleted the note and was wrong when offload's own thirty day purge took one it had set aside: this rule would have deleted every memory it deferred to, a month later. `applyCompaction` now gives a note no `purge_after` while a memory cites it, and sets such a note aside when a pass asks to remove it.

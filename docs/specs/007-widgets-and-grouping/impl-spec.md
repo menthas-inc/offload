@@ -169,3 +169,7 @@ The phones' handle pan activates at 250ms, before the row's own 320ms long press
 | OFF-6 | Tick, reprioritise and `set_thread_preference` **added to the allowlist before they ship**. |
 | OFF-7 | The group heading is new surface and gets an entry. |
 | OFF-8 | No prompt growth: the tool adds roughly 80 tokens against a 1,500 budget now at 1,031. |
+
+## Amended 2026-11-06, the owner
+
+**What is finished starts hidden.** `thread_members.hide_done` defaults to true, and migration 0099 sets it for every existing member, since a false never recorded a choice. To do shows its count and chevron, and one press shows the finished rows for that member and thread. The API and clients are unchanged. Folded notes needed nothing: they were already behind Show N folded.

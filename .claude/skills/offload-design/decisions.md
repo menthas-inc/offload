@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-11-06 · Finished to-dos start hidden
+**Surface:** iOS, Android, web (a thread's To do section)
+**Raised by:** the product owner: done tasks and folded notes should both be hidden until somebody asks for them.
+
+**Was:** finished rows showed under the open ones until a member folded them.
+
+**Is:** they start folded for every member of every thread, with the existing count and chevron beside To do as the way to show them. The choice stays per member and per thread. Folded notes already sat behind Show N folded, so they did not change.
+
+**Considered and not taken:** an account-wide setting, which is a second control for what the chevron already does.
+
+**Design system impact:** kits that draw finished rows open under To do should start with them folded. No new token or component.
+
 ### 2026-11-02 · Details in the row sheet, and found actions on every row (050)
 **Surface:** iOS, Android (row, row sheet, viewer, conversation); web (row, edit modal, viewer, conversation)
 **Raised by:** the product owner: a screenshot for a meeting held the number to call, and on the phones it could be neither read nor opened. Off a mock in the session of the same day (Today row, row sheet, viewer), then widened the same day from one Call pill to found actions, 044's PDF actions for anything a dump says (spec 050, reviewed by the project lead, client and security reviewers).

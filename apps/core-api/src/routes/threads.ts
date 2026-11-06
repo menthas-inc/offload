@@ -75,6 +75,7 @@ import { noteAddition } from "../notifications/people.js";
 import { looseSummary } from "../loose/read.js";
 import { shownThreadName } from "../threads/default.js";
 import { markFor, shownThreadHue, shownThreadIcon } from "../threads/icons.js";
+import { tickIn } from "../threads/tick.js";
 import { holdFloor } from "../loose/suggestions.js";
 
 /** 022. The account's default thread cannot be shared or deleted. */
@@ -1198,6 +1199,7 @@ export async function completeContent(
   accountId: string,
   contentId: string,
   done: boolean,
+  now = new Date(),
 ): Promise<{ done: boolean }> {
   const ref = await requireReadable(accountId, contentId);
   const before = await db
@@ -1207,11 +1209,7 @@ export async function completeContent(
     .executeTakeFirstOrThrow();
 
   await db.transaction().execute(async (trx) => {
-    await trx
-      .updateTable("content")
-      .set({ done_at: done ? sql`now()` : null, updated_at: sql`now()` })
-      .where("id", "=", ref.id)
-      .execute();
+    await tickIn(trx, accountId, ref.id, done, now);
     await touchThread(ref.threadId, trx);
     await holdFloor(trx, { contentId: ref.id });
   });
