@@ -72,7 +72,7 @@ describe("tags and grouping retire (AC-30)", () => {
     await db.updateTable("threads").set({ attrs: JSON.stringify({ groupBy: { todo: "city" } }) as never }).where("id", "=", t).execute();
     const bundle = await as(app, await signIn(me)).get(`/v1/threads/${t}`);
     expect(bundle.statusCode).toBe(200);
-    expect(bundle.json().preference).toEqual({});
+    expect(bundle.json().preference.groupBy).toBeUndefined();
   });
 
   it("refuses a tag question at the database", async () => {

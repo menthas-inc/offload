@@ -1009,6 +1009,22 @@ describe("a turn that changes what is already there says so", () => {
     expect(step.threads.map((t) => t.id)).toEqual([threadId]);
     expect(step.changed).toEqual([threadId]);
   });
+
+  it("a tick by the model moves a repeating task on, as a tick on a screen does", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Home");
+    const { jobId } = await dump(accountId, "paid the mortgage");
+    const row = await db
+      .insertInto("content")
+      .values({ account_id: accountId, thread_id: threadId, type: "task", title: "Pay mortgage", due_at: new Date("2026-01-05T12:00:00Z"), rrule: "FREQ=MONTHLY", attrs: JSON.stringify({ all_day: true }) } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const ticked = await tool({ tool: "complete_content", jobId, toolCallId: "c1", contentId: row.id, done: true });
+    expect(ticked.statusCode).toBe(200);
+    const after = await db.selectFrom("content").select(["done_at", "due_at"]).where("id", "=", row.id).executeTakeFirstOrThrow();
+    expect(after.done_at).toBeNull();
+    expect(after.due_at!.getTime()).toBeGreaterThan(Date.now());
+  });
 });
 
 

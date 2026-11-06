@@ -2,9 +2,12 @@
   "note": "the race's first block: a worker's own stake buys it; the flaky cases left out",
   "count": 30,
   "cases": [
+    "a-memory-takes-a-note-about-nothing-here",
+    "after-the-20th",
     "answer-known-fact-still-not-sure",
     "answer-polls-open",
     "answer-porto",
+    "by-tomorrow-is-a-day",
     "date-already-given",
     "date-end-of-month",
     "delete-note",
@@ -14,7 +17,6 @@
     "gibberish-brackets",
     "h-trivia-science",
     "j-condition-named",
-    "literal-duplicate-folds",
     "loose-event-no-time",
     "loose-task-due-by",
     "move-from-inside",
@@ -22,7 +24,6 @@
     "named-shared-calendar-goes-by-name",
     "new-thread-is-worth-a-sentence",
     "no-country-dump-files-without",
-    "past-month-no-year",
     "pasted-confirmation",
     "preserve-truncated",
     "priority-from-words",
@@ -30,7 +31,6 @@
     "q-wifi",
     "read-wifi",
     "reads-and-answers",
-    "rule-applied-to-own-filing",
-    "when-i-get-a-chance"
+    "rule-applied-to-own-filing"
   ]
 }

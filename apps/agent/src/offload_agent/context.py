@@ -615,8 +615,9 @@ UTC = "UTC"
 
 
 def clock_zone(account_zone: str | None, message_zone: str | None) -> str | None:
-    """The zone a dump is read in: the account's clock, else the device's word."""
-    return account_zone or message_zone or None
+    """The zone a dump is read in: where the device was when it was sent, else
+    the account's clock. "Tomorrow" on a trip is the trip's tomorrow."""
+    return message_zone or account_zone or None
 
 
 def known_zone(time_zone: str | None) -> str:
@@ -1320,12 +1321,11 @@ class AnswerContext:
         return self.country_override or self.country
 
 
-# The account's clock first, then the zone the device sent with the message:
-# an answer read in the device's zone while the dump was read
-# in the clock filed the wrong hour from a phone that was somewhere else.
+# As `clock_zone` reads a dump, the device's zone first: an answer and a dump
+# read in two zones filed the wrong hour from a phone that was somewhere else.
 _MESSAGE_ZONE = text(
     """
-    select coalesce(a.time_zone, m.time_zone)
+    select coalesce(m.time_zone, a.time_zone)
       from messages m
       join accounts a on a.id = m.account_id
      where m.id = :message_id and m.account_id = :account_id
@@ -1334,8 +1334,8 @@ _MESSAGE_ZONE = text(
 
 
 async def message_zone(conn: AsyncConnection, *, message_id: str, account_id: str) -> str | None:
-    """The zone the message is read in: the account's clock, else the device's
-    zone the message came with, else None for UTC."""
+    """The zone the message is read in: the device's zone it came with, else
+    the account's clock, else None for UTC."""
     return (
         await conn.execute(_MESSAGE_ZONE, {"message_id": message_id, "account_id": account_id})
     ).scalar()

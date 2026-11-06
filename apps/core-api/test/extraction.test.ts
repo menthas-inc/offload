@@ -476,6 +476,15 @@ describe("arranging a thread", () => {
     return { me, thread: t };
   }
 
+  it("hides what is finished until the person shows it", async () => {
+    const me = await account();
+    const t = await thread(me, "Shopping");
+    const member = await db
+      .selectFrom("thread_members").select("hide_done")
+      .where("thread_id", "=", t).where("account_id", "=", me).executeTakeFirstOrThrow();
+    expect(member.hide_done).toBe(true);
+  });
+
   it("merges a preference rather than replacing it", async () => {
     // Setting the fold must not silently clear the widget order, which is
     // what a straight overwrite would do the second time somebody asks for
@@ -511,7 +520,7 @@ describe("arranging a thread", () => {
     const { me, thread: t } = await own();
     await setPreference(me, t, { widgets: ["files"] });
     const previous = await setPreference(me, t, { widgets: ["todo"] });
-    expect(previous).toEqual({ widgets: ["files"] });
+    expect(previous).toEqual({ widgets: ["files"], hideDone: true });
   });
 
   it("drops a widget kind nobody defined, rather than storing it", async () => {

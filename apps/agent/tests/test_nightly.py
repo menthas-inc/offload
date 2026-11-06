@@ -108,6 +108,22 @@ def test_other_members_notes_never_supply_a_learned_notes_words():
     assert "never supplies words" in nightly.prompt_for(mode="learn")
 
 
+def test_a_memory_takes_priority_over_a_note_about_nothing_in_this_thread():
+    """2026-11-06, the owner. "Ritu is Meera's mom." is what offload knows about
+    them, not what Home knows about itself: never learned as a note, and set
+    aside where a memory already says it."""
+    learn, propose = nightly.prompt_for(mode="learn"), nightly.prompt_for(mode="propose")
+    assert "Give way to a memory" in learn and "Give way to a memory" in propose
+    assert "Do not learn what would stand" in learn
+    assert "Do not learn what would stand" not in propose
+
+
+def test_with_no_memories_shown_the_listing_says_no_note_gives_way():
+    """A shared thread's pass is shown none, and the prompt alone set a note
+    aside two runs in five with nothing holding it."""
+    assert "no note gives way" in nightly.listing(thread_name="Home", today="x", notes=[])
+
+
 def test_the_learning_half_says_what_its_dumps_already_became():
     learn = nightly.prompt_for(mode="learn")
     # The dumps were filed as rows before this pass, and a row is not a note.
