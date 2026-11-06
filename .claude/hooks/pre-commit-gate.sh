@@ -29,8 +29,30 @@ case "$commits" in
     # git top-level, and fall back to CLAUDE_PROJECT_DIR only if neither is a repo.
     invoked_pwd="$PWD"
     cwd="$(printf '%s' "$payload" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("cwd") or "")' 2>/dev/null || true)"
+    # A session in main commits in a worktree with `cd <wt> && git commit` or
+    # `git -C <wt> commit`; the payload's cwd is still main, and following it ran
+    # main's suite for 049's commits while its own web failure went to CI
+    # (2026-10-31). The last cd or -C before the commit names the checkout.
+    named="$(python3 -c '
+import os, shlex, sys
+cwd, cmd = sys.argv[1], sys.argv[2]
+try:
+    words = list(shlex.shlex(cmd, posix=True, punctuation_chars=True))
+except ValueError:
+    sys.exit()
+at = None
+for i, w in enumerate(words):
+    if w == "cd" and i + 1 < len(words):
+        at = words[i + 1]
+    if w == "-C" and i > 0 and words[i - 1] == "git" and i + 1 < len(words):
+        at = words[i + 1]
+    if w == "commit":
+        break
+if at:
+    print(os.path.join(cwd, os.path.expanduser(at)))
+' "${cwd:-$PWD}" "$cmd" 2>/dev/null || true)"
     repo=""
-    for cand in "$cwd" "$invoked_pwd"; do
+    for cand in "$named" "$cwd" "$invoked_pwd"; do
       [ -n "$cand" ] && [ -d "$cand" ] || continue
       repo="$(git -C "$cand" rev-parse --show-toplevel 2>/dev/null || true)"
       [ -n "$repo" ] && break
