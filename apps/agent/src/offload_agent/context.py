@@ -24,7 +24,7 @@ import structlog
 from sqlalchemy import TextClause, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from offload_agent.found import MAX_FOUND, gather
+from offload_agent.found import MAX_FOUND, gather, trim_invitation
 
 log = structlog.get_logger()
 
@@ -324,7 +324,7 @@ class DumpContext:
             local, at, host = self.mail.from_address.rpartition("@")
             host = host.strip().lower()
             sender = host if at and local and 0 < len(host) <= 255 else None
-            words = [*gather(self.mail.note), *gather(self.mail.forwarded)]
+            words = [*gather(self.mail.note), *trim_invitation(gather(self.mail.forwarded))]
             for dest in words[:MAX_FOUND]:
                 add(dest, "mail", "mail", sender)
         elif self.dump:

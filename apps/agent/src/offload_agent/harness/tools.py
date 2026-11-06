@@ -682,6 +682,10 @@ class CreateEvent(BaseModel):
     # one shared with Sam (2026-10-05). Never an id, never a guess, and
     # nothing here decides whether the write is confirmed.
     calendar: str | None = Field(default=None, max_length=120)
+    # The event this row already is, by the `sourceRef` `find_events` returned:
+    # an invitation on their calendar before the email reached offload. Nothing
+    # is written. The server takes only their own event at the row's own moment.
+    event: str | None = Field(default=None, max_length=400)
 
 
 class EditEvent(BaseModel):
@@ -747,6 +751,10 @@ _DESCRIPTIONS.update(
             "calendar gives 'my calendar'), 'my personal calendar', or who it is "
             "shared with, 'my calendar with Sam'. 'The calendar' and 'our "
             "calendar' say none. "
+            "When `find_events` shows the row is already there, give `event` "
+            "that event's `sourceRef`: nothing is written and nothing is "
+            "asked. Refused `different_time` or `unknown_event`: it is not "
+            "that event. "
             "If it needs guests, add them: offload will ask "
             "them to confirm before anybody is emailed. Refused `no_time`: set "
             "the time on that row with `edit_content` and call this again with "

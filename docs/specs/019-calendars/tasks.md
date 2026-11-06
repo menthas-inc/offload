@@ -76,3 +76,11 @@ Found and fixed: the calendar glyph on the phones drew as two pegs and a line si
 
 Not done on the device: Undo of a written event within its eight seconds, which adb cannot tap in time; the API test covers it. The LLM evals for principle 08 have not been run.
 
+## Tweak, 2026-11-06: a forwarded invitation already on the calendar
+
+- [x] `create_event` takes `event`; `rememberEvent` links the row, bounded to the account's own events at the row's moment (AC-12a). *Test:* `thread-calendars.test.ts`, "a row that finds its event".
+- [x] Turn Undo forgets a found row's link and leaves the event. *Test:* same block, seen red with Google's delete called.
+- [x] A cancelled event says so in Activity, named when the row stays and by its day when it goes. *Test:* `calendar-sync-rows.test.ts`, seen red.
+- [x] Security review, each seen red: a cancelled invitation keeps the row, a moved one keeps its title (`calendar-sync-rows.test.ts`); a new date lets the event go (`threads.test.ts`); another person's plan is refused and an all-day event matches by day (`thread-calendars.test.ts`).
+- [x] `plan_v2.md`: an email reads the calendar before `create_event`. Evals under principle 08, the eval stub running the same bound.
+- [x] Evals, 2026-11-06, on `claude-haiku-5-5`, the new cases included in both numbers. Principle 08: 40/49 before, 43/49 after (three runs). Principle 50: 17/19 before, 19/19 after (three runs). Of the six left in 08, five fail on the old prompt too. The sixth, `earlier-rows-go-on-the-calendar-by-id`, came from a rule that read as every turn; reworded to a forwarded email's row only, it passes four of six, and is still open. The five forwarded and typed cases around it pass six of six. A prompt line did not stop the model offering an invitation's reply links and dial-ins, so `trim_invitation` takes them out of the numbered set in code.

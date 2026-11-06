@@ -17,6 +17,7 @@ import { GrantRevoked, type EventDraft } from "./google.js";
 import { outwardLine, readCalendarVerdict, type OutwardVerdict } from "./outward.js";
 import { accessTokenFor, markNeedsReauth } from "./tokens.js";
 import { counted, performWrite, targetFor, verdictFor, writable, type WriteAction } from "./write.js";
+import type { Executor } from "../threads/access.js";
 import type { ScopedCalendar } from "../threads/calendars.js";
 import { deleteContent, setArchived } from "../routes/threads.js";
 
@@ -113,6 +114,56 @@ export async function calendarOfEvent(accountId: string, sourceRef: string): Pro
     .where("n.deleted_at", "is", null)
     .executeTakeFirst();
   return row?.id ?? null;
+}
+
+/** A row that turns out to be an event already on their calendar: an invitation
+ *  that got there before the email reached offload. The row remembers it, so it
+ *  is drawn once and follows the event, and `calendar_found` says offload did
+ *  not write it, which is what stops Undo deleting it (`undoCalendarWrites`).
+ *
+ *  Only an event of their own, as `yours` means it, at the row's own moment: the
+ *  model names the event after reading text a stranger wrote, and somebody
+ *  else's plan on a shared calendar must not stand in for their row. An
+ *  invitation is `untrusted` and still theirs, so that flag does not decide.
+ *  The row keeps an end the email gave it and takes the event's otherwise. */
+export async function rememberEvent(
+  accountId: string,
+  contentId: string,
+  row: { occurs_at: Date | null; occurs_end_at: Date | null; rrule: string | null },
+  sourceRef: string,
+  trx: Executor,
+): Promise<"remembered" | "unknown_event" | "different_time"> {
+  const found = await trx
+    .selectFrom("connector_events as e")
+    .innerJoin("connector_calendars as c", "c.id", "e.calendar_id")
+    .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+    .select(["e.occurs_at", "e.occurs_end_at", "e.all_day", "e.series_ref", "c.external_id"])
+    .where("e.source_ref", "=", sourceRef)
+    .where("e.deleted_at", "is", null)
+    .where("c.selected", "=", true)
+    .where("n.account_id", "=", accountId)
+    .where("n.deleted_at", "is", null)
+    .where(sql<boolean>`(e.created_by_me is true or e.invited_me is true or (e.created_by_me is null and e.invited_me is null))`)
+    .executeTakeFirst();
+  if (!found) return "unknown_event";
+  // An all-day event is a date: Google's is midnight UTC, a row's is noon.
+  const moment = (at: Date | null | undefined) => (found.all_day ? at?.toISOString().slice(0, 10) : at?.getTime());
+  if (moment(found.occurs_at) !== moment(row.occurs_at)) return "different_time";
+  await trx
+    .updateTable("content")
+    .set({
+      // A repeating row remembers the series and draws on each of its days.
+      source_ref: row.rrule && found.series_ref ? `${found.external_id}:${found.series_ref}` : sourceRef,
+      // Google's all-day end is the day after; a row's is the last day.
+      occurs_end_at: row.occurs_end_at ?? (found.all_day ? null : found.occurs_end_at),
+      attrs: sql`attrs || ${JSON.stringify({ calendar: found.external_id, calendar_found: true })}::jsonb`,
+      updated_at: new Date(),
+    })
+    .where("id", "=", contentId)
+    .where("account_id", "=", accountId)
+    .where("deleted_at", "is", null)
+    .execute();
+  return "remembered";
 }
 
 export type ToolWriteOutcome =

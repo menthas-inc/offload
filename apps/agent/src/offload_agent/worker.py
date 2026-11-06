@@ -970,6 +970,7 @@ ARGUMENT_REFUSALS = frozenset(
         "already_on_calendar",
         "no_time",
         "unknown_event",
+        "different_time",
         "invalid_arguments",
     }
 )

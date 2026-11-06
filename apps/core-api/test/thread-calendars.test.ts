@@ -1637,6 +1637,112 @@ describe("AC-11 where a write goes", () => {
   });
 });
 
+describe("forwarded invitations: a row that finds its event", () => {
+  const STARTS = "2026-09-22T15:00:00Z";
+  /** The invitation, already on their calendar, and the row an email filed. */
+  async function invited(over: { at?: string; extraCalendar?: boolean; rule?: string } = {}) {
+    const me = await account();
+    const t = await thread(me);
+    const conn = await connection(me);
+    const id = await calendar(conn, { externalId: "cal-mine" });
+    // Two approved calendars and no pick is the case that used to ask.
+    if (over.extraCalendar) await calendar(conn, { externalId: "cal-other", summary: "Other" });
+    const sourceRef = "cal-mine:invite-1";
+    await event(me, id, "Design review", STARTS, { sourceRef, invitedMe: true, createdByMe: false, untrusted: true });
+    const turn = await dump(me, t);
+    const contentId = await row(me, t, "Design review", turn.messageId, over.at ?? STARTS);
+    if (over.rule) await db.updateTable("content").set({ rrule: over.rule }).where("id", "=", contentId).execute();
+    return { me, t, id, sourceRef, contentId, ...turn };
+  }
+  const held = (id: string) =>
+    db.selectFrom("content").select(["source_ref", "occurs_end_at", "attrs", "deleted_at"]).where("id", "=", id).executeTakeFirstOrThrow();
+
+  it("writes nothing and asks nothing: the row remembers the event", async () => {
+    const { jobId, contentId, sourceRef } = await invited({ extraCalendar: true });
+    const result = (await tool({ tool: "create_event", jobId, toolCallId: "f1", contentId, event: sourceRef })).json();
+    expect(result).toEqual({ ok: true, alreadyOn: true });
+    expect(google.createEvent).not.toHaveBeenCalled();
+    expect(await db.selectFrom("questions").select("id").execute()).toEqual([]);
+    expect((await held(contentId)).source_ref).toBe(sourceRef);
+  });
+
+  it("the row takes the event's end when the email gave none, and keeps the email's when it did", async () => {
+    const bare = await invited();
+    await tool({ tool: "create_event", jobId: bare.jobId, toolCallId: "f2", contentId: bare.contentId, event: bare.sourceRef });
+    expect((await held(bare.contentId)).occurs_end_at?.toISOString()).toBe("2026-09-22T16:00:00.000Z");
+
+    const told = await invited();
+    const end = new Date("2026-09-22T15:45:00Z");
+    await db.updateTable("content").set({ occurs_end_at: end }).where("id", "=", told.contentId).execute();
+    await tool({ tool: "create_event", jobId: told.jobId, toolCallId: "f3", contentId: told.contentId, event: told.sourceRef });
+    expect((await held(told.contentId)).occurs_end_at?.toISOString()).toBe(end.toISOString());
+  });
+
+  it("an event at another time is not this one", async () => {
+    const { jobId, contentId, sourceRef } = await invited({ at: "2026-09-22T17:00:00Z" });
+    const result = (await tool({ tool: "create_event", jobId, toolCallId: "f4", contentId, event: sourceRef })).json();
+    expect(result).toEqual({ ok: false, error: "different_time" });
+    expect((await held(contentId)).source_ref).toBeNull();
+  });
+
+  it("an event on somebody else's calendar is unknown", async () => {
+    const other = await account("Sam Reis");
+    const theirs = await calendar(await connection(other), { externalId: "cal-theirs" });
+    await event(other, theirs, "Design review", STARTS, { sourceRef: "cal-theirs:x" });
+    const { jobId, contentId } = await invited();
+    const result = (await tool({ tool: "create_event", jobId, toolCallId: "f5", contentId, event: "cal-theirs:x" })).json();
+    expect(result).toEqual({ ok: false, error: "unknown_event" });
+  });
+
+  it("somebody else's plan on a calendar they read is not their invitation", async () => {
+    const { jobId, contentId, sourceRef } = await invited();
+    await db.updateTable("connector_events").set({ created_by_me: false, invited_me: false }).where("source_ref", "=", sourceRef).execute();
+    const result = (await tool({ tool: "create_event", jobId, toolCallId: "f8", contentId, event: sourceRef })).json();
+    expect(result).toEqual({ ok: false, error: "unknown_event" });
+  });
+
+  it("an all-day event is the row's day: a row keeps noon UTC, Google midnight", async () => {
+    const { jobId, contentId, sourceRef } = await invited({ at: "2026-09-22T12:00:00Z" });
+    await db.updateTable("content").set({ attrs: sql`attrs || '{"all_day":true}'::jsonb` }).where("id", "=", contentId).execute();
+    await db.updateTable("connector_events").set({ all_day: true, occurs_at: new Date("2026-09-22T00:00:00Z"), occurs_end_at: new Date("2026-09-23T00:00:00Z") }).where("source_ref", "=", sourceRef).execute();
+    const result = (await tool({ tool: "create_event", jobId, toolCallId: "f9", contentId, event: sourceRef })).json();
+    expect(result).toEqual({ ok: true, alreadyOn: true });
+    expect((await held(contentId)).occurs_end_at).toBeNull();
+  });
+
+  it("the row reads as off the calendar, so its date stays theirs to change", async () => {
+    const { me, t, jobId, contentId, sourceRef } = await invited();
+    await tool({ tool: "create_event", jobId, toolCallId: "f10", contentId, event: sourceRef });
+    const cookie = await signIn(me);
+    const page = JSON.stringify((await get(`/v1/threads/${t}/content`, cookie)).json());
+    expect(page).toContain(contentId);
+    expect(page).toContain('"onCalendar":false');
+    expect(page).not.toContain('"onCalendar":true');
+  });
+
+  it("a repeating row remembers the series, as one offload put up does", async () => {
+    const { jobId, contentId, sourceRef } = await invited({ rule: "FREQ=WEEKLY" });
+    await db.updateTable("connector_events").set({ series_ref: "weekly-1" }).where("source_ref", "=", sourceRef).execute();
+    await tool({ tool: "create_event", jobId, toolCallId: "f6", contentId, event: sourceRef });
+    expect((await held(contentId)).source_ref).toBe("cal-mine:weekly-1");
+  });
+
+  it("Undo takes the row back and leaves the event: offload never wrote it", async () => {
+    const { me, jobId, contentId, sourceRef, messageId, conversationId, turnId } = await invited();
+    await tool({ tool: "create_event", jobId, toolCallId: "f7", contentId, event: sourceRef });
+    await db.updateTable("messages").set({ state: "answered" }).where("id", "=", messageId).execute();
+    await db.updateTable("conversations").set({ last_message_at: new Date() }).where("id", "=", conversationId).execute();
+
+    const cookie = await signIn(me);
+    const undone = await app.inject({ method: "POST", url: `/v1/turns/${turnId}/undo`, headers: { cookie } });
+    expect(undone.statusCode).toBe(200);
+    expect(google.deleteEvent).not.toHaveBeenCalled();
+    const copy = await db.selectFrom("connector_events").select("deleted_at").where("source_ref", "=", sourceRef).executeTakeFirstOrThrow();
+    expect(copy.deleted_at).toBeNull();
+    expect((await held(contentId)).deleted_at).not.toBeNull();
+  });
+});
+
 describe("AC-11, AC-17 a tapped calendar answer", () => {
   async function askedQuestion(me: string, t: string, calendars: string[], picksOnAnswer: boolean) {
     const { jobId, messageId, conversationId } = await dump(me, t);

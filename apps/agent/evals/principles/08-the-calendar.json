@@ -7,7 +7,8 @@
     "plan_v2.md: Their calendar",
     "answer.md: the calendar lines",
     "harness/tools.py: create_event takes content_id; edit_content takes a time; scope is one or following",
-    "harness/tools.py: create_event takes calendar, their words for which calendar: a name, 'my calendar', or who it is shared with"
+    "harness/tools.py: create_event takes calendar, their words for which calendar: a name, 'my calendar', or who it is shared with",
+    "019 amended 2026-11-06: an email about something already on their calendar"
   ],
   "cases": [
     {
@@ -1036,6 +1037,219 @@
           }
         ],
         "rubric": "Calls create_event with the ids of the rows already in the thread, e2 and e3 at least, and files no new row. Says nothing about which calendar or about Settings; done is silent, or at most one short line."
+      }
+    },
+    {
+      "id": "forwarded-invite-already-on-the-calendar",
+      "why": "the row finds its event: a second one would be a duplicate, and offload would ask which calendar for it",
+      "surface": "file",
+      "input": "",
+      "context": "calendar",
+      "mail": {
+        "subject": "Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)",
+        "from_name": "Dana Reis",
+        "from_address": "dana@northwind.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Dana Reis <dana@northwind.test>\nDate: Mon, 7 Sep 2026\nSubject: Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)\n\nDesign review\nWhen: Thursday 17 September 2026, 2pm to 2:45pm (Lisbon)\nWhere: Room 4, Northwind studio\nOrganizer: Dana Reis\nAgenda: the new checkout screens.\n\nGoing? Yes https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=1\nNo https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=2\nMaybe https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=3\n"
+      },
+      "events": [
+        {
+          "sourceRef": "cal-1:invite-abc",
+          "title": "Design review (Dana Reis)",
+          "startsAt": "2026-09-17T13:00:00Z",
+          "untrusted": true
+        }
+      ],
+      "calendar_write": "asked",
+      "expect": {
+        "before": [
+          [
+            "find_events",
+            "create_event"
+          ]
+        ],
+        "calls_with": [
+          {
+            "tool": "create_event",
+            "args": {
+              "event": "cal-1:invite-abc"
+            }
+          }
+        ],
+        "filed": [
+          {
+            "type": "event",
+            "date": "2026-09-17",
+            "end": "2026-09-17T14:45"
+          }
+        ],
+        "filed_count": 1,
+        "say_not": [
+          "could_not_do"
+        ]
+      }
+    },
+    {
+      "id": "forwarded-invite-not-on-the-calendar-goes-on",
+      "why": "nothing there at that time, so it goes on as any appointment does",
+      "surface": "file",
+      "input": "",
+      "context": "calendar",
+      "mail": {
+        "subject": "Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)",
+        "from_name": "Dana Reis",
+        "from_address": "dana@northwind.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Dana Reis <dana@northwind.test>\nDate: Mon, 7 Sep 2026\nSubject: Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)\n\nDesign review\nWhen: Thursday 17 September 2026, 2pm to 2:45pm (Lisbon)\nWhere: Room 4, Northwind studio\nOrganizer: Dana Reis\nAgenda: the new checkout screens.\n\nGoing? Yes https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=1\nNo https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=2\nMaybe https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=3\n"
+      },
+      "events": [],
+      "expect": {
+        "before": [
+          [
+            "find_events",
+            "create_event"
+          ]
+        ],
+        "called": [
+          "create_event"
+        ],
+        "filed": [
+          {
+            "type": "event",
+            "date": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "another-event-at-that-time-is-not-this-one",
+      "why": "a double booking is two events: the dentist is not the design review",
+      "surface": "file",
+      "input": "",
+      "context": "calendar",
+      "mail": {
+        "subject": "Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)",
+        "from_name": "Dana Reis",
+        "from_address": "dana@northwind.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Dana Reis <dana@northwind.test>\nDate: Mon, 7 Sep 2026\nSubject: Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)\n\nDesign review\nWhen: Thursday 17 September 2026, 2pm to 2:45pm (Lisbon)\nWhere: Room 4, Northwind studio\nOrganizer: Dana Reis\nAgenda: the new checkout screens.\n\nGoing? Yes https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=1\nNo https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=2\nMaybe https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=3\n"
+      },
+      "events": [
+        {
+          "sourceRef": "cal-1:dentist",
+          "title": "Dentist",
+          "startsAt": "2026-09-17T13:00:00Z"
+        }
+      ],
+      "expect": {
+        "called": [
+          "create_event"
+        ],
+        "calls_with_none": [
+          {
+            "tool": "create_event",
+            "args": {
+              "event": "cal-1:dentist"
+            }
+          }
+        ],
+        "filed": [
+          {
+            "type": "event",
+            "date": "2026-09-17"
+          }
+        ]
+      }
+    },
+    {
+      "id": "a-typed-appointment-does-not-look-first",
+      "why": "only an email may have got there by itself: a typed dentist costs no extra read",
+      "surface": "file",
+      "input": "dentist tuesday 3pm",
+      "context": "calendar",
+      "expect": {
+        "called": [
+          "create_event"
+        ],
+        "not_called": [
+          "find_events"
+        ]
+      }
+    },
+    {
+      "id": "forwarded-all-day-invite-already-on-the-calendar",
+      "why": "an all-day event is a date, and the row finds it on that day",
+      "surface": "file",
+      "input": "",
+      "context": "calendar",
+      "mail": {
+        "subject": "Invitation: Offsite @ Thu 17 Sep 2026 (all day)",
+        "from_name": "Northwind events",
+        "from_address": "events@northwind.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Northwind events <events@northwind.test>\nSubject: Invitation: Offsite @ Thu 17 Sep 2026 (all day)\n\nNorthwind offsite\nWhen: Thursday 17 September 2026, all day\nWhere: Lisbon office\n"
+      },
+      "events": [
+        {
+          "sourceRef": "cal-1:offsite",
+          "title": "Northwind offsite",
+          "startsAt": "2026-09-17T00:00:00Z",
+          "allDay": true,
+          "untrusted": true
+        }
+      ],
+      "calendar_write": "asked",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "create_event",
+            "args": {
+              "event": "cal-1:offsite"
+            }
+          }
+        ],
+        "filed": [
+          {
+            "type": "event",
+            "date": "2026-09-17"
+          }
+        ],
+        "filed_count": 1
+      }
+    },
+    {
+      "id": "somebody-elses-plan-at-that-time-is-not-this-one",
+      "why": "a partner's event on a shared calendar is not on theirs, even with the same words: the server refuses it and the row goes on",
+      "surface": "file",
+      "input": "",
+      "context": "calendar",
+      "mail": {
+        "subject": "Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)",
+        "from_name": "Dana Reis",
+        "from_address": "dana@northwind.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Dana Reis <dana@northwind.test>\nDate: Mon, 7 Sep 2026\nSubject: Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)\n\nDesign review\nWhen: Thursday 17 September 2026, 2pm to 2:45pm (Lisbon)\nWhere: Room 4, Northwind studio\nOrganizer: Dana Reis\nAgenda: the new checkout screens.\n\nGoing? Yes https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=1\nNo https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=2\nMaybe https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=3\n"
+      },
+      "events": [
+        {
+          "sourceRef": "cal-2:partner",
+          "title": "Design review",
+          "startsAt": "2026-09-17T13:00:00Z",
+          "yours": false,
+          "untrusted": true
+        }
+      ],
+      "expect": {
+        "called": [
+          "create_event"
+        ],
+        "filed": [
+          {
+            "type": "event",
+            "date": "2026-09-17"
+          }
+        ],
+        "filed_count": 1
       }
     }
   ]

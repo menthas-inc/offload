@@ -24,6 +24,9 @@ import { refreshCalendars } from "./calendars.js";
 import { bookLocate } from "../places/resolve.js";
 import { deleteContent, moveContentIn } from "../routes/threads.js";
 import { defaultThreadOf } from "../loose/read.js";
+import { zoneOf } from "../accounts/zone.js";
+import { record } from "../notifications/activity.js";
+import { canceledCopy, dayLabel } from "../notifications/copy.js";
 
 const DAYS_BACK = 60;
 const MONTHS_FORWARD = 12;
@@ -358,7 +361,9 @@ async function followChange(accountId: string, calendarId: string, mapped: Mappe
   await db
     .updateTable("content")
     .set({
-      ...(retitled ? { title: mapped.title } : {}),
+      // A row that only found its event keeps its own words: an invitation's
+      // title is its organiser's, and the row is what goes in later prompts.
+      ...(retitled ? { title: sql<string>`case when attrs ? 'calendar_found' then title else ${mapped.title} end` } : {}),
       ...(moved ? { occurs_at: mapped.occursAt, attrs: sql`attrs || ${JSON.stringify({ all_day: mapped.allDay })}::jsonb` } : {}),
       ...(stretched ? { occurs_end_at: end } : {}),
       updated_at: new Date(),
@@ -373,7 +378,7 @@ async function followChange(accountId: string, calendarId: string, mapped: Mappe
  *  offload takes them, with no Undo since offload was not asked.
  *
  *  A row remembering a series goes only once the copy holds none of the
- *  series. A row carrying a photo is not destroyed with an appointment: it
+ *  series. A row that only found its event stays, forgetting it. A row carrying a photo is not destroyed with an appointment: it
  *  stops being an event and goes loose, photo and all. The account's own rows
  *  only, as the calendar is. Never failing the pass: the copy is right by now. */
 async function letGo(accountId: string, calendarId: string, calendarExternalId: string, gone: Gone): Promise<void> {
@@ -391,7 +396,9 @@ async function letGo(accountId: string, calendarId: string, calendarExternalId: 
   if (refs.length === 0) return;
   const rows = await db
     .selectFrom("content")
-    .select("id")
+    .select(["id", "title", "thread_id", "occurs_at"])
+    .select(sql<boolean>`attrs ? 'calendar_found'`.as("found"))
+    .select(sql<boolean>`coalesce((attrs ->> 'all_day')::boolean, false)`.as("allDay"))
     .select((eb) =>
       eb
         .exists(eb.selectFrom("content_blobs").select("blob_id").whereRef("content_blobs.content_id", "=", "content.id"))
@@ -401,8 +408,30 @@ async function letGo(accountId: string, calendarId: string, calendarExternalId: 
     .where("source_ref", "in", refs)
     .where("deleted_at", "is", null)
     .execute();
+  const zone = rows.length > 0 ? await zoneOf(accountId) : null;
   for (const row of rows) {
     try {
+      // Quiet, like a move: nobody asked offload, and the words are a row's.
+      const day = row.occurs_at ? dayLabel(row.occurs_at, row.allDay, zone) : null;
+      const stays = row.found || row.photo;
+      await record(accountId, {
+        kind: "moved",
+        sent: false,
+        reason: "design",
+        ...canceledCopy(stays ? row.title : null, day),
+        threadId: row.thread_id,
+        contentId: stays ? row.id : null,
+      });
+      // Filed from a dump, not made by the event: somebody cancelling a meeting
+      // does not delete what the person forwarded. It only forgets the event.
+      if (row.found) {
+        await db
+          .updateTable("content")
+          .set({ source_ref: null, attrs: sql`attrs - 'calendar' - 'calendar_found'`, updated_at: new Date() })
+          .where("id", "=", row.id)
+          .execute();
+        continue;
+      }
       if (!row.photo) {
         await deleteContent(accountId, row.id);
         continue;

@@ -2278,6 +2278,18 @@ async function undoCalendarWrites(accountId: string, turnId: string, since?: str
   // is moved back before the add is taken off.
   await undoToolWrites(accountId, turnId, since);
 
+  // A row that found its event did not write it: the event was theirs before
+  // this turn and stays. The row only forgets it, which lets the row go.
+  await db
+    .updateTable("content")
+    .set({ source_ref: null, attrs: sql`attrs - 'calendar' - 'calendar_found'` })
+    .where("account_id", "=", accountId)
+    .where("derived_from_message_id", "in", (eb) => eb.selectFrom("messages").select("id").where("turn_id", "=", turnId))
+    .where(sql<boolean>`attrs ? 'calendar_found'`)
+    .where("deleted_at", "is", null)
+    .$if(since !== undefined, (qb) => qb.where("updated_at", "<=", sql<Date>`${since}::timestamptz`))
+    .execute();
+
   // Rows this turn filed and then put on a calendar, and rows a tapped answer
   // in this turn put on one: both remember their event in `source_ref`.
   const filed = await db

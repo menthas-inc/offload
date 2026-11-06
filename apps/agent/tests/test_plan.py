@@ -1132,7 +1132,11 @@ def test_create_event_carries_the_calendar_they_named_and_nothing_else_about_whe
     args = schema.model_validate({"content_id": "c1", "calendar": "P**B"})
     assert _camel(args.model_dump(exclude_none=True)) == {"contentId": "c1", "calendar": "P**B"}
     assert schema.model_validate({"content_id": "c1"}).calendar is None
-    assert set(schema.model_fields) == {"content_id", "location", "guests", "calendar"}
+    assert set(schema.model_fields) == {"content_id", "location", "guests", "calendar", "event"}
+    # A forwarded invitation already on their calendar: the row names the event
+    # it is, by the reference `find_events` returned, and nothing is written.
+    linked = schema.model_validate({"content_id": "c1", "event": "cal-1:abc"})
+    assert _camel(linked.model_dump(exclude_none=True)) == {"contentId": "c1", "event": "cal-1:abc"}
 
     described = next(t for t in CALENDAR_TOOL_DEFS if t["name"] == "create_event")
     # 2026-10-05. "My calendar" and who a calendar is shared with say which

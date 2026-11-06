@@ -566,6 +566,12 @@ function allDayOf(attrs: unknown): boolean {
   return (attrs as Record<string, unknown>)["all_day"] === true;
 }
 
+/** The row found an event offload never wrote. Its time is not Google's to
+ *  keep from them: a new date lets the event go instead of being refused. */
+function foundItsEvent(attrs: unknown): boolean {
+  return typeof attrs === "object" && attrs !== null && (attrs as Record<string, unknown>)["calendar_found"] === true;
+}
+
 function seriesRefOf(attrs: unknown): string | null {
   if (typeof attrs !== "object" || attrs === null) return null;
   const ref = (attrs as Record<string, unknown>)["series_ref"];
@@ -662,7 +668,7 @@ export function toRow(row: RawRow, viewerId: string) {
     occursAt: row.occurs_at ? row.occurs_at.toISOString() : null,
     occursEndAt: row.occurs_end_at ? row.occurs_end_at.toISOString() : null,
     rrule: row.rrule,
-    onCalendar: row.source_ref !== null,
+    onCalendar: row.source_ref !== null && !foundItsEvent(row.attrs),
     isReminder: row.is_reminder,
     // 042. Filled in by `withPhotos`, with the labels.
     reminders: null as "on" | "off" | null,
@@ -861,7 +867,8 @@ export async function editContent(
       !same(occursEndAt, before.occurs_end_at) ||
       allDay !== wasAllDay ||
       rule !== before.rrule;
-    if (dated && before.source_ref) throw new Refused("on_calendar");
+    const found = foundItsEvent(before.attrs);
+    if (dated && before.source_ref && !found) throw new Refused("on_calendar");
 
     if (dated) {
       Object.assign(set, {
@@ -869,7 +876,10 @@ export async function editContent(
         occurs_at: occursAt,
         occurs_end_at: occursEndAt,
         rrule: rule,
-        attrs: sql`attrs || ${JSON.stringify({ all_day: allDay })}::jsonb`,
+        attrs: found
+          ? sql`(attrs - 'calendar' - 'calendar_found') || ${JSON.stringify({ all_day: allDay })}::jsonb`
+          : sql`attrs || ${JSON.stringify({ all_day: allDay })}::jsonb`,
+        ...(found ? { source_ref: null } : {}),
       });
     }
 
