@@ -115,6 +115,27 @@ def test_a_fixture_row_is_a_row_create_event_can_take():
     assert _call(case, "create_event", {"content_id": "e9"})["error"] == "unknown_content"
 
 
+def test_a_row_finding_its_event_runs_the_server_s_bound():
+    # The Core API refuses an event it does not hold and one at another moment.
+    # A stub that took any `event` would pass a model that links a double
+    # booking, so it compares the row's time, read in the case's zone.
+    case = _case_with_rows(
+        [
+            {"contentId": "e1", "type": "event", "title": "Review", "occursAt": "2026-09-17T14:00"},
+            {"contentId": "e2", "type": "event", "title": "Lunch", "occursAt": "2026-09-17T12:00"},
+        ]
+    )
+    case.fixture["events"] = [
+        {"sourceRef": "cal-1:r", "title": "Review", "startsAt": "2026-09-17T13:00:00Z"}
+    ]
+    found = _call(case, "create_event", {"content_id": "e1", "event": "cal-1:r"})
+    assert found == {"ok": True, "alreadyOn": True}
+    other = _call(case, "create_event", {"content_id": "e2", "event": "cal-1:r"})
+    assert other["error"] == "different_time"
+    unknown = _call(case, "create_event", {"content_id": "e1", "event": "e1"})
+    assert unknown["error"] == "unknown_event"
+
+
 # ------------------------------------------------------------------ 050 actions
 
 

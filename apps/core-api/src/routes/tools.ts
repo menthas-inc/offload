@@ -66,7 +66,7 @@ import {
   setPreference,
   type Action,
 } from "./threads.js";
-import { calendarOfEvent, findEvents, summarise, writeThroughTool } from "../connectors/tool-calls.js";
+import { calendarOfEvent, findEvents, rememberEvent, summarise, writeThroughTool } from "../connectors/tool-calls.js";
 import { approvedWritable, calendarsNamed, turnScope, writablePicks } from "../threads/calendars.js";
 import { raiseCalendarQuestion } from "../questions.js";
 import { shownToModel } from "../threads/default.js";
@@ -456,6 +456,10 @@ const body = z.discriminatedUnion("tool", [
      *  those and decides nothing else. Whether the write is put to them
      *  first is still the server's test on the calendar it lands on. */
     calendar: z.string().max(120).nullish(),
+    /** The event this row already is, from `find_events`: an invitation that
+     *  reached their calendar before the email reached offload. Nothing is
+     *  written and nothing is asked; the row remembers it. */
+    event: z.string().min(1).max(400).nullish(),
   }),
   z.strictObject({
     tool: z.literal("share_thread"),
@@ -646,6 +650,8 @@ const result = z.union([
   z.object({ ok: z.literal(true), asked: z.literal(true) }),
   /** 019. Nothing approved to write to. The row stays a row; nothing is said. */
   z.object({ ok: z.literal(true), noCalendar: z.literal(true) }),
+  /** The row found its event: written by nobody here, so nothing to say. */
+  z.object({ ok: z.literal(true), alreadyOn: z.literal(true) }),
   /** 038. What the memory tool did. */
   z.object({ ok: z.literal(true), remembered: z.object({ id: z.string() }) }),
   z.object({ ok: z.literal(true), forgot: z.object({ id: z.string() }) }),
@@ -693,6 +699,8 @@ const result = z.union([
       "already_on_calendar",
       "no_time",
       "unknown_event",
+      // A row claimed to be an event that starts at another moment.
+      "different_time",
       // 022. Nobody by that name among their connections, or the default
       // thread, or a share the sheet would refuse.
       "unknown_person",
@@ -783,6 +791,7 @@ type Outcome =
   | { ok: true; waitingForThem: true; because: string }
   | { ok: true; asked: true }
   | { ok: true; noCalendar: true }
+  | { ok: true; alreadyOn: true }
   | { ok: true; remembered: { id: string } }
   | { ok: true; forgot: { id: string } }
   | {
@@ -814,6 +823,7 @@ type Outcome =
         | "already_on_calendar"
         | "no_time"
         | "unknown_event"
+        | "different_time"
         | "bad_date"
         | "bad_rule"
         | "thread_memory_full"
@@ -1502,6 +1512,10 @@ async function existing(
     }
     if (detail.source_ref) return { ok: false, error: "already_on_calendar" };
     if (!detail.occurs_at) return { ok: false, error: "no_time" };
+    if (call.event) {
+      const found = await rememberEvent(accountId, row.id, detail, call.event, trx);
+      return found === "remembered" ? { ok: true, alreadyOn: true } : { ok: false, error: found };
+    }
 
     const write: WriteAction = {
       action: "create",

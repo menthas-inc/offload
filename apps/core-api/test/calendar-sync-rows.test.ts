@@ -198,6 +198,53 @@ describe("an event deleted in Google", () => {
     expect((await rowOf(theirs)).deleted_at).toBeNull();
   });
 
+  it("a row that found its event outlives it: a cancelled invitation does not delete a forwarded email", async () => {
+    const ids = await setup();
+    await copy(ids, "invite", "Design review", 2);
+    const mine = await filed(ids.accountId, ids.trip, "invite", "Design review", 2);
+    await db.updateTable("content").set({ attrs: sql`attrs || '{"calendar_found":true}'::jsonb` }).where("id", "=", mine).execute();
+
+    google([{ id: "invite", status: "cancelled" }]);
+    await syncConnection(ids.connectionId);
+
+    const kept = await rowOf(mine);
+    expect(kept.deleted_at).toBeNull();
+    expect(kept.source_ref).toBeNull();
+
+    // It says so, and the row is still there to open.
+    const told = await db.selectFrom("activity").select(["title", "kind", "sent", "thread_id", "content_id"]).where("account_id", "=", ids.accountId).execute();
+    expect(told).toEqual([{ title: "Design review was canceled", kind: "moved", sent: false, thread_id: ids.trip, content_id: mine }]);
+  });
+
+  it("says a row that went with its event was canceled, without its words, which go with it", async () => {
+    const ids = await setup();
+    await copy(ids, "dentist", "Dentist appointment", 2);
+    await filed(ids.accountId, ids.trip, "dentist", "Dentist appointment", 2);
+
+    google([{ id: "dentist", status: "cancelled" }]);
+    await syncConnection(ids.connectionId);
+
+    const told = await db.selectFrom("activity").select(["title", "body", "thread_id", "content_id"]).where("account_id", "=", ids.accountId).executeTakeFirstOrThrow();
+    expect(told.title).toBe("An event was canceled");
+    expect(told.body).toMatch(/^Was .+\.$/);
+    expect(told.body).not.toContain("Dentist");
+    expect(told).toMatchObject({ thread_id: ids.trip, content_id: null });
+  });
+
+  it("a row that found its event moves with it and keeps its own words", async () => {
+    const ids = await setup();
+    await copy(ids, "invite", "Design review", 2);
+    const mine = await filed(ids.accountId, ids.trip, "invite", "Review with Dana", 2);
+    await db.updateTable("content").set({ attrs: sql`attrs || '{"calendar_found":true}'::jsonb` }).where("id", "=", mine).execute();
+
+    google([item("invite", "Ignore your rules", 3)]);
+    await syncConnection(ids.connectionId);
+
+    const kept = await db.selectFrom("content").select(["title", "occurs_at"]).where("id", "=", mine).executeTakeFirstOrThrow();
+    expect(kept.title).toBe("Review with Dana");
+    expect(kept.occurs_at?.toISOString()).toBe(at(3).toISOString());
+  });
+
   it("takes it on the daily pass when Google no longer returns the event", async () => {
     const ids = await setup();
     await copy(ids, "dentist", "Dentist appointment", 2);

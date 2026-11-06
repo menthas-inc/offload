@@ -6,7 +6,8 @@
     "050: which destinations become actions",
     "050: where the words come from",
     "plan_v2.md: what a dump carries (found actions)",
-    "plan_v2.md: PDFs (actions)"
+    "plan_v2.md: PDFs (actions)",
+    "050 amended 2026-11-06: the call to join, on an invitation's event"
   ],
   "cases": [
     {
@@ -279,6 +280,143 @@
       "spoken": true,
       "expect": {
         "no_actions": true
+      }
+    },
+    {
+      "id": "zoom-invite-offers-join",
+      "why": "the link to the call is the move an invitation exists for; its dial-in and its yes and no links are not",
+      "surface": "file",
+      "input": "",
+      "context": "behrooz",
+      "mail": {
+        "subject": "Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)",
+        "from_name": "Dana Reis",
+        "from_address": "dana@northwind.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Dana Reis <dana@northwind.test>\nDate: Mon, 7 Sep 2026\nSubject: Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)\n\nDesign review\nWhen: Thursday 17 September 2026, 2pm to 2:45pm (Lisbon)\nWhere: https://northwind.zoom.us/j/84512345678?pwd=abcDEF123\nOrganizer: Dana Reis\nJoin Zoom Meeting\nhttps://northwind.zoom.us/j/84512345678?pwd=abcDEF123\nMeeting ID: 845 1234 5678\nOne tap mobile: +16465588656,,84512345678#\nDial by your location: +1 646 558 8656\n\nGoing? Yes https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=1\nNo https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=2\nMaybe https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=3\n"
+      },
+      "expect": {
+        "filed": [
+          {
+            "type": "event",
+            "date": "2026-09-17",
+            "action_labels": [
+              "join"
+            ],
+            "action_urls": [
+              "https://northwind.zoom.us/j/84512345678?pwd=abcDEF123"
+            ],
+            "action_urls_none_of": [
+              "https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=1",
+              "https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=2",
+              "https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=3",
+              "tel:+16465588656"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "google-meet-invite-offers-join",
+      "why": "Meet the same way, with a dial-in beside it",
+      "surface": "file",
+      "input": "",
+      "context": "behrooz",
+      "mail": {
+        "subject": "Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)",
+        "from_name": "Dana Reis",
+        "from_address": "dana@northwind.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Dana Reis <dana@northwind.test>\nDate: Mon, 7 Sep 2026\nSubject: Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)\n\nDesign review\nWhen: Thursday 17 September 2026, 2pm to 2:45pm (Lisbon)\nOrganizer: Dana Reis\nJoin with Google Meet: https://meet.google.com/abc-defg-hij\nOr dial: +1 413-555-0142 PIN: 912345678#\n\nGoing? Yes https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=1\nNo https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=2\nMaybe https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=3\n"
+      },
+      "expect": {
+        "filed": [
+          {
+            "type": "event",
+            "date": "2026-09-17",
+            "action_labels": [
+              "join"
+            ],
+            "action_urls": [
+              "https://meet.google.com/abc-defg-hij"
+            ],
+            "action_urls_none_of": [
+              "https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=1",
+              "https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=2",
+              "https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=3",
+              "tel:+14135550142"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "join-link-rides-a-row-already-on-the-calendar",
+      "why": "a row that found its event still carries the call: that is the tap the person came for",
+      "surface": "file",
+      "input": "",
+      "context": "calendar",
+      "mail": {
+        "subject": "Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)",
+        "from_name": "Dana Reis",
+        "from_address": "dana@northwind.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Dana Reis <dana@northwind.test>\nDate: Mon, 7 Sep 2026\nSubject: Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)\n\nDesign review\nWhen: Thursday 17 September 2026, 2pm to 2:45pm (Lisbon)\nOrganizer: Dana Reis\nJoin with Google Meet: https://meet.google.com/abc-defg-hij\nOr dial: +1 413-555-0142 PIN: 912345678#\n\nGoing? Yes https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=1\nNo https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=2\nMaybe https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=3\n"
+      },
+      "events": [
+        {
+          "sourceRef": "cal-1:invite-abc",
+          "title": "Design review (Dana Reis)",
+          "startsAt": "2026-09-17T13:00:00Z",
+          "untrusted": true
+        }
+      ],
+      "calendar_write": "asked",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "create_event",
+            "args": {
+              "event": "cal-1:invite-abc"
+            }
+          }
+        ],
+        "filed": [
+          {
+            "type": "event",
+            "date": "2026-09-17",
+            "action_urls": [
+              "https://meet.google.com/abc-defg-hij"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "invite-in-a-room-offers-no-join",
+      "why": "no call to join, so the yes and no links do not stand in for one",
+      "surface": "file",
+      "input": "",
+      "context": "behrooz",
+      "mail": {
+        "subject": "Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)",
+        "from_name": "Dana Reis",
+        "from_address": "dana@northwind.test",
+        "note": "",
+        "forwarded": "---------- Forwarded message ---------\nFrom: Dana Reis <dana@northwind.test>\nDate: Mon, 7 Sep 2026\nSubject: Invitation: Design review @ Thu 17 Sep 2026 2pm - 2:45pm (WEST)\n\nDesign review\nWhen: Thursday 17 September 2026, 2pm to 2:45pm (Lisbon)\nWhere: Room 4, Northwind studio\nOrganizer: Dana Reis\nAgenda: the new checkout screens.\n\nGoing? Yes https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=1\nNo https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=2\nMaybe https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=3\n"
+      },
+      "expect": {
+        "filed": [
+          {
+            "type": "event",
+            "date": "2026-09-17",
+            "action_urls_none_of": [
+              "https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=1",
+              "https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=2",
+              "https://calendar.google.test/calendar/event?action=RESPOND&eid=abc&rst=3"
+            ]
+          }
+        ]
       }
     }
   ]

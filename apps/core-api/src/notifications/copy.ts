@@ -309,6 +309,13 @@ export function movedCopy(title: string, from: string, to: string): Copy {
   return { title: `${clamp(title)} moved`, body: `Was ${from}, now ${to}.` };
 }
 
+/** Google's copy of an event went. `title` is null when the row goes with it:
+ *  an Activity row naming a row outlives nothing, so the words are left out
+ *  and the day says which one. */
+export function canceledCopy(title: string | null, day: string | null): Copy {
+  return { title: title ? `${clamp(title)} was canceled` : "An event was canceled", body: day ? `Was ${day}.` : null };
+}
+
 /** A verb acted on from a notification, quiet. */
 export function actedCopy(title: string, action: "done" | "tomorrow"): Copy {
   return {

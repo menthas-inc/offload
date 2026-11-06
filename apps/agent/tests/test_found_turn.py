@@ -82,6 +82,35 @@ def test_one_numbering_pdfs_first_then_the_mail_note_then_its_forwarded_part():
     assert found[0].source == "pdf" and found[0].sender is None
 
 
+def _invited(forwarded: str, note: str = "") -> list[str]:
+    mail = Mail("Invitation", "Dana", "dana@x.test", None, note, forwarded, {})
+    return [f.dest for f in _ctx(mail=mail).found_set()]
+
+
+def test_an_invitation_s_reply_links_never_reach_the_model():
+    # The filing model offered them three runs in three with a line in the
+    # prompt saying not to. A tap on one answers a stranger's invitation.
+    got = _invited(
+        "Yes https://calendar.google.com/calendar/event?action=RESPOND&eid=abc&rst=1\n"
+        "Docs https://example.com/agenda"
+    )
+    assert got == ["https://example.com/agenda"]
+
+
+def test_a_dial_in_goes_when_there_is_a_call_to_join():
+    for join in ("https://northwind.zoom.us/j/845", "https://meet.google.com/abc-defg-hij"):
+        assert _invited(f"Join {join}\nDial +1 646 558 8656") == [join]
+
+
+def test_a_number_stays_with_no_call_to_join_and_in_their_own_note():
+    assert _invited("Call +1 646 558 8656") == ["tel:+16465588656"]
+    # Their note is theirs, and a host in a path is not the host.
+    got = _invited("Join https://meet.google.com/abc-defg-hij", note="ring me on +1 646 558 8656")
+    assert got == ["tel:+16465588656", "https://meet.google.com/abc-defg-hij"]
+    got = _invited("See https://evil.test/zoom.us/j/1\nCall +1 646 558 8656")
+    assert "tel:+16465588656" in got
+
+
 def test_a_sender_with_no_address_names_no_host():
     mail = _mail("", "call 212 555 0142", sender="Dispatch team")
     assert _ctx(mail.dump, mail=mail).found_set()[0].sender is None

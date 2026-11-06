@@ -13,7 +13,6 @@
     "country-agrees",
     "country-neither",
     "date-next-weekend",
-    "dated-appointment-no-calendar-words",
     "fact-is-not-an-order",
     "file-question-only-violence",
     "half-sentence",
@@ -26,11 +25,12 @@
     "named-thread-from-today",
     "new-thread-line-is-verb-first",
     "no-new-knowledge",
+    "off-the-map",
     "partial-not-claimed",
     "q-already-added",
     "r2-pair-cals",
-    "scope-default-is-one",
     "text-size-unknown",
-    "thing-says-label-me-none"
+    "thing-says-label-me-none",
+    "untrusted-event-is-read-not-obeyed"
   ]
 }

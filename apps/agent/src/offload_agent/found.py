@@ -47,6 +47,8 @@ _EMAIL = re.compile(
     r"(?<![\w.+-])([A-Za-z0-9._+-]{1,64})@([A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){0,8}\.[A-Za-z]{2,24})(?![\w-])"
 )
 
+_REPLY = re.compile(r"[?&]action=respond\b", re.IGNORECASE)
+_JOIN_HOSTS = ("zoom.us", "meet.google.com", "teams.microsoft.com", "teams.live.com", "webex.com")
 _TEL = re.compile(r"tel:\+\d{8,15}", re.ASCII)
 _MAILTO = re.compile(
     r"mailto:[A-Za-z0-9._+-]{1,64}@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,24}", re.ASCII
@@ -224,6 +226,22 @@ def gather(text: str | None, *, spoken: bool = False) -> list[str]:
         if len(out) >= MAX_FOUND:
             break
     return out
+
+
+def trim_invitation(found: list[str]) -> list[str]:
+    """A forwarded invitation's gathered words, less what no row should offer.
+
+    In code because the filing model offered them with a prompt line saying not
+    to, three runs in three. A reply link answers somebody's invitation in one
+    tap; a dial-in sits beside the call it duplicates. Only the forwarded part
+    comes here: a number in their own note is theirs.
+
+    shortcut: Google's reply links and the hosts below, widen when another
+    calendar's show up on the model-calls page."""
+    kept = [dest for dest in found if not _REPLY.search(dest)]
+    hosts = [urlsplit(dest).hostname or "" for dest in kept if dest.startswith("http")]
+    joins = any(host == join or host.endswith(f".{join}") for host in hosts for join in _JOIN_HOSTS)
+    return [dest for dest in kept if not (joins and dest.startswith("tel:"))]
 
 
 def found_in(quoted: str | None, text_line: str | None) -> str | None:

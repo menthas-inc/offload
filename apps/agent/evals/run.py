@@ -56,6 +56,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from anthropic import AsyncAnthropic
 
@@ -612,12 +613,15 @@ class Recorder:
         #: 041. The PDF indexes filed, each once.
         self.pdfs_filed: set[int] = set()
         self.content_timed: dict[str, bool] = {}
+        #: When each row starts, for the bound on a row finding its event.
+        self.content_at: dict[str, str] = {}
         #: 2026-10-13. A fixture row is a row an earlier turn filed, and the
         #: server takes any of the account's own: timed ones go on, the rest
         #: are refused `no_time`, as a row this turn filed would be.
         for fixture_row in _rows_for(self.fx, None):
             row_id = str(fixture_row.get("contentId"))
             self.content_timed[row_id] = bool(fixture_row.get("occursAt"))
+            self.content_at[row_id] = str(fixture_row.get("occursAt") or "")
         self.refused_time_once = False
         #: Title of every row this turn added, by the id handed back, so an
         #: edit naming that id can be read as the title's final state.
@@ -755,6 +759,21 @@ class Recorder:
             if fx.get("calendar_write") == "no_time_once" and not self.refused_time_once:
                 self.refused_time_once = True
                 return {"ok": False, "error": "no_time"}
+            # The bound `rememberEvent` runs: an event the account holds, at
+            # the row's own moment.
+            if args.get("event"):
+                events = fx.get("events") or []
+                held = next((e for e in events if e.get("sourceRef") == args["event"]), None)
+                if held is None or not held.get("yours", True):
+                    return {"ok": False, "error": "unknown_event"}
+                zone = fx.get("time_zone", TIME_ZONE)
+                row_at = _moment(self.content_at.get(content_id, ""), zone)
+                event_at = _moment(held.get("startsAt", ""), zone)
+                if held.get("allDay") and row_at and event_at:
+                    row_at, event_at = row_at.date(), event_at.date()
+                if row_at != event_at:
+                    return {"ok": False, "error": "different_time"}
+                return {"ok": True, "alreadyOn": True}
             because = fx.get("calendar_waits")
             if because:
                 return {"ok": True, "waitingForThem": True, "because": because}
@@ -874,6 +893,7 @@ class Recorder:
                 # as the server does: a stub that wrote any row to a calendar
                 # could not see a row filed without one and filed again.
                 self.content_timed[out["contentId"]] = bool(args.get("occurs_at"))
+                self.content_at[out["contentId"]] = str(args.get("occurs_at") or "")
             else:
                 out["noteId"] = f"n{self.filed_ids}"
             return out
@@ -887,6 +907,7 @@ class Recorder:
             return {"ok": True, "done": True}
         if tool == "edit_content" and args.get("occurs_at"):
             self.content_timed[str(args.get("content_id"))] = True
+            self.content_at[str(args.get("content_id"))] = str(args["occurs_at"])
         if tool in {
             "edit_content",
             "move_content",
@@ -1405,6 +1426,11 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
             return False
         if "date_any" in matcher and not any(when.startswith(d) for d in matcher["date_any"]):
             return False
+        # The moment, not the spelling: a model may write it in UTC or their zone.
+        if "end" in matcher:
+            zone = fx.get("time_zone", TIME_ZONE)
+            if _moment(str(args.get("occurs_end_at") or ""), zone) != _moment(matcher["end"], zone):
+                return False
         if "priority_min" in matcher and (args.get("priority") or 50) < matcher["priority_min"]:
             return False
         if matcher.get("no_date") and when:
@@ -1631,6 +1657,8 @@ def _came_back(tool: str, body: dict | None) -> str:
     if not body.get("ok"):
         return f"  -> refused: {body.get('error')}"
     if tool in {"create_event", "edit_event", "delete_event"}:
+        if body.get("alreadyOn"):
+            return "  -> already on their calendar; nothing written"
         if body.get("waitingForThem"):
             return f"  -> held for the person's go-ahead, not written: {body.get('because')}"
         if body.get("asked"):
@@ -1835,6 +1863,15 @@ async def _run_look(client: AsyncAnthropic, case: Case, model: str) -> Result:
         failures.append(f"kept {sorted(kept)}, wanted {want}")
     cost = _cost(model, 600 * len(pictures), 60)
     return Result(case, "", transcript, failures, True, transcript, cost=cost)
+
+
+def _moment(value: str, zone: str | None) -> datetime | None:
+    """A time as the Core API reads it: one with no offset is in their zone."""
+    try:
+        at = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return at if at.tzinfo else at.replace(tzinfo=ZoneInfo(zone or "UTC"))
 
 
 def _mail(fx: dict) -> Mail | None:

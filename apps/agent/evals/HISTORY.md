@@ -218,6 +218,29 @@ and is not committed.
 | 2026-11-02 15:24 | 23 | 1 | 20/23 (87%) | $0.03 | `claude-haiku-5-5` | `cb40f500` | `cd6890cd` | 050 after: a task to call or write carries it |
 | 2026-11-02 15:25 | 27 | 1 | 7/8 (88%) | $0.01 | `claude-haiku-5-5` | `cb40f500` | `cd6890cd` | 050 after: a task to call or write carries it |
 | 2026-11-02 15:26 | 50 | 3 | 15/15 (100%) | $0.04 | `claude-haiku-5-5` | `cb40f500` | `cd6890cd` | 050 final prompt, three-run majority |
+| 2026-11-06 13:11 | 08 | 1 | 40/49 (82%) | $0.23 | `claude-haiku-5-5` | `cb40f500` | `e294659b` | calendar mail dedupe: before |
+| 2026-11-06 13:12 | 50 | 1 | 17/19 (90%) | $0.02 | `claude-haiku-5-5` | `cb40f500` | `e294659b` | calendar mail dedupe: before |
+| 2026-11-06 13:12 | 08 | 1 | 41/49 (84%) | $0.24 | `claude-haiku-5-5` | `9c825348` | `e294659b` | calendar mail dedupe: after |
+| 2026-11-06 13:13 | 50 | 1 | 15/19 (79%) | $0.02 | `claude-haiku-5-5` | `9c825348` | `e294659b` | calendar mail dedupe: after |
+| 2026-11-06 13:14 | 50 | 3 | 14/19 (74%) | $0.06 | `claude-haiku-5-5` | `66c2807b` | `e294659b` | calendar mail dedupe: after, never list |
+| 2026-11-06 13:15 | 08 | 1 | 42/49 (86%) | $0.19 | `claude-haiku-5-5` | `66c2807b` | `e294659b` | calendar mail dedupe: after, never list |
+| 2026-11-06 13:16 | 50 | 3 | 16/19 (84%) | $0.06 | `claude-haiku-5-5` | `9ecad846` | `e294659b` | calendar mail dedupe: after, invitation rule |
+| 2026-11-06 13:17 | 08 | 3 | 43/49 (88%) | $0.56 | `claude-haiku-5-5` | `9ecad846` | `e294659b` | calendar mail dedupe: after, invitation rule |
+| 2026-11-06 13:19 | 50 | 3 | 18/19 (95%) | $0.05 | `claude-haiku-5-5` | `9ecad846` | `e294659b` | calendar mail dedupe: after, trim in code |
+| 2026-11-06 13:20 | 50 | 3 | 19/19 (100%) | $0.06 | `claude-haiku-5-5` | `fbe17c2d` | `e294659b` | calendar mail dedupe: after, final |
+| 2026-11-06 13:20 | forwarded-invite-already-on-the-calendar | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `fbe17c2d` | `e294659b` | calendar mail dedupe: after, final |
+| 2026-11-06 14:04 | earlier-rows-go-on-the-calendar-by-id | 3 | 1/1 (100%) | $0.03 | `claude-haiku-5-5` | `3c3215bc` | `e294659b` | calendar mail dedupe: reworded |
+| 2026-11-06 14:04 | a-typed-appointment-does-not-look-first | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `3c3215bc` | `e294659b` | calendar mail dedupe: reworded |
+| 2026-11-06 14:04 | forwarded-invite-already-on-the-calendar | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `3c3215bc` | `e294659b` | calendar mail dedupe: reworded |
+| 2026-11-06 14:04 | forwarded-all-day-invite-already-on-the-calendar | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `3c3215bc` | `e294659b` | calendar mail dedupe: reworded |
+| 2026-11-06 14:05 | forwarded-invite-not-on-the-calendar-goes-on | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `3c3215bc` | `e294659b` | calendar mail dedupe: reworded |
+| 2026-11-06 14:05 | join-link-rides-a-row-already-on-the-calendar | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `3c3215bc` | `e294659b` | calendar mail dedupe: reworded |
+| 2026-11-06 14:07 | earlier-rows-go-on-the-calendar-by-id | 3 | 1/1 (100%) | $0.02 | `claude-haiku-5-5` | `3c3215bc` | `e294659b` | calendar mail dedupe: reworded, second check |
+| 2026-11-06 14:07 | a-typed-appointment-does-not-look-first | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `3c3215bc` | `e294659b` | calendar mail dedupe: reworded, second check |
+| 2026-11-06 14:07 | forwarded-invite-already-on-the-calendar | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `3c3215bc` | `e294659b` | calendar mail dedupe: reworded, second check |
+| 2026-11-06 14:07 | forwarded-all-day-invite-already-on-the-calendar | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `3c3215bc` | `e294659b` | calendar mail dedupe: reworded, second check |
+| 2026-11-06 14:07 | forwarded-invite-not-on-the-calendar-goes-on | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `3c3215bc` | `e294659b` | calendar mail dedupe: reworded, second check |
+| 2026-11-06 14:07 | join-link-rides-a-row-already-on-the-calendar | 3 | 1/1 (100%) | $0.00 | `claude-haiku-5-5` | `3c3215bc` | `e294659b` | calendar mail dedupe: reworded, second check |
 
 ## Full runs by principle
 
