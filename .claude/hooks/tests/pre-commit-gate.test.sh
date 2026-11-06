@@ -70,17 +70,24 @@ check_type "failing typecheck" 'python3 -c "import sys; print(\"test/x.test.ts(1
 # against the checkout the commit targets: the session cwd from the payload,
 # resolved to its git top-level. Here the test command only passes in the
 # worktree, so a gate running in CLAUDE_PROJECT_DIR fails it.
-check_worktree() {
-  local main wt payload out code
+check_worktree() { # check_worktree <name> <payload cwd: main|wt> <command, WT for the worktree's path>
+  local main wt payload out code at
   main="$(mktemp -d)"; git -C "$main" init -q
   wt="$(mktemp -d)"; git -C "$wt" init -q
   : > "$wt/only-in-worktree"
-  payload="$(printf '{"cwd":"%s","tool_input":{"command":"git commit -m x"}}' "$wt")"
+  if [ "$2" = wt ]; then at="$wt"; else at="$main"; fi
+  payload="$(python3 -c 'import json,sys; print(json.dumps({"cwd": sys.argv[1], "tool_input": {"command": sys.argv[2].replace("WT", sys.argv[3])}}))' "$at" "$3" "$wt")"
   out="$(cd "$main" && printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$main" PROJECT_TEST_CMD="test -f only-in-worktree" bash "$gate" 2>&1 >/dev/null)"; code=$?
-  if [ "$code" != 0 ]; then echo "FAIL gate runs in the commit's worktree, not CLAUDE_PROJECT_DIR: exit $code"; fails=$((fails+1)); fi
+  if [ "$code" != 0 ]; then echo "FAIL $1: exit $code"; fails=$((fails+1)); fi
   rm -rf "$main" "$wt"
 }
-check_worktree
+check_worktree "gate runs in the commit's worktree, not CLAUDE_PROJECT_DIR" wt "git commit -m x"
+# A session whose cwd is main commits in a worktree by naming it in the command.
+# The gate followed the payload's cwd and ran main's suite for every such commit,
+# so 049's branch went to CI with a web failure the gate never ran (2026-10-31).
+check_worktree "gate follows a cd in the command" main "cd WT && git add x && git commit -m x"
+check_worktree "gate follows a quoted cd" main "cd 'WT' && git commit -m x"
+check_worktree "gate follows git -C" main "git -C WT commit -m x"
 
 # The gate runs the suite on the shared database, so it takes the board's
 # `suite` hold itself. On 2026-10-26 a command that matched the gate by accident
