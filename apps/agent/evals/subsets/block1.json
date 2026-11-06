@@ -27,10 +27,10 @@
     "pasted-confirmation",
     "preserve-truncated",
     "priority-from-words",
-    "private-write-quiet",
     "q-wifi",
     "read-wifi",
     "reads-and-answers",
-    "rule-applied-to-own-filing"
+    "rule-applied-to-own-filing",
+    "scope-default-is-one"
   ]
 }

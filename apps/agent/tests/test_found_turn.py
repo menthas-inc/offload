@@ -111,6 +111,23 @@ def test_a_number_stays_with_no_call_to_join_and_in_their_own_note():
     assert "tel:+16465588656" in got
 
 
+def _said(ctx: DumpContext) -> str:
+    return json.dumps(build_blocks(ctx))
+
+
+def test_looking_at_the_calendar_first_is_said_on_an_email_turn_only():
+    # In the system prompt it read as every turn: a typed "add the rest" began
+    # reading the calendar and saying so. Only an email can have got there by
+    # itself, so the rule rides the email.
+    mail = Mail("Invitation", "Dana", "dana@x.test", None, "", "Design review", {})
+    assert "find_events" in _said(_ctx(mail=mail, has_calendar=True))
+    assert "find_events" not in _said(_ctx(mail=mail, has_calendar=False))
+    assert "find_events" not in _said(_ctx("dentist tuesday 3pm", has_calendar=True))
+    from offload_agent.harness.plan import filing_prompt
+
+    assert "`find_events` around its time" not in filing_prompt(True)
+
+
 def test_a_sender_with_no_address_names_no_host():
     mail = _mail("", "call 212 555 0142", sender="Dispatch team")
     assert _ctx(mail.dump, mail=mail).found_set()[0].sender is None

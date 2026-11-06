@@ -106,6 +106,49 @@ export async function syncNow(connectionId: string, now = new Date()): Promise<v
   });
 }
 
+const HOUR_MS = 3_600_000;
+/** Well inside the worker's thirty seconds for a tool call. */
+const READ_AROUND_MS = 5_000;
+
+/** Google's events around one moment, into the copy, so a write is decided on
+ *  what is there and not on a copy up to a quarter of an hour old.
+ *
+ *  Never in a transaction, and bounded: it runs inside a tool call the worker
+ *  gives thirty seconds, and a retry past that could write twice. It is a plain
+ *  window read so it cannot race the quarter-hour pass over a sync token. An
+ *  event a row remembers is left alone: that pass compares the copy with Google
+ *  to move the row, and updating the copy first would hide the move. */
+export async function readAround(accountId: string, at: Date): Promise<void> {
+  const window = { timeMin: new Date(at.getTime() - HOUR_MS), timeMax: new Date(at.getTime() + HOUR_MS) };
+  const read = async (): Promise<void> => {
+    const connections = await db
+      .selectFrom("connector_connections")
+      .select(["id", "external_account_email"])
+      .where("account_id", "=", accountId)
+      .where("state", "=", "active")
+      .where("deleted_at", "is", null)
+      .execute();
+    for (const connection of connections) {
+      const accessToken = await accessTokenFor(connection.id);
+      const calendars = await db.selectFrom("connector_calendars").selectAll().where("connection_id", "=", connection.id).where("selected", "=", true).execute();
+      await Promise.all(
+        calendars.map(async (calendar) => {
+          const page = await listEvents(accessToken, calendar.external_id, window);
+          if (page === "resync") return;
+          const remembered = await rememberedOn(accountId, calendar.external_id);
+          for (const event of page.events) {
+            if (event.status === "cancelled" || !event.startsAt) continue;
+            if (remembered.has(sourceRefFor(calendar.external_id, event.externalId))) continue;
+            const reader = { accountEmail: connection.external_account_email, primary: calendar.is_primary };
+            await upsertEvent(db, accountId, calendar.id, mapEvent(event, calendar.external_id, reader));
+          }
+        }),
+      );
+    }
+  };
+  await Promise.race([read(), new Promise<void>((done) => setTimeout(done, READ_AROUND_MS))]);
+}
+
 export interface SyncOutcome {
   calendars: number;
   written: number;
@@ -378,7 +421,7 @@ async function followChange(accountId: string, calendarId: string, mapped: Mappe
  *  offload takes them, with no Undo since offload was not asked.
  *
  *  A row remembering a series goes only once the copy holds none of the
- *  series. A row that only found its event stays, forgetting it. A row carrying a photo is not destroyed with an appointment: it
+ *  series. A row that only found its event stays, off its day. A row carrying a photo is not destroyed with an appointment: it
  *  stops being an event and goes loose, photo and all. The account's own rows
  *  only, as the calendar is. Never failing the pass: the copy is right by now. */
 async function letGo(accountId: string, calendarId: string, calendarExternalId: string, gone: Gone): Promise<void> {
@@ -423,11 +466,12 @@ async function letGo(accountId: string, calendarId: string, calendarExternalId: 
         contentId: stays ? row.id : null,
       });
       // Filed from a dump, not made by the event: somebody cancelling a meeting
-      // does not delete what the person forwarded. It only forgets the event.
+      // does not delete what the person forwarded. It leaves the day, as a row
+      // carrying a photo does, and stays where it is.
       if (row.found) {
         await db
           .updateTable("content")
-          .set({ source_ref: null, attrs: sql`attrs - 'calendar' - 'calendar_found'`, updated_at: new Date() })
+          .set({ occurs_at: null, occurs_end_at: null, rrule: null, source_ref: null, attrs: sql`attrs - 'calendar' - 'calendar_found' - 'all_day'`, updated_at: new Date() })
           .where("id", "=", row.id)
           .execute();
         continue;

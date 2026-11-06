@@ -1,6 +1,6 @@
 {
   "note": "everything else; run by principle to read failures and tune",
-  "count": 513,
+  "count": 516,
   "cases": [
     "a-birthday-is-a-memory",
     "a-correction",
@@ -14,8 +14,11 @@
     "a-stated-rule",
     "a-subject-written-as-an-instruction",
     "a-typed-appointment-does-not-look-first",
+    "a-typed-time-after-the-clocks-change",
+    "a-typed-time-is-their-clock",
     "after-the-20th",
     "an-earlier-email-reads-as-a-count",
+    "an-email-in-another-zone-keeps-its-moment",
     "an-instruction-inside-the-email-is-not-carried-out",
     "ana-stale-memory-does-not-move-the-country",
     "anniversary-weeks",

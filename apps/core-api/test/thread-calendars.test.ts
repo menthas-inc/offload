@@ -43,6 +43,13 @@ vi.mock("../src/connectors/google.js", async (importOriginal) => {
   return { ...actual, ...google };
 });
 
+// Google read around a moment: what it brings in is the test's to say.
+const freshen = vi.hoisted(() => ({ readAround: vi.fn(async (_account: string, _at: Date) => undefined) }));
+vi.mock("../src/connectors/sync.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/connectors/sync.js")>();
+  return { ...actual, ...freshen };
+});
+
 await migrate(() => {});
 
 let app: App;
@@ -56,6 +63,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   google.createEvent.mockClear();
+  freshen.readAround.mockClear();
   google.countParticipants.mockReset();
   google.countParticipants.mockResolvedValue(1);
   google.sharedWith.mockReset();
@@ -1718,6 +1726,93 @@ describe("forwarded invitations: a row that finds its event", () => {
     expect(page).toContain(contentId);
     expect(page).toContain('"onCalendar":false');
     expect(page).not.toContain('"onCalendar":true');
+  });
+
+  describe("the server finds it, whatever the model did", () => {
+    /** The row a forwarded email filed, its words as the message holds them. */
+    async function mailed(text: string, subject = "Invitation") {
+      const turn = await invited({ extraCalendar: true });
+      await db
+        .updateTable("messages")
+        .set({ source: "mail", text, attrs: JSON.stringify({ mail: { subject, fromName: null, fromAddress: "z@x.test", sentAt: null, noteLength: 0, historyAt: null, leftOut: {}, cc: false } }) } as never)
+        .where("id", "=", turn.messageId)
+        .execute();
+      return turn;
+    }
+    const WORDS = "Forwarded: Design review at 3pm, with Dana";
+
+    it("an email naming the event at its moment finds it with no `event` from the model", async () => {
+      const { jobId, contentId, sourceRef } = await mailed(WORDS);
+      const result = (await tool({ tool: "create_event", jobId, toolCallId: "n1", contentId })).json();
+      expect(result).toEqual({ ok: true, alreadyOn: true });
+      expect(google.createEvent).not.toHaveBeenCalled();
+      expect((await held(contentId)).source_ref).toBe(sourceRef);
+    });
+
+    it("reads the subject too, and any order of the title's words", async () => {
+      const { jobId, contentId } = await mailed("See you there", "Review: design, Thursday");
+      expect((await tool({ tool: "create_event", jobId, toolCallId: "n2", contentId })).json()).toEqual({ ok: true, alreadyOn: true });
+    });
+
+    it("an event that reached Google after the last sync is read before anything is written", async () => {
+      // The first real one: the copy was up to fifteen minutes old, offload
+      // wrote a second event, and the write's own sync brought the first in.
+      const { me, id, jobId, contentId, sourceRef } = await mailed(WORDS);
+      await db.deleteFrom("connector_events").where("source_ref", "=", sourceRef).execute();
+      freshen.readAround.mockImplementationOnce(async () => {
+        await event(me, id, "Design review", STARTS, { sourceRef, invitedMe: true, createdByMe: false });
+      });
+      expect((await tool({ tool: "create_event", jobId, toolCallId: "n3", contentId })).json()).toEqual({ ok: true, alreadyOn: true });
+      expect(freshen.readAround).toHaveBeenCalledWith(me, new Date(STARTS));
+      expect(google.createEvent).not.toHaveBeenCalled();
+    });
+
+    it("a read that fails leaves the write as it was", async () => {
+      const { me, t, id, jobId, contentId, sourceRef } = await mailed(WORDS);
+      await pick(t, id, me);
+      await db.deleteFrom("connector_events").where("source_ref", "=", sourceRef).execute();
+      freshen.readAround.mockRejectedValueOnce(new Error("google"));
+      const result = (await tool({ tool: "create_event", jobId, toolCallId: "n4", contentId })).json() as Record<string, unknown>;
+      expect(result["written"]).toBe(true);
+    });
+
+    it("an event the email does not name is another event at that moment", async () => {
+      const { me, t, id, jobId, contentId } = await mailed("Forwarded: dentist on Tuesday");
+      await pick(t, id, me);
+      const result = (await tool({ tool: "create_event", jobId, toolCallId: "n5", contentId })).json() as Record<string, unknown>;
+      expect(result["written"]).toBe(true);
+    });
+
+    it("a calendar named in the email does not switch it off: a stranger can write that sentence", async () => {
+      const { jobId, contentId } = await mailed(WORDS);
+      const result = (await tool({ tool: "create_event", jobId, toolCallId: "n6", contentId, calendar: "Other" })).json();
+      expect(result).toEqual({ ok: true, alreadyOn: true });
+    });
+
+    it("a title too plain to say which is left to the model", async () => {
+      const { me, t, id, jobId, contentId, sourceRef } = await mailed("Lunch on Tuesday, and a 1:1");
+      await pick(t, id, me);
+      await db.updateTable("connector_events").set({ title: "Lunch" }).where("source_ref", "=", sourceRef).execute();
+      const result = (await tool({ tool: "create_event", jobId, toolCallId: "n8", contentId })).json() as Record<string, unknown>;
+      expect(result["written"]).toBe(true);
+    });
+
+    it("old reply history under the email does not count, as the turn never read it", async () => {
+      const { me, t, id, jobId, contentId, messageId } = await mailed("Tuesday works. > On Monday: Design review");
+      await pick(t, id, me);
+      await db.updateTable("messages").set({ attrs: JSON.stringify({ mail: { subject: "Re", fromName: null, fromAddress: "z@x.test", sentAt: null, noteLength: 0, historyAt: 14, leftOut: {}, cc: false } }) } as never).where("id", "=", messageId).execute();
+      const result = (await tool({ tool: "create_event", jobId, toolCallId: "n9", contentId })).json() as Record<string, unknown>;
+      expect(result["written"]).toBe(true);
+    });
+
+    it("words typed by the person never reach for it: only an email can have got there by itself", async () => {
+      const { me, t, id, jobId, contentId } = await invited();
+      await pick(t, id, me);
+      await db.updateTable("messages").set({ text: WORDS }).where("account_id", "=", me).execute();
+      const result = (await tool({ tool: "create_event", jobId, toolCallId: "n7", contentId })).json() as Record<string, unknown>;
+      expect(result["written"]).toBe(true);
+      expect(freshen.readAround).not.toHaveBeenCalled();
+    });
   });
 
   it("a repeating row remembers the series, as one offload put up does", async () => {

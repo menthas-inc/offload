@@ -101,6 +101,23 @@ _PROMPT_NO_CALENDAR = re.sub(
 _PROMPT = _PROMPT.replace(_WITH_CALENDAR + "\n", "").replace(_END_CALENDAR + "\n", "")
 
 
+# Here and not in the prompt: there it read as every turn, and a typed "add the
+# rest" began reading the calendar. Only an email can have got there by itself.
+_MAIL_AND_THE_CALENDAR = (
+    "It may already be on their calendar: an invitation lands there by itself and a "
+    "booking may have been added. Before `create_event` for a row from it, `find_events` "
+    "around its time. When the same event is there, going by its time and what it is "
+    "about even if the words differ, call `create_event` with the row's id and that "
+    "event's `sourceRef` in `event`, which is only ever a `sourceRef` `find_events` "
+    "returned: nothing is written, nothing is asked, and nothing is said. The row is "
+    "still filed, with the end, the place and the details the email gives, and a link "
+    "to join goes in its `actions`, not its body. A different event at that time is not "
+    "this one. Refused `different_time` or `unknown_event`, it is not that event: call "
+    "`create_event` without `event`. A row already in a thread for it is not filed "
+    "again: `edit_content` adds what the email has."
+)
+
+
 def filing_prompt(has_calendar: bool) -> str:
     """The filing prompt as this account is sent it, without the media rules."""
     return _PROMPT if has_calendar else _PROMPT_NO_CALENDAR
@@ -767,6 +784,8 @@ def _turn_blocks(ctx: DumpContext) -> list[dict]:
             "It usually holds more detail than a typed dump; file what it is for, "
             "with the detail that matters in the row's body."
         )
+        if ctx.has_calendar:
+            ours += "\n" + _MAIL_AND_THE_CALENDAR
         if mail.left_out:
             # Counted by us, so it stays with our words.
             ours += "\nAttached and not kept: " + ", ".join(

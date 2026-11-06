@@ -136,6 +136,25 @@ def test_a_row_finding_its_event_runs_the_server_s_bound():
     assert unknown["error"] == "unknown_event"
 
 
+def test_a_forwarded_email_finds_its_event_with_no_word_from_the_model():
+    # `eventInTheEmail`, run here too: a stub that wrote every row could not
+    # see a turn the server would have settled by itself.
+    case = _case_with_rows(
+        [{"contentId": "e1", "type": "event", "title": "Review", "occursAt": "2026-09-17T14:00"}]
+    )
+    case.fixture["mail"] = {"forwarded": "Design review with Dana"}
+    case.fixture["events"] = [
+        {"sourceRef": "cal-1:r", "title": "Design review", "startsAt": "2026-09-17T13:00:00Z"}
+    ]
+    assert _call(case, "create_event", {"content_id": "e1"}) == {"ok": True, "alreadyOn": True}
+    named = _call(case, "create_event", {"content_id": "e1", "calendar": "Studio"})
+    assert named == {"ok": True, "alreadyOn": True}
+    case.fixture["events"][0]["title"] = "Dentist Dana"
+    assert _call(case, "create_event", {"content_id": "e1"}).get("written") is True
+    case.fixture["events"][0]["title"] = "Design"
+    assert _call(case, "create_event", {"content_id": "e1"}).get("written") is True
+
+
 # ------------------------------------------------------------------ 050 actions
 
 

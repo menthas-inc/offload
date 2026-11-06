@@ -66,7 +66,8 @@ import {
   setPreference,
   type Action,
 } from "./threads.js";
-import { calendarOfEvent, findEvents, rememberEvent, summarise, writeThroughTool } from "../connectors/tool-calls.js";
+import { readAround } from "../connectors/sync.js";
+import { calendarOfEvent, eventInTheEmail, findEvents, rememberEvent, summarise, writeThroughTool } from "../connectors/tool-calls.js";
 import { approvedWritable, calendarsNamed, turnScope, writablePicks } from "../threads/calendars.js";
 import { raiseCalendarQuestion } from "../questions.js";
 import { shownToModel } from "../threads/default.js";
@@ -1517,6 +1518,12 @@ async function existing(
       const found = await rememberEvent(accountId, row.id, detail, call.event, trx);
       return found === "remembered" ? { ok: true, alreadyOn: true } : { ok: false, error: found };
     }
+    // Only an email can have got there by itself. A calendar named on the call
+    // does not switch this off: a stranger's email can write that sentence.
+    if (sawMail && messageId) {
+      const inMail = await eventInTheEmail(accountId, detail, messageId, trx);
+      if (inMail && (await rememberEvent(accountId, row.id, detail, inMail, trx)) === "remembered") return { ok: true, alreadyOn: true };
+    }
 
     const write: WriteAction = {
       action: "create",
@@ -1874,6 +1881,12 @@ export async function toolRoutes(app: App): Promise<void> {
       // commits. Sending from inside would tell the worker a piece was filed
       // and then lose it to a failed commit, which is the one failure this
       // whole feature is built to make impossible.
+      // Google before the transaction, never in it: see `readAround`.
+      if (call.tool === "create_event" && sawMail) {
+        const row = await db.selectFrom("content").select("occurs_at").where("id", "=", call.contentId).where("account_id", "=", accountId).executeTakeFirst();
+        if (row?.occurs_at) await readAround(accountId, row.occurs_at).catch(() => undefined);
+      }
+
       const outcome = await attempt(() =>
         db.transaction().execute(async (trx): Promise<Outcome> => {
         // The bound, counted from what is actually in the database rather than
