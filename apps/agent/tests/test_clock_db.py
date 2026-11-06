@@ -84,7 +84,7 @@ async def seeded():
     return with_clock, without
 
 
-async def test_an_answer_reads_in_the_accounts_clock_before_the_devices_zone(seeded):
+async def test_an_answer_reads_in_the_devices_zone_before_the_accounts_clock(seeded):
     with_clock, without = seeded
     agent = create_async_engine(_asyncpg(AGENT_DB))
     async with agent.connect() as conn:
@@ -92,9 +92,9 @@ async def test_an_answer_reads_in_the_accounts_clock_before_the_devices_zone(see
             await message_zone(
                 conn, message_id=with_clock["message"], account_id=with_clock["account"]
             )
-            == "Europe/Lisbon"
+            == "Asia/Tokyo"
         )
-        # An account with no clock yet reads in the device's word, as before.
+        # An account with no clock yet reads in the device's word too.
         assert (
             await message_zone(conn, message_id=without["message"], account_id=without["account"])
             == "Asia/Tokyo"

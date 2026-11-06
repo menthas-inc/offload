@@ -72,6 +72,7 @@ import { raiseCalendarQuestion } from "../questions.js";
 import { shownToModel } from "../threads/default.js";
 import { suggestAtFiling } from "../loose/suggestions.js";
 import { proposeShare } from "../threads/proposals.js";
+import { tickIn } from "../threads/tick.js";
 import type { WriteAction } from "../connectors/write.js";
 import { linkPhoto, pdfForRow, photoForRow, withTaken } from "../blobs/rows.js";
 import { placeQuery } from "../places/query.js";
@@ -1613,11 +1614,7 @@ async function existing(
   if (!ref) return { ok: false, error: "unknown_content" };
 
   if (call.tool === "complete_content") {
-    await trx
-      .updateTable("content")
-      .set({ done_at: call.done ? sql`now()` : null, updated_at: sql`now()` })
-      .where("id", "=", ref.id)
-      .execute();
+    await tickIn(trx, accountId, ref.id, call.done);
     await touchThread(ref.threadId, trx);
     await noteThread(messageId, ref.threadId, true, trx);
     return { ok: true, done: true };

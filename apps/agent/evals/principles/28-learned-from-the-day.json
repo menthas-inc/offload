@@ -367,6 +367,47 @@
       "expect": {
         "groups": 0
       }
+    },
+    {
+      "id": "a-person-in-passing-is-not-a-note",
+      "why": "the owner, 2026-11-06: this dump put 'Ritu is Meera's mom.' on Home, and it is true of them, not of Home",
+      "surface": "nightly",
+      "today": "Saturday 31 October 2026",
+      "input": {
+        "thread": "Home",
+        "notes": [],
+        "messages": [
+          {
+            "day": "2026-10-31",
+            "text": "Thursday grocery shopping with Ritu (meera's mom) 3-6pm."
+          }
+        ]
+      },
+      "expect": {
+        "learns": 0
+      }
+    },
+    {
+      "id": "somebody-who-is-part-of-the-thread-is-a-note",
+      "why": "what somebody is to this thread stays a note, and the rule above must not eat it",
+      "surface": "nightly",
+      "today": "Saturday 31 October 2026",
+      "input": {
+        "thread": "Diwali party",
+        "notes": [],
+        "messages": [
+          {
+            "day": "2026-10-31",
+            "text": "Ritu is doing the cooking for this one"
+          }
+        ]
+      },
+      "expect": {
+        "learns": 1,
+        "learned_has": [
+          "Ritu"
+        ]
+      }
     }
   ]
 }

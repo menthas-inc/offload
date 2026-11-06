@@ -7,7 +7,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
-import { archivePassed, PASSED_BATCH } from "../src/threads/passed.js";
+import { archivePassed, PASSED_BATCH, setAsidePassedNotes } from "../src/threads/passed.js";
+import { MemoryMailer } from "../src/mail/mailer.js";
 import { setArchived } from "../src/routes/threads.js";
 import { handlers } from "../src/jobs/handlers.js";
 import { SCHEDULED } from "../src/jobs/schedule.js";
@@ -19,6 +20,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.deleteFrom("jobs").execute();
+  await db.deleteFrom("notes").execute();
   await db.deleteFrom("content").execute();
   await db.deleteFrom("messages").execute();
   await db.deleteFrom("conversations").execute();
@@ -203,5 +205,126 @@ describe("what has passed archives itself", () => {
   it("runs hourly from the api, with a registry row", () => {
     expect(handlers["content.passed"]).toBeTypeOf("function");
     expect(SCHEDULED.find((one) => one.kind === "content.passed")).toMatchObject({ cadence: "hourly", runner: "api" });
+  });
+});
+
+// 2026-11-06 (the owner). A plan kept as a note passes as an event does. The
+// nightly pass could already set one aside, but only one it is shown, and it
+// is never shown a note out of an email: the owner's "Kyle staying with us,
+// Sun Nov 1 to Wed Nov 4" stood on Home a week after Kyle left.
+describe("a note that has passed", () => {
+  const written = new Date("2026-10-12T02:12:26Z");
+  const noon = (day: string) => new Date(`${day}T12:00:00Z`);
+
+  async function note(accountId: string, threadId: string, over: Record<string, unknown>): Promise<string> {
+    const made = await db
+      .insertInto("notes")
+      .values({ account_id: accountId, scope: "thread", subject_id: threadId, kind: "preference", text: `A note ${uuidv7()}`, origin: "learned", created_at: written, ...over } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    return made.id;
+  }
+  const state = (id: string) =>
+    db.selectFrom("notes").select(["superseded_at", "purge_after", "updated_at"]).where("id", "=", id).executeTakeFirstOrThrow();
+  const aside = async (id: string) => (await state(id)).superseded_at !== null;
+
+  it("sets aside a span and a single day from an email, and keeps them with no clock on them", async () => {
+    const me = await account("America/New_York");
+    const th = await thread(me);
+    const kyle = await note(me, th, { derived_from_untrusted: true, occurs_at: noon("2026-11-01"), occurs_end_at: noon("2026-11-04"), attrs: allDay });
+    const dinner = await note(me, th, { derived_from_untrusted: true, occurs_at: noon("2026-10-29"), attrs: allDay });
+    const before = await state(kyle);
+
+    expect(await setAsidePassedNotes(new Date("2026-11-06T17:00:00Z"))).toMatchObject({ setAside: 2, more: false });
+
+    expect(await aside(kyle)).toBe(true);
+    expect(await aside(dinner)).toBe(true);
+    // The privacy page's section 13: nothing expires on a clock.
+    expect((await state(kyle)).purge_after).toBeNull();
+    expect((await state(kyle)).updated_at).toEqual(before.updated_at);
+  });
+
+  it("waits for the last day of a span to be over in the author's clock", async () => {
+    const me = await account("America/New_York");
+    const th = await thread(me);
+    const stay = await note(me, th, { occurs_at: noon("2026-11-01"), occurs_end_at: noon("2026-11-04"), attrs: allDay });
+    // 21:00 on the 4th in New York, already the 5th in UTC.
+    const timed = await note(me, th, { occurs_at: new Date("2026-11-05T02:00:00Z") });
+
+    await setAsidePassedNotes(new Date("2026-11-05T04:59:00Z"));
+    expect(await aside(stay)).toBe(false);
+    expect(await aside(timed)).toBe(false);
+
+    await setAsidePassedNotes(new Date("2026-11-05T05:01:00Z"));
+    expect(await aside(stay)).toBe(true);
+    expect(await aside(timed)).toBe(true);
+  });
+
+  it("leaves a dated fact: a date already gone, or the day itself, when it was written", async () => {
+    const me = await account("America/New_York");
+    const th = await thread(me);
+    const built = await note(me, th, { text: "The house was built in 1931", occurs_at: noon("1931-01-01"), attrs: allDay });
+    const lived = await note(me, th, { text: "We lived in Lisbon 2010 to 2015", occurs_at: noon("2010-01-01"), occurs_end_at: noon("2015-12-31"), attrs: allDay });
+    // Written at 21:00 on the 3rd in New York, the 4th in UTC, about the 3rd.
+    const serviced = await note(me, th, { text: "The boiler was serviced today", occurs_at: noon("2026-11-03"), attrs: allDay, created_at: new Date("2026-11-04T02:00:00Z") });
+
+    expect((await setAsidePassedNotes(new Date("2026-11-06T17:00:00Z"))).setAside).toBe(0);
+    for (const id of [built, lived, serviced]) expect(await aside(id)).toBe(false);
+  });
+
+  it("leaves a repeating note, one that is only due, an undated one, a memory and one still on", async () => {
+    const me = await account("America/New_York");
+    const th = await thread(me);
+    const yoga = await note(me, th, { occurs_at: noon("2026-10-20"), rrule: "FREQ=WEEKLY;BYDAY=TU", attrs: allDay });
+    // The owner's own, which says monthly and holds no rule: due is a to-do's date.
+    const mortgage = await note(me, th, { text: "Mortgage payment is due monthly on the 5th.", due_at: noon("2026-11-05") });
+    const ritu = await note(me, th, { text: "Ritu is Meera's mom." });
+    const trip = await note(me, th, { occurs_at: noon("2027-02-21"), occurs_end_at: noon("2027-03-07"), attrs: allDay });
+    const memory = await note(me, me, { scope: "account", kind: "people", occurs_at: noon("2026-10-20"), attrs: allDay });
+    const toDo = await note(me, th, { occurs_at: noon("2026-10-20"), due_at: noon("2026-10-22"), attrs: allDay });
+
+    expect((await setAsidePassedNotes(new Date("2026-11-06T17:00:00Z"))).setAside).toBe(0);
+    for (const id of [yoga, mortgage, ritu, trip, memory, toDo]) expect(await aside(id)).toBe(false);
+  });
+
+  it("takes a sentence a person typed, another member's by their clock, and an author who has gone by UTC", async () => {
+    const me = await account("America/New_York");
+    const other = await account("Asia/Tokyo");
+    const th = await thread(me);
+    await db.insertInto("thread_members").values({ thread_id: th, account_id: other, state: "accepted" }).execute();
+    const typed = await note(me, th, { origin: "stated", occurs_at: noon("2026-11-01"), attrs: allDay });
+    const theirs = await note(other, th, { occurs_at: new Date("2026-11-05T14:00:00Z") });
+    const gone = await note(me, th, { account_id: null, occurs_at: noon("2026-11-01"), attrs: allDay });
+
+    // Still the 5th in New York, already the 6th in Tokyo.
+    expect((await setAsidePassedNotes(new Date("2026-11-05T20:00:00Z"))).setAside).toBe(3);
+    for (const id of [typed, theirs, gone]) expect(await aside(id)).toBe(true);
+  });
+
+  it("does not touch a note already set aside or deleted, and works a batch at a time", async () => {
+    const me = await account("America/New_York");
+    const th = await thread(me);
+    const when = { occurs_at: noon("2026-11-01"), attrs: allDay };
+    const folded = new Date("2026-11-02T00:00:00Z");
+    const old = await note(me, th, { ...when, superseded_at: folded });
+    await note(me, th, { ...when, deleted_at: folded });
+    await note(me, th, when);
+    await note(me, th, when);
+    await note(me, th, when);
+
+    const now = new Date("2026-11-06T17:00:00Z");
+    expect(await setAsidePassedNotes(now, 2)).toMatchObject({ setAside: 2, more: true });
+    expect(await setAsidePassedNotes(now, 2)).toMatchObject({ setAside: 1, more: false });
+    expect((await state(old)).superseded_at).toEqual(folded);
+  });
+
+  it("runs in the hourly job, which books the next batch while there is more", async () => {
+    const me = await account("America/New_York");
+    const th = await thread(me);
+    const past = await note(me, th, { occurs_at: noon("2026-10-29"), attrs: allDay });
+
+    await handlers["content.passed"]!({}, { mailer: new MemoryMailer() }, null);
+
+    expect(await aside(past)).toBe(true);
   });
 });

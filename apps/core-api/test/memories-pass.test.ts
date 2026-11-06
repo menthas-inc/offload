@@ -11,7 +11,8 @@ import { handlers } from "../src/jobs/handlers.js";
 import { MemoryMailer } from "../src/mail/mailer.js";
 import { uuidv7 } from "../src/uuid.js";
 import { clearSettingsCache } from "../src/settings.js";
-import { capLock, LEARNED_MEMORY_CAP, memoriesForPrompt, remember } from "../src/memories/store.js";
+import { capLock, LEARNED_MEMORY_CAP, memoriesForPrompt, remember, sweepMemories } from "../src/memories/store.js";
+import { applyCompaction } from "../src/threads/notes.js";
 import { applyMemoryPass, passOwed } from "../src/memories/pass.js";
 import { account, join, note, thread, wipe } from "./loose-kit.js";
 
@@ -425,6 +426,65 @@ describe("a replaced memory goes after thirty days, on an account with nothing e
 
     await handlers["content.purge"]!({}, { mailer: new MemoryMailer() }, null);
     expect(await db.selectFrom("notes").select("id").where("id", "=", asked.id).execute()).toEqual([]);
+  });
+});
+
+describe("a memory outlives the note it came from", () => {
+  it("keeps a note offload set aside while a memory cites it, so the sweep does not take the memory", async () => {
+    const ana = await account("Ana");
+    const th = await db.insertInto("threads").values({ created_by_account_id: ana, name: "Home" }).returning("id").executeTakeFirstOrThrow();
+    const one = await said(ana, "grocery shopping with Ritu (meera's mom)");
+    const note = (text: string) =>
+      db
+        .insertInto("notes")
+        .values({ account_id: ana, scope: "thread", subject_id: th.id, kind: "preference", text, origin: "learned", derived_from_message_id: one } as never)
+        .returning("id")
+        .executeTakeFirstOrThrow();
+    const cited = await note("Ritu is Meera's mom.");
+    const plain = await note("The boiler is in the loft.");
+    const memory = await db
+      .insertInto("notes")
+      .values({ account_id: ana, scope: "account", subject_id: ana, kind: "people", text: "Ritu is Meera's mom.", origin: "learned", derived_from_message_id: one, attrs: JSON.stringify({ from_note: cited.id }) } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    await applyCompaction(th.id, { supersede: [cited.id, plain.id], remove: [], add: [] }, db, { author: ana });
+    await db
+      .updateTable("notes")
+      .set({ purge_after: sql`purge_after - interval '31 days'` } as never)
+      .where("id", "in", [cited.id, plain.id])
+      .execute();
+
+    await handlers["content.purge"]!({}, { mailer: new MemoryMailer() }, null);
+    await sweepMemories();
+
+    const left = await db.selectFrom("notes").select("id").where("id", "in", [cited.id, plain.id, memory.id]).where("deleted_at", "is", null).execute();
+    expect(left.map((row) => row.id).sort()).toEqual([cited.id, memory.id].sort());
+  });
+
+  it("sets aside rather than removes a note a memory cites, and removes what none cites", async () => {
+    const ana = await account("Ana");
+    const th = await db.insertInto("threads").values({ created_by_account_id: ana, name: "Home" }).returning("id").executeTakeFirstOrThrow();
+    const one = await said(ana, "grocery shopping with Ritu (meera's mom)");
+    const note = (text: string) =>
+      db
+        .insertInto("notes")
+        .values({ account_id: ana, scope: "thread", subject_id: th.id, kind: "preference", text, origin: "learned", derived_from_message_id: one } as never)
+        .returning("id")
+        .executeTakeFirstOrThrow();
+    const cited = await note("Ritu is Meera's mom.");
+    const plain = await note("Never worth writing.");
+    await db
+      .insertInto("notes")
+      .values({ account_id: ana, scope: "account", subject_id: ana, kind: "people", text: "Ritu is Meera's mom.", origin: "learned", derived_from_message_id: one, attrs: JSON.stringify({ from_note: cited.id }) } as never)
+      .execute();
+
+    await applyCompaction(th.id, { supersede: [], remove: [cited.id, plain.id], add: [] }, db, { author: ana });
+
+    const row = (id: string) => db.selectFrom("notes").select(["superseded_at", "deleted_at", "purge_after"]).where("id", "=", id).executeTakeFirstOrThrow();
+    expect(await row(cited.id)).toMatchObject({ deleted_at: null, purge_after: null });
+    expect((await row(cited.id)).superseded_at).not.toBeNull();
+    expect((await row(plain.id)).deleted_at).not.toBeNull();
   });
 });
 

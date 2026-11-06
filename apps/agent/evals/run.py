@@ -1409,6 +1409,8 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
             return False
         if matcher.get("no_date") and when:
             return False
+        if matcher.get("bare_day") and "T" in when:
+            return False
         # 023. A rule is matched by its parts: every part the case names must
         # be in the rule the model wrote, so "every Tuesday" may arrive as
         # FREQ=WEEKLY or FREQ=WEEKLY;BYDAY=TU and both are the weekly rule.
@@ -2372,6 +2374,8 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
     messages make it an ordinary thread's pass that may learn, the candidates
     make it the default thread's, which suggests threads. Notes are
     {id, written_at, theirs, origin, text}; `theirs` false is another member's.
+    `memories` is what the pass is shown of the account's, as `_memories` reads
+    them; none, as in a shared thread, is the default.
 
     Structural rules hold on every case, as the Core API holds them: nothing
     removed that a person typed, nothing touched that is not theirs, no fold
@@ -2405,6 +2409,7 @@ async def _run_nightly(client: AsyncAnthropic, case: Case, model: str) -> Result
         notes=rows,
         messages=None if propose else messages,
         candidates=candidates if propose else None,
+        memories=_memories(fx),
         to_label=to_label,
         anchors=anchors,
         rows=fx.get("rows"),

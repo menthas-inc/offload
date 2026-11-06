@@ -2,7 +2,6 @@
   "note": "the race's second block: the lead's pool buys it for a candidate the gate kept",
   "count": 30,
   "cases": [
-    "after-the-20th",
     "answer-population",
     "answer-porn",
     "app-fix-in-app-thread",
@@ -25,8 +24,9 @@
     "named-carnival",
     "named-thread-from-today",
     "new-thread-line-is-verb-first",
-    "no-new-knowledge",
     "partial-not-claimed",
+    "passed-date-set-aside",
+    "past-month-no-year",
     "q-already-added",
     "r2-pair-cals",
     "scope-default-is-one",
